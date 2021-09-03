@@ -1,0 +1,85 @@
+plugins {
+    id 'java'
+}
+
+ext.ballerinaLangVersion = project.ballerinaLangVersion
+ext.testngVersion = project.testngVersion
+ext.slf4jVersion = project.slf4jVersion
+ext.stdlibIoVersion = project.stdlibIoVersion
+ext.stdlibLogVersion = project.stdlibLogVersion
+ext.stdlibMimeVersion = project.stdlibMimeVersion
+ext.stdlibAuthVersion = project.stdlibAuthVersion
+ext.stdlibCacheVersion = project.stdlibCacheVersion
+ext.stdlibTimeVersion = project.stdlibTimeVersion
+ext.stdlibCryptoVersion = project.stdlibCryptoVersion
+ext.stdlibTaskVersion = project.stdlibTaskVersion
+ext.stdlibFileVersion = project.stdlibFileVersion
+ext.stdlibHttpVersion = project.stdlibHttpVersion
+ext.stdlibUrlVersion = project.stdlibUrlVersion
+ext.stdlibXmldataVersion = project.stdlibXmldataVersion
+ext.puppycrawlCheckstyleVersion = "8.18"
+
+configurations {
+    balTools
+}
+
+def Properties localProperties = new Properties()
+localProperties.load(project.rootProject.file("local.properties").newDataInputStream())
+
+repositories {
+    mavenLocal()
+
+    maven {
+        url = 'https://maven.pkg.github.com/ballerina-platform/*'
+        credentials {
+            username localProperties.getProperty("mvn.username")
+            password localProperties.getProperty("mvn.password")
+        }
+    }
+
+    maven {
+        url = 'https://maven.wso2.org/nexus/content/repositories/releases/'
+    }
+    maven {
+        url = 'https://maven.wso2.org/nexus/content/groups/wso2-public/'
+    }
+
+    maven {
+        url = 'https://maven.wso2.org/nexus/content/repositories/orgballerinalang-1614'
+    }
+
+    maven {
+        url = 'https://repo.maven.apache.org/maven2'
+    }
+
+    maven {
+        url "https://plugins.gradle.org/m2/"
+    }
+}
+
+ext {
+    snapshotVersion= '-SNAPSHOT'
+    timestampedVersionRegex = '.*-\\d{8}-\\d{6}-\\w.*\$'
+}
+
+dependencies {
+    implementation 'io.apicurio:apicurio-data-models:1.1.15'
+    implementation 'org.apache.logging.log4j:log4j-core:2.14.1'
+    implementation "com.fasterxml.jackson.core:jackson-databind:2.11.1"
+    implementation 'commons-io:commons-io:2.11.0'
+    implementation "org.ballerinalang:ballerina-lang:${ballerinaLangVersion}"
+    implementation "org.ballerinalang:ballerina-parser:${ballerinaLangVersion}"
+    implementation "org.ballerinalang:ballerina-cli:${ballerinaLangVersion}"
+    implementation "org.ballerinalang:formatter-core:${ballerinaLangVersion}"
+    implementation "org.ballerinalang:ballerina-tools-api:${ballerinaLangVersion}"
+    implementation "io.ballerina.stdlib:http-native:${stdlibHttpVersion}"
+    implementation "org.ballerinalang:language-server-commons:${ballerinaLangVersion}"
+
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.6.0'
+    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine'
+}
+
+
+test {
+    useJUnitPlatform()
+}
