@@ -19,5 +19,5 @@
 package io.ballerina.asyncapi.codegenerator.controller;
 
 public interface Controller {
-    void generateBalCode(String spec);
+    void generateBalCode(String spec, String balTemplate);
 }
