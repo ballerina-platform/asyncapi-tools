@@ -22,7 +22,7 @@ import io.ballerina.asyncapi.codegenerator.application.CodeGenerator;
 
 public class AsyncApiToBalGenerator {
     public static void main(String[] args) {
-        var codeGenerator = new CodeGenerator("file_path");
+        var codeGenerator = new CodeGenerator(System.getenv().get("SPEC_FILE_PATH"));
         codeGenerator.generate();
     }
 }

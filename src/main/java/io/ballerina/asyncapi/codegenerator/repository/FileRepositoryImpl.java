@@ -41,4 +41,27 @@ public class FileRepositoryImpl implements FileRepository {
             return null;
         }
     }
+
+    @Override
+    public String getFileContentFromResources(String fileName) {
+        try (var inputStream = getFileFromResourceAsStream(fileName)) {
+            return IOUtils.toString(inputStream, StandardCharsets.UTF_8.name());
+        } catch (IOException e) {
+            logger.error("File not found: ".concat(fileName), e);
+            return null;
+        }
+    }
+
+    public InputStream getFileFromResourceAsStream(String fileName) {
+        // The class loader that loaded the class
+        var classLoader = getClass().getClassLoader();
+        var inputStream = classLoader.getResourceAsStream(fileName);
+
+        // the stream holding the file content
+        if (inputStream == null) {
+            throw new IllegalArgumentException("file not found! " + fileName);
+        } else {
+            return inputStream;
+        }
+    }
 }
