@@ -1,19 +1,18 @@
 import ballerina/http;
 
 class SlackListener {
-   private http:Listener httpListener;
-    private DispatcherService dispatcherService;
-   //private string verificationToken;
+    private http:Listener httpListener;
+    //private string verificationToken;
 
-   public isolated function init() returns error? { //receive verification token with listener config
-        self.httpListener = check new (8090); // param port
+    public isolated function init(int port = 8090) returns error? { //receive verification token with listener config
+        self.httpListener = check new (port); // param port
         //self.verificationToken = userConfig.verificationToken
-   }
+    }
 
-   public isolated function attach(SlackAppMentionHandlingService|SlackAppCreatedHandlingService serviceRef, () attachPoint) returns @tainted error? {// Pass verification token 
+    public isolated function attach(GenericServiceType serviceRef, string | string [] attachPoint) returns @tainted error? {// Pass verification token 
         check self.httpListener.attach(check new DispatcherService(serviceRef), attachPoint);
-   }
-    
+    }
+
     public isolated function detach(service object {} s) returns error? {
         return self.httpListener.detach(s);
     }

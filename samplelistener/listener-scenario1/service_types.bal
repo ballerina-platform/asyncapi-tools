@@ -6,5 +6,4 @@ type SlackAppCreatedHandlingService service object {
    remote function onAppCreated(GenericEventWrapperEvent e);
 };
 
-
-type genericType SlackAppMentionHandlingService | SlackAppCreatedHandlingService;
+public type GenericServiceType SlackAppMentionHandlingService | SlackAppCreatedHandlingService;

@@ -2,10 +2,10 @@ import ballerina/http;
 import ballerina/jballerina.java;
 
 service class DispatcherService {
-   private SlackAppMentionHandlingService|SlackAppCreatedHandlingService serviceRef;
+   private GenericServiceType serviceRef;
    //private string verificationToken;
 
-   isolated function init(SlackAppMentionHandlingService|SlackAppCreatedHandlingService serviceRef) returns error? { //Receive verification token
+   isolated function init(GenericServiceType serviceRef) returns error? { //Receive verification token
         self.serviceRef = serviceRef;
         //self.verificationToken = "9asdbas9009123nas1e2";
    }
@@ -24,7 +24,7 @@ service class DispatcherService {
         // }
 
         GenericEventWrapperEvent genericEvent = check payload.cloneWithType(GenericEventWrapperEvent);
-        if (genericEvent.event.'type == "app_mention") {
+        if genericEvent.event.'type == "app_mention" {
                 SlackAppMentionHandlingService serviceReference = <SlackAppMentionHandlingService> self.serviceRef;
                 var s = check self.callOnAppEvent(genericEvent, "app_mention", "onAppMention", serviceReference);
         }

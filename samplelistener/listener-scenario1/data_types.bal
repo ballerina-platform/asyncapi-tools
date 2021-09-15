@@ -14,11 +14,15 @@ public type EventType record {
     string 'type;
 };
 
-// Get verfication token from user
+// //Get user inputs
 // @display {label: "Connection Config"}
-// public type ListenerConfiguration record {
-//     @display {label: "Verification Token"}
-//     string verificationToken;
-//      {| int x; json...; |}
-// };
+// public type ListenerConfiguration record {|
+//     @display {label: "Listener Port"}
+//     string port;
+//     // @display {label: "Verification Token"}
+//     // string verificationToken;
+//      //{| int x; json...; |}
+// |};
+
+
  
