@@ -1,9 +1,18 @@
 import ballerina/io;
 
-listener SlackListener slackListener = new ();
+listener Listener slackListener = new ();
 
 service on slackListener {
-   remote function onAppMention(GenericEventWrapperEvent e) {
-      io:println("onAppMention");
+   remote function onAppMentionAdded(GenericEventWrapperEvent e) {
+      io:println("onAppMentionAdded");
+   }
+   remote function onAppMentionRemoved(GenericEventWrapperEvent e) {
+      io:println("onAppMentionRemoved");
+   }
+}
+
+service on slackListener {
+   remote function onAppCreated(GenericEventWrapperEvent e) {
+      io:println("onAppCreated");
    }
 }

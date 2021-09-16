@@ -13,12 +13,4 @@ public type GenericEventWrapperEvent record {
 public type EventType record {
     string 'type;
 };
-
-// Get verfication token from user
-// @display {label: "Connection Config"}
-// public type ListenerConfiguration record {
-//     @display {label: "Verification Token"}
-//     string verificationToken;
-//      {| int x; json...; |}
-// };
  

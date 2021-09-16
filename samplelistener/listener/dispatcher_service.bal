@@ -2,31 +2,37 @@ import ballerina/http;
 import ballerina/jballerina.java;
 
 service class DispatcherService {
-   private SlackAppMentionHandlingService|SlackAppCreatedHandlingService serviceRef;
-   //private string verificationToken;
+     private map<GenericService> services = {};
 
-   isolated function init(SlackAppMentionHandlingService|SlackAppCreatedHandlingService serviceRef) returns error? { //Receive verification token
-        self.serviceRef = serviceRef;
-        //self.verificationToken = "9asdbas9009123nas1e2";
+   isolated function addServiceRef(string serviceType, GenericService genericService) returns error? {
+        if (self.services.hasKey(serviceType)) {
+             return error("Same service type has been defined more than one time");
+        }
+        self.services[serviceType] = genericService;
    }
 
-   isolated resource function post events (http:Caller caller, http:Request request) returns error? {
+   // We are not using the (@http:payload GenericEventWrapperEvent g) notation because of 
+   // a bug in Ballerina. (Unable to handle complex objects as payloads)
+   resource function post events (http:Caller caller, http:Request request) returns error? {
         json payload = check request.getJsonPayload();
-        // string eventOrVerification = check payload.'type;
-
-        // if (payload.token !== self.verificationToken) {
-        //     return error("Verification token mismatch");
-        // }
-
-        // if (eventOrVerification == URL_VERIFICATION) {
-        //     check self.verifyURL(caller, payload);
-        // } else if (eventOrVerification == EVENT_CALLBACK) {
-        // }
 
         GenericEventWrapperEvent genericEvent = check payload.cloneWithType(GenericEventWrapperEvent);
-        if (genericEvent.event.'type == "app_mention") {
-                SlackAppMentionHandlingService serviceReference = <SlackAppMentionHandlingService> self.serviceRef;
-                var s = check self.callOnAppEvent(genericEvent, "app_mention", "onAppMention", serviceReference);
+        match genericEvent.event.'type {
+             "app_mention_added" => {
+                if self.services.hasKey("AppMentionHandlingService") {
+                    check self.callOnAppEvent(genericEvent, genericEvent.event.'type, "onAppMentionAdded", self.services["AppMentionHandlingService"]);
+               }
+             }
+             "app_mention_removed" => {
+                if self.services.hasKey("AppMentionHandlingService") {
+                    check self.callOnAppEvent(genericEvent, genericEvent.event.'type, "onAppMentionRemoved", self.services["AppMentionHandlingService"]);
+               }
+             }
+             "app_created" => {
+               if self.services.hasKey("AppCreatedHandlingService") {
+                    check self.callOnAppEvent(genericEvent, genericEvent.event.'type, "onAppCreated", self.services["AppCreatedHandlingService"]);
+               }
+             }
         }
    }
 
@@ -34,14 +40,5 @@ service class DispatcherService {
     = @java:Method {
         'class: "io.ballerinax.event.NativeHttpToEventAdaptor"
     } external;
-
-    //Respomnd to verification token
-    //isolated function verifyURL(http:Caller caller, json payload) returns @untainted error? {
-    //     http:Response response = new;
-    //     response.statusCode = http:STATUS_OK;
-    //     response.setPayload({challenge: check <@untainted>payload.challenge});
-    //     check caller->respond(response);
-    //     log:printInfo("Request URL Verified");
-    // }
 }
 
