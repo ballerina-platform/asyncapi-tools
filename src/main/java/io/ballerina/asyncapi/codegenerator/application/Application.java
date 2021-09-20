@@ -18,6 +18,8 @@
 
 package io.ballerina.asyncapi.codegenerator.application;
 
+import io.ballerina.asyncapi.codegenerator.configuration.BallerinaAsyncApiException;
+
 public interface Application {
-    void generate();
+    void generate() throws BallerinaAsyncApiException;
 }

@@ -18,6 +18,7 @@
 
 package io.ballerina.asyncapi.codegenerator.usecase.utils;
 
+import io.ballerina.asyncapi.codegenerator.configuration.BallerinaAsyncApiException;
 import io.ballerina.asyncapi.codegenerator.configuration.Constants;
 
 import java.util.Locale;
@@ -88,6 +89,15 @@ public class CodegenUtils {
             return identifier.substring(0, 1).toUpperCase(Locale.ENGLISH) + identifier.substring(1);
         } else {
             return identifier.substring(0, 1).toLowerCase(Locale.ENGLISH) + identifier.substring(1);
+        }
+    }
+    public String extractReferenceType(String referenceVariable) throws BallerinaAsyncApiException {
+        if (referenceVariable.startsWith("#") && referenceVariable.contains("/")) {
+            String[] refArray = referenceVariable.split("/");
+            return escapeIdentifier(refArray[refArray.length - 1]);
+        } else {
+            throw new BallerinaAsyncApiException("Invalid reference value : " + referenceVariable
+                    + "\nBallerina only supports local reference values.");
         }
     }
 }

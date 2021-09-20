@@ -22,11 +22,13 @@ import io.apicurio.datamodels.Library;
 import io.apicurio.datamodels.asyncapi.models.AaiDocument;
 import io.apicurio.datamodels.asyncapi.models.AaiSchema;
 import io.apicurio.datamodels.asyncapi.v2.models.Aai20Document;
+import io.ballerina.asyncapi.codegenerator.configuration.BallerinaAsyncApiException;
 import io.ballerina.asyncapi.codegenerator.usecase.GenerateRecordNode;
 import io.ballerina.asyncapi.codegenerator.usecase.UseCase;
 import io.ballerina.compiler.syntax.tree.ModuleMemberDeclarationNode;
 import io.ballerina.compiler.syntax.tree.ModulePartNode;
 import io.ballerina.compiler.syntax.tree.SyntaxTree;
+import io.ballerina.compiler.syntax.tree.TypeDefinitionNode;
 import io.ballerina.tools.text.TextDocuments;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -41,13 +43,15 @@ public class SchemaController implements Controller {
     private static final Logger logger = LogManager.getLogger(SchemaController.class);
 
     @Override
-    public void generateBalCode(String spec, String balTemplate) {
+    public void generateBalCode(String spec, String balTemplate) throws BallerinaAsyncApiException {
         AaiDocument asyncApiSpec = (Aai20Document) Library.readDocumentFromJSONString(spec);
 
         List<ModuleMemberDeclarationNode> recordNodes = new ArrayList<>();
         for (Map.Entry<String, AaiSchema> fields : asyncApiSpec.components.schemas.entrySet()) {
             UseCase generateRecordNode = new GenerateRecordNode(asyncApiSpec, fields);
-            recordNodes.add(generateRecordNode.execute());
+            if (generateRecordNode.execute() != null) {
+                recordNodes.add(generateRecordNode.execute());
+            }
         }
 
         var textDocument = TextDocuments.from(balTemplate);

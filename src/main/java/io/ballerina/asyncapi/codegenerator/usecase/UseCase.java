@@ -18,6 +18,8 @@
 
 package io.ballerina.asyncapi.codegenerator.usecase;
 
+import io.ballerina.asyncapi.codegenerator.configuration.BallerinaAsyncApiException;
+
 public interface UseCase {
-    <T> T execute();
+    <T> T execute() throws BallerinaAsyncApiException;
 }

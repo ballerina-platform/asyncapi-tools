@@ -6,7 +6,7 @@
  *  in compliance with the License.
  *  You may obtain a copy of the License at
  *
- *    http://www.apache.org/licenses/LICENSE-2.0
+ *  http://www.apache.org/licenses/LICENSE-2.0
  *
  *  Unless required by applicable law or agreed to in writing,
  *  software distributed under the License is distributed on an
@@ -16,18 +16,17 @@
  *  under the License.
  */
 
-package io.ballerina.asyncapi;
+package io.ballerina.asyncapi.codegenerator.configuration;
 
-import io.ballerina.asyncapi.codegenerator.application.CodeGenerator;
-import io.ballerina.asyncapi.codegenerator.configuration.BallerinaAsyncApiException;
+/**
+ * Exception type definition for AsyncApi to Ballerina parsing related errors.
+ */
+public class BallerinaAsyncApiException extends Exception {
+    public BallerinaAsyncApiException(String message, Throwable e) {
+        super(message, e);
+    }
 
-public class AsyncApiToBalGenerator {
-    public static void main(String[] args) {
-        var codeGenerator = new CodeGenerator(System.getenv().get("SPEC_FILE_PATH"));
-        try {
-            codeGenerator.generate();
-        } catch (BallerinaAsyncApiException e) {
-            System.out.println(e.getMessage());
-        }
+    public BallerinaAsyncApiException(String message) {
+        super(message);
     }
 }

@@ -18,6 +18,8 @@
 
 package io.ballerina.asyncapi.codegenerator.controller;
 
+import io.ballerina.asyncapi.codegenerator.configuration.BallerinaAsyncApiException;
+
 public interface Controller {
-    void generateBalCode(String spec, String balTemplate);
+    void generateBalCode(String spec, String balTemplate) throws BallerinaAsyncApiException;
 }
