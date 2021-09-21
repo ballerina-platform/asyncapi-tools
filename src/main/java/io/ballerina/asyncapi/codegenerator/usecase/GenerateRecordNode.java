@@ -32,8 +32,7 @@ import java.util.Map;
 
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.*;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.*;
-import static io.ballerina.compiler.syntax.tree.SyntaxKind.OPEN_BRACE_TOKEN;
-import static io.ballerina.compiler.syntax.tree.SyntaxKind.SEMICOLON_TOKEN;
+import static io.ballerina.compiler.syntax.tree.SyntaxKind.*;
 
 public class GenerateRecordNode implements UseCase {
     private final AaiDocument asyncApiSpec;
@@ -51,7 +50,6 @@ public class GenerateRecordNode implements UseCase {
     public TypeDefinitionNode execute() throws BallerinaAsyncApiException {
         var typeName = AbstractNodeFactory
                 .createIdentifierToken(codegenUtils.escapeIdentifier(recordFields.getKey().trim()));
-        Token typeKeyWord = AbstractNodeFactory.createIdentifierToken("public type");
         TypeDefinitionNode typeDefinitionNode;
         List<Node> schemaDoc = new ArrayList<>();
         List<Node> recordFieldList = new ArrayList<>();
@@ -67,7 +65,7 @@ public class GenerateRecordNode implements UseCase {
                 createMarkdownDocumentationNode(createNodeList(schemaDoc));
         var metadataNode = createMetadataNode(documentationNode, createEmptyNodeList());
         typeDefinitionNode = NodeFactory.createTypeDefinitionNode(metadataNode,
-                null, typeKeyWord, typeName, recordTypeDescriptorNode, createToken(SEMICOLON_TOKEN));
+                createToken(PUBLIC_KEYWORD), createToken(TYPE_KEYWORD), typeName, recordTypeDescriptorNode, createToken(SEMICOLON_TOKEN));
         return typeDefinitionNode;
     }
 
