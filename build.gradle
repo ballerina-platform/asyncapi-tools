@@ -65,7 +65,7 @@ ext {
 dependencies {
     implementation 'io.apicurio:apicurio-data-models:1.1.15'
     implementation 'org.apache.logging.log4j:log4j-core:2.14.1'
-    implementation "com.fasterxml.jackson.core:jackson-databind:2.11.1"
+    implementation 'com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:2.12.5'
     implementation 'commons-io:commons-io:2.11.0'
     implementation "org.ballerinalang:ballerina-lang:${ballerinaLangVersion}"
     implementation "org.ballerinalang:ballerina-parser:${ballerinaLangVersion}"

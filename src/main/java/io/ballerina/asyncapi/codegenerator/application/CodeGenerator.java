@@ -18,6 +18,10 @@
 
 package io.ballerina.asyncapi.codegenerator.application;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
+import io.ballerina.asyncapi.codegenerator.configuration.BallerinaAsyncApiException;
 import io.ballerina.asyncapi.codegenerator.configuration.Constants;
 import io.ballerina.asyncapi.codegenerator.controller.Controller;
 import io.ballerina.asyncapi.codegenerator.controller.SchemaController;
@@ -32,12 +36,31 @@ public class CodeGenerator implements Application {
     }
 
     @Override
-    public void generate() {
+    public void generate() throws BallerinaAsyncApiException {
         FileRepository fileRepository = new FileRepositoryImpl();
-        String asyncApiSpec = fileRepository.getFileContent(specPath);
-        String balTemplate = fileRepository.getFileContentFromResources(Constants.HTTP_BAL_TEMPLATE_FILE_NAME);
+        String asyncApiSpecYaml = fileRepository.getFileContent(specPath);
+        String asyncApiSpecJson;
+        if (specPath.endsWith(".json")) {
+            asyncApiSpecJson = asyncApiSpecYaml;
+        } else if (specPath.endsWith("yaml")) {
+            try {
+                asyncApiSpecJson = convertYamlToJson(asyncApiSpecYaml);
+            } catch (JsonProcessingException e) {
+                throw new BallerinaAsyncApiException("Error when converting the given yaml file to json", e);
+            }
+        } else {
+            throw new BallerinaAsyncApiException("Unknown file type: ".concat(specPath));
+        }
+        String balTemplate = fileRepository.getFileContentFromResources(Constants.DATA_TYPES_BAL_TEMPLATE_FILE_NAME);
 
         Controller schemaController = new SchemaController();
-        schemaController.generateBalCode(asyncApiSpec, balTemplate);
+        schemaController.generateBalCode(asyncApiSpecJson, balTemplate);
+    }
+
+    String convertYamlToJson(String yaml) throws JsonProcessingException {
+        var yamlReader = new ObjectMapper(new YAMLFactory());
+        Object obj = yamlReader.readValue(yaml, Object.class);
+        var jsonWriter = new ObjectMapper();
+        return jsonWriter.writeValueAsString(obj);
     }
 }

@@ -21,7 +21,7 @@ package io.ballerina.asyncapi.codegenerator.configuration;
 import java.util.List;
 
 public final class Constants {
-    public static final String HTTP_BAL_TEMPLATE_FILE_NAME = "types.bal";
+    public static final String DATA_TYPES_BAL_TEMPLATE_FILE_NAME = "data_types.bal";
     public static final List<String> BAL_KEYWORDS;
     public static final List<String> BAL_TYPES;
     public static final String ESCAPE_PATTERN = "([\\[\\]\\\\?!<>@#&~`*\\-=^+();:\\/\\_{}\\s|.$])";
@@ -45,6 +45,17 @@ public final class Constants {
         BAL_KEYWORDS = List.of(KEYWORDS);
         BAL_TYPES = List.of(TYPES);
     }
+
+    public static final String INTEGER = "integer";
+    public static final String NUMBER = "number";
+    public static final String STRING = "string";
+    public static final String BOOLEAN = "boolean";
+    public static final String DECIMAL = "decimal";
+    public static final String ARRAY = "array";
+    public static final String RECORD = "record";
+    public static final String OBJECT = "object";
+    public static final String FLOAT = "float";
+    public static final String DOUBLE = "double";
 
     private Constants() {
     }
