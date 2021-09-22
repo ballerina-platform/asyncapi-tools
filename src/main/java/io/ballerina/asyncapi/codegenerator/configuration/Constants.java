@@ -57,6 +57,9 @@ public final class Constants {
     public static final String FLOAT = "float";
     public static final String DOUBLE = "double";
 
+    public static final String X_BALLERINA_EVENT_TYPE = "x-ballerina-event-type";
+    public static final String X_BALLERINA_SERVICE_TYPE = "x-ballerina-service-type";
+
     private Constants() {
     }
 }

@@ -68,7 +68,7 @@ public class CodegenUtils {
      * @param identifier input function name, record name or operation Id
      * @return string with new generated name
      */
-    public String getValidName(String identifier, boolean isSchema) {
+    public String getValidName(String identifier, boolean capitalizeFirstChar) {
         //For the flatten enable we need to remove first Part of valid name check
         // this - > !identifier.matches("\\b[a-zA-Z][a-zA-Z0-9]*\\b") &&
         if (!identifier.matches("\\b[0-9]*\\b")) {
@@ -85,7 +85,7 @@ public class CodegenUtils {
             }
             identifier = validName.toString();
         }
-        if (isSchema) {
+        if (capitalizeFirstChar) {
             return identifier.substring(0, 1).toUpperCase(Locale.ENGLISH) + identifier.substring(1);
         } else {
             return identifier.substring(0, 1).toLowerCase(Locale.ENGLISH) + identifier.substring(1);

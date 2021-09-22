@@ -25,6 +25,7 @@ import io.ballerina.asyncapi.codegenerator.configuration.BallerinaAsyncApiExcept
 import io.ballerina.asyncapi.codegenerator.configuration.Constants;
 import io.ballerina.asyncapi.codegenerator.controller.Controller;
 import io.ballerina.asyncapi.codegenerator.controller.SchemaController;
+import io.ballerina.asyncapi.codegenerator.controller.ServiceTypesController;
 import io.ballerina.asyncapi.codegenerator.repository.FileRepository;
 import io.ballerina.asyncapi.codegenerator.repository.FileRepositoryImpl;
 
@@ -42,7 +43,7 @@ public class CodeGenerator implements Application {
         String asyncApiSpecJson;
         if (specPath.endsWith(".json")) {
             asyncApiSpecJson = asyncApiSpecYaml;
-        } else if (specPath.endsWith("yaml")) {
+        } else if (specPath.endsWith("yaml") || specPath.endsWith("yml")) {
             try {
                 asyncApiSpecJson = convertYamlToJson(asyncApiSpecYaml);
             } catch (JsonProcessingException e) {
@@ -51,10 +52,12 @@ public class CodeGenerator implements Application {
         } else {
             throw new BallerinaAsyncApiException("Unknown file type: ".concat(specPath));
         }
-        String balTemplate = fileRepository.getFileContentFromResources(Constants.DATA_TYPES_BAL_TEMPLATE_FILE_NAME);
 
         Controller schemaController = new SchemaController();
-        schemaController.generateBalCode(asyncApiSpecJson, balTemplate);
+        schemaController.generateBalCode(asyncApiSpecJson, "");
+
+        Controller serviceTypesController = new ServiceTypesController();
+        serviceTypesController.generateBalCode(asyncApiSpecJson, "");
     }
 
     String convertYamlToJson(String yaml) throws JsonProcessingException {
