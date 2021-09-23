@@ -1,29 +1,25 @@
 import ballerina/http;
 
 class Listener {
-   private http:Listener httpListener;
+    private http:Listener httpListener;
     private DispatcherService dispatcherService = new DispatcherService();
 
-   public isolated function init(int|http:Listener listenOn = 8090) returns error? { 
-       if listenOn is http:Listener {
-           self.httpListener = listenOn;
-       } else {
+    public function init(int|http:Listener listenOn = 8090) returns error? { 
+        if listenOn is http:Listener {
+            self.httpListener = listenOn;
+        } else {
             self.httpListener = check new (listenOn);
-       }
-   }
+        }
+    }
 
-   public isolated function attach(GenericService serviceRef, () attachPoint) returns @tainted error? {
-       string serviceTypeStr = "";
-       if serviceRef is AppCreatedHandlingService {
-           serviceTypeStr = "AppCreatedHandlingService";
-       } else if serviceRef is AppMentionHandlingService {
-           serviceTypeStr = "AppMentionHandlingService";
-       }
+    public isolated function attach(GenericService serviceRef, () attachPoint) returns @tainted error? {
+        string serviceTypeStr = self.getServiceTypeStr(serviceRef);
         check self.dispatcherService.addServiceRef(serviceTypeStr, serviceRef);
-   }
+    }
     
-    public isolated function detach(service object {} s) returns error? {
-        return self.httpListener.detach(s);
+    public isolated function detach(GenericService serviceRef) returns error? {
+        string serviceTypeStr = self.getServiceTypeStr(serviceRef);
+        check self.dispatcherService.removeServiceRef(serviceTypeStr);
     }
 
     public isolated function 'start() returns error? {
@@ -37,6 +33,14 @@ class Listener {
 
     public isolated function immediateStop() returns error? {
         return self.httpListener.immediateStop();
+    }
+
+    private isolated function getServiceTypeStr(GenericService serviceRef) returns string {
+       if serviceRef is AppCreatedHandlingService {
+           return "AppCreatedHandlingService";
+       } else {
+           return "AppMentionHandlingService";
+       }
     }
 }
 
