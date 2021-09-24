@@ -3,6 +3,11 @@ import ballerina/jballerina.java;
 
 service class DispatcherService {
    private map<GenericService> services = {};
+   private string verificationToken;
+
+    public function init(string verificationToken) { 
+        self.verificationToken = verificationToken;
+    }
 
    isolated function addServiceRef(string serviceType, GenericService genericService) returns error? {
         if (self.services.hasKey(serviceType)) {
@@ -17,22 +22,31 @@ service class DispatcherService {
         }
         _ = self.services.remove(serviceType);
    }
-   
 
    // We are not using the (@http:payload GenericEventWrapperEvent g) notation because of a bug in Ballerina.
    // Issue: https://github.com/ballerina-platform/ballerina-lang/issues/32859
    resource function post events (http:Caller caller, http:Request request) returns error? {
         json payload = check request.getJsonPayload();
+        // Intent verification Handling
+        if (payload.token !== self.verificationToken) {
+            return error("Verification token mismatch");
+        }
+        string eventOrVerification = check payload.'type;
+        if (eventOrVerification == "url_verification") {
+            check self.verifyURL(caller, payload);
+            return ();
+        }
+        //
         GenericEventWrapperEvent genericEvent = check payload.cloneWithType(GenericEventWrapperEvent);
         match genericEvent.event.'type {
-          "app_mention_added" => {
-               check self.executeRemoteFunc(genericEvent, "AppMentionHandlingService", "onAppMentionAdded");
+          "app_mention" => {
+               check self.executeRemoteFunc(genericEvent, "AppHandlingService", "onAppMention");
           }
-          "app_mention_removed" => {
-               check self.executeRemoteFunc(genericEvent, "AppMentionHandlingService", "onAppMentionRemoved");
+          "channel_created" => {
+               check self.executeRemoteFunc(genericEvent, "ChannelHandlingService", "onChannelCreated");
           }
-          "app_created" => {
-               check self.executeRemoteFunc(genericEvent, "AppCreatedHandlingService", "onAppCreated");
+          "channel_deleted" => {
+               check self.executeRemoteFunc(genericEvent, "ChannelHandlingService", "onChannelDeleted");
           }
         }
         check caller->respond(http:STATUS_OK); 
@@ -48,5 +62,12 @@ service class DispatcherService {
     = @java:Method {
         'class: "io.ballerinax.event.NativeHttpToEventAdaptor"
     } external;
+
+    isolated function verifyURL(http:Caller caller, json payload) returns @untainted error? {
+        http:Response response = new;
+        response.statusCode = http:STATUS_OK;
+        response.setPayload({challenge: check <@untainted>payload.challenge});
+        check caller->respond(response);
+    }
 }
 

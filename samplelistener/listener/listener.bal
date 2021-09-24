@@ -1,15 +1,16 @@
 import ballerina/http;
 
-class Listener {
+public class Listener {
     private http:Listener httpListener;
-    private DispatcherService dispatcherService = new DispatcherService();
+    private DispatcherService dispatcherService;
 
-    public function init(int|http:Listener listenOn = 8090) returns error? { 
+    public function init(string verificationToken, int|http:Listener listenOn = 8090) returns error? { 
         if listenOn is http:Listener {
             self.httpListener = listenOn;
         } else {
             self.httpListener = check new (listenOn);
         }
+        self.dispatcherService = new DispatcherService(verificationToken);
     }
 
     public isolated function attach(GenericService serviceRef, () attachPoint) returns @tainted error? {
@@ -36,10 +37,10 @@ class Listener {
     }
 
     private isolated function getServiceTypeStr(GenericService serviceRef) returns string {
-       if serviceRef is AppCreatedHandlingService {
-           return "AppCreatedHandlingService";
+       if serviceRef is ChannelHandlingService {
+           return "ChannelHandlingService";
        } else {
-           return "AppMentionHandlingService";
+           return "AppHandlingService";
        }
     }
 }
