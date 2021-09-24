@@ -56,9 +56,9 @@ public class GenerateServiceTypeNode implements UseCase {
         var serviceTypeToken = AbstractNodeFactory
                 .createIdentifierToken(serviceTypeName);
         var recordTypeDescriptorNode =
-                NodeFactory.createRecordTypeDescriptorNode(createIdentifierToken("service object"),
-                        createToken(OPEN_BRACE_TOKEN), createNodeList(remoteFunctions), null,
-                        createToken(SyntaxKind.CLOSE_BRACE_TOKEN));
+                NodeFactory.createObjectTypeDescriptorNode(createNodeList(createToken(SERVICE_KEYWORD)),
+                        createToken(OBJECT_KEYWORD), createToken(OPEN_BRACE_TOKEN), createNodeList(remoteFunctions),
+                        createToken(CLOSE_BRACE_TOKEN));
         return createTypeDefinitionNode(null, createToken(PUBLIC_KEYWORD),
                 createToken(TYPE_KEYWORD), serviceTypeToken, recordTypeDescriptorNode, createToken(SEMICOLON_TOKEN));
     }

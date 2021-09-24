@@ -22,6 +22,7 @@ import java.util.List;
 
 public final class Constants {
     public static final String DATA_TYPES_BAL_TEMPLATE_FILE_NAME = "data_types.bal";
+    public static final String LISTENER_BAL_TEMPLATE_FILE_NAME = "listener.bal";
     public static final List<String> BAL_KEYWORDS;
     public static final List<String> BAL_TYPES;
     public static final String ESCAPE_PATTERN = "([\\[\\]\\\\?!<>@#&~`*\\-=^+();:\\/\\_{}\\s|.$])";
