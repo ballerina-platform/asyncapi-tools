@@ -1,24 +1,30 @@
 import ballerina/http;
 
-class SlackListener {
-   private http:Listener httpListener;
+public class Listener {
+    private http:Listener httpListener;
     private DispatcherService dispatcherService;
-   //private string verificationToken;
 
-   public isolated function init() returns error? { //receive verification token with listener config
-        self.httpListener = check new (8090); // param port
-        //self.verificationToken = userConfig.verificationToken
-   }
+    public function init(string verificationToken, int|http:Listener listenOn = 8090) returns error? { 
+        if listenOn is http:Listener {
+            self.httpListener = listenOn;
+        } else {
+            self.httpListener = check new (listenOn);
+        }
+        self.dispatcherService = new DispatcherService(verificationToken);
+    }
 
-   public isolated function attach(SlackAppMentionHandlingService|SlackAppCreatedHandlingService serviceRef, () attachPoint) returns @tainted error? {// Pass verification token 
-        check self.httpListener.attach(check new DispatcherService(serviceRef), attachPoint);
-   }
+    public isolated function attach(GenericService serviceRef, () attachPoint) returns @tainted error? {
+        string serviceTypeStr = self.getServiceTypeStr(serviceRef);
+        check self.dispatcherService.addServiceRef(serviceTypeStr, serviceRef);
+    }
     
-    public isolated function detach(service object {} s) returns error? {
-        return self.httpListener.detach(s);
+    public isolated function detach(GenericService serviceRef) returns error? {
+        string serviceTypeStr = self.getServiceTypeStr(serviceRef);
+        check self.dispatcherService.removeServiceRef(serviceTypeStr);
     }
 
     public isolated function 'start() returns error? {
+        check self.httpListener.attach(self.dispatcherService, ());
         return self.httpListener.'start();
     }
 
@@ -28,6 +34,14 @@ class SlackListener {
 
     public isolated function immediateStop() returns error? {
         return self.httpListener.immediateStop();
+    }
+
+    private isolated function getServiceTypeStr(GenericService serviceRef) returns string {
+       if serviceRef is ChannelHandlingService {
+           return "ChannelHandlingService";
+       } else {
+           return "AppHandlingService";
+       }
     }
 }
 

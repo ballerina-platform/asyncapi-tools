@@ -1,0 +1,10 @@
+[package]
+org= "wso2user"
+name= "slackUser"
+version= "0.0.1-SNAPSHOT"
+
+[[dependency]]
+org= "ballerinax"
+name= "slack.listener"
+version= "0.0.1-SNAPSHOT"
+repository="local"

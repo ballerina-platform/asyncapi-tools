@@ -2,32 +2,60 @@ import ballerina/http;
 import ballerina/jballerina.java;
 
 service class DispatcherService {
-   private SlackAppMentionHandlingService|SlackAppCreatedHandlingService serviceRef;
-   //private string verificationToken;
+   private map<GenericService> services = {};
+   private string verificationToken;
 
-   isolated function init(SlackAppMentionHandlingService|SlackAppCreatedHandlingService serviceRef) returns error? { //Receive verification token
-        self.serviceRef = serviceRef;
-        //self.verificationToken = "9asdbas9009123nas1e2";
+    public function init(string verificationToken) { 
+        self.verificationToken = verificationToken;
+    }
+
+   isolated function addServiceRef(string serviceType, GenericService genericService) returns error? {
+        if (self.services.hasKey(serviceType)) {
+             return error("Service of type " + serviceType + " has already been attached");
+        }
+        self.services[serviceType] = genericService;
    }
 
-   isolated resource function post events (http:Caller caller, http:Request request) returns error? {
-        json payload = check request.getJsonPayload();
-        // string eventOrVerification = check payload.'type;
-
-        // if (payload.token !== self.verificationToken) {
-        //     return error("Verification token mismatch");
-        // }
-
-        // if (eventOrVerification == URL_VERIFICATION) {
-        //     check self.verifyURL(caller, payload);
-        // } else if (eventOrVerification == EVENT_CALLBACK) {
-        // }
-
-        GenericEventWrapperEvent genericEvent = check payload.cloneWithType(GenericEventWrapperEvent);
-        if (genericEvent.event.'type == "app_mention") {
-                SlackAppMentionHandlingService serviceReference = <SlackAppMentionHandlingService> self.serviceRef;
-                var s = check self.callOnAppEvent(genericEvent, "app_mention", "onAppMention", serviceReference);
+   isolated function removeServiceRef(string serviceType) returns error? {
+        if (!self.services.hasKey(serviceType)) {
+             return error("Cannot detach the service of type " + serviceType + ". Service has not been attached to the listener before");
         }
+        _ = self.services.remove(serviceType);
+   }
+
+   // We are not using the (@http:payload GenericEventWrapperEvent g) notation because of a bug in Ballerina.
+   // Issue: https://github.com/ballerina-platform/ballerina-lang/issues/32859
+   resource function post events (http:Caller caller, http:Request request) returns error? {
+        json payload = check request.getJsonPayload();
+        // Intent verification Handling
+        if (payload.token !== self.verificationToken) {
+            return error("Verification token mismatch");
+        }
+        string eventOrVerification = check payload.'type;
+        if (eventOrVerification == "url_verification") {
+            check self.verifyURL(caller, payload);
+            return ();
+        }
+        //
+        GenericEventWrapperEvent genericEvent = check payload.cloneWithType(GenericEventWrapperEvent);
+        match genericEvent.event.'type {
+          "app_mention" => {
+               check self.executeRemoteFunc(genericEvent, "AppHandlingService", "onAppMention");
+          }
+          "channel_created" => {
+               check self.executeRemoteFunc(genericEvent, "ChannelHandlingService", "onChannelCreated");
+          }
+          "channel_deleted" => {
+               check self.executeRemoteFunc(genericEvent, "ChannelHandlingService", "onChannelDeleted");
+          }
+        }
+        check caller->respond(http:STATUS_OK); 
+   }
+
+   private function executeRemoteFunc(GenericEventWrapperEvent genericEvent, string serviceTypeStr, string eventFunction) returns error? {
+     if self.services.hasKey(serviceTypeStr) {
+          check self.callOnAppEvent(genericEvent, genericEvent.event.'type, eventFunction, self.services[serviceTypeStr]);
+     }
    }
 
     isolated function callOnAppEvent(GenericEventWrapperEvent event, string eventName, string eventFunction, any serviceObj) returns error?
@@ -35,13 +63,11 @@ service class DispatcherService {
         'class: "io.ballerinax.event.NativeHttpToEventAdaptor"
     } external;
 
-    //Respomnd to verification token
-    //isolated function verifyURL(http:Caller caller, json payload) returns @untainted error? {
-    //     http:Response response = new;
-    //     response.statusCode = http:STATUS_OK;
-    //     response.setPayload({challenge: check <@untainted>payload.challenge});
-    //     check caller->respond(response);
-    //     log:printInfo("Request URL Verified");
-    // }
+    isolated function verifyURL(http:Caller caller, json payload) returns @untainted error? {
+        http:Response response = new;
+        response.statusCode = http:STATUS_OK;
+        response.setPayload({challenge: check <@untainted>payload.challenge});
+        check caller->respond(response);
+    }
 }
 
