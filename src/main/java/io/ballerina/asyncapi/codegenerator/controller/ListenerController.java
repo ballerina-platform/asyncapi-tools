@@ -18,5 +18,75 @@
 
 package io.ballerina.asyncapi.codegenerator.controller;
 
-public class ListenerController {
+import io.apicurio.datamodels.Library;
+import io.apicurio.datamodels.asyncapi.models.AaiDocument;
+import io.apicurio.datamodels.asyncapi.v2.models.Aai20Document;
+import io.ballerina.asyncapi.codegenerator.configuration.BallerinaAsyncApiException;
+import io.ballerina.asyncapi.codegenerator.usecase.ExtractServiceTypesFromSpec;
+import io.ballerina.asyncapi.codegenerator.usecase.GenerateListenerStatementNode;
+import io.ballerina.asyncapi.codegenerator.usecase.UseCase;
+import io.ballerina.compiler.syntax.tree.*;
+import io.ballerina.tools.text.TextDocuments;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.ballerinalang.formatter.core.Formatter;
+import org.ballerinalang.formatter.core.FormatterException;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+
+import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.*;
+
+public class ListenerController implements Controller {
+    private static final Logger logger = LogManager.getLogger(ListenerController.class);
+
+    @Override
+    public void generateBalCode(String spec, String balTemplate) throws BallerinaAsyncApiException {
+        AaiDocument asyncApiSpec = (Aai20Document) Library.readDocumentFromJSONString(spec);
+
+        var textDocument = TextDocuments.from(balTemplate);
+        var syntaxTree = SyntaxTree.from(textDocument);
+        ModulePartNode oldRoot = syntaxTree.rootNode();
+        var functionDefinitionNode = getServiceTypeStrFuncNode(oldRoot);
+
+        if (functionDefinitionNode == null) {
+            throw new BallerinaAsyncApiException("Function 'getServiceTypeStr', is not found in the listener.bal");
+        }
+
+        var functionBodyBlockNode = (FunctionBodyBlockNode) functionDefinitionNode.functionBody();
+
+        UseCase extractServiceTypes = new ExtractServiceTypesFromSpec(asyncApiSpec);
+        Map<String, List<String>> serviceTypesMap = extractServiceTypes.execute();
+        List<String> serviceTypes = new ArrayList<>(serviceTypesMap.keySet());
+        UseCase genIfElseNode = new GenerateListenerStatementNode(serviceTypes);
+        StatementNode ifElseStatementNode = genIfElseNode.execute();
+        NodeList<StatementNode> stmts = createNodeList(ifElseStatementNode);
+
+        var functionBodyBlockNodeNew = functionBodyBlockNode.modify().withStatements(stmts).apply();
+        ModulePartNode newRoot = oldRoot.replace(functionBodyBlockNode, functionBodyBlockNodeNew);
+        var modifiedTree = syntaxTree.replaceNode(oldRoot, newRoot);
+
+        try {
+            var formattedSourceCode = Formatter.format(modifiedTree).toSourceCode();
+            logger.error("Generated the source code for the listener: {}", formattedSourceCode);
+        } catch (FormatterException e) {
+            logger.error("Could not format the generated code, may be syntax issue in the generated code. " +
+                    "Generated code: {}", modifiedTree.toSourceCode());
+        }
+    }
+
+    private FunctionDefinitionNode getServiceTypeStrFuncNode(ModulePartNode oldRoot) {
+        for(ModuleMemberDeclarationNode node: oldRoot.members()) {
+            if (node.kind() == SyntaxKind.CLASS_DEFINITION) {
+                for(Node funcNode: ((ClassDefinitionNode) node).members()) {
+                    if ((funcNode.kind() == SyntaxKind.OBJECT_METHOD_DEFINITION)
+                            && ((FunctionDefinitionNode) funcNode).functionName().text().equals("getServiceTypeStr")) {
+                        return (FunctionDefinitionNode) funcNode;
+                    }
+                }
+            }
+        }
+        return null;
+    }
 }

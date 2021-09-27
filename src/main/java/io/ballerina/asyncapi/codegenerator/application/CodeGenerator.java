@@ -24,6 +24,7 @@ import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import io.ballerina.asyncapi.codegenerator.configuration.BallerinaAsyncApiException;
 import io.ballerina.asyncapi.codegenerator.configuration.Constants;
 import io.ballerina.asyncapi.codegenerator.controller.Controller;
+import io.ballerina.asyncapi.codegenerator.controller.ListenerController;
 import io.ballerina.asyncapi.codegenerator.controller.SchemaController;
 import io.ballerina.asyncapi.codegenerator.controller.ServiceTypesController;
 import io.ballerina.asyncapi.codegenerator.repository.FileRepository;
@@ -58,6 +59,10 @@ public class CodeGenerator implements Application {
 
         Controller serviceTypesController = new ServiceTypesController();
         serviceTypesController.generateBalCode(asyncApiSpecJson, "");
+
+        String listenerTemplate = fileRepository.getFileContentFromResources(Constants.LISTENER_BAL_TEMPLATE_FILE_NAME);
+        Controller listenerController = new ListenerController();
+        listenerController.generateBalCode(asyncApiSpecJson, listenerTemplate);
     }
 
     String convertYamlToJson(String yaml) throws JsonProcessingException {
