@@ -23,7 +23,8 @@ import io.ballerina.asyncapi.codegenerator.configuration.BallerinaAsyncApiExcept
 
 public class AsyncApiToBalGenerator {
     public static void main(String[] args) {
-        var codeGenerator = new CodeGenerator(System.getenv().get("SPEC_FILE_PATH"));
+        var codeGenerator = new CodeGenerator(
+                System.getenv().get("SPEC_FILE_PATH"), System.getenv().get("OUTPUT_FILE_PATH"));
         try {
             codeGenerator.generate();
         } catch (BallerinaAsyncApiException e) {

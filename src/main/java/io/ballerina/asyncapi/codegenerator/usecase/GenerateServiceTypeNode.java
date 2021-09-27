@@ -26,7 +26,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.*;
-import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createToken;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.*;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.*;
 

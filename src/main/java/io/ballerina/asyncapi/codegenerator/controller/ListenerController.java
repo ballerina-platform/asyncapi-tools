@@ -36,13 +36,13 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.*;
+import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createNodeList;
 
 public class ListenerController implements Controller {
     private static final Logger logger = LogManager.getLogger(ListenerController.class);
 
     @Override
-    public void generateBalCode(String spec, String balTemplate) throws BallerinaAsyncApiException {
+    public String generateBalCode(String spec, String balTemplate) throws BallerinaAsyncApiException {
         AaiDocument asyncApiSpec = (Aai20Document) Library.readDocumentFromJSONString(spec);
 
         var textDocument = TextDocuments.from(balTemplate);
@@ -69,10 +69,13 @@ public class ListenerController implements Controller {
 
         try {
             var formattedSourceCode = Formatter.format(modifiedTree).toSourceCode();
-            logger.error("Generated the source code for the listener: {}", formattedSourceCode);
+            logger.debug("Generated the source code for the listener: {}", formattedSourceCode);
+            return formattedSourceCode;
         } catch (FormatterException e) {
-            logger.error("Could not format the generated code, may be syntax issue in the generated code. " +
+            logger.error("Could not format the generated code, may be a syntax issue in the generated code. " +
                     "Generated code: {}", modifiedTree.toSourceCode());
+            throw new BallerinaAsyncApiException("Could not format the generated code, " +
+                    "may be a syntax issue in the generated code", e);
         }
     }
 

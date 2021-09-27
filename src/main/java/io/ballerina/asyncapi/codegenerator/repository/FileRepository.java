@@ -18,8 +18,10 @@
 
 package io.ballerina.asyncapi.codegenerator.repository;
 
-public interface FileRepository {
-    String getFileContent(String filePath);
+import io.ballerina.asyncapi.codegenerator.configuration.BallerinaAsyncApiException;
 
-    String getFileContentFromResources(String fileName);
+public interface FileRepository {
+    String getFileContent(String filePath) throws BallerinaAsyncApiException;
+    String getFileContentFromResources(String fileName) throws BallerinaAsyncApiException;
+    void writeToFile(String filePath, String content) throws BallerinaAsyncApiException;
 }

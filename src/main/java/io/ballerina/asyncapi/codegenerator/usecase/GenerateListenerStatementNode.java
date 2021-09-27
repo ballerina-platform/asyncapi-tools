@@ -24,7 +24,6 @@ import io.ballerina.compiler.syntax.tree.*;
 import java.util.List;
 
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.*;
-import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createToken;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createBasicLiteralNode;
 
 public class GenerateListenerStatementNode implements  UseCase{
