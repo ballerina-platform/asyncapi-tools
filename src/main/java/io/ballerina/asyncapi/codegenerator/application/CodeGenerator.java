@@ -32,9 +32,11 @@ import io.ballerina.asyncapi.codegenerator.repository.FileRepositoryImpl;
 
 public class CodeGenerator implements Application {
     private final String specPath;
+    private final String outputPath;
 
-    public CodeGenerator(String specPath) {
+    public CodeGenerator(String specPath, String outputPath) {
         this.specPath = specPath;
+        this.outputPath = outputPath;
     }
 
     @Override
@@ -55,14 +57,18 @@ public class CodeGenerator implements Application {
         }
 
         Controller schemaController = new SchemaController();
-        schemaController.generateBalCode(asyncApiSpecJson, "");
+        String dataTypesBalContent = schemaController.generateBalCode(asyncApiSpecJson, "");
 
         Controller serviceTypesController = new ServiceTypesController();
-        serviceTypesController.generateBalCode(asyncApiSpecJson, "");
+        String serviceTypesBalContent = serviceTypesController.generateBalCode(asyncApiSpecJson, "");
 
-        String listenerTemplate = fileRepository.getFileContentFromResources(Constants.LISTENER_BAL_TEMPLATE_FILE_NAME);
+        String listenerTemplate = fileRepository.getFileContentFromResources(Constants.LISTENER_BAL_FILE_NAME);
         Controller listenerController = new ListenerController();
-        listenerController.generateBalCode(asyncApiSpecJson, listenerTemplate);
+        String listenerBalContent = listenerController.generateBalCode(asyncApiSpecJson, listenerTemplate);
+
+        fileRepository.writeToFile(outputPath.concat(Constants.DATA_TYPES_BAL_FILE_NAME), dataTypesBalContent);
+        fileRepository.writeToFile(outputPath.concat(Constants.SERVICE_TYPES_BAL_FILE_NAME), serviceTypesBalContent);
+        fileRepository.writeToFile(outputPath.concat(Constants.LISTENER_BAL_FILE_NAME), listenerBalContent);
     }
 
     String convertYamlToJson(String yaml) throws JsonProcessingException {

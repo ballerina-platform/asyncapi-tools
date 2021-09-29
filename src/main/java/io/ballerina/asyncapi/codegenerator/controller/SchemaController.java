@@ -42,7 +42,7 @@ public class SchemaController implements Controller {
     private static final Logger logger = LogManager.getLogger(SchemaController.class);
 
     @Override
-    public void generateBalCode(String spec, String balTemplate) throws BallerinaAsyncApiException {
+    public String generateBalCode(String spec, String balTemplate) throws BallerinaAsyncApiException {
         AaiDocument asyncApiSpec = (Aai20Document) Library.readDocumentFromJSONString(spec);
 
         List<ModuleMemberDeclarationNode> recordNodes = new ArrayList<>();
@@ -62,9 +62,12 @@ public class SchemaController implements Controller {
         try {
             var formattedSourceCode = Formatter.format(modifiedTree).toSourceCode();
             logger.debug("Generated the source code for the schemas: {}", formattedSourceCode);
+            return formattedSourceCode;
         } catch (FormatterException e) {
-            logger.error("Could not format the generated code, may be syntax issue in the generated code. " +
+            logger.error("Could not format the generated code, may be a syntax issue in the generated code. " +
                     "Generated code: {}", modifiedTree.toSourceCode());
+            throw new BallerinaAsyncApiException("Could not format the generated code, " +
+                    "may be a syntax issue in the generated code", e);
         }
     }
 }

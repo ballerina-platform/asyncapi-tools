@@ -19,12 +19,9 @@
 package io.ballerina.asyncapi.codegenerator.controller;
 
 import io.apicurio.datamodels.Library;
-import io.apicurio.datamodels.asyncapi.models.AaiChannelItem;
 import io.apicurio.datamodels.asyncapi.models.AaiDocument;
-import io.apicurio.datamodels.asyncapi.models.AaiMessage;
 import io.apicurio.datamodels.asyncapi.v2.models.Aai20Document;
 import io.ballerina.asyncapi.codegenerator.configuration.BallerinaAsyncApiException;
-import io.ballerina.asyncapi.codegenerator.configuration.Constants;
 import io.ballerina.asyncapi.codegenerator.usecase.ExtractServiceTypesFromSpec;
 import io.ballerina.asyncapi.codegenerator.usecase.GenerateServiceTypeNode;
 import io.ballerina.asyncapi.codegenerator.usecase.UseCase;
@@ -38,7 +35,6 @@ import org.ballerinalang.formatter.core.Formatter;
 import org.ballerinalang.formatter.core.FormatterException;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -46,7 +42,7 @@ public class ServiceTypesController implements Controller {
     private static final Logger logger = LogManager.getLogger(ServiceTypesController.class);
 
     @Override
-    public void generateBalCode(String spec, String balTemplate) throws BallerinaAsyncApiException {
+    public String generateBalCode(String spec, String balTemplate) throws BallerinaAsyncApiException {
         AaiDocument asyncApiSpec = (Aai20Document) Library.readDocumentFromJSONString(spec);
 
         UseCase extractServiceTypes = new ExtractServiceTypesFromSpec(asyncApiSpec);
@@ -67,9 +63,12 @@ public class ServiceTypesController implements Controller {
         try {
             var formattedSourceCode = Formatter.format(modifiedTree).toSourceCode();
             logger.debug("Generated the source code for the service types: {}", formattedSourceCode);
+            return formattedSourceCode;
         } catch (FormatterException e) {
-            logger.error("Could not format the generated code, may be syntax issue in the generated code. " +
+            logger.error("Could not format the generated code, may be a syntax issue in the generated code. " +
                     "Generated code: {}", modifiedTree.toSourceCode());
+            throw new BallerinaAsyncApiException("Could not format the generated code, " +
+                    "may be a syntax issue in the generated code", e);
         }
     }
 }

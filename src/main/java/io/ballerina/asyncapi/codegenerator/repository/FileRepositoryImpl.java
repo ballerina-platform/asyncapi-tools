@@ -18,6 +18,8 @@
 
 package io.ballerina.asyncapi.codegenerator.repository;
 
+import io.ballerina.asyncapi.codegenerator.configuration.BallerinaAsyncApiException;
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -32,34 +34,42 @@ public class FileRepositoryImpl implements FileRepository {
     private static final Logger logger = LogManager.getLogger(FileRepositoryImpl.class);
 
     @Override
-    public String getFileContent(String filePath) {
+    public String getFileContent(String filePath) throws BallerinaAsyncApiException {
         var mainFile = new File(filePath);
         try (InputStream inputStream = new FileInputStream(mainFile)) {
             return IOUtils.toString(inputStream, StandardCharsets.UTF_8.name());
         } catch (IOException e) {
             logger.error("File not found: ".concat(filePath), e);
-            return null;
+            throw new BallerinaAsyncApiException("File not found in the given path: ".concat(filePath), e);
         }
     }
 
     @Override
-    public String getFileContentFromResources(String fileName) {
+    public String getFileContentFromResources(String fileName) throws BallerinaAsyncApiException {
         try (var inputStream = getFileFromResourceAsStream(fileName)) {
             return IOUtils.toString(inputStream, StandardCharsets.UTF_8.name());
         } catch (IOException e) {
             logger.error("File not found: ".concat(fileName), e);
-            return null;
+            throw new BallerinaAsyncApiException("File not found in the resources: ".concat(fileName), e);
         }
     }
 
-    public InputStream getFileFromResourceAsStream(String fileName) {
-        // The class loader that loaded the class
+    @Override
+    public void writeToFile(String filePath, String content) throws BallerinaAsyncApiException {
+        var file = new File(filePath);
+        try {
+            FileUtils.writeStringToFile(file, content, StandardCharsets.UTF_8);
+        } catch (IOException e) {
+            throw new BallerinaAsyncApiException(
+                    "Could not write the contents to the relevant path: ".concat(filePath), e);
+        }
+    }
+
+    private InputStream getFileFromResourceAsStream(String fileName) {
         var classLoader = getClass().getClassLoader();
         var inputStream = classLoader.getResourceAsStream(fileName);
-
-        // the stream holding the file content
         if (inputStream == null) {
-            throw new IllegalArgumentException("file not found! " + fileName);
+            throw new IllegalArgumentException("File not found: ".concat(fileName));
         } else {
             return inputStream;
         }
