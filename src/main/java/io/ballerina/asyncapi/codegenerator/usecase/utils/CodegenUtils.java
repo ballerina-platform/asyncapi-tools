@@ -37,29 +37,21 @@ public class CodegenUtils {
     public String escapeIdentifier(String identifier) {
         if (!identifier.matches("\\b[_a-zA-Z][_a-zA-Z0-9]*\\b") || Constants.BAL_KEYWORDS.stream()
                 .anyMatch(identifier::equals)) {
-
-            // TODO: Remove this `if`. Refer - https://github.com/ballerina-platform/ballerina-lang/issues/23045
-            if (identifier.equals("error")) {
-                identifier = "_error";
-            } else {
-                identifier = identifier.replaceAll(Constants.ESCAPE_PATTERN, "\\\\$1");
-                if (identifier.endsWith("?")) {
-                    if (identifier.charAt(identifier.length() - 2) == '\\') {
-                        var stringBuilder = new StringBuilder(identifier);
-                        stringBuilder.deleteCharAt(identifier.length() - 2);
-                        identifier = stringBuilder.toString();
-                    }
-                    if (Constants.BAL_KEYWORDS.stream().anyMatch(Optional.of(identifier)
-                            .filter(sStr -> sStr.length() != 0)
-                            .map(sStr -> sStr.substring(0, sStr.length() - 1))
-                            .orElse(identifier)::equals)) {
-                        identifier = "'" + identifier;
-                    } else {
-                        return identifier;
-                    }
-                } else {
+            identifier = identifier.replaceAll(Constants.ESCAPE_PATTERN, "\\\\$1");
+            if (identifier.endsWith("?")) {
+                if (identifier.charAt(identifier.length() - 2) == '\\') {
+                    var stringBuilder = new StringBuilder(identifier);
+                    stringBuilder.deleteCharAt(identifier.length() - 2);
+                    identifier = stringBuilder.toString();
+                }
+                if (Constants.BAL_KEYWORDS.stream().anyMatch(Optional.of(identifier)
+                        .filter(sStr -> sStr.length() != 0)
+                        .map(sStr -> sStr.substring(0, sStr.length() - 1))
+                        .orElse(identifier)::equals)) {
                     identifier = "'" + identifier;
                 }
+            } else if (Constants.BAL_KEYWORDS.stream().anyMatch(identifier::equals)) {
+                identifier = "'" + identifier;
             }
         }
         return identifier;
@@ -72,7 +64,7 @@ public class CodegenUtils {
      * @return string with new generated name
      */
     public String getValidName(String identifier, boolean capitalizeFirstChar) {
-        //For the flatten enable we need to remove first Part of valid name check
+        // For the flatten enable we need to remove first Part of valid name check
         // this - > !identifier.matches("\\b[a-zA-Z][a-zA-Z0-9]*\\b") &&
         if (!identifier.matches("\\b[0-9]*\\b")) {
             String[] split = identifier.split(Constants.ESCAPE_PATTERN);
@@ -102,11 +94,11 @@ public class CodegenUtils {
      * @throws BallerinaAsyncApiException
      */
     public String extractReferenceType(String referenceVariable) throws BallerinaAsyncApiException {
-        if (referenceVariable.startsWith("#") && referenceVariable.contains("/")) {
+        if (referenceVariable.startsWith("#/")) {
             String[] refArray = referenceVariable.split("/");
             return escapeIdentifier(refArray[refArray.length - 1]);
         } else {
-            throw new BallerinaAsyncApiException("Invalid reference value : " + referenceVariable
+            throw new BallerinaAsyncApiException("Invalid reference value: " + referenceVariable
                     + "\nBallerina only supports local reference values.");
         }
     }

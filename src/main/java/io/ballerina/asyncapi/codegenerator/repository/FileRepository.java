@@ -24,4 +24,5 @@ public interface FileRepository {
     String getFileContent(String filePath) throws BallerinaAsyncApiException;
     String getFileContentFromResources(String fileName) throws BallerinaAsyncApiException;
     void writeToFile(String filePath, String content) throws BallerinaAsyncApiException;
+    String convertYamlToJson(String yaml) throws BallerinaAsyncApiException;
 }

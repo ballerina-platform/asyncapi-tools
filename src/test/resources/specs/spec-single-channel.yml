@@ -1,0 +1,35 @@
+asyncapi: 2.1.0
+channels:
+  events/foo/1:
+    x-ballerina-service-type: "FooService"
+    subscribe:
+      message:
+        oneOf:
+          -
+            x-ballerina-event-type: "bar_event_1"
+            externalDocs:
+              description: Event documentation for bar_event_1
+              url: 'https://foo.com/events/bar_event_1'
+            payload:
+              $ref: '#/components/schemas/GenericEventWrapper'
+            summary: Subscribe to only the message events that mention your app or bot
+            tags:
+              - name: allows_user_tokens
+              - name: app_event
+            x-scopes-required: []
+            x-tokens-allowed:
+              - user
+          -
+            x-ballerina-event-type: "bar_event_2"
+            externalDocs:
+              description: Event documentation for app_mention
+              url: 'https://foo.com/events/bar_event_2'
+            payload:
+              $ref: '#/components/schemas/GenericEventWrapper'
+            summary: Subscribe to only the message events that mention your app or bot
+            tags:
+              - name: allows_user_tokens
+              - name: app_event
+            x-scopes-required: []
+            x-tokens-allowed:
+              - user
