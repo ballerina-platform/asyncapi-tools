@@ -25,6 +25,7 @@ import io.ballerina.asyncapi.codegenerator.configuration.BallerinaAsyncApiExcept
 import io.ballerina.asyncapi.codegenerator.configuration.Constants;
 import io.ballerina.asyncapi.codegenerator.controller.Controller;
 import io.ballerina.asyncapi.codegenerator.controller.ListenerController;
+import io.ballerina.asyncapi.codegenerator.controller.DispatcherController;
 import io.ballerina.asyncapi.codegenerator.controller.SchemaController;
 import io.ballerina.asyncapi.codegenerator.controller.ServiceTypesController;
 import io.ballerina.asyncapi.codegenerator.repository.FileRepository;
@@ -60,6 +61,7 @@ public class CodeGenerator implements Application {
         String dataTypesBalContent = schemaController.generateBalCode(asyncApiSpecJson, "");
 
         Controller serviceTypesController = new ServiceTypesController();
+
         String serviceTypesBalContent = serviceTypesController.generateBalCode(asyncApiSpecJson, "");
 
         String listenerTemplate = fileRepository.getFileContentFromResources(Constants.LISTENER_BAL_FILE_NAME);
@@ -69,6 +71,21 @@ public class CodeGenerator implements Application {
         fileRepository.writeToFile(outputPath.concat(Constants.DATA_TYPES_BAL_FILE_NAME), dataTypesBalContent);
         fileRepository.writeToFile(outputPath.concat(Constants.SERVICE_TYPES_BAL_FILE_NAME), serviceTypesBalContent);
         fileRepository.writeToFile(outputPath.concat(Constants.LISTENER_BAL_FILE_NAME), listenerBalContent);
+        serviceTypesController.generateBalCode(asyncApiSpecJson, "");
+
+        String asyncApiSpec = fileRepository.getFileContent(specPath);
+        String balTemplate = fileRepository.getFileContentFromResources(Constants.HTTP_BAL_TEMPLATE_LISTENER_FILE_NAME);
+
+//        Controller schemaController = new SchemaController();
+//        schemaController.generateBalCode(asyncApiSpec, balTemplate);
+//        FileRepository fileRepository = new FileRepositoryImpl();
+//        String asyncApiSpec = fileRepository.getFileContent(specPath);
+
+//        Controller schemaController = new SchemaController();
+//        schemaController.generateBalCode(asyncApiSpec);
+
+        Controller dispatcherController = new DispatcherController();
+        dispatcherController.generateBalCode(asyncApiSpec, balTemplate);
     }
 
     String convertYamlToJson(String yaml) throws JsonProcessingException {

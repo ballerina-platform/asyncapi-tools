@@ -21,9 +21,11 @@ package io.ballerina.asyncapi.codegenerator.configuration;
 import java.util.List;
 
 public final class Constants {
+
     public static final String DATA_TYPES_BAL_FILE_NAME = "data_types.bal";
     public static final String LISTENER_BAL_FILE_NAME = "listener.bal";
     public static final String SERVICE_TYPES_BAL_FILE_NAME = "service_types.bal";
+    public static final String HTTP_BAL_TEMPLATE_LISTENER_FILE_NAME = "http_service.bal";
     public static final List<String> BAL_KEYWORDS;
     public static final List<String> BAL_TYPES;
     public static final String ESCAPE_PATTERN = "([\\[\\]\\\\?!<>@#&~`*\\-=^+();:\\/\\_{}\\s|.$])";

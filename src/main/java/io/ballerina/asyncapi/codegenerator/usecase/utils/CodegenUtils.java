@@ -20,6 +20,8 @@ package io.ballerina.asyncapi.codegenerator.usecase.utils;
 
 import io.ballerina.asyncapi.codegenerator.configuration.BallerinaAsyncApiException;
 import io.ballerina.asyncapi.codegenerator.configuration.Constants;
+import io.ballerina.compiler.syntax.tree.MinutiaeList;
+import io.ballerina.compiler.syntax.tree.NodeFactory;
 
 import java.util.Locale;
 import java.util.Optional;
@@ -99,5 +101,9 @@ public class CodegenUtils {
             throw new BallerinaAsyncApiException("Invalid reference value : " + referenceVariable
                     + "\nBallerina only supports local reference values.");
         }
+    }
+
+    public MinutiaeList createMinutiae(String value) {
+        return NodeFactory.createMinutiaeList(NodeFactory.createWhitespaceMinutiae(value));
     }
 }
