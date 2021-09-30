@@ -13,4 +13,5 @@ public type GenericEventWrapperEvent record {
 public type EventType record {
     string 'type;
 };
- 
+
+public type GenericDataType GenericEventWrapperEvent;

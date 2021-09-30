@@ -10,4 +10,4 @@ public type AppCreatedHandlingService service object {
 };
 
 # Generic service type for all the above service types  
-public type GenericService AppMentionHandlingService|AppCreatedHandlingService;
+public type GenericServiceType AppMentionHandlingService|AppCreatedHandlingService;

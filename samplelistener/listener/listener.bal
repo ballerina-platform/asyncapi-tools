@@ -1,6 +1,6 @@
 import ballerina/http;
 
-class Listener {
+public class Listener {
     private http:Listener httpListener;
     private DispatcherService dispatcherService = new DispatcherService();
 
@@ -12,12 +12,12 @@ class Listener {
         }
     }
 
-    public isolated function attach(GenericService serviceRef, () attachPoint) returns @tainted error? {
+    public isolated function attach(GenericServiceType serviceRef, () attachPoint) returns @tainted error? {
         string serviceTypeStr = self.getServiceTypeStr(serviceRef);
         check self.dispatcherService.addServiceRef(serviceTypeStr, serviceRef);
     }
     
-    public isolated function detach(GenericService serviceRef) returns error? {
+    public isolated function detach(GenericServiceType serviceRef) returns error? {
         string serviceTypeStr = self.getServiceTypeStr(serviceRef);
         check self.dispatcherService.removeServiceRef(serviceTypeStr);
     }
@@ -35,7 +35,7 @@ class Listener {
         return self.httpListener.immediateStop();
     }
 
-    private isolated function getServiceTypeStr(GenericService serviceRef) returns string {
+    private isolated function getServiceTypeStr(GenericServiceType serviceRef) returns string {
        if serviceRef is AppCreatedHandlingService {
            return "AppCreatedHandlingService";
        } else {

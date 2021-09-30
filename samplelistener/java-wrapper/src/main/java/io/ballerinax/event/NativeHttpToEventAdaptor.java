@@ -35,20 +35,13 @@ import java.util.ArrayList;
 import static io.ballerina.runtime.api.utils.StringUtils.fromString;
 
 public class NativeHttpToEventAdaptor {
-
-    // App Events
-    public static Object callOnAppEvent(Environment env, BObject adaptor, BMap<BString, Object> message, BString eventName, BString eventFunction, BObject serviceObj) {
-        return invokeRemoteFunction(env, serviceObj, message, eventName, eventFunction);
-    }
-
-    private static Object invokeRemoteFunction(Environment env, BObject bHttpService, BMap<BString, Object> message,
-                                               BString parentFunctionName, BString remoteFunctionName) {
+    public static Object invokeRemoteFunction(Environment env, BObject adaptor, BMap<BString, Object> message, BString eventName, BString eventFunction, BObject serviceObj) {
         Future balFuture = env.markAsync();
         Module module = ModuleUtils.getModule();
         StrandMetadata metadata = new StrandMetadata(module.getOrg(), module.getName(), module.getVersion(),
-                parentFunctionName.getValue());
+                eventName.getValue());
         Object[] args = new Object[]{message, true};
-        env.getRuntime().invokeMethodAsync(bHttpService, remoteFunctionName.getValue(), null, metadata, new Callback() {
+        env.getRuntime().invokeMethodAsync(serviceObj, eventFunction.getValue(), null, metadata, new Callback() {
             @Override
             public void notifySuccess(Object result) {
                 balFuture.complete(result);

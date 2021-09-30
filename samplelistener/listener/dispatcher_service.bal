@@ -1,14 +1,15 @@
 import ballerina/http;
-import ballerina/jballerina.java;
+import athukorala/eventapi.interop.handler as handler;
 
 service class DispatcherService {
-   private map<GenericService> services = {};
+   private map<GenericServiceType> services = {};
+   private handler:InteropHandler interopHandler = new ();
 
-   isolated function addServiceRef(string serviceType, GenericService genericService) returns error? {
+   isolated function addServiceRef(string serviceType, GenericServiceType genericServiceType) returns error? {
         if (self.services.hasKey(serviceType)) {
              return error("Service of type " + serviceType + " has already been attached");
         }
-        self.services[serviceType] = genericService;
+        self.services[serviceType] = genericServiceType;
    }
 
    isolated function removeServiceRef(string serviceType) returns error? {
@@ -17,36 +18,30 @@ service class DispatcherService {
         }
         _ = self.services.remove(serviceType);
    }
-   
 
    // We are not using the (@http:payload GenericEventWrapperEvent g) notation because of a bug in Ballerina.
    // Issue: https://github.com/ballerina-platform/ballerina-lang/issues/32859
    resource function post events (http:Caller caller, http:Request request) returns error? {
         json payload = check request.getJsonPayload();
-        GenericEventWrapperEvent genericEvent = check payload.cloneWithType(GenericEventWrapperEvent);
-        match genericEvent.event.'type {
+        GenericDataType genericDataType = check payload.cloneWithType(GenericDataType);
+        match genericDataType.event.'type {
           "app_mention_added" => {
-               check self.executeRemoteFunc(genericEvent, "AppMentionHandlingService", "onAppMentionAdded");
+               check self.executeRemoteFunc(genericDataType, "app_mention_added", "AppMentionHandlingService", "onAppMentionAdded");
           }
           "app_mention_removed" => {
-               check self.executeRemoteFunc(genericEvent, "AppMentionHandlingService", "onAppMentionRemoved");
+               check self.executeRemoteFunc(genericDataType, "app_mention_removed", "AppMentionHandlingService", "onAppMentionRemoved");
           }
           "app_created" => {
-               check self.executeRemoteFunc(genericEvent, "AppCreatedHandlingService", "onAppCreated");
+               check self.executeRemoteFunc(genericDataType, "app_created", "AppCreatedHandlingService", "onAppCreated");
           }
         }
-        check caller->respond(http:STATUS_OK); 
+        check caller->respond(http:STATUS_OK);
    }
 
-   private function executeRemoteFunc(GenericEventWrapperEvent genericEvent, string serviceTypeStr, string eventFunction) returns error? {
-     if self.services.hasKey(serviceTypeStr) {
-          check self.callOnAppEvent(genericEvent, genericEvent.event.'type, eventFunction, self.services[serviceTypeStr]);
-     }
+   private function executeRemoteFunc(GenericDataType genericDataType, string eventName, string serviceTypeStr, string eventFunction) returns error? {
+         GenericServiceType? genericServiceType = self.services[serviceTypeStr];
+         if genericServiceType is GenericServiceType {
+              check self.interopHandler.invokeRemoteFunction(genericDataType, eventName, eventFunction, genericServiceType);
+         }
    }
-
-    isolated function callOnAppEvent(GenericEventWrapperEvent event, string eventName, string eventFunction, any serviceObj) returns error?
-    = @java:Method {
-        'class: "io.ballerinax.event.NativeHttpToEventAdaptor"
-    } external;
 }
-
