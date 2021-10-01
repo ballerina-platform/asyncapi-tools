@@ -1,6 +1,6 @@
 import ballerina/http;
 
-class Listener {
+public class Listener {
     private http:Listener httpListener;
     private DispatcherService dispatcherService = new DispatcherService();
 
