@@ -25,6 +25,7 @@ import io.ballerina.asyncapi.codegenerator.configuration.BallerinaAsyncApiExcept
 import io.ballerina.asyncapi.codegenerator.configuration.Constants;
 import io.ballerina.asyncapi.codegenerator.controller.Controller;
 import io.ballerina.asyncapi.codegenerator.controller.ListenerController;
+import io.ballerina.asyncapi.codegenerator.controller.DispatcherController;
 import io.ballerina.asyncapi.codegenerator.controller.SchemaController;
 import io.ballerina.asyncapi.codegenerator.controller.ServiceTypesController;
 import io.ballerina.asyncapi.codegenerator.repository.FileRepository;
@@ -60,15 +61,24 @@ public class CodeGenerator implements Application {
         String dataTypesBalContent = schemaController.generateBalCode(asyncApiSpecJson, "");
 
         Controller serviceTypesController = new ServiceTypesController();
+
         String serviceTypesBalContent = serviceTypesController.generateBalCode(asyncApiSpecJson, "");
 
         String listenerTemplate = fileRepository.getFileContentFromResources(Constants.LISTENER_BAL_FILE_NAME);
+
         Controller listenerController = new ListenerController();
         String listenerBalContent = listenerController.generateBalCode(asyncApiSpecJson, listenerTemplate);
+
+        String dispatcherTemplate = fileRepository.getFileContentFromResources(Constants.DISPATCHER_SERVICE_BAL_FILE_NAME);
+
+        Controller dispatcherController = new DispatcherController();
+        String dispatcherContent = dispatcherController.generateBalCode(asyncApiSpecJson, dispatcherTemplate);
 
         fileRepository.writeToFile(outputPath.concat(Constants.DATA_TYPES_BAL_FILE_NAME), dataTypesBalContent);
         fileRepository.writeToFile(outputPath.concat(Constants.SERVICE_TYPES_BAL_FILE_NAME), serviceTypesBalContent);
         fileRepository.writeToFile(outputPath.concat(Constants.LISTENER_BAL_FILE_NAME), listenerBalContent);
+        fileRepository.writeToFile(outputPath.concat(Constants.DISPATCHER_SERVICE_BAL_FILE_NAME), dispatcherContent);
+
     }
 
     String convertYamlToJson(String yaml) throws JsonProcessingException {

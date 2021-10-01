@@ -20,48 +20,39 @@ package io.ballerina.asyncapi.codegenerator.controller;
 
 import io.apicurio.datamodels.Library;
 import io.apicurio.datamodels.asyncapi.models.AaiDocument;
-import io.apicurio.datamodels.asyncapi.models.AaiSchema;
-import io.apicurio.datamodels.asyncapi.v2.models.Aai20Document;
 import io.ballerina.asyncapi.codegenerator.configuration.BallerinaAsyncApiException;
-import io.ballerina.asyncapi.codegenerator.usecase.GenerateRecordNode;
+import io.ballerina.asyncapi.codegenerator.usecase.GenerateMatchStatement;
 import io.ballerina.asyncapi.codegenerator.usecase.UseCase;
-import io.ballerina.compiler.syntax.tree.ModuleMemberDeclarationNode;
-import io.ballerina.compiler.syntax.tree.ModulePartNode;
-import io.ballerina.compiler.syntax.tree.SyntaxTree;
+import io.ballerina.compiler.syntax.tree.*;
+import io.ballerina.tools.text.TextDocument;
 import io.ballerina.tools.text.TextDocuments;
 import org.ballerinalang.formatter.core.Formatter;
 import org.ballerinalang.formatter.core.FormatterException;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-
-public class SchemaController implements Controller {
+public class DispatcherController implements Controller {
 
     @Override
     public String generateBalCode(String spec, String balTemplate) throws BallerinaAsyncApiException {
-        AaiDocument asyncApiSpec = (Aai20Document) Library.readDocumentFromJSONString(spec);
 
-        List<ModuleMemberDeclarationNode> recordNodes = new ArrayList<>();
-        for (Map.Entry<String, AaiSchema> fields : asyncApiSpec.components.schemas.entrySet()) {
-            UseCase generateRecordNode = new GenerateRecordNode(asyncApiSpec, fields);
-            if (generateRecordNode.execute() != null) {
-                recordNodes.add(generateRecordNode.execute());
-            }
-        }
+        AaiDocument document = (AaiDocument) Library.readDocumentFromJSONString(spec);
+        TextDocument textDocument = TextDocuments.from(balTemplate);
+        SyntaxTree syntaxTree = SyntaxTree.from(textDocument);
+        ModulePartNode rootNode = syntaxTree.rootNode();
+        FunctionDefinitionNode resourceFunction = (FunctionDefinitionNode) ((ClassDefinitionNode) rootNode.members().get(0)).members().get(4);
 
-        var textDocument = TextDocuments.from(balTemplate);
-        var syntaxTree = SyntaxTree.from(textDocument);
-        ModulePartNode oldRoot = syntaxTree.rootNode();
-        ModulePartNode newRoot = oldRoot.modify().withMembers(oldRoot.members().addAll(recordNodes)).apply();
-        var modifiedTree = syntaxTree.replaceNode(oldRoot, newRoot);
+        UseCase generateMatchStatement = new GenerateMatchStatement(document);
+        MatchStatementNode msn = generateMatchStatement.execute();
+        syntaxTree = syntaxTree.replaceNode(((FunctionBodyBlockNode) resourceFunction.functionBody()).statements().get(2), msn);
+        SyntaxTree formattedST = syntaxTree;
 
         try {
-            var formattedSourceCode = Formatter.format(modifiedTree).toSourceCode();
-            return formattedSourceCode;
+            formattedST = Formatter.format(syntaxTree);
         } catch (FormatterException e) {
             throw new BallerinaAsyncApiException("Could not format the generated code, " +
                     "may be a syntax issue in the generated code", e);
         }
+        return formattedST.toSourceCode();
     }
 }
+
+

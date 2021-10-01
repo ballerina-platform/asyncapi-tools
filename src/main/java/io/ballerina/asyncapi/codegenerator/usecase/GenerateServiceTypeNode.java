@@ -45,7 +45,8 @@ public class GenerateServiceTypeNode implements UseCase {
         remoteFunctionNames.forEach(remoteFunction -> {
             var methodDeclarationNode = createMethodDeclarationNode(
                     SyntaxKind.METHOD_DECLARATION, null, createNodeList(createToken(REMOTE_KEYWORD)),
-                    createToken(SyntaxKind.FUNCTION_KEYWORD), createIdentifierToken(remoteFunction), createEmptyNodeList(),
+                    createToken(SyntaxKind.FUNCTION_KEYWORD),
+                    createIdentifierToken(codegenUtils.getFunctionNameByEventName(remoteFunction)), createEmptyNodeList(),
                     createFunctionSignatureNode(
                             createToken(OPEN_PAREN_TOKEN), createSeparatedNodeList(),
                             createToken(CLOSE_PAREN_TOKEN), null),
@@ -53,7 +54,7 @@ public class GenerateServiceTypeNode implements UseCase {
             remoteFunctions.add(methodDeclarationNode);
         });
         var serviceTypeToken = AbstractNodeFactory
-                .createIdentifierToken(serviceTypeName);
+                .createIdentifierToken(codegenUtils.getServiceTypeNameByServiceName(serviceTypeName));
         var recordTypeDescriptorNode =
                 NodeFactory.createObjectTypeDescriptorNode(createNodeList(createToken(SERVICE_KEYWORD)),
                         createToken(OBJECT_KEYWORD), createToken(OPEN_BRACE_TOKEN), createNodeList(remoteFunctions),

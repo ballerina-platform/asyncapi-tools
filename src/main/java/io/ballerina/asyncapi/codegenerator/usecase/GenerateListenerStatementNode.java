@@ -19,6 +19,7 @@
 package io.ballerina.asyncapi.codegenerator.usecase;
 
 import io.ballerina.asyncapi.codegenerator.configuration.BallerinaAsyncApiException;
+import io.ballerina.asyncapi.codegenerator.usecase.utils.CodegenUtils;
 import io.ballerina.compiler.syntax.tree.*;
 
 import java.util.List;
@@ -28,6 +29,7 @@ import static io.ballerina.compiler.syntax.tree.NodeFactory.createBasicLiteralNo
 
 public class GenerateListenerStatementNode implements  UseCase{
     private final List<String> serviceTypes;
+    private final CodegenUtils codegenUtils = new CodegenUtils();
 
     public GenerateListenerStatementNode(List<String> serviceTypes) {
         this.serviceTypes = serviceTypes;
@@ -51,7 +53,8 @@ public class GenerateListenerStatementNode implements  UseCase{
         ExpressionNode condition = NodeFactory.createTypeTestExpressionNode(
                 serviceTypeNode,
                 createToken(SyntaxKind.IS_KEYWORD),
-                NodeFactory.createSimpleNameReferenceNode(AbstractNodeFactory.createIdentifierToken(serviceType))
+                NodeFactory.createSimpleNameReferenceNode(AbstractNodeFactory.
+                        createIdentifierToken(codegenUtils.getServiceTypeNameByServiceName(serviceType)))
         );
         var returnStatementNode = getReturnStatementNode(serviceType);
         return NodeFactory.createIfElseStatementNode(
@@ -72,7 +75,8 @@ public class GenerateListenerStatementNode implements  UseCase{
                 createBasicLiteralNode(
                         SyntaxKind.STRING_LITERAL,
                         createLiteralValueToken(
-                                SyntaxKind.STRING_LITERAL_TOKEN, '"' + serviceType.trim() + '"',
+                                SyntaxKind.STRING_LITERAL_TOKEN, '"' +
+                                        codegenUtils.getServiceTypeNameByServiceName(serviceType) + '"',
                                 createEmptyMinutiaeList(), createEmptyMinutiaeList())),
                 createToken(SyntaxKind.SEMICOLON_TOKEN));
     }
