@@ -42,6 +42,10 @@ public class GenerateServiceTypeNode implements UseCase {
     @Override
     public TypeDefinitionNode execute() throws BallerinaAsyncApiException {
         List<Node> remoteFunctions = new ArrayList<>();
+        var returnType = createOptionalTypeDescriptorNode(createToken(ERROR_KEYWORD),
+                createToken(QUESTION_MARK_TOKEN));
+        var returnTypeDescriptorNode = createReturnTypeDescriptorNode(
+                createToken(RETURNS_KEYWORD), createEmptyNodeList(), returnType);
         remoteFunctionNames.forEach(remoteFunction -> {
             var methodDeclarationNode = createMethodDeclarationNode(
                     SyntaxKind.METHOD_DECLARATION, null, createNodeList(createToken(REMOTE_KEYWORD)),
@@ -49,7 +53,7 @@ public class GenerateServiceTypeNode implements UseCase {
                     createIdentifierToken(codegenUtils.getFunctionNameByEventName(remoteFunction)), createEmptyNodeList(),
                     createFunctionSignatureNode(
                             createToken(OPEN_PAREN_TOKEN), createSeparatedNodeList(),
-                            createToken(CLOSE_PAREN_TOKEN), null),
+                            createToken(CLOSE_PAREN_TOKEN), returnTypeDescriptorNode),
                     createToken(SyntaxKind.SEMICOLON_TOKEN));
             remoteFunctions.add(methodDeclarationNode);
         });
