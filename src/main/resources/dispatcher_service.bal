@@ -1,8 +1,10 @@
 import ballerina/http;
 import ballerina/jballerina.java;
+import athukorala/eventapi.interop.handler as handler;
 
 service class DispatcherService {
    private map<GenericService> services = {};
+   private handler:InteropHandler interopHandler = new ();
 
    isolated function addServiceRef(string serviceType, GenericService genericService) returns error? {
         if (self.services.hasKey(serviceType)) {
@@ -22,7 +24,7 @@ service class DispatcherService {
    // Issue: https://github.com/ballerina-platform/ballerina-lang/issues/32859
    resource function post events (http:Caller caller, http:Request request) returns error? {
         json payload = check request.getJsonPayload();
-        GenericEventWrapperEvent genericEvent = check payload.cloneWithType(GenericEventWrapperEvent);
+        GenericDataType genericEvent = check payload.cloneWithType(GenericDataType);
         match genericEvent.event.'type {
           "app_mention" => {
                check self.executeRemoteFunc(genericEvent, "AppHandlingService", "onAppMention");
@@ -37,22 +39,11 @@ service class DispatcherService {
         check caller->respond(http:STATUS_OK);
    }
 
-   private function executeRemoteFunc(GenericDataType genericEvent, string eventName, string serviceTypeStr, string eventFunction) returns error? {
-     if self.services.hasKey(serviceTypeStr) {
-          check self.callOnAppEvent(genericEvent, eventName, eventFunction, self.services[serviceTypeStr]);
-     }
+   private function executeRemoteFunc(GenericEvent genericEvent, string eventName, string serviceTypeStr, string eventFunction) returns error? {
+         GenericService? genericService = self.services[serviceTypeStr];
+         if genericService is GenericService {
+              check self.interopHandler.invokeRemoteFunction(genericEvent, eventName, eventFunction, genericService);
+         }
    }
-
-    isolated function callOnAppEvent(GenericEventWrapperEvent event, string eventName, string eventFunction, any serviceObj) returns error?
-    = @java:Method {
-        'class: "io.ballerinax.event.NativeHttpToEventAdaptor"
-    } external;
-
-    isolated function verifyURL(http:Caller caller, json payload) returns @untainted error? {
-        http:Response response = new;
-        response.statusCode = http:STATUS_OK;
-        response.setPayload({challenge: check <@untainted>payload.challenge});
-        check caller->respond(response);
-    }
 }
 

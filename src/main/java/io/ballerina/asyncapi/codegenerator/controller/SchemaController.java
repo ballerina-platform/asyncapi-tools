@@ -29,8 +29,6 @@ import io.ballerina.compiler.syntax.tree.ModuleMemberDeclarationNode;
 import io.ballerina.compiler.syntax.tree.ModulePartNode;
 import io.ballerina.compiler.syntax.tree.SyntaxTree;
 import io.ballerina.tools.text.TextDocuments;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.ballerinalang.formatter.core.Formatter;
 import org.ballerinalang.formatter.core.FormatterException;
 
@@ -39,7 +37,6 @@ import java.util.List;
 import java.util.Map;
 
 public class SchemaController implements Controller {
-    private static final Logger logger = LogManager.getLogger(SchemaController.class);
 
     @Override
     public String generateBalCode(String spec, String balTemplate) throws BallerinaAsyncApiException {
@@ -61,11 +58,8 @@ public class SchemaController implements Controller {
 
         try {
             var formattedSourceCode = Formatter.format(modifiedTree).toSourceCode();
-            logger.debug("Generated the source code for the schemas: {}", formattedSourceCode);
             return formattedSourceCode;
         } catch (FormatterException e) {
-            logger.error("Could not format the generated code, may be a syntax issue in the generated code. " +
-                    "Generated code: {}", modifiedTree.toSourceCode());
             throw new BallerinaAsyncApiException("Could not format the generated code, " +
                     "may be a syntax issue in the generated code", e);
         }

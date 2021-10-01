@@ -29,28 +29,29 @@ import io.ballerina.tools.text.TextDocuments;
 import org.ballerinalang.formatter.core.Formatter;
 import org.ballerinalang.formatter.core.FormatterException;
 
-
 public class DispatcherController implements Controller {
 
     @Override
-    public void generateBalCode(String spec, String balTemplate) throws BallerinaAsyncApiException {
+    public String generateBalCode(String spec, String balTemplate) throws BallerinaAsyncApiException {
 
         AaiDocument document = (AaiDocument) Library.readDocumentFromJSONString(spec);
         TextDocument textDocument = TextDocuments.from(balTemplate);
         SyntaxTree syntaxTree = SyntaxTree.from(textDocument);
         ModulePartNode rootNode = syntaxTree.rootNode();
-        FunctionDefinitionNode resourceFunction = (FunctionDefinitionNode) ((ClassDefinitionNode) rootNode.members().get(0)).members().get(3);
+        FunctionDefinitionNode resourceFunction = (FunctionDefinitionNode) ((ClassDefinitionNode) rootNode.members().get(0)).members().get(4);
 
         UseCase generateMatchStatement = new GenerateMatchStatement(document);
         MatchStatementNode msn = generateMatchStatement.execute();
         syntaxTree = syntaxTree.replaceNode(((FunctionBodyBlockNode) resourceFunction.functionBody()).statements().get(2), msn);
-        SyntaxTree formatted = null;
+        SyntaxTree formattedST = syntaxTree;
+
         try {
-            formatted = Formatter.format(syntaxTree);
+            formattedST = Formatter.format(syntaxTree);
         } catch (FormatterException e) {
-            e.printStackTrace();
+            throw new BallerinaAsyncApiException("Could not format the generated code, " +
+                    "may be a syntax issue in the generated code", e);
         }
-        System.out.println(formatted.toString());
+        return formattedST.toSourceCode();
     }
 }
 

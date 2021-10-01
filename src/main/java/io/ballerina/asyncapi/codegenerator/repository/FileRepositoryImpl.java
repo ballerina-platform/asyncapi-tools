@@ -21,8 +21,6 @@ package io.ballerina.asyncapi.codegenerator.repository;
 import io.ballerina.asyncapi.codegenerator.configuration.BallerinaAsyncApiException;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -31,7 +29,6 @@ import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 
 public class FileRepositoryImpl implements FileRepository {
-    private static final Logger logger = LogManager.getLogger(FileRepositoryImpl.class);
 
     @Override
     public String getFileContent(String filePath) throws BallerinaAsyncApiException {
@@ -39,7 +36,6 @@ public class FileRepositoryImpl implements FileRepository {
         try (InputStream inputStream = new FileInputStream(mainFile)) {
             return IOUtils.toString(inputStream, StandardCharsets.UTF_8.name());
         } catch (IOException e) {
-            logger.error("File not found: ".concat(filePath), e);
             throw new BallerinaAsyncApiException("File not found in the given path: ".concat(filePath), e);
         }
     }
@@ -49,7 +45,6 @@ public class FileRepositoryImpl implements FileRepository {
         try (var inputStream = getFileFromResourceAsStream(fileName)) {
             return IOUtils.toString(inputStream, StandardCharsets.UTF_8.name());
         } catch (IOException e) {
-            logger.error("File not found: ".concat(fileName), e);
             throw new BallerinaAsyncApiException("File not found in the resources: ".concat(fileName), e);
         }
     }

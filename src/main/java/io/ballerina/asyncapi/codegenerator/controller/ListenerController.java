@@ -22,13 +22,12 @@ import io.apicurio.datamodels.Library;
 import io.apicurio.datamodels.asyncapi.models.AaiDocument;
 import io.apicurio.datamodels.asyncapi.v2.models.Aai20Document;
 import io.ballerina.asyncapi.codegenerator.configuration.BallerinaAsyncApiException;
+import io.ballerina.asyncapi.codegenerator.configuration.Constants;
 import io.ballerina.asyncapi.codegenerator.usecase.ExtractServiceTypesFromSpec;
 import io.ballerina.asyncapi.codegenerator.usecase.GenerateListenerStatementNode;
 import io.ballerina.asyncapi.codegenerator.usecase.UseCase;
 import io.ballerina.compiler.syntax.tree.*;
 import io.ballerina.tools.text.TextDocuments;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.ballerinalang.formatter.core.Formatter;
 import org.ballerinalang.formatter.core.FormatterException;
 
@@ -39,7 +38,6 @@ import java.util.Map;
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createNodeList;
 
 public class ListenerController implements Controller {
-    private static final Logger logger = LogManager.getLogger(ListenerController.class);
 
     @Override
     public String generateBalCode(String spec, String balTemplate) throws BallerinaAsyncApiException {
@@ -69,11 +67,8 @@ public class ListenerController implements Controller {
 
         try {
             var formattedSourceCode = Formatter.format(modifiedTree).toSourceCode();
-            logger.debug("Generated the source code for the listener: {}", formattedSourceCode);
             return formattedSourceCode;
         } catch (FormatterException e) {
-            logger.error("Could not format the generated code, may be a syntax issue in the generated code. " +
-                    "Generated code: {}", modifiedTree.toSourceCode());
             throw new BallerinaAsyncApiException("Could not format the generated code, " +
                     "may be a syntax issue in the generated code", e);
         }
@@ -84,7 +79,8 @@ public class ListenerController implements Controller {
             if (node.kind() == SyntaxKind.CLASS_DEFINITION) {
                 for(Node funcNode: ((ClassDefinitionNode) node).members()) {
                     if ((funcNode.kind() == SyntaxKind.OBJECT_METHOD_DEFINITION)
-                            && ((FunctionDefinitionNode) funcNode).functionName().text().equals("getServiceTypeStr")) {
+                            && ((FunctionDefinitionNode) funcNode).functionName().text().equals(
+                                    Constants.LISTENER_SERVICE_TYPE_FILTER_FUNCTION_NAME)) {
                         return (FunctionDefinitionNode) funcNode;
                     }
                 }

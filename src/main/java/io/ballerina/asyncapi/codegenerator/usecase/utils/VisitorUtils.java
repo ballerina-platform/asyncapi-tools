@@ -1,100 +1,65 @@
+/*
+ *  Copyright (c) 2021, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ *
+ *  WSO2 Inc. licenses this file to you under the Apache License,
+ *  Version 2.0 (the "License"); you may not use this file except
+ *  in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing,
+ *  software distributed under the License is distributed on an
+ *  "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ *  KIND, either express or implied.  See the License for the
+ *  specific language governing permissions and limitations
+ *  under the License.
+ */
+
 package io.ballerina.asyncapi.codegenerator.usecase.utils;
 
-import io.apicurio.datamodels.asyncapi.models.AaiChannelItem;
 import io.apicurio.datamodels.asyncapi.models.AaiDocument;
-import io.apicurio.datamodels.asyncapi.models.AaiInfo;
-import io.apicurio.datamodels.asyncapi.models.AaiSchema;
 import io.ballerina.asyncapi.codegenerator.configuration.Constants;
-import io.apicurio.datamodels.core.models.Node;
 
 import java.util.*;
 
+/**
+ * This class contains util functions for Async api object model access
+ */
 public class VisitorUtils {
 
     /**
-     * ListChannels
-     *
-     * @param aaiDocument input function name, record name or operation Id
-     * @return string with new generated name
+     * Get event name path(Yaml path to event name field) from async api document
+     * @param aaiDocument Async API Document
+     * @return String event path
      */
-    public Map<String, Object> listChannels(AaiDocument aaiDocument, boolean isSchema) {
-        Map<String, Object> eventMap = new HashMap<String, Object>();
-        for (Iterator<AaiChannelItem> it = aaiDocument.getChannels().iterator(); it.hasNext();) {
-            AaiChannelItem channelItem = it.next();
-            if(channelItem.subscribe != null && channelItem.subscribe.message.getExtension("x-event-type") != null) {
-                String eventName = channelItem.subscribe.message.getExtension("x-event-type").value.toString();
-                System.out.println(eventName);
-                eventMap.put(eventName, channelItem.subscribe.message);
-            }
-        }
-
-        return eventMap;
-    }
-
-    public Map<String, Object> listChannelEvents(AaiDocument aaiDocument, boolean isSchema) {
-        Map<String, Object> eventMap = new HashMap<String, Object>();
-        for (Iterator<AaiChannelItem> it = aaiDocument.getChannels().iterator(); it.hasNext();) {
-            AaiChannelItem channelItem = it.next();
-            if(channelItem.subscribe != null && channelItem.subscribe.message.getExtension("x-event-type") != null) {
-                String eventName = channelItem.subscribe.message.getExtension("x-event-type").value.toString();
-                System.out.println(eventName);
-                eventMap.put(eventName, channelItem.subscribe.message);
-            }
-        }
-
-        return eventMap;
-    }
-
-    public String getEventNamePathComponents(AaiDocument aaiDocument) {
+    public String getEventNamePath(AaiDocument aaiDocument) {
         List<String> eventPath = new ArrayList<>();
         StringBuilder eventPathString = new StringBuilder("genericEvent");
-        String fieldType = aaiDocument.getExtension("x-http-event-field-type").value.toString();
-        if ("BODY".equals(fieldType)) {
-            String eventFieldPath = aaiDocument.getExtension("x-http-event-field").value.toString();
+        String fieldType = aaiDocument.getExtension(Constants.X_BALLERINA_EVENT_FIELD_TYPE).value.toString();
+        if (Constants.X_BALLERINA_EVENT_TYPE_HEADER.equals(fieldType)) {
+            //TODO: Handle header event path
+        } else { // Defaults to BODY
+            String eventFieldPath = aaiDocument.getExtension(Constants.X_BALLERINA_EVENT_FIELD).value.toString();
             String [] yamlPathComponents = eventFieldPath.split("/");
             for (String pathComponent: yamlPathComponents) {
                 if (!(pathComponent.equals("#") || pathComponent.equals("components") || pathComponent.equals("schemas"))) {
                     eventPath.add(pathComponent);
                 }
             }
-        }
-        for (int i = 1; i < eventPath.size(); i++) { //Omit first element since we've already created records by that name
-            String eventPathPart = eventPath.get(i);
-            if(i != eventPath.size()) {
-                eventPathString.append(".");
-            }
-            if(Constants.BAL_KEYWORDS.stream()
-                    .anyMatch(eventPathPart::equals)) {
-                eventPathString.append("`" + eventPathPart);
-            } else {
-                eventPathString.append(eventPathPart);
+            for (int i = 1; i < eventPath.size(); i++) { //Omit first element since we've already created records by that name
+                String eventPathPart = eventPath.get(i);
+                if(i != eventPath.size()) {
+                    eventPathString.append(".");
+                }
+                if(Constants.BAL_KEYWORDS.stream()
+                        .anyMatch(eventPathPart::equals)) {
+                    eventPathString.append("'" + eventPathPart);
+                } else {
+                    eventPathString.append(eventPathPart);
+                }
             }
         }
         return eventPathString.toString();
-    }
-
-
-    /**
-     * ListChannels
-     *
-     * @param aaiDocument input function name, record name or operation Id
-     * @return string with new generated name
-     */
-    public Node resolveSchemaRef(AaiDocument aaiDocument, String path) {
-        String [] pathComponents = path.split("/");
-        //Ignore 0 th path component.
-        AaiSchema schema = aaiDocument.components.getSchemaDefinition(pathComponents[3]);
-        return schema;
-    }
-
-    /**
-     * ListChannels
-     *
-     * @param eventName input function name, record name or operation Id
-     * @return string with new generated name
-     */
-    public String formatEventName(String eventName) {
-        String sanitizedEventName = eventName.replaceAll("[^a-zA-Z0-9]", "");
-        return sanitizedEventName;
     }
 }

@@ -65,27 +65,20 @@ public class CodeGenerator implements Application {
         String serviceTypesBalContent = serviceTypesController.generateBalCode(asyncApiSpecJson, "");
 
         String listenerTemplate = fileRepository.getFileContentFromResources(Constants.LISTENER_BAL_FILE_NAME);
+
         Controller listenerController = new ListenerController();
         String listenerBalContent = listenerController.generateBalCode(asyncApiSpecJson, listenerTemplate);
+
+        String dispatcherTemplate = fileRepository.getFileContentFromResources(Constants.DISPATCHER_SERVICE_BAL_FILE_NAME);
+
+        Controller dispatcherController = new DispatcherController();
+        String dispatcherContent = dispatcherController.generateBalCode(asyncApiSpecJson, dispatcherTemplate);
 
         fileRepository.writeToFile(outputPath.concat(Constants.DATA_TYPES_BAL_FILE_NAME), dataTypesBalContent);
         fileRepository.writeToFile(outputPath.concat(Constants.SERVICE_TYPES_BAL_FILE_NAME), serviceTypesBalContent);
         fileRepository.writeToFile(outputPath.concat(Constants.LISTENER_BAL_FILE_NAME), listenerBalContent);
-        serviceTypesController.generateBalCode(asyncApiSpecJson, "");
+        fileRepository.writeToFile(outputPath.concat(Constants.DISPATCHER_SERVICE_BAL_FILE_NAME), dispatcherContent);
 
-        String asyncApiSpec = fileRepository.getFileContent(specPath);
-        String balTemplate = fileRepository.getFileContentFromResources(Constants.HTTP_BAL_TEMPLATE_LISTENER_FILE_NAME);
-
-//        Controller schemaController = new SchemaController();
-//        schemaController.generateBalCode(asyncApiSpec, balTemplate);
-//        FileRepository fileRepository = new FileRepositoryImpl();
-//        String asyncApiSpec = fileRepository.getFileContent(specPath);
-
-//        Controller schemaController = new SchemaController();
-//        schemaController.generateBalCode(asyncApiSpec);
-
-        Controller dispatcherController = new DispatcherController();
-        dispatcherController.generateBalCode(asyncApiSpec, balTemplate);
     }
 
     String convertYamlToJson(String yaml) throws JsonProcessingException {

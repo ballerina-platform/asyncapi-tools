@@ -25,7 +25,7 @@ public final class Constants {
     public static final String DATA_TYPES_BAL_FILE_NAME = "data_types.bal";
     public static final String LISTENER_BAL_FILE_NAME = "listener.bal";
     public static final String SERVICE_TYPES_BAL_FILE_NAME = "service_types.bal";
-    public static final String HTTP_BAL_TEMPLATE_LISTENER_FILE_NAME = "http_service.bal";
+    public static final String DISPATCHER_SERVICE_BAL_FILE_NAME = "dispatcher_service.bal";
     public static final List<String> BAL_KEYWORDS;
     public static final List<String> BAL_TYPES;
     public static final String ESCAPE_PATTERN = "([\\[\\]\\\\?!<>@#&~`*\\-=^+();:\\/\\_{}\\s|.$])";
@@ -63,6 +63,18 @@ public final class Constants {
 
     public static final String X_BALLERINA_EVENT_TYPE = "x-ballerina-event-type";
     public static final String X_BALLERINA_SERVICE_TYPE = "x-ballerina-service-type";
+    public static final String X_BALLERINA_EVENT_FIELD = "x-ballerina-event-field";
+    public static final String X_BALLERINA_EVENT_FIELD_TYPE = "x-ballerina-event-field-type";
+    public static final String X_BALLERINA_EVENT_TYPE_HEADER = "HEADER";
+    public static final String X_BALLERINA_EVENT_TYPE_BODY = "BODY";
+
+    public static final String CLONE_WITH_TYPE_VAR_NAME = "genericEvent";
+    public static final String INTEROP_INVOKE_FUNCTION_NAME = "executeRemoteFunc";
+    public static final String LISTENER_SERVICE_TYPE_FILTER_FUNCTION_NAME = "getServiceTypeStr";
+    public static final String REMOTE_FUNCTION_NAME_PREFIX = "on";
+    public static final String SERVICE_TYPE_NAME_SUFFIX = "Service";
+
+    public static final String SELF_KEYWORD = "self";
 
     private Constants() {
     }
