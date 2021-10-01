@@ -1,5 +1,4 @@
 import ballerina/http;
-import ballerina/jballerina.java;
 import athukorala/eventapi.interop.handler as handler;
 
 service class DispatcherService {
@@ -39,7 +38,7 @@ service class DispatcherService {
         check caller->respond(http:STATUS_OK);
    }
 
-   private function executeRemoteFunc(GenericEvent genericEvent, string eventName, string serviceTypeStr, string eventFunction) returns error? {
+   private function executeRemoteFunc(GenericDataType genericEvent, string eventName, string serviceTypeStr, string eventFunction) returns error? {
          GenericService? genericService = self.services[serviceTypeStr];
          if genericService is GenericService {
               check self.interopHandler.invokeRemoteFunction(genericEvent, eventName, eventFunction, genericService);
