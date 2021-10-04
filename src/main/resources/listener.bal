@@ -2,7 +2,7 @@ import ballerina/http;
 
 public class Listener {
     private http:Listener httpListener;
-    private DispatcherService dispatcherService = new DispatcherService();
+    private DispatcherService dispatcherService;
 
     public function init(int|http:Listener listenOn = 8090) returns error? {
         if listenOn is http:Listener {
@@ -10,6 +10,7 @@ public class Listener {
         } else {
             self.httpListener = check new (listenOn);
         }
+        self.dispatcherService = new DispatcherService();
     }
 
     public isolated function attach(GenericService serviceRef, () attachPoint) returns @tainted error? {
