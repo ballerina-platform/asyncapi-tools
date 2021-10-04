@@ -23,11 +23,11 @@ import io.apicurio.datamodels.asyncapi.models.AaiDocument;
 import io.apicurio.datamodels.asyncapi.models.AaiSchema;
 import io.apicurio.datamodels.asyncapi.v2.models.Aai20Document;
 import io.ballerina.asyncapi.codegenerator.configuration.BallerinaAsyncApiException;
+import io.ballerina.asyncapi.codegenerator.configuration.Constants;
 import io.ballerina.asyncapi.codegenerator.usecase.GenerateRecordNode;
+import io.ballerina.asyncapi.codegenerator.usecase.GenerateUnionDescriptorNode;
 import io.ballerina.asyncapi.codegenerator.usecase.UseCase;
-import io.ballerina.compiler.syntax.tree.ModuleMemberDeclarationNode;
-import io.ballerina.compiler.syntax.tree.ModulePartNode;
-import io.ballerina.compiler.syntax.tree.SyntaxTree;
+import io.ballerina.compiler.syntax.tree.*;
 import io.ballerina.tools.text.TextDocuments;
 import org.ballerinalang.formatter.core.Formatter;
 import org.ballerinalang.formatter.core.FormatterException;
@@ -36,6 +36,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createIdentifierToken;
+import static io.ballerina.compiler.syntax.tree.NodeFactory.createSimpleNameReferenceNode;
+
 public class SchemaController implements Controller {
 
     @Override
@@ -43,12 +46,19 @@ public class SchemaController implements Controller {
         AaiDocument asyncApiSpec = (Aai20Document) Library.readDocumentFromJSONString(spec);
 
         List<ModuleMemberDeclarationNode> recordNodes = new ArrayList<>();
+        List<TypeDescriptorNode> serviceTypeNodes = new ArrayList<>();
         for (Map.Entry<String, AaiSchema> fields : asyncApiSpec.components.schemas.entrySet()) {
             UseCase generateRecordNode = new GenerateRecordNode(asyncApiSpec, fields);
             if (generateRecordNode.execute() != null) {
-                recordNodes.add(generateRecordNode.execute());
+                TypeDefinitionNode typeDefinitionNode = generateRecordNode.execute();
+                serviceTypeNodes.add(
+                        createSimpleNameReferenceNode(createIdentifierToken(typeDefinitionNode.typeName().text())));
+                recordNodes.add(typeDefinitionNode);
             }
         }
+
+        UseCase generateUnionNode = new GenerateUnionDescriptorNode(serviceTypeNodes, Constants.GENERIC_DATA_TYPE);
+        recordNodes.add(generateUnionNode.execute());
 
         var textDocument = TextDocuments.from(balTemplate);
         var syntaxTree = SyntaxTree.from(textDocument);
@@ -57,8 +67,7 @@ public class SchemaController implements Controller {
         var modifiedTree = syntaxTree.replaceNode(oldRoot, newRoot);
 
         try {
-            var formattedSourceCode = Formatter.format(modifiedTree).toSourceCode();
-            return formattedSourceCode;
+            return Formatter.format(modifiedTree).toSourceCode();
         } catch (FormatterException e) {
             throw new BallerinaAsyncApiException("Could not format the generated code, " +
                     "may be a syntax issue in the generated code", e);
