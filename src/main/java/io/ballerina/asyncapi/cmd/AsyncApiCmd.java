@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2020, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ *  Copyright (c) 2021, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
  *
  *  WSO2 Inc. licenses this file to you under the Apache License,
  *  Version 2.0 (the "License"); you may not use this file except
@@ -29,17 +29,13 @@ import java.nio.file.Paths;
 
 @CommandLine.Command(
         name = "asyncapi",
-        description = "Generates Ballerina service/client for AsyncAPI contract and AsyncAPI contract for Ballerina" +
-                "Service."
+        description = "Generates Ballerina client for AsyncAPI contract of an Event-API."
 )
 public class AsyncApiCmd implements BLauncherCmd {
     private static final String CMD_NAME = "asyncapi";
     private PrintStream outStream;
     private boolean exitWhenFinish;
     private Path executionPath = Paths.get(System.getProperty("user.dir"));
-
-    @CommandLine.Option(names = {"-h", "--help"}, hidden = true)
-    private boolean helpFlag;
 
     @CommandLine.Option(names = {"-i", "--input"}, description = "Generating the client and service both files")
     private boolean inputPath;
@@ -68,12 +64,6 @@ public class AsyncApiCmd implements BLauncherCmd {
 
     @Override
     public void execute() {
-
-        if (helpFlag) {
-            String commandUsageInfo = BLauncherCmd.getCommandUsageInfo(CMD_NAME);
-            outStream.println(commandUsageInfo);
-            return;
-        }
 
         if (inputPath) {
             if (argList == null) {
