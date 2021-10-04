@@ -67,6 +67,7 @@ public final class Constants {
     public static final String X_BALLERINA_EVENT_FIELD_TYPE = "x-ballerina-event-field-type";
     public static final String X_BALLERINA_EVENT_TYPE_HEADER = "HEADER";
     public static final String X_BALLERINA_EVENT_TYPE_BODY = "BODY";
+    public static final String X_BALLERINA_EVENT_FIELD_BODY_VAR = "$BODY";
 
     public static final String CLONE_WITH_TYPE_VAR_NAME = "genericEvent";
     public static final String INTEROP_INVOKE_FUNCTION_NAME = "executeRemoteFunc";
