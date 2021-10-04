@@ -18,6 +18,9 @@
 
 package io.ballerina.asyncapi.codegenerator.repository;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import io.ballerina.asyncapi.codegenerator.configuration.BallerinaAsyncApiException;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
@@ -60,7 +63,19 @@ public class FileRepositoryImpl implements FileRepository {
         }
     }
 
-    private InputStream getFileFromResourceAsStream(String fileName) {
+    @Override
+    public String convertYamlToJson(String yaml) throws BallerinaAsyncApiException {
+        var yamlReader = new ObjectMapper(new YAMLFactory());
+        try {
+            Object obj = yamlReader.readValue(yaml, Object.class);
+            var jsonWriter = new ObjectMapper();
+            return jsonWriter.writeValueAsString(obj);
+        } catch (JsonProcessingException e) {
+            throw new BallerinaAsyncApiException("Error when converting the given yaml file to json", e);
+        }
+    }
+
+    public InputStream getFileFromResourceAsStream(String fileName) {
         var classLoader = getClass().getClassLoader();
         var inputStream = classLoader.getResourceAsStream(fileName);
         if (inputStream == null) {

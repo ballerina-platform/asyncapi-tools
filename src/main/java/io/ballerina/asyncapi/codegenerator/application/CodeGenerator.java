@@ -18,9 +18,6 @@
 
 package io.ballerina.asyncapi.codegenerator.application;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import io.ballerina.asyncapi.codegenerator.configuration.BallerinaAsyncApiException;
 import io.ballerina.asyncapi.codegenerator.configuration.Constants;
 import io.ballerina.asyncapi.codegenerator.controller.Controller;
@@ -48,11 +45,7 @@ public class CodeGenerator implements Application {
         if (specPath.endsWith(".json")) {
             asyncApiSpecJson = asyncApiSpecYaml;
         } else if (specPath.endsWith("yaml") || specPath.endsWith("yml")) {
-            try {
-                asyncApiSpecJson = convertYamlToJson(asyncApiSpecYaml);
-            } catch (JsonProcessingException e) {
-                throw new BallerinaAsyncApiException("Error when converting the given yaml file to json", e);
-            }
+            asyncApiSpecJson = fileRepository.convertYamlToJson(asyncApiSpecYaml);
         } else {
             throw new BallerinaAsyncApiException("Unknown file type: ".concat(specPath));
         }
@@ -76,13 +69,6 @@ public class CodeGenerator implements Application {
         fileRepository.writeToFile(outputDirectory.concat(Constants.SERVICE_TYPES_BAL_FILE_NAME), serviceTypesBalContent);
         fileRepository.writeToFile(outputDirectory.concat(Constants.LISTENER_BAL_FILE_NAME), listenerBalContent);
         fileRepository.writeToFile(outputDirectory.concat(Constants.DISPATCHER_SERVICE_BAL_FILE_NAME), dispatcherContent);
-    }
-
-    String convertYamlToJson(String yaml) throws JsonProcessingException {
-        var yamlReader = new ObjectMapper(new YAMLFactory());
-        Object obj = yamlReader.readValue(yaml, Object.class);
-        var jsonWriter = new ObjectMapper();
-        return jsonWriter.writeValueAsString(obj);
     }
 
     private String getOutputDirectory(String outputPath) {
