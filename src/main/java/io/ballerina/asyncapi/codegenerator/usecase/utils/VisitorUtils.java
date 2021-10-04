@@ -19,6 +19,7 @@
 package io.ballerina.asyncapi.codegenerator.usecase.utils;
 
 import io.apicurio.datamodels.asyncapi.models.AaiDocument;
+import io.ballerina.asyncapi.codegenerator.configuration.BallerinaAsyncApiException;
 import io.ballerina.asyncapi.codegenerator.configuration.Constants;
 
 import java.util.*;
@@ -30,34 +31,47 @@ public class VisitorUtils {
 
     /**
      * Get event name path(Yaml path to event name field) from async api document
+     *
      * @param aaiDocument Async API Document
      * @return String event path
      */
-    public String getEventNamePath(AaiDocument aaiDocument) {
+    public String getEventNamePath(AaiDocument aaiDocument) throws BallerinaAsyncApiException {
+
         List<String> eventPath = new ArrayList<>();
-        StringBuilder eventPathString = new StringBuilder("genericEvent");
+        StringBuilder eventPathString = new StringBuilder(Constants.CLONE_WITH_TYPE_VAR_NAME);
         String fieldType = aaiDocument.getExtension(Constants.X_BALLERINA_EVENT_FIELD_TYPE).value.toString();
         if (Constants.X_BALLERINA_EVENT_TYPE_HEADER.equals(fieldType)) {
             //TODO: Handle header event path
         } else { // Defaults to BODY
             String eventFieldPath = aaiDocument.getExtension(Constants.X_BALLERINA_EVENT_FIELD).value.toString();
-            String [] yamlPathComponents = eventFieldPath.split("/");
-            for (String pathComponent: yamlPathComponents) {
-                if (!(pathComponent.equals("#") || pathComponent.equals("components") || pathComponent.equals("schemas"))) {
-                    eventPath.add(pathComponent);
+            String[] yamlPathComponents = eventFieldPath.split("/");
+            if (Constants.X_BALLERINA_EVENT_FIELD_BODY_VAR.equals(yamlPathComponents[0])) {
+                for (int i = 1; i < yamlPathComponents.length; i++) {
+                    if (i != yamlPathComponents.length) {
+                        eventPathString.append(".");
+                    }
+                    eventPathString.append(yamlPathComponents[i]);
                 }
-            }
-            for (int i = 1; i < eventPath.size(); i++) { //Omit first element since we've already created records by that name
-                String eventPathPart = eventPath.get(i);
-                if(i != eventPath.size()) {
-                    eventPathString.append(".");
+            } else if ("#".equals(yamlPathComponents[0])) {
+                for (String pathComponent : yamlPathComponents) {
+                    if (!("#".equals(pathComponent) || "components".equals(pathComponent) || "schemas".equals(pathComponent))) {
+                        eventPath.add(pathComponent);
+                    }
                 }
-                if(Constants.BAL_KEYWORDS.stream()
-                        .anyMatch(eventPathPart::equals)) {
-                    eventPathString.append("'" + eventPathPart);
-                } else {
-                    eventPathString.append(eventPathPart);
+                for (int i = 1; i < eventPath.size(); i++) { //Omit first element since we've already created records by that name
+                    String eventPathPart = eventPath.get(i);
+                    if (i != eventPath.size()) {
+                        eventPathString.append(".");
+                    }
+                    if (Constants.BAL_KEYWORDS.stream()
+                            .anyMatch(eventPathPart::equals)) {
+                        eventPathString.append("'" + eventPathPart);
+                    } else {
+                        eventPathString.append(eventPathPart);
+                    }
                 }
+            } else {
+                throw new BallerinaAsyncApiException("x-ballerina-event-field field is not defined");
             }
         }
         return eventPathString.toString();
