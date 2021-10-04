@@ -71,10 +71,11 @@ public class CodeGenerator implements Application {
         Controller dispatcherController = new DispatcherController();
         String dispatcherContent = dispatcherController.generateBalCode(asyncApiSpecJson, dispatcherTemplate);
 
-        fileRepository.writeToFile(outputPath.concat(Constants.DATA_TYPES_BAL_FILE_NAME), dataTypesBalContent);
-        fileRepository.writeToFile(outputPath.concat(Constants.SERVICE_TYPES_BAL_FILE_NAME), serviceTypesBalContent);
-        fileRepository.writeToFile(outputPath.concat(Constants.LISTENER_BAL_FILE_NAME), listenerBalContent);
-        fileRepository.writeToFile(outputPath.concat(Constants.DISPATCHER_SERVICE_BAL_FILE_NAME), dispatcherContent);
+        String outputDirectory = getOutputDirectory(outputPath);
+        fileRepository.writeToFile(outputDirectory.concat(Constants.DATA_TYPES_BAL_FILE_NAME), dataTypesBalContent);
+        fileRepository.writeToFile(outputDirectory.concat(Constants.SERVICE_TYPES_BAL_FILE_NAME), serviceTypesBalContent);
+        fileRepository.writeToFile(outputDirectory.concat(Constants.LISTENER_BAL_FILE_NAME), listenerBalContent);
+        fileRepository.writeToFile(outputDirectory.concat(Constants.DISPATCHER_SERVICE_BAL_FILE_NAME), dispatcherContent);
     }
 
     String convertYamlToJson(String yaml) throws JsonProcessingException {
@@ -82,5 +83,10 @@ public class CodeGenerator implements Application {
         Object obj = yamlReader.readValue(yaml, Object.class);
         var jsonWriter = new ObjectMapper();
         return jsonWriter.writeValueAsString(obj);
+    }
+
+    private String getOutputDirectory(String outputPath) {
+        if (outputPath.endsWith("/")) return outputPath;
+        return outputPath.concat("/");
     }
 }
