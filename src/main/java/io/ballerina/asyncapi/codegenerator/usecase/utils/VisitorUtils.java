@@ -50,7 +50,13 @@ public class VisitorUtils {
                     if (i != yamlPathComponents.length) {
                         eventPathString.append(".");
                     }
-                    eventPathString.append(yamlPathComponents[i]);
+                    String eventPathPart = yamlPathComponents[i];
+                    if (Constants.BAL_KEYWORDS.stream()
+                            .anyMatch(eventPathPart::equals)) {
+                        eventPathString.append("'" + eventPathPart);
+                    } else {
+                        eventPathString.append(eventPathPart);
+                    }
                 }
             } else if ("#".equals(yamlPathComponents[0])) {
                 for (String pathComponent : yamlPathComponents) {
