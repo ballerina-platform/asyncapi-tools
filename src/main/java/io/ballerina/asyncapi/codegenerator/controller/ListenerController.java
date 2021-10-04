@@ -23,6 +23,7 @@ import io.apicurio.datamodels.asyncapi.models.AaiDocument;
 import io.apicurio.datamodels.asyncapi.v2.models.Aai20Document;
 import io.ballerina.asyncapi.codegenerator.configuration.BallerinaAsyncApiException;
 import io.ballerina.asyncapi.codegenerator.configuration.Constants;
+import io.ballerina.asyncapi.codegenerator.entity.ServiceType;
 import io.ballerina.asyncapi.codegenerator.usecase.ExtractServiceTypesFromSpec;
 import io.ballerina.asyncapi.codegenerator.usecase.GenerateListenerStatementNode;
 import io.ballerina.asyncapi.codegenerator.usecase.UseCase;
@@ -31,9 +32,8 @@ import io.ballerina.tools.text.TextDocuments;
 import org.ballerinalang.formatter.core.Formatter;
 import org.ballerinalang.formatter.core.FormatterException;
 
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
+import java.util.stream.Collectors;
 
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createNodeList;
 
@@ -55,9 +55,10 @@ public class ListenerController implements Controller {
         var functionBodyBlockNode = (FunctionBodyBlockNode) functionDefinitionNode.functionBody();
 
         UseCase extractServiceTypes = new ExtractServiceTypesFromSpec(asyncApiSpec);
-        Map<String, List<String>> serviceTypesMap = extractServiceTypes.execute();
-        List<String> serviceTypes = new ArrayList<>(serviceTypesMap.keySet());
-        UseCase genIfElseNode = new GenerateListenerStatementNode(serviceTypes);
+        List<ServiceType> serviceTypes = extractServiceTypes.execute();
+        List<String> serviceTypeNames = serviceTypes.stream()
+                .map(ServiceType::getServiceTypeName).collect(Collectors.toList());
+        UseCase genIfElseNode = new GenerateListenerStatementNode(serviceTypeNames);
         StatementNode ifElseStatementNode = genIfElseNode.execute();
         NodeList<StatementNode> stmts = createNodeList(ifElseStatementNode);
 
@@ -66,8 +67,7 @@ public class ListenerController implements Controller {
         var modifiedTree = syntaxTree.replaceNode(oldRoot, newRoot);
 
         try {
-            var formattedSourceCode = Formatter.format(modifiedTree).toSourceCode();
-            return formattedSourceCode;
+            return Formatter.format(modifiedTree).toSourceCode();
         } catch (FormatterException e) {
             throw new BallerinaAsyncApiException("Could not format the generated code, " +
                     "may be a syntax issue in the generated code", e);
