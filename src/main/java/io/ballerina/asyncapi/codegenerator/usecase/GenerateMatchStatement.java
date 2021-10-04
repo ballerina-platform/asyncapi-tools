@@ -21,6 +21,8 @@ package io.ballerina.asyncapi.codegenerator.usecase;
 import io.apicurio.datamodels.asyncapi.models.AaiDocument;
 import io.ballerina.asyncapi.codegenerator.configuration.BallerinaAsyncApiException;
 import io.ballerina.asyncapi.codegenerator.configuration.Constants;
+import io.ballerina.asyncapi.codegenerator.entity.RemoteFunction;
+import io.ballerina.asyncapi.codegenerator.entity.ServiceType;
 import io.ballerina.asyncapi.codegenerator.usecase.utils.CodegenUtils;
 import io.ballerina.asyncapi.codegenerator.usecase.utils.VisitorUtils;
 import io.ballerina.compiler.syntax.tree.BlockStatementNode;
@@ -32,14 +34,13 @@ import io.ballerina.compiler.syntax.tree.SyntaxKind;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createToken;
 
 
 public class GenerateMatchStatement implements UseCase {
     private final CodegenUtils codegenUtils = new CodegenUtils();
-    private AaiDocument document;
+    private final AaiDocument document;
 
     public GenerateMatchStatement(AaiDocument document) {
         this.document = document;
@@ -47,14 +48,15 @@ public class GenerateMatchStatement implements UseCase {
 
     @Override
     public MatchStatementNode execute() throws BallerinaAsyncApiException {
-        VisitorUtils visitorUtils = new VisitorUtils();
+        var visitorUtils = new VisitorUtils();
         UseCase extractServiceTypes = new ExtractServiceTypesFromSpec(this.document);
-        Map<String, List<String>> serviceTypes = extractServiceTypes.execute();
+        List<ServiceType> serviceTypes = extractServiceTypes.execute();
         List<MatchClauseNode> matchClauseNodes = new ArrayList<>();
 
-        for (Map.Entry<String, List<String>> service : serviceTypes.entrySet()) {
-            String serviceName = service.getKey();
-            for (String eventName : service.getValue()) {
+        for (ServiceType service : serviceTypes) {
+            String serviceName = service.getServiceTypeName();
+            for (RemoteFunction remoteFunction : service.getRemoteFunctions()) {
+                String eventName = remoteFunction.getEventName();
                 String formattedEventName = codegenUtils.getFunctionNameByEventName(eventName);
                 MatchClauseNode matchClause = generateMatchClause(serviceName, eventName, formattedEventName);
                 matchClauseNodes.add(matchClause);
@@ -63,13 +65,12 @@ public class GenerateMatchStatement implements UseCase {
 
         String eventPath = visitorUtils.getEventNamePath(this.document);
 
-        MatchStatementNode matchStatementNode = NodeFactory.createMatchStatementNode(
+        return NodeFactory.createMatchStatementNode(
                 NodeFactory.createToken(SyntaxKind.MATCH_KEYWORD),
                 NodeFactory.createSimpleNameReferenceNode(NodeFactory.createIdentifierToken(eventPath)),
                 NodeFactory.createToken(SyntaxKind.OPEN_BRACE_TOKEN),
                 NodeFactory.createNodeList(matchClauseNodes),
                 NodeFactory.createToken(SyntaxKind.CLOSE_BRACE_TOKEN), null);
-        return matchStatementNode;
     }
 
     /**
@@ -78,8 +79,7 @@ public class GenerateMatchStatement implements UseCase {
     private MatchClauseNode generateMatchClause(String serviceTypeName, String eventName, String formattedEventName) {
 
         CheckExpressionNode lineNode = NodeFactory.createCheckExpressionNode(SyntaxKind.CHECK_EXPRESSION,
-                NodeFactory.createToken(SyntaxKind.CHECK_KEYWORD, codegenUtils.createMinutiae(""),
-                        codegenUtils.createMinutiae(" ")),
+                NodeFactory.createToken(SyntaxKind.CHECK_KEYWORD),
                 NodeFactory.createMethodCallExpressionNode(
                         NodeFactory.createSimpleNameReferenceNode(
                                 NodeFactory.createIdentifierToken(Constants.SELF_KEYWORD)),

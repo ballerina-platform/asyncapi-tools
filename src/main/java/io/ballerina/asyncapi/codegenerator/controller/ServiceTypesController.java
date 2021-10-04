@@ -22,6 +22,7 @@ import io.apicurio.datamodels.Library;
 import io.apicurio.datamodels.asyncapi.models.AaiDocument;
 import io.apicurio.datamodels.asyncapi.v2.models.Aai20Document;
 import io.ballerina.asyncapi.codegenerator.configuration.BallerinaAsyncApiException;
+import io.ballerina.asyncapi.codegenerator.entity.ServiceType;
 import io.ballerina.asyncapi.codegenerator.usecase.ExtractServiceTypesFromSpec;
 import io.ballerina.asyncapi.codegenerator.usecase.GenerateServiceTypeNode;
 import io.ballerina.asyncapi.codegenerator.usecase.UseCase;
@@ -29,14 +30,11 @@ import io.ballerina.compiler.syntax.tree.ModuleMemberDeclarationNode;
 import io.ballerina.compiler.syntax.tree.ModulePartNode;
 import io.ballerina.compiler.syntax.tree.SyntaxTree;
 import io.ballerina.tools.text.TextDocuments;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.ballerinalang.formatter.core.Formatter;
 import org.ballerinalang.formatter.core.FormatterException;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 public class ServiceTypesController implements Controller {
 
@@ -45,11 +43,12 @@ public class ServiceTypesController implements Controller {
         AaiDocument asyncApiSpec = (Aai20Document) Library.readDocumentFromJSONString(spec);
 
         UseCase extractServiceTypes = new ExtractServiceTypesFromSpec(asyncApiSpec);
-        Map<String, List<String>> serviceTypes = extractServiceTypes.execute();
+        List<ServiceType> serviceTypes = extractServiceTypes.execute();
 
         List<ModuleMemberDeclarationNode> serviceNodes = new ArrayList<>();
-        for (Map.Entry<String, List<String>> service : serviceTypes.entrySet()) {
-            UseCase generateServiceTypeNode = new GenerateServiceTypeNode(service.getKey(), service.getValue());
+        for (ServiceType service : serviceTypes) {
+            UseCase generateServiceTypeNode =
+                    new GenerateServiceTypeNode(service.getServiceTypeName(), service.getRemoteFunctions());
             serviceNodes.add(generateServiceTypeNode.execute());
         }
 

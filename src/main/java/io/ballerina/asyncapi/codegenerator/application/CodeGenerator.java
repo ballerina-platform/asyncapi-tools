@@ -61,16 +61,13 @@ public class CodeGenerator implements Application {
         String dataTypesBalContent = schemaController.generateBalCode(asyncApiSpecJson, "");
 
         Controller serviceTypesController = new ServiceTypesController();
-
         String serviceTypesBalContent = serviceTypesController.generateBalCode(asyncApiSpecJson, "");
 
         String listenerTemplate = fileRepository.getFileContentFromResources(Constants.LISTENER_BAL_FILE_NAME);
-
         Controller listenerController = new ListenerController();
         String listenerBalContent = listenerController.generateBalCode(asyncApiSpecJson, listenerTemplate);
 
         String dispatcherTemplate = fileRepository.getFileContentFromResources(Constants.DISPATCHER_SERVICE_BAL_FILE_NAME);
-
         Controller dispatcherController = new DispatcherController();
         String dispatcherContent = dispatcherController.generateBalCode(asyncApiSpecJson, dispatcherTemplate);
 
@@ -78,7 +75,6 @@ public class CodeGenerator implements Application {
         fileRepository.writeToFile(outputPath.concat(Constants.SERVICE_TYPES_BAL_FILE_NAME), serviceTypesBalContent);
         fileRepository.writeToFile(outputPath.concat(Constants.LISTENER_BAL_FILE_NAME), listenerBalContent);
         fileRepository.writeToFile(outputPath.concat(Constants.DISPATCHER_SERVICE_BAL_FILE_NAME), dispatcherContent);
-
     }
 
     String convertYamlToJson(String yaml) throws JsonProcessingException {
