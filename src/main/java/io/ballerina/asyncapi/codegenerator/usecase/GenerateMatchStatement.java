@@ -94,7 +94,8 @@ public class GenerateMatchStatement implements UseCase {
                                         NodeFactory.createIdentifierToken("\"" + eventName + "\""))),
                                 createToken(SyntaxKind.COMMA_TOKEN),
                                 NodeFactory.createPositionalArgumentNode(NodeFactory.createSimpleNameReferenceNode(
-                                        NodeFactory.createIdentifierToken("\"" + serviceTypeName + "\""))),
+                                        NodeFactory.createIdentifierToken("\"" +
+                                                codegenUtils.getServiceTypeNameByServiceName(serviceTypeName) + "\""))),
                                 createToken(SyntaxKind.COMMA_TOKEN),
                                 NodeFactory.createPositionalArgumentNode(NodeFactory.createSimpleNameReferenceNode(
                                         NodeFactory.createIdentifierToken("\"" + formattedEventName + "\"")))),
