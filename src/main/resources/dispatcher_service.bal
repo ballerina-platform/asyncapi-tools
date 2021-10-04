@@ -2,14 +2,14 @@ import ballerina/http;
 import athukorala/eventapi.interop.handler as handler;
 
 service class DispatcherService {
-   private map<GenericService> services = {};
+   private map<GenericServiceType> services = {};
    private handler:InteropHandler interopHandler = new ();
 
-   isolated function addServiceRef(string serviceType, GenericService genericService) returns error? {
+   isolated function addServiceRef(string serviceType, GenericServiceType genericServiceType) returns error? {
         if (self.services.hasKey(serviceType)) {
              return error("Service of type " + serviceType + " has already been attached");
         }
-        self.services[serviceType] = genericService;
+        self.services[serviceType] = genericServiceType;
    }
 
    isolated function removeServiceRef(string serviceType) returns error? {
@@ -23,25 +23,25 @@ service class DispatcherService {
    // Issue: https://github.com/ballerina-platform/ballerina-lang/issues/32859
    resource function post events (http:Caller caller, http:Request request) returns error? {
         json payload = check request.getJsonPayload();
-        GenericDataType genericEvent = check payload.cloneWithType(GenericDataType);
-        match genericEvent.event.'type {
+        GenericDataType genericDataType = check payload.cloneWithType(GenericDataType);
+        match genericDataType.event.'type {
           "app_mention" => {
-               check self.executeRemoteFunc(genericEvent, "AppHandlingService", "onAppMention");
+               check self.executeRemoteFunc(genericDataType, "AppHandlingService", "onAppMention");
           }
           "channel_created" => {
-               check self.executeRemoteFunc(genericEvent, "ChannelHandlingService", "onChannelCreated");
+               check self.executeRemoteFunc(genericDataType, "ChannelHandlingService", "onChannelCreated");
           }
           "channel_deleted" => {
-               check self.executeRemoteFunc(genericEvent, "ChannelHandlingService", "onChannelDeleted");
+               check self.executeRemoteFunc(genericDataType, "ChannelHandlingService", "onChannelDeleted");
           }
         }
         check caller->respond(http:STATUS_OK);
    }
 
-   private function executeRemoteFunc(GenericDataType genericEvent, string eventName, string serviceTypeStr, string eventFunction) returns error? {
-         GenericService? genericService = self.services[serviceTypeStr];
-         if genericService is GenericService {
-              check self.interopHandler.invokeRemoteFunction(genericEvent, eventName, eventFunction, genericService);
+   private function executeRemoteFunc(GenericDataType genericDataType, string eventName, string serviceTypeStr, string eventFunction) returns error? {
+         GenericServiceType? genericServiceType = self.services[serviceTypeStr];
+         if genericServiceType is GenericServiceType {
+              check self.interopHandler.invokeRemoteFunction(genericDataType, eventName, eventFunction, genericServiceType);
          }
    }
 }

@@ -22,19 +22,22 @@ import io.apicurio.datamodels.Library;
 import io.apicurio.datamodels.asyncapi.models.AaiDocument;
 import io.apicurio.datamodels.asyncapi.v2.models.Aai20Document;
 import io.ballerina.asyncapi.codegenerator.configuration.BallerinaAsyncApiException;
+import io.ballerina.asyncapi.codegenerator.configuration.Constants;
 import io.ballerina.asyncapi.codegenerator.entity.ServiceType;
 import io.ballerina.asyncapi.codegenerator.usecase.ExtractServiceTypesFromSpec;
 import io.ballerina.asyncapi.codegenerator.usecase.GenerateServiceTypeNode;
+import io.ballerina.asyncapi.codegenerator.usecase.GenerateUnionDescriptorNode;
 import io.ballerina.asyncapi.codegenerator.usecase.UseCase;
-import io.ballerina.compiler.syntax.tree.ModuleMemberDeclarationNode;
-import io.ballerina.compiler.syntax.tree.ModulePartNode;
-import io.ballerina.compiler.syntax.tree.SyntaxTree;
+import io.ballerina.compiler.syntax.tree.*;
 import io.ballerina.tools.text.TextDocuments;
 import org.ballerinalang.formatter.core.Formatter;
 import org.ballerinalang.formatter.core.FormatterException;
 
 import java.util.ArrayList;
 import java.util.List;
+
+import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createIdentifierToken;
+import static io.ballerina.compiler.syntax.tree.NodeFactory.*;
 
 public class ServiceTypesController implements Controller {
 
@@ -46,11 +49,18 @@ public class ServiceTypesController implements Controller {
         List<ServiceType> serviceTypes = extractServiceTypes.execute();
 
         List<ModuleMemberDeclarationNode> serviceNodes = new ArrayList<>();
+        List<TypeDescriptorNode> serviceTypeNodes = new ArrayList<>();
         for (ServiceType service : serviceTypes) {
             UseCase generateServiceTypeNode =
                     new GenerateServiceTypeNode(service.getServiceTypeName(), service.getRemoteFunctions());
-            serviceNodes.add(generateServiceTypeNode.execute());
+            TypeDefinitionNode typeDefinitionNode = generateServiceTypeNode.execute();
+            serviceTypeNodes.add(
+                    createSimpleNameReferenceNode(createIdentifierToken(typeDefinitionNode.typeName().text())));
+            serviceNodes.add(typeDefinitionNode);
         }
+
+        UseCase generateUnionNode = new GenerateUnionDescriptorNode(serviceTypeNodes, Constants.GENERIC_SERVICE_TYPE);
+        serviceNodes.add(generateUnionNode.execute());
 
         var textDocument = TextDocuments.from(balTemplate);
         var syntaxTree = SyntaxTree.from(textDocument);
@@ -59,8 +69,7 @@ public class ServiceTypesController implements Controller {
         var modifiedTree = syntaxTree.replaceNode(oldRoot, newRoot);
 
         try {
-            var formattedSourceCode = Formatter.format(modifiedTree).toSourceCode();
-            return formattedSourceCode;
+            return Formatter.format(modifiedTree).toSourceCode();
         } catch (FormatterException e) {
             throw new BallerinaAsyncApiException("Could not format the generated code, " +
                     "may be a syntax issue in the generated code", e);
