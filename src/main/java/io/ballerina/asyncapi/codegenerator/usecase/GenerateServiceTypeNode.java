@@ -19,6 +19,7 @@
 package io.ballerina.asyncapi.codegenerator.usecase;
 
 import io.ballerina.asyncapi.codegenerator.configuration.BallerinaAsyncApiException;
+import io.ballerina.asyncapi.codegenerator.entity.RemoteFunction;
 import io.ballerina.asyncapi.codegenerator.usecase.utils.CodegenUtils;
 import io.ballerina.compiler.syntax.tree.*;
 
@@ -31,10 +32,10 @@ import static io.ballerina.compiler.syntax.tree.SyntaxKind.*;
 
 public class GenerateServiceTypeNode implements UseCase {
     private final String serviceTypeName;
-    private final List<String> remoteFunctionNames;
+    private final List<RemoteFunction> remoteFunctionNames;
     private final CodegenUtils codegenUtils = new CodegenUtils();
 
-    public GenerateServiceTypeNode(String serviceTypeName, List<String> remoteFunctionNames) {
+    public GenerateServiceTypeNode(String serviceTypeName, List<RemoteFunction> remoteFunctionNames) {
         this.serviceTypeName = serviceTypeName;
         this.remoteFunctionNames = remoteFunctionNames;
     }
@@ -47,12 +48,18 @@ public class GenerateServiceTypeNode implements UseCase {
         var returnTypeDescriptorNode = createReturnTypeDescriptorNode(
                 createToken(RETURNS_KEYWORD), createEmptyNodeList(), returnType);
         remoteFunctionNames.forEach(remoteFunction -> {
+            List<Node> parameterList =  new ArrayList<>();
+            var eventType = codegenUtils.escapeIdentifier(remoteFunction.getEventType().trim());
+            var typeNode = createBuiltinSimpleNameReferenceNode(
+                    null, createIdentifierToken(eventType));
+            parameterList.add(createRequiredParameterNode(createEmptyNodeList(), typeNode, createIdentifierToken("event")));
             var methodDeclarationNode = createMethodDeclarationNode(
                     SyntaxKind.METHOD_DECLARATION, null, createNodeList(createToken(REMOTE_KEYWORD)),
                     createToken(SyntaxKind.FUNCTION_KEYWORD),
-                    createIdentifierToken(codegenUtils.getFunctionNameByEventName(remoteFunction)), createEmptyNodeList(),
+                    createIdentifierToken(codegenUtils
+                            .getFunctionNameByEventName(remoteFunction.getEventName())), createEmptyNodeList(),
                     createFunctionSignatureNode(
-                            createToken(OPEN_PAREN_TOKEN), createSeparatedNodeList(),
+                            createToken(OPEN_PAREN_TOKEN), createSeparatedNodeList(parameterList),
                             createToken(CLOSE_PAREN_TOKEN), returnTypeDescriptorNode),
                     createToken(SyntaxKind.SEMICOLON_TOKEN));
             remoteFunctions.add(methodDeclarationNode);

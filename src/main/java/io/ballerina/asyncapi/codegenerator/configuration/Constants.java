@@ -68,13 +68,15 @@ public final class Constants {
     public static final String X_BALLERINA_EVENT_TYPE_HEADER = "HEADER";
     public static final String X_BALLERINA_EVENT_TYPE_BODY = "BODY";
 
-    public static final String CLONE_WITH_TYPE_VAR_NAME = "genericEvent";
+    public static final String CLONE_WITH_TYPE_VAR_NAME = "genericDataType";
     public static final String INTEROP_INVOKE_FUNCTION_NAME = "executeRemoteFunc";
     public static final String LISTENER_SERVICE_TYPE_FILTER_FUNCTION_NAME = "getServiceTypeStr";
     public static final String REMOTE_FUNCTION_NAME_PREFIX = "on";
     public static final String SERVICE_TYPE_NAME_SUFFIX = "Service";
 
     public static final String SELF_KEYWORD = "self";
+    public static final String GENERIC_SERVICE_TYPE = "GenericServiceType";
+    public static final String GENERIC_DATA_TYPE = "GenericDataType";
 
     private Constants() {
     }

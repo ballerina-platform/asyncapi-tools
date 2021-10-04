@@ -80,7 +80,7 @@ public class GenerateRecordNode implements UseCase {
         List<Node> schemaDoc = new ArrayList<>();
         String fieldName = codegenUtils.escapeIdentifier(field.getKey().trim());
         if (field.getValue().description != null) {
-            schemaDoc.addAll(commentsUtils.createAPIDescriptionDoc(
+            schemaDoc.addAll(commentsUtils.createDescriptionComments(
                     field.getValue().description, false));
         } else if (field.getValue().$ref != null) {
             String[] split = field.getValue().$ref.trim().split("/");
@@ -88,7 +88,7 @@ public class GenerateRecordNode implements UseCase {
             if (asyncApiSpec.components.schemas.get(componentName) != null) {
                 AaiSchema schema = asyncApiSpec.components.schemas.get(componentName);
                 if (schema.description != null) {
-                    schemaDoc.addAll(commentsUtils.createAPIDescriptionDoc(
+                    schemaDoc.addAll(commentsUtils.createDescriptionComments(
                             schema.description, false));
                 }
             }
