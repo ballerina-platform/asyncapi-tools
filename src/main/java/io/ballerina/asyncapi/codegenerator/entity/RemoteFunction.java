@@ -19,16 +19,16 @@
 package io.ballerina.asyncapi.codegenerator.entity;
 
 public class RemoteFunction {
-    private String eventName;
+    private String funcName;
     private String eventType;
 
 
     public String getEventName() {
-        return eventName;
+        return funcName;
     }
 
     public void setEventName(String eventName) {
-        this.eventName = eventName;
+        this.funcName = eventName;
     }
 
     public String getEventType() {

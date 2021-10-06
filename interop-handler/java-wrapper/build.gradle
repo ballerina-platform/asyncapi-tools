@@ -10,9 +10,11 @@ plugins {
 
 description = 'Ballerina - Event API Java Utils'
 
+ext.ballerinaLangVersion = project.ballerinaLangVersion
+
 dependencies {
-    compile group: 'org.ballerinalang', name: 'ballerina-lang', version: "2.0.0-beta.3-20210821-093200-e064dcef"
-    compile (group: 'org.ballerinalang', name: 'ballerina-runtime', version: "2.0.0-beta.3-20210821-093200-e064dcef") {
+    implementation group: 'org.ballerinalang', name: 'ballerina-lang', version: "${ballerinaLangVersion}"
+    implementation (group: 'org.ballerinalang', name: 'ballerina-runtime', version: "${ballerinaLangVersion}") {
         transitive = false
     }
 }

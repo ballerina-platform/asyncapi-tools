@@ -22,6 +22,8 @@ import io.apicurio.datamodels.Library;
 import io.apicurio.datamodels.asyncapi.models.AaiDocument;
 import io.apicurio.datamodels.asyncapi.v2.models.Aai20Document;
 import io.ballerina.asyncapi.codegenerator.configuration.BallerinaAsyncApiException;
+import io.ballerina.asyncapi.codegenerator.entity.RemoteFunction;
+import io.ballerina.asyncapi.codegenerator.entity.ServiceType;
 import io.ballerina.asyncapi.codegenerator.repository.FileRepository;
 import io.ballerina.asyncapi.codegenerator.repository.FileRepositoryImpl;
 import org.testng.Assert;
@@ -43,12 +45,12 @@ public class TestExtractServiceTypesFromSpec {
         var asyncApeSpecJson = fileRepository.convertYamlToJson(asyncApiSpecStr);
         AaiDocument asyncApiSpec = (Aai20Document) Library.readDocumentFromJSONString(asyncApeSpecJson);
         UseCase extractServiceTypes = new ExtractServiceTypesFromSpec(asyncApiSpec);
-        Map<String, List<String>> serviceTypes = extractServiceTypes.execute();
-        Assert.assertTrue(serviceTypes.containsKey("FooService"));
+        List<ServiceType> serviceTypes = extractServiceTypes.execute();
 
-        List<String> events = serviceTypes.get("FooService");
-        Assert.assertEquals(events.get(0), "bar_event_1");
-        Assert.assertEquals(events.get(1), "bar_event_2");
+        Assert.assertEquals(serviceTypes.get(0).getServiceTypeName(), "FooService");
+        List<RemoteFunction> remoteFunctions = serviceTypes.get(0).getRemoteFunctions();
+        Assert.assertEquals(remoteFunctions.get(0).getEventName(), "bar_event_1");
+        Assert.assertEquals(remoteFunctions.get(1).getEventName(), "bar_event_2");
     }
 
     @Test(
@@ -61,21 +63,21 @@ public class TestExtractServiceTypesFromSpec {
         var asyncApeSpecJson = fileRepository.convertYamlToJson(asyncApiSpecStr);
         AaiDocument asyncApiSpec = (Aai20Document) Library.readDocumentFromJSONString(asyncApeSpecJson);
         UseCase extractServiceTypes = new ExtractServiceTypesFromSpec(asyncApiSpec);
-        Map<String, List<String>> serviceTypes = extractServiceTypes.execute();
-        Assert.assertTrue(serviceTypes.containsKey("FooService1"));
-        Assert.assertTrue(serviceTypes.containsKey("FooService2"));
-        Assert.assertTrue(serviceTypes.containsKey("FooService3"));
+        List<ServiceType> serviceTypes = extractServiceTypes.execute();
 
-        List<String> events1 = serviceTypes.get("FooService1");
-        Assert.assertEquals(events1.get(0), "bar_1_event_1");
-        Assert.assertEquals(events1.get(1), "bar_1_event_2");
+        Assert.assertEquals(serviceTypes.get(0).getServiceTypeName(), "FooService1");
+        List<RemoteFunction> remoteFunctions1 = serviceTypes.get(0).getRemoteFunctions();
+        Assert.assertEquals(remoteFunctions1.get(0).getEventName(), "bar_1_event_1");
+        Assert.assertEquals(remoteFunctions1.get(1).getEventName(), "bar_1_event_2");
 
-        List<String> events2 = serviceTypes.get("FooService2");
-        Assert.assertEquals(events2.get(0), "bar_2_event_1");
-        Assert.assertEquals(events2.get(1), "bar_2_event_2");
+        Assert.assertEquals(serviceTypes.get(1).getServiceTypeName(), "FooService2");
+        List<RemoteFunction> remoteFunctions2 = serviceTypes.get(1).getRemoteFunctions();
+        Assert.assertEquals(remoteFunctions2.get(0).getEventName(), "bar_2_event_1");
+        Assert.assertEquals(remoteFunctions2.get(1).getEventName(), "bar_2_event_2");
 
-        List<String> events3 = serviceTypes.get("FooService3");
-        Assert.assertEquals(events3.get(0), "bar_3_event_1");
+        Assert.assertEquals(serviceTypes.get(2).getServiceTypeName(), "FooService3");
+        List<RemoteFunction> remoteFunctions = serviceTypes.get(2).getRemoteFunctions();
+        Assert.assertEquals(remoteFunctions.get(0).getEventName(), "bar_3_event_1");
     }
 
     @Test(
@@ -88,12 +90,12 @@ public class TestExtractServiceTypesFromSpec {
         var asyncApeSpecJson = fileRepository.convertYamlToJson(asyncApiSpecStr);
         AaiDocument asyncApiSpec = (Aai20Document) Library.readDocumentFromJSONString(asyncApeSpecJson);
         UseCase extractServiceTypes = new ExtractServiceTypesFromSpec(asyncApiSpec);
-        Map<String, List<String>> serviceTypes = extractServiceTypes.execute();
-        Assert.assertTrue(serviceTypes.containsKey("EventsFoo1Service"));
+        List<ServiceType> serviceTypes = extractServiceTypes.execute();
 
-        List<String> events = serviceTypes.get("EventsFoo1Service");
-        Assert.assertEquals(events.get(0), "bar_event_1");
-        Assert.assertEquals(events.get(1), "bar_event_2");
+        Assert.assertEquals(serviceTypes.get(0).getServiceTypeName(), "EventsFoo1");
+        List<RemoteFunction> remoteFunctions1 = serviceTypes.get(0).getRemoteFunctions();
+        Assert.assertEquals(remoteFunctions1.get(0).getEventName(), "bar_event_1");
+        Assert.assertEquals(remoteFunctions1.get(1).getEventName(), "bar_event_2");
 
     }
 

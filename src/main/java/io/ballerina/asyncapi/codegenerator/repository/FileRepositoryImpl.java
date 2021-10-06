@@ -75,7 +75,7 @@ public class FileRepositoryImpl implements FileRepository {
         }
     }
 
-    public InputStream getFileFromResourceAsStream(String fileName) {
+    private InputStream getFileFromResourceAsStream(String fileName) {
         var classLoader = getClass().getClassLoader();
         var inputStream = classLoader.getResourceAsStream(fileName);
         if (inputStream == null) {
