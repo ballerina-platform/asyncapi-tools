@@ -21,10 +21,10 @@ package io.ballerina.asyncapi.codegenerator.controller;
 import io.apicurio.datamodels.Library;
 import io.apicurio.datamodels.asyncapi.models.AaiDocument;
 import io.ballerina.asyncapi.codegenerator.configuration.BallerinaAsyncApiException;
+import io.ballerina.asyncapi.codegenerator.configuration.Constants;
 import io.ballerina.asyncapi.codegenerator.usecase.GenerateMatchStatement;
 import io.ballerina.asyncapi.codegenerator.usecase.UseCase;
 import io.ballerina.compiler.syntax.tree.*;
-import io.ballerina.tools.text.TextDocument;
 import io.ballerina.tools.text.TextDocuments;
 import org.ballerinalang.formatter.core.Formatter;
 import org.ballerinalang.formatter.core.FormatterException;
@@ -35,23 +35,47 @@ public class DispatcherController implements Controller {
     public String generateBalCode(String spec, String balTemplate) throws BallerinaAsyncApiException {
 
         AaiDocument document = (AaiDocument) Library.readDocumentFromJSONString(spec);
-        TextDocument textDocument = TextDocuments.from(balTemplate);
-        SyntaxTree syntaxTree = SyntaxTree.from(textDocument);
-        ModulePartNode rootNode = syntaxTree.rootNode();
-        FunctionDefinitionNode resourceFunction = (FunctionDefinitionNode) ((ClassDefinitionNode) rootNode.members().get(0)).members().get(4);
+        var textDocument = TextDocuments.from(balTemplate);
+        var syntaxTree = SyntaxTree.from(textDocument);
+        ModulePartNode oldRoot = syntaxTree.rootNode();
+        var functionDefinitionNode = getResourceFuncNode(oldRoot);
+
+        if (functionDefinitionNode == null) {
+            throw new BallerinaAsyncApiException("Resource function '.', is not found in the dispatcher_service.bal");
+        }
 
         UseCase generateMatchStatement = new GenerateMatchStatement(document);
-        MatchStatementNode msn = generateMatchStatement.execute();
-        syntaxTree = syntaxTree.replaceNode(((FunctionBodyBlockNode) resourceFunction.functionBody()).statements().get(2), msn);
-        SyntaxTree formattedST = syntaxTree;
+        var matchStatementNode = generateMatchStatement.execute();
+        var functionBodyBlockNode = (FunctionBodyBlockNode) functionDefinitionNode.functionBody();
+        NodeList<StatementNode> oldStatements = functionBodyBlockNode.statements();
+        NodeList<StatementNode> newStatements =
+                oldStatements.add(oldStatements.size() - 1, (StatementNode) matchStatementNode);
+        var functionBodyBlockNodeNew =
+                functionBodyBlockNode.modify().withStatements(newStatements).apply();
+        ModulePartNode newRoot = oldRoot.replace(functionBodyBlockNode, functionBodyBlockNodeNew);
+        var modifiedTree = syntaxTree.replaceNode(oldRoot, newRoot);
 
         try {
-            formattedST = Formatter.format(syntaxTree);
+            return Formatter.format(modifiedTree).toSourceCode();
         } catch (FormatterException e) {
             throw new BallerinaAsyncApiException("Could not format the generated code, " +
                     "may be a syntax issue in the generated code", e);
         }
-        return formattedST.toSourceCode();
+    }
+
+    private FunctionDefinitionNode getResourceFuncNode(ModulePartNode oldRoot) {
+        for(ModuleMemberDeclarationNode node: oldRoot.members()) {
+            if (node.kind() == SyntaxKind.CLASS_DEFINITION) {
+                for(Node funcNode: ((ClassDefinitionNode) node).members()) {
+                    if ((funcNode.kind() == SyntaxKind.RESOURCE_ACCESSOR_DEFINITION)
+                            && ((FunctionDefinitionNode) funcNode).functionName().text().equals(
+                            Constants.DISPATCHER_SERVICE_RESOURCE_FILTER_FUNCTION_NAME)) {
+                        return (FunctionDefinitionNode) funcNode;
+                    }
+                }
+            }
+        }
+        return null;
     }
 }
 

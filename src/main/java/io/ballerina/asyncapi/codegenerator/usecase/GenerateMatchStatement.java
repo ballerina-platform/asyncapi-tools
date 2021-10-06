@@ -24,18 +24,13 @@ import io.ballerina.asyncapi.codegenerator.configuration.Constants;
 import io.ballerina.asyncapi.codegenerator.entity.RemoteFunction;
 import io.ballerina.asyncapi.codegenerator.entity.ServiceType;
 import io.ballerina.asyncapi.codegenerator.usecase.utils.CodegenUtils;
-import io.ballerina.asyncapi.codegenerator.usecase.utils.VisitorUtils;
-import io.ballerina.compiler.syntax.tree.BlockStatementNode;
-import io.ballerina.compiler.syntax.tree.CheckExpressionNode;
-import io.ballerina.compiler.syntax.tree.MatchClauseNode;
-import io.ballerina.compiler.syntax.tree.MatchStatementNode;
-import io.ballerina.compiler.syntax.tree.NodeFactory;
-import io.ballerina.compiler.syntax.tree.SyntaxKind;
+import io.ballerina.compiler.syntax.tree.*;
 
 import java.util.ArrayList;
 import java.util.List;
 
-import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createToken;
+import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.*;
+import static io.ballerina.compiler.syntax.tree.NodeFactory.*;
 
 
 public class GenerateMatchStatement implements UseCase {
@@ -48,7 +43,6 @@ public class GenerateMatchStatement implements UseCase {
 
     @Override
     public MatchStatementNode execute() throws BallerinaAsyncApiException {
-        var visitorUtils = new VisitorUtils();
         UseCase extractServiceTypes = new ExtractServiceTypesFromSpec(this.document);
         List<ServiceType> serviceTypes = extractServiceTypes.execute();
         List<MatchClauseNode> matchClauseNodes = new ArrayList<>();
@@ -63,63 +57,60 @@ public class GenerateMatchStatement implements UseCase {
             }
         }
 
-        String eventPath = visitorUtils.getEventNamePath(this.document);
+        String eventPath = codegenUtils.getEventNamePath(this.document);
 
-        return NodeFactory.createMatchStatementNode(
-                NodeFactory.createToken(SyntaxKind.MATCH_KEYWORD),
-                NodeFactory.createSimpleNameReferenceNode(NodeFactory.createIdentifierToken(eventPath)),
-                NodeFactory.createToken(SyntaxKind.OPEN_BRACE_TOKEN),
-                NodeFactory.createNodeList(matchClauseNodes),
-                NodeFactory.createToken(SyntaxKind.CLOSE_BRACE_TOKEN), null);
+        return createMatchStatementNode(
+                createToken(SyntaxKind.MATCH_KEYWORD),
+                createSimpleNameReferenceNode(createIdentifierToken(eventPath)),
+                createToken(SyntaxKind.OPEN_BRACE_TOKEN),
+                createNodeList(matchClauseNodes),
+                createToken(SyntaxKind.CLOSE_BRACE_TOKEN), null);
     }
 
     /**
      * Generates each match clause which filters event types in dispatcher_service.bal
      */
     private MatchClauseNode generateMatchClause(String serviceTypeName, String eventName, String formattedEventName) {
+        SeparatedNodeList<FunctionArgumentNode> argumentsList = createSeparatedNodeList(
+                createPositionalArgumentNode(createSimpleNameReferenceNode(
+                        createIdentifierToken(Constants.CLONE_WITH_TYPE_VAR_NAME))),
+                createToken(SyntaxKind.COMMA_TOKEN),
+                createPositionalArgumentNode(createSimpleNameReferenceNode(
+                        createIdentifierToken("\"" + eventName + "\""))),
+                createToken(SyntaxKind.COMMA_TOKEN),
+                createPositionalArgumentNode(createSimpleNameReferenceNode(
+                        createIdentifierToken("\"" +
+                                codegenUtils.getServiceTypeNameByServiceName(serviceTypeName) + "\""))),
+                createToken(SyntaxKind.COMMA_TOKEN),
+                createPositionalArgumentNode(createSimpleNameReferenceNode(
+                        createIdentifierToken("\"" + formattedEventName + "\""))));
 
-        CheckExpressionNode lineNode = NodeFactory.createCheckExpressionNode(SyntaxKind.CHECK_EXPRESSION,
-                NodeFactory.createToken(SyntaxKind.CHECK_KEYWORD),
-                NodeFactory.createMethodCallExpressionNode(
-                        NodeFactory.createSimpleNameReferenceNode(
-                                NodeFactory.createIdentifierToken(Constants.SELF_KEYWORD)),
-                        createToken(SyntaxKind.DOT_TOKEN),
-                        NodeFactory.createSimpleNameReferenceNode(NodeFactory.createIdentifierToken(
-                                Constants.INTEROP_INVOKE_FUNCTION_NAME)),
-                        createToken(SyntaxKind.OPEN_PAREN_TOKEN), NodeFactory.createSeparatedNodeList(
-                                NodeFactory.createPositionalArgumentNode(NodeFactory.createSimpleNameReferenceNode(
-                                        NodeFactory.createIdentifierToken(Constants.CLONE_WITH_TYPE_VAR_NAME))),
-                                createToken(SyntaxKind.COMMA_TOKEN),
-                                NodeFactory.createPositionalArgumentNode(NodeFactory.createSimpleNameReferenceNode(
-                                        NodeFactory.createIdentifierToken("\"" + eventName + "\""))),
-                                createToken(SyntaxKind.COMMA_TOKEN),
-                                NodeFactory.createPositionalArgumentNode(NodeFactory.createSimpleNameReferenceNode(
-                                        NodeFactory.createIdentifierToken("\"" +
-                                                codegenUtils.getServiceTypeNameByServiceName(serviceTypeName) + "\""))),
-                                createToken(SyntaxKind.COMMA_TOKEN),
-                                NodeFactory.createPositionalArgumentNode(NodeFactory.createSimpleNameReferenceNode(
-                                        NodeFactory.createIdentifierToken("\"" + formattedEventName + "\"")))),
-                        NodeFactory.createToken(SyntaxKind.CLOSE_PAREN_TOKEN)));
+        var methodCallExpressionNode = createMethodCallExpressionNode(
+                createSimpleNameReferenceNode(
+                        createIdentifierToken(Constants.SELF_KEYWORD)),
+                createToken(SyntaxKind.DOT_TOKEN),
+                createSimpleNameReferenceNode(createIdentifierToken(
+                        Constants.INTEROP_INVOKE_FUNCTION_NAME)),
+                createToken(SyntaxKind.OPEN_PAREN_TOKEN), argumentsList,
+                createToken(SyntaxKind.CLOSE_PAREN_TOKEN));
 
-        BlockStatementNode blockStatement = NodeFactory.createBlockStatementNode(
-                NodeFactory.createToken(SyntaxKind.OPEN_BRACE_TOKEN, codegenUtils.createMinutiae(" "),
-                        codegenUtils.createMinutiae("\n")),
-                NodeFactory.createNodeList(NodeFactory.createExpressionStatementNode(SyntaxKind.CALL_STATEMENT,
+        var lineNode = createCheckExpressionNode(SyntaxKind.CHECK_EXPRESSION,
+                createToken(SyntaxKind.CHECK_KEYWORD), methodCallExpressionNode);
+        var blockStatement = createBlockStatementNode(
+                createToken(SyntaxKind.OPEN_BRACE_TOKEN),
+                createNodeList(createExpressionStatementNode(SyntaxKind.CALL_STATEMENT,
                         lineNode,
-                        NodeFactory.createToken(SyntaxKind.SEMICOLON_TOKEN))),
-                NodeFactory.createToken(SyntaxKind.CLOSE_BRACE_TOKEN, codegenUtils.createMinutiae(""),
-                        codegenUtils.createMinutiae("\n")));
+                        createToken(SyntaxKind.SEMICOLON_TOKEN))),
+                createToken(SyntaxKind.CLOSE_BRACE_TOKEN));
 
-        MatchClauseNode matchClause = NodeFactory.createMatchClauseNode(NodeFactory.createSeparatedNodeList(
-                        NodeFactory.createBasicLiteralNode(SyntaxKind.STRING_LITERAL,
-                                NodeFactory.createLiteralValueToken(
-                                        SyntaxKind.STRING_LITERAL_TOKEN, "\"" + eventName + "\"",
-                                        codegenUtils.createMinutiae(" "),
-                                        codegenUtils.createMinutiae(" ")))), null,
-                NodeFactory.createLiteralValueToken(SyntaxKind.RIGHT_DOUBLE_ARROW_TOKEN, "=>",
-                        codegenUtils.createMinutiae(""), codegenUtils.createMinutiae(" ")),
+        return createMatchClauseNode(createSeparatedNodeList(
+                createBasicLiteralNode(SyntaxKind.STRING_LITERAL,
+                        createLiteralValueToken(
+                                SyntaxKind.STRING_LITERAL_TOKEN, "\"" + eventName + "\"",
+                                createEmptyMinutiaeList(), createEmptyMinutiaeList())
+                )), null,
+                createLiteralValueToken(SyntaxKind.RIGHT_DOUBLE_ARROW_TOKEN, "=>",
+                        createEmptyMinutiaeList(), createEmptyMinutiaeList()),
                 blockStatement);
-
-        return matchClause;
     }
 }
