@@ -1,47 +1,47 @@
 import ballerina/http;
-import ballerina/jballerina.java;
+import athukorala/eventapi.interop.handler as handler;
 
 service class DispatcherService {
-   private SlackAppMentionHandlingService|SlackAppCreatedHandlingService serviceRef;
-   //private string verificationToken;
+   private map<GenericServiceType> services = {};
+   private handler:InteropHandler interopHandler = new ();
 
-   isolated function init(SlackAppMentionHandlingService|SlackAppCreatedHandlingService serviceRef) returns error? { //Receive verification token
-        self.serviceRef = serviceRef;
-        //self.verificationToken = "9asdbas9009123nas1e2";
-   }
-
-   isolated resource function post events (http:Caller caller, http:Request request) returns error? {
-        json payload = check request.getJsonPayload();
-        // string eventOrVerification = check payload.'type;
-
-        // if (payload.token !== self.verificationToken) {
-        //     return error("Verification token mismatch");
-        // }
-
-        // if (eventOrVerification == URL_VERIFICATION) {
-        //     check self.verifyURL(caller, payload);
-        // } else if (eventOrVerification == EVENT_CALLBACK) {
-        // }
-
-        GenericEventWrapperEvent genericEvent = check payload.cloneWithType(GenericEventWrapperEvent);
-        if (genericEvent.event.'type == "app_mention") {
-                SlackAppMentionHandlingService serviceReference = <SlackAppMentionHandlingService> self.serviceRef;
-                var s = check self.callOnAppEvent(genericEvent, "app_mention", "onAppMention", serviceReference);
+   isolated function addServiceRef(string serviceType, GenericServiceType genericServiceType) returns error? {
+        if (self.services.hasKey(serviceType)) {
+             return error("Service of type " + serviceType + " has already been attached");
         }
+        self.services[serviceType] = genericServiceType;
    }
 
-    isolated function callOnAppEvent(GenericEventWrapperEvent event, string eventName, string eventFunction, any serviceObj) returns error?
-    = @java:Method {
-        'class: "io.ballerinax.event.NativeHttpToEventAdaptor"
-    } external;
+   isolated function removeServiceRef(string serviceType) returns error? {
+        if (!self.services.hasKey(serviceType)) {
+             return error("Cannot detach the service of type " + serviceType + ". Service has not been attached to the listener before");
+        }
+        _ = self.services.remove(serviceType);
+   }
 
-    //Respomnd to verification token
-    //isolated function verifyURL(http:Caller caller, json payload) returns @untainted error? {
-    //     http:Response response = new;
-    //     response.statusCode = http:STATUS_OK;
-    //     response.setPayload({challenge: check <@untainted>payload.challenge});
-    //     check caller->respond(response);
-    //     log:printInfo("Request URL Verified");
-    // }
+   // We are not using the (@http:payload GenericEventWrapperEvent g) notation because of a bug in Ballerina.
+   // Issue: https://github.com/ballerina-platform/ballerina-lang/issues/32859
+   resource function post events (http:Caller caller, http:Request request) returns error? {
+        json payload = check request.getJsonPayload();
+        GenericDataType genericDataType = check payload.cloneWithType(GenericDataType);
+        match genericDataType.event.'type {
+          "app_mention_added" => {
+               check self.executeRemoteFunc(genericDataType, "app_mention_added", "AppMentionHandlingService", "onAppMentionAdded");
+          }
+          "app_mention_removed" => {
+               check self.executeRemoteFunc(genericDataType, "app_mention_removed", "AppMentionHandlingService", "onAppMentionRemoved");
+          }
+          "app_created" => {
+               check self.executeRemoteFunc(genericDataType, "app_created", "AppCreatedHandlingService", "onAppCreated");
+          }
+        }
+        check caller->respond(http:STATUS_OK);
+   }
+
+   private function executeRemoteFunc(GenericDataType genericDataType, string eventName, string serviceTypeStr, string eventFunction) returns error? {
+         GenericServiceType? genericServiceType = self.services[serviceTypeStr];
+         if genericServiceType is GenericServiceType {
+              check self.interopHandler.invokeRemoteFunction(genericDataType, eventName, eventFunction, genericServiceType);
+         }
+   }
 }
-
