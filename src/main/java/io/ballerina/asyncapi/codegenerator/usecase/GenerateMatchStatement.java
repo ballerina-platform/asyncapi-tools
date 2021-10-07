@@ -18,7 +18,6 @@
 
 package io.ballerina.asyncapi.codegenerator.usecase;
 
-import io.apicurio.datamodels.asyncapi.models.AaiDocument;
 import io.ballerina.asyncapi.codegenerator.configuration.BallerinaAsyncApiException;
 import io.ballerina.asyncapi.codegenerator.configuration.Constants;
 import io.ballerina.asyncapi.codegenerator.entity.RemoteFunction;
@@ -33,20 +32,19 @@ import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.*;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.*;
 
 
-public class GenerateMatchStatement implements UseCase {
+public class GenerateMatchStatement implements GenerateUseCase {
     private final CodegenUtils codegenUtils = new CodegenUtils();
-    private final AaiDocument document;
+    private final List<ServiceType> serviceTypes;
+    private final String eventIdentifierPath;
 
-    public GenerateMatchStatement(AaiDocument document) {
-        this.document = document;
+    public GenerateMatchStatement(List<ServiceType> serviceTypes, String eventIdentifierPath) {
+        this.serviceTypes = serviceTypes;
+        this.eventIdentifierPath = eventIdentifierPath;
     }
 
     @Override
-    public MatchStatementNode execute() throws BallerinaAsyncApiException {
-        UseCase extractServiceTypes = new ExtractServiceTypesFromSpec(this.document);
-        List<ServiceType> serviceTypes = extractServiceTypes.execute();
+    public MatchStatementNode generate() throws BallerinaAsyncApiException {
         List<MatchClauseNode> matchClauseNodes = new ArrayList<>();
-
         for (ServiceType service : serviceTypes) {
             String serviceName = service.getServiceTypeName();
             for (RemoteFunction remoteFunction : service.getRemoteFunctions()) {
@@ -57,11 +55,9 @@ public class GenerateMatchStatement implements UseCase {
             }
         }
 
-        String eventPath = codegenUtils.getEventNamePath(this.document);
-
         return createMatchStatementNode(
                 createToken(SyntaxKind.MATCH_KEYWORD),
-                createSimpleNameReferenceNode(createIdentifierToken(eventPath)),
+                createSimpleNameReferenceNode(createIdentifierToken(eventIdentifierPath)),
                 createToken(SyntaxKind.OPEN_BRACE_TOKEN),
                 createNodeList(matchClauseNodes),
                 createToken(SyntaxKind.CLOSE_BRACE_TOKEN), null);
@@ -85,7 +81,7 @@ public class GenerateMatchStatement implements UseCase {
                 createPositionalArgumentNode(createSimpleNameReferenceNode(
                         createIdentifierToken("\"" + formattedEventName + "\""))));
 
-        var methodCallExpressionNode = createMethodCallExpressionNode(
+        MethodCallExpressionNode methodCallExpressionNode = createMethodCallExpressionNode(
                 createSimpleNameReferenceNode(
                         createIdentifierToken(Constants.SELF_KEYWORD)),
                 createToken(SyntaxKind.DOT_TOKEN),
@@ -94,9 +90,9 @@ public class GenerateMatchStatement implements UseCase {
                 createToken(SyntaxKind.OPEN_PAREN_TOKEN), argumentsList,
                 createToken(SyntaxKind.CLOSE_PAREN_TOKEN));
 
-        var lineNode = createCheckExpressionNode(SyntaxKind.CHECK_EXPRESSION,
+        CheckExpressionNode lineNode = createCheckExpressionNode(SyntaxKind.CHECK_EXPRESSION,
                 createToken(SyntaxKind.CHECK_KEYWORD), methodCallExpressionNode);
-        var blockStatement = createBlockStatementNode(
+        BlockStatementNode blockStatement = createBlockStatementNode(
                 createToken(SyntaxKind.OPEN_BRACE_TOKEN),
                 createNodeList(createExpressionStatementNode(SyntaxKind.CALL_STATEMENT,
                         lineNode,

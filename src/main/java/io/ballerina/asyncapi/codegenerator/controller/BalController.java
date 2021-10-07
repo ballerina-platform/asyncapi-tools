@@ -16,10 +16,10 @@
  *  under the License.
  */
 
-package io.ballerina.asyncapi.codegenerator.usecase;
+package io.ballerina.asyncapi.codegenerator.controller;
 
 import io.ballerina.asyncapi.codegenerator.configuration.BallerinaAsyncApiException;
 
-public interface UseCase {
-    <T> T execute() throws BallerinaAsyncApiException;
+public interface BalController {
+    String generateBalCode(String balTemplate) throws BallerinaAsyncApiException;
 }

@@ -18,14 +18,15 @@
 
 package io.ballerina.asyncapi.codegenerator.usecase.utils;
 
-import io.ballerina.compiler.syntax.tree.*;
+import io.ballerina.compiler.syntax.tree.MarkdownDocumentationLineNode;
+import io.ballerina.compiler.syntax.tree.SyntaxKind;
 
 import java.util.ArrayList;
 import java.util.List;
 
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.*;
-import static io.ballerina.compiler.syntax.tree.NodeFactory.*;
-import static io.ballerina.compiler.syntax.tree.SyntaxKind.*;
+import static io.ballerina.compiler.syntax.tree.NodeFactory.createMarkdownDocumentationLineNode;
+import static io.ballerina.compiler.syntax.tree.SyntaxKind.DOCUMENTATION_DESCRIPTION;
 
 /**
  * This class util for maintain the API doc comment related functions.
@@ -36,13 +37,13 @@ public class DocCommentsUtils {
         String[] descriptionLines = description.split("\n");
         List<MarkdownDocumentationLineNode> documentElements = new ArrayList<>();
         for (String line : descriptionLines) {
-            var documentationLineNode =
+            MarkdownDocumentationLineNode documentationLineNode =
                     createMarkdownDocumentationLineNode(DOCUMENTATION_DESCRIPTION,
                             createToken(SyntaxKind.HASH_TOKEN), createNodeList(createIdentifierToken(line)));
             documentElements.add(documentationLineNode);
         }
         if (addExtraLine) {
-            var newLine = createMarkdownDocumentationLineNode(null,
+            MarkdownDocumentationLineNode newLine = createMarkdownDocumentationLineNode(null,
                     createToken(SyntaxKind.HASH_TOKEN), createEmptyNodeList());
             documentElements.add(newLine);
         }

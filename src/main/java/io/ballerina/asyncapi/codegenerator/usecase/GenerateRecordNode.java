@@ -18,10 +18,9 @@
 
 package io.ballerina.asyncapi.codegenerator.usecase;
 
-import io.apicurio.datamodels.asyncapi.models.AaiDocument;
-import io.apicurio.datamodels.asyncapi.models.AaiSchema;
 import io.ballerina.asyncapi.codegenerator.configuration.BallerinaAsyncApiException;
 import io.ballerina.asyncapi.codegenerator.configuration.Constants;
+import io.ballerina.asyncapi.codegenerator.entity.Schema;
 import io.ballerina.asyncapi.codegenerator.usecase.utils.CodegenUtils;
 import io.ballerina.asyncapi.codegenerator.usecase.utils.DocCommentsUtils;
 import io.ballerina.compiler.syntax.tree.*;
@@ -34,37 +33,37 @@ import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.*;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.*;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.*;
 
-public class GenerateRecordNode implements UseCase {
-    private final AaiDocument asyncApiSpec;
-    private final Map.Entry<String, AaiSchema> recordFields;
+public class GenerateRecordNode implements GenerateUseCase {
+    private final Map<String, Schema> schemas;
+    private final Map.Entry<String, Schema> recordFields;
 
     private final CodegenUtils codegenUtils = new CodegenUtils();
     private final DocCommentsUtils commentsUtils = new DocCommentsUtils();
 
-    public GenerateRecordNode(AaiDocument asyncApiSpec, Map.Entry<String, AaiSchema> recordFields) {
-        this.asyncApiSpec = asyncApiSpec;
+    public GenerateRecordNode(Map<String, Schema> schemas, Map.Entry<String, Schema> recordFields) {
+        this.schemas = schemas;
         this.recordFields = recordFields;
     }
 
     @Override
-    public TypeDefinitionNode execute() throws BallerinaAsyncApiException {
-        var typeName = AbstractNodeFactory
+    public TypeDefinitionNode generate() throws BallerinaAsyncApiException {
+        IdentifierToken typeName = AbstractNodeFactory
                 .createIdentifierToken(codegenUtils.escapeIdentifier(recordFields.getKey().trim()));
         TypeDefinitionNode typeDefinitionNode;
         List<Node> schemaDoc = new ArrayList<>();
         List<Node> recordFieldList = new ArrayList<>();
-        for (Map.Entry<String, AaiSchema> field : recordFields.getValue().properties.entrySet()) {
-            addRecordField(recordFields.getValue().required, recordFieldList, field, asyncApiSpec);
+        for (Map.Entry<String, Schema> field : recordFields.getValue().getSchemaProperties().entrySet()) {
+            addRecordField(recordFields.getValue().getRequired(), recordFieldList, field, schemas);
         }
         NodeList<Node> fieldNodes = createNodeList(recordFieldList);
-        var recordTypeDescriptorNode =
-                NodeFactory.createRecordTypeDescriptorNode(createToken(SyntaxKind.RECORD_KEYWORD),
+        RecordTypeDescriptorNode recordTypeDescriptorNode =
+                createRecordTypeDescriptorNode(createToken(SyntaxKind.RECORD_KEYWORD),
                         createToken(OPEN_BRACE_TOKEN), fieldNodes, null,
                         createToken(SyntaxKind.CLOSE_BRACE_TOKEN));
-        var documentationNode =
+        MarkdownDocumentationNode documentationNode =
                 createMarkdownDocumentationNode(createNodeList(schemaDoc));
-        var metadataNode = createMetadataNode(documentationNode, createEmptyNodeList());
-        typeDefinitionNode = NodeFactory.createTypeDefinitionNode(metadataNode,
+        MetadataNode metadataNode = createMetadataNode(documentationNode, createEmptyNodeList());
+        typeDefinitionNode = createTypeDefinitionNode(metadataNode,
                 createToken(PUBLIC_KEYWORD), createToken(TYPE_KEYWORD), typeName, recordTypeDescriptorNode, createToken(SEMICOLON_TOKEN));
         return typeDefinitionNode;
     }
@@ -72,101 +71,101 @@ public class GenerateRecordNode implements UseCase {
     /**
      * This method generates a record field with given schema properties.
      */
-    private void addRecordField(List<String> required, List<Node> recordFieldList, Map.Entry<String, AaiSchema> field,
-                                AaiDocument asyncApiSpec) throws BallerinaAsyncApiException {
+    private void addRecordField(List<String> required, List<Node> recordFieldList, Map.Entry<String, Schema> field,
+                                Map<String, Schema> schemas) throws BallerinaAsyncApiException {
         // TODO: Handle allOf , oneOf, anyOf
         RecordFieldNode recordFieldNode;
-        // API doc
         List<Node> schemaDoc = new ArrayList<>();
         String fieldName = codegenUtils.escapeIdentifier(field.getKey().trim());
-        if (field.getValue().description != null) {
+        if (field.getValue().getTitle() != null) {
             schemaDoc.addAll(commentsUtils.createDescriptionComments(
-                    field.getValue().description, false));
-        } else if (field.getValue().$ref != null) {
-            String[] split = field.getValue().$ref.trim().split("/");
-            String componentName = codegenUtils.getValidName(split[split.length - 1], true);
-            if (asyncApiSpec.components.schemas.get(componentName) != null) {
-                AaiSchema schema = asyncApiSpec.components.schemas.get(componentName);
-                if (schema.description != null) {
+                    field.getValue().getTitle(), false));
+        } else if (field.getValue().get$ref() != null) {
+            String[] split = field.getValue().get$ref().trim().split("/");
+            if (schemas.get(split[split.length - 1]) != null) {
+                Schema schema = schemas.get(split[split.length - 1]);
+                if (schema.getTitle() != null) {
                     schemaDoc.addAll(commentsUtils.createDescriptionComments(
-                            schema.description, false));
+                            schema.getTitle(), false));
                 }
             }
         }
 
-        var fieldNameToken = AbstractNodeFactory.createIdentifierToken(fieldName);
-        var fieldTypeName = getTypeDescriptorNode(field.getValue(), asyncApiSpec);
+        IdentifierToken fieldNameToken = AbstractNodeFactory.createIdentifierToken(fieldName);
+        TypeDescriptorNode fieldTypeName = getTypeDescriptorNode(field.getValue(), schemas);
         Token semicolonToken = AbstractNodeFactory.createIdentifierToken(";");
         Token questionMarkToken = AbstractNodeFactory.createIdentifierToken("?");
-        var documentationNode = createMarkdownDocumentationNode(createNodeList(schemaDoc));
-        var metadataNode = createMetadataNode(documentationNode, createEmptyNodeList());
+        MarkdownDocumentationNode documentationNode = createMarkdownDocumentationNode(createNodeList(schemaDoc));
+        MetadataNode metadataNode = createMetadataNode(documentationNode, createEmptyNodeList());
         if (required != null) {
             if (!required.contains(field.getKey().trim())) {
-                recordFieldNode = NodeFactory.createRecordFieldNode(metadataNode, null,
+                recordFieldNode = createRecordFieldNode(metadataNode, null,
                         fieldTypeName, fieldNameToken, questionMarkToken, semicolonToken);
             } else {
-                recordFieldNode = NodeFactory.createRecordFieldNode(metadataNode, null,
+                recordFieldNode = createRecordFieldNode(metadataNode, null,
                         fieldTypeName, fieldNameToken, null, semicolonToken);
             }
         } else {
-            recordFieldNode = NodeFactory.createRecordFieldNode(metadataNode, null,
+            recordFieldNode = createRecordFieldNode(metadataNode, null,
                     fieldTypeName, fieldNameToken, questionMarkToken, semicolonToken);
         }
         recordFieldList.add(recordFieldNode);
     }
 
-    private TypeDescriptorNode getTypeDescriptorNode(AaiSchema schema, AaiDocument asyncApiSpec) throws BallerinaAsyncApiException {
-        if (schema.type != null || schema.properties != null) {
-            if (schema.type != null && ((schema.type.equals("integer") || schema.type.equals("number"))
-                    || schema.type.equals("string") || schema.type.equals("boolean"))) {
-                String type = convertAsyncAPITypeToBallerina(schema.type.trim());
-                if (schema.type.equals("number") && schema.format != null) {
-                    type = convertAsyncAPITypeToBallerina(schema.format.trim());
+    private TypeDescriptorNode getTypeDescriptorNode(Schema schema, Map<String, Schema> schemas)
+            throws BallerinaAsyncApiException {
+        if (schema.getType() != null || schema.getSchemaProperties() != null) {
+            if (schema.getType() != null && ((schema.getType().equals("integer") || schema.getType().equals("number"))
+                    || schema.getType().equals("string") || schema.getType().equals("boolean"))) {
+                String type = convertAsyncAPITypeToBallerina(schema.getType().trim());
+                if (schema.getType().equals("number") && schema.getFormat() != null) {
+                    type = convertAsyncAPITypeToBallerina(schema.getFormat().trim());
                 }
                 type = getNullableType(schema, type);
                 Token typeName = AbstractNodeFactory.createIdentifierToken(type);
                 return createBuiltinSimpleNameReferenceNode(null, typeName);
-            } else if (schema.type != null && schema.type.equals("array")) {
-                if (schema.items != null) {
-                    return getTypeDescriptorNodeForArraySchema(asyncApiSpec, schema);
+            } else if (schema.getType() != null && schema.getType().equals("array")) {
+                if (schema.getItems() != null) {
+                    return getTypeDescriptorNodeForArraySchema(schemas, schema);
                 } else {
                     throw new BallerinaAsyncApiException("Array does not contain the the items attribute");
                 }
-            } else if ((schema.type != null && schema.type.equals("object")) ||
-                    (schema.properties != null)) {
-                if (schema.properties != null) {
-                    Map<String, AaiSchema> properties = schema.properties;
+            } else if ((schema.getType() != null && schema.getType().equals("object")) ||
+                    (schema.getSchemaProperties() != null)) {
+                if (schema.getSchemaProperties() != null) {
+                    Map<String, Schema> properties = schema.getSchemaProperties();
                     Token recordKeyWord = AbstractNodeFactory.createIdentifierToken("record ");
                     Token bodyStartDelimiter = AbstractNodeFactory.createIdentifierToken("{ ");
                     Token bodyEndDelimiter = AbstractNodeFactory.createIdentifierToken("} ");
                     List<Node> recordFList = new ArrayList<>();
-                    List<String> required = schema.required;
-                    for (Map.Entry<String, AaiSchema> property : properties.entrySet()) {
-                        addRecordField(required, recordFList, property, asyncApiSpec);
+                    List<String> required = schema.getRequired();
+                    for (Map.Entry<String, Schema> property : properties.entrySet()) {
+                        addRecordField(required, recordFList, property, schemas);
                     }
                     NodeList<Node> fieldNodes = AbstractNodeFactory.createNodeList(recordFList);
 
-                    return NodeFactory.createRecordTypeDescriptorNode(recordKeyWord, bodyStartDelimiter, fieldNodes,
+                    return createRecordTypeDescriptorNode(recordKeyWord, bodyStartDelimiter, fieldNodes,
                             null, bodyEndDelimiter);
-                } else if (schema.$ref != null) {
+                } else if (schema.get$ref() != null) {
                     String type = codegenUtils.getValidName(
-                            codegenUtils.extractReferenceType(schema.$ref), true);
-                    AaiSchema refSchema = asyncApiSpec.components.schemas.get(type);
+                            codegenUtils.extractReferenceType(schema.get$ref()), true);
+                    Schema refSchema = schemas.get(type);
                     type = getNullableType(refSchema, type);
                     Token typeName = AbstractNodeFactory.createIdentifierToken(type);
                     return createBuiltinSimpleNameReferenceNode(null, typeName);
                 } else {
                     Token typeName = AbstractNodeFactory.createIdentifierToken(
-                            convertAsyncAPITypeToBallerina(schema.type.trim()));
+                            convertAsyncAPITypeToBallerina(schema.getType().trim()));
                     return createBuiltinSimpleNameReferenceNode(null, typeName);
                 }
             } else {
-                throw new BallerinaAsyncApiException("Unsupported Async Api Spec data type `" + schema.type + "`.");
+                throw new BallerinaAsyncApiException(
+                        "Unsupported Async Api Spec data type `" + schema.getType() + "`.");
             }
-        } else if (schema.$ref != null) {
-            String type = codegenUtils.extractReferenceType(schema.$ref);
+        } else if (schema.get$ref() != null) {
+            String type = codegenUtils.extractReferenceType(schema.get$ref());
             type = codegenUtils.getValidName(type, true);
-            AaiSchema refSchema = asyncApiSpec.components.schemas.get(type);
+            Schema refSchema = schemas.get(type);
             type = getNullableType(refSchema, type);
             Token typeName = AbstractNodeFactory.createIdentifierToken(type);
             return createBuiltinSimpleNameReferenceNode(null, typeName);
@@ -219,46 +218,47 @@ public class GenerateRecordNode implements UseCase {
     }
 
 
-    private String getNullableType(AaiSchema schema, String type) {
+    private String getNullableType(Schema schema, String type) {
         // TODO: find a way to know the nullable attributes from the Async API spec ( Not the optional ones )
         //  Ex: string? testString;
         return type;
     }
 
 
-    public TypeDescriptorNode getTypeDescriptorNodeForArraySchema(AaiDocument asyncApi, AaiSchema schema)
-            throws BallerinaAsyncApiException {
+    public TypeDescriptorNode getTypeDescriptorNodeForArraySchema
+            (Map<String, Schema> schemas, Schema schema) throws BallerinaAsyncApiException {
         String type;
         Token typeName;
         TypeDescriptorNode memberTypeDesc;
         Token openSBracketToken = AbstractNodeFactory.createIdentifierToken("[");
-        // TODO: handle this when schema.items is a List<AaiSchema> in the below line
-        var schemaItem = (AaiSchema) schema.items;
+        // TODO: handle this when schema.items is a List<Schema> in the below line
+        Schema schemaItem = (Schema) schema.getItems();
         Token closeSBracketToken = AbstractNodeFactory.createIdentifierToken(getNullableType(schema, "]"));
-        if (schemaItem.$ref != null) {
+        if (schemaItem.get$ref() != null) {
             type = codegenUtils.getValidName(codegenUtils.extractReferenceType(
-                    schemaItem.$ref), true);
+                    schemaItem.get$ref()), true);
             typeName = AbstractNodeFactory.createIdentifierToken(type);
             memberTypeDesc = createBuiltinSimpleNameReferenceNode(null, typeName);
-            return NodeFactory.createArrayTypeDescriptorNode(memberTypeDesc, openSBracketToken,
+            return createArrayTypeDescriptorNode(memberTypeDesc, openSBracketToken,
                     null, closeSBracketToken);
-        } else if (schemaItem.type != null && (schemaItem.type.equals("array") || schemaItem.type.equals("object"))) {
-            memberTypeDesc = getTypeDescriptorNode(schemaItem, asyncApi);
-            return NodeFactory.createArrayTypeDescriptorNode(memberTypeDesc, openSBracketToken,
+        } else if (schemaItem.getType() != null
+                && (schemaItem.getType().equals("array") || schemaItem.getType().equals("object"))) {
+            memberTypeDesc = getTypeDescriptorNode(schemaItem, schemas);
+            return createArrayTypeDescriptorNode(memberTypeDesc, openSBracketToken,
                     null, closeSBracketToken);
-        } else if (schemaItem.type != null) {
-            type = schemaItem.type;
+        } else if (schemaItem.getType() != null) {
+            type = schemaItem.getType();
             closeSBracketToken = AbstractNodeFactory.createIdentifierToken(getNullableType(schema, "]"));
             typeName = AbstractNodeFactory.createIdentifierToken(convertAsyncAPITypeToBallerina(type));
             memberTypeDesc = createBuiltinSimpleNameReferenceNode(null, typeName);
-            return NodeFactory.createArrayTypeDescriptorNode(memberTypeDesc, openSBracketToken,
+            return createArrayTypeDescriptorNode(memberTypeDesc, openSBracketToken,
                     null, closeSBracketToken);
         } else {
             type = "anydata";
             closeSBracketToken = AbstractNodeFactory.createIdentifierToken(getNullableType(schema, "]"));
             typeName = AbstractNodeFactory.createIdentifierToken(type);
             memberTypeDesc = createBuiltinSimpleNameReferenceNode(null, typeName);
-            return NodeFactory.createArrayTypeDescriptorNode(memberTypeDesc, openSBracketToken,
+            return createArrayTypeDescriptorNode(memberTypeDesc, openSBracketToken,
                     null, closeSBracketToken);
         }
     }

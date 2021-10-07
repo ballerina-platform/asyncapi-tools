@@ -21,9 +21,7 @@ package io.ballerina.asyncapi.codegenerator.usecase;
 import io.apicurio.datamodels.asyncapi.models.AaiChannelItem;
 import io.apicurio.datamodels.asyncapi.models.AaiDocument;
 import io.apicurio.datamodels.asyncapi.models.AaiMessage;
-import io.apicurio.datamodels.asyncapi.models.AaiSchema;
 import io.apicurio.datamodels.compat.JsonCompat;
-import io.apicurio.datamodels.core.models.common.Schema;
 import io.ballerina.asyncapi.codegenerator.configuration.BallerinaAsyncApiException;
 import io.ballerina.asyncapi.codegenerator.configuration.Constants;
 import io.ballerina.asyncapi.codegenerator.entity.RemoteFunction;
@@ -34,7 +32,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-public class ExtractServiceTypesFromSpec implements UseCase {
+public class ExtractServiceTypesFromSpec implements ExtractUseCase {
     private final AaiDocument asyncApiSpec;
     private final CodegenUtils codegenUtils = new CodegenUtils();
 
@@ -43,10 +41,10 @@ public class ExtractServiceTypesFromSpec implements UseCase {
     }
 
     @Override
-    public List<ServiceType> execute() throws BallerinaAsyncApiException {
+    public List<ServiceType> extract() throws BallerinaAsyncApiException {
         List<ServiceType> serviceTypes = new ArrayList<>();
         for (Map.Entry<String, AaiChannelItem> channel : asyncApiSpec.channels.entrySet()) {
-            var serviceType = new ServiceType();
+            ServiceType serviceType = new ServiceType();
             List<RemoteFunction> remoteFunctions = new ArrayList<>();
             if (channel.getValue().getExtension(Constants.X_BALLERINA_SERVICE_TYPE) == null) {
                 serviceType.setServiceTypeName(codegenUtils.getValidName(channel.getKey(), true));
@@ -57,7 +55,7 @@ public class ExtractServiceTypesFromSpec implements UseCase {
             if (mainMessage.oneOf != null) {
                 for (AaiMessage message : mainMessage.oneOf) {
                     validateMessage(channel, message);
-                    var remoteFunction = new RemoteFunction();
+                    RemoteFunction remoteFunction = new RemoteFunction();
                     remoteFunction.setEventName(message.getExtension(
                             Constants.X_BALLERINA_EVENT_TYPE).value.toString());
                     remoteFunction.setEventType(getEventType(message, channel.getKey()));
@@ -65,7 +63,7 @@ public class ExtractServiceTypesFromSpec implements UseCase {
                 }
             } else {
                 validateMessage(channel, mainMessage);
-                var remoteFunction = new RemoteFunction();
+                RemoteFunction remoteFunction = new RemoteFunction();
                 remoteFunction.setEventName(channel.getValue()
                         .subscribe.message.getExtension(Constants.X_BALLERINA_EVENT_TYPE).value.toString());
                 remoteFunction.setEventType(getEventType(mainMessage, channel.getKey()));
@@ -83,7 +81,7 @@ public class ExtractServiceTypesFromSpec implements UseCase {
                     "Could not find the $ref attribute in the payload of the message of the channel "
                             .concat(channelName));
         }
-        var ref = JsonCompat.getPropertyString(message.payload, "$ref");
+        String ref = JsonCompat.getPropertyString(message.payload, "$ref");
         String[] refParts = ref.split("/");
         return refParts[refParts.length - 1];
     }

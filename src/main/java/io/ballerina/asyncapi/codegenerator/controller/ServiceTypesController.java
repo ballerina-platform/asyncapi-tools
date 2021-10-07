@@ -18,17 +18,14 @@
 
 package io.ballerina.asyncapi.codegenerator.controller;
 
-import io.apicurio.datamodels.Library;
-import io.apicurio.datamodels.asyncapi.models.AaiDocument;
-import io.apicurio.datamodels.asyncapi.v2.models.Aai20Document;
 import io.ballerina.asyncapi.codegenerator.configuration.BallerinaAsyncApiException;
 import io.ballerina.asyncapi.codegenerator.configuration.Constants;
 import io.ballerina.asyncapi.codegenerator.entity.ServiceType;
-import io.ballerina.asyncapi.codegenerator.usecase.ExtractServiceTypesFromSpec;
 import io.ballerina.asyncapi.codegenerator.usecase.GenerateServiceTypeNode;
 import io.ballerina.asyncapi.codegenerator.usecase.GenerateUnionDescriptorNode;
-import io.ballerina.asyncapi.codegenerator.usecase.UseCase;
+import io.ballerina.asyncapi.codegenerator.usecase.GenerateUseCase;
 import io.ballerina.compiler.syntax.tree.*;
+import io.ballerina.tools.text.TextDocument;
 import io.ballerina.tools.text.TextDocuments;
 import org.ballerinalang.formatter.core.Formatter;
 import org.ballerinalang.formatter.core.FormatterException;
@@ -37,36 +34,36 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createIdentifierToken;
-import static io.ballerina.compiler.syntax.tree.NodeFactory.*;
+import static io.ballerina.compiler.syntax.tree.NodeFactory.createSimpleNameReferenceNode;
 
-public class ServiceTypesController implements Controller {
+public class ServiceTypesController implements BalController {
+    private final List<ServiceType> serviceTypes;
+
+    public ServiceTypesController(List<ServiceType> serviceTypes) {
+        this.serviceTypes = serviceTypes;
+    }
 
     @Override
-    public String generateBalCode(String spec, String balTemplate) throws BallerinaAsyncApiException {
-        AaiDocument asyncApiSpec = (Aai20Document) Library.readDocumentFromJSONString(spec);
-
-        UseCase extractServiceTypes = new ExtractServiceTypesFromSpec(asyncApiSpec);
-        List<ServiceType> serviceTypes = extractServiceTypes.execute();
-
+    public String generateBalCode(String balTemplate) throws BallerinaAsyncApiException {
         List<ModuleMemberDeclarationNode> serviceNodes = new ArrayList<>();
         List<TypeDescriptorNode> serviceTypeNodes = new ArrayList<>();
         for (ServiceType service : serviceTypes) {
-            UseCase generateServiceTypeNode =
+            GenerateUseCase generateServiceTypeNode =
                     new GenerateServiceTypeNode(service.getServiceTypeName(), service.getRemoteFunctions());
-            TypeDefinitionNode typeDefinitionNode = generateServiceTypeNode.execute();
+            TypeDefinitionNode typeDefinitionNode = generateServiceTypeNode.generate();
             serviceTypeNodes.add(
                     createSimpleNameReferenceNode(createIdentifierToken(typeDefinitionNode.typeName().text())));
             serviceNodes.add(typeDefinitionNode);
         }
 
-        UseCase generateUnionNode = new GenerateUnionDescriptorNode(serviceTypeNodes, Constants.GENERIC_SERVICE_TYPE);
-        serviceNodes.add(generateUnionNode.execute());
+        GenerateUseCase generateUnionNode = new GenerateUnionDescriptorNode(serviceTypeNodes, Constants.GENERIC_SERVICE_TYPE);
+        serviceNodes.add(generateUnionNode.generate());
 
-        var textDocument = TextDocuments.from(balTemplate);
-        var syntaxTree = SyntaxTree.from(textDocument);
+        TextDocument textDocument = TextDocuments.from(balTemplate);
+        SyntaxTree syntaxTree = SyntaxTree.from(textDocument);
         ModulePartNode oldRoot = syntaxTree.rootNode();
         ModulePartNode newRoot = oldRoot.modify().withMembers(oldRoot.members().addAll(serviceNodes)).apply();
-        var modifiedTree = syntaxTree.replaceNode(oldRoot, newRoot);
+        SyntaxTree modifiedTree = syntaxTree.replaceNode(oldRoot, newRoot);
 
         try {
             return Formatter.format(modifiedTree).toSourceCode();

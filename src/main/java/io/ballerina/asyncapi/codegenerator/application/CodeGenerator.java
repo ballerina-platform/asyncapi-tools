@@ -20,49 +20,39 @@ package io.ballerina.asyncapi.codegenerator.application;
 
 import io.ballerina.asyncapi.codegenerator.configuration.BallerinaAsyncApiException;
 import io.ballerina.asyncapi.codegenerator.configuration.Constants;
-import io.ballerina.asyncapi.codegenerator.controller.Controller;
-import io.ballerina.asyncapi.codegenerator.controller.ListenerController;
-import io.ballerina.asyncapi.codegenerator.controller.DispatcherController;
-import io.ballerina.asyncapi.codegenerator.controller.SchemaController;
-import io.ballerina.asyncapi.codegenerator.controller.ServiceTypesController;
+import io.ballerina.asyncapi.codegenerator.controller.*;
+import io.ballerina.asyncapi.codegenerator.entity.Schema;
+import io.ballerina.asyncapi.codegenerator.entity.ServiceType;
 import io.ballerina.asyncapi.codegenerator.repository.FileRepository;
 import io.ballerina.asyncapi.codegenerator.repository.FileRepositoryImpl;
 
+import java.util.List;
+import java.util.Map;
+
 public class CodeGenerator implements Application {
-    private final String specPath;
-    private final String outputPath;
-
-    public CodeGenerator(String specPath, String outputPath) {
-        this.specPath = specPath;
-        this.outputPath = outputPath;
-    }
-
     @Override
-    public void generate() throws BallerinaAsyncApiException {
+    public void generate(String specPath, String outputPath) throws BallerinaAsyncApiException {
         FileRepository fileRepository = new FileRepositoryImpl();
-        String asyncApiSpecYaml = fileRepository.getFileContent(specPath);
-        String asyncApiSpecJson;
-        if (specPath.endsWith(".json")) {
-            asyncApiSpecJson = asyncApiSpecYaml;
-        } else if (specPath.endsWith("yaml") || specPath.endsWith("yml")) {
-            asyncApiSpecJson = fileRepository.convertYamlToJson(asyncApiSpecYaml);
-        } else {
-            throw new BallerinaAsyncApiException("Unknown file type: ".concat(specPath));
-        }
+        String asyncApiSpecJson = getFileContent(fileRepository, specPath);
 
-        Controller schemaController = new SchemaController();
-        String dataTypesBalContent = schemaController.generateBalCode(asyncApiSpecJson, "");
+        SpecController specController = new AsyncApiSpecController(asyncApiSpecJson);
+        Map<String, Schema> schemas = specController.getSchemas();
+        List<ServiceType> serviceTypes = specController.getServiceTypes();
+        String eventIdentifierPath = specController.getEventIdentifierPath();
 
-        Controller serviceTypesController = new ServiceTypesController();
-        String serviceTypesBalContent = serviceTypesController.generateBalCode(asyncApiSpecJson, "");
+        BalController schemaController = new SchemaController(schemas);
+        String dataTypesBalContent = schemaController.generateBalCode("");
+
+        BalController serviceTypesController = new ServiceTypesController(serviceTypes);
+        String serviceTypesBalContent = serviceTypesController.generateBalCode("");
 
         String listenerTemplate = fileRepository.getFileContentFromResources(Constants.LISTENER_BAL_FILE_NAME);
-        Controller listenerController = new ListenerController();
-        String listenerBalContent = listenerController.generateBalCode(asyncApiSpecJson, listenerTemplate);
+        BalController listenerController = new ListenerController(serviceTypes);
+        String listenerBalContent = listenerController.generateBalCode(listenerTemplate);
 
         String dispatcherTemplate = fileRepository.getFileContentFromResources(Constants.DISPATCHER_SERVICE_BAL_FILE_NAME);
-        Controller dispatcherController = new DispatcherController();
-        String dispatcherContent = dispatcherController.generateBalCode(asyncApiSpecJson, dispatcherTemplate);
+        BalController dispatcherController = new DispatcherController(serviceTypes, eventIdentifierPath);
+        String dispatcherContent = dispatcherController.generateBalCode(dispatcherTemplate);
 
         String outputDirectory = getOutputDirectory(outputPath);
         fileRepository.writeToFile(outputDirectory.concat(Constants.DATA_TYPES_BAL_FILE_NAME), dataTypesBalContent);
@@ -74,5 +64,16 @@ public class CodeGenerator implements Application {
     private String getOutputDirectory(String outputPath) {
         if (outputPath.endsWith("/")) return outputPath;
         return outputPath.concat("/");
+    }
+
+    private String getFileContent(FileRepository fileRepository, String specPath) throws BallerinaAsyncApiException {
+        String asyncApiSpecYaml = fileRepository.getFileContent(specPath);
+        if (specPath.endsWith(".json")) {
+            return asyncApiSpecYaml;
+        } else if (specPath.endsWith("yaml") || specPath.endsWith("yml")) {
+            return fileRepository.convertYamlToJson(asyncApiSpecYaml);
+        } else {
+            throw new BallerinaAsyncApiException("Unknown file type: ".concat(specPath));
+        }
     }
 }

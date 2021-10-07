@@ -30,22 +30,21 @@ import org.testng.Assert;
 import org.testng.annotations.Test;
 
 import java.util.List;
-import java.util.Map;
 
 public class TestExtractServiceTypesFromSpec {
     FileRepository fileRepository = new FileRepositoryImpl();
 
     @Test(
-            description = "Test the functionality of the execute function " +
+            description = "Test the functionality of the extract function " +
                     "when the Async API spec contains only one channel"
     )
     public void testExecuteWithOneChannel() throws BallerinaAsyncApiException {
-        var asyncApiSpecStr = fileRepository
+        String asyncApiSpecStr = fileRepository
                 .getFileContentFromResources("specs/spec-single-channel.yml");
-        var asyncApeSpecJson = fileRepository.convertYamlToJson(asyncApiSpecStr);
+        String asyncApeSpecJson = fileRepository.convertYamlToJson(asyncApiSpecStr);
         AaiDocument asyncApiSpec = (Aai20Document) Library.readDocumentFromJSONString(asyncApeSpecJson);
-        UseCase extractServiceTypes = new ExtractServiceTypesFromSpec(asyncApiSpec);
-        List<ServiceType> serviceTypes = extractServiceTypes.execute();
+        ExtractUseCase extractServiceTypes = new ExtractServiceTypesFromSpec(asyncApiSpec);
+        List<ServiceType> serviceTypes = extractServiceTypes.extract();
 
         Assert.assertEquals(serviceTypes.get(0).getServiceTypeName(), "FooService");
         List<RemoteFunction> remoteFunctions = serviceTypes.get(0).getRemoteFunctions();
@@ -54,16 +53,16 @@ public class TestExtractServiceTypesFromSpec {
     }
 
     @Test(
-            description = "Test the functionality of the execute function " +
+            description = "Test the functionality of the extract function " +
                     "when the Async API spec contains multiple channels"
     )
     public void testExecuteWithMultipleChannels() throws BallerinaAsyncApiException {
-        var asyncApiSpecStr = fileRepository
+        String asyncApiSpecStr = fileRepository
                 .getFileContentFromResources("specs/spec-multiple-channels.yml");
-        var asyncApeSpecJson = fileRepository.convertYamlToJson(asyncApiSpecStr);
+        String asyncApeSpecJson = fileRepository.convertYamlToJson(asyncApiSpecStr);
         AaiDocument asyncApiSpec = (Aai20Document) Library.readDocumentFromJSONString(asyncApeSpecJson);
-        UseCase extractServiceTypes = new ExtractServiceTypesFromSpec(asyncApiSpec);
-        List<ServiceType> serviceTypes = extractServiceTypes.execute();
+        ExtractUseCase extractServiceTypes = new ExtractServiceTypesFromSpec(asyncApiSpec);
+        List<ServiceType> serviceTypes = extractServiceTypes.extract();
 
         Assert.assertEquals(serviceTypes.get(0).getServiceTypeName(), "FooService1");
         List<RemoteFunction> remoteFunctions1 = serviceTypes.get(0).getRemoteFunctions();
@@ -81,16 +80,16 @@ public class TestExtractServiceTypesFromSpec {
     }
 
     @Test(
-            description = "Test the functionality of the execute function " +
+            description = "Test the functionality of the extract function " +
                     "when the Async API spec does not contains the x-ballerina-service-type attribute in the channel"
     )
     public void testExecuteWithMissingXServiceType() throws BallerinaAsyncApiException {
-        var asyncApiSpecStr = fileRepository
+        String asyncApiSpecStr = fileRepository
                 .getFileContentFromResources("specs/spec-single-channel-missing-x-service-type.yml");
-        var asyncApeSpecJson = fileRepository.convertYamlToJson(asyncApiSpecStr);
+        String asyncApeSpecJson = fileRepository.convertYamlToJson(asyncApiSpecStr);
         AaiDocument asyncApiSpec = (Aai20Document) Library.readDocumentFromJSONString(asyncApeSpecJson);
-        UseCase extractServiceTypes = new ExtractServiceTypesFromSpec(asyncApiSpec);
-        List<ServiceType> serviceTypes = extractServiceTypes.execute();
+        ExtractUseCase extractServiceTypes = new ExtractServiceTypesFromSpec(asyncApiSpec);
+        List<ServiceType> serviceTypes = extractServiceTypes.extract();
 
         Assert.assertEquals(serviceTypes.get(0).getServiceTypeName(), "EventsFoo1");
         List<RemoteFunction> remoteFunctions1 = serviceTypes.get(0).getRemoteFunctions();
@@ -100,34 +99,34 @@ public class TestExtractServiceTypesFromSpec {
     }
 
     @Test(
-            description = "Test the functionality of the execute function " +
+            description = "Test the functionality of the extract function " +
                     "when the Async API spec does not contains the x-ballerina-event-type attribute in the channel",
             expectedExceptions = BallerinaAsyncApiException.class,
             expectedExceptionsMessageRegExp = "Could not find the x-ballerina-event-type attribute " +
                     "in the message of the channel events/foo/1"
     )
     public void testExecuteWithMissingXEventTypeWithOneOf() throws BallerinaAsyncApiException {
-        var asyncApiSpecStr = fileRepository
+        String asyncApiSpecStr = fileRepository
                 .getFileContentFromResources("specs/spec-single-channel-missing-x-event-type-with-oneof.yml");
-        var asyncApeSpecJson = fileRepository.convertYamlToJson(asyncApiSpecStr);
+        String asyncApeSpecJson = fileRepository.convertYamlToJson(asyncApiSpecStr);
         AaiDocument asyncApiSpec = (Aai20Document) Library.readDocumentFromJSONString(asyncApeSpecJson);
-        UseCase extractServiceTypes = new ExtractServiceTypesFromSpec(asyncApiSpec);
-        extractServiceTypes.execute();
+        ExtractUseCase extractServiceTypes = new ExtractServiceTypesFromSpec(asyncApiSpec);
+        extractServiceTypes.extract();
     }
 
     @Test(
-            description = "Test the functionality of the execute function " +
+            description = "Test the functionality of the extract function " +
                     "when the Async API spec does not contains the x-ballerina-event-type attribute in the channel",
             expectedExceptions = BallerinaAsyncApiException.class,
             expectedExceptionsMessageRegExp = "Could not find the x-ballerina-event-type attribute " +
                     "in the message of the channel events/foo/1"
     )
     public void testExecuteWithMissingXEventTypeWithoutOneOf() throws BallerinaAsyncApiException {
-        var asyncApiSpecStr = fileRepository.getFileContentFromResources(
+        String asyncApiSpecStr = fileRepository.getFileContentFromResources(
                 "specs/spec-single-channel-missing-x-event-type-without-oneof.yml");
-        var asyncApeSpecJson = fileRepository.convertYamlToJson(asyncApiSpecStr);
+        String asyncApeSpecJson = fileRepository.convertYamlToJson(asyncApiSpecStr);
         AaiDocument asyncApiSpec = (Aai20Document) Library.readDocumentFromJSONString(asyncApeSpecJson);
-        UseCase extractServiceTypes = new ExtractServiceTypesFromSpec(asyncApiSpec);
-        extractServiceTypes.execute();
+        ExtractUseCase extractServiceTypes = new ExtractServiceTypesFromSpec(asyncApiSpec);
+        extractServiceTypes.extract();
     }
 }

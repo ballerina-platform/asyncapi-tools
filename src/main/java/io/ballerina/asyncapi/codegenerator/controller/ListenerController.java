@@ -18,16 +18,13 @@
 
 package io.ballerina.asyncapi.codegenerator.controller;
 
-import io.apicurio.datamodels.Library;
-import io.apicurio.datamodels.asyncapi.models.AaiDocument;
-import io.apicurio.datamodels.asyncapi.v2.models.Aai20Document;
 import io.ballerina.asyncapi.codegenerator.configuration.BallerinaAsyncApiException;
 import io.ballerina.asyncapi.codegenerator.configuration.Constants;
 import io.ballerina.asyncapi.codegenerator.entity.ServiceType;
-import io.ballerina.asyncapi.codegenerator.usecase.ExtractServiceTypesFromSpec;
 import io.ballerina.asyncapi.codegenerator.usecase.GenerateListenerStatementNode;
-import io.ballerina.asyncapi.codegenerator.usecase.UseCase;
+import io.ballerina.asyncapi.codegenerator.usecase.GenerateUseCase;
 import io.ballerina.compiler.syntax.tree.*;
+import io.ballerina.tools.text.TextDocument;
 import io.ballerina.tools.text.TextDocuments;
 import org.ballerinalang.formatter.core.Formatter;
 import org.ballerinalang.formatter.core.FormatterException;
@@ -37,34 +34,34 @@ import java.util.stream.Collectors;
 
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createNodeList;
 
-public class ListenerController implements Controller {
+public class ListenerController implements BalController {
+    private final List<ServiceType> serviceTypes;
+
+    public ListenerController(List<ServiceType> serviceTypes) {
+        this.serviceTypes = serviceTypes;
+    }
 
     @Override
-    public String generateBalCode(String spec, String balTemplate) throws BallerinaAsyncApiException {
-        AaiDocument asyncApiSpec = (Aai20Document) Library.readDocumentFromJSONString(spec);
-
-        var textDocument = TextDocuments.from(balTemplate);
-        var syntaxTree = SyntaxTree.from(textDocument);
+    public String generateBalCode(String balTemplate) throws BallerinaAsyncApiException {
+        TextDocument textDocument = TextDocuments.from(balTemplate);
+        SyntaxTree syntaxTree = SyntaxTree.from(textDocument);
         ModulePartNode oldRoot = syntaxTree.rootNode();
-        var functionDefinitionNode = getServiceTypeStrFuncNode(oldRoot);
+        FunctionDefinitionNode functionDefinitionNode = getServiceTypeStrFuncNode(oldRoot);
 
         if (functionDefinitionNode == null) {
             throw new BallerinaAsyncApiException("Function 'getServiceTypeStr', is not found in the listener.bal");
         }
 
-        var functionBodyBlockNode = (FunctionBodyBlockNode) functionDefinitionNode.functionBody();
-
-        UseCase extractServiceTypes = new ExtractServiceTypesFromSpec(asyncApiSpec);
-        List<ServiceType> serviceTypes = extractServiceTypes.execute();
+        FunctionBodyBlockNode functionBodyBlockNode = (FunctionBodyBlockNode) functionDefinitionNode.functionBody();
         List<String> serviceTypeNames = serviceTypes.stream()
                 .map(ServiceType::getServiceTypeName).collect(Collectors.toList());
-        UseCase genIfElseNode = new GenerateListenerStatementNode(serviceTypeNames);
-        StatementNode ifElseStatementNode = genIfElseNode.execute();
-        NodeList<StatementNode> stmts = createNodeList(ifElseStatementNode);
+        GenerateUseCase genIfElseNode = new GenerateListenerStatementNode(serviceTypeNames);
+        StatementNode ifElseStatementNode = genIfElseNode.generate();
+        NodeList<StatementNode> statements = createNodeList(ifElseStatementNode);
 
-        var functionBodyBlockNodeNew = functionBodyBlockNode.modify().withStatements(stmts).apply();
-        ModulePartNode newRoot = oldRoot.replace(functionBodyBlockNode, functionBodyBlockNodeNew);
-        var modifiedTree = syntaxTree.replaceNode(oldRoot, newRoot);
+        FunctionBodyBlockNode functionBodyBlockNodeNew = functionBodyBlockNode
+                .modify().withStatements(statements).apply();
+        SyntaxTree modifiedTree = syntaxTree.replaceNode(functionBodyBlockNode, functionBodyBlockNodeNew);
 
         try {
             return Formatter.format(modifiedTree).toSourceCode();

@@ -30,7 +30,7 @@ import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.*;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.*;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.*;
 
-public class GenerateServiceTypeNode implements UseCase {
+public class GenerateServiceTypeNode implements GenerateUseCase {
     private final String serviceTypeName;
     private final List<RemoteFunction> remoteFunctionNames;
     private final CodegenUtils codegenUtils = new CodegenUtils();
@@ -41,19 +41,19 @@ public class GenerateServiceTypeNode implements UseCase {
     }
 
     @Override
-    public TypeDefinitionNode execute() throws BallerinaAsyncApiException {
+    public TypeDefinitionNode generate() throws BallerinaAsyncApiException {
         List<Node> remoteFunctions = new ArrayList<>();
-        var returnType = createOptionalTypeDescriptorNode(createToken(ERROR_KEYWORD),
+        OptionalTypeDescriptorNode returnType = createOptionalTypeDescriptorNode(createToken(ERROR_KEYWORD),
                 createToken(QUESTION_MARK_TOKEN));
-        var returnTypeDescriptorNode = createReturnTypeDescriptorNode(
+        ReturnTypeDescriptorNode returnTypeDescriptorNode = createReturnTypeDescriptorNode(
                 createToken(RETURNS_KEYWORD), createEmptyNodeList(), returnType);
         remoteFunctionNames.forEach(remoteFunction -> {
             List<Node> parameterList =  new ArrayList<>();
-            var eventType = codegenUtils.escapeIdentifier(remoteFunction.getEventType().trim());
-            var typeNode = createBuiltinSimpleNameReferenceNode(
+            String eventType = codegenUtils.escapeIdentifier(remoteFunction.getEventType().trim());
+            BuiltinSimpleNameReferenceNode typeNode = createBuiltinSimpleNameReferenceNode(
                     null, createIdentifierToken(eventType));
             parameterList.add(createRequiredParameterNode(createEmptyNodeList(), typeNode, createIdentifierToken("event")));
-            var methodDeclarationNode = createMethodDeclarationNode(
+            MethodDeclarationNode methodDeclarationNode = createMethodDeclarationNode(
                     SyntaxKind.METHOD_DECLARATION, null, createNodeList(createToken(REMOTE_KEYWORD)),
                     createToken(SyntaxKind.FUNCTION_KEYWORD),
                     createIdentifierToken(codegenUtils
@@ -64,9 +64,9 @@ public class GenerateServiceTypeNode implements UseCase {
                     createToken(SyntaxKind.SEMICOLON_TOKEN));
             remoteFunctions.add(methodDeclarationNode);
         });
-        var serviceTypeToken = AbstractNodeFactory
+        IdentifierToken serviceTypeToken = AbstractNodeFactory
                 .createIdentifierToken(codegenUtils.getServiceTypeNameByServiceName(serviceTypeName));
-        var recordTypeDescriptorNode =
+        ObjectTypeDescriptorNode recordTypeDescriptorNode =
                 NodeFactory.createObjectTypeDescriptorNode(createNodeList(createToken(SERVICE_KEYWORD)),
                         createToken(OBJECT_KEYWORD), createToken(OPEN_BRACE_TOKEN), createNodeList(remoteFunctions),
                         createToken(CLOSE_BRACE_TOKEN));
