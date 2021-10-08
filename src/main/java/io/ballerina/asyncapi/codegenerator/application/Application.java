@@ -21,5 +21,5 @@ package io.ballerina.asyncapi.codegenerator.application;
 import io.ballerina.asyncapi.codegenerator.configuration.BallerinaAsyncApiException;
 
 public interface Application {
-    void generate() throws BallerinaAsyncApiException;
+    void generate(String specPath, String outputPath) throws BallerinaAsyncApiException;
 }

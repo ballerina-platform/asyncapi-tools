@@ -27,7 +27,7 @@ import java.util.List;
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.*;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createBasicLiteralNode;
 
-public class GenerateListenerStatementNode implements  UseCase{
+public class GenerateListenerStatementNode implements GenerateUseCase {
     private final List<String> serviceTypes;
     private final CodegenUtils codegenUtils = new CodegenUtils();
 
@@ -36,7 +36,7 @@ public class GenerateListenerStatementNode implements  UseCase{
     }
 
     @Override
-    public StatementNode execute() throws BallerinaAsyncApiException {
+    public StatementNode generate() throws BallerinaAsyncApiException {
         if (serviceTypes.isEmpty()) {
             throw new BallerinaAsyncApiException("No service types found, " +
                     "probably there are no channels defined in the async api spec");
@@ -56,7 +56,7 @@ public class GenerateListenerStatementNode implements  UseCase{
                 NodeFactory.createSimpleNameReferenceNode(AbstractNodeFactory.
                         createIdentifierToken(codegenUtils.getServiceTypeNameByServiceName(serviceType)))
         );
-        var returnStatementNode = getReturnStatementNode(serviceType);
+        ReturnStatementNode returnStatementNode = getReturnStatementNode(serviceType);
         return NodeFactory.createIfElseStatementNode(
                 createToken(SyntaxKind.IF_KEYWORD),
                 condition,

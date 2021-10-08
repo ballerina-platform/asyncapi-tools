@@ -17,15 +17,16 @@
  */
 package io.ballerina.asyncapi.cmd;
 
+import io.ballerina.asyncapi.codegenerator.application.Application;
 import io.ballerina.asyncapi.codegenerator.application.CodeGenerator;
 import io.ballerina.asyncapi.codegenerator.configuration.BallerinaAsyncApiException;
 import io.ballerina.cli.BLauncherCmd;
 import picocli.CommandLine;
 
-import java.util.List;
 import java.io.PrintStream;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.List;
 
 @CommandLine.Command(
         name = "asyncapi",
@@ -64,42 +65,37 @@ public class AsyncApiCmd implements BLauncherCmd {
 
     @Override
     public void execute() {
-
         if (inputPath) {
             if (argList == null) {
-                outStream.println("Missing Input");
+                outStream.println("Missing the input file path," +
+                        " Please provide the path of the AsyncAPI specification with -i flag");
                 exitError(this.exitWhenFinish);
                 return;
             }
             String fileName = argList.get(0);
-            var codeGenerator = new CodeGenerator(fileName, (outputPath == null) ? String.valueOf(executionPath) : outputPath );
+            Application codeGenerator = new CodeGenerator();
             try {
-                codeGenerator.generate();
+                codeGenerator.generate(fileName, (outputPath == null) ? String.valueOf(executionPath) : outputPath);
             } catch (BallerinaAsyncApiException e) {
-                System.out.println(e.getMessage());
+                outStream.println(e.getMessage());
+                exitError(this.exitWhenFinish);
             }
         }
     }
 
     @Override
     public String getName() {
-        return null;
+        return CMD_NAME;
     }
 
     @Override
-    public void printLongDesc(StringBuilder stringBuilder) {
-
-    }
+    public void printLongDesc(StringBuilder stringBuilder) {}
 
     @Override
-    public void printUsage(StringBuilder stringBuilder) {
-
-    }
+    public void printUsage(StringBuilder stringBuilder) {}
 
     @Override
-    public void setParentCmdParser(picocli.CommandLine commandLine) {
-
-    }
+    public void setParentCmdParser(picocli.CommandLine commandLine) {}
 
     /**
      * Exit with error code 1.

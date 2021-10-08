@@ -22,16 +22,11 @@ import io.ballerina.runtime.api.Module;
 import io.ballerina.runtime.api.async.Callback;
 import io.ballerina.runtime.api.async.StrandMetadata;
 import io.ballerina.runtime.api.creators.ErrorCreator;
-import io.ballerina.runtime.api.creators.ValueCreator;
-import io.ballerina.runtime.api.types.MethodType;
-import io.ballerina.runtime.api.utils.StringUtils;
-import io.ballerina.runtime.api.values.BArray;
 import io.ballerina.runtime.api.values.BError;
 import io.ballerina.runtime.api.values.BMap;
 import io.ballerina.runtime.api.values.BObject;
 import io.ballerina.runtime.api.values.BString;
 
-import java.util.ArrayList;
 import static io.ballerina.runtime.api.utils.StringUtils.fromString;
 
 public class NativeHttpToEventAdaptor {

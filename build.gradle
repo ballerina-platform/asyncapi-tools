@@ -26,34 +26,36 @@ configurations {
 def Properties localProperties = new Properties()
 localProperties.load(project.rootProject.file("local.properties").newDataInputStream())
 
-repositories {
-    mavenLocal()
+allprojects {
+    repositories {
+        mavenLocal()
 
-    maven {
-        url = 'https://maven.pkg.github.com/ballerina-platform/*'
-        credentials {
-            username localProperties.getProperty("mvn.username")
-            password localProperties.getProperty("mvn.password")
+        maven {
+            url = 'https://maven.pkg.github.com/ballerina-platform/*'
+            credentials {
+                username localProperties.getProperty("mvn.username")
+                password localProperties.getProperty("mvn.password")
+            }
         }
-    }
 
-    maven {
-        url = 'https://maven.wso2.org/nexus/content/repositories/releases/'
-    }
-    maven {
-        url = 'https://maven.wso2.org/nexus/content/groups/wso2-public/'
-    }
+        maven {
+            url = 'https://maven.wso2.org/nexus/content/repositories/releases/'
+        }
+        maven {
+            url = 'https://maven.wso2.org/nexus/content/groups/wso2-public/'
+        }
 
-    maven {
-        url = 'https://maven.wso2.org/nexus/content/repositories/orgballerinalang-1614'
-    }
+        maven {
+            url = 'https://maven.wso2.org/nexus/content/repositories/orgballerinalang-1614'
+        }
 
-    maven {
-        url = 'https://repo.maven.apache.org/maven2'
-    }
+        maven {
+            url = 'https://repo.maven.apache.org/maven2'
+        }
 
-    maven {
-        url "https://plugins.gradle.org/m2/"
+        maven {
+            url "https://plugins.gradle.org/m2/"
+        }
     }
 }
 
@@ -82,5 +84,7 @@ dependencies {
 
 
 test {
-    useJUnitPlatform()
+    useTestNG() {
+        suites "src/test/resources/testng.xml"
+    }
 }

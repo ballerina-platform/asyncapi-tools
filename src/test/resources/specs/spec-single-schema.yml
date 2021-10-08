@@ -1,0 +1,129 @@
+asyncapi: 2.1.0
+components:
+  schemas:
+    CustomTestSchema:
+      properties:
+        test_id:
+          type: string
+    GenericEventWrapper:
+      additionalProperties: true
+      description: Adapted from auto-generated content
+      properties:
+        custom_test_schema:
+          $ref: '#/components/schemas/CustomTestSchema'
+        api_app_id:
+          description: ' Use this to distinguish which app the event belongs to if you use multiple apps with the same Request URL.'
+          title: The unique identifier your installed application.
+          type: string
+          x-examples:
+            - A2H9RFS1A
+        authed_users:
+          items:
+            type: string
+          minItems: 1
+          title: >-
+            An array of string-based User IDs. Each member of the collection
+            represents a user that has installed your application/bot and
+            indicates the described event would be visible to those users.
+          type: array
+          uniqueItems: true
+        event:
+          additionalProperties: true
+          properties:
+            event_ts:
+              title: When the event was dispatched
+              type: string
+            type:
+              title: The specific name of the event
+              type: string
+          required:
+            - type
+            - event_ts
+          title: 'The actual event, an object, that happened'
+          type: object
+          x-examples:
+            - channel: D0PNCRP9N
+              channel_type: app_home
+              event_ts: '1525215129.000001'
+              text: How many cats did we herd yesterday?
+              ts: '1525215129.000001'
+              type: message
+              user: U061F7AUR
+        event_id:
+          title: >-
+            A unique identifier for this specific event, globally unique across
+            all workspaces.
+          type: string
+          x-examples:
+            - Ev0PV52K25
+        event_time:
+          title: >-
+            The epoch timestamp in seconds indicating when this event was
+            dispatched.
+          type: integer
+          x-examples:
+            - 1525215129
+        team_id:
+          title: The unique identifier of the workspace where the event occurred
+          type: string
+          x-examples:
+            - T1H9RESGL
+        token:
+          title: A verification token to validate the event originated from Slack
+          type: string
+        type:
+          title: >-
+            Indicates which kind of event dispatch this is, usually
+            `event_callback`
+          type: string
+          x-examples:
+            - event_callback
+      required:
+        - token
+        - team_id
+        - api_app_id
+        - event
+        - type
+        - event_id
+        - event_time
+        - authed_users
+      title: Standard event wrapper for the Events API
+      type: object
+      x-examples:
+        - api_app_id: AXXXXXXXXX
+          authed_teams: []
+          event:
+            resources:
+              - resource:
+                  grant:
+                    resource_id: DXXXXXXXX
+                    type: specific
+                  type: im
+                scopes:
+                  - 'chat:write:user'
+                  - 'im:read'
+                  - 'im:history'
+                  - commands
+            type: resources_added
+          event_id: EvXXXXXXXX
+          event_time: 1234567890
+          team_id: TXXXXXXXX
+          token: XXYYZZ
+          type: event_callback
+        - api_app_id: AXXXXXXXXX
+          authed_teams: []
+          event:
+            event_ts: '1360782804.083113'
+            item:
+              channel: C0G9QF9GZ
+              ts: '1360782400.498405'
+              type: message
+            item_user: U0G9QF9C6
+            reaction: thumbsup
+            type: reaction_added
+            user: U024BE7LH
+          event_id: EvXXXXXXXX
+          event_time: 1234567890
+          team_id: TXXXXXXXX
+          token: XXYYZZ
+          type: event_callback

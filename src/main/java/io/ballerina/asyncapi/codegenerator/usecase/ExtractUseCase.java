@@ -6,7 +6,7 @@
  *  in compliance with the License.
  *  You may obtain a copy of the License at
  *
- *  http://www.apache.org/licenses/LICENSE-2.0
+ *    http://www.apache.org/licenses/LICENSE-2.0
  *
  *  Unless required by applicable law or agreed to in writing,
  *  software distributed under the License is distributed on an
@@ -16,26 +16,10 @@
  *  under the License.
  */
 
-package io.ballerina.asyncapi.codegenerator.entity;
+package io.ballerina.asyncapi.codegenerator.usecase;
 
-public class RemoteFunction {
-    private String funcName;
-    private String eventType;
+import io.ballerina.asyncapi.codegenerator.configuration.BallerinaAsyncApiException;
 
-
-    public String getEventName() {
-        return funcName;
-    }
-
-    public void setEventName(String eventName) {
-        this.funcName = eventName;
-    }
-
-    public String getEventType() {
-        return eventType;
-    }
-
-    public void setEventType(String eventType) {
-        this.eventType = eventType;
-    }
+public interface ExtractUseCase {
+    <T> T extract() throws BallerinaAsyncApiException;
 }

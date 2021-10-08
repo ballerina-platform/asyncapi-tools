@@ -18,15 +18,15 @@
 
 package io.ballerina.asyncapi;
 
+import io.ballerina.asyncapi.codegenerator.application.Application;
 import io.ballerina.asyncapi.codegenerator.application.CodeGenerator;
 import io.ballerina.asyncapi.codegenerator.configuration.BallerinaAsyncApiException;
 
 public class AsyncApiToBalGenerator {
     public static void main(String[] args) {
-        var codeGenerator = new CodeGenerator(
-                System.getenv().get("SPEC_FILE_PATH"), System.getenv().get("OUTPUT_FILE_PATH"));
+        Application codeGenerator = new CodeGenerator();
         try {
-            codeGenerator.generate();
+            codeGenerator.generate(System.getenv().get("SPEC_FILE_PATH"), System.getenv().get("OUTPUT_FILE_PATH"));
         } catch (BallerinaAsyncApiException e) {
             System.out.println(e.getMessage());
         }

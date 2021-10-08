@@ -31,7 +31,7 @@ import static io.ballerina.compiler.syntax.tree.NodeFactory.createTypeDefinition
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createUnionTypeDescriptorNode;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.*;
 
-public class GenerateUnionDescriptorNode implements UseCase {
+public class GenerateUnionDescriptorNode implements GenerateUseCase {
     private final List<TypeDescriptorNode> serviceTypeNodes;
     private final String identifierName;
 
@@ -41,7 +41,7 @@ public class GenerateUnionDescriptorNode implements UseCase {
     }
 
     @Override
-    public TypeDefinitionNode execute() throws BallerinaAsyncApiException {
+    public TypeDefinitionNode generate() throws BallerinaAsyncApiException {
         return createTypeDefinitionNode(null, createToken(PUBLIC_KEYWORD),
                 createToken(TYPE_KEYWORD), createIdentifierToken(identifierName),
                 getUnionDescriptorNode(serviceTypeNodes), createToken(SEMICOLON_TOKEN));

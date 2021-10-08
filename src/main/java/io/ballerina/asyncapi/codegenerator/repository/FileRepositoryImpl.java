@@ -35,7 +35,7 @@ public class FileRepositoryImpl implements FileRepository {
 
     @Override
     public String getFileContent(String filePath) throws BallerinaAsyncApiException {
-        var mainFile = new File(filePath);
+        File mainFile = new File(filePath);
         try (InputStream inputStream = new FileInputStream(mainFile)) {
             return IOUtils.toString(inputStream, StandardCharsets.UTF_8.name());
         } catch (IOException e) {
@@ -45,7 +45,7 @@ public class FileRepositoryImpl implements FileRepository {
 
     @Override
     public String getFileContentFromResources(String fileName) throws BallerinaAsyncApiException {
-        try (var inputStream = getFileFromResourceAsStream(fileName)) {
+        try (InputStream inputStream = getFileFromResourceAsStream(fileName)) {
             return IOUtils.toString(inputStream, StandardCharsets.UTF_8.name());
         } catch (IOException e) {
             throw new BallerinaAsyncApiException("File not found in the resources: ".concat(fileName), e);
@@ -54,7 +54,7 @@ public class FileRepositoryImpl implements FileRepository {
 
     @Override
     public void writeToFile(String filePath, String content) throws BallerinaAsyncApiException {
-        var file = new File(filePath);
+        File file = new File(filePath);
         try {
             FileUtils.writeStringToFile(file, content, StandardCharsets.UTF_8);
         } catch (IOException e) {
@@ -65,19 +65,19 @@ public class FileRepositoryImpl implements FileRepository {
 
     @Override
     public String convertYamlToJson(String yaml) throws BallerinaAsyncApiException {
-        var yamlReader = new ObjectMapper(new YAMLFactory());
+        ObjectMapper yamlReader = new ObjectMapper(new YAMLFactory());
         try {
             Object obj = yamlReader.readValue(yaml, Object.class);
-            var jsonWriter = new ObjectMapper();
+            ObjectMapper jsonWriter = new ObjectMapper();
             return jsonWriter.writeValueAsString(obj);
         } catch (JsonProcessingException e) {
             throw new BallerinaAsyncApiException("Error when converting the given yaml file to json", e);
         }
     }
 
-    public InputStream getFileFromResourceAsStream(String fileName) {
-        var classLoader = getClass().getClassLoader();
-        var inputStream = classLoader.getResourceAsStream(fileName);
+    private InputStream getFileFromResourceAsStream(String fileName) {
+        ClassLoader classLoader = getClass().getClassLoader();
+        InputStream inputStream = classLoader.getResourceAsStream(fileName);
         if (inputStream == null) {
             throw new IllegalArgumentException("File not found: ".concat(fileName));
         } else {

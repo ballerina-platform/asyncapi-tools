@@ -18,6 +18,7 @@
 
 package io.ballerina.asyncapi.codegenerator.usecase.utils;
 
+import io.ballerina.compiler.syntax.tree.MarkdownDocumentationNode;
 import io.ballerina.compiler.syntax.tree.Node;
 import org.testng.Assert;
 import org.testng.annotations.Test;
@@ -37,14 +38,14 @@ public class TestDocCommentsUtils {
     public void testCreateDescriptionComments() {
         List<Node> commentsDoc1 =
                 new ArrayList<>(docCommentsUtils.createDescriptionComments("Foo bar\nFoo bar", false));
-        var documentationNode1 =
+        MarkdownDocumentationNode documentationNode1 =
                 createMarkdownDocumentationNode(
                         createNodeList(commentsDoc1));
         Assert.assertEquals(documentationNode1.toSourceCode(), "#Foo bar#Foo bar");
 
         List<Node> commentsDoc2 =
                 new ArrayList<>(docCommentsUtils.createDescriptionComments("Foo bar\nFoo bar", true));
-        var documentationNode2 =
+        MarkdownDocumentationNode documentationNode2 =
                 createMarkdownDocumentationNode(
                         createNodeList(commentsDoc2));
         Assert.assertEquals(documentationNode2.toSourceCode(), "#Foo bar#Foo bar#");

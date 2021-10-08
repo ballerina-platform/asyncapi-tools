@@ -20,8 +20,6 @@ package io.ballerina.asyncapi.codegenerator.usecase.utils;
 
 import io.ballerina.asyncapi.codegenerator.configuration.BallerinaAsyncApiException;
 import io.ballerina.asyncapi.codegenerator.configuration.Constants;
-import io.ballerina.compiler.syntax.tree.MinutiaeList;
-import io.ballerina.compiler.syntax.tree.NodeFactory;
 
 import java.util.Locale;
 import java.util.Optional;
@@ -40,7 +38,7 @@ public class CodegenUtils {
             identifier = identifier.replaceAll(Constants.ESCAPE_PATTERN, "\\\\$1");
             if (identifier.endsWith("?")) {
                 if (identifier.charAt(identifier.length() - 2) == '\\') {
-                    var stringBuilder = new StringBuilder(identifier);
+                    StringBuilder stringBuilder = new StringBuilder(identifier);
                     stringBuilder.deleteCharAt(identifier.length() - 2);
                     identifier = stringBuilder.toString();
                 }
@@ -68,7 +66,7 @@ public class CodegenUtils {
         // this - > !identifier.matches("\\b[a-zA-Z][a-zA-Z0-9]*\\b") &&
         if (!identifier.matches("\\b[0-9]*\\b")) {
             String[] split = identifier.split(Constants.ESCAPE_PATTERN);
-            var validName = new StringBuilder();
+            StringBuilder validName = new StringBuilder();
             for (String part : split) {
                 if (!part.isBlank()) {
                     if (split.length > 1) {
@@ -104,15 +102,6 @@ public class CodegenUtils {
     }
 
     /**
-     * Create new Minutiae node list which contains a single minutiae
-     * @param value value of the minutiae
-     * @return minutiae list which has single minutiae
-     */
-    public MinutiaeList createMinutiae(String value) {
-        return NodeFactory.createMinutiaeList(NodeFactory.createWhitespaceMinutiae(value));
-    }
-
-    /**
      * Get remote function name for service type when event name is provided
      * @param eventName event name as defined in async api doc
      * @return remote function name for service types
@@ -129,5 +118,4 @@ public class CodegenUtils {
     public String getServiceTypeNameByServiceName(String serviceName) {
         return getValidName(serviceName.trim(), true) + Constants.SERVICE_TYPE_NAME_SUFFIX;
     }
-
 }

@@ -18,8 +18,14 @@
 
 package io.ballerina.asyncapi.codegenerator.controller;
 
-import io.ballerina.asyncapi.codegenerator.configuration.BallerinaAsyncApiException;
+import io.ballerina.asyncapi.codegenerator.entity.Schema;
+import io.ballerina.asyncapi.codegenerator.entity.ServiceType;
 
-public interface Controller {
-    String generateBalCode(String spec, String balTemplate) throws BallerinaAsyncApiException;
+import java.util.List;
+import java.util.Map;
+
+public interface SpecController {
+    List<ServiceType> getServiceTypes();
+    Map<String, Schema> getSchemas();
+    String getEventIdentifierPath();
 }
