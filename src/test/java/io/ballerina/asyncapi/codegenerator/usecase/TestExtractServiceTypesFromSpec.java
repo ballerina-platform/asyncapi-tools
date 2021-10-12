@@ -41,7 +41,7 @@ public class TestExtractServiceTypesFromSpec {
             description = "Test the functionality of the extract function " +
                     "when the Async API spec contains only one channel"
     )
-    public void testExecuteWithOneChannel() throws BallerinaAsyncApiException {
+    public void testExtractWithOneChannel() throws BallerinaAsyncApiException {
         String asyncApiSpecStr = fileRepository
                 .getFileContentFromResources("specs/spec-single-channel.yml");
         String asyncApeSpecJson = fileRepository.convertYamlToJson(asyncApiSpecStr);
@@ -59,7 +59,7 @@ public class TestExtractServiceTypesFromSpec {
             description = "Test the functionality of the extract function " +
                     "when the Async API spec contains multiple channels"
     )
-    public void testExecuteWithMultipleChannels() throws BallerinaAsyncApiException {
+    public void testExtractWithMultipleChannels() throws BallerinaAsyncApiException {
         String asyncApiSpecStr = fileRepository
                 .getFileContentFromResources("specs/spec-multiple-channels.yml");
         String asyncApeSpecJson = fileRepository.convertYamlToJson(asyncApiSpecStr);
@@ -86,7 +86,7 @@ public class TestExtractServiceTypesFromSpec {
             description = "Test the functionality of the extract function " +
                     "when the Async API spec does not contains the x-ballerina-service-type attribute in the channel"
     )
-    public void testExecuteWithMissingXServiceType() throws BallerinaAsyncApiException {
+    public void testExtractWithMissingXServiceType() throws BallerinaAsyncApiException {
         String asyncApiSpecStr = fileRepository
                 .getFileContentFromResources("specs/spec-single-channel-missing-x-service-type.yml");
         String asyncApeSpecJson = fileRepository.convertYamlToJson(asyncApiSpecStr);
@@ -108,7 +108,7 @@ public class TestExtractServiceTypesFromSpec {
             expectedExceptionsMessageRegExp = "Could not find the x-ballerina-event-type attribute " +
                     "in the message of the channel events/foo/1"
     )
-    public void testExecuteWithMissingXEventTypeWithOneOf() throws BallerinaAsyncApiException {
+    public void testExtractWithMissingXEventTypeWithOneOf() throws BallerinaAsyncApiException {
         String asyncApiSpecStr = fileRepository
                 .getFileContentFromResources("specs/spec-single-channel-missing-x-event-type-with-oneof.yml");
         String asyncApeSpecJson = fileRepository.convertYamlToJson(asyncApiSpecStr);
@@ -124,7 +124,7 @@ public class TestExtractServiceTypesFromSpec {
             expectedExceptionsMessageRegExp = "Could not find the x-ballerina-event-type attribute " +
                     "in the message of the channel events/foo/1"
     )
-    public void testExecuteWithMissingXEventTypeWithoutOneOf() throws BallerinaAsyncApiException {
+    public void testExtractWithMissingXEventTypeWithoutOneOf() throws BallerinaAsyncApiException {
         String asyncApiSpecStr = fileRepository.getFileContentFromResources(
                 "specs/spec-single-channel-missing-x-event-type-without-oneof.yml");
         String asyncApeSpecJson = fileRepository.convertYamlToJson(asyncApiSpecStr);
