@@ -20,7 +20,13 @@ package io.ballerina.asyncapi.codegenerator.application;
 
 import io.ballerina.asyncapi.codegenerator.configuration.BallerinaAsyncApiException;
 import io.ballerina.asyncapi.codegenerator.configuration.Constants;
-import io.ballerina.asyncapi.codegenerator.controller.*;
+import io.ballerina.asyncapi.codegenerator.controller.AsyncApiSpecController;
+import io.ballerina.asyncapi.codegenerator.controller.BalController;
+import io.ballerina.asyncapi.codegenerator.controller.DispatcherController;
+import io.ballerina.asyncapi.codegenerator.controller.ListenerController;
+import io.ballerina.asyncapi.codegenerator.controller.SchemaController;
+import io.ballerina.asyncapi.codegenerator.controller.ServiceTypesController;
+import io.ballerina.asyncapi.codegenerator.controller.SpecController;
 import io.ballerina.asyncapi.codegenerator.entity.Schema;
 import io.ballerina.asyncapi.codegenerator.entity.ServiceType;
 import io.ballerina.asyncapi.codegenerator.repository.FileRepository;
@@ -29,6 +35,12 @@ import io.ballerina.asyncapi.codegenerator.repository.FileRepositoryImpl;
 import java.util.List;
 import java.util.Map;
 
+/**
+ *  This class controls the flow of code generation.
+ *  1. read the file
+ *  2. extract necessary data into defined entities
+ *  3. generate ballerina code and write into files
+ */
 public class CodeGenerator implements Application {
     @Override
     public void generate(String specPath, String outputPath) throws BallerinaAsyncApiException {
@@ -41,28 +53,33 @@ public class CodeGenerator implements Application {
         String eventIdentifierPath = specController.getEventIdentifierPath();
 
         BalController schemaController = new SchemaController(schemas);
-        String dataTypesBalContent = schemaController.generateBalCode("");
+        String dataTypesBalContent = schemaController.generateBalCode(Constants.EMPTY_BALLERINA_FILE_CONTENT);
 
         BalController serviceTypesController = new ServiceTypesController(serviceTypes);
-        String serviceTypesBalContent = serviceTypesController.generateBalCode("");
+        String serviceTypesBalContent = serviceTypesController.generateBalCode(Constants.EMPTY_BALLERINA_FILE_CONTENT);
 
         String listenerTemplate = fileRepository.getFileContentFromResources(Constants.LISTENER_BAL_FILE_NAME);
         BalController listenerController = new ListenerController(serviceTypes);
         String listenerBalContent = listenerController.generateBalCode(listenerTemplate);
 
-        String dispatcherTemplate = fileRepository.getFileContentFromResources(Constants.DISPATCHER_SERVICE_BAL_FILE_NAME);
+        String dispatcherTemplate = fileRepository
+                .getFileContentFromResources(Constants.DISPATCHER_SERVICE_BAL_FILE_NAME);
         BalController dispatcherController = new DispatcherController(serviceTypes, eventIdentifierPath);
         String dispatcherContent = dispatcherController.generateBalCode(dispatcherTemplate);
 
         String outputDirectory = getOutputDirectory(outputPath);
         fileRepository.writeToFile(outputDirectory.concat(Constants.DATA_TYPES_BAL_FILE_NAME), dataTypesBalContent);
-        fileRepository.writeToFile(outputDirectory.concat(Constants.SERVICE_TYPES_BAL_FILE_NAME), serviceTypesBalContent);
+        fileRepository
+                .writeToFile(outputDirectory.concat(Constants.SERVICE_TYPES_BAL_FILE_NAME), serviceTypesBalContent);
         fileRepository.writeToFile(outputDirectory.concat(Constants.LISTENER_BAL_FILE_NAME), listenerBalContent);
-        fileRepository.writeToFile(outputDirectory.concat(Constants.DISPATCHER_SERVICE_BAL_FILE_NAME), dispatcherContent);
+        fileRepository
+                .writeToFile(outputDirectory.concat(Constants.DISPATCHER_SERVICE_BAL_FILE_NAME), dispatcherContent);
     }
 
     private String getOutputDirectory(String outputPath) {
-        if (outputPath.endsWith("/")) return outputPath;
+        if (outputPath.endsWith("/")) {
+            return outputPath;
+        }
         return outputPath.concat("/");
     }
 

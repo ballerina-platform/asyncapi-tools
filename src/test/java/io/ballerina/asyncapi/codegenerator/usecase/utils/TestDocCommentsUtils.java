@@ -29,6 +29,9 @@ import java.util.List;
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createNodeList;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createMarkdownDocumentationNode;
 
+/**
+ * Test the utils which are being used to generate the doc comments in Ballerina.
+ */
 public class TestDocCommentsUtils {
     private final DocCommentsUtils docCommentsUtils = new DocCommentsUtils();
 

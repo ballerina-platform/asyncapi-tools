@@ -24,12 +24,15 @@ import io.ballerina.compiler.syntax.tree.SyntaxKind;
 import java.util.ArrayList;
 import java.util.List;
 
-import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.*;
+import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createEmptyNodeList;
+import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createIdentifierToken;
+import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createNodeList;
+import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createToken;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createMarkdownDocumentationLineNode;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.DOCUMENTATION_DESCRIPTION;
 
 /**
- * This class util for maintain the API doc comment related functions.
+ * This class util for maintaining the API doc comment related functions.
  */
 public class DocCommentsUtils {
     public List<MarkdownDocumentationLineNode> createDescriptionComments(

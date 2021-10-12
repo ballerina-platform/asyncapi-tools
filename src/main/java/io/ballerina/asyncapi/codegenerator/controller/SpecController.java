@@ -24,6 +24,9 @@ import io.ballerina.asyncapi.codegenerator.entity.ServiceType;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * This is the Interface used for entity extraction from the AsyncAPI specification related Controllers.
+ */
 public interface SpecController {
     List<ServiceType> getServiceTypes();
     Map<String, Schema> getSchemas();

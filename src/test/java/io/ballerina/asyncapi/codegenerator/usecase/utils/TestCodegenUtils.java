@@ -25,6 +25,9 @@ import org.testng.annotations.Test;
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * Test the utils which are being used for code generation.
+ */
 public class TestCodegenUtils {
     private final CodegenUtils codegenUtils = new CodegenUtils();
 

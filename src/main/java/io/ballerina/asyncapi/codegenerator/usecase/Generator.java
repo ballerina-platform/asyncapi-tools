@@ -20,6 +20,9 @@ package io.ballerina.asyncapi.codegenerator.usecase;
 
 import io.ballerina.asyncapi.codegenerator.configuration.BallerinaAsyncApiException;
 
-public interface ExtractUseCase {
-    <T> T extract() throws BallerinaAsyncApiException;
+/**
+ * Interface for the use cases related to the Ballerina code generation.
+ */
+public interface Generator {
+    <T> T generate() throws BallerinaAsyncApiException;
 }

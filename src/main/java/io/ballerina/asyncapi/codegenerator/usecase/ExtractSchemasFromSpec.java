@@ -26,7 +26,10 @@ import io.ballerina.asyncapi.codegenerator.entity.SchemaDecorator;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-public class ExtractSchemasFromSpec implements ExtractUseCase {
+/**
+ * Extract the schemas from the AsyncAPI specification.
+ */
+public class ExtractSchemasFromSpec implements Extractor {
     private final AaiDocument asyncApiSpec;
 
     public ExtractSchemasFromSpec(AaiDocument asyncApiSpec) {

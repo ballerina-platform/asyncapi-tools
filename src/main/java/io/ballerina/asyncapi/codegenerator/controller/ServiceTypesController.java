@@ -23,8 +23,12 @@ import io.ballerina.asyncapi.codegenerator.configuration.Constants;
 import io.ballerina.asyncapi.codegenerator.entity.ServiceType;
 import io.ballerina.asyncapi.codegenerator.usecase.GenerateServiceTypeNode;
 import io.ballerina.asyncapi.codegenerator.usecase.GenerateUnionDescriptorNode;
-import io.ballerina.asyncapi.codegenerator.usecase.GenerateUseCase;
-import io.ballerina.compiler.syntax.tree.*;
+import io.ballerina.asyncapi.codegenerator.usecase.Generator;
+import io.ballerina.compiler.syntax.tree.ModuleMemberDeclarationNode;
+import io.ballerina.compiler.syntax.tree.ModulePartNode;
+import io.ballerina.compiler.syntax.tree.SyntaxTree;
+import io.ballerina.compiler.syntax.tree.TypeDefinitionNode;
+import io.ballerina.compiler.syntax.tree.TypeDescriptorNode;
 import io.ballerina.tools.text.TextDocument;
 import io.ballerina.tools.text.TextDocuments;
 import org.ballerinalang.formatter.core.Formatter;
@@ -36,6 +40,9 @@ import java.util.List;
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createIdentifierToken;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createSimpleNameReferenceNode;
 
+/**
+ * This file contains the logics and functions related to code generation of the service_types.bal.
+ */
 public class ServiceTypesController implements BalController {
     private final List<ServiceType> serviceTypes;
 
@@ -48,7 +55,7 @@ public class ServiceTypesController implements BalController {
         List<ModuleMemberDeclarationNode> serviceNodes = new ArrayList<>();
         List<TypeDescriptorNode> serviceTypeNodes = new ArrayList<>();
         for (ServiceType service : serviceTypes) {
-            GenerateUseCase generateServiceTypeNode =
+            Generator generateServiceTypeNode =
                     new GenerateServiceTypeNode(service.getServiceTypeName(), service.getRemoteFunctions());
             TypeDefinitionNode typeDefinitionNode = generateServiceTypeNode.generate();
             serviceTypeNodes.add(
@@ -56,7 +63,7 @@ public class ServiceTypesController implements BalController {
             serviceNodes.add(typeDefinitionNode);
         }
 
-        GenerateUseCase generateUnionNode = new GenerateUnionDescriptorNode(serviceTypeNodes, Constants.GENERIC_SERVICE_TYPE);
+        Generator generateUnionNode = new GenerateUnionDescriptorNode(serviceTypeNodes, Constants.GENERIC_SERVICE_TYPE);
         serviceNodes.add(generateUnionNode.generate());
 
         TextDocument textDocument = TextDocuments.from(balTemplate);

@@ -27,11 +27,14 @@ import io.ballerina.asyncapi.codegenerator.entity.ServiceType;
 import io.ballerina.asyncapi.codegenerator.usecase.ExtractIdentifierPathFromSpec;
 import io.ballerina.asyncapi.codegenerator.usecase.ExtractSchemasFromSpec;
 import io.ballerina.asyncapi.codegenerator.usecase.ExtractServiceTypesFromSpec;
-import io.ballerina.asyncapi.codegenerator.usecase.ExtractUseCase;
+import io.ballerina.asyncapi.codegenerator.usecase.Extractor;
 
 import java.util.List;
 import java.util.Map;
 
+/**
+ * This class contains extraction of data into entities from the AsyncAPI specification.
+ */
 public class AsyncApiSpecController implements SpecController {
     private List<ServiceType> serviceTypes;
     private Map<String, Schema> schemas;
@@ -44,9 +47,9 @@ public class AsyncApiSpecController implements SpecController {
     private void readSpec(String asyncApiSpecJson) throws BallerinaAsyncApiException {
         AaiDocument asyncApiSpec = (Aai20Document) Library.readDocumentFromJSONString(asyncApiSpecJson);
 
-        ExtractUseCase extractServiceTypes = new ExtractServiceTypesFromSpec(asyncApiSpec);
-        ExtractUseCase extractSchemas = new ExtractSchemasFromSpec(asyncApiSpec);
-        ExtractUseCase extractIdentifierPath = new ExtractIdentifierPathFromSpec(asyncApiSpec);
+        Extractor extractServiceTypes = new ExtractServiceTypesFromSpec(asyncApiSpec);
+        Extractor extractSchemas = new ExtractSchemasFromSpec(asyncApiSpec);
+        Extractor extractIdentifierPath = new ExtractIdentifierPathFromSpec(asyncApiSpec);
 
         serviceTypes = extractServiceTypes.extract();
         schemas = extractSchemas.extract();

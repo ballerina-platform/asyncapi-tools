@@ -20,6 +20,9 @@ package io.ballerina.asyncapi.codegenerator.repository;
 
 import io.ballerina.asyncapi.codegenerator.configuration.BallerinaAsyncApiException;
 
+/**
+ * Interface for file reading and converting related tasks.
+ */
 public interface FileRepository {
     String getFileContent(String filePath) throws BallerinaAsyncApiException;
     String getFileContentFromResources(String fileName) throws BallerinaAsyncApiException;

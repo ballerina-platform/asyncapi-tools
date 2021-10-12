@@ -22,8 +22,18 @@ import io.ballerina.asyncapi.codegenerator.configuration.BallerinaAsyncApiExcept
 import io.ballerina.asyncapi.codegenerator.configuration.Constants;
 import io.ballerina.asyncapi.codegenerator.entity.ServiceType;
 import io.ballerina.asyncapi.codegenerator.usecase.GenerateMatchStatement;
-import io.ballerina.asyncapi.codegenerator.usecase.GenerateUseCase;
-import io.ballerina.compiler.syntax.tree.*;
+import io.ballerina.asyncapi.codegenerator.usecase.Generator;
+import io.ballerina.compiler.syntax.tree.ClassDefinitionNode;
+import io.ballerina.compiler.syntax.tree.FunctionBodyBlockNode;
+import io.ballerina.compiler.syntax.tree.FunctionDefinitionNode;
+import io.ballerina.compiler.syntax.tree.MatchStatementNode;
+import io.ballerina.compiler.syntax.tree.ModuleMemberDeclarationNode;
+import io.ballerina.compiler.syntax.tree.ModulePartNode;
+import io.ballerina.compiler.syntax.tree.Node;
+import io.ballerina.compiler.syntax.tree.NodeList;
+import io.ballerina.compiler.syntax.tree.StatementNode;
+import io.ballerina.compiler.syntax.tree.SyntaxKind;
+import io.ballerina.compiler.syntax.tree.SyntaxTree;
 import io.ballerina.tools.text.TextDocument;
 import io.ballerina.tools.text.TextDocuments;
 import org.ballerinalang.formatter.core.Formatter;
@@ -31,6 +41,9 @@ import org.ballerinalang.formatter.core.FormatterException;
 
 import java.util.List;
 
+/**
+ * This file contains the logics and functions related to code generation of the dispatcher_service.bal.
+ */
 public class DispatcherController implements BalController {
     private final List<ServiceType> serviceTypes;
     private final String eventIdentifierPath;
@@ -51,12 +64,12 @@ public class DispatcherController implements BalController {
             throw new BallerinaAsyncApiException("Resource function '.', is not found in the dispatcher_service.bal");
         }
 
-        GenerateUseCase generateMatchStatement = new GenerateMatchStatement(serviceTypes, eventIdentifierPath);
+        Generator generateMatchStatement = new GenerateMatchStatement(serviceTypes, eventIdentifierPath);
         MatchStatementNode matchStatementNode = generateMatchStatement.generate();
         FunctionBodyBlockNode functionBodyBlockNode = (FunctionBodyBlockNode) functionDefinitionNode.functionBody();
         NodeList<StatementNode> oldStatements = functionBodyBlockNode.statements();
         NodeList<StatementNode> newStatements =
-                oldStatements.add(oldStatements.size() - 1, (StatementNode) matchStatementNode);
+                oldStatements.add(oldStatements.size() - 1, matchStatementNode);
         FunctionBodyBlockNode functionBodyBlockNodeNew =
                 functionBodyBlockNode.modify().withStatements(newStatements).apply();
         ModulePartNode newRoot = oldRoot.replace(functionBodyBlockNode, functionBodyBlockNodeNew);
@@ -71,9 +84,9 @@ public class DispatcherController implements BalController {
     }
 
     private FunctionDefinitionNode getResourceFuncNode(ModulePartNode oldRoot) {
-        for(ModuleMemberDeclarationNode node: oldRoot.members()) {
+        for (ModuleMemberDeclarationNode node: oldRoot.members()) {
             if (node.kind() == SyntaxKind.CLASS_DEFINITION) {
-                for(Node funcNode: ((ClassDefinitionNode) node).members()) {
+                for (Node funcNode: ((ClassDefinitionNode) node).members()) {
                     if ((funcNode.kind() == SyntaxKind.RESOURCE_ACCESSOR_DEFINITION)
                             && ((FunctionDefinitionNode) funcNode).functionName().text().equals(
                             Constants.DISPATCHER_SERVICE_RESOURCE_FILTER_FUNCTION_NAME)) {

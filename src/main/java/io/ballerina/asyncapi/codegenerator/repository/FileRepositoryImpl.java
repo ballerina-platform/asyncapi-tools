@@ -31,6 +31,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 
+/**
+ * Implementation of the FileRepository which includes the file reading and converting related tasks.
+ */
 public class FileRepositoryImpl implements FileRepository {
 
     @Override

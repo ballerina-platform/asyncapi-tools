@@ -29,9 +29,14 @@ import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createIdenti
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createToken;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createTypeDefinitionNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createUnionTypeDescriptorNode;
-import static io.ballerina.compiler.syntax.tree.SyntaxKind.*;
+import static io.ballerina.compiler.syntax.tree.SyntaxKind.PUBLIC_KEYWORD;
+import static io.ballerina.compiler.syntax.tree.SyntaxKind.SEMICOLON_TOKEN;
+import static io.ballerina.compiler.syntax.tree.SyntaxKind.TYPE_KEYWORD;
 
-public class GenerateUnionDescriptorNode implements GenerateUseCase {
+/**
+ * Generate the union descriptor node for service_types.bal and data_types.bal files.
+ */
+public class GenerateUnionDescriptorNode implements Generator {
     private final List<TypeDescriptorNode> serviceTypeNodes;
     private final String identifierName;
 

@@ -31,6 +31,9 @@ import org.testng.annotations.Test;
 
 import java.util.List;
 
+/**
+ * Test the extraction of service types from the AsyncAPI specification.
+ */
 public class TestExtractServiceTypesFromSpec {
     FileRepository fileRepository = new FileRepositoryImpl();
 
@@ -43,7 +46,7 @@ public class TestExtractServiceTypesFromSpec {
                 .getFileContentFromResources("specs/spec-single-channel.yml");
         String asyncApeSpecJson = fileRepository.convertYamlToJson(asyncApiSpecStr);
         AaiDocument asyncApiSpec = (Aai20Document) Library.readDocumentFromJSONString(asyncApeSpecJson);
-        ExtractUseCase extractServiceTypes = new ExtractServiceTypesFromSpec(asyncApiSpec);
+        Extractor extractServiceTypes = new ExtractServiceTypesFromSpec(asyncApiSpec);
         List<ServiceType> serviceTypes = extractServiceTypes.extract();
 
         Assert.assertEquals(serviceTypes.get(0).getServiceTypeName(), "FooService");
@@ -61,7 +64,7 @@ public class TestExtractServiceTypesFromSpec {
                 .getFileContentFromResources("specs/spec-multiple-channels.yml");
         String asyncApeSpecJson = fileRepository.convertYamlToJson(asyncApiSpecStr);
         AaiDocument asyncApiSpec = (Aai20Document) Library.readDocumentFromJSONString(asyncApeSpecJson);
-        ExtractUseCase extractServiceTypes = new ExtractServiceTypesFromSpec(asyncApiSpec);
+        Extractor extractServiceTypes = new ExtractServiceTypesFromSpec(asyncApiSpec);
         List<ServiceType> serviceTypes = extractServiceTypes.extract();
 
         Assert.assertEquals(serviceTypes.get(0).getServiceTypeName(), "FooService1");
@@ -88,7 +91,7 @@ public class TestExtractServiceTypesFromSpec {
                 .getFileContentFromResources("specs/spec-single-channel-missing-x-service-type.yml");
         String asyncApeSpecJson = fileRepository.convertYamlToJson(asyncApiSpecStr);
         AaiDocument asyncApiSpec = (Aai20Document) Library.readDocumentFromJSONString(asyncApeSpecJson);
-        ExtractUseCase extractServiceTypes = new ExtractServiceTypesFromSpec(asyncApiSpec);
+        Extractor extractServiceTypes = new ExtractServiceTypesFromSpec(asyncApiSpec);
         List<ServiceType> serviceTypes = extractServiceTypes.extract();
 
         Assert.assertEquals(serviceTypes.get(0).getServiceTypeName(), "EventsFoo1");
@@ -110,7 +113,7 @@ public class TestExtractServiceTypesFromSpec {
                 .getFileContentFromResources("specs/spec-single-channel-missing-x-event-type-with-oneof.yml");
         String asyncApeSpecJson = fileRepository.convertYamlToJson(asyncApiSpecStr);
         AaiDocument asyncApiSpec = (Aai20Document) Library.readDocumentFromJSONString(asyncApeSpecJson);
-        ExtractUseCase extractServiceTypes = new ExtractServiceTypesFromSpec(asyncApiSpec);
+        Extractor extractServiceTypes = new ExtractServiceTypesFromSpec(asyncApiSpec);
         extractServiceTypes.extract();
     }
 
@@ -126,7 +129,7 @@ public class TestExtractServiceTypesFromSpec {
                 "specs/spec-single-channel-missing-x-event-type-without-oneof.yml");
         String asyncApeSpecJson = fileRepository.convertYamlToJson(asyncApiSpecStr);
         AaiDocument asyncApiSpec = (Aai20Document) Library.readDocumentFromJSONString(asyncApeSpecJson);
-        ExtractUseCase extractServiceTypes = new ExtractServiceTypesFromSpec(asyncApiSpec);
+        Extractor extractServiceTypes = new ExtractServiceTypesFromSpec(asyncApiSpec);
         extractServiceTypes.extract();
     }
 }

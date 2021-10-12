@@ -24,6 +24,9 @@ import io.ballerina.asyncapi.codegenerator.configuration.Constants;
 import java.util.Locale;
 import java.util.Optional;
 
+/**
+ * This Utils class contains the code generation related util function.
+ */
 public class CodegenUtils {
 
     /**
@@ -86,7 +89,7 @@ public class CodegenUtils {
     }
 
     /**
-     * Resolve Ref field types
+     * Resolve Ref field types.
      * @param referenceVariable value of the ref field
      * @return Resolved reference
      * @throws BallerinaAsyncApiException
@@ -102,7 +105,7 @@ public class CodegenUtils {
     }
 
     /**
-     * Get remote function name for service type when event name is provided
+     * Get remote function name for service type when event name is provided.
      * @param eventName event name as defined in async api doc
      * @return remote function name for service types
      */
@@ -111,7 +114,7 @@ public class CodegenUtils {
     }
 
     /**
-     * Get service type name when channel name/service name is provided
+     * Get service type name when channel name/service name is provided.
      * @param serviceName service name as specified in async api doc
      * @return service type name
      */

@@ -22,13 +22,16 @@ import io.ballerina.asyncapi.codegenerator.application.Application;
 import io.ballerina.asyncapi.codegenerator.application.CodeGenerator;
 import io.ballerina.asyncapi.codegenerator.configuration.BallerinaAsyncApiException;
 
+/**
+ * Main class to run and debug the application.
+ */
 public class AsyncApiToBalGenerator {
     public static void main(String[] args) {
         Application codeGenerator = new CodeGenerator();
         try {
             codeGenerator.generate(System.getenv().get("SPEC_FILE_PATH"), System.getenv().get("OUTPUT_FILE_PATH"));
         } catch (BallerinaAsyncApiException e) {
-            System.out.println(e.getMessage());
+
         }
     }
 }

@@ -22,8 +22,17 @@ import io.ballerina.asyncapi.codegenerator.configuration.BallerinaAsyncApiExcept
 import io.ballerina.asyncapi.codegenerator.configuration.Constants;
 import io.ballerina.asyncapi.codegenerator.entity.ServiceType;
 import io.ballerina.asyncapi.codegenerator.usecase.GenerateListenerStatementNode;
-import io.ballerina.asyncapi.codegenerator.usecase.GenerateUseCase;
-import io.ballerina.compiler.syntax.tree.*;
+import io.ballerina.asyncapi.codegenerator.usecase.Generator;
+import io.ballerina.compiler.syntax.tree.ClassDefinitionNode;
+import io.ballerina.compiler.syntax.tree.FunctionBodyBlockNode;
+import io.ballerina.compiler.syntax.tree.FunctionDefinitionNode;
+import io.ballerina.compiler.syntax.tree.ModuleMemberDeclarationNode;
+import io.ballerina.compiler.syntax.tree.ModulePartNode;
+import io.ballerina.compiler.syntax.tree.Node;
+import io.ballerina.compiler.syntax.tree.NodeList;
+import io.ballerina.compiler.syntax.tree.StatementNode;
+import io.ballerina.compiler.syntax.tree.SyntaxKind;
+import io.ballerina.compiler.syntax.tree.SyntaxTree;
 import io.ballerina.tools.text.TextDocument;
 import io.ballerina.tools.text.TextDocuments;
 import org.ballerinalang.formatter.core.Formatter;
@@ -34,6 +43,9 @@ import java.util.stream.Collectors;
 
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createNodeList;
 
+/**
+ * This file contains the logics and functions related to code generation of the listener.bal.
+ */
 public class ListenerController implements BalController {
     private final List<ServiceType> serviceTypes;
 
@@ -55,7 +67,7 @@ public class ListenerController implements BalController {
         FunctionBodyBlockNode functionBodyBlockNode = (FunctionBodyBlockNode) functionDefinitionNode.functionBody();
         List<String> serviceTypeNames = serviceTypes.stream()
                 .map(ServiceType::getServiceTypeName).collect(Collectors.toList());
-        GenerateUseCase genIfElseNode = new GenerateListenerStatementNode(serviceTypeNames);
+        Generator genIfElseNode = new GenerateListenerStatementNode(serviceTypeNames);
         StatementNode ifElseStatementNode = genIfElseNode.generate();
         NodeList<StatementNode> statements = createNodeList(ifElseStatementNode);
 
@@ -72,9 +84,9 @@ public class ListenerController implements BalController {
     }
 
     private FunctionDefinitionNode getServiceTypeStrFuncNode(ModulePartNode oldRoot) {
-        for(ModuleMemberDeclarationNode node: oldRoot.members()) {
+        for (ModuleMemberDeclarationNode node: oldRoot.members()) {
             if (node.kind() == SyntaxKind.CLASS_DEFINITION) {
-                for(Node funcNode: ((ClassDefinitionNode) node).members()) {
+                for (Node funcNode: ((ClassDefinitionNode) node).members()) {
                     if ((funcNode.kind() == SyntaxKind.OBJECT_METHOD_DEFINITION)
                             && ((FunctionDefinitionNode) funcNode).functionName().text().equals(
                                     Constants.LISTENER_SERVICE_TYPE_FILTER_FUNCTION_NAME)) {

@@ -23,8 +23,12 @@ import io.ballerina.asyncapi.codegenerator.configuration.Constants;
 import io.ballerina.asyncapi.codegenerator.entity.Schema;
 import io.ballerina.asyncapi.codegenerator.usecase.GenerateRecordNode;
 import io.ballerina.asyncapi.codegenerator.usecase.GenerateUnionDescriptorNode;
-import io.ballerina.asyncapi.codegenerator.usecase.GenerateUseCase;
-import io.ballerina.compiler.syntax.tree.*;
+import io.ballerina.asyncapi.codegenerator.usecase.Generator;
+import io.ballerina.compiler.syntax.tree.ModuleMemberDeclarationNode;
+import io.ballerina.compiler.syntax.tree.ModulePartNode;
+import io.ballerina.compiler.syntax.tree.SyntaxTree;
+import io.ballerina.compiler.syntax.tree.TypeDefinitionNode;
+import io.ballerina.compiler.syntax.tree.TypeDescriptorNode;
 import io.ballerina.tools.text.TextDocument;
 import io.ballerina.tools.text.TextDocuments;
 import org.ballerinalang.formatter.core.Formatter;
@@ -37,6 +41,9 @@ import java.util.Map;
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createIdentifierToken;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createSimpleNameReferenceNode;
 
+/**
+ * This file contains the logics and functions related to code generation of the data_types.bal.
+ */
 public class SchemaController implements BalController {
     private final Map<String, Schema> schemas;
 
@@ -50,7 +57,7 @@ public class SchemaController implements BalController {
         List<ModuleMemberDeclarationNode> recordNodes = new ArrayList<>();
         List<TypeDescriptorNode> typeDescriptorNodes = new ArrayList<>();
         for (Map.Entry<String, Schema> fields : schemas.entrySet()) {
-            GenerateUseCase generateRecordNode = new GenerateRecordNode(schemas, fields);
+            Generator generateRecordNode = new GenerateRecordNode(schemas, fields);
             TypeDefinitionNode typeDefinitionNode = generateRecordNode.generate();
             if (typeDefinitionNode != null) {
                 typeDescriptorNodes.add(
@@ -59,7 +66,7 @@ public class SchemaController implements BalController {
             }
         }
 
-        GenerateUseCase generateUnionNode = new GenerateUnionDescriptorNode(typeDescriptorNodes, Constants.GENERIC_DATA_TYPE);
+        Generator generateUnionNode = new GenerateUnionDescriptorNode(typeDescriptorNodes, Constants.GENERIC_DATA_TYPE);
         recordNodes.add(generateUnionNode.generate());
 
         TextDocument textDocument = TextDocuments.from(balTemplate);

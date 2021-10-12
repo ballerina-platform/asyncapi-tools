@@ -23,17 +23,42 @@ import io.ballerina.asyncapi.codegenerator.configuration.Constants;
 import io.ballerina.asyncapi.codegenerator.entity.Schema;
 import io.ballerina.asyncapi.codegenerator.usecase.utils.CodegenUtils;
 import io.ballerina.asyncapi.codegenerator.usecase.utils.DocCommentsUtils;
-import io.ballerina.compiler.syntax.tree.*;
+import io.ballerina.compiler.syntax.tree.AbstractNodeFactory;
+import io.ballerina.compiler.syntax.tree.IdentifierToken;
+import io.ballerina.compiler.syntax.tree.MarkdownDocumentationNode;
+import io.ballerina.compiler.syntax.tree.MetadataNode;
+import io.ballerina.compiler.syntax.tree.Node;
+import io.ballerina.compiler.syntax.tree.NodeList;
+import io.ballerina.compiler.syntax.tree.RecordFieldNode;
+import io.ballerina.compiler.syntax.tree.RecordTypeDescriptorNode;
+import io.ballerina.compiler.syntax.tree.SyntaxKind;
+import io.ballerina.compiler.syntax.tree.Token;
+import io.ballerina.compiler.syntax.tree.TypeDefinitionNode;
+import io.ballerina.compiler.syntax.tree.TypeDescriptorNode;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.*;
-import static io.ballerina.compiler.syntax.tree.NodeFactory.*;
-import static io.ballerina.compiler.syntax.tree.SyntaxKind.*;
+import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createEmptyNodeList;
+import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createNodeList;
+import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createToken;
+import static io.ballerina.compiler.syntax.tree.NodeFactory.createArrayTypeDescriptorNode;
+import static io.ballerina.compiler.syntax.tree.NodeFactory.createBuiltinSimpleNameReferenceNode;
+import static io.ballerina.compiler.syntax.tree.NodeFactory.createMarkdownDocumentationNode;
+import static io.ballerina.compiler.syntax.tree.NodeFactory.createMetadataNode;
+import static io.ballerina.compiler.syntax.tree.NodeFactory.createRecordFieldNode;
+import static io.ballerina.compiler.syntax.tree.NodeFactory.createRecordTypeDescriptorNode;
+import static io.ballerina.compiler.syntax.tree.NodeFactory.createTypeDefinitionNode;
+import static io.ballerina.compiler.syntax.tree.SyntaxKind.OPEN_BRACE_TOKEN;
+import static io.ballerina.compiler.syntax.tree.SyntaxKind.PUBLIC_KEYWORD;
+import static io.ballerina.compiler.syntax.tree.SyntaxKind.SEMICOLON_TOKEN;
+import static io.ballerina.compiler.syntax.tree.SyntaxKind.TYPE_KEYWORD;
 
-public class GenerateRecordNode implements GenerateUseCase {
+/**
+ * Generate the record node for data_types.bal.
+ */
+public class GenerateRecordNode implements Generator {
     private final Map<String, Schema> schemas;
     private final Map.Entry<String, Schema> recordFields;
 
@@ -64,7 +89,8 @@ public class GenerateRecordNode implements GenerateUseCase {
                 createMarkdownDocumentationNode(createNodeList(schemaDoc));
         MetadataNode metadataNode = createMetadataNode(documentationNode, createEmptyNodeList());
         typeDefinitionNode = createTypeDefinitionNode(metadataNode,
-                createToken(PUBLIC_KEYWORD), createToken(TYPE_KEYWORD), typeName, recordTypeDescriptorNode, createToken(SEMICOLON_TOKEN));
+                createToken(PUBLIC_KEYWORD), createToken(TYPE_KEYWORD),
+                typeName, recordTypeDescriptorNode, createToken(SEMICOLON_TOKEN));
         return typeDefinitionNode;
     }
 
@@ -80,8 +106,8 @@ public class GenerateRecordNode implements GenerateUseCase {
         if (field.getValue().getTitle() != null) {
             schemaDoc.addAll(commentsUtils.createDescriptionComments(
                     field.getValue().getTitle(), false));
-        } else if (field.getValue().get$ref() != null) {
-            String[] split = field.getValue().get$ref().trim().split("/");
+        } else if (field.getValue().getRef() != null) {
+            String[] split = field.getValue().getRef().trim().split("/");
             if (schemas.get(split[split.length - 1]) != null) {
                 Schema schema = schemas.get(split[split.length - 1]);
                 if (schema.getTitle() != null) {
@@ -146,9 +172,9 @@ public class GenerateRecordNode implements GenerateUseCase {
 
                     return createRecordTypeDescriptorNode(recordKeyWord, bodyStartDelimiter, fieldNodes,
                             null, bodyEndDelimiter);
-                } else if (schema.get$ref() != null) {
+                } else if (schema.getRef() != null) {
                     String type = codegenUtils.getValidName(
-                            codegenUtils.extractReferenceType(schema.get$ref()), true);
+                            codegenUtils.extractReferenceType(schema.getRef()), true);
                     Schema refSchema = schemas.get(type);
                     type = getNullableType(refSchema, type);
                     Token typeName = AbstractNodeFactory.createIdentifierToken(type);
@@ -162,8 +188,8 @@ public class GenerateRecordNode implements GenerateUseCase {
                 throw new BallerinaAsyncApiException(
                         "Unsupported Async Api Spec data type `" + schema.getType() + "`.");
             }
-        } else if (schema.get$ref() != null) {
-            String type = codegenUtils.extractReferenceType(schema.get$ref());
+        } else if (schema.getRef() != null) {
+            String type = codegenUtils.extractReferenceType(schema.getRef());
             type = codegenUtils.getValidName(type, true);
             Schema refSchema = schemas.get(type);
             type = getNullableType(refSchema, type);
@@ -234,9 +260,9 @@ public class GenerateRecordNode implements GenerateUseCase {
         // TODO: handle this when schema.items is a List<Schema> in the below line
         Schema schemaItem = (Schema) schema.getItems();
         Token closeSBracketToken = AbstractNodeFactory.createIdentifierToken(getNullableType(schema, "]"));
-        if (schemaItem.get$ref() != null) {
+        if (schemaItem.getRef() != null) {
             type = codegenUtils.getValidName(codegenUtils.extractReferenceType(
-                    schemaItem.get$ref()), true);
+                    schemaItem.getRef()), true);
             typeName = AbstractNodeFactory.createIdentifierToken(type);
             memberTypeDesc = createBuiltinSimpleNameReferenceNode(null, typeName);
             return createArrayTypeDescriptorNode(memberTypeDesc, openSBracketToken,

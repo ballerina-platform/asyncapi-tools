@@ -16,29 +16,32 @@
  *  under the License.
  */
 
-package io.ballerina.asyncapi.codegenerator.entity;
+plugins {
+    id "de.undercouch.download"
+}
 
-/**
- * Entity used for remote function definition.
- */
-public class RemoteFunction {
-    private String funcName;
-    private String eventType;
+task downloadMultipleFiles(type: Download) {
+    src([
+            'https://raw.githubusercontent.com/wso2/code-quality-tools/v1.3/checkstyle/checkstyle.xml',
+            'https://raw.githubusercontent.com/wso2/code-quality-tools/v1.3/checkstyle/suppressions.xml'
+    ])
+    overwrite false
+    onlyIfNewer true
+    dest buildDir
+}
 
+jar {
+    enabled = false
+}
 
-    public String getEventName() {
-        return funcName;
-    }
+clean {
+    enabled = false
+}
 
-    public void setEventName(String eventName) {
-        this.funcName = eventName;
-    }
+artifacts.add('default', file("${rootDir}/config/checkstyle/checkstyle.xml")) {
+    builtBy('downloadMultipleFiles')
+}
 
-    public String getEventType() {
-        return eventType;
-    }
-
-    public void setEventType(String eventType) {
-        this.eventType = eventType;
-    }
+artifacts.add('default', file("${rootDir}/config/checkstyle/suppressions.xml")) {
+    builtBy('downloadMultipleFiles')
 }

@@ -29,8 +29,13 @@ import io.ballerina.runtime.api.values.BString;
 
 import static io.ballerina.runtime.api.utils.StringUtils.fromString;
 
+/**
+ * This class contains the native functions.
+ * These are being called from Ballerina (dispatcher_service.bal) through interop
+ */
 public class NativeHttpToEventAdaptor {
-    public static Object invokeRemoteFunction(Environment env, BObject adaptor, BMap<BString, Object> message, BString eventName, BString eventFunction, BObject serviceObj) {
+    public static Object invokeRemoteFunction(Environment env, BObject adaptor, BMap<BString, Object> message,
+                                              BString eventName, BString eventFunction, BObject serviceObj) {
         Future balFuture = env.markAsync();
         Module module = ModuleUtils.getModule();
         StrandMetadata metadata = new StrandMetadata(module.getOrg(), module.getName(), module.getVersion(),
