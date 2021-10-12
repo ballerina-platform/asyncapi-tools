@@ -24,6 +24,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+/**
+ * Decorator which implements the interface Schema and purpose of this is to hide the ApiCurio Library entities from
+ * the other layers.
+ */
 public class SchemaDecorator implements Schema {
     private final AaiSchema aaiSchema;
 
@@ -37,13 +41,13 @@ public class SchemaDecorator implements Schema {
     }
 
     @Override
-    public String get$ref() {
+    public String getRef() {
         return aaiSchema.$ref;
     }
 
     @Override
-    public void set$ref(String $ref) {
-        aaiSchema.$ref = $ref;
+    public void setRef(String ref) {
+        aaiSchema.$ref = ref;
     }
 
     @Override
@@ -77,13 +81,13 @@ public class SchemaDecorator implements Schema {
     }
 
     @Override
-    public Object getDefault_() {
+    public Object getDefault() {
         return aaiSchema.default_;
     }
 
     @Override
-    public void setDefault_(Object default_) {
-        aaiSchema.default_ = default_;
+    public void setDefault(Object defaultValue) {
+        aaiSchema.default_ = defaultValue;
     }
 
     @Override
@@ -227,13 +231,13 @@ public class SchemaDecorator implements Schema {
     }
 
     @Override
-    public List<Object> getEnum_() {
+    public List<Object> getEnum() {
         return aaiSchema.enum_;
     }
 
     @Override
-    public void setEnum_(List<Object> enum_) {
-        aaiSchema.enum_ = enum_;
+    public void setEnum(List<Object> enumValue) {
+        aaiSchema.enum_ = enumValue;
     }
 
     @Override

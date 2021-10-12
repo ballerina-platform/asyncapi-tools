@@ -25,7 +25,10 @@ import io.ballerina.asyncapi.codegenerator.configuration.Constants;
 
 import java.util.HashMap;
 
-public class ExtractIdentifierPathFromSpec implements ExtractUseCase {
+/**
+ * Extract the identifier path from the AsyncAPI specification.
+ */
+public class ExtractIdentifierPathFromSpec implements Extractor {
     private final AaiDocument asyncApiSpec;
 
     public ExtractIdentifierPathFromSpec(AaiDocument asyncApiSpec) {
@@ -60,8 +63,7 @@ public class ExtractIdentifierPathFromSpec implements ExtractUseCase {
             }
             String identifierPath = valuesMap.get(Constants.X_BALLERINA_EVENT_FIELD_IDENTIFIER_PATH);
             String[] pathParts = identifierPath.split("\\.");
-            for (int i = 0; i < pathParts.length; i++) {
-                String eventPathPart = pathParts[i];
+            for (String eventPathPart : pathParts) {
                 eventPathString.append(".");
                 if (Constants.BAL_KEYWORDS.stream()
                         .anyMatch(eventPathPart::equals)) {

@@ -24,17 +24,6 @@ service class DispatcherService {
    resource function post events (http:Caller caller, http:Request request) returns error? {
         json payload = check request.getJsonPayload();
         GenericDataType genericEvent = check payload.cloneWithType(GenericDataType);
-        match genericEvent.event.'type {
-          "app_mention" => {
-               check self.executeRemoteFunc(genericEvent, "AppHandlingService", "onAppMention");
-          }
-          "channel_created" => {
-               check self.executeRemoteFunc(genericEvent, "ChannelHandlingService", "onChannelCreated");
-          }
-          "channel_deleted" => {
-               check self.executeRemoteFunc(genericEvent, "ChannelHandlingService", "onChannelDeleted");
-          }
-        }
         check caller->respond(http:STATUS_OK);
    }
 

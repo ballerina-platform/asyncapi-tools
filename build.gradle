@@ -27,6 +27,8 @@ def Properties localProperties = new Properties()
 localProperties.load(project.rootProject.file("local.properties").newDataInputStream())
 
 allprojects {
+    apply plugin: 'checkstyle'
+
     repositories {
         mavenLocal()
 
@@ -56,6 +58,17 @@ allprojects {
         maven {
             url "https://plugins.gradle.org/m2/"
         }
+    }
+
+    checkstyle {
+        toolVersion '8.16'
+        configFile = file("$rootProject.projectDir/config/checkstyle/checkstyle.xml")
+    }
+
+    def excludePattern = '**/module-info.java'
+    tasks.withType(Checkstyle) {
+        configFile file("${rootProject.projectDir}/config/checkstyle/checkstyle.xml")
+        exclude excludePattern
     }
 }
 

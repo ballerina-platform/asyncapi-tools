@@ -32,7 +32,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-public class ExtractServiceTypesFromSpec implements ExtractUseCase {
+/**
+ * Extract the service types from the AsyncAPI specification.
+ */
+public class ExtractServiceTypesFromSpec implements Extractor {
     private final AaiDocument asyncApiSpec;
     private final CodegenUtils codegenUtils = new CodegenUtils();
 
@@ -49,7 +52,8 @@ public class ExtractServiceTypesFromSpec implements ExtractUseCase {
             if (channel.getValue().getExtension(Constants.X_BALLERINA_SERVICE_TYPE) == null) {
                 serviceType.setServiceTypeName(codegenUtils.getValidName(channel.getKey(), true));
             } else {
-                serviceType.setServiceTypeName(channel.getValue().getExtension(Constants.X_BALLERINA_SERVICE_TYPE).value.toString());
+                serviceType.setServiceTypeName(channel.getValue()
+                        .getExtension(Constants.X_BALLERINA_SERVICE_TYPE).value.toString());
             }
             AaiMessage mainMessage = channel.getValue().subscribe.message;
             if (mainMessage.oneOf != null) {

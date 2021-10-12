@@ -20,6 +20,9 @@ package io.ballerina.asyncapi.codegenerator.entity;
 
 import java.util.List;
 
+/**
+ * Entity used for service type definition.
+ */
 public class ServiceType {
     private String serviceTypeName;
     private List<RemoteFunction> remoteFunctions;

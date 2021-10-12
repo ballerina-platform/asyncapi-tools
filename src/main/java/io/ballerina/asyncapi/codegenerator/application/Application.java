@@ -20,6 +20,9 @@ package io.ballerina.asyncapi.codegenerator.application;
 
 import io.ballerina.asyncapi.codegenerator.configuration.BallerinaAsyncApiException;
 
+/**
+ * This is the interface of the application, Async API CMD class uses this interface.
+ */
 public interface Application {
     void generate(String specPath, String outputPath) throws BallerinaAsyncApiException;
 }

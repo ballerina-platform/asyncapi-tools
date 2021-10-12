@@ -20,14 +20,27 @@ package io.ballerina.asyncapi.codegenerator.usecase;
 
 import io.ballerina.asyncapi.codegenerator.configuration.BallerinaAsyncApiException;
 import io.ballerina.asyncapi.codegenerator.usecase.utils.CodegenUtils;
-import io.ballerina.compiler.syntax.tree.*;
+import io.ballerina.compiler.syntax.tree.AbstractNodeFactory;
+import io.ballerina.compiler.syntax.tree.ExpressionNode;
+import io.ballerina.compiler.syntax.tree.IfElseStatementNode;
+import io.ballerina.compiler.syntax.tree.Node;
+import io.ballerina.compiler.syntax.tree.NodeFactory;
+import io.ballerina.compiler.syntax.tree.ReturnStatementNode;
+import io.ballerina.compiler.syntax.tree.StatementNode;
+import io.ballerina.compiler.syntax.tree.SyntaxKind;
 
 import java.util.List;
 
-import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.*;
+import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createEmptyMinutiaeList;
+import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createLiteralValueToken;
+import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createNodeList;
+import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createToken;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createBasicLiteralNode;
 
-public class GenerateListenerStatementNode implements GenerateUseCase {
+/**
+ * Generate the If else statement node for the listener.bal.
+ */
+public class GenerateListenerStatementNode implements Generator {
     private final List<String> serviceTypes;
     private final CodegenUtils codegenUtils = new CodegenUtils();
 

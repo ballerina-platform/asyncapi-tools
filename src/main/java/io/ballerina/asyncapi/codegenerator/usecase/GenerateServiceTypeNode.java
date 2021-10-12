@@ -21,16 +21,51 @@ package io.ballerina.asyncapi.codegenerator.usecase;
 import io.ballerina.asyncapi.codegenerator.configuration.BallerinaAsyncApiException;
 import io.ballerina.asyncapi.codegenerator.entity.RemoteFunction;
 import io.ballerina.asyncapi.codegenerator.usecase.utils.CodegenUtils;
-import io.ballerina.compiler.syntax.tree.*;
+import io.ballerina.compiler.syntax.tree.AbstractNodeFactory;
+import io.ballerina.compiler.syntax.tree.BuiltinSimpleNameReferenceNode;
+import io.ballerina.compiler.syntax.tree.IdentifierToken;
+import io.ballerina.compiler.syntax.tree.MethodDeclarationNode;
+import io.ballerina.compiler.syntax.tree.Node;
+import io.ballerina.compiler.syntax.tree.NodeFactory;
+import io.ballerina.compiler.syntax.tree.ObjectTypeDescriptorNode;
+import io.ballerina.compiler.syntax.tree.OptionalTypeDescriptorNode;
+import io.ballerina.compiler.syntax.tree.ReturnTypeDescriptorNode;
+import io.ballerina.compiler.syntax.tree.SyntaxKind;
+import io.ballerina.compiler.syntax.tree.TypeDefinitionNode;
 
 import java.util.ArrayList;
 import java.util.List;
 
-import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.*;
-import static io.ballerina.compiler.syntax.tree.NodeFactory.*;
-import static io.ballerina.compiler.syntax.tree.SyntaxKind.*;
+import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createEmptyNodeList;
+import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createIdentifierToken;
+import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createNodeList;
+import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createSeparatedNodeList;
+import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createToken;
+import static io.ballerina.compiler.syntax.tree.NodeFactory.createBuiltinSimpleNameReferenceNode;
+import static io.ballerina.compiler.syntax.tree.NodeFactory.createFunctionSignatureNode;
+import static io.ballerina.compiler.syntax.tree.NodeFactory.createMethodDeclarationNode;
+import static io.ballerina.compiler.syntax.tree.NodeFactory.createOptionalTypeDescriptorNode;
+import static io.ballerina.compiler.syntax.tree.NodeFactory.createRequiredParameterNode;
+import static io.ballerina.compiler.syntax.tree.NodeFactory.createReturnTypeDescriptorNode;
+import static io.ballerina.compiler.syntax.tree.NodeFactory.createTypeDefinitionNode;
+import static io.ballerina.compiler.syntax.tree.SyntaxKind.CLOSE_BRACE_TOKEN;
+import static io.ballerina.compiler.syntax.tree.SyntaxKind.CLOSE_PAREN_TOKEN;
+import static io.ballerina.compiler.syntax.tree.SyntaxKind.ERROR_KEYWORD;
+import static io.ballerina.compiler.syntax.tree.SyntaxKind.OBJECT_KEYWORD;
+import static io.ballerina.compiler.syntax.tree.SyntaxKind.OPEN_BRACE_TOKEN;
+import static io.ballerina.compiler.syntax.tree.SyntaxKind.OPEN_PAREN_TOKEN;
+import static io.ballerina.compiler.syntax.tree.SyntaxKind.PUBLIC_KEYWORD;
+import static io.ballerina.compiler.syntax.tree.SyntaxKind.QUESTION_MARK_TOKEN;
+import static io.ballerina.compiler.syntax.tree.SyntaxKind.REMOTE_KEYWORD;
+import static io.ballerina.compiler.syntax.tree.SyntaxKind.RETURNS_KEYWORD;
+import static io.ballerina.compiler.syntax.tree.SyntaxKind.SEMICOLON_TOKEN;
+import static io.ballerina.compiler.syntax.tree.SyntaxKind.SERVICE_KEYWORD;
+import static io.ballerina.compiler.syntax.tree.SyntaxKind.TYPE_KEYWORD;
 
-public class GenerateServiceTypeNode implements GenerateUseCase {
+/**
+ * Generate the service type node for service_types.bal.
+ */
+public class GenerateServiceTypeNode implements Generator {
     private final String serviceTypeName;
     private final List<RemoteFunction> remoteFunctionNames;
     private final CodegenUtils codegenUtils = new CodegenUtils();
@@ -48,11 +83,12 @@ public class GenerateServiceTypeNode implements GenerateUseCase {
         ReturnTypeDescriptorNode returnTypeDescriptorNode = createReturnTypeDescriptorNode(
                 createToken(RETURNS_KEYWORD), createEmptyNodeList(), returnType);
         remoteFunctionNames.forEach(remoteFunction -> {
-            List<Node> parameterList =  new ArrayList<>();
+            List<Node> parameterList = new ArrayList<>();
             String eventType = codegenUtils.escapeIdentifier(remoteFunction.getEventType().trim());
             BuiltinSimpleNameReferenceNode typeNode = createBuiltinSimpleNameReferenceNode(
                     null, createIdentifierToken(eventType));
-            parameterList.add(createRequiredParameterNode(createEmptyNodeList(), typeNode, createIdentifierToken("event")));
+            parameterList.add(createRequiredParameterNode(createEmptyNodeList(),
+                    typeNode, createIdentifierToken("event")));
             MethodDeclarationNode methodDeclarationNode = createMethodDeclarationNode(
                     SyntaxKind.METHOD_DECLARATION, null, createNodeList(createToken(REMOTE_KEYWORD)),
                     createToken(SyntaxKind.FUNCTION_KEYWORD),

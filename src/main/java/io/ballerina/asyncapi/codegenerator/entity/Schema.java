@@ -21,10 +21,13 @@ package io.ballerina.asyncapi.codegenerator.entity;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Entity used for schema definition.
+ */
 public interface Schema {
-    String get$ref();
+    String getRef();
 
-    void set$ref(String $ref);
+    void setRef(String ref);
 
     String getFormat();
 
@@ -38,9 +41,9 @@ public interface Schema {
 
     void setDescription(String description);
 
-    Object getDefault_();
+    Object getDefault();
 
-    void setDefault_(Object default_);
+    void setDefault(Object defaultValue);
 
     Number getMultipleOf();
 
@@ -98,9 +101,9 @@ public interface Schema {
 
     void setRequired(List<String> required);
 
-    List<Object> getEnum_();
+    List<Object> getEnum();
 
-    void setEnum_(List<Object> enum_);
+    void setEnum(List<Object> enumValue);
 
     String getType();
 

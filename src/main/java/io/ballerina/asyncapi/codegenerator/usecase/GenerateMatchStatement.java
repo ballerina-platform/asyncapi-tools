@@ -23,16 +23,38 @@ import io.ballerina.asyncapi.codegenerator.configuration.Constants;
 import io.ballerina.asyncapi.codegenerator.entity.RemoteFunction;
 import io.ballerina.asyncapi.codegenerator.entity.ServiceType;
 import io.ballerina.asyncapi.codegenerator.usecase.utils.CodegenUtils;
-import io.ballerina.compiler.syntax.tree.*;
+import io.ballerina.compiler.syntax.tree.BlockStatementNode;
+import io.ballerina.compiler.syntax.tree.CheckExpressionNode;
+import io.ballerina.compiler.syntax.tree.FunctionArgumentNode;
+import io.ballerina.compiler.syntax.tree.MatchClauseNode;
+import io.ballerina.compiler.syntax.tree.MatchStatementNode;
+import io.ballerina.compiler.syntax.tree.MethodCallExpressionNode;
+import io.ballerina.compiler.syntax.tree.SeparatedNodeList;
+import io.ballerina.compiler.syntax.tree.SyntaxKind;
 
 import java.util.ArrayList;
 import java.util.List;
 
-import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.*;
-import static io.ballerina.compiler.syntax.tree.NodeFactory.*;
+import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createEmptyMinutiaeList;
+import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createIdentifierToken;
+import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createLiteralValueToken;
+import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createNodeList;
+import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createSeparatedNodeList;
+import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createToken;
+import static io.ballerina.compiler.syntax.tree.NodeFactory.createBasicLiteralNode;
+import static io.ballerina.compiler.syntax.tree.NodeFactory.createBlockStatementNode;
+import static io.ballerina.compiler.syntax.tree.NodeFactory.createCheckExpressionNode;
+import static io.ballerina.compiler.syntax.tree.NodeFactory.createExpressionStatementNode;
+import static io.ballerina.compiler.syntax.tree.NodeFactory.createMatchClauseNode;
+import static io.ballerina.compiler.syntax.tree.NodeFactory.createMatchStatementNode;
+import static io.ballerina.compiler.syntax.tree.NodeFactory.createMethodCallExpressionNode;
+import static io.ballerina.compiler.syntax.tree.NodeFactory.createPositionalArgumentNode;
+import static io.ballerina.compiler.syntax.tree.NodeFactory.createSimpleNameReferenceNode;
 
-
-public class GenerateMatchStatement implements GenerateUseCase {
+/**
+ * Generate the match statement node for dispatcher_service.bal.
+ */
+public class GenerateMatchStatement implements Generator {
     private final CodegenUtils codegenUtils = new CodegenUtils();
     private final List<ServiceType> serviceTypes;
     private final String eventIdentifierPath;
@@ -64,7 +86,7 @@ public class GenerateMatchStatement implements GenerateUseCase {
     }
 
     /**
-     * Generates each match clause which filters event types in dispatcher_service.bal
+     * Generates each match clause which filters event types in dispatcher_service.bal.
      */
     private MatchClauseNode generateMatchClause(String serviceTypeName, String eventName, String formattedEventName) {
         SeparatedNodeList<FunctionArgumentNode> argumentsList = createSeparatedNodeList(

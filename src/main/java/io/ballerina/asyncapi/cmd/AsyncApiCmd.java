@@ -28,6 +28,9 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
 
+/**
+ * Main class to implement "asyncapi" command for ballerina. Commands for Listener generation from AsyncAPI spec
+ */
 @CommandLine.Command(
         name = "asyncapi",
         description = "Generates Ballerina client for AsyncAPI contract of an Event-API."
