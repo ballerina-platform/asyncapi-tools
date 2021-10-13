@@ -42,9 +42,18 @@ import java.util.Map;
  *  3. generate ballerina code and write into files
  */
 public class CodeGenerator implements Application {
+    private final FileRepository fileRepository;
+
+    public CodeGenerator() {
+        this.fileRepository = new FileRepositoryImpl();
+    }
+
+    public CodeGenerator(FileRepository fileRepository) {
+        this.fileRepository = fileRepository;
+    }
+
     @Override
     public void generate(String specPath, String outputPath) throws BallerinaAsyncApiException {
-        FileRepository fileRepository = new FileRepositoryImpl();
         String asyncApiSpecJson = getFileContent(fileRepository, specPath);
 
         SpecController specController = new AsyncApiSpecController(asyncApiSpecJson);

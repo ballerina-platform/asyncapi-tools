@@ -1,0 +1,13 @@
+asyncapi: 2.1.0
+components:
+  schemas:
+    GenericEventWrapper:
+      additionalProperties: true
+      description: Adapted from auto-generated content
+      properties:
+        api_app_id:
+          description: ' Use this to distinguish which app the event belongs to if you use multiple apps with the same Request URL.'
+          title: The unique identifier your installed application.
+          type: unknown_type
+          x-examples:
+            - A2H9RFS1A

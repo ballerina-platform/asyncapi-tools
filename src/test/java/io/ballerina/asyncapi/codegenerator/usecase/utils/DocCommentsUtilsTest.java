@@ -32,7 +32,7 @@ import static io.ballerina.compiler.syntax.tree.NodeFactory.createMarkdownDocume
 /**
  * Test the utils which are being used to generate the doc comments in Ballerina.
  */
-public class TestDocCommentsUtils {
+public class DocCommentsUtilsTest {
     private final DocCommentsUtils docCommentsUtils = new DocCommentsUtils();
 
     @Test(

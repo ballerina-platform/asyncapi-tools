@@ -38,7 +38,12 @@ public class ExtractSchemasFromSpec implements Extractor {
 
     @Override
     public Map<String, Schema> extract() throws BallerinaAsyncApiException {
-        return asyncApiSpec.components.schemas.entrySet()
-                .stream().collect(Collectors.toMap(Map.Entry::getKey, e -> new SchemaDecorator(e.getValue())));
+        if (asyncApiSpec.components != null && asyncApiSpec.components.schemas != null
+                && !asyncApiSpec.components.schemas.entrySet().isEmpty()) {
+            return asyncApiSpec.components.schemas.entrySet()
+                    .stream().collect(Collectors.toMap(Map.Entry::getKey, e -> new SchemaDecorator(e.getValue())));
+        } else {
+            throw new BallerinaAsyncApiException("There are no schemas in the given AsyncAPI specification");
+        }
     }
 }

@@ -77,6 +77,10 @@ public class GenerateServiceTypeNode implements Generator {
 
     @Override
     public TypeDefinitionNode generate() throws BallerinaAsyncApiException {
+        if (remoteFunctionNames.isEmpty()) {
+            throw new BallerinaAsyncApiException("Remote functions list is empty in the service type "
+                    + serviceTypeName);
+        }
         List<Node> remoteFunctions = new ArrayList<>();
         OptionalTypeDescriptorNode returnType = createOptionalTypeDescriptorNode(createToken(ERROR_KEYWORD),
                 createToken(QUESTION_MARK_TOKEN));

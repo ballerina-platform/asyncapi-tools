@@ -47,33 +47,31 @@ public class ExtractServiceTypesFromSpec implements Extractor {
     public List<ServiceType> extract() throws BallerinaAsyncApiException {
         List<ServiceType> serviceTypes = new ArrayList<>();
         for (Map.Entry<String, AaiChannelItem> channel : asyncApiSpec.channels.entrySet()) {
-            ServiceType serviceType = new ServiceType();
+            String serviceTypeName;
             List<RemoteFunction> remoteFunctions = new ArrayList<>();
             if (channel.getValue().getExtension(Constants.X_BALLERINA_SERVICE_TYPE) == null) {
-                serviceType.setServiceTypeName(codegenUtils.getValidName(channel.getKey(), true));
+                serviceTypeName = codegenUtils.getValidName(channel.getKey(), true);
             } else {
-                serviceType.setServiceTypeName(channel.getValue()
-                        .getExtension(Constants.X_BALLERINA_SERVICE_TYPE).value.toString());
+                serviceTypeName = channel.getValue()
+                        .getExtension(Constants.X_BALLERINA_SERVICE_TYPE).value.toString();
             }
             AaiMessage mainMessage = channel.getValue().subscribe.message;
             if (mainMessage.oneOf != null) {
                 for (AaiMessage message : mainMessage.oneOf) {
                     validateMessage(channel, message);
-                    RemoteFunction remoteFunction = new RemoteFunction();
-                    remoteFunction.setEventName(message.getExtension(
-                            Constants.X_BALLERINA_EVENT_TYPE).value.toString());
-                    remoteFunction.setEventType(getEventType(message, channel.getKey()));
+                    RemoteFunction remoteFunction = new RemoteFunction(
+                            message.getExtension(Constants.X_BALLERINA_EVENT_TYPE).value.toString(),
+                            getEventType(message, channel.getKey()));
                     remoteFunctions.add(remoteFunction);
                 }
             } else {
                 validateMessage(channel, mainMessage);
-                RemoteFunction remoteFunction = new RemoteFunction();
-                remoteFunction.setEventName(channel.getValue()
-                        .subscribe.message.getExtension(Constants.X_BALLERINA_EVENT_TYPE).value.toString());
-                remoteFunction.setEventType(getEventType(mainMessage, channel.getKey()));
+                RemoteFunction remoteFunction = new RemoteFunction(channel.getValue()
+                        .subscribe.message.getExtension(Constants.X_BALLERINA_EVENT_TYPE).value.toString(),
+                        getEventType(mainMessage, channel.getKey()));
                 remoteFunctions.add(remoteFunction);
             }
-            serviceType.setRemoteFunctions(remoteFunctions);
+            ServiceType serviceType = new ServiceType(serviceTypeName, remoteFunctions);
             serviceTypes.add(serviceType);
         }
         return serviceTypes;

@@ -37,19 +37,23 @@ import static io.ballerina.compiler.syntax.tree.SyntaxKind.TYPE_KEYWORD;
  * Generate the union descriptor node for service_types.bal and data_types.bal files.
  */
 public class GenerateUnionDescriptorNode implements Generator {
-    private final List<TypeDescriptorNode> serviceTypeNodes;
+    private final List<TypeDescriptorNode> nodes;
     private final String identifierName;
 
     public GenerateUnionDescriptorNode(List<TypeDescriptorNode> serviceTypeNodes, String identifierName) {
-        this.serviceTypeNodes = serviceTypeNodes;
+        this.nodes = serviceTypeNodes;
         this.identifierName = identifierName;
     }
 
     @Override
     public TypeDefinitionNode generate() throws BallerinaAsyncApiException {
+        if (nodes.isEmpty()) {
+            throw new BallerinaAsyncApiException("Nodes list is empty, " +
+                    "hence can't generate the Union Node");
+        }
         return createTypeDefinitionNode(null, createToken(PUBLIC_KEYWORD),
                 createToken(TYPE_KEYWORD), createIdentifierToken(identifierName),
-                getUnionDescriptorNode(serviceTypeNodes), createToken(SEMICOLON_TOKEN));
+                getUnionDescriptorNode(nodes), createToken(SEMICOLON_TOKEN));
     }
 
     private TypeDescriptorNode getUnionDescriptorNode(List<TypeDescriptorNode> nodes) {

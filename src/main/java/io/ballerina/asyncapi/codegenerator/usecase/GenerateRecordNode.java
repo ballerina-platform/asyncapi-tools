@@ -154,7 +154,7 @@ public class GenerateRecordNode implements Generator {
                 if (schema.getItems() != null) {
                     return getTypeDescriptorNodeForArraySchema(schemas, schema);
                 } else {
-                    throw new BallerinaAsyncApiException("Array does not contain the the items attribute");
+                    throw new BallerinaAsyncApiException("Array does not contain the 'items' attribute");
                 }
             } else if ((schema.getType() != null && schema.getType().equals("object")) ||
                     (schema.getSchemaProperties() != null)) {
@@ -186,7 +186,7 @@ public class GenerateRecordNode implements Generator {
                 }
             } else {
                 throw new BallerinaAsyncApiException(
-                        "Unsupported Async Api Spec data type `" + schema.getType() + "`.");
+                        "Unsupported Async Api Spec data type `" + schema.getType() + "`");
             }
         } else if (schema.getRef() != null) {
             String type = codegenUtils.extractReferenceType(schema.getRef());

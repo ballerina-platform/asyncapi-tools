@@ -22,23 +22,19 @@ package io.ballerina.asyncapi.codegenerator.entity;
  * Entity used for remote function definition.
  */
 public class RemoteFunction {
-    private String funcName;
-    private String eventType;
+    private final String funcName;
+    private final String eventType;
 
+    public RemoteFunction(String funcName, String eventType) {
+        this.funcName = funcName;
+        this.eventType = eventType;
+    }
 
     public String getEventName() {
         return funcName;
     }
 
-    public void setEventName(String eventName) {
-        this.funcName = eventName;
-    }
-
     public String getEventType() {
         return eventType;
-    }
-
-    public void setEventType(String eventType) {
-        this.eventType = eventType;
     }
 }
