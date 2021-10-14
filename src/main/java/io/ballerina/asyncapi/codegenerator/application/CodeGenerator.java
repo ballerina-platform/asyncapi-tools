@@ -95,6 +95,7 @@ public class CodeGenerator implements Application {
     private String getFileContent(FileRepository fileRepository, String specPath) throws BallerinaAsyncApiException {
         String asyncApiSpecYaml = fileRepository.getFileContent(specPath);
         if (specPath.endsWith(".json")) {
+            fileRepository.validateJson(asyncApiSpecYaml);
             return asyncApiSpecYaml;
         } else if (specPath.endsWith("yaml") || specPath.endsWith("yml")) {
             return fileRepository.convertYamlToJson(asyncApiSpecYaml);

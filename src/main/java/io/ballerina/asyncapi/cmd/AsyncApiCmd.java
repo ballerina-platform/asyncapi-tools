@@ -41,11 +41,15 @@ public class AsyncApiCmd implements BLauncherCmd {
     private boolean exitWhenFinish;
     private Path executionPath = Paths.get(System.getProperty("user.dir"));
 
-    @CommandLine.Option(names = {"-i", "--input"}, description = "Generating the client and service both files")
+    @CommandLine.Option(names = {"-h", "--help"}, hidden = true)
+    private boolean helpFlag;
+
+    @CommandLine.Option(names = {"-i", "--input"}, description = "File path to the AsyncAPI specification")
     private boolean inputPath;
 
-    @CommandLine.Option(names = {"-o", "--output"}, description = "Location of the generated Ballerina service, " +
-            "client and model files.")
+    @CommandLine.Option(names = {"-o", "--output"},
+            description = "Directory to store the generated Ballerina service. " +
+            "If this is not provided, the generated files will be stored in the the current execution directory")
     private String outputPath;
 
     @CommandLine.Parameters
@@ -84,6 +88,11 @@ public class AsyncApiCmd implements BLauncherCmd {
 
     @Override
     public void execute() {
+        if (helpFlag) {
+            String commandUsageInfo = BLauncherCmd.getCommandUsageInfo(getName());
+            outStream.println(commandUsageInfo);
+            return;
+        }
         if (inputPath) {
             if (argList == null) {
                 outStream.println("Missing the input file path," +

@@ -21,6 +21,13 @@ package io.ballerina.asyncapi.codegenerator.controller;
 import io.apicurio.datamodels.Library;
 import io.apicurio.datamodels.asyncapi.models.AaiDocument;
 import io.apicurio.datamodels.asyncapi.v2.models.Aai20Document;
+import io.apicurio.datamodels.core.models.ValidationProblem;
+import io.apicurio.datamodels.core.models.ValidationProblemSeverity;
+import io.apicurio.datamodels.core.util.LocalReferenceResolver;
+import io.apicurio.datamodels.core.util.ReferenceResolverChain;
+import io.apicurio.datamodels.core.validation.IValidationSeverityRegistry;
+import io.apicurio.datamodels.core.validation.ValidationRuleMetaData;
+import io.apicurio.datamodels.openapi.visitors.dereference.Dereferencer;
 import io.ballerina.asyncapi.codegenerator.configuration.BallerinaAsyncApiException;
 import io.ballerina.asyncapi.codegenerator.entity.Schema;
 import io.ballerina.asyncapi.codegenerator.entity.ServiceType;
@@ -29,8 +36,10 @@ import io.ballerina.asyncapi.codegenerator.usecase.ExtractSchemasFromSpec;
 import io.ballerina.asyncapi.codegenerator.usecase.ExtractServiceTypesFromSpec;
 import io.ballerina.asyncapi.codegenerator.usecase.Extractor;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * This class contains extraction of data into entities from the AsyncAPI specification.
@@ -46,6 +55,13 @@ public class AsyncApiSpecController implements SpecController {
 
     private void readSpec(String asyncApiSpecJson) throws BallerinaAsyncApiException {
         AaiDocument asyncApiSpec = (Aai20Document) Library.readDocumentFromJSONString(asyncApiSpecJson);
+        Dereferencer dereferencer = new Dereferencer(asyncApiSpec, ReferenceResolverChain.getInstance(), false);
+        asyncApiSpec = (Aai20Document) dereferencer.dereference();
+        Set<String> unresolvedRefs = dereferencer.getUnresolvableReferences();
+        if (!unresolvedRefs.isEmpty()) {
+            throw new BallerinaAsyncApiException("Could not resolve some Yaml paths defined in $ref attributes: "
+                    .concat(String.join(", ", unresolvedRefs)));
+        }
 
         Extractor extractServiceTypes = new ExtractServiceTypesFromSpec(asyncApiSpec);
         Extractor extractSchemas = new ExtractSchemasFromSpec(asyncApiSpec);

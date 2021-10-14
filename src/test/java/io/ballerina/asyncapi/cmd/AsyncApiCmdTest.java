@@ -78,6 +78,17 @@ public class AsyncApiCmdTest {
         return output;
     }
 
+    @Test(description = "Test asyncapi command with help flag")
+    public void testExecuteWithHelp() throws IOException {
+        String[] args = {"-h"};
+        AsyncApiCmd asyncApiCmd = new AsyncApiCmd(printStream, tmpDir, false);
+        new CommandLine(asyncApiCmd).parseArgs(args);
+        asyncApiCmd.execute();
+        String output = readOutput(true);
+        Assert.assertEquals(output, "NAME\n      Generate a Ballerina service");
+    }
+
+
     @Test(description = "Test the results of a successful asyncapi command execution")
     public void testExecute() throws IOException {
         Path specYaml = resourceDir.resolve(Paths.get("specs", "spec-complete-slack.yml"));

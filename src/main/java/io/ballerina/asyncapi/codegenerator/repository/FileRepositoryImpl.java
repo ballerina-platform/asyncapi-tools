@@ -19,6 +19,7 @@
 package io.ballerina.asyncapi.codegenerator.repository;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import io.ballerina.asyncapi.codegenerator.configuration.BallerinaAsyncApiException;
@@ -74,7 +75,20 @@ public class FileRepositoryImpl implements FileRepository {
             ObjectMapper jsonWriter = new ObjectMapper();
             return jsonWriter.writeValueAsString(obj);
         } catch (JsonProcessingException e) {
-            throw new BallerinaAsyncApiException("Error when converting the given yaml file to json", e);
+            throw new BallerinaAsyncApiException("Error when converting the given yaml file to json, " +
+                    "Please validate the yaml file", e);
+        }
+    }
+
+    @Override
+    public boolean validateJson(String jsonString) throws BallerinaAsyncApiException {
+        try {
+            ObjectMapper objectMapper = new ObjectMapper();
+            objectMapper.enable(DeserializationFeature.FAIL_ON_READING_DUP_TREE_KEY);
+            objectMapper.readTree(jsonString);
+            return true;
+        } catch (JsonProcessingException e) {
+            throw new BallerinaAsyncApiException("Error parsing the json, please validate the json file", e);
         }
     }
 

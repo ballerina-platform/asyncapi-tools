@@ -24,7 +24,6 @@ service class DispatcherService {
    resource function post events (http:Caller caller, http:Request request) returns error? {
         json payload = check request.getJsonPayload();
         GenericDataType genericEvent = check payload.cloneWithType(GenericDataType);
-        check caller->respond(http:STATUS_OK);
    }
 
    private function executeRemoteFunc(GenericDataType genericEvent, string eventName, string serviceTypeStr, string eventFunction) returns error? {

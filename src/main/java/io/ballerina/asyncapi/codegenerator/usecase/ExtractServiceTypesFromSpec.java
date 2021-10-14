@@ -85,7 +85,12 @@ public class ExtractServiceTypesFromSpec implements Extractor {
         }
         String ref = JsonCompat.getPropertyString(message.payload, "$ref");
         String[] refParts = ref.split("/");
-        return refParts[refParts.length - 1];
+        String schemaName = refParts[refParts.length - 1];
+        if (!asyncApiSpec.components.schemas.containsKey(schemaName)) {
+            throw new BallerinaAsyncApiException("Could not find the schema '" + schemaName
+                    + "' in the the path #/components/schemas");
+        }
+        return schemaName;
     }
 
     private void validateMessage(Map.Entry<String, AaiChannelItem> channel, AaiMessage message)
