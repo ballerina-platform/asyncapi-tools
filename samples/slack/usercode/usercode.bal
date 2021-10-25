@@ -1,20 +1,14 @@
+import ballerinax/triggers.slack;
 import ballerina/io;
 
-listener Listener slackListener = new ();
+listener slack:Listener slackListener = new ("verification_token");
 
-// We are not using the `service AppMentionHandlingService on slackListener` notation because of a bug in Ballerina.
-// Issue: https://github.com/ballerina-platform/ballerina-lang/issues/32898
-service on slackListener {
-   remote function onAppMentionAdded(GenericEventWrapperEvent e) returns error? {
-      io:println("onAppMentionAdded");
-   }
-   remote function onAppMentionRemoved(GenericEventWrapperEvent e) returns error? {
-      io:println("onAppMentionRemoved");
-   }
-}
+service slack:AppService on slackListener {
+    remote function onAppMention(slack:GenericEventWrapper event) returns error? {
+        io:println(event.event.'type);
+    }
 
-service on slackListener {
-   remote function onAppCreated(GenericEventWrapperEvent e) returns error? {
-      io:println("onAppCreated");
-   }
+    remote function onAppRateLimited(slack:GenericEventWrapper event) returns error? {}
+
+    remote function onAppUninstalled(slack:GenericEventWrapper event) returns error? {}
 }

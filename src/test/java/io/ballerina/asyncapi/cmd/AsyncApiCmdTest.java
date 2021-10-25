@@ -78,20 +78,45 @@ public class AsyncApiCmdTest {
         return output;
     }
 
-    @Test(description = "Test asyncapi command with help flag")
-    public void testExecuteWithHelp() throws IOException {
-        String[] args = {"-h"};
-        AsyncApiCmd asyncApiCmd = new AsyncApiCmd(printStream, tmpDir, false);
-        new CommandLine(asyncApiCmd).parseArgs(args);
-        asyncApiCmd.execute();
-        String output = readOutput(true);
-        Assert.assertEquals(output, "NAME\n      Generate a Ballerina service");
-    }
-
 
     @Test(description = "Test the results of a successful asyncapi command execution")
     public void testExecute() throws IOException {
         Path specYaml = resourceDir.resolve(Paths.get("specs", "spec-complete-slack.yml"));
+        String[] args = {"--input", specYaml.toString(), "-o", this.tmpDir.toString()};
+        AsyncApiCmd cmd = new AsyncApiCmd(printStream, tmpDir, false);
+        new CommandLine(cmd).parseArgs(args);
+        cmd.execute();
+        Path expectedDataTypesFile = resourceDir.resolve(Paths.get("expected_gen", "data_types.bal"));
+        Path expectedDispatcherServiceFile = resourceDir.resolve(
+                Paths.get("expected_gen", "dispatcher_service.bal"));
+        Path expectedListenerFile = resourceDir.resolve(Paths.get("expected_gen", "listener.bal"));
+        Path expectedServiceTypesFile = resourceDir.resolve(Paths.get("expected_gen", "service_types.bal"));
+        String expectedDataTypesContent = readContent(expectedDataTypesFile);
+        String expectedDispatcherServiceContent = readContent(expectedDispatcherServiceFile);
+        String expectedListenerContent = readContent(expectedListenerFile);
+        String expectedServiceTypesContent = readContent(expectedServiceTypesFile);
+        if (Files.exists(this.tmpDir.resolve("listener.bal")) &&
+                Files.exists(this.tmpDir.resolve("dispatcher_service.bal")) &&
+                Files.exists(this.tmpDir.resolve("data_types.bal")) &&
+                Files.exists(this.tmpDir.resolve("service_types.bal"))) {
+
+            String generatedDataTypesContent = readContent(this.tmpDir.resolve("data_types.bal"));
+            String generatedDispatcherServiceContent = readContent(this.tmpDir.resolve("dispatcher_service.bal"));
+            String generatedListenerContent = readContent(this.tmpDir.resolve("listener.bal"));
+            String generatedServiceTypesContent = readContent(this.tmpDir.resolve("service_types.bal"));
+
+            Assert.assertEquals(generatedDataTypesContent, expectedDataTypesContent);
+            Assert.assertEquals(generatedDispatcherServiceContent, expectedDispatcherServiceContent);
+            Assert.assertEquals(generatedListenerContent, expectedListenerContent);
+            Assert.assertEquals(generatedServiceTypesContent, expectedServiceTypesContent);
+        } else {
+            Assert.fail("Code generation failed. : " + readOutput(true));
+        }
+    }
+
+    @Test(description = "Test the results of a successful asyncapi command execution")
+    public void testExecuteWithJson() throws IOException {
+        Path specYaml = resourceDir.resolve(Paths.get("specs", "spec-complete-slack.json"));
         String[] args = {"--input", specYaml.toString(), "-o", this.tmpDir.toString()};
         AsyncApiCmd cmd = new AsyncApiCmd(printStream, tmpDir, false);
         new CommandLine(cmd).parseArgs(args);

@@ -75,7 +75,7 @@ public final class Constants {
     public static final String CLONE_WITH_TYPE_VAR_NAME = "genericDataType";
     public static final String INTEROP_INVOKE_FUNCTION_NAME = "executeRemoteFunc";
     public static final String LISTENER_SERVICE_TYPE_FILTER_FUNCTION_NAME = "getServiceTypeStr";
-    public static final String DISPATCHER_SERVICE_RESOURCE_FILTER_FUNCTION_NAME = "post";
+    public static final String DISPATCHER_SERVICE_RESOURCE_FILTER_FUNCTION_NAME = "matchRemoteFunc";
     public static final String REMOTE_FUNCTION_NAME_PREFIX = "on";
     public static final String SERVICE_TYPE_NAME_SUFFIX = "Service";
 

@@ -88,7 +88,8 @@ public class GenerateServiceTypeNode implements Generator {
                 createToken(RETURNS_KEYWORD), createEmptyNodeList(), returnType);
         remoteFunctionNames.forEach(remoteFunction -> {
             List<Node> parameterList = new ArrayList<>();
-            String eventType = codegenUtils.escapeIdentifier(remoteFunction.getEventType().trim());
+            String eventType = codegenUtils.getValidName(
+                    codegenUtils.escapeIdentifier(remoteFunction.getEventType().trim()), true);
             BuiltinSimpleNameReferenceNode typeNode = createBuiltinSimpleNameReferenceNode(
                     null, createIdentifierToken(eventType));
             parameterList.add(createRequiredParameterNode(createEmptyNodeList(),

@@ -353,4 +353,19 @@ public class SchemaDecorator implements Schema {
     public void setExample(Object example) {
         aaiSchema.example = example;
     }
+
+    @Override
+    public boolean hasExtraProperties() {
+        return aaiSchema.hasExtraProperties();
+    }
+
+    @Override
+    public List<String> getExtraPropertyNamesList() {
+        return aaiSchema.getExtraPropertyNames();
+    }
+
+    @Override
+    public Object getExtraProperty(String name) {
+        return aaiSchema.getExtraProperty(name);
+    }
 }

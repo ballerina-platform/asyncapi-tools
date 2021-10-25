@@ -41,9 +41,6 @@ public class AsyncApiCmd implements BLauncherCmd {
     private boolean exitWhenFinish;
     private Path executionPath = Paths.get(System.getProperty("user.dir"));
 
-    @CommandLine.Option(names = {"-h", "--help"}, hidden = true)
-    private boolean helpFlag;
-
     @CommandLine.Option(names = {"-i", "--input"}, description = "File path to the AsyncAPI specification")
     private boolean inputPath;
 
@@ -88,11 +85,6 @@ public class AsyncApiCmd implements BLauncherCmd {
 
     @Override
     public void execute() {
-        if (helpFlag) {
-            String commandUsageInfo = BLauncherCmd.getCommandUsageInfo(getName());
-            outStream.println(commandUsageInfo);
-            return;
-        }
         if (inputPath) {
             if (argList == null) {
                 outStream.println("Missing the input file path," +

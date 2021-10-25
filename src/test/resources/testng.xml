@@ -31,12 +31,12 @@
             <class name="io.ballerina.asyncapi.codegenerator.controller.ServiceTypesControllerTest"/>
             <class name="io.ballerina.asyncapi.codegenerator.usecase.utils.CodegenUtilsTest"/>
             <class name="io.ballerina.asyncapi.codegenerator.usecase.utils.DocCommentsUtilsTest"/>
-            <class name="io.ballerina.asyncapi.codegenerator.usecase.ExtractServiceTypesFromSpecTest"/>
+            <class name="io.ballerina.asyncapi.codegenerator.usecase.ExtractChannelsFromSpecTest"/>
             <class name="io.ballerina.asyncapi.codegenerator.usecase.ExtractIdentifierPathFromSpecTest"/>
             <class name="io.ballerina.asyncapi.codegenerator.usecase.ExtractSchemasFromSpecTest"/>
             <class name="io.ballerina.asyncapi.codegenerator.usecase.GenerateListenerStatementNodeTest"/>
             <class name="io.ballerina.asyncapi.codegenerator.usecase.GenerateMatchStatementNodeTest"/>
-            <class name="io.ballerina.asyncapi.codegenerator.usecase.GenerateRecordNodeTest"/>
+            <class name="io.ballerina.asyncapi.codegenerator.usecase.GenerateModuleMemberDeclarationNodeTest"/>
             <class name="io.ballerina.asyncapi.codegenerator.usecase.GenerateServiceTypeNodeTest"/>
             <class name="io.ballerina.asyncapi.codegenerator.usecase.GenerateUnionDescriptorNodeTest"/>
         </classes>

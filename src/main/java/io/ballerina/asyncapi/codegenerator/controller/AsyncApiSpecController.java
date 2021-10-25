@@ -21,22 +21,17 @@ package io.ballerina.asyncapi.codegenerator.controller;
 import io.apicurio.datamodels.Library;
 import io.apicurio.datamodels.asyncapi.models.AaiDocument;
 import io.apicurio.datamodels.asyncapi.v2.models.Aai20Document;
-import io.apicurio.datamodels.core.models.ValidationProblem;
-import io.apicurio.datamodels.core.models.ValidationProblemSeverity;
-import io.apicurio.datamodels.core.util.LocalReferenceResolver;
 import io.apicurio.datamodels.core.util.ReferenceResolverChain;
-import io.apicurio.datamodels.core.validation.IValidationSeverityRegistry;
-import io.apicurio.datamodels.core.validation.ValidationRuleMetaData;
 import io.apicurio.datamodels.openapi.visitors.dereference.Dereferencer;
 import io.ballerina.asyncapi.codegenerator.configuration.BallerinaAsyncApiException;
+import io.ballerina.asyncapi.codegenerator.entity.MultiChannel;
 import io.ballerina.asyncapi.codegenerator.entity.Schema;
 import io.ballerina.asyncapi.codegenerator.entity.ServiceType;
+import io.ballerina.asyncapi.codegenerator.usecase.ExtractChannelsFromSpec;
 import io.ballerina.asyncapi.codegenerator.usecase.ExtractIdentifierPathFromSpec;
 import io.ballerina.asyncapi.codegenerator.usecase.ExtractSchemasFromSpec;
-import io.ballerina.asyncapi.codegenerator.usecase.ExtractServiceTypesFromSpec;
 import io.ballerina.asyncapi.codegenerator.usecase.Extractor;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -63,12 +58,14 @@ public class AsyncApiSpecController implements SpecController {
                     .concat(String.join(", ", unresolvedRefs)));
         }
 
-        Extractor extractServiceTypes = new ExtractServiceTypesFromSpec(asyncApiSpec);
+        Extractor extractServiceTypes = new ExtractChannelsFromSpec(asyncApiSpec);
         Extractor extractSchemas = new ExtractSchemasFromSpec(asyncApiSpec);
         Extractor extractIdentifierPath = new ExtractIdentifierPathFromSpec(asyncApiSpec);
 
-        serviceTypes = extractServiceTypes.extract();
+        MultiChannel multiChannel = extractServiceTypes.extract();
+        serviceTypes = multiChannel.getServiceTypes();
         schemas = extractSchemas.extract();
+        schemas.putAll(multiChannel.getInlineSchemas());
         eventIdentifierPath = extractIdentifierPath.extract();
     }
 

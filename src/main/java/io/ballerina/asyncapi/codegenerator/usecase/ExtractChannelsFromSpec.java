@@ -21,30 +21,41 @@ package io.ballerina.asyncapi.codegenerator.usecase;
 import io.apicurio.datamodels.asyncapi.models.AaiChannelItem;
 import io.apicurio.datamodels.asyncapi.models.AaiDocument;
 import io.apicurio.datamodels.asyncapi.models.AaiMessage;
+import io.apicurio.datamodels.asyncapi.models.AaiSchema;
+import io.apicurio.datamodels.asyncapi.v2.models.Aai20NodeFactory;
 import io.apicurio.datamodels.compat.JsonCompat;
+import io.apicurio.datamodels.core.factories.VisitorFactory;
+import io.apicurio.datamodels.core.io.DataModelReader;
+import io.apicurio.datamodels.core.models.DocumentType;
 import io.ballerina.asyncapi.codegenerator.configuration.BallerinaAsyncApiException;
 import io.ballerina.asyncapi.codegenerator.configuration.Constants;
+import io.ballerina.asyncapi.codegenerator.entity.MultiChannel;
 import io.ballerina.asyncapi.codegenerator.entity.RemoteFunction;
+import io.ballerina.asyncapi.codegenerator.entity.Schema;
+import io.ballerina.asyncapi.codegenerator.entity.SchemaDecorator;
 import io.ballerina.asyncapi.codegenerator.entity.ServiceType;
 import io.ballerina.asyncapi.codegenerator.usecase.utils.CodegenUtils;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 /**
  * Extract the service types from the AsyncAPI specification.
  */
-public class ExtractServiceTypesFromSpec implements Extractor {
+public class ExtractChannelsFromSpec implements Extractor {
     private final AaiDocument asyncApiSpec;
     private final CodegenUtils codegenUtils = new CodegenUtils();
+    private Map<String, Schema> inlineSchemas;
 
-    public ExtractServiceTypesFromSpec(AaiDocument asyncApiSpec) {
+    public ExtractChannelsFromSpec(AaiDocument asyncApiSpec) {
         this.asyncApiSpec = asyncApiSpec;
+        this.inlineSchemas = new HashMap<>();
     }
 
     @Override
-    public List<ServiceType> extract() throws BallerinaAsyncApiException {
+    public MultiChannel extract() throws BallerinaAsyncApiException {
         List<ServiceType> serviceTypes = new ArrayList<>();
         for (Map.Entry<String, AaiChannelItem> channel : asyncApiSpec.channels.entrySet()) {
             String serviceTypeName;
@@ -59,34 +70,42 @@ public class ExtractServiceTypesFromSpec implements Extractor {
             if (mainMessage.oneOf != null) {
                 for (AaiMessage message : mainMessage.oneOf) {
                     validateMessage(channel, message);
+                    String xBallerinaEventType =
+                            message.getExtension(Constants.X_BALLERINA_EVENT_TYPE).value.toString();
                     RemoteFunction remoteFunction = new RemoteFunction(
-                            message.getExtension(Constants.X_BALLERINA_EVENT_TYPE).value.toString(),
-                            getEventType(message, channel.getKey()));
+                            xBallerinaEventType,
+                            getEventType(message, channel.getKey(), xBallerinaEventType));
                     remoteFunctions.add(remoteFunction);
                 }
             } else {
                 validateMessage(channel, mainMessage);
-                RemoteFunction remoteFunction = new RemoteFunction(channel.getValue()
-                        .subscribe.message.getExtension(Constants.X_BALLERINA_EVENT_TYPE).value.toString(),
-                        getEventType(mainMessage, channel.getKey()));
+                String xBallerinaEventType = channel.getValue()
+                        .subscribe.message.getExtension(Constants.X_BALLERINA_EVENT_TYPE).value.toString();
+                RemoteFunction remoteFunction = new RemoteFunction(xBallerinaEventType,
+                        getEventType(mainMessage, channel.getKey(), xBallerinaEventType));
                 remoteFunctions.add(remoteFunction);
             }
             ServiceType serviceType = new ServiceType(serviceTypeName, remoteFunctions);
             serviceTypes.add(serviceType);
         }
-        return serviceTypes;
+        return new MultiChannel(serviceTypes, inlineSchemas);
     }
 
-    private String getEventType(AaiMessage message, String channelName) throws BallerinaAsyncApiException {
+    private String getEventType(AaiMessage message, String channelName, String xBallerinaEventType)
+            throws BallerinaAsyncApiException {
         if (!JsonCompat.isPropertyDefined(message.payload, "$ref")) {
-            throw new BallerinaAsyncApiException(
-                    "Could not find the $ref attribute in the payload of the message of the channel "
-                            .concat(channelName));
+            DataModelReader reader = VisitorFactory.createDataModelReader(DocumentType.asyncapi2);
+            AaiSchema schemaModel = (new Aai20NodeFactory()).createSchemaDefinition(null, xBallerinaEventType);
+            reader.readSchema(message.payload, schemaModel);
+            inlineSchemas.put(xBallerinaEventType, new SchemaDecorator(schemaModel));
+            return xBallerinaEventType;
+            //TODO: handle the scenario with both $ref is there directly under the properties
         }
         String ref = JsonCompat.getPropertyString(message.payload, "$ref");
         String[] refParts = ref.split("/");
         String schemaName = refParts[refParts.length - 1];
-        if (!asyncApiSpec.components.schemas.containsKey(schemaName)) {
+        if (asyncApiSpec.components == null || asyncApiSpec.components.schemas == null
+                || !asyncApiSpec.components.schemas.containsKey(schemaName)) {
             throw new BallerinaAsyncApiException("Could not find the schema '" + schemaName
                     + "' in the the path #/components/schemas");
         }

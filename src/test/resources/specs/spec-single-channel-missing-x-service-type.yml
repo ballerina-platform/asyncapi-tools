@@ -1,4 +1,8 @@
 asyncapi: 2.1.0
+components:
+  schemas:
+    GenericEventWrapper:
+      description: "This is a dummy schema"
 channels:
   events/foo/1:
     subscribe:

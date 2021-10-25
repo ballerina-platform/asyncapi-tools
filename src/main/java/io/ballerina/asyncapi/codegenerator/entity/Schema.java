@@ -148,4 +148,10 @@ public interface Schema {
     void setExample(Object example);
 
     Object getExtension(String name);
+
+    boolean hasExtraProperties();
+
+    List<String> getExtraPropertyNamesList();
+
+    Object getExtraProperty(String name);
 }

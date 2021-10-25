@@ -50,6 +50,11 @@ public class MockFileRepositoryImpl implements FileRepository {
         return fileRepository.convertYamlToJson(yaml);
     }
 
+    @Override
+    public boolean validateJson(String jsonString) throws BallerinaAsyncApiException {
+        return true;
+    }
+
     public int getWriteCount() {
         return writeCount;
     }

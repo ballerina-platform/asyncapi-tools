@@ -23,6 +23,7 @@ import io.ballerina.asyncapi.codegenerator.configuration.BallerinaAsyncApiExcept
 import io.ballerina.asyncapi.codegenerator.entity.Schema;
 import io.ballerina.asyncapi.codegenerator.entity.SchemaDecorator;
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -42,8 +43,7 @@ public class ExtractSchemasFromSpec implements Extractor {
                 && !asyncApiSpec.components.schemas.entrySet().isEmpty()) {
             return asyncApiSpec.components.schemas.entrySet()
                     .stream().collect(Collectors.toMap(Map.Entry::getKey, e -> new SchemaDecorator(e.getValue())));
-        } else {
-            throw new BallerinaAsyncApiException("There are no schemas in the given AsyncAPI specification");
         }
+        return new HashMap<>();
     }
 }
