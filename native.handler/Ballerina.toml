@@ -1,12 +1,12 @@
 [package]
 org = "ballerinax"
-name = "eventapi.interop.handler"
-version = "0.5.0"
-export= ["eventapi.interop.handler"]
+name = "asyncapi.native.handler"
+version = "0.1.0"
+export= ["asyncapi.native.handler"]
 
 [[platform.java11.dependency]]
 path = "./java-wrapper/build/libs/java-wrapper-0.9.0-beta.3-SNAPSHOT.jar"
-groupId = "io.ballerinax.slack"
+groupId = "io.ballerinax.asyncapi"
 artifactId = "java-wrapper"
 version = "0.9.9-SNAPSHOT"
 
