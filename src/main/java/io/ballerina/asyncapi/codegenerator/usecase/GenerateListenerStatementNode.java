@@ -59,7 +59,7 @@ public class GenerateListenerStatementNode implements Generator {
         return createIfElseNode(serviceTypes);
     }
 
-    public IfElseStatementNode createIfElseNode(List<String> remainingList) {
+    private IfElseStatementNode createIfElseNode(List<String> remainingList) {
         String serviceType = remainingList.get(0);
         ExpressionNode serviceTypeNode = NodeFactory.createSimpleNameReferenceNode(
                 AbstractNodeFactory.createIdentifierToken("serviceRef"));
@@ -95,9 +95,7 @@ public class GenerateListenerStatementNode implements Generator {
     }
 
     private Node getElseNode(List<String> list) {
-        if (list.size() == 1) {
-            return null;
-        } else if (list.size() == 2) {
+        if (list.size() == 2) {
             return NodeFactory.createElseBlockNode(createToken(SyntaxKind.ELSE_KEYWORD),
                     NodeFactory.createBlockStatementNode(
                             createToken(SyntaxKind.OPEN_BRACE_TOKEN),

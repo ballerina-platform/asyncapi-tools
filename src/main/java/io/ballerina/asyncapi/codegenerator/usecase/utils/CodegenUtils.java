@@ -119,6 +119,9 @@ public class CodegenUtils {
      * @return service type name
      */
     public String getServiceTypeNameByServiceName(String serviceName) {
+        if (serviceName.trim().endsWith(Constants.SERVICE_TYPE_NAME_SUFFIX)) {
+            return getValidName(serviceName.trim(), true);
+        }
         return getValidName(serviceName.trim(), true) + Constants.SERVICE_TYPE_NAME_SUFFIX;
     }
 }

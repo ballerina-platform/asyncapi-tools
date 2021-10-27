@@ -34,7 +34,7 @@ import java.util.List;
 /**
  * Test the extraction of service types from the AsyncAPI specification.
  */
-public class TestExtractServiceTypesFromSpec {
+public class ExtractServiceTypesFromSpecTest {
     FileRepository fileRepository = new FileRepositoryImpl();
 
     @Test(
@@ -44,8 +44,8 @@ public class TestExtractServiceTypesFromSpec {
     public void testExtractWithOneChannel() throws BallerinaAsyncApiException {
         String asyncApiSpecStr = fileRepository
                 .getFileContentFromResources("specs/spec-single-channel.yml");
-        String asyncApeSpecJson = fileRepository.convertYamlToJson(asyncApiSpecStr);
-        AaiDocument asyncApiSpec = (Aai20Document) Library.readDocumentFromJSONString(asyncApeSpecJson);
+        String asyncApiSpecJson = fileRepository.convertYamlToJson(asyncApiSpecStr);
+        AaiDocument asyncApiSpec = (Aai20Document) Library.readDocumentFromJSONString(asyncApiSpecJson);
         Extractor extractServiceTypes = new ExtractServiceTypesFromSpec(asyncApiSpec);
         List<ServiceType> serviceTypes = extractServiceTypes.extract();
 
@@ -62,8 +62,8 @@ public class TestExtractServiceTypesFromSpec {
     public void testExtractWithMultipleChannels() throws BallerinaAsyncApiException {
         String asyncApiSpecStr = fileRepository
                 .getFileContentFromResources("specs/spec-multiple-channels.yml");
-        String asyncApeSpecJson = fileRepository.convertYamlToJson(asyncApiSpecStr);
-        AaiDocument asyncApiSpec = (Aai20Document) Library.readDocumentFromJSONString(asyncApeSpecJson);
+        String asyncApiSpecJson = fileRepository.convertYamlToJson(asyncApiSpecStr);
+        AaiDocument asyncApiSpec = (Aai20Document) Library.readDocumentFromJSONString(asyncApiSpecJson);
         Extractor extractServiceTypes = new ExtractServiceTypesFromSpec(asyncApiSpec);
         List<ServiceType> serviceTypes = extractServiceTypes.extract();
 
@@ -89,8 +89,8 @@ public class TestExtractServiceTypesFromSpec {
     public void testExtractWithMissingXServiceType() throws BallerinaAsyncApiException {
         String asyncApiSpecStr = fileRepository
                 .getFileContentFromResources("specs/spec-single-channel-missing-x-service-type.yml");
-        String asyncApeSpecJson = fileRepository.convertYamlToJson(asyncApiSpecStr);
-        AaiDocument asyncApiSpec = (Aai20Document) Library.readDocumentFromJSONString(asyncApeSpecJson);
+        String asyncApiSpecJson = fileRepository.convertYamlToJson(asyncApiSpecStr);
+        AaiDocument asyncApiSpec = (Aai20Document) Library.readDocumentFromJSONString(asyncApiSpecJson);
         Extractor extractServiceTypes = new ExtractServiceTypesFromSpec(asyncApiSpec);
         List<ServiceType> serviceTypes = extractServiceTypes.extract();
 
@@ -111,8 +111,8 @@ public class TestExtractServiceTypesFromSpec {
     public void testExtractWithMissingXEventTypeWithOneOf() throws BallerinaAsyncApiException {
         String asyncApiSpecStr = fileRepository
                 .getFileContentFromResources("specs/spec-single-channel-missing-x-event-type-with-oneof.yml");
-        String asyncApeSpecJson = fileRepository.convertYamlToJson(asyncApiSpecStr);
-        AaiDocument asyncApiSpec = (Aai20Document) Library.readDocumentFromJSONString(asyncApeSpecJson);
+        String asyncApiSpecJson = fileRepository.convertYamlToJson(asyncApiSpecStr);
+        AaiDocument asyncApiSpec = (Aai20Document) Library.readDocumentFromJSONString(asyncApiSpecJson);
         Extractor extractServiceTypes = new ExtractServiceTypesFromSpec(asyncApiSpec);
         extractServiceTypes.extract();
     }
@@ -127,8 +127,8 @@ public class TestExtractServiceTypesFromSpec {
     public void testExtractWithMissingXEventTypeWithoutOneOf() throws BallerinaAsyncApiException {
         String asyncApiSpecStr = fileRepository.getFileContentFromResources(
                 "specs/spec-single-channel-missing-x-event-type-without-oneof.yml");
-        String asyncApeSpecJson = fileRepository.convertYamlToJson(asyncApiSpecStr);
-        AaiDocument asyncApiSpec = (Aai20Document) Library.readDocumentFromJSONString(asyncApeSpecJson);
+        String asyncApiSpecJson = fileRepository.convertYamlToJson(asyncApiSpecStr);
+        AaiDocument asyncApiSpec = (Aai20Document) Library.readDocumentFromJSONString(asyncApiSpecJson);
         Extractor extractServiceTypes = new ExtractServiceTypesFromSpec(asyncApiSpec);
         extractServiceTypes.extract();
     }

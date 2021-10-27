@@ -54,18 +54,25 @@ import static io.ballerina.compiler.syntax.tree.NodeFactory.createSimpleNameRefe
 /**
  * Generate the match statement node for dispatcher_service.bal.
  */
-public class GenerateMatchStatement implements Generator {
+public class GenerateMatchStatementNode implements Generator {
     private final CodegenUtils codegenUtils = new CodegenUtils();
     private final List<ServiceType> serviceTypes;
     private final String eventIdentifierPath;
 
-    public GenerateMatchStatement(List<ServiceType> serviceTypes, String eventIdentifierPath) {
+    public GenerateMatchStatementNode(List<ServiceType> serviceTypes, String eventIdentifierPath) {
         this.serviceTypes = serviceTypes;
         this.eventIdentifierPath = eventIdentifierPath;
     }
 
     @Override
     public MatchStatementNode generate() throws BallerinaAsyncApiException {
+        if (eventIdentifierPath.isEmpty()) {
+            throw new BallerinaAsyncApiException("Event identifier path is empty");
+        }
+        if (serviceTypes.isEmpty()) {
+            throw new BallerinaAsyncApiException("No service types found, " +
+                    "probably there are no channels defined in the async api spec");
+        }
         List<MatchClauseNode> matchClauseNodes = new ArrayList<>();
         for (ServiceType service : serviceTypes) {
             String serviceName = service.getServiceTypeName();

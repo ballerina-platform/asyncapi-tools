@@ -1,13 +1,22 @@
 asyncapi: 2.1.0
+x-ballerina-event-identifier:
+  type : "body"
+  path : "event.type"
 components:
   schemas:
+    CustomTestSchema:
+      properties:
+        test_id:
+          type: string
     GenericEventWrapper:
       additionalProperties: true
       description: Adapted from auto-generated content
       properties:
+        custom_test_schema:
+          $ref: '#/components/schemas/CustomTestSchema'
         api_app_id:
           description: ' Use this to distinguish which app the event belongs to if you use multiple apps with the same Request URL.'
-          title: The unique identifier your installed application.
+          title: The unique identifier your installed Slack application.
           type: string
           x-examples:
             - A2H9RFS1A
@@ -72,6 +81,56 @@ components:
           type: string
           x-examples:
             - event_callback
+        decimal_number:
+          type: number
+          format: decimal
+        float_number:
+          type: number
+          format: float
+        boolean_value:
+          type: boolean
+        plain_object:
+          type: object
+        ref_object:
+          type: object
+          $ref: '#/components/schemas/CustomTestSchema'
+        object_without_type:
+          additionalProperties: true
+          properties:
+            event_ts:
+              title: When the event was dispatched
+              type: string
+            type:
+              title: The specific name of the event
+              type: string
+        anydata:
+          title: This should be considered as anydata
+        array_with_ref:
+          items:
+            $ref: '#/components/schemas/CustomTestSchema'
+          minItems: 1
+          type: array
+          uniqueItems: true
+        array_with_inner_array:
+          items:
+            type: array
+            items:
+              type: string
+          minItems: 1
+          type: array
+          uniqueItems: true
+        array_with_inner_object:
+          items:
+            type: object
+          minItems: 1
+          type: array
+          uniqueItems: true
+        array_with_anydata:
+          items:
+            title: This should be considered as anydata
+          minItems: 1
+          type: array
+          uniqueItems: true
       required:
         - token
         - team_id

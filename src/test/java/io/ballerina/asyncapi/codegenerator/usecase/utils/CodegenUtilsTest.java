@@ -28,7 +28,7 @@ import java.util.Map;
 /**
  * Test the utils which are being used for code generation.
  */
-public class TestCodegenUtils {
+public class CodegenUtilsTest {
     private final CodegenUtils codegenUtils = new CodegenUtils();
 
     @Test(description = "Test the functionality of the escapeIdentifier function")

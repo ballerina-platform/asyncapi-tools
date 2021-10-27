@@ -22,9 +22,23 @@
 <suite name="ballerina-test-suite">
     <test name="asyncapi-test-suite" parallel="false">
         <classes>
-            <class name="io.ballerina.asyncapi.codegenerator.usecase.utils.TestCodegenUtils"/>
-            <class name="io.ballerina.asyncapi.codegenerator.usecase.utils.TestDocCommentsUtils"/>
-            <class name="io.ballerina.asyncapi.codegenerator.usecase.TestExtractServiceTypesFromSpec"/>
+            <class name="io.ballerina.asyncapi.cmd.AsyncApiCmdTest"/>
+            <class name="io.ballerina.asyncapi.codegenerator.application.CodeGeneratorTest"/>
+            <class name="io.ballerina.asyncapi.codegenerator.controller.AsyncApiSpecControllerTest"/>
+            <class name="io.ballerina.asyncapi.codegenerator.controller.DispatcherControllerTest"/>
+            <class name="io.ballerina.asyncapi.codegenerator.controller.ListenerControllerTest"/>
+            <class name="io.ballerina.asyncapi.codegenerator.controller.SchemaControllerTest"/>
+            <class name="io.ballerina.asyncapi.codegenerator.controller.ServiceTypesControllerTest"/>
+            <class name="io.ballerina.asyncapi.codegenerator.usecase.utils.CodegenUtilsTest"/>
+            <class name="io.ballerina.asyncapi.codegenerator.usecase.utils.DocCommentsUtilsTest"/>
+            <class name="io.ballerina.asyncapi.codegenerator.usecase.ExtractServiceTypesFromSpecTest"/>
+            <class name="io.ballerina.asyncapi.codegenerator.usecase.ExtractIdentifierPathFromSpecTest"/>
+            <class name="io.ballerina.asyncapi.codegenerator.usecase.ExtractSchemasFromSpecTest"/>
+            <class name="io.ballerina.asyncapi.codegenerator.usecase.GenerateListenerStatementNodeTest"/>
+            <class name="io.ballerina.asyncapi.codegenerator.usecase.GenerateMatchStatementNodeTest"/>
+            <class name="io.ballerina.asyncapi.codegenerator.usecase.GenerateRecordNodeTest"/>
+            <class name="io.ballerina.asyncapi.codegenerator.usecase.GenerateServiceTypeNodeTest"/>
+            <class name="io.ballerina.asyncapi.codegenerator.usecase.GenerateUnionDescriptorNodeTest"/>
         </classes>
     </test>
 </suite>

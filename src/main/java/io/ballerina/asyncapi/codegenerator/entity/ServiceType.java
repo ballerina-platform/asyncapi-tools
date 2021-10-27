@@ -24,26 +24,19 @@ import java.util.List;
  * Entity used for service type definition.
  */
 public class ServiceType {
-    private String serviceTypeName;
-    private List<RemoteFunction> remoteFunctions;
+    private final String serviceTypeName;
+    private final List<RemoteFunction> remoteFunctions;
+
+    public ServiceType(String serviceTypeName, List<RemoteFunction> remoteFunctions) {
+        this.serviceTypeName = serviceTypeName;
+        this.remoteFunctions = remoteFunctions;
+    }
 
     public String getServiceTypeName() {
         return serviceTypeName;
     }
 
-    public void setServiceTypeName(String serviceTypeName) {
-        this.serviceTypeName = serviceTypeName;
-    }
-
     public List<RemoteFunction> getRemoteFunctions() {
         return remoteFunctions;
-    }
-
-    public void setRemoteFunctions(List<RemoteFunction> remoteFunctions) {
-        this.remoteFunctions = remoteFunctions;
-    }
-
-    public void addRemoteFunction(RemoteFunction remoteFunctions) {
-        this.remoteFunctions.add(remoteFunctions);
     }
 }

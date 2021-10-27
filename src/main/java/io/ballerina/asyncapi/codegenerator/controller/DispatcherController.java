@@ -21,7 +21,7 @@ package io.ballerina.asyncapi.codegenerator.controller;
 import io.ballerina.asyncapi.codegenerator.configuration.BallerinaAsyncApiException;
 import io.ballerina.asyncapi.codegenerator.configuration.Constants;
 import io.ballerina.asyncapi.codegenerator.entity.ServiceType;
-import io.ballerina.asyncapi.codegenerator.usecase.GenerateMatchStatement;
+import io.ballerina.asyncapi.codegenerator.usecase.GenerateMatchStatementNode;
 import io.ballerina.asyncapi.codegenerator.usecase.Generator;
 import io.ballerina.compiler.syntax.tree.ClassDefinitionNode;
 import io.ballerina.compiler.syntax.tree.FunctionBodyBlockNode;
@@ -64,7 +64,7 @@ public class DispatcherController implements BalController {
             throw new BallerinaAsyncApiException("Resource function '.', is not found in the dispatcher_service.bal");
         }
 
-        Generator generateMatchStatement = new GenerateMatchStatement(serviceTypes, eventIdentifierPath);
+        Generator generateMatchStatement = new GenerateMatchStatementNode(serviceTypes, eventIdentifierPath);
         MatchStatementNode matchStatementNode = generateMatchStatement.generate();
         FunctionBodyBlockNode functionBodyBlockNode = (FunctionBodyBlockNode) functionDefinitionNode.functionBody();
         NodeList<StatementNode> oldStatements = functionBodyBlockNode.statements();

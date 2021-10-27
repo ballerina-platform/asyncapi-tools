@@ -12,8 +12,6 @@ components:
           x-examples:
             - A2H9RFS1A
         authed_users:
-          items:
-            type: string
           minItems: 1
           title: >-
             An array of string-based User IDs. Each member of the collection
