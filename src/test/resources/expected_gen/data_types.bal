@@ -1,3 +1,7 @@
+// Listener related configurations should be included here
+public type ListenerConfigs record {
+};
+
 public type CustomTestSchema record {
     string test_id?;
 };

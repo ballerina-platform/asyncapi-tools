@@ -61,8 +61,9 @@ public class CodeGenerator implements Application {
         List<ServiceType> serviceTypes = specController.getServiceTypes();
         String eventIdentifierPath = specController.getEventIdentifierPath();
 
+        String dataTypesTemplate = fileRepository.getFileContentFromResources(Constants.DATA_TYPES_BAL_FILE_NAME);
         BalController schemaController = new SchemaController(schemas);
-        String dataTypesBalContent = schemaController.generateBalCode(Constants.EMPTY_BALLERINA_FILE_CONTENT);
+        String dataTypesBalContent = schemaController.generateBalCode(dataTypesTemplate);
 
         BalController serviceTypesController = new ServiceTypesController(serviceTypes);
         String serviceTypesBalContent = serviceTypesController.generateBalCode(Constants.EMPTY_BALLERINA_FILE_CONTENT);
