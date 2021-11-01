@@ -21,7 +21,7 @@ package io.ballerina.asyncapi.codegenerator.controller;
 import io.ballerina.asyncapi.codegenerator.configuration.BallerinaAsyncApiException;
 import io.ballerina.asyncapi.codegenerator.configuration.Constants;
 import io.ballerina.asyncapi.codegenerator.entity.Schema;
-import io.ballerina.asyncapi.codegenerator.usecase.GenerateRecordNode;
+import io.ballerina.asyncapi.codegenerator.usecase.GenerateModuleMemberDeclarationNode;
 import io.ballerina.asyncapi.codegenerator.usecase.GenerateUnionDescriptorNode;
 import io.ballerina.asyncapi.codegenerator.usecase.Generator;
 import io.ballerina.compiler.syntax.tree.ModuleMemberDeclarationNode;
@@ -57,13 +57,14 @@ public class SchemaController implements BalController {
         List<ModuleMemberDeclarationNode> recordNodes = new ArrayList<>();
         List<TypeDescriptorNode> typeDescriptorNodes = new ArrayList<>();
         for (Map.Entry<String, Schema> fields : schemas.entrySet()) {
-            Generator generateRecordNode = new GenerateRecordNode(schemas, fields);
-            TypeDefinitionNode typeDefinitionNode = generateRecordNode.generate();
-            if (typeDefinitionNode != null) {
+            Generator generateRecordNode = new GenerateModuleMemberDeclarationNode(fields);
+            ModuleMemberDeclarationNode typeDefinitionNode = generateRecordNode.generate();
+            if (typeDefinitionNode instanceof TypeDefinitionNode) {
                 typeDescriptorNodes.add(
-                        createSimpleNameReferenceNode(createIdentifierToken(typeDefinitionNode.typeName().text())));
-                recordNodes.add(typeDefinitionNode);
+                        createSimpleNameReferenceNode(
+                                createIdentifierToken(((TypeDefinitionNode) typeDefinitionNode).typeName().text())));
             }
+            recordNodes.add(typeDefinitionNode);
         }
 
         Generator generateUnionNode = new GenerateUnionDescriptorNode(typeDescriptorNodes, Constants.GENERIC_DATA_TYPE);

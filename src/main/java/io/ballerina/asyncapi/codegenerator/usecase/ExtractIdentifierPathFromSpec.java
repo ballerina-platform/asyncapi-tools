@@ -50,7 +50,7 @@ public class ExtractIdentifierPathFromSpec implements Extractor {
                             .concat(Constants.X_BALLERINA_EVENT_FIELD_IDENTIFIER)
                             .concat(" in the Async API Specification")));
         }
-        StringBuilder eventPathString = new StringBuilder("genericEvent");
+        StringBuilder eventPathString = new StringBuilder(Constants.CLONE_WITH_TYPE_VAR_NAME);
         if (valuesMap.get(Constants.X_BALLERINA_EVENT_FIELD_IDENTIFIER_TYPE)
                 .equals(Constants.X_BALLERINA_EVENT_TYPE_HEADER)) {
             //TODO: Handle header event path

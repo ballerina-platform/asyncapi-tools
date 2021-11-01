@@ -39,9 +39,11 @@ public class SchemaControllerTest {
         SpecController specController = new AsyncApiSpecController(asyncApiSpecJson);
 
 
+        String dataTypesTemplate = fileRepository
+                .getFileContentFromResources(Constants.DATA_TYPES_BAL_FILE_NAME);
         String schemaResult = fileRepository
                 .getFileContentFromResources("expected_gen/".concat(Constants.DATA_TYPES_BAL_FILE_NAME));
         BalController schemaController = new SchemaController(specController.getSchemas());
-        Assert.assertEquals(schemaController.generateBalCode(""), schemaResult);
+        Assert.assertEquals(schemaController.generateBalCode(dataTypesTemplate), schemaResult);
     }
 }

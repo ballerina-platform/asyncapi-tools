@@ -25,6 +25,7 @@ import io.ballerina.asyncapi.codegenerator.configuration.BallerinaAsyncApiExcept
 import io.ballerina.asyncapi.codegenerator.entity.Schema;
 import io.ballerina.asyncapi.codegenerator.repository.FileRepository;
 import io.ballerina.asyncapi.codegenerator.repository.FileRepositoryImpl;
+import io.ballerina.compiler.syntax.tree.EnumDeclarationNode;
 import io.ballerina.compiler.syntax.tree.RecordFieldNode;
 import io.ballerina.compiler.syntax.tree.RecordTypeDescriptorNode;
 import io.ballerina.compiler.syntax.tree.TypeDefinitionNode;
@@ -37,7 +38,7 @@ import java.util.Map;
 /**
  * Test the generation of Ballerina Record nodes.
  */
-public class GenerateRecordNodeTest {
+public class GenerateModuleMemberDeclarationNodeTest {
     FileRepository fileRepository = new FileRepositoryImpl();
 
     @Test(description = "Test the functionality of the generate function " +
@@ -51,7 +52,7 @@ public class GenerateRecordNodeTest {
         Map<String, Schema> schemas = extractSchemasFromSpec.extract();
 
         Map.Entry<String, Schema> entry = schemas.entrySet().iterator().next();
-        Generator generateRecordNode = new GenerateRecordNode(schemas, entry);
+        Generator generateRecordNode = new GenerateModuleMemberDeclarationNode(entry);
         TypeDefinitionNode typeDefinitionNode = generateRecordNode.generate();
 
         Assert.assertEquals(typeDefinitionNode.typeName().text(), "GenericEventWrapper");
@@ -68,6 +69,29 @@ public class GenerateRecordNodeTest {
     }
 
     @Test(description = "Test the functionality of the generate function " +
+            "when there are enums")
+    public void testGenerateWithEnums() throws BallerinaAsyncApiException {
+        String asyncApiSpecStr = fileRepository
+                .getFileContentFromResources("specs/spec-single-schema-with-enum.yml");
+        String asyncApiSpecJson = fileRepository.convertYamlToJson(asyncApiSpecStr);
+        AaiDocument asyncApiSpec = (Aai20Document) Library.readDocumentFromJSONString(asyncApiSpecJson);
+        Extractor extractSchemasFromSpec = new ExtractSchemasFromSpec(asyncApiSpec);
+        Map<String, Schema> schemas = extractSchemasFromSpec.extract();
+
+        Map.Entry<String, Schema> entry = schemas.entrySet().iterator().next();
+        Generator generateRecordNode = new GenerateModuleMemberDeclarationNode(entry);
+        EnumDeclarationNode enumDeclarationNode = generateRecordNode.generate();
+
+        Assert.assertEquals(enumDeclarationNode.identifier().text(), "OccupancyStatus");
+        Assert.assertEquals(enumDeclarationNode.enumMemberList().get(0).toSourceCode(), "EMPTY");
+        Assert.assertEquals(enumDeclarationNode.enumMemberList().get(2).toSourceCode(), "FEW_SEATS_AVAILABLE");
+        Assert.assertEquals(enumDeclarationNode.enumMemberList()
+                .get(4).toSourceCode(), "CRUSHED_STANDING_ROOM_ONLY");
+        Assert.assertEquals(enumDeclarationNode.enumMemberList()
+                .get(6).toSourceCode(), "NOT_ACCEPTING_PASSENGERS");
+    }
+
+    @Test(description = "Test the functionality of the generate function " +
             "when there are multiple schemas")
     public void testGenerateWithMultipleSchemas() throws BallerinaAsyncApiException {
         String asyncApiSpecStr = fileRepository
@@ -79,12 +103,12 @@ public class GenerateRecordNodeTest {
 
         Iterator<Map.Entry<String, Schema>> iterator = schemas.entrySet().iterator();
         Map.Entry<String, Schema> firstEntry = iterator.next();
-        Generator generateRecordNode1 = new GenerateRecordNode(schemas, firstEntry);
+        Generator generateRecordNode1 = new GenerateModuleMemberDeclarationNode(firstEntry);
         TypeDefinitionNode typeDefinitionNode1 = generateRecordNode1.generate();
         Assert.assertEquals(typeDefinitionNode1.typeName().text(), "CustomTestSchema");
 
         Map.Entry<String, Schema> secondEntry = iterator.next();
-        Generator generateRecordNode2 = new GenerateRecordNode(schemas, secondEntry);
+        Generator generateRecordNode2 = new GenerateModuleMemberDeclarationNode(secondEntry);
         TypeDefinitionNode typeDefinitionNode2 = generateRecordNode2.generate();
 
         Assert.assertEquals(typeDefinitionNode2.typeName().text(), "GenericEventWrapper");
@@ -127,7 +151,7 @@ public class GenerateRecordNodeTest {
         Map<String, Schema> schemas = extractSchemasFromSpec.extract();
 
         Map.Entry<String, Schema> entry = schemas.entrySet().iterator().next();
-        Generator generateRecordNode = new GenerateRecordNode(schemas, entry);
+        Generator generateRecordNode = new GenerateModuleMemberDeclarationNode(entry);
         generateRecordNode.generate();
     }
 
@@ -144,7 +168,7 @@ public class GenerateRecordNodeTest {
         Map<String, Schema> schemas = extractSchemasFromSpec.extract();
 
         Map.Entry<String, Schema> entry = schemas.entrySet().iterator().next();
-        Generator generateRecordNode = new GenerateRecordNode(schemas, entry);
+        Generator generateRecordNode = new GenerateModuleMemberDeclarationNode(entry);
         generateRecordNode.generate();
     }
 }

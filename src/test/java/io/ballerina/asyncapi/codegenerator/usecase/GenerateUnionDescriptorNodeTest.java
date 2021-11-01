@@ -54,7 +54,7 @@ public class GenerateUnionDescriptorNodeTest {
         Map<String, Schema> schemas = extractSchemasFromSpec.extract();
 
         Map.Entry<String, Schema> entry = schemas.entrySet().iterator().next();
-        Generator generateRecordNode = new GenerateRecordNode(schemas, entry);
+        Generator generateRecordNode = new GenerateModuleMemberDeclarationNode(entry);
         TypeDefinitionNode typeDefinitionNode = generateRecordNode.generate();
         List<TypeDescriptorNode> typeDescriptorNodes = new ArrayList<>();
         typeDescriptorNodes.add(
@@ -81,7 +81,7 @@ public class GenerateUnionDescriptorNodeTest {
 
         List<TypeDescriptorNode> typeDescriptorNodes = new ArrayList<>();
         for (Map.Entry<String, Schema> fields : schemas.entrySet()) {
-            Generator generateRecordNode = new GenerateRecordNode(schemas, fields);
+            Generator generateRecordNode = new GenerateModuleMemberDeclarationNode(fields);
             TypeDefinitionNode typeDefinitionNode = generateRecordNode.generate();
             typeDescriptorNodes.add(
                     createSimpleNameReferenceNode(createIdentifierToken(typeDefinitionNode.typeName().text())));

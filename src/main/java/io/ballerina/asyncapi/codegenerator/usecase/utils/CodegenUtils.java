@@ -36,6 +36,9 @@ public class CodegenUtils {
      * @return - escaped string
      */
     public String escapeIdentifier(String identifier) {
+        if (identifier.matches("\\S*\\d+\\S*")) {
+            return "'" + identifier;
+        }
         if (!identifier.matches("\\b[_a-zA-Z][_a-zA-Z0-9]*\\b") || Constants.BAL_KEYWORDS.stream()
                 .anyMatch(identifier::equals)) {
             identifier = identifier.replaceAll(Constants.ESCAPE_PATTERN, "\\\\$1");

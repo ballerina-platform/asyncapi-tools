@@ -38,6 +38,7 @@ public class CodegenUtilsTest {
         testData.put("error", "'error");
         testData.put("string?", "'string?");
         testData.put("foo?", "foo?");
+        testData.put("1foo?", "'1foo?");
 
         testData.forEach((input, expected) -> {
             String result = codegenUtils.escapeIdentifier(input);

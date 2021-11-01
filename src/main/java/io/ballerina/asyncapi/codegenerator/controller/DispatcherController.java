@@ -61,7 +61,9 @@ public class DispatcherController implements BalController {
         FunctionDefinitionNode functionDefinitionNode = getResourceFuncNode(oldRoot);
 
         if (functionDefinitionNode == null) {
-            throw new BallerinaAsyncApiException("Resource function '.', is not found in the dispatcher_service.bal");
+            throw new BallerinaAsyncApiException("Resource function '"
+                    + Constants.DISPATCHER_SERVICE_RESOURCE_FILTER_FUNCTION_NAME
+                    + "', is not found in the dispatcher_service.bal");
         }
 
         Generator generateMatchStatement = new GenerateMatchStatementNode(serviceTypes, eventIdentifierPath);
@@ -69,7 +71,7 @@ public class DispatcherController implements BalController {
         FunctionBodyBlockNode functionBodyBlockNode = (FunctionBodyBlockNode) functionDefinitionNode.functionBody();
         NodeList<StatementNode> oldStatements = functionBodyBlockNode.statements();
         NodeList<StatementNode> newStatements =
-                oldStatements.add(oldStatements.size() - 1, matchStatementNode);
+                oldStatements.add(matchStatementNode);
         FunctionBodyBlockNode functionBodyBlockNodeNew =
                 functionBodyBlockNode.modify().withStatements(newStatements).apply();
         ModulePartNode newRoot = oldRoot.replace(functionBodyBlockNode, functionBodyBlockNodeNew);
@@ -84,10 +86,10 @@ public class DispatcherController implements BalController {
     }
 
     private FunctionDefinitionNode getResourceFuncNode(ModulePartNode oldRoot) {
-        for (ModuleMemberDeclarationNode node: oldRoot.members()) {
+        for (ModuleMemberDeclarationNode node : oldRoot.members()) {
             if (node.kind() == SyntaxKind.CLASS_DEFINITION) {
-                for (Node funcNode: ((ClassDefinitionNode) node).members()) {
-                    if ((funcNode.kind() == SyntaxKind.RESOURCE_ACCESSOR_DEFINITION)
+                for (Node funcNode : ((ClassDefinitionNode) node).members()) {
+                    if ((funcNode.kind() == SyntaxKind.OBJECT_METHOD_DEFINITION)
                             && ((FunctionDefinitionNode) funcNode).functionName().text().equals(
                             Constants.DISPATCHER_SERVICE_RESOURCE_FILTER_FUNCTION_NAME)) {
                         return (FunctionDefinitionNode) funcNode;

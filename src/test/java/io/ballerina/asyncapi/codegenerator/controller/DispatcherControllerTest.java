@@ -53,7 +53,7 @@ public class DispatcherControllerTest {
             "when the there is no resource function named as '.' in the dispatcher_service.bal template",
             expectedExceptions = BallerinaAsyncApiException.class,
             expectedExceptionsMessageRegExp =
-                    "Resource function '.', is not found in the dispatcher_service.bal")
+                    "Resource function 'matchRemoteFunc', is not found in the dispatcher_service.bal")
     public void testGenerateWithInvalidTemplate() throws BallerinaAsyncApiException {
         BalController dispatcherController = new DispatcherController(new ArrayList<>(), "");
         dispatcherController.generateBalCode("");

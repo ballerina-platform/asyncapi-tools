@@ -45,7 +45,7 @@ public class ExtractIdentifierPathFromSpecTest {
         Extractor extractIdentifierPathFromSpec = new ExtractIdentifierPathFromSpec(asyncApiSpec);
         String identifierPath = extractIdentifierPathFromSpec.extract();
 
-        Assert.assertEquals(identifierPath, "genericEvent.event.'type");
+        Assert.assertEquals(identifierPath, "genericDataType.event.'type");
     }
 
     @Test(

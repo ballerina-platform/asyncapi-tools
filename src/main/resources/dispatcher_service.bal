@@ -1,11 +1,11 @@
 import ballerina/http;
-import athukorala/eventapi.interop.handler as handler;
+import ballerinax/asyncapi.native.handler;
 
 service class DispatcherService {
-   private map<GenericService> services = {};
-   private handler:InteropHandler interopHandler = new ();
+   private map<GenericServiceType> services = {};
+   private handler:NativeHandler nativeHandler = new ();
 
-   isolated function addServiceRef(string serviceType, GenericService genericService) returns error? {
+   isolated function addServiceRef(string serviceType, GenericServiceType genericService) returns error? {
         if (self.services.hasKey(serviceType)) {
              return error("Service of type " + serviceType + " has already been attached");
         }
@@ -21,16 +21,19 @@ service class DispatcherService {
 
    // We are not using the (@http:payload GenericEventWrapperEvent g) notation because of a bug in Ballerina.
    // Issue: https://github.com/ballerina-platform/ballerina-lang/issues/32859
-   resource function post events (http:Caller caller, http:Request request) returns error? {
-        json payload = check request.getJsonPayload();
-        GenericDataType genericEvent = check payload.cloneWithType(GenericDataType);
-        check caller->respond(http:STATUS_OK);
+   resource function post .(http:Caller caller, http:Request request) returns error? {
+       json payload = check request.getJsonPayload();
+       GenericDataType genericDataType = check payload.cloneWithType(GenericDataType);
+       check self.matchRemoteFunc(genericDataType);
+       check caller->respond(http:STATUS_OK);
    }
 
+   private function matchRemoteFunc(GenericDataType genericDataType) returns error? {}
+
    private function executeRemoteFunc(GenericDataType genericEvent, string eventName, string serviceTypeStr, string eventFunction) returns error? {
-         GenericService? genericService = self.services[serviceTypeStr];
-         if genericService is GenericService {
-              check self.interopHandler.invokeRemoteFunction(genericEvent, eventName, eventFunction, genericService);
+         GenericServiceType? genericService = self.services[serviceTypeStr];
+         if genericService is GenericServiceType {
+              check self.nativeHandler.invokeRemoteFunction(genericEvent, eventName, eventFunction, genericService);
          }
    }
 }

@@ -18,6 +18,7 @@
 
 package io.ballerina.asyncapi.codegenerator.usecase;
 
+import com.fasterxml.jackson.databind.node.TextNode;
 import io.apicurio.datamodels.Library;
 import io.apicurio.datamodels.asyncapi.models.AaiDocument;
 import io.apicurio.datamodels.asyncapi.v2.models.Aai20Document;
@@ -61,6 +62,28 @@ public class ExtractSchemasFromSpecTest {
         Assert.assertEquals(schemas.get("GenericEventWrapper")
                         .getSchemaProperties().get("event").getSchemaProperties().get("type").getTitle(),
                 "The specific name of the event");
+    }
+
+    @Test(
+            description = "Test the functionality of the extract function " +
+                    "when the schema contains an enum"
+    )
+    public void testExtractWithEnums() throws BallerinaAsyncApiException {
+        String asyncApiSpecStr = fileRepository
+                .getFileContentFromResources("specs/spec-single-schema-with-enum.yml");
+        String asyncApiSpecJson = fileRepository.convertYamlToJson(asyncApiSpecStr);
+        AaiDocument asyncApiSpec = (Aai20Document) Library.readDocumentFromJSONString(asyncApiSpecJson);
+        Extractor extractSchemasFromSpec = new ExtractSchemasFromSpec(asyncApiSpec);
+        Map<String, Schema> schemas = extractSchemasFromSpec.extract();
+
+        Assert.assertEquals(((TextNode) schemas.get("occupancyStatus").getEnum().get(0)).textValue(),
+                "EMPTY");
+        Assert.assertEquals(((TextNode) schemas.get("occupancyStatus").getEnum().get(1)).textValue(),
+                "MANY_SEATS_AVAILABLE");
+        Assert.assertEquals(((TextNode) schemas.get("occupancyStatus").getEnum().get(5)).textValue(),
+                "FULL");
+        Assert.assertEquals(((TextNode) schemas.get("occupancyStatus").getEnum().get(6)).textValue(),
+                "NOT_ACCEPTING_PASSENGERS");
     }
 
     @Test(
