@@ -1,5 +1,10 @@
 import ballerina/http;
 
+@display {
+    label: "",
+    'type: "trigger",
+    description: ""
+}
 public class Listener {
     private http:Listener httpListener;
     private DispatcherService dispatcherService;
