@@ -1,8 +1,8 @@
 # From https://github.com/github/gitignore/blob/master/Gradle.gitignore
 .gradle
 /build/
-/interop-handler/target
-/interop-handler/java-wrapper/build
+/native.handler/target
+/native.handler/java-wrapper/build
 local.properties
 
 # Ignore Gradle GUI config
