@@ -45,6 +45,6 @@ jobs:
       - name: Build with Gradle
         env:
           packageUser: ${{ github.actor }}
-          packagePAT: ${{ secrets.GITHUB_TOKEN }}
+          packagePAT: ${{ secrets.TOKEN }}
           JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF8
         run: ./gradlew.bat build --stacktrace --scan --console=plain --no-daemon
