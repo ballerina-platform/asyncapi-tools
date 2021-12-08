@@ -23,7 +23,7 @@ jobs:
       - name: Build with Gradle
         env:
           packageUser: ${{ github.actor }}
-          packagePAT: ${{ secrets.TOKEN }}
+          packagePAT: ${{ secrets.GIT_PAT }}
         run: |
           ./gradlew build --stacktrace --scan --console=plain --no-daemon
           ./gradlew codeCoverageReport --no-daemon
@@ -45,6 +45,6 @@ jobs:
       - name: Build with Gradle
         env:
           packageUser: ${{ github.actor }}
-          packagePAT: ${{ secrets.TOKEN }}
+          packagePAT: ${{ secrets.GIT_PAT }}
           JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF8
         run: ./gradlew.bat build --stacktrace --scan --console=plain --no-daemon
