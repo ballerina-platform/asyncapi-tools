@@ -3,6 +3,8 @@
 /build/
 /native.handler/target
 /native.handler/java-wrapper/build
+/native.handler/build
+/asyncapi-cli/build
 local.properties
 
 # Ignore Gradle GUI config

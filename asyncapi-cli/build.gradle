@@ -1,0 +1,73 @@
+/*
+ * Copyright (c) 2019, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ */
+
+apply plugin: "com.github.johnrengelman.shadow"
+apply plugin: "java"
+
+description = "Ballerina - AsyncAPI Tooling - AsyncAPI to Ballerina"
+
+configurations.all {
+    resolutionStrategy.preferProjectModules()
+}
+
+dependencies {
+    implementation 'io.apicurio:apicurio-data-models:1.1.15'
+    implementation 'org.apache.logging.log4j:log4j-core:2.14.1'
+    implementation 'com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:2.12.5'
+    implementation 'commons-io:commons-io:2.11.0'
+    implementation "org.ballerinalang:ballerina-lang:${ballerinaLangVersion}"
+    implementation "org.ballerinalang:ballerina-parser:${ballerinaLangVersion}"
+    implementation "org.ballerinalang:ballerina-cli:${ballerinaLangVersion}"
+    implementation "org.ballerinalang:formatter-core:${ballerinaLangVersion}"
+    implementation "org.ballerinalang:ballerina-tools-api:${ballerinaLangVersion}"
+    implementation "io.ballerina.stdlib:http-native:${stdlibHttpVersion}"
+    implementation "org.ballerinalang:language-server-commons:${ballerinaLangVersion}"
+    implementation "info.picocli:picocli:4.0.1"
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.6.0'
+    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine'
+    testImplementation "org.testng:testng:7.3.0"
+}
+
+test {
+    useTestNG() {
+        suites "src/test/resources/testng.xml"
+    }
+}
+
+shadowJar {
+    configurations = [project.configurations.runtimeClasspath]
+    dependencies {
+        include(dependency('com.github.jknack:handlebars'))
+        include(dependency('org.antlr:antlr4:4.5'))
+        include(dependency('io.swagger.parser.v3:swagger-parser'))
+        include(dependency('com.atlassian.commonmark:commonmark'))
+        include(dependency('com.atlassian.commonmark:commonmark-ext-gfm-tables'))
+        exclude('META-INF/*.SF')
+        exclude('META-INF/*.DSA')
+        exclude('META-INF/*.RSA')
+    }
+}
+
+compileJava {
+    doFirst {
+        options.compilerArgs = [
+                '--module-path', classpath.asPath,
+        ]
+        classpath = files()
+    }
+}
+
