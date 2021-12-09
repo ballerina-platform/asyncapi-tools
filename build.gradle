@@ -32,6 +32,8 @@ ext.stdlibUrlVersion = project.stdlibUrlVersion
 ext.stdlibXmldataVersion = project.stdlibXmldataVersion
 ext.puppycrawlCheckstyleVersion = "8.18"
 
+def packageName = "asyncapi"
+
 configurations {
     balTools
 }
@@ -181,7 +183,7 @@ compileJava {
 
 def artifactCacheParent = file("$project.projectDir/build/cache_parent/")
 def artifactLibParent = file("$project.projectDir/build/lib_parent/")
-def targetAsyncApiCliJar = file("$project.rootDir/build/libs/asyncapi-cli-${project.version}.jar")
+def targetAsyncApiCliJar = file("$project.rootDir/asyncapi-cli/build/libs/asyncapi-cli-${project.version}.jar")
 
 jar {
     manifest {
@@ -226,3 +228,8 @@ publishing {
         }
     }
 }
+
+directoryBuild.dependsOn ":${packageName}-cli:build"
+build.dependsOn directoryBuild
+
+publish.dependsOn build
