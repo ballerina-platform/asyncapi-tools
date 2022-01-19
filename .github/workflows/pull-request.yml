@@ -22,8 +22,8 @@ jobs:
           java-version: 11
       - name: Build with Gradle
         env:
-          packageUser: ${{ github.actor }}
-          packagePAT: ${{ secrets.GIT_PAT }}
+          packageUser: ${{ secrets.BALLERINA_BOT_USERNAME }}
+          packagePAT: ${{ secrets.BALLERINA_BOT_TOKEN }}
         run: |
           ./gradlew build --stacktrace --scan --console=plain --no-daemon
           ./gradlew codeCoverageReport --no-daemon
