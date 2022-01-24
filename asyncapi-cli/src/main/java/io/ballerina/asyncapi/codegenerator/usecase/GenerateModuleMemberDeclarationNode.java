@@ -25,11 +25,13 @@ import io.ballerina.asyncapi.codegenerator.entity.Schema;
 import io.ballerina.asyncapi.codegenerator.usecase.utils.CodegenUtils;
 import io.ballerina.asyncapi.codegenerator.usecase.utils.DocCommentsUtils;
 import io.ballerina.compiler.syntax.tree.AbstractNodeFactory;
+import io.ballerina.compiler.syntax.tree.ArrayDimensionNode;
 import io.ballerina.compiler.syntax.tree.IdentifierToken;
 import io.ballerina.compiler.syntax.tree.MarkdownDocumentationNode;
 import io.ballerina.compiler.syntax.tree.MetadataNode;
 import io.ballerina.compiler.syntax.tree.ModuleMemberDeclarationNode;
 import io.ballerina.compiler.syntax.tree.Node;
+import io.ballerina.compiler.syntax.tree.NodeFactory;
 import io.ballerina.compiler.syntax.tree.NodeList;
 import io.ballerina.compiler.syntax.tree.RecordFieldNode;
 import io.ballerina.compiler.syntax.tree.RecordTypeDescriptorNode;
@@ -298,32 +300,29 @@ public class GenerateModuleMemberDeclarationNode implements Generator {
             // TODO: handle this when schema.items is a List<Schema> in the below line
             Schema schemaItem = (Schema) schema.getItems();
             Token closeSBracketToken = AbstractNodeFactory.createIdentifierToken("]");
+            ArrayDimensionNode arrayDimensionNode = NodeFactory.createArrayDimensionNode(openSBracketToken,
+                    null, closeSBracketToken);
             if (schemaItem.getRef() != null) {
                 type = codegenUtils.getValidName(codegenUtils.extractReferenceType(
                         schemaItem.getRef()), true);
                 typeName = AbstractNodeFactory.createIdentifierToken(type);
                 memberTypeDesc = createBuiltinSimpleNameReferenceNode(null, typeName);
-                return createArrayTypeDescriptorNode(memberTypeDesc, openSBracketToken,
-                        null, closeSBracketToken);
+                // TODO: memberTypeDesc != ArrayTypeDescriptorNode
+                return createArrayTypeDescriptorNode(memberTypeDesc, createNodeList(arrayDimensionNode));
             } else if (schemaItem.getType() != null
                     && (schemaItem.getType().equals("array") || schemaItem.getType().equals("object"))) {
                 memberTypeDesc = getTypeDescriptorNode(schemaItem);
-                return createArrayTypeDescriptorNode(memberTypeDesc, openSBracketToken,
-                        null, closeSBracketToken);
+                return createArrayTypeDescriptorNode(memberTypeDesc, createNodeList(arrayDimensionNode));
             } else if (schemaItem.getType() != null) {
                 type = schemaItem.getType();
-                closeSBracketToken = AbstractNodeFactory.createIdentifierToken("]");
                 typeName = AbstractNodeFactory.createIdentifierToken(convertAsyncAPITypeToBallerina(type));
                 memberTypeDesc = createBuiltinSimpleNameReferenceNode(null, typeName);
-                return createArrayTypeDescriptorNode(memberTypeDesc, openSBracketToken,
-                        null, closeSBracketToken);
+                return createArrayTypeDescriptorNode(memberTypeDesc, createNodeList(arrayDimensionNode));
             } else {
                 type = "anydata";
-                closeSBracketToken = AbstractNodeFactory.createIdentifierToken("]");
                 typeName = AbstractNodeFactory.createIdentifierToken(type);
                 memberTypeDesc = createBuiltinSimpleNameReferenceNode(null, typeName);
-                return createArrayTypeDescriptorNode(memberTypeDesc, openSBracketToken,
-                        null, closeSBracketToken);
+                return createArrayTypeDescriptorNode(memberTypeDesc, createNodeList(arrayDimensionNode));
             }
         } else {
             throw new BallerinaAsyncApiException("Array does not contain the 'items' attribute");
