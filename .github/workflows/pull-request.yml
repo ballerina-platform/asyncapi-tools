@@ -10,7 +10,6 @@ on:
 
 jobs:
   ubuntu-build:
-
     runs-on: ubuntu-latest
 
     steps:
@@ -18,21 +17,20 @@ jobs:
       - name: Set up JDK 11.0.7
         uses: actions/setup-java@v2
         with:
-          distribution: 'adopt'
+          distribution: "adopt"
           java-version: 11
       - name: Build with Gradle
         env:
-          packageUser: ${{ secrets.BALLERINA_BOT_USERNAME }}
-          packagePAT: ${{ secrets.BALLERINA_BOT_TOKEN }}
+          packageUser: ${{ github.actor }}
+          packagePAT: ${{ secrets.GITHUB_TOKEN }}
         run: |
           ./gradlew build --stacktrace --scan --console=plain --no-daemon
           ./gradlew codeCoverageReport --no-daemon
       - name: Generate Codecov Report
-        if:  github.event_name == 'pull_request'
+        if: github.event_name == 'pull_request'
         uses: codecov/codecov-action@v1
 
   windows-build:
-
     runs-on: windows-latest
 
     steps:
@@ -40,11 +38,11 @@ jobs:
       - name: Set up JDK 11.0.7
         uses: actions/setup-java@v2
         with:
-          distribution: 'adopt'
+          distribution: "adopt"
           java-version: 11
       - name: Build with Gradle
         env:
           packageUser: ${{ github.actor }}
-          packagePAT: ${{ secrets.GIT_PAT }}
+          packagePAT: ${{ secrets.GITHUB_TOKEN }}
           JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF8
         run: ./gradlew.bat build --stacktrace --scan --console=plain --no-daemon
