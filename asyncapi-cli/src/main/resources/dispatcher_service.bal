@@ -2,6 +2,7 @@ import ballerina/http;
 import ballerinax/asyncapi.native.handler;
 
 service class DispatcherService {
+   *http:Service;
    private map<GenericServiceType> services = {};
    private handler:NativeHandler nativeHandler = new ();
 
