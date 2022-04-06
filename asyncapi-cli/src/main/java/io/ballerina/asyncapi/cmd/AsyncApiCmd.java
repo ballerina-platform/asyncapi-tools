@@ -33,13 +33,16 @@ import java.util.List;
  */
 @CommandLine.Command(
         name = "asyncapi",
-        description = "Generates Ballerina client for AsyncAPI contract of an Event-API."
+        description = "Generates Ballerina client for AsyncAPI document of an Event-API."
 )
 public class AsyncApiCmd implements BLauncherCmd {
     private static final String CMD_NAME = "asyncapi";
     private PrintStream outStream;
     private boolean exitWhenFinish;
     private Path executionPath = Paths.get(System.getProperty("user.dir"));
+
+    @CommandLine.Option(names = {"-h", "--help"}, hidden = true)
+    private boolean helpFlag;
 
     @CommandLine.Option(names = {"-i", "--input"}, description = "File path to the AsyncAPI specification")
     private boolean inputPath;
@@ -85,10 +88,14 @@ public class AsyncApiCmd implements BLauncherCmd {
 
     @Override
     public void execute() {
+        if (helpFlag) {
+            String commandUsageInfo = BLauncherCmd.getCommandUsageInfo(CMD_NAME);
+            outStream.println(commandUsageInfo);
+            return;
+        }
         if (inputPath) {
             if (argList == null) {
-                outStream.println("Missing the input file path," +
-                        " Please provide the path of the AsyncAPI specification with -i flag");
+                outStream.println(AsyncApiMessages.MESSAGE_FOR_MISSING_INPUT);
                 exitError(this.exitWhenFinish);
                 return;
             }
@@ -100,6 +107,15 @@ public class AsyncApiCmd implements BLauncherCmd {
                 outStream.println(e.getMessage());
                 exitError(this.exitWhenFinish);
             }
+        } else {
+            String commandUsageInfo = BLauncherCmd.getCommandUsageInfo(getName());
+            outStream.println(commandUsageInfo);
+            exitError(this.exitWhenFinish);
+            return;
+        }
+
+        if (this.exitWhenFinish) {
+            Runtime.getRuntime().exit(0);
         }
     }
 

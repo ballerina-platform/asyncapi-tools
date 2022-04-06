@@ -32,6 +32,7 @@ import io.ballerina.asyncapi.codegenerator.entity.ServiceType;
 import io.ballerina.asyncapi.codegenerator.repository.FileRepository;
 import io.ballerina.asyncapi.codegenerator.repository.FileRepositoryImpl;
 
+import java.io.PrintStream;
 import java.util.List;
 import java.util.Map;
 
@@ -43,6 +44,7 @@ import java.util.Map;
  */
 public class CodeGenerator implements Application {
     private final FileRepository fileRepository;
+    private static final PrintStream outStream = System.err;
 
     public CodeGenerator() {
         this.fileRepository = new FileRepositoryImpl();
@@ -84,6 +86,9 @@ public class CodeGenerator implements Application {
         fileRepository.writeToFile(outputDirectory.concat(Constants.LISTENER_BAL_FILE_NAME), listenerBalContent);
         fileRepository
                 .writeToFile(outputDirectory.concat(Constants.DISPATCHER_SERVICE_BAL_FILE_NAME), dispatcherContent);
+
+        outStream.println("Following files were generated successfully:" +
+                "\n--data_types.bal\n--service_types.bal\n--listener.bal\n--dispatcher_service.bal");
     }
 
     private String getOutputDirectory(String outputPath) {

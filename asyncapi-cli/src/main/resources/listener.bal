@@ -1,9 +1,7 @@
 import ballerina/http;
 
 @display {
-    label: "",
-    'type: "trigger",
-    description: ""
+    label: ""
 }
 public class Listener {
     private http:Listener httpListener;

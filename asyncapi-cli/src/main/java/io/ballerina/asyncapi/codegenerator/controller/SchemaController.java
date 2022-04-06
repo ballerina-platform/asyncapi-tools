@@ -53,7 +53,6 @@ public class SchemaController implements BalController {
 
     @Override
     public String generateBalCode(String balTemplate) throws BallerinaAsyncApiException {
-
         List<ModuleMemberDeclarationNode> recordNodes = new ArrayList<>();
         List<TypeDescriptorNode> typeDescriptorNodes = new ArrayList<>();
         for (Map.Entry<String, Schema> fields : schemas.entrySet()) {

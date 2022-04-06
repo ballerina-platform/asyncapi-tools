@@ -165,8 +165,7 @@ public class AsyncApiCmdTest {
         AsyncApiCmd cmd = new AsyncApiCmd(printStream, tmpDir, false);
         new CommandLine(cmd).parseArgs(args);
         cmd.execute();
-        Assert.assertEquals(readOutput(true).trim(), "Missing the input file path," +
-                " Please provide the path of the AsyncAPI specification with -i flag");
+        Assert.assertEquals(readOutput(true).trim(), AsyncApiMessages.MESSAGE_FOR_MISSING_INPUT);
     }
 
     private String readContent(Path path) {
