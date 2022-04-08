@@ -54,5 +54,5 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.BALLERINA_BOT_TOKEN }}
         run: |
-          curl -fsSL https://github.com/github/hub/raw/master/script/get | bash -s 2.14.1
-          bin/hub pull-request -m "[Automated] Sync master after $VERSION release"
+          curl -fsSL https://github.com/github/hub/raw/main/script/get | bash -s 2.14.1
+          bin/hub pull-request -m "[Automated] Sync main after $VERSION release"
