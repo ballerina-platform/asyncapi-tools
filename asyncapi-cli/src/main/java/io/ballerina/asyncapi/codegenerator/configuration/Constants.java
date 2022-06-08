@@ -18,6 +18,8 @@
 
 package io.ballerina.asyncapi.codegenerator.configuration;
 
+import io.ballerina.compiler.syntax.tree.SyntaxInfo;
+
 import java.util.List;
 
 /**
@@ -29,27 +31,13 @@ public final class Constants {
     public static final String LISTENER_BAL_FILE_NAME = "listener.bal";
     public static final String SERVICE_TYPES_BAL_FILE_NAME = "service_types.bal";
     public static final String DISPATCHER_SERVICE_BAL_FILE_NAME = "dispatcher_service.bal";
-    public static final List<String> BAL_KEYWORDS;
     public static final List<String> BAL_TYPES;
+    public static final List<String> BAL_KEYWORDS = SyntaxInfo.keywords();
     public static final String ESCAPE_PATTERN = "([\\[\\]\\\\?!<>@#&~`*\\-=^+();:\\/\\_{}\\s|.$])";
-    //TODO Update keywords if Ballerina Grammer changes
-    private static final String[] KEYWORDS = new String[]{"abort", "aborted", "abstract", "all", "annotation",
-            "any", "anydata", "boolean", "break", "byte", "catch", "channel", "check", "checkpanic", "client",
-            "committed", "const", "continue", "decimal", "else", "error", "external", "fail", "final", "finally",
-            "float", "flush", "fork", "function", "future", "handle", "if", "import", "in", "int", "is", "join",
-            "json", "listener", "lock", "match", "new", "object", "OBJECT_INIT", "onretry", "parameter", "panic",
-            "private", "public", "record", "remote", "resource", "retries", "retry", "return", "returns", "service",
-            "source", "start", "stream", "string", "table", "transaction", "try", "type", "typedesc", "typeof",
-            "trap", "throw", "wait", "while", "with", "worker", "var", "version", "xml", "xmlns", "BOOLEAN_LITERAL",
-            "NULL_LITERAL", "ascending", "descending", "foreach", "map", "group", "from", "default", "field",
-            "limit", "as", "on", "isolated", "readonly", "distinct", "where", "select", "do", "transactional"
-            , "commit", "enum", "base16", "base64", "rollback", "configurable", "class", "module", "never",
-            "outer", "order", "null", "key", "let", "by", "equals"};
     private static final String[] TYPES = new String[]{"int", "any", "anydata", "boolean", "byte", "float", "int",
             "json", "string", "table", "var", "xml"};
 
     static {
-        BAL_KEYWORDS = List.of(KEYWORDS);
         BAL_TYPES = List.of(TYPES);
     }
 
