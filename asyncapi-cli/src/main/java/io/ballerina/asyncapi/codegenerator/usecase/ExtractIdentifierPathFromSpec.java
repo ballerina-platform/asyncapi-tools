@@ -50,17 +50,33 @@ public class ExtractIdentifierPathFromSpec implements Extractor {
                             .concat(Constants.X_BALLERINA_EVENT_FIELD_IDENTIFIER)
                             .concat(" in the Async API Specification")));
         }
-        StringBuilder eventPathString = new StringBuilder(Constants.CLONE_WITH_TYPE_VAR_NAME);
+        StringBuilder eventPathString = new StringBuilder("");
         if (valuesMap.get(Constants.X_BALLERINA_EVENT_FIELD_IDENTIFIER_TYPE)
                 .equals(Constants.X_BALLERINA_EVENT_TYPE_HEADER)) {
-            //TODO: Handle header event path
-        } else { // Defaults to BODY
+            // Handle header event path
+            if (!valuesMap.containsKey(Constants.X_BALLERINA_EVENT_FIELD_IDENTIFIER_NAME)) {
+                throw new BallerinaAsyncApiException(Constants.X_BALLERINA_EVENT_FIELD_IDENTIFIER_NAME
+                        .concat(" attribute is not found within the attribute "
+                                .concat(Constants.X_BALLERINA_EVENT_FIELD_IDENTIFIER)
+                                .concat(" in the Async API Specification")));
+            }
+            String identifierName = valuesMap.get(Constants.X_BALLERINA_EVENT_FIELD_IDENTIFIER_NAME);
+            if (Constants.BAL_KEYWORDS.stream()
+                    .anyMatch(identifierName::equals)) {
+                eventPathString.append("'").append(identifierName);
+            } else {
+                eventPathString.append(identifierName);
+            }
+        } else if (valuesMap.get(Constants.X_BALLERINA_EVENT_FIELD_IDENTIFIER_TYPE)
+                .equals(Constants.X_BALLERINA_EVENT_TYPE_BODY)) {
+            // Handle body event path
             if (!valuesMap.containsKey(Constants.X_BALLERINA_EVENT_FIELD_IDENTIFIER_PATH)) {
                 throw new BallerinaAsyncApiException(Constants.X_BALLERINA_EVENT_FIELD_IDENTIFIER_PATH
                         .concat(" attribute is not found within the attribute "
                                 .concat(Constants.X_BALLERINA_EVENT_FIELD_IDENTIFIER)
                                 .concat(" in the Async API Specification")));
             }
+            eventPathString.append(Constants.CLONE_WITH_TYPE_VAR_NAME);
             String identifierPath = valuesMap.get(Constants.X_BALLERINA_EVENT_FIELD_IDENTIFIER_PATH);
             String[] pathParts = identifierPath.split("\\.");
             for (String eventPathPart : pathParts) {
@@ -72,6 +88,14 @@ public class ExtractIdentifierPathFromSpec implements Extractor {
                     eventPathString.append(eventPathPart);
                 }
             }
+        } else {
+            throw new BallerinaAsyncApiException(Constants.X_BALLERINA_EVENT_TYPE_HEADER.concat(" or ")
+                    .concat(Constants.X_BALLERINA_EVENT_TYPE_BODY)
+                    .concat(" is not provided as the value of ")
+                    .concat(Constants.X_BALLERINA_EVENT_FIELD_IDENTIFIER_TYPE)
+                    .concat(" attribute within the attribute "
+                            .concat(Constants.X_BALLERINA_EVENT_FIELD_IDENTIFIER)
+                            .concat(" in the Async API Specification")));
         }
         return eventPathString.toString();
     }

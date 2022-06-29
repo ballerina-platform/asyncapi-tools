@@ -33,6 +33,7 @@
             <class name="io.ballerina.asyncapi.codegenerator.usecase.utils.DocCommentsUtilsTest"/>
             <class name="io.ballerina.asyncapi.codegenerator.usecase.ExtractChannelsFromSpecTest"/>
             <class name="io.ballerina.asyncapi.codegenerator.usecase.ExtractIdentifierPathFromSpecTest"/>
+            <class name="io.ballerina.asyncapi.codegenerator.usecase.ExtractHeaderTypeEventIdentifierFromSpecTest"/>
             <class name="io.ballerina.asyncapi.codegenerator.usecase.ExtractSchemasFromSpecTest"/>
             <class name="io.ballerina.asyncapi.codegenerator.usecase.GenerateListenerStatementNodeTest"/>
             <class name="io.ballerina.asyncapi.codegenerator.usecase.GenerateMatchStatementNodeTest"/>

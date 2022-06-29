@@ -74,10 +74,19 @@ public class CodeGenerator implements Application {
         BalController listenerController = new ListenerController(serviceTypes);
         String listenerBalContent = listenerController.generateBalCode(listenerTemplate);
 
-        String dispatcherTemplate = fileRepository
-                .getFileContentFromResources(Constants.DISPATCHER_SERVICE_BAL_FILE_NAME);
         BalController dispatcherController = new DispatcherController(serviceTypes, eventIdentifierPath);
-        String dispatcherContent = dispatcherController.generateBalCode(dispatcherTemplate);
+        String dispatcherContent = "";
+        if (isEventIdentifierInBody(eventIdentifierPath)) {
+            String dispatcherTemplateForEventIdentifierInBody = fileRepository
+                    .getFileContentFromResources(
+                            Constants.DISPATCHER_SERVICE_BAL_FILE_NAME_FOR_EVENT_IDENTIFIER_IN_BODY);
+            dispatcherContent = dispatcherController.generateBalCode(dispatcherTemplateForEventIdentifierInBody);
+        } else {
+            String dispatcherTemplateForEventIdentifierInHeader = fileRepository
+                    .getFileContentFromResources(
+                            Constants.DISPATCHER_SERVICE_BAL_FILE_NAME_FOR_EVENT_IDENTIFIER_IN_HEADER);
+            dispatcherContent = dispatcherController.generateBalCode(dispatcherTemplateForEventIdentifierInHeader);
+        }
 
         String outputDirectory = getOutputDirectory(outputPath);
         fileRepository.writeToFile(outputDirectory.concat(Constants.DATA_TYPES_BAL_FILE_NAME), dataTypesBalContent);
@@ -108,5 +117,12 @@ public class CodeGenerator implements Application {
         } else {
             throw new BallerinaAsyncApiException("Unknown file type: ".concat(specPath));
         }
+    }
+
+    private Boolean isEventIdentifierInBody(String eventIdentifierPath) {
+        if (eventIdentifierPath.startsWith(Constants.CLONE_WITH_TYPE_VAR_NAME)) {
+            return true;
+        }
+        return false;
     }
 }
