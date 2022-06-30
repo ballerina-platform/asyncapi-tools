@@ -1,0 +1,77 @@
+asyncapi: 2.1.0
+components:
+  schemas:
+    OrderEvent:
+      properties:
+        id:
+          type: integer
+          description: The ID of the order, used for API purposes. This is different from the order_number property, which is the ID used by the shop owner and customer.
+          x-nullable: true
+        email:
+          type: string
+          description: The customer's email address.
+          x-nullable: true
+        confirmed:
+          type: boolean
+          description: Confirmation status
+          x-nullable: true
+        rate:
+          type: number
+          description: The rate of tax to be applied.
+          x-nullable: true
+        tax_lines:
+          type: array
+          items:
+            $ref: '#/components/schemas/TaxLine'
+          description: An array of tax line objects, each of which details a tax applicable to the order. When creating an order through the API, tax lines can be specified on the order or the line items but not both. Tax lines specified on the order are split across the taxable line items in the created order.
+          x-nullable: true
+        total_price_set:
+          $ref: '#/components/schemas/TotalPriceSet'
+          x-nullable: true
+        total_tax_set:
+          type: object
+          properties:
+            shop_money:
+              $ref: '#/components/schemas/Price'
+            presentment_money:
+              $ref: '#/components/schemas/Price'
+              x-nullable: true
+          description: The total tax applied to the order in shop and presentment currencies.
+          x-nullable: true
+    TaxLine:
+      type: object
+      properties:
+        price:
+          type: string
+          description: The amount of tax to be charged in the shop currency.
+          x-nullable: false
+        rate:
+          type: number
+          description: The rate of tax to be applied.
+        title:
+          type: string
+          description: The name of the tax.
+          x-nullable: true
+        channel_liable:
+          type: boolean
+          description: Whether the channel that submitted the tax line is liable for remitting. A value of null indicates unknown liability for the tax line.
+      description: Tax line object, which details a tax applicable to the order.
+    TotalPriceSet:
+      type: object
+      properties:
+        shop_money:
+          $ref: '#/components/schemas/Price'
+        presentment_money:
+          $ref: '#/components/schemas/Price'
+      description: The total price of the order in shop and presentment currencies.
+    Price:
+      type: object
+      properties:
+        amount:
+          type: string
+          description: The variant's price or compare-at price in the presentment currency.
+        currency_code:
+          type: string
+          description: The three-letter code (ISO 4217 format) for one of the shop's enabled presentment currencies.
+          x-nullable: true
+      description: The price object
