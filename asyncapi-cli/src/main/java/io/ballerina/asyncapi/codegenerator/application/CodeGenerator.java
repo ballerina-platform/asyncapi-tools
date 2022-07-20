@@ -61,6 +61,7 @@ public class CodeGenerator implements Application {
         SpecController specController = new AsyncApiSpecController(asyncApiSpecJson);
         Map<String, Schema> schemas = specController.getSchemas();
         List<ServiceType> serviceTypes = specController.getServiceTypes();
+        String eventIdentifierType = specController.getEventIdentifierType();
         String eventIdentifierPath = specController.getEventIdentifierPath();
 
         String dataTypesTemplate = fileRepository.getFileContentFromResources(Constants.DATA_TYPES_BAL_FILE_NAME);
@@ -74,10 +75,20 @@ public class CodeGenerator implements Application {
         BalController listenerController = new ListenerController(serviceTypes);
         String listenerBalContent = listenerController.generateBalCode(listenerTemplate);
 
-        String dispatcherTemplate = fileRepository
-                .getFileContentFromResources(Constants.DISPATCHER_SERVICE_BAL_FILE_NAME);
-        BalController dispatcherController = new DispatcherController(serviceTypes, eventIdentifierPath);
-        String dispatcherContent = dispatcherController.generateBalCode(dispatcherTemplate);
+        BalController dispatcherController = new DispatcherController(serviceTypes, eventIdentifierType,
+                eventIdentifierPath);
+        String dispatcherContent = "";
+        if (eventIdentifierType.equals(Constants.X_BALLERINA_EVENT_TYPE_BODY)) {
+            String dispatcherTemplateForEventIdentifierInBody = fileRepository
+                    .getFileContentFromResources(
+                            Constants.DISPATCHER_SERVICE_BAL_FILE_NAME_FOR_EVENT_IDENTIFIER_IN_BODY);
+            dispatcherContent = dispatcherController.generateBalCode(dispatcherTemplateForEventIdentifierInBody);
+        } else {
+            String dispatcherTemplateForEventIdentifierInHeader = fileRepository
+                    .getFileContentFromResources(
+                            Constants.DISPATCHER_SERVICE_BAL_FILE_NAME_FOR_EVENT_IDENTIFIER_IN_HEADER);
+            dispatcherContent = dispatcherController.generateBalCode(dispatcherTemplateForEventIdentifierInHeader);
+        }
 
         String outputDirectory = getOutputDirectory(outputPath);
         fileRepository.writeToFile(outputDirectory.concat(Constants.DATA_TYPES_BAL_FILE_NAME), dataTypesBalContent);

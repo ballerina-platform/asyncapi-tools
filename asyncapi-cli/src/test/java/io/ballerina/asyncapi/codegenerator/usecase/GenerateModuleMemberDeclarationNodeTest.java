@@ -171,4 +171,62 @@ public class GenerateModuleMemberDeclarationNodeTest {
         Generator generateRecordNode = new GenerateModuleMemberDeclarationNode(entry);
         generateRecordNode.generate();
     }
+
+    @Test(description = "Test the functionality of the generate function " +
+            "when there are nullable fields in the schema")
+    public void testGenerateWithNullables() throws BallerinaAsyncApiException {
+        String asyncApiSpecStr = fileRepository
+                .getFileContentFromResources("specs/spec-single-schema-with-x-nullable.yml");
+        String asyncApiSpecJson = fileRepository.convertYamlToJson(asyncApiSpecStr);
+        AaiDocument asyncApiSpec = (Aai20Document) Library.readDocumentFromJSONString(asyncApiSpecJson);
+        Extractor extractSchemasFromSpec = new ExtractSchemasFromSpec(asyncApiSpec);
+        Map<String, Schema> schemas = extractSchemasFromSpec.extract();
+
+        Iterator<Map.Entry<String, Schema>> iterator = schemas.entrySet().iterator();
+        Map.Entry<String, Schema> firstEntry = iterator.next();
+        Generator generateRecordNode1 = new GenerateModuleMemberDeclarationNode(firstEntry);
+        TypeDefinitionNode typeDefinitionNode1 = generateRecordNode1.generate();
+        Assert.assertEquals(typeDefinitionNode1.typeName().text(), "TotalPriceSet");
+
+        Map.Entry<String, Schema> secondEntry = iterator.next();
+        Generator generateRecordNode2 = new GenerateModuleMemberDeclarationNode(secondEntry);
+        TypeDefinitionNode typeDefinitionNode2 = generateRecordNode2.generate();
+        Assert.assertEquals(typeDefinitionNode2.typeName().text(), "Price");
+
+        Map.Entry<String, Schema> thirdEntry = iterator.next();
+        Generator generateRecordNode3 = new GenerateModuleMemberDeclarationNode(thirdEntry);
+        TypeDefinitionNode typeDefinitionNode3 = generateRecordNode3.generate();
+        Assert.assertEquals(typeDefinitionNode3.typeName().text(), "OrderEvent");
+
+        Map.Entry<String, Schema> forthEntry = iterator.next();
+        Generator generateRecordNode4 = new GenerateModuleMemberDeclarationNode(forthEntry);
+        TypeDefinitionNode typeDefinitionNode4 = generateRecordNode4.generate();
+        Assert.assertEquals(typeDefinitionNode4.typeName().text(), "TaxLine");
+
+        Assert.assertTrue(typeDefinitionNode3.typeDescriptor() instanceof RecordTypeDescriptorNode);
+        RecordTypeDescriptorNode recordTypeDescriptorNode3 =
+                (RecordTypeDescriptorNode) typeDefinitionNode3.typeDescriptor();
+        Assert.assertEquals(((RecordFieldNode) recordTypeDescriptorNode3.fields().get(0)).typeName().toSourceCode(),
+                "TotalPriceSet?");
+        Assert.assertEquals(((RecordFieldNode) recordTypeDescriptorNode3.fields().get(1)).typeName().toSourceCode(),
+                "TaxLine[]?");
+        Assert.assertEquals(((RecordFieldNode) recordTypeDescriptorNode3.fields().get(2)).typeName().toSourceCode(),
+                "decimal?");
+        Assert.assertEquals(((RecordFieldNode) recordTypeDescriptorNode3.fields().get(3)).typeName().toSourceCode(),
+                "record { Priceshop_money?;Price?presentment_money?;} ?");
+        Assert.assertEquals(((RecordFieldNode) recordTypeDescriptorNode3.fields().get(4)).typeName().toSourceCode(),
+                "int?");
+        Assert.assertEquals(((RecordFieldNode) recordTypeDescriptorNode3.fields().get(5)).typeName().toSourceCode(),
+                "boolean?");
+        Assert.assertEquals(((RecordFieldNode) recordTypeDescriptorNode3.fields().get(6)).typeName().toSourceCode(),
+                "string?");
+
+        Assert.assertTrue(typeDefinitionNode4.typeDescriptor() instanceof RecordTypeDescriptorNode);
+        RecordTypeDescriptorNode recordTypeDescriptorNode4 =
+                (RecordTypeDescriptorNode) typeDefinitionNode4.typeDescriptor();
+        Assert.assertEquals(((RecordFieldNode) recordTypeDescriptorNode4.fields().get(2)).typeName().toSourceCode(),
+                "string");
+        Assert.assertEquals(((RecordFieldNode) recordTypeDescriptorNode4.fields().get(3)).typeName().toSourceCode(),
+                "string?");
+    }
 }

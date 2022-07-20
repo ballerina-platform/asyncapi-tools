@@ -19,6 +19,7 @@
 package io.ballerina.asyncapi.codegenerator.usecase;
 
 import com.fasterxml.jackson.databind.node.TextNode;
+import io.apicurio.datamodels.core.models.Extension;
 import io.ballerina.asyncapi.codegenerator.configuration.BallerinaAsyncApiException;
 import io.ballerina.asyncapi.codegenerator.configuration.Constants;
 import io.ballerina.asyncapi.codegenerator.entity.Schema;
@@ -177,12 +178,14 @@ public class GenerateModuleMemberDeclarationNode implements Generator {
     private TypeDescriptorNode getTypeDescriptorNode(Schema schema)
             throws BallerinaAsyncApiException {
         if (schema.getType() != null || schema.getSchemaProperties() != null) {
-            return getTypeDescriptorNodeForObjects(schema);
+            TypeDescriptorNode originalTypeDesc = getTypeDescriptorNodeForObjects(schema);
+            return addNullableType(schema, originalTypeDesc);
         } else if (schema.getRef() != null) {
             String type = codegenUtils.extractReferenceType(schema.getRef());
             type = codegenUtils.getValidName(type, true);
             Token typeName = AbstractNodeFactory.createIdentifierToken(type);
-            return createBuiltinSimpleNameReferenceNode(null, typeName);
+            TypeDescriptorNode originalTypeDesc = createBuiltinSimpleNameReferenceNode(null, typeName);
+            return addNullableType(schema, originalTypeDesc);
         } else {
             // This contains a fallback to Ballerina common type `anydata` if the Async Api specification type is not
             // defined.
@@ -329,4 +332,13 @@ public class GenerateModuleMemberDeclarationNode implements Generator {
         }
     }
 
+    private TypeDescriptorNode addNullableType(Schema schema, TypeDescriptorNode originalTypeDesc) {
+        if (schema.getExtension("x-nullable") != null) {
+            Extension identifier = (Extension) schema.getExtension("x-nullable");
+            if (identifier.value.equals(true)) {
+                return createOptionalTypeDescriptorNode(originalTypeDesc, createToken(QUESTION_MARK_TOKEN));
+            }
+        }
+        return originalTypeDesc;
+    }
 }

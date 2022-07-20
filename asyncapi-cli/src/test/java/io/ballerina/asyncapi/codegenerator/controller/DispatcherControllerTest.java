@@ -45,7 +45,8 @@ public class DispatcherControllerTest {
         String dispatcherResult = fileRepository
                 .getFileContentFromResources("expected_gen/".concat(Constants.DISPATCHER_SERVICE_BAL_FILE_NAME));
         BalController dispatcherController = new DispatcherController(
-                specController.getServiceTypes(), specController.getEventIdentifierPath());
+                specController.getServiceTypes(), specController.getEventIdentifierType(),
+                specController.getEventIdentifierPath());
         Assert.assertEquals(dispatcherController.generateBalCode(dispatcherTemplate), dispatcherResult);
     }
 
@@ -55,7 +56,8 @@ public class DispatcherControllerTest {
             expectedExceptionsMessageRegExp =
                     "Resource function 'matchRemoteFunc', is not found in the dispatcher_service.bal")
     public void testGenerateWithInvalidTemplate() throws BallerinaAsyncApiException {
-        BalController dispatcherController = new DispatcherController(new ArrayList<>(), "");
+        BalController dispatcherController = new DispatcherController(new ArrayList<>(),
+                Constants.X_BALLERINA_EVENT_TYPE_BODY, Constants.CLONE_WITH_TYPE_VAR_NAME);
         dispatcherController.generateBalCode("");
     }
 }
