@@ -1,0 +1,5 @@
+asyncapi: 2.1.0
+x-ballerina-event-identifier:
+  type : ""
+  path : "event.type"
+  
