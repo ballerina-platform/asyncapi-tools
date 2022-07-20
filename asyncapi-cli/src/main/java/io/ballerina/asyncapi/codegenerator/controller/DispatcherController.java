@@ -75,10 +75,13 @@ import static io.ballerina.compiler.syntax.tree.SyntaxKind.STRING_KEYWORD;
  */
 public class DispatcherController implements BalController {
     private final List<ServiceType> serviceTypes;
+    private final String eventIdentifierType;
     private final String eventIdentifierPath;
 
-    public DispatcherController(List<ServiceType> serviceTypes, String eventIdentifierPath) {
+    public DispatcherController(List<ServiceType> serviceTypes, String eventIdentifierType,
+                                String eventIdentifierPath) {
         this.serviceTypes = serviceTypes;
+        this.eventIdentifierType = eventIdentifierType;
         this.eventIdentifierPath = eventIdentifierPath;
     }
 
@@ -88,8 +91,8 @@ public class DispatcherController implements BalController {
         SyntaxTree syntaxTree = SyntaxTree.from(textDocument);
         ModulePartNode oldRoot = syntaxTree.rootNode();
 
-        String eventIdentifierPath = this.eventIdentifierPath;
-        if (isEventIdentifierInHeader(this.eventIdentifierPath)) {
+        String eventIdentifierPath = Constants.CLONE_WITH_TYPE_VAR_NAME.concat(".").concat(this.eventIdentifierPath);
+        if (this.eventIdentifierType.equals(Constants.X_BALLERINA_EVENT_TYPE_HEADER)) {
             eventIdentifierPath = "eventIdentifier";
 
             FunctionDefinitionNode postFunctionDefinitionNode = getPostFuncNode(oldRoot);
@@ -195,13 +198,6 @@ public class DispatcherController implements BalController {
                 createVariableDeclarationNode(createEmptyNodeList(), null, typedBindingPatternNode,
                         createToken(EQUAL_TOKEN), initializer, createToken(SEMICOLON_TOKEN));
         return eventIdentifierNode;
-    }
-
-    private Boolean isEventIdentifierInHeader(String eventIdentifierPath) {
-        if (eventIdentifierPath.startsWith(Constants.CLONE_WITH_TYPE_VAR_NAME)) {
-            return false;
-        }
-        return true;
     }
 }
 

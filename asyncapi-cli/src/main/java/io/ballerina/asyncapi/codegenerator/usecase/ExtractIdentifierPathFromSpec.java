@@ -37,19 +37,9 @@ public class ExtractIdentifierPathFromSpec implements Extractor {
 
     @Override
     public String extract() throws BallerinaAsyncApiException {
-        if (asyncApiSpec.getExtension(Constants.X_BALLERINA_EVENT_FIELD_IDENTIFIER) == null) {
-            throw new BallerinaAsyncApiException(Constants.X_BALLERINA_EVENT_FIELD_IDENTIFIER
-                    .concat(" attribute is not found in the Async API Specification"));
-        }
         Extension identifier = asyncApiSpec.getExtension(
                 Constants.X_BALLERINA_EVENT_FIELD_IDENTIFIER);
         HashMap<String, String> valuesMap = (HashMap<String, String>) identifier.value;
-        if (!valuesMap.containsKey(Constants.X_BALLERINA_EVENT_FIELD_IDENTIFIER_TYPE)) {
-            throw new BallerinaAsyncApiException(Constants.X_BALLERINA_EVENT_FIELD_IDENTIFIER_TYPE
-                    .concat(" attribute is not found within the attribute "
-                            .concat(Constants.X_BALLERINA_EVENT_FIELD_IDENTIFIER)
-                            .concat(" in the Async API Specification")));
-        }
         StringBuilder eventPathString = new StringBuilder("");
         if (valuesMap.get(Constants.X_BALLERINA_EVENT_FIELD_IDENTIFIER_TYPE)
                 .equals(Constants.X_BALLERINA_EVENT_TYPE_HEADER)) {
@@ -76,11 +66,12 @@ public class ExtractIdentifierPathFromSpec implements Extractor {
                                 .concat(Constants.X_BALLERINA_EVENT_FIELD_IDENTIFIER)
                                 .concat(" in the Async API Specification")));
             }
-            eventPathString.append(Constants.CLONE_WITH_TYPE_VAR_NAME);
             String identifierPath = valuesMap.get(Constants.X_BALLERINA_EVENT_FIELD_IDENTIFIER_PATH);
             String[] pathParts = identifierPath.split("\\.");
+            String prefix = "";
             for (String eventPathPart : pathParts) {
-                eventPathString.append(".");
+                eventPathString.append(prefix);
+                prefix = ".";
                 if (Constants.BAL_KEYWORDS.stream()
                         .anyMatch(eventPathPart::equals)) {
                     eventPathString.append("'").append(eventPathPart);
@@ -88,14 +79,6 @@ public class ExtractIdentifierPathFromSpec implements Extractor {
                     eventPathString.append(eventPathPart);
                 }
             }
-        } else {
-            throw new BallerinaAsyncApiException(Constants.X_BALLERINA_EVENT_TYPE_HEADER.concat(" or ")
-                    .concat(Constants.X_BALLERINA_EVENT_TYPE_BODY)
-                    .concat(" is not provided as the value of ")
-                    .concat(Constants.X_BALLERINA_EVENT_FIELD_IDENTIFIER_TYPE)
-                    .concat(" attribute within the attribute "
-                            .concat(Constants.X_BALLERINA_EVENT_FIELD_IDENTIFIER)
-                            .concat(" in the Async API Specification")));
         }
         return eventPathString.toString();
     }

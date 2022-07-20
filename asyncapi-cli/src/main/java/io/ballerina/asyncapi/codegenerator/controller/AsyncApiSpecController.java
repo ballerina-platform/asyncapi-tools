@@ -29,6 +29,7 @@ import io.ballerina.asyncapi.codegenerator.entity.Schema;
 import io.ballerina.asyncapi.codegenerator.entity.ServiceType;
 import io.ballerina.asyncapi.codegenerator.usecase.ExtractChannelsFromSpec;
 import io.ballerina.asyncapi.codegenerator.usecase.ExtractIdentifierPathFromSpec;
+import io.ballerina.asyncapi.codegenerator.usecase.ExtractIdentifierTypeFromSpec;
 import io.ballerina.asyncapi.codegenerator.usecase.ExtractSchemasFromSpec;
 import io.ballerina.asyncapi.codegenerator.usecase.Extractor;
 
@@ -42,6 +43,7 @@ import java.util.Set;
 public class AsyncApiSpecController implements SpecController {
     private List<ServiceType> serviceTypes;
     private Map<String, Schema> schemas;
+    private String eventIdentifierType;
     private String eventIdentifierPath;
 
     public AsyncApiSpecController(String asyncApiSpecJson) throws BallerinaAsyncApiException {
@@ -60,12 +62,14 @@ public class AsyncApiSpecController implements SpecController {
 
         Extractor extractServiceTypes = new ExtractChannelsFromSpec(asyncApiSpec);
         Extractor extractSchemas = new ExtractSchemasFromSpec(asyncApiSpec);
+        Extractor extractIdentifierType = new ExtractIdentifierTypeFromSpec(asyncApiSpec);
         Extractor extractIdentifierPath = new ExtractIdentifierPathFromSpec(asyncApiSpec);
 
         MultiChannel multiChannel = extractServiceTypes.extract();
         serviceTypes = multiChannel.getServiceTypes();
         schemas = extractSchemas.extract();
         schemas.putAll(multiChannel.getInlineSchemas());
+        eventIdentifierType = extractIdentifierType.extract();
         eventIdentifierPath = extractIdentifierPath.extract();
     }
 
@@ -77,6 +81,11 @@ public class AsyncApiSpecController implements SpecController {
     @Override
     public Map<String, Schema> getSchemas() {
         return schemas;
+    }
+
+    @Override
+    public String getEventIdentifierType() {
+        return eventIdentifierType;
     }
 
     @Override
