@@ -30,5 +30,6 @@ import java.util.Map;
 public interface SpecController {
     List<ServiceType> getServiceTypes();
     Map<String, Schema> getSchemas();
+    String getEventIdentifierType();
     String getEventIdentifierPath();
 }

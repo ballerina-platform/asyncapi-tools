@@ -83,6 +83,7 @@ public class AsyncApiSpecControllerTest {
         String asyncApiSpecJson = fileRepository.convertYamlToJson(asyncApiSpecStr);
         SpecController specController = new AsyncApiSpecController(asyncApiSpecJson);
 
-        Assert.assertEquals(specController.getEventIdentifierPath(), "genericDataType.event.'type");
+        Assert.assertEquals(specController.getEventIdentifierType(), "body");
+        Assert.assertEquals(specController.getEventIdentifierPath(), "event.'type");
     }
 }
