@@ -107,7 +107,7 @@ public class GenerateModuleMemberDeclarationNode implements Generator {
             }
             return createEnumDeclarationNode(metadataNode, createToken(PUBLIC_KEYWORD), createToken(ENUM_KEYWORD),
                     typeName, createToken(OPEN_BRACE_TOKEN),
-                    createSeparatedNodeList(enums), createToken(CLOSE_BRACE_TOKEN));
+                    createSeparatedNodeList(enums), createToken(CLOSE_BRACE_TOKEN), null);
         } else if (recordFields.getValue().getSchemaProperties() == null && recordFields.getValue().getType() != null) {
             // Handle when the schema is defined directly under the name
             // (i.e. there is no properties attribute under the schema)
