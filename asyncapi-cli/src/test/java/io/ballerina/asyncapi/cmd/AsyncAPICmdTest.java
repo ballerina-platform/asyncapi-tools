@@ -17,9 +17,11 @@
  */
 package io.ballerina.asyncapi.cmd;
 
+import io.ballerina.asyncapi.cli.AsyncAPICmd;
 import io.ballerina.cli.launcher.BLauncherException;
-import io.ballerina.openapi.core.exception.BallerinaOpenApiException;
+import io.ballerina.asyncapi.core.exception.BallerinaOpenApiException;
 import org.apache.commons.io.FileUtils;
+
 import org.testng.Assert;
 import org.testng.annotations.AfterTest;
 import org.testng.annotations.BeforeTest;
@@ -48,7 +50,7 @@ public class AsyncAPICmdTest extends AsyncAPICommandTest {
     @Test(description = "Test openapi command with help flag")
     public void testOpenAPICmdHelp() throws IOException {
         String[] args = {"-h"};
-        OpenApiCmd openApiCommand = new OpenApiCmd(printStream, tmpDir, false);
+        AsyncAPICmd openApiCommand = new AsyncAPICmd(printStream, tmpDir, false);
         new CommandLine(openApiCommand).parseArgs(args);
         openApiCommand.execute();
         String output = readOutput(true);
@@ -58,7 +60,7 @@ public class AsyncAPICmdTest extends AsyncAPICommandTest {
 
     @Test(description = "Test openapi command without help flag")
     public void testOpenAPICmdHelpWithoutFlag() throws IOException {
-        OpenApiCmd openApiCommand = new OpenApiCmd(printStream, tmpDir, false);
+        AsyncAPICmd openApiCommand = new AsyncAPICmd(printStream, tmpDir, false);
         new CommandLine(openApiCommand);
         openApiCommand.execute();
         String output = readOutput(true);
@@ -69,7 +71,7 @@ public class AsyncAPICmdTest extends AsyncAPICommandTest {
     @Test(description = "Test openapi gen-service without openapi contract file")
     public void testWithoutOpenApiContract() throws IOException {
         String[] args = {"--input"};
-        OpenApiCmd cmd = new OpenApiCmd(printStream, tmpDir, false);
+        AsyncAPICmd cmd = new AsyncAPICmd(printStream, tmpDir, false);
         new CommandLine(cmd).parseArgs(args);
         cmd.execute();
         String output = readOutput(true);
@@ -80,7 +82,7 @@ public class AsyncAPICmdTest extends AsyncAPICommandTest {
     public void testSuccessfulServiceGeneration() throws IOException {
         Path petstoreYaml = resourceDir.resolve(Paths.get("petstore.yaml"));
         String[] args = {"--input", petstoreYaml.toString(), "-o", this.tmpDir.toString()};
-        OpenApiCmd cmd = new OpenApiCmd(printStream, tmpDir, false);
+        AsyncAPICmd cmd = new AsyncAPICmd(printStream, tmpDir, false);
         new CommandLine(cmd).parseArgs(args);
         cmd.execute();
         Path expectedSchemaFile = resourceDir.resolve(Paths.get("expected_gen", "petstore_schema.bal"));
@@ -120,7 +122,7 @@ public class AsyncAPICmdTest extends AsyncAPICommandTest {
     public void testSuccessfulTypeBalGeneration() throws IOException {
         Path petstoreYaml = resourceDir.resolve(Paths.get("petstore_type.yaml"));
         String[] args = {"--input", petstoreYaml.toString(), "-o", this.tmpDir.toString()};
-        OpenApiCmd cmd = new OpenApiCmd(printStream, tmpDir, false);
+        AsyncAPICmd cmd = new AsyncAPICmd(printStream, tmpDir, false);
         new CommandLine(cmd).parseArgs(args);
         cmd.execute();
         Path expectedSchemaFile = resourceDir.resolve(Paths.get("expected_gen", "petstore_schema_type.bal"));
@@ -160,7 +162,7 @@ public class AsyncAPICmdTest extends AsyncAPICommandTest {
         Path licenseHeader = resourceDir.resolve(Paths.get("license.txt"));
         String[] args = {"--input", petstoreYaml.toString(), "-o", this.tmpDir.toString(), "--license",
                 licenseHeader.toString()};
-        OpenApiCmd cmd = new OpenApiCmd(printStream, tmpDir, false);
+        AsyncAPICmd cmd = new AsyncAPICmd(printStream, tmpDir, false);
         new CommandLine(cmd).parseArgs(args);
         cmd.execute();
         Path expectedSchemaFile = resourceDir.resolve(Paths.get("expected_gen",
@@ -202,7 +204,7 @@ public class AsyncAPICmdTest extends AsyncAPICommandTest {
         Path licenseHeader = resourceDir.resolve(Paths.get("license_with_new_line.txt"));
         String[] args = {"--input", petstoreYaml.toString(), "-o", this.tmpDir.toString(), "--license",
                 licenseHeader.toString()};
-        OpenApiCmd cmd = new OpenApiCmd(printStream, tmpDir, false);
+        AsyncAPICmd cmd = new AsyncAPICmd(printStream, tmpDir, false);
         new CommandLine(cmd).parseArgs(args);
         cmd.execute();
         Path expectedSchemaFile = resourceDir.resolve(Paths.get("expected_gen",
@@ -243,7 +245,7 @@ public class AsyncAPICmdTest extends AsyncAPICommandTest {
         Path petstoreYaml = resourceDir.resolve(Paths.get("petstore_tags.yaml"));
         String[] args = {"--input", petstoreYaml.toString(), "-o", this.tmpDir.toString(), "--tags",
                 "pets,dogs", "--mode", "client", "--client-methods", "remote"};
-        OpenApiCmd cmd = new OpenApiCmd(printStream, tmpDir, false);
+        AsyncAPICmd cmd = new AsyncAPICmd(printStream, tmpDir, false);
         new CommandLine(cmd).parseArgs(args);
         cmd.execute();
         Path expectedClientFile = resourceDir.resolve(Paths.get("expected_gen",
@@ -285,7 +287,7 @@ public class AsyncAPICmdTest extends AsyncAPICommandTest {
         Path licenseHeader = resourceDir.resolve(Paths.get("license.txt"));
         String[] args = {"--input", petstoreYaml.toString(), "-o", this.tmpDir.toString(), "--license",
                 licenseHeader.toString(), "--with-tests"};
-        OpenApiCmd cmd = new OpenApiCmd(printStream, tmpDir, false);
+        AsyncAPICmd cmd = new AsyncAPICmd(printStream, tmpDir, false);
         new CommandLine(cmd).parseArgs(args);
         cmd.execute();
         Path expectedConfigFilePath = resourceDir.resolve(Paths.get("expected_gen",
@@ -329,7 +331,7 @@ public class AsyncAPICmdTest extends AsyncAPICommandTest {
         Path licenseHeader = resourceDir.resolve(Paths.get("licence.txt"));
         String[] args = {"--input", petstoreYaml.toString(), "-o", this.tmpDir.toString(), "--license",
                 licenseHeader.toString()};
-        OpenApiCmd cmd = new OpenApiCmd(printStream, tmpDir, false);
+        AsyncAPICmd cmd = new AsyncAPICmd(printStream, tmpDir, false);
         new CommandLine(cmd).parseArgs(args);
         cmd.execute();
         String output = readOutput(true);
@@ -342,7 +344,7 @@ public class AsyncAPICmdTest extends AsyncAPICommandTest {
         Path licenseHeader = resourceDir.resolve(Paths.get("license.txt"));
         String[] args = {"--input", petstoreYaml.toString(), "-o", this.tmpDir.toString(), "--license",
                 licenseHeader.toString()};
-        OpenApiCmd cmd = new OpenApiCmd(printStream, tmpDir, false);
+        AsyncAPICmd cmd = new AsyncAPICmd(printStream, tmpDir, false);
         new CommandLine(cmd).parseArgs(args);
         cmd.execute();
         Path expectedConfigFilePath = resourceDir.resolve(Paths.get("expected_gen",
@@ -370,7 +372,7 @@ public class AsyncAPICmdTest extends AsyncAPICommandTest {
     public void testSuccessfulServiceGenerationForYML() throws IOException {
         Path petstoreYaml = resourceDir.resolve(Paths.get("petstore.yml"));
         String[] args = {"--input", petstoreYaml.toString(), "-o", this.tmpDir.toString()};
-        OpenApiCmd cmd = new OpenApiCmd(printStream, tmpDir, false);
+        AsyncAPICmd cmd = new AsyncAPICmd(printStream, tmpDir, false);
         new CommandLine(cmd).parseArgs(args);
         try {
             cmd.execute();
@@ -412,7 +414,7 @@ public class AsyncAPICmdTest extends AsyncAPICommandTest {
     public void testForYamlContractWithoutOperationID() throws IOException {
         Path yamlContract = resourceDir.resolve(Paths.get("without_operationID.yaml"));
         String[] args = {"--input", yamlContract.toString(), "-o", this.tmpDir.toString(), "--mode", "service"};
-        OpenApiCmd cmd = new OpenApiCmd(printStream, tmpDir, false);
+        AsyncAPICmd cmd = new AsyncAPICmd(printStream, tmpDir, false);
         new CommandLine(cmd).parseArgs(args);
         cmd.execute();
         if (Files.exists(this.tmpDir.resolve("without_operationid_service.bal"))) {
@@ -446,7 +448,7 @@ public class AsyncAPICmdTest extends AsyncAPICommandTest {
 
     @Test(description = "getRelative path")
     public void getRelativePath() {
-        OpenApiCmd cmd = new OpenApiCmd();
+        AsyncAPICmd cmd = new AsyncAPICmd();
         File resource01 = new File("dir1/test.txt");
         String target01 = "dir1/dir2";
         File resource02 = new File("dir1/dir2/dir3/test.txt");

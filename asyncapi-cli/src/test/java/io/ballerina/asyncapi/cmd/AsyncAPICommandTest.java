@@ -17,6 +17,7 @@
  */
 package io.ballerina.asyncapi.cmd;
 
+import io.ballerina.asyncapi.cli.AsyncAPICmd;
 import io.ballerina.cli.launcher.BLauncherException;
 import org.testng.Assert;
 import org.testng.annotations.AfterClass;
@@ -77,7 +78,7 @@ public abstract class AsyncAPICommandTest {
         Path yamlPath = resourceDir.resolve(Paths.get(yamlFile));
         String[] args = {"--input", yamlPath.toString(), "--service-name", serviceName, "-o",
                          this.tmpDir.toString(), "--mode", "service"};
-        OpenApiCmd cmd = new OpenApiCmd(printStream, this.tmpDir);
+        AsyncAPICmd cmd = new AsyncAPICmd(printStream, this.tmpDir);
         new CommandLine(cmd).parseArgs(args);
         String output = "";
         try {
