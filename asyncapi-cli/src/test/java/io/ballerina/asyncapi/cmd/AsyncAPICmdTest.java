@@ -37,7 +37,7 @@ import java.util.stream.Stream;
 /**
  * OpenAPI command test suit.
  */
-public class OpenAPICmdTest extends OpenAPICommandTest {
+public class AsyncAPICmdTest extends AsyncAPICommandTest {
     private static final String LINE_SEPARATOR = System.lineSeparator();
 
     @BeforeTest(description = "This will create a new ballerina project for testing below scenarios.")

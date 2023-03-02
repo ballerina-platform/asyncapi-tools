@@ -20,18 +20,18 @@ import java.nio.file.Path;
 /**
  * Container to hold ballerina project structure.
  */
-public class OpenAPIBallerinaProject {
+public class AsyncAPIBallerinaProject {
     private Path balProjectPath;
     private Path srcPath;
     private Path implPath;
 
-    OpenAPIBallerinaProject() {
+    AsyncAPIBallerinaProject() {
         this.balProjectPath = null;
         this.srcPath = null;
         this.implPath = null;
     }
 
-    public OpenAPIBallerinaProject(Path balProjectPath, Path srcPath, Path implPath, Path resourcePath) {
+    public AsyncAPIBallerinaProject(Path balProjectPath, Path srcPath, Path implPath, Path resourcePath) {
         this.balProjectPath = balProjectPath;
         this.srcPath = srcPath;
         this.implPath = implPath;

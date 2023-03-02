@@ -54,7 +54,7 @@ import static io.ballerina.asyncapi.core.generators.asyncspec.utils.CodegenUtils
  * @since 2.3.0
  */
 
-public class OASContractGenerator {
+public class AsyncAPIContractGenerator {
     private SyntaxTree syntaxTree;
     private SemanticModel semanticModel;
     private Project project;
@@ -64,7 +64,7 @@ public class OASContractGenerator {
     /**
      * Initialize constructor.
      */
-    public OASContractGenerator() {
+    public AsyncAPIContractGenerator() {
 
     }
 

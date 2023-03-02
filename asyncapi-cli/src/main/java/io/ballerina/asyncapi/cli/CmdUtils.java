@@ -47,14 +47,14 @@ public class CmdUtils {
     /**
      * This util method is used to generate {@code Diagnostic} for openapi command errors.
      */
-    public static OpenAPIDiagnostic constructOpenAPIDiagnostic(String code, String message, DiagnosticSeverity severity,
-                                                               Location location, Object... args) {
+    public static AsyncAPIDiagnostic constructOpenAPIDiagnostic(String code, String message, DiagnosticSeverity severity,
+                                                                Location location, Object... args) {
 
         DiagnosticInfo diagnosticInfo = new DiagnosticInfo(code, message, severity);
         if (location == null) {
             location = new ConverterCommonUtils.NullLocation();
         }
-        return new OpenAPIDiagnostic(diagnosticInfo, location, Collections.emptyList(), args);
+        return new AsyncAPIDiagnostic(diagnosticInfo, location, Collections.emptyList(), args);
     }
 
     /**

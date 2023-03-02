@@ -17,6 +17,7 @@
  */
 package io.ballerina.asyncapi.cmd;
 
+import io.ballerina.asyncapi.cli.AsyncAPICmd;
 import io.ballerina.cli.launcher.BLauncherException;
 import org.testng.Assert;
 import org.testng.annotations.AfterTest;
@@ -32,12 +33,12 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
- * This {@code BallerinaToOASTests} represents the tests for all the special scenarios in the ballerina to openapi
+ * This {@code BallerinaToAsyncAPITests} represents the tests for all the special scenarios in the ballerina to asyncapi
  * command.
  *
  * @since 2.0.0
  */
-public class BallerinaToOASTests extends OpenAPICommandTest {
+public class BallerinaToAsyncAPITests extends AsyncAPICommandTest {
     private static final Path RES_DIR = Paths.get("src/test/resources/").toAbsolutePath();
 
     @BeforeTest(description = "This will create a new ballerina project for testing below scenarios.")
@@ -45,11 +46,11 @@ public class BallerinaToOASTests extends OpenAPICommandTest {
         super.setup();
     }
 
-    @Test(description = "Test ballerina to openapi")
+    @Test(description = "Test ballerina to asyncapi")
     public void testBallerinaToOpenAPIGeneration() {
-        Path filePath = resourceDir.resolve(Paths.get("cmd/ballerina-to-openapi/ballerina-file.bal"));
+        Path filePath = resourceDir.resolve(Paths.get("cmd/ballerina-to-asyncapi/ballerina-file.bal"));
         String[] args = {"--input", filePath.toString(), "-o", this.tmpDir.toString()};
-        OpenApiCmd cmd = new OpenApiCmd(printStream, tmpDir, false);
+        AsyncAPICmd cmd = new AsyncAPICmd(printStream, tmpDir, false);
         new CommandLine(cmd).parseArgs(args);
 
         String output = "";
@@ -65,7 +66,7 @@ public class BallerinaToOASTests extends OpenAPICommandTest {
     public void testDefaultMethod() {
         Path filePath = resourceDir.resolve(Paths.get("cmd/ballerina-to-openapi/default_method.bal"));
         String[] args = {"--input", filePath.toString(), "-o", this.tmpDir.toString()};
-        OpenApiCmd cmd = new OpenApiCmd(printStream, tmpDir, false);
+        AsyncAPICmd cmd = new AsyncAPICmd(printStream, tmpDir, false);
         new CommandLine(cmd).parseArgs(args);
 
         String output = "";
@@ -85,7 +86,7 @@ public class BallerinaToOASTests extends OpenAPICommandTest {
     public void testDefaultMethod02() {
         Path filePath = resourceDir.resolve(Paths.get("cmd/ballerina-to-openapi/default_method_02.bal"));
         String[] args = {"--input", filePath.toString(), "-o", this.tmpDir.toString()};
-        OpenApiCmd cmd = new OpenApiCmd(printStream, tmpDir, false);
+        AsyncAPICmd cmd = new AsyncAPICmd(printStream, tmpDir, false);
         new CommandLine(cmd).parseArgs(args);
 
         String output = "";
@@ -104,7 +105,7 @@ public class BallerinaToOASTests extends OpenAPICommandTest {
     public void testHttpResponse() {
         Path filePath = resourceDir.resolve(Paths.get("cmd/ballerina-to-openapi/http_response.bal"));
         String[] args = {"--input", filePath.toString(), "-o", this.tmpDir.toString()};
-        OpenApiCmd cmd = new OpenApiCmd(printStream, tmpDir, false);
+        AsyncAPICmd cmd = new AsyncAPICmd(printStream, tmpDir, false);
         new CommandLine(cmd).parseArgs(args);
 
         String output = "";
@@ -128,7 +129,7 @@ public class BallerinaToOASTests extends OpenAPICommandTest {
     public void testHttpRequest() {
         Path filePath = resourceDir.resolve(Paths.get("cmd/ballerina-to-openapi/http_request.bal"));
         String[] args = {"--input", filePath.toString(), "-o", this.tmpDir.toString()};
-        OpenApiCmd cmd = new OpenApiCmd(printStream, tmpDir, false);
+        AsyncAPICmd cmd = new AsyncAPICmd(printStream, tmpDir, false);
         new CommandLine(cmd).parseArgs(args);
 
         String output = "";
@@ -146,7 +147,7 @@ public class BallerinaToOASTests extends OpenAPICommandTest {
     public void openapiAnnotationWithContract() {
         Path filePath = resourceDir.resolve(Paths.get("cmd/ballerina-to-openapi/project_1/service.bal"));
         String[] args = {"--input", filePath.toString(), "-o", this.tmpDir.toString()};
-        OpenApiCmd cmd = new OpenApiCmd(printStream, tmpDir, false);
+        AsyncAPICmd cmd = new AsyncAPICmd(printStream, tmpDir, false);
         new CommandLine(cmd).parseArgs(args);
 
         String output = "";
@@ -170,7 +171,7 @@ public class BallerinaToOASTests extends OpenAPICommandTest {
     public void openapiAnnotationWithOutContract() {
         Path filePath = resourceDir.resolve(Paths.get("cmd/ballerina-to-openapi/project_2/service.bal"));
         String[] args = {"--input", filePath.toString(), "-o", this.tmpDir.toString()};
-        OpenApiCmd cmd = new OpenApiCmd(printStream, tmpDir, false);
+        AsyncAPICmd cmd = new AsyncAPICmd(printStream, tmpDir, false);
         new CommandLine(cmd).parseArgs(args);
 
         String output = "";
@@ -193,7 +194,7 @@ public class BallerinaToOASTests extends OpenAPICommandTest {
     public void openapiAnnotationWithoutFields() {
         Path filePath = resourceDir.resolve(Paths.get("cmd/ballerina-to-openapi/project_3/service.bal"));
         String[] args = {"--input", filePath.toString(), "-o", this.tmpDir.toString()};
-        OpenApiCmd cmd = new OpenApiCmd(printStream, tmpDir, false);
+        AsyncAPICmd cmd = new AsyncAPICmd(printStream, tmpDir, false);
         new CommandLine(cmd).parseArgs(args);
 
         String output = "";

@@ -32,14 +32,14 @@ import java.util.List;
  *
  * @since 2.0.0
  */
-public class OpenAPIDiagnostic extends Diagnostic {
+public class AsyncAPIDiagnostic extends Diagnostic {
     private final DiagnosticInfo diagnosticInfo;
     private final Location location;
     private final List<DiagnosticProperty<?>> properties;
     private final String message;
 
-    public OpenAPIDiagnostic(DiagnosticInfo diagnosticInfo, Location location, List<DiagnosticProperty<?>> properties,
-                             Object[] args) {
+    public AsyncAPIDiagnostic(DiagnosticInfo diagnosticInfo, Location location, List<DiagnosticProperty<?>> properties,
+                              Object[] args) {
         this.diagnosticInfo = diagnosticInfo;
         this.location = location;
         this.properties = properties;

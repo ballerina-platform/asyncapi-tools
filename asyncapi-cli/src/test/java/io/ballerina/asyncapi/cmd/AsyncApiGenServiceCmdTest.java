@@ -27,15 +27,15 @@ import java.nio.file.Paths;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static io.ballerina.openapi.CodeGeneratorTest.USER_DIR;
+import static io.ballerina.asyncapi.CodeGeneratorTest.USER_DIR;
 
 /**
- * This class contains tests necessary to test OpenApi Generate Service command.
+ * This class contains tests necessary to test AsyncApi Generate Service command.
  */
-public class OpenApiGenServiceCmdTest extends OpenAPICommandTest {
+public class AsyncApiGenServiceCmdTest extends AsyncAPICommandTest {
     Path resourcePath = Paths.get(System.getProperty(USER_DIR));
 
-    @Test(description = "Test openapi gen-service for successful service generation with inline request body type",
+    @Test(description = "Test asyncapi gen-service for successful service generation with inline request body type",
             enabled = false)
     public void testInlineRequestBodyServiceGen() throws IOException {
 

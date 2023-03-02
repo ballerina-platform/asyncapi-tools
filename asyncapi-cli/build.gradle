@@ -1,0 +1,100 @@
+
+apply from: "$rootDir/gradle/javaProject.gradle"
+apply plugin: "com.github.johnrengelman.shadow"
+apply plugin: "java"
+
+description = "Ballerina - AsyncAPI Tooling - AsynAPI to Ballerina"
+
+
+group 'io.ballerina.asyncapi.cli'
+version '1.0-SNAPSHOT'
+
+configurations {
+    balTools
+}
+
+dependencies {
+    implementation project(':asyncapi-core')
+    implementation "org.ballerinalang:ballerina-lang"
+    implementation "org.ballerinalang:ballerina-parser"
+    implementation "org.ballerinalang:ballerina-cli"
+    implementation "info.picocli:picocli"
+    implementation "org.ballerinalang:formatter-core"
+    implementation "org.ballerinalang:ballerina-tools-api"
+    testImplementation "org.testng:testng"
+    testImplementation 'junit:junit:4.13.1'
+    implementation "com.google.code.findbugs:jsr305"
+    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.8.1'
+
+    balTools ("org.ballerinalang:jballerina-tools:${ballerinaLangVersion}") {
+        transitive = false
+    }
+}
+
+tasks.register("jBallerinaPack")
+tasks.register("unpackStdLibs")
+tasks.register("copyStdlibs",Copy )
+
+def bDistribution = file("$project.buildDir/extracted-distribution/jballerina-tools-${ballerinaLangVersion}")
+jBallerinaPack {
+    doLast {
+        configurations.balTools.resolvedConfiguration.resolvedArtifacts.each { artifact ->
+            copy {
+                from project.zipTree(artifact.getFile())
+                into new File(project.buildDir, "extracted-distribution/")
+            }
+        }
+    }
+    outputs.dir bDistribution
+}
+
+unpackStdLibs() {
+    dependsOn(jBallerinaPack)
+    doLast {
+        configurations.ballerinaStdLibs.resolvedConfiguration.resolvedArtifacts.each { artifact ->
+            copy {
+                from project.zipTree(artifact.getFile())
+                into new File("${project.buildDir}/extracted-distribution/" + artifact.name + "-zip")
+            }
+        }
+    }
+}
+
+copyStdlibs() {
+    dependsOn(unpackStdLibs)
+    def ballerinaDist = "$project.buildDir/extracted-distribution/jballerina-tools-${ballerinaLangVersion}"
+    into ballerinaDist
+
+    /* Standard Libraries */
+    configurations.ballerinaStdLibs.resolvedConfiguration.resolvedArtifacts.each { artifact ->
+        def artifactExtractedPath = "${project.buildDir}/extracted-distribution/" + artifact.name + "-zip"
+        into("repo/bala") {
+            from "${artifactExtractedPath}/bala/"
+        }
+        into("repo/cache") {
+            from "${artifactExtractedPath}/cache"
+        }
+    }
+}
+
+test {
+    dependsOn {
+        copyStdlibs
+    }
+    systemProperty "ballerina.home", bDistribution
+
+    useTestNG() {
+        suites "src/test/resources/testng.xml"
+    }
+}
+
+
+compileJava {
+    doFirst {
+        options.compilerArgs = [
+                '--module-path', classpath.asPath,
+        ]
+        classpath = files()
+    }
+}
+

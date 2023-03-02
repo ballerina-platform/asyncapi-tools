@@ -59,7 +59,7 @@ import static io.ballerina.asyncapi.core.GeneratorUtils.getValidName;
         description = "Generates Ballerina service/client for OpenAPI contract and OpenAPI contract for Ballerina" +
                 "Service."
 )
-public class OpenApiCmd implements BLauncherCmd {
+public class AsyncAPICmd implements BLauncherCmd {
     private static final String CMD_NAME = "openapi";
     private PrintStream outStream;
     private Path executionPath = Paths.get(System.getProperty("user.dir"));
@@ -113,17 +113,17 @@ public class OpenApiCmd implements BLauncherCmd {
     @CommandLine.Parameters
     private List<String> argList;
 
-    public OpenApiCmd() {
+    public AsyncAPICmd() {
         this.outStream = System.err;
         this.executionPath = Paths.get(System.getProperty("user.dir"));
         this.exitWhenFinish = true;
     }
 
-    public OpenApiCmd(PrintStream outStream, Path executionDir) {
-        new OpenApiCmd(outStream, executionDir, true);
+    public AsyncAPICmd(PrintStream outStream, Path executionDir) {
+        new AsyncAPICmd(outStream, executionDir, true);
     }
 
-    public OpenApiCmd(PrintStream outStream, Path executionDir, boolean exitWhenFinish) {
+    public AsyncAPICmd(PrintStream outStream, Path executionDir, boolean exitWhenFinish) {
         this.outStream = outStream;
         this.executionPath = executionDir;
         this.exitWhenFinish = exitWhenFinish;
@@ -227,7 +227,7 @@ public class OpenApiCmd implements BLauncherCmd {
         }
         getTargetOutputPath();
         // Check service name it is mandatory
-        OASContractGenerator openApiConverter = new OASContractGenerator();
+        AsyncAPIContractGenerator openApiConverter = new AsyncAPIContractGenerator();
         openApiConverter.generateOAS3DefinitionsAllService(balFilePath, targetOutputPath, service,
                 generatedFileType);
         errors.addAll(openApiConverter.getErrors());
@@ -236,14 +236,14 @@ public class OpenApiCmd implements BLauncherCmd {
                 if (error instanceof ExceptionDiagnostic) {
                     this.outStream = System.err;
                     ExceptionDiagnostic exceptionDiagnostic = (ExceptionDiagnostic) error;
-                    OpenAPIDiagnostic diagnostic = CmdUtils.constructOpenAPIDiagnostic(exceptionDiagnostic.getCode(),
+                    AsyncAPIDiagnostic diagnostic = CmdUtils.constructOpenAPIDiagnostic(exceptionDiagnostic.getCode(),
                             exceptionDiagnostic.getMessage(), exceptionDiagnostic.getDiagnosticSeverity(),
                             exceptionDiagnostic.getLocation().orElse(null));
                     outStream.println(diagnostic.toString());
                     exitError(this.exitWhenFinish);
                 } else if (error instanceof IncompatibleResourceDiagnostic) {
                     IncompatibleResourceDiagnostic incompatibleError = (IncompatibleResourceDiagnostic) error;
-                    OpenAPIDiagnostic diagnostic = CmdUtils.constructOpenAPIDiagnostic(incompatibleError.getCode(),
+                    AsyncAPIDiagnostic diagnostic = CmdUtils.constructOpenAPIDiagnostic(incompatibleError.getCode(),
                             incompatibleError.getMessage(), incompatibleError.getDiagnosticSeverity(),
                             incompatibleError.getLocation().get());
                     outStream.println(diagnostic.toString());

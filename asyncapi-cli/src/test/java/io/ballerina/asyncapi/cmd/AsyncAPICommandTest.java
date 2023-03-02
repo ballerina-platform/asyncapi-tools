@@ -39,7 +39,7 @@ import java.util.stream.Stream;
 /**
  * OpenAPI command cmd common class to handle temp dirs and outputs.
  */
-public abstract class OpenAPICommandTest {
+public abstract class AsyncAPICommandTest {
     protected Path tmpDir;
     protected PrintStream printStream;
     protected final Path resourceDir = Paths.get("src/test/resources/").toAbsolutePath();
