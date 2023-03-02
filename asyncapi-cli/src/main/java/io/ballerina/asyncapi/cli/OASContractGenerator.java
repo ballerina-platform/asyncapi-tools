@@ -20,13 +20,21 @@ package io.ballerina.asyncapi.cli;
 
 import io.ballerina.compiler.api.SemanticModel;
 import io.ballerina.compiler.syntax.tree.SyntaxTree;
-import io.ballerina.openapi.converter.diagnostic.DiagnosticMessages;
-import io.ballerina.openapi.converter.diagnostic.ExceptionDiagnostic;
-import io.ballerina.openapi.converter.diagnostic.OpenAPIConverterDiagnostic;
-import io.ballerina.openapi.converter.model.OASResult;
-import io.ballerina.openapi.converter.utils.CodegenUtils;
-import io.ballerina.openapi.converter.utils.ServiceToOpenAPIConverterUtils;
-import io.ballerina.projects.*;
+import io.ballerina.asyncapi.core.generators.asyncspec.diagnostic.DiagnosticMessages;
+import io.ballerina.asyncapi.core.generators.asyncspec.diagnostic.ExceptionDiagnostic;
+import io.ballerina.asyncapi.core.generators.asyncspec.diagnostic.OpenAPIConverterDiagnostic;
+import io.ballerina.asyncapi.core.generators.asyncspec.model.OASResult;
+import io.ballerina.asyncapi.core.generators.asyncspec.utils.CodegenUtils;
+import io.ballerina.asyncapi.core.generators.asyncspec.utils.ServiceToOpenAPIConverterUtils;
+
+import io.ballerina.projects.Document;
+import io.ballerina.projects.DocumentId;
+import io.ballerina.projects.Module;
+import io.ballerina.projects.ModuleId;
+import io.ballerina.projects.Package;
+import io.ballerina.projects.PackageCompilation;
+import io.ballerina.projects.Project;
+import io.ballerina.projects.ProjectKind;
 import io.ballerina.projects.directory.ProjectLoader;
 import io.ballerina.tools.diagnostics.DiagnosticSeverity;
 
@@ -38,12 +46,12 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
 
-import static io.ballerina.openapi.converter.utils.CodegenUtils.resolveContractFileName;
+import static io.ballerina.asyncapi.core.generators.asyncspec.utils.CodegenUtils.resolveContractFileName;
 
 /**
- * OpenApi related utility classes.
+ * AsyncApi related utility classes.
  *
- * @since 1.3.0
+ * @since 2.3.0
  */
 
 public class OASContractGenerator {
