@@ -168,7 +168,7 @@ public class ServiceToOpenAPIConverterUtils {
      * Generate openAPI definition according to the given format JSON or YAML.
      *
      * @deprecated use {@link #generateOAS(ServiceDeclarationNode, List, SemanticModel, String, Path)} instead.
-     * The new API provides a list of {@code OASResult}, which contains all the diagnostic information collected
+     * The new API provides a list of {@code AsyncAPIResult}, which contains all the diagnostic information collected
      * while generating the openAPI contract.
      */
     @Deprecated
@@ -188,7 +188,7 @@ public class ServiceToOpenAPIConverterUtils {
     }
 
     /**
-     * Provides an instance of {@code OASResult}, which contains the generated contract as well as
+     * Provides an instance of {@code AsyncAPIResult}, which contains the generated contract as well as
      * all the diagnostics information.
      *
      * @param serviceDefinition     Service Node related to ballerina service
@@ -196,7 +196,7 @@ public class ServiceToOpenAPIConverterUtils {
      * @param semanticModel         Semantic model for given ballerina file
      * @param openApiFileName       OpenAPI file name
      * @param ballerinaFilePath     Input ballerina file Path
-     * @return {@code OASResult}
+     * @return {@code AsyncAPIResult}
      */
     public static OASResult generateOAS(ServiceDeclarationNode serviceDefinition,
                                         List<ListenerDeclarationNode> endpoints, SemanticModel semanticModel,
@@ -228,7 +228,7 @@ public class ServiceToOpenAPIConverterUtils {
      *
      * First check the given service node has metadata with annotation details with `openapi:serviceInfo`,
      * if it is there, then {@link #parseServiceInfoAnnotationAttachmentDetails(List, AnnotationNode, Path)}
-     * function extracts the annotation details and store details in {@code OpenAPIInfo} model using
+     * function extracts the annotation details and store details in {@code AsyncAPIInfo} model using
      * {@link #updateOpenAPIInfoModel(SeparatedNodeList)} function. If the annotation contains the valid contract
      * path then we complete given OpenAPI specification using annotation details. if not we create new OpenAPI
      * specification and fill openAPI info sections.
@@ -241,7 +241,7 @@ public class ServiceToOpenAPIConverterUtils {
      * @param semanticModel Semantic model for relevant project.
      * @param openapiFileName OpenAPI generated file name.
      * @param ballerinaFilePath Ballerina file path.
-     * @return {@code OASResult}
+     * @return {@code AsyncAPIResult}
      */
     private static OASResult fillOpenAPIInfoSection(ServiceDeclarationNode serviceNode, SemanticModel semanticModel,
                                                     String openapiFileName, Path ballerinaFilePath) {

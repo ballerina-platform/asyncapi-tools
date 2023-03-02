@@ -26,11 +26,11 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * This {@code OASResult} is used to contain OpenAPI definition in string format and error list.
+ * This {@code AsyncAPIResult} is used to contain OpenAPI definition in string format and error list.
  *
  * @since 2.0.0
  */
-public class OASResult {
+public class AsyncAPIResult {
     private OpenAPI openAPI;
     private String serviceName; // added base path for key to definition
     private final List<OpenAPIConverterDiagnostic> diagnostics;
@@ -38,7 +38,7 @@ public class OASResult {
     /**
      * This constructor is used to store the details that Map of {@code OpenAPI} objects and diagnostic list.
      */
-    public OASResult(OpenAPI openAPI, List<OpenAPIConverterDiagnostic> diagnostics) {
+    public AsyncAPIResult(OpenAPI openAPI, List<OpenAPIConverterDiagnostic> diagnostics) {
         this.openAPI = openAPI;
         this.diagnostics = diagnostics;
     }

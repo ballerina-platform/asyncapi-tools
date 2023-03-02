@@ -30,7 +30,7 @@ import static io.ballerina.openapi.generators.openapi.TestUtils.compareWithGener
 /**
  * Tests for openAPI info section mapping.
  */
-public class OpenAPIInfoTests {
+public class AsyncAPIInfoTests {
     private static final Path RES_DIR =
             Paths.get("src/test/resources/ballerina-to-openapi/openapi_info").toAbsolutePath();
     private Path tempDir;

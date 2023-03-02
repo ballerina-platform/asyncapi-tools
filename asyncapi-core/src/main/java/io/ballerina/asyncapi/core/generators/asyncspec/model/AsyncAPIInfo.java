@@ -22,16 +22,16 @@ import java.util.Optional;
 import static io.ballerina.openapi.converter.utils.ConverterCommonUtils.normalizeTitle;
 
 /**
- * This {@code OpenAPIInfo} contains details related to openAPI info section.
+ * This {@code AsyncAPIInfo} contains details related to openAPI info section.
  *
  * @since 2.0.0
  */
-public class OpenAPIInfo {
+public class AsyncAPIInfo {
     private final String title;
     private final String version;
     private final String contractPath;
 
-    public OpenAPIInfo(OpenAPIInfoBuilder openAPIInfoBuilder) {
+    public AsyncAPIInfo(OpenAPIInfoBuilder openAPIInfoBuilder) {
         this.title = openAPIInfoBuilder.title;
         this.version = openAPIInfoBuilder.version;
         this.contractPath = openAPIInfoBuilder.contractPath;
@@ -50,7 +50,7 @@ public class OpenAPIInfo {
     }
 
     /**
-     * This is the builder class for the {@link OpenAPIInfo}.
+     * This is the builder class for the {@link AsyncAPIInfo}.
      */
     public static class OpenAPIInfoBuilder {
         private String title;
@@ -72,9 +72,9 @@ public class OpenAPIInfo {
             return this;
         }
 
-        public OpenAPIInfo build() {
-            OpenAPIInfo openAPIInfo = new OpenAPIInfo(this);
-            return openAPIInfo;
+        public AsyncAPIInfo build() {
+            AsyncAPIInfo asyncAPIInfo = new AsyncAPIInfo(this);
+            return asyncAPIInfo;
         }
     }
 }

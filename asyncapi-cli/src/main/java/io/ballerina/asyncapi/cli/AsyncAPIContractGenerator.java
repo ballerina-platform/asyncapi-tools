@@ -18,12 +18,12 @@
 
 package io.ballerina.asyncapi.cli;
 
+import io.ballerina.asyncapi.core.generators.asyncspec.model.AsyncAPIResult;
 import io.ballerina.compiler.api.SemanticModel;
 import io.ballerina.compiler.syntax.tree.SyntaxTree;
 import io.ballerina.asyncapi.core.generators.asyncspec.diagnostic.DiagnosticMessages;
 import io.ballerina.asyncapi.core.generators.asyncspec.diagnostic.ExceptionDiagnostic;
 import io.ballerina.asyncapi.core.generators.asyncspec.diagnostic.AsyncAPIConverterDiagnostic;
-import io.ballerina.asyncapi.core.generators.asyncspec.model.OASResult;
 import io.ballerina.asyncapi.core.generators.asyncspec.utils.CodegenUtils;
 import io.ballerina.asyncapi.core.generators.asyncspec.utils.ServiceToOpenAPIConverterUtils;
 
@@ -111,12 +111,12 @@ public class AsyncAPIContractGenerator {
             return;
         }
         semanticModel = compilation.getSemanticModel(docId.moduleId());
-        List<OASResult> openAPIDefinitions = ServiceToOpenAPIConverterUtils.generateOAS3Definition(syntaxTree,
+        List<AsyncAPIResult> openAPIDefinitions = ServiceToOpenAPIConverterUtils.generateOAS3Definition(syntaxTree,
                 semanticModel, serviceName, needJson, inputPath);
 
         if (!openAPIDefinitions.isEmpty()) {
             List<String> fileNames = new ArrayList<>();
-            for (OASResult definition : openAPIDefinitions) {
+            for (AsyncAPIResult definition : openAPIDefinitions) {
                 try {
                     this.errors.addAll(definition.getDiagnostics());
                     if (definition.getOpenAPI().isPresent()) {
