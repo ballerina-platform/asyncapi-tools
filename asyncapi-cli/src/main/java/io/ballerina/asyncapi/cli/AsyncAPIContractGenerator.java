@@ -22,7 +22,7 @@ import io.ballerina.compiler.api.SemanticModel;
 import io.ballerina.compiler.syntax.tree.SyntaxTree;
 import io.ballerina.asyncapi.core.generators.asyncspec.diagnostic.DiagnosticMessages;
 import io.ballerina.asyncapi.core.generators.asyncspec.diagnostic.ExceptionDiagnostic;
-import io.ballerina.asyncapi.core.generators.asyncspec.diagnostic.OpenAPIConverterDiagnostic;
+import io.ballerina.asyncapi.core.generators.asyncspec.diagnostic.AsyncAPIConverterDiagnostic;
 import io.ballerina.asyncapi.core.generators.asyncspec.model.OASResult;
 import io.ballerina.asyncapi.core.generators.asyncspec.utils.CodegenUtils;
 import io.ballerina.asyncapi.core.generators.asyncspec.utils.ServiceToOpenAPIConverterUtils;
@@ -58,7 +58,7 @@ public class AsyncAPIContractGenerator {
     private SyntaxTree syntaxTree;
     private SemanticModel semanticModel;
     private Project project;
-    private List<OpenAPIConverterDiagnostic> errors = new ArrayList<>();
+    private List<AsyncAPIConverterDiagnostic> errors = new ArrayList<>();
     private PrintStream outStream = System.out;
 
     /**
@@ -68,18 +68,18 @@ public class AsyncAPIContractGenerator {
 
     }
 
-    public List<OpenAPIConverterDiagnostic> getErrors() {
+    public List<AsyncAPIConverterDiagnostic> getErrors() {
         return errors;
     }
 
     /**
-     * This util for generating OAS files.
+     * This util for generating AsyncAPI spec files.
      *
      * @param servicePath The path to a single ballerina file.
-     * @param outPath     The output directory to which the OpenAPI specifications should be generated to.
-     * @param serviceName Filter the services to generate OpenAPI specification for service with this name.
+     * @param outPath     The output directory to which the AsyncAPI specifications should be generated to.
+     * @param serviceName Filter the services to generate AsyncAPI specification for service with this name.
      */
-    public void generateOAS3DefinitionsAllService(Path servicePath, Path outPath, String serviceName,
+    public void generateAsyncAPIDefinitionsAllService(Path servicePath, Path outPath, String serviceName,
                                                   Boolean needJson) {
         // Load project instance for single ballerina file
         project = ProjectLoader.loadProject(servicePath);

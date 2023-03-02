@@ -29,7 +29,7 @@ import java.util.Optional;
  *
  * @since 2.0.0
  */
-public class IncompatibleResourceDiagnostic implements OpenAPIConverterDiagnostic {
+public class IncompatibleResourceDiagnostic implements AsyncAPIConverterDiagnostic {
     private final String code;
     private final String message;
     private final Location location;

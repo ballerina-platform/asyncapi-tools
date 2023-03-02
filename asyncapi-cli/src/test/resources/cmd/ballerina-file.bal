@@ -43,3 +43,31 @@ service class ChatServer {
     }
 }
 
+// Function to perform the broadcasting of messages.
+function broadcast(string|PlayerLeft|UserMove|Winner message) returns error? {
+    foreach websocket:Caller con in connectionsMap {
+        websocket:Error? err = con->writeMessage(message);
+        if err is websocket:Error {
+            io:println("Error sending message to the :" + check getUserSign(con, USER_SIGN) +
+                        ". Reason: " + err.message());
+        }
+    }
+}
+
+function getUserSign(websocket:Caller ep, string key) returns string|error {
+    return <string> check ep.getAttribute(key);
+}
+
+function calculateWinner() returns string? {
+    int[][] lines = [[0, 1, 2], [3, 4, 5], [6, 7, 8], [0, 3, 6], [1, 4, 7], [2, 5, 8], [0, 4, 8], [2, 4, 6]];
+    foreach int[] i in lines {
+        int[] block = i;
+        int a = block[0];
+        int b = block[1];
+        int c = block[2];
+        if squares[a] == squares[b] && squares[a] == squares[c] {
+            return squares[a];
+        }
+    }
+}
+

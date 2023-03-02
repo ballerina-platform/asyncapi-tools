@@ -27,7 +27,7 @@ import java.util.Optional;
  *
  * @since 2.0.0
  */
-public class ExceptionDiagnostic implements OpenAPIConverterDiagnostic {
+public class ExceptionDiagnostic implements AsyncAPIConverterDiagnostic {
     private final String code;
     private final String message;
     private final DiagnosticSeverity diagnosticSeverity;

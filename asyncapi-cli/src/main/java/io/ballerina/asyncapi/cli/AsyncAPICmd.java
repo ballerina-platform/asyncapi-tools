@@ -18,10 +18,10 @@
 package io.ballerina.asyncapi.cli;
 
 
+import io.ballerina.asyncapi.core.generators.asyncspec.diagnostic.AsyncAPIConverterDiagnostic;
 import io.ballerina.asyncapi.core.generators.asyncspec.diagnostic.DiagnosticMessages;
 import io.ballerina.asyncapi.core.generators.asyncspec.diagnostic.ExceptionDiagnostic;
 import io.ballerina.asyncapi.core.generators.asyncspec.diagnostic.IncompatibleResourceDiagnostic;
-import io.ballerina.asyncapi.core.generators.asyncspec.diagnostic.OpenAPIConverterDiagnostic;
 import io.ballerina.asyncapi.core.exception.BallerinaOpenApiException;
 import io.ballerina.asyncapi.core.model.Filter;
 
@@ -214,7 +214,7 @@ public class AsyncAPICmd implements BLauncherCmd {
      * @param fileName  input resource file
      */
     private void ballerinaToOpenApi(String fileName) {
-        List<OpenAPIConverterDiagnostic> errors = new ArrayList<>();
+        List<AsyncAPIConverterDiagnostic> errors = new ArrayList<>();
         final File balFile = new File(fileName);
         Path balFilePath = null;
         try {
@@ -232,7 +232,7 @@ public class AsyncAPICmd implements BLauncherCmd {
                 generatedFileType);
         errors.addAll(openApiConverter.getErrors());
         if (!errors.isEmpty()) {
-            for (OpenAPIConverterDiagnostic error: errors) {
+            for (AsyncAPIConverterDiagnostic error: errors) {
                 if (error instanceof ExceptionDiagnostic) {
                     this.outStream = System.err;
                     ExceptionDiagnostic exceptionDiagnostic = (ExceptionDiagnostic) error;
