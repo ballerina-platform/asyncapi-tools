@@ -1,0 +1,28 @@
+paths:
+  /ping:
+    get:
+      operationId: getPing
+      parameters:
+        - name: x-item
+          in: header
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Ok
+  /ping02:
+    get:
+      operationId: getPing02
+      parameters:
+        - name: x-item
+          in: header
+          required: true
+          schema:
+            type: array
+            items:
+              type: string
+      responses:
+        "200":
+          description: Ok
+components: {}

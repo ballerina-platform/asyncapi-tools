@@ -1,0 +1,49 @@
+openapi: 3.0.1
+info:
+  title: PayloadV
+  version: 0.0.0
+servers:
+  - url: "{server}:{port}/payloadV"
+    variables:
+      server:
+        default: http://localhost
+      port:
+        default: "9090"
+paths:
+  /:
+    get:
+      operationId: get
+      parameters:
+        - name: tag
+          in: query
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        "202":
+          description: Accepted
+    post:
+      operationId: post
+      responses:
+        "202":
+          description: Accepted
+  /v1/{id}/v2/{name}:
+    get:
+      operationId: getV1IdV2Name
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+        - name: name
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "202":
+          description: Accepted
+components: {}

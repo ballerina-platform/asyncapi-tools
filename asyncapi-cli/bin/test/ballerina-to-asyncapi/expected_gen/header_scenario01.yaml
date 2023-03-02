@@ -1,0 +1,28 @@
+paths:
+  /ping:
+    get:
+      operationId: getPing
+      parameters:
+        - name: X-Client
+          in: header
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Ok
+  /v1:
+    get:
+      operationId: getV1
+      parameters:
+        - name: XClient
+          in: header
+          required: true
+          schema:
+            type: array
+            items:
+              type: string
+      responses:
+        "200":
+          description: Ok
+components: {}

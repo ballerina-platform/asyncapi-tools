@@ -1,0 +1,13 @@
+paths:
+  /pets:
+    post:
+      operationId: postPets
+      requestBody:
+        content:
+          '*/*':
+            schema:
+              description: Any type of entity body
+      responses:
+        "200":
+          description: Ok
+components: {}

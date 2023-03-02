@@ -1,0 +1,41 @@
+paths:
+  /hi:
+    post:
+      operationId: postHi
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Dog'
+      responses:
+        "202":
+          description: Accepted
+components:
+  schemas:
+    Dog:
+      required:
+        - bark
+        - sibling
+      type: object
+      properties:
+        sibling:
+          type: array
+          items:
+            type: array
+            items:
+              $ref: '#/components/schemas/Pet'
+        bark:
+          type: boolean
+    Pet:
+      required:
+        - id
+        - name
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        name:
+          type: string
+        tag:
+          type: string

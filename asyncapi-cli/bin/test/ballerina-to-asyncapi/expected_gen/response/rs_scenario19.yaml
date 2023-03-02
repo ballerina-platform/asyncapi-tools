@@ -1,0 +1,21 @@
+paths:
+  /pet:
+    get:
+      operationId: getPet
+      responses:
+        default:
+          description: Any Response
+          content:
+            '*/*':
+              schema:
+                description: Any type of entity body
+  /pets:
+    get:
+      operationId: getPets
+      responses:
+        "200":
+          description: Ok
+          content:
+            application/json:
+              schema:
+                type: object

@@ -1,0 +1,14 @@
+paths:
+  /hi:
+    post:
+      operationId: postHi
+      requestBody:
+        content:
+          application/json:
+            schema: {}
+          application/xml:
+            schema: {}
+      responses:
+        "202":
+          description: Accepted
+components: {}

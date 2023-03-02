@@ -1,0 +1,47 @@
+paths:
+  /pets:
+    get:
+      operationId: getPets
+      parameters:
+        - name: pet
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Ok
+  /pet:
+    get:
+      operationId: getPet
+      parameters:
+        - name: pet
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Ok
+  /ping:
+    get:
+      operationId: getPing
+      parameters:
+        - name: offest
+          in: query
+          schema:
+            type: integer
+            format: int64
+      responses:
+        "200":
+          description: Ok
+  /ping02:
+    get:
+      operationId: getPing02
+      parameters:
+        - name: limitV
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Ok
+components: {}
