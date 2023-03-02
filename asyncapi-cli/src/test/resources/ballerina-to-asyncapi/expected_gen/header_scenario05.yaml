@@ -1,0 +1,14 @@
+paths:
+  /ping:
+    get:
+      operationId: getPing
+      parameters:
+        - name: headerValue
+          in: header
+          schema:
+            type: string
+            nullable: true
+      responses:
+        "200":
+          description: Ok
+components: {}

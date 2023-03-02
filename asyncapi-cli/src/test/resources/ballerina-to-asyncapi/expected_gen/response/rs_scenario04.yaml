@@ -1,0 +1,25 @@
+openapi: 3.0.1
+info:
+  title: PayloadV
+  version: 0.0.0
+servers:
+  - url: "{server}:{port}/payloadV"
+    variables:
+      server:
+        default: http://localhost
+      port:
+        default: "9090"
+paths:
+  /pets:
+    get:
+      operationId: getPets
+      responses:
+        "200":
+          description: Ok
+        "400":
+          description: BadRequest
+        "401":
+          description: Unauthorized
+        "404":
+          description: NotFound
+components: {}

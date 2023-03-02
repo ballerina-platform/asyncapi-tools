@@ -1,0 +1,64 @@
+paths:
+  /pets:
+    put:
+      operationId: putPets
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Tag'
+      responses:
+        "200":
+          description: Ok
+    post:
+      operationId: postPets
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Pet'
+      responses:
+        "200":
+          description: Ok
+components:
+  schemas:
+    TagType:
+      required:
+        - category
+        - id
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        category:
+          type: array
+          items:
+            type: string
+    Tag:
+      required:
+        - id
+        - name
+        - tagType
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        name:
+          type: string
+        tagType:
+          type: array
+          items:
+            $ref: '#/components/schemas/TagType'
+    Pet:
+      required:
+        - id
+        - name
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        name:
+          type: string

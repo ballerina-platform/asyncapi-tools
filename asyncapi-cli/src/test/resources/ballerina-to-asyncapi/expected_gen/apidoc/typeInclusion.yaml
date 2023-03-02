@@ -1,0 +1,66 @@
+openapi: 3.0.1
+info:
+  title: PayloadV
+  version: 0.0.0
+servers:
+  - url: "{server}:{port}/payloadV"
+    variables:
+      server:
+        default: petstore.swagger.io
+      port:
+        default: "443"
+paths:
+  /pet:
+    post:
+      operationId: postPet
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReservationReceipt'
+      responses:
+        "202":
+          description: Accepted
+components:
+  schemas:
+    Link:
+      required:
+        - href
+        - rel
+      type: object
+      properties:
+        rel:
+          type: string
+          description: link rel
+        href:
+          type: string
+          description: link href
+        mediaTypes:
+          type: array
+          description: link mediatype
+          items:
+            type: string
+      description: Link record
+    Links:
+      required:
+        - linkid
+        - links
+      type: object
+      properties:
+        links:
+          type: array
+          items:
+            $ref: '#/components/schemas/Link'
+        linkid:
+          type: integer
+          format: int64
+    ReservationReceipt:
+      allOf:
+        - $ref: '#/components/schemas/Links'
+        - required:
+            - id
+          type: object
+          properties:
+            id:
+              type: string
+              description: Reservation receipt id

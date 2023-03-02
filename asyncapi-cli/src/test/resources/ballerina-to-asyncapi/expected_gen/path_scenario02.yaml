@@ -1,0 +1,14 @@
+
+paths:
+  /:
+    get:
+      operationId: get
+      responses:
+        "202":
+          description: Accepted
+    post:
+      operationId: post
+      responses:
+        "202":
+          description: Accepted
+components: {}

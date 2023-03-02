@@ -1,0 +1,12 @@
+paths:
+  /v1:
+    post:
+      operationId: postV1
+      requestBody:
+        content:
+          application/json:
+            schema: {}
+      responses:
+        "200":
+          description: Ok
+components: {}

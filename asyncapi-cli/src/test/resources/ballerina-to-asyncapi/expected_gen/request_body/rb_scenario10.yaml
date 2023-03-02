@@ -1,0 +1,35 @@
+paths:
+  /:
+    get:
+      operationId: get
+      responses:
+        "200":
+          description: Successful
+          content:
+            application/json:
+              example: Ok
+    post:
+      operationId: post
+      responses:
+        "200":
+          description: Successful
+          content:
+            application/json:
+              example: Ok
+  /v1/{id}:
+    get:
+      operationId: getV1Id
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Successful
+          content:
+            application/json:
+              example: Ok
+components: {}
+x-original-swagger-version: "2.0"

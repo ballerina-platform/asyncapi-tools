@@ -1,0 +1,192 @@
+openapi: 3.0.1
+info:
+  title: PayloadV
+  version: 0.0.0
+servers:
+  - url: "{server}:{port}/payloadV"
+    variables:
+      server:
+        default: petstore.swagger.io
+      port:
+        default: "443"
+paths:
+  /pet:
+    post:
+      operationId: postPet
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResponseError'
+        "202":
+          description: Accepted
+  /pet02:
+    post:
+      operationId: postPet02
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResponseError02'
+        "202":
+          description: Accepted
+  /pet03:
+    post:
+      operationId: postPet03
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResponseError03'
+        "202":
+          description: Accepted
+  /pet04:
+    post:
+      operationId: postPet04
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResponseError04'
+        "202":
+          description: Accepted
+  /pet05:
+    post:
+      operationId: postPet05
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResponseError05'
+        "202":
+          description: Accepted
+  /pet06:
+    post:
+      operationId: postPet06
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResponseError06'
+        "202":
+          description: Accepted
+  /pet07:
+    post:
+      operationId: postPet07
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResponseError07'
+        "202":
+          description: Accepted
+components:
+  schemas:
+    ResponseError:
+      required:
+        - id
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          nullable: true
+        resError:
+          $ref: '#/components/schemas/ResponseError'
+    ResponseError02:
+      required:
+        - id
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          nullable: true
+        resError:
+          oneOf:
+            - $ref: '#/components/schemas/ResponseError02'
+            - type: string
+    ResponseError03:
+      required:
+        - id
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          nullable: true
+        resError:
+          type: array
+          items:
+            $ref: '#/components/schemas/ResponseError03'
+    ResponseError04:
+      required:
+        - id
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          nullable: true
+        resError:
+          type: array
+          items:
+            type: array
+            items:
+              $ref: '#/components/schemas/ResponseError04'
+    ResponseError05:
+      required:
+        - id
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          nullable: true
+        resError:
+          nullable: true
+          oneOf:
+            - $ref: '#/components/schemas/ResponseError05'
+    ResponseError06:
+      required:
+        - id
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          nullable: true
+        resError:
+          type: array
+          nullable: true
+          items:
+            $ref: '#/components/schemas/ResponseError06'
+    ResponseError07:
+      required:
+        - id
+        - resError
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          nullable: true
+        resError:
+          type: array
+          nullable: true
+          items:
+            $ref: '#/components/schemas/ResponseError07'

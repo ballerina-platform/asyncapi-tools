@@ -1,0 +1,12 @@
+paths:
+  /pets:
+    post:
+      operationId: postPets
+      requestBody:
+        content:
+          application/xml:
+            schema: {}
+      responses:
+        "200":
+          description: Ok
+components: {}
