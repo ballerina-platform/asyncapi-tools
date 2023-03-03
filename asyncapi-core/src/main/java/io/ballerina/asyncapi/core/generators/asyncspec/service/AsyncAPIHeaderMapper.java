@@ -35,10 +35,10 @@ import static io.ballerina.openapi.converter.utils.ConverterCommonUtils.unescape
  *
  * @since 2.0.0
  */
-public class OpenAPIHeaderMapper {
+public class AsyncAPIHeaderMapper {
     private final Map<String, String> apidocs;
 
-    public OpenAPIHeaderMapper(Map<String, String> apidocs) {
+    public AsyncAPIHeaderMapper(Map<String, String> apidocs) {
         this.apidocs = apidocs;
     }
 

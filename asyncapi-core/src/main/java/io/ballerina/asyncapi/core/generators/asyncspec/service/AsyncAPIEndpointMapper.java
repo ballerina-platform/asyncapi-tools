@@ -38,16 +38,16 @@ import static io.ballerina.openapi.converter.Constants.SERVER;
 /**
  * Extract OpenApi server information from and Ballerina endpoint.
  */
-public class OpenAPIEndpointMapper {
-    public static final OpenAPIEndpointMapper ENDPOINT_MAPPER = new OpenAPIEndpointMapper();
+public class AsyncAPIEndpointMapper {
+    public static final AsyncAPIEndpointMapper ENDPOINT_MAPPER = new AsyncAPIEndpointMapper();
 
     /**
-     * Convert endpoints bound to {@code service} openapi server information.
+     * Convert endpoints bound to {@code service} asyncapi server information.
      *
-     * @param openAPI   openapi definition to attach extracted information
+     * @param openAPI   asyncapi definition to attach extracted information
      * @param endpoints all endpoints defined in ballerina source
      * @param service   service node with bound endpoints
-     * @return openapi definition with Server information
+     * @return asyncapi definition with Server information
      */
     public OpenAPI getServers(OpenAPI openAPI, List<ListenerDeclarationNode> endpoints,
                               ServiceDeclarationNode service) {

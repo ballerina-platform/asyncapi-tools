@@ -16,7 +16,7 @@
  *  under the License.
  */
 
-package io.ballerina.asyncapi.generators.openapi;
+package io.ballerina.asyncapi.generators.asyncapi;
 
 import org.testng.annotations.AfterMethod;
 import org.testng.annotations.AfterTest;
@@ -32,12 +32,12 @@ import java.nio.file.Paths;
  * Ballerina header conversion to OpenAPI will test in this class.
  */
 public class HeaderTests {
-    private static final Path RES_DIR = Paths.get("src/test/resources/ballerina-to-openapi/headers").toAbsolutePath();
+    private static final Path RES_DIR = Paths.get("src/test/resources/ballerina-to-asyncapi/headers").toAbsolutePath();
     private Path tempDir;
 
     @BeforeMethod
     public void setup() throws IOException {
-        this.tempDir = Files.createTempDirectory("bal-to-openapi-test-out-" + System.nanoTime());
+        this.tempDir = Files.createTempDirectory("bal-to-asyncapi-test-out-" + System.nanoTime());
     }
 
     @Test(description = "Generate OpenAPI spec with header type parameter")

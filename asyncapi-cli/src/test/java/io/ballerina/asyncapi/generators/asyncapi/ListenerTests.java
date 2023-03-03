@@ -15,7 +15,7 @@
  *  specific language governing permissions and limitations
  *  under the License.
  */
-package io.ballerina.asyncapi.generators.openapi;
+package io.ballerina.asyncapi.generators.asyncapi;
 
 import io.ballerina.openapi.cmd.OASContractGenerator;
 import io.ballerina.openapi.converter.diagnostic.OpenAPIConverterDiagnostic;
@@ -36,12 +36,12 @@ import java.util.List;
  * {@link io.ballerina.openapi.converter.service.OpenAPIEndpointMapper}.
  */
 public class ListenerTests {
-    private static final Path RES_DIR = Paths.get("src/test/resources/ballerina-to-openapi/").toAbsolutePath();
+    private static final Path RES_DIR = Paths.get("src/test/resources/ballerina-to-asyncapi/").toAbsolutePath();
     private Path tempDir;
 
     @BeforeMethod
     public void setup() throws IOException {
-        this.tempDir = Files.createTempDirectory("bal-to-openapi-test-out-" + System.nanoTime());
+        this.tempDir = Files.createTempDirectory("bal-to-asyncapi-test-out-" + System.nanoTime());
     }
     //Listeners
     @Test(description = "Generate OpenAPI spec for single listener")

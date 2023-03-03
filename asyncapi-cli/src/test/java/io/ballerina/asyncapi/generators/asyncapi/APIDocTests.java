@@ -15,7 +15,7 @@
  *  specific language governing permissions and limitations
  *  under the License.
  */
-package io.ballerina.asyncapi.generators.openapi;
+package io.ballerina.asyncapi.generators.asyncapi;
 
 import org.testng.annotations.AfterMethod;
 import org.testng.annotations.AfterTest;
@@ -31,12 +31,12 @@ import java.nio.file.Paths;
  * This test class for the covering the unit tests for return type scenarios.
  */
 public class APIDocTests {
-    private static final Path RES_DIR = Paths.get("src/test/resources/ballerina-to-openapi").toAbsolutePath();
+    private static final Path RES_DIR = Paths.get("src/test/resources/ballerina-to-asyncapi").toAbsolutePath();
     private Path tempDir;
 
     @BeforeMethod
     public void setup() throws IOException {
-        this.tempDir = Files.createTempDirectory("bal-to-openapi-test-out-" + System.nanoTime());
+        this.tempDir = Files.createTempDirectory("bal-to-asyncapi-test-out-" + System.nanoTime());
     }
 
     @Test(description = "Resource function api doc mapped to OAS operation summary")

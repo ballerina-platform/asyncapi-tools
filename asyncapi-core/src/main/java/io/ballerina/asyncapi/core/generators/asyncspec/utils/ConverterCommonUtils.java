@@ -21,11 +21,10 @@ package io.ballerina.asyncapi.core.generators.asyncspec.utils;
 import io.ballerina.compiler.api.SemanticModel;
 import io.ballerina.compiler.api.symbols.*;
 import io.ballerina.compiler.syntax.tree.*;
-import io.ballerina.openapi.converter.Constants;
-import io.ballerina.openapi.converter.diagnostic.DiagnosticMessages;
-import io.ballerina.openapi.converter.diagnostic.ExceptionDiagnostic;
-import io.ballerina.openapi.converter.diagnostic.OpenAPIConverterDiagnostic;
-import io.ballerina.openapi.converter.model.OASResult;
+import io.ballerina.asyncapi.core.generators.asyncspec.diagnostic.DiagnosticMessages;
+import io.ballerina.asyncapi.core.generators.asyncspec.diagnostic.ExceptionDiagnostic;
+import io.ballerina.asyncapi.core.generators.asyncspec.diagnostic.AsyncAPIConverterDiagnostic;
+import io.ballerina.asyncapi.core.generators.asyncspec.model.AsyncAPIResult;
 import io.ballerina.runtime.api.utils.IdentifierUtils;
 import io.ballerina.tools.diagnostics.Diagnostic;
 import io.ballerina.tools.diagnostics.DiagnosticSeverity;
@@ -33,11 +32,7 @@ import io.ballerina.tools.diagnostics.Location;
 import io.ballerina.tools.text.LinePosition;
 import io.ballerina.tools.text.LineRange;
 import io.ballerina.tools.text.TextRange;
-import io.swagger.v3.oas.models.OpenAPI;
-import io.swagger.v3.oas.models.media.*;
-import io.swagger.v3.parser.OpenAPIV3Parser;
-import io.swagger.v3.parser.core.models.ParseOptions;
-import io.swagger.v3.parser.core.models.SwaggerParseResult;
+
 import org.apache.commons.io.FilenameUtils;
 
 import java.io.IOException;
@@ -47,7 +42,7 @@ import java.nio.file.Paths;
 import java.util.*;
 import java.util.stream.Collectors;
 
-import static io.ballerina.openapi.converter.Constants.*;
+import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.*;
 
 /**
  * Utilities used in Ballerina  to OpenAPI converter.
@@ -312,8 +307,8 @@ public class ConverterCommonUtils {
      * @param definitionURI URI for the OpenAPI contract
      * @return {@link OASResult}  OpenAPI model
      */
-    public static OASResult parseOpenAPIFile(String definitionURI) {
-        List<OpenAPIConverterDiagnostic> diagnostics = new ArrayList<>();
+    public static AsyncAPIResult parseOpenAPIFile(String definitionURI) {
+        List<AsyncAPIConverterDiagnostic> diagnostics = new ArrayList<>();
         Path contractPath = Paths.get(definitionURI);
         ParseOptions parseOptions = new ParseOptions();
         parseOptions.setResolve(true);

@@ -22,7 +22,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Constants for openapi commands.
+ * Constants for asyncapi commands.
  *
  * @since 1.2.0
  */

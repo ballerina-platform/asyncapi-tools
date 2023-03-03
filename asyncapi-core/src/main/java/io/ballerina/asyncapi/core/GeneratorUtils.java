@@ -18,15 +18,15 @@
 //
 //package io.ballerina.asyncapi.core;
 //
-//import io.ballerina.asyncapi.core.exception.BallerinaOpenApiException;
+//import io.ballerina.asyncapi.core.exception.BallerinaAsyncApiException;
 //import io.ballerina.compiler.api.SemanticModel;
 //import io.ballerina.compiler.api.symbols.Symbol;
 //import io.ballerina.compiler.api.symbols.SymbolKind;
 //import io.ballerina.compiler.syntax.tree.*;
 //
-//import io.ballerina.openapi.core.exception.BallerinaOpenApiException;
-//import io.ballerina.openapi.core.generators.client.BallerinaUtilGenerator;
-//import io.ballerina.openapi.core.model.GenSrcFile;
+//import io.ballerina.asyncapi.core.exception.BallerinaAsyncApiException;
+//import io.ballerina.asyncapi.core.generators.client.BallerinaUtilGenerator;
+//import io.ballerina.asyncapi.core.model.GenSrcFile;
 //import io.ballerina.projects.DocumentId;
 //import io.ballerina.projects.Project;
 //import io.ballerina.projects.ProjectException;
@@ -52,7 +52,7 @@
 //import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.*;
 //import static io.ballerina.compiler.syntax.tree.NodeFactory.*;
 //import static io.ballerina.compiler.syntax.tree.SyntaxKind.*;
-//import static io.ballerina.openapi.core.GeneratorConstants.*;
+//import static io.ballerina.asyncapi.core.GeneratorConstants.*;
 //
 ///**
 // * This class util for store all the common scenarios.
@@ -97,10 +97,10 @@
 //     * @param path      - resource path
 //     * @param operation - resource operation
 //     * @return - node lists
-//     * @throws BallerinaOpenApiException
+//     * @throws BallerinaAsyncApiException
 //     */
 //    public static List<Node> getRelativeResourcePath(String path, Operation operation)
-//            throws BallerinaOpenApiException {
+//            throws BallerinaAsyncApiException {
 //
 //        List<Node> functionRelativeResourcePath = new ArrayList<>();
 //        String[] pathNodes = path.split(SLASH);
@@ -139,7 +139,7 @@
 //
 //    private static void extractPathParameterDetails(Operation operation, List<Node> functionRelativeResourcePath,
 //                                                    String pathNode, String pathParam)
-//            throws BallerinaOpenApiException {
+//            throws BallerinaAsyncApiException {
 //        // check whether path parameter segment has special character
 //        String[] split = pathNode.split(CLOSE_CURLY_BRACE, 2);
 //        Pattern pattern = Pattern.compile(SPECIAL_CHARACTERS_REGEX);
@@ -186,12 +186,12 @@
 //     * @param type OpenApi parameter types
 //     * @return ballerina type
 //     */
-//    public static String convertOpenAPITypeToBallerina(String type) throws BallerinaOpenApiException {
+//    public static String convertOpenAPITypeToBallerina(String type) throws BallerinaAsyncApiException {
 //
 //        if (GeneratorConstants.TYPE_MAP.containsKey(type)) {
 //            return GeneratorConstants.TYPE_MAP.get(type);
 //        } else {
-//            throw new BallerinaOpenApiException("Unsupported OAS data type `" + type + "`");
+//            throw new BallerinaAsyncApiException("Unsupported OAS data type `" + type + "`");
 //        }
 //    }
 //
@@ -275,16 +275,16 @@
 //     *
 //     * @param referenceVariable - Reference String
 //     * @return Reference variable name
-//     * @throws BallerinaOpenApiException - Throws an exception if the reference string is incompatible.
+//     * @throws BallerinaAsyncApiException - Throws an exception if the reference string is incompatible.
 //     *                                   Note : Current implementation will not support external links a references.
 //     */
-//    public static String extractReferenceType(String referenceVariable) throws BallerinaOpenApiException {
+//    public static String extractReferenceType(String referenceVariable) throws BallerinaAsyncApiException {
 //
 //        if (referenceVariable.startsWith("#") && referenceVariable.contains("/")) {
 //            String[] refArray = referenceVariable.split("/");
 //            return refArray[refArray.length - 1];
 //        } else {
-//            throw new BallerinaOpenApiException("Invalid reference value : " + referenceVariable
+//            throw new BallerinaAsyncApiException("Invalid reference value : " + referenceVariable
 //                    + "\nBallerina only supports local reference values.");
 //        }
 //    }
@@ -298,16 +298,16 @@
 //     * Util for take OpenApi spec from given yaml file.
 //     */
 //    public static OpenAPI getOpenAPIFromOpenAPIV3Parser(Path definitionPath) throws
-//            IOException, BallerinaOpenApiException {
+//            IOException, BallerinaAsyncApiException {
 //
 //        Path contractPath = java.nio.file.Paths.get(definitionPath.toString());
 //        if (!Files.exists(contractPath)) {
-//            throw new BallerinaOpenApiException(ErrorMessages.invalidFilePath(definitionPath.toString()));
+//            throw new BallerinaAsyncApiException(ErrorMessages.invalidFilePath(definitionPath.toString()));
 //        }
 //        if (!(definitionPath.toString().endsWith(YAML_EXTENSION) ||
 //                definitionPath.toString().endsWith(JSON_EXTENSION) ||
 //                definitionPath.toString().endsWith(YML_EXTENSION))) {
-//            throw new BallerinaOpenApiException(ErrorMessages.invalidFileType());
+//            throw new BallerinaAsyncApiException(ErrorMessages.invalidFileType());
 //        }
 //        String openAPIFileContent = Files.readString(definitionPath);
 //        ParseOptions parseOptions = new ParseOptions();
@@ -316,13 +316,13 @@
 //        SwaggerParseResult parseResult = new OpenAPIParser().readContents(openAPIFileContent, null, parseOptions);
 //        if (!parseResult.getMessages().isEmpty()) {
 //            if (parseResult.getMessages().contains(UNSUPPORTED_OPENAPI_VERSION_PARSER_MESSAGE)) {
-//                throw new BallerinaOpenApiException(ErrorMessages.unsupportedOpenAPIVersion());
+//                throw new BallerinaAsyncApiException(ErrorMessages.unsupportedOpenAPIVersion());
 //            }
 //            StringBuilder errorMessage = new StringBuilder("OpenAPI definition has errors: \n");
 //            for (String message : parseResult.getMessages()) {
 //                errorMessage.append(message).append(LINE_SEPARATOR);
 //            }
-//            throw new BallerinaOpenApiException(errorMessage.toString());
+//            throw new BallerinaAsyncApiException(errorMessage.toString());
 //        }
 //        return parseResult.getOpenAPI();
 //    }
@@ -602,10 +602,10 @@
 //     * @param openAPIPath - openAPI file path
 //     * @return - openAPI specification
 //     * @throws IOException
-//     * @throws BallerinaOpenApiException
+//     * @throws BallerinaAsyncApiException
 //     */
 //    public static OpenAPI normalizeOpenAPI(Path openAPIPath, boolean isClient) throws IOException,
-//            BallerinaOpenApiException {
+//            BallerinaAsyncApiException {
 //        OpenAPI openAPI = getOpenAPIFromOpenAPIV3Parser(openAPIPath);
 //        io.swagger.v3.oas.models.Paths openAPIPaths = openAPI.getPaths();
 //        if (isClient) {
@@ -634,9 +634,9 @@
 //     * -- ex: GetPetName -> getPetName
 //     *
 //     * @param paths List of paths given in the OpenAPI definition
-//     * @throws BallerinaOpenApiException When operationId is missing in any path
+//     * @throws BallerinaAsyncApiException When operationId is missing in any path
 //     */
-//    public static void validateOperationIds(Set<Map.Entry<String, PathItem>> paths) throws BallerinaOpenApiException {
+//    public static void validateOperationIds(Set<Map.Entry<String, PathItem>> paths) throws BallerinaAsyncApiException {
 //        List<String> errorList = new ArrayList<>();
 //        for (Map.Entry<String, PathItem> entry : paths) {
 //            for (Map.Entry<PathItem.HttpMethod, Operation> operation :
@@ -651,7 +651,7 @@
 //            }
 //        }
 //        if (!errorList.isEmpty()) {
-//            throw new BallerinaOpenApiException(
+//            throw new BallerinaAsyncApiException(
 //                    "OpenAPI definition has errors: " + LINE_SEPARATOR + String.join(LINE_SEPARATOR, errorList));
 //        }
 //    }
@@ -660,9 +660,9 @@
 //     * Validate if requestBody found in GET/DELETE/HEAD operation.
 //     *
 //     * @param paths - List of paths given in the OpenAPI definition
-//     * @throws BallerinaOpenApiException - If requestBody found in GET/DELETE/HEAD operation
+//     * @throws BallerinaAsyncApiException - If requestBody found in GET/DELETE/HEAD operation
 //     */
-//    public static void validateRequestBody(Set<Map.Entry<String, PathItem>> paths) throws BallerinaOpenApiException {
+//    public static void validateRequestBody(Set<Map.Entry<String, PathItem>> paths) throws BallerinaAsyncApiException {
 //        List<String> errorList = new ArrayList<>();
 //        for (Map.Entry<String, PathItem> entry : paths) {
 //            if (!entry.getValue().readOperationsMap().isEmpty()) {
@@ -683,7 +683,7 @@
 //            for (String message : errorList) {
 //                errorMessage.append(message).append(LINE_SEPARATOR);
 //            }
-//            throw new BallerinaOpenApiException(errorMessage.toString());
+//            throw new BallerinaAsyncApiException(errorMessage.toString());
 //        }
 //    }
 //
@@ -733,7 +733,7 @@
 //
 //    private static List<String> getUnusedTypeDefinitionNameList(Map<String, String> srcFiles) throws IOException {
 //        List<String> unusedTypeDefinitionNameList = new ArrayList<>();
-//        Path tmpDir = Files.createTempDirectory(".openapi-tmp" + System.nanoTime());
+//        Path tmpDir = Files.createTempDirectory(".asyncapi-tmp" + System.nanoTime());
 //        writeFilesTemp(srcFiles, tmpDir);
 //        if (Files.exists(tmpDir.resolve(CLIENT_FILE_NAME)) && Files.exists(tmpDir.resolve(TYPE_FILE_NAME)) &&
 //                Files.exists(tmpDir.resolve(BALLERINA_TOML))) {

@@ -23,12 +23,12 @@ package io.ballerina.asyncapi.core.exception;
  *
  * @since 1.3.0
  */
-public class BallerinaOpenApiException extends Exception {
-    public BallerinaOpenApiException(String message, Throwable e) {
+public class BallerinaAsyncApiException extends Exception {
+    public BallerinaAsyncApiException(String message, Throwable e) {
         super(message, e);
     }
 
-    public BallerinaOpenApiException(String message) {
+    public BallerinaAsyncApiException(String message) {
         super(message);
     }
 }

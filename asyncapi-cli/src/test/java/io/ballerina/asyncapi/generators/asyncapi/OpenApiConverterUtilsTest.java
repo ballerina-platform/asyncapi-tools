@@ -16,7 +16,7 @@
  *  under the License.
  */
 
-package io.ballerina.asyncapi.generators.openapi;
+package io.ballerina.asyncapi.generators.asyncapi;
 
 import io.ballerina.openapi.cmd.OASContractGenerator;
 import org.testng.Assert;
@@ -38,12 +38,12 @@ import static io.ballerina.openapi.generators.openapi.TestUtils.*;
  * Ballerina conversion to OpenApi will test in this class.
  */
 public class OpenApiConverterUtilsTest {
-    private static final Path RES_DIR = Paths.get("src/test/resources/ballerina-to-openapi/").toAbsolutePath();
+    private static final Path RES_DIR = Paths.get("src/test/resources/ballerina-to-asyncapi/").toAbsolutePath();
     private Path tempDir;
 
     @BeforeMethod
     public void setup() throws IOException {
-        this.tempDir = Files.createTempDirectory("bal-to-openapi-test-out-" + System.nanoTime());
+        this.tempDir = Files.createTempDirectory("bal-to-asyncapi-test-out-" + System.nanoTime());
     }
 
     @Test(description = "Generate OpenAPI spec")
@@ -182,7 +182,7 @@ public class OpenApiConverterUtilsTest {
     @Test(description = "Given ballerina service has escape character")
     public void testForRemovingEscapeIdentifier() throws IOException {
         Path ballerinaFilePath = RES_DIR.resolve("escape_identifier.bal");
-        Path tempDir = Files.createTempDirectory("bal-to-openapi-test-out-" + System.nanoTime());
+        Path tempDir = Files.createTempDirectory("bal-to-asyncapi-test-out-" + System.nanoTime());
         try {
             OASContractGenerator openApiConverter = new OASContractGenerator();
             openApiConverter.generateOAS3DefinitionsAllService(ballerinaFilePath, tempDir, null

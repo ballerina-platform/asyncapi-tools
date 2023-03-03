@@ -12,6 +12,9 @@ version '1.0-SNAPSHOT'
 configurations {
     balTools
 }
+configurations.all {
+    resolutionStrategy.preferProjectModules()
+}
 
 dependencies {
     implementation project(':asyncapi-core')
@@ -21,10 +24,10 @@ dependencies {
     implementation "info.picocli:picocli"
     implementation "org.ballerinalang:formatter-core"
     implementation "org.ballerinalang:ballerina-tools-api"
+    implementation "commons-io:commons-io"
     testImplementation "org.testng:testng"
     testImplementation 'junit:junit:4.13.1'
     implementation "com.google.code.findbugs:jsr305"
-    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.8.1'
 
     balTools ("org.ballerinalang:jballerina-tools:${ballerinaLangVersion}") {
         transitive = false

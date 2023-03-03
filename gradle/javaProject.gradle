@@ -47,6 +47,9 @@ dependencies {
         implementation "com.fasterxml.jackson.core:jackson-databind:2.14.2"
         implementation "com.google.code.findbugs:jsr305:3.0.2"
         implementation "info.picocli:picocli:4.7.1"
+        implementation "commons-io:commons-io:${commonsIoVersion}"
+        implementation "com.softwaremill.sttp.apispec:asyncapi-model_3:${asyncApiModelVersion}"
+        implementation "com.softwaremill.sttp.apispec:asyncapi-circe-yaml_3:${asyncApiModelVersion}"
         implementation "org.ballerinalang:ballerina-lang:${ballerinaLangVersion}"
         implementation "org.ballerinalang:ballerina-parser:${ballerinaLangVersion}"
         implementation "org.ballerinalang:ballerina-cli:${ballerinaLangVersion}"
@@ -55,6 +58,7 @@ dependencies {
         implementation "org.ballerinalang:ballerina-runtime:${ballerinaLangVersion}"
         implementation "org.ballerinalang:language-server-commons:${ballerinaLangVersion}"
         testImplementation "org.testng:testng:${testngVersion}"
+
     }
 
     jacocoRuntime "org.jacoco:org.jacoco.agent:${jacoco.toolVersion}:runtime"
@@ -64,7 +68,7 @@ dependencies {
 
 sourceCompatibility = JavaVersion.VERSION_11
 
-tasks.withType(JavaCompile) {
+tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8'
 }
 
@@ -89,12 +93,13 @@ test {
     }
 }
 
-task validateSpotbugs() {
+tasks.register("validateSpotbugs")
+validateSpotbugs() {
     doLast {
         if (spotbugsMain.reports.size() > 0 &&
-                spotbugsMain.reports[0].destination.exists() &&
-                spotbugsMain.reports[0].destination.text.readLines().size() > 0) {
-            spotbugsMain.reports[0].destination?.eachLine {
+                spotbugsMain.reports[0].outputLocation.exists() &&
+                spotbugsMain.reports[0].outputLocation.text.readLines().size() > 0) {
+            spotbugsMain.reports[0].outputLocation?.eachLine {
                 println 'Failure: ' + it
             }
             throw new GradleException("Spotbugs rule violations were found.")

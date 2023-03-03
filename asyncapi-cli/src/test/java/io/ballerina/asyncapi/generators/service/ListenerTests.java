@@ -35,7 +35,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * All the tests related to the {@code io.ballerina.openapi.generators.service.ListenerGenerator} util.
+ * All the tests related to the {@code io.ballerina.asyncapi.generators.service.ListenerGenerator} util.
  */
 public class ListenerTests {
     private static final Path RES_DIR = Paths.get("src/test/resources/").toAbsolutePath();

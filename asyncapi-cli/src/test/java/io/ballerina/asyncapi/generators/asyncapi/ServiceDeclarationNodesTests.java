@@ -15,7 +15,7 @@
  *  specific language governing permissions and limitations
  *  under the License.
  */
-package io.ballerina.asyncapi.generators.openapi;
+package io.ballerina.asyncapi.generators.asyncapi;
 
 import io.ballerina.openapi.cmd.OASContractGenerator;
 import org.testng.Assert;
@@ -38,12 +38,12 @@ import static io.ballerina.openapi.generators.openapi.TestUtils.deleteDirectory;
  */
 public class ServiceDeclarationNodesTests {
     private static final Path RES_DIR =
-            Paths.get("src/test/resources/ballerina-to-openapi/advance").toAbsolutePath();
+            Paths.get("src/test/resources/ballerina-to-asyncapi/advance").toAbsolutePath();
     private Path tempDir;
 
     @BeforeMethod
     public void setup() throws IOException {
-        this.tempDir = Files.createTempDirectory("bal-to-openapi-test-out-" + System.nanoTime());
+        this.tempDir = Files.createTempDirectory("bal-to-asyncapi-test-out-" + System.nanoTime());
     }
 
     @Test(description = "Multiple services with same absolute path")
@@ -84,9 +84,9 @@ public class ServiceDeclarationNodesTests {
 
     private void executeMethod(Path ballerinaFilePath, String yamlFile, String generatedYamlFile,
                                String secondGeneratedFile) throws IOException {
-        Path tempDir = Files.createTempDirectory("bal-to-openapi-test-out-" + System.nanoTime());
+        Path tempDir = Files.createTempDirectory("bal-to-asyncapi-test-out-" + System.nanoTime());
         try {
-            String expectedYamlContent = getStringFromGivenBalFile(RES_DIR.resolve("openapi"),
+            String expectedYamlContent = getStringFromGivenBalFile(RES_DIR.resolve("asyncapi"),
                     yamlFile);
             OASContractGenerator openApiConverter = new OASContractGenerator();
             openApiConverter.generateOAS3DefinitionsAllService(ballerinaFilePath, tempDir, null, false);

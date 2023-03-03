@@ -28,7 +28,7 @@ import java.text.MessageFormat;
 import java.util.List;
 
 /**
- * Represents a {@code Diagnostic} related to openapi command.
+ * Represents a {@code Diagnostic} related to asyncapi command.
  *
  * @since 2.0.0
  */

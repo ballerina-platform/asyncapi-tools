@@ -40,15 +40,15 @@ import static io.ballerina.openapi.converter.utils.ConverterCommonUtils.unescape
  *
  * @since 2.0.0
  */
-public class OpenAPIQueryParameterMapper {
+public class AsyncAPIQueryParameterMapper {
     private final Components components;
     private final SemanticModel semanticModel;
     private final Map<String, String> apidocs;
     private final SyntaxKind[] validExpressionKind = {STRING_LITERAL, NUMERIC_LITERAL, BOOLEAN_LITERAL,
             LIST_CONSTRUCTOR, NIL_LITERAL, MAPPING_CONSTRUCTOR};
 
-    public OpenAPIQueryParameterMapper(Map<String, String> apidocs, Components components,
-                                       SemanticModel semanticModel) {
+    public AsyncAPIQueryParameterMapper(Map<String, String> apidocs, Components components,
+                                        SemanticModel semanticModel) {
         this.apidocs = apidocs;
         this.components = components;
         this.semanticModel = semanticModel;
@@ -92,7 +92,7 @@ public class OpenAPIQueryParameterMapper {
             QueryParameter queryParameter = new QueryParameter();
             queryParameter.setName(ConverterCommonUtils.unescapeIdentifier(queryParamName));
             SimpleNameReferenceNode queryNode = (SimpleNameReferenceNode) queryParam.typeName();
-            OpenAPIComponentMapper componentMapper = new OpenAPIComponentMapper(components);
+            AsyncAPIComponentMapper componentMapper = new AsyncAPIComponentMapper(components);
             TypeSymbol typeSymbol = (TypeSymbol) semanticModel.symbol(queryNode).orElseThrow();
             componentMapper.createComponentSchema(components.getSchemas(), typeSymbol);
             Schema schema = new Schema();

@@ -18,23 +18,19 @@
 
 package io.ballerina.asyncapi.core.generators.asyncspec.utils;
 
+import io.ballerina.asyncapi.core.generators.asyncspec.diagnostic.AsyncAPIConverterDiagnostic;
+import io.ballerina.asyncapi.core.generators.asyncspec.diagnostic.DiagnosticMessages;
+import io.ballerina.asyncapi.core.generators.asyncspec.diagnostic.ExceptionDiagnostic;
+import io.ballerina.asyncapi.core.generators.asyncspec.model.AsyncAPIInfo;
+import io.ballerina.asyncapi.core.generators.asyncspec.model.AsyncAPIResult;
+import io.ballerina.asyncapi.core.generators.asyncspec.service.AsyncAPIEndpointMapper;
+import io.ballerina.asyncapi.core.generators.asyncspec.service.AsyncAPIServiceMapper;
 import io.ballerina.compiler.api.SemanticModel;
 import io.ballerina.compiler.api.symbols.ModuleSymbol;
 import io.ballerina.compiler.api.symbols.ServiceDeclarationSymbol;
 import io.ballerina.compiler.api.symbols.Symbol;
 import io.ballerina.compiler.syntax.tree.*;
-import io.ballerina.openapi.converter.diagnostic.DiagnosticMessages;
-import io.ballerina.openapi.converter.diagnostic.ExceptionDiagnostic;
-import io.ballerina.openapi.converter.diagnostic.OpenAPIConverterDiagnostic;
-import io.ballerina.openapi.converter.model.OASResult;
-import io.ballerina.openapi.converter.model.OpenAPIInfo;
-import io.ballerina.openapi.converter.service.OpenAPIEndpointMapper;
-import io.ballerina.openapi.converter.service.OpenAPIServiceMapper;
 import io.ballerina.tools.diagnostics.Location;
-import io.swagger.v3.core.util.Json;
-import io.swagger.v3.core.util.Yaml;
-import io.swagger.v3.oas.models.OpenAPI;
-import io.swagger.v3.oas.models.info.Info;
 
 import java.io.File;
 import java.io.IOException;
@@ -43,34 +39,34 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
 
-import static io.ballerina.openapi.converter.Constants.*;
-import static io.ballerina.openapi.converter.utils.ConverterCommonUtils.*;
+import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.*;
+import static io.ballerina.asyncapi.core.generators.asyncspec.utils.ConverterCommonUtils.*;
 
 /**
- * The ServiceToOpenAPIConverterUtils provide API for convert ballerina service into openAPI specification.
+ * The ServiceToAsyncAPIConverterUtils provide API for convert ballerina service into openAPI specification.
  *
  * @since 2.0.0
  */
-public class ServiceToOpenAPIConverterUtils {
+public class ServiceToAsyncAPIConverterUtils {
 
     /**
-     * This method will generate  openapi definition Map lists with ballerina code.
+     * This method will generate asyncapi definition Map lists with ballerina code.
      *
      * @param syntaxTree    - Syntax tree the related to ballerina service
      * @param semanticModel - Semantic model related to ballerina module
-     * @param serviceName   - Service name that need to generate the openAPI specification
+     * @param serviceName   - Service name that need to generate the asyncAPI specification
      * @param needJson      - Flag for enabling the generated file format with json or YAML
      * @param inputPath     - Input file path for resolve the annotation details
-     * @return - {@link Map} with openAPI definitions for service nodes
+     * @return - {@link Map} with asyncAPI definitions for service nodes
      */
-    public static List<OASResult> generateOAS3Definition(SyntaxTree syntaxTree, SemanticModel semanticModel,
-                                                         String serviceName, Boolean needJson,
-                                                         Path inputPath) {
+    public static List<AsyncAPIResult> generateAsyncAPISpecDefinition(SyntaxTree syntaxTree, SemanticModel semanticModel,
+                                                              String serviceName, Boolean needJson,
+                                                              Path inputPath) {
         List<ListenerDeclarationNode> endpoints = new ArrayList<>();
         Map<String, ServiceDeclarationNode> servicesToGenerate = new HashMap<>();
         List<String> availableService = new ArrayList<>();
-        List<OpenAPIConverterDiagnostic> diagnostics = new ArrayList<>();
-        List<OASResult> outputs = new ArrayList<>();
+        List<AsyncAPIConverterDiagnostic> diagnostics = new ArrayList<>();
+        List<AsyncAPIResult> outputs = new ArrayList<>();
         if (containErrors(semanticModel.diagnostics())) {
             DiagnosticMessages messages = DiagnosticMessages.OAS_CONVERTOR_106;
             ExceptionDiagnostic error = new ExceptionDiagnostic(messages.getCode(), messages.getDescription(),
@@ -87,17 +83,17 @@ public class ServiceToOpenAPIConverterUtils {
                         null, serviceName, availableService.toString());
                 diagnostics.add(error);
             }
-            // Generating openapi specification for selected services
+            // Generating asyncapi specification for selected services
             for (Map.Entry<String, ServiceDeclarationNode> serviceNode : servicesToGenerate.entrySet()) {
                 String openApiName = getOpenApiFileName(syntaxTree.filePath(), serviceNode.getKey(), needJson);
-                OASResult oasDefinition = generateOAS(serviceNode.getValue(), endpoints, semanticModel, openApiName,
+                AsyncAPIResult oasDefinition = generateOAS(serviceNode.getValue(), endpoints, semanticModel, openApiName,
                         inputPath);
                 oasDefinition.setServiceName(openApiName);
                 outputs.add(oasDefinition);
             }
         }
         if (!diagnostics.isEmpty()) {
-            OASResult exceptions = new OASResult(null, diagnostics);
+            AsyncAPIResult exceptions = new AsyncAPIResult(null, diagnostics);
             outputs.add(exceptions);
         }
         return outputs;
@@ -125,7 +121,7 @@ public class ServiceToOpenAPIConverterUtils {
                     // module by checking listener type that attached to service endpoints.
                     Optional<Symbol> serviceSymbol = semanticModel.symbol(serviceNode);
                     if (serviceSymbol.isPresent() && serviceSymbol.get() instanceof ServiceDeclarationSymbol) {
-                        String service = OpenAPIEndpointMapper.ENDPOINT_MAPPER.getServiceBasePath(serviceNode);
+                        String service = AsyncAPIEndpointMapper.ENDPOINT_MAPPER.getServiceBasePath(serviceNode);
                         String updateServiceName = service;
                         //`String updateServiceName` used to track the service
                         // name for service file contains multiple service node.
@@ -175,7 +171,7 @@ public class ServiceToOpenAPIConverterUtils {
     public static String generateOASForGivenFormat(ServiceDeclarationNode serviceDeclarationNode,
                                                    boolean needJson, List<ListenerDeclarationNode> endpoints,
                                                    SemanticModel semanticModel, String openApiName) {
-        Optional<OpenAPI> openapi = generateOAS(serviceDeclarationNode, endpoints, semanticModel, openApiName,
+        Optional<AsyncAPIInfo> openapi = generateOAS(serviceDeclarationNode, endpoints, semanticModel, openApiName,
                 null).getOpenAPI();
         if (openapi.isPresent()) {
             OpenAPI openAPI = openapi.get();
@@ -198,25 +194,25 @@ public class ServiceToOpenAPIConverterUtils {
      * @param ballerinaFilePath     Input ballerina file Path
      * @return {@code AsyncAPIResult}
      */
-    public static OASResult generateOAS(ServiceDeclarationNode serviceDefinition,
+    public static AsyncAPIResult generateOAS(ServiceDeclarationNode serviceDefinition,
                                         List<ListenerDeclarationNode> endpoints, SemanticModel semanticModel,
                                         String openApiFileName, Path ballerinaFilePath) {
         // 01.Fill the openAPI info section
-        OASResult oasResult = fillOpenAPIInfoSection(serviceDefinition, semanticModel, openApiFileName,
+        AsyncAPIResult oasResult = fillOpenAPIInfoSection(serviceDefinition, semanticModel, openApiFileName,
                 ballerinaFilePath);
         if (oasResult.getOpenAPI().isPresent() && oasResult.getDiagnostics().isEmpty()) {
             OpenAPI openapi = oasResult.getOpenAPI().get();
             if (openapi.getPaths() == null) {
                 // Take base path of service
-                OpenAPIServiceMapper openAPIServiceMapper = new OpenAPIServiceMapper(semanticModel);
+                AsyncAPIServiceMapper openAPIServiceMapper = new AsyncAPIServiceMapper(semanticModel);
                 // 02. Filter and set the ServerURLs according to endpoints. Complete the server section in OAS
-                openapi = OpenAPIEndpointMapper.ENDPOINT_MAPPER.getServers(openapi, endpoints, serviceDefinition);
+                openapi = AsyncAPIEndpointMapper.ENDPOINT_MAPPER.getServers(openapi, endpoints, serviceDefinition);
                 // 03. Filter path and component sections in OAS.
                 // Generate openApi string for the mentioned service name.
                 openapi = openAPIServiceMapper.convertServiceToOpenAPI(serviceDefinition, openapi);
-                return new OASResult(openapi, openAPIServiceMapper.getErrors());
+                return new AsyncAPIResult(openapi, openAPIServiceMapper.getErrors());
             } else {
-                return new OASResult(openapi, oasResult.getDiagnostics());
+                return new AsyncAPIResult(openapi, oasResult.getDiagnostics());
             }
         } else {
             return oasResult;
@@ -226,7 +222,7 @@ public class ServiceToOpenAPIConverterUtils {
     /**
      * This function is for completing the OpenAPI info section with package details and annotation details.
      *
-     * First check the given service node has metadata with annotation details with `openapi:serviceInfo`,
+     * First check the given service node has metadata with annotation details with `asyncapi:serviceInfo`,
      * if it is there, then {@link #parseServiceInfoAnnotationAttachmentDetails(List, AnnotationNode, Path)}
      * function extracts the annotation details and store details in {@code AsyncAPIInfo} model using
      * {@link #updateOpenAPIInfoModel(SeparatedNodeList)} function. If the annotation contains the valid contract
@@ -243,12 +239,12 @@ public class ServiceToOpenAPIConverterUtils {
      * @param ballerinaFilePath Ballerina file path.
      * @return {@code AsyncAPIResult}
      */
-    private static OASResult fillOpenAPIInfoSection(ServiceDeclarationNode serviceNode, SemanticModel semanticModel,
+    private static AsyncAPIResult fillOpenAPIInfoSection(ServiceDeclarationNode serviceNode, SemanticModel semanticModel,
                                                     String openapiFileName, Path ballerinaFilePath) {
         Optional<MetadataNode> metadata = serviceNode.metadata();
-        List<OpenAPIConverterDiagnostic> diagnostics = new ArrayList<>();
+        List<AsyncAPIConverterDiagnostic> diagnostics = new ArrayList<>();
         OpenAPI openAPI = new OpenAPI();
-        String currentServiceName = OpenAPIEndpointMapper.ENDPOINT_MAPPER.getServiceBasePath(serviceNode);
+        String currentServiceName = AsyncAPIEndpointMapper.ENDPOINT_MAPPER.getServiceBasePath(serviceNode);
         // 01. Set openAPI inFo section wit package details
         String version = getContractVersion(serviceNode, semanticModel);
         if (metadata.isPresent() && !metadata.get().annotations().isEmpty()) {
@@ -259,7 +255,7 @@ public class ServiceToOpenAPIConverterUtils {
                     QualifiedNameReferenceNode ref = (QualifiedNameReferenceNode) annotation.annotReference();
                     String annotationName = ref.modulePrefix().text() + ":" + ref.identifier().text();
                     if (annotationName.equals(OPENAPI_ANNOTATION)) {
-                        OASResult oasResult = parseServiceInfoAnnotationAttachmentDetails(diagnostics, annotation,
+                        AsyncAPIResult oasResult = parseServiceInfoAnnotationAttachmentDetails(diagnostics, annotation,
                                 ballerinaFilePath);
                         return normalizeInfoSection(openapiFileName, currentServiceName, version, oasResult);
                     } else {
@@ -273,12 +269,12 @@ public class ServiceToOpenAPIConverterUtils {
             openAPI.setInfo(new Info().version(version).title(normalizeTitle(currentServiceName)));
         }
 
-        return new OASResult(openAPI, diagnostics);
+        return new AsyncAPIResult(openAPI, diagnostics);
     }
 
     // Finalize the openAPI info section
-    private static OASResult normalizeInfoSection(String openapiFileName, String currentServiceName, String version,
-                                          OASResult oasResult) {
+    private static AsyncAPIResult normalizeInfoSection(String openapiFileName, String currentServiceName, String version,
+                                          AsyncAPIResult oasResult) {
         if (oasResult.getOpenAPI().isPresent()) {
             OpenAPI openAPI = oasResult.getOpenAPI().get();
             if (openAPI.getInfo() == null) {
@@ -370,38 +366,38 @@ public class ServiceToOpenAPIConverterUtils {
                }
            }
         }
-        return new OASResult(openAPI, diagnostics);
+        return new AsyncAPIResult(openAPI, diagnostics);
     }
 
-    private static OASResult updateExistingContractOpenAPI(List<OpenAPIConverterDiagnostic> diagnostics,
-                                                           Location location, OpenAPIInfo openAPIInfo,
+    private static AsyncAPIResult updateExistingContractOpenAPI(List<AsyncAPIConverterDiagnostic> diagnostics,
+                                                           Location location, AsyncAPIInfo openAPIInfo,
                                                            Path ballerinaFilePath) {
 
-        OASResult oasResult = resolveContractPath(diagnostics, location, openAPIInfo, ballerinaFilePath);
+        AsyncAPIResult oasResult = resolveContractPath(diagnostics, location, openAPIInfo, ballerinaFilePath);
         Optional<OpenAPI> contract = oasResult.getOpenAPI();
         if (contract.isEmpty()) {
             return oasResult;
         }
         OpenAPI openAPI = contract.get();
         if (openAPIInfo.getVersion().isPresent() && openAPIInfo.getTitle().isPresent()) {
-            // read the openapi
+            // read the asyncapi
             openAPI.getInfo().setVersion(openAPIInfo.getVersion().get());
             openAPI.getInfo().setTitle(openAPIInfo.getTitle().get());
             diagnostics.addAll(oasResult.getDiagnostics());
-            return new OASResult(openAPI, oasResult.getDiagnostics());
+            return new AsyncAPIResult(openAPI, oasResult.getDiagnostics());
         } else if (openAPIInfo.getTitle().isPresent()) {
             openAPI.getInfo().setTitle(openAPIInfo.getTitle().get());
-            return new OASResult(openAPI, oasResult.getDiagnostics());
+            return new AsyncAPIResult(openAPI, oasResult.getDiagnostics());
         } else if (openAPIInfo.getVersion().isPresent()) {
             openAPI.getInfo().setVersion(openAPIInfo.getVersion().get());
-            return new OASResult(openAPI, oasResult.getDiagnostics());
+            return new AsyncAPIResult(openAPI, oasResult.getDiagnostics());
         } else {
             return oasResult;
         }
     }
 
-    private static OpenAPIInfo updateOpenAPIInfoModel(SeparatedNodeList<MappingFieldNode> fields) {
-        OpenAPIInfo.OpenAPIInfoBuilder infoBuilder = new OpenAPIInfo.OpenAPIInfoBuilder();
+    private static AsyncAPIInfo updateOpenAPIInfoModel(SeparatedNodeList<MappingFieldNode> fields) {
+        AsyncAPIInfo.AsyncAPIInfoBuilder infoBuilder = new AsyncAPIInfo.AsyncAPIInfoBuilder();
         for (MappingFieldNode field: fields) {
             String fieldName = ((SpecificFieldNode) field).fieldName().toString().trim();
             Optional<ExpressionNode> value = ((SpecificFieldNode) field).valueExpr();
@@ -430,9 +426,9 @@ public class ServiceToOpenAPIConverterUtils {
         }
         return infoBuilder.build();
     }
-    private static OASResult resolveContractPath(List<OpenAPIConverterDiagnostic> diagnostics, Location location,
-                                     OpenAPIInfo openAPIInfo, Path ballerinaFilePath) {
-        OASResult oasResult;
+    private static AsyncAPIResult resolveContractPath(List<AsyncAPIConverterDiagnostic> diagnostics, Location location,
+                                     AsyncAPIInfo openAPIInfo, Path ballerinaFilePath) {
+        AsyncAPIResult oasResult;
         OpenAPI openAPI = null;
         Path openapiPath = Paths.get(openAPIInfo.getContractPath().get().replaceAll("\"", "").trim());
         Path relativePath = null;
@@ -463,6 +459,6 @@ public class ServiceToOpenAPIConverterUtils {
             }
             diagnostics.addAll(oasResult.getDiagnostics());
         }
-        return new OASResult(openAPI, diagnostics);
+        return new AsyncAPIResult(openAPI, diagnostics);
     }
 }

@@ -18,8 +18,8 @@
 package io.ballerina.asyncapi.core.generators.asyncspec.model;
 
 import java.util.Optional;
+import static io.ballerina.asyncapi.core.generators.asyncspec.utils.ConverterCommonUtils.normalizeTitle;
 
-import static io.ballerina.openapi.converter.utils.ConverterCommonUtils.normalizeTitle;
 
 /**
  * This {@code AsyncAPIInfo} contains details related to openAPI info section.
@@ -31,10 +31,10 @@ public class AsyncAPIInfo {
     private final String version;
     private final String contractPath;
 
-    public AsyncAPIInfo(OpenAPIInfoBuilder openAPIInfoBuilder) {
-        this.title = openAPIInfoBuilder.title;
-        this.version = openAPIInfoBuilder.version;
-        this.contractPath = openAPIInfoBuilder.contractPath;
+    public AsyncAPIInfo(AsyncAPIInfoBuilder asyncAPIInfoBuilder) {
+        this.title =asyncAPIInfoBuilder.title;
+        this.version = asyncAPIInfoBuilder.version;
+        this.contractPath = asyncAPIInfoBuilder.contractPath;
     }
 
     public Optional<String> getTitle() {
@@ -52,22 +52,22 @@ public class AsyncAPIInfo {
     /**
      * This is the builder class for the {@link AsyncAPIInfo}.
      */
-    public static class OpenAPIInfoBuilder {
+    public static class AsyncAPIInfoBuilder {
         private String title;
         private String version;
         private String contractPath;
 
-        public OpenAPIInfoBuilder title(String title) {
+        public AsyncAPIInfoBuilder title(String title) {
             this.title = title;
             return this;
         }
 
-        public OpenAPIInfoBuilder version(String version) {
+        public AsyncAPIInfoBuilder version(String version) {
             this.version = version;
             return this;
         }
 
-        public OpenAPIInfoBuilder contractPath(String contractPath) {
+        public AsyncAPIInfoBuilder contractPath(String contractPath) {
             this.contractPath = contractPath;
             return this;
         }

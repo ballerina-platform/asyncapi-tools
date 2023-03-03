@@ -16,7 +16,7 @@
  *  under the License.
  */
 
-package io.ballerina.asyncapi.generators.openapi;
+package io.ballerina.asyncapi.generators.asyncapi;
 
 import org.testng.annotations.AfterMethod;
 import org.testng.annotations.AfterTest;
@@ -33,12 +33,12 @@ import java.nio.file.Paths;
  */
 public class DataTypeTests {
     private static final Path RES_DIR =
-            Paths.get("src/test/resources/ballerina-to-openapi").toAbsolutePath();
+            Paths.get("src/test/resources/ballerina-to-asyncapi").toAbsolutePath();
     private Path tempDir;
 
     @BeforeMethod
     public void setup() throws IOException {
-        this.tempDir = Files.createTempDirectory("bal-to-openapi-test-out-" + System.nanoTime());
+        this.tempDir = Files.createTempDirectory("bal-to-asyncapi-test-out-" + System.nanoTime());
     }
 
     @Test(description = "When the record field has type definitions")

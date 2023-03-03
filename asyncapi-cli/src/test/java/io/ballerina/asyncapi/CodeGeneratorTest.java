@@ -322,7 +322,7 @@ public class CodeGeneratorTest {
 
     @Test(description = "Test Ballerina client generation with request body")
     public void generateClientwithRequestBody() {
-        String definitionPath = RES_DIR.resolve("openapi-client-rb.yaml").toString();
+        String definitionPath = RES_DIR.resolve("asyncapi-client-rb.yaml").toString();
         BallerinaCodeGenerator generator = new BallerinaCodeGenerator();
         try {
             String expectedClientContent = getStringFromGivenBalFile(expectedServiceFile,
@@ -394,7 +394,7 @@ public class CodeGeneratorTest {
         }
     }
 
-    @Test(description = "Test openapi definition to ballerina source code generation",
+    @Test(description = "Test asyncapi definition to ballerina source code generation",
             dataProvider = "fileProvider")
     public void openApiToBallerinaCodeGenTest(String yamlFile, String expectedFile) {
         String definitionPath = RES_DIR.resolve(yamlFile).toString();
@@ -412,7 +412,7 @@ public class CodeGeneratorTest {
                         "expected content and actual generated content is mismatched for: " + yamlFile);
             }
         } catch (IOException | BallerinaOpenApiException | FormatterException e) {
-            Assert.fail("Error while generating the ballerina content for the openapi definition: "
+            Assert.fail("Error while generating the ballerina content for the asyncapi definition: "
                     + yamlFile + " " + e.getMessage());
         }
     }

@@ -48,7 +48,7 @@ public abstract class AsyncAPICommandTest {
     
     @BeforeClass
     public void setup() throws IOException {
-        this.tmpDir = Files.createTempDirectory("openapi-cmd-test-out-" + System.nanoTime());
+        this.tmpDir = Files.createTempDirectory("asyncapi-cmd-test-out-" + System.nanoTime());
         this.console = new ByteArrayOutputStream();
         this.printStream = new PrintStream(this.console);
     }
@@ -69,7 +69,7 @@ public abstract class AsyncAPICommandTest {
     }
 
     /**
-     * Execute the openapi command with arguments.
+     * Execute the asyncapi command with arguments.
      * @param yamlFile      input yaml file
      * @param serviceName   service name for generated service file
      * @return source yaml filePath return

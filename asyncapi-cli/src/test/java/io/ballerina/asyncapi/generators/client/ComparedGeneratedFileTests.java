@@ -61,7 +61,7 @@ public class ComparedGeneratedFileTests {
     public void generateClientForJira() throws IOException, BallerinaOpenApiException,
             FormatterException, URISyntaxException {
 //        Path definitionPath = RES_DIR.resolve("swagger/request_body_oneOf_scenarios.yaml");
-        Path definitionPath = RES_DIR.resolve("openapi.yaml");
+        Path definitionPath = RES_DIR.resolve("asyncapi.yaml");
         Path expectedPath = RES_DIR.resolve("file_provider/ballerina/jira_openapi.bal");
         OpenAPI openAPI = GeneratorUtils.normalizeOpenAPI(definitionPath, true);
         OASClientConfig.Builder clientMetaDataBuilder = new OASClientConfig.Builder();

@@ -15,7 +15,7 @@
  *  specific language governing permissions and limitations
  *  under the License.
  */
-package io.ballerina.asyncapi.generators.openapi;
+package io.ballerina.asyncapi.generators.asyncapi;
 
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
@@ -25,19 +25,20 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
-import static io.ballerina.openapi.generators.openapi.TestUtils.compareWithGeneratedFile;
+import static io.ballerina.asyncapi.generators.asyncapi.TestUtils.compareWithGeneratedFile;
+
 
 /**
  * Tests for openAPI info section mapping.
  */
 public class AsyncAPIInfoTests {
     private static final Path RES_DIR =
-            Paths.get("src/test/resources/ballerina-to-openapi/openapi_info").toAbsolutePath();
+            Paths.get("src/test/resources/ballerina-to-asyncapi/openapi_info").toAbsolutePath();
     private Path tempDir;
 
     @BeforeMethod
     public void setup() throws IOException {
-        this.tempDir = Files.createTempDirectory("bal-to-openapi-test-out-" + System.nanoTime());
+        this.tempDir = Files.createTempDirectory("bal-to-asyncapi-test-out-" + System.nanoTime());
     }
 
     @Test(description = "Generate OpenAPI spec with default value with empty Ballerina.toml")

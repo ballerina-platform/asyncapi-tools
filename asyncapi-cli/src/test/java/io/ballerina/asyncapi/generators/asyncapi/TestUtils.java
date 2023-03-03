@@ -15,7 +15,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package io.ballerina.asyncapi.generators.openapi;
+package io.ballerina.asyncapi.generators.asyncapi;
 
 import io.ballerina.openapi.cmd.OASContractGenerator;
 import org.testng.Assert;
@@ -34,7 +34,7 @@ import java.util.stream.Stream;
  */
 public class TestUtils {
 
-    private static final Path RES_DIR = Paths.get("src/test/resources/ballerina-to-openapi/").toAbsolutePath();
+    private static final Path RES_DIR = Paths.get("src/test/resources/ballerina-to-asyncapi/").toAbsolutePath();
 
     private static String getStringFromGivenBalFile(Path expectedServiceFile, String s) throws IOException {
         Stream<String> expectedServiceLines = Files.lines(expectedServiceFile.resolve(s));
@@ -52,7 +52,7 @@ public class TestUtils {
     }
 
     public static void compareWithGeneratedFile(Path ballerinaFilePath, String yamlFile) throws IOException {
-        Path tempDir = Files.createTempDirectory("bal-to-openapi-test-out-" + System.nanoTime());
+        Path tempDir = Files.createTempDirectory("bal-to-asyncapi-test-out-" + System.nanoTime());
         try {
             String expectedYamlContent = getStringFromGivenBalFile(RES_DIR.resolve("expected_gen"), yamlFile);
             OASContractGenerator openApiConverter = new OASContractGenerator();

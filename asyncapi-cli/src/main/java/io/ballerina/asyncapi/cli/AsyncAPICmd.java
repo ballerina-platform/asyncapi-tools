@@ -22,10 +22,11 @@ import io.ballerina.asyncapi.core.generators.asyncspec.diagnostic.AsyncAPIConver
 import io.ballerina.asyncapi.core.generators.asyncspec.diagnostic.DiagnosticMessages;
 import io.ballerina.asyncapi.core.generators.asyncspec.diagnostic.ExceptionDiagnostic;
 import io.ballerina.asyncapi.core.generators.asyncspec.diagnostic.IncompatibleResourceDiagnostic;
-import io.ballerina.asyncapi.core.exception.BallerinaOpenApiException;
+import io.ballerina.asyncapi.core.exception.BallerinaAsyncApiException;
 import io.ballerina.asyncapi.core.model.Filter;
 
 import io.ballerina.cli.BLauncherCmd;
+
 
 import org.ballerinalang.formatter.core.FormatterException;
 import picocli.CommandLine;
@@ -50,17 +51,19 @@ import static io.ballerina.asyncapi.cli.CmdConstants.YAML_EXTENSION;
 import static io.ballerina.asyncapi.cli.CmdConstants.YML_EXTENSION;
 import static io.ballerina.asyncapi.core.GeneratorUtils.getValidName;
 
+
 /**
- * Main class to implement "openapi" command for ballerina. Commands for Client Stub, Service file and OpenApi contract
+ * Main class to implement "asyncapi" command for ballerina. Commands for Client Stub, Service file and OpenApi contract
  * generation.
  */
 @CommandLine.Command(
-        name = "openapi",
+        name = "asyncapi",
         description = "Generates Ballerina service/client for OpenAPI contract and OpenAPI contract for Ballerina" +
                 "Service."
 )
 public class AsyncAPICmd implements BLauncherCmd {
-    private static final String CMD_NAME = "openapi";
+    private static final String CMD_NAME = "asyncapi";
+
     private PrintStream outStream;
     private Path executionPath = Paths.get(System.getProperty("user.dir"));
     private Path targetOutputPath;
@@ -87,7 +90,7 @@ public class AsyncAPICmd implements BLauncherCmd {
     @CommandLine.Option(names = {"-n", "--nullable"}, description = "Generate the code by setting nullable true")
     private boolean nullable;
 
-    @CommandLine.Option(names = {"-s", "--service"}, description = "Service name that need to documented as openapi " +
+    @CommandLine.Option(names = {"-s", "--service"}, description = "Service name that need to documented as asyncapi " +
             "contract")
     private String service;
 
@@ -145,7 +148,7 @@ public class AsyncAPICmd implements BLauncherCmd {
                 return;
             }
             // If given input is yaml contract, it generates service file and client stub
-            // else if given ballerina service file it generates openapi contract file
+            // else if given ballerina service file it generates asyncapi contract file
             // else it generates error message to enter correct input file
             String fileName = argList.get(0);
             if (fileName.endsWith(YAML_EXTENSION) || fileName.endsWith(JSON_EXTENSION) ||
@@ -354,7 +357,7 @@ public class AsyncAPICmd implements BLauncherCmd {
         try {
             generator.generateClient(resourcePath.toString(), targetOutputPath.toString(), filter, nullable,
                     resourceMode);
-        } catch (IOException | FormatterException | BallerinaOpenApiException e) {
+        } catch (IOException | FormatterException | BallerinaAsyncApiException e) {
             if (e.getLocalizedMessage() != null) {
                 outStream.println(e.getLocalizedMessage());
                 exitError(this.exitWhenFinish);
@@ -378,7 +381,7 @@ public class AsyncAPICmd implements BLauncherCmd {
             assert resourcePath != null;
             generator.generateService(resourcePath.toString(), serviceName, targetOutputPath.toString(), filter,
                     nullable);
-        } catch (IOException | FormatterException | BallerinaOpenApiException e) {
+        } catch (IOException | FormatterException | BallerinaAsyncApiException e) {
             outStream.println("Error occurred when generating service for OpenAPI contract at " + argList.get(0) +
                     ". " + e.getMessage() + ".");
             exitError(this.exitWhenFinish);
@@ -397,7 +400,7 @@ public class AsyncAPICmd implements BLauncherCmd {
             assert resourcePath != null;
             generator.generateClientAndService(resourcePath.toString(), fileName, targetOutputPath.toString(), filter,
                     nullable, generateClientResourceFunctions);
-        } catch (IOException | BallerinaOpenApiException | FormatterException e) {
+        } catch (IOException | BallerinaAsyncApiException | FormatterException e) {
             outStream.println("Error occurred when generating service for openAPI contract at " + argList.get(0) + "." +
                     " " + e.getMessage() + ".");
             exitError(this.exitWhenFinish);

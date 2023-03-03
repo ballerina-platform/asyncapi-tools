@@ -20,7 +20,7 @@ package io.ballerina.asyncapi.core.generators.asyncspec.diagnostic;
 import io.ballerina.tools.diagnostics.DiagnosticSeverity;
 
 /**
- * This {@code DiagnosticMessages} enum class for containing the error message related to ballerina to openapi command.
+ * This {@code DiagnosticMessages} enum class for containing the error message related to ballerina to asyncapi command.
  *
  * @since 2.0.0
  */

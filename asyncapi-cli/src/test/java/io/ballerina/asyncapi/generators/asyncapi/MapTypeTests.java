@@ -15,7 +15,7 @@
  *  specific language governing permissions and limitations
  *  under the License.
  */
-package io.ballerina.asyncapi.generators.openapi;
+package io.ballerina.asyncapi.generators.asyncapi;
 
 import org.testng.annotations.Test;
 
@@ -27,7 +27,7 @@ import java.nio.file.Paths;
  * This test class for the covering the unit tests for map type scenarios.
  */
 public class MapTypeTests {
-    private static final Path RES_DIR = Paths.get("src/test/resources/ballerina-to-openapi").toAbsolutePath();
+    private static final Path RES_DIR = Paths.get("src/test/resources/ballerina-to-asyncapi").toAbsolutePath();
 
     @Test(description = "When the record field has map type")
     public void testMapFiled() throws IOException {

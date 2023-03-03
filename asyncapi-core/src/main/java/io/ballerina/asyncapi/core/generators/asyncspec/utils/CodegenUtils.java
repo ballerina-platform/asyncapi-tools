@@ -23,11 +23,12 @@ import java.nio.file.Path;
 import java.util.Locale;
 import java.util.Objects;
 
-import static io.ballerina.openapi.converter.Constants.JSON_EXTENSION;
-import static io.ballerina.openapi.converter.Constants.YAML_EXTENSION;
+
+import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.JSON_EXTENSION;
+import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.YAML_EXTENSION;
 
 /**
- * Utilities used by ballerina openapi code generator.
+ * Utilities used by ballerina asyncapi code generator.
  */
 public final class CodegenUtils {
     private static final String LINE_SEPARATOR = System.lineSeparator();

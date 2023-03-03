@@ -18,11 +18,13 @@
 
 package io.ballerina.asyncapi.core.generators.asyncspec.service;
 
+import io.ballerina.asyncapi.core.generators.asyncspec.diagnostic.AsyncAPIConverterDiagnostic;
+import io.ballerina.asyncapi.core.generators.asyncspec.diagnostic.DiagnosticMessages;
+import io.ballerina.asyncapi.core.generators.asyncspec.diagnostic.IncompatibleResourceDiagnostic;
+import io.ballerina.asyncapi.core.generators.asyncspec.utils.ConverterCommonUtils;
 import io.ballerina.compiler.api.symbols.*;
-import io.ballerina.openapi.converter.diagnostic.DiagnosticMessages;
-import io.ballerina.openapi.converter.diagnostic.IncompatibleResourceDiagnostic;
-import io.ballerina.openapi.converter.diagnostic.OpenAPIConverterDiagnostic;
-import io.ballerina.openapi.converter.utils.ConverterCommonUtils;
+
+
 import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.media.*;
 
@@ -36,12 +38,12 @@ import static io.ballerina.openapi.converter.Constants.FLOAT;
  *
  * @since 2.0.0
  */
-public class OpenAPIComponentMapper {
+public class AsyncAPIComponentMapper {
     private final Components components;
-    private final List<OpenAPIConverterDiagnostic> diagnostics;
+    private final List<AsyncAPIConverterDiagnostic> diagnostics;
 
 
-    public OpenAPIComponentMapper(Components components) {
+    public AsyncAPIComponentMapper(Components components) {
          this.components = components;
          this.diagnostics = new ArrayList<>();
     }

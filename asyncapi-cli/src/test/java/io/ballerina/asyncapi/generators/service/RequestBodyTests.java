@@ -34,7 +34,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * All the tests related to the {@code io.ballerina.openapi.generators.service.RequestBodyGenerator} util.
+ * All the tests related to the {@code io.ballerina.asyncapi.generators.service.RequestBodyGenerator} util.
  */
 public class RequestBodyTests {
 

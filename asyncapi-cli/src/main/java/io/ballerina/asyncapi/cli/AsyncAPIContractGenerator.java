@@ -19,13 +19,13 @@
 package io.ballerina.asyncapi.cli;
 
 import io.ballerina.asyncapi.core.generators.asyncspec.model.AsyncAPIResult;
+import io.ballerina.asyncapi.core.generators.asyncspec.utils.ServiceToAsyncAPIConverterUtils;
 import io.ballerina.compiler.api.SemanticModel;
 import io.ballerina.compiler.syntax.tree.SyntaxTree;
 import io.ballerina.asyncapi.core.generators.asyncspec.diagnostic.DiagnosticMessages;
 import io.ballerina.asyncapi.core.generators.asyncspec.diagnostic.ExceptionDiagnostic;
 import io.ballerina.asyncapi.core.generators.asyncspec.diagnostic.AsyncAPIConverterDiagnostic;
 import io.ballerina.asyncapi.core.generators.asyncspec.utils.CodegenUtils;
-import io.ballerina.asyncapi.core.generators.asyncspec.utils.ServiceToOpenAPIConverterUtils;
 
 import io.ballerina.projects.Document;
 import io.ballerina.projects.DocumentId;
@@ -111,21 +111,21 @@ public class AsyncAPIContractGenerator {
             return;
         }
         semanticModel = compilation.getSemanticModel(docId.moduleId());
-        List<AsyncAPIResult> openAPIDefinitions = ServiceToOpenAPIConverterUtils.generateOAS3Definition(syntaxTree,
+        List<AsyncAPIResult> asyncAPIDefinitions = ServiceToAsyncAPIConverterUtils.generateAsyncAPISpecDefinition(syntaxTree,
                 semanticModel, serviceName, needJson, inputPath);
 
-        if (!openAPIDefinitions.isEmpty()) {
+        if (!asyncAPIDefinitions.isEmpty()) {
             List<String> fileNames = new ArrayList<>();
-            for (AsyncAPIResult definition : openAPIDefinitions) {
+            for (AsyncAPIResult definition : asyncAPIDefinitions) {
                 try {
                     this.errors.addAll(definition.getDiagnostics());
-                    if (definition.getOpenAPI().isPresent()) {
+                    if (definition.getAsyncAPI().isPresent()) {
                         Optional<String> content;
-                        if (needJson) {
-                            content = definition.getJson();
-                        } else {
-                            content = definition.getYaml();
-                        }
+//                        if (needJson) {
+//                            content = definition.getJson();
+//                        } else {
+//                            content = definition.getYaml();
+//                        }
                         String fileName = resolveContractFileName(outPath, definition.getServiceName(), needJson);
                         CodegenUtils.writeFile(outPath.resolve(fileName), content.get());
                         fileNames.add(fileName);

@@ -16,7 +16,7 @@
  *  under the License.
  */
 
-package io.ballerina.asyncapi.generators.openapi;
+package io.ballerina.asyncapi.generators.asyncapi;
 
 import io.ballerina.openapi.cmd.OASContractGenerator;
 import io.ballerina.openapi.converter.diagnostic.OpenAPIConverterDiagnostic;
@@ -38,13 +38,13 @@ import java.util.List;
  * This test class is for capturing special tests regarding resource methods.
  */
 public class HttpMethodTests {
-    private static final Path RES_DIR = Paths.get("src/test/resources/ballerina-to-openapi/").toAbsolutePath();
+    private static final Path RES_DIR = Paths.get("src/test/resources/ballerina-to-asyncapi/").toAbsolutePath();
     private Path tempDir;
     private final ByteArrayOutputStream outputStreamCaptor = new ByteArrayOutputStream();
 
     @BeforeMethod
     public void setup() throws IOException {
-        this.tempDir = Files.createTempDirectory("bal-to-openapi-test-out-" + System.nanoTime());
+        this.tempDir = Files.createTempDirectory("bal-to-asyncapi-test-out-" + System.nanoTime());
         System.setOut(new PrintStream(outputStreamCaptor));
     }
 

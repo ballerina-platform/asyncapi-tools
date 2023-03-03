@@ -143,7 +143,7 @@ public class BallerinaToAsyncAPITests extends AsyncAPICommandTest {
         }
     }
 
-    @Test(description = "OpenAPI Annotation with ballerina to openapi")
+    @Test(description = "OpenAPI Annotation with ballerina to asyncapi")
     public void openapiAnnotationWithContract() {
         Path filePath = resourceDir.resolve(Paths.get("cmd/ballerina-to-asyncapi/project_1/service.bal"));
         String[] args = {"--input", filePath.toString(), "-o", this.tmpDir.toString()};
@@ -167,7 +167,7 @@ public class BallerinaToAsyncAPITests extends AsyncAPICommandTest {
         }
     }
 
-    @Test(description = "OpenAPI Annotation with ballerina to openapi")
+    @Test(description = "OpenAPI Annotation with ballerina to asyncapi")
     public void openapiAnnotationWithOutContract() {
         Path filePath = resourceDir.resolve(Paths.get("cmd/ballerina-to-asyncapi/project_2/service.bal"));
         String[] args = {"--input", filePath.toString(), "-o", this.tmpDir.toString()};
@@ -190,7 +190,7 @@ public class BallerinaToAsyncAPITests extends AsyncAPICommandTest {
         }
     }
 
-    @Test(description = "OpenAPI Annotation with ballerina to openapi")
+    @Test(description = "OpenAPI Annotation with ballerina to asyncapi")
     public void openapiAnnotationWithoutFields() {
         Path filePath = resourceDir.resolve(Paths.get("cmd/ballerina-to-asyncapi/project_3/service.bal"));
         String[] args = {"--input", filePath.toString(), "-o", this.tmpDir.toString()};

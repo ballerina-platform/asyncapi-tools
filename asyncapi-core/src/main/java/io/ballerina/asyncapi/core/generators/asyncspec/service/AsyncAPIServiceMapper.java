@@ -28,12 +28,12 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * OpenAPIServiceMapper provides functionality for reading and writing OpenApi, either to and from ballerina service, or
- * to, as well as related functionality for performing conversions between openapi and ballerina.
+ * AsyncAPIServiceMapper provides functionality for reading and writing OpenApi, either to and from ballerina service, or
+ * to, as well as related functionality for performing conversions between asyncapi and ballerina.
  *
  * @since 2.0.0
  */
-public class OpenAPIServiceMapper {
+public class AsyncAPIServiceMapper {
     private final SemanticModel semanticModel;
     private final List<OpenAPIConverterDiagnostic> errors = new ArrayList<>();
 
@@ -44,7 +44,7 @@ public class OpenAPIServiceMapper {
     /**
      * Initializes a service parser for OpenApi.
      */
-    public OpenAPIServiceMapper(SemanticModel semanticModel) {
+    public AsyncAPIServiceMapper(SemanticModel semanticModel) {
         // Default object mapper is JSON mapper available in openApi utils.
         this.semanticModel = semanticModel;
     }
@@ -65,7 +65,7 @@ public class OpenAPIServiceMapper {
                 resource.add((FunctionDefinitionNode) function);
             }
         }
-        OpenAPIResourceMapper resourceMapper = new OpenAPIResourceMapper(this.semanticModel);
+        AsyncAPIResourceMapper resourceMapper = new AsyncAPIResourceMapper(this.semanticModel);
         openapi.setPaths(resourceMapper.getPaths(resource));
         openapi.setComponents(resourceMapper.getComponents());
         errors.addAll(resourceMapper.getErrors());

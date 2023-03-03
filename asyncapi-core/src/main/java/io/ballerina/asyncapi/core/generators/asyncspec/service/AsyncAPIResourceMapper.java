@@ -44,7 +44,7 @@ import static io.ballerina.openapi.converter.utils.ConverterCommonUtils.getOpera
  *
  * @since 2.0.0
  */
-public class OpenAPIResourceMapper {
+public class AsyncAPIResourceMapper {
     private final SemanticModel semanticModel;
     private final Paths pathObject = new Paths();
     private final Components components = new Components();
@@ -57,7 +57,7 @@ public class OpenAPIResourceMapper {
     /**
      * Initializes a resource parser for openApi.
      */
-    OpenAPIResourceMapper(SemanticModel semanticModel) {
+    AsyncAPIResourceMapper(SemanticModel semanticModel) {
         this.semanticModel = semanticModel;
         this.errors = new ArrayList<>();
     }
@@ -198,21 +198,21 @@ public class OpenAPIResourceMapper {
         // Map API documentation
         Map<String, String> apiDocs = listAPIDocumentations(resource, op);
         //Add path parameters if in path and query parameters
-        OpenAPIParameterMapper openAPIParameterMapper = new OpenAPIParameterMapper(resource, op, apiDocs, components,
+        AsyncAPIParameterMapper asyncAPIParameterMapper = new AsyncAPIParameterMapper(resource, op, apiDocs, components,
                 semanticModel);
-        openAPIParameterMapper.getResourceInputs(components, semanticModel);
-        if (openAPIParameterMapper.getErrors().size() > 1 || (openAPIParameterMapper.getErrors().size() == 1 &&
-                !openAPIParameterMapper.getErrors().get(0).getCode().equals("OAS_CONVERTOR_113"))) {
-            errors.addAll(openAPIParameterMapper.getErrors());
+        asyncAPIParameterMapper.getResourceInputs(components, semanticModel);
+        if (asyncAPIParameterMapper.getErrors().size() > 1 || (asyncAPIParameterMapper.getErrors().size() == 1 &&
+                !asyncAPIParameterMapper.getErrors().get(0).getCode().equals("OAS_CONVERTOR_113"))) {
+            errors.addAll(asyncAPIParameterMapper.getErrors());
             return Optional.empty();
         }
-        errors.addAll(openAPIParameterMapper.getErrors());
+        errors.addAll(asyncAPIParameterMapper.getErrors());
 
-        OpenAPIResponseMapper openAPIResponseMapper = new OpenAPIResponseMapper(semanticModel, components,
+        AsyncAPIResponseMapper asyncAPIResponseMapper = new AsyncAPIResponseMapper(semanticModel, components,
                 resource.location());
-        openAPIResponseMapper.getResourceOutput(resource, op);
-        if (!openAPIResponseMapper.getErrors().isEmpty()) {
-            errors.addAll(openAPIResponseMapper.getErrors());
+        asyncAPIResponseMapper.getResourceOutput(resource, op);
+        if (!asyncAPIResponseMapper.getErrors().isEmpty()) {
+            errors.addAll(asyncAPIResponseMapper.getErrors());
             return Optional.empty();
         }
         return Optional.of(op);

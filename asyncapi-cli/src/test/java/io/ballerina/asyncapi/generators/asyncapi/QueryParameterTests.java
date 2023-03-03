@@ -16,7 +16,7 @@
  *  under the License.
  */
 
-package io.ballerina.asyncapi.generators.openapi;
+package io.ballerina.asyncapi.generators.asyncapi;
 
 import org.testng.annotations.AfterMethod;
 import org.testng.annotations.AfterTest;
@@ -32,12 +32,12 @@ import java.nio.file.Paths;
  * Tests for query parameter mapping.
  */
 public class QueryParameterTests {
-    private static final Path RES_DIR = Paths.get("src/test/resources/ballerina-to-openapi/").toAbsolutePath();
+    private static final Path RES_DIR = Paths.get("src/test/resources/ballerina-to-asyncapi/").toAbsolutePath();
     private Path tempDir;
 
     @BeforeMethod
     public void setup() throws IOException {
-        this.tempDir = Files.createTempDirectory("bal-to-openapi-test-out-" + System.nanoTime());
+        this.tempDir = Files.createTempDirectory("bal-to-asyncapi-test-out-" + System.nanoTime());
     }
     // These are the data types that current ballerina query parameters can have.[effect from slbeta3]
     // type BasicType boolean|int|float|decimal|string ;

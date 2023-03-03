@@ -17,9 +17,9 @@
  */
 package io.ballerina.asyncapi.cli;
 
-import io.ballerina.openapi.converter.utils.ConverterCommonUtils;
-import io.ballerina.openapi.core.exception.BallerinaOpenApiException;
-import io.ballerina.openapi.core.model.GenSrcFile;
+import io.ballerina.asyncapi.core.exception.BallerinaAsyncApiException;
+import io.ballerina.asyncapi.core.generators.asyncspec.utils.ConverterCommonUtils;
+import io.ballerina.asyncapi.core.model.GenSrcFile;
 import io.ballerina.tools.diagnostics.DiagnosticInfo;
 import io.ballerina.tools.diagnostics.DiagnosticSeverity;
 import io.ballerina.tools.diagnostics.Location;
@@ -35,17 +35,17 @@ import java.nio.file.Path;
 import java.util.Collections;
 import java.util.List;
 
-import static io.ballerina.openapi.core.GeneratorConstants.LINE_SEPARATOR;
+import static io.ballerina.asyncapi.core.GeneratorConstants.LINE_SEPARATOR;
 
 /**
- * Contains all the util functions used for openapi commands.
+ * Contains all the util functions used for asyncapi commands.
  *
  * @since 2.0.0
  */
 public class CmdUtils {
 
     /**
-     * This util method is used to generate {@code Diagnostic} for openapi command errors.
+     * This util method is used to generate {@code Diagnostic} for asyncapi command errors.
      */
     public static AsyncAPIDiagnostic constructOpenAPIDiagnostic(String code, String message, DiagnosticSeverity severity,
                                                                 Location location, Object... args) {
@@ -61,15 +61,15 @@ public class CmdUtils {
      * Util for take OpenApi spec from given yaml file.
      */
     public static OpenAPI getOpenAPIFromOpenAPIV3Parser(Path definitionPath) throws
-            IOException, BallerinaOpenApiException {
+            IOException, BallerinaAsyncApiException {
 
         Path contractPath = java.nio.file.Paths.get(definitionPath.toString());
         if (!Files.exists(contractPath)) {
-            throw new BallerinaOpenApiException(ErrorMessages.invalidFilePath(definitionPath.toString()));
+            throw new BallerinaAsyncApiException(ErrorMessages.invalidFilePath(definitionPath.toString()));
         }
         if (!(definitionPath.toString().endsWith(".yaml") || definitionPath.toString().endsWith(".json") ||
                 definitionPath.toString().endsWith(".yml"))) {
-            throw new BallerinaOpenApiException(ErrorMessages.invalidFileType());
+            throw new BallerinaAsyncApiException(ErrorMessages.invalidFileType());
         }
         String openAPIFileContent = Files.readString(definitionPath);
         ParseOptions parseOptions = new ParseOptions();
@@ -81,7 +81,7 @@ public class CmdUtils {
             for (String message : parseResult.getMessages()) {
                 errorMessage.append(message).append(LINE_SEPARATOR);
             }
-            throw new BallerinaOpenApiException(errorMessage.toString());
+            throw new BallerinaAsyncApiException(errorMessage.toString());
         }
         return parseResult.getOpenAPI();
     }

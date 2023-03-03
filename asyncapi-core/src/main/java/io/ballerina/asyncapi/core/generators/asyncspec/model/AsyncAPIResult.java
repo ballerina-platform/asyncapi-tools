@@ -17,13 +17,14 @@
  */
 package io.ballerina.asyncapi.core.generators.asyncspec.model;
 
-import io.ballerina.openapi.converter.diagnostic.OpenAPIConverterDiagnostic;
-import io.swagger.v3.core.util.Json;
-import io.swagger.v3.core.util.Yaml;
-import io.swagger.v3.oas.models.OpenAPI;
-
+import io.ballerina.asyncapi.core.generators.asyncspec.diagnostic.AsyncAPIConverterDiagnostic;
+import sttp.apispec.asyncapi.AsyncAPI;
+import sttp.apispec.asyncapi.circe.yaml.SttpAsyncAPICirceYaml;
+import sttp.apispec.asyncapi.circe.yaml.package$;
+import sttp.apispec.asyncapi.circe.yaml.SttpAsyncAPICirceYaml.RichAsyncAPI;
 import java.util.List;
 import java.util.Optional;
+
 
 /**
  * This {@code AsyncAPIResult} is used to contain OpenAPI definition in string format and error list.
@@ -31,24 +32,26 @@ import java.util.Optional;
  * @since 2.0.0
  */
 public class AsyncAPIResult {
-    private OpenAPI openAPI;
+
+    private AsyncAPI asyncAPI;
     private String serviceName; // added base path for key to definition
-    private final List<OpenAPIConverterDiagnostic> diagnostics;
+    private final List<AsyncAPIConverterDiagnostic> diagnostics;
+    private SttpAsyncAPICirceYaml sttpAsyncAPICirceYaml = new SttpAsyncAPICirceYaml(){};
 
     /**
      * This constructor is used to store the details that Map of {@code OpenAPI} objects and diagnostic list.
      */
-    public AsyncAPIResult(OpenAPI openAPI, List<OpenAPIConverterDiagnostic> diagnostics) {
-        this.openAPI = openAPI;
+    public AsyncAPIResult(AsyncAPI asyncAPI, List<AsyncAPIConverterDiagnostic> diagnostics) {
+        this.asyncAPI = asyncAPI;
         this.diagnostics = diagnostics;
     }
 
-    public List<OpenAPIConverterDiagnostic> getDiagnostics() {
+    public List<AsyncAPIConverterDiagnostic> getDiagnostics() {
         return diagnostics;
     }
 
-    public Optional<OpenAPI> getOpenAPI() {
-        return Optional.ofNullable(openAPI);
+    public Optional<AsyncAPI> getAsyncAPI() {
+        return Optional.ofNullable(asyncAPI);
     }
 
     public String getServiceName() {
@@ -56,18 +59,19 @@ public class AsyncAPIResult {
     }
 
     public Optional<String> getYaml() {
-        return Optional.ofNullable(Yaml.pretty(this.openAPI));
+
+        return Optional.ofNullable(sttpAsyncAPICirceYaml.RichAsyncAPI(asyncAPI).toYaml());
     }
 
-    public Optional<String> getJson() {
-        return Optional.ofNullable(Json.pretty(this.openAPI));
-    }
+//    public Optional<String> getJson() {
+//        return Optional.ofNullable(Json.pretty(this.openAPI));
+//    }
 
     public void setServiceName(String serviceName) {
         this.serviceName = serviceName;
     }
 
-    public void setOpenAPI(OpenAPI openAPI) {
-        this.openAPI = openAPI;
+    public void setAsyncAPI(AsyncAPI openAPI) {
+        this.asyncAPI = asyncAPI;
     }
 }

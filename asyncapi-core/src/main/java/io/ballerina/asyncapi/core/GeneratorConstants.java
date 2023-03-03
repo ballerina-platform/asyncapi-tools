@@ -23,7 +23,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Constants for openapi code generator.
+ * Constants for asyncapi code generator.
  *
  * @since 1.3.0
  */

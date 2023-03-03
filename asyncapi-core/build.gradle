@@ -36,6 +36,8 @@ dependencies {
     implementation "org.ballerinalang:ballerina-cli"
     implementation "org.ballerinalang:ballerina-tools-api"
     implementation "com.google.code.findbugs:jsr305"
+    implementation "com.softwaremill.sttp.apispec:asyncapi-model_3"
+    implementation "com.softwaremill.sttp.apispec:asyncapi-circe-yaml_3"
     testImplementation "org.testng:testng"
 
     balTools ("org.ballerinalang:jballerina-tools:${ballerinaLangVersion}") {

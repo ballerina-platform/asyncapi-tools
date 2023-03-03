@@ -20,17 +20,17 @@
 //
 //import io.ballerina.compiler.syntax.tree.SyntaxTree;
 //import io.ballerina.compiler.syntax.tree.TypeDefinitionNode;
-//import io.ballerina.openapi.converter.utils.CodegenUtils;
-//import io.ballerina.openapi.core.GeneratorUtils;
-//import io.ballerina.openapi.core.exception.BallerinaOpenApiException;
-//import io.ballerina.openapi.core.generators.client.BallerinaClientGenerator;
-//import io.ballerina.openapi.core.generators.client.BallerinaTestGenerator;
-//import io.ballerina.openapi.core.generators.client.model.OASClientConfig;
-//import io.ballerina.openapi.core.generators.schema.BallerinaTypesGenerator;
-//import io.ballerina.openapi.core.generators.service.BallerinaServiceGenerator;
-//import io.ballerina.openapi.core.generators.service.model.OASServiceMetadata;
-//import io.ballerina.openapi.core.model.Filter;
-//import io.ballerina.openapi.core.model.GenSrcFile;
+//import io.ballerina.asyncapi.converter.utils.CodegenUtils;
+//import io.ballerina.asyncapi.core.GeneratorUtils;
+//import io.ballerina.asyncapi.core.exception.BallerinaAsyncApiException;
+//import io.ballerina.asyncapi.core.generators.client.BallerinaClientGenerator;
+//import io.ballerina.asyncapi.core.generators.client.BallerinaTestGenerator;
+//import io.ballerina.asyncapi.core.generators.client.model.OASClientConfig;
+//import io.ballerina.asyncapi.core.generators.schema.BallerinaTypesGenerator;
+//import io.ballerina.asyncapi.core.generators.service.BallerinaServiceGenerator;
+//import io.ballerina.asyncapi.core.generators.service.model.OASServiceMetadata;
+//import io.ballerina.asyncapi.core.model.Filter;
+//import io.ballerina.asyncapi.core.model.GenSrcFile;
 //import io.swagger.v3.oas.models.OpenAPI;
 //import org.ballerinalang.formatter.core.Formatter;
 //import org.ballerinalang.formatter.core.FormatterException;
@@ -47,9 +47,9 @@
 //import java.util.function.Predicate;
 //import java.util.stream.Collectors;
 //
-//import static io.ballerina.openapi.cmd.CmdConstants.*;
-//import static io.ballerina.openapi.cmd.CmdConstants.GenType.*;
-//import static io.ballerina.openapi.cmd.CmdUtils.setGeneratedFileName;
+//import static io.ballerina.asyncapi.cmd.CmdConstants.*;
+//import static io.ballerina.asyncapi.cmd.CmdConstants.GenType.*;
+//import static io.ballerina.asyncapi.cmd.CmdUtils.setGeneratedFileName;
 //
 ///**
 // * This class generates Ballerina Services/Clients for a provided OAS definition.
@@ -71,7 +71,7 @@
 //    public void generateClientAndService(String definitionPath, String serviceName,
 //                                         String outPath, Filter filter, boolean nullable, boolean isResource)
 //            throws IOException, FormatterException,
-//            io.ballerina.openapi.core.exception.BallerinaOpenApiException {
+//            io.ballerina.asyncapi.core.exception.BallerinaAsyncApiException {
 //        Path srcPath = Paths.get(outPath);
 //        Path implPath = CodegenUtils.getImplPath(srcPackage, srcPath);
 //
@@ -178,11 +178,11 @@
 //     * @param filter         For take the tags and operation option values
 //     * @param nullable       Enable nullable option for make record field optional
 //     * @throws IOException               when file operations fail
-//     * @throws BallerinaOpenApiException when code generator fails
+//     * @throws BallerinaAsyncApiException when code generator fails
 //     */
 //    public void generateClient(String definitionPath, String outPath, Filter filter, boolean nullable,
 //                               boolean isResource)
-//            throws IOException, BallerinaOpenApiException, FormatterException {
+//            throws IOException, BallerinaAsyncApiException, FormatterException {
 //        Path srcPath = Paths.get(outPath);
 //        Path implPath = CodegenUtils.getImplPath(srcPackage, srcPath);
 //        List<GenSrcFile> genFiles = generateClientFiles(Paths.get(definitionPath), filter, nullable, isResource);
@@ -199,11 +199,11 @@
 //     * @param outPath        Destination file path to save generated source files. If not provided
 //     *                       {@code definitionPath} will be used as the default destination path
 //     * @throws IOException               when file operations fail
-//     * @throws BallerinaOpenApiException when code generator fails
+//     * @throws BallerinaAsyncApiException when code generator fails
 //     */
 //    public void generateService(String definitionPath, String serviceName, String outPath, Filter filter,
 //                                boolean nullable)
-//            throws IOException, BallerinaOpenApiException, FormatterException {
+//            throws IOException, BallerinaAsyncApiException, FormatterException {
 //        Path srcPath = Paths.get(outPath);
 //        Path implPath = CodegenUtils.getImplPath(srcPackage, srcPath);
 //        List<GenSrcFile> genFiles = generateBallerinaService(Paths.get(definitionPath), serviceName, filter, nullable);
@@ -296,7 +296,7 @@
 //     * @throws IOException when code generation with specified templates fails
 //     */
 //    private List<GenSrcFile> generateClientFiles(Path openAPI, Filter filter, boolean nullable, boolean isResource)
-//            throws IOException, BallerinaOpenApiException, FormatterException {
+//            throws IOException, BallerinaAsyncApiException, FormatterException {
 //        if (srcPackage == null || srcPackage.isEmpty()) {
 //            srcPackage = DEFAULT_CLIENT_PKG;
 //        }
@@ -359,13 +359,13 @@
 //
 //    public List<GenSrcFile> generateBallerinaService(Path openAPI, String serviceName,
 //                                                      Filter filter, boolean nullable)
-//            throws IOException, FormatterException, BallerinaOpenApiException {
+//            throws IOException, FormatterException, BallerinaAsyncApiException {
 //        if (srcPackage == null || srcPackage.isEmpty()) {
 //            srcPackage = DEFAULT_MOCK_PKG;
 //        }
 //        OpenAPI openAPIDef = GeneratorUtils.normalizeOpenAPI(openAPI, false);
 //        if (openAPIDef.getInfo() == null) {
-//            throw new BallerinaOpenApiException("Info section of the definition file cannot be empty/null: " +
+//            throw new BallerinaAsyncApiException("Info section of the definition file cannot be empty/null: " +
 //                    openAPI);
 //        }
 //

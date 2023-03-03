@@ -15,7 +15,7 @@
  *  specific language governing permissions and limitations
  *  under the License.
  */
-package io.ballerina.asyncapi.generators.openapi;
+package io.ballerina.asyncapi.generators.asyncapi;
 
 import org.testng.annotations.Test;
 
@@ -28,7 +28,7 @@ import java.nio.file.Paths;
  */
 public class ModuleReferenceTests {
     private static final Path RES_DIR = Paths.get(
-            "src/test/resources/ballerina-to-openapi/ballerina-project/service").toAbsolutePath();
+            "src/test/resources/ballerina-to-asyncapi/ballerina-project/service").toAbsolutePath();
 
     @Test(description = "Response with separate modules")
     public void testResponse01() throws IOException {

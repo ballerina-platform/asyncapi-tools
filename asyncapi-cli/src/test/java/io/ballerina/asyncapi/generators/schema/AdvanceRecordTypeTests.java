@@ -65,7 +65,7 @@ public class AdvanceRecordTypeTests {
         compareGeneratedSyntaxTreewithExpectedSyntaxTree("schema/ballerina/schema11.bal", syntaxTree);
     }
 
-    @Test(description = "Generate record for openapi weather api", enabled = false)
+    @Test(description = "Generate record for asyncapi weather api", enabled = false)
     public void generateOpenAPIWeatherAPI() throws IOException, BallerinaOpenApiException {
         Path definitionPath = RES_DIR.resolve("swagger/openapi_weather_api.yaml");
 

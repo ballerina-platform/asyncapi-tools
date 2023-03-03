@@ -36,11 +36,11 @@ import static io.ballerina.openapi.converter.Constants.*;
 import static io.ballerina.openapi.converter.utils.ConverterCommonUtils.extractAnnotationFieldDetails;
 
 /**
- * OpenAPIRequestBodyMapper provides functionality for converting ballerina payload to OAS request body model.
+ * AsyncAPIRequestBodyMapper provides functionality for converting ballerina payload to OAS request body model.
  *
  * @since 2.0.0
  */
-public class OpenAPIRequestBodyMapper {
+public class AsyncAPIRequestBodyMapper {
     private final Components components;
     private final OperationAdaptor operationAdaptor;
     private final SemanticModel semanticModel;
@@ -48,15 +48,15 @@ public class OpenAPIRequestBodyMapper {
     private final List<OpenAPIConverterDiagnostic> diagnostics;
 
     /**
-     * This constructor uses to create OpenAPIRequestBodyMapper instance when customMedia type enable.
+     * This constructor uses to create AsyncAPIRequestBodyMapper instance when customMedia type enable.
      *
      * @param components        - OAS Components
      * @param operationAdaptor  - Model of operation
      * @param semanticModel     - Semantic model for given ballerina service
      * @param customMediaType   - custom media type
      */
-    public OpenAPIRequestBodyMapper(Components components, OperationAdaptor operationAdaptor,
-                                    SemanticModel semanticModel, String customMediaType) {
+    public AsyncAPIRequestBodyMapper(Components components, OperationAdaptor operationAdaptor,
+                                     SemanticModel semanticModel, String customMediaType) {
         this.components = components;
         this.operationAdaptor = operationAdaptor;
         this.semanticModel = semanticModel;
@@ -65,14 +65,14 @@ public class OpenAPIRequestBodyMapper {
     }
 
     /**
-     * This constructor uses to create OpenAPIRequestBodyMapper instance when customMedia type absent.
+     * This constructor uses to create AsyncAPIRequestBodyMapper instance when customMedia type absent.
      *
      * @param components        - OAS Components
      * @param operationAdaptor  - Model of operation
      * @param semanticModel     - Semantic model for given ballerina service
      */
-    public OpenAPIRequestBodyMapper(Components components, OperationAdaptor operationAdaptor,
-                                    SemanticModel semanticModel) {
+    public AsyncAPIRequestBodyMapper(Components components, OperationAdaptor operationAdaptor,
+                                     SemanticModel semanticModel) {
         this(components, operationAdaptor, semanticModel, null);
     }
 
@@ -202,7 +202,7 @@ public class OpenAPIRequestBodyMapper {
             //handle record for components
             SimpleNameReferenceNode referenceNode = (SimpleNameReferenceNode) typeDescriptorNode;
             TypeSymbol typeSymbol = getReferenceTypeSymbol(semanticModel.symbol(referenceNode));
-            OpenAPIComponentMapper componentMapper = new OpenAPIComponentMapper(components);
+            AsyncAPIComponentMapper componentMapper = new AsyncAPIComponentMapper(components);
             componentMapper.createComponentSchema(schema, typeSymbol);
             diagnostics.addAll(componentMapper.getDiagnostics());
             Schema itemSchema = new Schema();
@@ -257,7 +257,7 @@ public class OpenAPIRequestBodyMapper {
     private void handleReferencePayload(TypeSymbol typeSymbol, String recordName,
                                         Map<String, Schema> schema, String mediaType, RequestBody bodyParameter) {
         //handle record for components
-        OpenAPIComponentMapper componentMapper = new OpenAPIComponentMapper(components);
+        AsyncAPIComponentMapper componentMapper = new AsyncAPIComponentMapper(components);
         componentMapper.createComponentSchema(schema, typeSymbol);
         diagnostics.addAll(componentMapper.getDiagnostics());
         io.swagger.v3.oas.models.media.MediaType media = new io.swagger.v3.oas.models.media.MediaType();

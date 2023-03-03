@@ -19,7 +19,7 @@ package io.ballerina.asyncapi.cmd;
 
 import io.ballerina.asyncapi.cli.AsyncAPICmd;
 import io.ballerina.cli.launcher.BLauncherException;
-import io.ballerina.asyncapi.core.exception.BallerinaOpenApiException;
+import io.ballerina.asyncapi.core.exception.BallerinaAsyncApiException;
 import org.apache.commons.io.FileUtils;
 
 import org.testng.Assert;
@@ -47,7 +47,7 @@ public class AsyncAPICmdTest extends AsyncAPICommandTest {
         super.setup();
     }
 
-    @Test(description = "Test openapi command with help flag")
+    @Test(description = "Test asyncapi command with help flag")
     public void testOpenAPICmdHelp() throws IOException {
         String[] args = {"-h"};
         AsyncAPICmd openApiCommand = new AsyncAPICmd(printStream, tmpDir, false);
@@ -55,20 +55,20 @@ public class AsyncAPICmdTest extends AsyncAPICommandTest {
         openApiCommand.execute();
         String output = readOutput(true);
         Assert.assertTrue(output.contains("NAME\n" +
-                "       ballerina-openapi - Generate a Ballerina service"));
+                "       ballerina-asyncapi - Generate a Ballerina service"));
     }
 
-    @Test(description = "Test openapi command without help flag")
+    @Test(description = "Test asyncapi command without help flag")
     public void testOpenAPICmdHelpWithoutFlag() throws IOException {
         AsyncAPICmd openApiCommand = new AsyncAPICmd(printStream, tmpDir, false);
         new CommandLine(openApiCommand);
         openApiCommand.execute();
         String output = readOutput(true);
         Assert.assertTrue(output.contains("NAME\n" +
-                "       ballerina-openapi - Generate a Ballerina service"));
+                "       ballerina-asyncapi - Generate a Ballerina service"));
     }
 
-    @Test(description = "Test openapi gen-service without openapi contract file")
+    @Test(description = "Test asyncapi gen-service without asyncapi contract file")
     public void testWithoutOpenApiContract() throws IOException {
         String[] args = {"--input"};
         AsyncAPICmd cmd = new AsyncAPICmd(printStream, tmpDir, false);
@@ -78,7 +78,7 @@ public class AsyncAPICmdTest extends AsyncAPICommandTest {
         Assert.assertTrue(output.contains("An OpenAPI definition path is required to generate the service."));
     }
 
-    @Test(description = "Test openapi gen-service for successful service generation")
+    @Test(description = "Test asyncapi gen-service for successful service generation")
     public void testSuccessfulServiceGeneration() throws IOException {
         Path petstoreYaml = resourceDir.resolve(Paths.get("petstore.yaml"));
         String[] args = {"--input", petstoreYaml.toString(), "-o", this.tmpDir.toString()};
@@ -117,7 +117,7 @@ public class AsyncAPICmdTest extends AsyncAPICommandTest {
         }
     }
 
-    @Test(description = "Check the type content in openapi-to-ballerina command when using to generate both " +
+    @Test(description = "Check the type content in asyncapi-to-ballerina command when using to generate both " +
             "client and service")
     public void testSuccessfulTypeBalGeneration() throws IOException {
         Path petstoreYaml = resourceDir.resolve(Paths.get("petstore_type.yaml"));
@@ -156,7 +156,7 @@ public class AsyncAPICmdTest extends AsyncAPICommandTest {
         }
     }
 
-    @Test(description = "Test openapi to ballerina generation with license headers")
+    @Test(description = "Test asyncapi to ballerina generation with license headers")
     public void testGenerationWithLicenseHeaders() throws IOException {
         Path petstoreYaml = resourceDir.resolve(Paths.get("petstore.yaml"));
         Path licenseHeader = resourceDir.resolve(Paths.get("license.txt"));
@@ -198,7 +198,7 @@ public class AsyncAPICmdTest extends AsyncAPICommandTest {
         }
     }
 
-    @Test(description = "Test openapi to ballerina generation with no new line license headers")
+    @Test(description = "Test asyncapi to ballerina generation with no new line license headers")
     public void testGenerationWithLicenseHeadersWithOneNewLine() throws IOException {
         Path petstoreYaml = resourceDir.resolve(Paths.get("petstore.yaml"));
         Path licenseHeader = resourceDir.resolve(Paths.get("license_with_new_line.txt"));
@@ -240,7 +240,7 @@ public class AsyncAPICmdTest extends AsyncAPICommandTest {
         }
     }
 
-    @Test(description = "Test openapi to ballerina connector generation filtering by tags")
+    @Test(description = "Test asyncapi to ballerina connector generation filtering by tags")
     public void testConnectorGenerationFilteringByTags() throws IOException {
         Path petstoreYaml = resourceDir.resolve(Paths.get("petstore_tags.yaml"));
         String[] args = {"--input", petstoreYaml.toString(), "-o", this.tmpDir.toString(), "--tags",
@@ -281,7 +281,7 @@ public class AsyncAPICmdTest extends AsyncAPICommandTest {
         }
     }
 
-    @Test(description = "Test openapi to ballerina generation with license headers and test suit")
+    @Test(description = "Test asyncapi to ballerina generation with license headers and test suit")
     public void testGenerationOfTestSuiteWithLicenseHeaders() throws IOException {
         Path petstoreYaml = resourceDir.resolve(Paths.get("petstore_with_oauth.yaml"));
         Path licenseHeader = resourceDir.resolve(Paths.get("license.txt"));
@@ -326,7 +326,7 @@ public class AsyncAPICmdTest extends AsyncAPICommandTest {
     }
 
     @Test(description = "Test exception when invalid prefix file given")
-    public void testInvalidPrefixFile() throws IOException, BallerinaOpenApiException {
+    public void testInvalidPrefixFile() throws IOException, BallerinaAsyncApiException {
         Path petstoreYaml = resourceDir.resolve(Paths.get("petstore.yaml"));
         Path licenseHeader = resourceDir.resolve(Paths.get("licence.txt"));
         String[] args = {"--input", petstoreYaml.toString(), "-o", this.tmpDir.toString(), "--license",
@@ -368,7 +368,7 @@ public class AsyncAPICmdTest extends AsyncAPICommandTest {
         }
     }
 
-    @Test(description = "Test openapi gen-service for .yml file service generation")
+    @Test(description = "Test asyncapi gen-service for .yml file service generation")
     public void testSuccessfulServiceGenerationForYML() throws IOException {
         Path petstoreYaml = resourceDir.resolve(Paths.get("petstore.yml"));
         String[] args = {"--input", petstoreYaml.toString(), "-o", this.tmpDir.toString()};

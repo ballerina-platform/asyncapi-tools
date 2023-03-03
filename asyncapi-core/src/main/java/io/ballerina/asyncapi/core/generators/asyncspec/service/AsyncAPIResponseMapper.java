@@ -46,7 +46,7 @@ import static io.ballerina.openapi.converter.utils.ConverterCommonUtils.*;
  *
  * @since 2.0.0
  */
-public class OpenAPIResponseMapper {
+public class AsyncAPIResponseMapper {
 
     private final SemanticModel semanticModel;
     private final Components components;
@@ -58,7 +58,7 @@ public class OpenAPIResponseMapper {
         return errors;
     }
 
-    public OpenAPIResponseMapper(SemanticModel semanticModel, Components components, Location location) {
+    public AsyncAPIResponseMapper(SemanticModel semanticModel, Components components, Location location) {
         this.semanticModel = semanticModel;
         this.components = components;
         this.location = location;
@@ -469,7 +469,7 @@ public class OpenAPIResponseMapper {
                 }
                 if (typeSymbol.typeKind() == TypeDescKind.RECORD) {
                     ApiResponses responses = handleRecordTypeSymbol(qNode.identifier().text().trim(),
-                            components.getSchemas(), customMediaPrefix, typeRef, new OpenAPIComponentMapper(components),
+                            components.getSchemas(), customMediaPrefix, typeRef, new AsyncAPIComponentMapper(components),
                             headers);
                     apiResponses.putAll(responses);
                     return Optional.of(apiResponses);
@@ -728,7 +728,7 @@ public class OpenAPIResponseMapper {
         Optional<Symbol> symbol = semanticModel.symbol(referenceNode);
         TypeSymbol typeSymbol = (TypeSymbol) symbol.orElseThrow();
         //handle record for components
-        OpenAPIComponentMapper componentMapper = new OpenAPIComponentMapper(components);
+        AsyncAPIComponentMapper componentMapper = new AsyncAPIComponentMapper(components);
         String mediaTypeString;
         // Check typeInclusion is related to the http status code
         if (referenceNode.parent().kind().equals(ARRAY_TYPE_DESC)) {
@@ -758,7 +758,7 @@ public class OpenAPIResponseMapper {
 
     private ApiResponses handleRecordTypeSymbol(String referenceName, Map<String, Schema> schema,
                                                 Optional<String> customMediaPrefix, TypeReferenceTypeSymbol typeSymbol,
-                                                OpenAPIComponentMapper componentMapper,
+                                                AsyncAPIComponentMapper componentMapper,
                                                 Map<String, Header> headers) {
         //Handle both intersection and record
         ApiResponses apiResponses = new ApiResponses();
@@ -796,7 +796,7 @@ public class OpenAPIResponseMapper {
 
     private ApiResponses createResponseForRecord(String referenceName, Map<String, Schema> schema,
                                                  Optional<String> customMediaPrefix, TypeSymbol typeSymbol,
-                                                 OpenAPIComponentMapper componentMapper,
+                                                 AsyncAPIComponentMapper componentMapper,
                                                  io.swagger.v3.oas.models.media.MediaType media,
                                                  Map<String, Header> headers) {
         String statusCode = httpMethod.equals(POST) ? HTTP_201 : HTTP_200;
@@ -820,7 +820,7 @@ public class OpenAPIResponseMapper {
 
     private Optional<ApiResponses> handleRecordHasHttpTypeInclusionField(Map<String, Schema> schema,
                                                                          TypeSymbol typeSymbol,
-                                                                         OpenAPIComponentMapper componentMapper,
+                                                                         AsyncAPIComponentMapper componentMapper,
                                                                          RecordTypeSymbol returnRecord,
                                                                          List<TypeSymbol> typeInclusions,
                                                                          Optional<String> customMediaPrefix,
