@@ -37,7 +37,9 @@ ext.slf4jVersion = project.slf4jVersion
 ext.stdlibWebsocketVersion = project.stdlibWebsocketVersion
 ext.jacocoVersion = project.jacocoVersion
 ext.puppycrawlCheckstyleVersion = project.puppycrawlCheckstyleVersion
-ext.asyncapiModelVersion=project.asyncApiModelVersion
+//ext.asyncapiModelVersion=project.asyncApiModelVersion
+ext.apicurioAsyncApiModelVersion=project.apicurioAsyncApiModelVersion
+ext.jsonToYamlVersion=project.jsonToYamlVersion
 
 allprojects {
     group = 'io.ballerina'

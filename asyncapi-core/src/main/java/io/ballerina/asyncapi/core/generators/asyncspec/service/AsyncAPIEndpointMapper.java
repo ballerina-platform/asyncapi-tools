@@ -19,24 +19,21 @@
 
 package io.ballerina.asyncapi.core.generators.asyncspec.service;
 
+import io.ballerina.asyncapi.core.generators.asyncspec.Constants;
+import io.ballerina.asyncapi.core.generators.asyncspec.utils.ConverterCommonUtils;
 import io.ballerina.compiler.syntax.tree.*;
-import io.ballerina.openapi.converter.Constants;
-import io.ballerina.openapi.converter.utils.ConverterCommonUtils;
-import io.swagger.v3.oas.models.OpenAPI;
-import io.swagger.v3.oas.models.servers.Server;
-import io.swagger.v3.oas.models.servers.ServerVariable;
-import io.swagger.v3.oas.models.servers.ServerVariables;
+import scala.Some;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
-import static io.ballerina.openapi.converter.Constants.PORT;
-import static io.ballerina.openapi.converter.Constants.SERVER;
+import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.PORT;
+import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.SERVER;
 
 /**
- * Extract OpenApi server information from and Ballerina endpoint.
+ * Extract AsyncApi server information from and Ballerina endpoint.
  */
 public class AsyncAPIEndpointMapper {
     public static final AsyncAPIEndpointMapper ENDPOINT_MAPPER = new AsyncAPIEndpointMapper();
@@ -44,14 +41,14 @@ public class AsyncAPIEndpointMapper {
     /**
      * Convert endpoints bound to {@code service} asyncapi server information.
      *
-     * @param openAPI   asyncapi definition to attach extracted information
+     * @param asyncAPI  asyncapi definition to attach extracted information
      * @param endpoints all endpoints defined in ballerina source
      * @param service   service node with bound endpoints
      * @return asyncapi definition with Server information
      */
-    public OpenAPI getServers(OpenAPI openAPI, List<ListenerDeclarationNode> endpoints,
+    public OpenAPI getServers(AsyncAPI asyncAPI, List<ListenerDeclarationNode> endpoints,
                               ServiceDeclarationNode service) {
-        openAPI = extractServerForExpressionNode(openAPI, service.expressions(), service);
+        openAPI = extractServerForExpressionNode(asyncAPI, service.expressions(), service);
         List<Server> servers = openAPI.getServers();
         if (!endpoints.isEmpty()) {
             for (ListenerDeclarationNode ep : endpoints) {
@@ -75,6 +72,7 @@ public class AsyncAPIEndpointMapper {
 
     private Server addEnumValues(List<Server> servers) {
 
+        Some
         Server mainServer = servers.get(0);
         List<Server> rotated = new ArrayList<>(servers);
         ServerVariables mainVariable = mainServer.getVariables();

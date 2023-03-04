@@ -121,9 +121,11 @@ public class AsyncAPIContractGenerator {
                     this.errors.addAll(definition.getDiagnostics());
                     if (definition.getAsyncAPI().isPresent()) {
                         Optional<String> content;
+                        content=definition.getYaml();
 //                        if (needJson) {
-//                            content = definition.getJson();
-//                        } else {
+//                            content = definition.getJason();
+//                        }
+//                        else {
 //                            content = definition.getYaml();
 //                        }
                         String fileName = resolveContractFileName(outPath, definition.getServiceName(), needJson);

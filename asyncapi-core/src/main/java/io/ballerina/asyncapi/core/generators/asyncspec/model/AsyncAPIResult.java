@@ -23,6 +23,7 @@ import sttp.apispec.asyncapi.circe.yaml.SttpAsyncAPICirceYaml;
 import sttp.apispec.asyncapi.circe.yaml.package$;
 import sttp.apispec.asyncapi.circe.yaml.SttpAsyncAPICirceYaml.RichAsyncAPI;
 import java.util.List;
+import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25Document;
 import java.util.Optional;
 
 
@@ -33,7 +34,7 @@ import java.util.Optional;
  */
 public class AsyncAPIResult {
 
-    private AsyncAPI asyncAPI;
+    private AsyncApi25Document asyncAPI;
     private String serviceName; // added base path for key to definition
     private final List<AsyncAPIConverterDiagnostic> diagnostics;
     private SttpAsyncAPICirceYaml sttpAsyncAPICirceYaml = new SttpAsyncAPICirceYaml(){};
@@ -41,7 +42,7 @@ public class AsyncAPIResult {
     /**
      * This constructor is used to store the details that Map of {@code OpenAPI} objects and diagnostic list.
      */
-    public AsyncAPIResult(AsyncAPI asyncAPI, List<AsyncAPIConverterDiagnostic> diagnostics) {
+    public AsyncAPIResult(AsyncApi25Document asyncAPI, List<AsyncAPIConverterDiagnostic> diagnostics) {
         this.asyncAPI = asyncAPI;
         this.diagnostics = diagnostics;
     }
@@ -50,7 +51,7 @@ public class AsyncAPIResult {
         return diagnostics;
     }
 
-    public Optional<AsyncAPI> getAsyncAPI() {
+    public Optional<AsyncApi25Document> getAsyncAPI() {
         return Optional.ofNullable(asyncAPI);
     }
 

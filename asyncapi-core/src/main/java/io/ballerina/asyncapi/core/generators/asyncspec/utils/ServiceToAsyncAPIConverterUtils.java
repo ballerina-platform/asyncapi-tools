@@ -18,6 +18,10 @@
 
 package io.ballerina.asyncapi.core.generators.asyncspec.utils;
 
+import io.apicurio.datamodels.Library;
+import io.apicurio.datamodels.models.Info;
+import io.apicurio.datamodels.models.ModelType;
+import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25Document;
 import io.ballerina.asyncapi.core.generators.asyncspec.diagnostic.AsyncAPIConverterDiagnostic;
 import io.ballerina.asyncapi.core.generators.asyncspec.diagnostic.DiagnosticMessages;
 import io.ballerina.asyncapi.core.generators.asyncspec.diagnostic.ExceptionDiagnostic;
@@ -85,11 +89,11 @@ public class ServiceToAsyncAPIConverterUtils {
             }
             // Generating asyncapi specification for selected services
             for (Map.Entry<String, ServiceDeclarationNode> serviceNode : servicesToGenerate.entrySet()) {
-                String openApiName = getOpenApiFileName(syntaxTree.filePath(), serviceNode.getKey(), needJson);
-                AsyncAPIResult oasDefinition = generateOAS(serviceNode.getValue(), endpoints, semanticModel, openApiName,
+                String asyncApiName = getAsyncApiFileName(syntaxTree.filePath(), serviceNode.getKey(), needJson);
+                AsyncAPIResult asyncAPIDefinition = generateAsyncApiSpec(serviceNode.getValue(), endpoints, semanticModel, asyncApiName,
                         inputPath);
-                oasDefinition.setServiceName(openApiName);
-                outputs.add(oasDefinition);
+                asyncAPIDefinition.setServiceName(asyncApiName);
+                outputs.add(asyncAPIDefinition);
             }
         }
         if (!diagnostics.isEmpty()) {
@@ -160,28 +164,28 @@ public class ServiceToAsyncAPIConverterUtils {
         }
     }
 
-    /**
-     * Generate openAPI definition according to the given format JSON or YAML.
-     *
-     * @deprecated use {@link #generateOAS(ServiceDeclarationNode, List, SemanticModel, String, Path)} instead.
-     * The new API provides a list of {@code AsyncAPIResult}, which contains all the diagnostic information collected
-     * while generating the openAPI contract.
-     */
-    @Deprecated
-    public static String generateOASForGivenFormat(ServiceDeclarationNode serviceDeclarationNode,
-                                                   boolean needJson, List<ListenerDeclarationNode> endpoints,
-                                                   SemanticModel semanticModel, String openApiName) {
-        Optional<AsyncAPIInfo> openapi = generateOAS(serviceDeclarationNode, endpoints, semanticModel, openApiName,
-                null).getOpenAPI();
-        if (openapi.isPresent()) {
-            OpenAPI openAPI = openapi.get();
-            if (openAPI.getInfo().getTitle() == null || openAPI.getInfo().getTitle().equals(SLASH)) {
-                openAPI.getInfo().setTitle(normalizeTitle(openApiName));
-            }
-            return needJson ? Json.pretty(openAPI) : Yaml.pretty(openAPI);
-        }
-        return "Error while generating openAPI contract";
-    }
+//    /**
+//     * Generate openAPI definition according to the given format JSON or YAML.
+//     *
+//     * @deprecated use {@link #generateAsyncApiSpec(ServiceDeclarationNode, List, SemanticModel, String, Path)} (ServiceDeclarationNode, List, SemanticModel, String, Path)} instead.
+//     * The new API provides a list of {@code AsyncAPIResult}, which contains all the diagnostic information collected
+//     * while generating the openAPI contract.
+//     */
+//    @Deprecated
+//    public static String generateOASForGivenFormat(ServiceDeclarationNode serviceDeclarationNode,
+//                                                   boolean needJson, List<ListenerDeclarationNode> endpoints,
+//                                                   SemanticModel semanticModel, String openApiName) {
+//        Optional<AsyncApi25Document> asyncApi = generateAsyncApiSpec(serviceDeclarationNode, endpoints, semanticModel, openApiName,
+//                null).getAsyncAPI();
+//        if (asyncApi.isPresent()) {
+//            AsyncApi25Document asyncAPI = asyncApi.get();
+//            if (asyncAPI.getInfo().getTitle() == null || asyncAPI.getInfo().getTitle().equals(SLASH)) {
+//                asyncAPI.getInfo().setTitle(normalizeTitle(openApiName));
+//            }
+//            return needJson ? Json.pretty(asyncApi) : Yaml.pretty(asyncApi);
+//        }
+//        return "Error while generating openAPI contract";
+//    }
 
     /**
      * Provides an instance of {@code AsyncAPIResult}, which contains the generated contract as well as
@@ -190,32 +194,32 @@ public class ServiceToAsyncAPIConverterUtils {
      * @param serviceDefinition     Service Node related to ballerina service
      * @param endpoints             Listener endpoints that bind to service
      * @param semanticModel         Semantic model for given ballerina file
-     * @param openApiFileName       OpenAPI file name
+     * @param asyncApiFileName       AsyncAPI file name
      * @param ballerinaFilePath     Input ballerina file Path
      * @return {@code AsyncAPIResult}
      */
-    public static AsyncAPIResult generateOAS(ServiceDeclarationNode serviceDefinition,
+    public static AsyncAPIResult generateAsyncApiSpec(ServiceDeclarationNode serviceDefinition,
                                         List<ListenerDeclarationNode> endpoints, SemanticModel semanticModel,
-                                        String openApiFileName, Path ballerinaFilePath) {
+                                        String asyncApiFileName, Path ballerinaFilePath) {
         // 01.Fill the openAPI info section
-        AsyncAPIResult oasResult = fillOpenAPIInfoSection(serviceDefinition, semanticModel, openApiFileName,
+        AsyncAPIResult asyncApiResult = fillAsyncAPIInfoSection(serviceDefinition, semanticModel, asyncApiFileName,
                 ballerinaFilePath);
-        if (oasResult.getOpenAPI().isPresent() && oasResult.getDiagnostics().isEmpty()) {
-            OpenAPI openapi = oasResult.getOpenAPI().get();
-            if (openapi.getPaths() == null) {
+        if (asyncApiResult.getAsyncAPI().isPresent() && asyncApiResult.getDiagnostics().isEmpty()) {
+            AsyncApi25Document asyncapi = asyncApiResult.getAsyncAPI().get();
+            if (asyncapi.getPaths() == null) {
                 // Take base path of service
                 AsyncAPIServiceMapper openAPIServiceMapper = new AsyncAPIServiceMapper(semanticModel);
                 // 02. Filter and set the ServerURLs according to endpoints. Complete the server section in OAS
-                openapi = AsyncAPIEndpointMapper.ENDPOINT_MAPPER.getServers(openapi, endpoints, serviceDefinition);
+                asyncapi = AsyncAPIEndpointMapper.ENDPOINT_MAPPER.getServers(asyncapi, endpoints, serviceDefinition);
                 // 03. Filter path and component sections in OAS.
                 // Generate openApi string for the mentioned service name.
-                openapi = openAPIServiceMapper.convertServiceToOpenAPI(serviceDefinition, openapi);
-                return new AsyncAPIResult(openapi, openAPIServiceMapper.getErrors());
+                asyncapi = openAPIServiceMapper.convertServiceToOpenAPI(serviceDefinition, asyncapi);
+                return new AsyncAPIResult(asyncapi, openAPIServiceMapper.getErrors());
             } else {
-                return new AsyncAPIResult(openapi, oasResult.getDiagnostics());
+                return new AsyncAPIResult(asyncapi, asyncApiResult.getDiagnostics());
             }
         } else {
-            return oasResult;
+            return asyncApiResult;
         }
     }
 
@@ -235,15 +239,17 @@ public class ServiceToAsyncAPIConverterUtils {
      *
      * @param serviceNode   Service node for relevant service.
      * @param semanticModel Semantic model for relevant project.
-     * @param openapiFileName OpenAPI generated file name.
+     * @param asyncApiFileName OpenAPI generated file name.
      * @param ballerinaFilePath Ballerina file path.
      * @return {@code AsyncAPIResult}
      */
-    private static AsyncAPIResult fillOpenAPIInfoSection(ServiceDeclarationNode serviceNode, SemanticModel semanticModel,
-                                                    String openapiFileName, Path ballerinaFilePath) {
+    private static AsyncAPIResult fillAsyncAPIInfoSection(ServiceDeclarationNode serviceNode, SemanticModel semanticModel,
+                                                          String asyncApiFileName, Path ballerinaFilePath) {
         Optional<MetadataNode> metadata = serviceNode.metadata();
         List<AsyncAPIConverterDiagnostic> diagnostics = new ArrayList<>();
-        OpenAPI openAPI = new OpenAPI();
+        AsyncApi25Document asyncAPI=(AsyncApi25Document) Library.createDocument(ModelType.ASYNCAPI25);
+        asyncAPI.setAsyncapi("2.5.0");
+//        AsyncApi openAPI = new OpenAPI();
         String currentServiceName = AsyncAPIEndpointMapper.ENDPOINT_MAPPER.getServiceBasePath(serviceNode);
         // 01. Set openAPI inFo section wit package details
         String version = getContractVersion(serviceNode, semanticModel);
@@ -255,51 +261,68 @@ public class ServiceToAsyncAPIConverterUtils {
                     QualifiedNameReferenceNode ref = (QualifiedNameReferenceNode) annotation.annotReference();
                     String annotationName = ref.modulePrefix().text() + ":" + ref.identifier().text();
                     if (annotationName.equals(OPENAPI_ANNOTATION)) {
-                        AsyncAPIResult oasResult = parseServiceInfoAnnotationAttachmentDetails(diagnostics, annotation,
+                        AsyncAPIResult asyncApiResult = parseServiceInfoAnnotationAttachmentDetails(diagnostics, annotation,
                                 ballerinaFilePath);
-                        return normalizeInfoSection(openapiFileName, currentServiceName, version, oasResult);
+                        return normalizeInfoSection(asyncApiFileName, currentServiceName, version, asyncApiResult);
                     } else {
-                        openAPI.setInfo(new Info().version(version).title(normalizeTitle(currentServiceName)));
+                        Info info = asyncAPI.createInfo();
+                        info.setVersion(version);
+                        info.setTitle(normalizeTitle(currentServiceName));
+                        asyncAPI.setInfo(info);
+//                        openAPI.setInfo(new Info().version(version).title(normalizeTitle(currentServiceName)));
                     }
                 }
             }
         } else if (currentServiceName.equals(SLASH) || currentServiceName.isBlank()) {
-            openAPI.setInfo(new Info().version(version).title(normalizeTitle(openapiFileName)));
+            Info info = asyncAPI.createInfo();
+            info.setVersion(version);
+            info.setTitle(normalizeTitle(asyncApiFileName));
+            asyncAPI.setInfo(info);
+//            openAPI.setInfo(new Info().version(version).title(normalizeTitle(asyncapiFileName)));
         } else {
-            openAPI.setInfo(new Info().version(version).title(normalizeTitle(currentServiceName)));
+//            openAPI.setInfo(new Info().version(version).title(normalizeTitle(currentServiceName)));
+            Info info = asyncAPI.createInfo();
+            info.setVersion(version);
+            info.setTitle(normalizeTitle(currentServiceName));
+            asyncAPI.setInfo(info);
         }
 
-        return new AsyncAPIResult(openAPI, diagnostics);
+        return new AsyncAPIResult(asyncAPI, diagnostics);
     }
 
     // Finalize the openAPI info section
-    private static AsyncAPIResult normalizeInfoSection(String openapiFileName, String currentServiceName, String version,
-                                          AsyncAPIResult oasResult) {
-        if (oasResult.getOpenAPI().isPresent()) {
-            OpenAPI openAPI = oasResult.getOpenAPI().get();
-            if (openAPI.getInfo() == null) {
+    private static AsyncAPIResult normalizeInfoSection(String asyncApiFileName, String currentServiceName, String version,
+                                          AsyncAPIResult asyncApiResult) {
+        if (asyncApiResult.getAsyncAPI().isPresent()) {
+            AsyncApi25Document asyncAPI = asyncApiResult.getAsyncAPI().get();
+            if (asyncAPI.getInfo() == null) {
                 String title = normalizeTitle(currentServiceName);
                 if (currentServiceName.equals(SLASH)) {
-                    title = normalizeTitle(openapiFileName);
+                    title = normalizeTitle(asyncApiFileName);
                 }
-                openAPI.setInfo(new Info().title(title).version(version));
+                Info info = asyncAPI.createInfo();
+                info.setVersion(version);
+                info.setTitle(title);
+                asyncAPI.setInfo(info);
+//
+//                asyncAPI.setInfo(new Info().title(title).version(version));
             } else {
-                if (openAPI.getInfo().getTitle() == null) {
-                    openAPI.getInfo().setTitle(normalizeTitle(currentServiceName));
-                } else if (openAPI.getInfo().getTitle() != null && openAPI.getInfo().getTitle().equals(SLASH)) {
-                    openAPI.getInfo().setTitle(normalizeTitle(openapiFileName));
-                } else if (openAPI.getInfo().getTitle().isBlank()) {
-                    openAPI.getInfo().setTitle(normalizeTitle(currentServiceName));
-                } else if (openAPI.getInfo().getTitle() == null && currentServiceName.equals(SLASH)) {
-                    openAPI.getInfo().setTitle(normalizeTitle(openapiFileName));
+                if (asyncAPI.getInfo().getTitle() == null) {
+                    asyncAPI.getInfo().setTitle(normalizeTitle(currentServiceName));
+                } else if (asyncAPI.getInfo().getTitle() != null && asyncAPI.getInfo().getTitle().equals(SLASH)) {
+                    asyncAPI.getInfo().setTitle(normalizeTitle(asyncApiFileName));
+                } else if (asyncAPI.getInfo().getTitle().isBlank()) {
+                    asyncAPI.getInfo().setTitle(normalizeTitle(currentServiceName));
+                } else if (asyncAPI.getInfo().getTitle() == null && currentServiceName.equals(SLASH)) {
+                    asyncAPI.getInfo().setTitle(normalizeTitle(asyncApiFileName));
                 }
-                if (openAPI.getInfo().getVersion() == null || openAPI.getInfo().getVersion().isBlank()) {
-                    openAPI.getInfo().setVersion(version);
+                if (asyncAPI.getInfo().getVersion() == null || asyncAPI.getInfo().getVersion().isBlank()) {
+                    asyncAPI.getInfo().setVersion(version);
                 }
             }
-            return new OASResult(openAPI, oasResult.getDiagnostics());
+            return new AsyncAPIResult(asyncAPI, asyncApiResult.getDiagnostics());
         } else {
-            return oasResult;
+            return asyncApiResult;
         }
     }
 
@@ -341,58 +364,74 @@ public class ServiceToAsyncAPIConverterUtils {
     }
 
     // Set annotation details  for info section.
-    private static OASResult parseServiceInfoAnnotationAttachmentDetails(List<OpenAPIConverterDiagnostic> diagnostics,
+    private static AsyncAPIResult parseServiceInfoAnnotationAttachmentDetails(List<AsyncAPIConverterDiagnostic> diagnostics,
                                                                          AnnotationNode annotation,
                                                                          Path ballerinaFilePath) {
         Location location = annotation.location();
-        OpenAPI openAPI = new OpenAPI();
+        AsyncApi25Document asyncAPI=(AsyncApi25Document) Library.createDocument(ModelType.ASYNCAPI25);
+        asyncAPI.setAsyncapi("2.5.0");
         Optional<MappingConstructorExpressionNode> content = annotation.annotValue();
         // If contract path there
         if (content.isPresent()) {
            SeparatedNodeList<MappingFieldNode> fields = content.get().fields();
            if (!fields.isEmpty()) {
-               OpenAPIInfo openAPIInfo = updateOpenAPIInfoModel(fields);
-               // If in case ballerina file path is getting null, then openAPI specification will be generated for
+               AsyncAPIInfo asyncAPIInfo = updateOpenAPIInfoModel(fields);
+               // If in case ballerina file path is getting null, then asyncAPI specification will be generated for
                // given services.
-               if (openAPIInfo.getContractPath().isPresent() && ballerinaFilePath != null) {
-                   return updateExistingContractOpenAPI(diagnostics, location, openAPIInfo, ballerinaFilePath);
-               } else if (openAPIInfo.getTitle().isPresent() && openAPIInfo.getVersion().isPresent()) {
-                   openAPI.setInfo(new Info().version(openAPIInfo.getVersion().get()).title(normalizeTitle
-                           (openAPIInfo.getTitle().get())));
-               } else if (openAPIInfo.getVersion().isPresent()) {
-                   openAPI.setInfo(new Info().version(openAPIInfo.getVersion().get()));
-               } else if (openAPIInfo.getTitle().isPresent()) {
-                   openAPI.setInfo(new Info().title(normalizeTitle(openAPIInfo.getTitle().get())));
+               if (asyncAPIInfo.getContractPath().isPresent() && ballerinaFilePath != null) {
+                   return updateExistingContractOpenAPI(diagnostics, location, asyncAPIInfo, ballerinaFilePath);
+               } else if (asyncAPIInfo.getTitle().isPresent() && asyncAPIInfo.getVersion().isPresent()) {
+                   Info info = asyncAPI.createInfo();
+                   info.setVersion(asyncAPIInfo.getVersion().get());
+                   info.setTitle(normalizeTitle
+                           (asyncAPIInfo.getTitle().get()));
+                   asyncAPI.setInfo(info);
+//                   openAPI.setInfo(new Info().version(openAPIInfo.getVersion().get()).title(normalizeTitle
+//                           (openAPIInfo.getTitle().get())));
+               } else if (asyncAPIInfo.getVersion().isPresent()) {
+                   Info info = asyncAPI.createInfo();
+                   info.setVersion(asyncAPIInfo.getVersion().get());
+//                   info.setTitle(normalizeTitle
+//                           (asyncAPIInfo.getTitle().get()));
+                   asyncAPI.setInfo(info);
+//                   asyncAPI.setInfo(new Info().version(openAPIInfo.getVersion().get()));
+               } else if (asyncAPIInfo.getTitle().isPresent()) {
+                   Info info = asyncAPI.createInfo();
+//                   info.setVersion(asyncAPIInfo.getVersion().get());
+                   info.setTitle(normalizeTitle(
+                           asyncAPIInfo.getTitle().get()));
+                   asyncAPI.setInfo(info);
+//                   openAPI.setInfo(new Info().title(normalizeTitle(openAPIInfo.getTitle().get())));
                }
            }
         }
-        return new AsyncAPIResult(openAPI, diagnostics);
+        return new AsyncAPIResult(asyncAPI, diagnostics);
     }
 
     private static AsyncAPIResult updateExistingContractOpenAPI(List<AsyncAPIConverterDiagnostic> diagnostics,
-                                                           Location location, AsyncAPIInfo openAPIInfo,
+                                                           Location location, AsyncAPIInfo asyncAPIInfo,
                                                            Path ballerinaFilePath) {
 
-        AsyncAPIResult oasResult = resolveContractPath(diagnostics, location, openAPIInfo, ballerinaFilePath);
-        Optional<OpenAPI> contract = oasResult.getOpenAPI();
+        AsyncAPIResult asyncAPIResult = resolveContractPath(diagnostics, location, asyncAPIInfo, ballerinaFilePath);
+        Optional<AsyncApi25Document> contract = asyncAPIResult.getAsyncAPI();
         if (contract.isEmpty()) {
-            return oasResult;
+            return asyncAPIResult;
         }
-        OpenAPI openAPI = contract.get();
-        if (openAPIInfo.getVersion().isPresent() && openAPIInfo.getTitle().isPresent()) {
+        AsyncApi25Document asyncApi = contract.get();
+        if (asyncAPIInfo.getVersion().isPresent() && asyncAPIInfo.getTitle().isPresent()) {
             // read the asyncapi
-            openAPI.getInfo().setVersion(openAPIInfo.getVersion().get());
-            openAPI.getInfo().setTitle(openAPIInfo.getTitle().get());
-            diagnostics.addAll(oasResult.getDiagnostics());
-            return new AsyncAPIResult(openAPI, oasResult.getDiagnostics());
-        } else if (openAPIInfo.getTitle().isPresent()) {
-            openAPI.getInfo().setTitle(openAPIInfo.getTitle().get());
-            return new AsyncAPIResult(openAPI, oasResult.getDiagnostics());
-        } else if (openAPIInfo.getVersion().isPresent()) {
-            openAPI.getInfo().setVersion(openAPIInfo.getVersion().get());
-            return new AsyncAPIResult(openAPI, oasResult.getDiagnostics());
+            asyncApi.getInfo().setVersion(asyncAPIInfo.getVersion().get());
+            asyncApi.getInfo().setTitle(asyncAPIInfo.getTitle().get());
+            diagnostics.addAll(asyncAPIResult.getDiagnostics());
+            return new AsyncAPIResult(asyncApi, asyncAPIResult.getDiagnostics());
+        } else if (asyncAPIInfo.getTitle().isPresent()) {
+            asyncApi.getInfo().setTitle(asyncAPIInfo.getTitle().get());
+            return new AsyncAPIResult(asyncApi, asyncAPIResult.getDiagnostics());
+        } else if (asyncAPIInfo.getVersion().isPresent()) {
+            asyncApi.getInfo().setVersion(asyncAPIInfo.getVersion().get());
+            return new AsyncAPIResult(asyncApi, asyncAPIResult.getDiagnostics());
         } else {
-            return oasResult;
+            return asyncAPIResult;
         }
     }
 
@@ -427,22 +466,22 @@ public class ServiceToAsyncAPIConverterUtils {
         return infoBuilder.build();
     }
     private static AsyncAPIResult resolveContractPath(List<AsyncAPIConverterDiagnostic> diagnostics, Location location,
-                                     AsyncAPIInfo openAPIInfo, Path ballerinaFilePath) {
-        AsyncAPIResult oasResult;
-        OpenAPI openAPI = null;
-        Path openapiPath = Paths.get(openAPIInfo.getContractPath().get().replaceAll("\"", "").trim());
+                                     AsyncAPIInfo asyncAPIInfo, Path ballerinaFilePath) {
+        AsyncAPIResult asyncApiResult;
+        AsyncApi25Document asyncApi = null;
+        Path asyncApiPath = Paths.get(asyncAPIInfo.getContractPath().get().replaceAll("\"", "").trim());
         Path relativePath = null;
-        if (openapiPath.toString().isBlank()) {
+        if (asyncApiPath.toString().isBlank()) {
             DiagnosticMessages error = DiagnosticMessages.OAS_CONVERTOR_110;
             ExceptionDiagnostic diagnostic = new ExceptionDiagnostic(error.getCode(),
                     error.getDescription(), location);
             diagnostics.add(diagnostic);
-        } else if (Paths.get(openapiPath.toString()).isAbsolute()) {
-            relativePath = Paths.get(openapiPath.toString());
+        } else if (Paths.get(asyncApiPath.toString()).isAbsolute()) {
+            relativePath = Paths.get(asyncApiPath.toString());
         } else {
             File file = new File(ballerinaFilePath.toString());
             File parentFolder = new File(file.getParent());
-            File openapiContract = new File(parentFolder, openapiPath.toString());
+            File openapiContract = new File(parentFolder, asyncApiPath.toString());
             try {
                 relativePath = Paths.get(openapiContract.getCanonicalPath());
             } catch (IOException e) {
@@ -453,12 +492,12 @@ public class ServiceToAsyncAPIConverterUtils {
             }
         }
         if (relativePath != null && Files.exists(relativePath)) {
-            oasResult = ConverterCommonUtils.parseOpenAPIFile(relativePath.toString());
-            if (oasResult.getOpenAPI().isPresent()) {
-                openAPI = oasResult.getOpenAPI().get();
+            asyncApiResult = ConverterCommonUtils.parseOpenAPIFile(relativePath.toString());
+            if (asyncApiResult.getAsyncAPI().isPresent()) {
+                asyncApi= asyncApiResult.getAsyncAPI().get();
             }
-            diagnostics.addAll(oasResult.getDiagnostics());
+            diagnostics.addAll(asyncApiResult.getDiagnostics());
         }
-        return new AsyncAPIResult(openAPI, diagnostics);
+        return new AsyncAPIResult(asyncApi, diagnostics);
     }
 }

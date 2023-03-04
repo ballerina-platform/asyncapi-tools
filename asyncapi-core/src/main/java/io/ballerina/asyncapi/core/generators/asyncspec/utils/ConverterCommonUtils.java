@@ -18,6 +18,7 @@
 
 package io.ballerina.asyncapi.core.generators.asyncspec.utils;
 
+import io.ballerina.asyncapi.core.generators.asyncspec.Constants;
 import io.ballerina.compiler.api.SemanticModel;
 import io.ballerina.compiler.api.symbols.*;
 import io.ballerina.compiler.syntax.tree.*;
@@ -32,8 +33,8 @@ import io.ballerina.tools.diagnostics.Location;
 import io.ballerina.tools.text.LinePosition;
 import io.ballerina.tools.text.LineRange;
 import io.ballerina.tools.text.TextRange;
-
 import org.apache.commons.io.FilenameUtils;
+import
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -41,7 +42,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
 import java.util.stream.Collectors;
-
+import sttp.apispec.Schema;
 import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.*;
 
 /**
@@ -400,18 +401,18 @@ public class ConverterCommonUtils {
             return ((UnionTypeSymbol) listenerType).memberTypeDescriptors().stream()
                     .filter(typeDescriptor -> typeDescriptor instanceof TypeReferenceTypeSymbol)
                     .map(typeReferenceTypeSymbol -> (TypeReferenceTypeSymbol) typeReferenceTypeSymbol)
-                    .anyMatch(typeReferenceTypeSymbol -> isHttpModule(typeReferenceTypeSymbol.getModule().get()));
+                    .anyMatch(typeReferenceTypeSymbol -> isWebsocketModule(typeReferenceTypeSymbol.getModule().get()));
         }
 
         if (listenerType.typeKind() == TypeDescKind.TYPE_REFERENCE) {
-            return isHttpModule(((TypeReferenceTypeSymbol) listenerType).typeDescriptor().getModule().get());
+            return isWebsocketModule(((TypeReferenceTypeSymbol) listenerType).typeDescriptor().getModule().get());
         }
         return false;
     }
 
-    private static boolean isHttpModule(ModuleSymbol moduleSymbol) {
+    private static boolean isWebsocketModule(ModuleSymbol moduleSymbol) {
         if (moduleSymbol.getName().isPresent()) {
-            return HTTP.equals(moduleSymbol.getName().get()) && BALLERINA.equals(moduleSymbol.id().orgName());
+            return Websocket.equals(moduleSymbol.getName().get()) && BALLERINA.equals(moduleSymbol.id().orgName());
         } else {
             return false;
         }
@@ -420,7 +421,7 @@ public class ConverterCommonUtils {
     /**
      * Generate file name with service basePath.
      */
-    public static String getOpenApiFileName(String servicePath, String serviceName, boolean isJson) {
+    public static String getAsyncApiFileName(String servicePath, String serviceName, boolean isJson) {
         String openAPIFileName;
         if (serviceName.isBlank() || serviceName.equals(SLASH) || serviceName.startsWith(SLASH + HYPHEN)) {
             String[] fileName = serviceName.split(SLASH);
