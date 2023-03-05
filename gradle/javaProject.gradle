@@ -48,8 +48,6 @@ dependencies {
         implementation "com.google.code.findbugs:jsr305:3.0.2"
         implementation "info.picocli:picocli:4.7.1"
         implementation "commons-io:commons-io:${commonsIoVersion}"
-        implementation "com.softwaremill.sttp.apispec:asyncapi-model_3:${asyncApiModelVersion}"
-        implementation "com.softwaremill.sttp.apispec:asyncapi-circe-yaml_3:${asyncApiModelVersion}"
         implementation "org.ballerinalang:ballerina-lang:${ballerinaLangVersion}"
         implementation "org.ballerinalang:ballerina-parser:${ballerinaLangVersion}"
         implementation "org.ballerinalang:ballerina-cli:${ballerinaLangVersion}"

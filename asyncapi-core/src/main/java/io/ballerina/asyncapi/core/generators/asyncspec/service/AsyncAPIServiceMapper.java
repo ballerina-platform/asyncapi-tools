@@ -19,10 +19,11 @@
 
 package io.ballerina.asyncapi.core.generators.asyncspec.service;
 
+import io.ballerina.asyncapi.core.generators.asyncspec.diagnostic.AsyncAPIConverterDiagnostic;
 import io.ballerina.compiler.api.SemanticModel;
 import io.ballerina.compiler.syntax.tree.*;
-import io.ballerina.openapi.converter.diagnostic.OpenAPIConverterDiagnostic;
-import io.swagger.v3.oas.models.OpenAPI;
+import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25Document;
+
 
 import java.util.ArrayList;
 import java.util.List;
@@ -35,9 +36,9 @@ import java.util.List;
  */
 public class AsyncAPIServiceMapper {
     private final SemanticModel semanticModel;
-    private final List<OpenAPIConverterDiagnostic> errors = new ArrayList<>();
+    private final List<AsyncAPIConverterDiagnostic> errors = new ArrayList<>();
 
-    public List<OpenAPIConverterDiagnostic> getErrors() {
+    public List<AsyncAPIConverterDiagnostic> getErrors() {
         return errors;
     }
 
@@ -53,10 +54,10 @@ public class AsyncAPIServiceMapper {
      * This method will convert ballerina @Service to openApi @OpenApi object.
      *
      * @param service   - Ballerina @Service object to be map to openApi definition
-     * @param openapi   - OpenApi model to populate
+     * @param asyncApi   - OpenApi model to populate
      * @return OpenApi object which represent current service.
      */
-    public OpenAPI convertServiceToOpenAPI(ServiceDeclarationNode service, OpenAPI openapi) {
+    public AsyncApi25Document convertServiceToOpenAPI(ServiceDeclarationNode service, AsyncApi25Document asyncApi) {
         NodeList<Node> functions = service.members();
         List<FunctionDefinitionNode> resource = new ArrayList<>();
         for (Node function: functions) {
@@ -66,10 +67,10 @@ public class AsyncAPIServiceMapper {
             }
         }
         AsyncAPIResourceMapper resourceMapper = new AsyncAPIResourceMapper(this.semanticModel);
-        openapi.setPaths(resourceMapper.getPaths(resource));
-        openapi.setComponents(resourceMapper.getComponents());
+        asyncApi.setPaths(resourceMapper.getPaths(resource));
+        asyncApi.setComponents(resourceMapper.getComponents());
         errors.addAll(resourceMapper.getErrors());
 
-        return openapi;
+        return asyncApi;
     }
 }

@@ -38,8 +38,6 @@ dependencies {
     implementation "org.ballerinalang:ballerina-tools-api"
     implementation "com.google.code.findbugs:jsr305"
     implementation "commons-io:commons-io"
-    implementation "com.softwaremill.sttp.apispec:asyncapi-model_3"
-    implementation "com.softwaremill.sttp.apispec:asyncapi-circe-yaml_3"
     implementation "io.apicurio:apicurio-data-models"
     implementation "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml"
     testImplementation "org.testng:testng"

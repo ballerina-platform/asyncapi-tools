@@ -22,6 +22,7 @@ import io.apicurio.datamodels.Library;
 import io.apicurio.datamodels.models.Info;
 import io.apicurio.datamodels.models.ModelType;
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25Document;
+import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25DocumentImpl;
 import io.ballerina.asyncapi.core.generators.asyncspec.diagnostic.AsyncAPIConverterDiagnostic;
 import io.ballerina.asyncapi.core.generators.asyncspec.diagnostic.DiagnosticMessages;
 import io.ballerina.asyncapi.core.generators.asyncspec.diagnostic.ExceptionDiagnostic;
@@ -205,16 +206,16 @@ public class ServiceToAsyncAPIConverterUtils {
         AsyncAPIResult asyncApiResult = fillAsyncAPIInfoSection(serviceDefinition, semanticModel, asyncApiFileName,
                 ballerinaFilePath);
         if (asyncApiResult.getAsyncAPI().isPresent() && asyncApiResult.getDiagnostics().isEmpty()) {
-            AsyncApi25Document asyncapi = asyncApiResult.getAsyncAPI().get();
-            if (asyncapi.getPaths() == null) {
+            AsyncApi25DocumentImpl asyncapi = (AsyncApi25DocumentImpl) asyncApiResult.getAsyncAPI().get();
+            if (asyncapi.getChannels() == null) {
                 // Take base path of service
-                AsyncAPIServiceMapper openAPIServiceMapper = new AsyncAPIServiceMapper(semanticModel);
+                AsyncAPIServiceMapper asyncAPIServiceMapper = new AsyncAPIServiceMapper(semanticModel);
                 // 02. Filter and set the ServerURLs according to endpoints. Complete the server section in OAS
                 asyncapi = AsyncAPIEndpointMapper.ENDPOINT_MAPPER.getServers(asyncapi, endpoints, serviceDefinition);
                 // 03. Filter path and component sections in OAS.
                 // Generate openApi string for the mentioned service name.
-                asyncapi = openAPIServiceMapper.convertServiceToOpenAPI(serviceDefinition, asyncapi);
-                return new AsyncAPIResult(asyncapi, openAPIServiceMapper.getErrors());
+                asyncapi = asyncAPIServiceMapper.convertServiceToOpenAPI(serviceDefinition, asyncapi);
+                return new AsyncAPIResult(asyncapi, asyncAPIServiceMapper.getErrors());
             } else {
                 return new AsyncAPIResult(asyncapi, asyncApiResult.getDiagnostics());
             }
