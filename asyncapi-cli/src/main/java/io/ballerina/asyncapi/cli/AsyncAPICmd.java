@@ -231,7 +231,7 @@ public class AsyncAPICmd implements BLauncherCmd {
         getTargetOutputPath();
         // Check service name it is mandatory
         AsyncAPIContractGenerator openApiConverter = new AsyncAPIContractGenerator();
-        openApiConverter.generateOAS3DefinitionsAllService(balFilePath, targetOutputPath, service,
+        openApiConverter.generateAsyncAPIDefinitionsAllService(balFilePath, targetOutputPath, service,
                 generatedFileType);
         errors.addAll(openApiConverter.getErrors());
         if (!errors.isEmpty()) {

@@ -23,7 +23,7 @@ import io.ballerina.tools.diagnostics.Location;
 
 import java.util.Optional;
 /**
- * This {@code AsyncAPIConverterDiagnostic} represents diagnostic type in the ballerina to asyncapi command.
+ * This {@code AsyncAPIConverterDiagnostic} represents diagnostic type in the ballerina to Async Api command.
  *
  * @since 2.0.0
  */
