@@ -40,6 +40,7 @@ ext.puppycrawlCheckstyleVersion = project.puppycrawlCheckstyleVersion
 //ext.asyncapiModelVersion=project.asyncApiModelVersion
 ext.apicurioAsyncApiModelVersion=project.apicurioAsyncApiModelVersion
 ext.jsonToYamlVersion=project.jsonToYamlVersion
+ext.swaggerParserVersion=project.swaggerParserVersion
 
 allprojects {
     group = 'io.ballerina'

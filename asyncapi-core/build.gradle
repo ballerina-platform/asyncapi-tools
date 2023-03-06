@@ -40,7 +40,13 @@ dependencies {
     implementation "commons-io:commons-io"
     implementation "io.apicurio:apicurio-data-models"
     implementation "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml"
+    implementation ("io.swagger.parser.v3:swagger-parser:${swaggerParserVersion}") {
+        exclude group: "io.swagger", module: "swagger-compat-spec-parser"
+        exclude group: "org.slf4j", module: "slf4j-ext"
+        exclude group: "javax.validation", module: "validation-api"
+    }
     testImplementation "org.testng:testng"
+
 
     balTools ("org.ballerinalang:jballerina-tools:${ballerinaLangVersion}") {
         transitive = false

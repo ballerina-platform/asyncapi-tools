@@ -17,11 +17,17 @@
  */
 package io.ballerina.asyncapi.core.generators.asyncspec.model;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.util.DefaultPrettyPrinter;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
+import com.fasterxml.jackson.dataformat.yaml.YAMLGenerator;
+import io.apicurio.datamodels.Library;
+import io.apicurio.datamodels.models.Document;
+import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25DocumentImpl;
+import io.apicurio.datamodels.models.util.JsonUtil;
 import io.ballerina.asyncapi.core.generators.asyncspec.diagnostic.AsyncAPIConverterDiagnostic;
-import sttp.apispec.asyncapi.AsyncAPI;
-import sttp.apispec.asyncapi.circe.yaml.SttpAsyncAPICirceYaml;
-import sttp.apispec.asyncapi.circe.yaml.package$;
-import sttp.apispec.asyncapi.circe.yaml.SttpAsyncAPICirceYaml.RichAsyncAPI;
 import java.util.List;
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25Document;
 import java.util.Optional;
@@ -37,7 +43,7 @@ public class AsyncAPIResult {
     private AsyncApi25Document asyncAPI;
     private String serviceName; // added base path for key to definition
     private final List<AsyncAPIConverterDiagnostic> diagnostics;
-    private SttpAsyncAPICirceYaml sttpAsyncAPICirceYaml = new SttpAsyncAPICirceYaml(){};
+//    private SttpAsyncAPICirceYaml sttpAsyncAPICirceYaml = new SttpAsyncAPICirceYaml(){};
 
     /**
      * This constructor is used to store the details that Map of {@code OpenAPI} objects and diagnostic list.
@@ -59,20 +65,33 @@ public class AsyncAPIResult {
         return this.serviceName;
     }
 
-    public Optional<String> getYaml() {
+    public Optional<String> getYaml() throws JsonProcessingException {
 
-        return Optional.ofNullable(sttpAsyncAPICirceYaml.RichAsyncAPI(asyncAPI).toYaml());
+        ObjectNode json=  Library.writeDocument(this.asyncAPI);
+        YAMLFactory factory = new YAMLFactory();
+        factory.disable(YAMLGenerator.Feature.WRITE_DOC_START_MARKER);
+        factory.enable(YAMLGenerator.Feature.MINIMIZE_QUOTES);
+        factory.enable(YAMLGenerator.Feature.SPLIT_LINES);
+        factory.enable(YAMLGenerator.Feature.ALWAYS_QUOTE_NUMBERS_AS_STRINGS);
+
+//        ObjectMapper objectMapper=new ObjectMapper();
+        String finalyaml=new ObjectMapper(factory).writer(new DefaultPrettyPrinter()).writeValueAsString(json);
+        return Optional.ofNullable(finalyaml);
+//        return Optional.ofNullable(sttpAsyncAPICirceYaml.RichAsyncAPI(asyncAPI).toYaml());
     }
 
-//    public Optional<String> getJson() {
+    public Optional<String> getJson() {
+        ObjectNode json= (ObjectNode) Library.writeDocument(this.asyncAPI);
+        String finaljson= JsonUtil.stringify(json);
+        return Optional.ofNullable(finaljson);
 //        return Optional.ofNullable(Json.pretty(this.openAPI));
-//    }
+    }
 
     public void setServiceName(String serviceName) {
         this.serviceName = serviceName;
     }
 
-    public void setAsyncAPI(AsyncAPI openAPI) {
+    public void setAsyncAPI(AsyncApi25DocumentImpl asyncAPI) {
         this.asyncAPI = asyncAPI;
     }
 }

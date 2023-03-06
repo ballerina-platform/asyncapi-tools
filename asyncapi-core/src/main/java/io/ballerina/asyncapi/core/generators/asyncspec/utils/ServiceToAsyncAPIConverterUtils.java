@@ -29,7 +29,7 @@ import io.ballerina.asyncapi.core.generators.asyncspec.diagnostic.ExceptionDiagn
 import io.ballerina.asyncapi.core.generators.asyncspec.model.AsyncAPIInfo;
 import io.ballerina.asyncapi.core.generators.asyncspec.model.AsyncAPIResult;
 import io.ballerina.asyncapi.core.generators.asyncspec.service.AsyncAPIEndpointMapper;
-import io.ballerina.asyncapi.core.generators.asyncspec.service.AsyncAPIServiceMapper;
+//import io.ballerina.asyncapi.core.generators.asyncspec.service.AsyncAPIServiceMapper;
 import io.ballerina.compiler.api.SemanticModel;
 import io.ballerina.compiler.api.symbols.ModuleSymbol;
 import io.ballerina.compiler.api.symbols.ServiceDeclarationSymbol;
@@ -209,13 +209,14 @@ public class ServiceToAsyncAPIConverterUtils {
             AsyncApi25DocumentImpl asyncapi = (AsyncApi25DocumentImpl) asyncApiResult.getAsyncAPI().get();
             if (asyncapi.getChannels() == null) {
                 // Take base path of service
-                AsyncAPIServiceMapper asyncAPIServiceMapper = new AsyncAPIServiceMapper(semanticModel);
+//                AsyncAPIServiceMapper asyncAPIServiceMapper = new AsyncAPIServiceMapper(semanticModel);
                 // 02. Filter and set the ServerURLs according to endpoints. Complete the server section in OAS
                 asyncapi = AsyncAPIEndpointMapper.ENDPOINT_MAPPER.getServers(asyncapi, endpoints, serviceDefinition);
                 // 03. Filter path and component sections in OAS.
                 // Generate openApi string for the mentioned service name.
-                asyncapi = asyncAPIServiceMapper.convertServiceToOpenAPI(serviceDefinition, asyncapi);
-                return new AsyncAPIResult(asyncapi, asyncAPIServiceMapper.getErrors());
+//                asyncapi = asyncAPIServiceMapper.convertServiceToOpenAPI(serviceDefinition, asyncapi);
+                return new AsyncAPIResult(asyncapi, new ArrayList<>());
+//                return new AsyncAPIResult(asyncapi, asyncAPIServiceMapper.getErrors());
             } else {
                 return new AsyncAPIResult(asyncapi, asyncApiResult.getDiagnostics());
             }

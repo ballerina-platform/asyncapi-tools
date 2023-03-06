@@ -18,6 +18,18 @@
 
 package io.ballerina.asyncapi.core.generators.asyncspec.utils;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.core.StreamReadFeature;
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
+import io.apicurio.datamodels.Library;
+import io.apicurio.datamodels.models.Document;
+import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25Document;
+import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25DocumentImpl;
+import io.apicurio.datamodels.validation.ValidationProblem;
 import io.ballerina.asyncapi.core.generators.asyncspec.Constants;
 import io.ballerina.compiler.api.SemanticModel;
 import io.ballerina.compiler.api.symbols.*;
@@ -34,15 +46,16 @@ import io.ballerina.tools.text.LinePosition;
 import io.ballerina.tools.text.LineRange;
 import io.ballerina.tools.text.TextRange;
 import org.apache.commons.io.FilenameUtils;
-import
-
+import io.swagger.v3.parser.OpenAPIV3Parser;
+import io.swagger.v3.parser.core.models.ParseOptions;
+import io.swagger.v3.parser.core.models.SwaggerParseResult;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
 import java.util.stream.Collectors;
-import sttp.apispec.Schema;
+
 import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.*;
 
 /**
@@ -50,270 +63,270 @@ import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.*;
  */
 public class ConverterCommonUtils {
 
+//    /**
+//     * Retrieves a matching OpenApi {@link Schema} for a provided ballerina type.
+//     *
+//     * @param type ballerina type name as a String
+//     * @return OpenApi {@link Schema} for type defined by {@code type}
+//     */
+//    public static Schema<?> getOpenApiSchema(String type) {
+//        Schema<?> schema;
+//        switch (type) {
+//            case Constants.STRING:
+//            case Constants.PLAIN:
+//                schema = new StringSchema();
+//                break;
+//            case Constants.BOOLEAN:
+//                schema = new BooleanSchema();
+//                break;
+//            case Constants.ARRAY:
+//            case Constants.TUPLE:
+//                schema = new ArraySchema();
+//                break;
+//            case Constants.INT:
+//            case Constants.INTEGER:
+//                schema = new IntegerSchema();
+//                schema.setFormat("int64");
+//                break;
+//            case Constants.BYTE_ARRAY:
+//            case Constants.OCTET_STREAM:
+//                schema = new StringSchema();
+//                schema.setFormat("uuid");
+//                break;
+//            case Constants.NUMBER:
+//            case Constants.DECIMAL:
+//                schema = new NumberSchema();
+//                schema.setFormat(Constants.DOUBLE);
+//                break;
+//            case Constants.FLOAT:
+//                schema = new NumberSchema();
+//                schema.setFormat(Constants.FLOAT);
+//                break;
+//            case Constants.MAP_JSON:
+//            case Constants.MAP:
+//                schema = new ObjectSchema();
+//                schema.additionalProperties(true);
+//                break;
+//            case Constants.X_WWW_FORM_URLENCODED:
+//                schema = new ObjectSchema();
+//                schema.setAdditionalProperties(new StringSchema());
+//                break;
+//            case Constants.TYPE_REFERENCE:
+//            case Constants.TYPEREFERENCE:
+//            case Constants.XML:
+//            case Constants.JSON:
+//            default:
+//                schema = new Schema<>();
+//                break;
+//        }
+//        return schema;
+//    }
+//
+//    /**
+//     * Retrieves a matching OpenApi {@link Schema} for a provided ballerina type.
+//     *
+//     * @param type ballerina type with SYNTAX KIND
+//     * @return OpenApi {@link Schema} for type defined by {@code type}
+//     */
+//    public static Schema<?> getOpenApiSchema(SyntaxKind type) {
+//        Schema<?> schema;
+//        switch (type) {
+//            case STRING_TYPE_DESC:
+//                schema = new StringSchema();
+//                break;
+//            case BOOLEAN_TYPE_DESC:
+//                schema = new BooleanSchema();
+//                break;
+//            case ARRAY_TYPE_DESC:
+//                schema = new ArraySchema();
+//                break;
+//            case INT_TYPE_DESC:
+//                schema = new IntegerSchema();
+//                schema.setFormat("int64");
+//                break;
+//            case BYTE_TYPE_DESC:
+//                schema = new StringSchema();
+//                schema.setFormat("uuid");
+//                break;
+//            case DECIMAL_TYPE_DESC:
+//                schema = new NumberSchema();
+//                schema.setFormat(Constants.DOUBLE);
+//                break;
+//            case FLOAT_TYPE_DESC:
+//                schema = new NumberSchema();
+//                schema.setFormat(Constants.FLOAT);
+//                break;
+//            case MAP_TYPE_DESC:
+//                schema = new ObjectSchema();
+//                break;
+//            default:
+//                schema = new Schema<>();
+//                break;
+//        }
+//        return schema;
+//    }
+//
+//    /**
+//     * Generate operationId by removing special characters.
+//     *
+//     * @param operationID input function name, record name or operation Id
+//     * @return string with new generated name
+//     */
+//    public static String getOperationId(String operationID) {
+//        //For the flatten enable we need to remove first Part of valid name check
+//        // this - > !operationID.matches("\\b[a-zA-Z][a-zA-Z0-9]*\\b") &&
+//        if (operationID.matches("\\b[0-9]*\\b")) {
+//            return operationID;
+//        }
+//        String[] split = operationID.split(Constants.SPECIAL_CHAR_REGEX);
+//        StringBuilder validName = new StringBuilder();
+//        for (String part : split) {
+//            if (!part.isBlank()) {
+//                if (split.length > 1) {
+//                    part = part.substring(0, 1).toUpperCase(Locale.ENGLISH) +
+//                            part.substring(1).toLowerCase(Locale.ENGLISH);
+//                }
+//                validName.append(part);
+//            }
+//        }
+//        operationID = validName.toString();
+//        return operationID.substring(0, 1).toLowerCase(Locale.ENGLISH) + operationID.substring(1);
+//    }
+//
+//    /**
+//     * This util function uses to take the field value from annotation field.
+//     *
+//     * @param annotations         - Annotation node list
+//     * @param annotationReference - Annotation reference that needs to extract
+//     * @param annotationField     - Annotation field name that uses to take value
+//     * @return - string value of field
+//     */
+//    public static Optional<String> extractServiceAnnotationDetails(NodeList<AnnotationNode> annotations,
+//                                                                   String annotationReference, String annotationField) {
+//        for (AnnotationNode annotation : annotations) {
+//            List<String> expressionNode = extractAnnotationFieldDetails(annotationReference, annotationField,
+//                    annotation, null);
+//            if (!expressionNode.isEmpty()) {
+//                return Optional.of(expressionNode.get(0));
+//            }
+//        }
+//        return Optional.empty();
+//    }
+//
+//    /**
+//     * This util functions is used to extract the details of annotation field.
+//     *
+//     * @param annotationReference Annotation reference name that need to extract
+//     * @param annotationField     Annotation field name that need to extract details.
+//     * @param annotation          Annotation node
+//     * @return List of string
+//     */
+//
+//    public static List<String> extractAnnotationFieldDetails(String annotationReference, String annotationField,
+//                                                             AnnotationNode annotation, SemanticModel semanticModel) {
+//        List<String> mediaTypes = new ArrayList<>();
+//        Node annotReference = annotation.annotReference();
+//        if (annotReference.toString().trim().equals(annotationReference) && annotation.annotValue().isPresent()) {
+//            MappingConstructorExpressionNode listOfAnnotValue = annotation.annotValue().get();
+//            for (MappingFieldNode field : listOfAnnotValue.fields()) {
+//                SpecificFieldNode fieldNode = (SpecificFieldNode) field;
+//                if (!((fieldNode).fieldName().toString().trim().equals(annotationField)) &&
+//                        fieldNode.valueExpr().isEmpty()) {
+//                    continue;
+//                }
+//                ExpressionNode expressionNode = fieldNode.valueExpr().get();
+//                if (expressionNode instanceof ListConstructorExpressionNode) {
+//                    SeparatedNodeList<Node> mimeList = ((ListConstructorExpressionNode) expressionNode).expressions();
+//                    for (Object mime : mimeList) {
+//                        if (!(mime instanceof BasicLiteralNode)) {
+//                            continue;
+//                        }
+//                        mediaTypes.add(((BasicLiteralNode) mime).literalToken().text().trim().replaceAll("\"", ""));
+//                    }
+//                } else if (expressionNode instanceof QualifiedNameReferenceNode && semanticModel != null) {
+//                    QualifiedNameReferenceNode moduleRef = (QualifiedNameReferenceNode) expressionNode;
+//                    Optional<Symbol> refSymbol = semanticModel.symbol(moduleRef);
+//                    if (refSymbol.isPresent() && (refSymbol.get().kind() == SymbolKind.CONSTANT)
+//                            && ((ConstantSymbol) refSymbol.get()).resolvedValue().isPresent()) {
+//                        String mediaType = ((ConstantSymbol) refSymbol.get()).resolvedValue().get();
+//                        mediaTypes.add(mediaType.replaceAll("\"", ""));
+//                    }
+//                } else {
+//                    mediaTypes.add(expressionNode.toString().trim().replaceAll("\"", ""));
+//                }
+//            }
+//        }
+//        return mediaTypes;
+//    }
+//
+//    /**
+//     * This function uses to take the service declaration node from given required node and return all the annotation
+//     * nodes that attached to service node.
+//     */
+//    public static NodeList<AnnotationNode> getAnnotationNodesFromServiceNode(RequiredParameterNode headerParam) {
+//        NodeList<AnnotationNode> annotations = AbstractNodeFactory.createEmptyNodeList();
+//        NonTerminalNode parent = headerParam.parent();
+//        while (parent.kind() != SyntaxKind.SERVICE_DECLARATION) {
+//            parent = parent.parent();
+//        }
+//        ServiceDeclarationNode serviceNode = (ServiceDeclarationNode) parent;
+//        if (serviceNode.metadata().isPresent()) {
+//            MetadataNode metadataNode = serviceNode.metadata().get();
+//            annotations = metadataNode.annotations();
+//        }
+//        return annotations;
+//    }
+//
+//    /**
+//     * This function for taking the specific media-type subtype prefix from http service configuration annotation.
+//     * <pre>
+//     *     @http:ServiceConfig {
+//     *          mediaTypeSubtypePrefix : "vnd.exm.sales"
+//     *  }
+//     * </pre>
+//     */
+//    public static Optional<String> extractCustomMediaType(FunctionDefinitionNode functionDefNode) {
+//        ServiceDeclarationNode serviceDefNode = (ServiceDeclarationNode) functionDefNode.parent();
+//        if (serviceDefNode.metadata().isPresent()) {
+//            MetadataNode metadataNode = serviceDefNode.metadata().get();
+//            NodeList<AnnotationNode> annotations = metadataNode.annotations();
+//            if (!annotations.isEmpty()) {
+//                return ConverterCommonUtils.extractServiceAnnotationDetails(annotations,
+//                        "http:ServiceConfig", "mediaTypeSubtypePrefix");
+//            }
+//        }
+//        return Optional.empty();
+//    }
+//
+//    /**
+//     * This {@code NullLocation} represents the null location allocation for scenarios which has not location.
+//     */
+//    public static class NullLocation implements Location {
+//
+//        @Override
+//        public LineRange lineRange() {
+//            LinePosition from = LinePosition.from(0, 0);
+//            return LineRange.from("", from, from);
+//        }
+//
+//        @Override
+//        public TextRange textRange() {
+//            return TextRange.from(0, 0);
+//        }
+//    }
+//
     /**
-     * Retrieves a matching OpenApi {@link Schema} for a provided ballerina type.
-     *
-     * @param type ballerina type name as a String
-     * @return OpenApi {@link Schema} for type defined by {@code type}
-     */
-    public static Schema<?> getOpenApiSchema(String type) {
-        Schema<?> schema;
-        switch (type) {
-            case Constants.STRING:
-            case Constants.PLAIN:
-                schema = new StringSchema();
-                break;
-            case Constants.BOOLEAN:
-                schema = new BooleanSchema();
-                break;
-            case Constants.ARRAY:
-            case Constants.TUPLE:
-                schema = new ArraySchema();
-                break;
-            case Constants.INT:
-            case Constants.INTEGER:
-                schema = new IntegerSchema();
-                schema.setFormat("int64");
-                break;
-            case Constants.BYTE_ARRAY:
-            case Constants.OCTET_STREAM:
-                schema = new StringSchema();
-                schema.setFormat("uuid");
-                break;
-            case Constants.NUMBER:
-            case Constants.DECIMAL:
-                schema = new NumberSchema();
-                schema.setFormat(Constants.DOUBLE);
-                break;
-            case Constants.FLOAT:
-                schema = new NumberSchema();
-                schema.setFormat(Constants.FLOAT);
-                break;
-            case Constants.MAP_JSON:
-            case Constants.MAP:
-                schema = new ObjectSchema();
-                schema.additionalProperties(true);
-                break;
-            case Constants.X_WWW_FORM_URLENCODED:
-                schema = new ObjectSchema();
-                schema.setAdditionalProperties(new StringSchema());
-                break;
-            case Constants.TYPE_REFERENCE:
-            case Constants.TYPEREFERENCE:
-            case Constants.XML:
-            case Constants.JSON:
-            default:
-                schema = new Schema<>();
-                break;
-        }
-        return schema;
-    }
-
-    /**
-     * Retrieves a matching OpenApi {@link Schema} for a provided ballerina type.
-     *
-     * @param type ballerina type with SYNTAX KIND
-     * @return OpenApi {@link Schema} for type defined by {@code type}
-     */
-    public static Schema<?> getOpenApiSchema(SyntaxKind type) {
-        Schema<?> schema;
-        switch (type) {
-            case STRING_TYPE_DESC:
-                schema = new StringSchema();
-                break;
-            case BOOLEAN_TYPE_DESC:
-                schema = new BooleanSchema();
-                break;
-            case ARRAY_TYPE_DESC:
-                schema = new ArraySchema();
-                break;
-            case INT_TYPE_DESC:
-                schema = new IntegerSchema();
-                schema.setFormat("int64");
-                break;
-            case BYTE_TYPE_DESC:
-                schema = new StringSchema();
-                schema.setFormat("uuid");
-                break;
-            case DECIMAL_TYPE_DESC:
-                schema = new NumberSchema();
-                schema.setFormat(Constants.DOUBLE);
-                break;
-            case FLOAT_TYPE_DESC:
-                schema = new NumberSchema();
-                schema.setFormat(Constants.FLOAT);
-                break;
-            case MAP_TYPE_DESC:
-                schema = new ObjectSchema();
-                break;
-            default:
-                schema = new Schema<>();
-                break;
-        }
-        return schema;
-    }
-
-    /**
-     * Generate operationId by removing special characters.
-     *
-     * @param operationID input function name, record name or operation Id
-     * @return string with new generated name
-     */
-    public static String getOperationId(String operationID) {
-        //For the flatten enable we need to remove first Part of valid name check
-        // this - > !operationID.matches("\\b[a-zA-Z][a-zA-Z0-9]*\\b") &&
-        if (operationID.matches("\\b[0-9]*\\b")) {
-            return operationID;
-        }
-        String[] split = operationID.split(Constants.SPECIAL_CHAR_REGEX);
-        StringBuilder validName = new StringBuilder();
-        for (String part : split) {
-            if (!part.isBlank()) {
-                if (split.length > 1) {
-                    part = part.substring(0, 1).toUpperCase(Locale.ENGLISH) +
-                            part.substring(1).toLowerCase(Locale.ENGLISH);
-                }
-                validName.append(part);
-            }
-        }
-        operationID = validName.toString();
-        return operationID.substring(0, 1).toLowerCase(Locale.ENGLISH) + operationID.substring(1);
-    }
-
-    /**
-     * This util function uses to take the field value from annotation field.
-     *
-     * @param annotations         - Annotation node list
-     * @param annotationReference - Annotation reference that needs to extract
-     * @param annotationField     - Annotation field name that uses to take value
-     * @return - string value of field
-     */
-    public static Optional<String> extractServiceAnnotationDetails(NodeList<AnnotationNode> annotations,
-                                                                   String annotationReference, String annotationField) {
-        for (AnnotationNode annotation : annotations) {
-            List<String> expressionNode = extractAnnotationFieldDetails(annotationReference, annotationField,
-                    annotation, null);
-            if (!expressionNode.isEmpty()) {
-                return Optional.of(expressionNode.get(0));
-            }
-        }
-        return Optional.empty();
-    }
-
-    /**
-     * This util functions is used to extract the details of annotation field.
-     *
-     * @param annotationReference Annotation reference name that need to extract
-     * @param annotationField     Annotation field name that need to extract details.
-     * @param annotation          Annotation node
-     * @return List of string
-     */
-
-    public static List<String> extractAnnotationFieldDetails(String annotationReference, String annotationField,
-                                                             AnnotationNode annotation, SemanticModel semanticModel) {
-        List<String> mediaTypes = new ArrayList<>();
-        Node annotReference = annotation.annotReference();
-        if (annotReference.toString().trim().equals(annotationReference) && annotation.annotValue().isPresent()) {
-            MappingConstructorExpressionNode listOfAnnotValue = annotation.annotValue().get();
-            for (MappingFieldNode field : listOfAnnotValue.fields()) {
-                SpecificFieldNode fieldNode = (SpecificFieldNode) field;
-                if (!((fieldNode).fieldName().toString().trim().equals(annotationField)) &&
-                        fieldNode.valueExpr().isEmpty()) {
-                    continue;
-                }
-                ExpressionNode expressionNode = fieldNode.valueExpr().get();
-                if (expressionNode instanceof ListConstructorExpressionNode) {
-                    SeparatedNodeList<Node> mimeList = ((ListConstructorExpressionNode) expressionNode).expressions();
-                    for (Object mime : mimeList) {
-                        if (!(mime instanceof BasicLiteralNode)) {
-                            continue;
-                        }
-                        mediaTypes.add(((BasicLiteralNode) mime).literalToken().text().trim().replaceAll("\"", ""));
-                    }
-                } else if (expressionNode instanceof QualifiedNameReferenceNode && semanticModel != null) {
-                    QualifiedNameReferenceNode moduleRef = (QualifiedNameReferenceNode) expressionNode;
-                    Optional<Symbol> refSymbol = semanticModel.symbol(moduleRef);
-                    if (refSymbol.isPresent() && (refSymbol.get().kind() == SymbolKind.CONSTANT)
-                            && ((ConstantSymbol) refSymbol.get()).resolvedValue().isPresent()) {
-                        String mediaType = ((ConstantSymbol) refSymbol.get()).resolvedValue().get();
-                        mediaTypes.add(mediaType.replaceAll("\"", ""));
-                    }
-                } else {
-                    mediaTypes.add(expressionNode.toString().trim().replaceAll("\"", ""));
-                }
-            }
-        }
-        return mediaTypes;
-    }
-
-    /**
-     * This function uses to take the service declaration node from given required node and return all the annotation
-     * nodes that attached to service node.
-     */
-    public static NodeList<AnnotationNode> getAnnotationNodesFromServiceNode(RequiredParameterNode headerParam) {
-        NodeList<AnnotationNode> annotations = AbstractNodeFactory.createEmptyNodeList();
-        NonTerminalNode parent = headerParam.parent();
-        while (parent.kind() != SyntaxKind.SERVICE_DECLARATION) {
-            parent = parent.parent();
-        }
-        ServiceDeclarationNode serviceNode = (ServiceDeclarationNode) parent;
-        if (serviceNode.metadata().isPresent()) {
-            MetadataNode metadataNode = serviceNode.metadata().get();
-            annotations = metadataNode.annotations();
-        }
-        return annotations;
-    }
-
-    /**
-     * This function for taking the specific media-type subtype prefix from http service configuration annotation.
-     * <pre>
-     *     @http:ServiceConfig {
-     *          mediaTypeSubtypePrefix : "vnd.exm.sales"
-     *  }
-     * </pre>
-     */
-    public static Optional<String> extractCustomMediaType(FunctionDefinitionNode functionDefNode) {
-        ServiceDeclarationNode serviceDefNode = (ServiceDeclarationNode) functionDefNode.parent();
-        if (serviceDefNode.metadata().isPresent()) {
-            MetadataNode metadataNode = serviceDefNode.metadata().get();
-            NodeList<AnnotationNode> annotations = metadataNode.annotations();
-            if (!annotations.isEmpty()) {
-                return ConverterCommonUtils.extractServiceAnnotationDetails(annotations,
-                        "http:ServiceConfig", "mediaTypeSubtypePrefix");
-            }
-        }
-        return Optional.empty();
-    }
-
-    /**
-     * This {@code NullLocation} represents the null location allocation for scenarios which has not location.
-     */
-    public static class NullLocation implements Location {
-
-        @Override
-        public LineRange lineRange() {
-            LinePosition from = LinePosition.from(0, 0);
-            return LineRange.from("", from, from);
-        }
-
-        @Override
-        public TextRange textRange() {
-            return TextRange.from(0, 0);
-        }
-    }
-
-    /**
-     * Parse and get the {@link OpenAPI} for the given OpenAPI contract.
+     * Parse and get the {@link AsyncApi25Document} for the given OpenAPI contract.
      *
      * @param definitionURI URI for the OpenAPI contract
-     * @return {@link OASResult}  OpenAPI model
+     * @return {@link AsyncAPIResult}  OpenAPI model
      */
     public static AsyncAPIResult parseOpenAPIFile(String definitionURI) {
         List<AsyncAPIConverterDiagnostic> diagnostics = new ArrayList<>();
         Path contractPath = Paths.get(definitionURI);
-        ParseOptions parseOptions = new ParseOptions();
-        parseOptions.setResolve(true);
-        parseOptions.setResolveFully(true);
+//        ParseOptions parseOptions = new ParseOptions();
+//        parseOptions.setResolve(true);
+//        parseOptions.setResolveFully(true);
 
         if (!Files.exists(contractPath)) {
             DiagnosticMessages error = DiagnosticMessages.OAS_CONVERTOR_110;
@@ -337,15 +350,52 @@ public class ConverterCommonUtils {
                     e.toString());
             diagnostics.add(diagnostic);
         }
-        SwaggerParseResult parseResult = new OpenAPIV3Parser().readContents(openAPIFileContent, null, parseOptions);
-        if (!parseResult.getMessages().isEmpty()) {
+
+
+
+
+
+        YAMLFactory factory1=YAMLFactory.builder()
+                .enable(StreamReadFeature.STRICT_DUPLICATE_DETECTION)
+                .build();
+        new ObjectMapper();
+        ObjectMapper mapper = new ObjectMapper(factory1);
+        mapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
+        mapper.configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false);
+        mapper.configure(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS, false);
+        mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+
+        AsyncApi25Document yamldoc=null;
+        try {
+            ObjectNode yamlNodes= (ObjectNode) mapper.readTree(openAPIFileContent);
+            yamldoc= (AsyncApi25Document) Library.readDocument(yamlNodes);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+//
+//
+        List<ValidationProblem> yamlprob= Library.validate(yamldoc,null);
+
+        if (!yamlprob.isEmpty()){
+//            for(int i = 0; i < yamlprob.size(); i++) {
+//                System.out.print(yamlprob.get(i).message);
+////                System.out.print(", ");
+//                x
+//            }
             DiagnosticMessages error = DiagnosticMessages.OAS_CONVERTOR_112;
             ExceptionDiagnostic diagnostic = new ExceptionDiagnostic(error.getCode(), error.getDescription(), null);
             diagnostics.add(diagnostic);
-            return new OASResult(null, diagnostics);
+            return new AsyncAPIResult(null, diagnostics);
         }
-        OpenAPI api = parseResult.getOpenAPI();
-        return new OASResult(api, diagnostics);
+//        SwaggerParseResult parseResult = new OpenAPIV3Parser().readContents(openAPIFileContent, null, parseOptions);
+//        if (!parseResult.getMessages().isEmpty()) {
+//            DiagnosticMessages error = DiagnosticMessages.OAS_CONVERTOR_112;
+//            ExceptionDiagnostic diagnostic = new ExceptionDiagnostic(error.getCode(), error.getDescription(), null);
+//            diagnostics.add(diagnostic);
+//            return new AsyncAPIResult(null, diagnostics);
+//        }
+        AsyncApi25Document api =yamldoc;
+        return new AsyncAPIResult(api, diagnostics);
     }
 
     public static String normalizeTitle(String serviceName) {
