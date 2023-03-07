@@ -17,7 +17,7 @@
  */
 package io.ballerina.asyncapi.generators.asyncapi;
 
-import io.ballerina.openapi.cmd.OASContractGenerator;
+import io.ballerina.asyncapi.cli.AsyncAPIContractGenerator;
 import org.testng.Assert;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
@@ -31,7 +31,7 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static io.ballerina.openapi.generators.openapi.TestUtils.deleteDirectory;
+import static io.ballerina.asyncapi.generators.asyncapi.TestUtils.deleteDirectory;
 
 /**
  * This test class contains the service nodes related special scenarios.
@@ -88,8 +88,8 @@ public class ServiceDeclarationNodesTests {
         try {
             String expectedYamlContent = getStringFromGivenBalFile(RES_DIR.resolve("asyncapi"),
                     yamlFile);
-            OASContractGenerator openApiConverter = new OASContractGenerator();
-            openApiConverter.generateOAS3DefinitionsAllService(ballerinaFilePath, tempDir, null, false);
+            AsyncAPIContractGenerator openApiConverter = new AsyncAPIContractGenerator();
+            openApiConverter.generateAsyncAPIDefinitionsAllService(ballerinaFilePath, tempDir, null, false);
 
             if (Files.exists(tempDir.resolve(generatedYamlFile)) && findFile(tempDir, secondGeneratedFile) != null) {
                 String generatedYaml = getStringFromGivenBalFile(tempDir, generatedYamlFile);

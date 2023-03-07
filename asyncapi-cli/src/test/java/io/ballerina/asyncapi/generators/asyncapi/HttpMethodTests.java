@@ -18,8 +18,8 @@
 
 package io.ballerina.asyncapi.generators.asyncapi;
 
-import io.ballerina.openapi.cmd.OASContractGenerator;
-import io.ballerina.openapi.converter.diagnostic.OpenAPIConverterDiagnostic;
+import io.ballerina.asyncapi.cli.AsyncAPIContractGenerator;
+import io.ballerina.asyncapi.core.generators.asyncspec.diagnostic.AsyncAPIConverterDiagnostic;
 import org.testng.Assert;
 import org.testng.annotations.AfterMethod;
 import org.testng.annotations.AfterTest;
@@ -51,10 +51,10 @@ public class HttpMethodTests {
     @Test(description = "Compiler warning for 'default' resource methods.")
     public void testForCompilerWarningForDefault() {
         Path ballerinaFilePath = RES_DIR.resolve("default_bal.bal");
-        OASContractGenerator openApiConverter = new OASContractGenerator();
-        openApiConverter.generateOAS3DefinitionsAllService(ballerinaFilePath, tempDir, null
+        AsyncAPIContractGenerator openApiConverter = new AsyncAPIContractGenerator();
+        openApiConverter.generateAsyncAPIDefinitionsAllService(ballerinaFilePath, tempDir, null
                 , false);
-        List<OpenAPIConverterDiagnostic> errors = openApiConverter.getErrors();
+        List<AsyncAPIConverterDiagnostic> errors = openApiConverter.getErrors();
         Assert.assertFalse(errors.isEmpty());
         Assert.assertEquals(errors.get(0).getMessage(), "Generated OpenAPI definition does not " +
                 "contain details for the `default` resource method in the Ballerina service.");

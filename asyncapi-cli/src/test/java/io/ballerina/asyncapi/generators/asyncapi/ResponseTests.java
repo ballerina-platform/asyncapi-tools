@@ -17,7 +17,7 @@
  */
 package io.ballerina.asyncapi.generators.asyncapi;
 
-import io.ballerina.openapi.cmd.OASContractGenerator;
+import io.ballerina.asyncapi.cli.AsyncAPIContractGenerator;
 import org.testng.Assert;
 import org.testng.annotations.AfterMethod;
 import org.testng.annotations.AfterTest;
@@ -154,8 +154,8 @@ public class ResponseTests {
     @Test(description = "Test for return type has `http:Response`.")
     public void testHttpResponse() throws IOException {
         Path ballerinaFilePath = RES_DIR.resolve("response/rs_scenario19.bal");
-        OASContractGenerator openApiConverterUtils = new OASContractGenerator();
-        openApiConverterUtils.generateOAS3DefinitionsAllService(ballerinaFilePath, this.tempDir, null
+        AsyncAPIContractGenerator openApiConverterUtils = new AsyncAPIContractGenerator();
+        openApiConverterUtils.generateAsyncAPIDefinitionsAllService(ballerinaFilePath, this.tempDir, null
                 , true);
         Assert.assertTrue(openApiConverterUtils.getErrors().isEmpty());
         TestUtils.compareWithGeneratedFile(ballerinaFilePath, "response/rs_scenario19.yaml");
@@ -164,8 +164,8 @@ public class ResponseTests {
     @Test(description = "Test for return type has `http:Response|error?`.")
     public void testUnionHttpResponse() throws IOException {
         Path ballerinaFilePath = RES_DIR.resolve("response/rs_scenario20.bal");
-        OASContractGenerator openApiConverterUtils = new OASContractGenerator();
-        openApiConverterUtils.generateOAS3DefinitionsAllService(ballerinaFilePath, this.tempDir, null
+        AsyncAPIContractGenerator openApiConverterUtils = new AsyncAPIContractGenerator();
+        openApiConverterUtils.generateAsyncAPIDefinitionsAllService(ballerinaFilePath, this.tempDir, null
                 , true);
         Assert.assertTrue(openApiConverterUtils.getErrors().isEmpty());
         TestUtils.compareWithGeneratedFile(ballerinaFilePath, "response/rs_scenario20.yaml");
@@ -174,8 +174,8 @@ public class ResponseTests {
     @Test(description = "Test for return type having form value content.")
     public void urlEncodeResponse() throws IOException {
         Path ballerinaFilePath = RES_DIR.resolve("response/rs_with_url_encode.bal");
-        OASContractGenerator openApiConverterUtils = new OASContractGenerator();
-        openApiConverterUtils.generateOAS3DefinitionsAllService(ballerinaFilePath, this.tempDir, null
+        AsyncAPIContractGenerator openApiConverterUtils = new AsyncAPIContractGenerator();
+        openApiConverterUtils.generateAsyncAPIDefinitionsAllService(ballerinaFilePath, this.tempDir, null
                 , false);
         Assert.assertTrue(openApiConverterUtils.getErrors().isEmpty());
         TestUtils.compareWithGeneratedFile(ballerinaFilePath, "response/rs_with_url_encode.yaml");
@@ -184,8 +184,8 @@ public class ResponseTests {
     @Test(description = "When the response has payload annotation")
     public void responseHasPayload() throws IOException {
         Path ballerinaFilePath = RES_DIR.resolve("response/rs_with_payload.bal");
-        OASContractGenerator openApiConverterUtils = new OASContractGenerator();
-        openApiConverterUtils.generateOAS3DefinitionsAllService(ballerinaFilePath, this.tempDir, null
+        AsyncAPIContractGenerator openApiConverterUtils = new AsyncAPIContractGenerator();
+        openApiConverterUtils.generateAsyncAPIDefinitionsAllService(ballerinaFilePath, this.tempDir, null
                 , false);
         Assert.assertTrue(openApiConverterUtils.getErrors().isEmpty());
         TestUtils.compareWithGeneratedFile(ballerinaFilePath, "response/rs_with_payload.yaml");
@@ -194,8 +194,8 @@ public class ResponseTests {
     @Test(description = "When the response has payload annotation and service config annotation")
     public void responseHasPayloadWithServiceConfig() throws IOException {
         Path ballerinaFilePath = RES_DIR.resolve("response/rs_with_payload_service_config.bal");
-        OASContractGenerator openApiConverterUtils = new OASContractGenerator();
-        openApiConverterUtils.generateOAS3DefinitionsAllService(ballerinaFilePath, this.tempDir, null
+        AsyncAPIContractGenerator openApiConverterUtils = new AsyncAPIContractGenerator();
+        openApiConverterUtils.generateAsyncAPIDefinitionsAllService(ballerinaFilePath, this.tempDir, null
                 , false);
         Assert.assertTrue(openApiConverterUtils.getErrors().isEmpty());
         TestUtils.compareWithGeneratedFile(ballerinaFilePath, "response/rs_with_payload_service_config.yaml");
@@ -205,8 +205,8 @@ public class ResponseTests {
             "service config annotation")
     public void responseWithCustomMediaType() throws IOException {
         Path ballerinaFilePath = RES_DIR.resolve("response/rs_with_service_and_payload_annotation.bal");
-        OASContractGenerator openApiConverterUtils = new OASContractGenerator();
-        openApiConverterUtils.generateOAS3DefinitionsAllService(ballerinaFilePath, this.tempDir, null
+        AsyncAPIContractGenerator openApiConverterUtils = new AsyncAPIContractGenerator();
+        openApiConverterUtils.generateAsyncAPIDefinitionsAllService(ballerinaFilePath, this.tempDir, null
                 , false);
         Assert.assertTrue(openApiConverterUtils.getErrors().isEmpty());
         TestUtils.compareWithGeneratedFile(ballerinaFilePath,
@@ -216,8 +216,8 @@ public class ResponseTests {
     @Test(description = "When the response has all the status codes")
     public void testForAllReturnType() throws IOException {
         Path ballerinaFilePath = RES_DIR.resolve("response/response_code.bal");
-        OASContractGenerator openApiConverterUtils = new OASContractGenerator();
-        openApiConverterUtils.generateOAS3DefinitionsAllService(ballerinaFilePath, this.tempDir, null
+        AsyncAPIContractGenerator openApiConverterUtils = new AsyncAPIContractGenerator();
+        openApiConverterUtils.generateAsyncAPIDefinitionsAllService(ballerinaFilePath, this.tempDir, null
                 , false);
         Assert.assertTrue(openApiConverterUtils.getErrors().isEmpty());
         TestUtils.compareWithGeneratedFile(ballerinaFilePath, "response/response_code.yaml");
@@ -226,8 +226,8 @@ public class ResponseTests {
     @Test(description = "When the response has return record without no body field")
     public void testForNoContentReturnCode() throws IOException {
         Path ballerinaFilePath = RES_DIR.resolve("response/without_body_field.bal");
-        OASContractGenerator openApiConverterUtils = new OASContractGenerator();
-        openApiConverterUtils.generateOAS3DefinitionsAllService(ballerinaFilePath, this.tempDir, null
+        AsyncAPIContractGenerator openApiConverterUtils = new  AsyncAPIContractGenerator();
+        openApiConverterUtils.generateAsyncAPIDefinitionsAllService(ballerinaFilePath, this.tempDir, null
                 , false);
         Assert.assertTrue(openApiConverterUtils.getErrors().isEmpty());
         TestUtils.compareWithGeneratedFile(ballerinaFilePath, "response/no_body_field.yaml");
@@ -236,8 +236,8 @@ public class ResponseTests {
     @Test(description = "When the response has float return type")
     public void testResponseWithFloatReturnType() throws IOException {
         Path ballerinaFilePath = RES_DIR.resolve("response/float.bal");
-        OASContractGenerator openApiConverterUtils = new OASContractGenerator();
-        openApiConverterUtils.generateOAS3DefinitionsAllService(ballerinaFilePath, this.tempDir, null
+        AsyncAPIContractGenerator openApiConverterUtils = new AsyncAPIContractGenerator();
+        openApiConverterUtils.generateAsyncAPIDefinitionsAllService(ballerinaFilePath, this.tempDir, null
                 , false);
         Assert.assertTrue(openApiConverterUtils.getErrors().isEmpty());
         TestUtils.compareWithGeneratedFile(ballerinaFilePath, "response/float.yaml");
@@ -246,8 +246,8 @@ public class ResponseTests {
     @Test(description = "When the response has decimal return type")
     public void testResponseWithDecimalReturnType() throws IOException {
         Path ballerinaFilePath = RES_DIR.resolve("response/decimal.bal");
-        OASContractGenerator openApiConverterUtils = new OASContractGenerator();
-        openApiConverterUtils.generateOAS3DefinitionsAllService(ballerinaFilePath, this.tempDir, null
+        AsyncAPIContractGenerator openApiConverterUtils = new AsyncAPIContractGenerator();
+        openApiConverterUtils.generateAsyncAPIDefinitionsAllService(ballerinaFilePath, this.tempDir, null
                 , false);
         Assert.assertTrue(openApiConverterUtils.getErrors().isEmpty());
         TestUtils.compareWithGeneratedFile(ballerinaFilePath, "response/decimal.yaml");

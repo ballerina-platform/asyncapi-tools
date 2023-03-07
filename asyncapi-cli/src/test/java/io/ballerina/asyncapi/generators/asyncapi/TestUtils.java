@@ -17,7 +17,7 @@
  */
 package io.ballerina.asyncapi.generators.asyncapi;
 
-import io.ballerina.openapi.cmd.OASContractGenerator;
+import io.ballerina.asyncapi.cli.AsyncAPIContractGenerator;
 import org.testng.Assert;
 
 import java.io.File;
@@ -55,8 +55,8 @@ public class TestUtils {
         Path tempDir = Files.createTempDirectory("bal-to-asyncapi-test-out-" + System.nanoTime());
         try {
             String expectedYamlContent = getStringFromGivenBalFile(RES_DIR.resolve("expected_gen"), yamlFile);
-            OASContractGenerator openApiConverter = new OASContractGenerator();
-            openApiConverter.generateOAS3DefinitionsAllService(ballerinaFilePath, tempDir, null, false);
+            AsyncAPIContractGenerator openApiConverter = new AsyncAPIContractGenerator();
+            openApiConverter.generateAsyncAPIDefinitionsAllService(ballerinaFilePath, tempDir, null, false);
             if (Files.exists(tempDir.resolve("payloadV_openapi.yaml"))) {
                 String generatedYaml = getStringFromGivenBalFile(tempDir, "payloadV_openapi.yaml");
                 generatedYaml = (generatedYaml.trim()).replaceAll("\\s+", "");

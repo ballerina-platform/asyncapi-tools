@@ -209,12 +209,12 @@ public class ServiceToAsyncAPIConverterUtils {
             AsyncApi25DocumentImpl asyncapi = (AsyncApi25DocumentImpl) asyncApiResult.getAsyncAPI().get();
             if (asyncapi.getChannels() == null) {
                 // Take base path of service
-//                AsyncAPIServiceMapper asyncAPIServiceMapper = new AsyncAPIServiceMapper(semanticModel);
+                AsyncAPIServiceMapper asyncAPIServiceMapper = new AsyncAPIServiceMapper(semanticModel);
                 // 02. Filter and set the ServerURLs according to endpoints. Complete the server section in OAS
                 asyncapi = AsyncAPIEndpointMapper.ENDPOINT_MAPPER.getServers(asyncapi, endpoints, serviceDefinition);
                 // 03. Filter path and component sections in OAS.
-                // Generate openApi string for the mentioned service name.
-//                asyncapi = asyncAPIServiceMapper.convertServiceToOpenAPI(serviceDefinition, asyncapi);
+//                 Generate openApi string for the mentioned service name.
+                asyncapi = asyncAPIServiceMapper.convertServiceToOpenAPI(serviceDefinition, asyncapi);
                 return new AsyncAPIResult(asyncapi, new ArrayList<>());
 //                return new AsyncAPIResult(asyncapi, asyncAPIServiceMapper.getErrors());
             } else {

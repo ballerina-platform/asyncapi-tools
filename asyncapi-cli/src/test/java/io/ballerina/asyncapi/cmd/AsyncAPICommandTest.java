@@ -53,20 +53,20 @@ public abstract class AsyncAPICommandTest {
         this.printStream = new PrintStream(this.console);
     }
 
-    @AfterClass
-    public void cleanup() throws IOException {
-        Files.walk(this.tmpDir)
-                .sorted(Comparator.reverseOrder())
-                .forEach(path -> {
-                    try {
-                        Files.delete(path);
-                    } catch (IOException e) {
-                        Assert.fail(e.getMessage(), e);
-                    }
-                });
-        this.console.close();
-        this.printStream.close();
-    }
+//    @AfterClass
+//    public void cleanup() throws IOException {
+//        Files.walk(this.tmpDir)
+//                .sorted(Comparator.reverseOrder())
+//                .forEach(path -> {
+//                    try {
+//                        Files.delete(path);
+//                    } catch (IOException e) {
+//                        Assert.fail(e.getMessage(), e);
+//                    }
+//                });
+//        this.console.close();
+//        this.printStream.close();
+//    }
 
     /**
      * Execute the asyncapi command with arguments.

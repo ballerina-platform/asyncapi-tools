@@ -20,14 +20,16 @@ plugins {
     id 'maven-publish'
     id "com.github.spotbugs" version "5.0.13"
     id "de.undercouch.download" version "5.3.1"
-    id "com.github.johnrengelman.shadow" version "8.1.0"
+    id "com.github.johnrengelman.shadow" version "7.1.2"
+    id 'org.javamodularity.moduleplugin' version '1.7.0' apply false
 
 }
 
 apply plugin: 'java'
 apply plugin: "com.github.spotbugs"
 apply plugin: 'jacoco'
-
+apply plugin: "org.javamodularity.moduleplugin"
+apply from: "$rootDir/gradle/javaProject.gradle"
 
 ext.ballerinaLangVersion = project.ballerinaLangVersion
 ext.testngVersion = project.testngVersion
@@ -40,7 +42,26 @@ ext.puppycrawlCheckstyleVersion = project.puppycrawlCheckstyleVersion
 //ext.asyncapiModelVersion=project.asyncApiModelVersion
 ext.apicurioAsyncApiModelVersion=project.apicurioAsyncApiModelVersion
 ext.jsonToYamlVersion=project.jsonToYamlVersion
-ext.swaggerParserVersion=project.swaggerParserVersion
+
+ext.stdlibIoVersion = project.stdlibIoVersion
+ext.stdlibLogVersion = project.stdlibLogVersion
+ext.stdlibMimeVersion = project.stdlibMimeVersion
+ext.stdlibAuthVersion = project.stdlibAuthVersion
+ext.stdlibCacheVersion = project.stdlibCacheVersion
+ext.stdlibTimeVersion = project.stdlibTimeVersion
+ext.stdlibCryptoVersion = project.stdlibCryptoVersion
+ext.stdlibTaskVersion = project.stdlibTaskVersion
+ext.stdlibFileVersion = project.stdlibFileVersion
+ext.stdlibHttpVersion = project.stdlibHttpVersion
+ext.stdlibUrlVersion = project.stdlibUrlVersion
+ext.stdlibXmldataVersion = project.stdlibXmldataVersion
+ext.stdlibGraphqlVersion = project.stdlibGraphqlVersion
+ext.stdlibGrpcVersion = project.stdlibGrpcVersion
+ext.stdlibWebsubVersion = project.stdlibWebsubVersion
+ext.stdlibConstraintVersion = project.stdlibConstraintVersion
+
+
+
 
 allprojects {
     group = 'io.ballerina'
@@ -102,36 +123,35 @@ subprojects {
     }
     dependencies {
         /* Standard libraries */
-//        ballerinaStdLibs "io.ballerina.stdlib:io-ballerina:${stdlibIoVersion}"
-//        ballerinaStdLibs "io.ballerina.stdlib:http-ballerina:${stdlibHttpVersion}"
-//        ballerinaStdLibs "io.ballerina.stdlib:log-ballerina:${stdlibLogVersion}"
-//        ballerinaStdLibs "io.ballerina.stdlib:os-ballerina:${stdlibOsVersion}"
-//        ballerinaStdLibs "io.ballerina.stdlib:mime-ballerina:${stdlibMimeVersion}"
-//        ballerinaStdLibs "io.ballerina.stdlib:regex-ballerina:${stdlibRegexVersion}"
-//        ballerinaStdLibs "io.ballerina.stdlib:crypto-ballerina:${stdlibCryptoVersion}"
-//        ballerinaStdLibs "io.ballerina.stdlib:auth-ballerina:${stdlibAuthVersion}"
-//        ballerinaStdLibs "io.ballerina.stdlib:time-ballerina:${stdlibTimeVersion}"
-//        ballerinaStdLibs "io.ballerina.stdlib:cache-ballerina:${stdlibCacheVersion}"
-//        ballerinaStdLibs "io.ballerina.stdlib:task-ballerina:${stdlibTaskVersion}"
-//        ballerinaStdLibs "io.ballerina.stdlib:file-ballerina:${stdlibFileVersion}"
-//        ballerinaStdLibs "io.ballerina.stdlib:jwt-ballerina:${stdlibJwtVersion}"
-//        ballerinaStdLibs "io.ballerina.stdlib:oauth2-ballerina:${stdlibOAuth2Version}"
-//        ballerinaStdLibs "io.ballerina.stdlib:uuid-ballerina:${stdlibUuidVersion}"
-//        ballerinaStdLibs "io.ballerina.stdlib:url-ballerina:${stdlibUrlVersion}"
-//        ballerinaStdLibs "io.ballerina.stdlib:xmldata-ballerina:${stdlibXmldataVersion}"
-//        ballerinaStdLibs "io.ballerina.stdlib:observe-ballerina:${observeVersion}"
-//        ballerinaStdLibs "io.ballerina:observe-ballerina:${observeInternalVersion}"
-//        ballerinaStdLibs "io.ballerina.stdlib:graphql-ballerina:${stdlibGraphqlVersion}"
-//        ballerinaStdLibs "io.ballerina.stdlib:grpc-ballerina:${stdlibGrpcVersion}"
-//        ballerinaStdLibs "io.ballerina.stdlib:websub-ballerina:${stdlibWebsubVersion}"
+        ballerinaStdLibs "io.ballerina.stdlib:io-ballerina:${stdlibIoVersion}"
+        ballerinaStdLibs "io.ballerina.stdlib:http-ballerina:${stdlibHttpVersion}"
+        ballerinaStdLibs "io.ballerina.stdlib:log-ballerina:${stdlibLogVersion}"
+        ballerinaStdLibs "io.ballerina.stdlib:os-ballerina:${stdlibOsVersion}"
+        ballerinaStdLibs "io.ballerina.stdlib:mime-ballerina:${stdlibMimeVersion}"
+        ballerinaStdLibs "io.ballerina.stdlib:regex-ballerina:${stdlibRegexVersion}"
+        ballerinaStdLibs "io.ballerina.stdlib:crypto-ballerina:${stdlibCryptoVersion}"
+        ballerinaStdLibs "io.ballerina.stdlib:auth-ballerina:${stdlibAuthVersion}"
+        ballerinaStdLibs "io.ballerina.stdlib:time-ballerina:${stdlibTimeVersion}"
+        ballerinaStdLibs "io.ballerina.stdlib:cache-ballerina:${stdlibCacheVersion}"
+        ballerinaStdLibs "io.ballerina.stdlib:task-ballerina:${stdlibTaskVersion}"
+        ballerinaStdLibs "io.ballerina.stdlib:file-ballerina:${stdlibFileVersion}"
+        ballerinaStdLibs "io.ballerina.stdlib:jwt-ballerina:${stdlibJwtVersion}"
+        ballerinaStdLibs "io.ballerina.stdlib:oauth2-ballerina:${stdlibOAuth2Version}"
+        ballerinaStdLibs "io.ballerina.stdlib:uuid-ballerina:${stdlibUuidVersion}"
+        ballerinaStdLibs "io.ballerina.stdlib:url-ballerina:${stdlibUrlVersion}"
+        ballerinaStdLibs "io.ballerina.stdlib:xmldata-ballerina:${stdlibXmldataVersion}"
+        ballerinaStdLibs "io.ballerina.stdlib:observe-ballerina:${observeVersion}"
+        ballerinaStdLibs "io.ballerina:observe-ballerina:${observeInternalVersion}"
+        ballerinaStdLibs "io.ballerina.stdlib:graphql-ballerina:${stdlibGraphqlVersion}"
+        ballerinaStdLibs "io.ballerina.stdlib:grpc-ballerina:${stdlibGrpcVersion}"
+        ballerinaStdLibs "io.ballerina.stdlib:websub-ballerina:${stdlibWebsubVersion}"
         ballerinaStdLibs "io.ballerina.stdlib:websocket-ballerina:${stdlibWebsocketVersion}"
-//        ballerinaStdLibs "io.ballerina.stdlib:constraint-ballerina:${stdlibConstraintVersion}"
+        ballerinaStdLibs "io.ballerina.stdlib:constraint-ballerina:${stdlibConstraintVersion}"
 
     }
 }
 
 //def moduleVersion = project.version.replace("-SNAPSHOT", "")
-//
 //release {
 //    // Disable check snapshots temporarily
 //    failOnPublishNeeded = false

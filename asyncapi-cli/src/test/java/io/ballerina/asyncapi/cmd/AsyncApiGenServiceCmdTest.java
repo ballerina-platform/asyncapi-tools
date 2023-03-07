@@ -27,12 +27,13 @@ import java.nio.file.Paths;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static io.ballerina.asyncapi.CodeGeneratorTest.USER_DIR;
+//import static io.ballerina.asyncapi.CodeGeneratorTest.USER_DIR;
 
 /**
  * This class contains tests necessary to test AsyncApi Generate Service command.
  */
 public class AsyncApiGenServiceCmdTest extends AsyncAPICommandTest {
+    public static final String USER_DIR = "user.dir";
     Path resourcePath = Paths.get(System.getProperty(USER_DIR));
 
     @Test(description = "Test asyncapi gen-service for successful service generation with inline request body type",

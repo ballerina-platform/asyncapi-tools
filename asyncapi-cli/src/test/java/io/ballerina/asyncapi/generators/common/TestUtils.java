@@ -21,18 +21,12 @@ package io.ballerina.asyncapi.generators.common;
 import io.ballerina.compiler.api.SemanticModel;
 import io.ballerina.compiler.syntax.tree.SyntaxTree;
 import io.ballerina.compiler.syntax.tree.TypeDefinitionNode;
-import io.ballerina.openapi.core.exception.BallerinaOpenApiException;
-import io.ballerina.openapi.core.generators.client.BallerinaClientGenerator;
-import io.ballerina.openapi.core.generators.schema.BallerinaTypesGenerator;
-import io.ballerina.projects.DocumentId;
-import io.ballerina.projects.Project;
-import io.ballerina.projects.ProjectException;
-import io.ballerina.projects.ProjectKind;
+import io.ballerina.projects.Module;
+import io.ballerina.projects.Package;
+import io.ballerina.projects.*;
 import io.ballerina.projects.directory.ProjectLoader;
 import io.ballerina.tools.diagnostics.Diagnostic;
-import io.swagger.v3.oas.models.OpenAPI;
-import io.swagger.v3.parser.OpenAPIV3Parser;
-import io.swagger.v3.parser.core.models.SwaggerParseResult;
+
 import org.ballerinalang.formatter.core.Formatter;
 import org.ballerinalang.formatter.core.FormatterException;
 import org.testng.Assert;
@@ -63,23 +57,23 @@ public class TestUtils {
     private static final String LINE_SEPARATOR = System.lineSeparator();
 
     // Get diagnostics
-    public static List<Diagnostic> getDiagnostics(SyntaxTree syntaxTree, OpenAPI openAPI,
-                                                  BallerinaClientGenerator ballerinaClientGenerator)
-            throws FormatterException, IOException, BallerinaOpenApiException {
-        List<TypeDefinitionNode> preGeneratedTypeDefinitionNodes = new LinkedList<>();
-        preGeneratedTypeDefinitionNodes.addAll(ballerinaClientGenerator.
-                getBallerinaAuthConfigGenerator().getAuthRelatedTypeDefinitionNodes());
-        preGeneratedTypeDefinitionNodes.addAll(ballerinaClientGenerator.getTypeDefinitionNodeList());
-        BallerinaTypesGenerator ballerinaSchemaGenerator = new BallerinaTypesGenerator(
-                openAPI, false, preGeneratedTypeDefinitionNodes);
-        SyntaxTree schemaSyntax = ballerinaSchemaGenerator.generateSyntaxTree();
-        SyntaxTree utilSyntaxTree = ballerinaClientGenerator.getBallerinaUtilGenerator().generateUtilSyntaxTree();
-        writeFile(clientPath, Formatter.format(syntaxTree).toString());
-        writeFile(schemaPath, Formatter.format(schemaSyntax).toString());
-        writeFile(utilPath, Formatter.format(utilSyntaxTree).toString());
-        SemanticModel semanticModel = getSemanticModel(clientPath);
-        return semanticModel.diagnostics();
-    }
+//    public static List<Diagnostic> getDiagnostics(SyntaxTree syntaxTree, OpenAPI openAPI,
+//                                                  BallerinaClientGenerator ballerinaClientGenerator)
+//            throws FormatterException, IOException, BallerinaOpenApiException {
+//        List<TypeDefinitionNode> preGeneratedTypeDefinitionNodes = new LinkedList<>();
+//        preGeneratedTypeDefinitionNodes.addAll(ballerinaClientGenerator.
+//                getBallerinaAuthConfigGenerator().getAuthRelatedTypeDefinitionNodes());
+//        preGeneratedTypeDefinitionNodes.addAll(ballerinaClientGenerator.getTypeDefinitionNodeList());
+//        BallerinaTypesGenerator ballerinaSchemaGenerator = new BallerinaTypesGenerator(
+//                openAPI, false, preGeneratedTypeDefinitionNodes);
+//        SyntaxTree schemaSyntax = ballerinaSchemaGenerator.generateSyntaxTree();
+//        SyntaxTree utilSyntaxTree = ballerinaClientGenerator.getBallerinaUtilGenerator().generateUtilSyntaxTree();
+//        writeFile(clientPath, Formatter.format(syntaxTree).toString());
+//        writeFile(schemaPath, Formatter.format(schemaSyntax).toString());
+//        writeFile(utilPath, Formatter.format(utilSyntaxTree).toString());
+//        SemanticModel semanticModel = getSemanticModel(clientPath);
+//        return semanticModel.diagnostics();
+//    }
 
     public static List<Diagnostic> getDiagnostics(SyntaxTree syntaxTree) throws FormatterException, IOException {
         writeFile(schemaPath, Formatter.format(syntaxTree).toString());
@@ -137,11 +131,11 @@ public class TestUtils {
         return project.currentPackage().getCompilation().getSemanticModel(docId.moduleId());
     }
 
-    public static OpenAPI getOpenAPI(Path definitionPath) throws IOException, BallerinaOpenApiException {
-        String openAPIFileContent = Files.readString(definitionPath);
-        SwaggerParseResult parseResult = new OpenAPIV3Parser().readContents(openAPIFileContent);
-        return parseResult.getOpenAPI();
-    }
+//    public static OpenAPI getOpenAPI(Path definitionPath) throws IOException, BallerinaOpenApiException {
+//        String openAPIFileContent = Files.readString(definitionPath);
+//        SwaggerParseResult parseResult = new OpenAPIV3Parser().readContents(openAPIFileContent);
+//        return parseResult.getOpenAPI();
+//    }
 
     public static String getStringFromGivenBalFile(Path expectedServiceFile, String s) throws IOException {
         Stream<String> expectedServiceLines = Files.lines(expectedServiceFile.resolve(s));

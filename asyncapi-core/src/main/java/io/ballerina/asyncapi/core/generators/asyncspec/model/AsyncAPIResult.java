@@ -24,7 +24,6 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.fasterxml.jackson.dataformat.yaml.YAMLGenerator;
 import io.apicurio.datamodels.Library;
-import io.apicurio.datamodels.models.Document;
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25DocumentImpl;
 import io.apicurio.datamodels.models.util.JsonUtil;
 import io.ballerina.asyncapi.core.generators.asyncspec.diagnostic.AsyncAPIConverterDiagnostic;
@@ -43,7 +42,6 @@ public class AsyncAPIResult {
     private AsyncApi25Document asyncAPI;
     private String serviceName; // added base path for key to definition
     private final List<AsyncAPIConverterDiagnostic> diagnostics;
-//    private SttpAsyncAPICirceYaml sttpAsyncAPICirceYaml = new SttpAsyncAPICirceYaml(){};
 
     /**
      * This constructor is used to store the details that Map of {@code OpenAPI} objects and diagnostic list.
@@ -65,7 +63,7 @@ public class AsyncAPIResult {
         return this.serviceName;
     }
 
-    public Optional<String> getYaml() throws JsonProcessingException {
+    public Optional<String> getYaml() {
 
         ObjectNode json=  Library.writeDocument(this.asyncAPI);
         YAMLFactory factory = new YAMLFactory();
@@ -75,15 +73,19 @@ public class AsyncAPIResult {
         factory.enable(YAMLGenerator.Feature.ALWAYS_QUOTE_NUMBERS_AS_STRINGS);
 
 //        ObjectMapper objectMapper=new ObjectMapper();
-        String finalyaml=new ObjectMapper(factory).writer(new DefaultPrettyPrinter()).writeValueAsString(json);
-        return Optional.ofNullable(finalyaml);
-//        return Optional.ofNullable(sttpAsyncAPICirceYaml.RichAsyncAPI(asyncAPI).toYaml());
+        String finalYaml= null;
+        try {
+            finalYaml = new ObjectMapper(factory).writer(new DefaultPrettyPrinter()).writeValueAsString(json);
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
+        }
+        return Optional.ofNullable(finalYaml);
     }
 
     public Optional<String> getJson() {
-        ObjectNode json= (ObjectNode) Library.writeDocument(this.asyncAPI);
-        String finaljson= JsonUtil.stringify(json);
-        return Optional.ofNullable(finaljson);
+        ObjectNode json= Library.writeDocument(this.asyncAPI);
+        String finalJson= JsonUtil.stringify(json);
+        return Optional.ofNullable(finalJson);
 //        return Optional.ofNullable(Json.pretty(this.openAPI));
     }
 

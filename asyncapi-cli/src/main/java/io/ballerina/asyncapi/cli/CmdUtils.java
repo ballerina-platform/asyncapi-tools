@@ -23,10 +23,10 @@ import io.ballerina.asyncapi.core.model.GenSrcFile;
 import io.ballerina.tools.diagnostics.DiagnosticInfo;
 import io.ballerina.tools.diagnostics.DiagnosticSeverity;
 import io.ballerina.tools.diagnostics.Location;
-import io.swagger.v3.oas.models.OpenAPI;
-import io.swagger.v3.parser.OpenAPIV3Parser;
-import io.swagger.v3.parser.core.models.ParseOptions;
-import io.swagger.v3.parser.core.models.SwaggerParseResult;
+//import io.swagger.v3.oas.models.OpenAPI;
+//import io.swagger.v3.parser.OpenAPIV3Parser;
+//import io.swagger.v3.parser.core.models.ParseOptions;
+//import io.swagger.v3.parser.core.models.SwaggerParseResult;
 
 import java.io.File;
 import java.io.IOException;
@@ -34,6 +34,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Collections;
 import java.util.List;
+
 
 import static io.ballerina.asyncapi.core.GeneratorConstants.LINE_SEPARATOR;
 
@@ -60,31 +61,31 @@ public class CmdUtils {
     /**
      * Util for take OpenApi spec from given yaml file.
      */
-    public static OpenAPI getOpenAPIFromOpenAPIV3Parser(Path definitionPath) throws
-            IOException, BallerinaAsyncApiException {
-
-        Path contractPath = java.nio.file.Paths.get(definitionPath.toString());
-        if (!Files.exists(contractPath)) {
-            throw new BallerinaAsyncApiException(ErrorMessages.invalidFilePath(definitionPath.toString()));
-        }
-        if (!(definitionPath.toString().endsWith(".yaml") || definitionPath.toString().endsWith(".json") ||
-                definitionPath.toString().endsWith(".yml"))) {
-            throw new BallerinaAsyncApiException(ErrorMessages.invalidFileType());
-        }
-        String openAPIFileContent = Files.readString(definitionPath);
-        ParseOptions parseOptions = new ParseOptions();
-        parseOptions.setResolve(true);
-        parseOptions.setFlatten(true);
-        SwaggerParseResult parseResult = new OpenAPIV3Parser().readContents(openAPIFileContent, null, parseOptions);
-        if (!parseResult.getMessages().isEmpty()) {
-            StringBuilder errorMessage = new StringBuilder("OpenAPI definition has errors: \n");
-            for (String message : parseResult.getMessages()) {
-                errorMessage.append(message).append(LINE_SEPARATOR);
-            }
-            throw new BallerinaAsyncApiException(errorMessage.toString());
-        }
-        return parseResult.getOpenAPI();
-    }
+//    public static OpenAPI getOpenAPIFromOpenAPIV3Parser(Path definitionPath) throws
+//            IOException, BallerinaAsyncApiException {
+//
+//        Path contractPath = java.nio.file.Paths.get(definitionPath.toString());
+//        if (!Files.exists(contractPath)) {
+//            throw new BallerinaAsyncApiException(ErrorMessages.invalidFilePath(definitionPath.toString()));
+//        }
+//        if (!(definitionPath.toString().endsWith(".yaml") || definitionPath.toString().endsWith(".json") ||
+//                definitionPath.toString().endsWith(".yml"))) {
+//            throw new BallerinaAsyncApiException(ErrorMessages.invalidFileType());
+//        }
+//        String openAPIFileContent = Files.readString(definitionPath);
+//        ParseOptions parseOptions = new ParseOptions();
+//        parseOptions.setResolve(true);
+//        parseOptions.setFlatten(true);
+//        SwaggerParseResult parseResult = new OpenAPIV3Parser().readContents(openAPIFileContent, null, parseOptions);
+//        if (!parseResult.getMessages().isEmpty()) {
+//            StringBuilder errorMessage = new StringBuilder("OpenAPI definition has errors: \n");
+//            for (String message : parseResult.getMessages()) {
+//                errorMessage.append(message).append(LINE_SEPARATOR);
+//            }
+//            throw new BallerinaAsyncApiException(errorMessage.toString());
+//        }
+//        return parseResult.getOpenAPI();
+//    }
 
     /**
      * This method for setting the file name for generated file.

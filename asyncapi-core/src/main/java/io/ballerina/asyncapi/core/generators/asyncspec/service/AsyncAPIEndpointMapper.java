@@ -19,9 +19,8 @@
 
 package io.ballerina.asyncapi.core.generators.asyncspec.service;
 
-import io.apicurio.datamodels.models.Server;
+
 import io.apicurio.datamodels.models.ServerVariable;
-import io.apicurio.datamodels.models.asyncapi.AsyncApiServer;
 import io.apicurio.datamodels.models.asyncapi.v25.*;
 import io.ballerina.asyncapi.core.generators.asyncspec.Constants;
 import io.ballerina.asyncapi.core.generators.asyncspec.utils.ConverterCommonUtils;
@@ -48,9 +47,11 @@ public class AsyncAPIEndpointMapper {
      */
     public AsyncApi25DocumentImpl getServers(AsyncApi25DocumentImpl asyncAPI, List<ListenerDeclarationNode> endpoints,
                               ServiceDeclarationNode service) {
-        asyncAPI = extractServerForExpressionNode(asyncAPI, service.expressions(), service);
-//        AsyncApi25ServersImpl servers = (AsyncApi25ServersImpl) asyncAPI.getServers();
-        List<AsyncApi25ServerImpl> servers = new ArrayList<>();
+        List<AsyncApi25ServerImpl> servers = extractServerForExpressionNode(asyncAPI, service.expressions(), service);
+//        AsyncApi25ServersImpl expressionServers = (AsyncApi25ServersImpl) asyncAPI.getServers();
+
+//        List<AsyncApi25ServerImpl> servers = new ArrayList<>();
+//        servers.add((AsyncApi25ServerImpl) expressionServers.getItem("development"));
         if (!endpoints.isEmpty()) {
             for (ListenerDeclarationNode ep : endpoints) {
                 SeparatedNodeList<ExpressionNode> exprNodes = service.expressions();
@@ -71,6 +72,10 @@ public class AsyncAPIEndpointMapper {
             asyncApi25Servers.addItem("development",mainServer);
             asyncAPI.setServers(asyncApi25Servers);
 //            asyncAPI.setServers(Collections.singletonList(mainServer));
+        }else{
+            AsyncApi25ServersImpl asyncApi25Servers=new AsyncApi25ServersImpl();
+            asyncApi25Servers.addItem("development",servers.get(0));
+            asyncAPI.setServers(asyncApi25Servers);
         }
         return asyncAPI;
     }
@@ -87,17 +92,26 @@ public class AsyncAPIEndpointMapper {
             Collections.rotate(rotated, servers.size() - 1);
             for (AsyncApi25ServerImpl server: rotated) {
                 Map<String, ServerVariable>  variables = server.getVariables();
-                if (variables.get(SERVER) != null) {
-                    hostVariable.getEnum().add(variables.get(SERVER).getDefault());
-//                    hostVariable.setEnum(variables.get(SERVER).getDefault());
-                }
-                if (variables.get(PORT) != null) {
-                    portVariable.getEnum().add(variables.get(PORT).getDefault());
-//                    portVariable.addEnumItem(variables.get(PORT).getDefault());
-                }
+
+                setServerVariables(hostVariable, variables, SERVER);
+
+                setServerVariables(portVariable, variables, PORT);
             }
         }
         return mainServer;
+    }
+
+    private void setServerVariables(ServerVariable variable, Map<String, ServerVariable> variables, String variableName) {
+        if (variables.get(variableName) != null){
+            List<String> hostVariableEnum= variable.getEnum();
+            if (hostVariableEnum == null) {
+                hostVariableEnum = new ArrayList<>();
+            }
+           hostVariableEnum.add(variables.get(variableName).getDefault());
+           variable.setEnum(hostVariableEnum);
+//                    hostVariable.getEnum().add(variables.get(SERVER).getDefault());
+//                    hostVariable.setEnum(variables.get(SERVER).getDefault());
+        }
     }
 
     /**
@@ -127,19 +141,20 @@ public class AsyncAPIEndpointMapper {
     }
 
     // Function for handle both ExplicitNewExpressionNode and ImplicitNewExpressionNode in listener.
-    private AsyncApi25DocumentImpl extractServerForExpressionNode(AsyncApi25DocumentImpl asyncAPI, SeparatedNodeList<ExpressionNode> bTypeExplicit,
+    private List<AsyncApi25ServerImpl>  extractServerForExpressionNode(AsyncApi25DocumentImpl asyncAPI, SeparatedNodeList<ExpressionNode> bTypeExplicit,
                                                                     ServiceDeclarationNode service) {
         String serviceBasePath = getServiceBasePath(service);
         Optional<ParenthesizedArgList> list;
 //        AsyncApi25ServersImpl servers = (AsyncApi25ServersImpl) asyncAPI.createServers();
-//        List<AsyncApi25ServerImpl> servers = new ArrayList<>();
-        AsyncApi25ServersImpl asyncApi25Servers = (AsyncApi25ServersImpl) asyncAPI.createServers();
+        List<AsyncApi25ServerImpl> asyncApi25Servers = new ArrayList<>();
+//        AsyncApi25ServersImpl asyncApi25Servers = (AsyncApi25ServersImpl) asyncAPI.createServers();
         for (ExpressionNode expressionNode: bTypeExplicit) {
             if (expressionNode.kind().equals(SyntaxKind.EXPLICIT_NEW_EXPRESSION)) {
                 ExplicitNewExpressionNode explicit = (ExplicitNewExpressionNode) expressionNode;
                 list = Optional.ofNullable(explicit.parenthesizedArgList());
                 AsyncApi25ServerImpl server = generateServer(serviceBasePath, list);
-                asyncApi25Servers.addItem("development",server);
+//                asyncApi25Servers.ge
+                asyncApi25Servers.add(server);
 //                servers.add(server);
 //                servers.addItem("private",server);
 //                servers.add(server);
@@ -147,7 +162,7 @@ public class AsyncAPIEndpointMapper {
                 ImplicitNewExpressionNode implicit = (ImplicitNewExpressionNode) expressionNode;
                 list = implicit.parenthesizedArgList();
                 AsyncApi25ServerImpl server = generateServer(serviceBasePath, list);
-                asyncApi25Servers.addItem("development",server);
+                asyncApi25Servers.add(server);
 //                servers.add(server);
 //                servers.addItem("public",server);
 //                servers.add(server);
@@ -155,8 +170,8 @@ public class AsyncAPIEndpointMapper {
         }
 //        AsyncApi25ServersImpl asyncApi25Servers = (AsyncApi25ServersImpl) asyncAPI.createServers();
 //        asyncApi25Servers.addItem("development",);
-        asyncAPI.setServers(asyncApi25Servers);
-        return asyncAPI;
+//        asyncAPI.setServers(asyncApi25Servers);
+        return asyncApi25Servers;
     }
 
     //Assign host and port values

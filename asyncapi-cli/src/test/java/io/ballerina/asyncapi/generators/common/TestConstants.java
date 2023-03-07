@@ -1,7 +1,7 @@
 package io.ballerina.asyncapi.generators.common;
 
 /**
- * Constants for asyncapi code generator unit test cases.
+ * Constants for openapi code generator unit test cases.
  */
 public class TestConstants {
     private static String clientConfigRecordDoc = "" +

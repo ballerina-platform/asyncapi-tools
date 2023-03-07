@@ -123,7 +123,7 @@ public class AsyncAPIContractGenerator {
                         Optional<String> content;
                         content=definition.getYaml();
                         if (needJson) {
-                            content = definition.getJason();
+                            content = definition.getJson();
                         }
                         else {
                             content = definition.getYaml();

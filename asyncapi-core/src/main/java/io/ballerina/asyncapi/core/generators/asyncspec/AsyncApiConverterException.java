@@ -21,19 +21,19 @@ package io.ballerina.asyncapi.core.generators.asyncspec;
 /**
  * Exception definition for Ballerina to OpenApi converter errors.
  */
-public class OpenApiConverterException extends Exception {
-    public OpenApiConverterException(String message, Throwable cause) {
+public class AsyncApiConverterException extends Exception {
+    public AsyncApiConverterException(String message, Throwable cause) {
         super(message, cause);
     }
 
-    public OpenApiConverterException(String message) {
+    public AsyncApiConverterException(String message) {
         super(message);
     }
 
-    public OpenApiConverterException(Throwable cause) {
+    public AsyncApiConverterException(Throwable cause) {
         super(cause);
     }
 
-    public OpenApiConverterException() {
+    public AsyncApiConverterException() {
     }
 }

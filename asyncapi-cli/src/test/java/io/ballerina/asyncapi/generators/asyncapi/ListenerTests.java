@@ -17,8 +17,8 @@
  */
 package io.ballerina.asyncapi.generators.asyncapi;
 
-import io.ballerina.openapi.cmd.OASContractGenerator;
-import io.ballerina.openapi.converter.diagnostic.OpenAPIConverterDiagnostic;
+import io.ballerina.asyncapi.cli.AsyncAPIContractGenerator;
+import io.ballerina.asyncapi.core.generators.asyncspec.diagnostic.AsyncAPIConverterDiagnostic;
 import org.testng.Assert;
 import org.testng.annotations.AfterMethod;
 import org.testng.annotations.AfterTest;
@@ -33,7 +33,7 @@ import java.util.List;
 
 /**
  * This Test class for storing all the endpoint related tests
- * {@link io.ballerina.openapi.converter.service.OpenAPIEndpointMapper}.
+ * {@link io.ballerina.asyncapi.core.generators.asyncspec.service.AsyncAPIEndpointMapper}.
  */
 public class ListenerTests {
     private static final Path RES_DIR = Paths.get("src/test/resources/ballerina-to-asyncapi/").toAbsolutePath();
@@ -77,10 +77,10 @@ public class ListenerTests {
     @Test(description = "When given ballerina file contain some compilation issue.")
     public void testListeners06() {
         Path ballerinaFilePath = RES_DIR.resolve("listeners/listener_scenario06.bal");
-        OASContractGenerator openApiConverter = new OASContractGenerator();
-        openApiConverter.generateOAS3DefinitionsAllService(ballerinaFilePath, tempDir, null
+        AsyncAPIContractGenerator openApiConverter = new AsyncAPIContractGenerator();
+        openApiConverter.generateAsyncAPIDefinitionsAllService(ballerinaFilePath, tempDir, null
                 , false);
-        List<OpenAPIConverterDiagnostic> errors = openApiConverter.getErrors();
+        List<AsyncAPIConverterDiagnostic> errors = openApiConverter.getErrors();
         Assert.assertTrue(errors.isEmpty());
     }
 

@@ -46,9 +46,6 @@ import io.ballerina.tools.text.LinePosition;
 import io.ballerina.tools.text.LineRange;
 import io.ballerina.tools.text.TextRange;
 import org.apache.commons.io.FilenameUtils;
-import io.swagger.v3.parser.OpenAPIV3Parser;
-import io.swagger.v3.parser.core.models.ParseOptions;
-import io.swagger.v3.parser.core.models.SwaggerParseResult;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -301,19 +298,19 @@ public class ConverterCommonUtils {
 //    /**
 //     * This {@code NullLocation} represents the null location allocation for scenarios which has not location.
 //     */
-//    public static class NullLocation implements Location {
-//
-//        @Override
-//        public LineRange lineRange() {
-//            LinePosition from = LinePosition.from(0, 0);
-//            return LineRange.from("", from, from);
-//        }
-//
-//        @Override
-//        public TextRange textRange() {
-//            return TextRange.from(0, 0);
-//        }
-//    }
+    public static class NullLocation implements Location {
+
+        @Override
+        public LineRange lineRange() {
+            LinePosition from = LinePosition.from(0, 0);
+            return LineRange.from("", from, from);
+        }
+
+        @Override
+        public TextRange textRange() {
+            return TextRange.from(0, 0);
+        }
+    }
 //
     /**
      * Parse and get the {@link AsyncApi25Document} for the given OpenAPI contract.

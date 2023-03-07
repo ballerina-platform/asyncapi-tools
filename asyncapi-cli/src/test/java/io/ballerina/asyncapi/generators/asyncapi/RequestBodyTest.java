@@ -18,8 +18,8 @@
 
 package io.ballerina.asyncapi.generators.asyncapi;
 
-import io.ballerina.openapi.cmd.OASContractGenerator;
-import io.ballerina.openapi.converter.OpenApiConverterException;
+import io.ballerina.asyncapi.cli.AsyncAPIContractGenerator;
+import io.ballerina.asyncapi.core.generators.asyncspec.AsyncApiConverterException;
 import org.testng.Assert;
 import org.testng.annotations.AfterMethod;
 import org.testng.annotations.AfterTest;
@@ -49,7 +49,7 @@ public class RequestBodyTest {
     }
 
     @Test(description = "Generate OpenAPI spec with json payload")
-    public void testJsonPayLoad() throws OpenApiConverterException {
+    public void testJsonPayLoad() throws AsyncApiConverterException {
         Path ballerinaFilePath = RES_DIR.resolve("request_body/json_payload_service.bal");
         //Compare generated yaml file with expected yaml content
         compareWithGeneratedFile(ballerinaFilePath, "json_payload.yaml");
@@ -58,14 +58,14 @@ public class RequestBodyTest {
     @Test(description = "Generate OpenAPI spec with xml payload")
     public void testXmlPayLoad()  {
         Path ballerinaFilePath = RES_DIR.resolve("request_body/xml_payload_service.bal");
-        OASContractGenerator openApiConverterUtils = new OASContractGenerator();
-        openApiConverterUtils.generateOAS3DefinitionsAllService(ballerinaFilePath, this.tempDir, null,
+        AsyncAPIContractGenerator openApiConverterUtils = new AsyncAPIContractGenerator();
+        openApiConverterUtils.generateAsyncAPIDefinitionsAllService(ballerinaFilePath, this.tempDir, null,
                 false);
         Assert.assertTrue(Files.exists(this.tempDir.resolve("payloadXml_openapi.yaml")));
     }
 
     @Test(description = "Generate OpenAPI spec with mulitple payload")
-    public void testMultiplePayLoad() throws IOException, OpenApiConverterException {
+    public void testMultiplePayLoad() throws IOException, AsyncApiConverterException {
         Path ballerinaFilePath = RES_DIR.resolve("request_body/multiple_payload_service.bal");
         compareWithGeneratedFile(ballerinaFilePath, "multiple_payload.yaml");
     }
@@ -187,7 +187,7 @@ public class RequestBodyTest {
     }
 
     @Test(description = "Generate OpenAPI spec for multiple records")
-    public void testMultipleRecords() throws OpenApiConverterException {
+    public void testMultipleRecords() throws AsyncApiConverterException {
         Path ballerinaFilePath = RES_DIR.resolve("request_body/rb_scenario11.bal");
         compareWithGeneratedFile(ballerinaFilePath, "rb_scenario11.yaml");
     }
@@ -201,8 +201,8 @@ public class RequestBodyTest {
     @Test(description = "Generate OpenAPI spec for request body with http:Request req")
     public void testRequestBodyWithDefault() {
         Path ballerinaFilePath = RES_DIR.resolve("request_body/rb_scenario13.bal");
-        OASContractGenerator openApiConverterUtils = new OASContractGenerator();
-        openApiConverterUtils.generateOAS3DefinitionsAllService(ballerinaFilePath, this.tempDir, null
+        AsyncAPIContractGenerator openApiConverterUtils = new AsyncAPIContractGenerator();
+        openApiConverterUtils.generateAsyncAPIDefinitionsAllService(ballerinaFilePath, this.tempDir, null
                 , true);
         Assert.assertTrue(openApiConverterUtils.getErrors().isEmpty());
         compareWithGeneratedFile(ballerinaFilePath, "rb_scenario13.yaml");
@@ -211,8 +211,8 @@ public class RequestBodyTest {
     @Test(description = "Generate OpenAPI spec for GET method having a request body")
     public void testRequestBodyWithGETMethod() {
         Path ballerinaFilePath = RES_DIR.resolve("request_body/rb_scenario14.bal");
-        OASContractGenerator openApiConverterUtils = new OASContractGenerator();
-        openApiConverterUtils.generateOAS3DefinitionsAllService(ballerinaFilePath, this.tempDir, null
+        AsyncAPIContractGenerator openApiConverterUtils = new AsyncAPIContractGenerator();
+        openApiConverterUtils.generateAsyncAPIDefinitionsAllService(ballerinaFilePath, this.tempDir, null
                 , true);
         Assert.assertFalse(openApiConverterUtils.getErrors().isEmpty());
         Assert.assertEquals(openApiConverterUtils.getErrors().get(0).getMessage(), "Generated OpenAPI" +
@@ -224,8 +224,8 @@ public class RequestBodyTest {
     @Test(description = "Generate OpenAPI spec for request body having map<string> type")
     public void testRequestBodyWithMapString() {
         Path ballerinaFilePath = RES_DIR.resolve("request_body/rb_scenario15.bal");
-        OASContractGenerator openApiConverterUtils = new OASContractGenerator();
-        openApiConverterUtils.generateOAS3DefinitionsAllService(ballerinaFilePath, this.tempDir, null
+        AsyncAPIContractGenerator openApiConverterUtils = new AsyncAPIContractGenerator();
+        openApiConverterUtils.generateAsyncAPIDefinitionsAllService(ballerinaFilePath, this.tempDir, null
                 , true);
         Assert.assertTrue(openApiConverterUtils.getErrors().isEmpty());
         compareWithGeneratedFile(ballerinaFilePath, "rb_scenario15.yaml");
@@ -236,8 +236,8 @@ public class RequestBodyTest {
         try {
             String expectedYamlContent = getStringFromGivenBalFile(RES_DIR.resolve("expected_gen/json"),
                     "nestedRecord.json");
-            OASContractGenerator openApiConverterUtils = new OASContractGenerator();
-            openApiConverterUtils.generateOAS3DefinitionsAllService(ballerinaFilePath, this.tempDir, null
+            AsyncAPIContractGenerator openApiConverterUtils = new AsyncAPIContractGenerator();
+            openApiConverterUtils.generateAsyncAPIDefinitionsAllService(ballerinaFilePath, this.tempDir, null
                     , true);
             if (Files.exists(this.tempDir.resolve("payloadV_openapi.json"))) {
                 String generatedYaml = getStringFromGivenBalFile(this.tempDir, "payloadV_openapi.json");
@@ -292,8 +292,8 @@ public class RequestBodyTest {
             String expectedYamlContent = getStringFromGivenBalFile(RES_DIR.resolve("expected_gen/request_body"),
                     yamlFile);
 
-            OASContractGenerator openApiConverterUtils = new OASContractGenerator();
-            openApiConverterUtils.generateOAS3DefinitionsAllService(ballerinaFilePath, this.tempDir, null
+            AsyncAPIContractGenerator openApiConverterUtils = new AsyncAPIContractGenerator();
+            openApiConverterUtils.generateAsyncAPIDefinitionsAllService(ballerinaFilePath, this.tempDir, null
                     , false);
             if (Files.exists(this.tempDir.resolve("payloadV_openapi.yaml"))) {
                 String generatedYaml = getStringFromGivenBalFile(this.tempDir, "payloadV_openapi.yaml");
