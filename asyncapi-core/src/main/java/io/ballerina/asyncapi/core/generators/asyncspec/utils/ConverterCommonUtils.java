@@ -459,7 +459,8 @@ public class ConverterCommonUtils {
 
     private static boolean isWebsocketModule(ModuleSymbol moduleSymbol) {
         if (moduleSymbol.getName().isPresent()) {
-            return Websocket.equals(moduleSymbol.getName().get()) && BALLERINA.equals(moduleSymbol.id().orgName());
+            return WEBSOCKET.equals(moduleSymbol.getName().get()) && BALLERINA.equals(moduleSymbol.id().orgName());
+
         } else {
             return false;
         }

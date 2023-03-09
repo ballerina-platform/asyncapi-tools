@@ -1,27 +1,59 @@
 import ballerina/websocket;
-listener websocket:Listener ep0 = new(85,config={host:"First"});
+import ballerina/io;
 
-service /hello on new websocket:Listener(80,config={host:"Second"}), new websocket:Listener(84,config={host:"Third"}),ep0{
-    resource function get hi() returns websocket:Service|websocket:UpgradeError {
+listener websocket:Listener ep0 = new(85,config={host:"0.0.0.0"});
+
+
+@websocket:ServiceConfig {dispatcherKey: "event"}
+service /hello on ep0,new websocket:Listener(8080){
+    resource function get payment/[string id]() returns websocket:Service|websocket:UpgradeError {
         return new ChatServer();
     }
+
+
+}
+
+service /hello2 on ep0{
+    resource function get payment/[string id]() returns websocket:Service|websocket:UpgradeError {
+        return new ChatServer1();
+    }
+
+
 }
 
 service class ChatServer {
     *websocket:Service;
 
-    remote function onOpen(websocket:Caller caller) returns error? {
-
+     remote function onSubscribe(websocket:Caller caller, Subscribe message) returns websocket:Error? {
+        // io:println(data);
+        check caller->writeMessage({"type": "subscribe", "id":"1", "payload":{"query": "{ __schema { types { name } } }"}});
     }
 
-    remote function onMessage(websocket:Caller caller, string text) returns error? {
-
-    }
-
-
-    remote function onClose(websocket:Caller caller, int statusCode, string reason) returns error? {
-
+    remote function onHeartbeat( Heartbeat data) returns stream<string> {
+        string[] greets = ["Hi Sam", "Hey Sam", "GM Sam"];
+        return greets.toStream();
+        // return {"event": "heartbeat"};
     }
 }
 
+service class ChatServer1 {
+    *websocket:Service;
+
+     remote function onSubscribe(websocket:Caller caller, json data) returns websocket:Error? {
+        io:println(data);
+        check caller->writeMessage({"type": "subscribe", "id":"1", "payload":{"query": "{ __schema { types { name } } }"}});
+    }
+
+    remote function onHeartbeat(websocket:Caller caller, json data) returns json {
+        return {"event": "heartbeat"};
+    }
+}
+
+public type Subscribe record{
+    int id;
+};
+
+public type Heartbeat record{
+    int id;
+};
 

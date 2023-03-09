@@ -30,6 +30,7 @@ import io.ballerina.asyncapi.core.generators.asyncspec.model.AsyncAPIInfo;
 import io.ballerina.asyncapi.core.generators.asyncspec.model.AsyncAPIResult;
 import io.ballerina.asyncapi.core.generators.asyncspec.service.AsyncAPIEndpointMapper;
 //import io.ballerina.asyncapi.core.generators.asyncspec.service.AsyncAPIServiceMapper;
+import io.ballerina.asyncapi.core.generators.asyncspec.service.AsyncAPIServiceMapper;
 import io.ballerina.compiler.api.SemanticModel;
 import io.ballerina.compiler.api.symbols.ModuleSymbol;
 import io.ballerina.compiler.api.symbols.ServiceDeclarationSymbol;
@@ -72,6 +73,7 @@ public class ServiceToAsyncAPIConverterUtils {
         List<String> availableService = new ArrayList<>();
         List<AsyncAPIConverterDiagnostic> diagnostics = new ArrayList<>();
         List<AsyncAPIResult> outputs = new ArrayList<>();
+        List<ClassDefinitionNode> classDefinitionNodes =new ArrayList<>();
         if (containErrors(semanticModel.diagnostics())) {
             DiagnosticMessages messages = DiagnosticMessages.OAS_CONVERTOR_106;
             ExceptionDiagnostic error = new ExceptionDiagnostic(messages.getCode(), messages.getDescription(),
@@ -79,7 +81,7 @@ public class ServiceToAsyncAPIConverterUtils {
             diagnostics.add(error);
         } else {
             ModulePartNode modulePartNode = syntaxTree.rootNode();
-            extractListenersAndServiceNodes(serviceName, availableService, servicesToGenerate, modulePartNode,
+            extractListenersAndServiceNodes(serviceName, availableService, servicesToGenerate,classDefinitionNodes, modulePartNode,
                     endpoints, semanticModel);
             // If there are no services found for a given service name.
             if (serviceName != null && servicesToGenerate.isEmpty()) {
@@ -91,7 +93,7 @@ public class ServiceToAsyncAPIConverterUtils {
             // Generating asyncapi specification for selected services
             for (Map.Entry<String, ServiceDeclarationNode> serviceNode : servicesToGenerate.entrySet()) {
                 String asyncApiName = getAsyncApiFileName(syntaxTree.filePath(), serviceNode.getKey(), needJson);
-                AsyncAPIResult asyncAPIDefinition = generateAsyncApiSpec(serviceNode.getValue(), endpoints, semanticModel, asyncApiName,
+                AsyncAPIResult asyncAPIDefinition = generateAsyncApiSpec(serviceNode.getValue(), endpoints,classDefinitionNodes, semanticModel, asyncApiName,
                         inputPath);
                 asyncAPIDefinition.setServiceName(asyncApiName);
                 outputs.add(asyncAPIDefinition);
@@ -108,7 +110,7 @@ public class ServiceToAsyncAPIConverterUtils {
      * Filter all the end points and service nodes.
      */
     private static void extractListenersAndServiceNodes(String serviceName, List<String> availableService,
-                                                        Map<String, ServiceDeclarationNode> servicesToGenerate,
+                                                        Map<String, ServiceDeclarationNode> servicesToGenerate, List<ClassDefinitionNode>classDefinitionNodes,
                                                         ModulePartNode modulePartNode,
                                                         List<ListenerDeclarationNode> endpoints,
                                                         SemanticModel semanticModel) {
@@ -162,6 +164,12 @@ public class ServiceToAsyncAPIConverterUtils {
                     }
                 }
             }
+            if (syntaxKind.equals(SyntaxKind.CLASS_DEFINITION)){
+                ClassDefinitionNode serviceNode = (ClassDefinitionNode) node;
+                classDefinitionNodes.add(serviceNode);
+
+
+            }
         }
     }
 
@@ -200,7 +208,7 @@ public class ServiceToAsyncAPIConverterUtils {
      * @return {@code AsyncAPIResult}
      */
     public static AsyncAPIResult generateAsyncApiSpec(ServiceDeclarationNode serviceDefinition,
-                                        List<ListenerDeclarationNode> endpoints, SemanticModel semanticModel,
+                                        List<ListenerDeclarationNode> endpoints,List<ClassDefinitionNode> classDefinitionNodes, SemanticModel semanticModel,
                                         String asyncApiFileName, Path ballerinaFilePath) {
         // 01.Fill the openAPI info section
         AsyncAPIResult asyncApiResult = fillAsyncAPIInfoSection(serviceDefinition, semanticModel, asyncApiFileName,
@@ -214,7 +222,7 @@ public class ServiceToAsyncAPIConverterUtils {
                 asyncapi = AsyncAPIEndpointMapper.ENDPOINT_MAPPER.getServers(asyncapi, endpoints, serviceDefinition);
                 // 03. Filter path and component sections in OAS.
 //                 Generate openApi string for the mentioned service name.
-                asyncapi = asyncAPIServiceMapper.convertServiceToOpenAPI(serviceDefinition, asyncapi);
+                asyncapi = asyncAPIServiceMapper.convertServiceToOpenAPI(serviceDefinition,classDefinitionNodes, asyncapi);
                 return new AsyncAPIResult(asyncapi, new ArrayList<>());
 //                return new AsyncAPIResult(asyncapi, asyncAPIServiceMapper.getErrors());
             } else {

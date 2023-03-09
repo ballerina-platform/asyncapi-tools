@@ -84,7 +84,7 @@
 //            if (parameterNode.kind() == SyntaxKind.REQUIRED_PARAM) {
 //                RequiredParameterNode requiredParameterNode = (RequiredParameterNode) parameterNode;
 //                // Handle query parameter
-//                if (requiredParameterNode.typeName().kind() == SyntaxKind.QUALIFIED_NAME_REFERENCE) {
+                if (requiredParameterNode.typeName().kind() == SyntaxKind.QUALIFIED_NAME_REFERENCE) {
 //                    QualifiedNameReferenceNode referenceNode =
 //                            (QualifiedNameReferenceNode) requiredParameterNode.typeName();
 //                    String typeName = (referenceNode).modulePrefix().text() + ":" + (referenceNode).identifier().text();

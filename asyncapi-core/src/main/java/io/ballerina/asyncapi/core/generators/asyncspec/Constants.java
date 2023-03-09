@@ -41,7 +41,7 @@ public class Constants {
     public static final String BODY = "body";
     public static final String HTTP_PAYLOAD = "http:Payload";
     public static final String HTTP = "http";
-    public static final String Websocket= "websocket";
+    public static final String WEBSOCKET= "websocket";
     public static final String BALLERINA = "ballerina";
     public static final String TYPEREFERENCE = "typeReference";
     public static final String HTTP_HEADER = "http:Header";
@@ -73,7 +73,7 @@ public class Constants {
     public static final String MAP_JSON = "map<json>";
     public static final String MAP_STRING = "map<string>";
     public static final String MAP = "map";
-    public static final String HTTP_REQUEST = "http:Request";
+    public static final String WEBSOCKET_CALLER = "websocket:Caller";
     public static final String DEFAULT = "default";
     public static final String HTTP_RESPONSE = "http:Response";
     public static final String RESPONSE_HEADERS = "headers";
