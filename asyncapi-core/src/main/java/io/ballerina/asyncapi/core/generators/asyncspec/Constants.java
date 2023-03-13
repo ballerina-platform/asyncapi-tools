@@ -82,6 +82,8 @@ public class Constants {
     public static final String MEDIA_TYPE = "mediaType";
     public static final String TUPLE = "tuple";
 
+    public static final String SCHEMA_REFERENCE= "#/components/schemas/";
+
     /**
      * Enum to select the Ballerina Type.
      * Ballerina service, mock and client generation is available

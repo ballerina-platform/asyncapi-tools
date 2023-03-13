@@ -154,7 +154,7 @@ public class AsyncAPIRemoteMapper {
         pathObject.addItem(path,channelItem);
         AsyncAPIParameterMapper asyncAPIParameterMapper = new AsyncAPIParameterMapper(resource,apiDocs, components,
                 semanticModel);
-        asyncAPIParameterMapper.getResourceInputs(components,semanticModel);
+        asyncAPIParameterMapper.getResourceInputs(channelItem,components,semanticModel);
         return pathObject;
 
 //        Optional<OperationAdaptor> operationAdaptor = convertRemoteToOperation(resource, path);

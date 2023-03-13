@@ -69,65 +69,56 @@ public class ConverterCommonUtils {
      * @return OpenApi {@link Schema} for type defined by {@code type}
      */
     public static AsyncApi25SchemaImpl getAsyncApiSchema(String type) {
-        AsyncApi25SchemaImpl schema;
+        AsyncApi25SchemaImpl schema=new AsyncApi25SchemaImpl();
         switch (type) {
             case Constants.STRING:
             case Constants.PLAIN:
-                schema = new AsyncApi25SchemaImpl();
-                schema.setType("string");
+                schema.setType(OpenAPIType.STRING.toString());
                 break;
             case Constants.BOOLEAN:
-                schema = new AsyncApi25SchemaImpl();
-                schema.setType("boolean");
+                schema.setType(OpenAPIType.BOOLEAN.toString());
                 break;
             case Constants.ARRAY:
             case Constants.TUPLE:
-                schema = new AsyncApi25SchemaImpl();
-                schema.setType("array");
+                schema.setType(OpenAPIType.ARRAY.toString());
                 break;
             case Constants.INT:
             case Constants.INTEGER:
-                schema = new AsyncApi25SchemaImpl();
-                schema.setType("integer");
+                schema.setType(OpenAPIType.INTEGER.toString());
                 schema.setFormat("int64");
                 break;
             case Constants.BYTE_ARRAY:
             case Constants.OCTET_STREAM:
-                schema = new AsyncApi25SchemaImpl();
-                schema.setType("string");
+                schema.setType(OpenAPIType.STRING.toString());
                 schema.setFormat("uuid");
                 break;
             case Constants.NUMBER:
             case Constants.DECIMAL:
-                schema = new AsyncApi25SchemaImpl();
-                schema.setType("number");
+                schema.setType(OpenAPIType.NUMBER.toString());
                 schema.setFormat(Constants.DOUBLE);
                 break;
             case Constants.FLOAT:
-                schema = new AsyncApi25SchemaImpl();
-                schema.setType("number");
+                schema.setType(OpenAPIType.NUMBER.toString());
                 schema.setFormat(Constants.FLOAT);
                 break;
             case Constants.MAP_JSON:
             case Constants.MAP:
-                schema = new AsyncApi25SchemaImpl();
-                schema.setType("object");
-
-
+                schema.setType(OpenAPIType.RECORD.toString());
                 //TODO : Have to give an AsyncApiSchema object as additionalProperties , It is depend upon ballerina map
-//                schema.setAdditionalProperties();
+//                schema.setAdditionalProperties(true);
 //                schema.additionalProperties(true);
                 break;
             case Constants.X_WWW_FORM_URLENCODED:
-                schema = new ObjectSchema();
-                schema.setAdditionalProperties(new StringSchema());
+                AsyncApi25SchemaImpl stringSchema=new AsyncApi25SchemaImpl();
+                stringSchema.setType(OpenAPIType.STRING.toString());
+                schema.setAdditionalProperties(stringSchema);
                 break;
             case Constants.TYPE_REFERENCE:
             case Constants.TYPEREFERENCE:
             case Constants.XML:
             case Constants.JSON:
             default:
-                schema = new Schema<>();
+                schema = new AsyncApi25SchemaImpl();
                 break;
         }
         return schema;
@@ -139,39 +130,40 @@ public class ConverterCommonUtils {
      * @param type ballerina type with SYNTAX KIND
      * @return OpenApi {@link Schema} for type defined by {@code type}
      */
-    public static Schema<?> getOpenApiSchema(SyntaxKind type) {
-        Schema<?> schema;
+    public static AsyncApi25SchemaImpl getAsyncApiSchema(SyntaxKind type) {
+        AsyncApi25SchemaImpl schema=new AsyncApi25SchemaImpl();
+
         switch (type) {
             case STRING_TYPE_DESC:
-                schema = new StringSchema();
+                schema.setType("string");
                 break;
             case BOOLEAN_TYPE_DESC:
-                schema = new BooleanSchema();
+                schema.setType("boolean");
                 break;
             case ARRAY_TYPE_DESC:
-                schema = new ArraySchema();
+                schema.setType("array");
                 break;
             case INT_TYPE_DESC:
-                schema = new IntegerSchema();
+                schema.setType("integer");
                 schema.setFormat("int64");
                 break;
             case BYTE_TYPE_DESC:
-                schema = new StringSchema();
+                schema.setType("string");
                 schema.setFormat("uuid");
                 break;
             case DECIMAL_TYPE_DESC:
-                schema = new NumberSchema();
+                schema.setType("number");
                 schema.setFormat(Constants.DOUBLE);
                 break;
             case FLOAT_TYPE_DESC:
-                schema = new NumberSchema();
+                schema.setType("number");
                 schema.setFormat(Constants.FLOAT);
                 break;
             case MAP_TYPE_DESC:
-                schema = new ObjectSchema();
+                schema.setType("object");
                 break;
             default:
-                schema = new Schema<>();
+                schema = new AsyncApi25SchemaImpl();
                 break;
         }
         return schema;

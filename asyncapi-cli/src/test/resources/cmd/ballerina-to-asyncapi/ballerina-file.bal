@@ -14,9 +14,10 @@ service /hello on ep0,new websocket:Listener(8080){
 }
 
 service /hello2 on ep0{
-    resource function get payment/[string id]() returns websocket:Service|websocket:UpgradeError {
+    resource function get v1/[int id]/v2/[string name]/v3/[float value] () returns websocket:Service|websocket:UpgradeError {
         return new ChatServer1();
     }
+
 
 
 }

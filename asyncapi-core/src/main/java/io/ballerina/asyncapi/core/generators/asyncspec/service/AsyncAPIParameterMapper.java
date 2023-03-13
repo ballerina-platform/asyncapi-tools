@@ -25,23 +25,11 @@ import io.ballerina.asyncapi.core.generators.asyncspec.utils.ConverterCommonUtil
 import io.ballerina.compiler.api.SemanticModel;
 import io.ballerina.compiler.api.symbols.TypeSymbol;
 import io.ballerina.compiler.syntax.tree.*;
-import io.ballerina.openapi.converter.Constants;
-import io.ballerina.openapi.converter.diagnostic.DiagnosticMessages;
-import io.ballerina.openapi.converter.diagnostic.IncompatibleResourceDiagnostic;
-import io.ballerina.openapi.converter.diagnostic.OpenAPIConverterDiagnostic;
-import io.ballerina.openapi.converter.utils.ConverterCommonUtils;
-import io.swagger.v3.oas.models.Components;
-import io.swagger.v3.oas.models.media.Content;
-import io.swagger.v3.oas.models.media.MediaType;
-import io.swagger.v3.oas.models.media.Schema;
-import io.swagger.v3.oas.models.parameters.Parameter;
-import io.swagger.v3.oas.models.parameters.PathParameter;
-import io.swagger.v3.oas.models.parameters.RequestBody;
 
 import java.util.*;
 
-import static io.ballerina.openapi.converter.Constants.*;
-import static io.ballerina.openapi.converter.utils.ConverterCommonUtils.extractCustomMediaType;
+import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.SCHEMA_REFERENCE;
+
 
 /**
  * AsyncAPIParameterMapper provides functionality for converting ballerina parameter to OAS parameter model.
@@ -50,7 +38,7 @@ public class AsyncAPIParameterMapper {
     private final FunctionDefinitionNode functionDefinitionNode;
     private final Map<String, String> apidocs;
     private final List<AsyncAPIConverterDiagnostic> errors = new ArrayList<>();
-    private final Components components;
+    private final AsyncApi25ComponentsImpl components;
     private final SemanticModel semanticModel;
 
     public List<AsyncAPIConverterDiagnostic> getErrors() {
@@ -58,7 +46,7 @@ public class AsyncAPIParameterMapper {
     }
 
     public AsyncAPIParameterMapper(FunctionDefinitionNode functionDefinitionNode, Map<String, String> apidocs,
-                                   Components components, SemanticModel semanticModel) {
+                                   AsyncApi25ComponentsImpl components, SemanticModel semanticModel) {
 
         this.functionDefinitionNode = functionDefinitionNode;
         this.apidocs = apidocs;
@@ -71,69 +59,70 @@ public class AsyncAPIParameterMapper {
     /**
      * Create {@code Parameters} model for openAPI operation.
      */
-    public void getResourceInputs(Components components, SemanticModel semanticModel) {
-        AsyncApi25ParametersImpl parameters = new AsyncApi25ParametersImpl();
+    public void getResourceInputs(AsyncApi25ChannelItemImpl channelItem, Components components, SemanticModel semanticModel) {
+
         //Set path parameters
         NodeList<Node> pathParams = functionDefinitionNode.relativeResourcePath();
-        createPathParameters(parameters, pathParams);
-//        // Set query parameters, headers and requestBody
-//        FunctionSignatureNode functionSignature = functionDefinitionNode.functionSignature();
-//        SeparatedNodeList<ParameterNode> parameterList = functionSignature.parameters();
-//        for (ParameterNode parameterNode : parameterList) {
-//            AsyncAPIQueryParameterMapper queryParameterMapper = new AsyncAPIQueryParameterMapper(apidocs, components,
-//                    semanticModel);
-//            if (parameterNode.kind() == SyntaxKind.REQUIRED_PARAM) {
-//                RequiredParameterNode requiredParameterNode = (RequiredParameterNode) parameterNode;
-//                // Handle query parameter
-//                if (requiredParameterNode.typeName().kind() == SyntaxKind.QUALIFIED_NAME_REFERENCE) {
-//                    QualifiedNameReferenceNode referenceNode =
-//                            (QualifiedNameReferenceNode) requiredParameterNode.typeName();
-//                    String typeName = (referenceNode).modulePrefix().text() + ":" + (referenceNode).identifier().text();
-//                    if (typeName.equals(HTTP_REQUEST) &&
-//                            (Constants.GET.equalsIgnoreCase(operationAdaptor.getHttpOperation()))) {
-//                        DiagnosticMessages errorMessage = DiagnosticMessages.OAS_CONVERTOR_113;
-//                        IncompatibleResourceDiagnostic error = new IncompatibleResourceDiagnostic(errorMessage,
-//                                referenceNode.location());
-//                        errors.add(error);
-//                    } else if (typeName.equals(HTTP_REQUEST)) {
-//                        RequestBody requestBody = new RequestBody();
-//                        MediaType mediaType = new MediaType();
-//                        mediaType.setSchema(new Schema<>().description(WILD_CARD_SUMMARY));
-//                        requestBody.setContent(new Content().addMediaType(WILD_CARD_CONTENT_KEY, mediaType));
-//                        operationAdaptor.getOperation().setRequestBody(requestBody);
-//                    }
-//                }
-//                if (requiredParameterNode.typeName().kind() != SyntaxKind.QUALIFIED_NAME_REFERENCE &&
-//                        requiredParameterNode.annotations().isEmpty()) {
-//                    parameters.add(queryParameterMapper.createQueryParameter(requiredParameterNode));
-//                }
-//                // Handle header, payload parameter
-//                if (requiredParameterNode.typeName() instanceof TypeDescriptorNode &&
-//                        !requiredParameterNode.annotations().isEmpty()) {
-//                    handleAnnotationParameters(components, semanticModel, parameters, requiredParameterNode);
-//                }
-//            } else if (parameterNode.kind() == SyntaxKind.DEFAULTABLE_PARAM) {
-//                DefaultableParameterNode defaultableParameterNode = (DefaultableParameterNode) parameterNode;
-//                // Handle header parameter
-//                if (defaultableParameterNode.typeName() instanceof TypeDescriptorNode &&
-//                        !defaultableParameterNode.annotations().isEmpty()) {
-//                    parameters.addAll(handleDefaultableAnnotationParameters(defaultableParameterNode));
-//                } else {
-//                    parameters.add(queryParameterMapper.createQueryParameter(defaultableParameterNode));
-//                }
-//            }
-//        }
-//        if (parameters.isEmpty()) {
-//            operationAdaptor.getOperation().setParameters(null);
-//        } else {
-//            operationAdaptor.getOperation().setParameters(parameters);
-//        }
+        channelItem.setParameters(createPathParameters( pathParams));
+        // Set query parameters, headers and requestBody
+        FunctionSignatureNode functionSignature = functionDefinitionNode.functionSignature();
+        SeparatedNodeList<ParameterNode> parameterList = functionSignature.parameters();
+        for (ParameterNode parameterNode : parameterList) {
+            AsyncAPIQueryParameterMapper queryParameterMapper = new AsyncAPIQueryParameterMapper(apidocs, components,
+                    semanticModel);
+            if (parameterNode.kind() == SyntaxKind.REQUIRED_PARAM) {
+                RequiredParameterNode requiredParameterNode = (RequiredParameterNode) parameterNode;
+                // Handle query parameter
+                if (requiredParameterNode.typeName().kind() == SyntaxKind.QUALIFIED_NAME_REFERENCE) {
+                    QualifiedNameReferenceNode referenceNode =
+                            (QualifiedNameReferenceNode) requiredParameterNode.typeName();
+                    String typeName = (referenceNode).modulePrefix().text() + ":" + (referenceNode).identifier().text();
+                    if (typeName.equals(HTTP_REQUEST) &&
+                            (Constants.GET.equalsIgnoreCase(operationAdaptor.getHttpOperation()))) {
+                        DiagnosticMessages errorMessage = DiagnosticMessages.OAS_CONVERTOR_113;
+                        IncompatibleResourceDiagnostic error = new IncompatibleResourceDiagnostic(errorMessage,
+                                referenceNode.location());
+                        errors.add(error);
+                    } else if (typeName.equals(HTTP_REQUEST)) {
+                        RequestBody requestBody = new RequestBody();
+                        MediaType mediaType = new MediaType();
+                        mediaType.setSchema(new Schema<>().description(WILD_CARD_SUMMARY));
+                        requestBody.setContent(new Content().addMediaType(WILD_CARD_CONTENT_KEY, mediaType));
+                        operationAdaptor.getOperation().setRequestBody(requestBody);
+                    }
+                }
+                if (requiredParameterNode.typeName().kind() != SyntaxKind.QUALIFIED_NAME_REFERENCE &&
+                        requiredParameterNode.annotations().isEmpty()) {
+                    parameters.add(queryParameterMapper.createQueryParameter(requiredParameterNode));
+                }
+                // Handle header, payload parameter
+                if (requiredParameterNode.typeName() instanceof TypeDescriptorNode &&
+                        !requiredParameterNode.annotations().isEmpty()) {
+                    handleAnnotationParameters(components, semanticModel, parameters, requiredParameterNode);
+                }
+            } else if (parameterNode.kind() == SyntaxKind.DEFAULTABLE_PARAM) {
+                DefaultableParameterNode defaultableParameterNode = (DefaultableParameterNode) parameterNode;
+                // Handle header parameter
+                if (defaultableParameterNode.typeName() instanceof TypeDescriptorNode &&
+                        !defaultableParameterNode.annotations().isEmpty()) {
+                    parameters.addAll(handleDefaultableAnnotationParameters(defaultableParameterNode));
+                } else {
+                    parameters.add(queryParameterMapper.createQueryParameter(defaultableParameterNode));
+                }
+            }
+        }
+        if (parameters.isEmpty()) {
+            operationAdaptor.getOperation().setParameters(null);
+        } else {
+            operationAdaptor.getOperation().setParameters(parameters);
+        }
     }
 
     /**
      * Map path parameter data to OAS path parameter.
      */
-    private void createPathParameters(AsyncApi25Parameters parameters, NodeList<Node> pathParams) {
+    private AsyncApi25ParametersImpl createPathParameters( NodeList<Node> pathParams) {
+        AsyncApi25ParametersImpl parameters = new AsyncApi25ParametersImpl();
         for (Node param: pathParams) {
             if (param instanceof ResourcePathParameterNode) {
                 AsyncApi25ParameterImpl pathParameterOAS = new AsyncApi25ParameterImpl();
@@ -142,26 +131,27 @@ public class AsyncAPIParameterMapper {
                     SimpleNameReferenceNode queryNode = (SimpleNameReferenceNode) pathParam.typeDescriptor();
                     AsyncAPIComponentMapper componentMapper = new AsyncAPIComponentMapper(components);
                     TypeSymbol typeSymbol = (TypeSymbol) semanticModel.symbol(queryNode).orElseThrow();
-                    componentMapper.createComponentSchema(components.getSchemas(), typeSymbol);
+                    componentMapper.createComponentSchema(typeSymbol);
                     AsyncApi25SchemaImpl schema = new AsyncApi25SchemaImpl();
-                    schema.set$ref(ConverterCommonUtils.unescapeIdentifier(queryNode.name().text().trim()));
+                    schema.set$ref(SCHEMA_REFERENCE+ConverterCommonUtils.unescapeIdentifier(queryNode.name().text().trim()));
                     pathParameterOAS.setSchema(schema);
                 } else {
                     pathParameterOAS.setSchema(ConverterCommonUtils.getAsyncApiSchema(
                             pathParam.typeDescriptor().toString().trim()));
                 }
 
-                pathParameterOAS.setName(ConverterCommonUtils.unescapeIdentifier(pathParam.paramName().get().text()));
-
                 // Check the parameter has doc
                 if (!apidocs.isEmpty() && apidocs.containsKey(pathParam.paramName().get().text().trim())) {
                     pathParameterOAS.setDescription(apidocs.get(pathParam.paramName().get().text().trim()));
                 }
                 // Set param description
-                pathParameterOAS.setRequired(true);
-                parameters.add(pathParameterOAS);
+                //TODO : Do we have to set required:true?
+//                pathParameterOAS.setRequired(true);
+                String parameterItemName=ConverterCommonUtils.unescapeIdentifier(pathParam.paramName().get().text());
+                parameters.addItem(parameterItemName,pathParameterOAS);
             }
         }
+        return parameters;
     }
 
 //    /**
