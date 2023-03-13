@@ -1,5 +1,5 @@
 import ballerina/websocket;
-import ballerina/io;
+// import ballerina/io;
 
 listener websocket:Listener ep0 = new(85,config={host:"0.0.0.0"});
 
@@ -36,15 +36,15 @@ service class ChatServer {
     }
 }
 
-service class ChatServer1 {
+service class ChatServer1{
     *websocket:Service;
 
-     remote function onSubscribe(websocket:Caller caller, json data) returns websocket:Error? {
-        io:println(data);
-        check caller->writeMessage({"type": "subscribe", "id":"1", "payload":{"query": "{ __schema { types { name } } }"}});
+     remote function onSubscribe(websocket:Caller caller, Subscribe message) returns Heartbeat{
+        // io:println(data);
+        return {id:1};
     }
 
-    remote function onHeartbeat(websocket:Caller caller, json data) returns json {
+    remote function onHeartbeat(websocket:Caller caller, Heartbeat data) returns json {
         return {"event": "heartbeat"};
     }
 }

@@ -20,18 +20,21 @@
 package io.ballerina.asyncapi.core.generators.asyncspec.service;
 
 import io.apicurio.datamodels.models.Operation;
-import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25ChannelsImpl;
-import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25ComponentsImpl;
+import io.apicurio.datamodels.models.asyncapi.v25.*;
 import io.ballerina.asyncapi.core.generators.asyncspec.diagnostic.AsyncAPIConverterDiagnostic;
 import io.ballerina.asyncapi.core.generators.asyncspec.utils.ConverterCommonUtils;
 import io.ballerina.compiler.api.SemanticModel;
 import io.ballerina.compiler.api.TypeBuilder;
 import io.ballerina.compiler.api.symbols.ClassSymbol;
+import io.ballerina.compiler.api.symbols.Documentable;
+import io.ballerina.compiler.api.symbols.Documentation;
 import io.ballerina.compiler.api.symbols.Symbol;
 import io.ballerina.compiler.syntax.tree.*;
 
 import java.util.*;
 import java.util.function.Function;
+
+import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.WEBSOCKET_CALLER;
 
 
 /**
@@ -70,17 +73,20 @@ public class AsyncAPIRemoteMapper {
 //        for (FunctionDefinitionNode resource : resources) {
 //            List<String> methods = this.getHttpMethods(resource);
         String serviceClassName= getServiceClassName(resource);
+
+
         if (!serviceClassName.isEmpty()){
             for (ClassDefinitionNode node: classDefinitionNodes) {
-               Optional<Symbol> clasnode= semanticModel.symbol(node);
+//               Optional<Symbol> clasnode= semanticModel.symbol(node);
                String testClassName1= node.className().text();
 
                 if (testClassName1.equals(serviceClassName)) {
-                    getRemotePath(resource,node);
+                    return getRemotePath(resource,node);
                 }
             }
 
         }
+
         return pathObject;
     }
 
@@ -90,45 +96,67 @@ public class AsyncAPIRemoteMapper {
      * @param resource The ballerina resource.
 //     * @param httpMethods   Sibling methods related to operation.
      */
-    private void getRemotePath(FunctionDefinitionNode resource,ClassDefinitionNode classDefinitionNode) {
+    private AsyncApi25ChannelsImpl getRemotePath(FunctionDefinitionNode resource,ClassDefinitionNode classDefinitionNode) {
         String path = ConverterCommonUtils.unescapeIdentifier(generateRelativePath(resource));
         Operation operation;
             //Iterate through http methods and fill path map.
         NodeList<Node> classMethodNodes= classDefinitionNode.members();
+        AsyncApi25OperationImpl publishOperationItem=new AsyncApi25OperationImpl();
+        AsyncApi25OperationImpl subscribeOperationItem=new AsyncApi25OperationImpl();
+        AsyncApi25MessageImpl subscribeMessage= new AsyncApi25MessageImpl();
+        AsyncApi25MessageImpl publishMessage= new AsyncApi25MessageImpl();
         for(Node node: classMethodNodes){
             if (node.kind().equals(SyntaxKind.OBJECT_METHOD_DEFINITION)){
                 FunctionDefinitionNode remoteFunctionNode= (FunctionDefinitionNode)node;
                 String functionName= remoteFunctionNode.functionName().toString();
                 if (functionName.startsWith("on")){
-                    String substring=functionName.substring(2);
-                    String hello="";
-                    SeparatedNodeList<ParameterNode> remoteParameters= remoteFunctionNode.functionSignature().parameters();
-                    for (ParameterNode remoteParameterNode: remoteParameters){
-                        if (remoteParameterNode.kind() == SyntaxKind.REQUIRED_PARAM) {
-                            RequiredParameterNode requiredParameterNode = (RequiredParameterNode) remoteParameterNode;
-                            if (requiredParameterNode.typeName().kind() == SyntaxKind.QUALIFIED_NAME_REFERENCE) {
-                                QualifiedNameReferenceNode referenceNode = (QualifiedNameReferenceNode) requiredParameterNode.typeName();
-                                String typeName = (referenceNode).modulePrefix().text() + ":" + (referenceNode).identifier().text();
-                                if (typeName.equals(HTTP_REQUEST)) {
-                                    RequestBody requestBody = new RequestBody();
-                                    MediaType mediaType = new MediaType();
-                                    mediaType.setSchema(new Schema<>().description(WILD_CARD_SUMMARY));
-                                    requestBody.setContent(new Content().addMediaType(WILD_CARD_CONTENT_KEY, mediaType));
-                                    operationAdaptor.getOperation().setRequestBody(requestBody);
-//                    }
-//                }
+                    String customTypeName=functionName.substring(2);
+                    if (checkParameterContainsCustomType(customTypeName,remoteFunctionNode)){
+                        AsyncApi25MessageImpl publishoneOf=new AsyncApi25MessageImpl();
 
+                        StringBuilder currentRemoteMethodName = new StringBuilder();
+                        currentRemoteMethodName.append("#/components/messages/");
+                        currentRemoteMethodName.append(ConverterCommonUtils.unescapeIdentifier(customTypeName));
+//                        NodeList<Node> serviceNameNodes = serviceDefinition.absoluteResourcePath();
+//                        for (Node serviceBasedPathNode : serviceNameNodes) {
+//                            currentServiceName.append(ConverterCommonUtils.unescapeIdentifier(serviceBasedPathNode.toString()));
+//                        }
+//                        return currentServiceName.toString().trim()    ;
+                        String ref=currentRemoteMethodName.toString().trim();
+                        publishoneOf.set$ref(ref);
+                        publishMessage.addOneOf(publishoneOf);
+                        ReturnTypeDescriptorNode remoteReturnNode = remoteFunctionNode.functionSignature().returnTypeDesc().get();
+                        Node remoteReturnType= remoteReturnNode.type();
+                        if (remoteReturnType.kind().equals(SyntaxKind.SIMPLE_NAME_REFERENCE)){
+                            AsyncApi25MessageImpl subscribeOneOf=new AsyncApi25MessageImpl();
+                            String remoteReturnString=  remoteReturnType.toString();
+                            StringBuilder currentRemoteMethodReturnName = new StringBuilder();
+                            currentRemoteMethodReturnName.append("#/components/messages/");
+                            currentRemoteMethodReturnName.append(ConverterCommonUtils.unescapeIdentifier(remoteReturnString));
+                            String returnRef= currentRemoteMethodReturnName.toString().trim();
+                            subscribeOneOf.set$ref(returnRef);
+                            subscribeMessage.addOneOf(subscribeOneOf);
                         }
-                    }
 
+                    }
 
                 }
 
-
-
-
             }
+
         }
+        publishOperationItem.setMessage(publishMessage);
+        subscribeOperationItem.setMessage(subscribeMessage);
+        AsyncApi25ChannelItemImpl channelItem= (AsyncApi25ChannelItemImpl) pathObject.createChannelItem();
+        channelItem.setSubscribe(subscribeOperationItem);
+        channelItem.setPublish(publishOperationItem);
+        Map<String, String> apiDocs = listAPIDocumentations(resource,channelItem);
+        pathObject.addItem(path,channelItem);
+        AsyncAPIParameterMapper asyncAPIParameterMapper = new AsyncAPIParameterMapper(resource,apiDocs, components,
+                semanticModel);
+        asyncAPIParameterMapper.getResourceInputs(components,semanticModel);
+        return pathObject;
+
 //        Optional<OperationAdaptor> operationAdaptor = convertRemoteToOperation(resource, path);
 //        if (operationAdaptor.isPresent()) {
 //            operation = operationAdaptor.get().getOperation();
@@ -136,9 +164,38 @@ public class AsyncAPIRemoteMapper {
 //        } else {
 //            break;
 //        }
-
-
     }
+
+    private boolean checkParameterContainsCustomType(String customTypeName,FunctionDefinitionNode remoteFunctionNode) {
+        SeparatedNodeList<ParameterNode> remoteParameters = remoteFunctionNode.functionSignature().parameters();
+        for (ParameterNode remoteParameterNode : remoteParameters) {
+            if (remoteParameterNode.kind() == SyntaxKind.REQUIRED_PARAM) {
+                RequiredParameterNode requiredParameterNode = (RequiredParameterNode) remoteParameterNode;
+                Node parameterTypeNode =requiredParameterNode.typeName();
+                SyntaxKind syntaxKind = requiredParameterNode.typeName().kind();
+//                if (parameterTypeNode.kind() == SyntaxKind.QUALIFIED_NAME_REFERENCE) {
+//                    QualifiedNameReferenceNode referenceNode = (QualifiedNameReferenceNode) parameterTypeNode;
+//                    String typeName = (referenceNode).modulePrefix().text() + ":" + (referenceNode).identifier().text();
+                if (parameterTypeNode.kind()==SyntaxKind.SIMPLE_NAME_REFERENCE) {
+                    SimpleNameReferenceNode simpleNameReferenceNode=(SimpleNameReferenceNode) parameterTypeNode;
+                    String simpleType= simpleNameReferenceNode.name().toString().trim();
+                    return simpleType.equals(customTypeName);
+                }
+            }
+        }
+        return false;
+    }
+//                    if (typeName.equals(WEBSOCKET_CALLER) {
+//                        RequestBody requestBody = new RequestBody();
+//                        MediaType mediaType = new MediaType();
+//                        mediaType.setSchema(new Schema<>().description(WILD_CARD_SUMMARY));
+//                        requestBody.setContent(new Content().addMediaType(WILD_CARD_CONTENT_KEY, mediaType));
+//                        operationAdaptor.getOperation().setRequestBody(requestBody);
+//                    }
+
+//                }
+
+
 
     private String getServiceClassName(FunctionDefinitionNode resource) {
         String serviceClassName="";
@@ -152,9 +209,7 @@ public class AsyncAPIRemoteMapper {
                     ExplicitNewExpressionNode explicitNewExpressionNode = (ExplicitNewExpressionNode) expression.get();
                     TypeDescriptorNode typeDescriptorNode = explicitNewExpressionNode.typeDescriptor();
                     serviceClassName=typeDescriptorNode.toString();
-
                 }
-
             }
 
         }
@@ -225,11 +280,11 @@ public class AsyncAPIRemoteMapper {
 //        }
 //    }
 
-    /**
-     * This method will convert ballerina @Resource to ballerina @OperationAdaptor.
-     *
-     * @return Operation Adaptor object of given resource
-     */
+                /**
+                 * This method will convert ballerina @Resource to ballerina @OperationAdaptor.
+                 *
+                 * @return Operation Adaptor object of given resource
+                 */
 //    private Optional<OperationAdaptor> convertRemoteToOperation(FunctionDefinitionNode resource, String httpMethod,
 //                                                                String generateRelativePath) {
 //        OperationAdaptor op = new OperationAdaptor();
@@ -268,75 +323,58 @@ public class AsyncAPIRemoteMapper {
 //        return Optional.of(op);
 //    }
 
-    /**
-     * Filter the API documentations from resource function node.
-     */
-//    private Map<String, String> listAPIDocumentations(FunctionDefinitionNode resource, OperationAdaptor op) {
-//
-//        Map<String, String> apiDocs = new HashMap<>();
-//        if (resource.metadata().isPresent()) {
-//            Optional<Symbol> resourceSymbol = semanticModel.symbol(resource);
-//            if (resourceSymbol.isPresent()) {
-//                Symbol symbol = resourceSymbol.get();
-//                Optional<Documentation> documentation = ((Documentable) symbol).documentation();
-//                if (documentation.isPresent()) {
-//                    Documentation documentation1 = documentation.get();
-//                    Optional<String> description = documentation1.description();
-//                    if (description.isPresent()) {
-//                        String resourceFunctionAPI = description.get().trim();
-//                        apiDocs = documentation1.parameterMap();
+                /**
+                 * Filter the API documentations from resource function node.
+                 */
+    private Map<String, String> listAPIDocumentations(FunctionDefinitionNode resource,AsyncApi25ChannelItemImpl channelItem) {
+
+        Map<String, String> apiDocs = new HashMap<>();
+        if (resource.metadata().isPresent()) {
+            Optional<Symbol> resourceSymbol = semanticModel.symbol(resource);
+            if (resourceSymbol.isPresent()) {
+                Symbol symbol = resourceSymbol.get();
+                Optional<Documentation> documentation = ((Documentable) symbol).documentation();
+                if (documentation.isPresent()) {
+                    Documentation documentation1 = documentation.get();
+                    Optional<String> description = documentation1.description();
+                    if (description.isPresent()) {
+                        String resourceFunctionAPI = description.get().trim();
+                        apiDocs = documentation1.parameterMap();
+                        channelItem.setDescription(resourceFunctionAPI);
+
 //                        op.getOperation().setSummary(resourceFunctionAPI);
-//                    }
-//                }
-//            }
-//        }
-//        return apiDocs;
-//    }
-
-    /**
-     * Gets the http methods of a resource.
-     *
-     * @param resource    The ballerina resource.
-     * @return A list of http methods.
-     */
-    private List<String> getHttpMethods(FunctionDefinitionNode resource) {
-        Set<String> httpMethods = new LinkedHashSet<>();
-        ServiceDeclarationNode parentNode = (ServiceDeclarationNode) resource.parent();
-        NodeList<Node> siblings = parentNode.members();
-        httpMethods.add(resource.functionName().text());
-        String relativePath = generateRelativePath(resource);
-        for (Node function: siblings) {
-            SyntaxKind kind = function.kind();
-            if (kind.equals(SyntaxKind.RESOURCE_ACCESSOR_DEFINITION)) {
-                FunctionDefinitionNode sibling = (FunctionDefinitionNode) function;
-                //need to build relative path
-                String siblingRelativePath = generateRelativePath(sibling);
-                if (relativePath.equals(siblingRelativePath)) {
-                    httpMethods.add(sibling.functionName().text());
+                    }
                 }
             }
         }
-        return new ArrayList<>(httpMethods);
+        return apiDocs;
     }
 
-    private String generateRelativePath(FunctionDefinitionNode resource) {
+        /**
+         * Gets the http methods of a resource.
+         *
+         * @param resource    The ballerina resource.
+         * @return A list of http methods.
+         */
+        private String generateRelativePath(FunctionDefinitionNode resource) {
 
-        StringBuilder relativePath = new StringBuilder();
-        relativePath.append("/");
-        if (!resource.relativeResourcePath().isEmpty()) {
-            for (Node node: resource.relativeResourcePath()) {
-                if (node instanceof ResourcePathParameterNode) {
-                    ResourcePathParameterNode pathNode = (ResourcePathParameterNode) node;
-                    relativePath.append("{");
-                    relativePath.append(pathNode.paramName().get());
-                    relativePath.append("}");
-                } else if ((resource.relativeResourcePath().size() == 1) && (node.toString().trim().equals("."))) {
-                    return relativePath.toString();
-                } else {
-                    relativePath.append(node.toString().trim());
+            StringBuilder relativePath = new StringBuilder();
+            relativePath.append("/");
+            if (!resource.relativeResourcePath().isEmpty()) {
+                for (Node node: resource.relativeResourcePath()) {
+                    if (node instanceof ResourcePathParameterNode) {
+                        ResourcePathParameterNode pathNode = (ResourcePathParameterNode) node;
+                        relativePath.append("{");
+                        relativePath.append(pathNode.paramName().get());
+                        relativePath.append("}");
+                    } else if ((resource.relativeResourcePath().size() == 1) && (node.toString().trim().equals("."))) {
+                        return relativePath.toString();
+                    } else {
+                        relativePath.append(node.toString().trim());
+                    }
                 }
             }
+            return relativePath.toString();
         }
-        return relativePath.toString();
-    }
+
 }
