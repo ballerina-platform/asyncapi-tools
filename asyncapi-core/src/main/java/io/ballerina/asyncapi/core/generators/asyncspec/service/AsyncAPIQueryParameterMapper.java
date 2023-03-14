@@ -18,7 +18,9 @@
 package io.ballerina.asyncapi.core.generators.asyncspec.service;
 
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25ComponentsImpl;
-import io.ballerina.asyncapi.core.generators.asyncspec.utils.ConverterCommonUtils;
+import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25Document;
+import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25SchemaImpl;
+import io.ballerina.asyncapi.core.generators.asyncspec.Constants;
 import io.ballerina.compiler.api.SemanticModel;
 import io.ballerina.compiler.api.symbols.TypeSymbol;
 import io.ballerina.compiler.syntax.tree.*;
@@ -30,7 +32,6 @@ import java.util.Optional;
 
 import static io.ballerina.asyncapi.core.generators.asyncspec.utils.ConverterCommonUtils.unescapeIdentifier;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.*;
-
 
 /**
  * This class processes mapping query parameters in between Ballerina and OAS.
@@ -59,9 +60,10 @@ public class AsyncAPIQueryParameterMapper {
         boolean isQuery = !queryParam.paramName().get().text().equals(Constants.PATH)
                 && queryParam.annotations().isEmpty();
         if (queryParam.typeName() instanceof BuiltinSimpleNameReferenceNode && isQuery) {
-            QueryParameter queryParameter = new QueryParameter();
-            queryParameter.setName(unescapeIdentifier(queryParamName));
-            Schema openApiSchema = ConverterCommonUtils.getAsyncApiSchema(queryParam.typeName().toString().trim());
+//            QueryParameter queryParameter = new QueryParameter();
+            AsyncApi25SchemaImpl queryParameterSchema=new AsyncApi25SchemaImpl();
+            queryParameter.setName(ConverterCommonUtils.unescapeIdentifier(queryParamName));
+            Schema openApiSchema = ConverterCommonUtils.getOpenApiSchema(queryParam.typeName().toString().trim());
             queryParameter.setSchema(openApiSchema);
             queryParameter.setRequired(true);
             if (!apidocs.isEmpty() && queryParam.paramName().isPresent() && apidocs.containsKey(queryParamName)) {
@@ -87,13 +89,13 @@ public class AsyncAPIQueryParameterMapper {
             return handleArrayTypeQueryParameter(queryParamName, arrayNode);
         } else if (queryParam.typeName() instanceof SimpleNameReferenceNode && isQuery) {
             QueryParameter queryParameter = new QueryParameter();
-            queryParameter.setName(unescapeIdentifier(queryParamName));
+            queryParameter.setName(ConverterCommonUtils.unescapeIdentifier(queryParamName));
             SimpleNameReferenceNode queryNode = (SimpleNameReferenceNode) queryParam.typeName();
             AsyncAPIComponentMapper componentMapper = new AsyncAPIComponentMapper(components);
             TypeSymbol typeSymbol = (TypeSymbol) semanticModel.symbol(queryNode).orElseThrow();
             componentMapper.createComponentSchema(components.getSchemas(), typeSymbol);
             Schema schema = new Schema();
-            schema.set$ref(unescapeIdentifier(queryNode.name().text().trim()));
+            schema.set$ref(ConverterCommonUtils.unescapeIdentifier(queryNode.name().text().trim()));
             queryParameter.setSchema(schema);
             queryParameter.setRequired(true);
             if (!apidocs.isEmpty() && queryParam.paramName().isPresent() && apidocs.containsKey(queryParamName)) {
@@ -120,7 +122,7 @@ public class AsyncAPIQueryParameterMapper {
 
         QueryParameter queryParameter = new QueryParameter();
         if (defaultableQueryParam.typeName() instanceof BuiltinSimpleNameReferenceNode && isQuery) {
-            queryParameter.setName(unescapeIdentifier(queryParamName));
+            queryParameter.setName(ConverterCommonUtils.unescapeIdentifier(queryParamName));
             Schema openApiSchema = ConverterCommonUtils.getOpenApiSchema(
                     defaultableQueryParam.typeName().toString().trim());
             queryParameter.setSchema(openApiSchema);
@@ -175,7 +177,7 @@ public class AsyncAPIQueryParameterMapper {
     private QueryParameter handleArrayTypeQueryParameter(String queryParamName, ArrayTypeDescriptorNode arrayNode) {
         QueryParameter queryParameter = new QueryParameter();
         ArraySchema arraySchema = new ArraySchema();
-        queryParameter.setName(unescapeIdentifier(queryParamName));
+        queryParameter.setName(ConverterCommonUtils.unescapeIdentifier(queryParamName));
         TypeDescriptorNode itemTypeNode = arrayNode.memberTypeDesc();
         Schema itemSchema;
         if (arrayNode.memberTypeDesc().kind() == OPTIONAL_TYPE_DESC) {
@@ -203,7 +205,7 @@ public class AsyncAPIQueryParameterMapper {
         if (isOptional.equals(Constants.FALSE)) {
             queryParameter.setRequired(true);
         }
-        queryParameter.setName(unescapeIdentifier(queryParamName));
+        queryParameter.setName(ConverterCommonUtils.unescapeIdentifier(queryParamName));
         Node node = typeNode.typeDescriptor();
         if (node.kind() == SyntaxKind.ARRAY_TYPE_DESC) {
             ArraySchema arraySchema = new ArraySchema();
@@ -213,7 +215,7 @@ public class AsyncAPIQueryParameterMapper {
             Schema itemSchema = ConverterCommonUtils.getOpenApiSchema(itemTypeNode.toString().trim());
             arraySchema.setItems(itemSchema);
             queryParameter.schema(arraySchema);
-            queryParameter.setName(unescapeIdentifier(queryParamName));
+            queryParameter.setName(ConverterCommonUtils.unescapeIdentifier(queryParamName));
             if (!apidocs.isEmpty() && apidocs.containsKey(queryParamName)) {
                 queryParameter.setDescription(apidocs.get(queryParamName));
             }
@@ -248,7 +250,7 @@ public class AsyncAPIQueryParameterMapper {
         MediaType media = new MediaType();
         media.setSchema(objectSchema);
         queryParameter.setContent(new Content().addMediaType("application/json", media));
-        queryParameter.setName(unescapeIdentifier(queryParamName));
+        queryParameter.setName(ConverterCommonUtils.unescapeIdentifier(queryParamName));
         return queryParameter;
     }
 }

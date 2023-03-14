@@ -68,7 +68,7 @@ public class AsyncAPIServiceMapper {
 
 
             asyncApi.setChannels(resourceMapper.getChannels((FunctionDefinitionNode)function,classDefinitionNodes));
-//            asyncApi.setComponents(resourceMapper.getComponents());
+            asyncApi.setComponents(resourceMapper.getComponents());
             errors.addAll(resourceMapper.getErrors());
         }
 

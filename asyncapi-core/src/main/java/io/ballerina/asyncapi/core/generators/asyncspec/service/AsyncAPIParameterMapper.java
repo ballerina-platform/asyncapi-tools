@@ -20,6 +20,7 @@ package io.ballerina.asyncapi.core.generators.asyncspec.service;
 
 import io.apicurio.datamodels.models.Components;
 import io.apicurio.datamodels.models.asyncapi.v25.*;
+import io.ballerina.asyncapi.core.generators.asyncspec.Constants;
 import io.ballerina.asyncapi.core.generators.asyncspec.diagnostic.AsyncAPIConverterDiagnostic;
 import io.ballerina.asyncapi.core.generators.asyncspec.utils.ConverterCommonUtils;
 import io.ballerina.compiler.api.SemanticModel;
@@ -28,6 +29,7 @@ import io.ballerina.compiler.syntax.tree.*;
 
 import java.util.*;
 
+import static io.ballerina.asyncapi.core.GeneratorConstants.HTTP_REQUEST;
 import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.SCHEMA_REFERENCE;
 
 
@@ -59,7 +61,7 @@ public class AsyncAPIParameterMapper {
     /**
      * Create {@code Parameters} model for openAPI operation.
      */
-    public void getResourceInputs(AsyncApi25ChannelItemImpl channelItem, Components components, SemanticModel semanticModel) {
+    public void getResourceInputs(AsyncApi25ChannelItemImpl channelItem,AsyncApi25ComponentsImpl components, SemanticModel semanticModel) {
 
         //Set path parameters
         NodeList<Node> pathParams = functionDefinitionNode.relativeResourcePath();
@@ -73,24 +75,24 @@ public class AsyncAPIParameterMapper {
             if (parameterNode.kind() == SyntaxKind.REQUIRED_PARAM) {
                 RequiredParameterNode requiredParameterNode = (RequiredParameterNode) parameterNode;
                 // Handle query parameter
-                if (requiredParameterNode.typeName().kind() == SyntaxKind.QUALIFIED_NAME_REFERENCE) {
-                    QualifiedNameReferenceNode referenceNode =
-                            (QualifiedNameReferenceNode) requiredParameterNode.typeName();
-                    String typeName = (referenceNode).modulePrefix().text() + ":" + (referenceNode).identifier().text();
-                    if (typeName.equals(HTTP_REQUEST) &&
-                            (Constants.GET.equalsIgnoreCase(operationAdaptor.getHttpOperation()))) {
-                        DiagnosticMessages errorMessage = DiagnosticMessages.OAS_CONVERTOR_113;
-                        IncompatibleResourceDiagnostic error = new IncompatibleResourceDiagnostic(errorMessage,
-                                referenceNode.location());
-                        errors.add(error);
-                    } else if (typeName.equals(HTTP_REQUEST)) {
-                        RequestBody requestBody = new RequestBody();
-                        MediaType mediaType = new MediaType();
-                        mediaType.setSchema(new Schema<>().description(WILD_CARD_SUMMARY));
-                        requestBody.setContent(new Content().addMediaType(WILD_CARD_CONTENT_KEY, mediaType));
-                        operationAdaptor.getOperation().setRequestBody(requestBody);
-                    }
-                }
+//                if (requiredParameterNode.typeName().kind() == SyntaxKind.QUALIFIED_NAME_REFERENCE) {
+//                    QualifiedNameReferenceNode referenceNode =
+//                            (QualifiedNameReferenceNode) requiredParameterNode.typeName();
+//                    String typeName = (referenceNode).modulePrefix().text() + ":" + (referenceNode).identifier().text();
+//                    if (typeName.equals(HTTP_REQUEST) &&
+//                            (Constants.GET.equalsIgnoreCase(operationAdaptor.getHttpOperation()))) {
+//                        DiagnosticMessages errorMessage = DiagnosticMessages.OAS_CONVERTOR_113;
+//                        IncompatibleResourceDiagnostic error = new IncompatibleResourceDiagnostic(errorMessage,
+//                                referenceNode.location());
+//                        errors.add(error);
+//                    } else if (typeName.equals(HTTP_REQUEST)) {
+//                        RequestBody requestBody = new RequestBody();
+//                        MediaType mediaType = new MediaType();
+//                        mediaType.setSchema(new Schema<>().description(WILD_CARD_SUMMARY));
+//                        requestBody.setContent(new Content().addMediaType(WILD_CARD_CONTENT_KEY, mediaType));
+//                        operationAdaptor.getOperation().setRequestBody(requestBody);
+//                    }
+//                }
                 if (requiredParameterNode.typeName().kind() != SyntaxKind.QUALIFIED_NAME_REFERENCE &&
                         requiredParameterNode.annotations().isEmpty()) {
                     parameters.add(queryParameterMapper.createQueryParameter(requiredParameterNode));
