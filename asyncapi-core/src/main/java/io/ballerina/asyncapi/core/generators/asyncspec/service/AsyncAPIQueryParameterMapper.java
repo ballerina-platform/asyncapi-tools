@@ -143,30 +143,30 @@ public class AsyncAPIQueryParameterMapper {
 //        boolean isQuery = !defaultableQueryParam.paramName().get().text().equals(Constants.PATH) &&
 //                defaultableQueryParam.annotations().isEmpty();
 
+        AsyncApi25SchemaImpl asyncApiQueryParamDefaultSchema = null;
 //        QueryParameter queryParameter = new QueryParameter();
         if (defaultableQueryParam.typeName() instanceof BuiltinSimpleNameReferenceNode) {
 //            queryParameter.setName(ConverterCommonUtils.unescapeIdentifier(queryParamName));
 
-            AsyncApi25SchemaImpl asyncApiQueryDefaultSchema = ConverterCommonUtils.getAsyncApiSchema(
+            asyncApiQueryParamDefaultSchema = ConverterCommonUtils.getAsyncApiSchema(
                     defaultableQueryParam.typeName().toString().trim());
 //            queryParameter.setSchema(openApiSchema);
             if (!apidocs.isEmpty() && defaultableQueryParam.paramName().isPresent() &&
                     apidocs.containsKey(queryParamName)) {
-                asyncApiQueryDefaultSchema.setDescription(apidocs.get(queryParamName.trim()));
+                asyncApiQueryParamDefaultSchema.setDescription(apidocs.get(queryParamName.trim()));
             }
-            bindingObject.addProperty(queryParamName,asyncApiQueryDefaultSchema);
+//            bindingObject.addProperty(queryParamName,asyncApiQueryDefaultSchema);
 
         } else if (defaultableQueryParam.typeName().kind() == OPTIONAL_TYPE_DESC ) {
             // Handle optional query parameter
-            AsyncApi25SchemaImpl asyncApiQueryParamSchema = setOptionalQueryParameter(queryParamName,
+            asyncApiQueryParamDefaultSchema = setOptionalQueryParameter(queryParamName,
                     ((OptionalTypeDescriptorNode) defaultableQueryParam.typeName()));
 //            AsyncApi25SchemaImpl asyncApiQueryParamSchema= setOptionalQueryParameter(queryParamName, ((OptionalTypeDescriptorNode) queryParam.typeName()));
-            bindingObject.addProperty(queryParamName,asyncApiQueryParamSchema);
+//            bindingObject.addProperty(queryParamName,asyncApiQueryParamSchema);
         } else if (defaultableQueryParam.typeName() instanceof ArrayTypeDescriptorNode ) {
             // Handle required array type query parameter
             ArrayTypeDescriptorNode arrayNode = (ArrayTypeDescriptorNode) defaultableQueryParam.typeName();
-            AsyncApi25SchemaImpl asyncApiQueryParamSchema = handleArrayTypeQueryParameter(queryParamName, arrayNode);
-            bindingObject.addProperty(queryParamName,asyncApiQueryParamSchema);
+            asyncApiQueryParamDefaultSchema= handleArrayTypeQueryParameter(queryParamName, arrayNode);
             //TODO : Try below after figure out how to map map<json>? offset={"x":{"id":"sss"}} into asyncapi..here setAdditionalProperties() have to give an asyncapischema ,not boolean value
 //        } else {
 //            queryParameter = createContentTypeForMapJson(queryParamName, false);
@@ -182,22 +182,26 @@ public class AsyncAPIQueryParameterMapper {
             if (defaultableQueryParam.expression().kind() == NIL_LITERAL) {
                 defaultValue = null;
             }
-            if (queryParameter.getContent() != null) {
-                Content content = queryParameter.getContent();
-                for (Map.Entry<String, MediaType> stringMediaTypeEntry : content.entrySet()) {
-                    Schema schema = stringMediaTypeEntry.getValue().getSchema();
-                    schema.setDefault(defaultValue);
-                    io.swagger.v3.oas.models.media.MediaType media = new io.swagger.v3.oas.models.media.MediaType();
-                    media.setSchema(schema);
-                    content.addMediaType(stringMediaTypeEntry.getKey(), media);
-                }
-            } else {
-                Schema schema = queryParameter.getSchema();
-                schema.setDefault(defaultValue);
-                queryParameter.setSchema(schema);
+//            if (queryParameter.getContent() != null) {
+//                Content content = queryParameter.getContent();
+//                for (Map.Entry<String, MediaType> stringMediaTypeEntry : content.entrySet()) {
+//                    Schema schema = stringMediaTypeEntry.getValue().getSchema();
+//                    schema.setDefault(defaultValue);
+//                    io.swagger.v3.oas.models.media.MediaType media = new io.swagger.v3.oas.models.media.MediaType();
+//                    media.setSchema(schema);
+//                    content.addMediaType(stringMediaTypeEntry.getKey(), media);
+//                }
+//            else {
+            if ( asyncApiQueryParamDefaultSchema!=null) {
+                asyncApiQueryParamDefaultSchema.setDefault(new TextNode(defaultValue));
+                bindingObject.addProperty(queryParamName,asyncApiQueryParamDefaultSchema);
+
             }
+//                Schema schema = queryParameter.getSchema();
+//                schema.setDefault(defaultValue);
+//                queryParameter.setSchema(schema);
+//            }
         }
-        return queryParameter;
     }
 
     /**

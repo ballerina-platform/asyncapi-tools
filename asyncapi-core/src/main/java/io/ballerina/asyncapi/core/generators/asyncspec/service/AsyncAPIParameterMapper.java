@@ -124,19 +124,17 @@ public class AsyncAPIParameterMapper {
                     queryParameterMapper.createQueryParameter(requiredParameterNode,bindingQueryObject);
                 }
                 // Handle header, payload parameter
-//                if (requiredParameterNode.typeName() instanceof TypeDescriptorNode &&
-//                        !requiredParameterNode.annotations().isEmpty()) {
-//                    handleHeaderParameters(components, semanticModel, requiredParameterNode,bindingHeaderObject);
-//                }
+                if (requiredParameterNode.typeName() instanceof TypeDescriptorNode &&
+                        !requiredParameterNode.annotations().isEmpty()) {
+                    handleHeaderParameters(components, semanticModel, requiredParameterNode,bindingHeaderObject);
+                }
             } else if (parameterNode.kind() == SyntaxKind.DEFAULTABLE_PARAM) {
                 DefaultableParameterNode defaultableParameterNode = (DefaultableParameterNode) parameterNode;
 //                // Handle header parameter
-//                if (defaultableParameterNode.typeName() instanceof TypeDescriptorNode &&
-//                        !defaultableParameterNode.annotations().isEmpty()) {
-//                    handleDefaultableHeaderParameters(defaultableParameterNode,bindingHeaderObject);
-//                } else {
                 if (defaultableParameterNode.typeName() instanceof TypeDescriptorNode &&
-                        !defaultableParameterNode.annotations().isEmpty()){
+                        !defaultableParameterNode.annotations().isEmpty()) {
+                    handleDefaultableHeaderParameters(defaultableParameterNode,bindingHeaderObject);
+                } else {
                    queryParameterMapper.createQueryParameter(defaultableParameterNode,bindingQueryObject);
                 }
             }
@@ -199,55 +197,55 @@ public class AsyncAPIParameterMapper {
         return parameters;
     }
 
-//    /**
-//     * This function for handle the payload and header parameters with annotation @http:Payload, @http:Header.
-//     */
-//    private void handleAnnotationParameters(Components components,
-//                                            SemanticModel semanticModel,
-//                                            List<Parameter> parameters,
-//                                            RequiredParameterNode requiredParameterNode) {
-//
-//        NodeList<AnnotationNode> annotations = requiredParameterNode.annotations();
-//        for (AnnotationNode annotation: annotations) {
-//            if ((annotation.annotReference().toString()).trim().equals(Constants.HTTP_HEADER)) {
-//                // Handle headers.
-//                AsyncAPIHeaderMapper asyncAPIHeaderMapper = new AsyncAPIHeaderMapper(apidocs);
-//                parameters.addAll(asyncAPIHeaderMapper.setHeaderParameter(requiredParameterNode));
-//            } else if ((annotation.annotReference().toString()).trim().equals(Constants.HTTP_PAYLOAD) &&
-//                    (!Constants.GET.toLowerCase(Locale.ENGLISH).equalsIgnoreCase(
-//                            operationAdaptor.getHttpOperation()))) {
-//                Map<String, Schema> schema = components.getSchemas();
-//                // Handle request payload.
-//                Optional<String> customMediaType = extractCustomMediaType(functionDefinitionNode);
-//                AsyncAPIRequestBodyMapper asyncAPIRequestBodyMapper = customMediaType.map(
-//                        value -> new AsyncAPIRequestBodyMapper(components,
-//                        operationAdaptor, semanticModel, value)).orElse(new AsyncAPIRequestBodyMapper(components,
-//                        operationAdaptor, semanticModel));
-//                asyncAPIRequestBodyMapper.handlePayloadAnnotation(requiredParameterNode, schema, annotation, apidocs);
-//                errors.addAll(asyncAPIRequestBodyMapper.getDiagnostics());
-//            } else if ((annotation.annotReference().toString()).trim().equals(Constants.HTTP_PAYLOAD) &&
-//                    (Constants.GET.toLowerCase(Locale.ENGLISH).equalsIgnoreCase(operationAdaptor.getHttpOperation()))) {
-//                DiagnosticMessages errorMessage = DiagnosticMessages.OAS_CONVERTOR_113;
-//                IncompatibleResourceDiagnostic error = new IncompatibleResourceDiagnostic(errorMessage,
-//                        annotation.location());
-//                errors.add(error);
-//            }
-//        }
-//    }
-//
-//    /**
-//     * This function for handle the payload and header parameters with annotation @http:Payload, @http:Header.
-//     */
-//    private List<Parameter> handleDefaultableAnnotationParameters(DefaultableParameterNode defaultableParameterNode) {
-//        List<Parameter> parameters = new ArrayList<>();
-//        NodeList<AnnotationNode> annotations = defaultableParameterNode.annotations();
-//        for (AnnotationNode annotation: annotations) {
-//            if ((annotation.annotReference().toString()).trim().equals(Constants.HTTP_HEADER)) {
-//                // Handle headers.
-//                AsyncAPIHeaderMapper asyncAPIHeaderMapper = new AsyncAPIHeaderMapper(apidocs);
-//                parameters = asyncAPIHeaderMapper.setHeaderParameter(defaultableParameterNode);
-//            }
-//        }
-//        return parameters;
-//    }
+    /**
+     * This function for handle the payload and header parameters with annotation @http:Payload, @http:Header.
+     */
+    private void handleHeaderParameters(Components components,
+                                            SemanticModel semanticModel,
+                                            List<Parameter> parameters,
+                                            RequiredParameterNode requiredParameterNode) {
+
+        NodeList<AnnotationNode> annotations = requiredParameterNode.annotations();
+        for (AnnotationNode annotation: annotations) {
+            if ((annotation.annotReference().toString()).trim().equals(Constants.HTTP_HEADER)) {
+                // Handle headers.
+                AsyncAPIHeaderMapper asyncAPIHeaderMapper = new AsyncAPIHeaderMapper(apidocs);
+                parameters.addAll(asyncAPIHeaderMapper.setHeaderParameter(requiredParameterNode));
+            } else if ((annotation.annotReference().toString()).trim().equals(Constants.HTTP_PAYLOAD) &&
+                    (!Constants.GET.toLowerCase(Locale.ENGLISH).equalsIgnoreCase(
+                            operationAdaptor.getHttpOperation()))) {
+                Map<String, Schema> schema = components.getSchemas();
+                // Handle request payload.
+                Optional<String> customMediaType = extractCustomMediaType(functionDefinitionNode);
+                AsyncAPIRequestBodyMapper asyncAPIRequestBodyMapper = customMediaType.map(
+                        value -> new AsyncAPIRequestBodyMapper(components,
+                        operationAdaptor, semanticModel, value)).orElse(new AsyncAPIRequestBodyMapper(components,
+                        operationAdaptor, semanticModel));
+                asyncAPIRequestBodyMapper.handlePayloadAnnotation(requiredParameterNode, schema, annotation, apidocs);
+                errors.addAll(asyncAPIRequestBodyMapper.getDiagnostics());
+            } else if ((annotation.annotReference().toString()).trim().equals(Constants.HTTP_PAYLOAD) &&
+                    (Constants.GET.toLowerCase(Locale.ENGLISH).equalsIgnoreCase(operationAdaptor.getHttpOperation()))) {
+                DiagnosticMessages errorMessage = DiagnosticMessages.OAS_CONVERTOR_113;
+                IncompatibleResourceDiagnostic error = new IncompatibleResourceDiagnostic(errorMessage,
+                        annotation.location());
+                errors.add(error);
+            }
+        }
+    }
+
+    /**
+     * This function for handle the payload and header parameters with annotation @http:Payload, @http:Header.
+     */
+    private List<Parameter> handleDefaultableHeaderParameters(DefaultableParameterNode defaultableParameterNode) {
+        List<Parameter> parameters = new ArrayList<>();
+        NodeList<AnnotationNode> annotations = defaultableParameterNode.annotations();
+        for (AnnotationNode annotation: annotations) {
+            if ((annotation.annotReference().toString()).trim().equals(Constants.HTTP_HEADER)) {
+                // Handle headers.
+                AsyncAPIHeaderMapper asyncAPIHeaderMapper = new AsyncAPIHeaderMapper(apidocs);
+                parameters = asyncAPIHeaderMapper.setHeaderParameter(defaultableParameterNode);
+            }
+        }
+        return parameters;
+    }
 }
