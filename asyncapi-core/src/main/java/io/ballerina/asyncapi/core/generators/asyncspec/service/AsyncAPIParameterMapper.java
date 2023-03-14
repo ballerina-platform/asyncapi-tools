@@ -18,7 +18,14 @@
 
 package io.ballerina.asyncapi.core.generators.asyncspec.service;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.fasterxml.jackson.databind.node.TextNode;
 import io.apicurio.datamodels.models.Components;
+import io.apicurio.datamodels.models.asyncapi.AsyncApiChannelBindings;
 import io.apicurio.datamodels.models.asyncapi.v25.*;
 import io.ballerina.asyncapi.core.generators.asyncspec.Constants;
 import io.ballerina.asyncapi.core.generators.asyncspec.diagnostic.AsyncAPIConverterDiagnostic;
@@ -69,55 +76,91 @@ public class AsyncAPIParameterMapper {
         // Set query parameters, headers and requestBody
         FunctionSignatureNode functionSignature = functionDefinitionNode.functionSignature();
         SeparatedNodeList<ParameterNode> parameterList = functionSignature.parameters();
+        if (!parameterList.isEmpty()){
+            channelItem.setBindings(createQueryParameters(parameterList));
+
+
+//            if (parameters.isEmpty()) {
+//                operationAdaptor.getOperation().setParameters(null);
+//            } else {
+//                operationAdaptor.getOperation().setParameters(parameters);
+//            }
+        }
+    }
+
+    private AsyncApi25ChannelBindingsImpl createQueryParameters(SeparatedNodeList<ParameterNode> parameterList) {
+        AsyncApi25ChannelBindingsImpl channelBindings =new AsyncApi25ChannelBindingsImpl();
+        AsyncApi25BindingImpl asyncApi25Binding=new AsyncApi25BindingImpl();
+        AsyncApi25SchemaImpl bindingQueryObject=new AsyncApi25SchemaImpl();
+        AsyncApi25SchemaImpl bindingHeaderObject=new AsyncApi25SchemaImpl();
+        bindingQueryObject.setType("object");
+        bindingHeaderObject.setType("object");
         for (ParameterNode parameterNode : parameterList) {
             AsyncAPIQueryParameterMapper queryParameterMapper = new AsyncAPIQueryParameterMapper(apidocs, components,
                     semanticModel);
             if (parameterNode.kind() == SyntaxKind.REQUIRED_PARAM) {
                 RequiredParameterNode requiredParameterNode = (RequiredParameterNode) parameterNode;
                 // Handle query parameter
-//                if (requiredParameterNode.typeName().kind() == SyntaxKind.QUALIFIED_NAME_REFERENCE) {
-//                    QualifiedNameReferenceNode referenceNode =
-//                            (QualifiedNameReferenceNode) requiredParameterNode.typeName();
-//                    String typeName = (referenceNode).modulePrefix().text() + ":" + (referenceNode).identifier().text();
-//                    if (typeName.equals(HTTP_REQUEST) &&
-//                            (Constants.GET.equalsIgnoreCase(operationAdaptor.getHttpOperation()))) {
-//                        DiagnosticMessages errorMessage = DiagnosticMessages.OAS_CONVERTOR_113;
-//                        IncompatibleResourceDiagnostic error = new IncompatibleResourceDiagnostic(errorMessage,
-//                                referenceNode.location());
-//                        errors.add(error);
-//                    } else if (typeName.equals(HTTP_REQUEST)) {
-//                        RequestBody requestBody = new RequestBody();
-//                        MediaType mediaType = new MediaType();
-//                        mediaType.setSchema(new Schema<>().description(WILD_CARD_SUMMARY));
-//                        requestBody.setContent(new Content().addMediaType(WILD_CARD_CONTENT_KEY, mediaType));
-//                        operationAdaptor.getOperation().setRequestBody(requestBody);
-//                    }
-//                }
+                //                if (requiredParameterNode.typeName().kind() == SyntaxKind.QUALIFIED_NAME_REFERENCE) {
+                //                    QualifiedNameReferenceNode referenceNode =
+                //                            (QualifiedNameReferenceNode) requiredParameterNode.typeName();
+                //                    String typeName = (referenceNode).modulePrefix().text() + ":" + (referenceNode).identifier().text();
+                //                    if (typeName.equals(HTTP_REQUEST) &&
+                //                            (Constants.GET.equalsIgnoreCase(operationAdaptor.getHttpOperation()))) {
+                //                        DiagnosticMessages errorMessage = DiagnosticMessages.OAS_CONVERTOR_113;
+                //                        IncompatibleResourceDiagnostic error = new IncompatibleResourceDiagnostic(errorMessage,
+                //                                referenceNode.location());
+                //                        errors.add(error);
+                //                    } else if (typeName.equals(HTTP_REQUEST)) {
+                //                        RequestBody requestBody = new RequestBody();
+                //                        MediaType mediaType = new MediaType();
+                //                        mediaType.setSchema(new Schema<>().description(WILD_CARD_SUMMARY));
+                //                        requestBody.setContent(new Content().addMediaType(WILD_CARD_CONTENT_KEY, mediaType));
+                //                        operationAdaptor.getOperation().setRequestBody(requestBody);
+                //                    }
+                //                }
                 if (requiredParameterNode.typeName().kind() != SyntaxKind.QUALIFIED_NAME_REFERENCE &&
                         requiredParameterNode.annotations().isEmpty()) {
-                    parameters.add(queryParameterMapper.createQueryParameter(requiredParameterNode));
+                    queryParameterMapper.createQueryParameter(requiredParameterNode,bindingQueryObject);
                 }
                 // Handle header, payload parameter
-                if (requiredParameterNode.typeName() instanceof TypeDescriptorNode &&
-                        !requiredParameterNode.annotations().isEmpty()) {
-                    handleAnnotationParameters(components, semanticModel, parameters, requiredParameterNode);
-                }
+//                if (requiredParameterNode.typeName() instanceof TypeDescriptorNode &&
+//                        !requiredParameterNode.annotations().isEmpty()) {
+//                    handleHeaderParameters(components, semanticModel, requiredParameterNode,bindingHeaderObject);
+//                }
             } else if (parameterNode.kind() == SyntaxKind.DEFAULTABLE_PARAM) {
                 DefaultableParameterNode defaultableParameterNode = (DefaultableParameterNode) parameterNode;
-                // Handle header parameter
+//                // Handle header parameter
+//                if (defaultableParameterNode.typeName() instanceof TypeDescriptorNode &&
+//                        !defaultableParameterNode.annotations().isEmpty()) {
+//                    handleDefaultableHeaderParameters(defaultableParameterNode,bindingHeaderObject);
+//                } else {
                 if (defaultableParameterNode.typeName() instanceof TypeDescriptorNode &&
-                        !defaultableParameterNode.annotations().isEmpty()) {
-                    parameters.addAll(handleDefaultableAnnotationParameters(defaultableParameterNode));
-                } else {
-                    parameters.add(queryParameterMapper.createQueryParameter(defaultableParameterNode));
+                        !defaultableParameterNode.annotations().isEmpty()){
+                   queryParameterMapper.createQueryParameter(defaultableParameterNode,bindingQueryObject);
                 }
             }
         }
-        if (parameters.isEmpty()) {
-            operationAdaptor.getOperation().setParameters(null);
-        } else {
-            operationAdaptor.getOperation().setParameters(parameters);
-        }
+        ObjectMapper test= new ObjectMapper();
+        test.setSerializationInclusion(JsonInclude.Include.NON_DEFAULT);
+//        test.setDefaultPropertyInclusion(JsonInclude.Include.NON_NULL);
+//        test.configure(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS, true);
+//        test.configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false);
+//        test.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+        ObjectNode queryObj=test.valueToTree(bindingQueryObject);
+        ObjectNode headerObj=test.valueToTree(bindingHeaderObject);
+
+
+//        ((ObjectNode)obj.get("properties").get("offset")).remove("entity");
+//        obj.remove;
+        queryObj.remove("entity");
+        TextNode bindingVersion = new TextNode("0.1.0");
+        asyncApi25Binding.addItem("bindingVersion",bindingVersion);
+        asyncApi25Binding.addItem("query", queryObj);
+        asyncApi25Binding.addItem("headers",headerObj);
+        channelBindings.setWs(asyncApi25Binding);
+        return channelBindings;
+
     }
 
     /**
