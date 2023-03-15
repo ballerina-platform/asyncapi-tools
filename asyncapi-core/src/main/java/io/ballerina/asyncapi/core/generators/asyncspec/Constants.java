@@ -84,6 +84,17 @@ public class Constants {
 
     public static final String SCHEMA_REFERENCE= "#/components/schemas/";
 
+    public static final String MESSAGE_REFERENCE= "#/components/messages/";
+
+    public static final String X_RESPONSE= "x-response";
+    public static final String X_RESPONSE_TYPE= "x-response-type";
+
+    public static final String SIMPLE_RPC="simple-rpc";
+
+    public static final String STREAMING="streaming";
+
+    public static final String X_NULLABLE="x-nullable";
+
     /**
      * Enum to select the Ballerina Type.
      * Ballerina service, mock and client generation is available

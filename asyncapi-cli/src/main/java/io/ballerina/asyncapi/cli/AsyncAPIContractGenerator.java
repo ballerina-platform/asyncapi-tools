@@ -143,7 +143,7 @@ public class AsyncAPIContractGenerator {
             if (fileNames.isEmpty()) {
                 return;
             }
-            outStream.println("OpenAPI definition(s) generated successfully and copied to :");
+            outStream.println("AsyncAPI definition(s) generated successfully and copied to :");
             Iterator<String> iterator = fileNames.iterator();
             while (iterator.hasNext()) {
                 outStream.println("-- " + iterator.next());

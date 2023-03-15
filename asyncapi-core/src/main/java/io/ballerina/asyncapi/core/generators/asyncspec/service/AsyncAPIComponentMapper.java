@@ -18,6 +18,7 @@
 
 package io.ballerina.asyncapi.core.generators.asyncspec.service;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -48,10 +49,14 @@ public class AsyncAPIComponentMapper {
     private final AsyncApi25ComponentsImpl components;
     private final List<AsyncAPIConverterDiagnostic> diagnostics;
 
+    private final ObjectMapper test;
+
 
     public AsyncAPIComponentMapper(AsyncApi25ComponentsImpl components) {
          this.components = components;
          this.diagnostics = new ArrayList<>();
+         this.test= new ObjectMapper();
+         test.setSerializationInclusion(JsonInclude.Include.NON_DEFAULT);
     }
 
     public List<AsyncAPIConverterDiagnostic> getDiagnostics() {
@@ -63,6 +68,109 @@ public class AsyncAPIComponentMapper {
      * @param typeSymbol     Record Name as a TypeSymbol
      */
     public void createComponentSchema( TypeSymbol typeSymbol) {
+//        if (schema == null) {
+//            schema = new HashMap<>();
+//        }
+        // Getting main record description
+        String componentName = ConverterCommonUtils.unescapeIdentifier(typeSymbol.getName().orElseThrow().trim());
+        Map<String, String> apiDocs = getRecordFieldsAPIDocsMap((TypeReferenceTypeSymbol) typeSymbol, componentName);
+        String typeDoc = null;
+        if (apiDocs.size() > 0) {
+            typeDoc = apiDocs.get(typeSymbol.getName().get());
+        }
+        TypeReferenceTypeSymbol typeRef = (TypeReferenceTypeSymbol) typeSymbol;
+        TypeSymbol type = typeRef.typeDescriptor();
+        // Handle record type request body
+        if (type.typeKind() == TypeDescKind.INTERSECTION) {
+            List<TypeSymbol> typeSymbols = ((IntersectionTypeSymbol) type).memberTypeDescriptors();
+            for (TypeSymbol symbol: typeSymbols) {
+                if (!(symbol instanceof ReadonlyTypeSymbol)) {
+                    type = symbol;
+                    break;
+                }
+            }
+        }
+        AsyncApi25SchemaImpl schema= new AsyncApi25SchemaImpl();
+        switch (type.typeKind()) {
+            case RECORD:
+                // Handle typeInclusions with allOf type binding
+                handleRecordTypeSymbol((RecordTypeSymbol) type, componentName, apiDocs);
+                break;
+            case STRING:
+                schema.setType(STRING);
+                schema.setDescription(typeDoc);
+                components.addSchema(componentName,schema);
+//                schema.put(componentName, new StringSchema().description(typeDoc));
+//                components.
+//                components.setSchemas(schema);
+                break;
+            case INT:
+                schema.setType(INTEGER);
+                schema.setDescription(typeDoc);
+                components.addSchema(componentName,schema);
+//                schema.put(componentName, new IntegerSchema().description(typeDoc));
+//                components.setSchemas(schema);
+                break;
+            case DECIMAL:
+                schema.setType(NUMBER);
+                schema.setFormat(DOUBLE);
+                schema.setDescription(typeDoc);
+                components.addSchema(componentName,schema);
+//                schema.put(componentName, new NumberSchema().format(DOUBLE).description(typeDoc));
+//                components.setSchemas(schema);
+                break;
+            case FLOAT:
+                schema.setType(NUMBER);
+                schema.setFormat(FLOAT);
+                schema.setDescription(typeDoc);
+                components.addSchema(componentName,schema);
+//                schema.put(componentName, new NumberSchema().format(FLOAT).description(typeDoc));
+//                components.setSchemas(schema);
+                break;
+            case ARRAY:
+            case TUPLE:
+                AsyncApi25SchemaImpl arraySchema = mapArrayToArraySchema( type, componentName);
+//                schema.put(componentName, arraySchema.description(typeDoc));
+                arraySchema.setDescription(typeDoc);
+                components.addSchema(componentName,arraySchema );
+                break;
+            case UNION:
+                AsyncApi25SchemaImpl unionSchema = handleUnionType((UnionTypeSymbol) type, new AsyncApi25SchemaImpl(), componentName);
+//                schema.put(componentName, unionSchema.setDescription(typeDoc));
+                unionSchema.setDescription(typeDoc);
+                components.addSchema(componentName,unionSchema);
+                break;
+            case MAP:
+                MapTypeSymbol mapTypeSymbol = (MapTypeSymbol) type;
+                TypeDescKind typeDescKind = mapTypeSymbol.typeParam().typeKind();
+                AsyncApi25SchemaImpl openApiSchema = ConverterCommonUtils.getAsyncApiSchema(typeDescKind.getName());
+                //TODO : have to check here openApiSchema.getType() == null ? true : openApiSchema
+                AsyncApi25SchemaImpl objectSchema= new AsyncApi25SchemaImpl();
+                objectSchema.setType(OpenAPIType.RECORD.toString());
+//                schema.put(componentName,
+//                        new ObjectSchema().additionalProperties(
+//                                openApiSchema.getType() == null ? true : openApiSchema)
+//                                .description(typeDoc));
+//                Map<String, Schema> schemas = components.getSchemas();
+//                if (schemas != null) {
+//                    schemas.putAll(schema);
+//                } else {
+                objectSchema.setDescription(typeDoc);
+                objectSchema.setAdditionalProperties(openApiSchema);
+                components.addSchema(componentName,schema);
+//                }
+                break;
+            default:
+                // Diagnostic for currently unsupported data types.
+                DiagnosticMessages errorMessage = DiagnosticMessages.OAS_CONVERTOR_114;
+                IncompatibleResourceDiagnostic error = new IncompatibleResourceDiagnostic(errorMessage,
+                        typeRef.getLocation().get(), type.typeKind().getName());
+                diagnostics.add(error);
+                break;
+        }
+    }
+
+    public void createComponentMessage( TypeSymbol typeSymbol) {
 //        if (schema == null) {
 //            schema = new HashMap<>();
 //        }
@@ -258,7 +366,7 @@ public class AsyncAPIComponentMapper {
     }
 
     /**
-     * This function is to map ballerina record type symbol to OAS objectSchema.
+     * This function is to map ballerina record type fields to AsyncAPI objectSchema fields.
      */
     private AsyncApi25SchemaImpl generateObjectSchemaFromRecordFields(String componentName,Map<String, RecordFieldSymbol> rfields,
                                                               Map<String, String> apiDocs) {
@@ -270,30 +378,31 @@ public class AsyncAPIComponentMapper {
 //        Map<String, Schema> schemaProperties = new LinkedHashMap<>();
         for (Map.Entry<String, RecordFieldSymbol> field: rfields.entrySet()) {
             String fieldName = ConverterCommonUtils.unescapeIdentifier(field.getKey().trim());
-            if (!field.getValue().isOptional()) {
+            if (!field.getValue().isOptional()) {  // Check if the field is optional or not
                 required.add(fieldName);
             }
             TypeDescKind fieldTypeKind = field.getValue().typeDescriptor().typeKind();
             String type = fieldTypeKind.toString().toLowerCase(Locale.ENGLISH);
             AsyncApi25SchemaImpl property = ConverterCommonUtils.getAsyncApiSchema(type);
 
-            if (fieldTypeKind == TypeDescKind.TYPE_REFERENCE) {
+            if (fieldTypeKind == TypeDescKind.TYPE_REFERENCE) { // ex:- Cat schema field inside Pet schema
                 TypeReferenceTypeSymbol typeReference = (TypeReferenceTypeSymbol) field.getValue().typeDescriptor();
                 property = handleTypeReference(typeReference, property, isSameRecord(componentName,
                         typeReference));
 //                schema = components.getSchemas();
-            } else if (fieldTypeKind == TypeDescKind.UNION) {
+            } else if (fieldTypeKind == TypeDescKind.UNION) { // ex:-  Cat|Dog Schema fields inside Pet schema
                 property = handleUnionType((UnionTypeSymbol) field.getValue().typeDescriptor(), property,
                         componentName);
 //                schema = components.getSchemas();
-            } else if (fieldTypeKind == TypeDescKind.MAP) {
+            } else if (fieldTypeKind == TypeDescKind.MAP) {  // map<json> field inside Pet schema
                 MapTypeSymbol mapTypeSymbol = (MapTypeSymbol) field.getValue().typeDescriptor();
                 property = handleMapType(componentName, property, mapTypeSymbol);
 //                schema = components.getSchemas();
             }
-            ObjectNode check=(ObjectNode) property.getItems();
-            JsonNode check2=check.get(0);
-            if (property.getType().equals(OpenAPIType.ARRAY.toString()) && !(property.getItems() instanceof ObjectNode)) {
+            //TODO : Have to check && !(property.getItems() instanceof ObjectNode)
+//            ObjectNode check=(ObjectNode) property.getItems();
+//            JsonNode check2=check.get(0);
+            if (property.getType().equals(OpenAPIType.ARRAY.toString()) ) {
                 BooleanNode booleanNode= (BooleanNode) property.getExtensions().get("x-nullable");
 //                Boolean nullable = property.getNullable();
                 property = mapArrayToArraySchema( field.getValue().typeDescriptor(), componentName);
@@ -324,6 +433,8 @@ public class AsyncAPIComponentMapper {
         return componentSchema;
     }
 
+    //TODO : Have to include a comment
+
     private AsyncApi25SchemaImpl handleMapType( String componentName, AsyncApi25SchemaImpl property,
                              MapTypeSymbol mapTypeSymbol) {
 
@@ -345,7 +456,7 @@ public class AsyncAPIComponentMapper {
     }
 
     /**
-     * This function uses to handle the field datatype has TypeReference(ex: Record or Enum).
+     * This function uses to handle the field datatype has TypeReference(ex: Record or Enum). ex: Cat Record or Enum type inside Pet Record
      */
     private AsyncApi25SchemaImpl handleTypeReference( TypeReferenceTypeSymbol typeReferenceSymbol,
                                        AsyncApi25SchemaImpl property, boolean isCyclicRecord) {
@@ -584,16 +695,18 @@ public class AsyncAPIComponentMapper {
     /**
      * Handle nested array.
      */
+    //TODO : Here needs to check objectMapper.valueToTree(property) because it may contatins entity:true
     private JsonNode handleArray(int arrayDimensions, Schema property, AsyncApi25SchemaImpl arrayProperty) {
-        ObjectMapper objectMapper=new ObjectMapper();
+
         if (arrayDimensions > 1) {
             AsyncApi25SchemaImpl narray = new AsyncApi25SchemaImpl();
             narray.setType(OpenAPIType.ARRAY.toString());
             arrayProperty.setItems(handleArray(arrayDimensions - 1, property,  narray));
         } else if (arrayDimensions == 1) {
-            arrayProperty.setItems(objectMapper.valueToTree(property));
+
+            arrayProperty.setItems(test.valueToTree(property));
         }
-        return objectMapper.valueToTree(arrayProperty);
+        return test.valueToTree(arrayProperty);
     }
 
 }

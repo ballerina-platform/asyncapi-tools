@@ -37,6 +37,7 @@ import java.util.Map;
 import java.util.Optional;
 
 import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.SCHEMA_REFERENCE;
+import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.X_NULLABLE;
 import static io.ballerina.asyncapi.core.generators.asyncspec.utils.ConverterCommonUtils.getAnnotationNodesFromServiceNode;
 import static io.ballerina.asyncapi.core.generators.asyncspec.utils.ConverterCommonUtils.unescapeIdentifier;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.*;
@@ -86,7 +87,7 @@ public class AsyncAPIQueryParameterMapper {
 //            return queryParameter;
         } else if (queryParam.typeName().kind() == OPTIONAL_TYPE_DESC ) { //int? offset // int[]? pet
             // Handle optional query parameter
-            //TODO : If there "http:ServiceConfig", "treatNilableAsOptional" uncomment below codes and then implement it
+
 //            NodeList<AnnotationNode> annotations = getAnnotationNodesFromServiceNode(queryParam);
 //            String isOptional = Constants.TRUE;
 //            if (!annotations.isEmpty()) {
@@ -137,7 +138,7 @@ public class AsyncAPIQueryParameterMapper {
     /**
      * Create OAS query parameter for default query parameters.
      */
-    public void createQueryParameter(DefaultableParameterNode defaultableQueryParam,AsyncApi25SchemaImpl bindingObject) {
+    public void createQueryParameter(DefaultableParameterNode defaultableQueryParam,AsyncApi25SchemaImpl bindingQueryObject) {
 
         String queryParamName = defaultableQueryParam.paramName().get().text();
 //        boolean isQuery = !defaultableQueryParam.paramName().get().text().equals(Constants.PATH) &&
@@ -194,7 +195,7 @@ public class AsyncAPIQueryParameterMapper {
 //            else {
             if ( asyncApiQueryParamDefaultSchema!=null) {
                 asyncApiQueryParamDefaultSchema.setDefault(new TextNode(defaultValue));
-                bindingObject.addProperty(queryParamName,asyncApiQueryParamDefaultSchema);
+                bindingQueryObject.addProperty(queryParamName,asyncApiQueryParamDefaultSchema);
 
             }
 //                Schema schema = queryParameter.getSchema();
@@ -218,7 +219,7 @@ public class AsyncAPIQueryParameterMapper {
             itemSchema = ConverterCommonUtils.getAsyncApiSchema(
                     ((OptionalTypeDescriptorNode) itemTypeNode).typeDescriptor().toString().trim());
 //            itemSchema.setNullable(true);
-            itemSchema.addExtension("x-nullable", BooleanNode.TRUE);
+            itemSchema.addExtension(X_NULLABLE, BooleanNode.TRUE);
 
         } else {
             itemSchema = ConverterCommonUtils.getAsyncApiSchema(itemTypeNode.toString().trim());
@@ -254,7 +255,7 @@ public class AsyncAPIQueryParameterMapper {
             AsyncApi25SchemaImpl arraySchema=new AsyncApi25SchemaImpl();
 //            arraySchema.setNullable(true);
             arraySchema.setType("array");
-            arraySchema.addExtension("x-nullable", new TextNode("dfd"));
+            arraySchema.addExtension(X_NULLABLE, BooleanNode.TRUE);
             ArrayTypeDescriptorNode arrayNode = (ArrayTypeDescriptorNode) node;
             TypeDescriptorNode itemTypeNode = arrayNode.memberTypeDesc();
             AsyncApi25SchemaImpl itemSchema = ConverterCommonUtils.getAsyncApiSchema(itemTypeNode.toString().trim());
@@ -282,7 +283,7 @@ public class AsyncAPIQueryParameterMapper {
 //            return queryParameter;
         } else { //int? offset
             AsyncApi25SchemaImpl asyncApiSchema = ConverterCommonUtils.getAsyncApiSchema(node.toString().trim());
-            asyncApiSchema.addExtension("x-nullable", new TextNode("hello"));
+            asyncApiSchema.addExtension(X_NULLABLE, BooleanNode.TRUE);
 
 //            openApiSchema.setNullable(true);
 

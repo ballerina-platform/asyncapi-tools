@@ -1,5 +1,5 @@
 import ballerina/websocket;
-// import ballerina/io;
+import ballerina/http;
 
 listener websocket:Listener ep0 = new(85,config={host:"0.0.0.0"});
 
@@ -14,7 +14,7 @@ service /hello on ep0,new websocket:Listener(8080){
 }
 
 service /hello2 on ep0{
-    resource function get v1/[int id]/v2/[string name]/v3/[float value]/payment/[Subscribe data] (string pet="hello") returns websocket:Service|websocket:UpgradeError {
+    resource function get v1/[int id]/v2/[string name]/v3/[float value]/payment/[Subscribe data] (@http:Header {} string X\-Client) returns websocket:Service|websocket:UpgradeError {
         return new ChatServer1();
     }
 
@@ -41,13 +41,15 @@ service class ChatServer {
 service class ChatServer1{
     *websocket:Service;
 
-     remote function onSubscribe(websocket:Caller caller, Subscribe message) returns Heartbeat{
-        // io:println(data);
-        return {id:1};
-    }
 
-    remote function onHeartbeat(websocket:Caller caller, Heartbeat data) returns json {
-        return {"event": "heartbeat"};
+
+    // remote function onHeartbeat(websocket:Caller caller, Heartbeat data) returns json {
+    //     return {"event": "heartbeat"};
+    // }
+    remote function onHeartbeat( Heartbeat data) returns stream<string> {
+        string[] greets = ["Hi Sam", "Hey Sam", "GM Sam"];
+        return greets.toStream();
+        // return {"event": "heartbeat"};
     }
 }
 

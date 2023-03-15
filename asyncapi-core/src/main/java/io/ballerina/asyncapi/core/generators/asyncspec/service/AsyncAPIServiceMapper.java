@@ -57,7 +57,7 @@ public class AsyncAPIServiceMapper {
      * @param asyncApi   - OpenApi model to populate
      * @return OpenApi object which represent current service.
      */
-    public AsyncApi25DocumentImpl convertServiceToOpenAPI(ServiceDeclarationNode service,List<ClassDefinitionNode>classDefinitionNodes, AsyncApi25DocumentImpl asyncApi) {
+    public AsyncApi25DocumentImpl convertServiceToAsyncAPI(ServiceDeclarationNode service, List<ClassDefinitionNode>classDefinitionNodes, AsyncApi25DocumentImpl asyncApi) {
         NodeList<Node> functions = service.members();
 //        List<FunctionDefinitionNode> resource = new ArrayList<>();
 //        for (Node function: functions) {
