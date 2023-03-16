@@ -25,42 +25,25 @@ import io.ballerina.tools.diagnostics.DiagnosticSeverity;
  * @since 2.0.0
  */
 public enum DiagnosticMessages {
-    OAS_CONVERTOR_100("OAS_CONVERTOR_100",
-            "Generated OpenAPI definition does not contain details for the `default` " +
-                    "resource method in the Ballerina service.", DiagnosticSeverity.WARNING),
-    OAS_CONVERTOR_101("OAS_CONVERTOR_101", "Unexpected value: %s", DiagnosticSeverity.ERROR),
-    OAS_CONVERTOR_102("OAS_CONVERTOR_102", "Invalid mediaType: %s", DiagnosticSeverity.ERROR),
-    OAS_CONVERTOR_103("OAS_CONVERTOR_103", "No related status code for: %s", DiagnosticSeverity.ERROR),
-    OAS_CONVERTOR_104("OAS_CONVERTOR_104",
-            "Generated OpenAPI definition does not contain details for the " +
-                    "resource function which has `http:Request` parameters in the Ballerina service.",
-            DiagnosticSeverity.WARNING),
-    OAS_CONVERTOR_105("OAS_CONVERTOR_105",
-            "Generated OpenAPI definition does not contain details for the " +
-                    "resource function which has `http:Response` as return type in the Ballerina service.",
-            DiagnosticSeverity.WARNING),
-    OAS_CONVERTOR_106("OAS_CONVERTOR_106", "Given Ballerina file contains compilation error(s).",
+
+    AAS_CONVERTOR_100("AAS_CONVERTOR_100", "Given Ballerina file contains compilation error(s).",
             DiagnosticSeverity.ERROR),
-    OAS_CONVERTOR_107("OAS_CONVERTOR_107", "No Ballerina services found with name '%s' to" +
-            " generate an OpenAPI specification. These services are available in ballerina file. %s",
+    AAS_CONVERTOR_101("AAS_CONVERTOR_101", "No Ballerina services found with name '%s' to" +
+            " generate an AsyncAPI specification. These services are available in ballerina file. %s",
             DiagnosticSeverity.ERROR),
-    OAS_CONVERTOR_108("OAS_CONVERTOR_108", "Failed to generate OpenAPI definition due to: %s",
+    AAS_CONVERTOR_102("OAS_CONVERTOR_102", "Failed to generate AsyncAPI definition due to: %s",
             DiagnosticSeverity.ERROR),
-    OAS_CONVERTOR_109("OAS_CONVERTOR_109", "OpenAPI contract doesn't exist in the given location:%s",
-            DiagnosticSeverity.ERROR),
-    OAS_CONVERTOR_110("OAS_CONVERTOR_110", "OpenAPI contract path can not be blank.",
+
+    AAS_CONVERTOR_103("AAS_CONVERTOR_103", "AsyncAPI contract path can not be blank.",
                       DiagnosticSeverity.ERROR),
-    OAS_CONVERTOR_111("OAS_CONVERTOR_111", "Unsupported file type. Provide a valid contract " +
+    AAS_CONVERTOR_104("AAS_CONVERTOR_104", "Unsupported file type. Provide a valid contract " +
             "file in .yaml or .json format.",
             DiagnosticSeverity.ERROR),
-    OAS_CONVERTOR_112("OAS_CONVERTOR_112", "Provided OpenAPI contract contains parsing error(s).",
+    AAS_CONVERTOR_105("AAS_CONVERTOR_105", "Provided AsyncAPI contract contains parsing error(s).",
                       DiagnosticSeverity.ERROR),
-    OAS_CONVERTOR_113("OAS_CONVERTOR_113",
-            "Generated OpenAPI definition does not contain `http:Request` body information of the `GET` method," +
-                    " as it's not supported by the OpenAPI specification.",
-            DiagnosticSeverity.WARNING),
-    OAS_CONVERTOR_114("OAS_CONVERTOR_114", "Generated OpenAPI definition does not contain information " +
-            "for Ballerina type '%s'. ", DiagnosticSeverity.WARNING);
+    AAS_CONVERTOR_106("AAS_CONVERTOR_106", "Generated AsyncAPI definition does not contain information " +
+            "for Ballerina type '%s'. ", DiagnosticSeverity.WARNING),
+    AAS_CONVERTER_107("AAS_CONVERTOR_107", "Generated AsyncAPI definition contains parsing error(s)" , DiagnosticSeverity.ERROR);
 
     private final String code;
     private final String description;

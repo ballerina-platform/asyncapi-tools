@@ -1,11 +1,15 @@
 import ballerina/websocket;
-import ballerina/http;
+// import ballerina/http;
 
-listener websocket:Listener ep0 = new(85,config={host:"0.0.0.0"});
+listener websocket:Listener ep0 = new(85,config={host:"0.0.0.0",secureSocket: { key: {
+            certFile: "../resource/path/to/public.crt",
+            keyFile: "../resource/path/to/private.key"
+        }
+}});
 
 
 @websocket:ServiceConfig {dispatcherKey: "event"}
-service /hello on ep0,new websocket:Listener(8080){
+service /hello on ep0{
     resource function get payment/[string id]() returns websocket:Service|websocket:UpgradeError {
         return new ChatServer();
     }
@@ -13,22 +17,21 @@ service /hello on ep0,new websocket:Listener(8080){
 
 }
 
-service /hello2 on ep0{
-    resource function get v1/[int id]/v2/[string name]/v3/[float value]/payment/[Subscribe data] (@http:Header {} string X\-Client) returns websocket:Service|websocket:UpgradeError {
-        return new ChatServer1();
-    }
+// service /hello2 on ep0{
+//     resource function get v1/[int id]/v2/[string name]/v3/[float value]/payment/[Subscribe data] (@http:Header {} string X\-Client) returns websocket:Service|websocket:UpgradeError {
+//         return new ChatServer1();
+//     }
 
 
 
-
-}
+// }
 
 service class ChatServer {
     *websocket:Service;
 
-     remote function onSubscribe(websocket:Caller caller, Subscribe message) returns websocket:Error? {
+     remote function onSubscribe(websocket:Caller caller, Subscribe message) returns int {
         // io:println(data);
-        check caller->writeMessage({"type": "subscribe", "id":"1", "payload":{"query": "{ __schema { types { name } } }"}});
+        return 5;
     }
 
     remote function onHeartbeat( Heartbeat data) returns stream<string> {

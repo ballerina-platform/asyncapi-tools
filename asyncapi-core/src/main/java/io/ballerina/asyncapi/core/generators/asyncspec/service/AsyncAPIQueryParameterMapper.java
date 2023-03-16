@@ -23,9 +23,8 @@ import com.fasterxml.jackson.databind.node.BooleanNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25ComponentsImpl;
-import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25Document;
-import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25SchemaImpl;
-import io.ballerina.asyncapi.core.generators.asyncspec.Constants;
+//import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25SchemaImpl;
+import io.ballerina.asyncapi.core.generators.asyncspec.model.AsyncApi25SchemaImpl;
 import io.ballerina.asyncapi.core.generators.asyncspec.utils.ConverterCommonUtils;
 import io.ballerina.compiler.api.SemanticModel;
 import io.ballerina.compiler.api.symbols.TypeSymbol;
@@ -34,11 +33,9 @@ import io.ballerina.compiler.syntax.tree.*;
 
 import java.util.Arrays;
 import java.util.Map;
-import java.util.Optional;
 
 import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.SCHEMA_REFERENCE;
 import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.X_NULLABLE;
-import static io.ballerina.asyncapi.core.generators.asyncspec.utils.ConverterCommonUtils.getAnnotationNodesFromServiceNode;
 import static io.ballerina.asyncapi.core.generators.asyncspec.utils.ConverterCommonUtils.unescapeIdentifier;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.*;
 
@@ -67,7 +64,7 @@ public class AsyncAPIQueryParameterMapper {
     /**
      * Handle function query parameters for required parameters.
      */
-    public void createQueryParameter(RequiredParameterNode queryParam,AsyncApi25SchemaImpl bindingObject) {
+    public void createQueryParameter(RequiredParameterNode queryParam, AsyncApi25SchemaImpl bindingObject) {
         String queryParamName = unescapeIdentifier(queryParam.paramName().get().text());
 //        boolean isQuery = !queryParam.paramName().get().text().equals(Constants.PATH)
 //                && queryParam.annotations().isEmpty();
@@ -228,7 +225,6 @@ public class AsyncAPIQueryParameterMapper {
         ObjectNode obj=test.valueToTree(itemSchema);
 //            ((ObjectNode)obj.get("properties").get("offset")).remove("entity");
 //        obj.remove;
-        obj.remove("entity");
         arraySchema.setItems(obj);
 //        queryParameter.schema(arraySchema);
         //TODO : setRequired(true) , check this is in asyncapi schema
@@ -263,7 +259,6 @@ public class AsyncAPIQueryParameterMapper {
             ObjectNode obj=test.valueToTree(itemSchema);
 //            ((ObjectNode)obj.get("properties").get("offset")).remove("entity");
 //        obj.remove;
-            obj.remove("entity");
             arraySchema.setItems(obj);
 //            queryParameter.schema(arraySchema);
 //            queryParameter.setName(ConverterCommonUtils.unescapeIdentifier(queryParamName));

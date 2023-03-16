@@ -26,11 +26,9 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import io.apicurio.datamodels.Library;
-import io.apicurio.datamodels.models.Document;
 import io.apicurio.datamodels.models.Schema;
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25Document;
-import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25DocumentImpl;
-import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25SchemaImpl;
+import io.ballerina.asyncapi.core.generators.asyncspec.model.AsyncApi25SchemaImpl;
 import io.apicurio.datamodels.validation.ValidationProblem;
 import io.ballerina.asyncapi.core.generators.asyncspec.Constants;
 import io.ballerina.compiler.api.SemanticModel;
@@ -73,44 +71,44 @@ public class ConverterCommonUtils {
         switch (type) {
             case Constants.STRING:
             case Constants.PLAIN:
-                schema.setType(OpenAPIType.STRING.toString());
+                schema.setType(AsyncAPIType.STRING.toString());
                 break;
             case Constants.BOOLEAN:
-                schema.setType(OpenAPIType.BOOLEAN.toString());
+                schema.setType(AsyncAPIType.BOOLEAN.toString());
                 break;
             case Constants.ARRAY:
             case Constants.TUPLE:
-                schema.setType(OpenAPIType.ARRAY.toString());
+                schema.setType(AsyncAPIType.ARRAY.toString());
                 break;
             case Constants.INT:
             case Constants.INTEGER:
-                schema.setType(OpenAPIType.INTEGER.toString());
+                schema.setType(AsyncAPIType.INTEGER.toString());
                 schema.setFormat("int64");
                 break;
             case Constants.BYTE_ARRAY:
             case Constants.OCTET_STREAM:
-                schema.setType(OpenAPIType.STRING.toString());
+                schema.setType(AsyncAPIType.STRING.toString());
                 schema.setFormat("uuid");
                 break;
             case Constants.NUMBER:
             case Constants.DECIMAL:
-                schema.setType(OpenAPIType.NUMBER.toString());
+                schema.setType(AsyncAPIType.NUMBER.toString());
                 schema.setFormat(Constants.DOUBLE);
                 break;
             case Constants.FLOAT:
-                schema.setType(OpenAPIType.NUMBER.toString());
+                schema.setType(AsyncAPIType.NUMBER.toString());
                 schema.setFormat(Constants.FLOAT);
                 break;
             case Constants.MAP_JSON:
             case Constants.MAP:
-                schema.setType(OpenAPIType.RECORD.toString());
-                //TODO : Have to give an AsyncApiSchema object as additionalProperties , It is depend upon ballerina map
+                schema.setType(AsyncAPIType.RECORD.toString());
+                //TODO : Have to give an AsyncApi25SchemaImpl object as additionalProperties , It is depend upon ballerina map
 //                schema.setAdditionalProperties(true);
 //                schema.additionalProperties(true);
                 break;
             case Constants.X_WWW_FORM_URLENCODED:
                 AsyncApi25SchemaImpl stringSchema=new AsyncApi25SchemaImpl();
-                stringSchema.setType(OpenAPIType.STRING.toString());
+                stringSchema.setType(AsyncAPIType.STRING.toString());
                 schema.setAdditionalProperties(stringSchema);
                 break;
             case Constants.TYPE_REFERENCE:
@@ -169,32 +167,32 @@ public class ConverterCommonUtils {
         return schema;
     }
 
-    /**
-     * Generate operationId by removing special characters.
-     *
-     * @param operationID input function name, record name or operation Id
-     * @return string with new generated name
-     */
-    public static String getOperationId(String operationID) {
-        //For the flatten enable we need to remove first Part of valid name check
-        // this - > !operationID.matches("\\b[a-zA-Z][a-zA-Z0-9]*\\b") &&
-        if (operationID.matches("\\b[0-9]*\\b")) {
-            return operationID;
-        }
-        String[] split = operationID.split(Constants.SPECIAL_CHAR_REGEX);
-        StringBuilder validName = new StringBuilder();
-        for (String part : split) {
-            if (!part.isBlank()) {
-                if (split.length > 1) {
-                    part = part.substring(0, 1).toUpperCase(Locale.ENGLISH) +
-                            part.substring(1).toLowerCase(Locale.ENGLISH);
-                }
-                validName.append(part);
-            }
-        }
-        operationID = validName.toString();
-        return operationID.substring(0, 1).toLowerCase(Locale.ENGLISH) + operationID.substring(1);
-    }
+//    /**
+//     * Generate operationId by removing special characters.
+//     *
+//     * @param operationID input function name, record name or operation Id
+//     * @return string with new generated name
+//     */
+//    public static String getOperationId(String operationID) {
+//        //For the flatten enable we need to remove first Part of valid name check
+//        // this - > !operationID.matches("\\b[a-zA-Z][a-zA-Z0-9]*\\b") &&
+//        if (operationID.matches("\\b[0-9]*\\b")) {
+//            return operationID;
+//        }
+//        String[] split = operationID.split(Constants.SPECIAL_CHAR_REGEX);
+//        StringBuilder validName = new StringBuilder();
+//        for (String part : split) {
+//            if (!part.isBlank()) {
+//                if (split.length > 1) {
+//                    part = part.substring(0, 1).toUpperCase(Locale.ENGLISH) +
+//                            part.substring(1).toLowerCase(Locale.ENGLISH);
+//                }
+//                validName.append(part);
+//            }
+//        }
+//        operationID = validName.toString();
+//        return operationID.substring(0, 1).toLowerCase(Locale.ENGLISH) + operationID.substring(1);
+//    }
 
     /**
      * This util function uses to take the field value from annotation field.
@@ -280,26 +278,26 @@ public class ConverterCommonUtils {
         return annotations;
     }
 
-    /**
-     * This function for taking the specific media-type subtype prefix from http service configuration annotation.
-     * <pre>
-     *     @http:ServiceConfig {
-     *          mediaTypeSubtypePrefix : "vnd.exm.sales"
-     *  }
-     * </pre>
-     */
-    public static Optional<String> extractCustomMediaType(FunctionDefinitionNode functionDefNode) {
-        ServiceDeclarationNode serviceDefNode = (ServiceDeclarationNode) functionDefNode.parent();
-        if (serviceDefNode.metadata().isPresent()) {
-            MetadataNode metadataNode = serviceDefNode.metadata().get();
-            NodeList<AnnotationNode> annotations = metadataNode.annotations();
-            if (!annotations.isEmpty()) {
-                return ConverterCommonUtils.extractServiceAnnotationDetails(annotations,
-                        "http:ServiceConfig", "mediaTypeSubtypePrefix");
-            }
-        }
-        return Optional.empty();
-    }
+//    /**
+//     * This function for taking the specific media-type subtype prefix from http service configuration annotation.
+//     * <pre>
+//     *     @http:ServiceConfig {
+//     *          mediaTypeSubtypePrefix : "vnd.exm.sales"
+//     *  }
+//     * </pre>
+//     */
+//    public static Optional<String> extractCustomMediaType(FunctionDefinitionNode functionDefNode) {
+//        ServiceDeclarationNode serviceDefNode = (ServiceDeclarationNode) functionDefNode.parent();
+//        if (serviceDefNode.metadata().isPresent()) {
+//            MetadataNode metadataNode = serviceDefNode.metadata().get();
+//            NodeList<AnnotationNode> annotations = metadataNode.annotations();
+//            if (!annotations.isEmpty()) {
+//                return ConverterCommonUtils.extractServiceAnnotationDetails(annotations,
+//                        "http:ServiceConfig", "mediaTypeSubtypePrefix");
+//            }
+//        }
+//        return Optional.empty();
+//    }
 
     /**
      * This {@code NullLocation} represents the null location allocation for scenarios which has not location.
@@ -319,10 +317,10 @@ public class ConverterCommonUtils {
     }
 //
     /**
-     * Parse and get the {@link AsyncApi25Document} for the given OpenAPI contract.
+     * Parse and get the {@link AsyncApi25Document} for the given AsyncAPI contract.
      *
-     * @param definitionURI URI for the OpenAPI contract
-     * @return {@link AsyncAPIResult}  OpenAPI model
+     * @param definitionURI URI for the AsyncAPI contract
+     * @return {@link AsyncAPIResult}  AsyncAPI model
      */
     public static AsyncAPIResult parseOpenAPIFile(String definitionURI) {
         List<AsyncAPIConverterDiagnostic> diagnostics = new ArrayList<>();
@@ -332,14 +330,14 @@ public class ConverterCommonUtils {
 //        parseOptions.setResolveFully(true);
 
         if (!Files.exists(contractPath)) {
-            DiagnosticMessages error = DiagnosticMessages.OAS_CONVERTOR_110;
+            DiagnosticMessages error = DiagnosticMessages.AAS_CONVERTOR_103;
             ExceptionDiagnostic diagnostic = new ExceptionDiagnostic(error.getCode(),
                     error.getDescription(), null);
             diagnostics.add(diagnostic);
         }
         if (!(definitionURI.endsWith(Constants.YAML_EXTENSION) || definitionURI.endsWith(Constants.JSON_EXTENSION)
                 || definitionURI.endsWith(Constants.YML_EXTENSION))) {
-            DiagnosticMessages error = DiagnosticMessages.OAS_CONVERTOR_110;
+            DiagnosticMessages error = DiagnosticMessages.AAS_CONVERTOR_103;
             ExceptionDiagnostic diagnostic = new ExceptionDiagnostic(error.getCode(),
                     error.getDescription(), null);
             diagnostics.add(diagnostic);
@@ -348,16 +346,11 @@ public class ConverterCommonUtils {
         try {
             openAPIFileContent = Files.readString(contractPath);
         } catch (IOException e) {
-            DiagnosticMessages error = DiagnosticMessages.OAS_CONVERTOR_108;
+            DiagnosticMessages error = DiagnosticMessages.AAS_CONVERTOR_102;
             ExceptionDiagnostic diagnostic = new ExceptionDiagnostic(error.getCode(), error.getDescription(), null,
                     e.toString());
             diagnostics.add(diagnostic);
         }
-
-
-
-
-
         YAMLFactory factory1=YAMLFactory.builder()
                 .enable(StreamReadFeature.STRICT_DUPLICATE_DETECTION)
                 .build();
@@ -385,7 +378,7 @@ public class ConverterCommonUtils {
 ////                System.out.print(", ");
 //                x
 //            }
-            DiagnosticMessages error = DiagnosticMessages.OAS_CONVERTOR_112;
+            DiagnosticMessages error = DiagnosticMessages.AAS_CONVERTOR_105;
             ExceptionDiagnostic diagnostic = new ExceptionDiagnostic(error.getCode(), error.getDescription(), null);
             diagnostics.add(diagnostic);
             return new AsyncAPIResult(null, diagnostics);
@@ -427,13 +420,13 @@ public class ConverterCommonUtils {
     }
 
     /**
-     * This util function is to check the given service is http service.
+     * This util function is to check the given service is a websocket service.
      *
      * @param serviceNode   Service node for analyse
      * @param semanticModel Semantic model
      * @return boolean output
      */
-    public static boolean isHttpService(ServiceDeclarationNode serviceNode, SemanticModel semanticModel) {
+    public static boolean isWebsocketService(ServiceDeclarationNode serviceNode, SemanticModel semanticModel) {
         Optional<Symbol> serviceSymbol = semanticModel.symbol(serviceNode);
         if (serviceSymbol.isEmpty()) {
             return false;
@@ -442,14 +435,14 @@ public class ConverterCommonUtils {
         ServiceDeclarationSymbol serviceNodeSymbol = (ServiceDeclarationSymbol) serviceSymbol.get();
         List<TypeSymbol> listenerTypes = (serviceNodeSymbol).listenerTypes();
         for (TypeSymbol listenerType : listenerTypes) {
-            if (isHttpListener(listenerType)) {
+            if (isWebsocketListener(listenerType)) {
                 return true;
             }
         }
         return false;
     }
 
-    private static boolean isHttpListener(TypeSymbol listenerType) {
+    private static boolean isWebsocketListener(TypeSymbol listenerType) {
         if (listenerType.typeKind() == TypeDescKind.UNION) {
             return ((UnionTypeSymbol) listenerType).memberTypeDescriptors().stream()
                     .filter(typeDescriptor -> typeDescriptor instanceof TypeReferenceTypeSymbol)
@@ -470,6 +463,7 @@ public class ConverterCommonUtils {
         } else {
             return false;
         }
+
     }
 
     /**
@@ -497,7 +491,7 @@ public class ConverterCommonUtils {
             openAPIFileName = serviceName.replaceAll(SLASH, "_");
         }
 
-        return getNormalizedFileName(openAPIFileName) + Constants.OPENAPI_SUFFIX +
+        return getNormalizedFileName(openAPIFileName) + Constants.ASYNC_API_SUFFIX +
                 (isJson ? JSON_EXTENSION : YAML_EXTENSION);
     }
 
@@ -515,11 +509,6 @@ public class ConverterCommonUtils {
         return openAPIFileName;
     }
 
-    public static boolean isHttpService(ModuleSymbol moduleSymbol) {
-        Optional<String> moduleNameOpt = moduleSymbol.getName();
-        return moduleNameOpt.isPresent() && Constants.HTTP.equals(moduleNameOpt.get())
-                && Constants.BALLERINA.equals(moduleSymbol.id().orgName());
-    }
 
     public static boolean containErrors(List<Diagnostic> diagnostics) {
         return diagnostics != null && diagnostics.stream().anyMatch(diagnostic ->
@@ -529,5 +518,13 @@ public class ConverterCommonUtils {
     public static String unescapeIdentifier(String parameterName) {
         String unescapedParamName = IdentifierUtils.unescapeBallerina(parameterName);
         return unescapedParamName.replaceAll("\\\\", "").replaceAll("'", "");
+    }
+
+    public static ObjectMapper callObjectMapper(){
+        ObjectMapper objectMapper= new ObjectMapper();
+
+        objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+        objectMapper.setSerializationInclusion(JsonInclude.Include.NON_DEFAULT);
+        return objectMapper;
     }
 }

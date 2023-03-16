@@ -22,14 +22,11 @@ package io.ballerina.asyncapi.core.generators.asyncspec.service;
 
 import io.apicurio.datamodels.models.ServerVariable;
 import io.apicurio.datamodels.models.asyncapi.v25.*;
-import io.ballerina.asyncapi.core.generators.asyncspec.Constants;
 import io.ballerina.asyncapi.core.generators.asyncspec.utils.ConverterCommonUtils;
 import io.ballerina.compiler.syntax.tree.*;
-
 import java.util.*;
 
-import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.PORT;
-import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.SERVER;
+import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.*;
 
 /**
  * Extract AsyncApi server information from and Ballerina endpoint.
@@ -47,11 +44,7 @@ public class AsyncAPIEndpointMapper {
      */
     public AsyncApi25DocumentImpl getServers(AsyncApi25DocumentImpl asyncAPI, List<ListenerDeclarationNode> endpoints,
                               ServiceDeclarationNode service) {
-        List<AsyncApi25ServerImpl> servers = extractServerForExpressionNode(asyncAPI, service.expressions(), service);
-//        AsyncApi25ServersImpl expressionServers = (AsyncApi25ServersImpl) asyncAPI.getServers();
-
-//        List<AsyncApi25ServerImpl> servers = new ArrayList<>();
-//        servers.add((AsyncApi25ServerImpl) expressionServers.getItem("development"));
+        List<AsyncApi25ServerImpl> servers = extractServerForExpressionNode( service.expressions(), service);
         if (!endpoints.isEmpty()) {
             for (ListenerDeclarationNode ep : endpoints) {
                 SeparatedNodeList<ExpressionNode> exprNodes = service.expressions();
@@ -59,7 +52,6 @@ public class AsyncAPIEndpointMapper {
                     if (node.toString().trim().equals(ep.variableName().text().trim())) {
                         String serviceBasePath = getServiceBasePath(service);
                         AsyncApi25ServerImpl server = extractServer(ep, serviceBasePath);
-//                        servers.addItem("check",server);
                         servers.add(server);
                     }
                 }
@@ -71,7 +63,6 @@ public class AsyncAPIEndpointMapper {
             AsyncApi25ServersImpl asyncApi25Servers=new AsyncApi25ServersImpl();
             asyncApi25Servers.addItem("development",mainServer);
             asyncAPI.setServers(asyncApi25Servers);
-//            asyncAPI.setServers(Collections.singletonList(mainServer));
         }else{
             AsyncApi25ServersImpl asyncApi25Servers=new AsyncApi25ServersImpl();
             asyncApi25Servers.addItem("development",servers.get(0));
@@ -81,9 +72,7 @@ public class AsyncAPIEndpointMapper {
     }
 
     private AsyncApi25ServerImpl addEnumValues(List<AsyncApi25ServerImpl> servers) {
-//        AsyncApi25ServerImpl mainServer= (AsyncApi25ServerImpl) servers.getItem("private");
         AsyncApi25ServerImpl mainServer = servers.get(0);
-//        Map<String, AsyncApi25ServersImpl> rotated = new LinkedHashMap<>(servers);
         List<AsyncApi25ServerImpl> rotated = new ArrayList<>(servers);
         Map<String, ServerVariable> mainVariable = mainServer.getVariables();
         ServerVariable hostVariable = mainVariable.get(SERVER);
@@ -109,8 +98,6 @@ public class AsyncAPIEndpointMapper {
             }
            hostVariableEnum.add(variables.get(variableName).getDefault());
            variable.setEnum(hostVariableEnum);
-//                    hostVariable.getEnum().add(variables.get(SERVER).getDefault());
-//                    hostVariable.setEnum(variables.get(SERVER).getDefault());
         }
     }
 
@@ -141,36 +128,25 @@ public class AsyncAPIEndpointMapper {
     }
 
     // Function for handle both ExplicitNewExpressionNode and ImplicitNewExpressionNode in listener.
-    private List<AsyncApi25ServerImpl>  extractServerForExpressionNode(AsyncApi25DocumentImpl asyncAPI, SeparatedNodeList<ExpressionNode> bTypeExplicit,
+    private List<AsyncApi25ServerImpl>  extractServerForExpressionNode(SeparatedNodeList<ExpressionNode> bTypeExplicit,
                                                                     ServiceDeclarationNode service) {
         String serviceBasePath = getServiceBasePath(service);
         Optional<ParenthesizedArgList> list;
-//        AsyncApi25ServersImpl servers = (AsyncApi25ServersImpl) asyncAPI.createServers();
         List<AsyncApi25ServerImpl> asyncApi25Servers = new ArrayList<>();
-//        AsyncApi25ServersImpl asyncApi25Servers = (AsyncApi25ServersImpl) asyncAPI.createServers();
         for (ExpressionNode expressionNode: bTypeExplicit) {
             if (expressionNode.kind().equals(SyntaxKind.EXPLICIT_NEW_EXPRESSION)) {
                 ExplicitNewExpressionNode explicit = (ExplicitNewExpressionNode) expressionNode;
                 list = Optional.ofNullable(explicit.parenthesizedArgList());
                 AsyncApi25ServerImpl server = generateServer(serviceBasePath, list);
-//                asyncApi25Servers.ge
                 asyncApi25Servers.add(server);
-//                servers.add(server);
-//                servers.addItem("private",server);
-//                servers.add(server);
-            } else if (expressionNode.kind().equals(SyntaxKind.IMPLICIT_NEW_EXPRESSION)) {
-                ImplicitNewExpressionNode implicit = (ImplicitNewExpressionNode) expressionNode;
-                list = implicit.parenthesizedArgList();
-                AsyncApi25ServerImpl server = generateServer(serviceBasePath, list);
-                asyncApi25Servers.add(server);
-//                servers.add(server);
-//                servers.addItem("public",server);
-//                servers.add(server);
             }
+//            } else if (expressionNode.kind().equals(SyntaxKind.IMPLICIT_NEW_EXPRESSION)) {
+//                ImplicitNewExpressionNode implicit = (ImplicitNewExpressionNode) expressionNode;
+//                list = implicit.parenthesizedArgList();
+//                AsyncApi25ServerImpl server = generateServer(serviceBasePath, list);
+//                asyncApi25Servers.add(server);
+//            }
         }
-//        AsyncApi25ServersImpl asyncApi25Servers = (AsyncApi25ServersImpl) asyncAPI.createServers();
-//        asyncApi25Servers.addItem("development",);
-//        asyncAPI.setServers(asyncApi25Servers);
         return asyncApi25Servers;
     }
 
@@ -179,123 +155,114 @@ public class AsyncAPIEndpointMapper {
 
         String port = null;
         String host = null;
-//        AsyncApi25ServerVariableImpl serverVariable = new AsyncApi25ServerVariableImpl();
-//        Server server = new Server();
+        String secured=FALSE;
+
         AsyncApi25ServerImpl server= new AsyncApi25ServerImpl();
 
         if (list.isPresent()) {
             SeparatedNodeList<FunctionArgumentNode> arg = (list.get()).arguments();
             port = arg.get(0).toString();
+            if (port!=null) {
+                port = port.replaceAll("\"", "");
+            }
             if (arg.size() > 1 && (arg.get(1) instanceof NamedArgumentNode)) {
                 ExpressionNode bLangRecordLiteral = ((NamedArgumentNode) arg.get(1)).expression();
                 if (bLangRecordLiteral instanceof MappingConstructorExpressionNode) {
-                    host = extractHost((MappingConstructorExpressionNode) bLangRecordLiteral);
+                    ArrayList<String> extractedValues = extractHostAndCheckSecured((MappingConstructorExpressionNode) bLangRecordLiteral);
+                    host= extractedValues.get(0);
+                    secured=extractedValues.get(1);
                 }
             }
         }
-        // Set default values to host and port if values are not defined
-        setServerVariableValues(serviceBasePath, port, host, server);
+        server.setProtocol(WS);
+//        setServerProtocol(secured,server);
+        setServerVariableValues(serviceBasePath, port, host,secured, server);
         return server;
     }
+//
+//    private void setServerProtocol(String secured,AsyncApi25ServerImpl server){
+//        if (secured.equals(TRUE)){
+//            server.setProtocol(WSS);
+//        } else if (secured.equals(FALSE)) {
+//            server.setProtocol(WS);
+//
+//        }
+//    }
 
     /**
      * Set server variables port and server.
      */
-    private void setServerVariableValues(String serviceBasePath, String port, String host,
+    private void setServerVariableValues(String serviceBasePath, String port, String host,String secured,
                                           AsyncApi25ServerImpl server) {
 
         String serverUrl;
-        if (host != null && port != null) {
-//            AsyncApi25ServerVariable serverVariable = new AsyncApi25ServerVariableImpl();
+        if (host != null && port != null ) {
 
             AsyncApi25ServerVariable serverUrlVariable= server.createServerVariable();
             serverUrlVariable.setDefault(host);
             AsyncApi25ServerVariable portVariable = server.createServerVariable();
-            portVariable.setDefault(port);
-//            serverUrlVariable.setDefault(host);
-//            server.addVariable();
-
-//            ServerVariable portVariable =  new ServerVariable();
-//            portVariable._default(port);
+            portVariable.setDefault( port);
             server.addVariable(SERVER,serverUrlVariable);
             server.addVariable(PORT,portVariable);
-//            serverVariables.addServerVariable(SERVER, serverUrlVariable);
-//            serverVariables.addServerVariable(PORT, portVariable);
             serverUrl = String.format("{server}:{port}%s", serviceBasePath);
             server.setUrl(serverUrl);
-//            server.setVariables(serverVariables);
         } else if (host != null) {
             AsyncApi25ServerVariable serverUrlVariable= server.createServerVariable();
-//            ServerVariable serverUrlVariable = new ServerVariable();
             serverUrlVariable.setDefault(host);
-
             server.addVariable(SERVER,serverUrlVariable);
-//            serverVariables.addServerVariable(SERVER, serverUrlVariable);
             serverUrl = "{server}" + serviceBasePath;
             server.setUrl(serverUrl);
-//            server.setVariables(serverVariables);
 
         } else if (port != null) {
-            if (port.equals("443")) {
-                AsyncApi25ServerVariable serverUrlVariable= server.createServerVariable();
-//                ServerVariable serverUrlVariable = new ServerVariable();
-                serverUrlVariable.setDefault("https://localhost");
-                AsyncApi25ServerVariable portVariable= server.createServerVariable();
-//                ServerVariable portVariable =  new ServerVariable();
-                portVariable.setDefault("443");
-                server.addVariable(SERVER,serverUrlVariable);
-                server.addVariable(PORT,portVariable);
-//                serverVariables.addServerVariable(SERVER, serverUrlVariable);
-//                serverVariables.addServerVariable(PORT, portVariable);
-                serverUrl = "{server}:{port}" + serviceBasePath;
-                server.setUrl(serverUrl);
-//                server.setVariables(serverVariables);
+            AsyncApi25ServerVariable serverUrlVariable = server.createServerVariable();
+            if (secured.equals(TRUE)) {
+                serverUrlVariable.setDefault(WSSLOCALHOST);
             } else {
-                AsyncApi25ServerVariable serverUrlVariable= server.createServerVariable();
-//                ServerVariable serverUrlVariable = new ServerVariable();
-                serverUrlVariable.setDefault("http://localhost");
-                AsyncApi25ServerVariable portVariable= server.createServerVariable();
-//                ServerVariable portVariable =  new ServerVariable();
-                portVariable.setDefault(port);
-                server.addVariable(SERVER,serverUrlVariable);
-                server.addVariable(PORT,portVariable);
-
-//                serverVariables.addServerVariable(SERVER, serverUrlVariable);
-//                serverVariables.addServerVariable(PORT, portVariable);
-                serverUrl = "{server}:{port}" + serviceBasePath;
-                server.setUrl(serverUrl);
-//                server.setVariables(serverVariables);
+                serverUrlVariable.setDefault(WSLOCALHOST);
             }
+            AsyncApi25ServerVariable portVariable = server.createServerVariable();
+            portVariable.setDefault(port);
+            server.addVariable(SERVER, serverUrlVariable);
+            server.addVariable(PORT, portVariable);
+            serverUrl = "{server}:{port}" + serviceBasePath;
+            server.setUrl(serverUrl);
         }
+
     }
 
     // Extract host value for creating URL.
-    private String extractHost(MappingConstructorExpressionNode bLangRecordLiteral) {
-        String host = "";
+    private ArrayList<String> extractHostAndCheckSecured(MappingConstructorExpressionNode bLangRecordLiteral) {
+        ArrayList<String> returnValues=new ArrayList<>();
+        String host =null;
+        String secured=FALSE;
         if (bLangRecordLiteral.fields() != null && !bLangRecordLiteral.fields().isEmpty()) {
             SeparatedNodeList<MappingFieldNode> recordFields = bLangRecordLiteral.fields();
-            host = concatenateServerURL(host, recordFields);
-        }
-        if (!host.equals("")) {
-           host = host.replaceAll("\"", "");
-        }
-        return host;
-    }
+            for (MappingFieldNode filed: recordFields) {
+                if (filed instanceof SpecificFieldNode) {
+                    Node fieldName = ((SpecificFieldNode) filed).fieldName();
+                    if (fieldName.toString().equals(ATTR_HOST)) {
+                        if (((SpecificFieldNode) filed).valueExpr().isPresent()) {
+                            host = ((SpecificFieldNode) filed).valueExpr().get().toString();
+                        }
+                    } else if (fieldName.toString().equals(SECURE_SOCKET)) {
+                        secured=TRUE;
 
-    private String concatenateServerURL(String host, SeparatedNodeList<MappingFieldNode> recordFields) {
-
-        for (MappingFieldNode filed: recordFields) {
-            if (filed instanceof SpecificFieldNode) {
-                Node fieldName = ((SpecificFieldNode) filed).fieldName();
-                if (fieldName.toString().equals(Constants.ATTR_HOST)) {
-                    if (((SpecificFieldNode) filed).valueExpr().isPresent()) {
-                          host = ((SpecificFieldNode) filed).valueExpr().get().toString();
                     }
                 }
             }
+
         }
-        return host;
+        if (host!=null) {
+           host = host.replaceAll("\"", "");
+        }
+        returnValues.add(host);
+        returnValues.add(secured);
+
+
+
+        return returnValues;
     }
+
 
     /**
      * Gets the base path of a service.

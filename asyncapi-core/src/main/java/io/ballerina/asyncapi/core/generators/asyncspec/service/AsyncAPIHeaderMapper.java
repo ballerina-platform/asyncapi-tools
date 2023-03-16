@@ -22,7 +22,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.BooleanNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
-import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25SchemaImpl;
+import io.ballerina.asyncapi.core.generators.asyncspec.model.AsyncApi25SchemaImpl;
 import io.ballerina.asyncapi.core.generators.asyncspec.utils.ConverterCommonUtils;
 import io.ballerina.compiler.syntax.tree.*;
 
@@ -53,10 +53,8 @@ public class AsyncAPIHeaderMapper {
      *
      * @param headerParam    -  {@link RequiredParameterNode} type header parameter node
      */
-    public void setHeaderParameter(RequiredParameterNode headerParam, AsyncApi25SchemaImpl bindingHeaderObject) {
-//        List<Parameter> parameters = new ArrayList<>();
+    public void setHeaderParameter(RequiredParameterNode headerParam,AsyncApi25SchemaImpl bindingHeaderObject) {
         String headerName = unescapeIdentifier(extractHeaderName(headerParam));
-//        HeaderParameter headerParameter = new HeaderParameter();
         Node node = headerParam.typeName();
         AsyncApi25SchemaImpl headerTypeSchema = ConverterCommonUtils.getAsyncApiSchema(getHeaderType(headerParam));
         //TODO : If there "http:ServiceConfig", "treatNilableAsOptional" uncomment below codes and then implement it
@@ -75,7 +73,6 @@ public class AsyncAPIHeaderMapper {
         }
         completeHeaderParameter(headerName,  headerTypeSchema, headerParam.annotations(),
                 headerParam.typeName(),bindingHeaderObject);
-//        return parameters;
     }
 
     private String extractHeaderName(ParameterNode headerParam) {
@@ -90,8 +87,7 @@ public class AsyncAPIHeaderMapper {
      *
      * @param headerParam    -  {@link DefaultableParameterNode} type header parameter node
      */
-    public void setHeaderParameter(DefaultableParameterNode headerParam,AsyncApi25SchemaImpl bindingHeaderObject ) {
-//        List<Parameter> parameters = new ArrayList<>();
+    public void setHeaderParameter(DefaultableParameterNode headerParam, AsyncApi25SchemaImpl bindingHeaderObject ) {
         String headerName = extractHeaderName(headerParam);
 //        HeaderParameter headerParameter = new HeaderParameter();
         AsyncApi25SchemaImpl headerTypeSchema = ConverterCommonUtils.getAsyncApiSchema(getHeaderType(headerParam));
@@ -134,8 +130,7 @@ public class AsyncAPIHeaderMapper {
     /**
      * Assign header values to OAS header parameter.
      */
-    private void completeHeaderParameter(String headerName,
-                                         AsyncApi25SchemaImpl headerSchema, NodeList<AnnotationNode> annotations, Node node, AsyncApi25SchemaImpl  bindingHeaderObject) {
+    private void completeHeaderParameter(String headerName, AsyncApi25SchemaImpl headerSchema, NodeList<AnnotationNode> annotations, Node node, AsyncApi25SchemaImpl bindingHeaderObject) {
 
         if (!annotations.isEmpty()) {
             AnnotationNode annotationNode = annotations.get(0);
@@ -150,24 +145,12 @@ public class AsyncAPIHeaderMapper {
             if (headerSchema.getDefault() != null) {
                 arraySchema.setDefault(headerSchema.getDefault());
             }
-            //TODO : Decide whether this will be another object , because of the field entity:true
-            ObjectMapper test= new ObjectMapper();
-            test.setSerializationInclusion(JsonInclude.Include.NON_DEFAULT);
-            ObjectNode obj=test.valueToTree(itemSchema);
-//            ((ObjectNode)obj.get("properties").get("offset")).remove("entity");
-//        obj.remove;
-            obj.remove("entity");
+            ObjectMapper objectMapper= ConverterCommonUtils.callObjectMapper();
+            ObjectNode obj=objectMapper.valueToTree(itemSchema);
             arraySchema.setItems(obj);
             bindingHeaderObject.addProperty(headerName,arraySchema);
-//            headerParameter.schema(arraySchema);
-//            headerParameter.setName(headerName);
-//            parameters.add(headerParameter);
         } else {
             bindingHeaderObject.addProperty(headerName,headerSchema);
-
-//            headerParameter.schema(headerSchema);
-//            headerParameter.setName(headerName);
-//            parameters.add(headerParameter);
         }
     }
 

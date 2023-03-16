@@ -22,13 +22,10 @@ import io.ballerina.asyncapi.core.generators.asyncspec.diagnostic.AsyncAPIConver
 import io.ballerina.asyncapi.core.generators.asyncspec.diagnostic.DiagnosticMessages;
 import io.ballerina.asyncapi.core.generators.asyncspec.diagnostic.ExceptionDiagnostic;
 import io.ballerina.asyncapi.core.generators.asyncspec.diagnostic.IncompatibleResourceDiagnostic;
-import io.ballerina.asyncapi.core.exception.BallerinaAsyncApiException;
-import io.ballerina.asyncapi.core.model.Filter;
 
 import io.ballerina.cli.BLauncherCmd;
 
 
-import org.ballerinalang.formatter.core.FormatterException;
 import picocli.CommandLine;
 
 import java.io.File;
@@ -38,17 +35,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
-import java.util.stream.Collectors;
 
 import static io.ballerina.asyncapi.cli.CmdConstants.BAL_EXTENSION;
-import static io.ballerina.asyncapi.cli.CmdConstants.JSON_EXTENSION;
-import static io.ballerina.asyncapi.cli.CmdConstants.REMOTE;
-import static io.ballerina.asyncapi.cli.CmdConstants.RESOURCE;
-import static io.ballerina.asyncapi.cli.CmdConstants.SERVICE;
-import static io.ballerina.asyncapi.cli.CmdConstants.YAML_EXTENSION;
-import static io.ballerina.asyncapi.cli.CmdConstants.YML_EXTENSION;
 //import static io.ballerina.asyncapi.core.GeneratorUtils.getValidName;
 
 
@@ -223,7 +212,7 @@ public class AsyncAPICmd implements BLauncherCmd {
         try {
             balFilePath = Paths.get(balFile.getCanonicalPath());
         } catch (IOException e) {
-            DiagnosticMessages message = DiagnosticMessages.OAS_CONVERTOR_108;
+            DiagnosticMessages message = DiagnosticMessages.AAS_CONVERTOR_102;
             ExceptionDiagnostic error = new ExceptionDiagnostic(message.getCode(),
                     message.getDescription(), null,  e.getLocalizedMessage());
             errors.add(error);

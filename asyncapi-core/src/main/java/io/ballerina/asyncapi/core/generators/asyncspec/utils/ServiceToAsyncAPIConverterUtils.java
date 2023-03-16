@@ -23,6 +23,7 @@ import io.apicurio.datamodels.models.Info;
 import io.apicurio.datamodels.models.ModelType;
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25Document;
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25DocumentImpl;
+import io.apicurio.datamodels.validation.ValidationProblem;
 import io.ballerina.asyncapi.core.generators.asyncspec.diagnostic.AsyncAPIConverterDiagnostic;
 import io.ballerina.asyncapi.core.generators.asyncspec.diagnostic.DiagnosticMessages;
 import io.ballerina.asyncapi.core.generators.asyncspec.diagnostic.ExceptionDiagnostic;
@@ -75,7 +76,7 @@ public class ServiceToAsyncAPIConverterUtils {
         List<AsyncAPIResult> outputs = new ArrayList<>();
         List<ClassDefinitionNode> classDefinitionNodes =new ArrayList<>();
         if (containErrors(semanticModel.diagnostics())) {
-            DiagnosticMessages messages = DiagnosticMessages.OAS_CONVERTOR_106;
+            DiagnosticMessages messages = DiagnosticMessages.AAS_CONVERTOR_100;
             ExceptionDiagnostic error = new ExceptionDiagnostic(messages.getCode(), messages.getDescription(),
                     null);
             diagnostics.add(error);
@@ -85,7 +86,7 @@ public class ServiceToAsyncAPIConverterUtils {
                     endpoints, semanticModel);
             // If there are no services found for a given service name.
             if (serviceName != null && servicesToGenerate.isEmpty()) {
-                DiagnosticMessages messages = DiagnosticMessages.OAS_CONVERTOR_107;
+                DiagnosticMessages messages = DiagnosticMessages.AAS_CONVERTOR_101;
                 ExceptionDiagnostic error = new ExceptionDiagnostic(messages.getCode(), messages.getDescription(),
                         null, serviceName, availableService.toString());
                 diagnostics.add(error);
@@ -123,7 +124,7 @@ public class ServiceToAsyncAPIConverterUtils {
             }
             if (syntaxKind.equals(SyntaxKind.SERVICE_DECLARATION)) {
                 ServiceDeclarationNode serviceNode = (ServiceDeclarationNode) node;
-                if (isHttpService(serviceNode, semanticModel)) {
+                if (isWebsocketService(serviceNode, semanticModel)) {
                     // Here check the service is related to the http
                     // module by checking listener type that attached to service endpoints.
                     Optional<Symbol> serviceSymbol = semanticModel.symbol(serviceNode);
@@ -223,8 +224,17 @@ public class ServiceToAsyncAPIConverterUtils {
                 // 03. Filter path and component sections in OAS.
 //                 Generate openApi string for the mentioned service name.
                 asyncapi = asyncAPIServiceMapper.convertServiceToAsyncAPI(serviceDefinition,classDefinitionNodes, asyncapi);
-                return new AsyncAPIResult(asyncapi, asyncAPIServiceMapper.getErrors());
-//                return new AsyncAPIResult(asyncapi, asyncAPIServiceMapper.getErrors());
+                List<ValidationProblem> modelProblems=Library.validate(asyncapi,null);
+                if (!(modelProblems.isEmpty())){
+                    List<AsyncAPIConverterDiagnostic>diagnostics=asyncAPIServiceMapper.getErrors();
+                    DiagnosticMessages error = DiagnosticMessages.AAS_CONVERTER_107;
+                    ExceptionDiagnostic diagnostic = new ExceptionDiagnostic(error.getCode(), error.getDescription(), null);
+                    diagnostics.add(diagnostic);
+                    return new AsyncAPIResult(null, diagnostics);
+
+                }else{
+                    return new AsyncAPIResult(asyncapi, asyncAPIServiceMapper.getErrors());
+                }
             } else {
                 return new AsyncAPIResult(asyncapi, asyncApiResult.getDiagnostics());
             }
@@ -258,10 +268,10 @@ public class ServiceToAsyncAPIConverterUtils {
         Optional<MetadataNode> metadata = serviceNode.metadata();
         List<AsyncAPIConverterDiagnostic> diagnostics = new ArrayList<>();
         AsyncApi25Document asyncAPI=(AsyncApi25Document) Library.createDocument(ModelType.ASYNCAPI25);
-        asyncAPI.setAsyncapi("2.5.0");
+        asyncAPI.setAsyncapi(ASYNC_API_VERSION);
 //        AsyncApi openAPI = new OpenAPI();
         String currentServiceName = AsyncAPIEndpointMapper.ENDPOINT_MAPPER.getServiceBasePath(serviceNode);
-        // 01. Set openAPI inFo section wit package details
+        // 01. Set openAPI inFo section with package details
         String version = getContractVersion(serviceNode, semanticModel);
         if (metadata.isPresent() && !metadata.get().annotations().isEmpty()) {
             MetadataNode metadataNode = metadata.get();
@@ -270,7 +280,7 @@ public class ServiceToAsyncAPIConverterUtils {
                 if (annotation.annotReference().kind() == SyntaxKind.QUALIFIED_NAME_REFERENCE) {
                     QualifiedNameReferenceNode ref = (QualifiedNameReferenceNode) annotation.annotReference();
                     String annotationName = ref.modulePrefix().text() + ":" + ref.identifier().text();
-                    if (annotationName.equals(OPENAPI_ANNOTATION)) {
+                    if (annotationName.equals(ASYNCAPI_ANNOTATION)) {
                         AsyncAPIResult asyncApiResult = parseServiceInfoAnnotationAttachmentDetails(diagnostics, annotation,
                                 ballerinaFilePath);
                         return normalizeInfoSection(asyncApiFileName, currentServiceName, version, asyncApiResult);
@@ -279,7 +289,6 @@ public class ServiceToAsyncAPIConverterUtils {
                         info.setVersion(version);
                         info.setTitle(normalizeTitle(currentServiceName));
                         asyncAPI.setInfo(info);
-//                        openAPI.setInfo(new Info().version(version).title(normalizeTitle(currentServiceName)));
                     }
                 }
             }
@@ -379,7 +388,7 @@ public class ServiceToAsyncAPIConverterUtils {
                                                                          Path ballerinaFilePath) {
         Location location = annotation.location();
         AsyncApi25Document asyncAPI=(AsyncApi25Document) Library.createDocument(ModelType.ASYNCAPI25);
-        asyncAPI.setAsyncapi("2.5.0");
+        asyncAPI.setAsyncapi(ASYNC_API_VERSION);
         Optional<MappingConstructorExpressionNode> content = annotation.annotValue();
         // If contract path there
         if (content.isPresent()) {
@@ -396,22 +405,15 @@ public class ServiceToAsyncAPIConverterUtils {
                    info.setTitle(normalizeTitle
                            (asyncAPIInfo.getTitle().get()));
                    asyncAPI.setInfo(info);
-//                   openAPI.setInfo(new Info().version(openAPIInfo.getVersion().get()).title(normalizeTitle
-//                           (openAPIInfo.getTitle().get())));
                } else if (asyncAPIInfo.getVersion().isPresent()) {
                    Info info = asyncAPI.createInfo();
                    info.setVersion(asyncAPIInfo.getVersion().get());
-//                   info.setTitle(normalizeTitle
-//                           (asyncAPIInfo.getTitle().get()));
                    asyncAPI.setInfo(info);
-//                   asyncAPI.setInfo(new Info().version(openAPIInfo.getVersion().get()));
                } else if (asyncAPIInfo.getTitle().isPresent()) {
                    Info info = asyncAPI.createInfo();
-//                   info.setVersion(asyncAPIInfo.getVersion().get());
                    info.setTitle(normalizeTitle(
                            asyncAPIInfo.getTitle().get()));
                    asyncAPI.setInfo(info);
-//                   openAPI.setInfo(new Info().title(normalizeTitle(openAPIInfo.getTitle().get())));
                }
            }
         }
@@ -482,23 +484,26 @@ public class ServiceToAsyncAPIConverterUtils {
         Path asyncApiPath = Paths.get(asyncAPIInfo.getContractPath().get().replaceAll("\"", "").trim());
         Path relativePath = null;
         if (asyncApiPath.toString().isBlank()) {
-            DiagnosticMessages error = DiagnosticMessages.OAS_CONVERTOR_110;
+            DiagnosticMessages error = DiagnosticMessages.AAS_CONVERTOR_103;
             ExceptionDiagnostic diagnostic = new ExceptionDiagnostic(error.getCode(),
                     error.getDescription(), location);
             diagnostics.add(diagnostic);
-        } else if (Paths.get(asyncApiPath.toString()).isAbsolute()) {
-            relativePath = Paths.get(asyncApiPath.toString());
         } else {
-            File file = new File(ballerinaFilePath.toString());
-            File parentFolder = new File(file.getParent());
-            File openapiContract = new File(parentFolder, asyncApiPath.toString());
-            try {
-                relativePath = Paths.get(openapiContract.getCanonicalPath());
-            } catch (IOException e) {
-                DiagnosticMessages error = DiagnosticMessages.OAS_CONVERTOR_108;
-                ExceptionDiagnostic diagnostic = new ExceptionDiagnostic(error.getCode()
-                        , error.getDescription(), location, e.toString());
-                diagnostics.add(diagnostic);
+            Path path = Paths.get(asyncApiPath.toString());
+            if (path.isAbsolute()) {
+                relativePath = path;
+            } else {
+                File file = new File(ballerinaFilePath.toString());
+                File parentFolder = new File(file.getParent());
+                File openapiContract = new File(parentFolder, asyncApiPath.toString());
+                try {
+                    relativePath = Paths.get(openapiContract.getCanonicalPath());
+                } catch (IOException e) {
+                    DiagnosticMessages error = DiagnosticMessages.AAS_CONVERTOR_102;
+                    ExceptionDiagnostic diagnostic = new ExceptionDiagnostic(error.getCode()
+                            , error.getDescription(), location, e.toString());
+                    diagnostics.add(diagnostic);
+                }
             }
         }
         if (relativePath != null && Files.exists(relativePath)) {

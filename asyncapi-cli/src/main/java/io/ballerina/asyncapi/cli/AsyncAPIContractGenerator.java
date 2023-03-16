@@ -133,7 +133,7 @@ public class AsyncAPIContractGenerator {
                         fileNames.add(fileName);
                     }
                 } catch (IOException e) {
-                    DiagnosticMessages message = DiagnosticMessages.OAS_CONVERTOR_108;
+                    DiagnosticMessages message = DiagnosticMessages.AAS_CONVERTOR_102;
                     ExceptionDiagnostic error = new ExceptionDiagnostic(message.getCode(),
                             message.getDescription() + e.getLocalizedMessage(),
                             null);

@@ -110,56 +110,43 @@ public class AsyncAPIRemoteMapper {
             if (node.kind().equals(SyntaxKind.OBJECT_METHOD_DEFINITION)){
                 FunctionDefinitionNode remoteFunctionNode= (FunctionDefinitionNode)node;
                 String functionName= remoteFunctionNode.functionName().toString();
-                if (functionName.startsWith("on")){
+                if (functionName.startsWith(ON)){
                     //TODO : have to pass this through unescape identifier
-                    String customTypeName=functionName.substring(2);
-                    SimpleNameReferenceNode simpleNameReferenceNode=checkParameterContainsCustomType(customTypeName,remoteFunctionNode);
+                    String remoteRequestTypeName=functionName.substring(2);
+                    SimpleNameReferenceNode simpleNameReferenceNode=checkParameterContainsCustomType(remoteRequestTypeName,remoteFunctionNode);
                     if (simpleNameReferenceNode!=null){
                         TypeSymbol typeSymbol = (TypeSymbol) semanticModel.symbol(simpleNameReferenceNode).orElseThrow();
-                        AsyncApi25MessageImpl publishoneOf=new AsyncApi25MessageImpl();
-                        publishoneOf.set$ref(MESSAGE_REFERENCE+ ConverterCommonUtils.unescapeIdentifier(customTypeName));
-                        publishMessage.addOneOf(publishoneOf);
-                        AsyncApi25MessageImpl componentMessage= (AsyncApi25MessageImpl) components.createMessage();
-                        ObjectNode objNode1=new ObjectNode(JsonNodeFactory.instance);
-                        objNode1.put("$ref",SCHEMA_REFERENCE+ConverterCommonUtils.unescapeIdentifier(customTypeName));
-                        componentMessage.setPayload(objNode1);
-                        componentMapper.createComponentSchema( typeSymbol);
+                        AsyncApi25MessageImpl publishOneOf=new AsyncApi25MessageImpl();
+                        AsyncApi25MessageImpl componentMessage = extractMessageSchemaReference(publishMessage, remoteRequestTypeName, typeSymbol, publishOneOf);
+
                         ReturnTypeDescriptorNode remoteReturnNode = remoteFunctionNode.functionSignature().returnTypeDesc().get();
                         if (remoteReturnNode!=null) {
                             Node remoteReturnType = remoteReturnNode.type();
                             AsyncApi25MessageImpl subscribeOneOf = new AsyncApi25MessageImpl();
                             if (remoteReturnType.kind().equals(SyntaxKind.SIMPLE_NAME_REFERENCE)) {
                                 TypeSymbol returnTypeSymbol = (TypeSymbol) semanticModel.symbol(remoteReturnType).orElseThrow();
-                                String remoteReturnString = remoteReturnType.toString();
+                                String remoteReturnTypeName = remoteReturnType.toString();
                                 //Creating return type message reference
-                                subscribeOneOf.set$ref(MESSAGE_REFERENCE + ConverterCommonUtils.unescapeIdentifier(remoteReturnString));
-                                subscribeMessage.addOneOf(subscribeOneOf);
-                                //Creating return type schema reference
-                                AsyncApi25MessageImpl componentReturnMessage = (AsyncApi25MessageImpl) components.createMessage();
-                                ObjectNode objNode2 = new ObjectNode(JsonNodeFactory.instance);
-                                objNode2.put("$ref", SCHEMA_REFERENCE + ConverterCommonUtils.unescapeIdentifier(customTypeName));
-                                componentReturnMessage.setPayload(objNode2);
-                                components.addMessage(customTypeName, componentReturnMessage);
-                                componentMapper.createComponentSchema(returnTypeSymbol);
-                                ObjectNode objNode3 = new ObjectNode(JsonNodeFactory.instance);
-                                objNode3.put("$ref", MESSAGE_REFERENCE + ConverterCommonUtils.unescapeIdentifier(remoteReturnString));
-                                componentMessage.addExtension(X_RESPONSE, objNode3);
+                                AsyncApi25MessageImpl componentReturnMessage= extractMessageSchemaReference(subscribeMessage, remoteReturnTypeName, returnTypeSymbol, subscribeOneOf);
+                                components.addMessage(remoteRequestTypeName, componentReturnMessage);
+                                ObjectNode messageRefObject = new ObjectNode(JsonNodeFactory.instance);
+                                messageRefObject.put($REF, MESSAGE_REFERENCE + ConverterCommonUtils.unescapeIdentifier(remoteReturnTypeName));
+                                componentMessage.addExtension(X_RESPONSE, messageRefObject);
                                 componentMessage.addExtension(X_RESPONSE_TYPE, new TextNode(SIMPLE_RPC));
                             } else if (remoteReturnType.kind().equals(SyntaxKind.STREAM_TYPE_DESC)) {
-                                ObjectNode streamObject=new ObjectNode(JsonNodeFactory.instance);
-                                String streamType= ((StreamTypeParamsNode)((StreamTypeDescriptorNode)remoteReturnType).streamTypeParamsNode().get()).leftTypeDescNode().toString();
-                                streamObject.put("type",streamType);
-                                subscribeOneOf.setPayload(streamObject);
-                                subscribeMessage.addOneOf(subscribeOneOf);
-                                ObjectNode objNode4 = new ObjectNode(JsonNodeFactory.instance);
-                                ObjectNode objNode5 = new ObjectNode(JsonNodeFactory.instance);
-                                objNode5.put("type",streamType);
-                                objNode4.put("payload",objNode5);
-                                componentMessage.addExtension(X_RESPONSE, objNode4);
-                                componentMessage.addExtension(X_RESPONSE_TYPE, new TextNode(STREAMING));
+                                String remoteReturnstreamTypeString= ((StreamTypeParamsNode)((StreamTypeDescriptorNode)remoteReturnType).streamTypeParamsNode().get()).leftTypeDescNode().toString();
 
+                                setSubscribeResponse(subscribeMessage, componentMessage, subscribeOneOf,remoteReturnstreamTypeString, STREAMING);
+
+                            }else if(remoteReturnType instanceof BuiltinSimpleNameReferenceNode){
+                                String remoteReturnTypeString= ConverterCommonUtils.unescapeIdentifier(remoteReturnType.toString());
+
+                                setSubscribeResponse(subscribeMessage, componentMessage, subscribeOneOf, remoteReturnTypeString, SIMPLE_RPC);
                             }
-                            components.addMessage(customTypeName, componentMessage);
+                            components.addMessage(remoteRequestTypeName, componentMessage);
+                            //TODO : Handle if remote method signature doesn't contain method name
+                        }else{
+
                         }
 
 
@@ -189,6 +176,30 @@ public class AsyncAPIRemoteMapper {
 //        } else {
 //            break;
 //        }
+    }
+
+    private void setSubscribeResponse(AsyncApi25MessageImpl subscribeMessage, AsyncApi25MessageImpl componentMessage, AsyncApi25MessageImpl subscribeOneOf, String streamType, String responseType) {
+        ObjectNode typeMessageObject =new ObjectNode(JsonNodeFactory.instance);
+        typeMessageObject.put(TYPE,streamType);
+        subscribeOneOf.setPayload(typeMessageObject );
+        subscribeMessage.addOneOf(subscribeOneOf);
+        ObjectNode typeObject = new ObjectNode(JsonNodeFactory.instance);
+        typeObject.put(TYPE,streamType);
+        ObjectNode payloadObject= new ObjectNode(JsonNodeFactory.instance);
+        payloadObject.put(PAYLOAD,typeObject);
+        componentMessage.addExtension(X_RESPONSE, payloadObject);
+        componentMessage.addExtension(X_RESPONSE_TYPE, new TextNode(responseType));
+    }
+
+    private AsyncApi25MessageImpl extractMessageSchemaReference(AsyncApi25MessageImpl publishMessage, String typeName, TypeSymbol typeSymbol, AsyncApi25MessageImpl messageType) {
+        messageType.set$ref(MESSAGE_REFERENCE+ ConverterCommonUtils.unescapeIdentifier(typeName));
+        publishMessage.addOneOf(messageType);
+        AsyncApi25MessageImpl componentMessage= (AsyncApi25MessageImpl) components.createMessage();
+        ObjectNode objNode1=new ObjectNode(JsonNodeFactory.instance);
+        objNode1.put($REF,SCHEMA_REFERENCE+ ConverterCommonUtils.unescapeIdentifier(typeName));
+        componentMessage.setPayload(objNode1);
+        componentMapper.createComponentSchema( typeSymbol);
+        return componentMessage;
     }
 
     private SimpleNameReferenceNode checkParameterContainsCustomType(String customTypeName,FunctionDefinitionNode remoteFunctionNode) {
