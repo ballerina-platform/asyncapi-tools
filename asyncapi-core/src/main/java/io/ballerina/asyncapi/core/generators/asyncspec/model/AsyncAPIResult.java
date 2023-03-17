@@ -72,7 +72,6 @@ public class AsyncAPIResult {
         factory.enable(YAMLGenerator.Feature.SPLIT_LINES);
         factory.enable(YAMLGenerator.Feature.ALWAYS_QUOTE_NUMBERS_AS_STRINGS);
 
-//        ObjectMapper objectMapper=new ObjectMapper();
         String finalYaml= null;
         try {
             finalYaml = new ObjectMapper(factory).writer(new DefaultPrettyPrinter()).writeValueAsString(json);
@@ -86,7 +85,6 @@ public class AsyncAPIResult {
         ObjectNode json= Library.writeDocument(this.asyncAPI);
         String finalJson= JsonUtil.stringify(json);
         return Optional.ofNullable(finalJson);
-//        return Optional.ofNullable(Json.pretty(this.openAPI));
     }
 
     public void setServiceName(String serviceName) {

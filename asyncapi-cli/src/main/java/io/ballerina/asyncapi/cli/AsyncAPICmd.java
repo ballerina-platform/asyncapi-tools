@@ -36,6 +36,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.NoSuchElementException;
 
 import static io.ballerina.asyncapi.cli.CmdConstants.BAL_EXTENSION;
 //import static io.ballerina.asyncapi.core.GeneratorUtils.getValidName;
@@ -133,6 +134,7 @@ public class AsyncAPICmd implements BLauncherCmd {
             //Check if an OpenApi definition is provided
             if (argList == null) {
                 outStream.println(ErrorMessages.MISSING_CONTRACT_PATH);
+                boolean asf=this.exitWhenFinish;
                 exitError(this.exitWhenFinish);
                 return;
             }
@@ -184,7 +186,16 @@ public class AsyncAPICmd implements BLauncherCmd {
                     outStream.println("'--client-methods' option is only available in client generation mode.");
                     exitError(this.exitWhenFinish);
                 }
+                try{
                 ballerinaToOpenApi(fileName);
+
+                }catch (Exception exception){
+                    if(exception instanceof NoSuchElementException){
+                        String message=exception.getMessage();
+                        outStream.println(exception.getMessage());
+                        exitError(this.exitWhenFinish);
+                    }
+                }
             } else {
                 outStream.println(ErrorMessages.MISSING_CONTRACT_PATH);
                 exitError(this.exitWhenFinish);
@@ -219,10 +230,10 @@ public class AsyncAPICmd implements BLauncherCmd {
         }
         getTargetOutputPath();
         // Check service name it is mandatory
-        AsyncAPIContractGenerator openApiConverter = new AsyncAPIContractGenerator();
-        openApiConverter.generateAsyncAPIDefinitionsAllService(balFilePath, targetOutputPath, service,
+        AsyncAPIContractGenerator asyncApiConverter = new AsyncAPIContractGenerator();
+        asyncApiConverter.generateAsyncAPIDefinitionsAllService(balFilePath, targetOutputPath, service,
                 generatedFileType);
-        errors.addAll(openApiConverter.getErrors());
+        errors.addAll(asyncApiConverter.getErrors());
         if (!errors.isEmpty()) {
             for (AsyncAPIConverterDiagnostic error: errors) {
                 if (error instanceof ExceptionDiagnostic) {

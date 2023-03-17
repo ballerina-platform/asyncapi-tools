@@ -22,6 +22,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.BooleanNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 import io.apicurio.datamodels.models.Schema;
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25ComponentsImpl;
@@ -46,14 +47,11 @@ public class AsyncAPIComponentMapper {
     private final AsyncApi25ComponentsImpl components;
     private final List<AsyncAPIConverterDiagnostic> diagnostics;
 
-    private final ObjectMapper test;
 
 
     public AsyncAPIComponentMapper(AsyncApi25ComponentsImpl components) {
          this.components = components;
          this.diagnostics = new ArrayList<>();
-         this.test= new ObjectMapper();
-         test.setSerializationInclusion(JsonInclude.Include.NON_DEFAULT);
     }
 
     public List<AsyncAPIConverterDiagnostic> getDiagnostics() {
@@ -542,6 +540,7 @@ public class AsyncAPIComponentMapper {
      */
     //TODO : Here needs to check objectMapper.valueToTree(property) because it may contatins entity:true
     private JsonNode handleArray(int arrayDimensions, Schema property, AsyncApi25SchemaImpl arrayProperty) {
+        ObjectMapper objectMapper= ConverterCommonUtils.callObjectMapper();
 
         if (arrayDimensions > 1) {
             AsyncApi25SchemaImpl narray = new AsyncApi25SchemaImpl();
@@ -549,9 +548,9 @@ public class AsyncAPIComponentMapper {
             arrayProperty.setItems(handleArray(arrayDimensions - 1, property,  narray));
         } else if (arrayDimensions == 1) {
 
-            arrayProperty.setItems(test.valueToTree(property));
+            arrayProperty.setItems(objectMapper.valueToTree(property));
         }
-        return test.valueToTree(arrayProperty);
+        return objectMapper.valueToTree(arrayProperty);
     }
 
 }

@@ -21,9 +21,9 @@ under the License.
 
 <suite name="ballerina-test-suite">
 
-    <test name="asyncapi-cli-test-suite" preserve-order="true" parallel="false">
+    <test name="asyncapi-cli-test-suite" preserve-order="true" parallel="none">
         <classes>
-<!--            <class name="io.ballerina.asyncapi.cmd.AsyncAPICmdTest"/>-->
+            <class name="io.ballerina.asyncapi.cmd.AsyncAPICmdTest"/>
             <class name="io.ballerina.asyncapi.cmd.BallerinaToAsyncAPITests"/>
 <!--            <class name="io.ballerina.asyncapi.generators.asyncapi.OpenApiConverterUtilsTest"/>-->
 <!--            <class name="io.ballerina.asyncapi.generators.asyncapi.RequestBodyTest"/>-->

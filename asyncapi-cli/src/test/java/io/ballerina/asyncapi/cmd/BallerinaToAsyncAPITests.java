@@ -49,15 +49,17 @@ public class BallerinaToAsyncAPITests extends AsyncAPICommandTest {
     @Test(description = "Test ballerina to asyncApi")
     public void testBallerinaToAsyncAPIGeneration() {
         Path filePath = resourceDir.resolve(Paths.get("cmd/ballerina-to-asyncapi/ballerina-file.bal"));
-        String[] args = {"--input", filePath.toString(), "-o", this.tmpDir.toString()};
+        String[] args = {"--input", filePath.toString(), "-o", "/Users/wso2/Documents/asyncapifiles/"};
         AsyncAPICmd cmd = new AsyncAPICmd(printStream, tmpDir, false);
         new CommandLine(cmd).parseArgs(args);
 
         String output = "";
         try {
             cmd.execute();
-        } catch (BLauncherException e) {
-            output = e.getDetailedMessages().get(0);
+            output = readOutput(true);
+            Assert.assertTrue(output.trim().contains("No annotation present"));
+        } catch (BLauncherException | IOException e) {
+            output = e.toString();
             Assert.fail(output);
         }
     }

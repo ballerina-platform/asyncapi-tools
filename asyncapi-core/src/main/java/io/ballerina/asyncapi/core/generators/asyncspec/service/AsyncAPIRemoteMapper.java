@@ -22,17 +22,14 @@ package io.ballerina.asyncapi.core.generators.asyncspec.service;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
-import io.apicurio.datamodels.models.Operation;
 import io.apicurio.datamodels.models.asyncapi.v25.*;
 import io.ballerina.asyncapi.core.generators.asyncspec.diagnostic.AsyncAPIConverterDiagnostic;
 import io.ballerina.asyncapi.core.generators.asyncspec.utils.ConverterCommonUtils;
 import io.ballerina.compiler.api.SemanticModel;
-import io.ballerina.compiler.api.TypeBuilder;
 import io.ballerina.compiler.api.symbols.*;
 import io.ballerina.compiler.syntax.tree.*;
 
 import java.util.*;
-import java.util.function.Function;
 
 import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.*;
 
@@ -71,20 +68,13 @@ public class AsyncAPIRemoteMapper {
 //     * @param resources Resource list to be converted.
      * @return map of string and openApi path objects.
      */
-    public AsyncApi25ChannelsImpl getChannels(FunctionDefinitionNode resource,List<ClassDefinitionNode> classDefinitionNodes) {
-//        for (FunctionDefinitionNode resource : resources) {
-//            List<String> methods = this.getHttpMethods(resource);
+    public AsyncApi25ChannelsImpl getChannels(FunctionDefinitionNode resource,List<ClassDefinitionNode> classDefinitionNodes,String dispatcherValue) {
         String serviceClassName= getServiceClassName(resource);
-
-
         if (!serviceClassName.isEmpty()){
-
             for (ClassDefinitionNode node: classDefinitionNodes) {
-//               Optional<Symbol> clasnode= semanticModel.symbol(node);
                String testClassName1= node.className().text();
-
                 if (testClassName1.equals(serviceClassName)) {
-                    return getRemotePath(resource,node);
+                    return handleRemoteFunctions(resource,node,dispatcherValue);
                 }
             }
 
@@ -98,8 +88,8 @@ public class AsyncAPIRemoteMapper {
      *
      * @param resource The ballerina resource.
 //     * @param httpMethods   Sibling methods related to operation.
-     */
-    private AsyncApi25ChannelsImpl getRemotePath(FunctionDefinitionNode resource,ClassDefinitionNode classDefinitionNode) {
+     */     
+    private AsyncApi25ChannelsImpl handleRemoteFunctions(FunctionDefinitionNode resource, ClassDefinitionNode classDefinitionNode,String dispatcherValue) {
         String path = ConverterCommonUtils.unescapeIdentifier(generateRelativePath(resource));
         NodeList<Node> classMethodNodes= classDefinitionNode.members();
         AsyncApi25OperationImpl publishOperationItem=new AsyncApi25OperationImpl();
@@ -117,8 +107,7 @@ public class AsyncAPIRemoteMapper {
                     if (simpleNameReferenceNode!=null){
                         TypeSymbol typeSymbol = (TypeSymbol) semanticModel.symbol(simpleNameReferenceNode).orElseThrow();
                         AsyncApi25MessageImpl publishOneOf=new AsyncApi25MessageImpl();
-                        AsyncApi25MessageImpl componentMessage = extractMessageSchemaReference(publishMessage, remoteRequestTypeName, typeSymbol, publishOneOf);
-
+                        AsyncApi25MessageImpl componentMessage = extractMessageSchemaReference(publishMessage, remoteRequestTypeName, typeSymbol, publishOneOf,dispatcherValue);
                         ReturnTypeDescriptorNode remoteReturnNode = remoteFunctionNode.functionSignature().returnTypeDesc().get();
                         if (remoteReturnNode!=null) {
                             Node remoteReturnType = remoteReturnNode.type();
@@ -127,33 +116,29 @@ public class AsyncAPIRemoteMapper {
                                 TypeSymbol returnTypeSymbol = (TypeSymbol) semanticModel.symbol(remoteReturnType).orElseThrow();
                                 String remoteReturnTypeName = remoteReturnType.toString();
                                 //Creating return type message reference
-                                AsyncApi25MessageImpl componentReturnMessage= extractMessageSchemaReference(subscribeMessage, remoteReturnTypeName, returnTypeSymbol, subscribeOneOf);
+                                AsyncApi25MessageImpl componentReturnMessage = extractMessageSchemaReference(subscribeMessage, remoteReturnTypeName, returnTypeSymbol, subscribeOneOf);
                                 components.addMessage(remoteRequestTypeName, componentReturnMessage);
                                 ObjectNode messageRefObject = new ObjectNode(JsonNodeFactory.instance);
                                 messageRefObject.put($REF, MESSAGE_REFERENCE + ConverterCommonUtils.unescapeIdentifier(remoteReturnTypeName));
                                 componentMessage.addExtension(X_RESPONSE, messageRefObject);
                                 componentMessage.addExtension(X_RESPONSE_TYPE, new TextNode(SIMPLE_RPC));
                             } else if (remoteReturnType.kind().equals(SyntaxKind.STREAM_TYPE_DESC)) {
-                                String remoteReturnstreamTypeString= ((StreamTypeParamsNode)((StreamTypeDescriptorNode)remoteReturnType).streamTypeParamsNode().get()).leftTypeDescNode().toString();
+                                String remoteReturnstreamTypeString = ((StreamTypeParamsNode) ((StreamTypeDescriptorNode) remoteReturnType).streamTypeParamsNode().get()).leftTypeDescNode().toString();
 
-                                setSubscribeResponse(subscribeMessage, componentMessage, subscribeOneOf,remoteReturnstreamTypeString, STREAMING);
+                                setSubscribeResponse(subscribeMessage, componentMessage, subscribeOneOf, remoteReturnstreamTypeString, STREAMING);
 
-                            }else if(remoteReturnType instanceof BuiltinSimpleNameReferenceNode){
-                                String remoteReturnTypeString= ConverterCommonUtils.unescapeIdentifier(remoteReturnType.toString());
+                            } else if (remoteReturnType instanceof BuiltinSimpleNameReferenceNode) {
+                                String remoteReturnTypeString = ConverterCommonUtils.unescapeIdentifier(remoteReturnType.toString());
 
                                 setSubscribeResponse(subscribeMessage, componentMessage, subscribeOneOf, remoteReturnTypeString, SIMPLE_RPC);
                             }
                             components.addMessage(remoteRequestTypeName, componentMessage);
                             //TODO : Handle if remote method signature doesn't contain method name
-                        }else{
-
                         }
-
-
-                    }
-
+                    }else{
+                    throw new NoSuchElementException("Function signature must contain function method type ex:- onHeartbeat(Heartbeat message)");
                 }
-
+                }
             }
 
         }
@@ -166,16 +151,8 @@ public class AsyncAPIRemoteMapper {
         pathObject.addItem(path,channelItem);
         AsyncAPIParameterMapper asyncAPIParameterMapper = new AsyncAPIParameterMapper(resource,apiDocs, components,
                 semanticModel);
-        asyncAPIParameterMapper.getResourceInputs(channelItem,components,semanticModel);
+        asyncAPIParameterMapper.getResourceInputs(channelItem);
         return pathObject;
-
-//        Optional<OperationAdaptor> operationAdaptor = convertRemoteToOperation(resource, path);
-//        if (operationAdaptor.isPresent()) {
-//            operation = operationAdaptor.get().getOperation();
-//            generatePathItem(httpMethod, pathObject, operation, path);
-//        } else {
-//            break;
-//        }
     }
 
     private void setSubscribeResponse(AsyncApi25MessageImpl subscribeMessage, AsyncApi25MessageImpl componentMessage, AsyncApi25MessageImpl subscribeOneOf, String streamType, String responseType) {
@@ -208,10 +185,6 @@ public class AsyncAPIRemoteMapper {
             if (remoteParameterNode.kind() == SyntaxKind.REQUIRED_PARAM) {
                 RequiredParameterNode requiredParameterNode = (RequiredParameterNode) remoteParameterNode;
                 Node parameterTypeNode =requiredParameterNode.typeName();
-                SyntaxKind syntaxKind = requiredParameterNode.typeName().kind();
-//                if (parameterTypeNode.kind() == SyntaxKind.QUALIFIED_NAME_REFERENCE) {
-//                    QualifiedNameReferenceNode referenceNode = (QualifiedNameReferenceNode) parameterTypeNode;
-//                    String typeName = (referenceNode).modulePrefix().text() + ":" + (referenceNode).identifier().text();
                 if (parameterTypeNode.kind()==SyntaxKind.SIMPLE_NAME_REFERENCE) {
                     SimpleNameReferenceNode simpleNameReferenceNode=(SimpleNameReferenceNode) parameterTypeNode;
                     String simpleType= simpleNameReferenceNode.name().toString().trim();
@@ -223,17 +196,6 @@ public class AsyncAPIRemoteMapper {
         }
         return null;
     }
-//                    if (typeName.equals(WEBSOCKET_CALLER) {
-//                        RequestBody requestBody = new RequestBody();
-//                        MediaType mediaType = new MediaType();
-//                        mediaType.setSchema(new Schema<>().description(WILD_CARD_SUMMARY));
-//                        requestBody.setContent(new Content().addMediaType(WILD_CARD_CONTENT_KEY, mediaType));
-//                        operationAdaptor.getOperation().setRequestBody(requestBody);
-//                    }
-
-//                }
-
-
 
     private String getServiceClassName(FunctionDefinitionNode resource) {
         String serviceClassName="";
@@ -249,118 +211,9 @@ public class AsyncAPIRemoteMapper {
                     serviceClassName=typeDescriptorNode.toString();
                 }
             }
-
         }
         return serviceClassName;
     }
-
-//    private void generatePathItem(String httpMethod, Paths path, Operation operation, String pathName) {
-//        PathItem pathItem = new PathIte();
-//        switch (httpMethod.trim().toUpperCase(Locale.ENGLISH)) {
-//            case Constants.GET:
-//                if (pathObject.containsKey(pathName)) {
-//                    pathObject.get(pathName).setGet(operation);
-//                } else {
-//                    pathItem.setGet(operation);
-//                    path.addPathItem(pathName, pathItem);
-//                }
-//                break;
-//            case Constants.PUT:
-//                if (pathObject.containsKey(pathName)) {
-//                    pathObject.get(pathName).setPut(operation);
-//                } else {
-//                    pathItem.setPut(operation);
-//                    path.addPathItem(pathName, pathItem);
-//                }
-//                break;
-//            case Constants.POST:
-//                if (pathObject.containsKey(pathName)) {
-//                    pathObject.get(pathName).setPost(operation);
-//                } else {
-//                    pathItem.setPost(operation);
-//                    path.addPathItem(pathName, pathItem);
-//                }
-//                break;
-//            case Constants.DELETE:
-//                if (pathObject.containsKey(pathName)) {
-//                    pathObject.get(pathName).setDelete(operation);
-//                } else {
-//                    pathItem.setDelete(operation);
-//                    path.addPathItem(pathName, pathItem);
-//                }
-//                break;
-//            case Constants.OPTIONS:
-//                if (pathObject.containsKey(pathName)) {
-//                    pathObject.get(pathName).setOptions(operation);
-//                } else {
-//                    pathItem.setOptions(operation);
-//                    path.addPathItem(pathName, pathItem);
-//                }
-//                break;
-//            case Constants.PATCH:
-//                if (pathObject.containsKey(pathName)) {
-//                    pathObject.get(pathName).setPatch(operation);
-//                } else {
-//                    pathItem.setPatch(operation);
-//                    path.addPathItem(pathName, pathItem);
-//                }
-//                break;
-//            case Constants.HEAD:
-//                if (pathObject.containsKey(pathName)) {
-//                    pathObject.get(pathName).setHead(operation);
-//                } else {
-//                    pathItem.setHead(operation);
-//                    path.addPathItem(pathName, pathItem);
-//                }
-//                break;
-//            default:
-//                break;
-//        }
-//    }
-
-                /**
-                 * This method will convert ballerina @Resource to ballerina @OperationAdaptor.
-                 *
-                 * @return Operation Adaptor object of given resource
-                 */
-//    private Optional<OperationAdaptor> convertRemoteToOperation(FunctionDefinitionNode resource, String httpMethod,
-//                                                                String generateRelativePath) {
-//        OperationAdaptor op = new OperationAdaptor();
-//        op.setHttpOperation(httpMethod);
-//        op.setPath(generateRelativePath);
-//        /* Set operation id */
-//        String resName = (resource.functionName().text() + "_" +
-//                generateRelativePath).replaceAll("\\{///\\}", "_");
-//
-//        if (generateRelativePath.equals("/")) {
-//            resName = resource.functionName().text();
-//        }
-//        op.getOperation().setOperationId(getOperationId(resName));
-//        op.getOperation().setParameters(null);
-//        // Set operation summary
-//        // Map API documentation
-//        Map<String, String> apiDocs = listAPIDocumentations(resource, op);
-//        //Add path parameters if in path and query parameters
-//        AsyncAPIParameterMapper asyncAPIParameterMapper = new AsyncAPIParameterMapper(resource, op, apiDocs, components,
-//                semanticModel);
-//        asyncAPIParameterMapper.getResourceInputs(components, semanticModel);
-//        if (asyncAPIParameterMapper.getErrors().size() > 1 || (asyncAPIParameterMapper.getErrors().size() == 1 &&
-//                !asyncAPIParameterMapper.getErrors().get(0).getCode().equals("OAS_CONVERTOR_113"))) {
-//            errors.addAll(asyncAPIParameterMapper.getErrors());
-//            return Optional.empty();
-//        }
-//        errors.addAll(asyncAPIParameterMapper.getErrors());
-//
-//        AsyncAPIResponseMapper asyncAPIResponseMapper = new AsyncAPIResponseMapper(semanticModel, components,
-//                resource.location());
-//        asyncAPIResponseMapper.getResourceOutput(resource, op);
-//        if (!asyncAPIResponseMapper.getErrors().isEmpty()) {
-//            errors.addAll(asyncAPIResponseMapper.getErrors());
-//            return Optional.empty();
-//        }
-//        return Optional.of(op);
-//    }
-
                 /**
                  * Filter the API documentations from resource function node.
                  */
@@ -379,8 +232,6 @@ public class AsyncAPIRemoteMapper {
                         String resourceFunctionAPI = description.get().trim();
                         apiDocs = documentation1.parameterMap();
                         channelItem.setDescription(resourceFunctionAPI);
-
-//                        op.getOperation().setSummary(resourceFunctionAPI);
                     }
                 }
             }

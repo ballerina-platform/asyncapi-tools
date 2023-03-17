@@ -75,7 +75,7 @@ public class AsyncAPICmdTest extends AsyncAPICommandTest {
         new CommandLine(cmd).parseArgs(args);
         cmd.execute();
         String output = readOutput(true);
-        Assert.assertTrue(output.contains("An OpenAPI definition path is required to generate the service."));
+        Assert.assertTrue(output.contains("An AsyncAPI definition path is required to generate the service."));
     }
 
     @Test(description = "Test asyncapi gen-service for successful service generation")

@@ -35,6 +35,8 @@ public class Constants {
     public static final String DOUBLE = "double";
     public static final String TYPE_REFERENCE = "type_reference";
     public static final String WEBSOCKET= "websocket";
+
+    public static final String DISPATCHERKEY="dispatcherKey";
     public static final String BALLERINA = "ballerina";
     public static final String TYPEREFERENCE = "typeReference";
     public static final String HTTP_HEADER = "http:Header";
@@ -85,6 +87,8 @@ public class Constants {
     public static final String STREAMING="streaming";
 
     public static final String X_NULLABLE="x-nullable";
+
+    public static final String SERVICECONFIG="ServiceConfig";
 
     /**
      * Enum to select the Ballerina Type.

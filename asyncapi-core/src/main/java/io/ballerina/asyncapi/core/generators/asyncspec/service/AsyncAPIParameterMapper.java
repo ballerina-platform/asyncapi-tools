@@ -63,7 +63,7 @@ public class AsyncAPIParameterMapper {
     /**
      * Create {@code Parameters} model for openAPI operation.
      */
-    public void getResourceInputs(AsyncApi25ChannelItemImpl channelItem,AsyncApi25ComponentsImpl components, SemanticModel semanticModel) {
+    public void getResourceInputs(AsyncApi25ChannelItemImpl channelItem) {
 
         //Set path parameters
         NodeList<Node> pathParams = functionDefinitionNode.relativeResourcePath();

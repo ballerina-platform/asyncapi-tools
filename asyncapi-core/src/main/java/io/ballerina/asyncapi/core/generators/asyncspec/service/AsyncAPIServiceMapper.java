@@ -27,6 +27,9 @@ import io.ballerina.compiler.syntax.tree.*;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.NoSuchElementException;
+
+import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.*;
 
 /**
  * AsyncAPIServiceMapper provides functionality for reading and writing OpenApi, either to and from ballerina service, or
@@ -54,25 +57,76 @@ public class AsyncAPIServiceMapper {
      * This method will convert ballerina @Service to openApi @OpenApi object.
      *
      * @param service   - Ballerina @Service object to be map to openApi definition
-     * @param asyncApi   - OpenApi model to populate
+     * @param asyncApi   - AsyncApi model to populate
      * @return OpenApi object which represent current service.
      */
     public AsyncApi25DocumentImpl convertServiceToAsyncAPI(ServiceDeclarationNode service, List<ClassDefinitionNode>classDefinitionNodes, AsyncApi25DocumentImpl asyncApi) {
-        NodeList<Node> functions = service.members();
-//        List<FunctionDefinitionNode> resource = new ArrayList<>();
-//        for (Node function: functions) {
+        NodeList<Node> functions = service.members() ;
+
+        String dispatcherValue= extractDispatcherValue(service);
         Node function=functions.get(0);
         SyntaxKind kind = function.kind();
         if (kind.equals(SyntaxKind.RESOURCE_ACCESSOR_DEFINITION)) {
             AsyncAPIRemoteMapper resourceMapper = new AsyncAPIRemoteMapper(this.semanticModel);
-
-
-            asyncApi.setChannels(resourceMapper.getChannels((FunctionDefinitionNode)function,classDefinitionNodes));
+            asyncApi.setChannels(resourceMapper.getChannels((FunctionDefinitionNode)function,classDefinitionNodes,dispatcherValue));
             asyncApi.setComponents(resourceMapper.getComponents());
             errors.addAll(resourceMapper.getErrors());
         }
-
-
         return asyncApi;
+    }
+
+    private static String extractDispatcherValue(ServiceDeclarationNode service){
+        String dispatcherValue=null;
+        String typeName=null;
+        if(service.metadata().isPresent()) {
+            MetadataNode serviceMetadataNode = service.metadata().get();
+            NodeList<AnnotationNode> annotationNodes = serviceMetadataNode.annotations();
+            for (AnnotationNode annotationNode : annotationNodes) {
+                Node node = annotationNode.annotReference();
+                if (node instanceof QualifiedNameReferenceNode) {
+                    QualifiedNameReferenceNode qNode = (QualifiedNameReferenceNode) node;
+                    if (qNode.modulePrefix().text().equals(WEBSOCKET)) {
+                        typeName = qNode.modulePrefix().text() + ":" + qNode.identifier().text();
+                        if (typeName.equals(WEBSOCKET + ":" + SERVICECONFIG)) {
+                            SeparatedNodeList<MappingFieldNode> fields = annotationNode.annotValue().get().fields();
+                            for (MappingFieldNode field : fields) {
+                                if (field instanceof SpecificFieldNode) {
+                                    SpecificFieldNode specificFieldNode = (SpecificFieldNode) field;
+                                    String fieldName = specificFieldNode.fieldName().toString();
+                                    if (fieldName.equals(DISPATCHERKEY)) {
+                                        dispatcherValue = specificFieldNode.valueExpr().get().toString();
+                                        if (dispatcherValue != null) {
+                                            dispatcherValue = dispatcherValue.replaceAll("\"", "");
+                                            if (dispatcherValue.equals("")) {
+                                                //TODO : Give a proper name for Exception
+                                                throw new NoSuchElementException("dispatcherKey value cannot be empty");
+                                            }
+                                            return dispatcherValue;
+                                        }
+                                    }
+                                }
+                            }
+                            if (dispatcherValue == null) {
+                                throw new NoSuchElementException("No dispatcherKey field is present");
+                            }
+                        }
+                    }
+                }
+            }
+            if (typeName==null){
+                throw new NoSuchElementException("No @websocket:ServiceConfig annotation is present");
+            }
+        }else{
+            throw new NoSuchElementException("No Annotation Present");
+        }
+
+
+
+        //TODO : Print output in cmd
+//        else{
+//            System.out.println("No annotation present");
+//            throw new No
+//        }
+        return null;
     }
 }

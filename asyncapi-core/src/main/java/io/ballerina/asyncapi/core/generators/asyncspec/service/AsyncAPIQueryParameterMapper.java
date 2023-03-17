@@ -24,6 +24,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25ComponentsImpl;
 //import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25SchemaImpl;
+import io.ballerina.asyncapi.core.generators.asyncspec.Constants.AsyncAPIType;
 import io.ballerina.asyncapi.core.generators.asyncspec.model.AsyncApi25SchemaImpl;
 import io.ballerina.asyncapi.core.generators.asyncspec.utils.ConverterCommonUtils;
 import io.ballerina.compiler.api.SemanticModel;
@@ -50,15 +51,12 @@ public class AsyncAPIQueryParameterMapper {
     private final Map<String, String> apidocs;
     private final SyntaxKind[] validExpressionKind = {STRING_LITERAL, NUMERIC_LITERAL, BOOLEAN_LITERAL,
             LIST_CONSTRUCTOR, NIL_LITERAL, MAPPING_CONSTRUCTOR};
-    private final ObjectMapper test;
 
     public AsyncAPIQueryParameterMapper(Map<String, String> apidocs, AsyncApi25ComponentsImpl components,
                                         SemanticModel semanticModel) {
         this.apidocs = apidocs;
         this.components = components;
         this.semanticModel = semanticModel;
-        this.test= new ObjectMapper();
-        test.setSerializationInclusion(JsonInclude.Include.NON_DEFAULT);
     }
 
     /**
@@ -221,12 +219,11 @@ public class AsyncAPIQueryParameterMapper {
         } else {
             itemSchema = ConverterCommonUtils.getAsyncApiSchema(itemTypeNode.toString().trim());
         }
-        //TODO : Decide whether this will be another object , because of the field entity:true
-        ObjectNode obj=test.valueToTree(itemSchema);
-//            ((ObjectNode)obj.get("properties").get("offset")).remove("entity");
-//        obj.remove;
+
+        ObjectNode obj=ConverterCommonUtils.callObjectMapper().valueToTree(itemSchema);
+
         arraySchema.setItems(obj);
-//        queryParameter.schema(arraySchema);
+
         //TODO : setRequired(true) , check this is in asyncapi schema
 //        queryParameter.setRequired(true);
 
@@ -248,17 +245,13 @@ public class AsyncAPIQueryParameterMapper {
         Node node = typeNode.typeDescriptor();
         if (node.kind() == SyntaxKind.ARRAY_TYPE_DESC) { //int[]? offset
 //            ArraySchema arraySchema = new ArraySchema();
-            AsyncApi25SchemaImpl arraySchema=new AsyncApi25SchemaImpl();
-//            arraySchema.setNullable(true);
-            arraySchema.setType("array");
+            AsyncApi25SchemaImpl arraySchema=ConverterCommonUtils.getAsyncApiSchema(AsyncAPIType.ARRAY.toString());
             arraySchema.addExtension(X_NULLABLE, BooleanNode.TRUE);
             ArrayTypeDescriptorNode arrayNode = (ArrayTypeDescriptorNode) node;
             TypeDescriptorNode itemTypeNode = arrayNode.memberTypeDesc();
             AsyncApi25SchemaImpl itemSchema = ConverterCommonUtils.getAsyncApiSchema(itemTypeNode.toString().trim());
             //TODO : Decide whether this will be another object , because of the field entity:true
-            ObjectNode obj=test.valueToTree(itemSchema);
-//            ((ObjectNode)obj.get("properties").get("offset")).remove("entity");
-//        obj.remove;
+            ObjectNode obj=ConverterCommonUtils.callObjectMapper().valueToTree(itemSchema);
             arraySchema.setItems(obj);
 //            queryParameter.schema(arraySchema);
 //            queryParameter.setName(ConverterCommonUtils.unescapeIdentifier(queryParamName));

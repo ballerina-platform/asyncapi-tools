@@ -27,7 +27,7 @@ public class ErrorMessages {
 
     public static final String CLIENT_GENERATION_FAILED = "Error occurred when generating client for OpenAPI contract";
 
-    public static final String MISSING_CONTRACT_PATH = "An OpenAPI definition path is required to generate the " +
+    public static final String MISSING_CONTRACT_PATH = "An AsyncAPI definition path is required to generate the " +
             "service. \ne.g: bal asyncapi --input <OpenAPIContract> or <Ballerina file>";
 
     private ErrorMessages() {

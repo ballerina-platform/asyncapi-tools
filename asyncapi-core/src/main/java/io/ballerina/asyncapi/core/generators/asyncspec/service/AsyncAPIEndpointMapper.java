@@ -127,7 +127,7 @@ public class AsyncAPIEndpointMapper {
         return list;
     }
 
-    // Function for handle both ExplicitNewExpressionNode and ImplicitNewExpressionNode in listener.
+    // Function for handle both ExplicitNewExpressionNode in listener.
     private List<AsyncApi25ServerImpl>  extractServerForExpressionNode(SeparatedNodeList<ExpressionNode> bTypeExplicit,
                                                                     ServiceDeclarationNode service) {
         String serviceBasePath = getServiceBasePath(service);
