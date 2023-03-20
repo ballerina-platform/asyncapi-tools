@@ -39,7 +39,7 @@ import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.*;
 
 
 /**
- * This util class for processing the mapping in between ballerina record and openAPI object schema.
+ * This util class for processing the mapping in between ballerina record and asyncAPI object schema.
  *
  * @since 2.0.0
  */
@@ -208,7 +208,7 @@ public class AsyncAPIComponentMapper {
     }
 
     /**
-     * This function is to map the ballerina typeInclusion to OAS allOf composedSchema.
+     * This function is to map the ballerina typeInclusion to AsyncApiSpec allOf composedSchema.
      */
     private void mapTypeInclusionToAllOfSchema(
                                                String componentName, List<TypeSymbol> typeInclusions, Map<String,
@@ -406,10 +406,10 @@ public class AsyncAPIComponentMapper {
             } else if (union.typeKind() == TypeDescKind.MAP) {
                 MapTypeSymbol mapTypeSymbol = (MapTypeSymbol) union;
                 TypeDescKind typeDescKind = mapTypeSymbol.typeParam().typeKind();
-                AsyncApi25SchemaImpl openApiSchema = ConverterCommonUtils.getAsyncApiSchema(typeDescKind.getName());
+                AsyncApi25SchemaImpl asyncApiSchema = ConverterCommonUtils.getAsyncApiSchema(typeDescKind.getName());
                 AsyncApi25SchemaImpl objectSchema= new AsyncApi25SchemaImpl();
                 objectSchema.setType(AsyncAPIType.RECORD.toString());
-                objectSchema.setAdditionalProperties(openApiSchema);
+                objectSchema.setAdditionalProperties(asyncApiSchema);
                 property = objectSchema;
                 properties.add(property);
                 components.addSchema(parentComponentName,property);
@@ -538,7 +538,7 @@ public class AsyncAPIComponentMapper {
      *
      * TODO: Map for different array type unions (ex:float|int[] ids, float|int[]? ids)
      * `string[]? name` here it takes union member types as array and nil,fix should do with array type and map to
-     * oneOf OAS.
+     * oneOf AsyncApiSpec.
      */
     private AsyncApi25SchemaImpl getSchemaForUnionType(UnionTypeSymbol symbol, AsyncApi25SchemaImpl symbolProperty, String componentName) {
         List<TypeSymbol> typeSymbols = symbol.userSpecifiedMemberTypes();

@@ -56,15 +56,15 @@ import java.util.stream.Collectors;
 import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.*;
 
 /**
- * Utilities used in Ballerina  to OpenAPI converter.
+ * Utilities used in Ballerina  to AsyncAPI converter.
  */
 public class ConverterCommonUtils {
 
     /**
-     * Retrieves a matching OpenApi {@link Schema} for a provided ballerina type.
+     * Retrieves a matching AsyncApi {@link Schema} for a provided ballerina type.
      *
      * @param type ballerina type name as a String
-     * @return OpenApi {@link Schema} for type defined by {@code type}
+     * @return AsyncApi {@link Schema} for type defined by {@code type}
      */
     public static AsyncApi25SchemaImpl getAsyncApiSchema(String type) {
         AsyncApi25SchemaImpl schema=new AsyncApi25SchemaImpl();
@@ -88,7 +88,7 @@ public class ConverterCommonUtils {
             case Constants.BYTE_ARRAY:
             case Constants.OCTET_STREAM:
                 schema.setType(AsyncAPIType.STRING.toString());
-                schema.setFormat("uuid");
+                schema.setFormat("byte");
                 break;
             case Constants.NUMBER:
             case Constants.DECIMAL:
@@ -123,10 +123,10 @@ public class ConverterCommonUtils {
     }
 
     /**
-     * Retrieves a matching OpenApi {@link Schema} for a provided ballerina type.
+     * Retrieves a matching AsyncApi {@link Schema} for a provided ballerina type.
      *
      * @param type ballerina type with SYNTAX KIND
-     * @return OpenApi {@link Schema} for type defined by {@code type}
+     * @return AsyncApi {@link Schema} for type defined by {@code type}
      */
     public static AsyncApi25SchemaImpl getAsyncApiSchema(SyntaxKind type) {
         AsyncApi25SchemaImpl schema=new AsyncApi25SchemaImpl();
@@ -147,7 +147,7 @@ public class ConverterCommonUtils {
                 break;
             case BYTE_TYPE_DESC:
                 schema.setType("string");
-                schema.setFormat("uuid");
+                schema.setFormat("byte");
                 break;
             case DECIMAL_TYPE_DESC:
                 schema.setType("number");
@@ -167,137 +167,6 @@ public class ConverterCommonUtils {
         return schema;
     }
 
-//    /**
-//     * Generate operationId by removing special characters.
-//     *
-//     * @param operationID input function name, record name or operation Id
-//     * @return string with new generated name
-//     */
-//    public static String getOperationId(String operationID) {
-//        //For the flatten enable we need to remove first Part of valid name check
-//        // this - > !operationID.matches("\\b[a-zA-Z][a-zA-Z0-9]*\\b") &&
-//        if (operationID.matches("\\b[0-9]*\\b")) {
-//            return operationID;
-//        }
-//        String[] split = operationID.split(Constants.SPECIAL_CHAR_REGEX);
-//        StringBuilder validName = new StringBuilder();
-//        for (String part : split) {
-//            if (!part.isBlank()) {
-//                if (split.length > 1) {
-//                    part = part.substring(0, 1).toUpperCase(Locale.ENGLISH) +
-//                            part.substring(1).toLowerCase(Locale.ENGLISH);
-//                }
-//                validName.append(part);
-//            }
-//        }
-//        operationID = validName.toString();
-//        return operationID.substring(0, 1).toLowerCase(Locale.ENGLISH) + operationID.substring(1);
-//    }
-
-    /**
-     * This util function uses to take the field value from annotation field.
-     *
-     * @param annotations         - Annotation node list
-     * @param annotationReference - Annotation reference that needs to extract
-     * @param annotationField     - Annotation field name that uses to take value
-     * @return - string value of field
-     */
-    public static Optional<String> extractServiceAnnotationDetails(NodeList<AnnotationNode> annotations,
-                                                                   String annotationReference, String annotationField) {
-        for (AnnotationNode annotation : annotations) {
-            List<String> expressionNode = extractAnnotationFieldDetails(annotationReference, annotationField,
-                    annotation, null);
-            if (!expressionNode.isEmpty()) {
-                return Optional.of(expressionNode.get(0));
-            }
-        }
-        return Optional.empty();
-    }
-
-    /**
-     * This util functions is used to extract the details of annotation field.
-     *
-     * @param annotationReference Annotation reference name that need to extract
-     * @param annotationField     Annotation field name that need to extract details.
-     * @param annotation          Annotation node
-     * @return List of string
-     */
-
-    public static List<String> extractAnnotationFieldDetails(String annotationReference, String annotationField,
-                                                             AnnotationNode annotation, SemanticModel semanticModel) {
-        List<String> mediaTypes = new ArrayList<>();
-        Node annotReference = annotation.annotReference();
-        if (annotReference.toString().trim().equals(annotationReference) && annotation.annotValue().isPresent()) {
-            MappingConstructorExpressionNode listOfAnnotValue = annotation.annotValue().get();
-            for (MappingFieldNode field : listOfAnnotValue.fields()) {
-                SpecificFieldNode fieldNode = (SpecificFieldNode) field;
-                if (!((fieldNode).fieldName().toString().trim().equals(annotationField)) &&
-                        fieldNode.valueExpr().isEmpty()) {
-                    continue;
-                }
-                ExpressionNode expressionNode = fieldNode.valueExpr().get();
-                if (expressionNode instanceof ListConstructorExpressionNode) {
-                    SeparatedNodeList<Node> mimeList = ((ListConstructorExpressionNode) expressionNode).expressions();
-                    for (Object mime : mimeList) {
-                        if (!(mime instanceof BasicLiteralNode)) {
-                            continue;
-                        }
-                        mediaTypes.add(((BasicLiteralNode) mime).literalToken().text().trim().replaceAll("\"", ""));
-                    }
-                } else if (expressionNode instanceof QualifiedNameReferenceNode && semanticModel != null) {
-                    QualifiedNameReferenceNode moduleRef = (QualifiedNameReferenceNode) expressionNode;
-                    Optional<Symbol> refSymbol = semanticModel.symbol(moduleRef);
-                    if (refSymbol.isPresent() && (refSymbol.get().kind() == SymbolKind.CONSTANT)
-                            && ((ConstantSymbol) refSymbol.get()).resolvedValue().isPresent()) {
-                        String mediaType = ((ConstantSymbol) refSymbol.get()).resolvedValue().get();
-                        mediaTypes.add(mediaType.replaceAll("\"", ""));
-                    }
-                } else {
-                    mediaTypes.add(expressionNode.toString().trim().replaceAll("\"", ""));
-                }
-            }
-        }
-        return mediaTypes;
-    }
-
-    /**
-     * This function uses to take the service declaration node from given required node and return all the annotation
-     * nodes that attached to service node.
-     */
-    public static NodeList<AnnotationNode> getAnnotationNodesFromServiceNode(RequiredParameterNode headerParam) {
-        NodeList<AnnotationNode> annotations = AbstractNodeFactory.createEmptyNodeList();
-        NonTerminalNode parent = headerParam.parent();
-        while (parent.kind() != SyntaxKind.SERVICE_DECLARATION) {
-            parent = parent.parent();
-        }
-        ServiceDeclarationNode serviceNode = (ServiceDeclarationNode) parent;
-        if (serviceNode.metadata().isPresent()) {
-            MetadataNode metadataNode = serviceNode.metadata().get();
-            annotations = metadataNode.annotations();
-        }
-        return annotations;
-    }
-
-//    /**
-//     * This function for taking the specific media-type subtype prefix from http service configuration annotation.
-//     * <pre>
-//     *     @http:ServiceConfig {
-//     *          mediaTypeSubtypePrefix : "vnd.exm.sales"
-//     *  }
-//     * </pre>
-//     */
-//    public static Optional<String> extractCustomMediaType(FunctionDefinitionNode functionDefNode) {
-//        ServiceDeclarationNode serviceDefNode = (ServiceDeclarationNode) functionDefNode.parent();
-//        if (serviceDefNode.metadata().isPresent()) {
-//            MetadataNode metadataNode = serviceDefNode.metadata().get();
-//            NodeList<AnnotationNode> annotations = metadataNode.annotations();
-//            if (!annotations.isEmpty()) {
-//                return ConverterCommonUtils.extractServiceAnnotationDetails(annotations,
-//                        "http:ServiceConfig", "mediaTypeSubtypePrefix");
-//            }
-//        }
-//        return Optional.empty();
-//    }
 
     /**
      * This {@code NullLocation} represents the null location allocation for scenarios which has not location.
@@ -322,12 +191,9 @@ public class ConverterCommonUtils {
      * @param definitionURI URI for the AsyncAPI contract
      * @return {@link AsyncAPIResult}  AsyncAPI model
      */
-    public static AsyncAPIResult parseOpenAPIFile(String definitionURI) {
+    public static AsyncAPIResult parseAsyncAPIFile(String definitionURI) {
         List<AsyncAPIConverterDiagnostic> diagnostics = new ArrayList<>();
         Path contractPath = Paths.get(definitionURI);
-//        ParseOptions parseOptions = new ParseOptions();
-//        parseOptions.setResolve(true);
-//        parseOptions.setResolveFully(true);
 
         if (!Files.exists(contractPath)) {
             DiagnosticMessages error = DiagnosticMessages.AAS_CONVERTOR_103;
@@ -342,9 +208,9 @@ public class ConverterCommonUtils {
                     error.getDescription(), null);
             diagnostics.add(diagnostic);
         }
-        String openAPIFileContent = null;
+        String asyncAPIFileContent = null;
         try {
-            openAPIFileContent = Files.readString(contractPath);
+            asyncAPIFileContent = Files.readString(contractPath);
         } catch (IOException e) {
             DiagnosticMessages error = DiagnosticMessages.AAS_CONVERTOR_102;
             ExceptionDiagnostic diagnostic = new ExceptionDiagnostic(error.getCode(), error.getDescription(), null,
@@ -363,33 +229,19 @@ public class ConverterCommonUtils {
 
         AsyncApi25Document yamldoc=null;
         try {
-            ObjectNode yamlNodes= (ObjectNode) mapper.readTree(openAPIFileContent);
+            ObjectNode yamlNodes= (ObjectNode) mapper.readTree(asyncAPIFileContent);
             yamldoc= (AsyncApi25Document) Library.readDocument(yamlNodes);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
-//
-//
         List<ValidationProblem> yamlprob= Library.validate(yamldoc,null);
 
         if (!yamlprob.isEmpty()){
-//            for(int i = 0; i < yamlprob.size(); i++) {
-//                System.out.print(yamlprob.get(i).message);
-////                System.out.print(", ");
-//                x
-//            }
             DiagnosticMessages error = DiagnosticMessages.AAS_CONVERTOR_105;
             ExceptionDiagnostic diagnostic = new ExceptionDiagnostic(error.getCode(), error.getDescription(), null);
             diagnostics.add(diagnostic);
             return new AsyncAPIResult(null, diagnostics);
         }
-//        SwaggerParseResult parseResult = new OpenAPIV3Parser().readContents(openAPIFileContent, null, parseOptions);
-//        if (!parseResult.getMessages().isEmpty()) {
-//            DiagnosticMessages error = DiagnosticMessages.OAS_CONVERTOR_112;
-//            ExceptionDiagnostic diagnostic = new ExceptionDiagnostic(error.getCode(), error.getDescription(), null);
-//            diagnostics.add(diagnostic);
-//            return new AsyncAPIResult(null, diagnostics);
-//        }
         AsyncApi25Document api =yamldoc;
         return new AsyncAPIResult(api, diagnostics);
     }
@@ -470,43 +322,43 @@ public class ConverterCommonUtils {
      * Generate file name with service basePath.
      */
     public static String getAsyncApiFileName(String servicePath, String serviceName, boolean isJson) {
-        String openAPIFileName;
+        String asyncAPIFileName;
         if (serviceName.isBlank() || serviceName.equals(SLASH) || serviceName.startsWith(SLASH + HYPHEN)) {
             String[] fileName = serviceName.split(SLASH);
             // This condition is to handle `service on ep1 {} ` multiple scenarios
             if (fileName.length > 0 && !serviceName.isBlank()) {
-                openAPIFileName = FilenameUtils.removeExtension(servicePath) + fileName[1];
+                asyncAPIFileName = FilenameUtils.removeExtension(servicePath) + fileName[1];
             } else {
-                openAPIFileName = FilenameUtils.removeExtension(servicePath);
+                asyncAPIFileName = FilenameUtils.removeExtension(servicePath);
             }
         } else if (serviceName.startsWith(HYPHEN)) {
             // serviceName -> service on ep1 {} has multiple service ex: "-33456"
-            openAPIFileName = FilenameUtils.removeExtension(servicePath) + serviceName;
+            asyncAPIFileName = FilenameUtils.removeExtension(servicePath) + serviceName;
         } else {
             // Remove starting path separate if exists
             if (serviceName.startsWith(SLASH)) {
                 serviceName = serviceName.substring(1);
             }
             // Replace rest of the path separators with underscore
-            openAPIFileName = serviceName.replaceAll(SLASH, "_");
+            asyncAPIFileName = serviceName.replaceAll(SLASH, "_");
         }
 
-        return getNormalizedFileName(openAPIFileName) + Constants.ASYNC_API_SUFFIX +
+        return getNormalizedFileName(asyncAPIFileName) + Constants.ASYNC_API_SUFFIX +
                 (isJson ? JSON_EXTENSION : YAML_EXTENSION);
     }
 
     /**
      * Remove special characters from the given file name.
      */
-    public static String getNormalizedFileName(String openAPIFileName) {
+    public static String getNormalizedFileName(String asyncAPIFileName) {
 
-        String[] splitNames = openAPIFileName.split("[^a-zA-Z0-9]");
+        String[] splitNames = asyncAPIFileName.split("[^a-zA-Z0-9]");
         if (splitNames.length > 0) {
             return Arrays.stream(splitNames)
                     .filter(namePart -> !namePart.isBlank())
                     .collect(Collectors.joining(UNDERSCORE));
         }
-        return openAPIFileName;
+        return asyncAPIFileName;
     }
 
 

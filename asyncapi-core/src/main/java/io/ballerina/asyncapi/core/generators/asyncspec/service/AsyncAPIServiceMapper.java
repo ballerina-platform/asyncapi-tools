@@ -33,7 +33,7 @@ import java.util.NoSuchElementException;
 import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.*;
 
 /**
- * AsyncAPIServiceMapper provides functionality for reading and writing OpenApi, either to and from ballerina service, or
+ * AsyncAPIServiceMapper provides functionality for reading and writing AsyncApi, either to and from ballerina service, or
  * to, as well as related functionality for performing conversions between asyncapi and ballerina.
  *
  * @since 2.0.0
@@ -47,19 +47,19 @@ public class AsyncAPIServiceMapper {
     }
 
     /**
-     * Initializes a service parser for OpenApi.
+     * Initializes a service parser for AsyncApi.
      */
     public AsyncAPIServiceMapper(SemanticModel semanticModel) {
-        // Default object mapper is JSON mapper available in openApi utils.
+        // Default object mapper is JSON mapper available in asyncApi utils.
         this.semanticModel = semanticModel;
     }
 
     /**
-     * This method will convert ballerina @Service to openApi @OpenApi object.
+     * This method will convert ballerina @Service to asyncApi @AsyncApi object.
      *
-     * @param service   - Ballerina @Service object to be map to openApi definition
+     * @param service   - Ballerina @Service object to be map to asyncApi definition
      * @param asyncApi   - AsyncApi model to populate
-     * @return OpenApi object which represent current service.
+     * @return AsyncApi object which represent current service.
      */
     public AsyncApi25DocumentImpl convertServiceToAsyncAPI(ServiceDeclarationNode service, List<ClassDefinitionNode>classDefinitionNodes, AsyncApi25DocumentImpl asyncApi) {
         NodeList<Node> functions = service.members() ; //Take all resource functions

@@ -19,7 +19,7 @@
 package io.ballerina.asyncapi.core.generators.asyncspec;
 
 /**
- * Ballerina To OpenApi Service Constants.
+ * Ballerina To AsyncApi Service Constants.
  */
 public class Constants {
     public static final String ATTR_HOST = "host";
@@ -50,6 +50,7 @@ public class Constants {
     public static final String WS="ws";
     public static final String WSS="wss";
     public static final String ASYNC_API_VERSION ="2.5.0";
+    public static final String WS_PROTOCOL_VERSION="13";
 
     public static final String BINDING_VERSION="0.1.0";
 

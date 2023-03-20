@@ -213,7 +213,7 @@ public class AsyncAPICmd implements BLauncherCmd {
     }
 
     /**
-     * This util method to generate openApi contract based on the given service ballerina file.
+     * This util method to generate asyncApi contract based on the given service ballerina file.
      * @param fileName  input resource file
      */
     private void ballerinaToAsyncApi(String fileName) {

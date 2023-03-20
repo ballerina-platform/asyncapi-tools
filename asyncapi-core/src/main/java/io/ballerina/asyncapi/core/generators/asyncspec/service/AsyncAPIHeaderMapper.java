@@ -36,7 +36,7 @@ import static io.ballerina.asyncapi.core.generators.asyncspec.utils.ConverterCom
 
 
 /**
- * This class for the mapping ballerina headers with OAS header parameter sections.
+ * This class for the mapping ballerina headers with AsyncApiSpec header parameter sections.
  *
  * @since 2.0.0
  */
@@ -128,7 +128,7 @@ public class AsyncAPIHeaderMapper {
     }
 
     /**
-     * Assign header values to OAS header parameter.
+     * Assign header values to AsyncApiSpec header parameter.
      */
     private void completeHeaderParameter(String headerName, AsyncApi25SchemaImpl headerSchema, NodeList<AnnotationNode> annotations, Node node, AsyncApi25SchemaImpl bindingHeaderObject) {
 

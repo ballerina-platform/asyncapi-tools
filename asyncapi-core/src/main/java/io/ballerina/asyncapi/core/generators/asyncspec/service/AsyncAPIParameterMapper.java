@@ -37,7 +37,7 @@ import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.*;
 
 
 /**
- * AsyncAPIParameterMapper provides functionality for converting ballerina parameter to OAS parameter model.
+ * AsyncAPIParameterMapper provides functionality for converting ballerina parameter to AsyncApiSpec parameter model.
  */
 public class AsyncAPIParameterMapper {
     private final FunctionDefinitionNode functionDefinitionNode;
@@ -61,7 +61,7 @@ public class AsyncAPIParameterMapper {
 
 
     /**
-     * Create {@code Parameters} model for openAPI operation.
+     * Create {@code Parameters} model for asyncAPI operation.
      */
     public void getResourceInputs(AsyncApi25ChannelItemImpl channelItem) {
 
@@ -132,7 +132,7 @@ public class AsyncAPIParameterMapper {
     }
 
     /**
-     * Map path parameter data to OAS path parameter.
+     * Map path parameter data to AsyncApiSpec path parameter.
      */
     private AsyncApi25ParametersImpl createPathParameters( NodeList<Node> pathParams) {
         AsyncApi25ParametersImpl parameters = new AsyncApi25ParametersImpl();

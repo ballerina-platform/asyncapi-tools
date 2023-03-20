@@ -41,7 +41,7 @@ import static io.ballerina.asyncapi.core.generators.asyncspec.utils.ConverterCom
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.*;
 
 /**
- * This class processes mapping query parameters in between Ballerina and OAS.
+ * This class processes mapping query parameters in between Ballerina and AsyncAPISpec.
  *
  * @since 2.0.0
  */
@@ -72,7 +72,7 @@ public class AsyncAPIQueryParameterMapper {
 //            AsyncApi25SchemaImpl queryParameterSchema=new AsyncApi25SchemaImpl();
 //            String queryParamName= ConverterCommonUtils.unescapeIdentifier(queryParam.paramName().get().text());
             AsyncApi25SchemaImpl asyncApiQueryParamSchema = ConverterCommonUtils.getAsyncApiSchema(queryParam.typeName().toString().trim());
-//            queryParameter.setSchema(openApiSchema);
+//            queryParameter.setSchema(asyncApiSchema);
 //            queryParameter.setRequired(true);
             if (!apidocs.isEmpty() && queryParam.paramName().isPresent() && apidocs.containsKey(queryParamName)) {
                 asyncApiQueryParamSchema.setDescription(apidocs.get(queryParamName.trim()));
@@ -131,7 +131,7 @@ public class AsyncAPIQueryParameterMapper {
     }
 
     /**
-     * Create OAS query parameter for default query parameters.
+     * Create AsyncAPISpec query parameter for default query parameters.
      */
     public void createQueryParameter(DefaultableParameterNode defaultableQueryParam,AsyncApi25SchemaImpl bindingQueryObject) {
 
@@ -146,7 +146,7 @@ public class AsyncAPIQueryParameterMapper {
 
             asyncApiQueryParamDefaultSchema = ConverterCommonUtils.getAsyncApiSchema(
                     defaultableQueryParam.typeName().toString().trim());
-//            queryParameter.setSchema(openApiSchema);
+//            queryParameter.setSchema(asyncApiSchema);
             if (!apidocs.isEmpty() && defaultableQueryParam.paramName().isPresent() &&
                     apidocs.containsKey(queryParamName)) {
                 asyncApiQueryParamDefaultSchema.setDescription(apidocs.get(queryParamName.trim()));
@@ -273,9 +273,9 @@ public class AsyncAPIQueryParameterMapper {
             AsyncApi25SchemaImpl asyncApiSchema = ConverterCommonUtils.getAsyncApiSchema(node.toString().trim());
             asyncApiSchema.addExtension(X_NULLABLE, BooleanNode.TRUE);
 
-//            openApiSchema.setNullable(true);
+//            asyncApiSchema.setNullable(true);
 
-//            queryParameter.setSchema(openApiSchema);
+//            queryParameter.setSchema(asyncApiSchema);
             if (!apidocs.isEmpty() && apidocs.containsKey(queryParamName)) {
                 asyncApiSchema.setDescription(apidocs.get(queryParamName));
             }

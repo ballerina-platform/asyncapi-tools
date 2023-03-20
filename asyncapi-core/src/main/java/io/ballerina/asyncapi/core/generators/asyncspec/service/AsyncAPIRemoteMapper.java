@@ -37,7 +37,7 @@ import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.*;
 
 
 /**
- * This class will do resource mapping from ballerina to openApi.
+ * This class will do resource mapping from ballerina to asyncApi.
  *
  * @since 2.0.0
  */
@@ -54,7 +54,7 @@ public class AsyncAPIRemoteMapper {
     }
 
     /**
-     * Initializes a resource parser for openApi.
+     * Initializes a resource parser for asyncApi.
      */
     AsyncAPIRemoteMapper(SemanticModel semanticModel) {
         this.semanticModel = semanticModel;
@@ -65,10 +65,10 @@ public class AsyncAPIRemoteMapper {
         return components;
     }
     /**
-     * This method will convert ballerina resource to openApi Paths objects.
+     * This method will convert ballerina resource to asyncApi Paths objects.
      *
 //     * @param resources Resource list to be converted.
-     * @return map of string and openApi path objects.
+     * @return map of string and asyncApi path objects.
      */
     public AsyncApi25ChannelsImpl getChannels(FunctionDefinitionNode resource,List<ClassDefinitionNode> classDefinitionNodes,String dispatcherValue) {
         String serviceClassName= getServiceClassName(resource);
@@ -213,18 +213,12 @@ public class AsyncAPIRemoteMapper {
     private void setSubscribeResponse(AsyncApi25MessageImpl subscribeMessage, AsyncApi25MessageImpl componentMessage, AsyncApi25MessageImpl subscribeOneOf, String type, String responseType,String returnDescription) {
         ObjectMapper objMapper=ConverterCommonUtils.callObjectMapper();
         AsyncApi25SchemaImpl schema= ConverterCommonUtils.getAsyncApiSchema(type);
-//        ObjectNode typeMessageObject =new ObjectNode(JsonNodeFactory.instance);
-//        typeMessageObject.put(TYPE,type);
         subscribeOneOf.setPayload(objMapper.valueToTree(schema) );
         subscribeMessage.addOneOf(subscribeOneOf);
-
-//        ObjectNode typeObject = new ObjectNode(JsonNodeFactory.instance);
-//        typeObject.put(TYPE,type);
         ObjectNode payloadObject= new ObjectNode(JsonNodeFactory.instance);
         payloadObject.put(PAYLOAD,objMapper.valueToTree(schema) );
         if (returnDescription!=null) {
             payloadObject.put(DESCRIPTION,returnDescription);
-//            payloadObject.put(DESCRIPTION, returnDescription);
         }
 
         componentMessage.addExtension(X_RESPONSE,payloadObject);
@@ -249,7 +243,6 @@ public class AsyncAPIRemoteMapper {
     }
 
     private RequiredParameterNode checkParameterContainsCustomType(String customTypeName,FunctionDefinitionNode remoteFunctionNode) {
-        ArrayList remoteMethodDetails=new ArrayList();
         SeparatedNodeList<ParameterNode> remoteParameters = remoteFunctionNode.functionSignature().parameters();
         for (ParameterNode remoteParameterNode : remoteParameters) {
             if (remoteParameterNode.kind() == SyntaxKind.REQUIRED_PARAM) {

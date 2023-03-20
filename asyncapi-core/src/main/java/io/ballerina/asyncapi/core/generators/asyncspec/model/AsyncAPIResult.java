@@ -33,7 +33,7 @@ import java.util.Optional;
 
 
 /**
- * This {@code AsyncAPIResult} is used to contain OpenAPI definition in string format and error list.
+ * This {@code AsyncAPIResult} is used to contain AsyncAPI definition in string format and error list.
  *
  * @since 2.0.0
  */
@@ -44,7 +44,7 @@ public class AsyncAPIResult {
     private final List<AsyncAPIConverterDiagnostic> diagnostics;
 
     /**
-     * This constructor is used to store the details that Map of {@code OpenAPI} objects and diagnostic list.
+     * This constructor is used to store the details that Map of {@code AsyncAPI} objects and diagnostic list.
      */
     public AsyncAPIResult(AsyncApi25Document asyncAPI, List<AsyncAPIConverterDiagnostic> diagnostics) {
         this.asyncAPI = asyncAPI;

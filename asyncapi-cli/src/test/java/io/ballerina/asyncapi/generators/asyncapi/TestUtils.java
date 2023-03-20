@@ -55,10 +55,10 @@ public class TestUtils {
         Path tempDir = Files.createTempDirectory("bal-to-asyncapi-test-out-" + System.nanoTime());
         try {
             String expectedYamlContent = getStringFromGivenBalFile(RES_DIR.resolve("expected_gen"), yamlFile);
-            AsyncAPIContractGenerator openApiConverter = new AsyncAPIContractGenerator();
-            openApiConverter.generateAsyncAPIDefinitionsAllService(ballerinaFilePath, tempDir, null, false);
-            if (Files.exists(tempDir.resolve("payloadV_openapi.yaml"))) {
-                String generatedYaml = getStringFromGivenBalFile(tempDir, "payloadV_openapi.yaml");
+            AsyncAPIContractGenerator asyncApiConverter = new AsyncAPIContractGenerator();
+            asyncApiConverter.generateAsyncAPIDefinitionsAllService(ballerinaFilePath, tempDir, null, false);
+            if (Files.exists(tempDir.resolve("payloadV_asyncapi.yaml"))) {
+                String generatedYaml = getStringFromGivenBalFile(tempDir, "payloadV_asyncapi.yaml");
                 generatedYaml = (generatedYaml.trim()).replaceAll("\\s+", "");
                 expectedYamlContent = (expectedYamlContent.trim()).replaceAll("\\s+", "");
                 Assert.assertTrue(generatedYaml.contains(expectedYamlContent));
@@ -68,7 +68,7 @@ public class TestUtils {
         } catch (IOException e) {
             Assert.fail("Error while generating the service. " + e.getMessage());
         } finally {
-            deleteGeneratedFiles("payloadV_openapi.yaml", tempDir);
+            deleteGeneratedFiles("payloadV_asyncapi.yaml", tempDir);
             deleteDirectory(tempDir);
             System.gc();
         }

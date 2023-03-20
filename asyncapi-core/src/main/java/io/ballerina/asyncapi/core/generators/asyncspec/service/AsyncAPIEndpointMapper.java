@@ -175,6 +175,7 @@ public class AsyncAPIEndpointMapper {
             }
         }
         server.setProtocol(WS);
+        server.setProtocolVersion(WS_PROTOCOL_VERSION);
 //        setServerProtocol(secured,server);
         setServerVariableValues(serviceBasePath, port, host,secured, server);
         return server;

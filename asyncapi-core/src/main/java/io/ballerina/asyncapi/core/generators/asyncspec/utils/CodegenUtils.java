@@ -77,30 +77,30 @@ public final class CodegenUtils {
      * This method use for checking the duplicate files.
      *
      * @param outPath     output path for file generated
-     * @param openApiName given file name
+     * @param asyncApiName given file name
      * @return file name with duplicate number tag
      */
-    public static String resolveContractFileName(Path outPath, String openApiName, Boolean isJson) {
+    public static String resolveContractFileName(Path outPath, String asyncApiName, Boolean isJson) {
         if (outPath != null && Files.exists(outPath)) {
             final File[] listFiles = new File(String.valueOf(outPath)).listFiles();
             if (listFiles != null) {
-                openApiName = checkAvailabilityOfGivenName(openApiName, listFiles, isJson);
+                asyncApiName = checkAvailabilityOfGivenName(asyncApiName, listFiles, isJson);
             }
         }
-        return openApiName;
+        return asyncApiName;
     }
 
-    private static String checkAvailabilityOfGivenName(String openApiName, File[] listFiles, Boolean isJson) {
+    private static String checkAvailabilityOfGivenName(String asyncApiName, File[] listFiles, Boolean isJson) {
         for (File file : listFiles) {
-            if (System.console() != null && file.getName().equals(openApiName)) {
+            if (System.console() != null && file.getName().equals(asyncApiName)) {
                 String userInput = System.console().readLine("There is already a file named ' " + file.getName() +
                         "' in the target location. Do you want to overwrite the file? [y/N] ");
                 if (!Objects.equals(userInput.toLowerCase(Locale.ENGLISH), "y")) {
-                    openApiName = setGeneratedFileName(listFiles, openApiName, isJson);
+                    asyncApiName = setGeneratedFileName(listFiles, asyncApiName, isJson);
                 }
             }
         }
-        return openApiName;
+        return asyncApiName;
     }
 
     /**
