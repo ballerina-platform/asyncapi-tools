@@ -1,11 +1,21 @@
-import ballerina/openapi;
-import ballerina/http;
+import ballerina/websocket;
 
 public type Link record {
     string rel?;
     string href;
-    string[] types?;
+    Subscribe[] types?;
     string[] methods?;
+};
+
+public type Subscribe record{
+    int id?;
+    string event?;
+
+    string fdf;
+
+    string bb;
+
+    string type1;
 };
 
 public type Location record {|
@@ -17,23 +27,31 @@ public type Location record {|
     map<string[]> mapArray?;
     map<map<json>> mapMap?;
     map<string>[] arrayItemMap?;
+    string event;
 |};
 
-@openapi:ServiceInfo {
-    embed: true
-}
-service /payloadV on new http:Listener(9090) {
-    resource function get locations() returns Location {
-        return {
-            name: {"name":"Alps"},
-            id: {"id": 10},
-            addressCode: { "code" :29384.0},
-            _links: {
-                room: {
-                    href: "/snowpeak/locations/{id}/rooms",
-                    methods: ["GET"]
-                }
-            }
-        };
+map<string> Test1 = {
+    hello:"hello",
+    event:"Test"
+};
+
+@websocket:ServiceConfig{dispatcherKey: "event"}
+service /payloadV on new websocket:Listener(9090) {
+    resource function get locations/[string id]() returns websocket:Service|websocket:UpgradeError {
+        return new ChatServer();
     }
+}
+
+service class ChatServer{
+    *websocket:Service;
+
+
+    #Testing remote description
+    # + location - remote above link description
+    # + return - remote return description
+    remote function onLocation(websocket:Caller caller, Location location) returns map<string>{
+        return Test1;
+
+    }
+
 }

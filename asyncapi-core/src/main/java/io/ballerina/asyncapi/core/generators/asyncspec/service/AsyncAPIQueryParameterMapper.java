@@ -24,6 +24,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25ComponentsImpl;
 //import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25SchemaImpl;
+import io.ballerina.asyncapi.core.generators.asyncspec.Constants;
 import io.ballerina.asyncapi.core.generators.asyncspec.Constants.AsyncAPIType;
 import io.ballerina.asyncapi.core.generators.asyncspec.model.AsyncApi25SchemaImpl;
 import io.ballerina.asyncapi.core.generators.asyncspec.utils.ConverterCommonUtils;
@@ -121,12 +122,12 @@ public class AsyncAPIQueryParameterMapper {
             bindingObject.addProperty(queryParamName,schema);
 
             //TODO : Try below after figure out how to map map<json>? offset={"x":{"id":"sss"}} into asyncapi..here setAdditionalProperties() have to give an asyncapischema ,not boolean value
-//        } else {
-//            QueryParameter queryParameter = createContentTypeForMapJson(queryParamName, false);
-//            if (!apidocs.isEmpty() && queryParam.paramName().isPresent() && apidocs.containsKey(queryParamName)) {
-//                queryParameter.setDescription(apidocs.get(queryParamName.trim()));
-//            }
-//            return queryParameter;
+        } else {
+            AsyncApi25SchemaImpl schema = createContentTypeForMapJson(queryParamName, false);
+            if (!apidocs.isEmpty() && queryParam.paramName().isPresent() && apidocs.containsKey(queryParamName)) {
+                schema.setDescription(apidocs.get(queryParamName.trim()));
+            }
+            bindingObject.addProperty(queryParamName,schema);
         }
     }
 
@@ -164,12 +165,12 @@ public class AsyncAPIQueryParameterMapper {
             ArrayTypeDescriptorNode arrayNode = (ArrayTypeDescriptorNode) defaultableQueryParam.typeName();
             asyncApiQueryParamDefaultSchema= handleArrayTypeQueryParameter(queryParamName, arrayNode);
             //TODO : Try below after figure out how to map map<json>? offset={"x":{"id":"sss"}} into asyncapi..here setAdditionalProperties() have to give an asyncapischema ,not boolean value
-//        } else {
-//            queryParameter = createContentTypeForMapJson(queryParamName, false);
-//            if (!apidocs.isEmpty() && defaultableQueryParam.paramName().isPresent() &&
-//                    apidocs.containsKey(queryParamName)) {
-//                queryParameter.setDescription(apidocs.get(queryParamName.trim()));
-//            }
+        } else {
+            asyncApiQueryParamDefaultSchema = createContentTypeForMapJson(queryParamName, false);
+            if (!apidocs.isEmpty() && defaultableQueryParam.paramName().isPresent() &&
+                    apidocs.containsKey(queryParamName)) {
+                asyncApiQueryParamDefaultSchema.setDescription(apidocs.get(queryParamName.trim()));
+            }
         }
 
         if (Arrays.stream(validExpressionKind).anyMatch(syntaxKind -> syntaxKind ==
@@ -237,6 +238,7 @@ public class AsyncAPIQueryParameterMapper {
      * Handle optional query parameter.
      */
     private AsyncApi25SchemaImpl setOptionalQueryParameter(String queryParamName, OptionalTypeDescriptorNode typeNode) {
+        //TODO : If treatNilableAsOptional got fixed then add this also
 //        QueryParameter queryParameter = new QueryParameter();
 //        if (isOptional.equals(Constants.FALSE)) {
 //            queryParameter.setRequired(true);
@@ -260,15 +262,16 @@ public class AsyncAPIQueryParameterMapper {
             }
             return arraySchema;
             //TODO : Try below after figure out how to map map<json>? offset={"x":{"id":"sss"}} into asyncapi..here setAdditionalProperties() have to give an asyncapischema ,not boolean value
-//        } else if (node.kind() == SyntaxKind.MAP_TYPE_DESC) { //map<json>? offset={"x":{"id":"sss"}}
-//            queryParameter = createContentTypeForMapJson(queryParamName, true);
-////            if (isOptional.equals(Constants.FALSE)) {
-////                queryParameter.setRequired(true);
-////            }
-//            if (!apidocs.isEmpty() && apidocs.containsKey(queryParamName)) {
-//                queryParameter.setDescription(apidocs.get(queryParamName));
+        } else if (node.kind() == SyntaxKind.MAP_TYPE_DESC) { //map<json>? offset={"x":{"id":"sss"}}
+            AsyncApi25SchemaImpl mapJsonSchema= createContentTypeForMapJson(queryParamName, true);
+            //TODO : If treatNilableAsOptional got fixed then add this also
+//            if (isOptional.equals(Constants.FALSE)) {
+//                queryParameter.setRequired(true);
 //            }
-//            return queryParameter;
+            if (!apidocs.isEmpty() && apidocs.containsKey(queryParamName)) {
+                mapJsonSchema.setDescription(apidocs.get(queryParamName));
+            }
+            return mapJsonSchema;
         } else { //int? offset
             AsyncApi25SchemaImpl asyncApiSchema = ConverterCommonUtils.getAsyncApiSchema(node.toString().trim());
             asyncApiSchema.addExtension(X_NULLABLE, BooleanNode.TRUE);
@@ -283,19 +286,23 @@ public class AsyncAPIQueryParameterMapper {
         }
     }
 
-//    private AsyncApi25SchemaImpl createContentTypeForMapJson(String queryParamName, boolean nullable) {
-////        QueryParameter queryParameter = new QueryParameter();
-////        ObjectSchema objectSchema = new ObjectSchema();
-//        AsyncApi25SchemaImpl objectSchema=new AsyncApi25SchemaImpl();
-//        objectSchema.setType("object");
-//        if (nullable) {
-//            objectSchema.addExtension("x-nullable", BooleanNode.TRUE);
-//        }
+    private AsyncApi25SchemaImpl createContentTypeForMapJson(String queryParamName, boolean nullable) {
+
+        AsyncApi25SchemaImpl objectSchema=new AsyncApi25SchemaImpl();
+        objectSchema.setType("object");
+//        String queryParamString=queryParam.typeName().toString().trim();
+        //Fixme
+//        AsyncApi25SchemaImpl objectSchema=ConverterCommonUtils.getAsyncApiSchema(queryParamName);
+        if (nullable) {
+            objectSchema.addExtension(X_NULLABLE, BooleanNode.TRUE);
+        }
+        objectSchema.setAdditionalProperties(objectSchema);
+
+        return objectSchema;
+
 //        objectSchema.setAdditionalProperties();
 //        MediaType media = new MediaType();
 //        media.setSchema(objectSchema);
 //        queryParameter.setContent(new Content().addMediaType("application/json", media));
-//        queryParameter.setName(ConverterCommonUtils.unescapeIdentifier(queryParamName));
-//        return queryParameter;
-//    }
+    }
 }

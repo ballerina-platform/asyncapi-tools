@@ -40,11 +40,10 @@ under the License.
 <!--            <class name="io.ballerina.asyncapi.generators.asyncapi.HttpMethodTests"/>-->
 <!--            <class name="io.ballerina.asyncapi.generators.asyncapi.ServiceDeclarationNodesTests"/>-->
 <!--            <class name="io.ballerina.asyncapi.generators.asyncapi.ResponseHeaderTests"/>-->
-<!--            <class name="io.ballerina.asyncapi.generators.asyncapi.MapTypeTests"/>-->
+            <class name="io.ballerina.asyncapi.generators.asyncapi.MapTypeTests"/>
 <!--            <class name="io.ballerina.asyncapi.cmd.AsyncApiGenServiceCmdTest"/>-->
 <!--            <class name="io.ballerina.asyncapi.cmd.BallerinaToAsyncAPITests"/>-->
 <!--            <class name="io.ballerina.asyncapi.generators.asyncapi.DataTypeTests"/>-->
-            <!--            <class name="io.ballerina.asyncapi.generators.schema.SwaggerParserTests"/>-->
         </classes>
     </test>
 </suite>

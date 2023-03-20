@@ -135,8 +135,9 @@ public class AsyncAPIComponentMapper {
 //                if (schemas != null) {
 //                    schemas.putAll(schema);
 //                } else {
+
                 objectSchema.setDescription(typeDoc);
-                objectSchema.setAdditionalProperties(asyncApiSchema);
+                objectSchema.setAdditionalProperties(asyncApiSchema.getType()==null? objectSchema:asyncApiSchema);
                 components.addSchema(componentName,schema);
 //                }
                 break;
@@ -309,12 +310,17 @@ public class AsyncAPIComponentMapper {
 
             }
             //TODO : Have to check && !(property.getItems() instanceof ObjectNode)
-            String check=property.getType();
+//            String check=property.getType();
             if(property.getType()!=null) {
                 if (property.getType().equals(AsyncAPIType.ARRAY.toString())) {
-                    BooleanNode booleanNode = (BooleanNode) property.getExtensions().get(X_NULLABLE);
+                    BooleanNode booleanNode=null;
+                    if ((BooleanNode) property.getExtensions()!=null) {
+                        booleanNode = (BooleanNode) property.getExtensions().get(X_NULLABLE);
+                    }
                     property = mapArrayToArraySchema(field.getValue().typeDescriptor(), componentName);
-                    property.addExtension(X_NULLABLE, booleanNode);
+                    if(booleanNode!=null) {
+                        property.addExtension(X_NULLABLE, booleanNode);
+                    }
                 }
             }
             // Add API documentation for record field
@@ -351,8 +357,12 @@ public class AsyncAPIComponentMapper {
             property.setAdditionalProperties(arraySchema);
         } else {
             AsyncApi25SchemaImpl asyncApiSchema = ConverterCommonUtils.getAsyncApiSchema(typeDescKind.getName());
+            //FIXME : This is not sure but for now we are using this, if there is an additionalProperties=true
+
+            AsyncApi25SchemaImpl objectSchema= new AsyncApi25SchemaImpl();
+            objectSchema.setType(AsyncAPIType.RECORD.toString());
             //TODO : Have to consider about asyncApiSchema.getType() == null ? true : asyncApiSchema in addtionalProperties
-            property.setAdditionalProperties(asyncApiSchema);
+            property.setAdditionalProperties(asyncApiSchema.getType()==null? objectSchema: asyncApiSchema);
         }
         return property;
     }
@@ -527,8 +537,7 @@ public class AsyncAPIComponentMapper {
             arraySchema.setType(AsyncAPIType.ARRAY.toString());
             property.setItems(handleArray(arrayDimensions - 1, symbolProperty, arraySchema));
         } else {
-
-            property.setItems(new ObjectMapper().valueToTree(symbolProperty));
+            property.setItems(ConverterCommonUtils.callObjectMapper().valueToTree(symbolProperty));
         }
         return property;
     }
