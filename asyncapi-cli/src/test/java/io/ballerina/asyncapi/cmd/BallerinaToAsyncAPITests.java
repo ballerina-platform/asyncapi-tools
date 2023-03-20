@@ -56,10 +56,8 @@ public class BallerinaToAsyncAPITests extends AsyncAPICommandTest {
         String output = "";
         try {
             cmd.execute();
-            output = readOutput(true);
-            Assert.assertTrue(output.trim().contains("No annotation present"));
-        } catch (BLauncherException | IOException e) {
-            output = e.toString();
+        } catch (BLauncherException e) {
+            output = e.getDetailedMessages().get(0);
             Assert.fail(output);
         }
     }

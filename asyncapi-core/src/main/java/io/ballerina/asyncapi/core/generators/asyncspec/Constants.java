@@ -90,6 +90,12 @@ public class Constants {
 
     public static final String SERVICECONFIG="ServiceConfig";
 
+    public static final String RETURN="return";
+
+    public static final String DESCRIPTION="description";
+
+    public static final String REMOTE_DESCRIPTION="remoteDescription";
+
     /**
      * Enum to select the Ballerina Type.
      * Ballerina service, mock and client generation is available
@@ -148,6 +154,11 @@ public class Constants {
 
     public static final String WSLOCALHOST="ws://localhost";
     public static final String WSSLOCALHOST="wss://localhost";
+
+    public static final String WS_="ws://";
+
+    public static final String WSS_="wss://";
+
     public static final String FALSE = "false";
     public static final String SLASH = "/";
     public static final String HYPHEN = "-";
@@ -162,5 +173,18 @@ public class Constants {
     public static final String YML_EXTENSION = ".yml";
     public static final String PLUS = "+";
     public static final String UNDERSCORE = "_";
+
+    //Eception Constant
+    public static final String DISPATCHERKEY_TYPE_EXCEPTION= "dispatcherKey value type must be a string in a record field";
+    public static final String DISPATCHERKEY_OPTIONAL_EXCEPTION= "dispatcherKey value cannot be optional";
+    public static final String FUNCTION_SIGNATURE_ABSENT="Function signature must contain function method type ex:- onHeartbeat(Heartbeat message)";
+    public static final String FUNCTION_WRONG_NAME="Function name must be start with 'on' ex-onHeartBeat,onTest";
+    public static final String NO_ANNOTATION_PRESENT="No Annotation Present use @websocket:ServiceConfig{dispatcherKey: \"event\"}";
+
+    public static final String NO_WEBSOCKET_SERVICE_CONFIG_ANNOTATION="No @websocket:ServiceConfig{dispatcherKey: \"event\"} annotation is present";
+
+    public static final String NO_DISPATCHER_KEY="No dispatcherKey field is present in @websocket:ServiceConfig annotation";
+
+    public static final String DISPATCHER_KEY_VALUE_CANNOT_BE_EMPTY="dispatcherKey value cannot be empty";
 
 }

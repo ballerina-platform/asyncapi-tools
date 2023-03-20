@@ -30,7 +30,7 @@ under the License.
 <!--            <class name="io.ballerina.asyncapi.generators.asyncapi.RecordTests"/>-->
 <!--            <class name="io.ballerina.asyncapi.generators.asyncapi.ResponseTests"/>-->
 <!--            <class name="io.ballerina.asyncapi.generators.asyncapi.APIDocTests"/>-->
-<!--            <class name="io.ballerina.asyncapi.generators.asyncapi.EnumTypeTests"/>-->
+            <class name="io.ballerina.asyncapi.generators.asyncapi.EnumTypeTests"/>
 <!--            <class name="io.ballerina.asyncapi.generators.asyncapi.ListenerTests"/>-->
 <!--            <class name="io.ballerina.asyncapi.generators.asyncapi.ModuleReferenceTests"/>-->
 <!--            <class name="io.ballerina.asyncapi.generators.asyncapi.HeaderTests"/>-->

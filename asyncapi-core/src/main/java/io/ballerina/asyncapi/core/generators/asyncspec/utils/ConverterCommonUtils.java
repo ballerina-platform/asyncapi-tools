@@ -517,7 +517,7 @@ public class ConverterCommonUtils {
 
     public static String unescapeIdentifier(String parameterName) {
         String unescapedParamName = IdentifierUtils.unescapeBallerina(parameterName);
-        return unescapedParamName.replaceAll("\\\\", "").replaceAll("'", "");
+        return unescapedParamName.trim().replaceAll("\\\\", "").replaceAll("'", "");
     }
 
     public static ObjectMapper callObjectMapper(){

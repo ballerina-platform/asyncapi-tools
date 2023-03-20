@@ -68,7 +68,7 @@ public class AsyncAPIParameterMapper {
         //Set path parameters
         NodeList<Node> pathParams = functionDefinitionNode.relativeResourcePath();
         channelItem.setParameters(createPathParameters( pathParams));
-        // Set query parameters, headers and requestBody
+        // Set query parameters, headers
         FunctionSignatureNode functionSignature = functionDefinitionNode.functionSignature();
         SeparatedNodeList<ParameterNode> parameterList = functionSignature.parameters();
         if (!parameterList.isEmpty()){
@@ -138,30 +138,30 @@ public class AsyncAPIParameterMapper {
         AsyncApi25ParametersImpl parameters = new AsyncApi25ParametersImpl();
         for (Node param: pathParams) {
             if (param instanceof ResourcePathParameterNode) {
-                AsyncApi25ParameterImpl pathParameterOAS = new AsyncApi25ParameterImpl();
+                AsyncApi25ParameterImpl pathParameterAAS = new AsyncApi25ParameterImpl();
                 ResourcePathParameterNode pathParam = (ResourcePathParameterNode) param;
                 if (pathParam.typeDescriptor().kind() == SyntaxKind.SIMPLE_NAME_REFERENCE) {
                     SimpleNameReferenceNode queryNode = (SimpleNameReferenceNode) pathParam.typeDescriptor();
                     AsyncAPIComponentMapper componentMapper = new AsyncAPIComponentMapper(components);
                     TypeSymbol typeSymbol = (TypeSymbol) semanticModel.symbol(queryNode).orElseThrow();
-                    componentMapper.createComponentSchema(typeSymbol);
+                    componentMapper.createComponentSchema(typeSymbol,null);
                     AsyncApi25SchemaImpl schema = new AsyncApi25SchemaImpl();
                     schema.set$ref(SCHEMA_REFERENCE+ConverterCommonUtils.unescapeIdentifier(queryNode.name().text().trim()));
-                    pathParameterOAS.setSchema(schema);
+                    pathParameterAAS.setSchema(schema);
                 } else {
-                    pathParameterOAS.setSchema(ConverterCommonUtils.getAsyncApiSchema(
+                    pathParameterAAS.setSchema(ConverterCommonUtils.getAsyncApiSchema(
                             pathParam.typeDescriptor().toString().trim()));
                 }
 
                 // Check the parameter has doc
                 if (!apidocs.isEmpty() && apidocs.containsKey(pathParam.paramName().get().text().trim())) {
-                    pathParameterOAS.setDescription(apidocs.get(pathParam.paramName().get().text().trim()));
+                    pathParameterAAS.setDescription(apidocs.get(pathParam.paramName().get().text().trim()));
                 }
                 // Set param description
                 //TODO : Do we have to set required:true?
-//                pathParameterOAS.setRequired(true);
+//                pathParameterAAS.setRequired(true);
                 String parameterItemName=ConverterCommonUtils.unescapeIdentifier(pathParam.paramName().get().text());
-                parameters.addItem(parameterItemName,pathParameterOAS);
+                parameters.addItem(parameterItemName,pathParameterAAS);
             }
         }
         return parameters;

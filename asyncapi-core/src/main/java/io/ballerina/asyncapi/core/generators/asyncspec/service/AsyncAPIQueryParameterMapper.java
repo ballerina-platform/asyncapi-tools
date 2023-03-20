@@ -108,7 +108,7 @@ public class AsyncAPIQueryParameterMapper {
             SimpleNameReferenceNode queryNode = (SimpleNameReferenceNode) queryParam.typeName();
             AsyncAPIComponentMapper componentMapper = new AsyncAPIComponentMapper(components);
             TypeSymbol typeSymbol = (TypeSymbol) semanticModel.symbol(queryNode).orElseThrow();
-            componentMapper.createComponentSchema( typeSymbol);
+            componentMapper.createComponentSchema( typeSymbol,null);
             AsyncApi25SchemaImpl schema = new AsyncApi25SchemaImpl();
             schema.set$ref(SCHEMA_REFERENCE+ ConverterCommonUtils.unescapeIdentifier(queryNode.name().text().trim()));
 //            queryParameter.setSchema(schema);

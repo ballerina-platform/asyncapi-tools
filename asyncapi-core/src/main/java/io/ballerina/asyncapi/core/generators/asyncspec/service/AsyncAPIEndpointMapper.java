@@ -199,7 +199,12 @@ public class AsyncAPIEndpointMapper {
         if (host != null && port != null ) {
 
             AsyncApi25ServerVariable serverUrlVariable= server.createServerVariable();
-            serverUrlVariable.setDefault(host);
+            if (secured.equals(TRUE)){
+                serverUrlVariable.setDefault(WSS_+host);
+            }else{
+                serverUrlVariable.setDefault(WS_+host);
+
+            }
             AsyncApi25ServerVariable portVariable = server.createServerVariable();
             portVariable.setDefault( port);
             server.addVariable(SERVER,serverUrlVariable);
@@ -239,12 +244,13 @@ public class AsyncAPIEndpointMapper {
             SeparatedNodeList<MappingFieldNode> recordFields = bLangRecordLiteral.fields();
             for (MappingFieldNode filed: recordFields) {
                 if (filed instanceof SpecificFieldNode) {
-                    Node fieldName = ((SpecificFieldNode) filed).fieldName();
-                    if (fieldName.toString().equals(ATTR_HOST)) {
+                    Node fieldNode = ((SpecificFieldNode) filed).fieldName();
+                    String fieldName=ConverterCommonUtils.unescapeIdentifier(fieldNode.toString());
+                    if (fieldName.trim().toString().equals(ATTR_HOST)) {
                         if (((SpecificFieldNode) filed).valueExpr().isPresent()) {
                             host = ((SpecificFieldNode) filed).valueExpr().get().toString();
                         }
-                    } else if (fieldName.toString().equals(SECURE_SOCKET)) {
+                    } else if (fieldName.trim().toString().equals(SECURE_SOCKET)) {
                         secured=TRUE;
 
                     }
@@ -257,8 +263,6 @@ public class AsyncAPIEndpointMapper {
         }
         returnValues.add(host);
         returnValues.add(secured);
-
-
 
         return returnValues;
     }

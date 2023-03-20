@@ -19,6 +19,7 @@
 
 package io.ballerina.asyncapi.core.generators.asyncspec.service;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
@@ -26,6 +27,7 @@ import io.apicurio.datamodels.models.asyncapi.v25.*;
 import io.ballerina.asyncapi.core.generators.asyncspec.diagnostic.AsyncAPIConverterDiagnostic;
 import io.ballerina.asyncapi.core.generators.asyncspec.utils.ConverterCommonUtils;
 import io.ballerina.compiler.api.SemanticModel;
+import io.ballerina.compiler.api.TypeBuilder;
 import io.ballerina.compiler.api.symbols.*;
 import io.ballerina.compiler.syntax.tree.*;
 
@@ -100,53 +102,87 @@ public class AsyncAPIRemoteMapper {
             if (node.kind().equals(SyntaxKind.OBJECT_METHOD_DEFINITION)){
                 FunctionDefinitionNode remoteFunctionNode= (FunctionDefinitionNode)node;
                 String functionName= remoteFunctionNode.functionName().toString();
-                if (functionName.startsWith(ON)){
+                if (functionName.startsWith(ON)) {
                     //TODO : have to pass this through unescape identifier
-                    String remoteRequestTypeName=functionName.substring(2);
-                    SimpleNameReferenceNode simpleNameReferenceNode=checkParameterContainsCustomType(remoteRequestTypeName,remoteFunctionNode);
-                    if (simpleNameReferenceNode!=null){
-                        TypeSymbol typeSymbol = (TypeSymbol) semanticModel.symbol(simpleNameReferenceNode).orElseThrow();
-                        AsyncApi25MessageImpl publishOneOf=new AsyncApi25MessageImpl();
-                        AsyncApi25MessageImpl componentMessage = extractMessageSchemaReference(publishMessage, remoteRequestTypeName, typeSymbol, publishOneOf,dispatcherValue);
-                        ReturnTypeDescriptorNode remoteReturnNode = remoteFunctionNode.functionSignature().returnTypeDesc().get();
-                        if (remoteReturnNode!=null) {
-                            Node remoteReturnType = remoteReturnNode.type();
+                    String remoteRequestTypeName = ConverterCommonUtils.unescapeIdentifier(functionName.substring(2));
+                    RequiredParameterNode requiredParameterNode = checkParameterContainsCustomType(remoteRequestTypeName, remoteFunctionNode);
+                    if (requiredParameterNode != null) {
+                        String paramName=requiredParameterNode.paramName().get().toString();
+                        Node parameterTypeNode =requiredParameterNode.typeName();
+                        TypeSymbol remoteFunctionNameTypeSymbol = (TypeSymbol) semanticModel.symbol(parameterTypeNode).orElseThrow();
+                        AsyncApi25MessageImpl publishOneOf = new AsyncApi25MessageImpl();
+
+
+                        FunctionSymbol remoteFunctionSymbol = (FunctionSymbol) semanticModel.symbol(remoteFunctionNode).get();
+                        Map<String, String> remoteDocs = getRemoteDocumentation(remoteFunctionSymbol);
+
+                        String paramDescription=null;
+                        if( remoteDocs.containsKey(paramName)) {
+                            paramDescription=remoteDocs.get(paramName);
+                            remoteDocs.remove(paramName);
+
+                        }
+                        AsyncApi25MessageImpl componentMessage = extractMessageSchemaReference(publishMessage, remoteRequestTypeName, remoteFunctionNameTypeSymbol, publishOneOf, dispatcherValue,paramDescription);
+                        if(remoteDocs.containsKey(REMOTE_DESCRIPTION)) {
+                            componentMessage.setDescription(remoteDocs.get(REMOTE_DESCRIPTION));
+                            remoteDocs.remove(REMOTE_DESCRIPTION);
+                        }
+                        Optional<ReturnTypeDescriptorNode> optionalRemoteReturnNode = remoteFunctionNode.functionSignature().returnTypeDesc();
+                        if (optionalRemoteReturnNode.isPresent()) {
+                            Node remoteReturnType = optionalRemoteReturnNode.get().type();
                             AsyncApi25MessageImpl subscribeOneOf = new AsyncApi25MessageImpl();
+                            String returnDescription=null;
+                            if (remoteDocs.containsKey(RETURN)) {
+                                returnDescription=remoteDocs.get(RETURN);
+                                remoteDocs.remove(RETURN);
+                            }
                             if (remoteReturnType.kind().equals(SyntaxKind.SIMPLE_NAME_REFERENCE)) {
                                 TypeSymbol returnTypeSymbol = (TypeSymbol) semanticModel.symbol(remoteReturnType).orElseThrow();
-                                String remoteReturnTypeName = remoteReturnType.toString();
+                                String remoteReturnTypeName = ConverterCommonUtils.unescapeIdentifier(remoteReturnType.toString());
                                 //Creating return type message reference
-                                AsyncApi25MessageImpl componentReturnMessage = extractMessageSchemaReference(subscribeMessage, remoteReturnTypeName, returnTypeSymbol, subscribeOneOf);
-                                components.addMessage(remoteRequestTypeName, componentReturnMessage);
+                                AsyncApi25MessageImpl componentReturnMessage = extractMessageSchemaReference(subscribeMessage, remoteReturnTypeName, returnTypeSymbol, subscribeOneOf, dispatcherValue, null);
+                                components.addMessage(remoteReturnTypeName, componentReturnMessage);
+                                AsyncApi25Components test = components;
                                 ObjectNode messageRefObject = new ObjectNode(JsonNodeFactory.instance);
                                 messageRefObject.put($REF, MESSAGE_REFERENCE + ConverterCommonUtils.unescapeIdentifier(remoteReturnTypeName));
+                                if (returnDescription!=null) {
+                                    messageRefObject.put(DESCRIPTION, returnDescription);
+                                }
                                 componentMessage.addExtension(X_RESPONSE, messageRefObject);
                                 componentMessage.addExtension(X_RESPONSE_TYPE, new TextNode(SIMPLE_RPC));
                             } else if (remoteReturnType.kind().equals(SyntaxKind.STREAM_TYPE_DESC)) {
-                                String remoteReturnstreamTypeString = ((StreamTypeParamsNode) ((StreamTypeDescriptorNode) remoteReturnType).streamTypeParamsNode().get()).leftTypeDescNode().toString();
+                                String remoteReturnstreamTypeString = ((StreamTypeParamsNode) ((StreamTypeDescriptorNode) remoteReturnType).streamTypeParamsNode().get()).leftTypeDescNode().toString().trim();
 
-                                setSubscribeResponse(subscribeMessage, componentMessage, subscribeOneOf, remoteReturnstreamTypeString, STREAMING);
+                                setSubscribeResponse(subscribeMessage, componentMessage, subscribeOneOf, remoteReturnstreamTypeString, STREAMING,returnDescription);
 
                             } else if (remoteReturnType instanceof BuiltinSimpleNameReferenceNode) {
                                 String remoteReturnTypeString = ConverterCommonUtils.unescapeIdentifier(remoteReturnType.toString());
 
-                                setSubscribeResponse(subscribeMessage, componentMessage, subscribeOneOf, remoteReturnTypeString, SIMPLE_RPC);
+                                setSubscribeResponse(subscribeMessage, componentMessage, subscribeOneOf, remoteReturnTypeString, SIMPLE_RPC,returnDescription);
                             }
-                            components.addMessage(remoteRequestTypeName, componentMessage);
-                            //TODO : Handle if remote method signature doesn't contain method name
                         }
-                    }else{
-                    throw new NoSuchElementException("Function signature must contain function method type ex:- onHeartbeat(Heartbeat message)");
-                }
+                        components.addMessage(remoteRequestTypeName, componentMessage);
+
+                    } else {
+                        throw new NoSuchElementException(FUNCTION_SIGNATURE_ABSENT);
+                    }
+
+                }else{
+                    throw new NoSuchElementException(FUNCTION_WRONG_NAME);
                 }
             }
 
         }
-        publishOperationItem.setMessage(publishMessage);
-        subscribeOperationItem.setMessage(subscribeMessage);
         AsyncApi25ChannelItemImpl channelItem= (AsyncApi25ChannelItemImpl) pathObject.createChannelItem();
-        channelItem.setSubscribe(subscribeOperationItem);
-        channelItem.setPublish(publishOperationItem);
+        if(publishMessage.getOneOf()!=null){
+            publishOperationItem.setMessage(publishMessage);
+            channelItem.setPublish(publishOperationItem);
+
+        }
+        if(subscribeMessage.getOneOf()!=null){
+            subscribeOperationItem.setMessage(subscribeMessage);
+            channelItem.setSubscribe(subscribeOperationItem);
+        }
         Map<String, String> apiDocs = listAPIDocumentations(resource,channelItem);
         pathObject.addItem(path,channelItem);
         AsyncAPIParameterMapper asyncAPIParameterMapper = new AsyncAPIParameterMapper(resource,apiDocs, components,
@@ -155,41 +191,76 @@ public class AsyncAPIRemoteMapper {
         return pathObject;
     }
 
-    private void setSubscribeResponse(AsyncApi25MessageImpl subscribeMessage, AsyncApi25MessageImpl componentMessage, AsyncApi25MessageImpl subscribeOneOf, String streamType, String responseType) {
-        ObjectNode typeMessageObject =new ObjectNode(JsonNodeFactory.instance);
-        typeMessageObject.put(TYPE,streamType);
-        subscribeOneOf.setPayload(typeMessageObject );
+    private Map<String, String> getRemoteDocumentation(FunctionSymbol remoteFunctionSymbol) {
+        Map<String, String> apiDocs = new HashMap<>();
+        Optional<Documentation> documentation=remoteFunctionSymbol.documentation();
+        if(documentation.isPresent()) {
+            apiDocs = documentation.get().parameterMap();
+            if(documentation.get().returnDescription().isPresent()) {
+                apiDocs.put(RETURN, documentation.get().returnDescription().get());
+            }
+
+            if (documentation.get().description().isPresent()) {
+                Optional<String> description = (documentation.get().description());
+                if(description.isPresent() && !description.get().toString().isEmpty()) {
+                    apiDocs.put(REMOTE_DESCRIPTION, (description.get().trim()));
+                }
+            }
+        }
+        return apiDocs;
+    }
+
+    private void setSubscribeResponse(AsyncApi25MessageImpl subscribeMessage, AsyncApi25MessageImpl componentMessage, AsyncApi25MessageImpl subscribeOneOf, String type, String responseType,String returnDescription) {
+        ObjectMapper objMapper=ConverterCommonUtils.callObjectMapper();
+        AsyncApi25SchemaImpl schema= ConverterCommonUtils.getAsyncApiSchema(type);
+//        ObjectNode typeMessageObject =new ObjectNode(JsonNodeFactory.instance);
+//        typeMessageObject.put(TYPE,type);
+        subscribeOneOf.setPayload(objMapper.valueToTree(schema) );
         subscribeMessage.addOneOf(subscribeOneOf);
-        ObjectNode typeObject = new ObjectNode(JsonNodeFactory.instance);
-        typeObject.put(TYPE,streamType);
+
+//        ObjectNode typeObject = new ObjectNode(JsonNodeFactory.instance);
+//        typeObject.put(TYPE,type);
         ObjectNode payloadObject= new ObjectNode(JsonNodeFactory.instance);
-        payloadObject.put(PAYLOAD,typeObject);
-        componentMessage.addExtension(X_RESPONSE, payloadObject);
+        payloadObject.put(PAYLOAD,objMapper.valueToTree(schema) );
+        if (returnDescription!=null) {
+            payloadObject.put(DESCRIPTION,returnDescription);
+//            payloadObject.put(DESCRIPTION, returnDescription);
+        }
+
+        componentMessage.addExtension(X_RESPONSE,payloadObject);
         componentMessage.addExtension(X_RESPONSE_TYPE, new TextNode(responseType));
     }
 
-    private AsyncApi25MessageImpl extractMessageSchemaReference(AsyncApi25MessageImpl publishMessage, String typeName, TypeSymbol typeSymbol, AsyncApi25MessageImpl messageType) {
+    private AsyncApi25MessageImpl extractMessageSchemaReference(AsyncApi25MessageImpl message, String typeName, TypeSymbol typeSymbol, AsyncApi25MessageImpl messageType,String dispatcherValue,String paramDescription) {
+        componentMapper.createComponentSchema( typeSymbol,dispatcherValue);
         messageType.set$ref(MESSAGE_REFERENCE+ ConverterCommonUtils.unescapeIdentifier(typeName));
-        publishMessage.addOneOf(messageType);
+        message.addOneOf(messageType);
         AsyncApi25MessageImpl componentMessage= (AsyncApi25MessageImpl) components.createMessage();
         ObjectNode objNode1=new ObjectNode(JsonNodeFactory.instance);
         objNode1.put($REF,SCHEMA_REFERENCE+ ConverterCommonUtils.unescapeIdentifier(typeName));
+        if(paramDescription!=null) {
+            objNode1.put(DESCRIPTION, paramDescription);
+        }
+
+
         componentMessage.setPayload(objNode1);
-        componentMapper.createComponentSchema( typeSymbol);
+
         return componentMessage;
     }
 
-    private SimpleNameReferenceNode checkParameterContainsCustomType(String customTypeName,FunctionDefinitionNode remoteFunctionNode) {
+    private RequiredParameterNode checkParameterContainsCustomType(String customTypeName,FunctionDefinitionNode remoteFunctionNode) {
+        ArrayList remoteMethodDetails=new ArrayList();
         SeparatedNodeList<ParameterNode> remoteParameters = remoteFunctionNode.functionSignature().parameters();
         for (ParameterNode remoteParameterNode : remoteParameters) {
             if (remoteParameterNode.kind() == SyntaxKind.REQUIRED_PARAM) {
                 RequiredParameterNode requiredParameterNode = (RequiredParameterNode) remoteParameterNode;
+
                 Node parameterTypeNode =requiredParameterNode.typeName();
                 if (parameterTypeNode.kind()==SyntaxKind.SIMPLE_NAME_REFERENCE) {
                     SimpleNameReferenceNode simpleNameReferenceNode=(SimpleNameReferenceNode) parameterTypeNode;
                     String simpleType= simpleNameReferenceNode.name().toString().trim();
                     if (simpleType.equals(customTypeName)) {
-                        return simpleNameReferenceNode;
+                        return requiredParameterNode;
                     }
                 }
             }

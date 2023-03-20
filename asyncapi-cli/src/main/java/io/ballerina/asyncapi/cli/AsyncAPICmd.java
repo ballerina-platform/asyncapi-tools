@@ -187,7 +187,7 @@ public class AsyncAPICmd implements BLauncherCmd {
                     exitError(this.exitWhenFinish);
                 }
                 try{
-                ballerinaToOpenApi(fileName);
+                ballerinaToAsyncApi(fileName);
 
                 }catch (Exception exception){
                     if(exception instanceof NoSuchElementException){
@@ -216,7 +216,7 @@ public class AsyncAPICmd implements BLauncherCmd {
      * This util method to generate openApi contract based on the given service ballerina file.
      * @param fileName  input resource file
      */
-    private void ballerinaToOpenApi(String fileName) {
+    private void ballerinaToAsyncApi(String fileName) {
         List<AsyncAPIConverterDiagnostic> errors = new ArrayList<>();
         final File balFile = new File(fileName);
         Path balFilePath = null;

@@ -19,6 +19,7 @@
 
 package io.ballerina.asyncapi.core.generators.asyncspec.service;
 
+import io.apicurio.datamodels.models.asyncapi.AsyncApiComponents;
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25DocumentImpl;
 import io.ballerina.asyncapi.core.generators.asyncspec.diagnostic.AsyncAPIConverterDiagnostic;
 import io.ballerina.compiler.api.SemanticModel;
@@ -61,14 +62,15 @@ public class AsyncAPIServiceMapper {
      * @return OpenApi object which represent current service.
      */
     public AsyncApi25DocumentImpl convertServiceToAsyncAPI(ServiceDeclarationNode service, List<ClassDefinitionNode>classDefinitionNodes, AsyncApi25DocumentImpl asyncApi) {
-        NodeList<Node> functions = service.members() ;
+        NodeList<Node> functions = service.members() ; //Take all resource functions
 
-        String dispatcherValue= extractDispatcherValue(service);
-        Node function=functions.get(0);
+        String dispatcherValue= extractDispatcherValue(service); //Take dispatcherValue from @websocket:ServiceConfig annotation
+        Node function=functions.get(0); //Since there is only one resource function
         SyntaxKind kind = function.kind();
         if (kind.equals(SyntaxKind.RESOURCE_ACCESSOR_DEFINITION)) {
             AsyncAPIRemoteMapper resourceMapper = new AsyncAPIRemoteMapper(this.semanticModel);
             asyncApi.setChannels(resourceMapper.getChannels((FunctionDefinitionNode)function,classDefinitionNodes,dispatcherValue));
+            AsyncApiComponents test= resourceMapper.getComponents();
             asyncApi.setComponents(resourceMapper.getComponents());
             errors.addAll(resourceMapper.getErrors());
         }
@@ -99,7 +101,7 @@ public class AsyncAPIServiceMapper {
                                             dispatcherValue = dispatcherValue.replaceAll("\"", "");
                                             if (dispatcherValue.equals("")) {
                                                 //TODO : Give a proper name for Exception
-                                                throw new NoSuchElementException("dispatcherKey value cannot be empty");
+                                                throw new NoSuchElementException(DISPATCHER_KEY_VALUE_CANNOT_BE_EMPTY);
                                             }
                                             return dispatcherValue;
                                         }
@@ -107,17 +109,17 @@ public class AsyncAPIServiceMapper {
                                 }
                             }
                             if (dispatcherValue == null) {
-                                throw new NoSuchElementException("No dispatcherKey field is present");
+                                throw new NoSuchElementException(NO_DISPATCHER_KEY);
                             }
                         }
                     }
                 }
             }
             if (typeName==null){
-                throw new NoSuchElementException("No @websocket:ServiceConfig annotation is present");
+                throw new NoSuchElementException(NO_WEBSOCKET_SERVICE_CONFIG_ANNOTATION);
             }
         }else{
-            throw new NoSuchElementException("No Annotation Present");
+            throw new NoSuchElementException(NO_ANNOTATION_PRESENT);
         }
 
 
