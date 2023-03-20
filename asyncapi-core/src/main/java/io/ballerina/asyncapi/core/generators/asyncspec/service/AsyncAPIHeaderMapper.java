@@ -17,7 +17,6 @@
  */
 package io.ballerina.asyncapi.core.generators.asyncspec.service;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.BooleanNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -41,10 +40,10 @@ import static io.ballerina.asyncapi.core.generators.asyncspec.utils.ConverterCom
  * @since 2.0.0
  */
 public class AsyncAPIHeaderMapper {
-    private final Map<String, String> apidocs;
+    private final Map<String, String> apiDocs;
 
-    public AsyncAPIHeaderMapper(Map<String, String> apidocs) {
-        this.apidocs = apidocs;
+    public AsyncAPIHeaderMapper(Map<String, String> apiDocs) {
+        this.apiDocs = apiDocs;
 
     }
 
@@ -54,10 +53,13 @@ public class AsyncAPIHeaderMapper {
      * @param headerParam    -  {@link RequiredParameterNode} type header parameter node
      */
     public void setHeaderParameter(RequiredParameterNode headerParam,AsyncApi25SchemaImpl bindingHeaderObject) {
-        String headerName = unescapeIdentifier(extractHeaderName(headerParam));
-        Node node = headerParam.typeName();
-        AsyncApi25SchemaImpl headerTypeSchema = ConverterCommonUtils.getAsyncApiSchema(getHeaderType(headerParam));
-        //TODO : If there "http:ServiceConfig", "treatNilableAsOptional" uncomment below codes and then implement it
+        String extractedHeaderName= extractHeaderName(headerParam);
+        if(extractedHeaderName!=null) {
+            String headerName = unescapeIdentifier(extractedHeaderName);
+
+            Node node = headerParam.typeName();
+            AsyncApi25SchemaImpl headerTypeSchema = ConverterCommonUtils.getAsyncApiSchema(getHeaderType(headerParam));
+            //TODO : If there "http:ServiceConfig", "treatNilableAsOptional" uncomment below codes and then implement it
 //        NodeList<AnnotationNode> annotations = getAnnotationNodesFromServiceNode(headerParam);
 //        String isOptional = Constants.TRUE;
 //        if (!annotations.isEmpty()) {
@@ -67,19 +69,25 @@ public class AsyncAPIHeaderMapper {
 //                isOptional = values.get();
 //            }
 //        }
-        enableHeaderRequiredOption(node, headerTypeSchema);
-        if (apidocs != null && apidocs.containsKey(headerName)) {
-            headerTypeSchema.setDescription(apidocs.get(headerName.trim()));
+            enableHeaderRequiredOption(node, headerTypeSchema);
+            if (apiDocs != null && apiDocs.containsKey(headerName)) {
+                headerTypeSchema.setDescription(apiDocs.get(headerName.trim()));
+            }
+            completeHeaderParameter(headerName, headerTypeSchema, headerParam.annotations(),
+                    headerParam.typeName(), bindingHeaderObject);
         }
-        completeHeaderParameter(headerName,  headerTypeSchema, headerParam.annotations(),
-                headerParam.typeName(),bindingHeaderObject);
     }
 
     private String extractHeaderName(ParameterNode headerParam) {
         if (headerParam instanceof DefaultableParameterNode) {
-            return ((DefaultableParameterNode) headerParam).paramName().get().text().replaceAll("\\\\", "");
+            if (((DefaultableParameterNode) headerParam).paramName().isPresent()) {
+                return ((DefaultableParameterNode) headerParam).paramName().get().text().replaceAll("\\\\", "");
+            }
         }
-        return ((RequiredParameterNode) headerParam).paramName().get().text().replaceAll("\\\\", "");
+        if(((RequiredParameterNode) headerParam).paramName().isPresent()) {
+            return ((RequiredParameterNode) headerParam).paramName().get().text().replaceAll("\\\\", "");
+        }
+        return null;
     }
 
     /**
@@ -108,8 +116,8 @@ public class AsyncAPIHeaderMapper {
         if (headerParam.typeName().kind() == SyntaxKind.OPTIONAL_TYPE_DESC) {
             headerTypeSchema.addExtension(X_NULLABLE,BooleanNode.TRUE);
         }
-        if (apidocs != null && apidocs.containsKey(headerName)) {
-            headerTypeSchema.setDescription(apidocs.get(headerName.trim()));
+        if (apiDocs != null && apiDocs.containsKey(headerName)) {
+            headerTypeSchema.setDescription(apiDocs.get(headerName.trim()));
         }
         completeHeaderParameter(headerName, headerTypeSchema, headerParam.annotations(),
                 headerParam.typeName(),bindingHeaderObject);
