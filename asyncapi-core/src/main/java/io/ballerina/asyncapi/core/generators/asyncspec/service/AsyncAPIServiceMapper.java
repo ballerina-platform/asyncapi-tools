@@ -70,7 +70,7 @@ public class AsyncAPIServiceMapper {
         if (kind.equals(SyntaxKind.RESOURCE_ACCESSOR_DEFINITION)) {
             AsyncAPIRemoteMapper resourceMapper = new AsyncAPIRemoteMapper(this.semanticModel);
             asyncApi.setChannels(resourceMapper.getChannels((FunctionDefinitionNode)function,classDefinitionNodes,dispatcherValue));
-            AsyncApiComponents test= resourceMapper.getComponents();
+            resourceMapper.getComponents();
             asyncApi.setComponents(resourceMapper.getComponents());
             errors.addAll(resourceMapper.getErrors());
         }

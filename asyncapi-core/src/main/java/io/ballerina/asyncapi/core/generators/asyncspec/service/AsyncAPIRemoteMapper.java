@@ -71,12 +71,22 @@ public class AsyncAPIRemoteMapper {
      * @return map of string and asyncApi path objects.
      */
     public AsyncApi25ChannelsImpl getChannels(FunctionDefinitionNode resource,List<ClassDefinitionNode> classDefinitionNodes,String dispatcherValue) {
+
+        AsyncApi25ChannelItemImpl channelItem= (AsyncApi25ChannelItemImpl) pathObject.createChannelItem();
+
+        //call asyncAPIParameterMapper to map parameters
+        Map<String, String> apiDocs = listAPIDocumentations(resource,channelItem);
+        AsyncAPIParameterMapper asyncAPIParameterMapper = new AsyncAPIParameterMapper(resource,apiDocs, components,
+                semanticModel);
+        asyncAPIParameterMapper.getResourceInputs(channelItem);
+
+
         String serviceClassName= getServiceClassName(resource);
         if (!serviceClassName.isEmpty()){
             for (ClassDefinitionNode node: classDefinitionNodes) {
                String testClassName1= node.className().text();
                 if (testClassName1.equals(serviceClassName)) {
-                    return handleRemoteFunctions(resource,node,dispatcherValue);
+                    return handleRemoteFunctions(resource,node,dispatcherValue,channelItem);
                 }
             }
 
@@ -91,7 +101,7 @@ public class AsyncAPIRemoteMapper {
      * @param resource The ballerina resource.
 //     * @param httpMethods   Sibling methods related to operation.
      */     
-    private AsyncApi25ChannelsImpl handleRemoteFunctions(FunctionDefinitionNode resource, ClassDefinitionNode classDefinitionNode,String dispatcherValue) {
+    private AsyncApi25ChannelsImpl handleRemoteFunctions(FunctionDefinitionNode resource, ClassDefinitionNode classDefinitionNode,String dispatcherValue,AsyncApi25ChannelItemImpl channelItem) {
         String path = ConverterCommonUtils.unescapeIdentifier(generateRelativePath(resource));
         NodeList<Node> classMethodNodes= classDefinitionNode.members();
         AsyncApi25OperationImpl publishOperationItem=new AsyncApi25OperationImpl();
@@ -173,7 +183,6 @@ public class AsyncAPIRemoteMapper {
             }
 
         }
-        AsyncApi25ChannelItemImpl channelItem= (AsyncApi25ChannelItemImpl) pathObject.createChannelItem();
         if(publishMessage.getOneOf()!=null){
             publishOperationItem.setMessage(publishMessage);
             channelItem.setPublish(publishOperationItem);
@@ -183,11 +192,8 @@ public class AsyncAPIRemoteMapper {
             subscribeOperationItem.setMessage(subscribeMessage);
             channelItem.setSubscribe(subscribeOperationItem);
         }
-        Map<String, String> apiDocs = listAPIDocumentations(resource,channelItem);
         pathObject.addItem(path,channelItem);
-        AsyncAPIParameterMapper asyncAPIParameterMapper = new AsyncAPIParameterMapper(resource,apiDocs, components,
-                semanticModel);
-        asyncAPIParameterMapper.getResourceInputs(channelItem);
+
         return pathObject;
     }
 

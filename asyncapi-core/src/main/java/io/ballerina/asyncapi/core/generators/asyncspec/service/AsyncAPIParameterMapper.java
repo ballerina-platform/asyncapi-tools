@@ -68,7 +68,10 @@ public class AsyncAPIParameterMapper {
         //Set path parameters
         NodeList<Node> pathParams = functionDefinitionNode.relativeResourcePath();
         if (!pathParams.isEmpty()) {
-            channelItem.setParameters(createPathParameters(pathParams));
+            AsyncApi25ParametersImpl pathParameters=createPathParameters(pathParams);
+            if (!pathParameters.getItems().isEmpty()) {
+                channelItem.setParameters(pathParameters);
+            }
         }
 
         // Set query parameters, headers
