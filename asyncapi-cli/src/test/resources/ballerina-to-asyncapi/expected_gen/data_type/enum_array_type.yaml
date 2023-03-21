@@ -1,35 +1,43 @@
-openapi: 3.0.1
+asyncapi: 2.5.0
 info:
   title: PayloadV
   version: 0.0.0
 servers:
-  - url: "{server}:{port}/payloadV"
+  development:
+    url: "{server}:{port}/payloadV"
+    protocol: ws
+    protocolVersion: "13"
     variables:
       server:
-        default: http://localhost
+        default: ws://localhost
       port:
         default: "9090"
-paths:
-  /reservation:
-    post:
-      summary: Represents Snowpeak reservation resource
-      operationId: postReservation
-      requestBody:
-        description: Reservation representation
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/Link'
-      responses:
-        "202":
-          description: Accepted
+channels:
+  /reservation/{id}:
+    description: reservation channel description
+    subscribe:
+      message:
+        oneOf:
+          - payload:
+              type: integer
+              format: int64
+    publish:
+      message:
+        oneOf:
+          - $ref: '#/components/messages/Link'
+    parameters:
+      id:
+        description: id description
+        schema:
+          type: string
 components:
   schemas:
     Link:
-      required:
-        - href
-        - rel
       type: object
+      required:
+        - rel
+        - href
+        - event
       properties:
         rel:
           type: string
@@ -49,3 +57,18 @@ components:
               - PUT
               - POST
               - GET
+        event:
+          type: string
+          const: Link
+  messages:
+    Link:
+      payload:
+        $ref: '#/components/schemas/Link'
+        description: link description
+      description: Represents Snowpeak reservation remote
+      x-response:
+        payload:
+          type: integer
+          format: int64
+        description: Return int description
+      x-response-type: simple-rpc

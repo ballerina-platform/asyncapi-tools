@@ -40,9 +40,6 @@ string check2;
 string hello;
 string s8jk;
 
-
-
-
 |};
 
 @websocket:ServiceConfig{dispatcherKey: "s8jk"}
