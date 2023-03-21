@@ -25,25 +25,25 @@ under the License.
         <classes>
             <class name="io.ballerina.asyncapi.cmd.AsyncAPICmdTest"/>
             <class name="io.ballerina.asyncapi.cmd.BallerinaToAsyncAPITests"/>
-<!--            <class name="io.ballerina.asyncapi.generators.asyncapi.OpenApiConverterUtilsTest"/>-->
-<!--            <class name="io.ballerina.asyncapi.generators.asyncapi.RequestBodyTest"/>-->
-<!--            <class name="io.ballerina.asyncapi.generators.asyncapi.RecordTests"/>-->
-<!--            <class name="io.ballerina.asyncapi.generators.asyncapi.ResponseTests"/>-->
-<!--            <class name="io.ballerina.asyncapi.generators.asyncapi.APIDocTests"/>-->
+            <class name="io.ballerina.asyncapi.generators.asyncapi.OpenApiConverterUtilsTest"/>
+            <class name="io.ballerina.asyncapi.generators.asyncapi.RequestBodyTest"/>
+            <class name="io.ballerina.asyncapi.generators.asyncapi.RecordTests"/>
+            <class name="io.ballerina.asyncapi.generators.asyncapi.ResponseTests"/>
+            <class name="io.ballerina.asyncapi.generators.asyncapi.APIDocTests"/>
             <class name="io.ballerina.asyncapi.generators.asyncapi.EnumTypeTests"/>
-<!--            <class name="io.ballerina.asyncapi.generators.asyncapi.ListenerTests"/>-->
-<!--            <class name="io.ballerina.asyncapi.generators.asyncapi.ModuleReferenceTests"/>-->
-<!--            <class name="io.ballerina.asyncapi.generators.asyncapi.HeaderTests"/>-->
-<!--            <class name="io.ballerina.asyncapi.generators.asyncapi.QueryParameterTests"/>-->
-<!--            <class name="io.ballerina.asyncapi.generators.asyncapi.CacheConfigTests"/>-->
-<!--            <class name="io.ballerina.asyncapi.generators.asyncapi.StatusCodeTests"/>-->
-<!--            <class name="io.ballerina.asyncapi.generators.asyncapi.HttpMethodTests"/>-->
-<!--            <class name="io.ballerina.asyncapi.generators.asyncapi.ServiceDeclarationNodesTests"/>-->
-<!--            <class name="io.ballerina.asyncapi.generators.asyncapi.ResponseHeaderTests"/>-->
+            <class name="io.ballerina.asyncapi.generators.asyncapi.ListenerTests"/>
+            <class name="io.ballerina.asyncapi.generators.asyncapi.ModuleReferenceTests"/>
+            <class name="io.ballerina.asyncapi.generators.asyncapi.HeaderTests"/>
+            <class name="io.ballerina.asyncapi.generators.asyncapi.QueryParameterTests"/>
+            <class name="io.ballerina.asyncapi.generators.asyncapi.CacheConfigTests"/>
+            <class name="io.ballerina.asyncapi.generators.asyncapi.StatusCodeTests"/>
+            <class name="io.ballerina.asyncapi.generators.asyncapi.HttpMethodTests"/>
+            <class name="io.ballerina.asyncapi.generators.asyncapi.ServiceDeclarationNodesTests"/>
+            <class name="io.ballerina.asyncapi.generators.asyncapi.ResponseHeaderTests"/>
             <class name="io.ballerina.asyncapi.generators.asyncapi.MapTypeTests"/>
-<!--            <class name="io.ballerina.asyncapi.cmd.AsyncApiGenServiceCmdTest"/>-->
-<!--            <class name="io.ballerina.asyncapi.cmd.BallerinaToAsyncAPITests"/>-->
-<!--            <class name="io.ballerina.asyncapi.generators.asyncapi.DataTypeTests"/>-->
+            <class name="io.ballerina.asyncapi.cmd.AsyncApiGenServiceCmdTest"/>
+            <class name="io.ballerina.asyncapi.cmd.BallerinaToAsyncAPITests"/>
+            <class name="io.ballerina.asyncapi.generators.asyncapi.DataTypeTests"/>
         </classes>
     </test>
 </suite>

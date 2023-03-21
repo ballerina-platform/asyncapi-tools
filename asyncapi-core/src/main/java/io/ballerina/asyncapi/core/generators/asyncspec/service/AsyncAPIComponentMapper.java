@@ -160,7 +160,7 @@ public class AsyncAPIComponentMapper {
         if (typeInclusions.isEmpty()) {
             generateObjectSchemaFromRecordFields(componentName, recordFields, apiDocs,dispatcherValue);
         } else {
-            mapTypeInclusionToAllOfSchema(componentName, typeInclusions, recordFields, unionKeys, apiDocs);
+            mapTypeInclusionToAllOfSchema(componentName, typeInclusions, recordFields, unionKeys, apiDocs,dispatcherValue);
         }
     }
 
@@ -213,7 +213,7 @@ public class AsyncAPIComponentMapper {
      */
     private void mapTypeInclusionToAllOfSchema(
                                                String componentName, List<TypeSymbol> typeInclusions, Map<String,
-            RecordFieldSymbol> recordFields, HashSet<String> unionKeys, Map<String, String> apiDocs) {
+            RecordFieldSymbol> recordFields, HashSet<String> unionKeys, Map<String, String> apiDocs,String dispatcherValue) {
 
         // Map to allOF need to check the status code inclusion there
         AsyncApi25SchemaImpl allOfSchema =new AsyncApi25SchemaImpl();
@@ -221,7 +221,7 @@ public class AsyncAPIComponentMapper {
         for (TypeSymbol typeInclusion: typeInclusions) {
             AsyncApi25SchemaImpl referenceSchema = new AsyncApi25SchemaImpl();
             String typeInclusionName = typeInclusion.getName().orElseThrow();
-            referenceSchema.set$ref(ConverterCommonUtils.unescapeIdentifier(typeInclusionName));
+            referenceSchema.set$ref(SCHEMA_REFERENCE+ConverterCommonUtils.unescapeIdentifier(typeInclusionName));
 
             allOfSchema.addAllOf(referenceSchema);
             if (typeInclusion.typeKind().equals(TypeDescKind.TYPE_REFERENCE)) {
@@ -242,7 +242,7 @@ public class AsyncAPIComponentMapper {
                 ConverterCommonUtils.unescapeIdentifier(key1.trim()).
                         equals(ConverterCommonUtils.unescapeIdentifier(key))).forEach(key ->
                 filteredField.put(ConverterCommonUtils.unescapeIdentifier(key1), value)));
-        AsyncApi25SchemaImpl objectSchema = generateObjectSchemaFromRecordFields( null, filteredField, apiDocs,null);
+        AsyncApi25SchemaImpl objectSchema = generateObjectSchemaFromRecordFields( componentName, filteredField, apiDocs,dispatcherValue);
 //        allOfSchemaList.add(objectSchema);
         allOfSchema.addAllOf(objectSchema);
 //        allOfSchema.addAllOf(allOfSchemaList);
@@ -333,7 +333,9 @@ public class AsyncAPIComponentMapper {
         if(dispatcherValue!=null && !dispatcherValuePresent) {
             throw new NoSuchElementException("dispatcherKey value "+dispatcherValue +" is not present in "+ componentName+" record field,those should be same");
         }
-        componentSchema.setRequired(required);
+        if (!required.isEmpty()) {
+            componentSchema.setRequired(required);
+        }
         if (componentName != null) {
             // Set properties for the schema
             this.components.addSchema(componentName, componentSchema);
