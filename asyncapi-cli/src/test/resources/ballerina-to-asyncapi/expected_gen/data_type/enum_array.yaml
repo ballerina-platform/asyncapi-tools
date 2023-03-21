@@ -65,7 +65,7 @@ components:
       payload:
         $ref: '#/components/schemas/Link'
         description: link description
-      description: Represents Snowpeak reservation remote
+      description: onlink remote function description
       x-response:
         payload:
           type: integer

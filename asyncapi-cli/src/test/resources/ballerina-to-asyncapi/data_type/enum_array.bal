@@ -30,7 +30,7 @@ service /payloadV on new websocket:Listener(9090) {
 service class ChatServer{
     *websocket:Service;
 
-    # Represents Snowpeak reservation remote
+    # onlink remote function description
     #
     # + link - link description
     # + return - Return int description

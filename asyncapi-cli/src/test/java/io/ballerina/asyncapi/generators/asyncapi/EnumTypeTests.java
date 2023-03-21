@@ -50,14 +50,14 @@ public class EnumTypeTests {
     public void testEnumTypeInArray() throws IOException {
         Path ballerinaFilePath = RES_DIR.resolve("data_type/enum_array.bal");
         //Compare generated yaml file with expected yaml content
-        TestUtils.compareWithGeneratedFile(ballerinaFilePath, "data_type/enum_array_type.yaml");
+        TestUtils.compareWithGeneratedFile(ballerinaFilePath, "data_type/enum_array.yaml");
     }
 
     @Test(description = "When the record field has reference to enum with constant value")
     public void testEnumWithConstantValue() throws IOException {
         Path ballerinaFilePath = RES_DIR.resolve("data_type/enum_with_constant_value.bal");
         //Compare generated yaml file with expected yaml content
-        TestUtils.compareWithGeneratedFile(ballerinaFilePath, "data_type/enum_with_value.yaml");
+        TestUtils.compareWithGeneratedFile(ballerinaFilePath, "data_type/enum_with_constant_value.yaml");
     }
 
     @AfterMethod

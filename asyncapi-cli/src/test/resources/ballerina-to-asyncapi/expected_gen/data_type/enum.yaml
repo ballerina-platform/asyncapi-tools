@@ -1,48 +1,49 @@
-openapi: 3.0.1
+asyncapi: 2.5.0
 info:
   title: PayloadV
   version: 0.0.0
 servers:
-  - url: "{server}:{port}/payloadV"
+  development:
+    url: "{server}:{port}/payloadV"
+    protocol: ws
+    protocolVersion: "13"
     variables:
       server:
-        default: http://localhost
+        default: ws://localhost
       port:
         default: "9090"
-paths:
-  /reservation:
-    post:
-      summary: Represents Snowpeak reservation resource
-      operationId: postReservation
-      requestBody:
-        description: Reservation representation
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/Link'
-      responses:
-        "202":
-          description: Accepted
-  /getOrder:
-    post:
-      operationId: postGetorder
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/Order'
-      responses:
-        "202":
-          description: Accepted
+channels:
+  /payment/{id}:
+    description: resource function description
+    subscribe:
+      message:
+        oneOf:
+          - $ref: '#/components/messages/Test'
+          - payload:
+              type: integer
+              format: int64
+    publish:
+      message:
+        oneOf:
+          - $ref: '#/components/messages/Link'
+          - $ref: '#/components/messages/Order'
+    parameters:
+      id:
+        description: test id description
+        schema:
+          type: string
 components:
   schemas:
     Link:
+      type: object
       required:
         - rel
-      type: object
+        - fdf
+        - s8jk
       properties:
         rel:
           type: string
+          description: rel description
         actions:
           type: string
           enum:
@@ -51,10 +52,35 @@ components:
             - PUT
             - POST
             - GET
+          description: actions description
+        fdf:
+          type: integer
+          description: fdf description
+          format: int64
+        s8jk:
+          type: string
+          const: Link
+          description: Try override description
+      description: this is for testing
+    Test:
+      type: object
+      required:
+        - check2
+        - hello
+        - s8jk
+      properties:
+        check2:
+          type: string
+        hello:
+          type: string
+        s8jk:
+          type: string
+          const: Test
     Order:
+      type: object
       required:
         - rel
-      type: object
+        - s8jk
       properties:
         rel:
           type: string
@@ -64,3 +90,30 @@ components:
             - custom size
             - Half "Portion"
             - full
+        s8jk:
+          type: string
+          const: Order
+  messages:
+    Test:
+      payload:
+        $ref: '#/components/schemas/Test'
+    Link:
+      payload:
+        $ref: '#/components/schemas/Link'
+        description: remote above link description
+      description: Testing remote description
+      x-response:
+        $ref: '#/components/messages/Test'
+        description: remote return description
+      x-response-type: simple-rpc
+    Order:
+      payload:
+        $ref: '#/components/schemas/Order'
+        description: order above link description
+      description: Order remote description
+      x-response:
+        payload:
+          type: integer
+          format: int64
+        description: order return description
+      x-response-type: simple-rpc

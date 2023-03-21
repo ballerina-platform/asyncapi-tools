@@ -1,4 +1,4 @@
-import ballerina/http;
+import ballerina/websocket;
 
 enum Action {
     GET = "get" ,
@@ -11,13 +11,32 @@ enum Action {
 type Link record {|
     string rel;
     Action actions?;
+    string event;
 |};
 
-service /payloadV on new http:Listener(9090) {
 
-    # Represents Snowpeak reservation resource
+@websocket:ServiceConfig{dispatcherKey: "event"}
+service /payloadV on new websocket:Listener(9090) {
+
+    #  reservation channel description
     #
-    # + link - Reservation representation
-    resource function post reservation(@http:Payload Link link) {
+    # + id - id description
+    resource function get reservation/[string id]() returns websocket:Service|websocket:UpgradeError {
+        return new ChatServer();
     }
+}
+
+service class ChatServer{
+    *websocket:Service;
+
+    # onlink remote function description
+    #
+    # + link - link description
+    # + return - Return int description
+     remote function onLink(websocket:Caller caller, Link link) returns int {
+        // io:println(data);
+        return 5;
+    }
+
+
 }
