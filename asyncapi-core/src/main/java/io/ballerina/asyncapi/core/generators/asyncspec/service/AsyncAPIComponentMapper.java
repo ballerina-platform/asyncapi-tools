@@ -126,7 +126,7 @@ public class AsyncAPIComponentMapper {
                 AsyncApi25SchemaImpl asyncApiSchema = ConverterCommonUtils.getAsyncApiSchema(typeDescKind.getName());
                 //TODO : have to check here asyncApiSchema.getType() == null ? true : asyncApiSchema
                 AsyncApi25SchemaImpl objectSchema= new AsyncApi25SchemaImpl();
-                objectSchema.setType(AsyncAPIType.RECORD.toString());
+//                objectSchema.setType(AsyncAPIType.RECORD.toString());
 //                schema.put(componentName,
 //                        new ObjectSchema().additionalProperties(
 //                                asyncApiSchema.getType() == null ? true : asyncApiSchema)
@@ -360,7 +360,7 @@ public class AsyncAPIComponentMapper {
             //FIXME : This is not sure but for now we are using this, if there is an additionalProperties=true
 
             AsyncApi25SchemaImpl objectSchema= new AsyncApi25SchemaImpl();
-            objectSchema.setType(AsyncAPIType.RECORD.toString());
+//            objectSchema.setType(AsyncAPIType.RECORD.toString());
             //TODO : Have to consider about asyncApiSchema.getType() == null ? true : asyncApiSchema in addtionalProperties
             property.setAdditionalProperties(asyncApiSchema.getType()==null? objectSchema: asyncApiSchema);
         }

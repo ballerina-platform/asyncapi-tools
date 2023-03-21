@@ -103,10 +103,11 @@ public class ConverterCommonUtils {
             case Constants.MAP_STRING:
             case Constants.MAP:
                 AsyncApi25SchemaImpl objectSchema=new AsyncApi25SchemaImpl();
-                objectSchema.setType(AsyncAPIType.RECORD.toString());
+//                objectSchema.setType(AsyncAPIType.RECORD.toString());
                 schema.setType(AsyncAPIType.RECORD.toString());
                 //TODO : Have to give an AsyncApi25SchemaImpl object as additionalProperties , It is depend upon ballerina map
                 schema.setAdditionalProperties(objectSchema);
+//                schema.setAdditionalProperties(true);
 //                schema.setAdditionalProperties(true);
 //                schema.additionalProperties(true);
                 break;
