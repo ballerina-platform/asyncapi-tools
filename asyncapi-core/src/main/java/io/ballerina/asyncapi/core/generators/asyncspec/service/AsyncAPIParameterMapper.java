@@ -21,7 +21,6 @@ package io.ballerina.asyncapi.core.generators.asyncspec.service;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
-import io.apicurio.datamodels.models.Components;
 import io.apicurio.datamodels.models.asyncapi.v25.*;
 import io.ballerina.asyncapi.core.generators.asyncspec.model.AsyncApi25SchemaImpl;
 import io.ballerina.asyncapi.core.generators.asyncspec.Constants;
@@ -88,8 +87,8 @@ public class AsyncAPIParameterMapper {
         AsyncApi25BindingImpl asyncApi25Binding=new AsyncApi25BindingImpl();
         AsyncApi25SchemaImpl bindingQueryObject=new AsyncApi25SchemaImpl();
         AsyncApi25SchemaImpl bindingHeaderObject=new AsyncApi25SchemaImpl();
-        bindingQueryObject.setType("object");
-        bindingHeaderObject.setType("object");
+        bindingQueryObject.setType(AsyncAPIType.OBJECT.toString());
+        bindingHeaderObject.setType(AsyncAPIType.OBJECT.toString());
         AsyncAPIQueryParameterMapper queryParameterMapper = new AsyncAPIQueryParameterMapper(apidocs, components,
                 semanticModel);
         for (ParameterNode parameterNode : parameterList) {
@@ -119,16 +118,16 @@ public class AsyncAPIParameterMapper {
         }
         ObjectMapper objectMapper=ConverterCommonUtils.callObjectMapper();
 
-        TextNode bindingVersion = new TextNode(BINDING_VERSION);
-        asyncApi25Binding.addItem("bindingVersion",bindingVersion);
+        TextNode bindingVersion = new TextNode(BINDING_VERSION_VALUE);
+        asyncApi25Binding.addItem(BINDING_VERSION,bindingVersion);
 
        if(bindingQueryObject.getProperties()!=null){
             ObjectNode queryObj = objectMapper.valueToTree(bindingQueryObject);
-            asyncApi25Binding.addItem("query", queryObj);
+            asyncApi25Binding.addItem(QUERY, queryObj);
         }
         if (bindingHeaderObject.getProperties()!=null) {
             ObjectNode headerObj = objectMapper.valueToTree(bindingHeaderObject);
-            asyncApi25Binding.addItem("headers", headerObj);
+            asyncApi25Binding.addItem(HEADERS, headerObj);
         }
 
 

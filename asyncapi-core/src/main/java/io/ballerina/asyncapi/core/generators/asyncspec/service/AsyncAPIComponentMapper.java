@@ -18,11 +18,9 @@
 
 package io.ballerina.asyncapi.core.generators.asyncspec.service;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.BooleanNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 import io.apicurio.datamodels.models.Schema;
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25ComponentsImpl;
@@ -263,7 +261,7 @@ public class AsyncAPIComponentMapper {
     private AsyncApi25SchemaImpl generateObjectSchemaFromRecordFields(String componentName,Map<String, RecordFieldSymbol> rfields,
                                                               Map<String, String> apiDocs,String dispatcherValue) {
         AsyncApi25SchemaImpl componentSchema=new AsyncApi25SchemaImpl();
-        componentSchema.setType(AsyncAPIType.RECORD.toString());
+        componentSchema.setType(AsyncAPIType.OBJECT.toString());
         List<String> required = new ArrayList<>();
         boolean dispatcherValuePresent=false;
         if(apiDocs.containsKey(componentName)){
@@ -420,7 +418,7 @@ public class AsyncAPIComponentMapper {
                 TypeDescKind typeDescKind = mapTypeSymbol.typeParam().typeKind();
                 AsyncApi25SchemaImpl asyncApiSchema = ConverterCommonUtils.getAsyncApiSchema(typeDescKind.getName());
                 AsyncApi25SchemaImpl objectSchema= new AsyncApi25SchemaImpl();
-                objectSchema.setType(AsyncAPIType.RECORD.toString());
+                objectSchema.setType(AsyncAPIType.OBJECT.toString());
                 objectSchema.setAdditionalProperties(asyncApiSchema);
                 property = objectSchema;
                 properties.add(property);

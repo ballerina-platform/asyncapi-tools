@@ -207,7 +207,7 @@ public class AsyncAPIQueryParameterMapper {
     private AsyncApi25SchemaImpl handleArrayTypeQueryParameter(String queryParamName, ArrayTypeDescriptorNode arrayNode) {
 //        QueryParameter queryParameter = new QueryParameter();
         AsyncApi25SchemaImpl arraySchema = new AsyncApi25SchemaImpl();
-        arraySchema.setType("array");
+        arraySchema.setType(AsyncAPIType.ARRAY.toString());
 //        queryParameter.setName(ConverterCommonUtils.unescapeIdentifier(queryParamName));
         TypeDescriptorNode itemTypeNode = arrayNode.memberTypeDesc();
         AsyncApi25SchemaImpl itemSchema;
@@ -289,7 +289,7 @@ public class AsyncAPIQueryParameterMapper {
     private AsyncApi25SchemaImpl createContentTypeForMapJson(String queryParamName, boolean nullable) {
 
         AsyncApi25SchemaImpl objectSchema=new AsyncApi25SchemaImpl();
-        objectSchema.setType("object");
+        objectSchema.setType(AsyncAPIType.OBJECT.toString());
 //        String queryParamString=queryParam.typeName().toString().trim();
         //Fixme
 //        AsyncApi25SchemaImpl objectSchema=ConverterCommonUtils.getAsyncApiSchema(queryParamName);

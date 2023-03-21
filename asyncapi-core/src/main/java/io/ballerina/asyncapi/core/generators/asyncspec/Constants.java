@@ -52,12 +52,17 @@ public class Constants {
     public static final String ASYNC_API_VERSION ="2.5.0";
     public static final String WS_PROTOCOL_VERSION="13";
 
-    public static final String BINDING_VERSION="0.1.0";
+    public static final String BINDING_VERSION_VALUE="0.1.0";
 
     public static final String DEFAULT_INFO_VERSION="1.0.0";
     public static final String PORT = "port";
     public static final String X_WWW_FORM_URLENCODED_POSTFIX = "+x-www-form-urlencoded";
     public static final String X_WWW_FORM_URLENCODED = "x-www-form-urlencoded";
+    public static final String BINDING_VERSION="bindingVersion";
+
+    public static final String QUERY="query";
+
+    public static  final String HEADERS="headers";
 
     public static final String TEXT_PREFIX = "text/";
     public static final String MAP_JSON = "map<json>";
@@ -130,7 +135,8 @@ public class Constants {
         STRING("string"),
         NUMBER("number"),
         BOOLEAN("boolean"),
-        RECORD("object"),
+        OBJECT("object"),
+
         ARRAY("array");
 
         private String name;
