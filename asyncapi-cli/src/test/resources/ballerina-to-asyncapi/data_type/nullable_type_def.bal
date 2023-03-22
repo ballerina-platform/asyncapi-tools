@@ -1,4 +1,4 @@
-import ballerina/http;
+import ballerina/websocket;
 
 public type Action string?;
 public type Count decimal?;
@@ -12,13 +12,29 @@ type Link record {|
     Count count?;
     Books books;
     Salary salary;
+    string action;
 |};
 
-service /payloadV on new http:Listener(9090) {
+@websocket:ServiceConfig{dispatcherKey: "action"}
+service /payloadV on new websocket:Listener(9090) {
 
-    # Represents Snowpeak reservation resource
+    # Resource function description
     #
-    # + link - Reservation representation
-    resource function post reservation(@http:Payload Link link) {
+    # + id - Query parameter id
+    resource function get pathParam(int id) returns websocket:Service|websocket:UpgradeError {
+        return new ChatServer();
     }
+}
+
+service class ChatServer{
+    *websocket:Service;
+    # Remote link description
+    #
+    # + message - message description
+    # + return - this is return description
+     remote function onLink(websocket:Caller caller, Link message) returns Action {
+        return "Testing string return";
+    }
+
+
 }

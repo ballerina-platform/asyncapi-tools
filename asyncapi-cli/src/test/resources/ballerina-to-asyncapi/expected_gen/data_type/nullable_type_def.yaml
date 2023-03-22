@@ -1,32 +1,58 @@
-openapi: 3.0.1
+asyncapi: 2.5.0
 info:
   title: PayloadV
   version: 0.0.0
 servers:
-  - url: "{server}:{port}/payloadV"
+  development:
+    url: "{server}:{port}/payloadV"
+    protocol: ws
+    protocolVersion: "13"
     variables:
       server:
-        default: http://localhost
+        default: ws://localhost
       port:
         default: "9090"
-paths:
-  /reservation:
-    post:
-      summary: Represents Snowpeak reservation resource
-      operationId: postReservation
-      requestBody:
-        description: Reservation representation
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/Link'
-      responses:
-        "202":
-          description: Accepted
+channels:
+  /pathParam:
+    description: Resource function description
+    subscribe:
+      message:
+        oneOf:
+          - $ref: '#/components/messages/Action'
+    publish:
+      message:
+        oneOf:
+          - $ref: '#/components/messages/Link'
+    bindings:
+      ws:
+        bindingVersion: 0.1.0
+        query:
+          type: object
+          properties:
+            id:
+              type: integer
+              description: Query parameter id
+              format: int64
 components:
   schemas:
+    Rels:
+      type: array
+      items:
+        type: string
+      x-nullable: true
+    Action:
+      type: string
+      x-nullable: true
+    Count:
+      type: number
+      format: double
+      x-nullable: true
+    Books:
+      type: object
+      additionalProperties:
+        type: string
+      x-nullable: true
     Salary:
-      nullable: true
       oneOf:
         - type: integer
           format: int64
@@ -34,30 +60,15 @@ components:
           format: float
         - type: number
           format: double
-    Action:
-      type: string
-      nullable: true
-    Count:
-      type: number
-      format: double
-      nullable: true
-    Rels:
-      type: array
-      nullable: true
-      items:
-        type: string
-    Books:
-      type: object
-      additionalProperties:
-        type: string
-      nullable: true
+      x-nullable: true
     Link:
+      type: object
       required:
+        - rels
         - actions
         - books
-        - rels
         - salary
-      type: object
+        - action
       properties:
         rels:
           $ref: '#/components/schemas/Rels'
@@ -69,3 +80,19 @@ components:
           $ref: '#/components/schemas/Books'
         salary:
           $ref: '#/components/schemas/Salary'
+        action:
+          type: string
+          const: Link
+  messages:
+    Action:
+      payload:
+        $ref: '#/components/schemas/Action'
+    Link:
+      payload:
+        $ref: '#/components/schemas/Link'
+        description: message description
+      description: Remote link description
+      x-response:
+        $ref: '#/components/messages/Action'
+        description: this is return description
+      x-response-type: simple-rpc
