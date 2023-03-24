@@ -1,21 +1,38 @@
-import ballerina/http;
+import ballerina/websocket;
 
-public type Pet record {
+public type Tuple record {
     int id;
+    [string, decimal]? unionTuple;
     [int, string, decimal, float, User] address;
     ReturnTypes? tuples;
-    [int, decimal]? unionTuple;
+    string event;
 };
 
 public type User readonly & record {|
     int id;
     int age;
+    string event;
 |};
 
 public type ReturnTypes readonly & [int, decimal];
 
-service /payloadV on new http:Listener(9090) {
-    resource function post .(@http:Payload Pet payload) {
+@websocket:ServiceConfig{dispatcherKey: "event"}
+service /payloadV on new websocket:Listener(9090) {
+    resource function get .(User payload)returns websocket:Service|websocket:UpgradeError {
+          return new ChatServer();
 
     }
+}
+
+service class ChatServer{
+    *websocket:Service;
+    # Remote tuple description
+    #
+    # + message - Tuple message description
+    # + return - this is User return description
+     remote function onTuple(websocket:Caller caller, User message) returns User {
+        return {id:5,age:45,event:"Testing"};
+    }
+
+
 }

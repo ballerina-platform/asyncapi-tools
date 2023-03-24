@@ -7,10 +7,10 @@ public type Books map<string>?;
 public type Salary int|float|decimal?;
 
 type Link record {|
+    Books books;
     Rels rels;
     Action actions;
     Count count?;
-    Books books;
     Salary salary;
     string action;
 |};

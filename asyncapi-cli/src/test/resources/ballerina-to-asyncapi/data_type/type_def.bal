@@ -1,4 +1,4 @@
-import ballerina/http;
+import ballerina/websocket;
 
 # Adding doc
 public type Action string;
@@ -9,31 +9,40 @@ public type Price float|PriceMap;
 public type Salary int|float|decimal;
 public type PetId int;
 
-type Link record {|
+type Type record {|
+    Books books?;
     Rels rels;
     Action actions?;
     Count? count;
-    Books books?;
     Price price;
     Salary salary;
+    string tuple;
 |};
 
 type PriceMap record {|
     int price;
     decimal salary;
+    string tuple;
 |};
 
-service /payloadV on new http:Listener(9090) {
+@websocket:ServiceConfig{dispatcherKey: "tuple"}
+service /payloadV on new websocket:Listener(9090) {
 
-    # Represents Snowpeak reservation resource
+    # Represents resource function description
     #
-    # + link - Reservation representation
-    resource function post reservation(@http:Payload Link link) {
+    # + id - id path param description
+    resource function get reservation/[PetId id]() returns websocket:Service|websocket:UpgradeError {
+        return new ChatServer();
     }
-    // Current http module doesn't support define datatype
-    // resource function get reservation(Count count) {
-    // }
+}
 
-    resource function get reservation/[PetId id]() {
+service class ChatServer{
+    *websocket:Service;
+    # Remote tuple description
+    #
+    # + message - Type message description
+    # + return - this is User return description
+     remote function onType(websocket:Caller caller, Type message) returns PriceMap {
+        return {price:3,salary:45.9,tuple:"testing"};
     }
 }

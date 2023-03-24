@@ -1,18 +1,66 @@
+asyncapi: 2.5.0
+info:
+  title: PayloadV
+  version: 0.0.0
+servers:
+  development:
+    url: "{server}:{port}/payloadV"
+    protocol: ws
+    protocolVersion: "13"
+    variables:
+      server:
+        default: ws://petstore.swagger.io
+      port:
+        default: "443"
+channels:
+  /pet:
+    subscribe:
+      message:
+        oneOf:
+          - payload:
+              type: integer
+              format: int64
+    publish:
+      message:
+        oneOf:
+          - $ref: '#/components/messages/Link'
+    bindings:
+      ws:
+        bindingVersion: 0.1.0
+        query:
+          type: object
+          properties:
+            payload:
+              type: integer
+              format: int64
 components:
   schemas:
     Link:
-      required:
-        - href
-        - rel
       type: object
+      required:
+        - rel
+        - href
+        - event
       properties:
         rel:
           type: string
         href:
           type: string
-          nullable: true
+          x-nullable: true
         mediaTypes:
           type: array
-          nullable: true
           items:
             type: string
+          x-nullable: true
+        event:
+          type: string
+          const: Link
+  messages:
+    Link:
+      payload:
+        $ref: '#/components/schemas/Link'
+      x-response:
+        payload:
+          type: integer
+          format: int64
+      x-response-type: simple-rpc

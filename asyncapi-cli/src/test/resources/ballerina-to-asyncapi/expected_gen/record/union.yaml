@@ -1,31 +1,71 @@
+asyncapi: 2.5.0
+info:
+  title: PayloadV
+  version: 0.0.0
+servers:
+  development:
+    url: "{server}:{port}/payloadV"
+    protocol: ws
+    protocolVersion: "13"
+    variables:
+      server:
+        default: ws://localhost
+      port:
+        default: "443"
+channels:
+  /pet:
+    subscribe:
+      message:
+        oneOf:
+          - $ref: '#/components/messages/Cat'
+    publish:
+      message:
+        oneOf:
+          - $ref: '#/components/messages/Dog'
+    bindings:
+      ws:
+        bindingVersion: 0.1.0
+        query:
+          type: object
+          properties:
+            payload:
+              $ref: '#/components/schemas/Link'
 components:
   schemas:
     Dog:
+      type: object
       required:
         - id
-      type: object
+        - event
       properties:
         id:
           type: integer
           format: int64
-          nullable: true
+          x-nullable: true
         name:
           type: string
+        event:
+          type: string
+          const: Dog
     Cat:
+      type: object
       required:
         - id
-      type: object
+        - event
       properties:
         id:
           type: integer
           format: int64
         eat:
           type: string
+        event:
+          type: string
+          const: Cat
     Link:
-      required:
-        - pet
-        - rel
       type: object
+      required:
+        - rel
+        - pet
       properties:
         rel:
           type: string
@@ -33,3 +73,13 @@ components:
           oneOf:
             - $ref: '#/components/schemas/Dog'
             - $ref: '#/components/schemas/Cat'
+  messages:
+    Cat:
+      payload:
+        $ref: '#/components/schemas/Cat'
+    Dog:
+      payload:
+        $ref: '#/components/schemas/Dog'
+      x-response:
+        $ref: '#/components/messages/Cat'
+      x-response-type: simple-rpc
