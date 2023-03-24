@@ -190,11 +190,10 @@ public class AsyncAPICmd implements BLauncherCmd {
                 ballerinaToAsyncApi(fileName);
 
                 }catch (Exception exception){
-                    if(exception instanceof NoSuchElementException){
-                        String message=exception.getMessage();
-                        outStream.println(exception.getMessage());
-                        exitError(this.exitWhenFinish);
-                    }
+                    String message=exception.getMessage();
+                    outStream.println(exception.getMessage());
+                    exitError(this.exitWhenFinish);
+
                 }
             } else {
                 outStream.println(ErrorMessages.MISSING_CONTRACT_PATH);

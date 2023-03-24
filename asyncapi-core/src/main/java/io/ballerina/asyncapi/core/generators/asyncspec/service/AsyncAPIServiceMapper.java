@@ -19,7 +19,6 @@
 
 package io.ballerina.asyncapi.core.generators.asyncspec.service;
 
-import io.apicurio.datamodels.models.asyncapi.AsyncApiComponents;
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25DocumentImpl;
 import io.ballerina.asyncapi.core.generators.asyncspec.diagnostic.AsyncAPIConverterDiagnostic;
 import io.ballerina.compiler.api.SemanticModel;
@@ -83,52 +82,42 @@ public class AsyncAPIServiceMapper {
         if(service.metadata().isPresent()) {
             MetadataNode serviceMetadataNode = service.metadata().get();
             NodeList<AnnotationNode> annotationNodes = serviceMetadataNode.annotations();
-            for (AnnotationNode annotationNode : annotationNodes) {
-                Node node = annotationNode.annotReference();
-                if (node instanceof QualifiedNameReferenceNode) {
-                    QualifiedNameReferenceNode qNode = (QualifiedNameReferenceNode) node;
-                    if (qNode.modulePrefix().text().equals(WEBSOCKET)) {
-                        typeName = qNode.modulePrefix().text() + ":" + qNode.identifier().text();
-                        if (typeName.equals(WEBSOCKET + ":" + SERVICECONFIG)) {
-                            SeparatedNodeList<MappingFieldNode> fields = annotationNode.annotValue().get().fields();
-                            for (MappingFieldNode field : fields) {
-                                if (field instanceof SpecificFieldNode) {
-                                    SpecificFieldNode specificFieldNode = (SpecificFieldNode) field;
-                                    String fieldName = specificFieldNode.fieldName().toString();
-                                    if (fieldName.equals(DISPATCHERKEY)) {
-                                        dispatcherValue = specificFieldNode.valueExpr().get().toString();
-                                        if (dispatcherValue != null) {
-                                            dispatcherValue = dispatcherValue.replaceAll("\"", "");
-                                            if (dispatcherValue.equals("")) {
-                                                //TODO : Give a proper name for Exception
-                                                throw new NoSuchElementException(DISPATCHER_KEY_VALUE_CANNOT_BE_EMPTY);
-                                            }
-                                            return dispatcherValue;
+            AnnotationNode annotationNode=annotationNodes.get(0);
+            Node node = annotationNode.annotReference();
+            if (node instanceof QualifiedNameReferenceNode) {
+                QualifiedNameReferenceNode qNode = (QualifiedNameReferenceNode) node;
+                if (qNode.modulePrefix().text().equals(WEBSOCKET)) {
+                    typeName = qNode.modulePrefix().text() + ":" + qNode.identifier().text();
+                    if (typeName.equals(WEBSOCKET + ":" + SERVICE_CONFIG)) {
+                        SeparatedNodeList<MappingFieldNode> fields = annotationNode.annotValue().get().fields();
+                        for (MappingFieldNode field : fields) {
+                            if (field instanceof SpecificFieldNode) {
+                                SpecificFieldNode specificFieldNode = (SpecificFieldNode) field;
+                                String fieldName = specificFieldNode.fieldName().toString();
+                                if (fieldName.equals(DISPATCHER_KEY)) {
+                                    dispatcherValue = specificFieldNode.valueExpr().get().toString();
+                                    if (dispatcherValue != null) {
+                                        dispatcherValue = dispatcherValue.replaceAll("\"", "");
+                                        if (dispatcherValue.equals("")) {
+                                            //TODO : Give a proper name for Exception
+                                            throw new NoSuchElementException(DISPATCHER_KEY_VALUE_CANNOT_BE_EMPTY);
                                         }
+                                        return dispatcherValue;
                                     }
                                 }
                             }
-                            if (dispatcherValue == null) {
-                                throw new NoSuchElementException(NO_DISPATCHER_KEY);
-                            }
                         }
+                        if (dispatcherValue == null) {
+                            throw new NoSuchElementException(NO_DISPATCHER_KEY);
+                        }
+                    }else{
+                        throw new NoSuchElementException(NO_WEBSOCKET_SERVICE_CONFIG_ANNOTATION);
                     }
                 }
-            }
-            if (typeName==null){
-                throw new NoSuchElementException(NO_WEBSOCKET_SERVICE_CONFIG_ANNOTATION);
             }
         }else{
             throw new NoSuchElementException(NO_ANNOTATION_PRESENT);
         }
-
-
-
-        //TODO : Print output in cmd
-//        else{
-//            System.out.println("No annotation present");
-//            throw new No
-//        }
         return null;
     }
 }

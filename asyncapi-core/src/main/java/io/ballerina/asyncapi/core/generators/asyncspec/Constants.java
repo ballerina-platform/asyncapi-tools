@@ -36,7 +36,7 @@ public class Constants {
     public static final String TYPE_REFERENCE = "type_reference";
     public static final String WEBSOCKET= "websocket";
 
-    public static final String DISPATCHERKEY="dispatcherKey";
+    public static final String DISPATCHER_KEY ="dispatcherKey";
     public static final String BALLERINA = "ballerina";
     public static final String TYPEREFERENCE = "typeReference";
     public static final String HTTP_HEADER = "http:Header";
@@ -47,6 +47,8 @@ public class Constants {
     public static final String PLAIN = "plain";
     public static final String ASYNC_API_SUFFIX = "_asyncapi";
     public static final String SERVER = "server";
+
+    public static final String SERVER_TYPE="development";
     public static final String WS="ws";
     public static final String WSS="wss";
     public static final String ASYNC_API_VERSION ="2.5.0";
@@ -94,7 +96,7 @@ public class Constants {
 
     public static final String X_NULLABLE="x-nullable";
 
-    public static final String SERVICECONFIG="ServiceConfig";
+    public static final String SERVICE_CONFIG ="ServiceConfig";
 
     public static final String RETURN="return";
 
@@ -159,8 +161,8 @@ public class Constants {
 
     public static final String TRUE = "true";
 
-    public static final String WSLOCALHOST="ws://localhost";
-    public static final String WSSLOCALHOST="wss://localhost";
+    public static final String WS_LOCALHOST ="ws://localhost";
+    public static final String WSS_LOCALHOST ="wss://localhost";
 
     public static final String WS_="ws://";
 
@@ -181,12 +183,14 @@ public class Constants {
     public static final String PLUS = "+";
     public static final String UNDERSCORE = "_";
 
-    //Eception Constant
-    public static final String DISPATCHERKEY_TYPE_EXCEPTION= "dispatcherKey value type must be a string in a record field";
-    public static final String DISPATCHERKEY_OPTIONAL_EXCEPTION= "dispatcherKey value cannot be optional";
+    //Exception Constants
+    public static final String DISPATCHER_KEY_TYPE_EXCEPTION = "dispatcherKey type must be a string in a record field";
+    public static final String DISPATCHERKEY_OPTIONAL_EXCEPTION= "dispatcherKey %s cannot be optional in %s record type";
+
+    public static final String DISPATCHERKEY_NOT_PRESENT_IN_RECORD_FIELD="dispatcherKey value %s is not present in %s record field,those should be same";
     public static final String FUNCTION_SIGNATURE_ABSENT="Function signature must contain function method type ex:- onHeartbeat(Heartbeat message)";
-    public static final String FUNCTION_WRONG_NAME="Function name must be start with 'on' ex-onHeartBeat,onTest";
-    public static final String NO_ANNOTATION_PRESENT="No Annotation Present use @websocket:ServiceConfig{dispatcherKey: \"event\"}";
+    public static final String FUNCTION_WRONG_NAME="Function name must start with 'on' ex-onHeartBeat,onTest";
+    public static final String NO_ANNOTATION_PRESENT="No Annotation Present, use @websocket:ServiceConfig{dispatcherKey: \"event\"}";
 
     public static final String NO_WEBSOCKET_SERVICE_CONFIG_ANNOTATION="No @websocket:ServiceConfig{dispatcherKey: \"event\"} annotation is present";
 

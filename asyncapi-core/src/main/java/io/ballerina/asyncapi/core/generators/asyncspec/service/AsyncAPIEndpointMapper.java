@@ -61,11 +61,11 @@ public class AsyncAPIEndpointMapper {
         if (servers.size() > 1) {
             AsyncApi25ServerImpl mainServer = addEnumValues(servers);
             AsyncApi25ServersImpl asyncApi25Servers=new AsyncApi25ServersImpl();
-            asyncApi25Servers.addItem("development",mainServer);
+            asyncApi25Servers.addItem(SERVER_TYPE,mainServer);
             asyncAPI.setServers(asyncApi25Servers);
         }else{
             AsyncApi25ServersImpl asyncApi25Servers=new AsyncApi25ServersImpl();
-            asyncApi25Servers.addItem("development",servers.get(0));
+            asyncApi25Servers.addItem(SERVER_TYPE,servers.get(0));
             asyncAPI.setServers(asyncApi25Servers);
         }
         return asyncAPI;
@@ -222,9 +222,9 @@ public class AsyncAPIEndpointMapper {
         } else if (port != null) {
             AsyncApi25ServerVariable serverUrlVariable = server.createServerVariable();
             if (secured.equals(TRUE)) {
-                serverUrlVariable.setDefault(WSSLOCALHOST);
+                serverUrlVariable.setDefault(WSS_LOCALHOST);
             } else {
-                serverUrlVariable.setDefault(WSLOCALHOST);
+                serverUrlVariable.setDefault(WS_LOCALHOST);
             }
             AsyncApi25ServerVariable portVariable = server.createServerVariable();
             portVariable.setDefault(port);

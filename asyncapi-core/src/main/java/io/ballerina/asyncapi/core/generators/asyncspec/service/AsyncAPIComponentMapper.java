@@ -133,9 +133,9 @@ public class AsyncAPIComponentMapper {
 //                if (schemas != null) {
 //                    schemas.putAll(schema);
 //                } else {
-
-                objectSchema.setDescription(typeDoc);
-                objectSchema.setAdditionalProperties(asyncApiSchema.getType()==null? objectSchema:asyncApiSchema);
+                schema.setType(AsyncAPIType.OBJECT.toString());
+                schema.setDescription(typeDoc);
+                schema.setAdditionalProperties(asyncApiSchema.getType()==null? objectSchema:asyncApiSchema);
                 components.addSchema(componentName,schema);
 //                }
                 break;
@@ -282,10 +282,10 @@ public class AsyncAPIComponentMapper {
                         dispatcherValuePresent = true;
                         property.setConst(new TextNode(componentName));
                     }else{
-                        throw new NoSuchElementException("dispatcherKey value "+"'"+fieldName+"'"+" cannot be optional in "+componentName+" record type");
+                        throw new NoSuchElementException(String.format(DISPATCHERKEY_OPTIONAL_EXCEPTION, fieldName,componentName));
                     }
                 }else{
-                    throw new NoSuchElementException(DISPATCHERKEY_TYPE_EXCEPTION);
+                    throw new NoSuchElementException(DISPATCHER_KEY_TYPE_EXCEPTION);
 
                 }
             }
@@ -298,7 +298,7 @@ public class AsyncAPIComponentMapper {
                 property = handleTypeReference(typeReference, property, isSameRecord(componentName,
                         typeReference));
 
-            } else if (fieldTypeKind == TypeDescKind.UNION) { // ex:-  Cat|Dog Schema fields inside Pet schema
+            } else if (fieldTypeKind == TypeDescKind.UNION) { // ex:-  Cat|Dog Schema fields inside Pet schema , string?
                 property = handleUnionType((UnionTypeSymbol) field.getValue().typeDescriptor(), property,
                         componentName);
 
@@ -310,10 +310,10 @@ public class AsyncAPIComponentMapper {
             //TODO : Have to check && !(property.getItems() instanceof ObjectNode)
 //            String check=property.getType();
             if(property.getType()!=null) {
-                if (property.getType().equals(AsyncAPIType.ARRAY.toString())) {
+                if (property.getType().equals(AsyncAPIType.ARRAY.toString()) &&  !((property).getItems()!=null && (property).getItems().has("oneOf") )) {
                     BooleanNode booleanNode=null;
-                    if ((BooleanNode) property.getExtensions()!=null) {
-                        booleanNode = (BooleanNode) property.getExtensions().get(X_NULLABLE);
+                    if (property.getExtensions()!=null) {
+                        booleanNode = (BooleanNode) (property.getExtensions().get(X_NULLABLE));
                     }
                     property = mapArrayToArraySchema(field.getValue().typeDescriptor(), componentName);
                     if(booleanNode!=null) {
@@ -329,7 +329,7 @@ public class AsyncAPIComponentMapper {
             componentSchema.addProperty(fieldName,property);
         }
         if(dispatcherValue!=null && !dispatcherValuePresent) {
-            throw new NoSuchElementException("dispatcherKey value "+dispatcherValue +" is not present in "+ componentName+" record field,those should be same");
+            throw new NoSuchElementException(String.format(DISPATCHERKEY_NOT_PRESENT_IN_RECORD_FIELD, dispatcherValue,componentName));
         }
         if (!required.isEmpty()) {
             componentSchema.setRequired(required);
@@ -486,7 +486,7 @@ public class AsyncAPIComponentMapper {
     }
 
     /**
-     * Generate arraySchema for ballerina record  as array type.
+     * Generate arraySchema for ballerina array type.
      */
     private AsyncApi25SchemaImpl mapArrayToArraySchema( TypeSymbol symbol,
                                        String componentName) {
@@ -603,6 +603,17 @@ public class AsyncAPIComponentMapper {
             arrayProperty.setItems(objectMapper.valueToTree(property));
         }
         return objectMapper.valueToTree(arrayProperty);
+    }
+
+    public TypeSymbol excludeReadonlyIfPresent(TypeSymbol typeSymbol) {
+        List<TypeSymbol> typeSymbols = ((IntersectionTypeSymbol) typeSymbol).memberTypeDescriptors();
+        for (TypeSymbol symbol : typeSymbols) {
+            if (!(symbol instanceof ReadonlyTypeSymbol)) {
+                typeSymbol = symbol;
+                break;
+            }
+        }
+        return typeSymbol;
     }
 
 }

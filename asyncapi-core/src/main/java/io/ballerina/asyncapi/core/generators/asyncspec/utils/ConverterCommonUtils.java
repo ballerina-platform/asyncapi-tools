@@ -100,7 +100,7 @@ public class ConverterCommonUtils {
                 schema.setFormat(Constants.FLOAT);
                 break;
             case Constants.MAP_JSON:
-            case Constants.MAP_STRING:
+            case Constants.MAP_STRING: //FIXME: If there are so many types like map<map<json>>, map<map<string>>, map<map<int>> then those also need to be handle
             case Constants.MAP:
                 AsyncApi25SchemaImpl objectSchema=new AsyncApi25SchemaImpl();
 //                objectSchema.setType(AsyncAPIType.RECORD.toString());
