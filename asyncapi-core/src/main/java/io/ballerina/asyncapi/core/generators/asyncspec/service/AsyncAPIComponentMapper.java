@@ -70,7 +70,9 @@ public class AsyncAPIComponentMapper {
         TypeReferenceTypeSymbol typeRef = (TypeReferenceTypeSymbol) typeSymbol;
         TypeSymbol type = typeRef.typeDescriptor();
         // Handle record type request body
+
         if (type.typeKind() == TypeDescKind.INTERSECTION) {
+            // Check if Read only present and then avoid it
             List<TypeSymbol> typeSymbols = ((IntersectionTypeSymbol) type).memberTypeDescriptors();
             for (TypeSymbol symbol: typeSymbols) {
                 if (!(symbol instanceof ReadonlyTypeSymbol)) {
@@ -78,6 +80,7 @@ public class AsyncAPIComponentMapper {
                     break;
                 }
             }
+
         }
         AsyncApi25SchemaImpl schema= new AsyncApi25SchemaImpl();
         switch (type.typeKind()) {

@@ -34,6 +34,7 @@ import io.ballerina.compiler.syntax.tree.*;
 import java.util.*;
 
 import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.*;
+import static io.ballerina.compiler.api.symbols.TypeDescKind.RECORD;
 
 
 /**
@@ -121,34 +122,38 @@ public class AsyncAPIRemoteMapper {
                         String paramName=requiredParameterNode.paramName().get().toString();
                         Node parameterTypeNode =requiredParameterNode.typeName();
                         TypeSymbol remoteFunctionNameTypeSymbol = (TypeSymbol) semanticModel.symbol(parameterTypeNode).orElseThrow();
-                        AsyncApi25MessageImpl publishOneOf = new AsyncApi25MessageImpl();
+                        TypeReferenceTypeSymbol typeRef = (TypeReferenceTypeSymbol) remoteFunctionNameTypeSymbol;
+                        TypeSymbol type = typeRef.typeDescriptor();
+                        if (type.kind().equals(RECORD)){
 
+                            FunctionSymbol remoteFunctionSymbol = (FunctionSymbol) semanticModel.symbol(remoteFunctionNode).get();
+                            Map<String, String> remoteDocs = getRemoteDocumentation(remoteFunctionSymbol);
 
-                        FunctionSymbol remoteFunctionSymbol = (FunctionSymbol) semanticModel.symbol(remoteFunctionNode).get();
-                        Map<String, String> remoteDocs = getRemoteDocumentation(remoteFunctionSymbol);
+                            String paramDescription = null;
+                            if (remoteDocs.containsKey(paramName)) {
+                                paramDescription = remoteDocs.get(paramName);
+                                remoteDocs.remove(paramName);
 
-                        String paramDescription=null;
-                        if( remoteDocs.containsKey(paramName)) {
-                            paramDescription=remoteDocs.get(paramName);
-                            remoteDocs.remove(paramName);
-
-                        }
-                        AsyncApi25MessageImpl componentMessage = extractMessageSchemaReference(publishMessage, remoteRequestTypeName, remoteFunctionNameTypeSymbol, publishOneOf, dispatcherValue,paramDescription);
-                        if(remoteDocs.containsKey(REMOTE_DESCRIPTION)) {
-                            componentMessage.setDescription(remoteDocs.get(REMOTE_DESCRIPTION));
-                            remoteDocs.remove(REMOTE_DESCRIPTION);
-                        }
-                        Optional<ReturnTypeDescriptorNode> optionalRemoteReturnNode = remoteFunctionNode.functionSignature().returnTypeDesc();
-                        if (optionalRemoteReturnNode.isPresent()) {
-                            Node remoteReturnType = optionalRemoteReturnNode.get().type();
-                            String returnDescription=null;
-                            if (remoteDocs.containsKey(RETURN)) {
-                                returnDescription=remoteDocs.get(RETURN);
-                                remoteDocs.remove(RETURN);
                             }
-                           responseMapper.createResponse(dispatcherValue, subscribeMessage, componentMessage, remoteReturnType, returnDescription);
+                            AsyncApi25MessageImpl componentMessage = responseMapper.extractMessageSchemaReference(publishMessage, remoteRequestTypeName, remoteFunctionNameTypeSymbol, dispatcherValue, paramDescription);
+                            if (remoteDocs.containsKey(REMOTE_DESCRIPTION)) {
+                                componentMessage.setDescription(remoteDocs.get(REMOTE_DESCRIPTION));
+                                remoteDocs.remove(REMOTE_DESCRIPTION);
+                            }
+                            Optional<ReturnTypeDescriptorNode> optionalRemoteReturnNode = remoteFunctionNode.functionSignature().returnTypeDesc();
+                            if (optionalRemoteReturnNode.isPresent()) {
+                                Node remoteReturnType = optionalRemoteReturnNode.get().type();
+                                String returnDescription = null;
+                                if (remoteDocs.containsKey(RETURN)) {
+                                    returnDescription = remoteDocs.get(RETURN);
+                                    remoteDocs.remove(RETURN);
+                                }
+                                responseMapper.createResponse( subscribeMessage, componentMessage, remoteReturnType, returnDescription);
+                            }
+                            components.addMessage(remoteRequestTypeName, componentMessage);
+                        }else{
+                            throw new NoSuchElementException(FUNCTION_SIGNATURE_WRONG_TYPE);
                         }
-                        components.addMessage(remoteRequestTypeName, componentMessage);
 
                     } else {
                         throw new NoSuchElementException(FUNCTION_SIGNATURE_ABSENT);
