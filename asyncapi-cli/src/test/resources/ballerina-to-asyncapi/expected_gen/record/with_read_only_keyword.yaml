@@ -1,75 +1,64 @@
-openapi: 3.0.1
+asyncapi: 2.5.0
 info:
   title: PayloadV
   version: 0.0.0
 servers:
-  - url: "{server}:{port}/payloadV"
+  development:
+    url: "{server}:{port}/payloadV"
+    protocol: ws
+    protocolVersion: "13"
     variables:
       server:
-        default: http://localhost
+        default: ws://localhost
       port:
         default: port
-paths:
-  /albums:
-    get:
-      operationId: getAlbums
-      responses:
-        "200":
-          description: Ok
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/Album'
-    post:
-      operationId: postAlbums
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/Album'
-      responses:
-        "201":
-          description: Created
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Album'
+channels:
   /albums/{id}:
-    get:
-      operationId: getAlbumsId
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: string
-      responses:
-        "200":
-          description: Ok
-          content:
-            application/json:
-              schema:
+    subscribe:
+      message:
+        oneOf:
+          - payload:
+              type: array
+              items:
                 $ref: '#/components/schemas/Album'
-        "404":
-          description: NotFound
+    publish:
+      message:
+        oneOf:
+          - $ref: '#/components/messages/Album'
+    parameters:
+      id:
+        schema:
+          type: string
 components:
   schemas:
     Album:
-      required:
-        - artist
-        - id
-        - price
-        - title
       type: object
+      required:
+        - title
+        - id
+        - artist
+        - price
+        - event
       properties:
-        id:
-          type: string
         title:
+          type: string
+        id:
           type: string
         artist:
           type: string
         price:
           type: number
           format: double
+        event:
+          type: string
+          const: Album
+  messages:
+    Album:
+      payload:
+        $ref: '#/components/schemas/Album'
+      x-response:
+        payload:
+          type: array
+          items:
+            $ref: '#/components/schemas/Album'
+      x-response-type: simple-rpc

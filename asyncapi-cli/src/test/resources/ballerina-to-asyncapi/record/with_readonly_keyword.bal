@@ -3,12 +3,14 @@ import ballerina/websocket;
 configurable int port = 8080;
 
 type Album readonly & record {|
-    string id;
     readonly & string title;
+    string id;
     string artist;
     decimal price;
     string event;
 |};
+
+type Testing string[];
 
 table<Album> key(id) albums = table [
         {event: "Album",id: "1", title: "Blue Train", artist: "John Coltrane", price: 56.99},
@@ -29,8 +31,9 @@ service class ChatServer{
     *websocket:Service;
 
 
-    remote function onAlbum(Album message, websocket:Caller caller) returns string[] {
-        return ["sg","hello"];
+    remote function onAlbum(Album message, websocket:Caller caller) returns Album[]{
+        return albums.toArray();
+
     }
 
 

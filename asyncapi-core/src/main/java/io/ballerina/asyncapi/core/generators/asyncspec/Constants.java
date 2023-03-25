@@ -184,20 +184,27 @@ public class Constants {
     public static final String UNDERSCORE = "_";
 
     //Exception Constants
-    public static final String DISPATCHER_KEY_TYPE_EXCEPTION = "dispatcherKey type must be a string in a record field";
-    public static final String DISPATCHERKEY_OPTIONAL_EXCEPTION= "dispatcherKey %s cannot be optional in %s record type";
-    public static final String DISPATCHERKEY_NOT_PRESENT_IN_RECORD_FIELD="dispatcherKey value %s is not present in %s record field,those should be same";
+    //dispatcherKey name
+    public static final String DISPATCHER_KEY_TYPE_EXCEPTION = "dispatcherKey '%s' type must be a string in a record field";
+    //dispatcherKey name
+    //record name
+    public static final String DISPATCHERKEY_OPTIONAL_EXCEPTION= "dispatcherKey '%s' cannot be optional in %s record";
+    //dispatcherKey name
+    //record name
+    public static final String DISPATCHERKEY_NOT_PRESENT_IN_RECORD_FIELD="dispatcherKey '%s' is not present in %s record field, those should be same";
     public static final String FUNCTION_SIGNATURE_ABSENT="Function signature must contain function method type ex:- onHeartbeat(Heartbeat message)";
 
-    public static final String FUNCTION_SIGNATURE_WRONG_TYPE= "Function signature can only contains record type parameters";
+    //type name
+    //type
+    public static final String FUNCTION_SIGNATURE_WRONG_TYPE= "%s type must be a record,%s given";
     public static final String FUNCTION_WRONG_NAME="Function name must start with 'on' ex-onHeartBeat,onTest";
-    public static final String NO_ANNOTATION_PRESENT="No Annotation present, use @websocket:ServiceConfig{dispatcherKey: \"event\"}";
+    public static final String NO_ANNOTATION_PRESENT="No Annotation present, use @websocket:ServiceConfig{dispatcherKey: \"event\"} above the service";
 
     public static final String NO_WEBSOCKET_SERVICE_CONFIG_ANNOTATION="No @websocket:ServiceConfig{dispatcherKey: \"event\"} annotation is present";
 
     public static final String NO_DISPATCHER_KEY="No dispatcherKey field is present in @websocket:ServiceConfig annotation";
 
-    public static final String DISPATCHER_KEY_VALUE_CANNOT_BE_EMPTY="dispatcherKey value cannot be empty";
+    public static final String DISPATCHER_KEY_VALUE_CANNOT_BE_EMPTY="dispatcherKey cannot be empty";
 
     public static final String NO_TYPE_IN_STREAM="No type present in stream";
 

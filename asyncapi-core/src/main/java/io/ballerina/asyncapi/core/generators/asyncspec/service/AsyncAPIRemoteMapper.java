@@ -34,6 +34,7 @@ import io.ballerina.compiler.syntax.tree.*;
 import java.util.*;
 
 import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.*;
+import static io.ballerina.compiler.api.symbols.TypeDescKind.INTERSECTION;
 import static io.ballerina.compiler.api.symbols.TypeDescKind.RECORD;
 
 
@@ -124,7 +125,12 @@ public class AsyncAPIRemoteMapper {
                         TypeSymbol remoteFunctionNameTypeSymbol = (TypeSymbol) semanticModel.symbol(parameterTypeNode).orElseThrow();
                         TypeReferenceTypeSymbol typeRef = (TypeReferenceTypeSymbol) remoteFunctionNameTypeSymbol;
                         TypeSymbol type = typeRef.typeDescriptor();
-                        if (type.kind().equals(RECORD)){
+//                        Boolean testing= type.typeKind().equals(TypeDescKind.INTERSECTION);
+//                        SymbolKind testing2= componentMapper.excludeReadonlyIfPresent(type).typeKind();
+//                        Boolean testing1=componentMapper.excludeReadonlyIfPresent(type).kind().equals(TypeDescKind.RECORD);
+
+                        //check if there is a readOnly & record type also
+                        if (type.typeKind().equals(TypeDescKind.RECORD) || (type.typeKind().equals(TypeDescKind.INTERSECTION) && componentMapper.excludeReadonlyIfPresent(type).typeKind().equals(TypeDescKind.RECORD))){
 
                             FunctionSymbol remoteFunctionSymbol = (FunctionSymbol) semanticModel.symbol(remoteFunctionNode).get();
                             Map<String, String> remoteDocs = getRemoteDocumentation(remoteFunctionSymbol);
@@ -152,7 +158,7 @@ public class AsyncAPIRemoteMapper {
                             }
                             components.addMessage(remoteRequestTypeName, componentMessage);
                         }else{
-                            throw new NoSuchElementException(FUNCTION_SIGNATURE_WRONG_TYPE);
+                            throw new NoSuchElementException(String.format(FUNCTION_SIGNATURE_WRONG_TYPE,remoteRequestTypeName,type.typeKind().getName()));
                         }
 
                     } else {

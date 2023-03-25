@@ -20,6 +20,7 @@ import java.util.*;
 
 import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.*;
 import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.SIMPLE_RPC;
+import static io.ballerina.asyncapi.core.generators.asyncspec.utils.ConverterCommonUtils.callObjectMapper;
 import static io.ballerina.asyncapi.core.generators.asyncspec.utils.ConverterCommonUtils.getAsyncApiSchema;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.*;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.SIMPLE_NAME_REFERENCE;
@@ -45,6 +46,8 @@ public class AsyncAPIResponseMapper {
 
 
     public void createResponse( AsyncApi25MessageImpl subscribeMessage, AsyncApi25MessageImpl componentMessage, Node remoteReturnType, String returnDescription) {
+        String remoteReturnTypeString = ConverterCommonUtils.unescapeIdentifier(remoteReturnType.toString());
+        ObjectMapper objectMapper=ConverterCommonUtils.callObjectMapper();
 
 
         switch (remoteReturnType.kind()) {
@@ -64,8 +67,10 @@ public class AsyncAPIResponseMapper {
 //                } else {
 //                    return Optional.empty();
 //                }
-                String remoteReturnTypeString = ConverterCommonUtils.unescapeIdentifier(remoteReturnType.toString());
-                setSubscribeResponse(subscribeMessage, componentMessage, remoteReturnTypeString, SIMPLE_RPC, returnDescription);
+                AsyncApi25SchemaImpl remoteReturnSchema= getAsyncApiSchema(remoteReturnTypeString);
+                setResponseOfRequest(subscribeMessage,componentMessage,SIMPLE_RPC,returnDescription,objectMapper,remoteReturnSchema);
+                break;
+//                setSubscribeResponse(subscribeMessage, componentMessage, remoteReturnTypeString, SIMPLE_RPC, returnDescription);
 
                 //TODO : Edit this after figure out how to do this
                 //FIXME : It may be an object in asyncapi but not sue
@@ -75,7 +80,10 @@ public class AsyncAPIResponseMapper {
                 //TODO : Change this into true after Apicurio team change additionalProperties type into Object type
                 AsyncApi25SchemaImpl additionalPropertyObject=getAsyncApiSchema(AsyncAPIType.OBJECT.toString());
                 jsonSchema.setAdditionalProperties(additionalPropertyObject);
+
                 //TODO : Set this schema into main asyncapi doc
+                setResponseOfRequest(subscribeMessage,componentMessage,SIMPLE_RPC,returnDescription,objectMapper,jsonSchema);
+                break;
 //
 //                apiResponse.content(new Content().addMediaType(mediaTypeString, mediaType));
 //                apiResponse.description(description);
@@ -92,13 +100,19 @@ public class AsyncAPIResponseMapper {
             case SIMPLE_NAME_REFERENCE:
                 SimpleNameReferenceNode recordNode = (SimpleNameReferenceNode) remoteReturnType;
                 handleReferenceResponse(subscribeMessage,componentMessage,recordNode,returnDescription);
+                break;
 
             case UNION_TYPE_DESC:
                 mapUnionReturns(subscribeMessage,componentMessage,(UnionTypeDescriptorNode) remoteReturnType,returnDescription);
+                break;
             case RECORD_TYPE_DESC:
+                //TODO : Problem in mapinline record return
                 mapInlineRecordInReturn(subscribeMessage,componentMessage,(RecordTypeDescriptorNode) remoteReturnType,returnDescription);
+                break;
             case ARRAY_TYPE_DESC:
+
                 getApiResponsesForArrayTypes(subscribeMessage,componentMessage,(ArrayTypeDescriptorNode) remoteReturnType,returnDescription);
+                break;
 //            case ERROR_TYPE_DESC:
 //                // Return type is given as error or error? in the ballerina it will generate 500 response.
 //                apiResponse.description(HTTP_500_DESCRIPTION);
@@ -108,27 +122,35 @@ public class AsyncAPIResponseMapper {
 //                return Optional.of(apiResponses);
             case OPTIONAL_TYPE_DESC:
                 createResponse(subscribeMessage,componentMessage,((OptionalTypeDescriptorNode) remoteReturnType).typeDescriptor(),returnDescription);
+                break;
             case MAP_TYPE_DESC:
                 MapTypeDescriptorNode mapNode = (MapTypeDescriptorNode) remoteReturnType;
                 AsyncApi25SchemaImpl objectSchema = getAsyncApiSchema(AsyncAPIType.OBJECT.toString());
 
-                AsyncApi25SchemaImpl apiSchema = getAsyncApiSchema(mapNode.mapTypeParamsNode().typeNode().kind());
+                //TODO : I changed this kind to string
+                AsyncApi25SchemaImpl apiSchema = getAsyncApiSchema(mapNode.mapTypeParamsNode().typeNode().kind().toString());
                 objectSchema.setAdditionalProperties(apiSchema);
+                setResponseOfRequest(subscribeMessage,componentMessage,SIMPLE_RPC,returnDescription,objectMapper,objectSchema);
+                break;
 //                return Optional.of(apiResponses);
             case STREAM_TYPE_DESC:
                 if(((StreamTypeDescriptorNode) remoteReturnType).streamTypeParamsNode().isPresent()) {
-                    String remoteReturnstreamTypeString = ((StreamTypeParamsNode) ((StreamTypeDescriptorNode) remoteReturnType).streamTypeParamsNode().get()).leftTypeDescNode().toString().trim();
+                    String remoteReturnStream = ((StreamTypeParamsNode) ((StreamTypeDescriptorNode) remoteReturnType).streamTypeParamsNode().get()).leftTypeDescNode().toString().trim();
 
-                    setSubscribeResponse(subscribeMessage, componentMessage, remoteReturnstreamTypeString, STREAMING, returnDescription);
+                    AsyncApi25SchemaImpl remoteReturnStreamSchema= getAsyncApiSchema(remoteReturnStream);
+                    setResponseOfRequest(subscribeMessage,componentMessage,remoteReturnStream,returnDescription,objectMapper,remoteReturnStreamSchema);
+//                    setSubscribeResponse(subscribeMessage, componentMessage, remoteReturnstreamTypeString, STREAMING, returnDescription);
                 }else {
                     throw new NoSuchElementException(NO_TYPE_IN_STREAM);
                 }
+                break;
 
             default:
                 DiagnosticMessages errorMessage = DiagnosticMessages.AAS_CONVERTOR_108;
                 IncompatibleResourceDiagnostic error = new IncompatibleResourceDiagnostic(errorMessage, location,
                         remoteReturnType.kind().toString());
                 errors.add(error);
+                break;
 
         }
 //
@@ -157,22 +179,30 @@ public class AsyncAPIResponseMapper {
 //            setSubscribeResponse(subscribeMessage, componentMessage, subscribeOneOf, remoteReturnTypeString, SIMPLE_RPC, returnDescription);
 //        }
     }
-    private void setSubscribeResponse(AsyncApi25MessageImpl subscribeMessage, AsyncApi25MessageImpl componentMessage,  String type, String responseType,String returnDescription) {
-        ObjectMapper objMapper=ConverterCommonUtils.callObjectMapper();
-        AsyncApi25SchemaImpl schema= getAsyncApiSchema(type);
-        setResponseOfRequest(subscribeMessage, componentMessage, responseType, returnDescription, objMapper, schema);
-    }
+//    private void setSubscribeResponse(AsyncApi25MessageImpl subscribeMessage, AsyncApi25MessageImpl componentMessage,  String type, String responseType,String returnDescription) {
+//        ObjectMapper objMapper=ConverterCommonUtils.callObjectMapper();
+//        AsyncApi25SchemaImpl schema= getAsyncApiSchema(type);
+//        setResponseOfRequest(subscribeMessage, componentMessage, responseType, returnDescription, objMapper, schema);
+//    }
 
     private void setResponseOfRequest(AsyncApi25MessageImpl subscribeMessage, AsyncApi25MessageImpl componentMessage, String responseType, String returnDescription, ObjectMapper objMapper, AsyncApi25SchemaImpl schema) {
+        //create new oneOf message
         AsyncApi25MessageImpl subscribeOneOf = new AsyncApi25MessageImpl();
-        subscribeOneOf.setPayload(objMapper.valueToTree(schema) );
+
+        //set payload of the oneOf message(but this is not a reference)
+        subscribeOneOf.setPayload(objMapper.valueToTree(schema));
+
+        //set oneOf message into Subscribe channel
         subscribeMessage.addOneOf(subscribeOneOf);
+
+        //create message response with its description
         ObjectNode payloadObject= new ObjectNode(JsonNodeFactory.instance);
         payloadObject.set(PAYLOAD,objMapper.valueToTree(schema));
         if (returnDescription!=null) {
             payloadObject.put(DESCRIPTION,returnDescription);
         }
 
+        //set message response as x-response for the request
         componentMessage.addExtension(X_RESPONSE,payloadObject);
         componentMessage.addExtension(X_RESPONSE_TYPE, new TextNode(responseType));
     }
@@ -476,6 +506,7 @@ public class AsyncAPIResponseMapper {
             ObjectNode obj=objectMapper.valueToTree(asyncApiSchema);
             arraySchema.setItems(obj);
 //            mediaType.setSchema(arraySchema);
+            setResponseOfRequest(subscribeMessage,componentMessage,SIMPLE_RPC,returnDescription,objectMapper,arraySchema);
 
         }
     }

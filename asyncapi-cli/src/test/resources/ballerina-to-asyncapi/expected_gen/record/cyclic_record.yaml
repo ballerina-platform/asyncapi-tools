@@ -1,192 +1,207 @@
-openapi: 3.0.1
+asyncapi: 2.5.0
 info:
   title: PayloadV
   version: 0.0.0
 servers:
-  - url: "{server}:{port}/payloadV"
+  development:
+    url: "{server}:{port}/payloadV"
+    protocol: ws
+    protocolVersion: "13"
     variables:
       server:
-        default: petstore.swagger.io
+        default: ws://petstore.swagger.io
       port:
         default: "443"
-paths:
-  /pet:
-    post:
-      operationId: postPet
-      responses:
-        "201":
-          description: Created
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ResponseError'
-        "202":
-          description: Accepted
-  /pet02:
-    post:
-      operationId: postPet02
-      responses:
-        "201":
-          description: Created
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ResponseError02'
-        "202":
-          description: Accepted
-  /pet03:
-    post:
-      operationId: postPet03
-      responses:
-        "201":
-          description: Created
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ResponseError03'
-        "202":
-          description: Accepted
-  /pet04:
-    post:
-      operationId: postPet04
-      responses:
-        "201":
-          description: Created
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ResponseError04'
-        "202":
-          description: Accepted
-  /pet05:
-    post:
-      operationId: postPet05
-      responses:
-        "201":
-          description: Created
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ResponseError05'
-        "202":
-          description: Accepted
-  /pet06:
-    post:
-      operationId: postPet06
-      responses:
-        "201":
-          description: Created
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ResponseError06'
-        "202":
-          description: Accepted
-  /pet07:
-    post:
-      operationId: postPet07
-      responses:
-        "201":
-          description: Created
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ResponseError07'
-        "202":
-          description: Accepted
+channels:
+  /albums/{id}:
+    subscribe:
+      message:
+        oneOf:
+          - $ref: '#/components/messages/ResponseError'
+          - $ref: '#/components/messages/ResponseError02'
+          - $ref: '#/components/messages/ResponseError03'
+          - $ref: '#/components/messages/ResponseError04'
+          - $ref: '#/components/messages/ResponseError05'
+          - $ref: '#/components/messages/ResponseError06'
+          - $ref: '#/components/messages/ResponseError07'
+    publish:
+      message:
+        oneOf:
+          - $ref: '#/components/messages/ResponseError'
+          - $ref: '#/components/messages/ResponseError02'
+          - $ref: '#/components/messages/ResponseError03'
+          - $ref: '#/components/messages/ResponseError04'
+          - $ref: '#/components/messages/ResponseError05'
+          - $ref: '#/components/messages/ResponseError06'
+          - $ref: '#/components/messages/ResponseError07'
+    parameters:
+      id:
+        schema:
+          type: string
 components:
   schemas:
     ResponseError:
+      type: object
       required:
         - id
-      type: object
+        - event
       properties:
         id:
           type: integer
           format: int64
-          nullable: true
+          x-nullable: true
         resError:
           $ref: '#/components/schemas/ResponseError'
+        event:
+          type: string
+          const: ResponseError
     ResponseError02:
+      type: object
       required:
         - id
-      type: object
+        - event
       properties:
         id:
           type: integer
           format: int64
-          nullable: true
+          x-nullable: true
         resError:
           oneOf:
             - $ref: '#/components/schemas/ResponseError02'
             - type: string
+        event:
+          type: string
+          const: ResponseError02
     ResponseError03:
+      type: object
       required:
         - id
-      type: object
+        - event
       properties:
         id:
           type: integer
           format: int64
-          nullable: true
+          x-nullable: true
         resError:
           type: array
           items:
             $ref: '#/components/schemas/ResponseError03'
+        event:
+          type: string
+          const: ResponseError03
     ResponseError04:
+      type: object
       required:
         - id
-      type: object
+        - event
       properties:
         id:
           type: integer
           format: int64
-          nullable: true
+          x-nullable: true
         resError:
           type: array
           items:
             type: array
             items:
               $ref: '#/components/schemas/ResponseError04'
+        event:
+          type: string
+          const: ResponseError04
     ResponseError05:
+      type: object
       required:
         - id
-      type: object
+        - event
       properties:
         id:
           type: integer
           format: int64
-          nullable: true
+          x-nullable: true
         resError:
-          nullable: true
           oneOf:
             - $ref: '#/components/schemas/ResponseError05'
+          x-nullable: true
+        event:
+          type: string
+          const: ResponseError05
     ResponseError06:
+      type: object
       required:
         - id
-      type: object
+        - event
       properties:
         id:
           type: integer
           format: int64
-          nullable: true
+          x-nullable: true
         resError:
           type: array
-          nullable: true
           items:
             $ref: '#/components/schemas/ResponseError06'
+          x-nullable: true
+        event:
+          type: string
+          const: ResponseError06
     ResponseError07:
+      type: object
       required:
         - id
         - resError
-      type: object
+        - event
       properties:
         id:
           type: integer
           format: int64
-          nullable: true
+          x-nullable: true
         resError:
           type: array
-          nullable: true
           items:
             $ref: '#/components/schemas/ResponseError07'
+          x-nullable: true
+        event:
+          type: string
+          const: ResponseError07
+  messages:
+    ResponseError:
+      payload:
+        $ref: '#/components/schemas/ResponseError'
+      x-response:
+        $ref: '#/components/messages/ResponseError'
+      x-response-type: simple-rpc
+    ResponseError02:
+      payload:
+        $ref: '#/components/schemas/ResponseError02'
+      x-response:
+        $ref: '#/components/messages/ResponseError02'
+      x-response-type: simple-rpc
+    ResponseError03:
+      payload:
+        $ref: '#/components/schemas/ResponseError03'
+      x-response:
+        $ref: '#/components/messages/ResponseError03'
+      x-response-type: simple-rpc
+    ResponseError04:
+      payload:
+        $ref: '#/components/schemas/ResponseError04'
+      x-response:
+        $ref: '#/components/messages/ResponseError04'
+      x-response-type: simple-rpc
+    ResponseError05:
+      payload:
+        $ref: '#/components/schemas/ResponseError05'
+      x-response:
+        $ref: '#/components/messages/ResponseError05'
+      x-response-type: simple-rpc
+    ResponseError06:
+      payload:
+        $ref: '#/components/schemas/ResponseError06'
+      x-response:
+        $ref: '#/components/messages/ResponseError06'
+      x-response-type: simple-rpc
+    ResponseError07:
+      payload:
+        $ref: '#/components/schemas/ResponseError07'
+      x-response:
+        $ref: '#/components/messages/ResponseError07'
+      x-response-type: simple-rpc
