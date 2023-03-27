@@ -19,23 +19,16 @@
 
 package io.ballerina.asyncapi.core.generators.asyncspec.service;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.JsonNodeFactory;
-import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.fasterxml.jackson.databind.node.TextNode;
 import io.apicurio.datamodels.models.asyncapi.v25.*;
 import io.ballerina.asyncapi.core.generators.asyncspec.diagnostic.AsyncAPIConverterDiagnostic;
 import io.ballerina.asyncapi.core.generators.asyncspec.utils.ConverterCommonUtils;
 import io.ballerina.compiler.api.SemanticModel;
-import io.ballerina.compiler.api.TypeBuilder;
 import io.ballerina.compiler.api.symbols.*;
 import io.ballerina.compiler.syntax.tree.*;
 
 import java.util.*;
 
 import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.*;
-import static io.ballerina.compiler.api.symbols.TypeDescKind.INTERSECTION;
-import static io.ballerina.compiler.api.symbols.TypeDescKind.RECORD;
 
 
 /**
@@ -45,7 +38,7 @@ import static io.ballerina.compiler.api.symbols.TypeDescKind.RECORD;
  */
 public class AsyncAPIRemoteMapper {
     private final SemanticModel semanticModel;
-    private final  AsyncApi25ChannelsImpl pathObject = new AsyncApi25ChannelsImpl();
+    private final  AsyncApi25ChannelsImpl channelObject = new AsyncApi25ChannelsImpl();
     private final AsyncApi25ComponentsImpl components = new AsyncApi25ComponentsImpl();
 
     private final AsyncAPIComponentMapper componentMapper=new AsyncAPIComponentMapper(components);
@@ -74,7 +67,7 @@ public class AsyncAPIRemoteMapper {
      */
     public AsyncApi25ChannelsImpl getChannels(FunctionDefinitionNode resource,List<ClassDefinitionNode> classDefinitionNodes,String dispatcherValue) {
 
-        AsyncApi25ChannelItemImpl channelItem= (AsyncApi25ChannelItemImpl) pathObject.createChannelItem();
+        AsyncApi25ChannelItemImpl channelItem= (AsyncApi25ChannelItemImpl) channelObject.createChannelItem();
 
         //call asyncAPIParameterMapper to map parameters
         Map<String, String> apiDocs = listAPIDocumentations(resource,channelItem);
@@ -92,9 +85,12 @@ public class AsyncAPIRemoteMapper {
                 }
             }
 
+        }else{
+            throw new NoSuchElementException(NO_SERVICE_CLASS);
+
         }
 
-        return pathObject;
+        return channelObject;
     }
 
     /**
@@ -180,9 +176,9 @@ public class AsyncAPIRemoteMapper {
             subscribeOperationItem.setMessage(subscribeMessage);
             channelItem.setSubscribe(subscribeOperationItem);
         }
-        pathObject.addItem(path,channelItem);
+        channelObject.addItem(path,channelItem);
 
-        return pathObject;
+        return channelObject;
     }
 
 

@@ -1,33 +1,47 @@
-openapi: 3.0.1
+asyncapi: 2.5.0
 info:
   title: PayloadV
   version: 0.0.0
 servers:
-  - url: "{server}:{port}/payloadV"
+  development:
+    url: "{server}:{port}/payloadV"
+    protocol: ws
+    protocolVersion: "13"
     variables:
       server:
-        default: petstore.swagger.io
+        default: ws://localhost
       port:
-        default: "443"
-paths:
-  /pet:
-    post:
-      operationId: postPet
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/ReservationReceipt'
-      responses:
-        "202":
-          description: Accepted
+        default: "9090"
+channels:
+  /locations/{id}/rooms:
+    description: Reperesents Snowpeak room collection resource
+    subscribe:
+      message:
+        oneOf:
+          - payload:
+              type: integer
+              format: int64
+          - payload:
+              type: integer
+              format: int64
+    publish:
+      message:
+        oneOf:
+          - $ref: '#/components/messages/ReservationReceipt'
+          - $ref: '#/components/messages/Link'
+    parameters:
+      id:
+        description: Unique identification of location
+        schema:
+          type: string
 components:
   schemas:
     Link:
-      required:
-        - href
-        - rel
       type: object
+      required:
+        - rel
+        - href
+        - event
       properties:
         rel:
           type: string
@@ -37,30 +51,59 @@ components:
           description: link href
         mediaTypes:
           type: array
-          description: link mediatype
           items:
             type: string
+          description: link mediatype
+        event:
+          type: string
+          description: Remote trigger field
       description: Link record
     Links:
-      required:
-        - linkid
-        - links
       type: object
+      required:
+        - links
+        - linkid
       properties:
         links:
           type: array
           items:
             $ref: '#/components/schemas/Link'
+          description: Array links
         linkid:
           type: integer
+          description: link id
           format: int64
+      description: Links array
     ReservationReceipt:
       allOf:
         - $ref: '#/components/schemas/Links'
-        - required:
+        - type: object
+          required:
             - id
-          type: object
+            - event
           properties:
             id:
               type: string
               description: Reservation receipt id
+            event:
+              type: string
+              const: ReservationReceipt
+              description: Remote trigger field
+          description: ReservationReceipt details
+  messages:
+    ReservationReceipt:
+      payload:
+        $ref: '#/components/schemas/ReservationReceipt'
+      x-response:
+        payload:
+          type: integer
+          format: int64
+      x-response-type: simple-rpc
+    Link:
+      payload:
+        $ref: '#/components/schemas/Link'
+      x-response:
+        payload:
+          type: integer
+          format: int64
+      x-response-type: simple-rpc

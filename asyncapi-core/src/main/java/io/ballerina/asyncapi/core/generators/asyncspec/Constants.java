@@ -191,7 +191,7 @@ public class Constants {
     public static final String DISPATCHERKEY_OPTIONAL_EXCEPTION= "dispatcherKey '%s' cannot be optional in %s record";
     //dispatcherKey name
     //record name
-    public static final String DISPATCHERKEY_NOT_PRESENT_IN_RECORD_FIELD="dispatcherKey '%s' is not present in %s record field, those should be same";
+    public static final String DISPATCHERKEY_NOT_PRESENT_IN_RECORD_FIELD="dispatcherKey '%s' is not present in %s record field, those should be equal";
     public static final String FUNCTION_SIGNATURE_ABSENT="Function signature must contain function method type ex:- onHeartbeat(Heartbeat message)";
 
     //type name
@@ -207,5 +207,7 @@ public class Constants {
     public static final String DISPATCHER_KEY_VALUE_CANNOT_BE_EMPTY="dispatcherKey cannot be empty";
 
     public static final String NO_TYPE_IN_STREAM="No type present in stream";
+
+    public static final String NO_SERVICE_CLASS= "No service class present";
 
 }

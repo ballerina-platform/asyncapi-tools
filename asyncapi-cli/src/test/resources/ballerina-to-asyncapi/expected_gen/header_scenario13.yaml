@@ -1,5 +1,5 @@
 channels:
-  /ping:
+  /v1:
     subscribe:
       message:
         oneOf:
@@ -16,5 +16,8 @@ channels:
         headers:
           type: object
           properties:
-            headerValue:
-              type: string
+            XClient:
+              type: array
+              items:
+                type: string
+

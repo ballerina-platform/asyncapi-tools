@@ -218,6 +218,7 @@ public class AsyncAPIComponentMapper {
                                                String componentName, List<TypeSymbol> typeInclusions, Map<String,
             RecordFieldSymbol> recordFields, HashSet<String> unionKeys, Map<String, String> apiDocs,String dispatcherValue) {
 
+
         // Map to allOF need to check the status code inclusion there
         AsyncApi25SchemaImpl allOfSchema =new AsyncApi25SchemaImpl();
         // Set schema
@@ -229,6 +230,8 @@ public class AsyncAPIComponentMapper {
             allOfSchema.addAllOf(referenceSchema);
             if (typeInclusion.typeKind().equals(TypeDescKind.TYPE_REFERENCE)) {
                 TypeReferenceTypeSymbol typeRecord = (TypeReferenceTypeSymbol) typeInclusion;
+
+                apiDocs.putAll(getRecordFieldsAPIDocsMap(typeRecord,typeInclusionName));
                 if (typeRecord.typeDescriptor() instanceof RecordTypeSymbol) {
                     RecordTypeSymbol typeInclusionRecord = (RecordTypeSymbol) typeRecord.typeDescriptor();
                     Map<String, RecordFieldSymbol> tInFields = typeInclusionRecord.fieldDescriptors();

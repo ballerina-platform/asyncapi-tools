@@ -1,4 +1,4 @@
-import  ballerina/http;
+import ballerina/websocket;
 
 # Link record
 type Link record {|
@@ -8,6 +8,8 @@ type Link record {|
    string href;
    #link mediatype
    string[] mediaTypes?;
+   # Remote trigger field
+   string event;
 |};
 
 # Links array
@@ -23,12 +25,32 @@ type ReservationReceipt record {|
    *Links;
    # Reservation receipt id
    string id;
+   # Remote trigger field
+   string event;
 |};
 
-listener  http:Listener  ep0  = new (443, config  = {host: "petstore.swagger.io"});
-
- # Description
- service  /payloadV  on  ep0  {
-        resource  function  post  pet(@http:Payload ReservationReceipt payload) {
+@websocket:ServiceConfig{dispatcherKey: "event"}
+service /payloadV on new websocket:Listener(9090) {
+    # Reperesents Snowpeak room collection resource
+    #
+    # + id - Unique identification of location
+    resource function get locations/[string id]/rooms() returns websocket:Service|websocket:UpgradeError  {
+        return new ChatServer();
     }
 }
+
+service class ChatServer{
+    *websocket:Service;
+
+    remote function onReservationReceipt(websocket:Caller caller, ReservationReceipt message) returns int {
+
+        return 5;
+    }
+    remote function onLink(websocket:Caller caller, Link message) returns int {
+
+        return 5;
+    }
+
+
+}
+

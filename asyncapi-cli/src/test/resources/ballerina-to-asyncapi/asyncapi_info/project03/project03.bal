@@ -12,3 +12,6 @@ service /payloadV on ep0 {
         return ok;
     }
 }
+
+
+//asyncapi_info- project 03 can’t  be done because @asyncapi:ServiceInfo annotation is not yet present

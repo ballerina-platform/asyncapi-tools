@@ -347,7 +347,7 @@
 //    @Test(description = "Test Ballerina skeleton generation")
 //    public void generateSkeletonForRequestbody() {
 //        final String serviceName = "openapipetstore";
-//        String definitionPath = RES_DIR.resolve("requestBody.yaml").toString();
+//        String definitionPath = RES_DIR.resolve("request.yaml").toString();
 //        BallerinaCodeGenerator generator = new BallerinaCodeGenerator();
 //
 //        try {

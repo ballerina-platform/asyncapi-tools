@@ -39,7 +39,7 @@ public class APIDocTests {
         this.tempDir = Files.createTempDirectory("bal-to-asyncapi-test-out-" + System.nanoTime());
     }
 
-    @Test(description = "Resource function api doc mapped to OAS operation summary")
+    @Test(description = "Resource function api doc mapped to AAS operation summary")
     public void testsForResourceFunction() throws IOException {
         Path ballerinaFilePath = RES_DIR.resolve("apidoc/resource_function_scenario.bal");
         TestUtils.compareWithGeneratedFile(ballerinaFilePath, "apidoc/resource_function.yaml");
@@ -59,8 +59,8 @@ public class APIDocTests {
 
     @Test(description = "Request payload api doc mapped to OAS requestBody description")
     public void testsForRequestPayload() throws IOException {
-        Path ballerinaFilePath = RES_DIR.resolve("apidoc/resource_function_with_requestbody_scenario.bal");
-        TestUtils.compareWithGeneratedFile(ballerinaFilePath, "apidoc/requestBody.yaml");
+        Path ballerinaFilePath = RES_DIR.resolve("apidoc/resource_function_with_request_scenario.bal");
+        TestUtils.compareWithGeneratedFile(ballerinaFilePath, "apidoc/request.yaml");
     }
 
     @Test(description = "Record api doc mapped to OAS record description")

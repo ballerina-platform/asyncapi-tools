@@ -1,19 +1,24 @@
-paths:
+channels:
   /ping:
-    get:
-      operationId: getPing
-      parameters:
-        - name: headerValue
-          in: header
-          required: true
-          schema:
-            type: string
-        - name: x-request-client
-          in: header
-          schema:
-            type: string
-            nullable: true
-      responses:
-        "200":
-          description: Ok
-components: {}
+    subscribe:
+      message:
+        oneOf:
+          - payload:
+              type: integer
+              format: int64
+    publish:
+      message:
+        oneOf:
+          - $ref: '#/components/messages/Subscribe'
+    bindings:
+      ws:
+        bindingVersion: 0.1.0
+        headers:
+          type: object
+          properties:
+            headerValue:
+              type: string
+            x-request-client:
+              type: string
+              extensions:
+                x-nullable: true

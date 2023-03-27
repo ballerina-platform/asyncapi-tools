@@ -19,6 +19,8 @@
 
 package io.ballerina.asyncapi.core.generators.asyncspec.service;
 
+import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25ChannelsImpl;
+import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25ComponentsImpl;
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25DocumentImpl;
 import io.ballerina.asyncapi.core.generators.asyncspec.diagnostic.AsyncAPIConverterDiagnostic;
 import io.ballerina.compiler.api.SemanticModel;
@@ -64,14 +66,20 @@ public class AsyncAPIServiceMapper {
         NodeList<Node> functions = service.members() ; //Take all resource functions
 
         String dispatcherValue= extractDispatcherValue(service); //Take dispatcherValue from @websocket:ServiceConfig annotation
-        Node function=functions.get(0); //Since there is only one resource function
-        SyntaxKind kind = function.kind();
-        if (kind.equals(SyntaxKind.RESOURCE_ACCESSOR_DEFINITION)) {
-            AsyncAPIRemoteMapper resourceMapper = new AsyncAPIRemoteMapper(this.semanticModel);
-            asyncApi.setChannels(resourceMapper.getChannels((FunctionDefinitionNode)function,classDefinitionNodes,dispatcherValue));
-            resourceMapper.getComponents();
-            asyncApi.setComponents(resourceMapper.getComponents());
-            errors.addAll(resourceMapper.getErrors());
+        for(Node function: functions) {
+            SyntaxKind kind = function.kind();
+            if (kind.equals(SyntaxKind.RESOURCE_ACCESSOR_DEFINITION)) {
+                AsyncAPIRemoteMapper resourceMapper = new AsyncAPIRemoteMapper(this.semanticModel);
+                AsyncApi25ChannelsImpl generatedChannels = resourceMapper.getChannels((FunctionDefinitionNode) function, classDefinitionNodes, dispatcherValue);
+                if (!generatedChannels.getItems().isEmpty()) {
+                    asyncApi.setChannels(generatedChannels);
+                }
+                AsyncApi25ComponentsImpl generatedComponents = resourceMapper.getComponents();
+                if (generatedComponents.getSchemas() != null || generatedComponents.getMessages() != null) {
+                    asyncApi.setComponents(generatedComponents);
+                }
+                errors.addAll(resourceMapper.getErrors());
+            }
         }
         return asyncApi;
     }

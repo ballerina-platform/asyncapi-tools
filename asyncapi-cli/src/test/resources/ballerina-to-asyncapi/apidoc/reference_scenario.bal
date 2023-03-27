@@ -1,4 +1,4 @@
-import ballerina/http;
+import ballerina/websocket;
 
 enum Action {
     GET,
@@ -13,6 +13,8 @@ type Link record {|
     string href;
     string[] mediaTypes?;
     Action[] actions?;
+    # Remote trigger field
+    string event;
 |};
 type Links record {|
     Link[] links;
@@ -27,6 +29,8 @@ type Location record {|
     string id;
     # Address of the location
     string address;
+    # Remote trigger field
+    string event;
 |};
 
 enum RoomCategory {
@@ -73,6 +77,8 @@ type ReserveRoom record {|
     string id;
     # Number of rooms
     int count;
+    # Remote trigger field
+    string event;
 |};
 # Represents a reservation of rooms
 type Reservation record {|
@@ -94,17 +100,16 @@ type ReservationReceipt record {|
     string lastUpdated;
     # Reservation
     Reservation reservation;
+    # Remote trigger field
+    string event;
 |};
 type ReservationUpdated record {|
-    *http:Ok;
     ReservationReceipt body;
 |};
 type ReservationCreated record {|
-    *http:Created;
     ReservationReceipt body;
 |};
 type ReservationConflict record {|
-    *http:Conflict;
     string body = "Error occurred while updating the reservation";
 |};
 
@@ -118,6 +123,8 @@ type Payment record {|
     string expiryMonth;
     # Expiaration year of the card in yyyy
     string expiryYear;
+     # Remote trigger field
+    string event;
 |};
 
 # Reperesents receipt for the payment
@@ -130,33 +137,52 @@ type PaymentReceipt record {|
     string lastUpdated;
     # Booked rooms
     Room[] rooms;
+    # Remote trigger field
+    string event;
 |};
 type PaymentCreated record {|
-    *http:Created;
     PaymentReceipt body;
 |};
 type PaymentConflict record {|
-    *http:Conflict;
     string body = "Error occurred while updating the payment";
 |};
 
-service /payloadV on new http:Listener(9090) {
+
+@websocket:ServiceConfig{dispatcherKey: "event"}
+service /payloadV on new websocket:Listener(9090) {
+     resource function get locations() returns websocket:Service|websocket:UpgradeError  {
+        return new ChatServer();
+    }
+}
+
+
+service class ChatServer{
+    *websocket:Service;
+
+    remote function onReservationReceipt(websocket:Caller caller, ReservationReceipt message) returns int {
+        return 5;
+    }
+
+    remote function onLink(websocket:Caller caller, Link message) returns int {
+        return 5;
+    }
 
     # Represents Snowpeak location resource
     #
+    # + message - ReserveRoom with a request
     # + return - `Location` representation
-    resource function get locations() returns Location[] {
+    remote function onReserveRoom(websocket:Caller caller,ReserveRoom message) returns Location[] {
         Location[] locations = getLocation();
         return locations;
     }
 
     # Reperesents Snowpeak room collection resource
     #
-    # + id - Unique identification of location
-    # + startDate - Start date in format yyyy-mm-dd
-    # + endDate - End date in format yyyy-mm-dd
+    # + location - location message containing whole details
     # + return - `Rooms` representation
-    resource function get locations/[string id]/rooms(string startDate, string endDate) returns Rooms {
+    remote function onLocation(websocket:Caller caller,Location location)returns Rooms {
+        string startDate="26/03/2023";
+        string endDate="30/03/2023";
         Rooms rooms = getRooms(startDate, endDate);
         return rooms;
     }
@@ -165,33 +191,33 @@ service /payloadV on new http:Listener(9090) {
     #
     # + reservation - Reservation representation
     # + return - `ReservationCreated` or ReservationConflict representation
-    resource function post reservation(@http:Payload Reservation reservation)
-                returns ReservationCreated|ReservationConflict {
+    remote function onReservation(websocket:Caller caller,Reservation reservation)returns ReservationCreated|ReservationConflict {
         ReservationCreated created = createReservation(reservation);
         return created;
     }
 
     # Represents Snowpeak reservation resource
     #
-    # + reservation - Reservation representation
+    # + reservationMessage - Reservation representation
     # + return - `ReservationCreated` or ReservationConflict representation
-    resource function put reservation(@http:Payload Reservation reservation)
-                returns ReservationUpdated|ReservationConflict {
+    remote function onPaymentReceipt(websocket:Caller caller,PaymentReceipt reservationMessage)returns ReservationUpdated|ReservationConflict {
+        Reservation reservation= {startDate:"29/03/2023",endDate:"30/03/2023",reserveRooms:[{id:"5",count:5,event:""}]};
         ReservationUpdated updated = updateReservation(reservation);
         return updated;
     }
 
     # Represents Snowpeak payment resource
     #
-    # + id - Unique identification of payment
     # + payment - Payment representation
     # + return - `PaymentCreated` or `PaymentConflict` representation
-    resource function post payment/[string id](@http:Payload Payment payment)
-                returns PaymentCreated|PaymentConflict {
+    remote function onPayment(websocket:Caller caller,Payment payment) returns PaymentCreated|PaymentConflict {
+        string id="5";
         PaymentCreated paymentCreated = createPayment(id, payment);
         return paymentCreated;
     }
 }
+
+
 
 function getLocation() returns Location[] {
     return [
@@ -204,9 +230,11 @@ function getLocation() returns Location[] {
                     rel: "room",
                     href: "http://localhost:9090/snowpeak/locations/l1000/rooms",
                     mediaTypes: ["applicaion/vnd.snowpeak.resort+json"],
-                    actions: [GET]
+                    actions: [GET],
+                    event: ""
                 }
-            ]
+            ],
+            event: ""
         },
         {
             name: "Pilatus",
@@ -217,9 +245,11 @@ function getLocation() returns Location[] {
                     rel: "room",
                     href: "http://localhost:9090/snowpeak/locations/l2000/rooms",
                     mediaTypes: ["applicaion/vnd.snowpeak.resort+json"],
-                    actions: [GET]
+                    actions: [GET],
+                    event: ""
                 }
-            ]
+            ],
+            event: ""
         }
     ];
 }
@@ -243,7 +273,8 @@ function getRooms(string startDate, string endDate) returns Rooms {
                 rel: "reservation",
                 href: "http://localhost:9090/rooms/reservation",
                 mediaTypes: ["applicaion/vnd.snowpeak.resort+json"],
-                actions: [POST]
+                actions: [POST],
+                event: ""
             }
         ]
     };
@@ -251,9 +282,7 @@ function getRooms(string startDate, string endDate) returns Rooms {
 
 function createReservation(Reservation reservation) returns ReservationCreated {
     return {
-        headers: {
-            location: "http://localhost:9090/reservation/r1000"
-        },
+
         body: {
             id: "re1000",
             expiryDate: "2021-07-01",
@@ -262,32 +291,38 @@ function createReservation(Reservation reservation) returns ReservationCreated {
                 reserveRooms: [
                     {
                         id: "r1000",
-                        count: 2
+                        count: 2,
+                        event: ""
                     }
                 ],
                 startDate: "2021-08-01",
                 endDate: "2021-08-03"
+
             },
             links: [
                 {
                     rel: "cancel",
                     href: "http://localhost:9090/reservation/re1000",
                     mediaTypes: ["applicaion/vnd.snowpeak.resort+json"],
-                    actions: [DELETE]
+                    actions: [DELETE],
+                    event: ""
                 },
                 {
                     rel: "edit",
                     href: "http://localhost:9090/reservation/re1000",
                     mediaTypes: ["applicaion/vnd.snowpeak.resort+json"],
-                    actions: [PUT]
+                    actions: [PUT],
+                    event: ""
                 },
                 {
                     rel: "payment",
                     href: "http://localhost:9090/payment/re1000",
                     mediaTypes: ["applicaion/vnd.snowpeak.resort+json"],
-                    actions: [POST]
+                    actions: [POST],
+                    event: ""
                 }
-            ]
+            ],
+            event: ""
         }
     };
 }
@@ -302,7 +337,8 @@ function updateReservation(Reservation reservation) returns ReservationUpdated {
                 reserveRooms: [
                     {
                         id: "r1000",
-                        count: 1
+                        count: 1,
+                        event: ""
                     }
                 ],
                 startDate: "2021-08-01",
@@ -313,30 +349,31 @@ function updateReservation(Reservation reservation) returns ReservationUpdated {
                     rel: "cancel",
                     href: "http://localhost:9090/reservation/re1000",
                     mediaTypes: ["applicaion/vnd.snowpeak.resort+json"],
-                    actions: [DELETE]
+                    actions: [DELETE],
+                    event: ""
                 },
                 {
                     rel: "edit",
                     href: "http://localhost:9090/reservation/re1000",
                     mediaTypes: ["applicaion/vnd.snowpeak.resort+json"],
-                    actions: [PUT]
+                    actions: [PUT],
+                    event: ""
                 },
                 {
                     rel: "payment",
                     href: "http://localhost:9090/payment/re1000",
                     mediaTypes: ["applicaion/vnd.snowpeak.resort+json"],
-                    actions: [POST]
+                    actions: [POST],
+                    event: ""
                 }
-            ]
+            ],
+            event: ""
         }
     };
 }
 
 function createPayment(string id, Payment payment) returns PaymentCreated {
     return {
-        headers: {
-            location: "http://localhost:9090/reservation/p1000"
-        },
         body: {
             id: "p1000",
             total: 400.00,
@@ -352,7 +389,8 @@ function createPayment(string id, Payment payment) returns PaymentCreated {
                     price: 200.00,
                     count: 1
                 }
-            ]
+            ],
+            event: ""
         }
     };
 }

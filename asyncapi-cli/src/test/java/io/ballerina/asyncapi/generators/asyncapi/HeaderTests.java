@@ -40,56 +40,57 @@ public class HeaderTests {
         this.tempDir = Files.createTempDirectory("bal-to-asyncapi-test-out-" + System.nanoTime());
     }
 
-    @Test(description = "Generate OpenAPI spec with header type parameter")
+    @Test(description = "Generate AsyncAPI spec with header type parameter")
     public void testHeadscenario01() throws IOException {
         Path ballerinaFilePath = RES_DIR.resolve("header_scenario01.bal");
         TestUtils.compareWithGeneratedFile(ballerinaFilePath, "header_scenario01.yaml");
     }
 
-    @Test(description = "Generate OpenAPI spec with header type parameter with annotation values")
+    @Test(description = "Generate AsyncAPI spec with header type parameter with annotation values")
     public void testHeadersWithAnnotation() throws IOException {
         Path ballerinaFilePath = RES_DIR.resolve("header_scenario02.bal");
         TestUtils.compareWithGeneratedFile(ballerinaFilePath, "header_scenario02.yaml");
     }
 
-    @Test(description = "Generate OpenAPI spec with header type parameter without curly brace")
+    @Test(description = "Generate AsyncAPI spec with header type parameter without curly brace")
     public void testHeadersWithOutCurlyBrace() throws IOException {
         Path ballerinaFilePath = RES_DIR.resolve("header_scenario03.bal");
         TestUtils.compareWithGeneratedFile(ballerinaFilePath, "header_scenario03.yaml");
     }
 
-    @Test(description = "Generate OpenAPI spec with for multiple headers")
+    @Test(description = "Generate AsyncAPI spec with for multiple headers")
     public void testWithMultipleHeaders() throws IOException {
         Path ballerinaFilePath = RES_DIR.resolve("header_scenario04.bal");
         TestUtils.compareWithGeneratedFile(ballerinaFilePath, "header_scenario04.yaml");
     }
 
-    @Test(description = "Generate OpenAPI spec with for optional headers")
+    @Test(description = "Generate AsyncAPI spec with for optional headers")
     public void testOptionalHeaders() throws IOException {
         Path ballerinaFilePath = RES_DIR.resolve("header_scenario05.bal");
         TestUtils.compareWithGeneratedFile(ballerinaFilePath, "header_scenario05.yaml");
     }
 
-    @Test(description = "Generate OpenAPI spec with when the service config has nullable and optional enable field")
-    public void testHeadersWithAnnotations() throws IOException {
-        Path ballerinaFilePath = RES_DIR.resolve("header_scenario06.bal");
-        TestUtils.compareWithGeneratedFile(ballerinaFilePath, "header_scenario06.yaml");
-    }
+    //TODO : Uncomment this after created treatNilableAsOptional
+//    @Test(description = "Generate AsyncAPI spec with when the service config has nullable and optional enable field")
+//    public void testHeadersWithAnnotations() throws IOException {
+//        Path ballerinaFilePath = RES_DIR.resolve("header_scenario06.bal");
+//        TestUtils.compareWithGeneratedFile(ballerinaFilePath, "header_scenario06.yaml");
+//    }
 
-    @Test(description = "Generate OpenAPI spec when the header has defaultable parameter")
+    @Test(description = "Generate AsyncAPI spec when the header has defaultable parameter")
     public void testHeadersWithDefaultValue() throws IOException {
         Path ballerinaFilePath = RES_DIR.resolve("header_scenario07.bal");
         TestUtils.compareWithGeneratedFile(ballerinaFilePath, "header_scenario07.yaml");
     }
 
-    @Test(description = "Generate OpenAPI spec when the header has defaultable parameter with nullable enable data " +
+    @Test(description = "Generate AsyncAPI spec when the header has defaultable parameter with nullable enable data " +
             "type")
     public void testHeadersWithDefaultValueWithNullable() throws IOException {
         Path ballerinaFilePath = RES_DIR.resolve("header_scenario08.bal");
         TestUtils.compareWithGeneratedFile(ballerinaFilePath, "header_scenario08.yaml");
     }
 
-    @Test(description = "Generate OpenAPI spec when the header has defaultable parameter with nullable enable data " +
+    @Test(description = "Generate AsyncAPI spec when the header has defaultable parameter with nullable enable data " +
             "type and service config enable")
     public void testHeadersWithDefaultValueWithNullableServiceConfig() throws IOException {
         Path ballerinaFilePath = RES_DIR.resolve("header_scenario09.bal");
@@ -113,6 +114,22 @@ public class HeaderTests {
     public void testBooleanHeaderArray() throws IOException {
         Path ballerinaFilePath = RES_DIR.resolve("header_scenario12.bal");
         TestUtils.compareWithGeneratedFile(ballerinaFilePath, "header_scenario12.yaml");
+    }
+
+    @Test(description = "Generate AsyncAPI spec with header type parameter")
+    public void testHeadScenario13() throws IOException {
+        Path ballerinaFilePath = RES_DIR.resolve("header_scenario13.bal");
+        TestUtils.compareWithGeneratedFile(ballerinaFilePath, "header_scenario13.yaml");
+    }
+    @Test(description = "Generate AsyncAPI spec with header type parameter with annotation values")
+    public void testHeadScenario14() throws IOException {
+        Path ballerinaFilePath = RES_DIR.resolve("header_scenario14.bal");
+        TestUtils.compareWithGeneratedFile(ballerinaFilePath, "header_scenario14.yaml");
+    }
+    @Test(description = "Generate AsyncAPI spec with header type parameter with annotation values")
+    public void testHeadScenario15() throws IOException {
+        Path ballerinaFilePath = RES_DIR.resolve("header_scenario15.bal");
+        TestUtils.compareWithGeneratedFile(ballerinaFilePath, "header_scenario15.yaml");
     }
     @AfterMethod
     public void cleanUp() {

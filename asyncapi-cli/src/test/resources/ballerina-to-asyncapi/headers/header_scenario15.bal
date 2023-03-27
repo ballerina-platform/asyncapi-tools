@@ -10,7 +10,7 @@ public type Subscribe record{
 
 @websocket:ServiceConfig{dispatcherKey: "event"}
 service /payloadV on helloEp {
-    resource function get ping(@http:Header {name: "x-client"} string headerValue = "header1") returns websocket:Service|websocket:UpgradeError {
+    resource function get ping(@http:Header string headerValue = getHeader()) returns websocket:Service|websocket:UpgradeError {
         return new ChatServer();
     }
 }
@@ -24,3 +24,7 @@ service class ChatServer{
 
 }
 
+
+function getHeader() returns string {
+    return "header";
+}

@@ -33,7 +33,7 @@ import static io.ballerina.asyncapi.generators.asyncapi.TestUtils.compareWithGen
  */
 public class AsyncAPIInfoTests {
     private static final Path RES_DIR =
-            Paths.get("src/test/resources/ballerina-to-asyncapi/openapi_info").toAbsolutePath();
+            Paths.get("src/test/resources/ballerina-to-asyncapi/asyncapi_info").toAbsolutePath();
     private Path tempDir;
 
     @BeforeMethod
@@ -41,22 +41,22 @@ public class AsyncAPIInfoTests {
         this.tempDir = Files.createTempDirectory("bal-to-asyncapi-test-out-" + System.nanoTime());
     }
 
-    @Test(description = "Generate OpenAPI spec with default value with empty Ballerina.toml")
+    @Test(description = "Generate AsyncAPI spec with default value with empty Ballerina.toml")
     public void defaultOpenAPIInfo() throws IOException {
-        Path ballerinaFilePath = RES_DIR.resolve("project01/project04.bal");
-        compareWithGeneratedFile(ballerinaFilePath, "openapi_info/project01.yaml");
+        Path ballerinaFilePath = RES_DIR.resolve("project01/project01.bal");
+        compareWithGeneratedFile(ballerinaFilePath, "asyncapi_info/project01.yaml");
     }
 
-    @Test(description = "Generate OpenAPI spec with default value with version Ballerina.toml")
+    @Test(description = "Generate AsyncAPI spec with default value with version Ballerina.toml")
     public void versionOpenAPIInfo() throws IOException {
         Path ballerinaFilePath = RES_DIR.resolve("project02/project02.bal");
-        compareWithGeneratedFile(ballerinaFilePath, "openapi_info/project02.yaml");
+        compareWithGeneratedFile(ballerinaFilePath, "asyncapi_info/project02.yaml");
     }
 
-    @Test(description = "Generate OpenAPI spec with default value with version Ballerina.toml")
+    @Test(description = "Generate AsyncAPI spec with default value with version Ballerina.toml")
     public void openAPIAnnotation() throws IOException {
         Path ballerinaFilePath = RES_DIR.resolve("project03/project03.bal");
-        compareWithGeneratedFile(ballerinaFilePath, "openapi_info/project02.yaml");
+        compareWithGeneratedFile(ballerinaFilePath, "asyncapi_info/project02.yaml");
     }
 
 

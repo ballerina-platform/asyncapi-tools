@@ -1,28 +1,20 @@
-paths:
+channels:
   /ping:
-    get:
-      operationId: getPing
-      parameters:
-        - name: X-Client
-          in: header
-          required: true
-          schema:
-            type: string
-      responses:
-        "200":
-          description: Ok
-  /v1:
-    get:
-      operationId: getV1
-      parameters:
-        - name: XClient
-          in: header
-          required: true
-          schema:
-            type: array
-            items:
+    subscribe:
+      message:
+        oneOf:
+          - payload:
+              type: integer
+              format: int64
+    publish:
+      message:
+        oneOf:
+          - $ref: '#/components/messages/Subscribe'
+    bindings:
+      ws:
+        bindingVersion: 0.1.0
+        headers:
+          type: object
+          properties:
+            X-Client:
               type: string
-      responses:
-        "200":
-          description: Ok
-components: {}
