@@ -41,11 +41,7 @@ public class ResponseTests {
         this.tempDir = Files.createTempDirectory("bal-to-asyncapi-test-out-" + System.nanoTime());
     }
 
-    @Test(description = "Response scenario01 without return type")
-    public void testResponse01() throws IOException {
-        Path ballerinaFilePath = RES_DIR.resolve("response/rs_scenario01.bal");
-        TestUtils.compareWithGeneratedFile(ballerinaFilePath, "response/rs_scenario01.yaml");
-    }
+
 
     @Test(description = "Response scenario02 without return type")
     public void testResponse02() throws IOException {

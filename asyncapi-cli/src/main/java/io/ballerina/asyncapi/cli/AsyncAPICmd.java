@@ -48,8 +48,7 @@ import static io.ballerina.asyncapi.cli.CmdConstants.BAL_EXTENSION;
  */
 @CommandLine.Command(
         name = "asyncapi",
-        description = "Generates Ballerina service/client for OpenAPI contract and OpenAPI contract for Ballerina" +
-                "Service."
+        description = "GeneratesAsyncAPI contract for Ballerina Service."
 )
 public class AsyncAPICmd implements BLauncherCmd {
     private static final String CMD_NAME = "asyncapi";

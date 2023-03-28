@@ -206,8 +206,7 @@ public class AsyncAPIRemoteMapper {
 
     private Boolean isRemoteFunctionNameValid(String providedFunctionName){
         String[] invalidRemoteFunctionNames = {ON_IDLE_TIME_OUT,ON_MESSAGE,ON_TEXT_MESSAGE,ON_BINARY_MESSAGE,ON_CLOSE,ON_OPEN,ON_ERROR};
-        return !(Arrays.stream(invalidRemoteFunctionNames).anyMatch(remoteFunctionName -> remoteFunctionName == providedFunctionName));
-
+        return !(Arrays.stream(invalidRemoteFunctionNames).anyMatch(remoteFunctionName -> remoteFunctionName.equals(providedFunctionName)));
     }
 
 
