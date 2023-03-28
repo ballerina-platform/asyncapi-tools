@@ -17,14 +17,12 @@ channels:
     description: Represents Snowpeak location resource
     subscribe:
       message:
-        oneOf:
-          - payload:
-              type: integer
-              format: int64
+        payload:
+          type: integer
+          format: int64
     publish:
       message:
-        oneOf:
-          - $ref: '#/components/messages/Subscribe'
+        $ref: '#/components/messages/Subscribe'
 components:
   schemas:
     Subscribe:

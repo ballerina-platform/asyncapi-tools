@@ -44,6 +44,8 @@ under the License.
             <class name="io.ballerina.asyncapi.cmd.AsyncApiGenServiceCmdTest"/>
             <class name="io.ballerina.asyncapi.cmd.BallerinaToAsyncAPITests"/>
             <class name="io.ballerina.asyncapi.generators.asyncapi.DataTypeTests"/>
+            <class name="io.ballerina.asyncapi.generators.asyncapi.AliasTests"/>
+
         </classes>
     </test>
 </suite>

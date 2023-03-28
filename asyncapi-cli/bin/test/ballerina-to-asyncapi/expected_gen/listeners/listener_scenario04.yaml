@@ -1,4 +1,20 @@
-enum:
-  - http://petstore.openapi.io
-  - http://localhost
-
+asyncapi: 2.5.0
+info:
+  title: PayloadV
+  version: 0.0.0
+servers:
+  development:
+    url: "{server}:{port}/payloadV"
+    protocol: ws
+    protocolVersion: "13"
+    variables:
+      server:
+        enum:
+          - ws://www.asyncapi.com
+          - ws://localhost
+        default: ws://localhost
+      port:
+        enum:
+          - "443"
+          - "80"
+        default: "80"

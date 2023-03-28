@@ -8,7 +8,7 @@ public type Subscribe record{
 };
 
 @websocket:ServiceConfig{dispatcherKey: "event"}
-service /payloadV on helloEp {
+service /payloadV on ep0 {
     resource function get pathParam() returns websocket:Service|websocket:UpgradeError {
         return new ChatServer();
     }

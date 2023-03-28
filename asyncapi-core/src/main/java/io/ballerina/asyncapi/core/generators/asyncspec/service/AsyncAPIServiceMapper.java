@@ -86,7 +86,7 @@ public class AsyncAPIServiceMapper {
 
     private static String extractDispatcherValue(ServiceDeclarationNode service){
         String dispatcherValue=null;
-        String typeName=null;
+//        String typeName=null;
         if(service.metadata().isPresent()) {
             MetadataNode serviceMetadataNode = service.metadata().get();
             NodeList<AnnotationNode> annotationNodes = serviceMetadataNode.annotations();
@@ -94,9 +94,9 @@ public class AsyncAPIServiceMapper {
             Node node = annotationNode.annotReference();
             if (node instanceof QualifiedNameReferenceNode) {
                 QualifiedNameReferenceNode qNode = (QualifiedNameReferenceNode) node;
-                if (qNode.modulePrefix().text().equals(WEBSOCKET)) {
-                    typeName = qNode.modulePrefix().text() + ":" + qNode.identifier().text();
-                    if (typeName.equals(WEBSOCKET + ":" + SERVICE_CONFIG)) {
+//                if (qNode.modulePrefix().text().equals(WEBSOCKET)) {
+//                    typeName = qNode.modulePrefix().text() + ":" + qNode.identifier().text();
+//                    if (typeName.equals(WEBSOCKET + ":" + SERVICE_CONFIG)) {
                         SeparatedNodeList<MappingFieldNode> fields = annotationNode.annotValue().get().fields();
                         for (MappingFieldNode field : fields) {
                             if (field instanceof SpecificFieldNode) {
@@ -118,10 +118,10 @@ public class AsyncAPIServiceMapper {
                         if (dispatcherValue == null) {
                             throw new NoSuchElementException(NO_DISPATCHER_KEY);
                         }
-                    }else{
-                        throw new NoSuchElementException(NO_WEBSOCKET_SERVICE_CONFIG_ANNOTATION);
-                    }
-                }
+//                    }else{
+//                        throw new NoSuchElementException(NO_WEBSOCKET_SERVICE_CONFIG_ANNOTATION);
+//                    }
+//                }
             }
         }else{
             throw new NoSuchElementException(NO_ANNOTATION_PRESENT);

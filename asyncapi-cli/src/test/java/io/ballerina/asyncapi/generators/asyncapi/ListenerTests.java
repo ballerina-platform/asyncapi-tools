@@ -44,31 +44,31 @@ public class ListenerTests {
         this.tempDir = Files.createTempDirectory("bal-to-asyncapi-test-out-" + System.nanoTime());
     }
     //Listeners
-    @Test(description = "Generate OpenAPI spec for single listener")
+    @Test(description = "Generate AsyncAPI spec for single listener")
     public void testListeners01() throws IOException {
         Path ballerinaFilePath = RES_DIR.resolve("listeners/listener_scenario01.bal");
         TestUtils.compareWithGeneratedFile(ballerinaFilePath, "listeners/listener_scenario01.yaml");
     }
 
-    @Test(description = "Generate OpenAPI spec for listener only have port")
+    @Test(description = "Generate AsyncAPI spec for listener only have port")
     public void testListeners02() throws IOException {
         Path ballerinaFilePath = RES_DIR.resolve("listeners/listener_scenario02.bal");
         TestUtils.compareWithGeneratedFile(ballerinaFilePath, "listeners/listener_scenario02.yaml");
     }
 
-    @Test(description = "Generate OpenAPI spec for multiple listeners")
+    @Test(description = "Generate AsyncAPI spec for multiple listeners")
     public void testListeners03() throws IOException {
         Path ballerinaFilePath = RES_DIR.resolve("listeners/listener_scenario03.bal");
         TestUtils.compareWithGeneratedFile(ballerinaFilePath, "listeners/listener_scenario03.yaml");
     }
 
-    @Test(description = "Generate OpenAPI spec for ExplicitNewExpressionNode listeners")
+    @Test(description = "Generate AsyncAPI spec for ExplicitNewExpressionNode listeners")
     public void testListeners04() throws IOException {
         Path ballerinaFilePath = RES_DIR.resolve("listeners/listener_scenario04.bal");
         TestUtils.compareWithGeneratedFile(ballerinaFilePath, "listeners/listener_scenario04.yaml");
     }
 
-    @Test(description = "Generate OpenAPI spec for multiple listeners")
+    @Test(description = "Generate AsyncAPI spec for multiple listeners")
     public void testListeners05() throws IOException {
         Path ballerinaFilePath = RES_DIR.resolve("listeners/listener_scenario05.bal");
         TestUtils.compareWithGeneratedFile(ballerinaFilePath, "listeners/listener_scenario05.yaml");
@@ -77,14 +77,14 @@ public class ListenerTests {
     @Test(description = "When given ballerina file contain some compilation issue.")
     public void testListeners06() {
         Path ballerinaFilePath = RES_DIR.resolve("listeners/listener_scenario06.bal");
-        AsyncAPIContractGenerator openApiConverter = new AsyncAPIContractGenerator();
-        openApiConverter.generateAsyncAPIDefinitionsAllService(ballerinaFilePath, tempDir, null
+        AsyncAPIContractGenerator asyncApiConverter = new AsyncAPIContractGenerator();
+        asyncApiConverter.generateAsyncAPIDefinitionsAllService(ballerinaFilePath, tempDir, null
                 , false);
-        List<AsyncAPIConverterDiagnostic> errors = openApiConverter.getErrors();
+        List<AsyncAPIConverterDiagnostic> errors = asyncApiConverter.getErrors();
         Assert.assertTrue(errors.isEmpty());
     }
 
-    @Test(description = "Generate OpenAPI spec for http load balancer listeners")
+    @Test(description = "Generate AsyncAPI spec for http load balancer listeners")
     public void testListeners07() throws IOException {
         Path ballerinaFilePath = RES_DIR.resolve("listeners/listener_http_load_balancer.bal");
         TestUtils.compareWithGeneratedFile(ballerinaFilePath, "listeners/with_check_key_word.yaml");

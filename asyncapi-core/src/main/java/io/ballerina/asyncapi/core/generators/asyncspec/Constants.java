@@ -174,6 +174,7 @@ public class Constants {
     public static final String CONTRACT = "contract";
     public static final String VERSION = "'version";
     public static final String TITLE = "title";
+    //TODO : Not yet done
     public static final String ASYNCAPI_ANNOTATION = "asyncapi:ServiceInfo";
 
     //File extensions
@@ -182,6 +183,18 @@ public class Constants {
     public static final String YML_EXTENSION = ".yml";
     public static final String PLUS = "+";
     public static final String UNDERSCORE = "_";
+
+    //CamelCase pattern
+    public static final String CamelCasePattern = "^on[A-Z][a-z0-9A-Z]*$";
+
+    //Invalid remote function names
+    public static final String ON_IDLE_TIME_OUT="onIdleTimeOut";
+    public static final String ON_MESSAGE="onMessage";
+    public static final String ON_TEXT_MESSAGE="onTextMessage";
+    public static final String ON_BINARY_MESSAGE="onBinaryMessage";
+    public static final String ON_CLOSE="onClose";
+    public static final String ON_OPEN="onOpen";
+    public static final String ON_ERROR="onError";
 
     //Exception Constants
     //dispatcherKey name
@@ -197,10 +210,11 @@ public class Constants {
     //type name
     //type
     public static final String FUNCTION_SIGNATURE_WRONG_TYPE= "%s type must be a record,%s given";
-    public static final String FUNCTION_WRONG_NAME="Function name must start with 'on' ex-onHeartBeat,onTest";
+    public static final String FUNCTION_WRONG_NAME="Function name must start with 'on' and use camelCase convention ex-onHeartBeat,onRemoteFunctionTestName";
+    public static final String FUNCTION_DEFAULT_NAME_CONTAINS_ERROR="OnIdleTimeOut, onMessage, OnTextMessage, OnBinaryMessage, OnClose, OnOpen, and OnError names are not permitted in a function's name";
     public static final String NO_ANNOTATION_PRESENT="No Annotation present, use @websocket:ServiceConfig{dispatcherKey: \"event\"} above the service";
 
-    public static final String NO_WEBSOCKET_SERVICE_CONFIG_ANNOTATION="No @websocket:ServiceConfig{dispatcherKey: \"event\"} annotation is present";
+//    public static final String NO_WEBSOCKET_SERVICE_CONFIG_ANNOTATION="No @websocket:ServiceConfig{dispatcherKey: \"event\"} annotation is present";
 
     public static final String NO_DISPATCHER_KEY="No dispatcherKey field is present in @websocket:ServiceConfig annotation";
 

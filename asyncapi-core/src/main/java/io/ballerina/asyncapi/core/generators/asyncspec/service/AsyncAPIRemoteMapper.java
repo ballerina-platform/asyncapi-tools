@@ -29,6 +29,8 @@ import io.ballerina.compiler.syntax.tree.*;
 import java.util.*;
 
 import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.*;
+import static io.ballerina.compiler.syntax.tree.SyntaxKind.*;
+import static io.ballerina.compiler.syntax.tree.SyntaxKind.MAPPING_CONSTRUCTOR;
 
 
 /**
@@ -111,54 +113,58 @@ public class AsyncAPIRemoteMapper {
             if (node.kind().equals(SyntaxKind.OBJECT_METHOD_DEFINITION)){
                 FunctionDefinitionNode remoteFunctionNode= (FunctionDefinitionNode)node;
                 String functionName= remoteFunctionNode.functionName().toString();
-                if (functionName.startsWith(ON)) {
-                    //TODO : have to pass this through unescape identifier
-                    String remoteRequestTypeName = ConverterCommonUtils.unescapeIdentifier(functionName.substring(2));
-                    RequiredParameterNode requiredParameterNode = checkParameterContainsCustomType(remoteRequestTypeName, remoteFunctionNode);
-                    if (requiredParameterNode != null) {
-                        String paramName=requiredParameterNode.paramName().get().toString();
-                        Node parameterTypeNode =requiredParameterNode.typeName();
-                        TypeSymbol remoteFunctionNameTypeSymbol = (TypeSymbol) semanticModel.symbol(parameterTypeNode).orElseThrow();
-                        TypeReferenceTypeSymbol typeRef = (TypeReferenceTypeSymbol) remoteFunctionNameTypeSymbol;
-                        TypeSymbol type = typeRef.typeDescriptor();
+                if (functionName.matches(CamelCasePattern)) {
+                    if(isRemoteFunctionNameValid(functionName)) {
+                        //TODO : have to pass this through unescape identifier
+                        String remoteRequestTypeName = ConverterCommonUtils.unescapeIdentifier(functionName.substring(2));
+                        RequiredParameterNode requiredParameterNode = checkParameterContainsCustomType(remoteRequestTypeName, remoteFunctionNode);
+                        if (requiredParameterNode != null) {
+                            String paramName = requiredParameterNode.paramName().get().toString();
+                            Node parameterTypeNode = requiredParameterNode.typeName();
+                            TypeSymbol remoteFunctionNameTypeSymbol = (TypeSymbol) semanticModel.symbol(parameterTypeNode).orElseThrow();
+                            TypeReferenceTypeSymbol typeRef = (TypeReferenceTypeSymbol) remoteFunctionNameTypeSymbol;
+                            TypeSymbol type = typeRef.typeDescriptor();
 //                        Boolean testing= type.typeKind().equals(TypeDescKind.INTERSECTION);
 //                        SymbolKind testing2= componentMapper.excludeReadonlyIfPresent(type).typeKind();
 //                        Boolean testing1=componentMapper.excludeReadonlyIfPresent(type).kind().equals(TypeDescKind.RECORD);
 
-                        //check if there is a readOnly & record type also
-                        if (type.typeKind().equals(TypeDescKind.RECORD) || (type.typeKind().equals(TypeDescKind.INTERSECTION) && componentMapper.excludeReadonlyIfPresent(type).typeKind().equals(TypeDescKind.RECORD))){
+                            //check if there is a readOnly & record type also
+                            if (type.typeKind().equals(TypeDescKind.RECORD) || (type.typeKind().equals(TypeDescKind.INTERSECTION) && componentMapper.excludeReadonlyIfPresent(type).typeKind().equals(TypeDescKind.RECORD))) {
 
-                            FunctionSymbol remoteFunctionSymbol = (FunctionSymbol) semanticModel.symbol(remoteFunctionNode).get();
-                            Map<String, String> remoteDocs = getRemoteDocumentation(remoteFunctionSymbol);
+                                FunctionSymbol remoteFunctionSymbol = (FunctionSymbol) semanticModel.symbol(remoteFunctionNode).get();
+                                Map<String, String> remoteDocs = getRemoteDocumentation(remoteFunctionSymbol);
 
-                            String paramDescription = null;
-                            if (remoteDocs.containsKey(paramName)) {
-                                paramDescription = remoteDocs.get(paramName);
-                                remoteDocs.remove(paramName);
+                                String paramDescription = null;
+                                if (remoteDocs.containsKey(paramName)) {
+                                    paramDescription = remoteDocs.get(paramName);
+                                    remoteDocs.remove(paramName);
 
-                            }
-                            AsyncApi25MessageImpl componentMessage = responseMapper.extractMessageSchemaReference(publishMessage, remoteRequestTypeName, remoteFunctionNameTypeSymbol, dispatcherValue, paramDescription);
-                            if (remoteDocs.containsKey(REMOTE_DESCRIPTION)) {
-                                componentMessage.setDescription(remoteDocs.get(REMOTE_DESCRIPTION));
-                                remoteDocs.remove(REMOTE_DESCRIPTION);
-                            }
-                            Optional<ReturnTypeDescriptorNode> optionalRemoteReturnNode = remoteFunctionNode.functionSignature().returnTypeDesc();
-                            if (optionalRemoteReturnNode.isPresent()) {
-                                Node remoteReturnType = optionalRemoteReturnNode.get().type();
-                                String returnDescription = null;
-                                if (remoteDocs.containsKey(RETURN)) {
-                                    returnDescription = remoteDocs.get(RETURN);
-                                    remoteDocs.remove(RETURN);
                                 }
-                                responseMapper.createResponse( subscribeMessage, componentMessage, remoteReturnType, returnDescription);
+                                AsyncApi25MessageImpl componentMessage = responseMapper.extractMessageSchemaReference(publishMessage, remoteRequestTypeName, remoteFunctionNameTypeSymbol, dispatcherValue, paramDescription);
+                                if (remoteDocs.containsKey(REMOTE_DESCRIPTION)) {
+                                    componentMessage.setDescription(remoteDocs.get(REMOTE_DESCRIPTION));
+                                    remoteDocs.remove(REMOTE_DESCRIPTION);
+                                }
+                                Optional<ReturnTypeDescriptorNode> optionalRemoteReturnNode = remoteFunctionNode.functionSignature().returnTypeDesc();
+                                if (optionalRemoteReturnNode.isPresent()) {
+                                    Node remoteReturnType = optionalRemoteReturnNode.get().type();
+                                    String returnDescription = null;
+                                    if (remoteDocs.containsKey(RETURN)) {
+                                        returnDescription = remoteDocs.get(RETURN);
+                                        remoteDocs.remove(RETURN);
+                                    }
+                                    responseMapper.createResponse(subscribeMessage, componentMessage, remoteReturnType, returnDescription);
+                                }
+                                components.addMessage(remoteRequestTypeName, componentMessage);
+                            } else {
+                                throw new NoSuchElementException(String.format(FUNCTION_SIGNATURE_WRONG_TYPE, remoteRequestTypeName, type.typeKind().getName()));
                             }
-                            components.addMessage(remoteRequestTypeName, componentMessage);
-                        }else{
-                            throw new NoSuchElementException(String.format(FUNCTION_SIGNATURE_WRONG_TYPE,remoteRequestTypeName,type.typeKind().getName()));
-                        }
 
-                    } else {
-                        throw new NoSuchElementException(FUNCTION_SIGNATURE_ABSENT);
+                        } else {
+                            throw new NoSuchElementException(FUNCTION_SIGNATURE_ABSENT);
+                        }
+                    }else{
+                        throw new NoSuchElementException(FUNCTION_DEFAULT_NAME_CONTAINS_ERROR);
                     }
 
                 }else{
@@ -168,17 +174,40 @@ public class AsyncAPIRemoteMapper {
 
         }
         if(publishMessage.getOneOf()!=null){
-            publishOperationItem.setMessage(publishMessage);
+            if(publishMessage.getOneOf().size()==1){
+                AsyncApi25MessageImpl publishOneMessage = new AsyncApi25MessageImpl();
+                publishOneMessage.set$ref(((AsyncApi25MessageImpl)publishMessage.getOneOf().get(0)).get$ref());
+                publishOperationItem.setMessage(publishOneMessage );
+
+            }else{
+                publishOperationItem.setMessage(publishMessage);
+            }
             channelItem.setPublish(publishOperationItem);
 
         }
         if(subscribeMessage.getOneOf()!=null){
-            subscribeOperationItem.setMessage(subscribeMessage);
+            if(subscribeMessage.getOneOf().size()==1){
+                AsyncApi25MessageImpl subscribeOneMessage = new AsyncApi25MessageImpl();
+                subscribeOneMessage.set$ref(((AsyncApi25MessageImpl)subscribeMessage.getOneOf().get(0)).get$ref());
+                if(subscribeOneMessage.get$ref()==null){
+                    subscribeOneMessage.setPayload((subscribeMessage.getOneOf().get(0)).getPayload());
+                }
+                subscribeOperationItem.setMessage(subscribeOneMessage);
+
+            }else{
+                subscribeOperationItem.setMessage(subscribeMessage);
+            }
             channelItem.setSubscribe(subscribeOperationItem);
         }
         channelObject.addItem(path,channelItem);
 
         return channelObject;
+    }
+
+    private Boolean isRemoteFunctionNameValid(String providedFunctionName){
+        String[] invalidRemoteFunctionNames = {ON_IDLE_TIME_OUT,ON_MESSAGE,ON_TEXT_MESSAGE,ON_BINARY_MESSAGE,ON_CLOSE,ON_OPEN,ON_ERROR};
+        return !(Arrays.stream(invalidRemoteFunctionNames).anyMatch(remoteFunctionName -> remoteFunctionName == providedFunctionName));
+
     }
 
 
