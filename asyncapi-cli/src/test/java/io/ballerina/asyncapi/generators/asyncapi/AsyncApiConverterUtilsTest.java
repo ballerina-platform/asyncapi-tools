@@ -127,7 +127,7 @@ public class AsyncApiConverterUtilsTest {
 
     @Test(description = "Generate AsyncAPI spec for build project")
     public void testRecordFieldPayLoad() {
-        Path ballerinaFilePath = RES_DIR.resolve("project_bal/record_payload_service.bal");
+        Path ballerinaFilePath = RES_DIR.resolve("project_bal/record_request_service.bal");
         AsyncAPIContractGenerator asyncApiConverter = new AsyncAPIContractGenerator();
         asyncApiConverter.generateAsyncAPIDefinitionsAllService(ballerinaFilePath, this.tempDir, null,
                 false);

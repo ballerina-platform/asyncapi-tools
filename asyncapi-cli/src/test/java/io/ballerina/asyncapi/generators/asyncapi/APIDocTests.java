@@ -45,31 +45,31 @@ public class APIDocTests {
         TestUtils.compareWithGeneratedFile(ballerinaFilePath, "apidoc/resource_function.yaml");
     }
 
-    @Test(description = "Resource function api doc mapped to OAS operation summary")
+    @Test(description = "Resource function api doc mapped to AAS operation summary")
     public void testsForPathParameter() throws IOException {
         Path ballerinaFilePath = RES_DIR.resolve("apidoc/resource_function_with_pathparam_scenario.bal");
         TestUtils.compareWithGeneratedFile(ballerinaFilePath, "apidoc/path_param.yaml");
     }
 
-    @Test(description = "Query parameter api doc mapped to OAS parameter description")
+    @Test(description = "Query parameter api doc mapped to AAS parameter description")
     public void testsForQueryParameter() throws IOException {
         Path ballerinaFilePath = RES_DIR.resolve("apidoc/resource_function_with_queryparam_scenario.bal");
         TestUtils.compareWithGeneratedFile(ballerinaFilePath, "apidoc/query_param.yaml");
     }
 
-    @Test(description = "Request payload api doc mapped to OAS requestBody description")
+    @Test(description = "Request payload api doc mapped to AAS requestBody description")
     public void testsForRequestPayload() throws IOException {
         Path ballerinaFilePath = RES_DIR.resolve("apidoc/resource_function_with_request_scenario.bal");
         TestUtils.compareWithGeneratedFile(ballerinaFilePath, "apidoc/request.yaml");
     }
 
-    @Test(description = "Record api doc mapped to OAS record description")
+    @Test(description = "Record api doc mapped to AAS record description")
     public void testsForRecord() throws IOException {
         Path ballerinaFilePath = RES_DIR.resolve("apidoc/record.bal");
         TestUtils.compareWithGeneratedFile(ballerinaFilePath, "apidoc/record.yaml");
     }
 
-    @Test(description = "TypeInclusion record api doc mapped to OAS description")
+    @Test(description = "TypeInclusion record api doc mapped to AAS description")
     public void testsForRecordHasTypeInclusion() throws IOException {
         Path ballerinaFilePath = RES_DIR.resolve("apidoc/typeInclusion.bal");
         TestUtils.compareWithGeneratedFile(ballerinaFilePath, "apidoc/typeInclusion.yaml");
