@@ -19,8 +19,14 @@ public class AdditionalTests {
 
     @Test(description = "test to chose correct service object has selected")
     public void testChoseCorrectServiceObject() throws IOException {
-        Path ballerinaFilePath = RES_DIR.resolve("additional/rs_scenario01.bal");
-        TestUtils.compareWithGeneratedFile(ballerinaFilePath, "additional/rs_scenario01.yaml");
+        Path ballerinaFilePath = RES_DIR.resolve("additional/chose_correct_service_object.bal");
+        TestUtils.compareWithGeneratedFile(ballerinaFilePath, "additional/chose_correct_service_object.yaml");
+    }
+
+    @Test(description = "test to check description has overrided")
+    public void testRecordFieldDescriptionsOverrided() throws IOException {
+        Path ballerinaFilePath = RES_DIR.resolve("additional/override_description_of_record.bal");
+        TestUtils.compareWithGeneratedFile(ballerinaFilePath, "additional/override_description_of_record.yaml");
     }
 
 }
