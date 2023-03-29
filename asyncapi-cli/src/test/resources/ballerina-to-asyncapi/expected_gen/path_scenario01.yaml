@@ -1,9 +1,0 @@
-
-paths:
-  /:
-    post:
-      operationId: post
-      responses:
-        "202":
-          description: Accepted
-components: {}
