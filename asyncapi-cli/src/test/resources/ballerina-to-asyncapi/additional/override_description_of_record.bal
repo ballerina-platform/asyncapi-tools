@@ -18,7 +18,7 @@ public type Ticker record{
 
 public type Reqid int?;
 @websocket:ServiceConfig{dispatcherKey: "event"}
-service / on helloEp {
+service /payloadV on helloEp {
     resource function get .() returns websocket:Service| websocket:UpgradeError {
         return new ChatServer();
     }

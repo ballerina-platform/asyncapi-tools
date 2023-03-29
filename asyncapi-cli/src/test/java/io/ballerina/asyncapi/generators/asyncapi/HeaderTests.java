@@ -43,31 +43,31 @@ public class HeaderTests {
     @Test(description = "Generate AsyncAPI spec with header type parameter")
     public void testHeadscenario01() throws IOException {
         Path ballerinaFilePath = RES_DIR.resolve("header_scenario01.bal");
-        TestUtils.compareWithGeneratedFile(ballerinaFilePath, "header_scenario01.yaml");
+        TestUtils.compareWithGeneratedFile(ballerinaFilePath, "headers/header_scenario01.yaml");
     }
 
     @Test(description = "Generate AsyncAPI spec with header type parameter with annotation values")
     public void testHeadersWithAnnotation() throws IOException {
         Path ballerinaFilePath = RES_DIR.resolve("header_scenario02.bal");
-        TestUtils.compareWithGeneratedFile(ballerinaFilePath, "header_scenario02.yaml");
+        TestUtils.compareWithGeneratedFile(ballerinaFilePath, "headers/header_scenario02.yaml");
     }
 
     @Test(description = "Generate AsyncAPI spec with header type parameter without curly brace")
     public void testHeadersWithOutCurlyBrace() throws IOException {
         Path ballerinaFilePath = RES_DIR.resolve("header_scenario03.bal");
-        TestUtils.compareWithGeneratedFile(ballerinaFilePath, "header_scenario03.yaml");
+        TestUtils.compareWithGeneratedFile(ballerinaFilePath, "headers/header_scenario03.yaml");
     }
 
     @Test(description = "Generate AsyncAPI spec with for multiple headers")
     public void testWithMultipleHeaders() throws IOException {
         Path ballerinaFilePath = RES_DIR.resolve("header_scenario04.bal");
-        TestUtils.compareWithGeneratedFile(ballerinaFilePath, "header_scenario04.yaml");
+        TestUtils.compareWithGeneratedFile(ballerinaFilePath, "headers/header_scenario04.yaml");
     }
 
     @Test(description = "Generate AsyncAPI spec with for optional headers")
     public void testOptionalHeaders() throws IOException {
         Path ballerinaFilePath = RES_DIR.resolve("header_scenario05.bal");
-        TestUtils.compareWithGeneratedFile(ballerinaFilePath, "header_scenario05.yaml");
+        TestUtils.compareWithGeneratedFile(ballerinaFilePath, "headers/header_scenario05.yaml");
     }
 
     //TODO : Uncomment this after created treatNilableAsOptional
@@ -80,56 +80,56 @@ public class HeaderTests {
     @Test(description = "Generate AsyncAPI spec when the header has defaultable parameter")
     public void testHeadersWithDefaultValue() throws IOException {
         Path ballerinaFilePath = RES_DIR.resolve("header_scenario07.bal");
-        TestUtils.compareWithGeneratedFile(ballerinaFilePath, "header_scenario07.yaml");
+        TestUtils.compareWithGeneratedFile(ballerinaFilePath, "headers/header_scenario07.yaml");
     }
 
     @Test(description = "Generate AsyncAPI spec when the header has defaultable parameter with nullable enable data " +
             "type")
     public void testHeadersWithDefaultValueWithNullable() throws IOException {
         Path ballerinaFilePath = RES_DIR.resolve("header_scenario08.bal");
-        TestUtils.compareWithGeneratedFile(ballerinaFilePath, "header_scenario08.yaml");
+        TestUtils.compareWithGeneratedFile(ballerinaFilePath, "headers/header_scenario08.yaml");
     }
 
     @Test(description = "Generate AsyncAPI spec when the header has defaultable parameter with nullable enable data " +
             "type and service config enable")
     public void testHeadersWithDefaultValueWithNullableServiceConfig() throws IOException {
         Path ballerinaFilePath = RES_DIR.resolve("header_scenario09.bal");
-        TestUtils.compareWithGeneratedFile(ballerinaFilePath, "header_scenario09.yaml");
+        TestUtils.compareWithGeneratedFile(ballerinaFilePath, "headers/header_scenario09.yaml");
     }
 
     @Test(description = "Tests for header parameter has default value as expression")
     public void testHeaderWithDefaultExpressionValue() throws IOException {
         Path ballerinaFilePath = RES_DIR.resolve("header_scenario10.bal");
-        TestUtils.compareWithGeneratedFile(ballerinaFilePath, "header_scenario10.yaml");
+        TestUtils.compareWithGeneratedFile(ballerinaFilePath, "headers/header_scenario10.yaml");
     }
 
     @Test(description = "Tests for header parameters having int and boolean types with array, default and nullable " +
             "scenarios")
     public void testHeaderWithIntAndBoolean() throws IOException {
         Path ballerinaFilePath = RES_DIR.resolve("header_scenario11.bal");
-        TestUtils.compareWithGeneratedFile(ballerinaFilePath, "header_scenario11.yaml");
+        TestUtils.compareWithGeneratedFile(ballerinaFilePath, "headers/header_scenario11.yaml");
     }
 
     @Test(description = "Test for header parameters having boolean array type")
     public void testBooleanHeaderArray() throws IOException {
         Path ballerinaFilePath = RES_DIR.resolve("header_scenario12.bal");
-        TestUtils.compareWithGeneratedFile(ballerinaFilePath, "header_scenario12.yaml");
+        TestUtils.compareWithGeneratedFile(ballerinaFilePath, "headers/header_scenario12.yaml");
     }
 
     @Test(description = "Generate AsyncAPI spec with header type parameter")
     public void testHeadScenario13() throws IOException {
         Path ballerinaFilePath = RES_DIR.resolve("header_scenario13.bal");
-        TestUtils.compareWithGeneratedFile(ballerinaFilePath, "header_scenario13.yaml");
+        TestUtils.compareWithGeneratedFile(ballerinaFilePath, "headers/header_scenario13.yaml");
     }
     @Test(description = "Generate AsyncAPI spec with header type parameter with annotation values")
     public void testHeadScenario14() throws IOException {
         Path ballerinaFilePath = RES_DIR.resolve("header_scenario14.bal");
-        TestUtils.compareWithGeneratedFile(ballerinaFilePath, "header_scenario14.yaml");
+        TestUtils.compareWithGeneratedFile(ballerinaFilePath, "headers/header_scenario14.yaml");
     }
     @Test(description = "Generate AsyncAPI spec with header type parameter with annotation values")
     public void testHeadScenario15() throws IOException {
         Path ballerinaFilePath = RES_DIR.resolve("header_scenario15.bal");
-        TestUtils.compareWithGeneratedFile(ballerinaFilePath, "header_scenario15.yaml");
+        TestUtils.compareWithGeneratedFile(ballerinaFilePath, "headers/header_scenario15.yaml");
     }
     @AfterMethod
     public void cleanUp() {

@@ -25,7 +25,7 @@
 <!--        <classes>-->
 <!--            <class name="io.ballerina.asyncapi.cmd.OpenAPICmdTest"/>-->
 <!--            <class name="io.ballerina.asyncapi.cmd.BallerinaToOASTests"/>-->
-<!--            <class name="io.ballerina.asyncapi.generators.asyncapi.OpenApiConverterUtilsTest"/>-->
+<!--            <class name="io.ballerina.asyncapi.generators.asyncapi.AsyncApiConverterUtilsTest"/>-->
 <!--            <class name="io.ballerina.asyncapi.generators.asyncapi.RequestBodyTest"/>-->
 <!--            <class name="io.ballerina.asyncapi.generators.asyncapi.RecordTests"/>-->
 <!--            <class name="io.ballerina.asyncapi.generators.asyncapi.ResponseTests"/>-->

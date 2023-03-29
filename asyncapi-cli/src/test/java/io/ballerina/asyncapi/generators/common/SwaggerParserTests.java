@@ -19,9 +19,9 @@
 //package io.ballerina.asyncapi.generators.common;
 //
 //import io.ballerina.compiler.syntax.tree.SyntaxTree;
-//import io.ballerina.openapi.core.GeneratorUtils;
-//import io.ballerina.openapi.core.exception.BallerinaOpenApiException;
-//import io.ballerina.openapi.core.generators.schema.BallerinaTypesGenerator;
+//import io.ballerina.asyncapi.core.GeneratorUtils;
+//import io.ballerina.asyncapi.core.exception.BallerinaOpenApiException;
+//import io.ballerina.asyncapi.core.generators.schema.BallerinaTypesGenerator;
 //import io.swagger.v3.oas.models.OpenAPI;
 //import org.testng.Assert;
 //import org.testng.annotations.Test;

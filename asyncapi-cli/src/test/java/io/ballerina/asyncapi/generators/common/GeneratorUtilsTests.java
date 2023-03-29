@@ -19,9 +19,9 @@
 //package io.ballerina.asyncapi.generators.common;
 //
 //import io.ballerina.compiler.syntax.tree.SyntaxTree;
-//import io.ballerina.openapi.core.GeneratorUtils;
-//import io.ballerina.openapi.core.exception.BallerinaOpenApiException;
-//import io.ballerina.openapi.core.generators.schema.BallerinaTypesGenerator;
+//import io.ballerina.asyncapi.core.GeneratorUtils;
+//import io.ballerina.asyncapi.core.exception.BallerinaOpenApiException;
+//import io.ballerina.asyncapi.core.generators.schema.BallerinaTypesGenerator;
 //import io.swagger.v3.oas.models.OpenAPI;
 //import org.testng.Assert;
 //import org.testng.annotations.Test;
@@ -30,9 +30,9 @@
 //import java.nio.file.Path;
 //import java.nio.file.Paths;
 //
-//import static io.ballerina.openapi.core.GeneratorUtils.extractReferenceType;
-//import static io.ballerina.openapi.core.GeneratorUtils.getValidName;
-//import static io.ballerina.openapi.generators.common.TestUtils.compareGeneratedSyntaxTreeWithExpectedSyntaxTree;
+//import static io.ballerina.asyncapi.core.GeneratorUtils.extractReferenceType;
+//import static io.ballerina.asyncapi.core.GeneratorUtils.getValidName;
+//import static io.ballerina.asyncapi.generators.common.TestUtils.compareGeneratedSyntaxTreeWithExpectedSyntaxTree;
 //
 ///**
 // * This util class for testing functionality for {@GeneratorUtils.java}.

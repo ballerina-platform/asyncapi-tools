@@ -9,7 +9,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 
 public class AdditionalTests {
-    private static final Path RES_DIR = Paths.get("src/test/resources/ballerina-to-asyncapi").toAbsolutePath();
+    private static final Path RES_DIR = Paths.get("src/test/resources/ballerina-to-asyncapi/additional").toAbsolutePath();
     private Path tempDir;
 
     @BeforeMethod
@@ -19,13 +19,13 @@ public class AdditionalTests {
 
     @Test(description = "test to chose correct service object has selected")
     public void testChoseCorrectServiceObject() throws IOException {
-        Path ballerinaFilePath = RES_DIR.resolve("additional/chose_correct_service_object.bal");
+        Path ballerinaFilePath = RES_DIR.resolve("chose_correct_service_object.bal");
         TestUtils.compareWithGeneratedFile(ballerinaFilePath, "additional/chose_correct_service_object.yaml");
     }
 
     @Test(description = "test to check description has overrided")
     public void testRecordFieldDescriptionsOverrided() throws IOException {
-        Path ballerinaFilePath = RES_DIR.resolve("additional/override_description_of_record.bal");
+        Path ballerinaFilePath = RES_DIR.resolve("override_description_of_record.bal");
         TestUtils.compareWithGeneratedFile(ballerinaFilePath, "additional/override_description_of_record.yaml");
     }
 

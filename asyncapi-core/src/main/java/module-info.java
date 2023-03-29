@@ -32,7 +32,7 @@ module io.ballerina.asyncapi.core {
     requires com.fasterxml.jackson.dataformat.yaml;
 //    exports io.ballerina.asyncapi.core.generators.service;
 
-//    exports io.ballerina.openapi.core.generators.client;
+//    exports io.ballerina.asyncapi.core.generators.client;
 //    exports io.ballerina.asyncapi.core.generators.schema;
     exports io.ballerina.asyncapi.core.generators.asyncspec.diagnostic;
     exports io.ballerina.asyncapi.core.generators.asyncspec.utils;
@@ -41,6 +41,6 @@ module io.ballerina.asyncapi.core {
     exports io.ballerina.asyncapi.core;
     exports io.ballerina.asyncapi.core.model;
     exports io.ballerina.asyncapi.core.exception;
-//    exports io.ballerina.openapi.core.generators.service.model;
+//    exports io.ballerina.asyncapi.core.generators.service.model;
 }
 

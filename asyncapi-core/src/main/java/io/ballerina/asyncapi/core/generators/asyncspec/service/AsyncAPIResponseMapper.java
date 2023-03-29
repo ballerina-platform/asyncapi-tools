@@ -192,7 +192,7 @@ public class AsyncAPIResponseMapper {
         //set payload of the oneOf message(but this is not a reference)
         subscribeOneOf.setPayload(objMapper.valueToTree(schema));
 
-        //set oneOf message into Subscribe channel
+        //set oneOf message into Subscribe channels
         subscribeMessage.addOneOf(subscribeOneOf);
 
         //create message response with its description

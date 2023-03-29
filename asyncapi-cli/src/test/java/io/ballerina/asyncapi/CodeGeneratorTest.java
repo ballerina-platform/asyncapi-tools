@@ -15,12 +15,12 @@
 // */
 //package io.ballerina.asyncapi;
 //
-//import io.ballerina.openapi.cmd.BallerinaCodeGenerator;
-//import io.ballerina.openapi.core.GeneratorUtils;
-//import io.ballerina.openapi.core.exception.BallerinaOpenApiException;
-//import io.ballerina.openapi.core.model.Filter;
-//import io.ballerina.openapi.core.model.GenSrcFile;
-//import io.ballerina.openapi.generators.common.TestUtils;
+//import io.ballerina.asyncapi.cmd.BallerinaCodeGenerator;
+//import io.ballerina.asyncapi.core.GeneratorUtils;
+//import io.ballerina.asyncapi.core.exception.BallerinaOpenApiException;
+//import io.ballerina.asyncapi.core.model.Filter;
+//import io.ballerina.asyncapi.core.model.GenSrcFile;
+//import io.ballerina.asyncapi.generators.common.TestUtils;
 //import org.apache.commons.io.FileUtils;
 //import org.ballerinalang.formatter.core.FormatterException;
 //import org.testng.Assert;
@@ -38,8 +38,8 @@
 //import java.util.stream.Collectors;
 //import java.util.stream.Stream;
 //
-//import static io.ballerina.openapi.core.GeneratorConstants.*;
-//import static io.ballerina.openapi.core.model.GenSrcFile.GenFileType.GEN_SRC;
+//import static io.ballerina.asyncapi.core.GeneratorConstants.*;
+//import static io.ballerina.asyncapi.core.model.GenSrcFile.GenFileType.GEN_SRC;
 //
 ///**
 // * Unit tests for {@link BallerinaCodeGenerator}.

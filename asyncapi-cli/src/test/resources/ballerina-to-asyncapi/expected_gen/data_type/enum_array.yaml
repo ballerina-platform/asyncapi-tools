@@ -14,7 +14,7 @@ servers:
         default: "9090"
 channels:
   /reservation/{id}:
-    description: reservation channel description
+    description: reservation channels description
     subscribe:
       message:
         oneOf:

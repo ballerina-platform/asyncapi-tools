@@ -11,25 +11,15 @@ servers:
       server:
         default: ws://localhost
       port:
-        default: "9090"
+        default: "80"
 channels:
-  /ping:
+  /:
     subscribe:
       message:
-        payload:
-          type: integer
-          format: int64
+        $ref: '#/components/messages/Ticker'
     publish:
       message:
         $ref: '#/components/messages/Subscribe'
-    bindings:
-      ws:
-        bindingVersion: 0.1.0
-        headers:
-          type: object
-          properties:
-            headerValue:
-              type: string
 components:
   schemas:
     Subscribe:
@@ -40,16 +30,28 @@ components:
       properties:
         id:
           type: integer
+          description: Override id description
           format: int64
         event:
           type: string
           const: Subscribe
+          description: Override event description
+      description: Subscribe record description
+    Ticker:
+      type: object
+      required:
+        - id
+      properties:
+        id:
+          type: integer
+          format: int64
   messages:
+    Ticker:
+      payload:
+        $ref: '#/components/schemas/Ticker'
     Subscribe:
       payload:
         $ref: '#/components/schemas/Subscribe'
       x-response:
-        payload:
-          type: integer
-          format: int64
+        $ref: '#/components/messages/Ticker'
       x-response-type: simple-rpc

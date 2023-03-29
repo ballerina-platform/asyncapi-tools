@@ -25,6 +25,6 @@ module io.ballerina.openapi {
     requires org.apache.commons.io;
     requires org.slf4j;
     requires io.ballerina.asyncapi.core;
-//    exports io.ballerina.openapi.cmd;
+//    exports io.ballerina.asyncapi.cmd;
 }
 

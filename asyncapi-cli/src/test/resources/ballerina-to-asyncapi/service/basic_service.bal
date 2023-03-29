@@ -10,7 +10,7 @@ listener websocket:Listener ep0 = new(80,config = { secureSocket : {
 } );
 
 
-@websocket:ServiceConfig {subProtocols: [],dispatcherKey: "bb"}
+@websocket:ServiceConfig {subProtocols: [],dispatcherKey: "type1"}
 service /hello on ep0{
     resource function get payment/[string id]() returns websocket:Service|websocket:UpgradeError {
         return new FirstChatServer();
@@ -19,7 +19,7 @@ service /hello on ep0{
 }
 
 @websocket:ServiceConfig{dispatcherKey: "event"}
-service /hello2 on ep0,new websocket:Listener(8081){
+service /hello02 on ep0,new websocket:Listener(8081){
     resource function get v1/[int id]/v2/[string name]/v3/[float value]/payment/[int data] (@http:Header {} string X\-Client) returns websocket:Service|websocket:UpgradeError {
         return new SecondChatServer();
     }
@@ -45,7 +45,7 @@ service class SecondChatServer{
 
 public type Subscribe record{
     int id;
-    string event;
+    string type1;
 };
 public type UnSubscribe record{
     string id;

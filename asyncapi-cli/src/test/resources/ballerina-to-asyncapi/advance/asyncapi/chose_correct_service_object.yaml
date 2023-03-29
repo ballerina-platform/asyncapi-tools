@@ -1,0 +1,74 @@
+asyncapi: 2.5.0
+info:
+  title: Hello2
+  version: 0.0.0
+servers:
+  development:
+    url: "{server}:{port}/hello2"
+    protocol: ws
+    protocolVersion: "13"
+    variables:
+      server:
+        enum:
+          - wss://localhost
+          - ws://localhost
+        default: ws://localhost
+      port:
+        enum:
+          - "80"
+          - "8081"
+        default: "8081"
+channels:
+  /v1/{id}/v2/{name}/v3/{value}/payment/{data}:
+    subscribe:
+      message:
+        payload:
+          type: string
+    publish:
+      message:
+        $ref: '#/components/messages/UnSubscribe'
+    parameters:
+      id:
+        schema:
+          type: integer
+          format: int64
+      name:
+        schema:
+          type: string
+      value:
+        schema:
+          type: number
+          format: float
+      data:
+        schema:
+          type: integer
+          format: int64
+    bindings:
+      ws:
+        bindingVersion: 0.1.0
+        headers:
+          type: object
+          properties:
+            X-Client:
+              type: string
+components:
+  schemas:
+    UnSubscribe:
+      type: object
+      required:
+        - id
+        - event
+      properties:
+        id:
+          type: string
+        event:
+          type: string
+          const: UnSubscribe
+  messages:
+    UnSubscribe:
+      payload:
+        $ref: '#/components/schemas/UnSubscribe'
+      x-response:
+        payload:
+          type: string
+      x-response-type: simple-rpc
