@@ -78,7 +78,7 @@ public class RequestBodyTest {
 
     @Test(description = "Generate OpenAPI spec with record payload")
     public void testRecordPayLoad() {
-        Path ballerinaFilePath = RES_DIR.resolve("request_body/record_payload_service.bal");
+        Path ballerinaFilePath = RES_DIR.resolve("request_body/record_request_service.bal");
         String yamlFile = "record_payload.yaml";
         compareWithGeneratedFile(ballerinaFilePath, yamlFile);
     }

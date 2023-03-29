@@ -1,5 +1,5 @@
-type Pet record {
+
+public type Subscribe record{
     int id;
-    string name;
-    string tag?;
- };
+    string type1;
+};

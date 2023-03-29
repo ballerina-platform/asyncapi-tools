@@ -35,7 +35,6 @@ under the License.
             <class name="io.ballerina.asyncapi.generators.asyncapi.ModuleReferenceTests"/>
             <class name="io.ballerina.asyncapi.generators.asyncapi.HeaderTests"/>
             <class name="io.ballerina.asyncapi.generators.asyncapi.QueryParameterTests"/>
-            <class name="io.ballerina.asyncapi.generators.asyncapi.CacheConfigTests"/>
             <class name="io.ballerina.asyncapi.generators.asyncapi.StatusCodeTests"/>
             <class name="io.ballerina.asyncapi.generators.asyncapi.HttpMethodTests"/>
             <class name="io.ballerina.asyncapi.generators.asyncapi.ServiceDeclarationNodesTests"/>
