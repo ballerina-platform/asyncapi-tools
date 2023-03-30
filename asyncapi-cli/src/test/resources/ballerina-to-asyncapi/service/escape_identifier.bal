@@ -1,72 +1,53 @@
+import ballerina/websocket;
 import ballerina/http;
 
-# Description
-type Pet\-Task record {
-    # Field id Description
-    int pet\-id;
-    # Field type Description
-    string[] pet\-types?;
-    # Pet store
-    Pet\-Store store?;
-};
-
-type Pet\-Store record {
-    int id;
-};
-
-service /v1/abc\-hello on new http:Listener(9090) {
+@websocket:ServiceConfig {dispatcherKey: "type1"}
+service /v1/abc\-hello on new websocket:Listener(9090){
     # Description
     #
     # + path\-param - Path Parameter Description
     # + q\-paramter - Query Parameter Description
-    # + return - Return Value Description
-    resource function get say\-hello/[string path\-param](string q\-paramter) returns Pet\-Task {
-        Pet\-Task p = {
-            pet\-id: 1
-        };
-        return p;
+    resource function get say\-hello/[string path\-param](string q\-paramter,string ชื่\u{E2D}) returns websocket:Service|websocket:UpgradeError {
+        return new FirstChatServer();
     }
 
-    # Description
-    #
-    # + req\-body - Body Parameter Description
-    # + x\-client - Header Parameter Description
-    resource function post v2/say\-hello(@http:Payload Pet\-Task req\-body, @http:Header string x\-client) {
-
-    }
 }
-type Pet record {
-    string 'type;
-    int id;
-};
 
-type Offset record {
-    # pet type
-    string 'type;
-    int id;
-    Pet 'join;
-};
-service /'limit on new http:Listener(9090) {
+@websocket:ServiceConfig{dispatcherKey: "event"}
+service /'limit on new websocket:Listener(9091){
     # Query parameter
     #
     # + 'limit - QParameter Description
-    resource function get steps/'from/date(string 'limit) returns string|error {
-        return "Hello";
-    }
-    # Header parameter
-    #
-    # + 'limit - HParameter Description
-    resource function get steps/[int 'join](@http:Header string 'limit) returns string|error {
-        return "Hello";
+    # + 'check - HParameter Description
+    resource function get steps/'from/date/[int 'join]/พิมพ์ชื่อ(@http:Header string 'check,string 'limit,string ชื่อ) returns websocket:Service|websocket:UpgradeError {
+        return new SecondChatServer();
     }
 
-    resource function post steps(@http:Payload Offset payload) returns string|error {
-        return "Hello";
-    }
-    resource function put พิมพ์ชื่อ(string ชื่อ) {
-
-    }
-    resource function get พิมพ์ชื่อ(string ชื่\u{E2D}) {
-
-    }
 }
+service class FirstChatServer{
+    *websocket:Service;
+
+     remote function onSubscribe(websocket:Caller caller, Subscribe message) returns int {
+        return 5;
+    }
+
+}
+
+service class SecondChatServer{
+    *websocket:Service;
+
+    remote function onUnSubscribe(websocket:Caller caller, UnSubscribe message)returns string{
+        return "testing";
+    }
+
+}
+
+public type Subscribe record{
+    int id;
+    string type1;
+};
+public type UnSubscribe record{
+    string id;
+    string event;
+
+};

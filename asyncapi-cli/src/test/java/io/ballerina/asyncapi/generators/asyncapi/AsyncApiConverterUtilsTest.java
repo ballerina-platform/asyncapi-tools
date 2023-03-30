@@ -138,8 +138,8 @@ public class AsyncApiConverterUtilsTest {
         compareWithGeneratedFile(ballerinaFilePath, "compiler_warning.yaml");
     }
 
-    @Test(description = "Test for non http services")
-    public void testForNonHttpServices() {
+    @Test(description = "Test for non websocket services")
+    public void testForNonWebsocketServices() {
         Path ballerinaFilePath = RES_DIR.resolve("non_service.bal");
         new AsyncAPIContractGenerator().generateAsyncAPIDefinitionsAllService(ballerinaFilePath, tempDir, null
                 , false);
@@ -148,6 +148,7 @@ public class AsyncApiConverterUtilsTest {
 
 
     //TODO : There was a bug in the lang , it is now fixing and try this testing after the issue get fixed https://github.com/ballerina-platform/ballerina-lang/issues/39770
+    // I have created the bal file, but yaml file has to be checked and created using debugger
     @Test(description = "Given ballerina service has escape character")
     public void testForRemovingEscapeIdentifier() throws IOException {
         Path ballerinaFilePath = RES_DIR.resolve("escape_identifier.bal");
