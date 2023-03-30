@@ -48,7 +48,7 @@
 //    private static final Path RES_DIR = Paths.get("src/test/resources/").toAbsolutePath();
 //    public static final String USER_DIR = "user.dir";
 //    Path resourcePath = Paths.get(System.getProperty(USER_DIR));
-//    Path expectedServiceFile = RES_DIR.resolve(Paths.get("expected_gen"));
+//    Path expectedServiceFile = RES_DIR.resolve(Paths.get("yaml_outputs"));
 //    List<String> list1 = new ArrayList<>();
 //    List<String> list2 = new ArrayList<>();
 //    Filter filter = new Filter(list1, list2);

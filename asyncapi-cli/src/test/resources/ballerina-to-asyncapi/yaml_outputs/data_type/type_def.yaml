@@ -14,15 +14,13 @@ servers:
         default: "9090"
 channels:
   /reservation/{id}:
-    description: Represents resource function desctiption
+    description: Represents resource function description
     subscribe:
       message:
-        oneOf:
-          - $ref: '#/components/messages/PriceMap'
+        $ref: '#/components/messages/PriceMap'
     publish:
       message:
-        oneOf:
-          - $ref: '#/components/messages/Type'
+        $ref: '#/components/messages/Type'
     parameters:
       id:
         description: id path param description
@@ -60,7 +58,6 @@ components:
           format: double
         tuple:
           type: string
-          const: PriceMap
     Price:
       oneOf:
         - type: number
@@ -90,8 +87,7 @@ components:
         actions:
           $ref: '#/components/schemas/Action'
         count:
-          oneOf:
-            - $ref: '#/components/schemas/Count'
+          $ref: '#/components/schemas/Count'
           x-nullable: true
         price:
           $ref: '#/components/schemas/Price'

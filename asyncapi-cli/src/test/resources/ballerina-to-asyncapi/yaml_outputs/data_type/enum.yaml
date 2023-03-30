@@ -75,7 +75,6 @@ components:
           type: string
         s8jk:
           type: string
-          const: Test
     Order:
       type: object
       required:

@@ -85,7 +85,7 @@ public class AsyncAPICmdTest extends AsyncAPICommandTest {
         AsyncAPICmd cmd = new AsyncAPICmd(printStream, tmpDir, false);
         new CommandLine(cmd).parseArgs(args);
         cmd.execute();
-        Path expectedSchemaFile = resourceDir.resolve(Paths.get("expected_gen", "petstore_schema.bal"));
+        Path expectedSchemaFile = resourceDir.resolve(Paths.get("yaml_outputs", "petstore_schema.bal"));
         String expectedSchemaContent = "";
         try (Stream<String> expectedSchemaLines = Files.lines(expectedSchemaFile)) {
             expectedSchemaContent = expectedSchemaLines.collect(Collectors.joining(LINE_SEPARATOR));
@@ -125,7 +125,7 @@ public class AsyncAPICmdTest extends AsyncAPICommandTest {
         AsyncAPICmd cmd = new AsyncAPICmd(printStream, tmpDir, false);
         new CommandLine(cmd).parseArgs(args);
         cmd.execute();
-        Path expectedSchemaFile = resourceDir.resolve(Paths.get("expected_gen", "petstore_schema_type.bal"));
+        Path expectedSchemaFile = resourceDir.resolve(Paths.get("yaml_outputs", "petstore_schema_type.bal"));
         String expectedSchemaContent = "";
         try (Stream<String> expectedSchemaLines = Files.lines(expectedSchemaFile)) {
             expectedSchemaContent = expectedSchemaLines.collect(Collectors.joining(LINE_SEPARATOR));
@@ -165,7 +165,7 @@ public class AsyncAPICmdTest extends AsyncAPICommandTest {
         AsyncAPICmd cmd = new AsyncAPICmd(printStream, tmpDir, false);
         new CommandLine(cmd).parseArgs(args);
         cmd.execute();
-        Path expectedSchemaFile = resourceDir.resolve(Paths.get("expected_gen",
+        Path expectedSchemaFile = resourceDir.resolve(Paths.get("yaml_outputs",
                 "petstore_schema_with_license.bal"));
         String expectedSchemaContent = "";
         try (Stream<String> expectedSchemaLines = Files.lines(expectedSchemaFile)) {
@@ -207,7 +207,7 @@ public class AsyncAPICmdTest extends AsyncAPICommandTest {
         AsyncAPICmd cmd = new AsyncAPICmd(printStream, tmpDir, false);
         new CommandLine(cmd).parseArgs(args);
         cmd.execute();
-        Path expectedSchemaFile = resourceDir.resolve(Paths.get("expected_gen",
+        Path expectedSchemaFile = resourceDir.resolve(Paths.get("yaml_outputs",
                 "generated_client_with_license.bal"));
         String expectedClientContent = "";
         try (Stream<String> expectedSchemaLines = Files.lines(expectedSchemaFile)) {
@@ -248,7 +248,7 @@ public class AsyncAPICmdTest extends AsyncAPICommandTest {
         AsyncAPICmd cmd = new AsyncAPICmd(printStream, tmpDir, false);
         new CommandLine(cmd).parseArgs(args);
         cmd.execute();
-        Path expectedClientFile = resourceDir.resolve(Paths.get("expected_gen",
+        Path expectedClientFile = resourceDir.resolve(Paths.get("yaml_outputs",
                 "client_filtered_by_tags.bal"));
         String expectedClientContent = "";
         try (Stream<String> expectedSchemaLines = Files.lines(expectedClientFile)) {
@@ -290,7 +290,7 @@ public class AsyncAPICmdTest extends AsyncAPICommandTest {
         AsyncAPICmd cmd = new AsyncAPICmd(printStream, tmpDir, false);
         new CommandLine(cmd).parseArgs(args);
         cmd.execute();
-        Path expectedConfigFilePath = resourceDir.resolve(Paths.get("expected_gen",
+        Path expectedConfigFilePath = resourceDir.resolve(Paths.get("yaml_outputs",
                 "bearer_config.toml"));
         String expectedConfig = "";
         try (Stream<String> expectedSchemaLines = Files.lines(expectedConfigFilePath)) {
@@ -347,7 +347,7 @@ public class AsyncAPICmdTest extends AsyncAPICommandTest {
         AsyncAPICmd cmd = new AsyncAPICmd(printStream, tmpDir, false);
         new CommandLine(cmd).parseArgs(args);
         cmd.execute();
-        Path expectedConfigFilePath = resourceDir.resolve(Paths.get("expected_gen",
+        Path expectedConfigFilePath = resourceDir.resolve(Paths.get("yaml_outputs",
                 "bearer_config.toml"));
         String expectedConfig = "";
         try (Stream<String> expectedSchemaLines = Files.lines(expectedConfigFilePath)) {
@@ -378,7 +378,7 @@ public class AsyncAPICmdTest extends AsyncAPICommandTest {
             cmd.execute();
         } catch (BLauncherException e) {
         }
-        Path expectedSchemaFile = resourceDir.resolve(Paths.get("expected_gen", "petstore_schema.bal"));
+        Path expectedSchemaFile = resourceDir.resolve(Paths.get("yaml_outputs", "petstore_schema.bal"));
         String expectedSchemaContent = "";
         try (Stream<String> expectedSchemaLines = Files.lines(expectedSchemaFile)) {
             expectedSchemaContent = expectedSchemaLines.collect(Collectors.joining(LINE_SEPARATOR));

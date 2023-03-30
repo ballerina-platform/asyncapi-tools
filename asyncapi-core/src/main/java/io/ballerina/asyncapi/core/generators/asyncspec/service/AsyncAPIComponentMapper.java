@@ -57,9 +57,9 @@ public class AsyncAPIComponentMapper {
         return diagnostics;
     }
     /**
-     * This function for doing the mapping with ballerina record to object schema.
+     * This function for doing the mapping with ballerina type references
      *
-     * @param typeSymbol     Record Name as a TypeSymbol
+     * @param typeSymbol    Type reference name as the TypeSymbol
      */
     public void createComponentSchema( TypeSymbol typeSymbol,String dispatcherValue) {
         String componentName = ConverterCommonUtils.unescapeIdentifier(typeSymbol.getName().orElseThrow().trim());
@@ -457,7 +457,10 @@ public class AsyncAPIComponentMapper {
      * This function generate oneOf composed schema for record fields.
      */
     private AsyncApi25SchemaImpl generateOneOfSchema(AsyncApi25SchemaImpl property, List<AsyncApi25SchemaImpl> properties) {
-        boolean isTypeReference = properties.size() == 1 && properties.get(0).get$ref() == null;
+        //FIXME:  Uncomment below line after checking if count? count field has only one reference then there no need to be oneOF
+//        boolean isTypeReference = properties.size() == 1 && properties.get(0).get$ref() == null;
+        boolean isTypeReference = properties.size() == 1;
+
         if (!isTypeReference) {
             AsyncApi25SchemaImpl oneOf=new AsyncApi25SchemaImpl();
             for (AsyncApi25SchemaImpl asyncApi25Schema: properties){
@@ -530,7 +533,7 @@ public class AsyncAPIComponentMapper {
             for (TypeSymbol typeSymbol : tuple.memberTypeDescriptors()) {
                 AsyncApi25SchemaImpl asyncApiSchema = getAsyncApiSchema(typeSymbol.signature());
                 if (typeSymbol instanceof TypeReferenceTypeSymbol) {
-                    asyncApiSchema.set$ref(typeSymbol.signature());
+                    asyncApiSchema.set$ref(SCHEMA_REFERENCE+typeSymbol.signature());
                     createComponentSchema(typeSymbol,null);
                 }
                 composedSchema.addOneOf(asyncApiSchema);

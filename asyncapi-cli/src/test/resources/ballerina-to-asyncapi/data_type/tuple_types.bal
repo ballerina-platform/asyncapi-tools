@@ -1,9 +1,9 @@
 import ballerina/websocket;
 
 public type Tuple record {
+    [int, string, decimal, float, User] address;
     int id;
     [string, decimal]? unionTuple;
-    [int, string, decimal, float, User] address;
     ReturnTypes? tuples;
     string event;
 };
@@ -30,7 +30,7 @@ service class ChatServer{
     #
     # + message - Tuple message description
     # + return - this is User return description
-     remote function onTuple(websocket:Caller caller, User message) returns User {
+     remote function onTuple(websocket:Caller caller, Tuple message) returns User {
         return {id:5,age:45,event:"Testing"};
     }
 

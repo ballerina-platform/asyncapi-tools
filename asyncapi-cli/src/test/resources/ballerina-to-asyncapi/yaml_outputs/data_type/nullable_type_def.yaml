@@ -17,12 +17,10 @@ channels:
     description: Resource function description
     subscribe:
       message:
-        oneOf:
-          - $ref: '#/components/messages/Action'
+        $ref: '#/components/messages/Action'
     publish:
       message:
-        oneOf:
-          - $ref: '#/components/messages/Link'
+        $ref: '#/components/messages/Link'
     bindings:
       ws:
         bindingVersion: 0.1.0
@@ -36,7 +34,6 @@ channels:
 components:
   schemas:
     Books:
-      type: object
       additionalProperties:
         type: string
       x-nullable: true

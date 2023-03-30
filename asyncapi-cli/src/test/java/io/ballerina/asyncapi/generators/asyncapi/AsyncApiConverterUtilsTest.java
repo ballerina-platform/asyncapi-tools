@@ -135,7 +135,7 @@ public class AsyncApiConverterUtilsTest {
     @Test(description = "Generate AsyncAPI spec for given ballerina file has only compiler warning")
     public void testForCompilerWarning() throws IOException {
         Path ballerinaFilePath = RES_DIR.resolve("compiler_warning.bal");
-        compareWithGeneratedFile(ballerinaFilePath, "compiler_warning.yaml");
+        compareWithGeneratedFile(ballerinaFilePath, "service/compiler_warning.yaml");
     }
 
     @Test(description = "Test for non websocket services")
@@ -158,7 +158,7 @@ public class AsyncApiConverterUtilsTest {
             asyncApiConverter.generateAsyncAPIDefinitionsAllService(ballerinaFilePath, tempDir, null
                     , false);
             if (Files.exists(tempDir.resolve("v1_abc_hello_asyncapi.yaml"))) {
-                String expectedYamlContent = getStringFromGivenBalFile(RES_DIR.resolve("expected_gen"),
+                String expectedYamlContent = getStringFromGivenBalFile(RES_DIR.resolve("yaml_outputs"),
                         "escape_identifier.yaml");
                 String generatedYaml = getStringFromGivenBalFile(tempDir, "v1_abc_hello_asyncapi.yaml");
                 generatedYaml = (generatedYaml.trim()).replaceAll("\\s+", "");
@@ -168,7 +168,7 @@ public class AsyncApiConverterUtilsTest {
                 Assert.fail("Yaml was not generated");
             }
             if (Files.exists(tempDir.resolve("limit_asyncapi.yaml"))) {
-                String expectedYamlContent = getStringFromGivenBalFile(RES_DIR.resolve("expected_gen"),
+                String expectedYamlContent = getStringFromGivenBalFile(RES_DIR.resolve("yaml_outputs"),
                         "escape_identifier_02.yaml");
                 String generatedYaml = getStringFromGivenBalFile(tempDir, "limit_asyncapi.yaml");
                 generatedYaml = (generatedYaml.trim()).replaceAll("\\s+", "");

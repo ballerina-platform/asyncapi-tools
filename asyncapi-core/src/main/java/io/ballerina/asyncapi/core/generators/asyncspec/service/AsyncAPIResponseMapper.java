@@ -264,25 +264,26 @@ public class AsyncAPIResponseMapper {
             String referredTypeName = referredTypeSymbol.getName().isPresent() ?
                     referredTypeSymbol.getName().get() : "";
 
-            if (referredTypeSymbol.typeKind() == TypeDescKind.RECORD) {
+//            if (referredTypeSymbol.typeKind() == TypeDescKind.RECORD) {
 //                componentMapper.createComponentSchema(referredTypeSymbol, null);
+
                 //Creating return type message reference
-                AsyncApi25MessageImpl componentReturnMessage = extractMessageSchemaReference(subscribeMessage, remoteReturnTypeName, returnTypeSymbol, null, null);
+            AsyncApi25MessageImpl componentReturnMessage = extractMessageSchemaReference(subscribeMessage, remoteReturnTypeName, returnTypeSymbol, null, null);
 
-                //add created return message
-                components.addMessage(remoteReturnTypeName, componentReturnMessage);
+            //add created return message
+            components.addMessage(remoteReturnTypeName, componentReturnMessage);
 
-                //set message reference as a x-response of a request
-                ObjectNode messageRefObject = new ObjectNode(JsonNodeFactory.instance);
-                messageRefObject.put($REF, MESSAGE_REFERENCE + ConverterCommonUtils.unescapeIdentifier(remoteReturnTypeName));
+            //set message reference as a x-response of a request
+            ObjectNode messageRefObject = new ObjectNode(JsonNodeFactory.instance);
+            messageRefObject.put($REF, MESSAGE_REFERENCE + ConverterCommonUtils.unescapeIdentifier(remoteReturnTypeName));
 
-                //Set return description
-                if (returnDescription !=null) {
-                    messageRefObject.put(DESCRIPTION, returnDescription);
-                }
-                //Set x-response and x-response type of the request
-                componentMessage.addExtension(X_RESPONSE, messageRefObject);
-                componentMessage.addExtension(X_RESPONSE_TYPE, new TextNode(SIMPLE_RPC));
+            //Set return description
+            if (returnDescription !=null) {
+                messageRefObject.put(DESCRIPTION, returnDescription);
+            }
+            //Set x-response and x-response type of the request
+            componentMessage.addExtension(X_RESPONSE, messageRefObject);
+            componentMessage.addExtension(X_RESPONSE_TYPE, new TextNode(SIMPLE_RPC));
 
 
                 //handle record for components
@@ -303,9 +304,10 @@ public class AsyncAPIResponseMapper {
 //                apiResponse.description(referredTypeName);
 //                setCacheHeader(headers, apiResponse, code.get());
 //                apiResponses.put(code.get(), apiResponse);
-            } else {
-                createResponseForTypeReferenceTypeReturns(remoteReturnTypeName,typeReferenceTypeSymbol, componentMapper);
-            }
+            //TODO : Uncomment if there is type reference
+//            } else {
+//                createResponseForTypeReferenceTypeReturns(remoteReturnTypeName,typeReferenceTypeSymbol, componentMapper);
+//            }
         }
         //Check content and status code if it is in 200 range then add the header
 //        operationAdaptor.getOperation().setResponses(apiResponses);

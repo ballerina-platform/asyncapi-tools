@@ -54,7 +54,7 @@ public class TestUtils {
     public static void compareWithGeneratedFile(Path ballerinaFilePath, String yamlFile) throws IOException {
         Path tempDir = Files.createTempDirectory("bal-to-asyncapi-test-out-" + System.nanoTime());
         try {
-            String expectedYamlContent = getStringFromGivenBalFile(RES_DIR.resolve("expected_gen"), yamlFile);
+            String expectedYamlContent = getStringFromGivenBalFile(RES_DIR.resolve("yaml_outputs"), yamlFile);
             AsyncAPIContractGenerator asyncApiConverter = new AsyncAPIContractGenerator();
             asyncApiConverter.generateAsyncAPIDefinitionsAllService(ballerinaFilePath, tempDir, null, false);
             if (Files.exists(tempDir.resolve("payloadV_asyncapi.yaml"))) {

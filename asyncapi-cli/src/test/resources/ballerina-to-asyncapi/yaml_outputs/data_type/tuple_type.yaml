@@ -16,12 +16,10 @@ channels:
   /:
     subscribe:
       message:
-        oneOf:
-          - $ref: '#/components/messages/User'
+        $ref: '#/components/messages/User'
     publish:
       message:
-        oneOf:
-          - $ref: '#/components/messages/Tuple'
+        $ref: '#/components/messages/Tuple'
     bindings:
       ws:
         bindingVersion: 0.1.0
@@ -47,7 +45,6 @@ components:
           format: int64
         event:
           type: string
-          const: User
     ReturnTypes:
       type: array
       items:
@@ -59,23 +56,12 @@ components:
     Tuple:
       type: object
       required:
+        - address
         - id
         - unionTuple
-        - address
         - tuples
         - event
       properties:
-        id:
-          type: integer
-          format: int64
-        unionTuple:
-          type: array
-          items:
-            oneOf:
-              - type: string
-              - type: number
-                format: double
-          x-nullable: true
         address:
           type: array
           items:
@@ -87,10 +73,20 @@ components:
                 format: double
               - type: number
                 format: float
-              - $ref: User
+              - $ref: '#/components/schemas/User'
+        id:
+          type: integer
+          format: int64
+        unionTuple:
+          type: array
+          items:
+            oneOf:
+              - type: string
+              - type: number
+                format: double
+          x-nullable: true
         tuples:
-          oneOf:
-            - $ref: '#/components/schemas/ReturnTypes'
+          $ref: '#/components/schemas/ReturnTypes'
           x-nullable: true
         event:
           type: string

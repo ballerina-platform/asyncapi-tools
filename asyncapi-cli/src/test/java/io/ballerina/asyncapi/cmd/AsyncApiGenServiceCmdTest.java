@@ -41,7 +41,7 @@ public class AsyncApiGenServiceCmdTest extends AsyncAPICommandTest {
     public void testInlineRequestBodyServiceGen() throws IOException {
 
         Path inlineYaml = getExecuteCommand("inline-request-body.yaml", "inlineservice");
-        Path expectedServiceFile = resourceDir.resolve(Paths.get("expected_gen", "inline-request-expected.bal"));
+        Path expectedServiceFile = resourceDir.resolve(Paths.get("yaml_outputs", "inline-request-expected.bal"));
         //Read the service file and make string
         Stream<String> expectedServiceLines = Files.lines(expectedServiceFile);
         String expectedService = expectedServiceLines.collect(Collectors.joining("\n"));
@@ -68,7 +68,7 @@ public class AsyncApiGenServiceCmdTest extends AsyncAPICommandTest {
             enabled = false)
     public void testAllOfSchemaGen() throws IOException {
         Path allOfYaml = getExecuteCommand("allof-petstore.yaml", "allOfYaml");
-        Path expectedServiceFile = resourceDir.resolve(Paths.get("expected_gen",
+        Path expectedServiceFile = resourceDir.resolve(Paths.get("yaml_outputs",
                 "allOf-schema-petstore.bal"));
         Stream<String> expectedServiceLines = Files.lines(expectedServiceFile);
         String expectedSchema = expectedServiceLines.collect(Collectors.joining("\n"));
@@ -92,7 +92,7 @@ public class AsyncApiGenServiceCmdTest extends AsyncAPICommandTest {
             = false)
     public void testOneOfSchemaGen() throws IOException {
         Path oneOfYaml = getExecuteCommand("oneof-petstore.yaml", "oneofservice");
-        Path expectedServiceFile = resourceDir.resolve(Paths.get("expected_gen",
+        Path expectedServiceFile = resourceDir.resolve(Paths.get("yaml_outputs",
                 "oneof-schema-petstore.bal"));
         Stream<String> expectedServiceLines = Files.lines(expectedServiceFile);
         String expectedService = expectedServiceLines.collect(Collectors.joining("\n"));

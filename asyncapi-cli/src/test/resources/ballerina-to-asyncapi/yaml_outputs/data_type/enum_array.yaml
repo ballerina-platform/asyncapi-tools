@@ -14,17 +14,15 @@ servers:
         default: "9090"
 channels:
   /reservation/{id}:
-    description: reservation channels description
+    description: reservation channel description
     subscribe:
       message:
-        oneOf:
-          - payload:
-              type: integer
-              format: int64
+        payload:
+          type: integer
+          format: int64
     publish:
       message:
-        oneOf:
-          - $ref: '#/components/messages/Link'
+        $ref: '#/components/messages/Link'
     parameters:
       id:
         description: id description
