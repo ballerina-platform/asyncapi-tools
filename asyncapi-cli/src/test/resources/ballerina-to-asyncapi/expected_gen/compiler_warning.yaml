@@ -1,29 +1,72 @@
-openapi: 3.0.1
+asyncapi: 2.5.0
 info:
-  title: PayloadV
+  title: Foo
   version: 0.0.0
 servers:
-  - url: "{server}:{port}/payloadV"
+  development:
+    url: "{server}:{port}/foo"
+    protocol: ws
+    protocolVersion: "13"
     variables:
       server:
-        default: http://localhost
+        default: ws://localhost
       port:
         default: "9090"
-paths:
-  /lb:
-    get:
-      operationId: getLb
-      responses:
-        "200":
-          description: Ok
-          content:
-            text/plain:
-              schema:
-                type: string
-        "500":
-          description: Internal server error
-          content:
-            text/plain:
-              schema:
-                type: string
-components: {}
+channels:
+  /:
+    subscribe:
+      message:
+        oneOf:
+          - payload:
+              type: integer
+              format: int64
+          - payload:
+              type: integer
+              format: int64
+    publish:
+      message:
+        oneOf:
+          - $ref: '#/components/messages/Subscribe'
+          - $ref: '#/components/messages/UnSubscribe'
+components:
+  schemas:
+    Subscribe:
+      type: object
+      required:
+        - id
+        - event
+      properties:
+        id:
+          type: integer
+          format: int64
+        event:
+          type: string
+          const: Subscribe
+    UnSubscribe:
+      type: object
+      required:
+        - id
+        - event
+      properties:
+        id:
+          type: string
+        event:
+          type: string
+          const: UnSubscribe
+  messages:
+    Subscribe:
+      payload:
+        $ref: '#/components/schemas/Subscribe'
+      x-response:
+        payload:
+          type: integer
+          format: int64
+      x-response-type: simple-rpc
+    UnSubscribe:
+      payload:
+        $ref: '#/components/schemas/UnSubscribe'
+      x-response:
+        payload:
+          type: integer
+          format: int64
+      x-response-type: simple-rpc

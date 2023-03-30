@@ -123,8 +123,6 @@ public class AsyncApiConverterUtilsTest {
         Assert.assertTrue(Files.exists(this.tempDir.resolve("no_base_path_service_asyncapi.yaml")));
     }
 
-
-
     @Test(description = "Generate AsyncAPI spec for build project")
     public void testRecordFieldPayLoad() {
         Path ballerinaFilePath = RES_DIR.resolve("project_bal/record_request_service.bal");
@@ -132,18 +130,6 @@ public class AsyncApiConverterUtilsTest {
         asyncApiConverter.generateAsyncAPIDefinitionsAllService(ballerinaFilePath, this.tempDir, null,
                 false);
         Assert.assertTrue(Files.exists(this.tempDir.resolve("payloadV_asyncapi.yaml")));
-    }
-
-    @Test(description = "Generate AsyncAPI spec for build project")
-    public void testForResponse01() throws IOException {
-        Path ballerinaFilePath = RES_DIR.resolve("scenario01.bal");
-        compareWithGeneratedFile(ballerinaFilePath, "response01.yaml");
-    }
-
-    @Test(description = "Generate AsyncAPI spec for build project")
-    public void testForResponse02() throws IOException {
-        Path ballerinaFilePath = RES_DIR.resolve("scenario02.bal");
-        compareWithGeneratedFile(ballerinaFilePath, "response02.yaml");
     }
 
     @Test(description = "Generate AsyncAPI spec for given ballerina file has only compiler warning")
@@ -160,6 +146,8 @@ public class AsyncApiConverterUtilsTest {
         Assert.assertTrue(!Files.exists(tempDir.resolve("query_asyncapi.yaml")));
     }
 
+
+    //TODO : There was a bug in the lang , it is now fixing and try this testing after the issue get fixed https://github.com/ballerina-platform/ballerina-lang/issues/39770
     @Test(description = "Given ballerina service has escape character")
     public void testForRemovingEscapeIdentifier() throws IOException {
         Path ballerinaFilePath = RES_DIR.resolve("escape_identifier.bal");

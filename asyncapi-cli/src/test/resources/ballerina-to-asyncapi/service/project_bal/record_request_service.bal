@@ -1,5 +1,4 @@
 import ballerina/websocket;
-import ballerina/http;
 
 listener websocket:Listener ep0 = new(9090);
 
@@ -20,3 +19,4 @@ service class ChatServer{
     }
 
 }
+

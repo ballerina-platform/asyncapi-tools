@@ -1,23 +1,34 @@
-import ballerina/http;
+import ballerina/websocket;
 
-// Create an endpoint with port 8080 for the mock backend services.
-listener http:Listener backendEP = check new (8080);
-
-// Define the load balance client endpoint to call the backend services.
-http:LoadBalanceClient lbBackendEP = check new ({
-        // Define the set of HTTP clients that need to be load balanced.
-        targets: [
-            {url: "http://localhost:8080/mock1"},
-            {url: "http://localhost:8080/mock2"},
-            {url: "http://localhost:8080/mock3"}
-        ],
-
-        timeout: 5
-});
-
-service /payloadV on new http:Listener(9090) {
-  resource function get lb() returns string|error {
-        string payload = check lbBackendEP->get("/");
-        return payload;
+@websocket:ServiceConfig {dispatcherKey: "event"}
+service /foo on new websocket:Listener(9090) {
+    resource function get .() returns websocket:Service|websocket:Error {
+        return new WsService();
     }
 }
+
+service class WsService {
+    *websocket:Service;
+    int yy = 0;
+
+    remote function onSubscribe(websocket:Caller caller, Subscribe message) returns int { 
+        self.yy = 10;
+        return 5;
+    }
+
+    remote function onUnSubscribe(websocket:Caller caller, UnSubscribe message) returns int { 
+        self.yy = 20;
+        return 5;
+    }
+
+}
+
+public type Subscribe record{
+    int id;
+    string event;
+};
+public type UnSubscribe record{
+    string id;
+    string event;
+
+};
