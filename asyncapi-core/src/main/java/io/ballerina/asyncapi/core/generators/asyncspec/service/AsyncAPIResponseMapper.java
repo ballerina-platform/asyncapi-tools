@@ -6,7 +6,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25ComponentsImpl;
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25MessageImpl;
-import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25SchemaImpl;
+import io.ballerina.asyncapi.core.generators.asyncspec.model.AsyncApi25SchemaImpl;
 import io.ballerina.asyncapi.core.generators.asyncspec.diagnostic.AsyncAPIConverterDiagnostic;
 import io.ballerina.asyncapi.core.generators.asyncspec.diagnostic.DiagnosticMessages;
 import io.ballerina.asyncapi.core.generators.asyncspec.diagnostic.IncompatibleResourceDiagnostic;
@@ -78,7 +78,7 @@ public class AsyncAPIResponseMapper {
             case XML_TYPE_DESC:
                 AsyncApi25SchemaImpl jsonSchema= getAsyncApiSchema(AsyncAPIType.OBJECT.toString());
                 //TODO : Change this into true after Apicurio team change additionalProperties type into Object type
-                AsyncApi25SchemaImpl additionalPropertyObject=getAsyncApiSchema(AsyncAPIType.OBJECT.toString());
+                AsyncApi25SchemaImpl additionalPropertyObject=new AsyncApi25SchemaImpl();
                 jsonSchema.setAdditionalProperties(additionalPropertyObject);
 
                 //TODO : Set this schema into main asyncapi doc
