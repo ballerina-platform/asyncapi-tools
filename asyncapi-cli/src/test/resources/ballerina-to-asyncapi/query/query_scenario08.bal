@@ -1,26 +1,26 @@
-import ballerina/http;
+import ballerina/websocket;
 
-listener http:Listener helloEp = new (9090);
-
-service /payloadV on helloEp {
-    string y = "hello";
-    resource function get pets(string pet = y) returns http:Ok {
-        http:Ok ok = {body: ()};
-        return ok;
-    }
-    resource function get pet(string pet = "hi" + y) returns http:Ok {
-        http:Ok ok = {body: ()};
-        return ok;
-    }
-    resource function get ping(int offest = 10 / 2) returns http:Ok {
-        http:Ok ok = {body: ()};
-        return ok;
-    }
-    resource function get ping02(string limitV = getHeader()) returns http:Ok {
-        http:Ok ok = {body: ()};
-        return ok;
+@websocket:ServiceConfig {dispatcherKey: "event"}
+service /payloadV on new websocket:Listener(9090) {
+    string y="hello";
+    resource function get hello(string definedY=y,string prefixDefinedY="hi"+y,int offset=10/2,string limitV=getHeader()) returns websocket:Service|websocket:Error {
+        return new WsService();
     }
 }
+
+service class WsService {
+    *websocket:Service;
+
+    remote isolated function onSubscribe(websocket:Caller caller, Subscribe data) returns string? {
+        return "Hello World!";
+    }
+}
+
+
+public type Subscribe record{
+    int id;
+    string event;
+};
 
 function getHeader() returns string {
     return "query";

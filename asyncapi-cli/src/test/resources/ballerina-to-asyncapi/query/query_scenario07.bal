@@ -1,10 +1,22 @@
-import ballerina/http;
+import ballerina/websocket;
 
-listener http:Listener helloEp = new (9090);
-
-service /payloadV on helloEp {
-    resource function get pets(int?[] pet) returns http:Ok {
-        http:Ok ok = {body: ()};
-        return ok;
+@websocket:ServiceConfig {dispatcherKey: "event"}
+service /payloadV on new websocket:Listener(9090) {
+    resource function get hello(int?[] test) returns websocket:Service|websocket:Error {
+        return new WsService();
     }
 }
+
+service class WsService {
+    *websocket:Service;
+
+    remote isolated function onSubscribe(websocket:Caller caller, Subscribe data) returns string? {
+        return "Hello World!";
+    }
+}
+
+
+public type Subscribe record{
+    int id;
+    string event;
+};

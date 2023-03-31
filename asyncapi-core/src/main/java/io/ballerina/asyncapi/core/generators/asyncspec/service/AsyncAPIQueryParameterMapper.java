@@ -198,6 +198,8 @@ public class AsyncAPIQueryParameterMapper {
 //                schema.setDefault(defaultValue);
 //                queryParameter.setSchema(schema);
 //            }
+        }else{
+            bindingQueryObject.addProperty(queryParamName,asyncApiQueryParamDefaultSchema);
         }
     }
 
@@ -288,15 +290,17 @@ public class AsyncAPIQueryParameterMapper {
 
     private AsyncApi25SchemaImpl createContentTypeForMapJson(String queryParamName, boolean nullable) {
 
-        AsyncApi25SchemaImpl objectSchema=new AsyncApi25SchemaImpl();
-        objectSchema.setType(AsyncAPIType.OBJECT.toString());
+        AsyncApi25SchemaImpl objectSchema=ConverterCommonUtils.getAsyncApiSchema(AsyncAPIType.OBJECT.toString());
+        AsyncApi25SchemaImpl emptyObjectSchema=ConverterCommonUtils.getAsyncApiSchema(AsyncAPIType.OBJECT.toString());
+
+
 //        String queryParamString=queryParam.typeName().toString().trim();
         //Fixme
 //        AsyncApi25SchemaImpl objectSchema=ConverterCommonUtils.getAsyncApiSchema(queryParamName);
         if (nullable) {
             objectSchema.addExtension(X_NULLABLE, BooleanNode.TRUE);
         }
-        objectSchema.setAdditionalProperties(objectSchema);
+        objectSchema.setAdditionalProperties(emptyObjectSchema);
 
         return objectSchema;
 

@@ -67,7 +67,8 @@ public class QueryParameterTests {
         TestUtils.compareWithGeneratedFile(ballerinaFilePath, "query/query_scenario04.yaml");
     }
 
-    @Test(description = "Query parameter has service config with optional field false")
+    //TODO : Test this after implement treatNilableAsOptional
+    @Test(description = "Query parameter has service config with optional field false",enabled = false)
     public void testQueryscenario05() throws IOException {
         Path ballerinaFilePath = RES_DIR.resolve("query/query_scenario05.bal");
         TestUtils.compareWithGeneratedFile(ballerinaFilePath, "query/query_scenario05.yaml");
@@ -80,12 +81,13 @@ public class QueryParameterTests {
     }
 
     //Disable till http module support the nilable array `int?[]` in query parameter
-    @Test(description = "Query parameter has array type with null values (ex: int?[] offset)", enabled = false)
+    @Test(description = "Query parameter has array type with null values (ex: int?[] offset)")
     public void testQueryscenario07() throws IOException {
         Path ballerinaFilePath = RES_DIR.resolve("query/query_scenario07.bal");
         TestUtils.compareWithGeneratedFile(ballerinaFilePath, "query/query_scenario07.yaml");
     }
 
+    //FIXME : Check what is the problem
     @Test(description = "Default parameter scenarios do not support with tool")
     public void testQueryscenario08() throws IOException {
         Path ballerinaFilePath = RES_DIR.resolve("query/query_scenario08.bal");

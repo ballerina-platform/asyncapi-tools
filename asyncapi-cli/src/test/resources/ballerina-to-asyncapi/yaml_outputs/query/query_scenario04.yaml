@@ -15,3 +15,26 @@ paths:
         "200":
           description: Ok
 components: {}
+
+channels:
+  /:
+    subscribe:
+      message:
+        payload:
+          type: string
+    publish:
+      message:
+        $ref: '#/components/messages/Subscribe'
+    bindings:
+      ws:
+        bindingVersion: 0.1.0
+        query:
+          type: object
+          properties:
+            pet:
+              type: array
+              items:
+                type: integer
+                format: int64
+              extensions:
+                x-nullable: true

@@ -90,8 +90,8 @@ public class ServiceDeclarationNodesTests {
         try {
             String expectedYamlContent = getStringFromGivenBalFile(RES_DIR.resolve("asyncapi"),
                     yamlFile);
-            AsyncAPIContractGenerator openApiConverter = new AsyncAPIContractGenerator();
-            openApiConverter.generateAsyncAPIDefinitionsAllService(ballerinaFilePath, tempDir, null, false);
+            AsyncAPIContractGenerator asyncApiConverter = new AsyncAPIContractGenerator();
+            asyncApiConverter.generateAsyncAPIDefinitionsAllService(ballerinaFilePath, tempDir, null, false);
 
             if (Files.exists(tempDir.resolve(generatedYamlFile)) && findFile(tempDir, secondGeneratedFile) != null) {
                 String generatedYaml = getStringFromGivenBalFile(tempDir, generatedYamlFile);
