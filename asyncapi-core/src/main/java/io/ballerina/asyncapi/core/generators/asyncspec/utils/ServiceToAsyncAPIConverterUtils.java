@@ -70,7 +70,7 @@ public class ServiceToAsyncAPIConverterUtils {
                                                               String serviceName, Boolean needJson,
                                                               Path inputPath) {
         List<ListenerDeclarationNode> endpoints = new ArrayList<>();
-        Map<String, ServiceDeclarationNode> servicesToGenerate = new HashMap<>();
+        Map<String, ServiceDeclarationNode> servicesToGenerate = new LinkedHashMap<>();
         List<String> availableService = new ArrayList<>();
         List<AsyncAPIConverterDiagnostic> diagnostics = new ArrayList<>();
         List<AsyncAPIResult> outputs = new ArrayList<>();
@@ -122,7 +122,7 @@ public class ServiceToAsyncAPIConverterUtils {
                 ListenerDeclarationNode listener = (ListenerDeclarationNode) node;
                 endpoints.add(listener);
             }
-            if (syntaxKind.equals(SyntaxKind.SERVICE_DECLARATION)) {
+            else if (syntaxKind.equals(SyntaxKind.SERVICE_DECLARATION)) {
                 ServiceDeclarationNode serviceNode = (ServiceDeclarationNode) node;
                 if (isWebsocketService(serviceNode, semanticModel)) {
                     // Here check the service is related to the http
@@ -165,7 +165,7 @@ public class ServiceToAsyncAPIConverterUtils {
                     }
                 }
             }
-            if (syntaxKind.equals(SyntaxKind.CLASS_DEFINITION)){
+            else if (syntaxKind.equals(SyntaxKind.CLASS_DEFINITION)){
                 ClassDefinitionNode serviceNode = (ClassDefinitionNode) node;
                 classDefinitionNodes.add(serviceNode);
 

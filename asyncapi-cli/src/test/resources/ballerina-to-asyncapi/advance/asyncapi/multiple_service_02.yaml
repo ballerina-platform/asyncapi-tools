@@ -1,23 +1,24 @@
-openapi: 3.0.1
+asyncapi: 2.5.0
 info:
-  title: Multiple Services Without Base Path Openapi Yaml
+  title: /
   version: 0.0.0
 servers:
-  - url: "{server}:{port}/"
+  development:
+    url: "{server}:{port}/"
+    protocol: ws
+    protocolVersion: "13"
     variables:
       server:
-        default: petstore.swagger.io
+        default: ws://localhost
       port:
-        default: "443"
-paths:
+        default: "80"
+channels:
   /hi:
-    post:
-      operationId: postHi
-      requestBody:
-        content:
-          application/json:
-            schema: {}
-      responses:
-        "202":
-          description: Accepted
-components: {}
+    subscribe:
+      message:
+        payload:
+          type: integer
+          format: int64
+    publish:
+      message:
+        $ref: '#/components/messages/Subscribe'

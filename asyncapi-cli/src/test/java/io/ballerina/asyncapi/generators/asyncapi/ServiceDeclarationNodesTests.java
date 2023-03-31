@@ -19,6 +19,8 @@ package io.ballerina.asyncapi.generators.asyncapi;
 
 import io.ballerina.asyncapi.cli.AsyncAPIContractGenerator;
 import org.testng.Assert;
+import org.testng.annotations.AfterMethod;
+import org.testng.annotations.AfterTest;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
@@ -49,7 +51,7 @@ public class ServiceDeclarationNodesTests {
     @Test(description = "Multiple services with same absolute path")
     public void multipleServiceWithSameAbsolute() throws IOException {
         Path ballerinaFilePath = RES_DIR.resolve("multiple_services.bal");
-        executeMethod(ballerinaFilePath, "multiple_service_01.yaml", "hello_openapi.yaml",
+        executeMethod(ballerinaFilePath, "multiple_service_01.yaml", "hello_asyncapi.yaml",
                 "hello_");
     }
 
@@ -57,7 +59,7 @@ public class ServiceDeclarationNodesTests {
     public void multipleServiceWithOutAbsolute() throws IOException {
         Path ballerinaFilePath = RES_DIR.resolve("multiple_services_without_base_path.bal");
         executeMethod(ballerinaFilePath, "multiple_service_02.yaml",
-                "multiple_services_without_base_path_openapi.yaml",
+                "multiple_services_without_base_path_asyncapi.yaml",
                 "multiple_services_without_base_path_");
     }
 
@@ -65,7 +67,7 @@ public class ServiceDeclarationNodesTests {
     public void multipleServiceNoBasePath() throws IOException {
         Path ballerinaFilePath = RES_DIR.resolve("multiple_services_no_base_path.bal");
         executeMethod(ballerinaFilePath, "multiple_service_03.yaml",
-                "multiple_services_no_base_path_openapi.yaml",
+                "multiple_services_no_base_path_asyncapi.yaml",
                 "multiple_services_no_base_path_");
     }
 
@@ -105,5 +107,15 @@ public class ServiceDeclarationNodesTests {
             deleteDirectory(tempDir);
             System.gc();
         }
+    }
+    @AfterMethod
+    public void cleanUp() {
+        TestUtils.deleteDirectory(this.tempDir);
+    }
+
+    @AfterTest
+    public void clean() {
+        System.setErr(null);
+        System.setOut(null);
     }
 }
