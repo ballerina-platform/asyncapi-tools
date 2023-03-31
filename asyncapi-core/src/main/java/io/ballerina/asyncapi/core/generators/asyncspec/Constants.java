@@ -33,6 +33,8 @@ public class Constants {
     public static final String ARRAY = "array";
     public static final String FLOAT = "float";
     public static final String DOUBLE = "double";
+
+    public static final String OBJECT="object";
     public static final String TYPE_REFERENCE = "type_reference";
     public static final String WEBSOCKET= "websocket";
 
