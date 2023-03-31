@@ -196,6 +196,10 @@ public class Constants {
     public static final String ON_OPEN="onOpen";
     public static final String ON_ERROR="onError";
 
+    public static final String ON_PING="onPing";
+
+    public static final String ON_PONG="onPong";
+
     //Exception Constants
     //dispatcherKey name
     public static final String DISPATCHER_KEY_TYPE_EXCEPTION = "dispatcherKey '%s' type must be a string in a record field";

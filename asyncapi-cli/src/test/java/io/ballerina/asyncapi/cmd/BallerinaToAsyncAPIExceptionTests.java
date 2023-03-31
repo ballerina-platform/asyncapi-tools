@@ -276,6 +276,44 @@ public class BallerinaToAsyncAPIExceptionTests extends AsyncAPICommandTest {
             Assert.fail(output);
         }
     }
+    @Test(description = "Test onPing remote function is present as a remote function")
+    public void testOnPingRemoteFunctionNotPermitted() {
+        Path filePath = resourceDir.resolve(Paths.get("cmd/ballerina-to-asyncapi/exceptions/onPing_check.bal"));
+        String[] args = {"--input", filePath.toString(), "-o",this.tmpDir.toString()};
+        AsyncAPICmd cmd = new AsyncAPICmd(printStream, tmpDir, false);
+        new CommandLine(cmd).parseArgs(args);
+
+        String output = "";
+        try {
+            cmd.execute();
+            output = readOutput(true);
+            System.out.println(output);
+            Assert.assertTrue(output.trim().contains(String.format(FUNCTION_DEFAULT_NAME_CONTAINS_ERROR)));
+        } catch (BLauncherException | IOException e) {
+            output = e.toString();
+            Assert.fail(output);
+        }
+    }
+
+    @Test(description = "Test onPong remote function is present as a remote function")
+    public void testOnPongRemoteFunctionNotPermitted() {
+        Path filePath = resourceDir.resolve(Paths.get("cmd/ballerina-to-asyncapi/exceptions/onPong_check.bal"));
+        String[] args = {"--input", filePath.toString(), "-o",this.tmpDir.toString()};
+        AsyncAPICmd cmd = new AsyncAPICmd(printStream, tmpDir, false);
+        new CommandLine(cmd).parseArgs(args);
+
+        String output = "";
+        try {
+            cmd.execute();
+            output = readOutput(true);
+            System.out.println(output);
+            Assert.assertTrue(output.trim().contains(String.format(FUNCTION_DEFAULT_NAME_CONTAINS_ERROR)));
+        } catch (BLauncherException | IOException e) {
+            output = e.toString();
+            Assert.fail(output);
+        }
+    }
+
     @Test(description = "Test dispatcherKey is optional not allowed in a field")
     public void testDispatcherKeyIsOptionalNotAllowedInAField() {
         Path filePath = resourceDir.resolve(Paths.get("cmd/ballerina-to-asyncapi/exceptions/optional_dispatcherKey_present.bal"));

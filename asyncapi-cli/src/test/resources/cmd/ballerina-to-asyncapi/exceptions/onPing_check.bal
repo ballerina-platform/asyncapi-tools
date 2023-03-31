@@ -35,9 +35,10 @@ service class ChatServer{
     remote function onSubscribe(websocket:Caller caller,Subscribe message) returns Ticker{
         return {id:1};
     }
-    remote function onPing(websocket:Caller caller, Ping message) returns Pong {
-        return {event: "pong",reqid: ()};
-    }
 
+	remote function onPing(websocket:Caller caller, byte[] data) returns byte[]{
+        return [4,5];
+
+	}
 }
 
