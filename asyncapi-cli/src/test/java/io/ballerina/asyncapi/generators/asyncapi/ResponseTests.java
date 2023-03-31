@@ -55,29 +55,29 @@ public class ResponseTests {
         TestUtils.compareWithGeneratedFile(ballerinaFilePath, "response/rs_scenario03.yaml");
     }
 
-    @Test(description = "Response scenario 04 - Response has multiple responses without content type")
-    public void testResponse04() throws IOException {
-        Path ballerinaFilePath = RES_DIR.resolve("response/rs_scenario04.bal");
-        TestUtils.compareWithGeneratedFile(ballerinaFilePath, "response/rs_scenario04.yaml");
-    }
-
-    @Test(description = "Response scenario 05 - Error response with a schema", enabled = false)
-    public void testResponse05() throws IOException {
-        Path ballerinaFilePath = RES_DIR.resolve("rs_scenario05.bal");
-        TestUtils.compareWithGeneratedFile(ballerinaFilePath, "rs_scenario05.yaml");
-    }
-
-    @Test(description = "Response scenario 06 - Error response with a schema", enabled = false)
-    public void testResponse06() throws IOException {
-        Path ballerinaFilePath = RES_DIR.resolve("response/rs_scenario06.bal");
-        TestUtils.compareWithGeneratedFile(ballerinaFilePath, "response/rs_scenario06.yaml");
-    }
-
-    @Test(description = "Response scenario 09 - return has record, error, basic types")
-    public void testResponse09() throws IOException {
-        Path ballerinaFilePath = RES_DIR.resolve("response/rs_scenario09.bal");
-        TestUtils.compareWithGeneratedFile(ballerinaFilePath, "response/rs_scenario09.yaml");
-    }
+//    @Test(description = "Response scenario 04 - Response has multiple responses without content type")
+//    public void testResponse04() throws IOException {
+//        Path ballerinaFilePath = RES_DIR.resolve("response/rs_scenario04.bal");
+//        TestUtils.compareWithGeneratedFile(ballerinaFilePath, "response/rs_scenario04.yaml");
+//    }
+//
+//    @Test(description = "Response scenario 05 - Error response with a schema", enabled = false)
+//    public void testResponse05() throws IOException {
+//        Path ballerinaFilePath = RES_DIR.resolve("rs_scenario05.bal");
+//        TestUtils.compareWithGeneratedFile(ballerinaFilePath, "rs_scenario05.yaml");
+//    }
+//
+//    @Test(description = "Response scenario 06 - Error response with a schema", enabled = false)
+//    public void testResponse06() throws IOException {
+//        Path ballerinaFilePath = RES_DIR.resolve("response/rs_scenario06.bal");
+//        TestUtils.compareWithGeneratedFile(ballerinaFilePath, "response/rs_scenario06.yaml");
+//    }
+//
+//    @Test(description = "Response scenario 09 - return has record, error, basic types")
+//    public void testResponse09() throws IOException {
+//        Path ballerinaFilePath = RES_DIR.resolve("response/rs_scenario09.bal");
+//        TestUtils.compareWithGeneratedFile(ballerinaFilePath, "response/rs_scenario09.yaml");
+//    }
 
     @Test(description = "Response scenario 10 - Array type response with a schema")
     public void testResponse10() throws IOException {

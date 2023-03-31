@@ -44,10 +44,17 @@ channels:
                 x-nullable: true
               default: null
             offsetNullableJson:
-              additionalProperties: {}
+              type: object
+              additionalProperties:
+                type: object
+                additionalProperties: {}
               extensions:
                 x-nullable: true
               default: "{x: {id: sss}}"
             offsetJson:
-              additionalProperties: {}
+              type: object
+              additionalProperties:
+                type: object
+                additionalProperties: {}
               default: "{x: {id: sss}}"
+

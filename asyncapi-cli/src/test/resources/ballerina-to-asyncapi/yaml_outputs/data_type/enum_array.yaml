@@ -9,7 +9,7 @@ servers:
     protocolVersion: "13"
     variables:
       server:
-        default: ws://localhost
+        default: localhost
       port:
         default: "9090"
 channels:
