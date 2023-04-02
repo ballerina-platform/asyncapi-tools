@@ -8,3 +8,7 @@ service / on new http:Listener(9090) {
         return "Hello, World!";
     }
 }
+
+
+
+// This has to be changed after implement the @asyncapi: ServiceInfo annotation

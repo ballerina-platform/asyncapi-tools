@@ -1,0 +1,98 @@
+asyncapi: 2.5.0
+info:
+  title: PayloadV
+  version: 0.0.0
+servers:
+  development:
+    url: "{server}:{port}/payloadV"
+    protocol: ws
+    protocolVersion: "13"
+    variables:
+      server:
+        default: ws://localhost
+      port:
+        default: "9090"
+channels:
+  /locations:
+    description: Represents Snowpeak location resource
+    subscribe:
+      message:
+        payload:
+          type: array
+          items:
+            $ref: '#/components/schemas/Location'
+    publish:
+      message:
+        $ref: '#/components/messages/Subscribe'
+components:
+  schemas:
+    Subscribe:
+      type: object
+      required:
+        - id
+        - event
+      properties:
+        id:
+          type: integer
+          format: int64
+        event:
+          type: string
+          const: Subscribe
+    Link:
+      type: object
+      required:
+        - rel
+        - href
+      properties:
+        rel:
+          type: string
+          description: linnk rel
+        href:
+          type: string
+          description: link href
+        mediaTypes:
+          type: array
+          items:
+            type: string
+          description: link mediatype
+      description: Link details
+    Links:
+      type: object
+      required:
+        - links
+      properties:
+        links:
+          type: array
+          items:
+            $ref: '#/components/schemas/Link'
+          description: Array links
+      description: Link details
+    Location:
+      allOf:
+        - $ref: '#/components/schemas/Links'
+        - type: object
+          required:
+            - name
+            - id
+            - address
+          properties:
+            name:
+              type: string
+              description: Name of the location
+            id:
+              type: string
+              description: Unique identification
+            address:
+              type: string
+              description: Address of the location
+          description: Represents locations
+  messages:
+    Subscribe:
+      payload:
+        $ref: '#/components/schemas/Subscribe'
+      x-response:
+        payload:
+          type: array
+          items:
+            $ref: '#/components/schemas/Location'
+      x-response-type: simple-rpc

@@ -49,7 +49,7 @@ public class BallerinaToAsyncAPITests extends AsyncAPICommandTest {
     @Test(description = "Test ballerina to asyncApi")
     public void testBallerinaToAsyncAPIGeneration() {
         Path filePath = resourceDir.resolve(Paths.get("cmd/ballerina-to-asyncapi/ballerina-file.bal"));
-        String[] args = {"--input", filePath.toString(), "-o", "/Users/wso2/Documents/asyncapifiles/"};
+        String[] args = {"--input", filePath.toString(), "-o", this.tmpDir.toString()};
         AsyncAPICmd cmd = new AsyncAPICmd(printStream, tmpDir, false);
         new CommandLine(cmd).parseArgs(args);
 
@@ -61,115 +61,9 @@ public class BallerinaToAsyncAPITests extends AsyncAPICommandTest {
             Assert.fail(output);
         }
     }
-
-    @Test(description = "Test to resource method has default")
-    public void testDefaultMethod() {
-        Path filePath = resourceDir.resolve(Paths.get("c"));
-        String[] args = {"--input", filePath.toString(), "-o", this.tmpDir.toString()};
-        AsyncAPICmd cmd = new AsyncAPICmd(printStream, tmpDir, false);
-        new CommandLine(cmd).parseArgs(args);
-
-        String output = "";
-        try {
-            cmd.execute();
-            output = readOutput(true);
-            Assert.assertTrue(output.trim().contains("WARNING [default_method.bal:(4:5,5:6)] Generated OpenAPI " +
-                    "definition" +
-                    " does not contain details for the `default` resource method in the Ballerina service."));
-        } catch (BLauncherException | IOException e) {
-            output = e.toString();
-            Assert.fail(output);
-        }
-    }
-
-    @Test(description = "Test to resource method has default")
-    public void testDefaultMethod02() {
-        Path filePath = resourceDir.resolve(Paths.get("cmd/ballerina-to-asyncapi/ballerina-file.bal"));
-        String[] args = {"--input", filePath.toString(), "-o", this.tmpDir.toString()};
-        AsyncAPICmd cmd = new AsyncAPICmd(printStream, tmpDir, false);
-        new CommandLine(cmd).parseArgs(args);
-
-        String output = "";
-        try {
-            cmd.execute();
-            output = readOutput(true);
-            Assert.assertTrue(output.trim().contains("WARNING [default_method_02.bal:(4:5,5:6)] Generated OpenAPI " +
-                    "definition does not contain details for the `default` resource method in the Ballerina service."));
-        } catch (BLauncherException | IOException e) {
-            output = e.toString();
-            Assert.fail(output);
-        }
-    }
-
-    @Test(description = "Test to return has http:Response type")
-    public void testHttpResponse() {
-        Path filePath = resourceDir.resolve(Paths.get("cmd/ballerina-to-asyncapi/ballerina-file.bal"));
-        String[] args = {"--input", filePath.toString(), "-o", this.tmpDir.toString()};
-        AsyncAPICmd cmd = new AsyncAPICmd(printStream, tmpDir, false);
-        new CommandLine(cmd).parseArgs(args);
-
-        String output = "";
-        try {
-            cmd.execute();
-            output = readOutput(true);
-            Path definitionPath = resourceDir.resolve("cmd/ballerina-to-asyncapi/response.yaml");
-            if (Files.exists(this.tmpDir.resolve("v1_openapi.yaml"))) {
-                String generatedOpenAPI = getStringFromGivenBalFile(this.tmpDir.resolve("v1_openapi.yaml"));
-                String expectedYaml = getStringFromGivenBalFile(definitionPath);
-                Assert.assertEquals(expectedYaml, generatedOpenAPI);
-
-            }
-        } catch (BLauncherException | IOException e) {
-            output = e.toString();
-            Assert.fail(output);
-        }
-    }
-
-    @Test(description = "Test for get methods having a request body type")
-    public void testHttpRequest() {
-        Path filePath = resourceDir.resolve(Paths.get("cmd/ballerina-to-asyncapi/ballerina-file.bal"));
-        String[] args = {"--input", filePath.toString(), "-o", this.tmpDir.toString()};
-        AsyncAPICmd cmd = new AsyncAPICmd(printStream, tmpDir, false);
-        new CommandLine(cmd).parseArgs(args);
-
-        String output = "";
-        try {
-            cmd.execute();
-            output = readOutput(true);
-            Assert.assertFalse(Files.exists(this.tmpDir.resolve("http_request_openapi.yaml")));
-        } catch (BLauncherException | IOException e) {
-            output = e.toString();
-            Assert.fail(output);
-        }
-    }
-
-    @Test(description = "OpenAPI Annotation with ballerina to asyncapi")
-    public void openapiAnnotationWithContract() {
-        Path filePath = resourceDir.resolve(Paths.get("cmd/ballerina-to-asyncapi/ballerina-file.bal"));
-        String[] args = {"--input", filePath.toString(), "-o", this.tmpDir.toString()};
-        AsyncAPICmd cmd = new AsyncAPICmd(printStream, tmpDir, false);
-        new CommandLine(cmd).parseArgs(args);
-
-        String output = "";
-        try {
-            cmd.execute();
-            output = readOutput(true);
-            Path definitionPath = resourceDir.resolve("cmd/ballerina-to-asyncapi/project_1/result.yaml");
-            if (Files.exists(this.tmpDir.resolve("service_openapi.yaml"))) {
-                String generatedOpenAPI = getStringFromGivenBalFile(this.tmpDir.resolve("service_openapi.yaml"));
-                String expectedYaml = getStringFromGivenBalFile(definitionPath);
-                Assert.assertEquals(expectedYaml, generatedOpenAPI);
-
-            }
-        } catch (BLauncherException | IOException e) {
-            output = e.toString();
-            Assert.fail(output);
-        }
-    }
-
-    @Test(description = "OpenAPI Annotation with ballerina to asyncapi")
-    public void openapiAnnotationWithOutContract() {
-        Path filePath = resourceDir.resolve(Paths.get("cmd/ballerina-to-asyncapi/ballerina-file.bal"));
+    @Test(description = "Without asyncapi annotation ballerina to asyncapi")
+    public void asyncapiAnnotationWithOutContract() {
+        Path filePath = resourceDir.resolve(Paths.get("cmd/ballerina-to-asyncapi/project_2/service.bal"));
         String[] args = {"--input", filePath.toString(), "-o", this.tmpDir.toString()};
         AsyncAPICmd cmd = new AsyncAPICmd(printStream, tmpDir, false);
         new CommandLine(cmd).parseArgs(args);
@@ -179,10 +73,10 @@ public class BallerinaToAsyncAPITests extends AsyncAPICommandTest {
             cmd.execute();
             output = readOutput(true);
             Path definitionPath = resourceDir.resolve("cmd/ballerina-to-asyncapi/project_2/result.yaml");
-            if (Files.exists(this.tmpDir.resolve("service_openapi.yaml"))) {
-                String generatedOpenAPI = getStringFromGivenBalFile(this.tmpDir.resolve("service_openapi.yaml"));
+            if (Files.exists(this.tmpDir.resolve("service_asyncapi.yaml"))) {
+                String generatedAsyncAPI = getStringFromGivenBalFile(this.tmpDir.resolve("service_asyncapi.yaml"));
                 String expectedYaml = getStringFromGivenBalFile(definitionPath);
-                Assert.assertEquals(expectedYaml, generatedOpenAPI);
+                Assert.assertEquals(expectedYaml, generatedAsyncAPI);
             }
         } catch (BLauncherException | IOException e) {
             output = e.toString();
@@ -190,9 +84,35 @@ public class BallerinaToAsyncAPITests extends AsyncAPICommandTest {
         }
     }
 
-    @Test(description = "OpenAPI Annotation with ballerina to asyncapi")
-    public void openapiAnnotationWithoutFields() {
-        Path filePath = resourceDir.resolve(Paths.get("cmd/ballerina-to-asyncapi/ballerina-file.bal"));
+
+    @Test(description = "AsyncAPI Annotation with ballerina to asyncapi",enabled = false)
+    public void asyncapiAnnotationWithContract() {
+        Path filePath = resourceDir.resolve(Paths.get("cmd/ballerina-to-asyncapi/project1/service.bal"));
+        String[] args = {"--input", filePath.toString(), "-o", this.tmpDir.toString()};
+        AsyncAPICmd cmd = new AsyncAPICmd(printStream, tmpDir, false);
+        new CommandLine(cmd).parseArgs(args);
+
+        String output = "";
+        try {
+            cmd.execute();
+            output = readOutput(true);
+            Path definitionPath = resourceDir.resolve("cmd/ballerina-to-asyncapi/project_1/result.yaml");
+            if (Files.exists(this.tmpDir.resolve("service_asyncapi.yaml"))) {
+                String generatedAsyncAPI = getStringFromGivenBalFile(this.tmpDir.resolve("service_asyncapi.yaml"));
+                String expectedYaml = getStringFromGivenBalFile(definitionPath);
+                Assert.assertEquals(expectedYaml, generatedAsyncAPI);
+
+            }
+        } catch (BLauncherException | IOException e) {
+            output = e.toString();
+            Assert.fail(output);
+        }
+    }
+
+
+    @Test(description = "AsyncAPI Annotation with ballerina to asyncapi",enabled = false)
+    public void asyncapiAnnotationWithoutFields() {
+        Path filePath = resourceDir.resolve(Paths.get("cmd/ballerina-to-asyncapi/project_3/service.bal"));
         String[] args = {"--input", filePath.toString(), "-o", this.tmpDir.toString()};
         AsyncAPICmd cmd = new AsyncAPICmd(printStream, tmpDir, false);
         new CommandLine(cmd).parseArgs(args);
@@ -202,10 +122,10 @@ public class BallerinaToAsyncAPITests extends AsyncAPICommandTest {
             cmd.execute();
             output = readOutput(true);
             Path definitionPath = resourceDir.resolve("cmd/ballerina-to-asyncapi/project_3/result.yaml");
-            if (Files.exists(this.tmpDir.resolve("service_openapi.yaml"))) {
-                String generatedOpenAPI = getStringFromGivenBalFile(this.tmpDir.resolve("service_openapi.yaml"));
+            if (Files.exists(this.tmpDir.resolve("service_asyncapi.yaml"))) {
+                String generatedAsyncAPI = getStringFromGivenBalFile(this.tmpDir.resolve("service_asyncapi.yaml"));
                 String expectedYaml = getStringFromGivenBalFile(definitionPath);
-                Assert.assertEquals(expectedYaml, generatedOpenAPI);
+                Assert.assertEquals(expectedYaml, generatedAsyncAPI);
             }
         } catch (BLauncherException | IOException e) {
             output = e.toString();

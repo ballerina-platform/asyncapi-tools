@@ -42,7 +42,6 @@ public class BallerinaToAsyncAPIExceptionTests extends AsyncAPICommandTest {
         try {
             cmd.execute();
             output = readOutput(true);
-            System.out.println(output);
             Assert.assertTrue(output.trim().contains(NO_ANNOTATION_PRESENT));
         } catch (BLauncherException | IOException e) {
             output = e.toString();
@@ -61,7 +60,6 @@ public class BallerinaToAsyncAPIExceptionTests extends AsyncAPICommandTest {
         try {
             cmd.execute();
             output = readOutput(true);
-            System.out.println(output);
             Assert.assertTrue(output.trim().contains(String.format(DISPATCHERKEY_NOT_PRESENT_IN_RECORD_FIELD, "event","Subscribe")));
         } catch (BLauncherException | IOException e) {
             output = e.toString();
@@ -80,7 +78,6 @@ public class BallerinaToAsyncAPIExceptionTests extends AsyncAPICommandTest {
         try {
             cmd.execute();
             output = readOutput(true);
-            System.out.println(output);
             Assert.assertTrue(output.trim().contains(String.format(DISPATCHER_KEY_TYPE_EXCEPTION,"event")));
         } catch (BLauncherException | IOException e) {
             output = e.toString();
@@ -98,7 +95,6 @@ public class BallerinaToAsyncAPIExceptionTests extends AsyncAPICommandTest {
         try {
             cmd.execute();
             output = readOutput(true);
-            System.out.println(output);
             Assert.assertTrue(output.trim().contains(String.format(NO_DISPATCHER_KEY)));
         } catch (BLauncherException | IOException e) {
             output = e.toString();
@@ -117,7 +113,6 @@ public class BallerinaToAsyncAPIExceptionTests extends AsyncAPICommandTest {
         try {
             cmd.execute();
             output = readOutput(true);
-            System.out.println(output);
             Assert.assertTrue(output.trim().contains(String.format(DISPATCHER_KEY_VALUE_CANNOT_BE_EMPTY)));
         } catch (BLauncherException | IOException e) {
             output = e.toString();
@@ -136,7 +131,6 @@ public class BallerinaToAsyncAPIExceptionTests extends AsyncAPICommandTest {
         try {
             cmd.execute();
             output = readOutput(true);
-            System.out.println(output);
             Assert.assertTrue(output.trim().contains(String.format(NO_SERVICE_CLASS)));
         } catch (BLauncherException | IOException e) {
             output = e.toString();
@@ -155,7 +149,6 @@ public class BallerinaToAsyncAPIExceptionTests extends AsyncAPICommandTest {
         try {
             cmd.execute();
             output = readOutput(true);
-            System.out.println(output);
             Assert.assertTrue(output.trim().contains(String.format(FUNCTION_DEFAULT_NAME_CONTAINS_ERROR)));
         } catch (BLauncherException | IOException e) {
             output = e.toString();
@@ -174,7 +167,6 @@ public class BallerinaToAsyncAPIExceptionTests extends AsyncAPICommandTest {
         try {
             cmd.execute();
             output = readOutput(true);
-            System.out.println(output);
             Assert.assertTrue(output.trim().contains(String.format(FUNCTION_DEFAULT_NAME_CONTAINS_ERROR)));
         } catch (BLauncherException | IOException e) {
             output = e.toString();
@@ -193,7 +185,6 @@ public class BallerinaToAsyncAPIExceptionTests extends AsyncAPICommandTest {
         try {
             cmd.execute();
             output = readOutput(true);
-            System.out.println(output);
             Assert.assertTrue(output.trim().contains(String.format(FUNCTION_DEFAULT_NAME_CONTAINS_ERROR)));
         } catch (BLauncherException | IOException e) {
             output = e.toString();
@@ -212,7 +203,6 @@ public class BallerinaToAsyncAPIExceptionTests extends AsyncAPICommandTest {
         try {
             cmd.execute();
             output = readOutput(true);
-            System.out.println(output);
             Assert.assertTrue(output.trim().contains(String.format(FUNCTION_DEFAULT_NAME_CONTAINS_ERROR)));
         } catch (BLauncherException | IOException e) {
             output = e.toString();
@@ -231,7 +221,6 @@ public class BallerinaToAsyncAPIExceptionTests extends AsyncAPICommandTest {
         try {
             cmd.execute();
             output = readOutput(true);
-            System.out.println(output);
             Assert.assertTrue(output.trim().contains(String.format(FUNCTION_DEFAULT_NAME_CONTAINS_ERROR)));
         } catch (BLauncherException | IOException e) {
             output = e.toString();
@@ -249,7 +238,6 @@ public class BallerinaToAsyncAPIExceptionTests extends AsyncAPICommandTest {
         try {
             cmd.execute();
             output = readOutput(true);
-            System.out.println(output);
             Assert.assertTrue(output.trim().contains(String.format(FUNCTION_DEFAULT_NAME_CONTAINS_ERROR)));
         } catch (BLauncherException | IOException e) {
             output = e.toString();
@@ -269,7 +257,6 @@ public class BallerinaToAsyncAPIExceptionTests extends AsyncAPICommandTest {
         try {
             cmd.execute();
             output = readOutput(true);
-            System.out.println(output);
             Assert.assertTrue(output.trim().contains(String.format(FUNCTION_DEFAULT_NAME_CONTAINS_ERROR)));
         } catch (BLauncherException | IOException e) {
             output = e.toString();
@@ -287,7 +274,6 @@ public class BallerinaToAsyncAPIExceptionTests extends AsyncAPICommandTest {
         try {
             cmd.execute();
             output = readOutput(true);
-            System.out.println(output);
             Assert.assertTrue(output.trim().contains(String.format(FUNCTION_DEFAULT_NAME_CONTAINS_ERROR)));
         } catch (BLauncherException | IOException e) {
             output = e.toString();
@@ -306,7 +292,6 @@ public class BallerinaToAsyncAPIExceptionTests extends AsyncAPICommandTest {
         try {
             cmd.execute();
             output = readOutput(true);
-            System.out.println(output);
             Assert.assertTrue(output.trim().contains(String.format(FUNCTION_DEFAULT_NAME_CONTAINS_ERROR)));
         } catch (BLauncherException | IOException e) {
             output = e.toString();
@@ -325,7 +310,6 @@ public class BallerinaToAsyncAPIExceptionTests extends AsyncAPICommandTest {
         try {
             cmd.execute();
             output = readOutput(true);
-            System.out.println(output);
             Assert.assertTrue(output.trim().contains(String.format(DISPATCHERKEY_OPTIONAL_EXCEPTION,"event","Subscribe")));
         } catch (BLauncherException | IOException e) {
             output = e.toString();
@@ -345,7 +329,6 @@ public class BallerinaToAsyncAPIExceptionTests extends AsyncAPICommandTest {
         try {
             cmd.execute();
             output = readOutput(true);
-            System.out.println(output);
             Assert.assertTrue(output.trim().contains(String.format(DISPATCHERKEY_OPTIONAL_EXCEPTION,"event","Subscribe")));
         } catch (BLauncherException | IOException e) {
             output = e.toString();
@@ -363,7 +346,6 @@ public class BallerinaToAsyncAPIExceptionTests extends AsyncAPICommandTest {
         try {
             cmd.execute();
             output = readOutput(true);
-            System.out.println(output);
             Assert.assertTrue(output.trim().contains(FUNCTION_WRONG_NAME));
         } catch (BLauncherException | IOException e) {
             output = e.toString();
@@ -382,7 +364,6 @@ public class BallerinaToAsyncAPIExceptionTests extends AsyncAPICommandTest {
         try {
             cmd.execute();
             output = readOutput(true);
-            System.out.println(output);
             Assert.assertTrue(output.trim().contains(FUNCTION_WRONG_NAME));
         } catch (BLauncherException | IOException e) {
             output = e.toString();
@@ -401,7 +382,6 @@ public class BallerinaToAsyncAPIExceptionTests extends AsyncAPICommandTest {
         try {
             cmd.execute();
             output = readOutput(true);
-            System.out.println(output);
             Assert.assertTrue(output.trim().contains(String.format(FUNCTION_SIGNATURE_WRONG_TYPE,"Subscribe","int")));
         } catch (BLauncherException | IOException e) {
             output = e.toString();

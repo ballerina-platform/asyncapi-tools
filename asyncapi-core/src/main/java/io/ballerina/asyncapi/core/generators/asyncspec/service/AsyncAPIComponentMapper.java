@@ -213,7 +213,7 @@ public class AsyncAPIComponentMapper {
 
     /**
      * This function is to map the ballerina typeInclusion to AsyncApiSpec allOf composedSchema.
-     */
+     */ 
     private void mapTypeInclusionToAllOfSchema(
                                                String componentName, List<TypeSymbol> typeInclusions, Map<String,
             RecordFieldSymbol> recordFields, HashSet<String> unionKeys, Map<String, String> apiDocs,String dispatcherValue) {
@@ -266,7 +266,7 @@ public class AsyncAPIComponentMapper {
     /**
      * This function is to map ballerina record type fields to AsyncAPI objectSchema fields.
      */
-    private AsyncApi25SchemaImpl generateObjectSchemaFromRecordFields(String componentName,Map<String, RecordFieldSymbol> rfields,
+    public AsyncApi25SchemaImpl generateObjectSchemaFromRecordFields(String componentName,Map<String, RecordFieldSymbol> rfields,
                                                               Map<String, String> apiDocs,String dispatcherValue) {
         AsyncApi25SchemaImpl componentSchema=new AsyncApi25SchemaImpl();
         componentSchema.setType(AsyncAPIType.OBJECT.toString());

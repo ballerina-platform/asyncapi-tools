@@ -24,6 +24,7 @@ import static io.ballerina.asyncapi.core.generators.asyncspec.utils.ConverterCom
 import static io.ballerina.asyncapi.core.generators.asyncspec.utils.ConverterCommonUtils.getAsyncApiSchema;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.*;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.SIMPLE_NAME_REFERENCE;
+import static io.ballerina.compiler.syntax.tree.SyntaxKind.TYPE_REFERENCE;
 
 
 public class AsyncAPIResponseMapper {
@@ -238,8 +239,6 @@ public class AsyncAPIResponseMapper {
         TypeSymbol returnTypeSymbol = (TypeSymbol) semanticModel.symbol(referenceNode).orElseThrow();
         String remoteReturnTypeName = ConverterCommonUtils.unescapeIdentifier(referenceNode.name().toString().trim());
 
-
-        // Check typeInclusion is related to the http status code
         if (referenceNode.parent().kind().equals(ARRAY_TYPE_DESC)) {
 
             //create Schema
@@ -421,48 +420,62 @@ public class AsyncAPIResponseMapper {
     private void mapInlineRecordInReturn(AsyncApi25MessageImpl subscribeMessage, AsyncApi25MessageImpl componentMessage,RecordTypeDescriptorNode typeNode,String returnDescription) {
 
         NodeList<Node> fields = typeNode.fields();
-//        AsyncApi25SchemaImpl inlineSchema = new AsyncApi25SchemaImpl();
-//        boolean ishttpTypeInclusion = false;
-        Map<String,AsyncApi25SchemaImpl> properties = new HashMap<>();
-//        if (fields.stream().anyMatch(module -> module.kind() == TYPE_REFERENCE)) {
-//            ishttpTypeInclusion = true;
-//        }
+        boolean ishttpTypeInclusion = false;
+
+//        Map<String,AsyncApi25SchemaImpl> properties = new HashMap<>();
+        AsyncApi25SchemaImpl inlineSchema = new AsyncApi25SchemaImpl();
+        inlineSchema.setType(AsyncAPIType.OBJECT.toString());
+        if (fields.stream().anyMatch(module -> module.kind() == TYPE_REFERENCE)) {
+            ishttpTypeInclusion = true;
+        }
 
         // 1- scenarios returns record {| int id; string body;|} - done
         // 2- scenarios returns record {| int id; Person body;|} - done
 
         for (Node field : fields) {
 
-            //TODO : Not sure this one yet
+            //TODO : Have to implement type inclusion part
 //            if (field.kind() == TYPE_REFERENCE) {
 //                TypeReferenceNode typeFieldNode = (TypeReferenceNode) field;
-//                if (typeFieldNode.typeName().kind() == QUALIFIED_NAME_REFERENCE) {
-//                    QualifiedNameReferenceNode identifierNode = (QualifiedNameReferenceNode) typeFieldNode.typeName();
-////                    httpCode = generateApiResponseCode(identifierNode.identifier().text().trim());
-//                    description = identifierNode.identifier().text().trim();
-//                    apiResponse.description(identifierNode.identifier().text().trim());
+//                if (typeFieldNode.typeName().kind() == SIMPLE_NAME_REFERENCE) {
+//                    SimpleNameReferenceNode simpleNameReferenceNode=(SimpleNameReferenceNode) typeFieldNode.typeName();
+//                    TypeSymbol typeSymbol = (TypeSymbol) semanticModel.symbol(simpleNameReferenceNode).orElseThrow();
+//                    componentMapper.createComponentSchema(typeSymbol,null);
+////                    QualifiedNameReferenceNode identifierNode = (QualifiedNameReferenceNode) typeFieldNode.typeName();
+//
+//////                    httpCode = generateApiResponseCode(identifierNode.identifier().text().trim());
+////                    description = identifierNode.identifier().text().trim();
+////                    apiResponse.description(identifierNode.identifier().text().trim());
 //                }
 //            }
             if (field.kind() == RECORD_FIELD) {
                 RecordFieldNode recordField = (RecordFieldNode) field;
                 Node type01 = recordField.typeName();
+//        TypeSymbol typeSymbol = (TypeSymbol) semanticModel.symbol(typeNode).orElseThrow();
+
+//        componentMapper.generateObjectSchemaFromRecordFields(null,((RecordTypeSymbol)typeSymbol).fieldDescriptors(),null,null);
                 if (recordField.typeName().kind() == SIMPLE_NAME_REFERENCE) {
                     SimpleNameReferenceNode nameRefNode = (SimpleNameReferenceNode) type01;
-                    handleReferenceResponse(subscribeMessage,componentMessage,nameRefNode,returnDescription);
+                    TypeSymbol typeSymbol = (TypeSymbol) semanticModel.symbol(nameRefNode).orElseThrow();
+                    componentMapper.createComponentSchema(typeSymbol,null);
+////                    handleReferenceResponse(subscribeMessage,componentMessage,nameRefNode,returnDescription);
                     AsyncApi25SchemaImpl referenceSchema = new AsyncApi25SchemaImpl();
+//
                     referenceSchema.set$ref(SCHEMA_REFERENCE+ConverterCommonUtils.unescapeIdentifier(
                             recordField.typeName().toString().trim()));
-                    properties.put(recordField.fieldName().text(), referenceSchema);
+                    inlineSchema.addProperty(recordField.fieldName().text(), referenceSchema);
                 } else {
-                    //TODO array fields handling
-//                    mediaTypeResponse = convertBallerinaMIMEToOASMIMETypes(recordField.typeName().toString().trim(),
-//                            customMediaPrefix);
+//                    //TODO array fields handling
+////                    mediaTypeResponse = convertBallerinaMIMEToOASMIMETypes(recordField.typeName().toString().trim(),
+////                            customMediaPrefix);
                     AsyncApi25SchemaImpl propertySchema = ConverterCommonUtils.getAsyncApiSchema(
                             recordField.typeName().toString().trim());
-                    properties.put(recordField.fieldName().text(), propertySchema);
+                    inlineSchema.addProperty(recordField.fieldName().text(), propertySchema);
                 }
             }
         }
+        setResponseOfRequest(subscribeMessage,componentMessage,SIMPLE_RPC,returnDescription,callObjectMapper(),inlineSchema);
+
 //        if (!ishttpTypeInclusion) {
 //            inlineSchema = new ObjectSchema();
 //            inlineSchema.setProperties(properties);

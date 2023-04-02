@@ -41,7 +41,7 @@ import static io.ballerina.asyncapi.generators.common.TestUtils.getStringFromGiv
  * Ballerina conversion to AsyncApi will test in this class.
  */
 public class AsyncApiConverterUtilsTest {
-    private static final Path RES_DIR = Paths.get("src/test/resources/ballerina-to-asyncapi/service").toAbsolutePath();
+    private static final Path RES_DIR = Paths.get("src/test/resources/ballerina-to-asyncapi").toAbsolutePath();
     private Path tempDir;
 
     @BeforeMethod
@@ -51,7 +51,7 @@ public class AsyncApiConverterUtilsTest {
 
     @Test(description = "Generate AsyncAPI spec")
     public void testBasicServices() {
-        Path ballerinaFilePath = RES_DIR.resolve("basic_service.bal");
+        Path ballerinaFilePath = RES_DIR.resolve("service/basic_service.bal");
         AsyncAPIContractGenerator asyncApiConverterUtils = new AsyncAPIContractGenerator();
         asyncApiConverterUtils.generateAsyncAPIDefinitionsAllService(ballerinaFilePath, this.tempDir, null,
                 false);
@@ -62,7 +62,7 @@ public class AsyncApiConverterUtilsTest {
 
     @Test(description = "Generate AsyncAPI spec by filtering non existing service")
     public void testBasicServicesWithInvalidServiceName() {
-        Path ballerinaFilePath = RES_DIR.resolve("basic_service.bal");
+        Path ballerinaFilePath = RES_DIR.resolve("service/basic_service.bal");
         AsyncAPIContractGenerator asyncApiConverter = new AsyncAPIContractGenerator();
         asyncApiConverter.generateAsyncAPIDefinitionsAllService(ballerinaFilePath, this.tempDir, "/abc",
                 false);
@@ -74,7 +74,7 @@ public class AsyncApiConverterUtilsTest {
 
     @Test(description = "Test if invalid 'exampleSetFlag' attribute is coming it the generated spec")
     public void testIfExampleSetFlagContains() throws IOException {
-        Path ballerinaFilePath = RES_DIR.resolve("basic_service.bal");
+        Path ballerinaFilePath = RES_DIR.resolve("service/basic_service.bal");
         AsyncAPIContractGenerator asyncApiConverter = new AsyncAPIContractGenerator();
         asyncApiConverter.generateAsyncAPIDefinitionsAllService(ballerinaFilePath, this.tempDir, null,
                 false);
@@ -85,7 +85,7 @@ public class AsyncApiConverterUtilsTest {
 
     @Test(description = "Generate AsyncAPI spec by filtering service name")
     public void testBasicServicesByFiltering() {
-        Path ballerinaFilePath = RES_DIR.resolve("basic_service.bal");
+        Path ballerinaFilePath = RES_DIR.resolve("service/basic_service.bal");
         AsyncAPIContractGenerator asyncApiConverter = new AsyncAPIContractGenerator();
         asyncApiConverter.generateAsyncAPIDefinitionsAllService(ballerinaFilePath, this.tempDir,
                 "/hello02", false);
@@ -96,7 +96,7 @@ public class AsyncApiConverterUtilsTest {
 
     @Test(description = "Generate AsyncAPI spec with complex base paths")
     public void testComplexBasePathServices() {
-        Path ballerinaFilePath = RES_DIR.resolve("complex_base_path.bal");
+        Path ballerinaFilePath = RES_DIR.resolve("service/complex_base_path.bal");
         AsyncAPIContractGenerator asyncApiConverter = new AsyncAPIContractGenerator();
         asyncApiConverter.generateAsyncAPIDefinitionsAllService(ballerinaFilePath, this.tempDir, null,
                 false);
@@ -107,7 +107,7 @@ public class AsyncApiConverterUtilsTest {
 
     @Test(description = "Generate AsyncAPI spec with no base path")
     public void testServicesWithNoBasePath() {
-        Path ballerinaFilePath = RES_DIR.resolve("no_base_path_service.bal");
+        Path ballerinaFilePath = RES_DIR.resolve("service/no_base_path_service.bal");
         AsyncAPIContractGenerator asyncApiConverter = new AsyncAPIContractGenerator();
         asyncApiConverter.generateAsyncAPIDefinitionsAllService(ballerinaFilePath, this.tempDir, null,
                 false);
@@ -116,7 +116,7 @@ public class AsyncApiConverterUtilsTest {
 
     @Test(description = "Generate AsyncAPI spec with no base path")
     public void testServicesWithNoBasePathWithFilterina() {
-        Path ballerinaFilePath = RES_DIR.resolve("no_base_path_service.bal");
+        Path ballerinaFilePath = RES_DIR.resolve("service/no_base_path_service.bal");
         AsyncAPIContractGenerator asyncApiConverter = new AsyncAPIContractGenerator();
         asyncApiConverter.generateAsyncAPIDefinitionsAllService(ballerinaFilePath, this.tempDir, "/",
                 false);
@@ -125,7 +125,7 @@ public class AsyncApiConverterUtilsTest {
 
     @Test(description = "Generate AsyncAPI spec for build project")
     public void testRecordFieldPayLoad() {
-        Path ballerinaFilePath = RES_DIR.resolve("project_bal/record_request_service.bal");
+        Path ballerinaFilePath = RES_DIR.resolve("service/project_bal/record_request_service.bal");
         AsyncAPIContractGenerator asyncApiConverter = new AsyncAPIContractGenerator();
         asyncApiConverter.generateAsyncAPIDefinitionsAllService(ballerinaFilePath, this.tempDir, null,
                 false);
@@ -134,31 +134,31 @@ public class AsyncApiConverterUtilsTest {
 
     @Test(description = "Generate AsyncAPI spec for given ballerina file has only compiler warning")
     public void testForCompilerWarning() throws IOException {
-        Path ballerinaFilePath = RES_DIR.resolve("compiler_warning.bal");
+        Path ballerinaFilePath = RES_DIR.resolve("service/compiler_warning.bal");
         compareWithGeneratedFile(ballerinaFilePath, "service/compiler_warning.yaml");
     }
 
     @Test(description = "Test for non websocket services")
     public void testForNonWebsocketServices() {
-        Path ballerinaFilePath = RES_DIR.resolve("non_service.bal");
+        Path ballerinaFilePath = RES_DIR.resolve("service/non_service.bal");
         new AsyncAPIContractGenerator().generateAsyncAPIDefinitionsAllService(ballerinaFilePath, tempDir, null
                 , false);
         Assert.assertTrue(!Files.exists(tempDir.resolve("query_asyncapi.yaml")));
     }
 
 
-    //TODO : There was a bug in the lang , it is now fixing and try this testing after the issue get fixed https://github.com/ballerina-platform/ballerina-lang/issues/39770
+    //TODO : There was a bug in the lang for escape characters, it is now fixing and try this testing after the issue get fixed https://github.com/ballerina-platform/ballerina-lang/issues/39770
     // I have created the bal file, but yaml file has to be checked and created using debugger
-    @Test(description = "Given ballerina service has escape character")
+    @Test(description = "Given ballerina service has escape character",enabled = false)
     public void testForRemovingEscapeIdentifier() throws IOException {
-        Path ballerinaFilePath = RES_DIR.resolve("escape_identifier.bal");
+        Path ballerinaFilePath = RES_DIR.resolve("service/escape_identifier.bal");
         Path tempDir = Files.createTempDirectory("bal-to-asyncapi-test-out-" + System.nanoTime());
         try {
             AsyncAPIContractGenerator asyncApiConverter = new AsyncAPIContractGenerator();
             asyncApiConverter.generateAsyncAPIDefinitionsAllService(ballerinaFilePath, tempDir, null
                     , false);
             if (Files.exists(tempDir.resolve("v1_abc_hello_asyncapi.yaml"))) {
-                String expectedYamlContent = getStringFromGivenBalFile(RES_DIR.resolve("yaml_outputs"),
+                String expectedYamlContent = getStringFromGivenBalFile(RES_DIR.resolve("yaml_outputs/service"),
                         "escape_identifier.yaml");
                 String generatedYaml = getStringFromGivenBalFile(tempDir, "v1_abc_hello_asyncapi.yaml");
                 generatedYaml = (generatedYaml.trim()).replaceAll("\\s+", "");
@@ -168,7 +168,7 @@ public class AsyncApiConverterUtilsTest {
                 Assert.fail("Yaml was not generated");
             }
             if (Files.exists(tempDir.resolve("limit_asyncapi.yaml"))) {
-                String expectedYamlContent = getStringFromGivenBalFile(RES_DIR.resolve("yaml_outputs"),
+                String expectedYamlContent = getStringFromGivenBalFile(RES_DIR.resolve("yaml_outputs/service"),
                         "escape_identifier_02.yaml");
                 String generatedYaml = getStringFromGivenBalFile(tempDir, "limit_asyncapi.yaml");
                 generatedYaml = (generatedYaml.trim()).replaceAll("\\s+", "");
