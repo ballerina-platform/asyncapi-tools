@@ -56,30 +56,6 @@ public class TestUtils {
     private static final Path utilPath = RES_DIR.resolve("ballerina_project/utils.bal");
     private static final String LINE_SEPARATOR = System.lineSeparator();
 
-    // Get diagnostics
-//    public static List<Diagnostic> getDiagnostics(SyntaxTree syntaxTree, OpenAPI openAPI,
-//                                                  BallerinaClientGenerator ballerinaClientGenerator)
-//            throws FormatterException, IOException, BallerinaOpenApiException {
-//        List<TypeDefinitionNode> preGeneratedTypeDefinitionNodes = new LinkedList<>();
-//        preGeneratedTypeDefinitionNodes.addAll(ballerinaClientGenerator.
-//                getBallerinaAuthConfigGenerator().getAuthRelatedTypeDefinitionNodes());
-//        preGeneratedTypeDefinitionNodes.addAll(ballerinaClientGenerator.getTypeDefinitionNodeList());
-//        BallerinaTypesGenerator ballerinaSchemaGenerator = new BallerinaTypesGenerator(
-//                openAPI, false, preGeneratedTypeDefinitionNodes);
-//        SyntaxTree schemaSyntax = ballerinaSchemaGenerator.generateSyntaxTree();
-//        SyntaxTree utilSyntaxTree = ballerinaClientGenerator.getBallerinaUtilGenerator().generateUtilSyntaxTree();
-//        writeFile(clientPath, Formatter.format(syntaxTree).toString());
-//        writeFile(schemaPath, Formatter.format(schemaSyntax).toString());
-//        writeFile(utilPath, Formatter.format(utilSyntaxTree).toString());
-//        SemanticModel semanticModel = getSemanticModel(clientPath);
-//        return semanticModel.diagnostics();
-//    }
-
-    public static List<Diagnostic> getDiagnostics(SyntaxTree syntaxTree) throws FormatterException, IOException {
-        writeFile(schemaPath, Formatter.format(syntaxTree).toString());
-        SemanticModel semanticModel = getSemanticModel(schemaPath);
-        return semanticModel.diagnostics();
-    }
 
     //Get string as a content of ballerina file
     public static String getStringFromGivenBalFile(Path expectedServiceFile) throws IOException {
@@ -131,42 +107,11 @@ public class TestUtils {
         return project.currentPackage().getCompilation().getSemanticModel(docId.moduleId());
     }
 
-//    public static OpenAPI getOpenAPI(Path definitionPath) throws IOException, BallerinaOpenApiException {
-//        String openAPIFileContent = Files.readString(definitionPath);
-//        SwaggerParseResult parseResult = new OpenAPIV3Parser().readContents(openAPIFileContent);
-//        return parseResult.getOpenAPI();
-//    }
 
     public static String getStringFromGivenBalFile(Path expectedServiceFile, String s) throws IOException {
         Stream<String> expectedServiceLines = Files.lines(expectedServiceFile.resolve(s));
         String expectedServiceContent = expectedServiceLines.collect(Collectors.joining(LINE_SEPARATOR));
         expectedServiceLines.close();
         return expectedServiceContent;
-    }
-
-    public static void compareGeneratedSyntaxTreewithExpectedSyntaxTree(String s, SyntaxTree syntaxTree)
-            throws IOException {
-
-        String expectedBallerinaContent = getStringFromGivenBalFile(RES_DIR.resolve(s));
-        String generatedSyntaxTree = syntaxTree.toString();
-        generatedSyntaxTree = (generatedSyntaxTree.trim()).replaceAll("\\s+", "");
-        expectedBallerinaContent = (expectedBallerinaContent.trim()).replaceAll("\\s+", "");
-        Assert.assertTrue(generatedSyntaxTree.contains(expectedBallerinaContent));
-    }
-
-    /**
-     * Delete generated ballerina files.
-     */
-    public static void deleteGeneratedFiles() throws IOException {
-        Path resourcesPath = RES_DIR.resolve("ballerina_project");
-        if (Files.exists(resourcesPath)) {
-            File[] listFiles = Objects.requireNonNull(new File(String.valueOf(resourcesPath)).listFiles());
-            for (File existsFile : listFiles) {
-                String fileName = existsFile.getName();
-                if (fileName.endsWith(".bal")) {
-                    existsFile.delete();
-                }
-            }
-        }
     }
 }
