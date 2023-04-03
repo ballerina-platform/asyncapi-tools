@@ -46,7 +46,7 @@ public class AsyncAPIInfoTests {
         Path ballerinaFilePath = RES_DIR.resolve("project01/project01.bal");
         compareWithGeneratedFile(ballerinaFilePath, "asyncapi_info/project01.yaml");
     }
-    //TODO : Uncomment below testings after done the annoation of @asynapi:serviceInfo { }
+    //TODO : Uncomment below testings after done the annotation of @asynapi:serviceInfo { }
 
 //    @Test(description = "Generate AsyncAPI spec with default value with version Ballerina.toml")
 //    public void versionOpenAPIInfo() throws IOException {
