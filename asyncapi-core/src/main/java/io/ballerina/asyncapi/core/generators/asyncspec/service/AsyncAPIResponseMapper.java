@@ -9,7 +9,7 @@ import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25MessageImpl;
 import io.ballerina.asyncapi.core.generators.asyncspec.model.AsyncApi25SchemaImpl;
 import io.ballerina.asyncapi.core.generators.asyncspec.diagnostic.AsyncAPIConverterDiagnostic;
 import io.ballerina.asyncapi.core.generators.asyncspec.diagnostic.DiagnosticMessages;
-import io.ballerina.asyncapi.core.generators.asyncspec.diagnostic.IncompatibleResourceDiagnostic;
+import io.ballerina.asyncapi.core.generators.asyncspec.diagnostic.IncompatibleRemoteDiagnostic;
 import io.ballerina.asyncapi.core.generators.asyncspec.utils.ConverterCommonUtils;
 import io.ballerina.compiler.api.SemanticModel;
 import io.ballerina.compiler.api.symbols.*;
@@ -146,9 +146,22 @@ public class AsyncAPIResponseMapper {
                 }
                 break;
 
+            case QUALIFIED_NAME_REFERENCE:
+                TypeSymbol qualifiedNameReferenceSymbol=(TypeSymbol) semanticModel.symbol(remoteReturnType).get();
+
+                handleQualifiedNameTypeReference(subscribeMessage,componentMessage,returnDescription,qualifiedNameReferenceSymbol);
+
+
+
+
+
+//                handleReferenceResponse(subscribeMessage,componentMessage,reco,returnDescription);
+//                break;
+                break;
+
             default:
                 DiagnosticMessages errorMessage = DiagnosticMessages.AAS_CONVERTOR_108;
-                IncompatibleResourceDiagnostic error = new IncompatibleResourceDiagnostic(errorMessage, location,
+                IncompatibleRemoteDiagnostic error = new IncompatibleRemoteDiagnostic(errorMessage, location,
                         remoteReturnType.kind().toString());
                 errors.add(error);
                 break;
@@ -186,6 +199,32 @@ public class AsyncAPIResponseMapper {
 //        setResponseOfRequest(subscribeMessage, componentMessage, responseType, returnDescription, objMapper, schema);
 //    }
 
+
+    private void handleQualifiedNameTypeReference(AsyncApi25MessageImpl subscribeMessage,AsyncApi25MessageImpl componentMessage,String returnDescription,TypeSymbol qualifiedNameReferenceSymbol){
+//        Symbol symbol=semanticModel.symbol(qualifiedNameReferenceNode).get();
+        if (qualifiedNameReferenceSymbol instanceof TypeReferenceTypeSymbol) {
+            TypeReferenceTypeSymbol typeRef = (TypeReferenceTypeSymbol) qualifiedNameReferenceSymbol;
+            TypeSymbol typeSymbol = typeRef.typeDescriptor();
+            if (typeSymbol.typeKind() == TypeDescKind.INTERSECTION) {
+                List<TypeSymbol> memberTypes = ((IntersectionTypeSymbol) typeSymbol).memberTypeDescriptors();
+                for (TypeSymbol memberType : memberTypes) {
+                    if (!(memberType instanceof ReadonlyTypeSymbol)) {
+                        //TODO : address the rest of the simple name reference types
+                        typeSymbol = memberType;
+                        break;
+                    }
+                }
+            }
+            if (typeSymbol.typeKind() == TypeDescKind.RECORD) {
+                handleRecordTypeSymbol(subscribeMessage,componentMessage,returnDescription,qualifiedNameReferenceSymbol,qualifiedNameReferenceSymbol.getName().get());
+//                ApiResponses responses = handleRecordTypeSymbo(qNode.identifier().text().trim(),
+//                        components.getSchemas(), customMediaPrefix, typeRef, new OpenAPIComponentMapper(components),
+//                        headers);
+//                apiResponses.putAll(responses);
+//                return Optional.of(apiResponses);
+            }
+        }
+    }
     private void setResponseOfRequest(AsyncApi25MessageImpl subscribeMessage, AsyncApi25MessageImpl componentMessage, String responseType, String returnDescription, ObjectMapper objMapper, AsyncApi25SchemaImpl schema) {
         //create new oneOf message
         AsyncApi25MessageImpl subscribeOneOf = new AsyncApi25MessageImpl();
@@ -259,33 +298,14 @@ public class AsyncAPIResponseMapper {
         } else if (returnTypeSymbol.typeKind() == TypeDescKind.TYPE_REFERENCE) {
             TypeReferenceTypeSymbol typeReferenceTypeSymbol = (TypeReferenceTypeSymbol) returnTypeSymbol;
             TypeSymbol referredTypeSymbol = typeReferenceTypeSymbol.typeDescriptor();
-//            String referenceName = referenceNode.name().toString().trim();
-            String referredTypeName = referredTypeSymbol.getName().isPresent() ?
-                    referredTypeSymbol.getName().get() : "";
+
 
 //            if (referredTypeSymbol.typeKind() == TypeDescKind.RECORD) {
 //                componentMapper.createComponentSchema(referredTypeSymbol, null);
-
-                //Creating return type message reference
-            AsyncApi25MessageImpl componentReturnMessage = extractMessageSchemaReference(subscribeMessage, remoteReturnTypeName, returnTypeSymbol, null, null);
-
-            //add created return message
-            components.addMessage(remoteReturnTypeName, componentReturnMessage);
-
-            //set message reference as a x-response of a request
-            ObjectNode messageRefObject = new ObjectNode(JsonNodeFactory.instance);
-            messageRefObject.put($REF, MESSAGE_REFERENCE + ConverterCommonUtils.unescapeIdentifier(remoteReturnTypeName));
-
-            //Set return description
-            if (returnDescription !=null) {
-                messageRefObject.put(DESCRIPTION, returnDescription);
-            }
-            //Set x-response and x-response type of the request
-            componentMessage.addExtension(X_RESPONSE, messageRefObject);
-            componentMessage.addExtension(X_RESPONSE_TYPE, new TextNode(SIMPLE_RPC));
+            handleRecordTypeSymbol(subscribeMessage, componentMessage, returnDescription, returnTypeSymbol, remoteReturnTypeName);
 
 
-                //handle record for components
+            //handle record for components
 
 
 
@@ -310,6 +330,28 @@ public class AsyncAPIResponseMapper {
         }
         //Check content and status code if it is in 200 range then add the header
 //        operationAdaptor.getOperation().setResponses(apiResponses);
+    }
+
+    private void handleRecordTypeSymbol(AsyncApi25MessageImpl subscribeMessage, AsyncApi25MessageImpl componentMessage, String returnDescription, TypeSymbol returnTypeSymbol, String remoteReturnTypeName) {
+        //Creating return type message reference
+        AsyncApi25MessageImpl componentReturnMessage = extractMessageSchemaReference(subscribeMessage, remoteReturnTypeName, returnTypeSymbol, null, null);
+
+        //set message reference as a x-response of a request
+        ObjectNode messageRefObject = new ObjectNode(JsonNodeFactory.instance);
+        messageRefObject.put($REF, MESSAGE_REFERENCE + ConverterCommonUtils.unescapeIdentifier(remoteReturnTypeName));
+
+        //Set return description
+        if (returnDescription !=null) {
+            messageRefObject.put(DESCRIPTION, returnDescription);
+        }
+        //Set x-response and x-response type of the request
+        componentMessage.addExtension(X_RESPONSE, messageRefObject);
+        componentMessage.addExtension(X_RESPONSE_TYPE, new TextNode(SIMPLE_RPC));
+
+        //add created return message
+        components.addMessage(remoteReturnTypeName, componentReturnMessage);
+
+
     }
 
     /**
