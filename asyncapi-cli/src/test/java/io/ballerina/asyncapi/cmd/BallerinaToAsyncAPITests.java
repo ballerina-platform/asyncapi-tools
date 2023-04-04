@@ -46,6 +46,28 @@ public class BallerinaToAsyncAPITests extends AsyncAPICommandTest {
         super.setup();
     }
 
+//    @Test(description = "Test asyncapi command with help flag")
+//    public void testOpenAPICmdHelp() throws IOException {
+//        String[] args = {"-h"};
+//        AsyncAPICmd openApiCommand = new AsyncAPICmd(printStream, tmpDir, false);
+//        new CommandLine(openApiCommand).parseArgs(args);
+//        openApiCommand.execute();
+//        String output = readOutput(true);
+//        System.out.println(output.toString());
+//        Assert.assertTrue(output.contains("NAME\n" +
+//                "       ballerina-asyncapi - Generate a Ballerina service"));
+//    }
+
+//    @Test(description = "Test openapi command without help flag")
+//    public void testOpenAPICmdHelpWithoutFlag() throws IOException {
+//        AsyncAPICmd asyncApiCommand = new AsyncAPICmd(printStream, tmpDir, false);
+//        new CommandLine(asyncApiCommand);
+//        asyncApiCommand.execute();
+//        String output = readOutput(true);
+//        Assert.assertTrue(output.contains("NAME\n" +
+//                "       ballerina-asyncapi - Generate a Ballerina service"));
+//    }
+
     @Test(description = "Test ballerina to asyncApi")
     public void testBallerinaToAsyncAPIGeneration() {
         Path filePath = resourceDir.resolve(Paths.get("cmd/ballerina-to-asyncapi/ballerina-file.bal"));

@@ -48,14 +48,14 @@ public class ServiceDeclarationNodesTests {
         this.tempDir = Files.createTempDirectory("bal-to-asyncapi-test-out-" + System.nanoTime());
     }
 
-    @Test(description = "Multiple services with same absolute path")
+    @Test(description = "Multiple META-INF.services with same absolute path")
     public void multipleServiceWithSameAbsolute() throws IOException {
         Path ballerinaFilePath = RES_DIR.resolve("multiple_services.bal");
         executeMethod(ballerinaFilePath, "multiple_service_01.yaml", "hello_asyncapi.yaml",
                 "hello_");
     }
 
-    @Test(description = "Multiple services with absolute path as '/'. ")
+    @Test(description = "Multiple META-INF.services with absolute path as '/'. ")
     public void multipleServiceWithOutAbsolute() throws IOException {
         Path ballerinaFilePath = RES_DIR.resolve("multiple_services_without_base_path.bal");
         executeMethod(ballerinaFilePath, "multiple_service_02.yaml",
@@ -63,7 +63,7 @@ public class ServiceDeclarationNodesTests {
                 "multiple_services_without_base_path_");
     }
 
-    @Test(description = "Multiple services with no absolute path")
+    @Test(description = "Multiple META-INF.services with no absolute path")
     public void multipleServiceNoBasePath() throws IOException {
         Path ballerinaFilePath = RES_DIR.resolve("multiple_services_no_base_path.bal");
         executeMethod(ballerinaFilePath, "multiple_service_03.yaml",

@@ -24,25 +24,25 @@ import io.ballerina.tools.diagnostics.Location;
 import java.util.Optional;
 
 /**
- * This {@code IncompatibleResourceDiagnostic} represents the diagnostic that AsyncApiSpec not compatible with ballerina
+ * This {@code IncompatibleRemoteDiagnostic} represents the diagnostic that AsyncApiSpec not compatible with ballerina
  * implementation.
  *
  * @since 2.0.0
  */
-public class IncompatibleResourceDiagnostic implements AsyncAPIConverterDiagnostic {
+public class IncompatibleRemoteDiagnostic implements AsyncAPIConverterDiagnostic {
     private final String code;
     private final String message;
     private final Location location;
     private final DiagnosticSeverity severity;
 
-    public IncompatibleResourceDiagnostic(DiagnosticMessages details, Location location, String... args) {
+    public IncompatibleRemoteDiagnostic(DiagnosticMessages details, Location location, Object... args) {
         this.code = details.getCode();
         this.message = generateDescription(details, args);
         this.location = location;
         this.severity = details.getSeverity();
     }
 
-    public IncompatibleResourceDiagnostic(DiagnosticMessages details, Location location) {
+    public IncompatibleRemoteDiagnostic(DiagnosticMessages details, Location location) {
         this(details, location, details.getDescription());
     }
     @Override
@@ -67,7 +67,7 @@ public class IncompatibleResourceDiagnostic implements AsyncAPIConverterDiagnost
     /**
      *  This method is to create message description with args values.
      */
-    private static String generateDescription(DiagnosticMessages details, String[] args) {
-        return String.format(details.getDescription(), args);
+    private static String generateDescription(DiagnosticMessages details, Object[] args) {
+        return String.format(details.getDescription(),args);
     }
 }

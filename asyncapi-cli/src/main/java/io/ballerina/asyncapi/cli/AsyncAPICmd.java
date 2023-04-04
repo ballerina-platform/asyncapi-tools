@@ -17,15 +17,11 @@
  */
 package io.ballerina.asyncapi.cli;
 
-
 import io.ballerina.asyncapi.core.generators.asyncspec.diagnostic.AsyncAPIConverterDiagnostic;
 import io.ballerina.asyncapi.core.generators.asyncspec.diagnostic.DiagnosticMessages;
 import io.ballerina.asyncapi.core.generators.asyncspec.diagnostic.ExceptionDiagnostic;
-import io.ballerina.asyncapi.core.generators.asyncspec.diagnostic.IncompatibleResourceDiagnostic;
-
+import io.ballerina.asyncapi.core.generators.asyncspec.diagnostic.IncompatibleRemoteDiagnostic;
 import io.ballerina.cli.BLauncherCmd;
-
-
 import picocli.CommandLine;
 
 import java.io.File;
@@ -36,19 +32,16 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.NoSuchElementException;
 
 import static io.ballerina.asyncapi.cli.CmdConstants.BAL_EXTENSION;
-//import static io.ballerina.asyncapi.core.GeneratorUtils.getValidName;
-
 
 /**
- * Main class to implement "asyncapi" command for ballerina. Commands for Client Stub, Service file and OpenApi contract
+ * Main class to implement "asyncapi" command for ballerina. Commands for AsyncAPI spec
  * generation.
  */
 @CommandLine.Command(
         name = "asyncapi",
-        description = "GeneratesAsyncAPI contract for Ballerina Service."
+        description = "Generates AsyncAPI contract for Ballerina Service."
 )
 public class AsyncAPICmd implements BLauncherCmd {
     private static final String CMD_NAME = "asyncapi";
@@ -57,50 +50,24 @@ public class AsyncAPICmd implements BLauncherCmd {
     private Path executionPath = Paths.get(System.getProperty("user.dir"));
     private Path targetOutputPath;
     private boolean exitWhenFinish;
-    private boolean clientResourceMode;
 
     @CommandLine.Option(names = {"-h", "--help"}, hidden = true)
     private boolean helpFlag;
 
-    @CommandLine.Option(names = {"-i", "--input"}, description = "Generating the client and service both files")
+    @CommandLine.Option(names = {"-i", "--input"}, description = "Generating the asyncapi definitions for bal files")
     private boolean inputPath;
 
     @CommandLine.Option(names = {"--license"}, description = "Location of the file which contains the license header")
     private String licenseFilePath;
 
-    @CommandLine.Option(names = {"-o", "--output"}, description = "Location of the generated Ballerina service, " +
-            "client and model files.")
+    @CommandLine.Option(names = {"-o", "--output"}, description = "Location of the generated asyncapi definitions")
     private String outputPath;
-
-    @CommandLine.Option(names = {"--mode"}, description = "Generate only service file or client file according to the" +
-            " given mode type")
-    private String mode;
-
-    @CommandLine.Option(names = {"-n", "--nullable"}, description = "Generate the code by setting nullable true")
-    private boolean nullable;
-
     @CommandLine.Option(names = {"-s", "--service"}, description = "Service name that need to documented as asyncapi " +
             "contract")
     private String service;
 
-    @CommandLine.Option(names = {"--tags"}, description = "Tag that need to write service")
-    private String tags;
-
-    @CommandLine.Option(names = {"--operations"}, description = "Operations that need to write service")
-    private String operations;
-
-    @CommandLine.Option(names = {"--service-name"}, description = "Service name for generated files")
-    private String generatedServiceName;
-
     @CommandLine.Option(names = {"--json"}, description = "Generate json file")
     private boolean generatedFileType;
-
-    @CommandLine.Option(names = {"--with-tests"}, hidden = true, description = "Generate test files")
-    private boolean includeTestFiles;
-
-    @CommandLine.Option(names = {"--client-methods"}, hidden = true, description = "Generate the client methods" +
-            " with provided type . Only \"remote\"(default) and \"resource\" options are supported.")
-    private String generateClientMethods;
 
     @CommandLine.Parameters
     private List<String> argList;
@@ -130,69 +97,24 @@ public class AsyncAPICmd implements BLauncherCmd {
         }
         //Check if cli input argument is present
         if (inputPath) {
-            //Check if an OpenApi definition is provided
+            //Check if an AsyncApi definition is provided
             if (argList == null) {
                 outStream.println(ErrorMessages.MISSING_CONTRACT_PATH);
-                boolean asf=this.exitWhenFinish;
                 exitError(this.exitWhenFinish);
                 return;
             }
-            // If given input is yaml contract, it generates service file and client stub
-            // else if given ballerina service file it generates asyncapi contract file
+            // if given ballerina service file it generates asyncapi contract file
             // else it generates error message to enter correct input file
             String fileName = argList.get(0);
-//            if (fileName.endsWith(YAML_EXTENSION) || fileName.endsWith(JSON_EXTENSION) ||
-//                    fileName.endsWith(YML_EXTENSION)) {
-//                List<String> tag = new ArrayList<>();
-//                List<String> operation = new ArrayList<>();
-//                if (tags != null) {
-//                    tag.addAll(Arrays.asList(tags.split(",")));
-//                }
-//                if (operations != null) {
-//                    String[] ids = operations.split(",");
-//                    List<String> normalizedOperationIds =
-//                            Arrays.stream(ids).map(operationId -> getValidName(operationId, false))
-//                                    .collect(Collectors.toList());
-//                    operation.addAll(normalizedOperationIds);
-//                }
-//                Filter filter = new Filter(tag, operation);
-//
-//                if (generateClientMethods != null && !generateClientMethods.isBlank() &&
-//                        (!generateClientMethods.equals(RESOURCE) && !generateClientMethods.equals(REMOTE))) {
-//                    // Exit the code generation process
-//                    outStream.println("'--client-methods' only supports `remote` or `resource` options.");
-//                    exitError(this.exitWhenFinish);
-//                }
-//                // Add the resource flag enable
-//                clientResourceMode = generateClientMethods == null || generateClientMethods.isBlank() ||
-//                        (!generateClientMethods.equals(REMOTE));
-//
-//                if (!clientResourceMode && mode != null && mode.equals(SERVICE)) {
-//                    // Exit the code generation process
-//                    outStream.println("'--client-methods' option is only available in client generation mode.");
-//                    exitError(this.exitWhenFinish);
-//                }
-//                try {
-//                    openApiToBallerina(fileName, filter);
-//                } catch (IOException e) {
-//                    outStream.println(e.getLocalizedMessage());
-//                    exitError(this.exitWhenFinish);
-//                }
+
             if (fileName.endsWith(BAL_EXTENSION)) {
-                // Add the resource flag enable
-                if (generateClientMethods != null && !generateClientMethods.isBlank()) {
-                    // Exit the code generation process
-                    outStream.println("'--client-methods' option is only available in client generation mode.");
-                    exitError(this.exitWhenFinish);
-                }
-                try{
+                try {
+
                 ballerinaToAsyncApi(fileName);
 
-                }catch (Exception exception){
-                    String message=exception.getMessage();
+                } catch (Exception exception) {
                     outStream.println(exception.getMessage());
                     exitError(this.exitWhenFinish);
-
                 }
             } else {
                 outStream.println(ErrorMessages.MISSING_CONTRACT_PATH);
@@ -229,22 +151,24 @@ public class AsyncAPICmd implements BLauncherCmd {
         getTargetOutputPath();
         // Check service name it is mandatory
         AsyncAPIContractGenerator asyncApiConverter = new AsyncAPIContractGenerator();
+
         asyncApiConverter.generateAsyncAPIDefinitionsAllService(balFilePath, targetOutputPath, service,
-                generatedFileType);
+                    generatedFileType);
+
         errors.addAll(asyncApiConverter.getErrors());
         if (!errors.isEmpty()) {
             for (AsyncAPIConverterDiagnostic error: errors) {
                 if (error instanceof ExceptionDiagnostic) {
                     this.outStream = System.err;
                     ExceptionDiagnostic exceptionDiagnostic = (ExceptionDiagnostic) error;
-                    AsyncAPIDiagnostic diagnostic = CmdUtils.constructOpenAPIDiagnostic(exceptionDiagnostic.getCode(),
+                    AsyncAPIDiagnostic diagnostic = CmdUtils.constructAsyncAPIDiagnostic(exceptionDiagnostic.getCode(),
                             exceptionDiagnostic.getMessage(), exceptionDiagnostic.getDiagnosticSeverity(),
                             exceptionDiagnostic.getLocation().orElse(null));
                     outStream.println(diagnostic.toString());
                     exitError(this.exitWhenFinish);
-                } else if (error instanceof IncompatibleResourceDiagnostic) {
-                    IncompatibleResourceDiagnostic incompatibleError = (IncompatibleResourceDiagnostic) error;
-                    AsyncAPIDiagnostic diagnostic = CmdUtils.constructOpenAPIDiagnostic(incompatibleError.getCode(),
+                } else if (error instanceof IncompatibleRemoteDiagnostic) {
+                    IncompatibleRemoteDiagnostic incompatibleError = (IncompatibleRemoteDiagnostic) error;
+                    AsyncAPIDiagnostic diagnostic = CmdUtils.constructAsyncAPIDiagnostic(incompatibleError.getCode(),
                             incompatibleError.getMessage(), incompatibleError.getDiagnosticSeverity(),
                             incompatibleError.getLocation().get());
                     outStream.println(diagnostic.toString());
@@ -396,10 +320,12 @@ public class AsyncAPICmd implements BLauncherCmd {
 //                                   Filter filter, boolean generateClientResourceFunctions) {
 //        try {
 //            assert resourcePath != null;
-//            generator.generateClientAndService(resourcePath.toString(), fileName, targetOutputPath.toString(), filter,
+//            generator.generateClientAndService(resourcePath.toString(), fileName,
+//            targetOutputPath.toString(), filter,
 //                    nullable, generateClientResourceFunctions);
 //        } catch (IOException | BallerinaAsyncApiException | FormatterException e) {
-//            outStream.println("Error occurred when generating service for openAPI contract at " + argList.get(0) + "." +
+//            outStream.println("Error occurred when generating service
+//            for openAPI contract at " + argList.get(0) + "." +
 //                    " " + e.getMessage() + ".");
 //            exitError(this.exitWhenFinish);
 //        }

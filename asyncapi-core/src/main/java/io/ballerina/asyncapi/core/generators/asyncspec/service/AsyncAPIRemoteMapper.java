@@ -96,9 +96,9 @@ public class AsyncAPIRemoteMapper {
     }
 
     /**
-     * Resource mapper when a resource has more than 1 http method.
+     * Remote mapper when there have multiple remote methods
      *
-     * @param resource The ballerina resource.
+     * @param
 //     * @param httpMethods   Sibling methods related to operation.
      */
     private AsyncApi25ChannelsImpl handleRemoteFunctions(FunctionDefinitionNode resource, ClassDefinitionNode classDefinitionNode,String dispatcherValue,AsyncApi25ChannelItemImpl channelItem) {
@@ -112,63 +112,67 @@ public class AsyncAPIRemoteMapper {
         for(Node node: classMethodNodes){
             if (node.kind().equals(SyntaxKind.OBJECT_METHOD_DEFINITION)){
                 FunctionDefinitionNode remoteFunctionNode= (FunctionDefinitionNode)node;
-                String functionName= remoteFunctionNode.functionName().toString();
-                if (functionName.matches(CamelCasePattern)) {
-                    if(isRemoteFunctionNameValid(functionName)) {
-                        //TODO : have to pass this through unescape identifier
-                        String remoteRequestTypeName = ConverterCommonUtils.unescapeIdentifier(functionName.substring(2));
-                        RequiredParameterNode requiredParameterNode = checkParameterContainsCustomType(remoteRequestTypeName, remoteFunctionNode);
-                        if (requiredParameterNode != null) {
-                            String paramName = requiredParameterNode.paramName().get().toString();
-                            Node parameterTypeNode = requiredParameterNode.typeName();
-                            TypeSymbol remoteFunctionNameTypeSymbol = (TypeSymbol) semanticModel.symbol(parameterTypeNode).orElseThrow();
-                            TypeReferenceTypeSymbol typeRef = (TypeReferenceTypeSymbol) remoteFunctionNameTypeSymbol;
-                            TypeSymbol type = typeRef.typeDescriptor();
-//                        Boolean testing= type.typeKind().equals(TypeDescKind.INTERSECTION);
-//                        SymbolKind testing2= componentMapper.excludeReadonlyIfPresent(type).typeKind();
-//                        Boolean testing1=componentMapper.excludeReadonlyIfPresent(type).kind().equals(TypeDescKind.RECORD);
+                if (remoteFunctionNode.functionSignature().parameters().size()<=2) {
+                    String functionName = remoteFunctionNode.functionName().toString();
+                    if (functionName.matches(CamelCasePattern)) {
+                        if (isRemoteFunctionNameValid(functionName)) {
+                            //TODO : have to pass this through unescape identifier
+                            String remoteRequestTypeName = ConverterCommonUtils.unescapeIdentifier(functionName.substring(2));
+                            RequiredParameterNode requiredParameterNode = checkParameterContainsCustomType(remoteRequestTypeName, remoteFunctionNode);
+                            if (requiredParameterNode != null) {
+                                String paramName = requiredParameterNode.paramName().get().toString();
+                                Node parameterTypeNode = requiredParameterNode.typeName();
+                                TypeSymbol remoteFunctionNameTypeSymbol = (TypeSymbol) semanticModel.symbol(parameterTypeNode).orElseThrow();
+                                TypeReferenceTypeSymbol typeRef = (TypeReferenceTypeSymbol) remoteFunctionNameTypeSymbol;
+                                TypeSymbol type = typeRef.typeDescriptor();
 
-                            //check if there is a readOnly & record type also
-                            if (type.typeKind().equals(TypeDescKind.RECORD) || (type.typeKind().equals(TypeDescKind.INTERSECTION) && componentMapper.excludeReadonlyIfPresent(type).typeKind().equals(TypeDescKind.RECORD))) {
+                                //check if there is a readOnly & record type also
+                                if (type.typeKind().equals(TypeDescKind.RECORD) || (type.typeKind().equals(TypeDescKind.INTERSECTION) && componentMapper.excludeReadonlyIfPresent(type).typeKind().equals(TypeDescKind.RECORD))) {
 
-                                FunctionSymbol remoteFunctionSymbol = (FunctionSymbol) semanticModel.symbol(remoteFunctionNode).get();
-                                Map<String, String> remoteDocs = getRemoteDocumentation(remoteFunctionSymbol);
+                                    FunctionSymbol remoteFunctionSymbol = (FunctionSymbol) semanticModel.symbol(remoteFunctionNode).get();
+                                    Map<String, String> remoteDocs = getRemoteDocumentation(remoteFunctionSymbol);
 
-                                String paramDescription = null;
-                                if (remoteDocs.containsKey(paramName)) {
-                                    paramDescription = remoteDocs.get(paramName);
-                                    remoteDocs.remove(paramName);
+                                    String paramDescription = null;
+                                    if (remoteDocs.containsKey(paramName)) {
+                                        paramDescription = remoteDocs.get(paramName);
+                                        remoteDocs.remove(paramName);
 
-                                }
-                                AsyncApi25MessageImpl componentMessage = responseMapper.extractMessageSchemaReference(publishMessage, remoteRequestTypeName, remoteFunctionNameTypeSymbol, dispatcherValue, paramDescription);
-                                if (remoteDocs.containsKey(REMOTE_DESCRIPTION)) {
-                                    componentMessage.setDescription(remoteDocs.get(REMOTE_DESCRIPTION));
-                                    remoteDocs.remove(REMOTE_DESCRIPTION);
-                                }
-                                Optional<ReturnTypeDescriptorNode> optionalRemoteReturnNode = remoteFunctionNode.functionSignature().returnTypeDesc();
-                                if (optionalRemoteReturnNode.isPresent()) {
-                                    Node remoteReturnType = optionalRemoteReturnNode.get().type();
-                                    String returnDescription = null;
-                                    if (remoteDocs.containsKey(RETURN)) {
-                                        returnDescription = remoteDocs.get(RETURN);
-                                        remoteDocs.remove(RETURN);
                                     }
-                                    responseMapper.createResponse(subscribeMessage, componentMessage, remoteReturnType, returnDescription);
+                                    AsyncApi25MessageImpl componentMessage = responseMapper.extractMessageSchemaReference(publishMessage, remoteRequestTypeName, remoteFunctionNameTypeSymbol, dispatcherValue, paramDescription);
+                                    if (remoteDocs.containsKey(REMOTE_DESCRIPTION)) {
+                                        componentMessage.setDescription(remoteDocs.get(REMOTE_DESCRIPTION));
+                                        remoteDocs.remove(REMOTE_DESCRIPTION);
+                                    }
+                                    Optional<ReturnTypeDescriptorNode> optionalRemoteReturnNode = remoteFunctionNode.functionSignature().returnTypeDesc();
+                                    if (optionalRemoteReturnNode.isPresent()) {
+                                        Node remoteReturnType = optionalRemoteReturnNode.get().type();
+                                        String returnDescription = null;
+                                        if (remoteDocs.containsKey(RETURN)) {
+                                            returnDescription = remoteDocs.get(RETURN);
+                                            remoteDocs.remove(RETURN);
+                                        }
+                                        //Call createResponse method to create the response
+                                        responseMapper.createResponse(subscribeMessage, componentMessage, remoteReturnType, returnDescription);
+                                    }
+                                    //Add publish message related to remote method
+                                    components.addMessage(remoteRequestTypeName, componentMessage);
+                                } else {
+
+                                    throw new NoSuchElementException(String.format(FUNCTION_SIGNATURE_WRONG_TYPE, remoteRequestTypeName, type.typeKind().getName()));
                                 }
-                                components.addMessage(remoteRequestTypeName, componentMessage);
+
                             } else {
-                                throw new NoSuchElementException(String.format(FUNCTION_SIGNATURE_WRONG_TYPE, remoteRequestTypeName, type.typeKind().getName()));
+                                throw new NoSuchElementException(FUNCTION_SIGNATURE_ABSENT);
                             }
-
                         } else {
-                            throw new NoSuchElementException(FUNCTION_SIGNATURE_ABSENT);
+                            throw new NoSuchElementException(FUNCTION_DEFAULT_NAME_CONTAINS_ERROR);
                         }
-                    }else{
-                        throw new NoSuchElementException(FUNCTION_DEFAULT_NAME_CONTAINS_ERROR);
-                    }
 
+                    } else {
+                        throw new NoSuchElementException(FUNCTION_WRONG_NAME);
+                    }
                 }else{
-                    throw new NoSuchElementException(FUNCTION_WRONG_NAME);
+                    throw new NoSuchElementException(FUNCTION_PARAMETERS_EXCEEDED);
                 }
             }
 
@@ -236,6 +240,8 @@ public class AsyncAPIRemoteMapper {
     private RequiredParameterNode checkParameterContainsCustomType(String customTypeName,FunctionDefinitionNode remoteFunctionNode) {
         SeparatedNodeList<ParameterNode> remoteParameters = remoteFunctionNode.functionSignature().parameters();
         for (ParameterNode remoteParameterNode : remoteParameters) {
+
+
             if (remoteParameterNode.kind() == SyntaxKind.REQUIRED_PARAM) {
                 RequiredParameterNode requiredParameterNode = (RequiredParameterNode) remoteParameterNode;
 
@@ -246,8 +252,16 @@ public class AsyncAPIRemoteMapper {
                     if (simpleType.equals(customTypeName)) {
                         return requiredParameterNode;
                     }
+                }else if(parameterTypeNode.kind()== QUALIFIED_NAME_REFERENCE){
+                    QualifiedNameReferenceNode qualifiedNameReferenceNode=(QualifiedNameReferenceNode)parameterTypeNode;
+                    String identifier=qualifiedNameReferenceNode.identifier().text();
+                    if(identifier.equals(customTypeName)){
+                        return  requiredParameterNode;
+                    }
+
                 }
             }
+
         }
         return null;
     }

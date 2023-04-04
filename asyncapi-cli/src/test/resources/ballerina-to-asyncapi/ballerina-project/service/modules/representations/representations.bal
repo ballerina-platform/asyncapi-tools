@@ -14,17 +14,10 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import ballerina/http;
-
 # Represents location
 public type Location record {|
-    *http:Links;
-    # Name of the location
-    string name;
-    # Unique identification
     string id;
-    # Address of the location
-    string address;
+    string event;
 |};
 # Represents a collection of locations
 public type Locations record {|
@@ -64,9 +57,9 @@ public type Room record {|
 |};
 # Represents a collection of resort rooms
 public type Rooms record {|
-    *http:Links;
     # Array of rooms
     Room[] rooms;
+    string event;
 |};
 
 # Represents rooms be reserved
@@ -84,10 +77,11 @@ public type Reservation record {|
     string startDate;
     # End date in yyyy-mm-dd
     string endDate;
+    # Event description
+    string event;
 |};
 # Represents a receipt for the reservation
 public type ReservationReceipt record {|
-    *http:Links;
     # Unique identification
     string id;
     # Expiry date in yyyy-mm-dd
@@ -102,15 +96,12 @@ public type ReservationReceipt record {|
     Reservation reservation;
 |};
 public type ReservationUpdated record {|
-    *http:Ok;
     ReservationReceipt body;
 |};
 public type ReservationCreated record {|
-    *http:Created;
     ReservationReceipt body;
 |};
 public type ReservationConflict record {|
-    *http:Conflict;
     string body = "Error occurred while updating the reservation";
 |};
 
@@ -124,6 +115,8 @@ public type Payment record {|
     string expiryMonth;
     # Expiaration year of the card in yyyy
     string expiryYear;
+    # Event description
+    string event;
 |};
 
 # Reperesents receipt for the payment
@@ -140,11 +133,9 @@ public type PaymentReceipt record {|
     Room[] rooms;
 |};
 public type PaymentCreated record {|
-    *http:Created;
     PaymentReceipt body;
 |};
 public type PaymentConflict record {|
-    *http:Conflict;
     string body = "Error occurred while updating the payment";
 |};
 

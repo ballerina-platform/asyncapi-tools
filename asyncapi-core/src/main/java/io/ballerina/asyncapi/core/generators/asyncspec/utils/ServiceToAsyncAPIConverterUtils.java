@@ -84,14 +84,14 @@ public class ServiceToAsyncAPIConverterUtils {
             ModulePartNode modulePartNode = syntaxTree.rootNode();
             extractListenersAndServiceNodes(serviceName, availableService, servicesToGenerate,classDefinitionNodes, modulePartNode,
                     endpoints, semanticModel);
-            // If there are no services found for a given service name.
+            // If there are no META-INF.services found for a given service name.
             if (serviceName != null && servicesToGenerate.isEmpty()) {
                 DiagnosticMessages messages = DiagnosticMessages.AAS_CONVERTOR_101;
                 ExceptionDiagnostic error = new ExceptionDiagnostic(messages.getCode(), messages.getDescription(),
                         null, serviceName, availableService.toString());
                 diagnostics.add(error);
             }
-            // Generating asyncapi specification for selected services
+            // Generating asyncapi specification for selected META-INF.services
             for (Map.Entry<String, ServiceDeclarationNode> serviceNode : servicesToGenerate.entrySet()) {
                 String asyncApiName = getAsyncApiFileName(syntaxTree.filePath(), serviceNode.getKey(), needJson);
                 AsyncAPIResult asyncAPIDefinition = generateAsyncApiSpec(serviceNode.getValue(), endpoints,classDefinitionNodes, semanticModel, asyncApiName,
@@ -159,7 +159,7 @@ public class ServiceToAsyncAPIConverterUtils {
                                 servicesToGenerate.put(updateServiceName, serviceNode);
                             }
                         } else {
-                            // To generate for all services
+                            // To generate for all META-INF.services
                             servicesToGenerate.put(updateServiceName, serviceNode);
                         }
                     }
@@ -371,7 +371,7 @@ public class ServiceToAsyncAPIConverterUtils {
            if (!fields.isEmpty()) {
                AsyncAPIInfo asyncAPIInfo = updateAsyncAPIInfoModel(fields);
                // If in case ballerina file path is getting null, then asyncAPI specification will be generated for
-               // given services.
+               // given META-INF.services.
                if (asyncAPIInfo.getContractPath().isPresent() && ballerinaFilePath != null) {
                    return updateExistingContractAsyncAPI(diagnostics, location, asyncAPIInfo, ballerinaFilePath);
                } else if (asyncAPIInfo.getTitle().isPresent() && asyncAPIInfo.getVersion().isPresent()) {

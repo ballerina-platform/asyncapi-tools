@@ -14,37 +14,20 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import ballerina/http;
 import 'service.representations as rep;
 
 public isolated function getLocations() returns rep:Locations {
     return {
         locations: [
             {
-                name: "Alps",
+
                 id: "l1000",
-                address: "NC 29384, some place, switzerland",
-                _links: {
-                    "room1" : {
-                        rel: "room",
-                        href: "/snowpeak/locations/l1000/rooms",
-                        types: ["applicaion/vnd.snowpeak.resort+json"],
-                        methods: [http:GET]
-                    }
-                }
+                event: "location"
             },
             {
-                name: "Pilatus",
-                id: "l2000",
-                address: "NC 29444, some place, switzerland",
-                _links: {
-                    "room2": {
-                        rel: "room",
-                        href: "/snowpeak/locations/l2000/rooms",
-                        types: ["applicaion/vnd.snowpeak.resort+json"],
-                        methods: [http:GET]
-                    }
-                }
+
+                id: "l200",
+                event: ""
             }
         ]
     };
@@ -64,22 +47,13 @@ public isolated function getRooms(string startDate, string endDate) returns rep:
                 count: 3
             }
         ],
-        _links: {
-            "room4" : {
-                rel: "reservation",
-                href: "/snowpeak/reservation",
-                types: ["applicaion/vnd.snowpeak.resort+json"],
-                methods: [http:POST]
-            }
-        }
+        event: ""
     };
 }
 
 public isolated function createReservation(rep:Reservation reservation) returns rep:ReservationCreated {
     return {
-        headers: {
-            location: "/snowpeak/reservation/r1000"
-        },
+
         body: {
             id: "re1000",
             expiryDate: "2021-07-01",
@@ -94,27 +68,8 @@ public isolated function createReservation(rep:Reservation reservation) returns 
                     }
                 ],
                 startDate: "2021-08-01",
-                endDate: "2021-08-03"
-            },
-            _links: {
-               "room1": {
-                    rel: "cancel",
-                    href: "/snowpeak/reservation/re1000",
-                    types: ["applicaion/vnd.snowpeak.resort+json"],
-                    methods: [http:DELETE]
-                },
-                "room2": {
-                    rel: "edit",
-                    href: "/snowpeak/reservation/re1000",
-                    types: ["applicaion/vnd.snowpeak.resort+json"],
-                    methods: [http:PUT]
-                },
-                "room3":{
-                    rel: "payment",
-                    href: "/snowpeak/payment/re1000",
-                    types: ["applicaion/vnd.snowpeak.resort+json"],
-                    methods: [http:POST]
-                }
+                endDate: "2021-08-03",
+                event: ""
             }
         }
     };
@@ -136,27 +91,8 @@ public isolated function updateReservation(rep:Reservation reservation) returns 
                     }
                 ],
                 startDate: "2021-08-01",
-                endDate: "2021-08-03"
-            },
-            _links: {
-                "room1":{
-                    rel: "cancel",
-                    href: "/snowpeak/reservation/re1000",
-                    types: ["applicaion/vnd.snowpeak.resort+json"],
-                    methods: [http:DELETE]
-                },
-                "room2": {
-                    rel: "edit",
-                    href: "/snowpeak/reservation/re1000",
-                    types: ["applicaion/vnd.snowpeak.resort+json"],
-                    methods: [http:PUT]
-                },
-                "room3": {
-                    rel: "payment",
-                    href: "/snowpeak/payment/re1000",
-                    types: ["applicaion/vnd.snowpeak.resort+json"],
-                    methods: [http:POST]
-                }
+                endDate: "2021-08-03",
+                event: ""
             }
         }
     };
@@ -164,9 +100,7 @@ public isolated function updateReservation(rep:Reservation reservation) returns 
 
 public isolated function createPayment(string id, rep:Payment payment) returns rep:PaymentCreated {
     return {
-        headers: {
-            location: "/snowpeak/reservation/p1000"
-        },
+
         body: {
             id: "p1000",
             currency: "USD",

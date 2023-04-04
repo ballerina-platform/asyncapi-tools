@@ -28,8 +28,8 @@ public enum DiagnosticMessages {
 
     AAS_CONVERTOR_100("AAS_CONVERTOR_100", "Given Ballerina file contains compilation error(s).",
             DiagnosticSeverity.ERROR),
-    AAS_CONVERTOR_101("AAS_CONVERTOR_101", "No Ballerina services found with name '%s' to" +
-            " generate an AsyncAPI specification. These services are available in ballerina file. %s",
+    AAS_CONVERTOR_101("AAS_CONVERTOR_101", "No Ballerina META-INF.services found with name '%s' to" +
+            " generate an AsyncAPI specification. These META-INF.services are available in ballerina file. %s",
             DiagnosticSeverity.ERROR),
     AAS_CONVERTOR_102("AAS_CONVERTOR_102", "Failed to generate AsyncAPI definition due to: %s",
             DiagnosticSeverity.ERROR),
@@ -44,7 +44,7 @@ public enum DiagnosticMessages {
     AAS_CONVERTOR_106("AAS_CONVERTOR_106", "Generated AsyncAPI definition does not contain information " +
             "for Ballerina type '%s'. ", DiagnosticSeverity.WARNING),
     AAS_CONVERTER_107("AAS_CONVERTOR_107", "Generated AsyncAPI definition contains parsing error(s)" , DiagnosticSeverity.ERROR),
-    AAS_CONVERTOR_108("OAS_CONVERTOR_108", "Unexpected value: %s", DiagnosticSeverity.ERROR);
+    AAS_CONVERTOR_108("AAS_CONVERTOR_108", "Unexpected value: %s", DiagnosticSeverity.ERROR);
 
     private final String code;
     private final String description;

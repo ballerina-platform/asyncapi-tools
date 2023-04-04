@@ -190,7 +190,7 @@ public class Constants {
     public static final String CamelCasePattern = "^on[A-Z][a-z0-9A-Z]*$";
 
     //Invalid remote function names
-    public static final String ON_IDLE_TIME_OUT="onIdleTimeOut";
+    public static final String ON_IDLE_TIME_OUT="onIdleTimeout";
     public static final String ON_MESSAGE="onMessage";
     public static final String ON_TEXT_MESSAGE="onTextMessage";
     public static final String ON_BINARY_MESSAGE="onBinaryMessage";
@@ -203,31 +203,35 @@ public class Constants {
     public static final String ON_PONG="onPong";
 
     //Exception Constants
+
+    public static final String DISPATCHERKEY_NULLABLE_EXCEPTION= "ERROR: dispatcherKey '%s' cannot be nullable in %s record";
     //dispatcherKey name
-    public static final String DISPATCHER_KEY_TYPE_EXCEPTION = "dispatcherKey '%s' type must be a string in a record field";
+    public static final String DISPATCHER_KEY_TYPE_EXCEPTION = "ERROR: dispatcherKey '%s' type must be a string in a record field";
     //dispatcherKey name
     //record name
-    public static final String DISPATCHERKEY_OPTIONAL_EXCEPTION= "dispatcherKey '%s' cannot be optional in %s record";
+    public static final String DISPATCHERKEY_OPTIONAL_EXCEPTION= "ERROR: dispatcherKey '%s' cannot be optional in %s record";
     //dispatcherKey name
     //record name
-    public static final String DISPATCHERKEY_NOT_PRESENT_IN_RECORD_FIELD="dispatcherKey '%s' is not present in %s record field, those should be equal";
-    public static final String FUNCTION_SIGNATURE_ABSENT="Function signature must contain function method type ex:- onHeartbeat(Heartbeat message)";
+    public static final String DISPATCHERKEY_NOT_PRESENT_IN_RECORD_FIELD="ERROR: dispatcherKey '%s' is not present in %s record field, those should be equal";
+    public static final String FUNCTION_SIGNATURE_ABSENT="ERROR: Function signature must contain function method type ex:- onHeartbeat(Heartbeat message)";
 
     //type name
     //type
-    public static final String FUNCTION_SIGNATURE_WRONG_TYPE= "%s type must be a record,%s given";
-    public static final String FUNCTION_WRONG_NAME="Function name must start with 'on' and use camelCase convention ex-onHeartBeat,onRemoteFunctionTestName";
-    public static final String FUNCTION_DEFAULT_NAME_CONTAINS_ERROR="OnIdleTimeOut, onMessage, OnTextMessage, OnBinaryMessage, OnClose, OnOpen, and OnError names are not permitted in a function's name";
-    public static final String NO_ANNOTATION_PRESENT="No Annotation present, use @websocket:ServiceConfig{dispatcherKey: \"event\"} above the service";
+    public static final String FUNCTION_SIGNATURE_WRONG_TYPE= "ERROR: %s type must be a record,%s given";
+    public static final String FUNCTION_WRONG_NAME="ERROR: Function name must start with 'on' and use camelCase convention ex-onHeartBeat,onRemoteFunctionTestName";
+
+    public static final String FUNCTION_PARAMETERS_EXCEEDED="ERROR: Function name can only have two parameters, websocket:caller and type";
+    public static final String FUNCTION_DEFAULT_NAME_CONTAINS_ERROR="ERROR: OnIdleTimeOut, onMessage, OnTextMessage, OnBinaryMessage, OnClose, OnOpen, and OnError names are not permitted in a function's name";
+    public static final String NO_ANNOTATION_PRESENT="ERROR: No Annotation present, use @websocket:ServiceConfig{dispatcherKey: \"event\"} above the service";
 
 //    public static final String NO_WEBSOCKET_SERVICE_CONFIG_ANNOTATION="No @websocket:ServiceConfig{dispatcherKey: \"event\"} annotation is present";
 
-    public static final String NO_DISPATCHER_KEY="No dispatcherKey field is present in @websocket:ServiceConfig annotation";
+    public static final String NO_DISPATCHER_KEY="ERROR: No dispatcherKey field is present in @websocket:ServiceConfig annotation";
 
-    public static final String DISPATCHER_KEY_VALUE_CANNOT_BE_EMPTY="dispatcherKey cannot be empty";
+    public static final String DISPATCHER_KEY_VALUE_CANNOT_BE_EMPTY="ERROR: dispatcherKey cannot be empty";
 
-    public static final String NO_TYPE_IN_STREAM="No type present in stream";
+    public static final String NO_TYPE_IN_STREAM="ERROR: No type present in stream";
 
-    public static final String NO_SERVICE_CLASS= "No service class present";
+    public static final String NO_SERVICE_CLASS= "ERROR: No service class present";
 
 }

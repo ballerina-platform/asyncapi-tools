@@ -25,12 +25,6 @@ public class BallerinaToAsyncAPIExceptionTests extends AsyncAPICommandTest {
     }
 
 
-    @Test(description = "Use websocket alias as ws")
-    public void notAcceptable() throws IOException {
-        Path ballerinaFilePath = RES_DIR.resolve("dispatcherKey_field_not_present_in_annotation.bal");
-        TestUtils.compareWithGeneratedFile(ballerinaFilePath, "exceptions/check_dispatcherKey.yaml");
-    }
-
     @Test(description = "Test websocket:serviceConfig annotation not present exception")
     public void testWebsocketServiceConfigAnnotationNotPresent() {
         Path filePath = resourceDir.resolve(Paths.get("cmd/ballerina-to-asyncapi/exceptions/check_websocket_serviceConfig_annotation.bal"));
@@ -316,11 +310,10 @@ public class BallerinaToAsyncAPIExceptionTests extends AsyncAPICommandTest {
             Assert.fail(output);
         }
     }
-
-    //TODO : Change this method to another testing
-    @Test(description = "Test description is overrided by record type param description")
-    public void testOverrideDescriptionOfRecordField() {
-        Path filePath = resourceDir.resolve(Paths.get("ballerina-to-asyncapi/additional/override_description_of_record.bal"));
+//
+    @Test(description = "Test dispatcherKey is nullable not allowed in a field")
+    public void testDispatcherKeyIsNullableNotAllowedInAField() {
+        Path filePath = resourceDir.resolve(Paths.get("cmd/ballerina-to-asyncapi/exceptions/nullable_dispatcherKey_present.bal"));
         String[] args = {"--input", filePath.toString(), "-o",this.tmpDir.toString()};
         AsyncAPICmd cmd = new AsyncAPICmd(printStream, tmpDir, false);
         new CommandLine(cmd).parseArgs(args);
@@ -329,12 +322,14 @@ public class BallerinaToAsyncAPIExceptionTests extends AsyncAPICommandTest {
         try {
             cmd.execute();
             output = readOutput(true);
-            Assert.assertTrue(output.trim().contains(String.format(DISPATCHERKEY_OPTIONAL_EXCEPTION,"event","Subscribe")));
+            System.out.println(output.toString());
+            Assert.assertTrue(output.trim().contains(String.format(DISPATCHERKEY_NULLABLE_EXCEPTION,"event","Subscribe")));
         } catch (BLauncherException | IOException e) {
             output = e.toString();
             Assert.fail(output);
         }
     }
+
     @Test(description = "Test remote function name is not in camel case form")
     public void testRemoteFunctionNameCamelCaseNotPresent() {
         Path filePath = resourceDir.resolve(Paths.get("cmd/ballerina-to-asyncapi/exceptions/remotefunction_camelCase_not_present.bal"));

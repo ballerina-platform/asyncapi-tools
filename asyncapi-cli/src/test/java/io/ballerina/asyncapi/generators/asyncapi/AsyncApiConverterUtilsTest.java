@@ -67,8 +67,8 @@ public class AsyncApiConverterUtilsTest {
         asyncApiConverter.generateAsyncAPIDefinitionsAllService(ballerinaFilePath, this.tempDir, "/abc",
                 false);
         Assert.assertFalse(asyncApiConverter.getErrors().isEmpty());
-        Assert.assertEquals(asyncApiConverter.getErrors().get(0).getMessage(), "No Ballerina services found " +
-                "with name '/abc' to generate an AsyncAPI specification. These services are available in " +
+        Assert.assertEquals(asyncApiConverter.getErrors().get(0).getMessage(), "No Ballerina META-INF.services found " +
+                "with name '/abc' to generate an AsyncAPI specification. These META-INF.services are available in " +
                 "ballerina file. [/hello, /hello02]");
     }
 
@@ -138,9 +138,17 @@ public class AsyncApiConverterUtilsTest {
         compareWithGeneratedFile(ballerinaFilePath, "service/compiler_warning.yaml");
     }
 
-    @Test(description = "Test for non websocket services")
-    public void testForNonWebsocketServices() {
-        Path ballerinaFilePath = RES_DIR.resolve("service/non_service.bal");
+    @Test(description = "Test for non websocket rabbitmq service")
+    public void testForNonWebsocketRabbitMqServices() {
+        Path ballerinaFilePath = RES_DIR.resolve("service/rabbitmq_service.bal");
+        new AsyncAPIContractGenerator().generateAsyncAPIDefinitionsAllService(ballerinaFilePath, tempDir, null
+                , false);
+        Assert.assertTrue(!Files.exists(tempDir.resolve("query_asyncapi.yaml")));
+    }
+
+    @Test(description = "Test for non websocket kafka service")
+    public void testForNonWebsocketKafkaServices() {
+        Path ballerinaFilePath = RES_DIR.resolve("service/kafka_service.bal");
         new AsyncAPIContractGenerator().generateAsyncAPIDefinitionsAllService(ballerinaFilePath, tempDir, null
                 , false);
         Assert.assertTrue(!Files.exists(tempDir.resolve("query_asyncapi.yaml")));

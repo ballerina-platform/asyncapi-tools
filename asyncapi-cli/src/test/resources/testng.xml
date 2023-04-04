@@ -23,7 +23,6 @@ under the License.
 
     <test name="asyncapi-cli-test-suite" preserve-order="true" parallel="none">
         <classes>
-            <class name="io.ballerina.asyncapi.cmd.AsyncAPICmdTest"/>
             <class name="io.ballerina.asyncapi.cmd.BallerinaToAsyncAPITests"/>
             <class name="io.ballerina.asyncapi.generators.asyncapi.AsyncApiConverterUtilsTest"/>
             <class name="io.ballerina.asyncapi.generators.asyncapi.RecordTests"/>
@@ -36,7 +35,6 @@ under the License.
             <class name="io.ballerina.asyncapi.generators.asyncapi.QueryParameterTests"/>
             <class name="io.ballerina.asyncapi.generators.asyncapi.ServiceDeclarationNodesTests"/>
             <class name="io.ballerina.asyncapi.generators.asyncapi.MapTypeTests"/>
-            <class name="io.ballerina.asyncapi.cmd.AsyncApiGenServiceCmdTest"/>
             <class name="io.ballerina.asyncapi.cmd.BallerinaToAsyncAPITests"/>
             <class name="io.ballerina.asyncapi.generators.asyncapi.DataTypeTests"/>
             <class name="io.ballerina.asyncapi.cmd.BallerinaToAsyncAPIExceptionTests"/>

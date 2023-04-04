@@ -18,15 +18,14 @@
 
 package io.ballerina.asyncapi.cli;
 
+import io.ballerina.asyncapi.core.generators.asyncspec.diagnostic.AsyncAPIConverterDiagnostic;
+import io.ballerina.asyncapi.core.generators.asyncspec.diagnostic.DiagnosticMessages;
+import io.ballerina.asyncapi.core.generators.asyncspec.diagnostic.ExceptionDiagnostic;
 import io.ballerina.asyncapi.core.generators.asyncspec.model.AsyncAPIResult;
+import io.ballerina.asyncapi.core.generators.asyncspec.utils.CodegenUtils;
 import io.ballerina.asyncapi.core.generators.asyncspec.utils.ServiceToAsyncAPIConverterUtils;
 import io.ballerina.compiler.api.SemanticModel;
 import io.ballerina.compiler.syntax.tree.SyntaxTree;
-import io.ballerina.asyncapi.core.generators.asyncspec.diagnostic.DiagnosticMessages;
-import io.ballerina.asyncapi.core.generators.asyncspec.diagnostic.ExceptionDiagnostic;
-import io.ballerina.asyncapi.core.generators.asyncspec.diagnostic.AsyncAPIConverterDiagnostic;
-import io.ballerina.asyncapi.core.generators.asyncspec.utils.CodegenUtils;
-
 import io.ballerina.projects.Document;
 import io.ballerina.projects.DocumentId;
 import io.ballerina.projects.Module;
@@ -77,7 +76,7 @@ public class AsyncAPIContractGenerator {
      *
      * @param servicePath The path to a single ballerina file.
      * @param outPath     The output directory to which the AsyncAPI specifications should be generated to.
-     * @param serviceName Filter the services to generate AsyncAPI specification for service with this name.
+     * @param serviceName Filter the META-INF.services to generate AsyncAPI specification for service with this name.
      */
     public void generateAsyncAPIDefinitionsAllService(Path servicePath, Path outPath, String serviceName,
                                                   Boolean needJson) {
@@ -111,8 +110,8 @@ public class AsyncAPIContractGenerator {
             return;
         }
         semanticModel = compilation.getSemanticModel(docId.moduleId());
-        List<AsyncAPIResult> asyncAPIDefinitions = ServiceToAsyncAPIConverterUtils.generateAsyncAPISpecDefinition(syntaxTree,
-                semanticModel, serviceName, needJson, inputPath);
+        List<AsyncAPIResult> asyncAPIDefinitions = ServiceToAsyncAPIConverterUtils.
+                generateAsyncAPISpecDefinition(syntaxTree, semanticModel, serviceName, needJson, inputPath);
 
         if (!asyncAPIDefinitions.isEmpty()) {
             List<String> fileNames = new ArrayList<>();
@@ -121,11 +120,11 @@ public class AsyncAPIContractGenerator {
                     this.errors.addAll(definition.getDiagnostics());
                     if (definition.getAsyncAPI().isPresent()) {
                         Optional<String> content;
-                        content=definition.getYaml();
+                        content = definition.getYaml();
                         if (needJson) {
                             content = definition.getJson();
-                        }
-                         else {content = definition.getYaml();
+                        } else {
+                            content = definition.getYaml();
                         }
                         String fileName = resolveContractFileName(outPath, definition.getServiceName(), needJson);
                         CodegenUtils.writeFile(outPath.resolve(fileName), content.get());

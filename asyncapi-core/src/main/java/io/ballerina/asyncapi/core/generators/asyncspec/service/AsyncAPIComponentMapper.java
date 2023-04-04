@@ -24,10 +24,10 @@ import com.fasterxml.jackson.databind.node.BooleanNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 import io.apicurio.datamodels.models.Schema;
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25ComponentsImpl;
+import io.ballerina.asyncapi.core.generators.asyncspec.diagnostic.IncompatibleRemoteDiagnostic;
 import io.ballerina.asyncapi.core.generators.asyncspec.model.AsyncApi25SchemaImpl;
 import io.ballerina.asyncapi.core.generators.asyncspec.diagnostic.AsyncAPIConverterDiagnostic;
 import io.ballerina.asyncapi.core.generators.asyncspec.diagnostic.DiagnosticMessages;
-import io.ballerina.asyncapi.core.generators.asyncspec.diagnostic.IncompatibleResourceDiagnostic;
 import io.ballerina.asyncapi.core.generators.asyncspec.utils.ConverterCommonUtils;
 import io.ballerina.compiler.api.symbols.*;
 
@@ -118,7 +118,7 @@ public class AsyncAPIComponentMapper {
                     components.addSchema(componentName, arraySchema);
                     break;
                 case UNION:
-                    AsyncApi25SchemaImpl unionSchema = handleUnionType((UnionTypeSymbol) type, new AsyncApi25SchemaImpl(), componentName);
+                    AsyncApi25SchemaImpl unionSchema = handleUnionType((UnionTypeSymbol) type, new AsyncApi25SchemaImpl(), componentName,null,null);
                     unionSchema.setDescription(typeDoc);
                     components.addSchema(componentName, unionSchema);
                     break;
@@ -146,7 +146,7 @@ public class AsyncAPIComponentMapper {
                 default:
                     // Diagnostic for currently unsupported data types.
                     DiagnosticMessages errorMessage = DiagnosticMessages.AAS_CONVERTOR_106;
-                    IncompatibleResourceDiagnostic error = new IncompatibleResourceDiagnostic(errorMessage,
+                    IncompatibleRemoteDiagnostic error = new IncompatibleRemoteDiagnostic(errorMessage,
                             typeRef.getLocation().get(), type.typeKind().getName());
                     diagnostics.add(error);
                     break;
@@ -284,31 +284,14 @@ public class AsyncAPIComponentMapper {
 
             boolean fieldIsOptional=field.getValue().isOptional();
 
-            if (dispatcherValue!=null && dispatcherValue.equals(fieldName)) {
-                if (fieldType.equals(STRING)){
-                    if(!fieldIsOptional) {
-                        dispatcherValuePresent = true;
-                        property.setConst(new TextNode(componentName));
-                    }else{
-                        throw new NoSuchElementException(String.format(DISPATCHERKEY_OPTIONAL_EXCEPTION, fieldName,componentName));
-                    }
-                }else{
-                    throw new NoSuchElementException(String.format(DISPATCHER_KEY_TYPE_EXCEPTION,dispatcherValue));
 
-                }
-            }
-            if (!fieldIsOptional) {  // Check if the field is optional or not
-                required.add(fieldName);
-            }
 
             if (fieldTypeKind == TypeDescKind.TYPE_REFERENCE) { // ex:- public type Subscribe string;  Cat
                 TypeReferenceTypeSymbol typeReference = (TypeReferenceTypeSymbol) field.getValue().typeDescriptor();
-                property = handleTypeReference(typeReference, property, isSameRecord(componentName,
-                        typeReference));
+                property = handleTypeReference(typeReference, property, isSameRecord(componentName, typeReference));
 
             } else if (fieldTypeKind == TypeDescKind.UNION) { // ex:-  Cat|Dog Schema fields inside Pet schema , string?
-                property = handleUnionType((UnionTypeSymbol) field.getValue().typeDescriptor(), property,
-                        componentName);
+                property = handleUnionType((UnionTypeSymbol) field.getValue().typeDescriptor(), property, componentName,fieldName,dispatcherValue);
 
             } else if (fieldTypeKind == TypeDescKind.MAP) {  // map<json> field inside Pet schema
                 MapTypeSymbol mapTypeSymbol = (MapTypeSymbol) field.getValue().typeDescriptor();
@@ -330,6 +313,22 @@ public class AsyncAPIComponentMapper {
                 }
             }
             // Add API documentation for record field
+            if (dispatcherValue!=null && dispatcherValue.equals(fieldName)) {
+                if (fieldType.equals(STRING)){
+                    if(!fieldIsOptional) {
+                        dispatcherValuePresent = true;
+                        property.setConst(new TextNode(componentName));
+                    }else{
+                        throw new NoSuchElementException(String.format(DISPATCHERKEY_OPTIONAL_EXCEPTION, fieldName,componentName));
+                    }
+                }else{
+                    throw new NoSuchElementException(String.format(DISPATCHER_KEY_TYPE_EXCEPTION,dispatcherValue));
+
+                }
+            }
+            if (!fieldIsOptional) {  // Check if the field is optional or not
+                required.add(fieldName);
+            }
 
             if (apiDocs.containsKey(fieldName)) {
                 property.setDescription(apiDocs.get(fieldName));
@@ -401,12 +400,15 @@ public class AsyncAPIComponentMapper {
      *     };
      * </pre>
      */
-    private AsyncApi25SchemaImpl handleUnionType(UnionTypeSymbol unionType, AsyncApi25SchemaImpl property, String parentComponentName) {
+    private AsyncApi25SchemaImpl handleUnionType(UnionTypeSymbol unionType, AsyncApi25SchemaImpl property, String parentComponentName,String fieldName,String dispatcherValue) {
         List<TypeSymbol> unionTypes = unionType.memberTypeDescriptors();
         List<AsyncApi25SchemaImpl> properties = new ArrayList<>();
         String nullable = FALSE;
         for (TypeSymbol union: unionTypes) {
-            if (union.typeKind() == TypeDescKind.NIL) {
+            if(union.typeKind()==TypeDescKind.NIL && fieldName!=null && dispatcherValue!=null && fieldName.equals(dispatcherValue)){
+                throw new NoSuchElementException(String.format(DISPATCHERKEY_NULLABLE_EXCEPTION,fieldName,parentComponentName));
+            }
+            else if (union.typeKind() == TypeDescKind.NIL) {
                 nullable = TRUE;
             } else if (union.typeKind() == TypeDescKind.TYPE_REFERENCE) {
                 property = getAsyncApiSchema(union.typeKind().getName().trim());
@@ -416,7 +418,7 @@ public class AsyncAPIComponentMapper {
                 properties.add(property);
                 // TODO: uncomment after fixing ballerina lang union type handling issue
             } else if (union.typeKind() == TypeDescKind.UNION) {
-                property = handleUnionType((UnionTypeSymbol) union, property, parentComponentName);
+                property = handleUnionType((UnionTypeSymbol) union, property, parentComponentName,null,null);
                 properties.add(property);
             } else if (union.typeKind() == TypeDescKind.ARRAY || union.typeKind() == TypeDescKind.TUPLE) {
                 property = mapArrayToArraySchema( union, parentComponentName);
