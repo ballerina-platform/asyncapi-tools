@@ -30,7 +30,7 @@ public class ModuleReferenceTests {
     private static final Path RES_DIR = Paths.get(
             "src/test/resources/ballerina-to-asyncapi/ballerina-project/service").toAbsolutePath();
 
-    @Test(description = "Response with separate modules",enabled = false)
+    @Test(description = "Response with separate modules")
     public void testResponse01() throws IOException {
         Path ballerinaFilePath = RES_DIR.resolve("snowpeak.bal");
         TestUtils.compareWithGeneratedFile(ballerinaFilePath, "ballerina-project/service/snowpeak.yaml");

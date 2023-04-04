@@ -14,28 +14,37 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import ballerina/http;
+import ballerina/websocket;
 import 'service.representations as rep;
 import 'service.mock;
 
 # A fake mountain resort
-service /payloadV on new http:Listener(9090) {
+@websocket:ServiceConfig{dispatcherKey: "event"}
+service /payloadV on new websocket:Listener(9090) {
+    resource function get .()returns websocket:Service|websocket:UpgradeError {
+        return new ChatServer();
+    }
+
+}
+
+service class ChatServer{
+    *websocket:Service;
 
     # Represents Snowpeak location resource
     #
     # + return - `Location` representation
-    resource function get locations() returns @http:Cache rep:Locations {
+    remote function onLocation(websocket:Caller caller,rep:Location location) returns rep:Locations {
         rep:Locations locations = mock:getLocations();
         return locations;
     }
 
     # Reperesents Snowpeak room collection resource
     #
-    # + id - Unique identification of location
-    # + startDate - Start date in format yyyy-mm-dd
-    # + endDate - End date in format yyyy-mm-dd
+    # + message - Rooms identification of message
     # + return - `Rooms` representation
-    resource function get locations/[string id]/rooms(string startDate, string endDate) returns rep:Rooms {
+    remote function onRooms(websocket:Caller caller,rep:Rooms message) returns rep:Rooms {
+        string startDate="28/03/2023";
+        string endDate="01/04/2023";
         rep:Rooms rooms = mock:getRooms(startDate, endDate);
         return rooms;
     }
@@ -44,30 +53,23 @@ service /payloadV on new http:Listener(9090) {
     #
     # + reservation - Reservation representation
     # + return - `ReservationCreated` or ReservationConflict representation
-    resource function post reservation(@http:Payload rep:Reservation reservation)
-                returns @http:Cache{} rep:ReservationCreated|rep:ReservationConflict {
+    remote function onReservation(websocket:Caller caller,rep:Reservation reservation)
+                returns rep:ReservationCreated|rep:ReservationConflict {
         rep:ReservationCreated created = mock:createReservation(reservation);
         return created;
     }
 
-    # Represents Snowpeak reservation resource
-    #
-    # + reservation - Reservation representation
-    # + return - `ReservationCreated` or ReservationConflict representation
-    resource function put reservation(@http:Payload rep:Reservation reservation)
-                returns rep:ReservationUpdated|rep:ReservationConflict {
-        rep:ReservationUpdated updated = mock:updateReservation(reservation);
-        return updated;
-    }
 
     # Represents Snowpeak payment resource
     #
     # + id - Unique identification of payment
     # + payment - Payment representation
     # + return - `PaymentCreated` or `PaymentConflict` representation
-    resource function post payment/[string id](@http:Payload rep:Payment payment)
+    remote function onPayment(websocket:Caller caller,rep:Payment payment)
                 returns rep:PaymentCreated|rep:PaymentConflict {
+        string id="5";
         rep:PaymentCreated paymentCreated = mock:createPayment(id, payment);
         return paymentCreated;
     }
+
 }
