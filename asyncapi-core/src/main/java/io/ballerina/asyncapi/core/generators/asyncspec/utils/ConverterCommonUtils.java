@@ -23,6 +23,7 @@ import com.fasterxml.jackson.core.StreamReadFeature;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import io.apicurio.datamodels.Library;
@@ -377,6 +378,10 @@ public class ConverterCommonUtils {
     public static String unescapeIdentifier(String parameterName) {
         String unescapedParamName = IdentifierUtils.unescapeBallerina(parameterName);
         return unescapedParamName.trim().replaceAll("\\\\", "").replaceAll("'", "");
+    }
+
+    public static ObjectNode createObjectNode() {
+        return new ObjectNode(JsonNodeFactory.instance);
     }
 
     public static ObjectMapper callObjectMapper(){
