@@ -20,7 +20,7 @@ plugins {
     id 'maven-publish'
     id "com.github.spotbugs" version "4.0.5"
     id "de.undercouch.download" version "4.0.4"
-    id "com.github.johnrengelman.shadow" version "7.1.2"
+//    id "com.github.johnrengelman.shadow" version "5.2.0"
     id 'org.javamodularity.moduleplugin' version '1.7.0' apply false
 
 }
@@ -61,13 +61,13 @@ ext.stdlibRabbitMqVersion = project.stdlibRabbitMqVersion
 ext.stdlibGrpcVersion = project.stdlibGrpcVersion
 ext.stdlibWebsubVersion = project.stdlibWebsubVersion
 ext.stdlibConstraintVersion = project.stdlibConstraintVersion
-ext.puppycrawlCheckstyleVersion = project.puppycrawlCheckstyleVersion
 
 
 
 allprojects {
     group = 'io.ballerina'
     version = project.version
+
     apply plugin: 'checkstyle'
     apply plugin: 'maven-publish'
 

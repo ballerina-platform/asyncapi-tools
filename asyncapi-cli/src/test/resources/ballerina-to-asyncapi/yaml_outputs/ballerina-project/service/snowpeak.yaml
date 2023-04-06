@@ -1,246 +1,84 @@
-openapi: 3.0.1
+asyncapi: 2.5.0
 info:
   title: PayloadV
   version: 0.1.0
 servers:
-  - url: "{server}:{port}/payloadV"
+  development:
+    url: "{server}:{port}/payloadV"
+    protocol: ws
+    protocolVersion: "13"
     variables:
       server:
-        default: http://localhost
+        default: ws://localhost
       port:
         default: "9090"
-paths:
-  /locations:
-    get:
-      summary: Represents Snowpeak location resource
-      operationId: getLocations
-      responses:
-        "200":
-          description: Ok
-          headers:
-            Cache-Control:
-              schema:
-                type: string
-                default: "must-revalidate,public,max-age=3600"
-            ETag:
-              schema:
-                type: string
-            Last-Modified:
-              schema:
-                type: string
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Locations'
-  /locations/{id}/rooms:
-    get:
-      summary: Reperesents Snowpeak room collection resource
-      operationId: getLocationsIdRooms
-      parameters:
-        - name: id
-          in: path
-          description: Unique identification of location
-          required: true
-          schema:
-            type: string
-        - name: startDate
-          in: query
-          description: Start date in format yyyy-mm-dd
-          required: true
-          schema:
-            type: string
-        - name: endDate
-          in: query
-          description: End date in format yyyy-mm-dd
-          required: true
-          schema:
-            type: string
-      responses:
-        "200":
-          description: Ok
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Rooms'
-  /reservation:
-    put:
-      summary: Represents Snowpeak reservation resource
-      operationId: putReservation
-      requestBody:
-        description: Reservation representation
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/Reservation'
-      responses:
-        "200":
-          description: Ok
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ReservationReceipt'
-        "409":
-          description: Conflict
-          content:
-            text/plain:
-              schema:
-                type: string
-    post:
-      summary: Represents Snowpeak reservation resource
-      operationId: postReservation
-      requestBody:
-        description: Reservation representation
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/Reservation'
-      responses:
-        "201":
-          description: Created
-          headers:
-            Cache-Control:
-              schema:
-                type: string
-                default: "must-revalidate,public,max-age=3600"
-            ETag:
-              schema:
-                type: string
-            Last-Modified:
-              schema:
-                type: string
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ReservationReceipt'
-        "409":
-          description: Conflict
-          content:
-            text/plain:
-              schema:
-                type: string
-  /payment/{id}:
-    post:
-      summary: Represents Snowpeak payment resource
-      operationId: postPaymentId
-      parameters:
-        - name: id
-          in: path
-          description: Unique identification of payment
-          required: true
-          schema:
-            type: string
-      requestBody:
-        description: Payment representation
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/Payment'
-      responses:
-        "201":
-          description: Created
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/PaymentReceipt'
-        "409":
-          description: Conflict
-          content:
-            text/plain:
-              schema:
-                type: string
+channels:
+  /:
+    subscribe:
+      message:
+        oneOf:
+          - $ref: '#/components/messages/Locations'
+          - $ref: '#/components/messages/Rooms'
+          - $ref: '#/components/messages/ReservationCreated'
+          - $ref: '#/components/messages/ReservationConflict'
+          - $ref: '#/components/messages/PaymentCreated'
+          - $ref: '#/components/messages/PaymentConflict'
+          - $ref: '#/components/messages/PaymentSuccess'
+          - $ref: '#/components/messages/PaymentFault'
+    publish:
+      message:
+        oneOf:
+          - $ref: '#/components/messages/Location'
+          - $ref: '#/components/messages/Rooms'
+          - $ref: '#/components/messages/Reservation'
+          - $ref: '#/components/messages/Payment'
 components:
   schemas:
-    Link:
-      required:
-        - href
-      type: object
-      properties:
-        rel:
-          type: string
-          description: Names the relationship of the linked target to the current
-            representation
-        href:
-          type: string
-          description: Target URL
-        types:
-          type: array
-          description: Expected resource representation media types
-          items:
-            type: string
-        methods:
-          type: array
-          description: Allowed resource methods
-          items:
-            type: string
-            enum:
-              - OPTIONS
-              - HEAD
-              - PATCH
-              - DELETE
-              - PUT
-              - POST
-              - GET
-      description: Represents a server-provided hyperlink
-    Links:
-      required:
-        - _links
-      type: object
-      properties:
-        _links:
-          type: object
-          additionalProperties:
-            $ref: '#/components/schemas/Link'
     Location:
-      allOf:
-        - $ref: '#/components/schemas/Links'
-        - required:
-            - address
-            - id
-            - name
-          type: object
-          properties:
-            name:
-              type: string
-              description: Name of the location
-            id:
-              type: string
-              description: Unique identification
-            address:
-              type: string
-              description: Address of the location
+      type: object
+      required:
+        - id
+        - event
+      properties:
+        id:
+          type: string
+        event:
+          type: string
+          const: Location
+      description: Represents location
     Locations:
+      type: object
       required:
         - locations
-      type: object
       properties:
         locations:
           type: array
-          description: collection of locations
           items:
             $ref: '#/components/schemas/Location'
+          description: collection of locations
       description: Represents a collection of locations
     Room:
-      required:
-        - capacity
-        - category
-        - count
-        - currency
-        - id
-        - price
-        - status
-        - wifi
       type: object
+      required:
+        - id
+        - category
+        - capacity
+        - wifi
+        - status
+        - currency
+        - price
+        - count
       properties:
         id:
           type: string
           description: Unique identification
         category:
           type: string
-          description: Types of rooms available
           enum:
             - FAMILY
             - KING
             - DELUXE
+          description: Types of rooms available
         capacity:
           type: integer
           description: Number of people that can be accommodate
@@ -250,11 +88,11 @@ components:
           description: Availability of wifi
         status:
           type: string
-          description: Availability of room
           enum:
             - BOOKED
             - RESERVED
             - AVAILABLE
+          description: Availability of room
         currency:
           type: string
           description: Currency used in price
@@ -268,22 +106,25 @@ components:
           format: int64
       description: Represents resort room
     Rooms:
-      allOf:
-        - $ref: '#/components/schemas/Links'
-        - required:
-            - rooms
-          type: object
-          properties:
-            rooms:
-              type: array
-              description: Array of rooms
-              items:
-                $ref: '#/components/schemas/Room'
-    ReserveRoom:
-      required:
-        - count
-        - id
       type: object
+      required:
+        - rooms
+        - event
+      properties:
+        rooms:
+          type: array
+          items:
+            $ref: '#/components/schemas/Room'
+          description: Array of rooms
+        event:
+          type: string
+          const: Rooms
+      description: Represents a collection of resort rooms
+    ReserveRoom:
+      type: object
+      required:
+        - id
+        - count
       properties:
         id:
           type: string
@@ -294,61 +135,81 @@ components:
           format: int64
       description: Represents rooms be reserved
     Reservation:
+      type: object
       required:
-        - endDate
         - reserveRooms
         - startDate
-      type: object
+        - endDate
+        - event
       properties:
         reserveRooms:
           type: array
-          description: Rooms to be reserved
           items:
             $ref: '#/components/schemas/ReserveRoom'
+          description: Rooms to be reserved
         startDate:
           type: string
           description: Start date in yyyy-mm-dd
         endDate:
           type: string
           description: End date in yyyy-mm-dd
+        event:
+          type: string
+          const: Reservation
+          description: Event description
       description: Represents a reservation of rooms
     ReservationReceipt:
-      allOf:
-        - $ref: '#/components/schemas/Links'
-        - required:
-            - currency
-            - expiryDate
-            - id
-            - lastUpdated
-            - reservation
-            - total
-          type: object
-          properties:
-            id:
-              type: string
-              description: Unique identification
-            expiryDate:
-              type: string
-              description: Expiry date in yyyy-mm-dd
-            lastUpdated:
-              type: string
-              description: Last updated time stamp
-            currency:
-              type: string
-              description: Currency used in price
-            total:
-              type: number
-              description: Total payable
-              format: double
-            reservation:
-              $ref: '#/components/schemas/Reservation'
-    Payment:
+      type: object
       required:
-        - cardNumber
+        - id
+        - expiryDate
+        - lastUpdated
+        - currency
+        - total
+        - reservation
+      properties:
+        id:
+          type: string
+          description: Unique identification
+        expiryDate:
+          type: string
+          description: Expiry date in yyyy-mm-dd
+        lastUpdated:
+          type: string
+          description: Last updated time stamp
+        currency:
+          type: string
+          description: Currency used in price
+        total:
+          type: number
+          description: Total payable
+          format: double
+        reservation:
+          $ref: '#/components/schemas/Reservation'
+          description: Reservation
+      description: Represents a receipt for the reservation
+    ReservationCreated:
+      type: object
+      required:
+        - body
+      properties:
+        body:
+          $ref: '#/components/schemas/ReservationReceipt'
+    ReservationConflict:
+      type: object
+      required:
+        - body
+      properties:
+        body:
+          type: string
+    Payment:
+      type: object
+      required:
         - cardholderName
+        - cardNumber
         - expiryMonth
         - expiryYear
-      type: object
+        - event
       properties:
         cardholderName:
           type: string
@@ -363,15 +224,19 @@ components:
         expiryYear:
           type: string
           description: Expiaration year of the card in yyyy
+        event:
+          type: string
+          const: Payment
+          description: Event description
       description: Reperesents payement for rooms
     PaymentReceipt:
+      type: object
       required:
-        - currency
         - id
+        - currency
+        - total
         - lastUpdated
         - rooms
-        - total
-      type: object
       properties:
         id:
           type: string
@@ -388,7 +253,92 @@ components:
           description: Last updated time stamp
         rooms:
           type: array
-          description: Booked rooms
           items:
             $ref: '#/components/schemas/Room'
+          description: Booked rooms
       description: Reperesents receipt for the payment
+    PaymentCreated:
+      type: object
+      required:
+        - body
+      properties:
+        body:
+          $ref: '#/components/schemas/PaymentReceipt'
+    PaymentConflict:
+      type: object
+      required:
+        - body
+      properties:
+        body:
+          type: string
+    PaymentSuccess:
+      type: object
+      required:
+        - body
+      properties:
+        body:
+          type: string
+    PaymentFault:
+      type: object
+      required:
+        - body
+      properties:
+        body:
+          type: string
+  messages:
+    Locations:
+      payload:
+        $ref: '#/components/schemas/Locations'
+    Location:
+      payload:
+        $ref: '#/components/schemas/Location'
+      description: Represents Snowpeak location resource
+      x-response:
+        $ref: '#/components/messages/Locations'
+        description: '`Location` representation'
+      x-response-type: simple-rpc
+    Rooms:
+      payload:
+        $ref: '#/components/schemas/Rooms'
+        description: Rooms identification of message
+      description: Reperesents Snowpeak room collection resource
+      x-response:
+        $ref: '#/components/messages/Rooms'
+        description: '`Rooms` representation'
+      x-response-type: simple-rpc
+    ReservationCreated:
+      payload:
+        $ref: '#/components/schemas/ReservationCreated'
+    ReservationConflict:
+      payload:
+        $ref: '#/components/schemas/ReservationConflict'
+    Reservation:
+      payload:
+        $ref: '#/components/schemas/Reservation'
+        description: Reservation representation
+      description: Represents Snowpeak reservation resource
+      x-response:
+        $ref: '#/components/messages/ReservationConflict'
+        description: '`ReservationCreated` or ReservationConflict representation'
+      x-response-type: simple-rpc
+    PaymentCreated:
+      payload:
+        $ref: '#/components/schemas/PaymentCreated'
+    PaymentConflict:
+      payload:
+        $ref: '#/components/schemas/PaymentConflict'
+    PaymentSuccess:
+      payload:
+        $ref: '#/components/schemas/PaymentSuccess'
+    PaymentFault:
+      payload:
+        $ref: '#/components/schemas/PaymentFault'
+    Payment:
+      payload:
+        $ref: '#/components/schemas/Payment'
+        description: Payment representation
+      description: Represents Snowpeak payment resource
+      x-response:
+        $ref: '#/components/messages/PaymentFault'
+        description: '`PaymentCreated` or `PaymentConflict` representation'
+      x-response-type: simple-rpc

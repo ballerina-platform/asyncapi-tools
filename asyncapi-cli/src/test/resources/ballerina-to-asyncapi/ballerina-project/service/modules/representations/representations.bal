@@ -145,6 +145,10 @@ public enum Status {
     HOLD
 }
 
+public type PaymentFault record {|
+    string body = "Error occurred while updating the payment";
+|};
+
 public type LiftRecord readonly & record {|
     readonly string id;
     string name;
@@ -152,6 +156,10 @@ public type LiftRecord readonly & record {|
     int capacity;
     boolean night;
     int elevationgain;
+|};
+
+public type PaymentSuccess record {|
+    string body = "Error occurred while updating the payment";
 |};
 
 public final readonly & table<LiftRecord> key(id) liftTable = table [

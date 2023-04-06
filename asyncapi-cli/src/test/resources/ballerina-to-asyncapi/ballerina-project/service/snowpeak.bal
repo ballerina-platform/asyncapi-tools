@@ -42,11 +42,8 @@ service class ChatServer{
     #
     # + message - Rooms identification of message
     # + return - `Rooms` representation
-    remote function onRooms(websocket:Caller caller,rep:Rooms message) returns rep:Rooms {
-        string startDate="28/03/2023";
-        string endDate="01/04/2023";
-        rep:Rooms rooms = mock:getRooms(startDate, endDate);
-        return rooms;
+    remote function onRooms(websocket:Caller caller,rep:Rooms message) returns rep:Location {
+        return {id:"",event:""};
     }
 
     # Represents Snowpeak reservation resource
@@ -66,7 +63,7 @@ service class ChatServer{
     # + payment - Payment representation
     # + return - `PaymentCreated` or `PaymentConflict` representation
     remote function onPayment(websocket:Caller caller,rep:Payment payment)
-                returns rep:PaymentCreated|rep:PaymentConflict {
+                returns rep:PaymentCreated|rep:PaymentFault|int|string|rep:PaymentConflict|map<json>|rep:PaymentSuccess{
         string id="5";
         rep:PaymentCreated paymentCreated = mock:createPayment(id, payment);
         return paymentCreated;

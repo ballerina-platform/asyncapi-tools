@@ -1,6 +1,6 @@
 
 apply from: "$rootDir/gradle/javaProject.gradle"
-apply plugin: "com.github.johnrengelman.shadow"
+//apply plugin: "com.github.johnrengelman.shadow"
 apply plugin: "java"
 
 description = "Ballerina - AsyncAPI Tooling - AsynAPI to Ballerina"
@@ -9,11 +9,12 @@ description = "Ballerina - AsyncAPI Tooling - AsynAPI to Ballerina"
 group 'io.ballerina.asyncapi.cli'
 version '1.0-SNAPSHOT'
 
-configurations {
-    balTools
-}
 configurations.all {
     resolutionStrategy.preferProjectModules()
+}
+
+configurations {
+    balTools
 }
 
 dependencies {
