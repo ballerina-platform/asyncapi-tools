@@ -161,7 +161,7 @@ public class AsyncAPIEndpointMapper {
 
         if (list.isPresent()) {
             SeparatedNodeList<FunctionArgumentNode> arg = (list.get()).arguments();
-            port = arg.get(0).toString();
+            port = arg.get(0).toString().trim();
             if (port!=null) {
                 port = port.replaceAll("\"", "");
             }
