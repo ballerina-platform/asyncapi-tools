@@ -114,14 +114,14 @@ public class AsyncAPIRemoteMapper {
             if (node.kind().equals(SyntaxKind.OBJECT_METHOD_DEFINITION)){
                 FunctionDefinitionNode remoteFunctionNode= (FunctionDefinitionNode)node;
                 if (remoteFunctionNode.functionSignature().parameters().size()<=2) {
-                    String functionName = remoteFunctionNode.functionName().toString();
+                    String functionName = remoteFunctionNode.functionName().toString().trim();
                     if (functionName.matches(CamelCasePattern)) {
                         if (isRemoteFunctionNameValid(functionName)) {
                             //TODO : have to pass this through unescape identifier
                             String remoteRequestTypeName = ConverterCommonUtils.unescapeIdentifier(functionName.substring(2));
                             RequiredParameterNode requiredParameterNode = checkParameterContainsCustomType(remoteRequestTypeName, remoteFunctionNode);
                             if (requiredParameterNode != null) {
-                                String paramName = requiredParameterNode.paramName().get().toString();
+                                String paramName = requiredParameterNode.paramName().get().toString().trim();
                                 Node parameterTypeNode = requiredParameterNode.typeName();
                                 TypeSymbol remoteFunctionNameTypeSymbol = (TypeSymbol) semanticModel.symbol(parameterTypeNode).orElseThrow();
                                 TypeReferenceTypeSymbol typeRef = (TypeReferenceTypeSymbol) remoteFunctionNameTypeSymbol;
@@ -227,7 +227,7 @@ public class AsyncAPIRemoteMapper {
 
             if (documentation.get().description().isPresent()) {
                 Optional<String> description = (documentation.get().description());
-                if(description.isPresent() && !description.get().toString().isEmpty()) {
+                if(description.isPresent() && !description.get().toString().trim().isEmpty()) {
                     apiDocs.put(REMOTE_DESCRIPTION, (description.get().trim()));
                 }
             }
@@ -278,7 +278,7 @@ public class AsyncAPIRemoteMapper {
                 if (expression.get() instanceof ExplicitNewExpressionNode) {
                     ExplicitNewExpressionNode explicitNewExpressionNode = (ExplicitNewExpressionNode) expression.get();
                     TypeDescriptorNode typeDescriptorNode = explicitNewExpressionNode.typeDescriptor();
-                    serviceClassName=typeDescriptorNode.toString();
+                    serviceClassName=typeDescriptorNode.toString().trim();
                 }
             }
         }
@@ -327,13 +327,13 @@ public class AsyncAPIRemoteMapper {
                         relativePath.append(pathNode.paramName().get());
                         relativePath.append("}");
                     } else if ((resource.relativeResourcePath().size() == 1) && (node.toString().trim().equals("."))) {
-                        return relativePath.toString();
+                        return relativePath.toString().trim();
                     } else {
                         relativePath.append(node.toString().trim());
                     }
                 }
             }
-            return relativePath.toString();
+            return relativePath.toString().trim();
         }
 
 }
