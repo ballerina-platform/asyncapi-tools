@@ -246,10 +246,10 @@ public class AsyncAPIEndpointMapper {
             for (MappingFieldNode filed: recordFields) {
                 if (filed instanceof SpecificFieldNode) {
                     Node fieldNode = ((SpecificFieldNode) filed).fieldName();
-                    String fieldName=ConverterCommonUtils.unescapeIdentifier(fieldNode.toString());
+                    String fieldName=ConverterCommonUtils.unescapeIdentifier(fieldNode.toString().trim());
                     if (fieldName.trim().toString().equals(ATTR_HOST)) {
                         if (((SpecificFieldNode) filed).valueExpr().isPresent()) {
-                            host = ((SpecificFieldNode) filed).valueExpr().get().toString();
+                            host = ((SpecificFieldNode) filed).valueExpr().get().toString().trim();
                         }
                     } else if (fieldName.trim().toString().equals(SECURE_SOCKET)) {
                         secured=TRUE;
