@@ -17,25 +17,14 @@
  */
 package io.ballerina.asyncapi.cmd;
 
-import io.ballerina.asyncapi.cli.AsyncAPICmd;
-import io.ballerina.cli.launcher.BLauncherException;
-import org.testng.Assert;
-import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
-import picocli.CommandLine;
 
 import java.io.ByteArrayOutputStream;
-import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Comparator;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 /**
  * OpenAPI command cmd common class to handle temp dirs and outputs.
