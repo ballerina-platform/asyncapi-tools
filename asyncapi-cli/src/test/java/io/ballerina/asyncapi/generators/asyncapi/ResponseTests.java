@@ -129,6 +129,22 @@ public class ResponseTests {
         TestUtils.compareWithGeneratedFile(ballerinaFilePath, "response/rs_scenario12_array_record.yaml");
     }
 
+    @Test(description = "When multiple return types are returning")
+    public void testReturningMultipleResponses() throws IOException {
+        Path ballerinaFilePath = RES_DIR.resolve("response/rs_scenario13_multiple_builtin_return.bal");
+        //Compare generated yaml file with expected yaml content
+        TestUtils.compareWithGeneratedFile(ballerinaFilePath, "response/rs_scenario13_multiple_builtin_return.yaml");
+    }
+
+
+    @Test(description = "When stream of strings returns")
+    public void testReturningStringStream() throws IOException {
+        Path ballerinaFilePath = RES_DIR.resolve("response/rs_scenario14_stream_string_return.bal");
+        //Compare generated yaml file with expected yaml content
+        TestUtils.compareWithGeneratedFile(ballerinaFilePath, "response/rs_scenario14_stream_string_return.yaml");
+    }
+
+
 
     @AfterMethod
     public void cleanUp() {
