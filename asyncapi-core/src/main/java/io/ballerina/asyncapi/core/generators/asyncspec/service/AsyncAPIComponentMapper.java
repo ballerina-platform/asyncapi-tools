@@ -279,6 +279,7 @@ public class AsyncAPIComponentMapper {
         for (Map.Entry<String, RecordFieldSymbol> field: rfields.entrySet()) {
             String fieldName = ConverterCommonUtils.unescapeIdentifier(field.getKey().trim());
             TypeDescKind fieldTypeKind = field.getValue().typeDescriptor().typeKind();
+            String check =field.getValue().signature();
             String fieldType = fieldTypeKind.toString().toLowerCase(Locale.ENGLISH);
             AsyncApi25SchemaImpl property = getAsyncApiSchema(fieldType);
 
@@ -481,7 +482,9 @@ public class AsyncAPIComponentMapper {
         property.setType(AsyncAPIType.STRING.toString());
         List<JsonNode> enums = new ArrayList<>();
         List<ConstantSymbol> enumMembers = enumSymbol.members();
-        for (ConstantSymbol enumMember : enumMembers) {
+        int j=enumMembers.size();
+        for (int i=enumMembers.size()-1;i>=0;i--){
+            ConstantSymbol enumMember=enumMembers.get(i);
             if (enumMember.typeDescriptor().typeKind() == TypeDescKind.SINGLETON) {
                 String signatureValue = enumMember.typeDescriptor().signature();
                 if (signatureValue.startsWith("\"") && signatureValue.endsWith("\"")) {
@@ -492,7 +495,6 @@ public class AsyncAPIComponentMapper {
                 enums.add(new TextNode(enumMember.constValue().toString().trim()));
             }
         }
-
         property.setEnum(enums);
         return property;
     }
