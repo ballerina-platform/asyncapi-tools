@@ -29,7 +29,7 @@ import static io.ballerina.asyncapi.generators.asyncapi.TestUtils.compareWithGen
 
 
 /**
- * Tests for openAPI info section mapping.
+ * Tests for AsyncAPI info section mapping.
  */
 public class AsyncAPIInfoTests {
     private static final Path RES_DIR =
