@@ -51,7 +51,7 @@ public class AsyncAPIResponseMapper {
 
 
     public void createResponse( AsyncApi25MessageImpl subscribeMessage, AsyncApi25MessageImpl componentMessage, Node remoteReturnType, String returnDescription) {
-        String remoteReturnTypeString = ConverterCommonUtils.unescapeIdentifier(remoteReturnType.toString());
+        String remoteReturnTypeString = ConverterCommonUtils.unescapeIdentifier(remoteReturnType.toString().trim());
         ObjectMapper objectMapper=ConverterCommonUtils.callObjectMapper();
 
 
