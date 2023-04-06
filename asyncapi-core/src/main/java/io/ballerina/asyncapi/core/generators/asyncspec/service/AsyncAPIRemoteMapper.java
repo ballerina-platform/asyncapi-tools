@@ -25,6 +25,7 @@ import io.ballerina.asyncapi.core.generators.asyncspec.utils.ConverterCommonUtil
 import io.ballerina.compiler.api.SemanticModel;
 import io.ballerina.compiler.api.symbols.*;
 import io.ballerina.compiler.syntax.tree.*;
+import io.ballerina.asyncapi.core.generators.asyncspec.model.AsyncApi25MessageImpl;
 
 import java.util.*;
 
