@@ -19,7 +19,6 @@
 package io.ballerina.asyncapi.generators.asyncapi;
 
 import io.ballerina.asyncapi.cli.AsyncAPIContractGenerator;
-
 import org.testng.Assert;
 import org.testng.annotations.AfterMethod;
 import org.testng.annotations.AfterTest;
@@ -33,7 +32,9 @@ import java.nio.file.Paths;
 
 
 import static io.ballerina.asyncapi.core.generators.asyncspec.utils.ConverterCommonUtils.unescapeIdentifier;
-import static io.ballerina.asyncapi.generators.asyncapi.TestUtils.*;
+import static io.ballerina.asyncapi.generators.asyncapi.TestUtils.compareWithGeneratedFile;
+import static io.ballerina.asyncapi.generators.asyncapi.TestUtils.deleteDirectory;
+import static io.ballerina.asyncapi.generators.asyncapi.TestUtils.deleteGeneratedFiles;
 import static io.ballerina.asyncapi.generators.common.TestUtils.getStringFromGivenBalFile;
 
 
@@ -155,9 +156,11 @@ public class AsyncApiConverterUtilsTest {
     }
 
 
-    //TODO : There was a bug in the lang for escape characters, it is now fixing and try this testing after the issue get fixed https://github.com/ballerina-platform/ballerina-lang/issues/39770
+    //TODO : There was a bug in the lang for escape characters,
+    // it is now fixing and try this testing after the issue get fixed
+    // https://github.com/ballerina-platform/ballerina-lang/issues/39770
     // I have created the bal file, but yaml file has to be checked and created using debugger
-    @Test(description = "Given ballerina service has escape character",enabled = false)
+    @Test(description = "Given ballerina service has escape character", enabled = false)
     public void testForRemovingEscapeIdentifier() throws IOException {
         Path ballerinaFilePath = RES_DIR.resolve("service/escape_identifier.bal");
         Path tempDir = Files.createTempDirectory("bal-to-asyncapi-test-out-" + System.nanoTime());
