@@ -82,6 +82,7 @@ public class Constants {
 
     public static final String $REF="$ref";
 
+    public static final String ONEOF="oneOf";
     public static final String MESSAGE_REFERENCE= "#/components/messages/";
 
     public static final String ON="on";
