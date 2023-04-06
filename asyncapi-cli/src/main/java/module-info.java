@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-module io.ballerina.openapi {
+module io.ballerina.asyncapi.cli {
     requires info.picocli;
     requires io.ballerina.lang;
     requires io.ballerina.parser;
@@ -25,6 +25,5 @@ module io.ballerina.openapi {
     requires org.apache.commons.io;
     requires org.slf4j;
     requires io.ballerina.asyncapi.core;
-//    exports io.ballerina.asyncapi.cmd;
 }
 
