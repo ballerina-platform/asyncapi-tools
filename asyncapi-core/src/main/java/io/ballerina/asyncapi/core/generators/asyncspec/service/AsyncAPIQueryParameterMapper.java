@@ -175,7 +175,7 @@ public class AsyncAPIQueryParameterMapper {
 
         if (Arrays.stream(validExpressionKind).anyMatch(syntaxKind -> syntaxKind ==
                 defaultableQueryParam.expression().kind())) {
-            String defaultValue = defaultableQueryParam.expression().toString().replaceAll("\"", "");
+            String defaultValue = defaultableQueryParam.expression().toString().trim().replaceAll("\"", "");
             if (defaultableQueryParam.expression().kind() == NIL_LITERAL) {
                 defaultValue = null;
             }
