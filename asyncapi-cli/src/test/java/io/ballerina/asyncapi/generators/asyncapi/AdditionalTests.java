@@ -10,8 +10,12 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
+/**
+ * This {@code AdditionalTests} test class for the covering the additional tests.
+ */
 public class AdditionalTests {
-    private static final Path RES_DIR = Paths.get("src/test/resources/ballerina-to-asyncapi/additional").toAbsolutePath();
+    private static final Path RES_DIR = Paths.get("src/test/resources" +
+            "/ballerina-to-asyncapi/additional").toAbsolutePath();
     private Path tempDir;
 
     @BeforeMethod

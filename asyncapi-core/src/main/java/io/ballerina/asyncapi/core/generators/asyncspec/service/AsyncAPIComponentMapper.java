@@ -280,7 +280,7 @@ public class AsyncAPIComponentMapper {
             String fieldName = ConverterCommonUtils.unescapeIdentifier(field.getKey().trim());
             TypeDescKind fieldTypeKind = field.getValue().typeDescriptor().typeKind();
             String check =field.getValue().signature();
-            String fieldType = fieldTypeKind.toString().toLowerCase(Locale.ENGLISH);
+            String fieldType = fieldTypeKind.toString().toLowerCase(Locale.ENGLISH).trim();
             AsyncApi25SchemaImpl property = getAsyncApiSchema(fieldType);
 
             boolean fieldIsOptional=field.getValue().isOptional();
