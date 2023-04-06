@@ -1,11 +1,14 @@
 package io.ballerina.asyncapi.core.generators.asyncspec.service;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25ComponentsImpl;
-import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25MessageImpl;
+import io.ballerina.asyncapi.core.generators.asyncspec.model.AsyncApi25MessageImpl;
 import io.ballerina.asyncapi.core.generators.asyncspec.model.AsyncApi25SchemaImpl;
 import io.ballerina.asyncapi.core.generators.asyncspec.diagnostic.AsyncAPIConverterDiagnostic;
 import io.ballerina.asyncapi.core.generators.asyncspec.diagnostic.DiagnosticMessages;
@@ -17,6 +20,7 @@ import io.ballerina.compiler.syntax.tree.*;
 import io.ballerina.tools.diagnostics.Location;
 
 import java.util.*;
+import java.util.stream.IntStream;
 
 import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.*;
 import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.SIMPLE_RPC;
@@ -129,7 +133,7 @@ public class AsyncAPIResponseMapper {
                 AsyncApi25SchemaImpl objectSchema = getAsyncApiSchema(AsyncAPIType.OBJECT.toString());
 
                 //TODO : I changed this kind to string
-                AsyncApi25SchemaImpl apiSchema = getAsyncApiSchema(mapNode.mapTypeParamsNode().typeNode().kind().toString());
+                AsyncApi25SchemaImpl apiSchema = getAsyncApiSchema(mapNode.mapTypeParamsNode().typeNode().kind());
                 objectSchema.setAdditionalProperties(apiSchema);
                 setResponseOfRequest(subscribeMessage,componentMessage,SIMPLE_RPC,returnDescription,objectMapper,objectSchema);
                 break;
@@ -139,7 +143,7 @@ public class AsyncAPIResponseMapper {
                     String remoteReturnStream = ((StreamTypeParamsNode) ((StreamTypeDescriptorNode) remoteReturnType).streamTypeParamsNode().get()).leftTypeDescNode().toString().trim();
 
                     AsyncApi25SchemaImpl remoteReturnStreamSchema= getAsyncApiSchema(remoteReturnStream);
-                    setResponseOfRequest(subscribeMessage,componentMessage,remoteReturnStream,returnDescription,objectMapper,remoteReturnStreamSchema);
+                    setResponseOfRequest(subscribeMessage,componentMessage,STREAMING,returnDescription,objectMapper,remoteReturnStreamSchema);
 //                    setSubscribeResponse(subscribeMessage, componentMessage, remoteReturnstreamTypeString, STREAMING, returnDescription);
                 }else {
                     throw new NoSuchElementException(NO_TYPE_IN_STREAM);
@@ -233,18 +237,47 @@ public class AsyncAPIResponseMapper {
         subscribeOneOf.setPayload(objMapper.valueToTree(schema));
 
         //set oneOf message into Subscribe channels
-        subscribeMessage.addOneOf(subscribeOneOf);
+        setSchemaForOneofSchema(subscribeMessage, subscribeOneOf);
 
         //create message response with its description
-        ObjectNode payloadObject= new ObjectNode(JsonNodeFactory.instance);
+        ObjectNode payloadObject= ConverterCommonUtils.createObjectNode();
         payloadObject.set(PAYLOAD,objMapper.valueToTree(schema));
-        if (returnDescription!=null) {
-            payloadObject.put(DESCRIPTION,returnDescription);
+
+        //If there exist previous x-response for same request
+        Map<String, JsonNode> xResponses = componentMessage.getExtensions();
+        if(xResponses !=null && xResponses.get(X_RESPONSE)!=null) {
+
+            //Create oneOfSchema
+            AsyncApi25MessageImpl oneOfSchema = new AsyncApi25MessageImpl();
+
+            if (xResponses.get(X_RESPONSE).get(PAYLOAD) != null || xResponses.get(X_RESPONSE).get($REF)!=null ) {
+
+                setRefPayloadAsOneofSchemaForPreviousOneResponse(componentMessage, oneOfSchema);
+
+                //Get newly created x-response and add it to oneOf section
+                setSchemaForOneofSchema(oneOfSchema, subscribeOneOf);
+
+//                //Set x-response and x-response type as extensions to request
+//                object = oneOfSchema;
+
+                //If there are more than two responses have
+            } else if (xResponses.get(X_RESPONSE).get(ONEOF) != null) {
+
+
+                //Take all previous oneOf responses
+                setRefPayloadAsOneofSchemaForPreviousOneofResponses(componentMessage, oneOfSchema);
+
+
+                setSchemaForOneofSchema(oneOfSchema, subscribeOneOf);
+
+            }
+            //Set the description for oneOfSchema
+            setDescriptionAndXResponsesForOneof(componentMessage, returnDescription, objMapper, oneOfSchema);
+        }else{
+
+            setDescriptionForOneResponse(returnDescription, payloadObject, componentMessage, responseType);
         }
 
-        //set message response as x-response for the request
-        componentMessage.addExtension(X_RESPONSE,payloadObject);
-        componentMessage.addExtension(X_RESPONSE_TYPE, new TextNode(responseType));
     }
 
     public AsyncApi25MessageImpl extractMessageSchemaReference(AsyncApi25MessageImpl message, String typeName, TypeSymbol typeSymbol,String dispatcherValue,String paramDescription) {
@@ -255,7 +288,7 @@ public class AsyncAPIResponseMapper {
         componentMapper.createComponentSchema( typeSymbol,dispatcherValue);
 
         //create SchemaReference
-        ObjectNode objNode1=new ObjectNode(JsonNodeFactory.instance);
+        ObjectNode objNode1= ConverterCommonUtils.createObjectNode();
         objNode1.put($REF,SCHEMA_REFERENCE+ ConverterCommonUtils.unescapeIdentifier(typeName));
 
         //Set description
@@ -264,12 +297,13 @@ public class AsyncAPIResponseMapper {
         }
 
         //create Message
-        AsyncApi25MessageImpl componentMessage= (AsyncApi25MessageImpl) components.createMessage();
+
+        AsyncApi25MessageImpl componentMessage= new AsyncApi25MessageImpl();
         componentMessage.setPayload(objNode1);
 
         //create MessageReference
         messageType.set$ref(MESSAGE_REFERENCE+ ConverterCommonUtils.unescapeIdentifier(typeName));
-        message.addOneOf(messageType);
+        setSchemaForOneofSchema(message, messageType);
 
         return componentMessage;
     }
@@ -286,7 +320,7 @@ public class AsyncAPIResponseMapper {
 
             //create Message (there is no message reference)
             ObjectMapper objMapper=ConverterCommonUtils.callObjectMapper();
-            ObjectNode refObjNode= new ObjectNode(JsonNodeFactory.instance);
+            ObjectNode refObjNode= ConverterCommonUtils.createObjectNode();
 
             //Create schema reference
             refObjNode.put($REF, SCHEMA_REFERENCE + ConverterCommonUtils.unescapeIdentifier(remoteReturnTypeName));
@@ -334,24 +368,129 @@ public class AsyncAPIResponseMapper {
 
     private void handleRecordTypeSymbol(AsyncApi25MessageImpl subscribeMessage, AsyncApi25MessageImpl componentMessage, String returnDescription, TypeSymbol returnTypeSymbol, String remoteReturnTypeName) {
         //Creating return type message reference
-        AsyncApi25MessageImpl componentReturnMessage = extractMessageSchemaReference(subscribeMessage, remoteReturnTypeName, returnTypeSymbol, null, null);
+       if (!(components.getMessages()!=null && components.getMessages().get(remoteReturnTypeName)!=null)){
+           AsyncApi25MessageImpl componentReturnMessage = extractMessageSchemaReference(subscribeMessage, remoteReturnTypeName, returnTypeSymbol, null, null);
+           //add created return message
+           components.addMessage(remoteReturnTypeName, componentReturnMessage);
 
+       }
         //set message reference as a x-response of a request
-        ObjectNode messageRefObject = new ObjectNode(JsonNodeFactory.instance);
+        ObjectNode messageRefObject = ConverterCommonUtils.createObjectNode();
         messageRefObject.put($REF, MESSAGE_REFERENCE + ConverterCommonUtils.unescapeIdentifier(remoteReturnTypeName));
 
-        //Set return description
-        if (returnDescription !=null) {
+
+        //If there exist previous x-response for same request then start adding them to a oneOf schema
+        Map<String, JsonNode> xResponses = componentMessage.getExtensions();
+        if(xResponses !=null && xResponses.get(X_RESPONSE)!=null){
+            ObjectMapper objMapper=ConverterCommonUtils.callObjectMapper();
+            //Create oneOfSchema
+            AsyncApi25MessageImpl oneOfSchema = new AsyncApi25MessageImpl();
+
+            if( xResponses.get(X_RESPONSE).get(PAYLOAD) != null || xResponses.get(X_RESPONSE).get($REF)!=null){
+
+                setRefPayloadAsOneofSchemaForPreviousOneResponse(componentMessage, oneOfSchema);
+
+                //set newly created x-response to a schema and add it to oneOf section
+                AsyncApi25MessageImpl schemaObject= null;
+                try {
+                    schemaObject = objMapper.treeToValue(messageRefObject, AsyncApi25MessageImpl.class);
+                } catch (JsonProcessingException e) {
+                    throw new RuntimeException(e);
+                }
+                setSchemaForOneofSchema(oneOfSchema, schemaObject);
+
+
+                //If there are more than two responses have
+            } else if (xResponses.get(X_RESPONSE).get(ONEOF)!=null) {
+
+
+
+                //Take all previous oneOf responses
+                setRefPayloadAsOneofSchemaForPreviousOneofResponses(componentMessage, oneOfSchema);
+
+                //create schema reference for newly created x-response
+                AsyncApi25MessageImpl schema=new AsyncApi25MessageImpl();
+
+                //Get newly created x-response and add it to oneOf section of schema object
+                schema.set$ref(MESSAGE_REFERENCE + ConverterCommonUtils.unescapeIdentifier(remoteReturnTypeName));
+
+                setSchemaForOneofSchema(oneOfSchema, schema);
+
+            }
+            //Set the description for oneOfSchema
+            setDescriptionAndXResponsesForOneof(componentMessage, returnDescription, objMapper, oneOfSchema);
+
+        }else{
+            setDescriptionForOneResponse(returnDescription, messageRefObject, componentMessage, SIMPLE_RPC);
+        }
+
+    }
+
+
+
+    private void setDescriptionForOneResponse(String returnDescription, ObjectNode messageRefObject, AsyncApi25MessageImpl componentMessage, String simpleRpc) {
+        //Set the description
+        if (returnDescription != null) {
             messageRefObject.put(DESCRIPTION, returnDescription);
         }
         //Set x-response and x-response type of the request
         componentMessage.addExtension(X_RESPONSE, messageRefObject);
+        componentMessage.addExtension(X_RESPONSE_TYPE, new TextNode(simpleRpc));
+    }
+
+    private void setDescriptionAndXResponsesForOneof(AsyncApi25MessageImpl componentMessage, String returnDescription, ObjectMapper objMapper, AsyncApi25MessageImpl oneOfSchema) {
+        //Set the description
+        if(returnDescription !=null) {
+            oneOfSchema.setDescription(returnDescription);
+        }
+        //Set x-response and x-response type as extensions to request
+        componentMessage.addExtension(X_RESPONSE, objMapper.valueToTree(oneOfSchema));
         componentMessage.addExtension(X_RESPONSE_TYPE, new TextNode(SIMPLE_RPC));
+    }
 
-        //add created return message
-        components.addMessage(remoteReturnTypeName, componentReturnMessage);
+    private  void setSchemaForOneofSchema(AsyncApi25MessageImpl oneOfSchema, AsyncApi25MessageImpl schema) {
+        oneOfSchema.addOneOf(schema);
+    }
+
+    private void setRefPayloadAsOneofSchemaForPreviousOneofResponses(AsyncApi25MessageImpl componentMessage, AsyncApi25MessageImpl oneOfSchema) {
+        ArrayNode oneOfNode= (ArrayNode) componentMessage.getExtensions().get(X_RESPONSE).get(ONEOF);
 
 
+        //Add all of them into asyncapischema oneOf
+        for (int i = 0; i < oneOfNode.size(); i++) {
+            AsyncApi25MessageImpl refSchema=new AsyncApi25MessageImpl();
+            if(oneOfNode.get(i).get(PAYLOAD)!=null) {
+                refSchema.setPayload(oneOfNode.get(i).get(PAYLOAD));
+            } else if (oneOfNode.get(i).get($REF)!=null) {
+                refSchema.set$ref(oneOfNode.get(i).get($REF).asText());
+            }
+            setSchemaForOneofSchema(oneOfSchema, refSchema);
+        }
+    }
+
+    private void setRefPayloadAsOneofSchemaForPreviousOneResponse(AsyncApi25MessageImpl componentMessage, AsyncApi25MessageImpl oneOfSchema) {
+        if (componentMessage.getExtensions().get(X_RESPONSE).get($REF) != null) {
+            //Get existing only one x-response
+            TextNode reference = (TextNode) componentMessage.getExtensions().get(X_RESPONSE).get($REF);
+
+            //add it to oneOf section
+            AsyncApi25MessageImpl testObject = new AsyncApi25MessageImpl();
+            testObject.set$ref(reference.textValue());
+
+            //add schema into oneOf section
+            setSchemaForOneofSchema(oneOfSchema, testObject);
+        }else if(componentMessage.getExtensions().get(X_RESPONSE).get(PAYLOAD) != null ){
+
+            ObjectNode reference = (ObjectNode) componentMessage.getExtensions().get(X_RESPONSE).get(PAYLOAD);
+
+            //add it to oneOf section
+            AsyncApi25MessageImpl testObject = new AsyncApi25MessageImpl();
+            testObject.setPayload(reference);
+
+            //add schema into oneOf section
+            setSchemaForOneofSchema(oneOfSchema, testObject);
+
+        }
     }
 
     /**
