@@ -68,7 +68,7 @@ public class QueryParameterTests {
     }
 
     //TODO : Test this after implement treatNilableAsOptional
-    @Test(description = "Query parameter has service config with optional field false",enabled = false)
+    @Test(description = "Query parameter has service config with optional field false", enabled = false)
     public void testQueryscenario05() throws IOException {
         Path ballerinaFilePath = RES_DIR.resolve("query/query_scenario05.bal");
         TestUtils.compareWithGeneratedFile(ballerinaFilePath, "query/query_scenario05.yaml");
@@ -87,7 +87,7 @@ public class QueryParameterTests {
         TestUtils.compareWithGeneratedFile(ballerinaFilePath, "query/query_scenario07.yaml");
     }
 
-    //FIXME : Check what is the problem
+    //TODO : Check what is the problem
     @Test(description = "Default parameter scenarios do not support with tool")
     public void testQueryscenario08() throws IOException {
         Path ballerinaFilePath = RES_DIR.resolve("query/query_scenario08.bal");

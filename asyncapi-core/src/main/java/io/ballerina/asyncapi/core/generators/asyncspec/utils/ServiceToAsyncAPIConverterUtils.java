@@ -88,7 +88,7 @@ public class ServiceToAsyncAPIConverterUtils {
             if (serviceName != null && servicesToGenerate.isEmpty()) {
                 DiagnosticMessages messages = DiagnosticMessages.AAS_CONVERTOR_101;
                 ExceptionDiagnostic error = new ExceptionDiagnostic(messages.getCode(), messages.getDescription(),
-                        null, serviceName, availableService.toString());
+                        null, serviceName, availableService.toString().trim());
                 diagnostics.add(error);
             }
             // Generating asyncapi specification for selected META-INF.services
@@ -458,7 +458,7 @@ public class ServiceToAsyncAPIConverterUtils {
         AsyncApi25Document asyncApi = null;
         Path asyncApiPath = Paths.get(asyncAPIInfo.getContractPath().get().replaceAll("\"", "").trim());
         Path relativePath = null;
-        if (asyncApiPath.toString().isBlank()) {
+        if (asyncApiPath.toString().trim().isBlank()) {
             DiagnosticMessages error = DiagnosticMessages.AAS_CONVERTOR_103;
             ExceptionDiagnostic diagnostic = new ExceptionDiagnostic(error.getCode(),
                     error.getDescription(), location);

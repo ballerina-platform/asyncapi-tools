@@ -10,6 +10,9 @@ import java.nio.file.Paths;
 
 import static io.ballerina.asyncapi.generators.asyncapi.TestUtils.compareWithGeneratedFile;
 
+/**
+ * This {@code ChannelTests} is for the covering the Channel tests for ballerina to asyncapi generation.
+ */
 public class ChannelTests {
 
     private static final Path RES_DIR = Paths.get("src/test/resources/ballerina-to-asyncapi/channels").toAbsolutePath();

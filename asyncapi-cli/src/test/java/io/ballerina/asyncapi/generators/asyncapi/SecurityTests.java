@@ -10,6 +10,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
+/**
+ * This {@code SecurityTests} test class if for the covering the security tests for ballerina to asyncapi generation.
+ */
 public class SecurityTests {
     private static final Path RES_DIR =
             Paths.get("src/test/resources/ballerina-to-asyncapi/security").toAbsolutePath();

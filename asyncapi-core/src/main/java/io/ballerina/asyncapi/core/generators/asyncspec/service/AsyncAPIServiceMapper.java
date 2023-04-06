@@ -101,9 +101,9 @@ public class AsyncAPIServiceMapper {
                         for (MappingFieldNode field : fields) {
                             if (field instanceof SpecificFieldNode) {
                                 SpecificFieldNode specificFieldNode = (SpecificFieldNode) field;
-                                String fieldName = specificFieldNode.fieldName().toString();
+                                String fieldName = specificFieldNode.fieldName().toString().trim();
                                 if (fieldName.equals(DISPATCHER_KEY)) {
-                                    dispatcherValue = specificFieldNode.valueExpr().get().toString();
+                                    dispatcherValue = specificFieldNode.valueExpr().get().toString().trim();
                                     if (dispatcherValue != null) {
                                         dispatcherValue = dispatcherValue.replaceAll("\"", "");
                                         if (dispatcherValue.equals("")) {
