@@ -3,3 +3,5 @@ rootProject.name = 'asyncapi-tools'
 include (':asyncapi-core')
 include (':asyncapi-cli')
 include(':config:checkstyle')
+include 'module-ballerina-asyncapi'
+
