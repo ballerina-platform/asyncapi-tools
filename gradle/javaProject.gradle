@@ -95,8 +95,6 @@ test {
     }
 }
 
-//TODO: uncomment this after figure out how to println every failures using spot bugs
-//
 tasks.register("validateSpotbugs") {
     doLast {
         if (spotbugsMain.reports.size() > 0 &&
@@ -128,8 +126,6 @@ spotbugsMain {
     }
     reports {
         text.enabled = true
-//        html.enabled = true
-//        xml.enabled = true
     }
 }
 
