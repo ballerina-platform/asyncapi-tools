@@ -24,7 +24,7 @@ import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25ChannelsImpl;
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25ComponentsImpl;
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25OperationImpl;
 import io.ballerina.asyncapi.core.generators.asyncspec.diagnostic.AsyncAPIConverterDiagnostic;
-import io.ballerina.asyncapi.core.generators.asyncspec.model.AsyncApi25MessageImpl;
+import io.ballerina.asyncapi.core.generators.asyncspec.model.BalAsyncApi25MessageImpl;
 import io.ballerina.asyncapi.core.generators.asyncspec.utils.ConverterCommonUtils;
 import io.ballerina.compiler.api.SemanticModel;
 import io.ballerina.compiler.api.symbols.Documentable;
@@ -161,8 +161,8 @@ public class AsyncAPIRemoteMapper {
         NodeList<Node> classMethodNodes = classDefinitionNode.members();
         AsyncApi25OperationImpl publishOperationItem = new AsyncApi25OperationImpl();
         AsyncApi25OperationImpl subscribeOperationItem = new AsyncApi25OperationImpl();
-        AsyncApi25MessageImpl subscribeMessage = new AsyncApi25MessageImpl();
-        AsyncApi25MessageImpl publishMessage = new AsyncApi25MessageImpl();
+        BalAsyncApi25MessageImpl subscribeMessage = new BalAsyncApi25MessageImpl();
+        BalAsyncApi25MessageImpl publishMessage = new BalAsyncApi25MessageImpl();
         AsyncAPIResponseMapper responseMapper = new AsyncAPIResponseMapper(resource.location(), componentMapper,
                 semanticModel, components);
         for (Node node : classMethodNodes) {
@@ -202,7 +202,7 @@ public class AsyncAPIRemoteMapper {
                                         remoteDocs.remove(paramName);
 
                                     }
-                                    AsyncApi25MessageImpl componentMessage = responseMapper.
+                                    BalAsyncApi25MessageImpl componentMessage = responseMapper.
                                             extractMessageSchemaReference(publishMessage, remoteRequestTypeName,
                                                     remoteFunctionNameTypeSymbol, dispatcherValue, paramDescription);
                                     if (remoteDocs.containsKey(REMOTE_DESCRIPTION)) {
@@ -248,8 +248,8 @@ public class AsyncAPIRemoteMapper {
         }
         if (publishMessage.getOneOf() != null) {
             if (publishMessage.getOneOf().size() == 1) {
-                AsyncApi25MessageImpl publishOneMessage = new AsyncApi25MessageImpl();
-                publishOneMessage.set$ref(((AsyncApi25MessageImpl) publishMessage.getOneOf().get(0)).get$ref());
+                BalAsyncApi25MessageImpl publishOneMessage = new BalAsyncApi25MessageImpl();
+                publishOneMessage.set$ref(((BalAsyncApi25MessageImpl) publishMessage.getOneOf().get(0)).get$ref());
                 publishOperationItem.setMessage(publishOneMessage);
 
             } else {
@@ -260,8 +260,8 @@ public class AsyncAPIRemoteMapper {
         }
         if (subscribeMessage.getOneOf() != null) {
             if (subscribeMessage.getOneOf().size() == 1) {
-                AsyncApi25MessageImpl subscribeOneMessage = new AsyncApi25MessageImpl();
-                subscribeOneMessage.set$ref(((AsyncApi25MessageImpl) subscribeMessage.getOneOf().get(0)).get$ref());
+                BalAsyncApi25MessageImpl subscribeOneMessage = new BalAsyncApi25MessageImpl();
+                subscribeOneMessage.set$ref(((BalAsyncApi25MessageImpl) subscribeMessage.getOneOf().get(0)).get$ref());
                 if (subscribeOneMessage.get$ref() == null) {
                     subscribeOneMessage.setPayload((subscribeMessage.getOneOf().get(0)).getPayload());
                 }

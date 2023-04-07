@@ -21,7 +21,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.BooleanNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
-import io.ballerina.asyncapi.core.generators.asyncspec.model.AsyncApi25SchemaImpl;
+import io.ballerina.asyncapi.core.generators.asyncspec.Constants.AsyncAPIType;
+import io.ballerina.asyncapi.core.generators.asyncspec.model.BalAsyncApi25SchemaImpl;
 import io.ballerina.asyncapi.core.generators.asyncspec.utils.ConverterCommonUtils;
 import io.ballerina.compiler.syntax.tree.AnnotationNode;
 import io.ballerina.compiler.syntax.tree.ArrayTypeDescriptorNode;
@@ -63,13 +64,14 @@ public class AsyncAPIHeaderMapper {
      *
      * @param headerParam -  {@link RequiredParameterNode} type header parameter node
      */
-    public void setHeaderParameter(RequiredParameterNode headerParam, AsyncApi25SchemaImpl bindingHeaderObject) {
+    public void setHeaderParameter(RequiredParameterNode headerParam, BalAsyncApi25SchemaImpl bindingHeaderObject) {
         String extractedHeaderName = extractHeaderName(headerParam);
         if (extractedHeaderName != null) {
             String headerName = unescapeIdentifier(extractedHeaderName);
 
             Node node = headerParam.typeName();
-            AsyncApi25SchemaImpl headerTypeSchema = ConverterCommonUtils.getAsyncApiSchema(getHeaderType(headerParam));
+            BalAsyncApi25SchemaImpl headerTypeSchema =
+                    ConverterCommonUtils.getAsyncApiSchema(getHeaderType(headerParam));
             //TODO : If there "http:ServiceConfig", "treatNilableAsOptional" uncomment below codes and then implement it
 //        NodeList<AnnotationNode> annotations = getAnnotationNodesFromServiceNode(headerParam);
 //        String isOptional = Constants.TRUE;
@@ -108,10 +110,10 @@ public class AsyncAPIHeaderMapper {
      *
      * @param headerParam -  {@link DefaultableParameterNode} type header parameter node
      */
-    public void setHeaderParameter(DefaultableParameterNode headerParam, AsyncApi25SchemaImpl bindingHeaderObject) {
+    public void setHeaderParameter(DefaultableParameterNode headerParam, BalAsyncApi25SchemaImpl bindingHeaderObject) {
         String headerName = extractHeaderName(headerParam);
 //        HeaderParameter headerParameter = new HeaderParameter();
-        AsyncApi25SchemaImpl headerTypeSchema = ConverterCommonUtils.getAsyncApiSchema(getHeaderType(headerParam));
+        BalAsyncApi25SchemaImpl headerTypeSchema = ConverterCommonUtils.getAsyncApiSchema(getHeaderType(headerParam));
         String defaultValue = headerParam.expression().toString().trim();
         if (defaultValue.length() > 1 &&
                 defaultValue.charAt(0) == '"' &&
@@ -124,7 +126,7 @@ public class AsyncAPIHeaderMapper {
         if (allowedTypes.contains(headerParam.expression().kind())) {
             headerTypeSchema.setDefault(new TextNode(defaultValue));
         } else if (headerParam.expression().kind() == SyntaxKind.LIST_CONSTRUCTOR) {
-            headerTypeSchema = new AsyncApi25SchemaImpl();
+            headerTypeSchema = new BalAsyncApi25SchemaImpl();
             headerTypeSchema.setDefault(new TextNode(defaultValue));
         }
         if (headerParam.typeName().kind() == SyntaxKind.OPTIONAL_TYPE_DESC) {
@@ -154,9 +156,9 @@ public class AsyncAPIHeaderMapper {
     /**
      * Assign header values to AsyncApiSpec header parameter.
      */
-    private void completeHeaderParameter(String headerName, AsyncApi25SchemaImpl headerSchema,
+    private void completeHeaderParameter(String headerName, BalAsyncApi25SchemaImpl headerSchema,
                                          NodeList<AnnotationNode> annotations, Node node,
-                                         AsyncApi25SchemaImpl bindingHeaderObject) {
+                                         BalAsyncApi25SchemaImpl bindingHeaderObject) {
 
         if (!annotations.isEmpty()) {
             AnnotationNode annotationNode = annotations.get(0);
@@ -164,10 +166,10 @@ public class AsyncAPIHeaderMapper {
         }
         if (node instanceof ArrayTypeDescriptorNode) {
             ArrayTypeDescriptorNode arrayNode = (ArrayTypeDescriptorNode) node;
-            AsyncApi25SchemaImpl arraySchema = new AsyncApi25SchemaImpl();
-            arraySchema.setType("array");
+            BalAsyncApi25SchemaImpl arraySchema = new BalAsyncApi25SchemaImpl();
+            arraySchema.setType(AsyncAPIType.ARRAY.toString());
             SyntaxKind kind = arrayNode.memberTypeDesc().kind();
-            AsyncApi25SchemaImpl itemSchema = ConverterCommonUtils.getAsyncApiSchema(kind);
+            BalAsyncApi25SchemaImpl itemSchema = ConverterCommonUtils.getAsyncApiSchema(kind);
             if (headerSchema.getDefault() != null) {
                 arraySchema.setDefault(headerSchema.getDefault());
             }
@@ -180,7 +182,7 @@ public class AsyncAPIHeaderMapper {
         }
     }
 
-    private void enableHeaderRequiredOption(Node node, AsyncApi25SchemaImpl headerSchema) {
+    private void enableHeaderRequiredOption(Node node, BalAsyncApi25SchemaImpl headerSchema) {
         //TODO : After setting treatNilableAsOptional:true then change this also
         if (node.kind() == SyntaxKind.OPTIONAL_TYPE_DESC) {
             headerSchema.addExtension(X_NULLABLE, BooleanNode.TRUE);

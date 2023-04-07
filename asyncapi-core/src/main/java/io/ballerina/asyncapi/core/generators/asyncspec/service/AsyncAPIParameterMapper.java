@@ -28,8 +28,7 @@ import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25ComponentsImpl;
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25ParameterImpl;
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25ParametersImpl;
 import io.ballerina.asyncapi.core.generators.asyncspec.Constants;
-import io.ballerina.asyncapi.core.generators.asyncspec.diagnostic.AsyncAPIConverterDiagnostic;
-import io.ballerina.asyncapi.core.generators.asyncspec.model.AsyncApi25SchemaImpl;
+import io.ballerina.asyncapi.core.generators.asyncspec.model.BalAsyncApi25SchemaImpl;
 import io.ballerina.asyncapi.core.generators.asyncspec.utils.ConverterCommonUtils;
 import io.ballerina.compiler.api.SemanticModel;
 import io.ballerina.compiler.api.symbols.TypeSymbol;
@@ -47,8 +46,6 @@ import io.ballerina.compiler.syntax.tree.SimpleNameReferenceNode;
 import io.ballerina.compiler.syntax.tree.SyntaxKind;
 import io.ballerina.compiler.syntax.tree.TypeDescriptorNode;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Map;
 
 import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.AsyncAPIType;
@@ -65,7 +62,7 @@ import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.SCHEMA_R
 public class AsyncAPIParameterMapper {
     private final FunctionDefinitionNode functionDefinitionNode;
     private final Map<String, String> apidocs;
-    private final List<AsyncAPIConverterDiagnostic> errors = new ArrayList<>();
+//    private final List<AsyncAPIConverterDiagnostic> errors = new ArrayList<>();
     private final AsyncApi25ComponentsImpl components;
     private final SemanticModel semanticModel;
 
@@ -78,9 +75,9 @@ public class AsyncAPIParameterMapper {
         this.semanticModel = semanticModel;
     }
 
-    public List<AsyncAPIConverterDiagnostic> getErrors() {
-        return errors;
-    }
+//    public List<AsyncAPIConverterDiagnostic> getErrors() {
+//        return errors;
+//    }
 
     /**
      * Create {@code Parameters} model for asyncAPI operation.
@@ -108,8 +105,8 @@ public class AsyncAPIParameterMapper {
     private AsyncApi25ChannelBindingsImpl createQueryParameters(SeparatedNodeList<ParameterNode> parameterList) {
         AsyncApi25ChannelBindingsImpl channelBindings = new AsyncApi25ChannelBindingsImpl();
         AsyncApi25BindingImpl asyncApi25Binding = new AsyncApi25BindingImpl();
-        AsyncApi25SchemaImpl bindingQueryObject = new AsyncApi25SchemaImpl();
-        AsyncApi25SchemaImpl bindingHeaderObject = new AsyncApi25SchemaImpl();
+        BalAsyncApi25SchemaImpl bindingQueryObject = new BalAsyncApi25SchemaImpl();
+        BalAsyncApi25SchemaImpl bindingHeaderObject = new BalAsyncApi25SchemaImpl();
         bindingQueryObject.setType(AsyncAPIType.OBJECT.toString());
         bindingHeaderObject.setType(AsyncAPIType.OBJECT.toString());
         AsyncAPIQueryParameterMapper queryParameterMapper = new AsyncAPIQueryParameterMapper(apidocs, components,
@@ -173,7 +170,7 @@ public class AsyncAPIParameterMapper {
                     AsyncAPIComponentMapper componentMapper = new AsyncAPIComponentMapper(components);
                     TypeSymbol typeSymbol = (TypeSymbol) semanticModel.symbol(queryNode).orElseThrow();
                     componentMapper.createComponentSchema(typeSymbol, null);
-                    AsyncApi25SchemaImpl schema = new AsyncApi25SchemaImpl();
+                    BalAsyncApi25SchemaImpl schema = new BalAsyncApi25SchemaImpl();
                     schema.set$ref(SCHEMA_REFERENCE + ConverterCommonUtils.unescapeIdentifier(queryNode.name().
                             text().trim()));
                     pathParameterAAS.setSchema(schema);
@@ -200,7 +197,7 @@ public class AsyncAPIParameterMapper {
      * This function for handle the payload and header parameters with annotation @http:Payload, @http:Header.
      */
     private void handleHeaderParameters(RequiredParameterNode requiredParameterNode,
-                                        AsyncApi25SchemaImpl bindingHeaderObject) {
+                                        BalAsyncApi25SchemaImpl bindingHeaderObject) {
 
         NodeList<AnnotationNode> annotations = requiredParameterNode.annotations();
         for (AnnotationNode annotation : annotations) {
@@ -216,7 +213,7 @@ public class AsyncAPIParameterMapper {
      * This function for handle the payload and header parameters with annotation @http:Header.
      */
     private void handleDefaultableHeaderParameters(DefaultableParameterNode defaultableParameterNode,
-                                                   AsyncApi25SchemaImpl bindingHeaderObject) {
+                                                   BalAsyncApi25SchemaImpl bindingHeaderObject) {
         NodeList<AnnotationNode> annotations = defaultableParameterNode.annotations();
         for (AnnotationNode annotation : annotations) {
             if ((annotation.annotReference().toString()).trim().equals(Constants.HTTP_HEADER)) {

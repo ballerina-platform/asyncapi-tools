@@ -177,12 +177,7 @@ public class AsyncAPIEndpointMapper {
                 AsyncApi25ServerImpl server = generateServer(serviceBasePath, list);
                 asyncApi25Servers.add(server);
             }
-//            } else if (expressionNode.kind().equals(SyntaxKind.IMPLICIT_NEW_EXPRESSION)) {
-//                ImplicitNewExpressionNode implicit = (ImplicitNewExpressionNode) expressionNode;
-//                list = implicit.parenthesizedArgList();
-//                AsyncApi25ServerImpl server = generateServer(serviceBasePath, list);
-//                asyncApi25Servers.add(server);
-//            }
+
         }
         return asyncApi25Servers;
     }
@@ -198,10 +193,8 @@ public class AsyncAPIEndpointMapper {
 
         if (list.isPresent()) {
             SeparatedNodeList<FunctionArgumentNode> arg = (list.get()).arguments();
-            port = arg.get(0).toString().trim();
-            if (port != null) {
-                port = port.replaceAll("\"", "");
-            }
+            port = arg.get(0).toString().trim().replaceAll("\"", "");
+
             if (arg.size() > 1 && (arg.get(1) instanceof NamedArgumentNode)) {
                 ExpressionNode bLangRecordLiteral = ((NamedArgumentNode) arg.get(1)).expression();
                 if (bLangRecordLiteral instanceof MappingConstructorExpressionNode) {

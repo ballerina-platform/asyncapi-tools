@@ -108,6 +108,7 @@ allprojects {
 
     def excludePattern = '**/module-info.java'
     tasks.withType(Checkstyle).configureEach {
+        dependsOn(":config:checkstyle:downloadMultipleFiles")
         configFile file("${rootProject.projectDir}/config/checkstyle/checkstyle.xml")
         exclude excludePattern
     }
@@ -203,4 +204,3 @@ codeCoverageReport() {
         true
     }
 }
-

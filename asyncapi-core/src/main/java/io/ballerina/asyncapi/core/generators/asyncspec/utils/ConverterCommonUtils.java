@@ -35,7 +35,7 @@ import io.ballerina.asyncapi.core.generators.asyncspec.diagnostic.AsyncAPIConver
 import io.ballerina.asyncapi.core.generators.asyncspec.diagnostic.DiagnosticMessages;
 import io.ballerina.asyncapi.core.generators.asyncspec.diagnostic.ExceptionDiagnostic;
 import io.ballerina.asyncapi.core.generators.asyncspec.model.AsyncAPIResult;
-import io.ballerina.asyncapi.core.generators.asyncspec.model.AsyncApi25SchemaImpl;
+import io.ballerina.asyncapi.core.generators.asyncspec.model.BalAsyncApi25SchemaImpl;
 import io.ballerina.compiler.api.SemanticModel;
 import io.ballerina.compiler.api.symbols.ModuleSymbol;
 import io.ballerina.compiler.api.symbols.ServiceDeclarationSymbol;
@@ -87,8 +87,8 @@ public class ConverterCommonUtils {
      * @param type ballerina type name as a String
      * @return AsyncApi {@link Schema} for type defined by {@code type}
      */
-    public static AsyncApi25SchemaImpl getAsyncApiSchema(String type) {
-        AsyncApi25SchemaImpl schema = new AsyncApi25SchemaImpl();
+    public static BalAsyncApi25SchemaImpl getAsyncApiSchema(String type) {
+        BalAsyncApi25SchemaImpl schema = new BalAsyncApi25SchemaImpl();
         switch (type) {
             case Constants.STRING:
             case Constants.PLAIN:
@@ -128,10 +128,10 @@ public class ConverterCommonUtils {
             case Constants.MAP_JSON:
             case Constants.MAP_STRING:
             case Constants.MAP:
-                AsyncApi25SchemaImpl objectSchema = new AsyncApi25SchemaImpl();
+                BalAsyncApi25SchemaImpl objectSchema = new BalAsyncApi25SchemaImpl();
 //                objectSchema.setType(AsyncAPIType.RECORD.toString());
                 schema.setType(AsyncAPIType.OBJECT.toString());
-                //TODO : Have to give an AsyncApi25SchemaImpl object as additionalProperties , It is depend
+                //TODO : Have to give an BalAsyncApi25SchemaImpl object as additionalProperties , It is depend
                 // upon ballerina map
                 schema.setAdditionalProperties(objectSchema);
 //                schema.setAdditionalProperties(true);
@@ -139,7 +139,7 @@ public class ConverterCommonUtils {
 //                schema.additionalProperties(true);
                 break;
             case Constants.X_WWW_FORM_URLENCODED:
-                AsyncApi25SchemaImpl stringSchema = new AsyncApi25SchemaImpl();
+                BalAsyncApi25SchemaImpl stringSchema = new BalAsyncApi25SchemaImpl();
                 stringSchema.setType(AsyncAPIType.STRING.toString());
                 schema.setAdditionalProperties(stringSchema);
                 break;
@@ -148,7 +148,7 @@ public class ConverterCommonUtils {
             case Constants.XML:
             case Constants.JSON:
             default:
-                schema = new AsyncApi25SchemaImpl();  //If json is required
+                schema = new BalAsyncApi25SchemaImpl();  //If json is required
                 break;
         }
         return schema;
@@ -160,8 +160,8 @@ public class ConverterCommonUtils {
      * @param type ballerina type with SYNTAX KIND
      * @return AsyncApi {@link Schema} for type defined by {@code type}
      */
-    public static AsyncApi25SchemaImpl getAsyncApiSchema(SyntaxKind type) {
-        AsyncApi25SchemaImpl schema = new AsyncApi25SchemaImpl();
+    public static BalAsyncApi25SchemaImpl getAsyncApiSchema(SyntaxKind type) {
+        BalAsyncApi25SchemaImpl schema = new BalAsyncApi25SchemaImpl();
 
         switch (type) {
             case STRING_TYPE_DESC:
@@ -193,7 +193,7 @@ public class ConverterCommonUtils {
                 schema.setType("object");
                 break;
             default:
-                schema = new AsyncApi25SchemaImpl();
+                schema = new BalAsyncApi25SchemaImpl();
                 break;
         }
         return schema;
@@ -241,7 +241,7 @@ public class ConverterCommonUtils {
         mapper.configure(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS, false);
         mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 
-        AsyncApi25Document yamldoc = null;
+        AsyncApi25Document yamldoc;
         try {
             ObjectNode yamlNodes = (ObjectNode) mapper.readTree(asyncAPIFileContent);
             yamldoc = (AsyncApi25Document) Library.readDocument(yamlNodes);

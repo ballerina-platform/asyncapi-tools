@@ -120,7 +120,6 @@ public class AsyncAPIContractGenerator {
                     this.errors.addAll(definition.getDiagnostics());
                     if (definition.getAsyncAPI().isPresent()) {
                         Optional<String> content;
-                        content = definition.getYaml();
                         if (needJson) {
                             content = definition.getJson();
                         } else {

@@ -66,7 +66,7 @@ public class AsyncAPIServiceMapper {
     }
 
     private static String extractDispatcherValue(ServiceDeclarationNode service) {
-        String dispatcherValue = null;
+        String dispatcherValue = "";
 //        String typeName=null;
         if (service.metadata().isPresent()) {
             MetadataNode serviceMetadataNode = service.metadata().get();
@@ -74,7 +74,6 @@ public class AsyncAPIServiceMapper {
             AnnotationNode annotationNode = annotationNodes.get(0);
             Node node = annotationNode.annotReference();
             if (node instanceof QualifiedNameReferenceNode) {
-                QualifiedNameReferenceNode qNode = (QualifiedNameReferenceNode) node;
 //                if (qNode.modulePrefix().text().equals(WEBSOCKET)) {
 //                    typeName = qNode.modulePrefix().text() + ":" + qNode.identifier().text();
 //                    if (typeName.equals(WEBSOCKET + ":" + SERVICE_CONFIG)) {
@@ -85,18 +84,18 @@ public class AsyncAPIServiceMapper {
                         String fieldName = specificFieldNode.fieldName().toString().trim();
                         if (fieldName.equals(DISPATCHER_KEY)) {
                             dispatcherValue = specificFieldNode.valueExpr().get().toString().trim();
-                            if (dispatcherValue != null) {
-                                dispatcherValue = dispatcherValue.replaceAll("\"", "");
-                                if (dispatcherValue.equals("")) {
-                                    //TODO : Give a proper name for Exception
-                                    throw new NoSuchElementException(DISPATCHER_KEY_VALUE_CANNOT_BE_EMPTY);
-                                }
-                                return dispatcherValue.trim();
+                            dispatcherValue = dispatcherValue.replaceAll("\"", "");
+                            if (dispatcherValue.equals("")) {
+                                //TODO : Give a proper name for Exception
+                                throw new NoSuchElementException(DISPATCHER_KEY_VALUE_CANNOT_BE_EMPTY);
                             }
+                            return dispatcherValue.trim();
+
                         }
                     }
                 }
-                if (dispatcherValue == null) {
+
+                if (dispatcherValue.isEmpty()) {
                     throw new NoSuchElementException(NO_DISPATCHER_KEY);
                 }
 //                    }else{

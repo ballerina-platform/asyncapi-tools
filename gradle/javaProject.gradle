@@ -96,13 +96,13 @@ test {
 }
 
 //TODO: uncomment this after figure out how to println every failures using spot bugs
-
+//
 tasks.register("validateSpotbugs") {
     doLast {
         if (spotbugsMain.reports.size() > 0 &&
-                spotbugsMain.reports[0].outputLocation.exists() &&
-                spotbugsMain.reports[0].outputLocation.text.readLines().size() > 0) {
-            spotbugsMain.reports[0].outputLocation?.eachLine {
+                spotbugsMain.reports[0].destination.exists() &&
+                spotbugsMain.reports[0].destination.text.readLines().size() > 0) {
+            spotbugsMain.reports[0].destination?.eachLine {
                 println 'Failure: ' + it
             }
             throw new GradleException("Spotbugs rule violations were found.")
@@ -128,6 +128,8 @@ spotbugsMain {
     }
     reports {
         text.enabled = true
+//        html.enabled = true
+//        xml.enabled = true
     }
 }
 

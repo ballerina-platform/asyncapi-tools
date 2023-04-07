@@ -25,7 +25,6 @@ import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.fasterxml.jackson.dataformat.yaml.YAMLGenerator;
 import io.apicurio.datamodels.Library;
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25Document;
-import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25DocumentImpl;
 import io.apicurio.datamodels.models.util.JsonUtil;
 import io.ballerina.asyncapi.core.generators.asyncspec.diagnostic.AsyncAPIConverterDiagnostic;
 
@@ -60,10 +59,6 @@ public class AsyncAPIResult {
         return Optional.ofNullable(asyncAPI);
     }
 
-    public void setAsyncAPI(AsyncApi25DocumentImpl asyncAPI) {
-        this.asyncAPI = asyncAPI;
-    }
-
     public String getServiceName() {
         return this.serviceName;
     }
@@ -80,7 +75,7 @@ public class AsyncAPIResult {
         factory.enable(YAMLGenerator.Feature.SPLIT_LINES);
         factory.enable(YAMLGenerator.Feature.ALWAYS_QUOTE_NUMBERS_AS_STRINGS);
 
-        String finalYaml = null;
+        String finalYaml;
         try {
             finalYaml = new ObjectMapper(factory).writer(new DefaultPrettyPrinter()).writeValueAsString(json);
         } catch (JsonProcessingException e) {

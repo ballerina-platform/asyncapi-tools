@@ -89,9 +89,11 @@ copyStdlibs{
         def artifactExtractedPath = "${project.buildDir}/extracted-distribution/" + artifact.name + "-zip"
         into("repo/bala") {
             from "${artifactExtractedPath}/bala/"
+            duplicatesStrategy= DuplicatesStrategy.EXCLUDE
         }
         into("repo/cache") {
             from "${artifactExtractedPath}/cache"
+            duplicatesStrategy= DuplicatesStrategy.EXCLUDE
         }
     }
 }

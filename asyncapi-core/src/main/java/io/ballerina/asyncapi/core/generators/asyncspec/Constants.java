@@ -75,29 +75,6 @@ public class Constants {
     public static final String DESCRIPTION = "description";
     public static final String REMOTE_DESCRIPTION = "remoteDescription";
 
-    /**
-     * Enum to select the Ballerina Type.
-     * Ballerina service, mock and client generation is available
-     */
-    public enum BallerinaType {
-        INT("int"),
-        STRING("string"),
-        DECIMAL("decimal"),
-        BOOLEAN("boolean"),
-        RECORD("record"),
-        ARRAY("array");
-
-        private String name;
-
-        BallerinaType(String name) {
-            this.name = name;
-        }
-
-        public String typeName() {
-            return name;
-        }
-
-    }
 
     /**
      * Enum to select the Ballerina Type.

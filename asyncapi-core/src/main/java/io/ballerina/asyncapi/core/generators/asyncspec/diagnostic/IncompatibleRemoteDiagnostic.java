@@ -42,10 +42,6 @@ public class IncompatibleRemoteDiagnostic implements AsyncAPIConverterDiagnostic
         this.severity = details.getSeverity();
     }
 
-    public IncompatibleRemoteDiagnostic(DiagnosticMessages details, Location location) {
-        this(details, location, details.getDescription());
-    }
-
     /**
      * This method is to create message description with args values.
      */

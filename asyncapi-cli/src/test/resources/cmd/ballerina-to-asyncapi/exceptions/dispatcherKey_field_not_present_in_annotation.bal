@@ -11,7 +11,7 @@ public type Subscribe record{
 public type Ticker record{
     int id;
 };
-@websocket:ServiceConfig{}
+@websocket:ServiceConfig{subProtocols: []}
 service / on helloEp {
     resource function get .() returns websocket:Service|websocket:UpgradeError {
         return new ChatServer();
