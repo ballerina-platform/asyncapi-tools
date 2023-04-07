@@ -52,6 +52,7 @@ components:
           format: int64
         event:
           type: string
+          const: ReserveRoom
           description: Remote trigger field
       description: Represents rooms be reserved
     Reservation:

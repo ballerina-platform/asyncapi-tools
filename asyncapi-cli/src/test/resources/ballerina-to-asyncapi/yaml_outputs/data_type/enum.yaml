@@ -47,11 +47,11 @@ components:
         actions:
           type: string
           enum:
-            - PATCH
-            - DELETE
-            - PUT
-            - POST
             - GET
+            - POST
+            - PUT
+            - DELETE
+            - PATCH
           description: actions description
         fdf:
           type: integer
@@ -86,9 +86,9 @@ components:
         actions:
           type: string
           enum:
-            - custom size
-            - Half "Portion"
             - full
+            - Half "Portion"
+            - custom size
         s8jk:
           type: string
           const: Order

@@ -41,11 +41,11 @@ components:
         actions:
           type: string
           enum:
-            - patch
-            - delete
-            - put
-            - post
             - get
+            - post
+            - put
+            - delete
+            - patch
         event:
           type: string
           const: Link

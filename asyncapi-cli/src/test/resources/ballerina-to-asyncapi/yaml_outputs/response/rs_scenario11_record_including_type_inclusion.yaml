@@ -59,11 +59,11 @@ components:
           items:
             type: string
             enum:
-              - PATCH
-              - DELETE
-              - PUT
-              - POST
               - GET
+              - POST
+              - PUT
+              - DELETE
+              - PATCH
           description: actions
       description: Link details
     Links:
@@ -158,5 +158,7 @@ components:
       payload:
         $ref: '#/components/schemas/Subscribe'
       x-response:
-        $ref: '#/components/messages/ReservationConflict'
+        oneOf:
+          - $ref: '#/components/messages/ReservationCreated'
+          - $ref: '#/components/messages/ReservationConflict'
       x-response-type: simple-rpc

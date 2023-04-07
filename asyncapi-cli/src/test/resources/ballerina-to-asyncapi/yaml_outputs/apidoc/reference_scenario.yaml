@@ -31,7 +31,6 @@ channels:
           - $ref: '#/components/messages/ReservationCreated'
           - $ref: '#/components/messages/ReservationConflict'
           - $ref: '#/components/messages/ReservationUpdated'
-          - $ref: '#/components/messages/ReservationConflict'
           - $ref: '#/components/messages/PaymentCreated'
           - $ref: '#/components/messages/PaymentConflict'
     publish:
@@ -66,13 +65,14 @@ components:
           items:
             type: string
             enum:
-              - PATCH
-              - DELETE
-              - PUT
-              - POST
               - GET
+              - POST
+              - PUT
+              - DELETE
+              - PATCH
         event:
           type: string
+          const: Link
           description: Remote trigger field
     Links:
       type: object
@@ -99,6 +99,7 @@ components:
           format: int64
         event:
           type: string
+          const: ReserveRoom
           description: Remote trigger field
       description: Represents rooms be reserved
     Reservation:
@@ -107,6 +108,7 @@ components:
         - reserveRooms
         - startDate
         - endDate
+        - event
       properties:
         reserveRooms:
           type: array
@@ -119,6 +121,10 @@ components:
         endDate:
           type: string
           description: End date in yyyy-mm-dd
+        event:
+          type: string
+          const: Reservation
+          description: Remote trigger field
       description: Represents a reservation of rooms
     ReservationReceipt:
       allOf:
@@ -169,6 +175,7 @@ components:
               description: Address of the location
             event:
               type: string
+              const: Location
               description: Remote trigger field
           description: Represents locations
     Room:
@@ -189,9 +196,9 @@ components:
         category:
           type: string
           enum:
-            - FAMILY
-            - KING
             - DELUXE
+            - KING
+            - FAMILY
           description: Types of rooms available
         capacity:
           type: integer
@@ -203,9 +210,9 @@ components:
         status:
           type: string
           enum:
-            - BOOKED
-            - RESERVED
             - AVAILABLE
+            - RESERVED
+            - BOOKED
           description: Availability of room
         currency:
           type: string
@@ -376,7 +383,9 @@ components:
         description: Reservation representation
       description: Represents Snowpeak reservation resource
       x-response:
-        $ref: '#/components/messages/ReservationConflict'
+        oneOf:
+          - $ref: '#/components/messages/ReservationCreated'
+          - $ref: '#/components/messages/ReservationConflict'
         description: '`ReservationCreated` or ReservationConflict representation'
       x-response-type: simple-rpc
     ReservationUpdated:
@@ -388,7 +397,9 @@ components:
         description: Reservation representation
       description: Represents Snowpeak reservation resource
       x-response:
-        $ref: '#/components/messages/ReservationConflict'
+        oneOf:
+          - $ref: '#/components/messages/ReservationUpdated'
+          - $ref: '#/components/messages/ReservationConflict'
         description: '`ReservationCreated` or ReservationConflict representation'
       x-response-type: simple-rpc
     PaymentCreated:
@@ -403,6 +414,8 @@ components:
         description: Payment representation
       description: Represents Snowpeak payment resource
       x-response:
-        $ref: '#/components/messages/PaymentConflict'
+        oneOf:
+          - $ref: '#/components/messages/PaymentCreated'
+          - $ref: '#/components/messages/PaymentConflict'
         description: '`PaymentCreated` or `PaymentConflict` representation'
       x-response-type: simple-rpc

@@ -4,33 +4,67 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25ComponentsImpl;
-import io.ballerina.asyncapi.core.generators.asyncspec.model.AsyncApi25MessageImpl;
-import io.ballerina.asyncapi.core.generators.asyncspec.model.AsyncApi25SchemaImpl;
 import io.ballerina.asyncapi.core.generators.asyncspec.diagnostic.AsyncAPIConverterDiagnostic;
 import io.ballerina.asyncapi.core.generators.asyncspec.diagnostic.DiagnosticMessages;
 import io.ballerina.asyncapi.core.generators.asyncspec.diagnostic.IncompatibleRemoteDiagnostic;
+import io.ballerina.asyncapi.core.generators.asyncspec.model.AsyncApi25MessageImpl;
+import io.ballerina.asyncapi.core.generators.asyncspec.model.AsyncApi25SchemaImpl;
 import io.ballerina.asyncapi.core.generators.asyncspec.utils.ConverterCommonUtils;
 import io.ballerina.compiler.api.SemanticModel;
-import io.ballerina.compiler.api.symbols.*;
-import io.ballerina.compiler.syntax.tree.*;
+import io.ballerina.compiler.api.symbols.IntersectionTypeSymbol;
+import io.ballerina.compiler.api.symbols.ReadonlyTypeSymbol;
+import io.ballerina.compiler.api.symbols.TypeDescKind;
+import io.ballerina.compiler.api.symbols.TypeReferenceTypeSymbol;
+import io.ballerina.compiler.api.symbols.TypeSymbol;
+import io.ballerina.compiler.syntax.tree.ArrayTypeDescriptorNode;
+import io.ballerina.compiler.syntax.tree.MapTypeDescriptorNode;
+import io.ballerina.compiler.syntax.tree.Node;
+import io.ballerina.compiler.syntax.tree.NodeList;
+import io.ballerina.compiler.syntax.tree.OptionalTypeDescriptorNode;
+import io.ballerina.compiler.syntax.tree.RecordFieldNode;
+import io.ballerina.compiler.syntax.tree.RecordTypeDescriptorNode;
+import io.ballerina.compiler.syntax.tree.SimpleNameReferenceNode;
+import io.ballerina.compiler.syntax.tree.StreamTypeDescriptorNode;
+import io.ballerina.compiler.syntax.tree.StreamTypeParamsNode;
+import io.ballerina.compiler.syntax.tree.TypeDescriptorNode;
+import io.ballerina.compiler.syntax.tree.UnionTypeDescriptorNode;
 import io.ballerina.tools.diagnostics.Location;
 
-import java.util.*;
-import java.util.stream.IntStream;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.NoSuchElementException;
 
-import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.*;
+import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.AsyncAPIType;
+import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.DESCRIPTION;
+import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.MESSAGE_REFERENCE;
+import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.NO_TYPE_IN_STREAM;
+import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.ONEOF;
+import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.PAYLOAD;
+import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.REF;
+import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.SCHEMA_REFERENCE;
 import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.SIMPLE_RPC;
+import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.STREAMING;
+import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.X_RESPONSE;
+import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.X_RESPONSE_TYPE;
 import static io.ballerina.asyncapi.core.generators.asyncspec.utils.ConverterCommonUtils.callObjectMapper;
 import static io.ballerina.asyncapi.core.generators.asyncspec.utils.ConverterCommonUtils.getAsyncApiSchema;
-import static io.ballerina.compiler.syntax.tree.SyntaxKind.*;
+import static io.ballerina.compiler.syntax.tree.SyntaxKind.ARRAY_TYPE_DESC;
+import static io.ballerina.compiler.syntax.tree.SyntaxKind.QUALIFIED_NAME_REFERENCE;
+import static io.ballerina.compiler.syntax.tree.SyntaxKind.RECORD_FIELD;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.SIMPLE_NAME_REFERENCE;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.TYPE_REFERENCE;
 
 
+/**
+ * This class processes mapping responses between Ballerina and AsyncAPISpec.
+ *
+ * @since 2.0.0
+ */
 public class AsyncAPIResponseMapper {
     private final Location location;
     private final SemanticModel semanticModel;
@@ -42,17 +76,20 @@ public class AsyncAPIResponseMapper {
 
     private final List<AsyncAPIConverterDiagnostic> errors = new ArrayList<>();
 
-    public AsyncAPIResponseMapper(Location location,AsyncAPIComponentMapper componentMapper, SemanticModel semanticModel,AsyncApi25ComponentsImpl components) {
+    public AsyncAPIResponseMapper(Location location, AsyncAPIComponentMapper componentMapper,
+                                  SemanticModel semanticModel
+            , AsyncApi25ComponentsImpl components) {
         this.location = location;
         this.semanticModel = semanticModel;
-        this.componentMapper=componentMapper;
-        this.components=components;
+        this.componentMapper = componentMapper;
+        this.components = components;
     }
 
 
-    public void createResponse( AsyncApi25MessageImpl subscribeMessage, AsyncApi25MessageImpl componentMessage, Node remoteReturnType, String returnDescription) {
+    public void createResponse(AsyncApi25MessageImpl subscribeMessage, AsyncApi25MessageImpl componentMessage,
+                               Node remoteReturnType, String returnDescription) {
         String remoteReturnTypeString = ConverterCommonUtils.unescapeIdentifier(remoteReturnType.toString().trim());
-        ObjectMapper objectMapper=ConverterCommonUtils.callObjectMapper();
+        ObjectMapper objectMapper = ConverterCommonUtils.callObjectMapper();
 
 
         switch (remoteReturnType.kind()) {
@@ -72,22 +109,23 @@ public class AsyncAPIResponseMapper {
 //                } else {
 //                    return Optional.empty();
 //                }
-                AsyncApi25SchemaImpl remoteReturnSchema= getAsyncApiSchema(remoteReturnTypeString);
-                setResponseOfRequest(subscribeMessage,componentMessage,SIMPLE_RPC,returnDescription,objectMapper,remoteReturnSchema);
+                AsyncApi25SchemaImpl remoteReturnSchema = getAsyncApiSchema(remoteReturnTypeString);
+                setResponseOfRequest(subscribeMessage, componentMessage, SIMPLE_RPC, returnDescription, objectMapper,
+                        remoteReturnSchema);
                 break;
-//                setSubscribeResponse(subscribeMessage, componentMessage, remoteReturnTypeString, SIMPLE_RPC, returnDescription);
 
-                //TODO : Edit this after figure out how to do this
-                //FIXME : It may be an object in asyncapi but not sue
+            //TODO : Edit this after figure out how to do this
+            //TODO : It may be an object in asyncapi but not sue
             case JSON_TYPE_DESC:
             case XML_TYPE_DESC:
-                AsyncApi25SchemaImpl jsonSchema= getAsyncApiSchema(AsyncAPIType.OBJECT.toString());
+                AsyncApi25SchemaImpl jsonSchema = getAsyncApiSchema(AsyncAPIType.OBJECT.toString());
                 //TODO : Change this into true after Apicurio team change additionalProperties type into Object type
-                AsyncApi25SchemaImpl additionalPropertyObject=new AsyncApi25SchemaImpl();
+                AsyncApi25SchemaImpl additionalPropertyObject = new AsyncApi25SchemaImpl();
                 jsonSchema.setAdditionalProperties(additionalPropertyObject);
 
                 //TODO : Set this schema into main asyncapi doc
-                setResponseOfRequest(subscribeMessage,componentMessage,SIMPLE_RPC,returnDescription,objectMapper,jsonSchema);
+                setResponseOfRequest(subscribeMessage, componentMessage, SIMPLE_RPC,
+                        returnDescription, objectMapper, jsonSchema);
                 break;
 //
 //                apiResponse.content(new Content().addMediaType(mediaTypeString, mediaType));
@@ -104,19 +142,22 @@ public class AsyncAPIResponseMapper {
 //                return Optional.of(apiResponses);
             case SIMPLE_NAME_REFERENCE:
                 SimpleNameReferenceNode recordNode = (SimpleNameReferenceNode) remoteReturnType;
-                handleReferenceResponse(subscribeMessage,componentMessage,recordNode,returnDescription);
+                handleReferenceResponse(subscribeMessage, componentMessage, recordNode, returnDescription);
                 break;
 
             case UNION_TYPE_DESC:
-                mapUnionReturns(subscribeMessage,componentMessage,(UnionTypeDescriptorNode) remoteReturnType,returnDescription);
+                mapUnionReturns(subscribeMessage, componentMessage,
+                        (UnionTypeDescriptorNode) remoteReturnType, returnDescription);
                 break;
             case RECORD_TYPE_DESC:
                 //TODO : Problem in mapinline record return
-                mapInlineRecordInReturn(subscribeMessage,componentMessage,(RecordTypeDescriptorNode) remoteReturnType,returnDescription);
+                mapInlineRecordInReturn(subscribeMessage, componentMessage,
+                        (RecordTypeDescriptorNode) remoteReturnType, returnDescription);
                 break;
             case ARRAY_TYPE_DESC:
 
-                getApiResponsesForArrayTypes(subscribeMessage,componentMessage,(ArrayTypeDescriptorNode) remoteReturnType,returnDescription);
+                getApiResponsesForArrayTypes(subscribeMessage, componentMessage,
+                        (ArrayTypeDescriptorNode) remoteReturnType, returnDescription);
                 break;
 //            case ERROR_TYPE_DESC:
 //                // Return type is given as error or error? in the ballerina it will generate 500 response.
@@ -126,7 +167,8 @@ public class AsyncAPIResponseMapper {
 //                apiResponses.put(HTTP_500, apiResponse);
 //                return Optional.of(apiResponses);
             case OPTIONAL_TYPE_DESC:
-                createResponse(subscribeMessage,componentMessage,((OptionalTypeDescriptorNode) remoteReturnType).typeDescriptor(),returnDescription);
+                createResponse(subscribeMessage, componentMessage,
+                        ((OptionalTypeDescriptorNode) remoteReturnType).typeDescriptor(), returnDescription);
                 break;
             case MAP_TYPE_DESC:
                 MapTypeDescriptorNode mapNode = (MapTypeDescriptorNode) remoteReturnType;
@@ -135,32 +177,29 @@ public class AsyncAPIResponseMapper {
                 //TODO : I changed this kind to string
                 AsyncApi25SchemaImpl apiSchema = getAsyncApiSchema(mapNode.mapTypeParamsNode().typeNode().kind());
                 objectSchema.setAdditionalProperties(apiSchema);
-                setResponseOfRequest(subscribeMessage,componentMessage,SIMPLE_RPC,returnDescription,objectMapper,objectSchema);
+                setResponseOfRequest(subscribeMessage, componentMessage,
+                        SIMPLE_RPC, returnDescription, objectMapper, objectSchema);
                 break;
 //                return Optional.of(apiResponses);
             case STREAM_TYPE_DESC:
-                if(((StreamTypeDescriptorNode) remoteReturnType).streamTypeParamsNode().isPresent()) {
-                    String remoteReturnStream = ((StreamTypeParamsNode) ((StreamTypeDescriptorNode) remoteReturnType).streamTypeParamsNode().get()).leftTypeDescNode().toString().trim();
+                if (((StreamTypeDescriptorNode) remoteReturnType).streamTypeParamsNode().isPresent()) {
+                    String remoteReturnStream = ((StreamTypeParamsNode) ((StreamTypeDescriptorNode) remoteReturnType).
+                            streamTypeParamsNode().get()).leftTypeDescNode().toString().trim();
 
-                    AsyncApi25SchemaImpl remoteReturnStreamSchema= getAsyncApiSchema(remoteReturnStream);
-                    setResponseOfRequest(subscribeMessage,componentMessage,STREAMING,returnDescription,objectMapper,remoteReturnStreamSchema);
-//                    setSubscribeResponse(subscribeMessage, componentMessage, remoteReturnstreamTypeString, STREAMING, returnDescription);
-                }else {
+                    AsyncApi25SchemaImpl remoteReturnStreamSchema = getAsyncApiSchema(remoteReturnStream);
+                    setResponseOfRequest(subscribeMessage, componentMessage, STREAMING, returnDescription,
+                            objectMapper, remoteReturnStreamSchema);
+                } else {
                     throw new NoSuchElementException(NO_TYPE_IN_STREAM);
                 }
                 break;
 
             case QUALIFIED_NAME_REFERENCE:
-                TypeSymbol qualifiedNameReferenceSymbol=(TypeSymbol) semanticModel.symbol(remoteReturnType).get();
+                TypeSymbol qualifiedNameReferenceSymbol = (TypeSymbol) semanticModel.symbol(remoteReturnType).get();
 
-                handleQualifiedNameTypeReference(subscribeMessage,componentMessage,returnDescription,qualifiedNameReferenceSymbol);
+                handleQualifiedNameTypeReference(subscribeMessage, componentMessage,
+                        returnDescription, qualifiedNameReferenceSymbol);
 
-
-
-
-
-//                handleReferenceResponse(subscribeMessage,componentMessage,reco,returnDescription);
-//                break;
                 break;
 
             default:
@@ -171,40 +210,12 @@ public class AsyncAPIResponseMapper {
                 break;
 
         }
-//
-//        if (remoteReturnType.kind().equals(SyntaxKind.SIMPLE_NAME_REFERENCE)) {
-//            TypeSymbol returnTypeSymbol = (TypeSymbol) semanticModel.symbol(remoteReturnType).orElseThrow();
-//            String remoteReturnTypeName = ConverterCommonUtils.unescapeIdentifier(remoteReturnType.toString());
-//            //Creating return type message reference
-//            AsyncApi25MessageImpl componentReturnMessage = extractMessageSchemaReference(subscribeMessage, remoteReturnTypeName, returnTypeSymbol, subscribeOneOf, dispatcherValue, null);
-//            components.addMessage(remoteReturnTypeName, componentReturnMessage);
-//
-//            ObjectNode messageRefObject = new ObjectNode(JsonNodeFactory.instance);
-//            messageRefObject.put($REF, MESSAGE_REFERENCE + ConverterCommonUtils.unescapeIdentifier(remoteReturnTypeName));
-//            if (returnDescription !=null) {
-//                messageRefObject.put(DESCRIPTION, returnDescription);
-//            }
-//            componentMessage.addExtension(X_RESPONSE, messageRefObject);
-//            componentMessage.addExtension(X_RESPONSE_TYPE, new TextNode(SIMPLE_RPC));
-//        } else if (remoteReturnType.kind().equals(SyntaxKind.STREAM_TYPE_DESC)) {
-//            String remoteReturnstreamTypeString = ((StreamTypeParamsNode) ((StreamTypeDescriptorNode) remoteReturnType).streamTypeParamsNode().get()).leftTypeDescNode().toString().trim();
-//
-//            setSubscribeResponse(subscribeMessage, componentMessage, subscribeOneOf, remoteReturnstreamTypeString, STREAMING, returnDescription);
-//
-//        } else if (remoteReturnType instanceof BuiltinSimpleNameReferenceNode) {
-//            String remoteReturnTypeString = ConverterCommonUtils.unescapeIdentifier(remoteReturnType.toString());
-//
-//            setSubscribeResponse(subscribeMessage, componentMessage, subscribeOneOf, remoteReturnTypeString, SIMPLE_RPC, returnDescription);
-//        }
     }
-//    private void setSubscribeResponse(AsyncApi25MessageImpl subscribeMessage, AsyncApi25MessageImpl componentMessage,  String type, String responseType,String returnDescription) {
-//        ObjectMapper objMapper=ConverterCommonUtils.callObjectMapper();
-//        AsyncApi25SchemaImpl schema= getAsyncApiSchema(type);
-//        setResponseOfRequest(subscribeMessage, componentMessage, responseType, returnDescription, objMapper, schema);
-//    }
 
-
-    private void handleQualifiedNameTypeReference(AsyncApi25MessageImpl subscribeMessage,AsyncApi25MessageImpl componentMessage,String returnDescription,TypeSymbol qualifiedNameReferenceSymbol){
+    private void handleQualifiedNameTypeReference(AsyncApi25MessageImpl subscribeMessage,
+                                                  AsyncApi25MessageImpl componentMessage,
+                                                  String returnDescription,
+                                                  TypeSymbol qualifiedNameReferenceSymbol) {
 //        Symbol symbol=semanticModel.symbol(qualifiedNameReferenceNode).get();
         if (qualifiedNameReferenceSymbol instanceof TypeReferenceTypeSymbol) {
             TypeReferenceTypeSymbol typeRef = (TypeReferenceTypeSymbol) qualifiedNameReferenceSymbol;
@@ -220,16 +231,16 @@ public class AsyncAPIResponseMapper {
                 }
             }
             if (typeSymbol.typeKind() == TypeDescKind.RECORD) {
-                handleRecordTypeSymbol(subscribeMessage,componentMessage,returnDescription,qualifiedNameReferenceSymbol,qualifiedNameReferenceSymbol.getName().get());
-//                ApiResponses responses = handleRecordTypeSymbo(qNode.identifier().text().trim(),
-//                        components.getSchemas(), customMediaPrefix, typeRef, new OpenAPIComponentMapper(components),
-//                        headers);
-//                apiResponses.putAll(responses);
-//                return Optional.of(apiResponses);
+                handleRecordTypeSymbol(subscribeMessage, componentMessage, returnDescription,
+                        qualifiedNameReferenceSymbol,
+                        qualifiedNameReferenceSymbol.getName().get());
             }
         }
     }
-    private void setResponseOfRequest(AsyncApi25MessageImpl subscribeMessage, AsyncApi25MessageImpl componentMessage, String responseType, String returnDescription, ObjectMapper objMapper, AsyncApi25SchemaImpl schema) {
+
+    private void setResponseOfRequest(AsyncApi25MessageImpl subscribeMessage, AsyncApi25MessageImpl componentMessage,
+                                      String responseType, String returnDescription, ObjectMapper objMapper,
+                                      AsyncApi25SchemaImpl schema) {
         //create new oneOf message
         AsyncApi25MessageImpl subscribeOneOf = new AsyncApi25MessageImpl();
 
@@ -240,17 +251,17 @@ public class AsyncAPIResponseMapper {
         setSchemaForOneofSchema(subscribeMessage, subscribeOneOf);
 
         //create message response with its description
-        ObjectNode payloadObject= ConverterCommonUtils.createObjectNode();
-        payloadObject.set(PAYLOAD,objMapper.valueToTree(schema));
+        ObjectNode payloadObject = ConverterCommonUtils.createObjectNode();
+        payloadObject.set(PAYLOAD, objMapper.valueToTree(schema));
 
         //If there exist previous x-response for same request
         Map<String, JsonNode> xResponses = componentMessage.getExtensions();
-        if(xResponses !=null && xResponses.get(X_RESPONSE)!=null) {
+        if (xResponses != null && xResponses.get(X_RESPONSE) != null) {
 
             //Create oneOfSchema
             AsyncApi25MessageImpl oneOfSchema = new AsyncApi25MessageImpl();
 
-            if (xResponses.get(X_RESPONSE).get(PAYLOAD) != null || xResponses.get(X_RESPONSE).get($REF)!=null ) {
+            if (xResponses.get(X_RESPONSE).get(PAYLOAD) != null || xResponses.get(X_RESPONSE).get(REF) != null) {
 
                 setRefPayloadAsOneofSchemaForPreviousOneResponse(componentMessage, oneOfSchema);
 
@@ -273,60 +284,66 @@ public class AsyncAPIResponseMapper {
             }
             //Set the description for oneOfSchema
             setDescriptionAndXResponsesForOneof(componentMessage, returnDescription, objMapper, oneOfSchema);
-        }else{
+        } else {
 
             setDescriptionForOneResponse(returnDescription, payloadObject, componentMessage, responseType);
         }
 
     }
 
-    public AsyncApi25MessageImpl extractMessageSchemaReference(AsyncApi25MessageImpl message, String typeName, TypeSymbol typeSymbol,String dispatcherValue,String paramDescription) {
+    public AsyncApi25MessageImpl extractMessageSchemaReference(AsyncApi25MessageImpl message, String typeName,
+                                                               TypeSymbol typeSymbol, String dispatcherValue,
+                                                               String paramDescription) {
 
         AsyncApi25MessageImpl messageType = new AsyncApi25MessageImpl();
 
         //create Schema
-        componentMapper.createComponentSchema( typeSymbol,dispatcherValue);
+        componentMapper.createComponentSchema(typeSymbol, dispatcherValue);
 
         //create SchemaReference
-        ObjectNode objNode1= ConverterCommonUtils.createObjectNode();
-        objNode1.put($REF,SCHEMA_REFERENCE+ ConverterCommonUtils.unescapeIdentifier(typeName));
+        ObjectNode objNode1 = ConverterCommonUtils.createObjectNode();
+        objNode1.put(REF, SCHEMA_REFERENCE + ConverterCommonUtils.unescapeIdentifier(typeName));
 
         //Set description
-        if(paramDescription!=null) {
+        if (paramDescription != null) {
             objNode1.put(DESCRIPTION, paramDescription);
         }
 
         //create Message
 
-        AsyncApi25MessageImpl componentMessage= new AsyncApi25MessageImpl();
+        AsyncApi25MessageImpl componentMessage = new AsyncApi25MessageImpl();
         componentMessage.setPayload(objNode1);
 
         //create MessageReference
-        messageType.set$ref(MESSAGE_REFERENCE+ ConverterCommonUtils.unescapeIdentifier(typeName));
+        messageType.set$ref(MESSAGE_REFERENCE + ConverterCommonUtils.unescapeIdentifier(typeName));
         setSchemaForOneofSchema(message, messageType);
 
         return componentMessage;
     }
 
-    private void handleReferenceResponse( AsyncApi25MessageImpl subscribeMessage, AsyncApi25MessageImpl componentMessage,SimpleNameReferenceNode referenceNode,String returnDescription) {
+    private void handleReferenceResponse(AsyncApi25MessageImpl subscribeMessage,
+                                         AsyncApi25MessageImpl componentMessage,
+                                         SimpleNameReferenceNode referenceNode,
+                                         String returnDescription) {
         TypeSymbol returnTypeSymbol = (TypeSymbol) semanticModel.symbol(referenceNode).orElseThrow();
         String remoteReturnTypeName = ConverterCommonUtils.unescapeIdentifier(referenceNode.name().toString().trim());
 
         if (referenceNode.parent().kind().equals(ARRAY_TYPE_DESC)) {
 
             //create Schema
-            componentMapper.createComponentSchema(returnTypeSymbol,null);
+            componentMapper.createComponentSchema(returnTypeSymbol, null);
             errors.addAll(componentMapper.getDiagnostics());
 
             //create Message (there is no message reference)
-            ObjectMapper objMapper=ConverterCommonUtils.callObjectMapper();
-            ObjectNode refObjNode= ConverterCommonUtils.createObjectNode();
+            ObjectMapper objMapper = ConverterCommonUtils.callObjectMapper();
+            ObjectNode refObjNode = ConverterCommonUtils.createObjectNode();
 
             //Create schema reference
-            refObjNode.put($REF, SCHEMA_REFERENCE + ConverterCommonUtils.unescapeIdentifier(remoteReturnTypeName));
+            refObjNode.put(REF, SCHEMA_REFERENCE + ConverterCommonUtils.unescapeIdentifier(remoteReturnTypeName));
             AsyncApi25SchemaImpl arraySchema = getAsyncApiSchema(AsyncAPIType.ARRAY.toString());
             arraySchema.setItems(objMapper.valueToTree(refObjNode));
-            setResponseOfRequest(subscribeMessage, componentMessage, SIMPLE_RPC, returnDescription, objMapper, arraySchema);
+            setResponseOfRequest(subscribeMessage, componentMessage, SIMPLE_RPC,
+                    returnDescription, objMapper, arraySchema);
 
 
         } else if (returnTypeSymbol.typeKind() == TypeDescKind.TYPE_REFERENCE) {
@@ -336,13 +353,11 @@ public class AsyncAPIResponseMapper {
 
 //            if (referredTypeSymbol.typeKind() == TypeDescKind.RECORD) {
 //                componentMapper.createComponentSchema(referredTypeSymbol, null);
-            handleRecordTypeSymbol(subscribeMessage, componentMessage, returnDescription, returnTypeSymbol, remoteReturnTypeName);
+            handleRecordTypeSymbol(subscribeMessage, componentMessage, returnDescription,
+                    returnTypeSymbol, remoteReturnTypeName);
 
 
             //handle record for components
-
-
-
 
 
 //            } else if (referredTypeSymbol.typeKind() == TypeDescKind.ERROR) {
@@ -358,40 +373,43 @@ public class AsyncAPIResponseMapper {
 //                setCacheHeader(headers, apiResponse, code.get());
 //                apiResponses.put(code.get(), apiResponse);
             //TODO : Uncomment if there is type reference
-//            } else {
-//                createResponseForTypeReferenceTypeReturns(remoteReturnTypeName,typeReferenceTypeSymbol, componentMapper);
-//            }
+
         }
-        //Check content and status code if it is in 200 range then add the header
-//        operationAdaptor.getOperation().setResponses(apiResponses);
+
     }
 
-    private void handleRecordTypeSymbol(AsyncApi25MessageImpl subscribeMessage, AsyncApi25MessageImpl componentMessage, String returnDescription, TypeSymbol returnTypeSymbol, String remoteReturnTypeName) {
+    private void handleRecordTypeSymbol(AsyncApi25MessageImpl subscribeMessage,
+                                        AsyncApi25MessageImpl componentMessage,
+                                        String returnDescription,
+                                        TypeSymbol returnTypeSymbol,
+                                        String remoteReturnTypeName) {
         //Creating return type message reference
-       if (!(components.getMessages()!=null && components.getMessages().get(remoteReturnTypeName)!=null)){
-           AsyncApi25MessageImpl componentReturnMessage = extractMessageSchemaReference(subscribeMessage, remoteReturnTypeName, returnTypeSymbol, null, null);
-           //add created return message
-           components.addMessage(remoteReturnTypeName, componentReturnMessage);
+        if (!(components.getMessages() != null && components.getMessages().get(remoteReturnTypeName) != null)) {
+            AsyncApi25MessageImpl componentReturnMessage = extractMessageSchemaReference(subscribeMessage,
+                    remoteReturnTypeName, returnTypeSymbol, null, null);
+            //add created return message
+            components.addMessage(remoteReturnTypeName, componentReturnMessage);
 
-       }
+        }
         //set message reference as a x-response of a request
         ObjectNode messageRefObject = ConverterCommonUtils.createObjectNode();
-        messageRefObject.put($REF, MESSAGE_REFERENCE + ConverterCommonUtils.unescapeIdentifier(remoteReturnTypeName));
+        messageRefObject.put(REF, MESSAGE_REFERENCE +
+                ConverterCommonUtils.unescapeIdentifier(remoteReturnTypeName));
 
 
         //If there exist previous x-response for same request then start adding them to a oneOf schema
         Map<String, JsonNode> xResponses = componentMessage.getExtensions();
-        if(xResponses !=null && xResponses.get(X_RESPONSE)!=null){
-            ObjectMapper objMapper=ConverterCommonUtils.callObjectMapper();
+        if (xResponses != null && xResponses.get(X_RESPONSE) != null) {
+            ObjectMapper objMapper = ConverterCommonUtils.callObjectMapper();
             //Create oneOfSchema
             AsyncApi25MessageImpl oneOfSchema = new AsyncApi25MessageImpl();
 
-            if( xResponses.get(X_RESPONSE).get(PAYLOAD) != null || xResponses.get(X_RESPONSE).get($REF)!=null){
+            if (xResponses.get(X_RESPONSE).get(PAYLOAD) != null || xResponses.get(X_RESPONSE).get(REF) != null) {
 
                 setRefPayloadAsOneofSchemaForPreviousOneResponse(componentMessage, oneOfSchema);
 
                 //set newly created x-response to a schema and add it to oneOf section
-                AsyncApi25MessageImpl schemaObject= null;
+                AsyncApi25MessageImpl schemaObject = null;
                 try {
                     schemaObject = objMapper.treeToValue(messageRefObject, AsyncApi25MessageImpl.class);
                 } catch (JsonProcessingException e) {
@@ -401,15 +419,14 @@ public class AsyncAPIResponseMapper {
 
 
                 //If there are more than two responses have
-            } else if (xResponses.get(X_RESPONSE).get(ONEOF)!=null) {
-
+            } else if (xResponses.get(X_RESPONSE).get(ONEOF) != null) {
 
 
                 //Take all previous oneOf responses
                 setRefPayloadAsOneofSchemaForPreviousOneofResponses(componentMessage, oneOfSchema);
 
                 //create schema reference for newly created x-response
-                AsyncApi25MessageImpl schema=new AsyncApi25MessageImpl();
+                AsyncApi25MessageImpl schema = new AsyncApi25MessageImpl();
 
                 //Get newly created x-response and add it to oneOf section of schema object
                 schema.set$ref(MESSAGE_REFERENCE + ConverterCommonUtils.unescapeIdentifier(remoteReturnTypeName));
@@ -420,15 +437,17 @@ public class AsyncAPIResponseMapper {
             //Set the description for oneOfSchema
             setDescriptionAndXResponsesForOneof(componentMessage, returnDescription, objMapper, oneOfSchema);
 
-        }else{
+        } else {
             setDescriptionForOneResponse(returnDescription, messageRefObject, componentMessage, SIMPLE_RPC);
         }
 
     }
 
 
-
-    private void setDescriptionForOneResponse(String returnDescription, ObjectNode messageRefObject, AsyncApi25MessageImpl componentMessage, String simpleRpc) {
+    private void setDescriptionForOneResponse(String returnDescription,
+                                              ObjectNode messageRefObject,
+                                              AsyncApi25MessageImpl componentMessage,
+                                              String simpleRpc) {
         //Set the description
         if (returnDescription != null) {
             messageRefObject.put(DESCRIPTION, returnDescription);
@@ -438,9 +457,10 @@ public class AsyncAPIResponseMapper {
         componentMessage.addExtension(X_RESPONSE_TYPE, new TextNode(simpleRpc));
     }
 
-    private void setDescriptionAndXResponsesForOneof(AsyncApi25MessageImpl componentMessage, String returnDescription, ObjectMapper objMapper, AsyncApi25MessageImpl oneOfSchema) {
+    private void setDescriptionAndXResponsesForOneof(AsyncApi25MessageImpl componentMessage, String returnDescription,
+                                                     ObjectMapper objMapper, AsyncApi25MessageImpl oneOfSchema) {
         //Set the description
-        if(returnDescription !=null) {
+        if (returnDescription != null) {
             oneOfSchema.setDescription(returnDescription);
         }
         //Set x-response and x-response type as extensions to request
@@ -448,30 +468,32 @@ public class AsyncAPIResponseMapper {
         componentMessage.addExtension(X_RESPONSE_TYPE, new TextNode(SIMPLE_RPC));
     }
 
-    private  void setSchemaForOneofSchema(AsyncApi25MessageImpl oneOfSchema, AsyncApi25MessageImpl schema) {
+    private void setSchemaForOneofSchema(AsyncApi25MessageImpl oneOfSchema, AsyncApi25MessageImpl schema) {
         oneOfSchema.addOneOf(schema);
     }
 
-    private void setRefPayloadAsOneofSchemaForPreviousOneofResponses(AsyncApi25MessageImpl componentMessage, AsyncApi25MessageImpl oneOfSchema) {
-        ArrayNode oneOfNode= (ArrayNode) componentMessage.getExtensions().get(X_RESPONSE).get(ONEOF);
+    private void setRefPayloadAsOneofSchemaForPreviousOneofResponses(AsyncApi25MessageImpl componentMessage,
+                                                                     AsyncApi25MessageImpl oneOfSchema) {
+        ArrayNode oneOfNode = (ArrayNode) componentMessage.getExtensions().get(X_RESPONSE).get(ONEOF);
 
 
         //Add all of them into asyncapischema oneOf
         for (int i = 0; i < oneOfNode.size(); i++) {
-            AsyncApi25MessageImpl refSchema=new AsyncApi25MessageImpl();
-            if(oneOfNode.get(i).get(PAYLOAD)!=null) {
+            AsyncApi25MessageImpl refSchema = new AsyncApi25MessageImpl();
+            if (oneOfNode.get(i).get(PAYLOAD) != null) {
                 refSchema.setPayload(oneOfNode.get(i).get(PAYLOAD));
-            } else if (oneOfNode.get(i).get($REF)!=null) {
-                refSchema.set$ref(oneOfNode.get(i).get($REF).asText());
+            } else if (oneOfNode.get(i).get(REF) != null) {
+                refSchema.set$ref(oneOfNode.get(i).get(REF).asText());
             }
             setSchemaForOneofSchema(oneOfSchema, refSchema);
         }
     }
 
-    private void setRefPayloadAsOneofSchemaForPreviousOneResponse(AsyncApi25MessageImpl componentMessage, AsyncApi25MessageImpl oneOfSchema) {
-        if (componentMessage.getExtensions().get(X_RESPONSE).get($REF) != null) {
+    private void setRefPayloadAsOneofSchemaForPreviousOneResponse(AsyncApi25MessageImpl componentMessage,
+                                                                  AsyncApi25MessageImpl oneOfSchema) {
+        if (componentMessage.getExtensions().get(X_RESPONSE).get(REF) != null) {
             //Get existing only one x-response
-            TextNode reference = (TextNode) componentMessage.getExtensions().get(X_RESPONSE).get($REF);
+            TextNode reference = (TextNode) componentMessage.getExtensions().get(X_RESPONSE).get(REF);
 
             //add it to oneOf section
             AsyncApi25MessageImpl testObject = new AsyncApi25MessageImpl();
@@ -479,7 +501,7 @@ public class AsyncAPIResponseMapper {
 
             //add schema into oneOf section
             setSchemaForOneofSchema(oneOfSchema, testObject);
-        }else if(componentMessage.getExtensions().get(X_RESPONSE).get(PAYLOAD) != null ){
+        } else if (componentMessage.getExtensions().get(X_RESPONSE).get(PAYLOAD) != null) {
 
             ObjectNode reference = (ObjectNode) componentMessage.getExtensions().get(X_RESPONSE).get(PAYLOAD);
 
@@ -496,14 +518,15 @@ public class AsyncAPIResponseMapper {
     /**
      * Create API responses when return type is type reference.
      */
-    private void createResponseForTypeReferenceTypeReturns(String referenceName,TypeReferenceTypeSymbol typeReferenceTypeSymbol,AsyncAPIComponentMapper componentMapper) {
+    private void createResponseForTypeReferenceTypeReturns(String referenceName, TypeReferenceTypeSymbol
+            typeReferenceTypeSymbol, AsyncAPIComponentMapper componentMapper) {
 
         TypeSymbol referredTypeSymbol = typeReferenceTypeSymbol.typeDescriptor();
         TypeDescKind typeDescKind = referredTypeSymbol.typeKind();
 
 
         if (referredTypeSymbol.typeKind() == TypeDescKind.INTERSECTION) {
-            List<TypeSymbol> typeSymbols = ((IntersectionTypeSymbol)referredTypeSymbol).memberTypeDescriptors();
+            List<TypeSymbol> typeSymbols = ((IntersectionTypeSymbol) referredTypeSymbol).memberTypeDescriptors();
             for (TypeSymbol symbol : typeSymbols) {
                 if (!(symbol instanceof ReadonlyTypeSymbol)) {
                     referredTypeSymbol = symbol;
@@ -518,7 +541,7 @@ public class AsyncAPIResponseMapper {
 //            createResponsesForErrorsInUnion(unionTypeSymbol).ifPresent(apiResponses::putAll);
 //        }
 
-        componentMapper.createComponentSchema(typeReferenceTypeSymbol,null);
+        componentMapper.createComponentSchema(typeReferenceTypeSymbol, null);
         errors.addAll(componentMapper.getDiagnostics());
 //        media.setSchema(new Schema<>().$ref(ConverterCommonUtils.unescapeIdentifier(referenceName)));
 
@@ -539,29 +562,6 @@ public class AsyncAPIResponseMapper {
 //        return apiResponses;
     }
 
-//    /**
-//     * Create responses when http errors are present in the union type.
-//     *
-//     * @param unionTypeSymbol union type symbol
-//     * @param headers         headers
-//     * @return api responses
-//     */
-//    public Optional<ApiResponses> createResponsesForErrorsInUnion(UnionTypeSymbol unionTypeSymbol) {
-//
-//        for (TypeSymbol memberTypeDescriptor : unionTypeSymbol.memberTypeDescriptors()) {
-//            memberTypeDescriptor.getName().ifPresent(name -> {
-//                if (HTTP_CODES.containsKey(name)) {
-//                    ApiResponse apiResponse = new ApiResponse();
-//                    Optional<String> code = generateApiResponseCode(name);
-//                    apiResponse.description(name);
-//                    setCacheHeader(headers, apiResponse, code.get());
-//                    apiResponses.put(code.get(), apiResponse);
-//                }
-//            });
-//        }
-//        return apiResponses.isEmpty() ? Optional.empty() : Optional.of(apiResponses);
-//    }
-
 
     /**
      * Handle the response has union type.
@@ -574,23 +574,24 @@ public class AsyncAPIResponseMapper {
      *     }
      * </pre>
      */
-    private void mapUnionReturns(AsyncApi25MessageImpl subscribeMessage, AsyncApi25MessageImpl componentMessage,UnionTypeDescriptorNode typeNode,String returnDescription) {
+    private void mapUnionReturns(AsyncApi25MessageImpl subscribeMessage, AsyncApi25MessageImpl componentMessage,
+                                 UnionTypeDescriptorNode typeNode, String returnDescription) {
 
         TypeDescriptorNode rightNode = typeNode.rightTypeDesc();
         TypeDescriptorNode leftNode = typeNode.leftTypeDesc();
         // Handle leftNode because it is main node
-         createResponse(subscribeMessage,componentMessage,leftNode,returnDescription);
+        createResponse(subscribeMessage, componentMessage, leftNode, returnDescription);
         // Handle rest of the union type
         if (rightNode instanceof UnionTypeDescriptorNode) {
             UnionTypeDescriptorNode traversRightNode = (UnionTypeDescriptorNode) rightNode;
             while (traversRightNode.rightTypeDesc() != null) {
                 if (leftNode.kind() == QUALIFIED_NAME_REFERENCE) {
                     leftNode = ((UnionTypeDescriptorNode) rightNode).leftTypeDesc();
-                     createResponse( subscribeMessage,componentMessage,leftNode,returnDescription);
+                    createResponse(subscribeMessage, componentMessage, leftNode, returnDescription);
                 }
             }
         } else {
-            createResponse( subscribeMessage,componentMessage,rightNode,returnDescription);
+            createResponse(subscribeMessage, componentMessage, rightNode, returnDescription);
         }
     }
 
@@ -598,7 +599,8 @@ public class AsyncAPIResponseMapper {
     /**
      * Handle response has inline record as return type.
      */
-    private void mapInlineRecordInReturn(AsyncApi25MessageImpl subscribeMessage, AsyncApi25MessageImpl componentMessage,RecordTypeDescriptorNode typeNode,String returnDescription) {
+    private void mapInlineRecordInReturn(AsyncApi25MessageImpl subscribeMessage, AsyncApi25MessageImpl componentMessage,
+                                         RecordTypeDescriptorNode typeNode, String returnDescription) {
 
         NodeList<Node> fields = typeNode.fields();
         boolean ishttpTypeInclusion = false;
@@ -615,18 +617,14 @@ public class AsyncAPIResponseMapper {
 
         for (Node field : fields) {
 
-            //TODO : Have to implement type inclusion part
+            //TODO : Have to implement type inclusion part uncomment below code if after editing it
 //            if (field.kind() == TYPE_REFERENCE) {
 //                TypeReferenceNode typeFieldNode = (TypeReferenceNode) field;
 //                if (typeFieldNode.typeName().kind() == SIMPLE_NAME_REFERENCE) {
-//                    SimpleNameReferenceNode simpleNameReferenceNode=(SimpleNameReferenceNode) typeFieldNode.typeName();
-//                    TypeSymbol typeSymbol = (TypeSymbol) semanticModel.symbol(simpleNameReferenceNode).orElseThrow();
-//                    componentMapper.createComponentSchema(typeSymbol,null);
-////                    QualifiedNameReferenceNode identifierNode = (QualifiedNameReferenceNode) typeFieldNode.typeName();
-//
-//////                    httpCode = generateApiResponseCode(identifierNode.identifier().text().trim());
-////                    description = identifierNode.identifier().text().trim();
-////                    apiResponse.description(identifierNode.identifier().text().trim());
+//                   SimpleNameReferenceNode simpleNameReferenceNode=(SimpleNameReferenceNode) typeFieldNode.typeName();
+//                   TypeSymbol typeSymbol = (TypeSymbol) semanticModel.symbol(simpleNameReferenceNode).orElseThrow();
+//                   componentMapper.createComponentSchema(typeSymbol,null);
+////                 QualifiedNameReferenceNode identifierNode = (QualifiedNameReferenceNode) typeFieldNode.typeName();
 //                }
 //            }
             if (field.kind() == RECORD_FIELD) {
@@ -634,15 +632,14 @@ public class AsyncAPIResponseMapper {
                 Node type01 = recordField.typeName();
 //        TypeSymbol typeSymbol = (TypeSymbol) semanticModel.symbol(typeNode).orElseThrow();
 
-//        componentMapper.generateObjectSchemaFromRecordFields(null,((RecordTypeSymbol)typeSymbol).fieldDescriptors(),null,null);
                 if (recordField.typeName().kind() == SIMPLE_NAME_REFERENCE) {
                     SimpleNameReferenceNode nameRefNode = (SimpleNameReferenceNode) type01;
                     TypeSymbol typeSymbol = (TypeSymbol) semanticModel.symbol(nameRefNode).orElseThrow();
-                    componentMapper.createComponentSchema(typeSymbol,null);
+                    componentMapper.createComponentSchema(typeSymbol, null);
 ////                    handleReferenceResponse(subscribeMessage,componentMessage,nameRefNode,returnDescription);
                     AsyncApi25SchemaImpl referenceSchema = new AsyncApi25SchemaImpl();
 //
-                    referenceSchema.set$ref(SCHEMA_REFERENCE+ConverterCommonUtils.unescapeIdentifier(
+                    referenceSchema.set$ref(SCHEMA_REFERENCE + ConverterCommonUtils.unescapeIdentifier(
                             recordField.typeName().toString().trim()));
                     inlineSchema.addProperty(recordField.fieldName().text(), referenceSchema);
                 } else {
@@ -655,7 +652,8 @@ public class AsyncAPIResponseMapper {
                 }
             }
         }
-        setResponseOfRequest(subscribeMessage,componentMessage,SIMPLE_RPC,returnDescription,callObjectMapper(),inlineSchema);
+        setResponseOfRequest(subscribeMessage, componentMessage, SIMPLE_RPC,
+                returnDescription, callObjectMapper(), inlineSchema);
 
 //        if (!ishttpTypeInclusion) {
 //            inlineSchema = new ObjectSchema();
@@ -674,13 +672,17 @@ public class AsyncAPIResponseMapper {
     /**
      * Handle return has array types.
      */
-    private void getApiResponsesForArrayTypes(AsyncApi25MessageImpl subscribeMessage, AsyncApi25MessageImpl componentMessage,ArrayTypeDescriptorNode array,String returnDescription) {
+    private void getApiResponsesForArrayTypes(AsyncApi25MessageImpl subscribeMessage,
+                                              AsyncApi25MessageImpl componentMessage,
+                                              ArrayTypeDescriptorNode array,
+                                              String returnDescription) {
 
 
         if (array.memberTypeDesc().kind() == SIMPLE_NAME_REFERENCE) {
-            handleReferenceResponse(subscribeMessage, componentMessage, (SimpleNameReferenceNode) array.memberTypeDesc(), returnDescription);
+            handleReferenceResponse(subscribeMessage, componentMessage,
+                    (SimpleNameReferenceNode) array.memberTypeDesc(), returnDescription);
 
-        //TODO : Not sure yet...  is this like http:request []
+            //TODO : Not sure yet...  is this like http:request []
 //        } else if (array.memberTypeDesc().kind() == QUALIFIED_NAME_REFERENCE) {
 //            Optional<ApiResponses> optionalAPIResponses =
 //                    handleQualifiedNameType((QualifiedNameReferenceNode) array.memberTypeDesc());
@@ -698,15 +700,15 @@ public class AsyncAPIResponseMapper {
 //            if (mimeType.isEmpty()) {
 //                return Optional.empty();
 //            }
-            ObjectMapper objectMapper= ConverterCommonUtils.callObjectMapper();
-            ObjectNode obj=objectMapper.valueToTree(asyncApiSchema);
+            ObjectMapper objectMapper = ConverterCommonUtils.callObjectMapper();
+            ObjectNode obj = objectMapper.valueToTree(asyncApiSchema);
             arraySchema.setItems(obj);
 //            mediaType.setSchema(arraySchema);
-            setResponseOfRequest(subscribeMessage,componentMessage,SIMPLE_RPC,returnDescription,objectMapper,arraySchema);
+            setResponseOfRequest(subscribeMessage, componentMessage,
+                    SIMPLE_RPC, returnDescription, objectMapper, arraySchema);
 
         }
     }
-
 
 
 }

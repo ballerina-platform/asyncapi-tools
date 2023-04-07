@@ -41,9 +41,10 @@ public enum DiagnosticMessages {
             DiagnosticSeverity.ERROR),
     AAS_CONVERTOR_105("AAS_CONVERTOR_105", "Provided AsyncAPI contract contains parsing error(s).",
                       DiagnosticSeverity.ERROR),
-    AAS_CONVERTOR_106("AAS_CONVERTOR_106", "Generated AsyncAPI definition does not contain information " +
-            "for Ballerina type '%s'. ", DiagnosticSeverity.WARNING),
-    AAS_CONVERTER_107("AAS_CONVERTOR_107", "Generated AsyncAPI definition contains parsing error(s)" , DiagnosticSeverity.ERROR),
+    AAS_CONVERTOR_106("AAS_CONVERTOR_106", "Generated AsyncAPI definition does not contain information "
+            + "for Ballerina type '%s'. ", DiagnosticSeverity.WARNING),
+    AAS_CONVERTER_107("AAS_CONVERTOR_107", "Generated AsyncAPI definition contains parsing error(s)",
+            DiagnosticSeverity.ERROR),
     AAS_CONVERTOR_108("AAS_CONVERTOR_108", "Unexpected value: %s", DiagnosticSeverity.ERROR);
 
     private final String code;

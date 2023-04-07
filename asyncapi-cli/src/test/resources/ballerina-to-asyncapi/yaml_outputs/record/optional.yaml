@@ -16,14 +16,12 @@ channels:
   /pet:
     subscribe:
       message:
-        oneOf:
-          - payload:
-              type: integer
-              format: int64
+        payload:
+          type: integer
+          format: int64
     publish:
       message:
-        oneOf:
-          - $ref: '#/components/messages/Link'
+        $ref: '#/components/messages/Link'
     bindings:
       ws:
         bindingVersion: 0.1.0

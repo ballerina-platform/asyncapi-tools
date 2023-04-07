@@ -57,8 +57,8 @@ public class AsyncAPIContractGenerator {
     private SyntaxTree syntaxTree;
     private SemanticModel semanticModel;
     private Project project;
-    private List<AsyncAPIConverterDiagnostic> errors = new ArrayList<>();
-    private PrintStream outStream = System.out;
+    private final List<AsyncAPIConverterDiagnostic> errors = new ArrayList<>();
+    private final PrintStream outStream = System.out;
 
     /**
      * Initialize constructor.
@@ -79,7 +79,7 @@ public class AsyncAPIContractGenerator {
      * @param serviceName Filter the META-INF.services to generate AsyncAPI specification for service with this name.
      */
     public void generateAsyncAPIDefinitionsAllService(Path servicePath, Path outPath, String serviceName,
-                                                  Boolean needJson) {
+                                                      Boolean needJson) {
         // Load project instance for single ballerina file
         project = ProjectLoader.loadProject(servicePath);
         Package packageName = project.currentPackage();

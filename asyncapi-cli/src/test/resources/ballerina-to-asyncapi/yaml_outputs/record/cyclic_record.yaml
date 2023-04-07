@@ -119,8 +119,7 @@ components:
           format: int64
           x-nullable: true
         resError:
-          oneOf:
-            - $ref: '#/components/schemas/ResponseError05'
+          $ref: '#/components/schemas/ResponseError05'
           x-nullable: true
         event:
           type: string

@@ -49,7 +49,7 @@ service class ChatServer{
     #Testing remote description
     # + location - remote above link description
     # + return - remote return description
-    remote function onLocation(websocket:Caller caller, Location location) returns map<string>{
+    remote function onLocation(websocket:Caller caller, Location location) returns map<string>?{
         return Test1;
 
     }

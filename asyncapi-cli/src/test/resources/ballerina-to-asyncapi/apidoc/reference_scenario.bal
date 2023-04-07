@@ -88,6 +88,8 @@ type Reservation record {|
     string startDate;
     # End date in yyyy-mm-dd
     string endDate;
+    # Remote trigger field
+    string event;
 |};
 # Represents a receipt for the reservation
 type ReservationReceipt record {|
@@ -201,7 +203,7 @@ service class ChatServer{
     # + reservationMessage - Reservation representation
     # + return - `ReservationCreated` or ReservationConflict representation
     remote function onPaymentReceipt(websocket:Caller caller,PaymentReceipt reservationMessage)returns ReservationUpdated|ReservationConflict {
-        Reservation reservation= {startDate:"29/03/2023",endDate:"30/03/2023",reserveRooms:[{id:"5",count:5,event:""}]};
+        Reservation reservation= {startDate:"29/03/2023",endDate:"30/03/2023",reserveRooms:[{id:"5",count:5,event:""}],event:""};
         ReservationUpdated updated = updateReservation(reservation);
         return updated;
     }
@@ -296,7 +298,8 @@ function createReservation(Reservation reservation) returns ReservationCreated {
                     }
                 ],
                 startDate: "2021-08-01",
-                endDate: "2021-08-03"
+                endDate: "2021-08-03",
+                event:""
 
             },
             links: [
@@ -342,7 +345,8 @@ function updateReservation(Reservation reservation) returns ReservationUpdated {
                     }
                 ],
                 startDate: "2021-08-01",
-                endDate: "2021-08-03"
+                endDate: "2021-08-03",
+                event: ""
             },
             links: [
                 {

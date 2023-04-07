@@ -18,13 +18,20 @@ channels:
       message:
         oneOf:
           - $ref: '#/components/messages/Locations'
-          - $ref: '#/components/messages/Rooms'
           - $ref: '#/components/messages/ReservationCreated'
           - $ref: '#/components/messages/ReservationConflict'
           - $ref: '#/components/messages/PaymentCreated'
-          - $ref: '#/components/messages/PaymentConflict'
-          - $ref: '#/components/messages/PaymentSuccess'
           - $ref: '#/components/messages/PaymentFault'
+          - payload:
+              type: integer
+              format: int64
+          - payload:
+              type: string
+          - $ref: '#/components/messages/PaymentConflict'
+          - payload:
+              type: object
+              additionalProperties: {}
+          - $ref: '#/components/messages/PaymentSuccess'
     publish:
       message:
         oneOf:
@@ -75,9 +82,9 @@ components:
         category:
           type: string
           enum:
-            - FAMILY
-            - KING
             - DELUXE
+            - KING
+            - FAMILY
           description: Types of rooms available
         capacity:
           type: integer
@@ -89,9 +96,9 @@ components:
         status:
           type: string
           enum:
-            - BOOKED
-            - RESERVED
             - AVAILABLE
+            - RESERVED
+            - BOOKED
           description: Availability of room
         currency:
           type: string
@@ -264,6 +271,13 @@ components:
       properties:
         body:
           $ref: '#/components/schemas/PaymentReceipt'
+    PaymentFault:
+      type: object
+      required:
+        - body
+      properties:
+        body:
+          type: string
     PaymentConflict:
       type: object
       required:
@@ -272,13 +286,6 @@ components:
         body:
           type: string
     PaymentSuccess:
-      type: object
-      required:
-        - body
-      properties:
-        body:
-          type: string
-    PaymentFault:
       type: object
       required:
         - body
@@ -303,7 +310,7 @@ components:
         description: Rooms identification of message
       description: Reperesents Snowpeak room collection resource
       x-response:
-        $ref: '#/components/messages/Rooms'
+        $ref: '#/components/messages/Location'
         description: '`Rooms` representation'
       x-response-type: simple-rpc
     ReservationCreated:
@@ -318,27 +325,41 @@ components:
         description: Reservation representation
       description: Represents Snowpeak reservation resource
       x-response:
-        $ref: '#/components/messages/ReservationConflict'
+        oneOf:
+          - $ref: '#/components/messages/ReservationCreated'
+          - $ref: '#/components/messages/ReservationConflict'
         description: '`ReservationCreated` or ReservationConflict representation'
       x-response-type: simple-rpc
     PaymentCreated:
       payload:
         $ref: '#/components/schemas/PaymentCreated'
+    PaymentFault:
+      payload:
+        $ref: '#/components/schemas/PaymentFault'
     PaymentConflict:
       payload:
         $ref: '#/components/schemas/PaymentConflict'
     PaymentSuccess:
       payload:
         $ref: '#/components/schemas/PaymentSuccess'
-    PaymentFault:
-      payload:
-        $ref: '#/components/schemas/PaymentFault'
     Payment:
       payload:
         $ref: '#/components/schemas/Payment'
         description: Payment representation
       description: Represents Snowpeak payment resource
       x-response:
-        $ref: '#/components/messages/PaymentFault'
+        oneOf:
+          - $ref: '#/components/messages/PaymentCreated'
+          - $ref: '#/components/messages/PaymentFault'
+          - payload:
+              type: integer
+              format: int64
+          - payload:
+              type: string
+          - $ref: '#/components/messages/PaymentConflict'
+          - payload:
+              type: object
+              additionalProperties: {}
+          - $ref: '#/components/messages/PaymentSuccess'
         description: '`PaymentCreated` or `PaymentConflict` representation'
       x-response-type: simple-rpc

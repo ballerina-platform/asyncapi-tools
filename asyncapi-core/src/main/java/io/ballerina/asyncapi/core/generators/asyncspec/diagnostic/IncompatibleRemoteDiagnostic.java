@@ -45,6 +45,14 @@ public class IncompatibleRemoteDiagnostic implements AsyncAPIConverterDiagnostic
     public IncompatibleRemoteDiagnostic(DiagnosticMessages details, Location location) {
         this(details, location, details.getDescription());
     }
+
+    /**
+     * This method is to create message description with args values.
+     */
+    private static String generateDescription(DiagnosticMessages details, Object[] args) {
+        return String.format(details.getDescription(), args);
+    }
+
     @Override
     public String getCode() {
         return code;
@@ -62,12 +70,5 @@ public class IncompatibleRemoteDiagnostic implements AsyncAPIConverterDiagnostic
 
     public Optional<Location> getLocation() {
         return Optional.ofNullable(location);
-    }
-
-    /**
-     *  This method is to create message description with args values.
-     */
-    private static String generateDescription(DiagnosticMessages details, Object[] args) {
-        return String.format(details.getDescription(),args);
     }
 }

@@ -10,7 +10,7 @@ service /payloadV on new websocket:Listener(9090) {
 service class WsService {
     *websocket:Service;
 
-    remote isolated function onSubscribe(websocket:Caller caller, Subscribe data) returns string? {
+    remote isolated function onSubscribe(websocket:Caller caller, Subscribe data) returns string {
         return "Hello World!";
     }
 }

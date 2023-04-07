@@ -23,7 +23,18 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 import io.ballerina.asyncapi.core.generators.asyncspec.model.AsyncApi25SchemaImpl;
 import io.ballerina.asyncapi.core.generators.asyncspec.utils.ConverterCommonUtils;
-import io.ballerina.compiler.syntax.tree.*;
+import io.ballerina.compiler.syntax.tree.AnnotationNode;
+import io.ballerina.compiler.syntax.tree.ArrayTypeDescriptorNode;
+import io.ballerina.compiler.syntax.tree.DefaultableParameterNode;
+import io.ballerina.compiler.syntax.tree.MappingConstructorExpressionNode;
+import io.ballerina.compiler.syntax.tree.MappingFieldNode;
+import io.ballerina.compiler.syntax.tree.Node;
+import io.ballerina.compiler.syntax.tree.NodeList;
+import io.ballerina.compiler.syntax.tree.ParameterNode;
+import io.ballerina.compiler.syntax.tree.RequiredParameterNode;
+import io.ballerina.compiler.syntax.tree.SeparatedNodeList;
+import io.ballerina.compiler.syntax.tree.SpecificFieldNode;
+import io.ballerina.compiler.syntax.tree.SyntaxKind;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -50,11 +61,11 @@ public class AsyncAPIHeaderMapper {
     /**
      * Handle header parameters in ballerina data type.
      *
-     * @param headerParam    -  {@link RequiredParameterNode} type header parameter node
+     * @param headerParam -  {@link RequiredParameterNode} type header parameter node
      */
-    public void setHeaderParameter(RequiredParameterNode headerParam,AsyncApi25SchemaImpl bindingHeaderObject) {
-        String extractedHeaderName= extractHeaderName(headerParam);
-        if(extractedHeaderName!=null) {
+    public void setHeaderParameter(RequiredParameterNode headerParam, AsyncApi25SchemaImpl bindingHeaderObject) {
+        String extractedHeaderName = extractHeaderName(headerParam);
+        if (extractedHeaderName != null) {
             String headerName = unescapeIdentifier(extractedHeaderName);
 
             Node node = headerParam.typeName();
@@ -73,19 +84,21 @@ public class AsyncAPIHeaderMapper {
             if (apiDocs != null && apiDocs.containsKey(headerName)) {
                 headerTypeSchema.setDescription(apiDocs.get(headerName.trim()));
             }
-            completeHeaderParameter(headerName, headerTypeSchema, headerParam.annotations(),
-                    headerParam.typeName(), bindingHeaderObject);
+            completeHeaderParameter(headerName, headerTypeSchema,
+                    headerParam.annotations(), headerParam.typeName(), bindingHeaderObject);
         }
     }
 
     private String extractHeaderName(ParameterNode headerParam) {
         if (headerParam instanceof DefaultableParameterNode) {
             if (((DefaultableParameterNode) headerParam).paramName().isPresent()) {
-                return ((DefaultableParameterNode) headerParam).paramName().get().text().replaceAll("\\\\", "");
+                return ((DefaultableParameterNode) headerParam).paramName().get().text().
+                        replaceAll("\\\\", "");
             }
         }
-        if(((RequiredParameterNode) headerParam).paramName().isPresent()) {
-            return ((RequiredParameterNode) headerParam).paramName().get().text().replaceAll("\\\\", "");
+        if (((RequiredParameterNode) headerParam).paramName().isPresent()) {
+            return ((RequiredParameterNode) headerParam).paramName().get().text().
+                    replaceAll("\\\\", "");
         }
         return null;
     }
@@ -93,20 +106,21 @@ public class AsyncAPIHeaderMapper {
     /**
      * Handle header parameters in ballerina data type.
      *
-     * @param headerParam    -  {@link DefaultableParameterNode} type header parameter node
+     * @param headerParam -  {@link DefaultableParameterNode} type header parameter node
      */
-    public void setHeaderParameter(DefaultableParameterNode headerParam, AsyncApi25SchemaImpl bindingHeaderObject ) {
+    public void setHeaderParameter(DefaultableParameterNode headerParam, AsyncApi25SchemaImpl bindingHeaderObject) {
         String headerName = extractHeaderName(headerParam);
 //        HeaderParameter headerParameter = new HeaderParameter();
         AsyncApi25SchemaImpl headerTypeSchema = ConverterCommonUtils.getAsyncApiSchema(getHeaderType(headerParam));
         String defaultValue = headerParam.expression().toString().trim();
-        if (defaultValue.length() > 1 && defaultValue.charAt(0) == '"' &&
+        if (defaultValue.length() > 1 &&
+                defaultValue.charAt(0) == '"' &&
                 defaultValue.charAt(defaultValue.length() - 1) == '"') {
             defaultValue = defaultValue.substring(1, defaultValue.length() - 1);
         }
         List<SyntaxKind> allowedTypes = new ArrayList<>();
-        allowedTypes.addAll(Arrays.asList(SyntaxKind.STRING_LITERAL, SyntaxKind.NUMERIC_LITERAL,
-                SyntaxKind.BOOLEAN_LITERAL));
+        allowedTypes.addAll(Arrays.asList(SyntaxKind.STRING_LITERAL,
+                SyntaxKind.NUMERIC_LITERAL, SyntaxKind.BOOLEAN_LITERAL));
         if (allowedTypes.contains(headerParam.expression().kind())) {
             headerTypeSchema.setDefault(new TextNode(defaultValue));
         } else if (headerParam.expression().kind() == SyntaxKind.LIST_CONSTRUCTOR) {
@@ -114,13 +128,13 @@ public class AsyncAPIHeaderMapper {
             headerTypeSchema.setDefault(new TextNode(defaultValue));
         }
         if (headerParam.typeName().kind() == SyntaxKind.OPTIONAL_TYPE_DESC) {
-            headerTypeSchema.addExtension(X_NULLABLE,BooleanNode.TRUE);
+            headerTypeSchema.addExtension(X_NULLABLE, BooleanNode.TRUE);
         }
         if (apiDocs != null && apiDocs.containsKey(headerName)) {
             headerTypeSchema.setDescription(apiDocs.get(headerName.trim()));
         }
-        completeHeaderParameter(headerName, headerTypeSchema, headerParam.annotations(),
-                headerParam.typeName(),bindingHeaderObject);
+        completeHeaderParameter(headerName, headerTypeSchema,
+                headerParam.annotations(), headerParam.typeName(), bindingHeaderObject);
     }
 
     /**
@@ -128,17 +142,21 @@ public class AsyncAPIHeaderMapper {
      */
     private String getHeaderType(ParameterNode headerParam) {
         if (headerParam instanceof DefaultableParameterNode) {
-            return ((DefaultableParameterNode) headerParam).typeName().toString().replaceAll("\\?", "").
-                    replaceAll("\\[", "").replaceAll("\\]", "").trim();
+            return ((DefaultableParameterNode) headerParam).typeName().toString().
+                    replaceAll("\\?", "").replaceAll("\\[", "").
+                    replaceAll("\\]", "").trim();
         }
-        return ((RequiredParameterNode) headerParam).typeName().toString().replaceAll("\\?", "").
-                replaceAll("\\[", "").replaceAll("\\]", "").trim();
+        return ((RequiredParameterNode) headerParam).typeName().toString().
+                replaceAll("\\?", "").replaceAll("\\[", "").
+                replaceAll("\\]", "").trim();
     }
 
     /**
      * Assign header values to AsyncApiSpec header parameter.
      */
-    private void completeHeaderParameter(String headerName, AsyncApi25SchemaImpl headerSchema, NodeList<AnnotationNode> annotations, Node node, AsyncApi25SchemaImpl bindingHeaderObject) {
+    private void completeHeaderParameter(String headerName, AsyncApi25SchemaImpl headerSchema,
+                                         NodeList<AnnotationNode> annotations, Node node,
+                                         AsyncApi25SchemaImpl bindingHeaderObject) {
 
         if (!annotations.isEmpty()) {
             AnnotationNode annotationNode = annotations.get(0);
@@ -153,16 +171,16 @@ public class AsyncAPIHeaderMapper {
             if (headerSchema.getDefault() != null) {
                 arraySchema.setDefault(headerSchema.getDefault());
             }
-            ObjectMapper objectMapper= ConverterCommonUtils.callObjectMapper();
-            ObjectNode obj=objectMapper.valueToTree(itemSchema);
+            ObjectMapper objectMapper = ConverterCommonUtils.callObjectMapper();
+            ObjectNode obj = objectMapper.valueToTree(itemSchema);
             arraySchema.setItems(obj);
-            bindingHeaderObject.addProperty(headerName,arraySchema);
+            bindingHeaderObject.addProperty(headerName, arraySchema);
         } else {
-            bindingHeaderObject.addProperty(headerName,headerSchema);
+            bindingHeaderObject.addProperty(headerName, headerSchema);
         }
     }
 
-    private void enableHeaderRequiredOption( Node node, AsyncApi25SchemaImpl headerSchema) {
+    private void enableHeaderRequiredOption(Node node, AsyncApi25SchemaImpl headerSchema) {
         //TODO : After setting treatNilableAsOptional:true then change this also
         if (node.kind() == SyntaxKind.OPTIONAL_TYPE_DESC) {
             headerSchema.addExtension(X_NULLABLE, BooleanNode.TRUE);
@@ -178,15 +196,15 @@ public class AsyncAPIHeaderMapper {
     /**
      * Extract header name from header annotation value.
      *
-     * @param headerName        - Header name
-     * @param annotationNode    - Related annotation for extract details
-     * @return                  - Updated header name
+     * @param headerName     - Header name
+     * @param annotationNode - Related annotation for extract details
+     * @return - Updated header name
      */
     private String getHeaderName(String headerName, AnnotationNode annotationNode) {
         if (annotationNode.annotValue().isPresent()) {
             MappingConstructorExpressionNode fieldNode = annotationNode.annotValue().get();
             SeparatedNodeList<MappingFieldNode> fields = fieldNode.fields();
-            for (MappingFieldNode field: fields) {
+            for (MappingFieldNode field : fields) {
                 SpecificFieldNode sField = (SpecificFieldNode) field;
                 if (sField.fieldName().toString().trim().equals("name") && sField.valueExpr().isPresent()) {
                     return sField.valueExpr().get().toString().trim().replaceAll("\"", "");

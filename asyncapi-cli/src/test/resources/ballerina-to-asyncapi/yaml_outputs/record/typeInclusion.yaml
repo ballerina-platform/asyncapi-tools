@@ -101,13 +101,13 @@ components:
         name:
           type: string
           enum:
-            - trade
-            - ticker
-            - spread
-            - ownTrades
-            - openOrders
-            - ohlc
             - book
+            - ohlc
+            - openOrders
+            - ownTrades
+            - spread
+            - ticker
+            - trade
         token:
           $ref: '#/components/schemas/Token'
         event:

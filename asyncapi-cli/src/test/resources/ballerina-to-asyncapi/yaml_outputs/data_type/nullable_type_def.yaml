@@ -34,6 +34,7 @@ channels:
 components:
   schemas:
     Books:
+      type: object
       additionalProperties:
         type: string
       x-nullable: true

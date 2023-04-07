@@ -21,18 +21,42 @@ package io.ballerina.asyncapi.core.generators.asyncspec.service;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
-import io.apicurio.datamodels.models.asyncapi.v25.*;
-import io.ballerina.asyncapi.core.generators.asyncspec.model.AsyncApi25SchemaImpl;
+import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25BindingImpl;
+import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25ChannelBindingsImpl;
+import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25ChannelItemImpl;
+import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25ComponentsImpl;
+import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25ParameterImpl;
+import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25ParametersImpl;
 import io.ballerina.asyncapi.core.generators.asyncspec.Constants;
 import io.ballerina.asyncapi.core.generators.asyncspec.diagnostic.AsyncAPIConverterDiagnostic;
+import io.ballerina.asyncapi.core.generators.asyncspec.model.AsyncApi25SchemaImpl;
 import io.ballerina.asyncapi.core.generators.asyncspec.utils.ConverterCommonUtils;
 import io.ballerina.compiler.api.SemanticModel;
 import io.ballerina.compiler.api.symbols.TypeSymbol;
-import io.ballerina.compiler.syntax.tree.*;
+import io.ballerina.compiler.syntax.tree.AnnotationNode;
+import io.ballerina.compiler.syntax.tree.DefaultableParameterNode;
+import io.ballerina.compiler.syntax.tree.FunctionDefinitionNode;
+import io.ballerina.compiler.syntax.tree.FunctionSignatureNode;
+import io.ballerina.compiler.syntax.tree.Node;
+import io.ballerina.compiler.syntax.tree.NodeList;
+import io.ballerina.compiler.syntax.tree.ParameterNode;
+import io.ballerina.compiler.syntax.tree.RequiredParameterNode;
+import io.ballerina.compiler.syntax.tree.ResourcePathParameterNode;
+import io.ballerina.compiler.syntax.tree.SeparatedNodeList;
+import io.ballerina.compiler.syntax.tree.SimpleNameReferenceNode;
+import io.ballerina.compiler.syntax.tree.SyntaxKind;
+import io.ballerina.compiler.syntax.tree.TypeDescriptorNode;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 
-import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.*;
+import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.AsyncAPIType;
+import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.BINDING_VERSION;
+import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.BINDING_VERSION_VALUE;
+import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.HEADERS;
+import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.QUERY;
+import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.SCHEMA_REFERENCE;
 
 
 /**
@@ -45,10 +69,6 @@ public class AsyncAPIParameterMapper {
     private final AsyncApi25ComponentsImpl components;
     private final SemanticModel semanticModel;
 
-    public List<AsyncAPIConverterDiagnostic> getErrors() {
-        return errors;
-    }
-
     public AsyncAPIParameterMapper(FunctionDefinitionNode functionDefinitionNode, Map<String, String> apidocs,
                                    AsyncApi25ComponentsImpl components, SemanticModel semanticModel) {
 
@@ -58,6 +78,9 @@ public class AsyncAPIParameterMapper {
         this.semanticModel = semanticModel;
     }
 
+    public List<AsyncAPIConverterDiagnostic> getErrors() {
+        return errors;
+    }
 
     /**
      * Create {@code Parameters} model for asyncAPI operation.
@@ -67,7 +90,7 @@ public class AsyncAPIParameterMapper {
         //Set path parameters
         NodeList<Node> pathParams = functionDefinitionNode.relativeResourcePath();
         if (!pathParams.isEmpty()) {
-            AsyncApi25ParametersImpl pathParameters=createPathParameters(pathParams);
+            AsyncApi25ParametersImpl pathParameters = createPathParameters(pathParams);
             if (!pathParameters.getItems().isEmpty()) {
                 channelItem.setParameters(pathParameters);
             }
@@ -76,17 +99,17 @@ public class AsyncAPIParameterMapper {
         // Set query parameters, headers
         FunctionSignatureNode functionSignature = functionDefinitionNode.functionSignature();
         SeparatedNodeList<ParameterNode> parameterList = functionSignature.parameters();
-        if (!parameterList.isEmpty()){
+        if (!parameterList.isEmpty()) {
             channelItem.setBindings(createQueryParameters(parameterList));
 
         }
     }
 
     private AsyncApi25ChannelBindingsImpl createQueryParameters(SeparatedNodeList<ParameterNode> parameterList) {
-        AsyncApi25ChannelBindingsImpl channelBindings =new AsyncApi25ChannelBindingsImpl();
-        AsyncApi25BindingImpl asyncApi25Binding=new AsyncApi25BindingImpl();
-        AsyncApi25SchemaImpl bindingQueryObject=new AsyncApi25SchemaImpl();
-        AsyncApi25SchemaImpl bindingHeaderObject=new AsyncApi25SchemaImpl();
+        AsyncApi25ChannelBindingsImpl channelBindings = new AsyncApi25ChannelBindingsImpl();
+        AsyncApi25BindingImpl asyncApi25Binding = new AsyncApi25BindingImpl();
+        AsyncApi25SchemaImpl bindingQueryObject = new AsyncApi25SchemaImpl();
+        AsyncApi25SchemaImpl bindingHeaderObject = new AsyncApi25SchemaImpl();
         bindingQueryObject.setType(AsyncAPIType.OBJECT.toString());
         bindingHeaderObject.setType(AsyncAPIType.OBJECT.toString());
         AsyncAPIQueryParameterMapper queryParameterMapper = new AsyncAPIQueryParameterMapper(apidocs, components,
@@ -97,35 +120,35 @@ public class AsyncAPIParameterMapper {
                 if (requiredParameterNode.typeName().kind() != SyntaxKind.QUALIFIED_NAME_REFERENCE &&
                         requiredParameterNode.annotations().isEmpty()) {
 
-                    queryParameterMapper.createQueryParameter(requiredParameterNode,bindingQueryObject);
+                    queryParameterMapper.createQueryParameter(requiredParameterNode, bindingQueryObject);
                 }
                 // Handle header, payload parameter
                 if (requiredParameterNode.typeName() instanceof TypeDescriptorNode &&
                         !requiredParameterNode.annotations().isEmpty()) {
-                    handleHeaderParameters(requiredParameterNode,bindingHeaderObject);
+                    handleHeaderParameters(requiredParameterNode, bindingHeaderObject);
                 }
             } else if (parameterNode.kind() == SyntaxKind.DEFAULTABLE_PARAM) {
                 DefaultableParameterNode defaultableParameterNode = (DefaultableParameterNode) parameterNode;
 //                // Handle header parameter
                 if (defaultableParameterNode.typeName() instanceof TypeDescriptorNode &&
                         !defaultableParameterNode.annotations().isEmpty()) {
-                    handleDefaultableHeaderParameters(defaultableParameterNode,bindingHeaderObject);
+                    handleDefaultableHeaderParameters(defaultableParameterNode, bindingHeaderObject);
                 } else {
 
-                   queryParameterMapper.createQueryParameter(defaultableParameterNode,bindingQueryObject);
+                    queryParameterMapper.createQueryParameter(defaultableParameterNode, bindingQueryObject);
                 }
             }
         }
-        ObjectMapper objectMapper=ConverterCommonUtils.callObjectMapper();
+        ObjectMapper objectMapper = ConverterCommonUtils.callObjectMapper();
 
         TextNode bindingVersion = new TextNode(BINDING_VERSION_VALUE);
-        asyncApi25Binding.addItem(BINDING_VERSION,bindingVersion);
+        asyncApi25Binding.addItem(BINDING_VERSION, bindingVersion);
 
-       if(bindingQueryObject.getProperties()!=null){
+        if (bindingQueryObject.getProperties() != null) {
             ObjectNode queryObj = objectMapper.valueToTree(bindingQueryObject);
             asyncApi25Binding.addItem(QUERY, queryObj);
         }
-        if (bindingHeaderObject.getProperties()!=null) {
+        if (bindingHeaderObject.getProperties() != null) {
             ObjectNode headerObj = objectMapper.valueToTree(bindingHeaderObject);
             asyncApi25Binding.addItem(HEADERS, headerObj);
         }
@@ -139,9 +162,9 @@ public class AsyncAPIParameterMapper {
     /**
      * Map path parameter data to AsyncApiSpec path parameter.
      */
-    private AsyncApi25ParametersImpl createPathParameters( NodeList<Node> pathParams) {
+    private AsyncApi25ParametersImpl createPathParameters(NodeList<Node> pathParams) {
         AsyncApi25ParametersImpl parameters = new AsyncApi25ParametersImpl();
-        for (Node param: pathParams) {
+        for (Node param : pathParams) {
             if (param instanceof ResourcePathParameterNode) {
                 AsyncApi25ParameterImpl pathParameterAAS = new AsyncApi25ParameterImpl();
                 ResourcePathParameterNode pathParam = (ResourcePathParameterNode) param;
@@ -149,9 +172,10 @@ public class AsyncAPIParameterMapper {
                     SimpleNameReferenceNode queryNode = (SimpleNameReferenceNode) pathParam.typeDescriptor();
                     AsyncAPIComponentMapper componentMapper = new AsyncAPIComponentMapper(components);
                     TypeSymbol typeSymbol = (TypeSymbol) semanticModel.symbol(queryNode).orElseThrow();
-                    componentMapper.createComponentSchema(typeSymbol,null);
+                    componentMapper.createComponentSchema(typeSymbol, null);
                     AsyncApi25SchemaImpl schema = new AsyncApi25SchemaImpl();
-                    schema.set$ref(SCHEMA_REFERENCE+ConverterCommonUtils.unescapeIdentifier(queryNode.name().text().trim()));
+                    schema.set$ref(SCHEMA_REFERENCE + ConverterCommonUtils.unescapeIdentifier(queryNode.name().
+                            text().trim()));
                     pathParameterAAS.setSchema(schema);
                 } else {
                     pathParameterAAS.setSchema(ConverterCommonUtils.getAsyncApiSchema(
@@ -165,8 +189,8 @@ public class AsyncAPIParameterMapper {
                 // Set param description
                 //TODO : Do we have to set required:true?
 //                pathParameterAAS.setRequired(true);
-                String parameterItemName=ConverterCommonUtils.unescapeIdentifier(pathParam.paramName().get().text());
-                parameters.addItem(parameterItemName,pathParameterAAS);
+                String parameterItemName = ConverterCommonUtils.unescapeIdentifier(pathParam.paramName().get().text());
+                parameters.addItem(parameterItemName, pathParameterAAS);
             }
         }
         return parameters;
@@ -175,10 +199,11 @@ public class AsyncAPIParameterMapper {
     /**
      * This function for handle the payload and header parameters with annotation @http:Payload, @http:Header.
      */
-    private void handleHeaderParameters(RequiredParameterNode requiredParameterNode, AsyncApi25SchemaImpl bindingHeaderObject) {
+    private void handleHeaderParameters(RequiredParameterNode requiredParameterNode,
+                                        AsyncApi25SchemaImpl bindingHeaderObject) {
 
         NodeList<AnnotationNode> annotations = requiredParameterNode.annotations();
-        for (AnnotationNode annotation: annotations) {
+        for (AnnotationNode annotation : annotations) {
             if ((annotation.annotReference().toString()).trim().equals(Constants.HTTP_HEADER)) {
                 // Handle headers.
                 AsyncAPIHeaderMapper asyncAPIHeaderMapper = new AsyncAPIHeaderMapper(apidocs);
@@ -188,17 +213,17 @@ public class AsyncAPIParameterMapper {
     }
 
     /**
-     * This function for handle the payload and header parameters with annotation @http:Payload, @http:Header.
+     * This function for handle the payload and header parameters with annotation @http:Header.
      */
-    private void handleDefaultableHeaderParameters(DefaultableParameterNode defaultableParameterNode, AsyncApi25SchemaImpl bindingHeaderObject) {
+    private void handleDefaultableHeaderParameters(DefaultableParameterNode defaultableParameterNode,
+                                                   AsyncApi25SchemaImpl bindingHeaderObject) {
         NodeList<AnnotationNode> annotations = defaultableParameterNode.annotations();
-        for (AnnotationNode annotation: annotations) {
+        for (AnnotationNode annotation : annotations) {
             if ((annotation.annotReference().toString()).trim().equals(Constants.HTTP_HEADER)) {
                 // Handle headers.
                 AsyncAPIHeaderMapper asyncAPIHeaderMapper = new AsyncAPIHeaderMapper(apidocs);
-                asyncAPIHeaderMapper.setHeaderParameter(defaultableParameterNode,bindingHeaderObject);
+                asyncAPIHeaderMapper.setHeaderParameter(defaultableParameterNode, bindingHeaderObject);
             }
         }
-//        return parameters;
     }
 }

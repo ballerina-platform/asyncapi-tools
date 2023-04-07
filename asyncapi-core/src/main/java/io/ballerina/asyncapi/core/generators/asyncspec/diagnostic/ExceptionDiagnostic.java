@@ -35,7 +35,7 @@ public class ExceptionDiagnostic implements AsyncAPIConverterDiagnostic {
 
     public ExceptionDiagnostic(String code, String message, Location location, Object... args) {
         this.code = code;
-        this.message = String.format(message,args);
+        this.message = String.format(message, args);
         this.diagnosticSeverity = DiagnosticSeverity.ERROR;
         this.location = location;
     }

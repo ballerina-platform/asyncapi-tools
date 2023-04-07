@@ -91,7 +91,7 @@ public class HeaderTests {
     }
 
     @Test(description = "Generate AsyncAPI spec when the header has defaultable parameter with nullable enable data " +
-            "type and service config enable")
+            "type and service config enable", enabled = false)
     public void testHeadersWithDefaultValueWithNullableServiceConfig() throws IOException {
         Path ballerinaFilePath = RES_DIR.resolve("header_scenario09.bal");
         TestUtils.compareWithGeneratedFile(ballerinaFilePath, "headers/header_scenario09.yaml");

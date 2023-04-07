@@ -16,13 +16,16 @@
 
 package io.ballerina.asyncapi.core.generators.asyncspec.utils;
 
-import java.io.*;
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Locale;
 import java.util.Objects;
-
 
 import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.JSON_EXTENSION;
 import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.YAML_EXTENSION;
@@ -32,6 +35,7 @@ import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.YAML_EXT
  */
 public final class CodegenUtils {
     private static final String LINE_SEPARATOR = System.lineSeparator();
+
     /**
      * Resolves path to write generated implementation source files.
      *
@@ -60,7 +64,7 @@ public final class CodegenUtils {
      * Copy content of a file/directory into another location.
      *
      * @param inputStream stream from which the data is read
-     * @param outStream stream to which the data is written
+     * @param outStream   stream to which the data is written
      * @throws IOException if there is any error while reading from a file or writing to a file
      */
     public static <T extends InputStream, E extends OutputStream> void copyContent(T inputStream, E outStream)
@@ -76,7 +80,7 @@ public final class CodegenUtils {
     /**
      * This method use for checking the duplicate files.
      *
-     * @param outPath     output path for file generated
+     * @param outPath      output path for file generated
      * @param asyncApiName given file name
      * @return file name with duplicate number tag
      */
@@ -106,8 +110,8 @@ public final class CodegenUtils {
     /**
      * This method for setting the file name for generated file.
      *
-     * @param listFiles      generated files
-     * @param fileName       File name
+     * @param listFiles generated files
+     * @param fileName  File name
      */
     private static String setGeneratedFileName(File[] listFiles, String fileName, boolean isJson) {
         int duplicateCount = 0;

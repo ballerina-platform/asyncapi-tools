@@ -78,7 +78,7 @@ public class APIDocTests {
     @Test(description = "Reference scenarios")
     public void testsForReferenceScenario() throws IOException {
         Path ballerinaFilePath = RES_DIR.resolve("apidoc/reference_scenario.bal");
-        TestUtils.compareWithGeneratedFile(ballerinaFilePath, "apidoc/reference.yaml");
+        TestUtils.compareWithGeneratedFile(ballerinaFilePath, "apidoc/reference_scenario.yaml");
     }
 
     @AfterMethod

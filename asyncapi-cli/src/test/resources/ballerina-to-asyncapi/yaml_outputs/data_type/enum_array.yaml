@@ -9,7 +9,7 @@ servers:
     protocolVersion: "13"
     variables:
       server:
-        default: localhost
+        default: ws://localhost
       port:
         default: "9090"
 channels:
@@ -50,11 +50,11 @@ components:
           items:
             type: string
             enum:
-              - PATCH
-              - DELETE
-              - PUT
-              - POST
               - GET
+              - POST
+              - PUT
+              - DELETE
+              - PATCH
         event:
           type: string
           const: Link

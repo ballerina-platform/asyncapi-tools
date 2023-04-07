@@ -18,6 +18,7 @@
 package io.ballerina.asyncapi.core.generators.asyncspec.model;
 
 import java.util.Optional;
+
 import static io.ballerina.asyncapi.core.generators.asyncspec.utils.ConverterCommonUtils.normalizeTitle;
 
 
@@ -32,7 +33,7 @@ public class AsyncAPIInfo {
     private final String contractPath;
 
     public AsyncAPIInfo(AsyncAPIInfoBuilder asyncAPIInfoBuilder) {
-        this.title =asyncAPIInfoBuilder.title;
+        this.title = asyncAPIInfoBuilder.title;
         this.version = asyncAPIInfoBuilder.version;
         this.contractPath = asyncAPIInfoBuilder.contractPath;
     }

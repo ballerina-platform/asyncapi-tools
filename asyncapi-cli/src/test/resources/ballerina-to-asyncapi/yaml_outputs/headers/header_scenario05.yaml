@@ -2,14 +2,12 @@ channels:
   /ping:
     subscribe:
       message:
-        oneOf:
-          - payload:
-              type: integer
-              format: int64
+        payload:
+          type: integer
+          format: int64
     publish:
       message:
-        oneOf:
-          - $ref: '#/components/messages/Subscribe'
+        $ref: '#/components/messages/Subscribe'
     bindings:
       ws:
         bindingVersion: 0.1.0

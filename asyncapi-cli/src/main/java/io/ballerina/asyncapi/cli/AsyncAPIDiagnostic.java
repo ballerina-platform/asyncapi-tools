@@ -46,6 +46,16 @@ public class AsyncAPIDiagnostic extends Diagnostic {
         this.message = MessageFormat.format(diagnosticInfo.messageFormat(), args);
     }
 
+    /**
+     * Rearrange line range with 1 based, since default line range gives 0 based.
+     */
+    static LineRange getOneBasedLineRange(LineRange lineRange) {
+        return LineRange.from(
+                lineRange.filePath(),
+                LinePosition.from(lineRange.startLine().line() + 1, lineRange.startLine().offset() + 1),
+                LinePosition.from(lineRange.endLine().line() + 1, lineRange.endLine().offset() + 1));
+    }
+
     public Location location() {
         return this.location;
     }
@@ -67,15 +77,5 @@ public class AsyncAPIDiagnostic extends Diagnostic {
         LineRange lineRange = getOneBasedLineRange(this.location().lineRange());
         String var10000 = this.diagnosticInfo().severity().toString();
         return var10000 + " [" + lineRange.filePath() + ":" + lineRange + "] " + this.message();
-    }
-
-    /**
-     * Rearrange line range with 1 based, since default line range gives 0 based.
-     */
-    static LineRange getOneBasedLineRange(LineRange lineRange) {
-        return LineRange.from(
-                lineRange.filePath(),
-                LinePosition.from(lineRange.startLine().line() + 1, lineRange.startLine().offset() + 1),
-                LinePosition.from(lineRange.endLine().line() + 1, lineRange.endLine().offset() + 1));
     }
 }

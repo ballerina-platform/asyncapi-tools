@@ -16,15 +16,13 @@ channels:
   /albums/{id}:
     subscribe:
       message:
-        oneOf:
-          - payload:
-              type: array
-              items:
-                $ref: '#/components/schemas/Album'
+        payload:
+          type: array
+          items:
+            $ref: '#/components/schemas/Album'
     publish:
       message:
-        oneOf:
-          - $ref: '#/components/messages/Album'
+        $ref: '#/components/messages/Album'
     parameters:
       id:
         schema:

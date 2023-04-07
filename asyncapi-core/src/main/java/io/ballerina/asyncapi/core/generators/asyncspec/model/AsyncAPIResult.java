@@ -24,11 +24,12 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.fasterxml.jackson.dataformat.yaml.YAMLGenerator;
 import io.apicurio.datamodels.Library;
+import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25Document;
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25DocumentImpl;
 import io.apicurio.datamodels.models.util.JsonUtil;
 import io.ballerina.asyncapi.core.generators.asyncspec.diagnostic.AsyncAPIConverterDiagnostic;
+
 import java.util.List;
-import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25Document;
 import java.util.Optional;
 
 
@@ -39,9 +40,9 @@ import java.util.Optional;
  */
 public class AsyncAPIResult {
 
+    private final List<AsyncAPIConverterDiagnostic> diagnostics;
     private AsyncApi25Document asyncAPI;
     private String serviceName; // added base path for key to definition
-    private final List<AsyncAPIConverterDiagnostic> diagnostics;
 
     /**
      * This constructor is used to store the details that Map of {@code AsyncAPI} objects and diagnostic list.
@@ -59,20 +60,27 @@ public class AsyncAPIResult {
         return Optional.ofNullable(asyncAPI);
     }
 
+    public void setAsyncAPI(AsyncApi25DocumentImpl asyncAPI) {
+        this.asyncAPI = asyncAPI;
+    }
+
     public String getServiceName() {
         return this.serviceName;
     }
 
-    public Optional<String> getYaml() {
+    public void setServiceName(String serviceName) {
+        this.serviceName = serviceName;
+    }
 
-        ObjectNode json=  Library.writeDocument(this.asyncAPI);
+    public Optional<String> getYaml() {
+        ObjectNode json = Library.writeDocument(this.asyncAPI);
         YAMLFactory factory = new YAMLFactory();
         factory.disable(YAMLGenerator.Feature.WRITE_DOC_START_MARKER);
         factory.enable(YAMLGenerator.Feature.MINIMIZE_QUOTES);
         factory.enable(YAMLGenerator.Feature.SPLIT_LINES);
         factory.enable(YAMLGenerator.Feature.ALWAYS_QUOTE_NUMBERS_AS_STRINGS);
 
-        String finalYaml= null;
+        String finalYaml = null;
         try {
             finalYaml = new ObjectMapper(factory).writer(new DefaultPrettyPrinter()).writeValueAsString(json);
         } catch (JsonProcessingException e) {
@@ -82,16 +90,8 @@ public class AsyncAPIResult {
     }
 
     public Optional<String> getJson() {
-        ObjectNode json= Library.writeDocument(this.asyncAPI);
-        String finalJson= JsonUtil.stringify(json);
+        ObjectNode json = Library.writeDocument(this.asyncAPI);
+        String finalJson = JsonUtil.stringify(json);
         return Optional.ofNullable(finalJson);
-    }
-
-    public void setServiceName(String serviceName) {
-        this.serviceName = serviceName;
-    }
-
-    public void setAsyncAPI(AsyncApi25DocumentImpl asyncAPI) {
-        this.asyncAPI = asyncAPI;
     }
 }

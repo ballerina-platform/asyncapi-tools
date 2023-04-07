@@ -29,16 +29,23 @@ import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import io.apicurio.datamodels.Library;
 import io.apicurio.datamodels.models.Schema;
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25Document;
-import io.ballerina.asyncapi.core.generators.asyncspec.model.AsyncApi25SchemaImpl;
 import io.apicurio.datamodels.validation.ValidationProblem;
 import io.ballerina.asyncapi.core.generators.asyncspec.Constants;
-import io.ballerina.compiler.api.SemanticModel;
-import io.ballerina.compiler.api.symbols.*;
-import io.ballerina.compiler.syntax.tree.*;
+import io.ballerina.asyncapi.core.generators.asyncspec.diagnostic.AsyncAPIConverterDiagnostic;
 import io.ballerina.asyncapi.core.generators.asyncspec.diagnostic.DiagnosticMessages;
 import io.ballerina.asyncapi.core.generators.asyncspec.diagnostic.ExceptionDiagnostic;
-import io.ballerina.asyncapi.core.generators.asyncspec.diagnostic.AsyncAPIConverterDiagnostic;
 import io.ballerina.asyncapi.core.generators.asyncspec.model.AsyncAPIResult;
+import io.ballerina.asyncapi.core.generators.asyncspec.model.AsyncApi25SchemaImpl;
+import io.ballerina.compiler.api.SemanticModel;
+import io.ballerina.compiler.api.symbols.ModuleSymbol;
+import io.ballerina.compiler.api.symbols.ServiceDeclarationSymbol;
+import io.ballerina.compiler.api.symbols.Symbol;
+import io.ballerina.compiler.api.symbols.TypeDescKind;
+import io.ballerina.compiler.api.symbols.TypeReferenceTypeSymbol;
+import io.ballerina.compiler.api.symbols.TypeSymbol;
+import io.ballerina.compiler.api.symbols.UnionTypeSymbol;
+import io.ballerina.compiler.syntax.tree.ServiceDeclarationNode;
+import io.ballerina.compiler.syntax.tree.SyntaxKind;
 import io.ballerina.runtime.api.utils.IdentifierUtils;
 import io.ballerina.tools.diagnostics.Diagnostic;
 import io.ballerina.tools.diagnostics.DiagnosticSeverity;
@@ -47,14 +54,27 @@ import io.ballerina.tools.text.LinePosition;
 import io.ballerina.tools.text.LineRange;
 import io.ballerina.tools.text.TextRange;
 import org.apache.commons.io.FilenameUtils;
+
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Locale;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
-import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.*;
+import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.AsyncAPIType;
+import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.BALLERINA;
+import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.HYPHEN;
+import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.JSON_EXTENSION;
+import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.SLASH;
+import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.SPECIAL_CHAR_REGEX;
+import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.UNDERSCORE;
+import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.WEBSOCKET;
+import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.YAML_EXTENSION;
 
 /**
  * Utilities used in Ballerina  to AsyncAPI converter.
@@ -68,7 +88,7 @@ public class ConverterCommonUtils {
      * @return AsyncApi {@link Schema} for type defined by {@code type}
      */
     public static AsyncApi25SchemaImpl getAsyncApiSchema(String type) {
-        AsyncApi25SchemaImpl schema=new AsyncApi25SchemaImpl();
+        AsyncApi25SchemaImpl schema = new AsyncApi25SchemaImpl();
         switch (type) {
             case Constants.STRING:
             case Constants.PLAIN:
@@ -102,20 +122,24 @@ public class ConverterCommonUtils {
                 break;
             case Constants.OBJECT:
                 schema.setType(AsyncAPIType.OBJECT.toString());
+                //TODO: If there are so many types like map<map<json>>, map<map<string>>,
+                // map<map<int>> then those also need to be handle
+                break;
             case Constants.MAP_JSON:
-            case Constants.MAP_STRING: //FIXME: If there are so many types like map<map<json>>, map<map<string>>, map<map<int>> then those also need to be handle
+            case Constants.MAP_STRING:
             case Constants.MAP:
-                AsyncApi25SchemaImpl objectSchema=new AsyncApi25SchemaImpl();
+                AsyncApi25SchemaImpl objectSchema = new AsyncApi25SchemaImpl();
 //                objectSchema.setType(AsyncAPIType.RECORD.toString());
                 schema.setType(AsyncAPIType.OBJECT.toString());
-                //TODO : Have to give an AsyncApi25SchemaImpl object as additionalProperties , It is depend upon ballerina map
+                //TODO : Have to give an AsyncApi25SchemaImpl object as additionalProperties , It is depend
+                // upon ballerina map
                 schema.setAdditionalProperties(objectSchema);
 //                schema.setAdditionalProperties(true);
 //                schema.setAdditionalProperties(true);
 //                schema.additionalProperties(true);
                 break;
             case Constants.X_WWW_FORM_URLENCODED:
-                AsyncApi25SchemaImpl stringSchema=new AsyncApi25SchemaImpl();
+                AsyncApi25SchemaImpl stringSchema = new AsyncApi25SchemaImpl();
                 stringSchema.setType(AsyncAPIType.STRING.toString());
                 schema.setAdditionalProperties(stringSchema);
                 break;
@@ -124,7 +148,7 @@ public class ConverterCommonUtils {
             case Constants.XML:
             case Constants.JSON:
             default:
-                schema = new AsyncApi25SchemaImpl();
+                schema = new AsyncApi25SchemaImpl();  //If json is required
                 break;
         }
         return schema;
@@ -137,7 +161,7 @@ public class ConverterCommonUtils {
      * @return AsyncApi {@link Schema} for type defined by {@code type}
      */
     public static AsyncApi25SchemaImpl getAsyncApiSchema(SyntaxKind type) {
-        AsyncApi25SchemaImpl schema=new AsyncApi25SchemaImpl();
+        AsyncApi25SchemaImpl schema = new AsyncApi25SchemaImpl();
 
         switch (type) {
             case STRING_TYPE_DESC:
@@ -175,24 +199,6 @@ public class ConverterCommonUtils {
         return schema;
     }
 
-
-    /**
-     * This {@code NullLocation} represents the null location allocation for scenarios which has not location.
-     */
-    public static class NullLocation implements Location {
-
-        @Override
-        public LineRange lineRange() {
-            LinePosition from = LinePosition.from(0, 0);
-            return LineRange.from("", from, from);
-        }
-
-        @Override
-        public TextRange textRange() {
-            return TextRange.from(0, 0);
-        }
-    }
-//
     /**
      * Parse and get the {@link AsyncApi25Document} for the given AsyncAPI contract.
      *
@@ -221,11 +227,11 @@ public class ConverterCommonUtils {
             asyncAPIFileContent = Files.readString(contractPath);
         } catch (IOException e) {
             DiagnosticMessages error = DiagnosticMessages.AAS_CONVERTOR_102;
-            ExceptionDiagnostic diagnostic = new ExceptionDiagnostic(error.getCode(), error.getDescription(), null,
-                    e.toString());
+            ExceptionDiagnostic diagnostic = new ExceptionDiagnostic(error.getCode(), error.getDescription(),
+                    null, e.toString());
             diagnostics.add(diagnostic);
         }
-        YAMLFactory factory1=YAMLFactory.builder()
+        YAMLFactory factory1 = YAMLFactory.builder()
                 .enable(StreamReadFeature.STRICT_DUPLICATE_DETECTION)
                 .build();
         new ObjectMapper();
@@ -235,24 +241,26 @@ public class ConverterCommonUtils {
         mapper.configure(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS, false);
         mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 
-        AsyncApi25Document yamldoc=null;
+        AsyncApi25Document yamldoc = null;
         try {
-            ObjectNode yamlNodes= (ObjectNode) mapper.readTree(asyncAPIFileContent);
-            yamldoc= (AsyncApi25Document) Library.readDocument(yamlNodes);
+            ObjectNode yamlNodes = (ObjectNode) mapper.readTree(asyncAPIFileContent);
+            yamldoc = (AsyncApi25Document) Library.readDocument(yamlNodes);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
-        List<ValidationProblem> yamlprob= Library.validate(yamldoc,null);
+        List<ValidationProblem> yamlprob = Library.validate(yamldoc, null);
 
-        if (!yamlprob.isEmpty()){
+        if (!yamlprob.isEmpty()) {
             DiagnosticMessages error = DiagnosticMessages.AAS_CONVERTOR_105;
-            ExceptionDiagnostic diagnostic = new ExceptionDiagnostic(error.getCode(), error.getDescription(), null);
+            ExceptionDiagnostic diagnostic = new ExceptionDiagnostic(error.getCode(), error.getDescription(),
+                    null);
             diagnostics.add(diagnostic);
             return new AsyncAPIResult(null, diagnostics);
         }
-        AsyncApi25Document api =yamldoc;
+        AsyncApi25Document api = yamldoc;
         return new AsyncAPIResult(api, diagnostics);
     }
+//
 
     public static String normalizeTitle(String serviceName) {
         if (serviceName == null) {
@@ -369,7 +377,6 @@ public class ConverterCommonUtils {
         return asyncAPIFileName;
     }
 
-
     public static boolean containErrors(List<Diagnostic> diagnostics) {
         return diagnostics != null && diagnostics.stream().anyMatch(diagnostic ->
                 diagnostic.diagnosticInfo().severity() == DiagnosticSeverity.ERROR);
@@ -384,11 +391,28 @@ public class ConverterCommonUtils {
         return new ObjectNode(JsonNodeFactory.instance);
     }
 
-    public static ObjectMapper callObjectMapper(){
-        ObjectMapper objectMapper= new ObjectMapper();
+    public static ObjectMapper callObjectMapper() {
+        ObjectMapper objectMapper = new ObjectMapper();
 
         objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
         objectMapper.setSerializationInclusion(JsonInclude.Include.NON_DEFAULT);
         return objectMapper;
+    }
+
+    /**
+     * This {@code NullLocation} represents the null location allocation for scenarios which has not location.
+     */
+    public static class NullLocation implements Location {
+
+        @Override
+        public LineRange lineRange() {
+            LinePosition from = LinePosition.from(0, 0);
+            return LineRange.from("", from, from);
+        }
+
+        @Override
+        public TextRange textRange() {
+            return TextRange.from(0, 0);
+        }
     }
 }

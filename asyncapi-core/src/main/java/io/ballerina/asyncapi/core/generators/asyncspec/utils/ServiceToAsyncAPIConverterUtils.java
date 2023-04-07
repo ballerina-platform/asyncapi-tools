@@ -30,13 +30,27 @@ import io.ballerina.asyncapi.core.generators.asyncspec.diagnostic.ExceptionDiagn
 import io.ballerina.asyncapi.core.generators.asyncspec.model.AsyncAPIInfo;
 import io.ballerina.asyncapi.core.generators.asyncspec.model.AsyncAPIResult;
 import io.ballerina.asyncapi.core.generators.asyncspec.service.AsyncAPIEndpointMapper;
-//import io.ballerina.asyncapi.core.generators.asyncspec.service.AsyncAPIServiceMapper;
 import io.ballerina.asyncapi.core.generators.asyncspec.service.AsyncAPIServiceMapper;
 import io.ballerina.compiler.api.SemanticModel;
 import io.ballerina.compiler.api.symbols.ModuleSymbol;
 import io.ballerina.compiler.api.symbols.ServiceDeclarationSymbol;
 import io.ballerina.compiler.api.symbols.Symbol;
-import io.ballerina.compiler.syntax.tree.*;
+import io.ballerina.compiler.syntax.tree.AnnotationNode;
+import io.ballerina.compiler.syntax.tree.ClassDefinitionNode;
+import io.ballerina.compiler.syntax.tree.ExpressionNode;
+import io.ballerina.compiler.syntax.tree.ListenerDeclarationNode;
+import io.ballerina.compiler.syntax.tree.MappingConstructorExpressionNode;
+import io.ballerina.compiler.syntax.tree.MappingFieldNode;
+import io.ballerina.compiler.syntax.tree.MetadataNode;
+import io.ballerina.compiler.syntax.tree.ModulePartNode;
+import io.ballerina.compiler.syntax.tree.Node;
+import io.ballerina.compiler.syntax.tree.NodeList;
+import io.ballerina.compiler.syntax.tree.QualifiedNameReferenceNode;
+import io.ballerina.compiler.syntax.tree.SeparatedNodeList;
+import io.ballerina.compiler.syntax.tree.ServiceDeclarationNode;
+import io.ballerina.compiler.syntax.tree.SpecificFieldNode;
+import io.ballerina.compiler.syntax.tree.SyntaxKind;
+import io.ballerina.compiler.syntax.tree.SyntaxTree;
 import io.ballerina.tools.diagnostics.Location;
 
 import java.io.File;
@@ -44,10 +58,25 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Optional;
 
-import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.*;
-import static io.ballerina.asyncapi.core.generators.asyncspec.utils.ConverterCommonUtils.*;
+import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.ASYNCAPI_ANNOTATION;
+import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.ASYNC_API_VERSION;
+import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.CONTRACT;
+import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.HYPHEN;
+import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.SLASH;
+import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.SPECIAL_CHAR_REGEX;
+import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.TITLE;
+import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.VERSION;
+import static io.ballerina.asyncapi.core.generators.asyncspec.utils.ConverterCommonUtils.containErrors;
+import static io.ballerina.asyncapi.core.generators.asyncspec.utils.ConverterCommonUtils.getAsyncApiFileName;
+import static io.ballerina.asyncapi.core.generators.asyncspec.utils.ConverterCommonUtils.isWebsocketService;
+
 
 /**
  * The ServiceToAsyncAPIConverterUtils provide API for convert ballerina service into asyncAPI specification.
@@ -66,36 +95,38 @@ public class ServiceToAsyncAPIConverterUtils {
      * @param inputPath     - Input file path for resolve the annotation details
      * @return - {@link Map} with asyncAPI definitions for service nodes
      */
-    public static List<AsyncAPIResult> generateAsyncAPISpecDefinition(SyntaxTree syntaxTree, SemanticModel semanticModel,
-                                                              String serviceName, Boolean needJson,
-                                                              Path inputPath) {
+    public static List<AsyncAPIResult> generateAsyncAPISpecDefinition(SyntaxTree syntaxTree,
+                                                                      SemanticModel semanticModel,
+                                                                      String serviceName,
+                                                                      Boolean needJson,
+                                                                      Path inputPath) {
         List<ListenerDeclarationNode> endpoints = new ArrayList<>();
         Map<String, ServiceDeclarationNode> servicesToGenerate = new LinkedHashMap<>();
         List<String> availableService = new ArrayList<>();
         List<AsyncAPIConverterDiagnostic> diagnostics = new ArrayList<>();
         List<AsyncAPIResult> outputs = new ArrayList<>();
-        List<ClassDefinitionNode> classDefinitionNodes =new ArrayList<>();
+        List<ClassDefinitionNode> classDefinitionNodes = new ArrayList<>();
         if (containErrors(semanticModel.diagnostics())) {
             DiagnosticMessages messages = DiagnosticMessages.AAS_CONVERTOR_100;
-            ExceptionDiagnostic error = new ExceptionDiagnostic(messages.getCode(), messages.getDescription(),
-                    null);
+            ExceptionDiagnostic error = new ExceptionDiagnostic(messages.getCode(),
+                    messages.getDescription(), null);
             diagnostics.add(error);
         } else {
             ModulePartNode modulePartNode = syntaxTree.rootNode();
-            extractListenersAndServiceNodes(serviceName, availableService, servicesToGenerate,classDefinitionNodes, modulePartNode,
-                    endpoints, semanticModel);
+            extractListenersAndServiceNodes(serviceName, availableService, servicesToGenerate,
+                    classDefinitionNodes, modulePartNode, endpoints, semanticModel);
             // If there are no META-INF.services found for a given service name.
             if (serviceName != null && servicesToGenerate.isEmpty()) {
                 DiagnosticMessages messages = DiagnosticMessages.AAS_CONVERTOR_101;
-                ExceptionDiagnostic error = new ExceptionDiagnostic(messages.getCode(), messages.getDescription(),
-                        null, serviceName, availableService.toString().trim());
+                ExceptionDiagnostic error = new ExceptionDiagnostic(messages.getCode(),
+                        messages.getDescription(), null, serviceName, availableService.toString().trim());
                 diagnostics.add(error);
             }
             // Generating asyncapi specification for selected META-INF.services
             for (Map.Entry<String, ServiceDeclarationNode> serviceNode : servicesToGenerate.entrySet()) {
                 String asyncApiName = getAsyncApiFileName(syntaxTree.filePath(), serviceNode.getKey(), needJson);
-                AsyncAPIResult asyncAPIDefinition = generateAsyncApiSpec(serviceNode.getValue(), endpoints,classDefinitionNodes, semanticModel, asyncApiName,
-                        inputPath);
+                AsyncAPIResult asyncAPIDefinition = generateAsyncApiSpec(serviceNode.getValue(),
+                        endpoints, classDefinitionNodes, semanticModel, asyncApiName, inputPath);
                 asyncAPIDefinition.setServiceName(asyncApiName);
                 outputs.add(asyncAPIDefinition);
             }
@@ -111,7 +142,8 @@ public class ServiceToAsyncAPIConverterUtils {
      * Filter all the end points and service nodes.
      */
     private static void extractListenersAndServiceNodes(String serviceName, List<String> availableService,
-                                                        Map<String, ServiceDeclarationNode> servicesToGenerate, List<ClassDefinitionNode>classDefinitionNodes,
+                                                        Map<String, ServiceDeclarationNode> servicesToGenerate,
+                                                        List<ClassDefinitionNode> classDefinitionNodes,
                                                         ModulePartNode modulePartNode,
                                                         List<ListenerDeclarationNode> endpoints,
                                                         SemanticModel semanticModel) {
@@ -121,8 +153,7 @@ public class ServiceToAsyncAPIConverterUtils {
             if (syntaxKind.equals(SyntaxKind.LISTENER_DECLARATION)) {
                 ListenerDeclarationNode listener = (ListenerDeclarationNode) node;
                 endpoints.add(listener);
-            }
-            else if (syntaxKind.equals(SyntaxKind.SERVICE_DECLARATION)) {
+            } else if (syntaxKind.equals(SyntaxKind.SERVICE_DECLARATION)) {
                 ServiceDeclarationNode serviceNode = (ServiceDeclarationNode) node;
                 if (isWebsocketService(serviceNode, semanticModel)) {
                     // Here check the service is related to the http
@@ -164,12 +195,9 @@ public class ServiceToAsyncAPIConverterUtils {
                         }
                     }
                 }
-            }
-            else if (syntaxKind.equals(SyntaxKind.CLASS_DEFINITION)){
+            } else if (syntaxKind.equals(SyntaxKind.CLASS_DEFINITION)) {
                 ClassDefinitionNode serviceNode = (ClassDefinitionNode) node;
                 classDefinitionNodes.add(serviceNode);
-
-
             }
         }
     }
@@ -179,19 +207,21 @@ public class ServiceToAsyncAPIConverterUtils {
      * Provides an instance of {@code AsyncAPIResult}, which contains the generated contract as well as
      * all the diagnostics information.
      *
-     * @param serviceDefinition     Service Node related to ballerina service
-     * @param endpoints             Listener endpoints that bind to service
-     * @param semanticModel         Semantic model for given ballerina file
-     * @param asyncApiFileName      AsyncAPI file name
-     * @param ballerinaFilePath     Input ballerina file Path
+     * @param serviceDefinition Service Node related to ballerina service
+     * @param endpoints         Listener endpoints that bind to service
+     * @param semanticModel     Semantic model for given ballerina file
+     * @param asyncApiFileName  AsyncAPI file name
+     * @param ballerinaFilePath Input ballerina file Path
      * @return {@code AsyncAPIResult}
      */
     public static AsyncAPIResult generateAsyncApiSpec(ServiceDeclarationNode serviceDefinition,
-                                        List<ListenerDeclarationNode> endpoints,List<ClassDefinitionNode> classDefinitionNodes, SemanticModel semanticModel,
-                                        String asyncApiFileName, Path ballerinaFilePath) {
+                                                      List<ListenerDeclarationNode> endpoints,
+                                                      List<ClassDefinitionNode> classDefinitionNodes,
+                                                      SemanticModel semanticModel, String asyncApiFileName,
+                                                      Path ballerinaFilePath) {
         // 01.Fill the asyncAPI info section
-        AsyncAPIResult asyncApiResult = fillAsyncAPIInfoSection(serviceDefinition, semanticModel, asyncApiFileName,
-                ballerinaFilePath);
+        AsyncAPIResult asyncApiResult = fillAsyncAPIInfoSection(serviceDefinition, semanticModel,
+                asyncApiFileName, ballerinaFilePath);
         if (asyncApiResult.getAsyncAPI().isPresent() && asyncApiResult.getDiagnostics().isEmpty()) {
             AsyncApi25DocumentImpl asyncapi = (AsyncApi25DocumentImpl) asyncApiResult.getAsyncAPI().get();
             if (asyncapi.getChannels() == null) {
@@ -201,16 +231,18 @@ public class ServiceToAsyncAPIConverterUtils {
                 asyncapi = AsyncAPIEndpointMapper.ENDPOINT_MAPPER.getServers(asyncapi, endpoints, serviceDefinition);
                 // 03. Filter path and component sections in AsyncAPISpec.
 //                 Generate asyncApi string for the mentioned service name.
-                asyncapi = asyncAPIServiceMapper.convertServiceToAsyncAPI(serviceDefinition,classDefinitionNodes, asyncapi);
-                List<ValidationProblem> modelProblems=Library.validate(asyncapi,null);
-                if (!(modelProblems.isEmpty())){
-                    List<AsyncAPIConverterDiagnostic>diagnostics=asyncAPIServiceMapper.getErrors();
+                asyncapi = asyncAPIServiceMapper.convertServiceToAsyncAPI(serviceDefinition,
+                        classDefinitionNodes, asyncapi);
+                List<ValidationProblem> modelProblems = Library.validate(asyncapi, null);
+                if (!(modelProblems.isEmpty())) {
+                    List<AsyncAPIConverterDiagnostic> diagnostics = asyncAPIServiceMapper.getErrors();
                     DiagnosticMessages error = DiagnosticMessages.AAS_CONVERTER_107;
-                    ExceptionDiagnostic diagnostic = new ExceptionDiagnostic(error.getCode(), error.getDescription(), null);
+                    ExceptionDiagnostic diagnostic = new ExceptionDiagnostic(error.getCode(),
+                            error.getDescription(), null);
                     diagnostics.add(diagnostic);
                     return new AsyncAPIResult(null, diagnostics);
 
-                }else{
+                } else {
                     return new AsyncAPIResult(asyncapi, asyncAPIServiceMapper.getErrors());
                 }
             } else {
@@ -223,7 +255,7 @@ public class ServiceToAsyncAPIConverterUtils {
 
     /**
      * This function is for completing the AsyncAPI info section with package details and annotation details.
-     *
+     * <p>
      * First check the given service node has metadata with annotation details with `asyncapi:serviceInfo`,
      * if it is there, then {@link #parseServiceInfoAnnotationAttachmentDetails(List, AnnotationNode, Path)}
      * function extracts the annotation details and store details in {@code AsyncAPIInfo} model using
@@ -235,17 +267,18 @@ public class ServiceToAsyncAPIConverterUtils {
      * After completing these two process we normalized the AsyncAPI specification by checking all the info
      * details are completed, if in case not completed, we complete empty fields with default values.
      *
-     * @param serviceNode   Service node for relevant service.
-     * @param semanticModel Semantic model for relevant project.
-     * @param asyncApiFileName AsyncAPI generated file name.
+     * @param serviceNode       Service node for relevant service.
+     * @param semanticModel     Semantic model for relevant project.
+     * @param asyncApiFileName  AsyncAPI generated file name.
      * @param ballerinaFilePath Ballerina file path.
      * @return {@code AsyncAPIResult}
      */
-    private static AsyncAPIResult fillAsyncAPIInfoSection(ServiceDeclarationNode serviceNode, SemanticModel semanticModel,
-                                                          String asyncApiFileName, Path ballerinaFilePath) {
+    private static AsyncAPIResult fillAsyncAPIInfoSection(ServiceDeclarationNode serviceNode,
+                                                          SemanticModel semanticModel, String asyncApiFileName,
+                                                          Path ballerinaFilePath) {
         Optional<MetadataNode> metadata = serviceNode.metadata();
         List<AsyncAPIConverterDiagnostic> diagnostics = new ArrayList<>();
-        AsyncApi25Document asyncAPI=(AsyncApi25Document) Library.createDocument(ModelType.ASYNCAPI25);
+        AsyncApi25Document asyncAPI = (AsyncApi25Document) Library.createDocument(ModelType.ASYNCAPI25);
         asyncAPI.setAsyncapi(ASYNC_API_VERSION);
         String currentServiceName = AsyncAPIEndpointMapper.ENDPOINT_MAPPER.getServiceBasePath(serviceNode);
         // 01. Set asyncAPI inFo section with package details
@@ -258,10 +291,10 @@ public class ServiceToAsyncAPIConverterUtils {
                     QualifiedNameReferenceNode ref = (QualifiedNameReferenceNode) annotation.annotReference();
                     String annotationName = ref.modulePrefix().text() + ":" + ref.identifier().text();
                     //TODO : This asyncApi annotation part not yet implemented
-                    //FIXME: Create annotation and push it to ballerina central
+                    // Create annotation and push it to ballerina central
                     if (annotationName.equals(ASYNCAPI_ANNOTATION)) {
-                        AsyncAPIResult asyncApiResult = parseServiceInfoAnnotationAttachmentDetails(diagnostics, annotation,
-                                ballerinaFilePath);
+                        AsyncAPIResult asyncApiResult = parseServiceInfoAnnotationAttachmentDetails(diagnostics,
+                                annotation, ballerinaFilePath);
                         return normalizeInfoSection(asyncApiFileName, currentServiceName, version, asyncApiResult);
                     } else {
                         Info info = asyncAPI.createInfo();
@@ -287,8 +320,8 @@ public class ServiceToAsyncAPIConverterUtils {
     }
 
     // Finalize the asyncAPI info section
-    private static AsyncAPIResult normalizeInfoSection(String asyncApiFileName, String currentServiceName, String version,
-                                          AsyncAPIResult asyncApiResult) {
+    private static AsyncAPIResult normalizeInfoSection(String asyncApiFileName, String currentServiceName,
+                                                       String version, AsyncAPIResult asyncApiResult) {
         if (asyncApiResult.getAsyncAPI().isPresent()) {
             AsyncApi25Document asyncAPI = asyncApiResult.getAsyncAPI().get();
             if (asyncAPI.getInfo() == null) {
@@ -343,13 +376,14 @@ public class ServiceToAsyncAPIConverterUtils {
                     if (piece.isBlank()) {
                         continue;
                     }
-                    stringBuilder.append(piece.substring(0, 1).toUpperCase(Locale.ENGLISH)).append(piece.substring(1));
+                    stringBuilder.append(piece.substring(0, 1).toUpperCase(Locale.ENGLISH)).
+                            append(piece.substring(1));
                     stringBuilder.append(" ");
                 }
                 title = stringBuilder.toString().trim();
             } else if (splits.length == 1 && !splits[0].isBlank()) {
-                stringBuilder.append(splits[0].substring(0, 1).toUpperCase(Locale.ENGLISH))
-                        .append(splits[0].substring(1));
+                stringBuilder.append(splits[0].substring(0, 1).toUpperCase(Locale.ENGLISH)).
+                        append(splits[0].substring(1));
                 title = stringBuilder.toString().trim();
             }
             return title;
@@ -358,39 +392,36 @@ public class ServiceToAsyncAPIConverterUtils {
     }
 
     // Set annotation details  for info section.
-    private static AsyncAPIResult parseServiceInfoAnnotationAttachmentDetails(List<AsyncAPIConverterDiagnostic> diagnostics,
-                                                                         AnnotationNode annotation,
-                                                                         Path ballerinaFilePath) {
+    private static AsyncAPIResult parseServiceInfoAnnotationAttachmentDetails(
+            List<AsyncAPIConverterDiagnostic> diagnostics, AnnotationNode annotation, Path ballerinaFilePath) {
         Location location = annotation.location();
-        AsyncApi25Document asyncAPI=(AsyncApi25Document) Library.createDocument(ModelType.ASYNCAPI25);
+        AsyncApi25Document asyncAPI = (AsyncApi25Document) Library.createDocument(ModelType.ASYNCAPI25);
         asyncAPI.setAsyncapi(ASYNC_API_VERSION);
         Optional<MappingConstructorExpressionNode> content = annotation.annotValue();
         // If contract path there
         if (content.isPresent()) {
-           SeparatedNodeList<MappingFieldNode> fields = content.get().fields();
-           if (!fields.isEmpty()) {
-               AsyncAPIInfo asyncAPIInfo = updateAsyncAPIInfoModel(fields);
-               // If in case ballerina file path is getting null, then asyncAPI specification will be generated for
-               // given META-INF.services.
-               if (asyncAPIInfo.getContractPath().isPresent() && ballerinaFilePath != null) {
-                   return updateExistingContractAsyncAPI(diagnostics, location, asyncAPIInfo, ballerinaFilePath);
-               } else if (asyncAPIInfo.getTitle().isPresent() && asyncAPIInfo.getVersion().isPresent()) {
-                   Info info = asyncAPI.createInfo();
-                   info.setVersion(asyncAPIInfo.getVersion().get());
-                   info.setTitle(normalizeTitle
-                           (asyncAPIInfo.getTitle().get()));
-                   asyncAPI.setInfo(info);
-               } else if (asyncAPIInfo.getVersion().isPresent()) {
-                   Info info = asyncAPI.createInfo();
-                   info.setVersion(asyncAPIInfo.getVersion().get());
-                   asyncAPI.setInfo(info);
-               } else if (asyncAPIInfo.getTitle().isPresent()) {
-                   Info info = asyncAPI.createInfo();
-                   info.setTitle(normalizeTitle(
-                           asyncAPIInfo.getTitle().get()));
-                   asyncAPI.setInfo(info);
-               }
-           }
+            SeparatedNodeList<MappingFieldNode> fields = content.get().fields();
+            if (!fields.isEmpty()) {
+                AsyncAPIInfo asyncAPIInfo = updateAsyncAPIInfoModel(fields);
+                // If in case ballerina file path is getting null, then asyncAPI specification will be generated for
+                // given META-INF.services.
+                if (asyncAPIInfo.getContractPath().isPresent() && ballerinaFilePath != null) {
+                    return updateExistingContractAsyncAPI(diagnostics, location, asyncAPIInfo, ballerinaFilePath);
+                } else if (asyncAPIInfo.getTitle().isPresent() && asyncAPIInfo.getVersion().isPresent()) {
+                    Info info = asyncAPI.createInfo();
+                    info.setVersion(asyncAPIInfo.getVersion().get());
+                    info.setTitle(normalizeTitle(asyncAPIInfo.getTitle().get()));
+                    asyncAPI.setInfo(info);
+                } else if (asyncAPIInfo.getVersion().isPresent()) {
+                    Info info = asyncAPI.createInfo();
+                    info.setVersion(asyncAPIInfo.getVersion().get());
+                    asyncAPI.setInfo(info);
+                } else if (asyncAPIInfo.getTitle().isPresent()) {
+                    Info info = asyncAPI.createInfo();
+                    info.setTitle(normalizeTitle(asyncAPIInfo.getTitle().get()));
+                    asyncAPI.setInfo(info);
+                }
+            }
         }
         return new AsyncAPIResult(asyncAPI, diagnostics);
     }
@@ -424,7 +455,7 @@ public class ServiceToAsyncAPIConverterUtils {
 
     private static AsyncAPIInfo updateAsyncAPIInfoModel(SeparatedNodeList<MappingFieldNode> fields) {
         AsyncAPIInfo.AsyncAPIInfoBuilder infoBuilder = new AsyncAPIInfo.AsyncAPIInfoBuilder();
-        for (MappingFieldNode field: fields) {
+        for (MappingFieldNode field : fields) {
             String fieldName = ((SpecificFieldNode) field).fieldName().toString().trim();
             Optional<ExpressionNode> value = ((SpecificFieldNode) field).valueExpr();
             String fieldValue;
@@ -452,16 +483,17 @@ public class ServiceToAsyncAPIConverterUtils {
         }
         return infoBuilder.build();
     }
+
     private static AsyncAPIResult resolveContractPath(List<AsyncAPIConverterDiagnostic> diagnostics, Location location,
-                                     AsyncAPIInfo asyncAPIInfo, Path ballerinaFilePath) {
+                                                      AsyncAPIInfo asyncAPIInfo, Path ballerinaFilePath) {
         AsyncAPIResult asyncApiResult;
         AsyncApi25Document asyncApi = null;
-        Path asyncApiPath = Paths.get(asyncAPIInfo.getContractPath().get().replaceAll("\"", "").trim());
+        Path asyncApiPath = Paths.get(asyncAPIInfo.getContractPath().get().
+                replaceAll("\"", "").trim());
         Path relativePath = null;
         if (asyncApiPath.toString().trim().isBlank()) {
             DiagnosticMessages error = DiagnosticMessages.AAS_CONVERTOR_103;
-            ExceptionDiagnostic diagnostic = new ExceptionDiagnostic(error.getCode(),
-                    error.getDescription(), location);
+            ExceptionDiagnostic diagnostic = new ExceptionDiagnostic(error.getCode(), error.getDescription(), location);
             diagnostics.add(diagnostic);
         } else {
             Path path = Paths.get(asyncApiPath.toString());
@@ -475,8 +507,8 @@ public class ServiceToAsyncAPIConverterUtils {
                     relativePath = Paths.get(asyncApiContract.getCanonicalPath());
                 } catch (IOException e) {
                     DiagnosticMessages error = DiagnosticMessages.AAS_CONVERTOR_102;
-                    ExceptionDiagnostic diagnostic = new ExceptionDiagnostic(error.getCode()
-                            , error.getDescription(), location, e.toString());
+                    ExceptionDiagnostic diagnostic = new ExceptionDiagnostic(error.getCode(),
+                            error.getDescription(), location, e.toString());
                     diagnostics.add(diagnostic);
                 }
             }
@@ -484,7 +516,7 @@ public class ServiceToAsyncAPIConverterUtils {
         if (relativePath != null && Files.exists(relativePath)) {
             asyncApiResult = ConverterCommonUtils.parseAsyncAPIFile(relativePath.toString());
             if (asyncApiResult.getAsyncAPI().isPresent()) {
-                asyncApi= asyncApiResult.getAsyncAPI().get();
+                asyncApi = asyncApiResult.getAsyncAPI().get();
             }
             diagnostics.addAll(asyncApiResult.getDiagnostics());
         }

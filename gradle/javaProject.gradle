@@ -75,7 +75,7 @@ tasks.withType(JavaCompile).configureEach {
 }
 
 jacoco {
-    toolVersion = "0.8.8"
+    toolVersion = "0.8.6"
 }
 
 test {
@@ -97,18 +97,18 @@ test {
 
 //TODO: uncomment this after figure out how to println every failures using spot bugs
 
-//tasks.register("validateSpotbugs") {
-//    doLast {
-//        if (spotbugsMain.reports.size() > 0 &&
-//                spotbugsMain.reports[0].outputLocation != null && spotbugsMain.reports[0].outputLocation.exists() &&
-//                spotbugsMain.reports[0].outputLocation.text.readLines().size() > 0) {
-//            spotbugsMain.reports[0].outputLocation?.eachLine {
-//                println 'Failure: ' + it
-//            }
-//            throw new GradleException("Spotbugs rule violations were found.")
-//        }
-//    }
-//}
+tasks.register("validateSpotbugs") {
+    doLast {
+        if (spotbugsMain.reports.size() > 0 &&
+                spotbugsMain.reports[0].outputLocation.exists() &&
+                spotbugsMain.reports[0].outputLocation.text.readLines().size() > 0) {
+            spotbugsMain.reports[0].outputLocation?.eachLine {
+                println 'Failure: ' + it
+            }
+            throw new GradleException("Spotbugs rule violations were found.")
+        }
+    }
+}
 
 
 checkstyle {
@@ -141,6 +141,6 @@ jacocoTestReport {
     }
 }
 
-//spotbugsMain.finalizedBy validateSpotbugs
+spotbugsMain.finalizedBy validateSpotbugs
 checkstyleMain.dependsOn(":config:checkstyle:downloadMultipleFiles")
 

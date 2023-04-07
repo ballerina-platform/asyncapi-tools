@@ -16,12 +16,10 @@ channels:
   /pet:
     subscribe:
       message:
-        oneOf:
-          - $ref: '#/components/messages/Cat'
+        $ref: '#/components/messages/Cat'
     publish:
       message:
-        oneOf:
-          - $ref: '#/components/messages/Dog'
+        $ref: '#/components/messages/Dog'
     bindings:
       ws:
         bindingVersion: 0.1.0
@@ -45,7 +43,6 @@ components:
           type: string
         testing:
           type: string
-          const: Cat
     Link:
       type: object
       required:

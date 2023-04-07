@@ -14,10 +14,15 @@ servers:
         default: "9090"
 channels:
   /locations/{id}:
+    subscribe:
+      message:
+        payload:
+          type: object
+          additionalProperties:
+            type: string
     publish:
       message:
-        oneOf:
-          - $ref: '#/components/messages/Location'
+        $ref: '#/components/messages/Location'
     parameters:
       id:
         schema:
@@ -115,3 +120,10 @@ components:
         $ref: '#/components/schemas/Location'
         description: remote above link description
       description: Testing remote description
+      x-response:
+        payload:
+          type: object
+          additionalProperties:
+            type: string
+        description: remote return description
+      x-response-type: simple-rpc
