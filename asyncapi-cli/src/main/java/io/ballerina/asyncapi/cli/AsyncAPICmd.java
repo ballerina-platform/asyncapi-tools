@@ -39,11 +39,11 @@ import static io.ballerina.asyncapi.cli.CmdConstants.BAL_EXTENSION;
  * generation.
  */
 @CommandLine.Command(
-        name = "asyncapi",
+        name = "asyncapi1",
         description = "Generates AsyncAPI contract for Ballerina Service."
 )
 public class AsyncAPICmd implements BLauncherCmd {
-    private static final String CMD_NAME = "asyncapi";
+    private static final String CMD_NAME = "asyncapi1";
 
     private PrintStream outStream;
     private Path executionPath = Paths.get(System.getProperty("user.dir"));
