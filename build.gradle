@@ -15,12 +15,16 @@
  * limitations under the License.
  *
  */
+
+
+
+
 plugins {
     id "base"
     id 'maven-publish'
     id "com.github.spotbugs" version "4.0.5"
     id "de.undercouch.download" version "4.0.4"
-//    id "com.github.johnrengelman.shadow" version "5.2.0"
+    id "com.github.johnrengelman.shadow" version "5.2.0"
     id 'org.javamodularity.moduleplugin' version '1.7.0' apply false
 
 }
@@ -30,6 +34,9 @@ apply plugin: "com.github.spotbugs"
 apply plugin: 'jacoco'
 apply plugin: "org.javamodularity.moduleplugin"
 apply from: "$rootDir/gradle/javaProject.gradle"
+
+
+
 
 ext.ballerinaLangVersion = project.ballerinaLangVersion
 ext.testngVersion = project.testngVersion
@@ -54,12 +61,12 @@ ext.stdlibTaskVersion = project.stdlibTaskVersion
 ext.stdlibFileVersion = project.stdlibFileVersion
 ext.stdlibHttpVersion = project.stdlibHttpVersion
 ext.stdlibUrlVersion = project.stdlibUrlVersion
-ext.stdlibXmldataVersion = project.stdlibXmldataVersion
-ext.stdlibGraphqlVersion = project.stdlibGraphqlVersion
+//ext.stdlibXmldataVersion = project.stdlibXmldataVersion
+//ext.stdlibGraphqlVersion = project.stdlibGraphqlVersion
 ext.stdlibKafkaVersion = project.stdlibKafkaVersion
 ext.stdlibRabbitMqVersion = project.stdlibRabbitMqVersion
-ext.stdlibGrpcVersion = project.stdlibGrpcVersion
-ext.stdlibWebsubVersion = project.stdlibWebsubVersion
+//ext.stdlibGrpcVersion = project.stdlibGrpcVersion
+//ext.stdlibWebsubVersion = project.stdlibWebsubVersion
 ext.stdlibConstraintVersion = project.stdlibConstraintVersion
 
 
@@ -92,7 +99,7 @@ allprojects {
             url = 'https://maven.pkg.github.com/ballerina-platform/*'
             credentials {
                 username "thushalya"
-                password "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"
+                password "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"
             }
         }
 
@@ -121,6 +128,7 @@ allprojects {
 
 subprojects {
     apply plugin: 'java'
+
     configurations {
         ballerinaStdLibs
     }
@@ -142,14 +150,14 @@ subprojects {
         ballerinaStdLibs "io.ballerina.stdlib:oauth2-ballerina:${stdlibOAuth2Version}"
         ballerinaStdLibs "io.ballerina.stdlib:uuid-ballerina:${stdlibUuidVersion}"
         ballerinaStdLibs "io.ballerina.stdlib:url-ballerina:${stdlibUrlVersion}"
-        ballerinaStdLibs "io.ballerina.stdlib:xmldata-ballerina:${stdlibXmldataVersion}"
+//        ballerinaStdLibs "io.ballerina.stdlib:xmldata-ballerina:${stdlibXmldataVersion}"
         ballerinaStdLibs "io.ballerina.stdlib:observe-ballerina:${observeVersion}"
         ballerinaStdLibs "io.ballerina:observe-ballerina:${observeInternalVersion}"
-        ballerinaStdLibs "io.ballerina.stdlib:graphql-ballerina:${stdlibGraphqlVersion}"
+//        ballerinaStdLibs "io.ballerina.stdlib:graphql-ballerina:${stdlibGraphqlVersion}"
         ballerinaStdLibs "io.ballerina.stdlib:kafka-ballerina:${stdlibKafkaVersion}"
         ballerinaStdLibs "io.ballerina.stdlib:rabbitmq-ballerina:${stdlibRabbitMqVersion}"
-        ballerinaStdLibs "io.ballerina.stdlib:grpc-ballerina:${stdlibGrpcVersion}"
-        ballerinaStdLibs "io.ballerina.stdlib:websub-ballerina:${stdlibWebsubVersion}"
+//        ballerinaStdLibs "io.ballerina.stdlib:grpc-ballerina:${stdlibGrpcVersion}"
+//        ballerinaStdLibs "io.ballerina.stdlib:websub-ballerina:${stdlibWebsubVersion}"
         ballerinaStdLibs "io.ballerina.stdlib:websocket-ballerina:${stdlibWebsocketVersion}"
         ballerinaStdLibs "io.ballerina.stdlib:constraint-ballerina:${stdlibConstraintVersion}"
 
@@ -170,12 +178,12 @@ subprojects {
 //    }
 //}
 
-tasks.register("buildProject")
+//tasks.register("buildProject")
 tasks.register("codeCoverageReport",JacocoReport)
-
-buildProject {
-    dependsOn('module-ballerina-asyncapi:build')
-}
+//
+//buildProject {
+//    dependsOn('module-ballerina-asyncapi:build')
+//}
 
 tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8'

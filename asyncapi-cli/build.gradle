@@ -1,6 +1,7 @@
 
+
 apply from: "$rootDir/gradle/javaProject.gradle"
-//apply plugin: "com.github.johnrengelman.shadow"
+apply plugin: "com.github.johnrengelman.shadow"
 apply plugin: "java"
 
 description = "Ballerina - AsyncAPI Tooling - AsynAPI to Ballerina"

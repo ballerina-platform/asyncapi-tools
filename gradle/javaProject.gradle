@@ -15,6 +15,8 @@
  *
  */
 
+
+//apply plugin: 'io.ballerina.plugin'
 apply plugin: "java"
 apply plugin: "jacoco"
 apply plugin: "com.github.spotbugs"
@@ -37,6 +39,10 @@ repositories {
 
 configurations {
     jacocoRuntime
+    ext {
+        snapshotVersion= '-SNAPSHOT'
+        timestampedVersionRegex = '.*-\\d{8}-\\d{6}-\\w.*\$'
+    }
 }
 
 dependencies {
