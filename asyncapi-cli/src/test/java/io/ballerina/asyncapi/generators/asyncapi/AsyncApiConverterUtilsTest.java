@@ -156,6 +156,14 @@ public class AsyncApiConverterUtilsTest {
     }
 
 
+    @Test(description = "Test for non websocket websubhub service")
+    public void testForNonWebsocketWebSubHubServices() {
+        Path ballerinaFilePath = RES_DIR.resolve("service/websubhub_service.bal");
+        new AsyncAPIContractGenerator().generateAsyncAPIDefinitionsAllService(ballerinaFilePath, tempDir, null
+                , false);
+        Assert.assertTrue(!Files.exists(tempDir.resolve("query_asyncapi.yaml")));
+    }
+
     //TODO : There was a bug in the lang for escape characters,
     // it is now fixing and try this testing after the issue get fixed
     // https://github.com/ballerina-platform/ballerina-lang/issues/39770
