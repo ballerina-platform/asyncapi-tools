@@ -1,0 +1,9 @@
+[plugin]
+id = "asyncapi-tools"
+#class = "io.ballerina.openapi.validator.OpenAPIValidatorPlugin"
+
+#[[dependency]]
+#path = "../openapi-validator/build/libs/openapi-validator-1.5.0-SNAPSHOT.jar"
+#groupId = "ballerina"
+#artifactId = "openapi"
+#version = "1.5.0-SNAPSHOT"
