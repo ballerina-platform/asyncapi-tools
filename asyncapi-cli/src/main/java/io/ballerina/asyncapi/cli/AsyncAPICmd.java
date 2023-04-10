@@ -17,22 +17,28 @@
  */
 package io.ballerina.asyncapi.cli;
 
+import io.ballerina.asyncapi.core.exception.BallerinaAsyncApiException;
 import io.ballerina.asyncapi.core.generators.asyncspec.diagnostic.AsyncAPIConverterDiagnostic;
 import io.ballerina.asyncapi.core.generators.asyncspec.diagnostic.DiagnosticMessages;
 import io.ballerina.asyncapi.core.generators.asyncspec.diagnostic.ExceptionDiagnostic;
 import io.ballerina.asyncapi.core.generators.asyncspec.diagnostic.IncompatibleRemoteDiagnostic;
 import io.ballerina.cli.BLauncherCmd;
+import org.ballerinalang.formatter.core.FormatterException;
 import picocli.CommandLine;
 
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 
 import static io.ballerina.asyncapi.cli.CmdConstants.BAL_EXTENSION;
+import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.JSON_EXTENSION;
+import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.YAML_EXTENSION;
+import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.YML_EXTENSION;
 
 /**
  * Main class to implement "asyncapi" command for ballerina. Commands for AsyncAPI spec
@@ -65,8 +71,14 @@ public class AsyncAPICmd implements BLauncherCmd {
             "contract")
     private String service;
 
+    @CommandLine.Option(names = {"--service-name"}, description = "Service name for generated files")
+    private String generatedServiceName;
+
     @CommandLine.Option(names = {"--json"}, description = "Generate json file")
     private boolean generatedFileType;
+
+    @CommandLine.Option(names = {"-n", "--nullable"}, description = "Generate the code by setting nullable true")
+    private boolean nullable;
 
     @CommandLine.Parameters
     private List<String> argList;
@@ -119,7 +131,44 @@ public class AsyncAPICmd implements BLauncherCmd {
             // else it generates error message to enter correct input file
             String fileName = argList.get(0);
 
-            if (fileName.endsWith(BAL_EXTENSION)) {
+            if (fileName.endsWith(YAML_EXTENSION) || fileName.endsWith(JSON_EXTENSION) ||
+                    fileName.endsWith(YML_EXTENSION)) {
+//                List<String> tag = new ArrayList<>();
+//                List<String> operation = new ArrayList<>();
+//                if (tags != null) {
+//                    tag.addAll(Arrays.asList(tags.split(",")));
+//                }
+//                if (operations != null) {
+//                    String[] ids = operations.split(",");
+//                    List<String> normalizedOperationIds =
+//                            Arrays.stream(ids).map(operationId -> getValidName(operationId, false))
+//                                    .collect(Collectors.toList());
+//                    operation.addAll(normalizedOperationIds);
+//                }
+//                Filter filter = new Filter(tag, operation);
+
+//                if (generateClientMethods != null && !generateClientMethods.isBlank() &&
+//                        (!generateClientMethods.equals(RESOURCE) && !generateClientMethods.equals(REMOTE))) {
+//                    // Exit the code generation process
+//                    outStream.println("'--client-methods' only supports `remote` or `resource` options.");
+//                    exitError(this.exitWhenFinish);
+//                }
+                // Add the resource flag enable
+//                clientResourceMode = generateClientMethods == null || generateClientMethods.isBlank() ||
+//                        (!generateClientMethods.equals(REMOTE));
+//
+//                if (!clientResourceMode && mode != null && mode.equals(SERVICE)) {
+//                    // Exit the code generation process
+//                    outStream.println("'--client-methods' option is only available in client generation mode.");
+//                    exitError(this.exitWhenFinish);
+//                }
+                try {
+                    asyncApiToBallerina(fileName;
+                } catch (IOException e) {
+                    outStream.println(e.getLocalizedMessage());
+                    exitError(this.exitWhenFinish);
+                }
+            }else if (fileName.endsWith(BAL_EXTENSION)) {
                 try {
 
                     ballerinaToAsyncApi(fileName);
@@ -190,6 +239,70 @@ public class AsyncAPICmd implements BLauncherCmd {
         }
     }
 
+
+    /**
+     * This util method for generating service and client stub using given contract file.
+     *
+     * @param fileName input resource file
+     */
+    private void asyncApiToBallerina(String fileName) throws IOException {
+        BallerinaCodeGenerator generator = new BallerinaCodeGenerator();
+        generator.setLicenseHeader(this.setLicenseHeader());
+//        generator.setIncludeTestFiles(this.includeTestFiles);
+        final File openApiFile = new File(fileName);
+        String serviceName;
+        if (generatedServiceName != null) {
+            serviceName = generatedServiceName;
+        } else {
+            serviceName = openApiFile.getName().split("\\.")[0];
+        }
+        getTargetOutputPath();
+        Path resourcePath = Paths.get(openApiFile.getCanonicalPath());
+        if (nullable) {
+            outStream.println("WARNING: All the constraints in the OpenAPI contract will be ignored when generating" +
+                    " the Ballerina client/service with the `--nullable` option");
+        }
+        generatesClientFile(generator, resourcePath);
+
+//        if (mode != null) {
+//            switch (mode) {
+////                case "service":
+////                    generateServiceFile(generator, serviceName, resourcePath, filter);
+////                    break;
+//                case "client":
+//                    generatesClientFile(generator, resourcePath, filter, this.clientResourceMode);
+//                    break;
+//                default:
+//                    break;
+//            }
+//        } else {
+//            generateBothFiles(generator, serviceName, resourcePath, filter, this.clientResourceMode);
+//        }
+    }
+
+    /**
+     * This util is to set the license header content which is to be added at the beginning of the ballerina files.
+     */
+    private String setLicenseHeader() {
+        String licenseHeader = "";
+        try {
+            if (this.licenseFilePath != null && !this.licenseFilePath.isBlank()) {
+                Path filePath = Paths.get((new File(this.licenseFilePath).getCanonicalPath()));
+                licenseHeader = Files.readString(Paths.get(filePath.toString()));
+                if (!licenseHeader.endsWith("\n")) {
+                    licenseHeader = licenseHeader + "\n\n";
+                } else if (!licenseHeader.endsWith("\n\n")) {
+                    licenseHeader = licenseHeader + "\n";
+                }
+            }
+        } catch (IOException e) {
+            outStream.println("Invalid license file path : " + this.licenseFilePath +
+                    ". " + e.getMessage() + ".");
+            exitError(this.exitWhenFinish);
+        }
+        return licenseHeader;
+    }
+
     /**
      * This util is to get the output Path.
      */
@@ -203,6 +316,26 @@ public class AsyncAPICmd implements BLauncherCmd {
             }
         }
     }
+
+    /**
+     * A Util to Client generation.
+     * @param generator         generator object
+     * @param resourcePath      resource Path
+     */
+    private void generatesClientFile(BallerinaCodeGenerator generator, Path resourcePath) {
+        try {
+            generator.generateClient(resourcePath.toString(), targetOutputPath.toString(), nullable);
+        } catch (IOException | FormatterException | BallerinaAsyncApiException e) {
+            if (e.getLocalizedMessage() != null) {
+                outStream.println(e.getLocalizedMessage());
+                exitError(this.exitWhenFinish);
+            } else {
+                outStream.println(ErrorMessages.CLIENT_GENERATION_FAILED);
+                exitError(this.exitWhenFinish);
+            }
+        }
+    }
+
 
 
     @Override
@@ -221,4 +354,5 @@ public class AsyncAPICmd implements BLauncherCmd {
     @Override
     public void setParentCmdParser(CommandLine parentCmdParser) {
     }
+
 }

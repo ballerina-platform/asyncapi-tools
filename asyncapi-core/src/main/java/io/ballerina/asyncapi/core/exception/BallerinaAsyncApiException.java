@@ -16,20 +16,19 @@
  * under the License.
  */
 
-package io.ballerina.asyncapi.cli;
+package io.ballerina.asyncapi.core.exception;
 
 /**
- * This class contains the messages constants required for AsyncApi tool.
+ * Exception type definition for OpenAPI to Ballerina parsing related errors.
  *
  * @since 1.3.0
  */
-public class ErrorMessages {
-    public static final String CLIENT_GENERATION_FAILED = "Error occurred when generating client for AsyncAPI contract";
+public class BallerinaAsyncApiException extends Exception {
+    public BallerinaAsyncApiException(String message, Throwable e) {
+        super(message, e);
+    }
 
-    public static final String MISSING_CONTRACT_PATH = "Bal service file is required to generate the " +
-            "asyncapi definition. \ne.g: bal asyncapi --input <ballerina service file path>";
-
-    private ErrorMessages() {
-        throw new AssertionError();
+    public BallerinaAsyncApiException(String message) {
+        super(message);
     }
 }

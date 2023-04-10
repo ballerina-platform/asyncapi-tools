@@ -33,5 +33,9 @@ module io.ballerina.asyncapi.core {
     exports io.ballerina.asyncapi.core.generators.asyncspec.diagnostic;
     exports io.ballerina.asyncapi.core.generators.asyncspec.utils;
     exports io.ballerina.asyncapi.core.generators.asyncspec.model;
+    exports io.ballerina.asyncapi.core.exception;
+    exports io.ballerina.asyncapi.core;
+    exports io.ballerina.asyncapi.core.generators.client.model;
+    exports io.ballerina.asyncapi.core.generators.client;
 }
 

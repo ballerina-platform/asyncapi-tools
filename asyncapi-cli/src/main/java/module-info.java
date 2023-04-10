@@ -25,5 +25,6 @@ module io.ballerina.asyncapi.cli {
     requires org.apache.commons.io;
     requires org.slf4j;
     requires io.ballerina.asyncapi.core;
+    requires apicurio.data.models;
 }
 
