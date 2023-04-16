@@ -51,6 +51,7 @@ import java.util.Optional;
 
 import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.ATTR_HOST;
 import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.FALSE;
+import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.LOCALHOST;
 import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.PORT;
 import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.SECURE_SOCKET;
 import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.SERVER;
@@ -228,6 +229,8 @@ public class AsyncAPIEndpointMapper {
                 serverUrlVariable.setDefault(WS_PREFIX + host);
 
             }
+//            serverUrlVariable.setDefault( host);
+
             AsyncApi25ServerVariable portVariable = server.createServerVariable();
             portVariable.setDefault(port);
             server.addVariable(SERVER, serverUrlVariable);
@@ -248,6 +251,8 @@ public class AsyncAPIEndpointMapper {
             } else {
                 serverUrlVariable.setDefault(WS_LOCALHOST);
             }
+//            serverUrlVariable.setDefault(LOCALHOST);
+
             AsyncApi25ServerVariable portVariable = server.createServerVariable();
             portVariable.setDefault(port);
             server.addVariable(SERVER, serverUrlVariable);
