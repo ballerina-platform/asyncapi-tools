@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
+import io.apicurio.datamodels.models.asyncapi.AsyncApiMessage;
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25ComponentsImpl;
 import io.ballerina.asyncapi.core.generators.asyncspec.diagnostic.AsyncAPIConverterDiagnostic;
 import io.ballerina.asyncapi.core.generators.asyncspec.diagnostic.DiagnosticMessages;
@@ -49,6 +50,7 @@ import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.REF;
 import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.SCHEMA_REFERENCE;
 import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.SIMPLE_RPC;
 import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.STREAMING;
+import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.TRUE;
 import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.X_RESPONSE;
 import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.X_RESPONSE_TYPE;
 import static io.ballerina.asyncapi.core.generators.asyncspec.utils.ConverterCommonUtils.callObjectMapper;
@@ -234,7 +236,7 @@ public class AsyncAPIResponseMapper {
         subscribeOneOf.setPayload(objMapper.valueToTree(schema));
 
         //set oneOf message into Subscribe channels
-        setSchemaForOneOfSchema(subscribeMessage, subscribeOneOf);
+        setSchemasForChannelsAsOneaOfSchema(subscribeMessage, subscribeOneOf);
 
         //create message response with its description
         ObjectNode payloadObject = ConverterCommonUtils.createObjectNode();
@@ -269,7 +271,7 @@ public class AsyncAPIResponseMapper {
 
             }
             //Set the description for oneOfSchema
-            setDescriptionAndXResponsesForOneOf(componentMessage, returnDescription, objMapper, oneOfSchema);
+            setDescriptionAndXResponsesForOneOf(componentMessage, returnDescription, objMapper, oneOfSchema,responseType);
         } else {
 
             setDescriptionForOneResponse(returnDescription, payloadObject, componentMessage, responseType);
@@ -283,10 +285,10 @@ public class AsyncAPIResponseMapper {
 
         BalAsyncApi25MessageImpl messageType = new BalAsyncApi25MessageImpl();
 
-        //create Schema
+        //create Schema in schema section
         componentMapper.createComponentSchema(typeSymbol, dispatcherValue);
 
-        //create SchemaReference
+        //create SchemaReference message section
         ObjectNode objNode1 = ConverterCommonUtils.createObjectNode();
         objNode1.put(REF, SCHEMA_REFERENCE + ConverterCommonUtils.unescapeIdentifier(typeName));
 
@@ -295,16 +297,51 @@ public class AsyncAPIResponseMapper {
             objNode1.put(DESCRIPTION, paramDescription);
         }
 
-        //create Message
-
+        //create Message in component section
         BalAsyncApi25MessageImpl componentMessage = new BalAsyncApi25MessageImpl();
         componentMessage.setPayload(objNode1);
 
-        //create MessageReference
+        //create MessageReference in channel section
         messageType.set$ref(MESSAGE_REFERENCE + ConverterCommonUtils.unescapeIdentifier(typeName));
-        setSchemaForOneOfSchema(message, messageType);
+        setSchemasForChannelsAsOneaOfSchema(message, messageType);
 
         return componentMessage;
+    }
+
+    private void setSchemasForChannelsAsOneaOfSchema(BalAsyncApi25MessageImpl oneOfSchema,BalAsyncApi25MessageImpl schema){
+
+        if (oneOfSchema.getOneOf() == null) {
+            oneOfSchema.addOneOf(schema);
+
+        } else {
+            if (schema.get$ref() != null) {
+                boolean check = false;
+                for (AsyncApiMessage s : oneOfSchema.getOneOf()) {
+                    if(((BalAsyncApi25MessageImpl) s).get$ref()!=null) {
+                        if(((BalAsyncApi25MessageImpl) s).get$ref().equals(schema.get$ref())){
+                            check=true;
+
+                        }
+                    }
+                }
+                if (!check) {
+                    oneOfSchema.addOneOf(schema);
+                }
+            } else if (schema.getPayload() != null) {
+                boolean check = false;
+                for (AsyncApiMessage s : oneOfSchema.getOneOf()) {
+                    if(s.getPayload()!=null) {
+                        if(s.getPayload().equals(schema.getPayload())){
+                            check=true;
+                        }
+                    }
+                }
+                if (!check) {
+                    oneOfSchema.addOneOf(schema);
+                }
+
+            }
+        }
     }
 
     private void handleReferenceResponse(BalAsyncApi25MessageImpl subscribeMessage,
@@ -368,12 +405,14 @@ public class AsyncAPIResponseMapper {
                                         TypeSymbol returnTypeSymbol,
                                         String remoteReturnTypeName) {
         //Creating return type message reference
+
+        BalAsyncApi25MessageImpl componentReturnMessage = extractMessageSchemaReference(subscribeMessage,
+                remoteReturnTypeName, returnTypeSymbol, null, null);
+
+
         if (!(components.getMessages() != null && components.getMessages().get(remoteReturnTypeName) != null)) {
-            BalAsyncApi25MessageImpl componentReturnMessage = extractMessageSchemaReference(subscribeMessage,
-                    remoteReturnTypeName, returnTypeSymbol, null, null);
             //add created return message
             components.addMessage(remoteReturnTypeName, componentReturnMessage);
-
         }
         //set message reference as a x-response of a request
         ObjectNode messageRefObject = ConverterCommonUtils.createObjectNode();
@@ -419,7 +458,7 @@ public class AsyncAPIResponseMapper {
 
             }
             //Set the description for oneOfSchema
-            setDescriptionAndXResponsesForOneOf(componentMessage, returnDescription, objMapper, oneOfSchema);
+            setDescriptionAndXResponsesForOneOf(componentMessage, returnDescription, objMapper, oneOfSchema,SIMPLE_RPC);
 
         } else {
             setDescriptionForOneResponse(returnDescription, messageRefObject, componentMessage, SIMPLE_RPC);
@@ -431,31 +470,84 @@ public class AsyncAPIResponseMapper {
     private void setDescriptionForOneResponse(String returnDescription,
                                               ObjectNode messageRefObject,
                                               BalAsyncApi25MessageImpl componentMessage,
-                                              String simpleRpc) {
+                                              String responseType) {
         //Set the description
         if (returnDescription != null) {
             messageRefObject.put(DESCRIPTION, returnDescription);
         }
         //Set x-response and x-response type of the request
         componentMessage.addExtension(X_RESPONSE, messageRefObject);
-        componentMessage.addExtension(X_RESPONSE_TYPE, new TextNode(simpleRpc));
+        componentMessage.addExtension(X_RESPONSE_TYPE, new TextNode(responseType));
     }
 
     private void setDescriptionAndXResponsesForOneOf(BalAsyncApi25MessageImpl componentMessage,
                                                      String returnDescription,
-                                                     ObjectMapper objMapper, BalAsyncApi25MessageImpl oneOfSchema) {
+                                                     ObjectMapper objMapper, BalAsyncApi25MessageImpl oneOfSchema,String responseType) {
         //Set the description
         if (returnDescription != null) {
             oneOfSchema.setDescription(returnDescription);
         }
         //Set x-response and x-response type as extensions to request
         componentMessage.addExtension(X_RESPONSE, objMapper.valueToTree(oneOfSchema));
-        componentMessage.addExtension(X_RESPONSE_TYPE, new TextNode(SIMPLE_RPC));
+        if(componentMessage.getExtensions()!=null && componentMessage.getExtensions().get(X_RESPONSE_TYPE).equals(new TextNode(SIMPLE_RPC+"/"+STREAMING))){
+            componentMessage.addExtension(X_RESPONSE_TYPE, new TextNode(SIMPLE_RPC+"/"+STREAMING));
+
+        }else {
+            if (responseType == STREAMING || (componentMessage.getExtensions()!=null && componentMessage.getExtensions().get(X_RESPONSE_TYPE).equals(new TextNode(STREAMING)))) {
+                componentMessage.addExtension(X_RESPONSE_TYPE, new TextNode(SIMPLE_RPC + "/" + STREAMING));
+            } else {
+                componentMessage.addExtension(X_RESPONSE_TYPE, new TextNode(SIMPLE_RPC));
+            }
+        }
     }
 
     private void setSchemaForOneOfSchema(BalAsyncApi25MessageImpl oneOfSchema, BalAsyncApi25MessageImpl schema) {
+//
+//        if(!(schema.getPayload()!=null  && oneOfSchema.getOneOf()!=null &&  (oneOfSchema.getOneOf()).stream().anyMatch(s-> ((BalAsyncApi25MessageImpl)s).getPayload().equals(schema.getPayload())))){
+//
+
+//        if (oneOfSchema.getOneOf() == null) {
         oneOfSchema.addOneOf(schema);
+
+//        } else {
+//            if (schema.get$ref() != null) {
+//                boolean check = false;
+//                for (AsyncApiMessage s : oneOfSchema.getOneOf()) {
+//                    if(((BalAsyncApi25MessageImpl) s).get$ref()!=null) {
+//                        if(((BalAsyncApi25MessageImpl) s).get$ref().equals(schema.get$ref())){
+//                            check=true;
+//
+//                        }
+//                    }
+//                }
+//                if (!check) {
+//                    oneOfSchema.addOneOf(schema);
+//                }
+//            } else if (schema.getPayload() != null) {
+//                boolean check = false;
+//                for (AsyncApiMessage s : oneOfSchema.getOneOf()) {
+//                    if(s.getPayload()!=null) {
+//                        if(s.getPayload().equals(schema.getPayload())){
+//                            check=true;
+//                        }
+//                    }
+//                }
+//                if (!check) {
+//                    oneOfSchema.addOneOf(schema);
+//                }
+//
+//            }
+//        }
+//        ((oneOfSchema.getOneOf()).stream()).anyMatch(s-> ((BalAsyncApi25MessageImpl)s).get$ref().equals(schema.get$ref())) )){
+//            oneOfSchema.addOneOf(schema);
+
     }
+
+
+//        if(!(oneOfSchema.getOneOf()!=null && oneOfSchema.getOneOf().stream().anyMatch(schema1->((BalAsyncApi25MessageImpl)schema1).equals(schema)))){
+//            oneOfSchema.addOneOf(schema);
+//        }
+
 
     private void setRefPayloadAsOneOfSchemaForPreviousOneOfResponses(BalAsyncApi25MessageImpl componentMessage,
                                                                      BalAsyncApi25MessageImpl oneOfSchema) {
