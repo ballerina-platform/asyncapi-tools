@@ -33,6 +33,7 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.ASYNC_API_SUFFIX;
 import static io.ballerina.asyncapi.generators.asyncapi.TestUtils.deleteDirectory;
 
 /**
@@ -51,7 +52,7 @@ public class ServiceDeclarationNodesTests {
     @Test(description = "Multiple META-INF.services with same absolute path")
     public void multipleServiceWithSameAbsolute() throws IOException {
         Path ballerinaFilePath = RES_DIR.resolve("multiple_services.bal");
-        executeMethod(ballerinaFilePath, "multiple_service_01.yaml", "hello_asyncapi.yaml",
+        executeMethod(ballerinaFilePath, "multiple_service_01.yaml", String.format("hello%s.yaml",ASYNC_API_SUFFIX),
                 "hello_");
     }
 
@@ -59,7 +60,7 @@ public class ServiceDeclarationNodesTests {
     public void multipleServiceWithOutAbsolute() throws IOException {
         Path ballerinaFilePath = RES_DIR.resolve("multiple_services_without_base_path.bal");
         executeMethod(ballerinaFilePath, "multiple_service_02.yaml",
-                "multiple_services_without_base_path_asyncapi.yaml",
+                String.format("multiple_services_without_base_path%s.yaml",ASYNC_API_SUFFIX),
                 "multiple_services_without_base_path_");
     }
 
@@ -67,7 +68,7 @@ public class ServiceDeclarationNodesTests {
     public void multipleServiceNoBasePath() throws IOException {
         Path ballerinaFilePath = RES_DIR.resolve("multiple_services_no_base_path.bal");
         executeMethod(ballerinaFilePath, "multiple_service_03.yaml",
-                "multiple_services_no_base_path_asyncapi.yaml",
+                String.format("multiple_services_no_base_path%s.yaml",ASYNC_API_SUFFIX),
                 "multiple_services_no_base_path_");
     }
 
