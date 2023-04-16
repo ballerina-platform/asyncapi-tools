@@ -8,7 +8,6 @@ description = "Ballerina - AsyncAPI Tooling - AsynAPI to Ballerina"
 
 
 group 'io.ballerina.asyncapi.cli'
-version '1.0-SNAPSHOT'
 
 configurations.all {
     resolutionStrategy.preferProjectModules()
