@@ -45,7 +45,7 @@ public class Constants {
     public static final String XML = "xml";
     public static final String JSON = "json";
     public static final String PLAIN = "plain";
-    public static final String ASYNC_API_SUFFIX = "_asyncapi";
+    public static final String ASYNC_API_SUFFIX = "_asyncapi1";
     public static final String SERVER = "server";
     public static final String SERVER_TYPE = "development";
     public static final String WS = "ws";
@@ -103,6 +103,7 @@ public class Constants {
     public static final String SPECIAL_CHAR_REGEX = "([\\[\\]\\\\?!<>@#&~`*\\-=^+();:\\/\\_{}\\s|.$])";
     public static final String TRUE = "true";
     public static final String WS_LOCALHOST = "ws://localhost";
+    public static final String LOCALHOST = "localhost";
     public static final String WSS_LOCALHOST = "wss://localhost";
     public static final String WS_PREFIX = "ws://";
     public static final String WSS_PREFIX = "wss://";
