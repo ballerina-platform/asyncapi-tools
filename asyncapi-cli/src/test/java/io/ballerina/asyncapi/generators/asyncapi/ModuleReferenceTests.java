@@ -32,7 +32,7 @@ public class ModuleReferenceTests {
 
     @Test(description = "Response with separate modules")
     public void testResponse01() throws IOException {
-        Path ballerinaFilePath = RES_DIR.resolve("snowpeak.bal");
+       Path ballerinaFilePath = RES_DIR.resolve("snowpeak.bal");
         TestUtils.compareWithGeneratedFile(ballerinaFilePath, "ballerina-project/service/snowpeak.yaml");
     }
 
