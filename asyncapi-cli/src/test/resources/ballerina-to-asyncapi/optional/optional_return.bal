@@ -14,18 +14,38 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import ballerina/http;
-import 'service.representations as rep;
-import 'service.mock;
+import ballerina/websocket;
+
 
 # A fake mountain resort
-service /payloadV on new http:Listener(9090) {
+@websocket:ServiceConfig{dispatcherKey: "event"}
+service /payloadV on new websocket:Listener(9090) {
+    resource function get .()returns websocket:Service|websocket:UpgradeError {
+        return new ChatServer();
+    }
+
+}
+
+service class ChatServer{
+    *websocket:Service;
 
     # Represents Snowpeak location resource
     #
     # + return - `Location` representation
-    resource function get locations() returns @http:Cache rep:Locations|rep:ReservationConflict {
-        rep:Locations locations = mock:getLocations();
-        return locations;
+    remote function onLocation(websocket:Caller caller,Location location) returns int? {
+        // rep:Locations locations = mock:getLocations();
+        // return 5;
     }
+
+
 }
+
+
+# Represents location
+public type Location record {|
+
+    # Unique identification
+    string id;
+
+    string event;
+|};
