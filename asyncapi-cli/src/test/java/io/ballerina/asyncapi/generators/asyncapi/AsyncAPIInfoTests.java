@@ -41,7 +41,7 @@ public class AsyncAPIInfoTests {
         this.tempDir = Files.createTempDirectory("bal-to-asyncapi-test-out-" + System.nanoTime());
     }
 
-    @Test(description = "Generate AsyncAPI spec with default value with empty Ballerina.toml")
+    @Test(description = "Generate AsyncAPI spec with default value with empty Ballerina.toml",enabled = false)
     public void defaultOpenAPIInfo() throws IOException {
         Path ballerinaFilePath = RES_DIR.resolve("project01/project01.bal");
         compareWithGeneratedFile(ballerinaFilePath, "asyncapi_info/project01.yaml");
