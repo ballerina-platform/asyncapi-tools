@@ -17,6 +17,7 @@ import io.ballerina.asyncapi.core.generators.asyncspec.utils.ConverterCommonUtil
 import io.ballerina.compiler.api.SemanticModel;
 import io.ballerina.compiler.api.symbols.IntersectionTypeSymbol;
 import io.ballerina.compiler.api.symbols.ReadonlyTypeSymbol;
+import io.ballerina.compiler.api.symbols.Symbol;
 import io.ballerina.compiler.api.symbols.TypeDescKind;
 import io.ballerina.compiler.api.symbols.TypeReferenceTypeSymbol;
 import io.ballerina.compiler.api.symbols.TypeSymbol;
@@ -25,6 +26,7 @@ import io.ballerina.compiler.syntax.tree.MapTypeDescriptorNode;
 import io.ballerina.compiler.syntax.tree.Node;
 import io.ballerina.compiler.syntax.tree.NodeList;
 import io.ballerina.compiler.syntax.tree.OptionalTypeDescriptorNode;
+import io.ballerina.compiler.syntax.tree.QualifiedNameReferenceNode;
 import io.ballerina.compiler.syntax.tree.RecordFieldNode;
 import io.ballerina.compiler.syntax.tree.RecordTypeDescriptorNode;
 import io.ballerina.compiler.syntax.tree.SimpleNameReferenceNode;
@@ -39,6 +41,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.NoSuchElementException;
+import java.util.Optional;
 
 import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.AsyncAPIType;
 import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.DESCRIPTION;
@@ -50,7 +53,6 @@ import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.REF;
 import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.SCHEMA_REFERENCE;
 import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.SIMPLE_RPC;
 import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.STREAMING;
-import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.TRUE;
 import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.X_RESPONSE;
 import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.X_RESPONSE_TYPE;
 import static io.ballerina.asyncapi.core.generators.asyncspec.utils.ConverterCommonUtils.callObjectMapper;
@@ -182,10 +184,10 @@ public class AsyncAPIResponseMapper {
                 break;
 
             case QUALIFIED_NAME_REFERENCE:
-                TypeSymbol qualifiedNameReferenceSymbol = (TypeSymbol) semanticModel.symbol(remoteReturnType).get();
+//                TypeSymbol qualifiedNameReferenceSymbol = (TypeSymbol) semanticModel.symbol(remoteReturnType).get();
 
                 handleQualifiedNameTypeReference(subscribeMessage, componentMessage,
-                        returnDescription, qualifiedNameReferenceSymbol);
+                        returnDescription, remoteReturnType);
 
                 break;
 
@@ -202,7 +204,10 @@ public class AsyncAPIResponseMapper {
     private void handleQualifiedNameTypeReference(BalAsyncApi25MessageImpl subscribeMessage,
                                                   BalAsyncApi25MessageImpl componentMessage,
                                                   String returnDescription,
-                                                  TypeSymbol qualifiedNameReferenceSymbol) {
+                                                  Node remoteReturnType ) {
+        TypeSymbol qualifiedNameReferenceSymbol = (TypeSymbol) semanticModel.symbol(remoteReturnType).get();
+
+        String remoteReturnTypeName = ConverterCommonUtils.unescapeIdentifier(qualifiedNameReferenceSymbol.getName().get());
 
         if (qualifiedNameReferenceSymbol instanceof TypeReferenceTypeSymbol) {
             TypeReferenceTypeSymbol typeRef = (TypeReferenceTypeSymbol) qualifiedNameReferenceSymbol;
@@ -217,7 +222,26 @@ public class AsyncAPIResponseMapper {
                     }
                 }
             }
-            if (typeSymbol.typeKind() == TypeDescKind.RECORD) {
+
+            if (remoteReturnType.parent().kind().equals(ARRAY_TYPE_DESC)) {
+
+                //create Schema
+                componentMapper.createComponentSchema(qualifiedNameReferenceSymbol, null);
+                errors.addAll(componentMapper.getDiagnostics());
+
+                //create Message (there is no message reference)
+                ObjectMapper objMapper = ConverterCommonUtils.callObjectMapper();
+                ObjectNode refObjNode = ConverterCommonUtils.createObjectNode();
+
+                //Create schema reference
+                refObjNode.put(REF, SCHEMA_REFERENCE + ConverterCommonUtils.unescapeIdentifier(remoteReturnTypeName));
+                BalAsyncApi25SchemaImpl arraySchema = getAsyncApiSchema(AsyncAPIType.ARRAY.toString());
+                arraySchema.setItems(objMapper.valueToTree(refObjNode));
+                setResponseOfRequest(subscribeMessage, componentMessage, SIMPLE_RPC,
+                        returnDescription, objMapper, arraySchema);
+
+
+            } else if (typeSymbol.typeKind() == TypeDescKind.RECORD) {
                 handleRecordTypeSymbol(subscribeMessage, componentMessage, returnDescription,
                         qualifiedNameReferenceSymbol,
                         qualifiedNameReferenceSymbol.getName().get());
@@ -236,7 +260,7 @@ public class AsyncAPIResponseMapper {
         subscribeOneOf.setPayload(objMapper.valueToTree(schema));
 
         //set oneOf message into Subscribe channels
-        setSchemasForChannelsAsOneaOfSchema(subscribeMessage, subscribeOneOf);
+        setSchemasForChannelsAsOneOfSchema(subscribeMessage, subscribeOneOf);
 
         //create message response with its description
         ObjectNode payloadObject = ConverterCommonUtils.createObjectNode();
@@ -303,12 +327,12 @@ public class AsyncAPIResponseMapper {
 
         //create MessageReference in channel section
         messageType.set$ref(MESSAGE_REFERENCE + ConverterCommonUtils.unescapeIdentifier(typeName));
-        setSchemasForChannelsAsOneaOfSchema(message, messageType);
+        setSchemasForChannelsAsOneOfSchema(message, messageType);
 
         return componentMessage;
     }
 
-    private void setSchemasForChannelsAsOneaOfSchema(BalAsyncApi25MessageImpl oneOfSchema,BalAsyncApi25MessageImpl schema){
+    private void setSchemasForChannelsAsOneOfSchema(BalAsyncApi25MessageImpl oneOfSchema, BalAsyncApi25MessageImpl schema){
 
         if (oneOfSchema.getOneOf() == null) {
             oneOfSchema.addOneOf(schema);
@@ -698,15 +722,14 @@ public class AsyncAPIResponseMapper {
             handleReferenceResponse(subscribeMessage, componentMessage,
                     (SimpleNameReferenceNode) array.memberTypeDesc(), returnDescription);
 
-            //TODO : Not sure yet...  is this like http:request []
-//        } else if (array.memberTypeDesc().kind() == QUALIFIED_NAME_REFERENCE) {
-//            Optional<ApiResponses> optionalAPIResponses =
-//                    handleQualifiedNameType((QualifiedNameReferenceNode) array.memberTypeDesc());
+        } else if (array.memberTypeDesc().kind() == QUALIFIED_NAME_REFERENCE) {
+//            TypeSymbol qualifiedNameReferenceSymbol = (TypeSymbol) semanticModel.symbol(array.memberTypeDesc()).get();
+            handleQualifiedNameTypeReference(subscribeMessage,componentMessage,returnDescription,
+                    array.memberTypeDesc());
 //            if (optionalAPIResponses.isPresent()) {
-////                ApiResponses responses = optionalAPIResponses.get();
-//                updateResponseWithArraySchema(responses);
-//                apiResponses.putAll(responses);
-//            }
+//                ApiResponses responses = optionalAPIResponses.get();
+//            updateResponseWithArraySchema(responses);
+////            }
         } else {
             BalAsyncApi25SchemaImpl arraySchema = getAsyncApiSchema(AsyncAPIType.ARRAY.toString());
             String type02 = array.memberTypeDesc().kind().toString().trim().split("_")[0].
@@ -721,6 +744,7 @@ public class AsyncAPIResponseMapper {
 
         }
     }
+
 
 
 }
