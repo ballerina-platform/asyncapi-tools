@@ -99,7 +99,7 @@ allprojects {
             url = 'https://maven.pkg.github.com/ballerina-platform/*'
             credentials {
                 username "thushalya"
-                password "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"
+                password "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"
             }
         }
 
@@ -160,6 +160,7 @@ subprojects {
 //        ballerinaStdLibs "io.ballerina.stdlib:websub-ballerina:${stdlibWebsubVersion}"
         ballerinaStdLibs "io.ballerina.stdlib:websocket-ballerina:${stdlibWebsocketVersion}"
         ballerinaStdLibs "io.ballerina.stdlib:constraint-ballerina:${stdlibConstraintVersion}"
+
 
     }
 }

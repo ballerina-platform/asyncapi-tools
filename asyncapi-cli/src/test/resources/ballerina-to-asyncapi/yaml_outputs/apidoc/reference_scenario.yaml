@@ -21,9 +21,6 @@ channels:
               type: integer
               format: int64
           - payload:
-              type: integer
-              format: int64
-          - payload:
               type: array
               items:
                 $ref: '#/components/schemas/Location'

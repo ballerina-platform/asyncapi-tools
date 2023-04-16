@@ -28,6 +28,12 @@ service /payloadV on new websocket:Listener(9090) {
 service class FirstChatServer{
     *websocket:Service;
 
+      remote function onSubscribe(websocket:Caller caller,Subscribe payment)
+                    returns stream<int>|int|string|boolean{
+
+            return 1;
+        }
+
     # Represents Snowpeak payment resource
     #
     # + id - Unique identification of payment
@@ -39,11 +45,7 @@ service class FirstChatServer{
         return "1";
     }
 
-     remote function onSubscribe(websocket:Caller caller,Subscribe payment)
-                returns int|stream<int>{
 
-        return 1;
-    }
 
 }
 

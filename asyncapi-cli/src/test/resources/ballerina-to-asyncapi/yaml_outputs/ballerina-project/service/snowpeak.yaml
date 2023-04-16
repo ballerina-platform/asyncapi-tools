@@ -18,6 +18,7 @@ channels:
       message:
         oneOf:
           - $ref: '#/components/messages/Locations'
+          - $ref: '#/components/messages/Location'
           - $ref: '#/components/messages/ReservationCreated'
           - $ref: '#/components/messages/ReservationConflict'
           - $ref: '#/components/messages/PaymentCreated'
@@ -49,6 +50,7 @@ components:
       properties:
         id:
           type: string
+          description: Unique identification
         event:
           type: string
           const: Location
@@ -163,7 +165,6 @@ components:
         event:
           type: string
           const: Reservation
-          description: Event description
       description: Represents a reservation of rooms
     ReservationReceipt:
       type: object
@@ -234,7 +235,6 @@ components:
         event:
           type: string
           const: Payment
-          description: Event description
       description: Reperesents payement for rooms
     PaymentReceipt:
       type: object

@@ -182,7 +182,7 @@ service class ChatServer{
     #
     # + location - location message containing whole details
     # + return - `Rooms` representation
-    remote function onLocation(websocket:Caller caller,Location location)returns Rooms {
+    remote function onLocation(websocket:Caller caller,Location location) returns Rooms {
         string startDate="26/03/2023";
         string endDate="30/03/2023";
         Rooms rooms = getRooms(startDate, endDate);
