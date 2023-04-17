@@ -20,8 +20,15 @@ channels:
           - payload:
               type: integer
               format: int64
+              extensions:
+                x-response-type: server-streaming
+          - payload:
+              type: integer
+              format: int64
           - payload:
               type: string
+          - payload:
+              type: boolean
           - payload:
               type: object
               additionalProperties: {}
@@ -32,10 +39,21 @@ channels:
     publish:
       message:
         oneOf:
-          - $ref: '#/components/messages/Payment'
           - $ref: '#/components/messages/Subscribe'
+          - $ref: '#/components/messages/Payment'
 components:
   schemas:
+    Subscribe:
+      type: object
+      required:
+        - body
+        - event
+      properties:
+        body:
+          type: string
+        event:
+          type: string
+          const: Subscribe
     Payment:
       type: object
       required:
@@ -63,18 +81,25 @@ components:
           const: Payment
           description: Event description
       description: Reperesents payement for rooms
-    Subscribe:
-      type: object
-      required:
-        - body
-        - event
-      properties:
-        body:
-          type: string
-        event:
-          type: string
-          const: Subscribe
   messages:
+    Subscribe:
+      payload:
+        $ref: '#/components/schemas/Subscribe'
+      x-response:
+        oneOf:
+          - payload:
+              type: integer
+              format: int64
+              extensions:
+                x-response-type: server-streaming
+          - payload:
+              type: integer
+              format: int64
+          - payload:
+              type: string
+          - payload:
+              type: boolean
+      x-response-type: simple-rpc/server-streaming
     Payment:
       payload:
         $ref: '#/components/schemas/Payment'
@@ -95,16 +120,4 @@ components:
               additionalProperties:
                 type: string
         description: '`PaymentCreated` or `PaymentConflict` representation'
-      x-response-type: simple-rpc
-    Subscribe:
-      payload:
-        $ref: '#/components/schemas/Subscribe'
-      x-response:
-        oneOf:
-          - payload:
-              type: integer
-              format: int64
-          - payload:
-              type: integer
-              format: int64
       x-response-type: simple-rpc
