@@ -174,5 +174,5 @@ public class Constants {
     public static final String NO_TYPE_IN_STREAM = "ERROR: No type present in stream";
     public static final String NO_SERVICE_CLASS = "ERROR: No service class present";
 
-    public static final String PATH_PARAM_DASH_CONTAIN_ERROR = "Path parameter contains an invalid character '-' ";
+    public static final String PATH_PARAM_DASH_CONTAIN_ERROR = "Path parameter contains an invalid character '-'";
 }
