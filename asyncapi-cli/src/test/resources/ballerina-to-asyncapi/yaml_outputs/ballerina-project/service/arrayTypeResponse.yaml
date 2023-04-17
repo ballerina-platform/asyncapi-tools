@@ -1,4 +1,4 @@
-Optional[asyncapi: 2.5.0
+asyncapi: 2.5.0
 info:
   title: PayloadV
   version: 0.1.0
@@ -25,6 +25,8 @@ channels:
           - payload:
               type: integer
               format: int64
+              extensions:
+                x-response-type: server-streaming
     publish:
       message:
         $ref: '#/components/messages/Price'
@@ -82,5 +84,6 @@ components:
           - payload:
               type: integer
               format: int64
-      x-response-type: simple-rpc/streaming
-]
+              extensions:
+                x-response-type: server-streaming
+      x-response-type: simple-rpc/server-streaming
