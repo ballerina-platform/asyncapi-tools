@@ -58,9 +58,11 @@ public class TestUtils {
         try {
             String expectedYamlContent = getStringFromGivenBalFile(RES_DIR.resolve("yaml_outputs"), yamlFile);
             AsyncAPIContractGenerator asyncApiConverter = new AsyncAPIContractGenerator();
-            asyncApiConverter.generateAsyncAPIDefinitionsAllService(ballerinaFilePath, tempDir, null, false);
-            if (Files.exists(tempDir.resolve(String.format("payloadV%s.yaml",ASYNC_API_SUFFIX)))) {
-                String generatedYaml = getStringFromGivenBalFile(tempDir, String.format("payloadV%s.yaml",ASYNC_API_SUFFIX));
+            asyncApiConverter.generateAsyncAPIDefinitionsAllService(ballerinaFilePath, tempDir, null,
+                    false);
+            if (Files.exists(tempDir.resolve(String.format("payloadV%s.yaml", ASYNC_API_SUFFIX)))) {
+                String generatedYaml = getStringFromGivenBalFile(tempDir, String.format("payloadV%s.yaml",
+                        ASYNC_API_SUFFIX));
                 generatedYaml = (generatedYaml.trim()).replaceAll("\\s+", "");
                 expectedYamlContent = (expectedYamlContent.trim()).replaceAll("\\s+", "");
                 Assert.assertTrue(generatedYaml.contains(expectedYamlContent));
@@ -70,7 +72,7 @@ public class TestUtils {
         } catch (IOException e) {
             Assert.fail("Error while generating the service. " + e.getMessage());
         } finally {
-            deleteGeneratedFiles(String.format("payloadV%s.yaml",ASYNC_API_SUFFIX), tempDir);
+            deleteGeneratedFiles(String.format("payloadV%s.yaml", ASYNC_API_SUFFIX), tempDir);
             deleteDirectory(tempDir);
             System.gc();
         }
@@ -82,9 +84,7 @@ public class TestUtils {
         }
 
         try (Stream<Path> walk = Files.walk(path)) {
-            walk.sorted(Comparator.reverseOrder())
-                    .map(Path::toFile)
-                    .forEach(File::delete);
+            walk.sorted(Comparator.reverseOrder()).map(Path::toFile).forEach(File::delete);
         } catch (IOException ignored) {
             //ignore
         }

@@ -185,6 +185,7 @@ components:
       x-response:
         $ref: '#/components/messages/LiftRecord'
         description: the lift
+        x-optional: true
       x-response-type: simple-rpc
     ReserveRoom:
       payload:

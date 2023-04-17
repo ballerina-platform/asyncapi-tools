@@ -126,4 +126,5 @@ components:
           additionalProperties:
             type: string
         description: remote return description
+        x-optional: true
       x-response-type: simple-rpc

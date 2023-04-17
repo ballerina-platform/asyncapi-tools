@@ -8,6 +8,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
+/**
+ * This test class for optional returns.
+ */
 public class OptionalTests {
     private static final Path RES_DIR = Paths.get("src/test/resources/ballerina-to-asyncapi").toAbsolutePath();
     private Path tempDir;
@@ -18,9 +21,32 @@ public class OptionalTests {
     }
 
     @Test(description = "When the remote method has an optional return")
-    public void testReturnOptional() throws IOException {
-        Path ballerinaFilePath = RES_DIR.resolve("optional/optional_return.bal");
+    public void testIntReturnOptional() throws IOException {
+        Path ballerinaFilePath = RES_DIR.resolve("optional/optional_int_return.bal");
         //Compare generated yaml file with expected yaml content
-        TestUtils.compareWithGeneratedFile(ballerinaFilePath, "optional/optional_return.yaml");
+        TestUtils.compareWithGeneratedFile(ballerinaFilePath, "optional/optional_int_return.yaml");
+    }
+
+    @Test(description = "When the remote method has an optional return as error")
+    public void testErrorReturnOptional() throws IOException {
+        Path ballerinaFilePath = RES_DIR.resolve("optional/optional_error_return.bal");
+        //Compare generated yaml file with expected yaml content
+        TestUtils.compareWithGeneratedFile(ballerinaFilePath, "optional/optional_error_return.yaml");
+    }
+
+    @Test(description = "When the remote method has two union type returns with optional return")
+    public void testTwoTypesReturnOptional() throws IOException {
+        Path ballerinaFilePath = RES_DIR.resolve("optional/optional_two_union_return.bal");
+        //Compare generated yaml file with expected yaml content
+        TestUtils.compareWithGeneratedFile(ballerinaFilePath, "optional/optional_two_union_return.yaml");
+    }
+
+
+    @Test(description = "When the remote method has multiple return types including streaming with optional return")
+    public void testMultipleTypesStreamIncludeReturnOptional() throws IOException {
+        Path ballerinaFilePath = RES_DIR.resolve("optional/optional_multiple_type_stream_include_return.bal");
+        //Compare generated yaml file with expected yaml content
+        TestUtils.compareWithGeneratedFile(ballerinaFilePath, "optional/optional_multiple_type_" +
+                "stream_include_return.yaml");
     }
 }

@@ -40,37 +40,8 @@ import static io.ballerina.asyncapi.generators.asyncapi.TestUtils.deleteDirector
  * This test class contains the service nodes related special scenarios.
  */
 public class ServiceDeclarationNodesTests {
-    private static final Path RES_DIR =
-            Paths.get("src/test/resources/ballerina-to-asyncapi/advance").toAbsolutePath();
+    private static final Path RES_DIR = Paths.get("src/test/resources/ballerina-to-asyncapi").toAbsolutePath();
     private Path tempDir;
-
-    @BeforeMethod
-    public void setup() throws IOException {
-        this.tempDir = Files.createTempDirectory("bal-to-asyncapi-test-out-" + System.nanoTime());
-    }
-
-    @Test(description = "Multiple META-INF.services with same absolute path")
-    public void multipleServiceWithSameAbsolute() throws IOException {
-        Path ballerinaFilePath = RES_DIR.resolve("multiple_services.bal");
-        executeMethod(ballerinaFilePath, "multiple_service_01.yaml", String.format("hello%s.yaml",ASYNC_API_SUFFIX),
-                "hello_");
-    }
-
-    @Test(description = "Multiple META-INF.services with absolute path as '/'. ")
-    public void multipleServiceWithOutAbsolute() throws IOException {
-        Path ballerinaFilePath = RES_DIR.resolve("multiple_services_without_base_path.bal");
-        executeMethod(ballerinaFilePath, "multiple_service_02.yaml",
-                String.format("multiple_services_without_base_path%s.yaml",ASYNC_API_SUFFIX),
-                "multiple_services_without_base_path_");
-    }
-
-    @Test(description = "Multiple META-INF.services with no absolute path")
-    public void multipleServiceNoBasePath() throws IOException {
-        Path ballerinaFilePath = RES_DIR.resolve("multiple_services_no_base_path.bal");
-        executeMethod(ballerinaFilePath, "multiple_service_03.yaml",
-                String.format("multiple_services_no_base_path%s.yaml",ASYNC_API_SUFFIX),
-                "multiple_services_no_base_path_");
-    }
 
     private static String getStringFromGivenBalFile(Path expectedServiceFile, String s) throws IOException {
         Stream<String> expectedServiceLines = Files.lines(expectedServiceFile.resolve(s));
@@ -85,14 +56,42 @@ public class ServiceDeclarationNodesTests {
         return fileNames.length > 0 ? fileNames[0] : null;
     }
 
+    @BeforeMethod
+    public void setup() throws IOException {
+        this.tempDir = Files.createTempDirectory("bal-to-asyncapi-test-out-" + System.nanoTime());
+    }
+
+    @Test(description = "Multiple META-INF.services with same absolute path")
+    public void multipleServiceWithSameAbsolute() throws IOException {
+        Path ballerinaFilePath = RES_DIR.resolve("advance/multiple_services.bal");
+        executeMethod(ballerinaFilePath, "multiple_service_01.yaml", String.format("hello%s.yaml",
+                ASYNC_API_SUFFIX), "hello_");
+    }
+
+    @Test(description = "Multiple META-INF.services with absolute path as '/'. ")
+    public void multipleServiceWithOutAbsolute() throws IOException {
+        Path ballerinaFilePath = RES_DIR.resolve("advance/multiple_services_without_base_path.bal");
+        executeMethod(ballerinaFilePath, "multiple_service_02.yaml", String.format("multiple_services" +
+                "_without_base_path%s.yaml", ASYNC_API_SUFFIX), "multiple_services_without" +
+                "_base_path_");
+    }
+
+    @Test(description = "Multiple META-INF.services with no absolute path")
+    public void multipleServiceNoBasePath() throws IOException {
+        Path ballerinaFilePath = RES_DIR.resolve("advance/multiple_services_no_base_path.bal");
+        executeMethod(ballerinaFilePath, "multiple_service_03.yaml", String.format("multiple_services" +
+                "_no_base_path%s.yaml", ASYNC_API_SUFFIX), "multiple_services_no_base_path_");
+    }
+
     private void executeMethod(Path ballerinaFilePath, String yamlFile, String generatedYamlFile,
                                String secondGeneratedFile) throws IOException {
         Path tempDir = Files.createTempDirectory("bal-to-asyncapi-test-out-" + System.nanoTime());
         try {
-            String expectedYamlContent = getStringFromGivenBalFile(RES_DIR.resolve("asyncapi"),
+            String expectedYamlContent = getStringFromGivenBalFile(RES_DIR.resolve("yaml_outputs/service"),
                     yamlFile);
             AsyncAPIContractGenerator asyncApiConverter = new AsyncAPIContractGenerator();
-            asyncApiConverter.generateAsyncAPIDefinitionsAllService(ballerinaFilePath, tempDir, null, false);
+            asyncApiConverter.generateAsyncAPIDefinitionsAllService(ballerinaFilePath, tempDir,
+                    null, false);
 
             if (Files.exists(tempDir.resolve(generatedYamlFile)) && findFile(tempDir, secondGeneratedFile) != null) {
                 String generatedYaml = getStringFromGivenBalFile(tempDir, generatedYamlFile);
@@ -109,6 +108,7 @@ public class ServiceDeclarationNodesTests {
             System.gc();
         }
     }
+
     @AfterMethod
     public void cleanUp() {
         TestUtils.deleteDirectory(this.tempDir);

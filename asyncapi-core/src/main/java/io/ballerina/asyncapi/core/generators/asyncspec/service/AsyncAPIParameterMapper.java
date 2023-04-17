@@ -47,11 +47,13 @@ import io.ballerina.compiler.syntax.tree.SyntaxKind;
 import io.ballerina.compiler.syntax.tree.TypeDescriptorNode;
 
 import java.util.Map;
+import java.util.NoSuchElementException;
 
 import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.AsyncAPIType;
 import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.BINDING_VERSION;
 import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.BINDING_VERSION_VALUE;
 import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.HEADERS;
+import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.PATH_PARAM_DASH_CONTAIN_ERROR;
 import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.QUERY;
 import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.SCHEMA_REFERENCE;
 
@@ -165,6 +167,10 @@ public class AsyncAPIParameterMapper {
             if (param instanceof ResourcePathParameterNode) {
                 AsyncApi25ParameterImpl pathParameterAAS = new AsyncApi25ParameterImpl();
                 ResourcePathParameterNode pathParam = (ResourcePathParameterNode) param;
+                String parameterItemName = ConverterCommonUtils.unescapeIdentifier(pathParam.paramName().get().text());
+                if(parameterItemName.contains("-")){
+                    throw new NoSuchElementException(PATH_PARAM_DASH_CONTAIN_ERROR);
+                }
                 if (pathParam.typeDescriptor().kind() == SyntaxKind.SIMPLE_NAME_REFERENCE) {
                     SimpleNameReferenceNode queryNode = (SimpleNameReferenceNode) pathParam.typeDescriptor();
                     AsyncAPIComponentMapper componentMapper = new AsyncAPIComponentMapper(components);
@@ -186,7 +192,6 @@ public class AsyncAPIParameterMapper {
                 // Set param description
                 //TODO : Do we have to set required:true?
 //                pathParameterAAS.setRequired(true);
-                String parameterItemName = ConverterCommonUtils.unescapeIdentifier(pathParam.paramName().get().text());
                 parameters.addItem(parameterItemName, pathParameterAAS);
             }
         }

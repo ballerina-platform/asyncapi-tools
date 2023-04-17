@@ -11,7 +11,7 @@ servers:
       server:
         default: ws://localhost
       port:
-        default: "9090"
+        default: "80"
 channels:
   /:
     subscribe:
@@ -134,6 +134,7 @@ components:
       required:
         - id
         - count
+        - event
       properties:
         id:
           type: string
@@ -142,6 +143,8 @@ components:
           type: integer
           description: Number of rooms
           format: int64
+        event:
+          type: string
       description: Represents rooms be reserved
     Reservation:
       type: object

@@ -18,6 +18,8 @@ channels:
       message:
         payload:
           type: string
+          extensions:
+            x-response-type: server-streaming
     publish:
       message:
         $ref: '#/components/messages/Subscribe'
@@ -59,4 +61,6 @@ components:
       x-response:
         payload:
           type: string
-      x-response-type: streaming
+          extensions:
+            x-response-type: server-streaming
+      x-response-type: server-streaming

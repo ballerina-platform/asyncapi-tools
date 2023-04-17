@@ -110,8 +110,8 @@ public class AsyncAPIContractGenerator {
         if (hasErrors) {
             // if there are any compilation errors, do not proceed
             outStream.println("COMPILATION ERRORS:");
-            for (Diagnostic e :compilation.diagnosticResult().diagnostics()){
-                if(e.diagnosticInfo().severity().equals(DiagnosticSeverity.ERROR)) {
+            for (Diagnostic e :compilation.diagnosticResult().diagnostics()) {
+                if (e.diagnosticInfo().severity().equals(DiagnosticSeverity.ERROR)) {
                     outStream.println(e.message());
                 }
             }

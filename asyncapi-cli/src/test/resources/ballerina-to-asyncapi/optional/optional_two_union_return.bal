@@ -16,24 +16,35 @@
 
 import ballerina/websocket;
 
-@websocket:ServiceConfig {dispatcherKey: "event"}
+
+# A fake mountain resort
+@websocket:ServiceConfig{dispatcherKey: "event"}
 service /payloadV on new websocket:Listener(9090) {
-    resource function get .() returns websocket:Service|websocket:Error {
-        return new WsService();
+    resource function get .()returns websocket:Service|websocket:UpgradeError {
+        return new ChatServer();
     }
+
 }
 
-service class WsService {
+service class ChatServer{
     *websocket:Service;
 
-    remote function onSubscribe(websocket:Caller caller, Subscribe message) returns decimal{
-
-        return 1.0;
+    # Represents Snowpeak location resource
+    #
+    # + return - `Location` representation
+    remote function onLocation(websocket:Caller caller,Location location) returns int|string? {
+        // rep:Locations locations = mock:getLocations();
+        // return 5;
     }
 
 }
 
-public type Subscribe record{
-    int id;
+
+# Represents location
+public type Location record {|
+
+    # Unique identification
+    string id;
+
     string event;
-};
+|};

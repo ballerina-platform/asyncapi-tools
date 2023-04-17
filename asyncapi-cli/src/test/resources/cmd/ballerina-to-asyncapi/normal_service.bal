@@ -25,11 +25,13 @@ service /payloadV on new websocket:Listener(9090) {
 
 service class WsService {
     *websocket:Service;
+    int yy = 0;
 
-    remote function onSubscribe(websocket:Caller caller, Subscribe message) returns decimal{
-
-        return 1.0;
+    remote function onSubscribe(websocket:Caller caller, Subscribe message) returns int {
+        self.yy = 10;
+        return 5;
     }
+
 
 }
 
@@ -37,3 +39,4 @@ public type Subscribe record{
     int id;
     string event;
 };
+

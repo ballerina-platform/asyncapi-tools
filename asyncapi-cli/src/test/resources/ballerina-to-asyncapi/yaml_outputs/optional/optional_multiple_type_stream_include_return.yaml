@@ -1,0 +1,91 @@
+asyncapi: 2.5.0
+info:
+  title: PayloadV
+  version: 0.0.0
+servers:
+  development:
+    url: "{server}:{port}/payloadV"
+    protocol: ws
+    protocolVersion: "13"
+    variables:
+      server:
+        default: ws://localhost
+      port:
+        default: "9090"
+channels:
+  /:
+    subscribe:
+      message:
+        oneOf:
+          - payload:
+              type: integer
+              format: int64
+          - payload:
+              type: string
+          - payload:
+              type: object
+              additionalProperties: {}
+          - payload:
+              type: integer
+              format: int64
+              extensions:
+                x-response-type: server-streaming
+          - $ref: '#/components/messages/LocationReturn'
+    publish:
+      message:
+        $ref: '#/components/messages/Location'
+components:
+  schemas:
+    Location:
+      type: object
+      required:
+        - id
+        - event
+      properties:
+        id:
+          type: string
+          description: Unique identification
+        event:
+          type: string
+          const: Location
+      description: Represents location
+    LocationReturn:
+      type: object
+      required:
+        - id
+        - event
+      properties:
+        id:
+          type: string
+          description: Unique identification
+        event:
+          type: string
+      description: Represents location
+  messages:
+    LocationReturn:
+      payload:
+        $ref: '#/components/schemas/LocationReturn'
+    Location:
+      payload:
+        $ref: '#/components/schemas/Location'
+      description: Represents Snowpeak location resource
+      x-response:
+        oneOf:
+          - payload:
+              type: integer
+              format: int64
+          - payload:
+              type: string
+          - payload:
+              type: object
+              additionalProperties: {}
+          - payload:
+              type: integer
+              format: int64
+              extensions:
+                x-response-type: server-streaming
+          - $ref: '#/components/messages/LocationReturn'
+        description: '`Location` representation'
+        extensions:
+          x-optional: true
+      x-response-type: simple-rpc/server-streaming

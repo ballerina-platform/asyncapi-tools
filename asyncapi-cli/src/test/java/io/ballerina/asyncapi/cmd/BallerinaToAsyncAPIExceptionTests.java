@@ -22,6 +22,7 @@ import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.FUNCTION
 import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.NO_ANNOTATION_PRESENT;
 import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.NO_DISPATCHER_KEY;
 import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.NO_SERVICE_CLASS;
+import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.PATH_PARAM_DASH_CONTAIN_ERROR;
 
 
 /**
@@ -31,8 +32,8 @@ import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.NO_SERVI
  * @since 2.5.0
  */
 public class BallerinaToAsyncAPIExceptionTests extends AsyncAPICommandTest {
-    private static final Path RES_DIR =
-            Paths.get("src/test/resources/ballerina-to-asyncapi/exceptions").toAbsolutePath();
+    private static final Path RES_DIR = Paths.get("src/test/resources/ballerina-to-asyncapi/exceptions").
+            toAbsolutePath();
     private Path tempDir;
 
     @BeforeTest(description = "This will create a new ballerina project for testing below scenarios.")
@@ -71,8 +72,8 @@ public class BallerinaToAsyncAPIExceptionTests extends AsyncAPICommandTest {
         try {
             cmd.execute();
             output = readOutput(true);
-            Assert.assertTrue(output.trim().contains(String.format(DISPATCHERKEY_NOT_PRESENT_IN_RECORD_FIELD
-                    , "event", "Subscribe")));
+            Assert.assertTrue(output.trim().contains(String.format(DISPATCHERKEY_NOT_PRESENT_IN_RECORD_FIELD,
+                    "event", "Subscribe")));
         } catch (BLauncherException | IOException e) {
             output = e.toString();
             Assert.fail(output);
@@ -91,13 +92,13 @@ public class BallerinaToAsyncAPIExceptionTests extends AsyncAPICommandTest {
         try {
             cmd.execute();
             output = readOutput(true);
-            Assert.assertTrue(output.trim().contains(String.format(DISPATCHER_KEY_TYPE_EXCEPTION,
-                    "event")));
+            Assert.assertTrue(output.trim().contains(String.format(DISPATCHER_KEY_TYPE_EXCEPTION, "event")));
         } catch (BLauncherException | IOException e) {
             output = e.toString();
             Assert.fail(output);
         }
     }
+
     @Test(description = "Test dispatcherKey field is not present in annotation ")
     public void testDispatcherKeyFieldIsNotPresentInAnnotation() {
         Path filePath = resourceDir.resolve(Paths.get("cmd/ballerina-to-asyncapi/exceptions" +
@@ -249,6 +250,7 @@ public class BallerinaToAsyncAPIExceptionTests extends AsyncAPICommandTest {
             Assert.fail(output);
         }
     }
+
     @Test(description = "Test onOpen remote function is present as a remote function")
     public void testOnOpenRemoteFunctionNotPermitted() {
         Path filePath = resourceDir.resolve(Paths.get("cmd/ballerina-to-asyncapi/exceptions" +
@@ -287,6 +289,7 @@ public class BallerinaToAsyncAPIExceptionTests extends AsyncAPICommandTest {
             Assert.fail(output);
         }
     }
+
     @Test(description = "Test onPing remote function is present as a remote function")
     public void testOnPingRemoteFunctionNotPermitted() {
         Path filePath = resourceDir.resolve(Paths.get("cmd/ballerina-to-asyncapi/exceptions" +
@@ -344,7 +347,8 @@ public class BallerinaToAsyncAPIExceptionTests extends AsyncAPICommandTest {
             Assert.fail(output);
         }
     }
-//
+
+    //
     @Test(description = "Test dispatcherKey is nullable not allowed in a field")
     public void testDispatcherKeyIsNullableNotAllowedInAField() {
         Path filePath = resourceDir.resolve(Paths.get("cmd/ballerina-to-asyncapi/exceptions" +
@@ -415,8 +419,26 @@ public class BallerinaToAsyncAPIExceptionTests extends AsyncAPICommandTest {
         try {
             cmd.execute();
             output = readOutput(true);
-            Assert.assertTrue(output.trim().contains(String.format(FUNCTION_SIGNATURE_WRONG_TYPE,
-                    "Subscribe", "int")));
+            Assert.assertTrue(output.trim().contains(String.format(FUNCTION_SIGNATURE_WRONG_TYPE, "Subscribe", "int")));
+        } catch (BLauncherException | IOException e) {
+            output = e.toString();
+            Assert.fail(output);
+        }
+    }
+
+    @Test(description = "Test path param contains dash character")
+    public void testPathParamDashContain() {
+        Path filePath = resourceDir.resolve(Paths.get("cmd/ballerina-to-asyncapi/exceptions" +
+                "/path_param_dash_contain.bal"));
+        String[] args = {"--input", filePath.toString(), "-o", this.tmpDir.toString()};
+        AsyncAPICmd cmd = new AsyncAPICmd(printStream, tmpDir, false);
+        new CommandLine(cmd).parseArgs(args);
+
+        String output = "";
+        try {
+            cmd.execute();
+            output = readOutput(true);
+            Assert.assertTrue(output.trim().contains(PATH_PARAM_DASH_CONTAIN_ERROR));
         } catch (BLauncherException | IOException e) {
             output = e.toString();
             Assert.fail(output);

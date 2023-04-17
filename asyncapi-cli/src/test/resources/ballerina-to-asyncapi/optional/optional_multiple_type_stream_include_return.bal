@@ -1,6 +1,6 @@
-// Copyright (c) 2021 WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+// Copyright (c) 2023 WSO2 LLC. (http://www.wso2.org) All Rights Reserved.
 //
-// WSO2 Inc. licenses this file to you under the Apache License,
+// WSO2 LLC. licenses this file to you under the Apache License,
 // Version 2.0 (the "License"); you may not use this file except
 // in compliance with the License.
 // You may obtain a copy of the License at
@@ -32,14 +32,20 @@ service class ChatServer{
     # Represents Snowpeak location resource
     #
     # + return - `Location` representation
-    remote function onLocation(websocket:Caller caller,Location location) returns int? {
+    remote function onLocation(websocket:Caller caller,Location location) returns int|string|map<json>|stream<int>|LocationReturn? {
         // rep:Locations locations = mock:getLocations();
         // return 5;
     }
 
-
 }
+# Represents location
+public type LocationReturn record {|
 
+    # Unique identification
+    string id;
+
+    string event;
+|};
 
 # Represents location
 public type Location record {|
