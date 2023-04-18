@@ -51,7 +51,6 @@ import java.util.Optional;
 
 import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.ATTR_HOST;
 import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.FALSE;
-import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.LOCALHOST;
 import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.PORT;
 import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.SECURE_SOCKET;
 import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.SERVER;
