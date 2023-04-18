@@ -64,7 +64,7 @@ import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.SCHEMA_R
 public class AsyncAPIParameterMapper {
     private final FunctionDefinitionNode functionDefinitionNode;
     private final Map<String, String> apidocs;
-//    private final List<AsyncAPIConverterDiagnostic> errors = new ArrayList<>();
+    //    private final List<AsyncAPIConverterDiagnostic> errors = new ArrayList<>();
     private final AsyncApi25ComponentsImpl components;
     private final SemanticModel semanticModel;
 
@@ -122,15 +122,15 @@ public class AsyncAPIParameterMapper {
                     queryParameterMapper.createQueryParameter(requiredParameterNode, bindingQueryObject);
                 }
                 // Handle header, payload parameter
-                if (requiredParameterNode.typeName() instanceof TypeDescriptorNode &&
-                        !requiredParameterNode.annotations().isEmpty()) {
+                if (requiredParameterNode.typeName() instanceof TypeDescriptorNode && !requiredParameterNode
+                        .annotations().isEmpty()) {
                     handleHeaderParameters(requiredParameterNode, bindingHeaderObject);
                 }
             } else if (parameterNode.kind() == SyntaxKind.DEFAULTABLE_PARAM) {
                 DefaultableParameterNode defaultableParameterNode = (DefaultableParameterNode) parameterNode;
 //                // Handle header parameter
-                if (defaultableParameterNode.typeName() instanceof TypeDescriptorNode &&
-                        !defaultableParameterNode.annotations().isEmpty()) {
+                if (defaultableParameterNode.typeName() instanceof TypeDescriptorNode && !defaultableParameterNode
+                        .annotations().isEmpty()) {
                     handleDefaultableHeaderParameters(defaultableParameterNode, bindingHeaderObject);
                 } else {
 
@@ -168,7 +168,7 @@ public class AsyncAPIParameterMapper {
                 AsyncApi25ParameterImpl pathParameterAAS = new AsyncApi25ParameterImpl();
                 ResourcePathParameterNode pathParam = (ResourcePathParameterNode) param;
                 String parameterItemName = ConverterCommonUtils.unescapeIdentifier(pathParam.paramName().get().text());
-                if(parameterItemName.contains("-")){
+                if (parameterItemName.contains("-")) {
                     throw new NoSuchElementException(PATH_PARAM_DASH_CONTAIN_ERROR);
                 }
                 if (pathParam.typeDescriptor().kind() == SyntaxKind.SIMPLE_NAME_REFERENCE) {
@@ -177,12 +177,12 @@ public class AsyncAPIParameterMapper {
                     TypeSymbol typeSymbol = (TypeSymbol) semanticModel.symbol(queryNode).orElseThrow();
                     componentMapper.createComponentSchema(typeSymbol, null);
                     BalAsyncApi25SchemaImpl schema = new BalAsyncApi25SchemaImpl();
-                    schema.set$ref(SCHEMA_REFERENCE + ConverterCommonUtils.unescapeIdentifier(queryNode.name().
-                            text().trim()));
+                    schema.set$ref(SCHEMA_REFERENCE + ConverterCommonUtils.unescapeIdentifier(queryNode.name()
+                            .text().trim()));
                     pathParameterAAS.setSchema(schema);
                 } else {
-                    pathParameterAAS.setSchema(ConverterCommonUtils.getAsyncApiSchema(
-                            pathParam.typeDescriptor().toString().trim()));
+                    pathParameterAAS.setSchema(ConverterCommonUtils.getAsyncApiSchema(pathParam.typeDescriptor()
+                            .toString().trim()));
                 }
 
                 // Check the parameter has doc
