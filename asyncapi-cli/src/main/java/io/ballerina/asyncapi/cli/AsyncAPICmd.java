@@ -163,7 +163,7 @@ public class AsyncAPICmd implements BLauncherCmd {
 //                    exitError(this.exitWhenFinish);
 //                }
                 try {
-                    asyncApiToBallerina(fileName;
+                    asyncApiToBallerina(fileName);
                 } catch (IOException e) {
                     outStream.println(e.getLocalizedMessage());
                     exitError(this.exitWhenFinish);
