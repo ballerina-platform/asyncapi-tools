@@ -32,7 +32,7 @@ service class ChatServer{
     # Represents Snowpeak location resource
     #
     # + return - `Location` representation
-    remote function onLocation(websocket:Caller caller,Location location) returns int|string|map<json>|stream<int>|LocationReturn? {
+    remote function onLocation(websocket:Caller caller,Location location) returns int|string|map<json>|LocationReturn? {
         // rep:Locations locations = mock:getLocations();
         // return 5;
     }

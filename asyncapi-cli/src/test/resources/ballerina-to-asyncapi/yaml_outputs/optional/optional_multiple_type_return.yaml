@@ -25,11 +25,6 @@ channels:
           - payload:
               type: object
               additionalProperties: {}
-          - payload:
-              type: integer
-              format: int64
-              extensions:
-                x-response-type: server-streaming
           - $ref: '#/components/messages/LocationReturn'
     publish:
       message:
@@ -79,13 +74,8 @@ components:
           - payload:
               type: object
               additionalProperties: {}
-          - payload:
-              type: integer
-              format: int64
-              extensions:
-                x-response-type: server-streaming
           - $ref: '#/components/messages/LocationReturn'
         description: '`Location` representation'
         extensions:
-          x-optional: true
-      x-response-type: simple-rpc/server-streaming
+          x-required: false
+      x-response-type: simple-rpc

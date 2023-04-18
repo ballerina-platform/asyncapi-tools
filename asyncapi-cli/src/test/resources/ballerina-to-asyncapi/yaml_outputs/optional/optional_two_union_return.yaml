@@ -54,5 +54,5 @@ components:
               type: string
         description: '`Location` representation'
         extensions:
-          x-optional: true
+          x-required: false
       x-response-type: simple-rpc

@@ -47,5 +47,5 @@ components:
           type: integer
           format: int64
         description: '`Location` representation'
-        x-optional: true
+        x-required: false
       x-response-type: simple-rpc
