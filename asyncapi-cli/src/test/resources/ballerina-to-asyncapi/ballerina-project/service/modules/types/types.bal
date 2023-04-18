@@ -49,7 +49,6 @@ public type ErrorResponse record {|
 |};
 
 public type BadRequest record {|
-    // *http:BadRequest;
 
     ErrorResponse body;
 |};

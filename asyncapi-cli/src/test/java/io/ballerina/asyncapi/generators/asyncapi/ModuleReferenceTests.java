@@ -30,21 +30,21 @@ public class ModuleReferenceTests {
     private static final Path RES_DIR = Paths.get(
             "src/test/resources/ballerina-to-asyncapi/ballerina-project/service").toAbsolutePath();
 
-    @Test(description = "Response with separate modules",enabled = false)
+    @Test(description = "Response with separate modules")
     public void testResponse01() throws IOException {
        Path ballerinaFilePath = RES_DIR.resolve("snowpeak.bal");
         TestUtils.compareWithGeneratedFile(ballerinaFilePath, "ballerina-project/service/snowpeak.yaml");
     }
 
 
-    @Test(description = "Response has array type the array item type in separate module",enabled = false)
+    @Test(description = "Response has array type the array item type in separate module")
     public void testResponse02() throws IOException {
         Path ballerinaFilePath = RES_DIR.resolve("arrayTypeResponse.bal");
         TestUtils.compareWithGeneratedFile(ballerinaFilePath,
                 "ballerina-project/service/arrayTypeResponse.yaml");
     }
 
-    @Test(description =  "check readonly",enabled = false)
+    @Test(description =  "check readonly")
     public void testRecordReferenceWithReadOnly() throws IOException {
         Path ballerinaFilePath = RES_DIR.resolve("readonly.bal");
         TestUtils.compareWithGeneratedFile(ballerinaFilePath, "ballerina-project/service/readonly.yaml");
