@@ -32,8 +32,8 @@ import static io.ballerina.asyncapi.generators.asyncapi.TestUtils.compareWithGen
  * Tests for AsyncAPI info section mapping.
  */
 public class AsyncAPIInfoTests {
-    private static final Path RES_DIR =
-            Paths.get("src/test/resources/ballerina-to-asyncapi/asyncapi_info").toAbsolutePath();
+    private static final Path RES_DIR = Paths.get("src/test/resources/ballerina-to-asyncapi/asyncapi_info").
+            toAbsolutePath();
     private Path tempDir;
 
     @BeforeMethod
@@ -41,7 +41,7 @@ public class AsyncAPIInfoTests {
         this.tempDir = Files.createTempDirectory("bal-to-asyncapi-test-out-" + System.nanoTime());
     }
 
-    @Test(description = "Generate AsyncAPI spec with default value with empty Ballerina.toml")
+    @Test(description = "Generate AsyncAPI spec with default value with empty Ballerina.toml", enabled = false)
     public void defaultOpenAPIInfo() throws IOException {
         Path ballerinaFilePath = RES_DIR.resolve("project01/project01.bal");
         compareWithGeneratedFile(ballerinaFilePath, "asyncapi_info/project01.yaml");

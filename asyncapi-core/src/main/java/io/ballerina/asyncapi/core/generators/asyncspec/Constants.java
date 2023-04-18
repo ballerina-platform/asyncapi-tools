@@ -45,7 +45,7 @@ public class Constants {
     public static final String XML = "xml";
     public static final String JSON = "json";
     public static final String PLAIN = "plain";
-    public static final String ASYNC_API_SUFFIX = "_asyncapi";
+    public static final String ASYNC_API_SUFFIX = "_asyncapi1";
     public static final String SERVER = "server";
     public static final String SERVER_TYPE = "development";
     public static final String WS = "ws";
@@ -67,9 +67,11 @@ public class Constants {
     public static final String MESSAGE_REFERENCE = "#/components/messages/";
     public static final String X_RESPONSE = "x-response";
     public static final String X_RESPONSE_TYPE = "x-response-type";
+
+    public static final String X_REQUIRED = "x-required";
     public static final String PAYLOAD = "payload";
     public static final String SIMPLE_RPC = "simple-rpc";
-    public static final String STREAMING = "streaming";
+    public static final String SERVER_STREAMING = "server-streaming";
     public static final String X_NULLABLE = "x-nullable";
     public static final String RETURN = "return";
     public static final String DESCRIPTION = "description";
@@ -102,11 +104,13 @@ public class Constants {
 
     public static final String SPECIAL_CHAR_REGEX = "([\\[\\]\\\\?!<>@#&~`*\\-=^+();:\\/\\_{}\\s|.$])";
     public static final String TRUE = "true";
+
+    public static final String FALSE = "false";
     public static final String WS_LOCALHOST = "ws://localhost";
+    public static final String LOCALHOST = "localhost";
     public static final String WSS_LOCALHOST = "wss://localhost";
     public static final String WS_PREFIX = "ws://";
     public static final String WSS_PREFIX = "wss://";
-    public static final String FALSE = "false";
     public static final String SLASH = "/";
     public static final String HYPHEN = "-";
     public static final String CONTRACT = "contract";
@@ -170,4 +174,6 @@ public class Constants {
     public static final String NO_TYPE_IN_STREAM = "ERROR: No type present in stream";
     public static final String NO_SERVICE_CLASS = "ERROR: No service class present";
 
+    public static final String UNION_STREAMING_SIMPLE_RPC_ERROR = "Response server streaming types cannot be union with simple rpc types";
+    public static final String PATH_PARAM_DASH_CONTAIN_ERROR = "Path parameter contains an invalid character '-'";
 }

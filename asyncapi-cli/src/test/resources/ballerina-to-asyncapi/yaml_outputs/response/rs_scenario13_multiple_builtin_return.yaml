@@ -1,0 +1,113 @@
+asyncapi: 2.5.0
+info:
+  title: PayloadV
+  version: 0.0.0
+servers:
+  development:
+    url: "{server}:{port}/payloadV"
+    protocol: ws
+    protocolVersion: "13"
+    variables:
+      server:
+        default: ws://localhost
+      port:
+        default: "9090"
+channels:
+  /:
+    subscribe:
+      message:
+        oneOf:
+          - payload:
+              type: integer
+              format: int64
+          - payload:
+              type: string
+          - payload:
+              type: boolean
+          - payload:
+              type: object
+              additionalProperties: {}
+          - payload:
+              type: object
+              additionalProperties:
+                type: string
+    publish:
+      message:
+        oneOf:
+          - $ref: '#/components/messages/Subscribe'
+          - $ref: '#/components/messages/Payment'
+components:
+  schemas:
+    Subscribe:
+      type: object
+      required:
+        - body
+        - event
+      properties:
+        body:
+          type: string
+        event:
+          type: string
+          const: Subscribe
+    Payment:
+      type: object
+      required:
+        - cardholderName
+        - cardNumber
+        - expiryMonth
+        - expiryYear
+        - event
+      properties:
+        cardholderName:
+          type: string
+          description: Name of the card holder
+        cardNumber:
+          type: integer
+          description: Card number
+          format: int64
+        expiryMonth:
+          type: string
+          description: Expiration month of the card in mm
+        expiryYear:
+          type: string
+          description: Expiaration year of the card in yyyy
+        event:
+          type: string
+          const: Payment
+          description: Event description
+      description: Reperesents payement for rooms
+  messages:
+    Subscribe:
+      payload:
+        $ref: '#/components/schemas/Subscribe'
+      x-response:
+        oneOf:
+          - payload:
+              type: integer
+              format: int64
+          - payload:
+              type: string
+          - payload:
+              type: boolean
+      x-response-type: simple-rpc
+    Payment:
+      payload:
+        $ref: '#/components/schemas/Payment'
+        description: Payment representation
+      description: Represents Snowpeak payment resource
+      x-response:
+        oneOf:
+          - payload:
+              type: integer
+              format: int64
+          - payload:
+              type: string
+          - payload:
+              type: object
+              additionalProperties: {}
+          - payload:
+              type: object
+              additionalProperties:
+                type: string
+        description: '`PaymentCreated` or `PaymentConflict` representation'
+      x-response-type: simple-rpc

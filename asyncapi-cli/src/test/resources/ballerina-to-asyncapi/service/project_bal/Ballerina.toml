@@ -1,4 +1,4 @@
 [package]
-org= "thushalya"
+org= "ballerina"
 name= "asyncAPI"
 version= "0.1.0"

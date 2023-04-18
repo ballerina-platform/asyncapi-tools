@@ -40,20 +40,20 @@ public class RecordTests {
         this.tempDir = Files.createTempDirectory("bal-to-asyncapi-test-out-" + System.nanoTime());
     }
 
-    @Test(description = "When the record field has typeInclusion it map to allOfSchema in OAS")
+    @Test(description = "When the record field has typeInclusion it map to allOfSchema in AAS")
     public void testTypeInclusion() throws IOException {
         Path ballerinaFilePath = RES_DIR.resolve("record/typeInclusion.bal");
         //Compare generated yaml file with expected yaml content
         TestUtils.compareWithGeneratedFile(ballerinaFilePath, "record/typeInclusion.yaml");
     }
 
-    @Test(description = "When the record field has optional fields it map to optional fields in OAS")
+    @Test(description = "When the record field has optional fields it map to optional fields in AAS")
     public void testRequiredField() throws IOException {
         Path ballerinaFilePath = RES_DIR.resolve("record/optional.bal");
         TestUtils.compareWithGeneratedFile(ballerinaFilePath, "record/optional.yaml");
     }
 
-    @Test(description = "When the record field has nullable fields it enables nullable true in OAS")
+    @Test(description = "When the record field has nullable fields it enables nullable true in AAS")
     public void testNullableFieldWithOptional() throws IOException {
         Path ballerinaFilePath = RES_DIR.resolve("record/nullable01.bal");
         TestUtils.compareWithGeneratedFile(ballerinaFilePath, "record/nullable01.yaml");

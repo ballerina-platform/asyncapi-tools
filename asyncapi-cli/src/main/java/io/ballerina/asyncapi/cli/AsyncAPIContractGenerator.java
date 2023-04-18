@@ -35,6 +35,7 @@ import io.ballerina.projects.PackageCompilation;
 import io.ballerina.projects.Project;
 import io.ballerina.projects.ProjectKind;
 import io.ballerina.projects.directory.ProjectLoader;
+import io.ballerina.tools.diagnostics.Diagnostic;
 import io.ballerina.tools.diagnostics.DiagnosticSeverity;
 
 import java.io.IOException;
@@ -105,8 +106,15 @@ public class AsyncAPIContractGenerator {
         boolean hasErrors = compilation.diagnosticResult()
                 .diagnostics().stream()
                 .anyMatch(d -> DiagnosticSeverity.ERROR.equals(d.diagnosticInfo().severity()));
+
         if (hasErrors) {
             // if there are any compilation errors, do not proceed
+            outStream.println("COMPILATION ERRORS:");
+            for (Diagnostic e :compilation.diagnosticResult().diagnostics()) {
+                if (e.diagnosticInfo().severity().equals(DiagnosticSeverity.ERROR)) {
+                    outStream.println(e.message());
+                }
+            }
             return;
         }
         semanticModel = compilation.getSemanticModel(docId.moduleId());

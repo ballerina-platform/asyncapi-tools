@@ -1,6 +1,6 @@
-// Copyright (c) 2021 WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+// Copyright (c) 2023 WSO2 LLC. (http://www.wso2.org) All Rights Reserved.
 //
-// WSO2 Inc. licenses this file to you under the Apache License,
+// WSO2 LLC. licenses this file to you under the Apache License,
 // Version 2.0 (the "License"); you may not use this file except
 // in compliance with the License.
 // You may obtain a copy of the License at
@@ -28,6 +28,12 @@ service /payloadV on new websocket:Listener(9090) {
 service class FirstChatServer{
     *websocket:Service;
 
+      remote function onSubscribe(websocket:Caller caller,Subscribe payment)
+                    returns int|string|boolean{
+
+            return 1;
+        }
+
     # Represents Snowpeak payment resource
     #
     # + id - Unique identification of payment
@@ -39,11 +45,7 @@ service class FirstChatServer{
         return "1";
     }
 
-     remote function onSubscribe(websocket:Caller caller,Subscribe payment)
-                returns int|stream<int>{
 
-        return 1;
-    }
 
 }
 

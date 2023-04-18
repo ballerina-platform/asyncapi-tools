@@ -151,6 +151,14 @@ public class ResponseTests {
                 "response/rs_scenario14_stream_string_return.yaml");
     }
 
+    @Test(description = "When multiple streams return as union type")
+    public void testReturningMultipleTypesOfStreams() throws IOException {
+        Path ballerinaFilePath = RES_DIR.resolve("response/rs_scenario15_multiple_stream_types_return.bal");
+        //Compare generated yaml file with expected yaml content
+        TestUtils.compareWithGeneratedFile(ballerinaFilePath,
+                "response/rs_scenario15_multiple_stream_types_return.yaml");
+    }
+
 
 
     @AfterMethod

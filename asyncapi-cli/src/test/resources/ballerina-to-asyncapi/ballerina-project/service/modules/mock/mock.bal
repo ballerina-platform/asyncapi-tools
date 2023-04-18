@@ -1,6 +1,6 @@
-// Copyright (c) 2021 WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+// Copyright (c) 2023 WSO2 LLC. (http://www.wso2.org) All Rights Reserved.
 //
-// WSO2 Inc. licenses this file to you under the Apache License,
+// WSO2 LLC. licenses this file to you under the Apache License,
 // Version 2.0 (the "License"); you may not use this file except
 // in compliance with the License.
 // You may obtain a copy of the License at
@@ -20,14 +20,15 @@ public isolated function getLocations() returns rep:Locations {
     return {
         locations: [
             {
-
+         
                 id: "l1000",
-                event: "location"
+                event:""
+                
             },
             {
-
-                id: "l200",
-                event: ""
+            
+                id: "l2000",
+                event:""
             }
         ]
     };
@@ -64,7 +65,8 @@ public isolated function createReservation(rep:Reservation reservation) returns 
                 reserveRooms: [
                     {
                         id: "r1000",
-                        count: 2
+                        count: 2,
+                        event: ""
                     }
                 ],
                 startDate: "2021-08-01",
@@ -87,7 +89,8 @@ public isolated function updateReservation(rep:Reservation reservation) returns 
                 reserveRooms: [
                     {
                         id: "r1000",
-                        count: 1
+                        count: 1,
+                        event: ""
                     }
                 ],
                 startDate: "2021-08-01",
@@ -100,7 +103,7 @@ public isolated function updateReservation(rep:Reservation reservation) returns 
 
 public isolated function createPayment(string id, rep:Payment payment) returns rep:PaymentCreated {
     return {
-
+       
         body: {
             id: "p1000",
             currency: "USD",

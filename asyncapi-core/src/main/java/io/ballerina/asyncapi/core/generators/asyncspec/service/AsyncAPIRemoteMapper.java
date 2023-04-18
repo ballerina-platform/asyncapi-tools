@@ -62,6 +62,7 @@ import java.util.NoSuchElementException;
 import java.util.Optional;
 
 import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.CAMEL_CASE_PATTERN;
+import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.FALSE;
 import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.FUNCTION_DEFAULT_NAME_CONTAINS_ERROR;
 import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.FUNCTION_PARAMETERS_EXCEEDED;
 import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.FUNCTION_SIGNATURE_ABSENT;
@@ -220,7 +221,7 @@ public class AsyncAPIRemoteMapper {
                                         }
                                         //Call createResponse method to create the response
                                         responseMapper.createResponse(subscribeMessage, componentMessage,
-                                                remoteReturnType, returnDescription);
+                                                remoteReturnType, returnDescription,FALSE);
                                     }
                                     //Add publish message related to remote method
                                     components.addMessage(remoteRequestTypeName, componentMessage);

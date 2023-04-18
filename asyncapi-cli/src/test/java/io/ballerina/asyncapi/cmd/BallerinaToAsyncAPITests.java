@@ -61,6 +61,7 @@ public class BallerinaToAsyncAPITests extends AsyncAPICommandTest {
             Assert.fail(output);
         }
     }
+
     @Test(description = "Without asyncapi annotation ballerina to asyncapi")
     public void asyncapiAnnotationWithOutContract() {
         Path filePath = resourceDir.resolve(Paths.get("cmd/ballerina-to-asyncapi/project_2/service.bal"));
@@ -75,6 +76,29 @@ public class BallerinaToAsyncAPITests extends AsyncAPICommandTest {
             Path definitionPath = resourceDir.resolve("cmd/ballerina-to-asyncapi/project_2/result.yaml");
             if (Files.exists(this.tmpDir.resolve("service_asyncapi.yaml"))) {
                 String generatedAsyncAPI = getStringFromGivenBalFile(this.tmpDir.resolve("service_asyncapi.yaml"));
+                String expectedYaml = getStringFromGivenBalFile(definitionPath);
+                Assert.assertEquals(expectedYaml, generatedAsyncAPI);
+            }
+        } catch (BLauncherException | IOException e) {
+            output = e.toString();
+            Assert.fail(output);
+        }
+    }
+
+    @Test(description = "Ballerina to asyncapi json file generation")
+    public void asyncApiJsonGeneration() {
+        Path filePath = resourceDir.resolve(Paths.get("cmd/ballerina-to-asyncapi/normal_service.bal"));
+        String[] args = {"--input", filePath.toString(), "-o", this.tmpDir.toString(), "--json"};
+        AsyncAPICmd cmd = new AsyncAPICmd(printStream, tmpDir, false);
+        new CommandLine(cmd).parseArgs(args);
+
+        String output = "";
+        try {
+            cmd.execute();
+            output = readOutput(true);
+            Path definitionPath = resourceDir.resolve("cmd/ballerina-to-asyncapi/normal_service.json");
+            if (Files.exists(this.tmpDir.resolve("payloadV_asyncapi1.json"))) {
+                String generatedAsyncAPI = getStringFromGivenBalFile(this.tmpDir.resolve("payloadV_asyncapi1.json"));
                 String expectedYaml = getStringFromGivenBalFile(definitionPath);
                 Assert.assertEquals(expectedYaml, generatedAsyncAPI);
             }

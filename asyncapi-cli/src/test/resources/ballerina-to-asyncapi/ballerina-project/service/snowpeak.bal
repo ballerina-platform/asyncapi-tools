@@ -1,6 +1,6 @@
-// Copyright (c) 2021 WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+// Copyright (c) 2023 WSO2 LLC. (http://www.wso2.org) All Rights Reserved.
 //
-// WSO2 Inc. licenses this file to you under the Apache License,
+// WSO2 LLC. licenses this file to you under the Apache License,
 // Version 2.0 (the "License"); you may not use this file except
 // in compliance with the License.
 // You may obtain a copy of the License at
@@ -20,14 +20,14 @@ import 'service.mock;
 
 # A fake mountain resort
 @websocket:ServiceConfig{dispatcherKey: "event"}
-service /payloadV on new websocket:Listener(9090) {
+service /payloadV on new websocket:Listener(80) {
     resource function get .()returns websocket:Service|websocket:UpgradeError {
-        return new ChatServer();
+        return new SnowPeakChatServer();
     }
 
 }
 
-service class ChatServer{
+service class SnowPeakChatServer{
     *websocket:Service;
 
     # Represents Snowpeak location resource

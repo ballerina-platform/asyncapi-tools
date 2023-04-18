@@ -16,13 +16,9 @@ channels:
   /:
     subscribe:
       message:
-        oneOf:
-          - payload:
-              type: integer
-              format: int64
-          - payload:
-              type: integer
-              format: int64
+        payload:
+          type: integer
+          format: int64
     publish:
       message:
         oneOf:

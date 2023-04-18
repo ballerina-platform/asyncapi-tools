@@ -29,6 +29,8 @@ import java.util.Comparator;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.ASYNC_API_SUFFIX;
+
 /**
  * This Util class for storing the common utils related to test in ballerina to openAPI command implementation.
  */
@@ -56,9 +58,11 @@ public class TestUtils {
         try {
             String expectedYamlContent = getStringFromGivenBalFile(RES_DIR.resolve("yaml_outputs"), yamlFile);
             AsyncAPIContractGenerator asyncApiConverter = new AsyncAPIContractGenerator();
-            asyncApiConverter.generateAsyncAPIDefinitionsAllService(ballerinaFilePath, tempDir, null, false);
-            if (Files.exists(tempDir.resolve("payloadV_asyncapi.yaml"))) {
-                String generatedYaml = getStringFromGivenBalFile(tempDir, "payloadV_asyncapi.yaml");
+            asyncApiConverter.generateAsyncAPIDefinitionsAllService(ballerinaFilePath, tempDir, null,
+                    false);
+            if (Files.exists(tempDir.resolve(String.format("payloadV%s.yaml", ASYNC_API_SUFFIX)))) {
+                String generatedYaml = getStringFromGivenBalFile(tempDir, String.format("payloadV%s.yaml",
+                        ASYNC_API_SUFFIX));
                 generatedYaml = (generatedYaml.trim()).replaceAll("\\s+", "");
                 expectedYamlContent = (expectedYamlContent.trim()).replaceAll("\\s+", "");
                 Assert.assertTrue(generatedYaml.contains(expectedYamlContent));
@@ -68,7 +72,7 @@ public class TestUtils {
         } catch (IOException e) {
             Assert.fail("Error while generating the service. " + e.getMessage());
         } finally {
-            deleteGeneratedFiles("payloadV_asyncapi.yaml", tempDir);
+            deleteGeneratedFiles(String.format("payloadV%s.yaml", ASYNC_API_SUFFIX), tempDir);
             deleteDirectory(tempDir);
             System.gc();
         }
@@ -80,9 +84,7 @@ public class TestUtils {
         }
 
         try (Stream<Path> walk = Files.walk(path)) {
-            walk.sorted(Comparator.reverseOrder())
-                    .map(Path::toFile)
-                    .forEach(File::delete);
+            walk.sorted(Comparator.reverseOrder()).map(Path::toFile).forEach(File::delete);
         } catch (IOException ignored) {
             //ignore
         }

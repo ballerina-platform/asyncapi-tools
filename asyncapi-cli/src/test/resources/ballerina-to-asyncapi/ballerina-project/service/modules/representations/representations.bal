@@ -1,6 +1,6 @@
-// Copyright (c) 2021 WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+// Copyright (c) 2023 WSO2 LLC. (http://www.wso2.org) All Rights Reserved.
 //
-// WSO2 Inc. licenses this file to you under the Apache License,
+// WSO2 LLC. licenses this file to you under the Apache License,
 // Version 2.0 (the "License"); you may not use this file except
 // in compliance with the License.
 // You may obtain a copy of the License at
@@ -14,9 +14,13 @@
 // specific language governing permissions and limitations
 // under the License.
 
+
 # Represents location
 public type Location record {|
+
+    # Unique identification
     string id;
+     
     string event;
 |};
 # Represents a collection of locations
@@ -68,6 +72,8 @@ public type ReserveRoom record {|
     string id;
     # Number of rooms
     int count;
+
+    string event;
 |};
 # Represents a reservation of rooms
 public type Reservation record {|
@@ -77,11 +83,12 @@ public type Reservation record {|
     string startDate;
     # End date in yyyy-mm-dd
     string endDate;
-    # Event description
+
     string event;
 |};
 # Represents a receipt for the reservation
 public type ReservationReceipt record {|
+
     # Unique identification
     string id;
     # Expiry date in yyyy-mm-dd
@@ -115,7 +122,7 @@ public type Payment record {|
     string expiryMonth;
     # Expiaration year of the card in yyyy
     string expiryYear;
-    # Event description
+
     string event;
 |};
 
@@ -139,27 +146,26 @@ public type PaymentConflict record {|
     string body = "Error occurred while updating the payment";
 |};
 
+public type PaymentSuccess record {|
+    string body = "Error occurred while updating the payment";
+|};
+public type PaymentFault record {|
+    string body = "Error occurred while updating the payment";
+|};
+
 public enum Status {
     OPEN,
     CLOSED,
     HOLD
 }
 
-public type PaymentFault record {|
-    string body = "Error occurred while updating the payment";
-|};
-
 public type LiftRecord readonly & record {|
     readonly string id;
     string name;
-    Status status;
-    int capacity;
-    boolean night;
-    int elevationgain;
-|};
-
-public type PaymentSuccess record {|
-    string body = "Error occurred while updating the payment";
+    Status status?;
+    int capacity?;
+    boolean night?;
+    int elevationgain?;
 |};
 
 public final readonly & table<LiftRecord> key(id) liftTable = table [
