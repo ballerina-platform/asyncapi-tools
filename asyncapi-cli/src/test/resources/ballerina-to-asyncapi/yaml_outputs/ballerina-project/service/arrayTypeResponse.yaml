@@ -17,16 +17,10 @@ channels:
     description: List all products
     subscribe:
       message:
-        oneOf:
-          - payload:
-              type: array
-              items:
-                $ref: '#/components/schemas/Product'
-          - payload:
-              type: integer
-              format: int64
-              extensions:
-                x-response-type: server-streaming
+        payload:
+          type: array
+          items:
+            $ref: '#/components/schemas/Product'
     publish:
       message:
         $ref: '#/components/messages/Price'
@@ -76,14 +70,8 @@ components:
       payload:
         $ref: '#/components/schemas/Price'
       x-response:
-        oneOf:
-          - payload:
-              type: array
-              items:
-                $ref: '#/components/schemas/Product'
-          - payload:
-              type: integer
-              format: int64
-              extensions:
-                x-response-type: server-streaming
-      x-response-type: simple-rpc/server-streaming
+        payload:
+          type: array
+          items:
+            $ref: '#/components/schemas/Product'
+      x-response-type: simple-rpc

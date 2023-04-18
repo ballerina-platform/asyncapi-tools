@@ -29,7 +29,7 @@ service class FirstChatServer{
     *websocket:Service;
 
       remote function onSubscribe(websocket:Caller caller,Subscribe payment)
-                    returns stream<int>|int|string|boolean{
+                    returns int|string|boolean{
 
             return 1;
         }

@@ -20,11 +20,6 @@ channels:
           - payload:
               type: integer
               format: int64
-              extensions:
-                x-response-type: server-streaming
-          - payload:
-              type: integer
-              format: int64
           - payload:
               type: string
           - payload:
@@ -90,16 +85,11 @@ components:
           - payload:
               type: integer
               format: int64
-              extensions:
-                x-response-type: server-streaming
-          - payload:
-              type: integer
-              format: int64
           - payload:
               type: string
           - payload:
               type: boolean
-      x-response-type: simple-rpc/server-streaming
+      x-response-type: simple-rpc
     Payment:
       payload:
         $ref: '#/components/schemas/Payment'

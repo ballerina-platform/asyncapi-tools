@@ -68,7 +68,7 @@ public class Constants {
     public static final String X_RESPONSE = "x-response";
     public static final String X_RESPONSE_TYPE = "x-response-type";
 
-    public static final String X_OPTIONAL = "x-optional";
+    public static final String X_REQUIRED = "x-required";
     public static final String PAYLOAD = "payload";
     public static final String SIMPLE_RPC = "simple-rpc";
     public static final String SERVER_STREAMING = "server-streaming";
@@ -174,5 +174,6 @@ public class Constants {
     public static final String NO_TYPE_IN_STREAM = "ERROR: No type present in stream";
     public static final String NO_SERVICE_CLASS = "ERROR: No service class present";
 
+    public static final String UNION_STREAMING_SIMPLE_RPC_ERROR = "Response server streaming types cannot be union with simple rpc types";
     public static final String PATH_PARAM_DASH_CONTAIN_ERROR = "Path parameter contains an invalid character '-'";
 }

@@ -33,7 +33,6 @@ import io.ballerina.compiler.syntax.tree.StreamTypeDescriptorNode;
 import io.ballerina.compiler.syntax.tree.StreamTypeParamsNode;
 import io.ballerina.compiler.syntax.tree.TypeDescriptorNode;
 import io.ballerina.compiler.syntax.tree.UnionTypeDescriptorNode;
-import io.ballerina.runtime.api.types.BooleanType;
 import io.ballerina.tools.diagnostics.Location;
 
 import java.util.ArrayList;
@@ -53,7 +52,8 @@ import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.SCHEMA_R
 import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.SIMPLE_RPC;
 import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.SERVER_STREAMING;
 import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.TRUE;
-import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.X_OPTIONAL;
+import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.UNION_STREAMING_SIMPLE_RPC_ERROR;
+import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.X_REQUIRED;
 import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.X_RESPONSE;
 import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.X_RESPONSE_TYPE;
 import static io.ballerina.asyncapi.core.generators.asyncspec.utils.ConverterCommonUtils.callObjectMapper;
@@ -178,7 +178,7 @@ public class AsyncAPIResponseMapper {
                                 remoteReturnType).streamTypeParamsNode().get()).leftTypeDescNode().toString().trim();
 
                         BalAsyncApi25SchemaImpl remoteReturnStreamSchema = getAsyncApiSchema(remoteReturnStream);
-                        remoteReturnStreamSchema.addExtension(X_RESPONSE_TYPE,new TextNode(SERVER_STREAMING));
+//                        remoteReturnStreamSchema.addExtension(X_RESPONSE_TYPE,new TextNode(SERVER_STREAMING));
                         setResponseOfRequest(subscribeMessage, componentMessage, SERVER_STREAMING, returnDescription,
                                 objectMapper, remoteReturnStreamSchema,isOptional);
                     } else {
@@ -263,6 +263,13 @@ public class AsyncAPIResponseMapper {
         //If there exist previous x-response for same request
         Map<String, JsonNode> xResponses = componentMessage.getExtensions();
         if (xResponses != null && xResponses.get(X_RESPONSE) != null) {
+
+            if(xResponses.get(X_RESPONSE_TYPE).equals(new TextNode(SERVER_STREAMING))
+                    && responseType.equals(SIMPLE_RPC)  ||
+                    (xResponses.get(X_RESPONSE_TYPE).equals(new TextNode(SIMPLE_RPC))
+                            && responseType.equals(SERVER_STREAMING))) {
+                throw new NoSuchElementException(UNION_STREAMING_SIMPLE_RPC_ERROR);
+            }
 
             //Create oneOfSchema
             BalAsyncApi25MessageImpl oneOfSchema = new BalAsyncApi25MessageImpl();
@@ -452,6 +459,11 @@ public class AsyncAPIResponseMapper {
         //If there exist previous x-response for same request then start adding them to a oneOf schema
         Map<String, JsonNode> xResponses = componentMessage.getExtensions();
         if (xResponses != null && xResponses.get(X_RESPONSE) != null) {
+
+            if( xResponses.get(X_RESPONSE_TYPE).equals(new TextNode(SERVER_STREAMING))){
+                throw new NoSuchElementException(UNION_STREAMING_SIMPLE_RPC_ERROR);
+            }
+
             ObjectMapper objMapper = ConverterCommonUtils.callObjectMapper();
             //Create oneOfSchema
             BalAsyncApi25MessageImpl oneOfSchema = new BalAsyncApi25MessageImpl();
@@ -507,7 +519,7 @@ public class AsyncAPIResponseMapper {
             messageRefObject.put(DESCRIPTION, returnDescription);
         }
         if(isOptional.equals(TRUE)){
-            messageRefObject.put(X_OPTIONAL,BooleanNode.TRUE);
+            messageRefObject.put(X_REQUIRED,BooleanNode.FALSE);
         }
         //Set x-response and x-response type of the request
         componentMessage.addExtension(X_RESPONSE, messageRefObject);
@@ -526,22 +538,28 @@ public class AsyncAPIResponseMapper {
         }
         if(isOptional.equals(TRUE)){
 //            componentMessage.addExtension(X_OPTIONAL,new TextNode(isOptional.toString()));
-            oneOfSchema.addExtension(X_OPTIONAL, BooleanNode.TRUE);
+            oneOfSchema.addExtension(X_REQUIRED, BooleanNode.FALSE);
         }
         //Set x-response and x-response type as extensions to request
         componentMessage.addExtension(X_RESPONSE, objMapper.valueToTree(oneOfSchema));
-        if(componentMessage.getExtensions()!=null && componentMessage.getExtensions().get(X_RESPONSE_TYPE).
-                equals(new TextNode(SIMPLE_RPC+"/"+ SERVER_STREAMING))){
-            componentMessage.addExtension(X_RESPONSE_TYPE, new TextNode(SIMPLE_RPC+"/"+ SERVER_STREAMING));
+        componentMessage.addExtension(X_RESPONSE_TYPE, new TextNode(responseType));
 
-        }else {
-            if (responseType == SERVER_STREAMING || (componentMessage.getExtensions()!=null &&
-                    componentMessage.getExtensions().get(X_RESPONSE_TYPE).equals(new TextNode(SERVER_STREAMING)))) {
-                componentMessage.addExtension(X_RESPONSE_TYPE, new TextNode(SIMPLE_RPC + "/" + SERVER_STREAMING));
-            } else {
-                componentMessage.addExtension(X_RESPONSE_TYPE, new TextNode(SIMPLE_RPC));
-            }
-        }
+
+
+
+//        if(componentMessage.getExtensions()!=null && componentMessage.getExtensions().get(X_RESPONSE_TYPE).
+//                equals(new TextNode(SIMPLE_RPC+"/"+ SERVER_STREAMING))){
+//            componentMessage.addExtension(X_RESPONSE_TYPE, new TextNode(SIMPLE_RPC+"/"+ SERVER_STREAMING));
+//
+//        }else {
+//            if (responseType == SERVER_STREAMING || (componentMessage.getExtensions()!=null &&
+//                    componentMessage.getExtensions().get(X_RESPONSE_TYPE).equals(new TextNode(SERVER_STREAMING)))) {
+//                componentMessage.addExtension(X_RESPONSE_TYPE, new TextNode(SIMPLE_RPC + "/" + SERVER_STREAMING));
+//            } else {
+//                componentMessage.addExtension(X_RESPONSE_TYPE, new TextNode(SIMPLE_RPC));
+//            }
+//        }
+
 //        if(isOptional){
 //            componentMessage.addExtension(X_OPTIONAL,new TextNode(isOptional.toString()));
 //        }

@@ -33,7 +33,7 @@ service class ArrayChatServer{
     *websocket:Service;
     private map<types:Product> products = {};
 
-    remote function onPrice(types:Price price) returns types:Product[]|stream<int> {
+    remote function onPrice(types:Price price) returns types:Product[]{
         
         return self.products.toArray();
     }
