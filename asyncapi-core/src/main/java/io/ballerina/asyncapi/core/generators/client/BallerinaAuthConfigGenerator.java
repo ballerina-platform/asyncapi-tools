@@ -23,49 +23,7 @@ import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25DocumentImpl;
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25SecuritySchemeImpl;
 import io.ballerina.asyncapi.core.GeneratorConstants;
 import io.ballerina.asyncapi.core.exception.BallerinaAsyncApiException;
-import io.ballerina.compiler.syntax.tree.AbstractNodeFactory;
-import io.ballerina.compiler.syntax.tree.AnnotationNode;
-import io.ballerina.compiler.syntax.tree.AssignmentStatementNode;
-import io.ballerina.compiler.syntax.tree.BasicLiteralNode;
-import io.ballerina.compiler.syntax.tree.BlockStatementNode;
-import io.ballerina.compiler.syntax.tree.BuiltinSimpleNameReferenceNode;
-import io.ballerina.compiler.syntax.tree.CaptureBindingPatternNode;
-import io.ballerina.compiler.syntax.tree.CheckExpressionNode;
-import io.ballerina.compiler.syntax.tree.DefaultableParameterNode;
-import io.ballerina.compiler.syntax.tree.DoStatementNode;
-import io.ballerina.compiler.syntax.tree.ElseBlockNode;
-import io.ballerina.compiler.syntax.tree.ExpressionNode;
-import io.ballerina.compiler.syntax.tree.FieldAccessExpressionNode;
-import io.ballerina.compiler.syntax.tree.FunctionArgumentNode;
-import io.ballerina.compiler.syntax.tree.IdentifierToken;
-import io.ballerina.compiler.syntax.tree.IfElseStatementNode;
-import io.ballerina.compiler.syntax.tree.ImplicitNewExpressionNode;
-import io.ballerina.compiler.syntax.tree.MappingConstructorExpressionNode;
-import io.ballerina.compiler.syntax.tree.MappingFieldNode;
-import io.ballerina.compiler.syntax.tree.MarkdownDocumentationNode;
-import io.ballerina.compiler.syntax.tree.MetadataNode;
-import io.ballerina.compiler.syntax.tree.MethodCallExpressionNode;
-import io.ballerina.compiler.syntax.tree.Node;
-import io.ballerina.compiler.syntax.tree.NodeFactory;
-import io.ballerina.compiler.syntax.tree.NodeList;
-import io.ballerina.compiler.syntax.tree.ObjectFieldNode;
-import io.ballerina.compiler.syntax.tree.ParenthesizedArgList;
-import io.ballerina.compiler.syntax.tree.PositionalArgumentNode;
-import io.ballerina.compiler.syntax.tree.RecordFieldNode;
-import io.ballerina.compiler.syntax.tree.RecordFieldWithDefaultValueNode;
-import io.ballerina.compiler.syntax.tree.RecordTypeDescriptorNode;
-import io.ballerina.compiler.syntax.tree.RequiredExpressionNode;
-import io.ballerina.compiler.syntax.tree.RequiredParameterNode;
-import io.ballerina.compiler.syntax.tree.SeparatedNodeList;
-import io.ballerina.compiler.syntax.tree.SimpleNameReferenceNode;
-import io.ballerina.compiler.syntax.tree.SpecificFieldNode;
-import io.ballerina.compiler.syntax.tree.StatementNode;
-import io.ballerina.compiler.syntax.tree.SyntaxKind;
-import io.ballerina.compiler.syntax.tree.Token;
-import io.ballerina.compiler.syntax.tree.TypeDefinitionNode;
-import io.ballerina.compiler.syntax.tree.TypeDescriptorNode;
-import io.ballerina.compiler.syntax.tree.TypedBindingPatternNode;
-import io.ballerina.compiler.syntax.tree.VariableDeclarationNode;
+import io.ballerina.compiler.syntax.tree.*;
 import io.ballerina.asyncapi.core.generators.document.DocCommentsGenerator;
 
 
@@ -89,77 +47,8 @@ import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createEmptyM
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createEmptyNodeList;
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createIdentifierToken;
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createLiteralValueToken;
-import static io.ballerina.compiler.syntax.tree.NodeFactory.createAnnotationNode;
-import static io.ballerina.compiler.syntax.tree.NodeFactory.createAssignmentStatementNode;
-import static io.ballerina.compiler.syntax.tree.NodeFactory.createBasicLiteralNode;
-import static io.ballerina.compiler.syntax.tree.NodeFactory.createBinaryExpressionNode;
-import static io.ballerina.compiler.syntax.tree.NodeFactory.createBlockStatementNode;
-import static io.ballerina.compiler.syntax.tree.NodeFactory.createBuiltinSimpleNameReferenceNode;
-import static io.ballerina.compiler.syntax.tree.NodeFactory.createCaptureBindingPatternNode;
-import static io.ballerina.compiler.syntax.tree.NodeFactory.createCheckExpressionNode;
-import static io.ballerina.compiler.syntax.tree.NodeFactory.createDefaultableParameterNode;
-import static io.ballerina.compiler.syntax.tree.NodeFactory.createDoStatementNode;
-import static io.ballerina.compiler.syntax.tree.NodeFactory.createElseBlockNode;
-import static io.ballerina.compiler.syntax.tree.NodeFactory.createFieldAccessExpressionNode;
-import static io.ballerina.compiler.syntax.tree.NodeFactory.createIfElseStatementNode;
-import static io.ballerina.compiler.syntax.tree.NodeFactory.createImplicitNewExpressionNode;
-import static io.ballerina.compiler.syntax.tree.NodeFactory.createIncludedRecordParameterNode;
-import static io.ballerina.compiler.syntax.tree.NodeFactory.createIntersectionTypeDescriptorNode;
-import static io.ballerina.compiler.syntax.tree.NodeFactory.createMappingConstructorExpressionNode;
-import static io.ballerina.compiler.syntax.tree.NodeFactory.createMarkdownDocumentationNode;
-import static io.ballerina.compiler.syntax.tree.NodeFactory.createMetadataNode;
-import static io.ballerina.compiler.syntax.tree.NodeFactory.createMethodCallExpressionNode;
-import static io.ballerina.compiler.syntax.tree.NodeFactory.createNodeList;
-import static io.ballerina.compiler.syntax.tree.NodeFactory.createObjectFieldNode;
-import static io.ballerina.compiler.syntax.tree.NodeFactory.createOptionalTypeDescriptorNode;
-import static io.ballerina.compiler.syntax.tree.NodeFactory.createParenthesizedArgList;
-import static io.ballerina.compiler.syntax.tree.NodeFactory.createPositionalArgumentNode;
-import static io.ballerina.compiler.syntax.tree.NodeFactory.createRecordFieldNode;
-import static io.ballerina.compiler.syntax.tree.NodeFactory.createRecordFieldWithDefaultValueNode;
-import static io.ballerina.compiler.syntax.tree.NodeFactory.createRecordTypeDescriptorNode;
-import static io.ballerina.compiler.syntax.tree.NodeFactory.createRequiredExpressionNode;
-import static io.ballerina.compiler.syntax.tree.NodeFactory.createRequiredParameterNode;
-import static io.ballerina.compiler.syntax.tree.NodeFactory.createRestArgumentNode;
-import static io.ballerina.compiler.syntax.tree.NodeFactory.createSeparatedNodeList;
-import static io.ballerina.compiler.syntax.tree.NodeFactory.createSimpleNameReferenceNode;
-import static io.ballerina.compiler.syntax.tree.NodeFactory.createSpecificFieldNode;
-import static io.ballerina.compiler.syntax.tree.NodeFactory.createToken;
-import static io.ballerina.compiler.syntax.tree.NodeFactory.createTypeDefinitionNode;
-import static io.ballerina.compiler.syntax.tree.NodeFactory.createTypeReferenceTypeDescNode;
-import static io.ballerina.compiler.syntax.tree.NodeFactory.createTypedBindingPatternNode;
-import static io.ballerina.compiler.syntax.tree.NodeFactory.createUnionTypeDescriptorNode;
-import static io.ballerina.compiler.syntax.tree.NodeFactory.createVariableDeclarationNode;
-import static io.ballerina.compiler.syntax.tree.SyntaxKind.ASTERISK_TOKEN;
-import static io.ballerina.compiler.syntax.tree.SyntaxKind.BITWISE_AND_TOKEN;
-import static io.ballerina.compiler.syntax.tree.SyntaxKind.CHECK_KEYWORD;
-import static io.ballerina.compiler.syntax.tree.SyntaxKind.CLOSE_BRACE_PIPE_TOKEN;
-import static io.ballerina.compiler.syntax.tree.SyntaxKind.CLOSE_BRACE_TOKEN;
-import static io.ballerina.compiler.syntax.tree.SyntaxKind.CLOSE_PAREN_TOKEN;
-import static io.ballerina.compiler.syntax.tree.SyntaxKind.COLON_TOKEN;
-import static io.ballerina.compiler.syntax.tree.SyntaxKind.COMMA_TOKEN;
-import static io.ballerina.compiler.syntax.tree.SyntaxKind.DECIMAL_KEYWORD;
-import static io.ballerina.compiler.syntax.tree.SyntaxKind.DOT_TOKEN;
-import static io.ballerina.compiler.syntax.tree.SyntaxKind.DO_KEYWORD;
-import static io.ballerina.compiler.syntax.tree.SyntaxKind.ELLIPSIS_TOKEN;
-import static io.ballerina.compiler.syntax.tree.SyntaxKind.ELSE_KEYWORD;
-import static io.ballerina.compiler.syntax.tree.SyntaxKind.EQUAL_TOKEN;
-import static io.ballerina.compiler.syntax.tree.SyntaxKind.FINAL_KEYWORD;
-import static io.ballerina.compiler.syntax.tree.SyntaxKind.IF_KEYWORD;
-import static io.ballerina.compiler.syntax.tree.SyntaxKind.IS_KEYWORD;
-import static io.ballerina.compiler.syntax.tree.SyntaxKind.NEW_KEYWORD;
-import static io.ballerina.compiler.syntax.tree.SyntaxKind.OPEN_BRACE_PIPE_TOKEN;
-import static io.ballerina.compiler.syntax.tree.SyntaxKind.OPEN_BRACE_TOKEN;
-import static io.ballerina.compiler.syntax.tree.SyntaxKind.OPEN_PAREN_TOKEN;
-import static io.ballerina.compiler.syntax.tree.SyntaxKind.PIPE_TOKEN;
-import static io.ballerina.compiler.syntax.tree.SyntaxKind.PUBLIC_KEYWORD;
-import static io.ballerina.compiler.syntax.tree.SyntaxKind.QUESTION_MARK_TOKEN;
-import static io.ballerina.compiler.syntax.tree.SyntaxKind.READONLY_KEYWORD;
-import static io.ballerina.compiler.syntax.tree.SyntaxKind.RECORD_KEYWORD;
-import static io.ballerina.compiler.syntax.tree.SyntaxKind.SEMICOLON_TOKEN;
-import static io.ballerina.compiler.syntax.tree.SyntaxKind.STRING_KEYWORD;
-import static io.ballerina.compiler.syntax.tree.SyntaxKind.STRING_LITERAL;
-import static io.ballerina.compiler.syntax.tree.SyntaxKind.TRUE_KEYWORD;
-import static io.ballerina.compiler.syntax.tree.SyntaxKind.TYPE_KEYWORD;
+import static io.ballerina.compiler.syntax.tree.NodeFactory.*;
+import static io.ballerina.compiler.syntax.tree.SyntaxKind.*;
 
 /**
  * This class is used to generate authentication related nodes of the ballerina connector client syntax tree.
@@ -284,42 +173,33 @@ public class BallerinaAuthConfigGenerator {
      * -- ex: Config record for Http and OAuth 2.0 Authentication mechanisms.
      * <pre>
      * # Provides a set of configurations for controlling the behaviours when communicating with a remote WEBSOCKET
-     * endpoint.
+     * service endpoint.
      * public type ConnectionConfig record {|
      *          # Configurations related to client authentication
-     *          http:BearerTokenConfig|http:OAuth2RefreshTokenGrantConfig auth;
-     *          # The HTTP version understood by the client
-     *          string httpVersion = "1.1";
-     *          # Configurations related to HTTP/1.x protocol
-     *          http:ClientHttp1Settings http1Settings = {};
-     *          # Configurations related to HTTP/2 protocol
-     *          http:ClientHttp2Settings http2Settings = {};
-     *          # The maximum time to wait (in seconds) for a response before closing the connection
-     *          decimal timeout = 60;
-     *          # The choice of setting `forwarded`/`x-forwarded` header
-     *          string forwarded = "disable";
-     *          # Configurations associated with Redirection
-     *          http:FollowRedirects? followRedirects = ();
-     *          # Configurations associated with request pooling
-     *          http:PoolConfiguration? poolConfig = ();
-     *          # HTTP caching related configurations
-     *          http:CacheConfig cache = {};
-     *          # Specifies the way of handling compression (`accept-encoding`) header
-     *          http:Compression compression = http:COMPRESSION_AUTO;
-     *          # Configurations associated with the behaviour of the Circuit Breaker
-     *          http:CircuitBreakerConfig? circuitBreaker = ();
+     *          websocket:BearerTokenConfig|websocket:OAuth2RefreshTokenGrantConfig auth;
+     *          # Negotiable sub protocols of the client
+     *          string[] subProtocols = [];
+     *          # Custom headers, which should be sent to the server
+     *          map<string> customHeaders = {};
+     *          # Read timeout (in seconds) of the client
+     *          decimal readTimeout = -1;
+     *          # Write timeout (in seconds) of the client
+     *          decimal writeTimeout = -1;
+     *          # SSL/TLS-related options
+     *          websocket:ClientSecureSocket? secureSocket = ();
+     *          # The maximum payload size of a WebSocket frame in bytes
+     *          int maxFrameSize = 65536;
+     *          # Enable support for compression in the WebSocke
+     *          boolean webSocketCompressionEnabled = true;
+     *          # Time (in seconds) that a connection waits to get the response of the WebSocket handshake.
+     *          decimal handShakeTimeout = 300;
+     *          # An Array of http:Cookie
+     *          Cookie[] cookies =
+     *          # A service to handle the ping/pong frames.
+     *          PingPongService? pingPongHandler;
      *          # Configurations associated with retrying
-     *          http:RetryConfig? retryConfig = ();
-     *          # Configurations associated with cookies
-     *          http:CookieConfig? cookieConfig = ();
-     *          # Configurations associated with inbound response size limits
-     *          http:ResponseLimitConfigs responseLimits = {};
-     *          #SSL/TLS-related options
-     *          http:ClientSecureSocket? secureSocket = ();
-     *          # Proxy server related options
-     *          ProxyConfig? proxy = ();
-     *          # Enables the inbound payload validation functionality which provided by the constraint package.
-     *          # Enabled by default
+     *          websocket:WebSocketRetryConfig? retryConfig = ();
+     *          Enable/disable constraint validation
      *          boolean validation = true;
      * |};
      * </pre>
@@ -1077,45 +957,32 @@ public class BallerinaAuthConfigGenerator {
 
     /**
      * Returns fields in ClientConfig record.
-     * <pre>
-     *     # Configurations related to client authentication
-     *     http:BearerTokenConfig|http:OAuth2RefreshTokenGrantConfig auth;
-     *     # The HTTP version understood by the client
-     *     http:HttpVersion httpVersion = http:HTTP_1_1;
-     *     # Configurations related to HTTP/1.x protocol
-     *     http:ClientHttp1Settings http1Settings = {};
-     *     # Configurations related to HTTP/2 protocol
-     *     http:ClientHttp2Settings http2Settings = {};
-     *     # The maximum time to wait (in seconds) for a response before closing the connection
-     *     decimal timeout = 60;
-     *     # The choice of setting `forwarded`/`x-forwarded` header
-     *     string forwarded = "disable";
-     *     # Configurations associated with Redirection
-     *     http:FollowRedirects? followRedirects = ();
-     *     # Configurations associated with request pooling
-     *     http:PoolConfiguration? poolConfig = ();
-     *     # HTTP caching related configurations
-     *     http:CacheConfig cache = {};
-     *     # Specifies the way of handling compression (`accept-encoding`) header
-     *     http:Compression compression = http:COMPRESSION_AUTO;
-     *     # Configurations associated with the behaviour of the Circuit Breaker
-     *     http:CircuitBreakerConfig? circuitBreaker = ();
-     *     # Configurations associated with retrying
-     *     http:RetryConfig? retryConfig = ();
-     *     # Configurations associated with cookies
-     *     http:CookieConfig? cookieConfig = ();
-     *     # Configurations associated with inbound response size limits
-     *     http:ResponseLimitConfigs responseLimits = {};
-     *     #SSL/TLS-related options
-     *     http:ClientSecureSocket? secureSocket = ();
-     *     # Proxy server related options
-     *     ProxyConfig? proxy = ();
-     *     # Enables the inbound payload validation functionality which provided by the constraint package.
-     *     Enabled by default
-     *     boolean validation = true;
-     * </pre>
-     *
-     * @return {@link List<Node>}   ClientConfig record fields' node list
+     *          # Configurations related to client authentication
+     *          websocket:BearerTokenConfig|websocket:OAuth2RefreshTokenGrantConfig auth;
+     *          # Negotiable sub protocols of the client
+     *          string[] subProtocols = [];
+     *          # Custom headers, which should be sent to the server
+     *          map<string> customHeaders = {};
+     *          # Read timeout (in seconds) of the client
+     *          decimal readTimeout = -1;
+     *          # Write timeout (in seconds) of the client
+     *          decimal writeTimeout = -1;
+     *          # SSL/TLS-related options
+     *          websocket:ClientSecureSocket? secureSocket = ();
+     *          # The maximum payload size of a WebSocket frame in bytes
+     *          int maxFrameSize = 65536;
+     *          # Enable support for compression in the WebSocke
+     *          boolean webSocketCompressionEnabled = true;
+     *          # Time (in seconds) that a connection waits to get the response of the WebSocket handshake.
+     *          decimal handShakeTimeout = 300;
+     *          # An Array of http:Cookie
+     *          Cookie[] cookies =
+     *          # A service to handle the ping/pong frames.
+     *          PingPongService? pingPongHandler;
+     *          # Configurations associated with retrying
+     *          websocket:WebSocketRetryConfig? retryConfig = ();
+     *          Enable/disable constraint validation
+     *          boolean validation = true;
      */
     private List<Node> getClientConfigRecordFields() {
 
@@ -1136,37 +1003,48 @@ public class BallerinaAuthConfigGenerator {
             recordFieldNodes.add(authFieldNode);
         } else if (isHttpOROAuth() && isHttpApiKey()) {
             MetadataNode authMetadataNode = getMetadataNode(
-                    "Provides Auth configurations needed when communicating with a remote HTTP endpoint.");
+                    "Provides Auth configurations needed when communicating with a remote Websocket endpoint.");
             IdentifierToken authFieldName = AbstractNodeFactory.createIdentifierToken(escapeIdentifier(
                     AUTH));
-            TypeDescriptorNode unionTypeDesctiptor = createUnionTypeDescriptorNode(
+            TypeDescriptorNode unionTypeDescriptor = createUnionTypeDescriptorNode(
                     createSimpleNameReferenceNode(createIdentifierToken(getAuthFieldTypeName())),
                     createToken(PIPE_TOKEN),
                     createSimpleNameReferenceNode(createIdentifierToken(API_KEYS_CONFIG)));
             RecordFieldNode authFieldNode = NodeFactory.createRecordFieldNode(authMetadataNode, null,
-                    unionTypeDesctiptor, authFieldName, null, semicolonToken);
+                    unionTypeDescriptor, authFieldName, null, semicolonToken);
             recordFieldNodes.add(authFieldNode);
         }
 
-        // add httpVersion field
-        MetadataNode httpVersionMetadata = getMetadataNode("The HTTP version understood by the client");
-        TypeDescriptorNode httpVersionFieldType = createSimpleNameReferenceNode(createIdentifierToken(HTTP_VERSION));
-        IdentifierToken httpVersionFieldName = createIdentifierToken("httpVersion");
-        RequiredExpressionNode httpVersionExpression =
-                createRequiredExpressionNode(createIdentifierToken("http:HTTP_2_0"));
-        RecordFieldWithDefaultValueNode httpVersionFieldNode = NodeFactory.createRecordFieldWithDefaultValueNode(
-                httpVersionMetadata, null, httpVersionFieldType, httpVersionFieldName,
-                equalToken, httpVersionExpression, semicolonToken);
-        recordFieldNodes.add(httpVersionFieldNode);
+        // add subProtocols field
+        MetadataNode subProtocolsMetadata = getMetadataNode("Negotiable sub protocols of the client");
+        IdentifierToken subProtocolsFieldName = createIdentifierToken("subProtocols");
+        NodeList<ArrayDimensionNode> arrayDimensions = NodeFactory.createEmptyNodeList();
+        ArrayDimensionNode arrayDimension = NodeFactory.createArrayDimensionNode(
+                createToken(SyntaxKind.OPEN_BRACKET_TOKEN), null,
+                createToken(SyntaxKind.CLOSE_BRACKET_TOKEN));
+        arrayDimensions = arrayDimensions.add(arrayDimension);
+        TypeDescriptorNode subProtocolsMemberType = createSimpleNameReferenceNode(createToken(STRING_KEYWORD));
+        ArrayTypeDescriptorNode subProtocolsFieldType = createArrayTypeDescriptorNode(subProtocolsMemberType
+                , arrayDimensions);
+        RequiredExpressionNode subProtocolsExpression =
+                createRequiredExpressionNode(createIdentifierToken("[]"));
+        RecordFieldWithDefaultValueNode subProtocolsFieldNode = NodeFactory.createRecordFieldWithDefaultValueNode(
+                subProtocolsMetadata, null, subProtocolsFieldType, subProtocolsFieldName,
+                equalToken, subProtocolsExpression , semicolonToken);
+        recordFieldNodes.add(subProtocolsFieldNode);
 
-        // add http1Settings field
-        MetadataNode http1SettingsMetadata = getMetadataNode("Configurations related to HTTP/1.x protocol");
-        IdentifierToken http1SettingsFieldName = createIdentifierToken("http1Settings");
-        TypeDescriptorNode http1SettingsFieldType =
-                createSimpleNameReferenceNode(createIdentifierToken("ClientHttp1Settings"));
-        RecordFieldNode http1SettingsFieldNode = createRecordFieldNode(http1SettingsMetadata, null,
-                http1SettingsFieldType, http1SettingsFieldName, questionMarkToken, semicolonToken);
-        recordFieldNodes.add(http1SettingsFieldNode);
+        // add customHeaders field
+        TypeDescriptorNode customHeadersMapParamType = createSimpleNameReferenceNode(createToken(STRING_KEYWORD));
+        TypeParameterNode customHeadersTypeParamsNode=createTypeParameterNode(createToken(LT_TOKEN),
+                customHeadersMapParamType,createToken(GT_TOKEN));
+       MapTypeDescriptorNode customHeadersFieldType= createMapTypeDescriptorNode(createToken(MAP_KEYWORD),
+               customHeadersTypeParamsNode);
+        MetadataNode http1SettingsMetadata = getMetadataNode("Custom headers, " +
+                "which should be sent to the server");
+        IdentifierToken customHeadersFieldName = createIdentifierToken("customHeaders");
+        RecordFieldNode customHeadersFieldNode = createRecordFieldNode(http1SettingsMetadata, null,
+                customHeadersFieldType, customHeadersFieldName, questionMarkToken, semicolonToken);
+        recordFieldNodes.add(customHeadersFieldNode);
 
         // add http2Settings fields
         MetadataNode http2SettingsMetadata = getMetadataNode("Configurations related to HTTP/2 protocol");
