@@ -971,16 +971,16 @@ public class BallerinaAuthConfigGenerator {
      *          websocket:ClientSecureSocket? secureSocket = ();
      *          # The maximum payload size of a WebSocket frame in bytes
      *          int maxFrameSize = 65536;
-     *          # Enable support for compression in the WebSocke
+     *          # Enable support for compression in the WebSocket
      *          boolean webSocketCompressionEnabled = true;
      *          # Time (in seconds) that a connection waits to get the response of the WebSocket handshake.
      *          decimal handShakeTimeout = 300;
      *          # An Array of http:Cookie
-     *          Cookie[] cookies =
+     *          http:Cookie[] cookies?;
      *          # A service to handle the ping/pong frames.
-     *          PingPongService? pingPongHandler;
+     *          PingPongService pingPongHandler?;
      *          # Configurations associated with retrying
-     *          websocket:WebSocketRetryConfig? retryConfig = ();
+     *          websocket:WebSocketRetryConfig retryConfig? = ();
      *          Enable/disable constraint validation
      *          boolean validation = true;
      */
@@ -1078,9 +1078,9 @@ public class BallerinaAuthConfigGenerator {
         IdentifierToken secureSocketFieldName = AbstractNodeFactory.createIdentifierToken(SECURE_SOCKET_FIELD);
         TypeDescriptorNode secureSocketfieldType = createSimpleNameReferenceNode(
                 createIdentifierToken("websocket:ClientSecureSocket"));
-        RecordFieldNode secureSocketFieldNode = NodeFactory.createRecordFieldNode(
+        RecordFieldWithDefaultValueNode secureSocketFieldNode = NodeFactory.createRecordFieldWithDefaultValueNode(
                 secureSocketMetadata, null, secureSocketfieldType, secureSocketFieldName,
-                questionMarkToken, semicolonToken);
+                equalToken,createRequiredExpressionNode(createIdentifierToken("()")), semicolonToken);
         recordFieldNodes.add(secureSocketFieldNode);
 
 
@@ -1097,135 +1097,86 @@ public class BallerinaAuthConfigGenerator {
                 equalToken, maxFrameSizeDecimalLiteralNode,semicolonToken);
         recordFieldNodes.add(maxFrameSizeFieldNode);
 
-        // add maxFrameSize field
-        MetadataNode maxFrameSizeMetadata = getMetadataNode(" The maximum payload size of a WebSocket" +
-                " frame in bytes");
-        TypeDescriptorNode maxFrameSizeFieldType =
-                createSimpleNameReferenceNode(createToken(INT_KEYWORD));
-        IdentifierToken maxFrameSizeFieldName = createIdentifierToken("maxFrameSize");
-        ExpressionNode maxFrameSizeDecimalLiteralNode = createRequiredExpressionNode(
-                createIdentifierToken("65536"));
-        RecordFieldWithDefaultValueNode maxFrameSizeFieldNode = NodeFactory.createRecordFieldWithDefaultValueNode(
-                maxFrameSizeMetadata, null, maxFrameSizeFieldType, maxFrameSizeFieldName,
-                equalToken, maxFrameSizeDecimalLiteralNode,semicolonToken);
-        recordFieldNodes.add(maxFrameSizeFieldNode);
+        // add webSocketCompressionEnabled field
+        MetadataNode webSocketCompressionEnabledMetadata = getMetadataNode("Enable support for compression in"
+                + " the WebSocket");
+        TypeDescriptorNode webSocketCompressionEnabledFieldType =
+                createSimpleNameReferenceNode(createToken(BOOLEAN_KEYWORD));
+        IdentifierToken webSocketCompressionEnabledFieldName = createIdentifierToken(
+                "webSocketCompressionEnabled");
+        RecordFieldWithDefaultValueNode webSocketCompressionEnabledFieldNode = NodeFactory.
+                createRecordFieldWithDefaultValueNode(
+                webSocketCompressionEnabledMetadata, null, webSocketCompressionEnabledFieldType,
+                        webSocketCompressionEnabledFieldName,
+                equalToken, createRequiredExpressionNode(
+                                createToken(TRUE_KEYWORD)),semicolonToken);
+        recordFieldNodes.add(webSocketCompressionEnabledFieldNode);
 
-//        // add timeout field
-//        MetadataNode timeoutMetadata = getMetadataNode(
-//                "The maximum time to wait (in seconds) for a response before closing the connection");
-//        IdentifierToken timeoutFieldName = createIdentifierToken("timeout");
-//        TypeDescriptorNode timeoutFieldType = createSimpleNameReferenceNode(createToken(DECIMAL_KEYWORD));
-//        ExpressionNode decimalLiteralNode = createRequiredExpressionNode(createIdentifierToken("60"));
-//        RecordFieldWithDefaultValueNode timeoutFieldNode = NodeFactory.createRecordFieldWithDefaultValueNode(
-//                timeoutMetadata, null, timeoutFieldType, timeoutFieldName,
-//                equalToken, decimalLiteralNode, semicolonToken);
-//        recordFieldNodes.add(timeoutFieldNode);
 
-        // add forwarded field
-        MetadataNode forwardedMetadata = getMetadataNode(
-                "The choice of setting `forwarded`/`x-forwarded` header");
-        IdentifierToken forwardedFieldName = createIdentifierToken("forwarded");
-        TypeDescriptorNode forwardedFieldType = createSimpleNameReferenceNode(createToken(STRING_KEYWORD));
-        ExpressionNode forwardedDefaultValue = createRequiredExpressionNode(createIdentifierToken("\"disable\""));
-        RecordFieldWithDefaultValueNode forwardedFieldNode = NodeFactory.createRecordFieldWithDefaultValueNode(
-                forwardedMetadata, null, forwardedFieldType, forwardedFieldName,
-                equalToken, forwardedDefaultValue, semicolonToken);
-        recordFieldNodes.add(forwardedFieldNode);
+        // add handShakeTimeout field
+        MetadataNode handShakeTimeoutMetadata = getMetadataNode("Time (in seconds) that a connection waits to " +
+                "get the response of the WebSocket handshake");
+        TypeDescriptorNode handShakeTimeoutFieldType =
+                createSimpleNameReferenceNode(createToken(DECIMAL_KEYWORD));
+        IdentifierToken handShakeTimeoutFieldName = createIdentifierToken("handShakeTimeout");
+        ExpressionNode handShakeTimeoutDecimalLiteralNode = createRequiredExpressionNode(
+                createIdentifierToken("300"));
+        RecordFieldWithDefaultValueNode handShakeTimeoutFieldNode = NodeFactory.createRecordFieldWithDefaultValueNode(
+                handShakeTimeoutMetadata, null, handShakeTimeoutFieldType, handShakeTimeoutFieldName,
+                equalToken, handShakeTimeoutDecimalLiteralNode,semicolonToken);
+        recordFieldNodes.add(handShakeTimeoutFieldNode);
 
-        // add poolConfig field
-        MetadataNode poolConfigMetaData = getMetadataNode("Configurations associated with request pooling");
-        IdentifierToken poolConfigFieldName = AbstractNodeFactory.createIdentifierToken("poolConfig");
-        TypeDescriptorNode poolConfigFieldType = createSimpleNameReferenceNode(
-                createIdentifierToken("http:PoolConfiguration"));
-        RecordFieldNode poolConfigFieldNode = NodeFactory.createRecordFieldNode(
-                poolConfigMetaData, null, poolConfigFieldType, poolConfigFieldName,
+
+        // add cookies field
+        MetadataNode cookiesMetadata = getMetadataNode("An Array of http:Cookie");
+        IdentifierToken cookiesFieldName = createIdentifierToken("cookies");
+        NodeList<ArrayDimensionNode> cookiesArrayDimensions = NodeFactory.createEmptyNodeList();
+        ArrayDimensionNode cookiesArrayDimension = NodeFactory.createArrayDimensionNode(
+                createToken(SyntaxKind.OPEN_BRACKET_TOKEN), null,
+                createToken(SyntaxKind.CLOSE_BRACKET_TOKEN));
+        cookiesArrayDimensions = cookiesArrayDimensions.add(cookiesArrayDimension);
+        TypeDescriptorNode cookiesArrayMemberType = createSimpleNameReferenceNode(createIdentifierToken
+                ("http:Cookie"));
+        ArrayTypeDescriptorNode cookiesFieldType = createArrayTypeDescriptorNode(cookiesArrayMemberType
+                , cookiesArrayDimensions);
+        RequiredExpressionNode cookiesExpression =
+                createRequiredExpressionNode(createIdentifierToken("[]"));
+        RecordFieldNode cookiesFieldNode = NodeFactory.createRecordFieldNode(
+                cookiesMetadata, null, cookiesFieldType, cookiesFieldName,
+                questionMarkToken,  semicolonToken);
+        recordFieldNodes.add(cookiesFieldNode);
+
+
+        // add pingPongHandler field
+        MetadataNode pingPongHandlerMetadata = getMetadataNode("A service to handle the ping/pong frames");
+        IdentifierToken pingPongHandlerFieldName = AbstractNodeFactory.createIdentifierToken(PING_PONG_SERVICE_FIELD);
+        TypeDescriptorNode pingPongHandlerFieldType = createSimpleNameReferenceNode(
+                createIdentifierToken("websocket:PingPongService"));
+        RecordFieldNode pingPongHandlerFieldNode = NodeFactory.createRecordFieldNode(
+                pingPongHandlerMetadata, null, pingPongHandlerFieldType, pingPongHandlerFieldName,
                 questionMarkToken, semicolonToken);
-        recordFieldNodes.add(poolConfigFieldNode);
-
-        // add cache field
-        MetadataNode cachMetadata = getMetadataNode("HTTP caching related configurations");
-        IdentifierToken cacheFieldName = createIdentifierToken("cache");
-        TypeDescriptorNode cacheFieldType =
-                createSimpleNameReferenceNode(createIdentifierToken("http:CacheConfig"));
-        RecordFieldNode cachFieldNode = NodeFactory.createRecordFieldNode(
-                cachMetadata, null, cacheFieldType, cacheFieldName,
-                questionMarkToken, semicolonToken);
-        recordFieldNodes.add(cachFieldNode);
-
-        // add compression field
-        MetadataNode compressionMetadata = getMetadataNode(
-                "Specifies the way of handling compression (`accept-encoding`) header");
-        IdentifierToken compressionFieldName = createIdentifierToken("compression");
-        TypeDescriptorNode compressionFieldType = createSimpleNameReferenceNode(
-                createIdentifierToken("http:Compression"));
-        ExpressionNode compressionDefaultValue = createRequiredExpressionNode(
-                createIdentifierToken("http:COMPRESSION_AUTO"));
-        RecordFieldWithDefaultValueNode compressionFieldNode = NodeFactory.createRecordFieldWithDefaultValueNode(
-                compressionMetadata, null, compressionFieldType, compressionFieldName,
-                equalToken, compressionDefaultValue, semicolonToken);
-        recordFieldNodes.add(compressionFieldNode);
-
-        // add circuitBreaker field
-        MetadataNode circuitBreakerMetadata = getMetadataNode(
-                "Configurations associated with the behaviour of the Circuit Breaker");
-        IdentifierToken circuitBreakerFieldName = AbstractNodeFactory.createIdentifierToken("circuitBreaker");
-        TypeDescriptorNode circuitBreakerFieldType = createSimpleNameReferenceNode(
-                createIdentifierToken("http:CircuitBreakerConfig"));
-        RecordFieldNode circuitBreakerFieldNode = NodeFactory.createRecordFieldNode(
-                circuitBreakerMetadata, null, circuitBreakerFieldType, circuitBreakerFieldName,
-                questionMarkToken, semicolonToken);
-        recordFieldNodes.add(circuitBreakerFieldNode);
+        recordFieldNodes.add(pingPongHandlerFieldNode);
 
         // add retryConfig field
         MetadataNode retryConfigMetadata = getMetadataNode("Configurations associated with retrying");
         IdentifierToken retryConfigFieldName = AbstractNodeFactory.createIdentifierToken("retryConfig");
         TypeDescriptorNode returConfigFieldType = createSimpleNameReferenceNode(
-                createIdentifierToken("http:RetryConfig"));
-        RecordFieldNode retryConfigFieldNode = NodeFactory.createRecordFieldNode(
+                createIdentifierToken("websocket:WebSocketRetryConfig"));
+        RecordFieldWithDefaultValueNode retryConfigFieldNode = NodeFactory.createRecordFieldWithDefaultValueNode(
                 retryConfigMetadata, null, returConfigFieldType, retryConfigFieldName,
-                questionMarkToken, semicolonToken);
+                equalToken,createRequiredExpressionNode(createIdentifierToken("()")), semicolonToken);
         recordFieldNodes.add(retryConfigFieldNode);
 
-        // add responseLimits field
-        MetadataNode responseLimitsMetadata = getMetadataNode(
-                "Configurations associated with inbound response size limits");
-        IdentifierToken responseLimitsFieldName = createIdentifierToken("responseLimits");
-        TypeDescriptorNode responseLimitsFieldType = createSimpleNameReferenceNode(
-                createIdentifierToken("http:ResponseLimitConfigs"));
-        RecordFieldNode responseLimitsFieldNode = NodeFactory.createRecordFieldNode(
-                responseLimitsMetadata, null, responseLimitsFieldType, responseLimitsFieldName,
-                questionMarkToken, semicolonToken);
-        recordFieldNodes.add(responseLimitsFieldNode);
 
-        // add secureSocket field
-        MetadataNode secureSocketMetadata = getMetadataNode("SSL/TLS-related options");
-        IdentifierToken secureSocketFieldName = AbstractNodeFactory.createIdentifierToken(SSL_FIELD_NAME);
-        TypeDescriptorNode secureSocketfieldType = createSimpleNameReferenceNode(
-                createIdentifierToken("http:ClientSecureSocket"));
-        RecordFieldNode secureSocketFieldNode = NodeFactory.createRecordFieldNode(
-                secureSocketMetadata, null, secureSocketfieldType, secureSocketFieldName,
-                questionMarkToken, semicolonToken);
-        recordFieldNodes.add(secureSocketFieldNode);
-
-        // add proxy server field
-        MetadataNode proxyConfigMetadata = getMetadataNode("Proxy server related options");
-        IdentifierToken proxyConfigFieldName = AbstractNodeFactory.createIdentifierToken(PROXY_CONFIG);
-        TypeDescriptorNode proxyConfigFieldType = createSimpleNameReferenceNode(
-                createIdentifierToken("http:ProxyConfig"));
-        RecordFieldNode proxyConfigFieldNode = NodeFactory.createRecordFieldNode(
-                proxyConfigMetadata, null, proxyConfigFieldType, proxyConfigFieldName,
-                questionMarkToken, semicolonToken);
-        recordFieldNodes.add(proxyConfigFieldNode);
-
-        // add validation for constraint
-        MetadataNode validationMetadata = getMetadataNode("Enables the inbound payload validation " +
-                "functionality which provided by the constraint package. Enabled by default");
+        // add validation field
+        MetadataNode validationMetadata = getMetadataNode("Enable/disable constraint validation");
         IdentifierToken validationFieldName = AbstractNodeFactory.createIdentifierToken(VALIDATION);
         TypeDescriptorNode validationFieldType = createSimpleNameReferenceNode(createIdentifierToken(BOOLEAN));
         RecordFieldWithDefaultValueNode validateFieldNode = NodeFactory.createRecordFieldWithDefaultValueNode(
                 validationMetadata, null, validationFieldType, validationFieldName,
                 equalToken, createRequiredExpressionNode(createToken(TRUE_KEYWORD)), semicolonToken);
         recordFieldNodes.add(validateFieldNode);
+
         return recordFieldNodes;
     }
 
