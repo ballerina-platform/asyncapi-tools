@@ -1003,7 +1003,8 @@ public class BallerinaAuthConfigGenerator {
             recordFieldNodes.add(authFieldNode);
         } else if (isHttpOROAuth() && isHttpApiKey()) {
             MetadataNode authMetadataNode = getMetadataNode(
-                    "Provides Auth configurations needed when communicating with a remote Websocket endpoint.");
+                    "Provides Auth configurations needed when communicating with a remote Websocket " +
+                            "service endpoint.");
             IdentifierToken authFieldName = AbstractNodeFactory.createIdentifierToken(escapeIdentifier(
                     AUTH));
             TypeDescriptorNode unionTypeDescriptor = createUnionTypeDescriptorNode(
@@ -1039,33 +1040,86 @@ public class BallerinaAuthConfigGenerator {
                 customHeadersMapParamType,createToken(GT_TOKEN));
        MapTypeDescriptorNode customHeadersFieldType= createMapTypeDescriptorNode(createToken(MAP_KEYWORD),
                customHeadersTypeParamsNode);
-        MetadataNode http1SettingsMetadata = getMetadataNode("Custom headers, " +
+        MetadataNode customHeadersMetadata = getMetadataNode("Custom headers, " +
                 "which should be sent to the server");
         IdentifierToken customHeadersFieldName = createIdentifierToken("customHeaders");
-        RecordFieldNode customHeadersFieldNode = createRecordFieldNode(http1SettingsMetadata, null,
-                customHeadersFieldType, customHeadersFieldName, questionMarkToken, semicolonToken);
+        RequiredExpressionNode customHeadersExpression =
+                createRequiredExpressionNode(createIdentifierToken("{}"));
+        RecordFieldWithDefaultValueNode customHeadersFieldNode = createRecordFieldWithDefaultValueNode(
+                customHeadersMetadata, null, customHeadersFieldType, customHeadersFieldName,
+                equalToken,customHeadersExpression, semicolonToken);
         recordFieldNodes.add(customHeadersFieldNode);
 
-        // add http2Settings fields
-        MetadataNode http2SettingsMetadata = getMetadataNode("Configurations related to HTTP/2 protocol");
-        TypeDescriptorNode http2SettingsFieldType =
-                createSimpleNameReferenceNode(createIdentifierToken("http:ClientHttp2Settings"));
-        IdentifierToken http2SettingsFieldName = createIdentifierToken("http2Settings");
-        RecordFieldNode http2SettingsFieldNode = NodeFactory.createRecordFieldNode(
-                http2SettingsMetadata, null, http2SettingsFieldType, http2SettingsFieldName,
-                questionMarkToken, semicolonToken);
-        recordFieldNodes.add(http2SettingsFieldNode);
+        // add readTimeout field
+        MetadataNode readTimeOutMetadata = getMetadataNode("Read timeout (in seconds) of the client");
+        TypeDescriptorNode readTimeOutFieldType =
+                createSimpleNameReferenceNode(createToken(DECIMAL_KEYWORD));
+        IdentifierToken readTimeoutFieldName = createIdentifierToken("readTimeout");
+        ExpressionNode readTimeOutDecimalLiteralNode = createRequiredExpressionNode(createIdentifierToken("-1"));
+        RecordFieldWithDefaultValueNode readTimeoutFieldNode = NodeFactory.createRecordFieldWithDefaultValueNode(
+                readTimeOutMetadata, null, readTimeOutFieldType, readTimeoutFieldName,
+                equalToken, readTimeOutDecimalLiteralNode,semicolonToken);
+        recordFieldNodes.add(readTimeoutFieldNode);
 
-        // add timeout field
-        MetadataNode timeoutMetadata = getMetadataNode(
-                "The maximum time to wait (in seconds) for a response before closing the connection");
-        IdentifierToken timeoutFieldName = createIdentifierToken("timeout");
-        TypeDescriptorNode timeoutFieldType = createSimpleNameReferenceNode(createToken(DECIMAL_KEYWORD));
-        ExpressionNode decimalLiteralNode = createRequiredExpressionNode(createIdentifierToken("60"));
-        RecordFieldWithDefaultValueNode timeoutFieldNode = NodeFactory.createRecordFieldWithDefaultValueNode(
-                timeoutMetadata, null, timeoutFieldType, timeoutFieldName,
-                equalToken, decimalLiteralNode, semicolonToken);
-        recordFieldNodes.add(timeoutFieldNode);
+        // add writeTimeout field
+        MetadataNode writeTimeOutMetadata = getMetadataNode("Write timeout (in seconds) of the client");
+        TypeDescriptorNode writeTimeOutFieldType =
+                createSimpleNameReferenceNode(createToken(DECIMAL_KEYWORD));
+        IdentifierToken writeTimeoutFieldName = createIdentifierToken("writeTimeout");
+        ExpressionNode writeTimeOutDecimalLiteralNode = createRequiredExpressionNode(createIdentifierToken("-1"));
+        RecordFieldWithDefaultValueNode writeTimeoutFieldNode = NodeFactory.createRecordFieldWithDefaultValueNode(
+                writeTimeOutMetadata, null, writeTimeOutFieldType, writeTimeoutFieldName,
+                equalToken, writeTimeOutDecimalLiteralNode,semicolonToken);
+        recordFieldNodes.add(writeTimeoutFieldNode);
+
+
+        // add secureSocket field
+        MetadataNode secureSocketMetadata = getMetadataNode("SSL/TLS-related options");
+        IdentifierToken secureSocketFieldName = AbstractNodeFactory.createIdentifierToken(SECURE_SOCKET_FIELD);
+        TypeDescriptorNode secureSocketfieldType = createSimpleNameReferenceNode(
+                createIdentifierToken("websocket:ClientSecureSocket"));
+        RecordFieldNode secureSocketFieldNode = NodeFactory.createRecordFieldNode(
+                secureSocketMetadata, null, secureSocketfieldType, secureSocketFieldName,
+                questionMarkToken, semicolonToken);
+        recordFieldNodes.add(secureSocketFieldNode);
+
+
+        // add maxFrameSize field
+        MetadataNode maxFrameSizeMetadata = getMetadataNode(" The maximum payload size of a WebSocket" +
+                " frame in bytes");
+        TypeDescriptorNode maxFrameSizeFieldType =
+                createSimpleNameReferenceNode(createToken(INT_KEYWORD));
+        IdentifierToken maxFrameSizeFieldName = createIdentifierToken("maxFrameSize");
+        ExpressionNode maxFrameSizeDecimalLiteralNode = createRequiredExpressionNode(
+                createIdentifierToken("65536"));
+        RecordFieldWithDefaultValueNode maxFrameSizeFieldNode = NodeFactory.createRecordFieldWithDefaultValueNode(
+                maxFrameSizeMetadata, null, maxFrameSizeFieldType, maxFrameSizeFieldName,
+                equalToken, maxFrameSizeDecimalLiteralNode,semicolonToken);
+        recordFieldNodes.add(maxFrameSizeFieldNode);
+
+        // add maxFrameSize field
+        MetadataNode maxFrameSizeMetadata = getMetadataNode(" The maximum payload size of a WebSocket" +
+                " frame in bytes");
+        TypeDescriptorNode maxFrameSizeFieldType =
+                createSimpleNameReferenceNode(createToken(INT_KEYWORD));
+        IdentifierToken maxFrameSizeFieldName = createIdentifierToken("maxFrameSize");
+        ExpressionNode maxFrameSizeDecimalLiteralNode = createRequiredExpressionNode(
+                createIdentifierToken("65536"));
+        RecordFieldWithDefaultValueNode maxFrameSizeFieldNode = NodeFactory.createRecordFieldWithDefaultValueNode(
+                maxFrameSizeMetadata, null, maxFrameSizeFieldType, maxFrameSizeFieldName,
+                equalToken, maxFrameSizeDecimalLiteralNode,semicolonToken);
+        recordFieldNodes.add(maxFrameSizeFieldNode);
+
+//        // add timeout field
+//        MetadataNode timeoutMetadata = getMetadataNode(
+//                "The maximum time to wait (in seconds) for a response before closing the connection");
+//        IdentifierToken timeoutFieldName = createIdentifierToken("timeout");
+//        TypeDescriptorNode timeoutFieldType = createSimpleNameReferenceNode(createToken(DECIMAL_KEYWORD));
+//        ExpressionNode decimalLiteralNode = createRequiredExpressionNode(createIdentifierToken("60"));
+//        RecordFieldWithDefaultValueNode timeoutFieldNode = NodeFactory.createRecordFieldWithDefaultValueNode(
+//                timeoutMetadata, null, timeoutFieldType, timeoutFieldName,
+//                equalToken, decimalLiteralNode, semicolonToken);
+//        recordFieldNodes.add(timeoutFieldNode);
 
         // add forwarded field
         MetadataNode forwardedMetadata = getMetadataNode(
