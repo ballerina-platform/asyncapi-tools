@@ -142,9 +142,11 @@ public class BallerinaAuthConfigGenerator {
 
             // generate related records
             TypeDefinitionNode connectionConfigRecord = generateConnectionConfigRecord();
-            TypeDefinitionNode clientHttp1SettingsRecord = getClientHttp1SettingsRecord();
-            TypeDefinitionNode customProxyConfigRecord = getCustomProxyRecord();
-            nodes.addAll(Arrays.asList(connectionConfigRecord, clientHttp1SettingsRecord, customProxyConfigRecord));
+//            TypeDefinitionNode clientHttp1SettingsRecord = getClientHttp1SettingsRecord();
+//            TypeDefinitionNode customProxyConfigRecord = getCustomProxyRecord();
+//            nodes.addAll(Arrays.asList(connectionConfigRecord, clientHttp1SettingsRecord, customProxyConfigRecord));
+            nodes.add(connectionConfigRecord);
+
 
             if (isHttpApiKey()) {
                 nodes.add(generateApiKeysConfig());
@@ -189,18 +191,18 @@ public class BallerinaAuthConfigGenerator {
      *          websocket:ClientSecureSocket? secureSocket = ();
      *          # The maximum payload size of a WebSocket frame in bytes
      *          int maxFrameSize = 65536;
-     *          # Enable support for compression in the WebSocke
+     *          # Enable support for compression in the WebSocket
      *          boolean webSocketCompressionEnabled = true;
      *          # Time (in seconds) that a connection waits to get the response of the WebSocket handshake.
      *          decimal handShakeTimeout = 300;
      *          # An Array of http:Cookie
-     *          Cookie[] cookies =
+     *          http:Cookie[] cookies?;
      *          # A service to handle the ping/pong frames.
-     *          PingPongService? pingPongHandler;
+     *          PingPongService pingPongHandler?;
      *          # Configurations associated with retrying
-     *          websocket:WebSocketRetryConfig? retryConfig = ();
+     *          websocket:WebSocketRetryConfig retryConfig? = ();
      *          Enable/disable constraint validation
-     *          boolean validation = true;
+     *          boolean validation = true;Z
      * |};
      * </pre>
      * Scenario 1 : For asyncapi contracts with no authentication mechanism given, auth field will not be generated
@@ -235,15 +237,13 @@ public class BallerinaAuthConfigGenerator {
     }
 
     /**
-     * Generate the ApiKeysConfig record when the api-key auth type is given.
+     * Generate the ApiKeysConfig record when the http-api-key auth type is given.
      * <pre>
-     *  # Provides API key configurations needed when communicating with a remote HTTP endpoint.
+     *  # Provides API key configurations needed when communicating with a remote WEBSOCKET service endpoint.
      *  public type ApiKeysConfig record {|
      *     # Represents API Key `Authorization`
-     *     @display {label: "", kind: "password"}
      *     string authorization;
      *     # Represents API Key `apikey`
-     *     @display {label: "", kind: "password"}
      *     string apikey;
      *  |};
      * </pre>
@@ -253,7 +253,7 @@ public class BallerinaAuthConfigGenerator {
     public TypeDefinitionNode generateApiKeysConfig() {
         MetadataNode configRecordMetadataNode = getMetadataNode(
                 "Provides API key configurations needed when communicating " +
-                        "with a remote HTTP endpoint.");
+                        "with a remote WEBSOCKET service endpoint.");
         Token typeName = AbstractNodeFactory.createIdentifierToken(API_KEYS_CONFIG);
         NodeList<Node> recordFieldList = createNodeList(apiKeysConfigRecordFields);
         RecordTypeDescriptorNode recordTypeDescriptorNode =
@@ -271,7 +271,7 @@ public class BallerinaAuthConfigGenerator {
      * <pre>
      *      # OAuth2 Client Credentials Grant Configs
      *      public type OAuth2ClientCredentialsGrantConfig record {|
-     *          *http:OAuth2ClientCredentialsGrantConfig;
+     *          *websocket:OAuth2ClientCredentialsGrantConfig;
      *          # Token URL
      *          string tokenUrl = "https://zoom.us/oauth/token";
      *      |};
@@ -296,7 +296,7 @@ public class BallerinaAuthConfigGenerator {
      * Generates fields of `OAuth2ClientCredentialsGrantConfig` record with default tokenUrl.
      *
      * <pre>
-     *      *http:OAuth2ClientCredentialsGrantConfig;
+     *      *websocket:OAuth2ClientCredentialsGrantConfig;
      *      # Token URL
      *      string tokenUrl = "https://zoom.us/oauth/token";
      * </pre>
@@ -310,7 +310,7 @@ public class BallerinaAuthConfigGenerator {
 
         recordFieldNodes.add(createIncludedRecordParameterNode(createEmptyNodeList(),
                 createToken(ASTERISK_TOKEN),
-                createIdentifierToken("http:OAuth2ClientCredentialsGrantConfig;"), null));
+                createIdentifierToken("websocket:OAuth2ClientCredentialsGrantConfig;"), null));
 
         MetadataNode metadataNode = getMetadataNode("Token URL");
         TypeDescriptorNode stringType = createSimpleNameReferenceNode(createToken(STRING_KEYWORD));
@@ -330,7 +330,7 @@ public class BallerinaAuthConfigGenerator {
      * <pre>
      *      # OAuth2 Password Grant Configs
      *      public type OAuth2PasswordGrantConfig record {|
-     *          *http:OAuth2PasswordGrantConfig;
+     *          *websocket:OAuth2PasswordGrantConfig;
      *          # Token URL
      *          string tokenUrl = "https://zoom.us/oauth/token";
      *      |};
@@ -355,7 +355,7 @@ public class BallerinaAuthConfigGenerator {
      * Generates fields of `OAuth2PasswordGrantConfig` record with default tokenUrl.
      *
      * <pre>
-     *      *http:OAuth2PasswordGrantConfig;
+     *      *websocket:OAuth2PasswordGrantConfig;
      *      # Token URL
      *      string tokenUrl = "https://zoom.us/oauth/token";
      * </pre>
@@ -370,7 +370,7 @@ public class BallerinaAuthConfigGenerator {
 
         recordFieldNodes.add(createIncludedRecordParameterNode(createEmptyNodeList(),
                 createToken(ASTERISK_TOKEN),
-                createIdentifierToken("http:OAuth2PasswordGrantConfig;"), null));
+                createIdentifierToken("websocket:OAuth2PasswordGrantConfig;"), null));
 
         MetadataNode metadataNode = getMetadataNode("Token URL");
         TypeDescriptorNode stringType = createSimpleNameReferenceNode(createToken(STRING_KEYWORD));
@@ -390,7 +390,7 @@ public class BallerinaAuthConfigGenerator {
      * <pre>
      *      # OAuth2 Refresh Token Grant Configs
      *      public type OAuth2RefreshTokenGrantConfig record {|
-     *          *http:OAuth2RefreshTokenGrantConfig;
+     *          *websocket:OAuth2RefreshTokenGrantConfig;
      *          # Refresh URL
      *          string refreshUrl = "https://zoom.us/oauth/token";
      *      |};
@@ -415,7 +415,7 @@ public class BallerinaAuthConfigGenerator {
      * Generates fields of `OAuth2RefreshTokenGrantConfig` record with default refreshUrl.
      *
      * <pre>
-     *      *http:OAuth2RefreshTokenGrantConfig;
+     *      *websocket:OAuth2RefreshTokenGrantConfig;
      *      # Refresh URL
      *      string refreshUrl = "https://zoom.us/oauth/token";
      * </pre>
@@ -430,7 +430,7 @@ public class BallerinaAuthConfigGenerator {
 
         recordFieldNodes.add(createIncludedRecordParameterNode(createEmptyNodeList(),
                 createToken(ASTERISK_TOKEN),
-                createIdentifierToken("http:OAuth2RefreshTokenGrantConfig;"), null));
+                createIdentifierToken("websocket:OAuth2RefreshTokenGrantConfig;"), null));
 
         MetadataNode metadataNode = getMetadataNode("Refresh URL");
         TypeDescriptorNode stringType = createSimpleNameReferenceNode(createToken(STRING_KEYWORD));
@@ -1497,8 +1497,10 @@ public class BallerinaAuthConfigGenerator {
 
         MetadataNode metadataNode = null;
         if (securityScheme.getDescription() != null) {
-            List<AnnotationNode> annotationNodes = Collections.singletonList(getDisplayAnnotationForPasswordField());
-            metadataNode = getMetadataNode(securityScheme.getDescription(), annotationNodes);
+//            List<AnnotationNode> annotationNodes = Collections.singletonList(getDisplayAnnotationForPasswordField());
+//            metadataNode = getMetadataNode(securityScheme.getDescription(), annotationNodes);
+            metadataNode = getMetadataNode(securityScheme.getDescription());
+
         }
         TypeDescriptorNode stringTypeDesc = createSimpleNameReferenceNode(createToken(STRING_KEYWORD));
         IdentifierToken apiKeyName = createIdentifierToken(getValidName(securityScheme.getName(), false));
