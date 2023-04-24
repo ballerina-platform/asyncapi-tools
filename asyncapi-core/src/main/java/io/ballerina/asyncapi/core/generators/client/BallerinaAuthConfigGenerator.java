@@ -535,20 +535,20 @@ public class BallerinaAuthConfigGenerator {
     /**
      * Generate the config parameters of the client class init method.
      * -- ex: Config param for Http and OAuth 2.0 Authentication mechanisms.
-     * {@code ClientConfig clientConfig, string serviceUrl = "https://petstore.swagger.io:443/v2" }
+     * {@code ClientConfig clientConfig, string serviceUrl = "https://asyncapi.com:443/v2" }
      * -- ex: Config param for API Key Authentication mechanism.
      * {@code ApiKeysConfig apiKeyConfig, http:ClientConfiguration clientConfig = {},
-     * string serviceUrl = "https://petstore.swagger.io:443/v2" }
+     * string serviceUrl = "https://asyncapi.com:443/v2" }
      * Config param for API Key Authentication mechanism with no server URL given
      * {@code ApiKeysConfig apiKeyConfig, string serviceUrl; http:ClientConfiguration clientConfig = {}}
      * -- ex: Config param when no authentication mechanism given.
      * {@code http:ClientConfiguration clientConfig = {},
-     * string serviceUrl = "https://petstore.swagger.io:443/v2" }
+     * string serviceUrl = "https://asyncapi.com:443/v2" }
      * Config param when no authentication mechanism given with no server URL
      * {@code string serviceUrl, http:ClientConfiguration clientConfig = {}}
      * -- ex: Config param for combination of API Key and Http or OAuth 2.0 Authentication mechanisms.
      * {@code AuthConfig authConfig,ConnectionConfig config =  {},
-     * string serviceUrl = "https://petstore.swagger.io:443/v2" }
+     * string serviceUrl = "https://asyncapi.com:443/v2" }
      *
      * @return {@link List<Node>}  syntax tree node list of config parameters
      */
@@ -577,13 +577,13 @@ public class BallerinaAuthConfigGenerator {
                 parameters.add(createToken(COMMA_TOKEN));
             }
 
-            BuiltinSimpleNameReferenceNode httpClientConfigTypeName = createBuiltinSimpleNameReferenceNode(null,
-                    createIdentifierToken(CONNECTION_CONFIG));
+            BuiltinSimpleNameReferenceNode websocketClientConfigTypeName = createBuiltinSimpleNameReferenceNode(
+                    null, createIdentifierToken(CONNECTION_CONFIG));
             IdentifierToken httpClientConfig = createIdentifierToken(CONFIG);
-            BasicLiteralNode emptyexpression = createBasicLiteralNode(null, createIdentifierToken(" {}"));
+            BasicLiteralNode emptyExpression = createBasicLiteralNode(null, createIdentifierToken(" {}"));
             DefaultableParameterNode defaultConnectionConfig = createDefaultableParameterNode(annotationNodes,
-                    httpClientConfigTypeName,
-                    httpClientConfig, equalToken, emptyexpression);
+                    websocketClientConfigTypeName,
+                    httpClientConfig, equalToken, emptyExpression);
             if (serviceURLNode instanceof RequiredParameterNode) {
                 parameters.add(serviceURLNode);
                 parameters.add(createToken(COMMA_TOKEN));
@@ -600,9 +600,9 @@ public class BallerinaAuthConfigGenerator {
     /**
      * Generate the serviceUrl parameters of the client class init method.
      *
-     * @param serviceUrl service Url given in the OpenAPI file
-     * @return {@link DefaultableParameterNode} when server URl is given in the OpenAPI file
-     * {@link RequiredParameterNode} when server URL is not given in the OpenAPI file
+     * @param serviceUrl service Url given in the AsyncAPI file
+     * @return {@link DefaultableParameterNode} when server URl is given in the AsyncAPI file
+     * {@link RequiredParameterNode} when server URL is not given in the AsyncAPI file
      */
     private Node getServiceURLNode(String serviceUrl) {
         Node serviceURLNode;
@@ -650,7 +650,7 @@ public class BallerinaAuthConfigGenerator {
 
         // httpClientConfig.http2Settings = check config.http2Settings.ensureType(http:ClientHttp2Settings);
         FieldAccessExpressionNode fieldAccessExpressionNode = createFieldAccessExpressionNode(
-                createRequiredExpressionNode(createIdentifierToken(HTTP_CLIENT_CONFIG)),
+                createRequiredExpressionNode(createIdentifierToken(WEBSOCKET_CLIENT_CONFIG)),
                 createToken(DOT_TOKEN),
                 createSimpleNameReferenceNode(createIdentifierToken(fieldName)));
 
@@ -724,7 +724,7 @@ public class BallerinaAuthConfigGenerator {
 
             // httpClientConfig.http1Settings = {...settings};
             FieldAccessExpressionNode fieldAccessExpressionNode = createFieldAccessExpressionNode(
-                    createRequiredExpressionNode(createIdentifierToken(HTTP_CLIENT_CONFIG)),
+                    createRequiredExpressionNode(createIdentifierToken(WEBSOCKET_CLIENT_CONFIG)),
                     createToken(DOT_TOKEN),
                     createSimpleNameReferenceNode(createIdentifierToken(CLIENT_HTTP1_SETTINGS_FIELD)));
             MappingConstructorExpressionNode mappingConstructorExpressionNode = createMappingConstructorExpressionNode(
@@ -763,30 +763,30 @@ public class BallerinaAuthConfigGenerator {
     }
 
     /**
-     * Generate `httpClientConfig` variable.
+     * Generate `websocketClientConfig` variable.
      * <pre>
-     *        http:ClientConfiguration httpClientConfig = {
-     *             httpVersion: config.httpVersion,
-     *             timeout: config.timeout,
-     *             forwarded: config.forwarded,
-     *             poolConfig: config.poolConfig,
-     *             compression: config.compression,
-     *             circuitBreaker: config.circuitBreaker,
-     *             retryConfig: config.retryConfig,
+     *        websocket:ClientConfiguration websocketClientConfig = {
+     *             subProtocols: config.subProtocols,
+     *             customHeaders: config.customHeaders,
+     *             readTimeout: config.readTimeout,
+     *             writeTimeout: config.writeTimeout,
+     *             maxFrameSize: config.maxFrameSize,
+     *             webSocketCompressionEnabled: config.webSocketCompressionEnabled,
+     *             handShakeTimeout: config.handShakeTimeout,
      *             validation: config.validation
      *         };
      * </pre>
      *
      * @return
      */
-    public VariableDeclarationNode getHttpClientConfigVariableNode() {
+    public VariableDeclarationNode getWebsocketClientConfigVariableNode() {
         Token comma = createToken(COMMA_TOKEN);
         NodeList<AnnotationNode> annotationNodes = createEmptyNodeList();
-        // http:ClientConfiguration variable declaration
+        // websocket:ClientConfiguration variable declaration
         SimpleNameReferenceNode typeBindingPattern = createSimpleNameReferenceNode(
-                createIdentifierToken("http:ClientConfiguration"));
+                createIdentifierToken("websocket:ClientConfiguration"));
         CaptureBindingPatternNode bindingPattern = createCaptureBindingPatternNode(
-                createIdentifierToken(HTTP_CLIENT_CONFIG));
+                createIdentifierToken(WEBSOCKET_CLIENT_CONFIG));
         TypedBindingPatternNode typedBindingPatternNode = createTypedBindingPatternNode(typeBindingPattern,
                 bindingPattern);
 
@@ -803,75 +803,77 @@ public class BallerinaAuthConfigGenerator {
             argumentsList.add(comma);
         }
 
-        // create httpVersion field
-        ExpressionNode httpVersionValExp = createFieldAccessExpressionNode(
+        // create subProtocols field
+        ExpressionNode subProtocolsValExp = createFieldAccessExpressionNode(
                 createSimpleNameReferenceNode(createIdentifierToken(CONFIG)),
-                createToken(DOT_TOKEN), createSimpleNameReferenceNode(createIdentifierToken("httpVersion")));
-        SpecificFieldNode httpVersionField = createSpecificFieldNode(null,
-                createIdentifierToken("httpVersion"),
-                createToken(COLON_TOKEN), httpVersionValExp);
-        argumentsList.add(httpVersionField);
+                createToken(DOT_TOKEN), createSimpleNameReferenceNode(createIdentifierToken("subProtocols")));
+        SpecificFieldNode subProtocolsField = createSpecificFieldNode(null,
+                createIdentifierToken("subProtocols"),
+                createToken(COLON_TOKEN), subProtocolsValExp);
+        argumentsList.add(subProtocolsField);
         argumentsList.add(comma);
-        // create timeout field
-        ExpressionNode timeoutValExp = createFieldAccessExpressionNode(
+        // create customHeaders field
+        ExpressionNode customHeadersValExp = createFieldAccessExpressionNode(
                 createSimpleNameReferenceNode(createIdentifierToken(CONFIG)),
-                createToken(DOT_TOKEN), createSimpleNameReferenceNode(createIdentifierToken("timeout")));
-        SpecificFieldNode timeoutField = createSpecificFieldNode(null,
-                createIdentifierToken("timeout"),
-                createToken(COLON_TOKEN), timeoutValExp);
-        argumentsList.add(timeoutField);
-        argumentsList.add(comma);
-
-        // create forwarded field
-        ExpressionNode forwardedValExp = createFieldAccessExpressionNode(
-                createSimpleNameReferenceNode(createIdentifierToken(CONFIG)),
-                createToken(DOT_TOKEN), createSimpleNameReferenceNode(createIdentifierToken("forwarded")));
-        SpecificFieldNode forwardedField = createSpecificFieldNode(null,
-                createIdentifierToken("forwarded"),
-                createToken(COLON_TOKEN), forwardedValExp);
-        argumentsList.add(forwardedField);
+                createToken(DOT_TOKEN), createSimpleNameReferenceNode(createIdentifierToken("customHeaders")));
+        SpecificFieldNode customHeadersField = createSpecificFieldNode(null,
+                createIdentifierToken("customHeaders"),
+                createToken(COLON_TOKEN), customHeadersValExp);
+        argumentsList.add(customHeadersField);
         argumentsList.add(comma);
 
-        // create poolConfig field
-        ExpressionNode poolConfigValExp = createFieldAccessExpressionNode(
+        // create readTimeout field
+        ExpressionNode readTimeoutValExp = createFieldAccessExpressionNode(
                 createSimpleNameReferenceNode(createIdentifierToken(CONFIG)),
-                createToken(DOT_TOKEN), createSimpleNameReferenceNode(createIdentifierToken("poolConfig")));
-        SpecificFieldNode poolConfigField = createSpecificFieldNode(null,
-                createIdentifierToken("poolConfig"),
-                createToken(COLON_TOKEN), poolConfigValExp);
-        argumentsList.add(poolConfigField);
+                createToken(DOT_TOKEN), createSimpleNameReferenceNode(createIdentifierToken("readTimeout")));
+        SpecificFieldNode readTimeoutField = createSpecificFieldNode(null,
+                createIdentifierToken("readTimeout"),
+                createToken(COLON_TOKEN), readTimeoutValExp);
+        argumentsList.add(readTimeoutField);
         argumentsList.add(comma);
 
-        // create compression field
-        ExpressionNode compressionValExp = createFieldAccessExpressionNode(
+        // create writeTimeout field
+        ExpressionNode writeTimeoutValExp = createFieldAccessExpressionNode(
                 createSimpleNameReferenceNode(createIdentifierToken(CONFIG)),
-                createToken(DOT_TOKEN), createSimpleNameReferenceNode(createIdentifierToken("compression")));
-        SpecificFieldNode compressionField = createSpecificFieldNode(null,
-                createIdentifierToken("compression"),
-                createToken(COLON_TOKEN), compressionValExp);
-        argumentsList.add(compressionField);
+                createToken(DOT_TOKEN), createSimpleNameReferenceNode(createIdentifierToken("writeTimeout")));
+        SpecificFieldNode writeTimeoutField = createSpecificFieldNode(null,
+                createIdentifierToken("writeTimeout"),
+                createToken(COLON_TOKEN), writeTimeoutValExp);
+        argumentsList.add(writeTimeoutField);
         argumentsList.add(comma);
 
-        // create circuitBreaker field
-        ExpressionNode circuitBreakerValExp = createFieldAccessExpressionNode(
+        // create maxFrameSize field
+        ExpressionNode maxFrameSizeValExp = createFieldAccessExpressionNode(
                 createSimpleNameReferenceNode(createIdentifierToken(CONFIG)),
-                createToken(DOT_TOKEN), createSimpleNameReferenceNode(createIdentifierToken("circuitBreaker")));
-        SpecificFieldNode circuitBreakerField = createSpecificFieldNode(null,
-                createIdentifierToken("circuitBreaker"),
-                createToken(COLON_TOKEN), circuitBreakerValExp);
-        argumentsList.add(circuitBreakerField);
+                createToken(DOT_TOKEN), createSimpleNameReferenceNode(createIdentifierToken("maxFrameSize")));
+        SpecificFieldNode maxFrameSizeField = createSpecificFieldNode(null,
+                createIdentifierToken("maxFrameSize"),
+                createToken(COLON_TOKEN), maxFrameSizeValExp);
+        argumentsList.add(maxFrameSizeField);
         argumentsList.add(comma);
 
-        // create retryConfig field
-        ExpressionNode retryConfigValExp = createFieldAccessExpressionNode(
+        // create webSocketCompressionEnabled field
+        ExpressionNode webSocketCompressionEnabledValExp = createFieldAccessExpressionNode(
                 createSimpleNameReferenceNode(createIdentifierToken(CONFIG)),
-                createToken(DOT_TOKEN), createSimpleNameReferenceNode(createIdentifierToken("retryConfig")));
-        SpecificFieldNode retryConfigField = createSpecificFieldNode(null,
-                createIdentifierToken("retryConfig"),
-                createToken(COLON_TOKEN), retryConfigValExp);
-        argumentsList.add(retryConfigField);
+                createToken(DOT_TOKEN), createSimpleNameReferenceNode(createIdentifierToken(
+                        "webSocketCompressionEnabled")));
+        SpecificFieldNode webSocketCompressionEnabledField = createSpecificFieldNode(null,
+                createIdentifierToken("webSocketCompressionEnabled"),
+                createToken(COLON_TOKEN), webSocketCompressionEnabledValExp);
+        argumentsList.add(webSocketCompressionEnabledField);
         argumentsList.add(comma);
 
+        // create handleShakeTimeout field
+        ExpressionNode handleShakeTimeoutValExp = createFieldAccessExpressionNode(
+                createSimpleNameReferenceNode(createIdentifierToken(CONFIG)),
+                createToken(DOT_TOKEN), createSimpleNameReferenceNode(createIdentifierToken("handleShakeTimeout")));
+        SpecificFieldNode handleShakeTimeoutField = createSpecificFieldNode(null,
+                createIdentifierToken("handleShakeTimeout"),
+                createToken(COLON_TOKEN), handleShakeTimeoutValExp);
+        argumentsList.add(handleShakeTimeoutField);
+        argumentsList.add(comma);
+
+        // create validation field
         ExpressionNode validationValExp = createFieldAccessExpressionNode(
                 createSimpleNameReferenceNode(createIdentifierToken(CONFIG)),
                 createToken(DOT_TOKEN), createSimpleNameReferenceNode(createIdentifierToken("validation")));
@@ -891,19 +893,19 @@ public class BallerinaAuthConfigGenerator {
     /**
      * Generate http:client initialization node.
      * <pre>
-     *     http:Client httpEp = check new (serviceUrl, clientConfig);
+     *     websocket:Client websocketEp = check new (serviceUrl, clientConfig);
      * </pre>
      *
-     * @return {@link VariableDeclarationNode}   Synatx tree node of client initialization
+     * @return {@link VariableDeclarationNode}   Syntax tree node of client initialization
      */
     public VariableDeclarationNode getClientInitializationNode() {
 
         NodeList<AnnotationNode> annotationNodes = createEmptyNodeList();
         // http:Client variable declaration
         BuiltinSimpleNameReferenceNode typeBindingPattern = createBuiltinSimpleNameReferenceNode(null,
-                createIdentifierToken("http:Client"));
+                createIdentifierToken("websocket:Client"));
         CaptureBindingPatternNode bindingPattern = createCaptureBindingPatternNode(
-                createIdentifierToken("httpEp"));
+                createIdentifierToken("websocketEp"));
         TypedBindingPatternNode typedBindingPatternNode = createTypedBindingPatternNode(typeBindingPattern,
                 bindingPattern);
 
@@ -915,7 +917,7 @@ public class BallerinaAuthConfigGenerator {
         Token comma1 = createIdentifierToken(",");
 
         PositionalArgumentNode positionalArgumentNode02 = createPositionalArgumentNode(createSimpleNameReferenceNode(
-                createIdentifierToken(HTTP_CLIENT_CONFIG)));
+                createIdentifierToken(WEBSOCKET_CLIENT_CONFIG)));
         argumentsList.add(comma1);
         argumentsList.add(positionalArgumentNode02);
 
