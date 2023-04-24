@@ -41,7 +41,7 @@ import java.util.Set;
 import static io.ballerina.asyncapi.core.GeneratorConstants.*;
 import static io.ballerina.asyncapi.core.GeneratorUtils.escapeIdentifier;
 import static io.ballerina.asyncapi.core.GeneratorUtils.getValidName;
-import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.SECURE_SOCKET;
+
 import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.STRING;
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createEmptyMinutiaeList;
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createEmptyNodeList;
@@ -685,75 +685,76 @@ public class BallerinaAuthConfigGenerator {
     public DoStatementNode getClientConfigDoStatementNode() {
         List<StatementNode> doStatementNodeList = new ArrayList<>();
         // ClientHttp1Settings if statement
-        {
-            ExpressionNode expressionNode = createFieldAccessExpressionNode(
-                    createRequiredExpressionNode(createIdentifierToken(CONFIG)),
-                    createToken(DOT_TOKEN), createSimpleNameReferenceNode(
-                            createIdentifierToken(CLIENT_HTTP1_SETTINGS_FIELD)));
+//        {
+//            ExpressionNode expressionNode = createFieldAccessExpressionNode(
+//                    createRequiredExpressionNode(createIdentifierToken(CONFIG)),
+//                    createToken(DOT_TOKEN), createSimpleNameReferenceNode(
+//                            createIdentifierToken(CLIENT_HTTP1_SETTINGS_FIELD)));
+//
+//            ExpressionNode condition = createBinaryExpressionNode(null,
+//                    expressionNode,
+//                    createToken(IS_KEYWORD),
+//                    createIdentifierToken(CLIENT_HTTP1_SETTINGS)
+//            );
+//
+//            List<StatementNode> statementNodes = new ArrayList<>();
+//
+//            // ClientHttp1Settings settings = check config.http1Settings.ensureType(ClientHttp1Settings);
+//            SimpleNameReferenceNode typeBindingPattern = createSimpleNameReferenceNode(
+//                    createIdentifierToken(CLIENT_HTTP1_SETTINGS));
+//            CaptureBindingPatternNode bindingPattern = createCaptureBindingPatternNode(
+//                    createIdentifierToken(SETTINGS));
+//            TypedBindingPatternNode typedBindingPatternNode = createTypedBindingPatternNode(typeBindingPattern,
+//                    bindingPattern);
+//            MethodCallExpressionNode methodCallExpressionNode = createMethodCallExpressionNode(
+//                    createFieldAccessExpressionNode(createRequiredExpressionNode(createIdentifierToken(CONFIG)),
+//                            createToken(DOT_TOKEN),
+//                            createSimpleNameReferenceNode(createIdentifierToken(CLIENT_HTTP1_SETTINGS_FIELD))),
+//                    createToken(DOT_TOKEN),
+//                    createSimpleNameReferenceNode(createIdentifierToken(ENSURE_TYPE)),
+//                    createToken(OPEN_PAREN_TOKEN),
+//                    createSeparatedNodeList(createPositionalArgumentNode(
+//                            createRequiredExpressionNode(createIdentifierToken(CLIENT_HTTP1_SETTINGS)))),
+//                    createToken(CLOSE_PAREN_TOKEN));
+//            CheckExpressionNode checkExpressionNode = createCheckExpressionNode(null, createToken(CHECK_KEYWORD),
+//                    methodCallExpressionNode);
+//            AssignmentStatementNode varAssignmentNode = createAssignmentStatementNode(typedBindingPatternNode,
+//                    createToken(EQUAL_TOKEN), checkExpressionNode, createToken(SEMICOLON_TOKEN));
+//            statementNodes.add(varAssignmentNode);
+//
+//            // httpClientConfig.http1Settings = {...settings};
+//            FieldAccessExpressionNode fieldAccessExpressionNode = createFieldAccessExpressionNode(
+//                    createRequiredExpressionNode(createIdentifierToken(WEBSOCKET_CLIENT_CONFIG)),
+//                    createToken(DOT_TOKEN),
+//                    createSimpleNameReferenceNode(createIdentifierToken(CLIENT_HTTP1_SETTINGS_FIELD)));
+//            MappingConstructorExpressionNode mappingConstructorExpressionNode = createMappingConstructorExpressionNode(
+//                    createToken(OPEN_BRACE_TOKEN),
+//                    createSeparatedNodeList(
+//                            createRestArgumentNode(createToken(ELLIPSIS_TOKEN),
+//                                    createRequiredExpressionNode(createIdentifierToken(SETTINGS)))),
+//                    createToken(CLOSE_BRACE_TOKEN));
+//
+//            AssignmentStatementNode fieldAssignmentNode = createAssignmentStatementNode(fieldAccessExpressionNode,
+//                    createToken(EQUAL_TOKEN), mappingConstructorExpressionNode, createToken(SEMICOLON_TOKEN));
+//
+//            statementNodes.add(fieldAssignmentNode);
+//
+//            NodeList<StatementNode> statementList = createNodeList(statementNodes);
+//            BlockStatementNode ifBody = createBlockStatementNode(createToken(OPEN_BRACE_TOKEN), statementList,
+//                    createToken(CLOSE_BRACE_TOKEN));
+//
+//            IfElseStatementNode ifElseStatementNode = createIfElseStatementNode(createToken(IF_KEYWORD), condition,
+//                    ifBody, null);
+//            doStatementNodeList.add(ifElseStatementNode);
+//        }
 
-            ExpressionNode condition = createBinaryExpressionNode(null,
-                    expressionNode,
-                    createToken(IS_KEYWORD),
-                    createIdentifierToken(CLIENT_HTTP1_SETTINGS)
-            );
-
-            List<StatementNode> statementNodes = new ArrayList<>();
-
-            // ClientHttp1Settings settings = check config.http1Settings.ensureType(ClientHttp1Settings);
-            SimpleNameReferenceNode typeBindingPattern = createSimpleNameReferenceNode(
-                    createIdentifierToken(CLIENT_HTTP1_SETTINGS));
-            CaptureBindingPatternNode bindingPattern = createCaptureBindingPatternNode(
-                    createIdentifierToken(SETTINGS));
-            TypedBindingPatternNode typedBindingPatternNode = createTypedBindingPatternNode(typeBindingPattern,
-                    bindingPattern);
-            MethodCallExpressionNode methodCallExpressionNode = createMethodCallExpressionNode(
-                    createFieldAccessExpressionNode(createRequiredExpressionNode(createIdentifierToken(CONFIG)),
-                            createToken(DOT_TOKEN),
-                            createSimpleNameReferenceNode(createIdentifierToken(CLIENT_HTTP1_SETTINGS_FIELD))),
-                    createToken(DOT_TOKEN),
-                    createSimpleNameReferenceNode(createIdentifierToken(ENSURE_TYPE)),
-                    createToken(OPEN_PAREN_TOKEN),
-                    createSeparatedNodeList(createPositionalArgumentNode(
-                            createRequiredExpressionNode(createIdentifierToken(CLIENT_HTTP1_SETTINGS)))),
-                    createToken(CLOSE_PAREN_TOKEN));
-            CheckExpressionNode checkExpressionNode = createCheckExpressionNode(null, createToken(CHECK_KEYWORD),
-                    methodCallExpressionNode);
-            AssignmentStatementNode varAssignmentNode = createAssignmentStatementNode(typedBindingPatternNode,
-                    createToken(EQUAL_TOKEN), checkExpressionNode, createToken(SEMICOLON_TOKEN));
-            statementNodes.add(varAssignmentNode);
-
-            // httpClientConfig.http1Settings = {...settings};
-            FieldAccessExpressionNode fieldAccessExpressionNode = createFieldAccessExpressionNode(
-                    createRequiredExpressionNode(createIdentifierToken(WEBSOCKET_CLIENT_CONFIG)),
-                    createToken(DOT_TOKEN),
-                    createSimpleNameReferenceNode(createIdentifierToken(CLIENT_HTTP1_SETTINGS_FIELD)));
-            MappingConstructorExpressionNode mappingConstructorExpressionNode = createMappingConstructorExpressionNode(
-                    createToken(OPEN_BRACE_TOKEN),
-                    createSeparatedNodeList(
-                            createRestArgumentNode(createToken(ELLIPSIS_TOKEN),
-                                    createRequiredExpressionNode(createIdentifierToken(SETTINGS)))),
-                    createToken(CLOSE_BRACE_TOKEN));
-
-            AssignmentStatementNode fieldAssignmentNode = createAssignmentStatementNode(fieldAccessExpressionNode,
-                    createToken(EQUAL_TOKEN), mappingConstructorExpressionNode, createToken(SEMICOLON_TOKEN));
-
-            statementNodes.add(fieldAssignmentNode);
-
-            NodeList<StatementNode> statementList = createNodeList(statementNodes);
-            BlockStatementNode ifBody = createBlockStatementNode(createToken(OPEN_BRACE_TOKEN), statementList,
-                    createToken(CLOSE_BRACE_TOKEN));
-
-            IfElseStatementNode ifElseStatementNode = createIfElseStatementNode(createToken(IF_KEYWORD), condition,
-                    ifBody, null);
-            doStatementNodeList.add(ifElseStatementNode);
-        }
-        // http:ClientHttp2Settings if statement
         doStatementNodeList.addAll(Arrays.asList(
-                getDoBlockIfElseStatementNodes(HTTP2_SETTINGS_FIELD, HTTP2_SETTINGS),
-                getDoBlockIfElseStatementNodes(CACHE_CONFIG_FIELD, CACHE_CONFIG),
-                getDoBlockIfElseStatementNodes(RESPONSE_LIMIT_FIELD, RESPONSE_LIMIT),
                 getDoBlockIfElseStatementNodes(SECURE_SOCKET_FIELD, SECURE_SOCKET),
-                getDoBlockIfElseStatementNodes(PROXY_CONFIG, PROXY)));
+//                getDoBlockIfElseStatementNodes(COOKIES_FIELD, HTTP2_SETTINGS),
+//                getDoBlockIfElseStatementNodes(CACHE_CONFIG_FIELD, CACHE_CONFIG),
+                getDoBlockIfElseStatementNodes(PING_PONG_HANDLER_FIELD, PING_PONG_SERVICE),
+
+                getDoBlockIfElseStatementNodes(RETRY_CONFIG_FIELD, WEB_SOCKET_RETRY_CONFIG)));
 
         BlockStatementNode blockStatementNode = createBlockStatementNode(createToken(OPEN_BRACE_TOKEN),
                 createNodeList(doStatementNodeList), createToken(CLOSE_BRACE_TOKEN));
@@ -1381,7 +1382,7 @@ public class BallerinaAuthConfigGenerator {
         recordFieldNodes.add(chunkingRecordField);
 
         MetadataNode proxyMetadataNode = getMetadataNode("Proxy server related options");
-        IdentifierToken proxyFieldName = AbstractNodeFactory.createIdentifierToken(PROXY_CONFIG);
+        IdentifierToken proxyFieldName = AbstractNodeFactory.createIdentifierToken(RETRY_CONFIG_FIELD);
         TypeDescriptorNode proxyFieldType = createSimpleNameReferenceNode(
                 createIdentifierToken("ProxyConfig"));
         RecordFieldNode proxyRecordField = NodeFactory.createRecordFieldNode(
