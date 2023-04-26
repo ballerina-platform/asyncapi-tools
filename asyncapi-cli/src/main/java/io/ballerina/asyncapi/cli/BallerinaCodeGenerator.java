@@ -18,27 +18,17 @@
 
 package io.ballerina.asyncapi.cli;
 
+import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25DocumentImpl;
+import io.ballerina.asyncapi.core.GeneratorUtils;
 import io.ballerina.asyncapi.core.exception.BallerinaAsyncApiException;
-import io.ballerina.asyncapi.core.generators.asyncspec.model.GenSrcFile;
 import io.ballerina.asyncapi.core.generators.asyncspec.utils.CodegenUtils;
 import io.ballerina.asyncapi.core.generators.client.BallerinaClientGenerator;
 import io.ballerina.asyncapi.core.generators.client.BallerinaTestGenerator;
-import io.ballerina.asyncapi.core.generators.client.model.OASClientConfig;
+import io.ballerina.asyncapi.core.generators.client.model.AASClientConfig;
+//import io.ballerina.asyncapi.core.generators.schema.BallerinaTypesGenerator;
+import io.ballerina.asyncapi.core.model.GenSrcFile;
 import io.ballerina.compiler.syntax.tree.SyntaxTree;
 import io.ballerina.compiler.syntax.tree.TypeDefinitionNode;
-import io.ballerina.asyncapi.converter.utils.CodegenUtils;
-import io.ballerina.asyncapi.core.GeneratorUtils;
-import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25Document;
-import io.ballerina.openapi.core.exception.BallerinaOpenApiException;
-import io.ballerina.openapi.core.generators.client.BallerinaClientGenerator;
-import io.ballerina.openapi.core.generators.client.BallerinaTestGenerator;
-import io.ballerina.openapi.core.generators.client.model.OASClientConfig;
-import io.ballerina.openapi.core.generators.schema.BallerinaTypesGenerator;
-import io.ballerina.openapi.core.generators.service.BallerinaServiceGenerator;
-import io.ballerina.openapi.core.generators.service.BallerinaServiceObjectGenerator;
-import io.ballerina.openapi.core.generators.service.model.OASServiceMetadata;
-import io.ballerina.openapi.core.model.Filter;
-import io.ballerina.openapi.core.model.GenSrcFile;
 import org.ballerinalang.formatter.core.Formatter;
 import org.ballerinalang.formatter.core.FormatterException;
 
@@ -48,30 +38,16 @@ import java.io.PrintStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
-import static io.ballerina.asyncapi.cli.CmdConstants.CLIENT_FILE_NAME;
-import static io.ballerina.asyncapi.cli.CmdConstants.CONFIG_FILE_NAME;
-import static io.ballerina.asyncapi.cli.CmdConstants.DEFAULT_CLIENT_PKG;
-import static io.ballerina.asyncapi.cli.CmdConstants.DEFAULT_MOCK_PKG;
+import static io.ballerina.asyncapi.cli.CmdConstants.*;
 import static io.ballerina.asyncapi.cli.CmdConstants.GenType.GEN_CLIENT;
 import static io.ballerina.asyncapi.cli.CmdConstants.GenType.GEN_SERVICE;
-//import static io.ballerina.asyncapi.cli.CmdConstants.OAS_PATH_SEPARATOR;
-import static io.ballerina.asyncapi.cli.CmdConstants.TEST_DIR;
-import static io.ballerina.asyncapi.cli.CmdConstants.TEST_FILE_NAME;
-import static io.ballerina.asyncapi.cli.CmdConstants.TYPE_FILE_NAME;
-import static io.ballerina.asyncapi.cli.CmdConstants.UNTITLED_SERVICE;
-import static io.ballerina.asyncapi.cli.CmdConstants.UTIL_FILE_NAME;
 import static io.ballerina.asyncapi.cli.CmdUtils.setGeneratedFileName;
+import static io.ballerina.asyncapi.core.GeneratorConstants.OAS_PATH_SEPARATOR;
 
 /**
  * This class generates Ballerina Services/Clients for a provided OAS definition.
@@ -331,41 +307,42 @@ public class BallerinaCodeGenerator {
         }
         List<GenSrcFile> sourceFiles = new ArrayList<>();
         // Normalize OpenAPI definition
-        AsyncApi25Document asyncAPIDef = GeneratorUtils.normalizeAsyncAPI(asyncAPI);
+
+        AsyncApi25DocumentImpl asyncAPIDef = GeneratorUtils.normalizeAsyncAPI(asyncAPI);
         // Generate ballerina service and resources.
-        OASClientConfig.Builder clientMetaDataBuilder = new OASClientConfig.Builder();
-        OASClientConfig oasClientConfig = clientMetaDataBuilder
-                .withNullable(nullable)
+        AASClientConfig.Builder clientMetaDataBuilder = new AASClientConfig.Builder();
+        AASClientConfig AASClientConfig = clientMetaDataBuilder
+//                .withNullable(nullable)
                 .withPlugin(false)
                 .withAsyncAPI(asyncAPIDef)
                 .withLicense(licenseHeader)
                 .build();
-        BallerinaClientGenerator ballerinaClientGenerator = new BallerinaClientGenerator(oasClientConfig);
+        BallerinaClientGenerator ballerinaClientGenerator = new BallerinaClientGenerator(AASClientConfig);
         String mainContent = Formatter.format(ballerinaClientGenerator.generateSyntaxTree()).toString();
         sourceFiles.add(new GenSrcFile(GenSrcFile.GenFileType.GEN_SRC, srcPackage, CLIENT_FILE_NAME, mainContent));
-        String utilContent = Formatter.format(
-                ballerinaClientGenerator.getBallerinaUtilGenerator().generateUtilSyntaxTree()).toString();
-        if (!utilContent.isBlank()) {
-            sourceFiles.add(new GenSrcFile(GenSrcFile.GenFileType.UTIL_SRC, srcPackage, UTIL_FILE_NAME, utilContent));
-        }
+//        String utilContent = Formatter.format(
+//                ballerinaClientGenerator.getBallerinaUtilGenerator().generateUtilSyntaxTree()).toString();
+//        if (!utilContent.isBlank()) {
+//            sourceFiles.add(new GenSrcFile(GenSrcFile.GenFileType.UTIL_SRC, srcPackage, UTIL_FILE_NAME, utilContent));
+//        }
 
         List<TypeDefinitionNode> preGeneratedTypeDefNodes = new ArrayList<>(
                 ballerinaClientGenerator.getBallerinaAuthConfigGenerator().getAuthRelatedTypeDefinitionNodes());
         preGeneratedTypeDefNodes.addAll(ballerinaClientGenerator.getTypeDefinitionNodeList());
         // Generate ballerina records to represent schemas.
-        BallerinaTypesGenerator ballerinaSchemaGenerator = new BallerinaTypesGenerator(
-                asyncAPIDef, nullable, preGeneratedTypeDefNodes);
+//        BallerinaTypesGenerator ballerinaSchemaGenerator = new BallerinaTypesGenerator(
+//                asyncAPIDef, nullable, preGeneratedTypeDefNodes);
 
-        SyntaxTree schemaSyntaxTree = ballerinaSchemaGenerator.generateSyntaxTree();
-        String schemaContent = Formatter.format(schemaSyntaxTree).toString();
-        if (filter.getTags().size() > 0) {
-            // Remove unused records and enums when generating the client by the tags given.
-            schemaContent = GeneratorUtils.removeUnusedEntities(schemaSyntaxTree, mainContent, schemaContent, null);
-        }
-        if (!schemaContent.isBlank()) {
-            sourceFiles.add(new GenSrcFile(GenSrcFile.GenFileType.MODEL_SRC, srcPackage, TYPE_FILE_NAME,
-                    schemaContent));
-        }
+//        SyntaxTree schemaSyntaxTree = ballerinaSchemaGenerator.generateSyntaxTree();
+//        String schemaContent = Formatter.format(schemaSyntaxTree).toString();
+//        if (filter.getTags().size() > 0) {
+//            // Remove unused records and enums when generating the client by the tags given.
+//            schemaContent = GeneratorUtils.removeUnusedEntities(schemaSyntaxTree, mainContent, schemaContent, null);
+//        }
+//        if (!schemaContent.isBlank()) {
+//            sourceFiles.add(new GenSrcFile(GenSrcFile.GenFileType.MODEL_SRC, srcPackage, TYPE_FILE_NAME,
+//                    schemaContent));
+//        }
 
         // Generate test boilerplate code for test cases
         if (this.includeTestFiles) {
