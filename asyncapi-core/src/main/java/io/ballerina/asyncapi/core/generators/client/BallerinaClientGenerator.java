@@ -18,12 +18,14 @@
 
 package io.ballerina.asyncapi.core.generators.client;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.TextNode;
 import io.apicurio.datamodels.models.ServerVariable;
+import io.apicurio.datamodels.models.asyncapi.AsyncApiMessage;
 import io.apicurio.datamodels.models.asyncapi.AsyncApiServer;
-import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25DocumentImpl;
-import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25ServerImpl;
-import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25ServersImpl;
+import io.apicurio.datamodels.models.asyncapi.v25.*;
 import io.ballerina.asyncapi.core.exception.BallerinaAsyncApiException;
+import io.ballerina.asyncapi.core.generators.schema.BallerinaTypesGenerator;
 import io.ballerina.compiler.syntax.tree.AnnotationNode;
 import io.ballerina.compiler.syntax.tree.AssignmentStatementNode;
 import io.ballerina.compiler.syntax.tree.ClassDefinitionNode;
@@ -58,8 +60,7 @@ import io.ballerina.asyncapi.core.GeneratorConstants;
 import io.ballerina.asyncapi.core.GeneratorUtils;
 import io.ballerina.asyncapi.core.generators.client.model.AASClientConfig;
 import io.ballerina.asyncapi.core.generators.document.DocCommentsGenerator;
-import io.ballerina.asyncapi.core.generators.schema.BallerinaTypesGenerator;
-import io.ballerina.asyncapi.core.model.Filter;
+//import io.ballerina.asyncapi.core.generators.schema.BallerinaTypesGenerator;
 import io.ballerina.tools.text.TextDocument;
 import io.ballerina.tools.text.TextDocuments;
 
@@ -74,6 +75,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
+import static io.ballerina.asyncapi.core.GeneratorConstants.*;
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createEmptyNodeList;
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createIdentifierToken;
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createNodeList;
@@ -116,10 +118,6 @@ import static io.ballerina.compiler.syntax.tree.SyntaxKind.RESOURCE_KEYWORD;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.RETURNS_KEYWORD;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.RETURN_KEYWORD;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.SEMICOLON_TOKEN;
-import static io.ballerina.asyncapi.core.GeneratorConstants.DEFAULT_API_KEY_DESC;
-import static io.ballerina.asyncapi.core.GeneratorConstants.WEBSOCKET;
-import static io.ballerina.asyncapi.core.GeneratorConstants.SELF;
-import static io.ballerina.asyncapi.core.GeneratorConstants.X_BALLERINA_INIT_DESCRIPTION;
 
 /**
  * This class is used to generate ballerina client file according to given yaml file.
@@ -134,7 +132,7 @@ public class BallerinaClientGenerator {
     private List<String> apiKeyNameList = new ArrayList<>();
     private final AsyncApi25DocumentImpl asyncAPI;
     private final BallerinaTypesGenerator ballerinaSchemaGenerator;
-    private final BallerinaUtilGenerator ballerinaUtilGenerator;
+//    private final BallerinaUtilGenerator ballerinaUtilGenerator;
     private final List<String> remoteFunctionNameList;
     private String serverURL;
     private final BallerinaAuthConfigGenerator ballerinaAuthConfigGenerator;
@@ -188,7 +186,7 @@ public class BallerinaClientGenerator {
         this.asyncAPI = AASClientConfig.getOpenAPI();
         this.ballerinaSchemaGenerator = new BallerinaTypesGenerator(asyncAPI,
                 AASClientConfig.isNullable(), new LinkedList<>());
-        this.ballerinaUtilGenerator = new BallerinaUtilGenerator();
+//        this.ballerinaUtilGenerator = new BallerinaUtilGenerator();
         this.remoteFunctionNameList = new ArrayList<>();
         this.serverURL = "/";
         this.ballerinaAuthConfigGenerator = new BallerinaAuthConfigGenerator(false, false);
@@ -223,10 +221,10 @@ public class BallerinaClientGenerator {
         return syntaxTree.modifyWith(modulePartNode);
     }
 
-    public BallerinaUtilGenerator getBallerinaUtilGenerator() {
-
-        return ballerinaUtilGenerator;
-    }
+//    public BallerinaUtilGenerator getBallerinaUtilGenerator() {
+//
+//        return ballerinaUtilGenerator;
+//    }
 
     /**
      * Generate Class definition Node with below code structure.
@@ -255,10 +253,15 @@ public class BallerinaClientGenerator {
         // Add init function to class definition node
         memberNodeList.add(createInitFunction());
         // Generate remote function Nodes
-        memberNodeList.addAll(createRemoteFunctions(asyncAPI.getChannels(), filters));
+        memberNodeList.addAll(createRemoteFunctions(asyncAPI.getComponents().getMessages()));
         // Generate the class combining members
         MetadataNode metadataNode = getClassMetadataNode();
-        IdentifierToken className = createIdentifierToken(GeneratorConstants.CLIENT_CLASS);
+
+        String stringClassName= asyncAPI.getInfo().getTitle().trim()+ GeneratorUtils.
+                removeNonAlphanumeric(asyncAPI.getChannels().getItemNames().get(0).trim())+"Client";
+        IdentifierToken className= createIdentifierToken(stringClassName);
+        //TODO: Change this name as extracting it from the title of the asyncapi document
+//        IdentifierToken className = createIdentifierToken(GeneratorConstants.CLIENT_CLASS);
         NodeList<Token> classTypeQualifiers = createNodeList(
                 createToken(ISOLATED_KEYWORD), createToken(CLIENT_KEYWORD));
         return createClassDefinitionNode(metadataNode, createToken(PUBLIC_KEYWORD), classTypeQualifiers,
@@ -267,18 +270,18 @@ public class BallerinaClientGenerator {
     }
 
     /**
-     * Generate metadata node of the class including documentation and display annotation. Content of the documentation
-     * will be taken from the `description` section inside the `info` section in OpenAPI definition.
+     * Generate metadata node of the class including documentation. Content of the documentation
+     * will be taken from the `description` section inside the `info` section in AsyncAPI definition.
      *
      * @return {@link MetadataNode}    Metadata node of the client class
      */
     private MetadataNode getClassMetadataNode() {
 
         List<AnnotationNode> classLevelAnnotationNodes = new ArrayList<>();
-        if (asyncAPI.getInfo().getExtensions() != null) {
-            Map<String, Object> extensions = asyncAPI.getInfo().getExtensions();
-            DocCommentsGenerator.extractDisplayAnnotation(extensions, classLevelAnnotationNodes);
-        }
+//        if (((AsyncApi25InfoImpl)asyncAPI.getInfo()).getExtensions() != null) {
+////            Map<String, JsonNode> extensions =((AsyncApi25InfoImpl)asyncAPI.getInfo()).getExtensions();
+//            DocCommentsGenerator.extractDisplayAnnotation(extensions, classLevelAnnotationNodes);
+//        }
         // Generate api doc
         List<Node> documentationLines = new ArrayList<>();
         if (asyncAPI.getInfo().getDescription() != null && !asyncAPI.getInfo().getDescription().isBlank()) {
@@ -404,9 +407,9 @@ public class BallerinaClientGenerator {
 
         List<Node> docs = new ArrayList<>();
         String clientInitDocComment = "Gets invoked to initialize the `connector`.\n";
-        if (asyncAPI.getInfo().getExtensions() != null && !asyncAPI.getInfo().getExtensions().isEmpty()) {
-            Map<String, Object> extensions = asyncAPI.getInfo().getExtensions();
-            for (Map.Entry<String, Object> extension : extensions.entrySet()) {
+        Map<String, JsonNode> extensions = ((AsyncApi25InfoImpl)asyncAPI.getInfo()).getExtensions();
+        if (extensions != null && !extensions.isEmpty()) {
+            for (Map.Entry<String,JsonNode> extension : extensions.entrySet()) {
                 if (extension.getKey().trim().equals(X_BALLERINA_INIT_DESCRIPTION)) {
                     clientInitDocComment = clientInitDocComment.concat(extension.getValue().toString());
                     break;
@@ -463,83 +466,119 @@ public class BallerinaClientGenerator {
     /**
      * Generate remote functions for OpenAPI operations.
      *
-     * @param paths  openAPI Paths
-     * @param filter user given tags and operations
+//     * @param paths  openAPI Paths
+//     * @param filter user given tags and operations
      * @return FunctionDefinitionNodes list
      * @throws BallerinaAsyncApiException - throws when creating remote functions fails
      */
-    private List<FunctionDefinitionNode> createRemoteFunctions(Paths paths, Filter filter)
+    private List<FunctionDefinitionNode> createRemoteFunctions(Map<String, AsyncApiMessage> messages)
             throws BallerinaAsyncApiException {
 
-        List<String> filterTags = filter.getTags();
-        List<String> filterOperations = filter.getOperations();
+//        List<String> filterTags = filter.getTags();
+//        List<String> filterOperations = filter.getOperations();
         List<FunctionDefinitionNode> functionDefinitionNodeList = new ArrayList<>();
-        Set<Map.Entry<String, PathItem>> pathsItems = paths.entrySet();
-        for (Map.Entry<String, PathItem> path : pathsItems) {
-            if (!path.getValue().readOperationsMap().isEmpty()) {
-                for (Map.Entry<PathItem.HttpMethod, Operation> operation :
-                        path.getValue().readOperationsMap().entrySet()) {
-                    // create display annotation of the operation
-                    List<AnnotationNode> functionLevelAnnotationNodes = new ArrayList<>();
-                    if (operation.getValue().getExtensions() != null) {
-                        Map<String, Object> extensions = operation.getValue().getExtensions();
-                        DocCommentsGenerator.extractDisplayAnnotation(extensions, functionLevelAnnotationNodes);
-                    }
-                    List<String> operationTags = operation.getValue().getTags();
-                    String operationId = operation.getValue().getOperationId();
-                    if (!filterTags.isEmpty() || !filterOperations.isEmpty()) {
-                        // Generate remote function only if it is available in tag filter or operation filter or both
-                        if (operationTags != null || ((!filterOperations.isEmpty()) && (operationId != null))) {
-                            if (GeneratorUtils.hasTags(operationTags, filterTags) ||
-                                    ((operationId != null) && filterOperations.contains(operationId.trim()))) {
-                                // Generate remote function
-                                FunctionDefinitionNode functionDefinitionNode =
-                                        getClientMethodFunctionDefinitionNode(
-                                                functionLevelAnnotationNodes, path.getKey(), operation);
-                                functionDefinitionNodeList.add(functionDefinitionNode);
-                            }
-                        }
-                    } else {
-                        // Generate remote function
-                        FunctionDefinitionNode functionDefinitionNode = getClientMethodFunctionDefinitionNode(
-                                functionLevelAnnotationNodes, path.getKey(), operation);
-                        functionDefinitionNodeList.add(functionDefinitionNode);
-                    }
+//        Set<Map.Entry<String, PathItem>> pathsItems = paths.entrySet();
+        Set<Map.Entry<String, AsyncApiMessage>> messageItems = messages.entrySet();
+        for (Map.Entry<String, AsyncApiMessage> messageItem: messageItems){
+            Map<String, JsonNode> extensions=((AsyncApi25MessageImpl)messageItem.getValue()).getExtensions();
+            if(extensions!=null && extensions.get(X_RESPONSE)!=null ){
+                JsonNode ref=extensions.get(X_RESPONSE).get(PAYLOAD);
+                FunctionDefinitionNode functionDefinitionNode =
+                        getClientMethodFunctionDefinitionNode( (AsyncApi25MessageImpl)messageItem.getValue()));
+                functionDefinitionNodeList.add(functionDefinitionNode);
+//
+
+                if(extensions.get(X_RESPONSE).get("oneOf")!=null){
+
+
+
+
+
+
+
+                } else if (extensions.get(X_RESPONSE).get("payload")!=null){
+
+
+
+
+
+
+                } else if (extensions.get(X_RESPONSE).get("$ref")!=null) {
+
+
+
+
+
+
+
                 }
+
             }
+
         }
+//        for (Map.Entry<String, PathItem> path : pathsItems) {
+//            if (!path.getValue().readOperationsMap().isEmpty()) {
+//                for (Map.Entry<PathItem.HttpMethod, Operation> operation :
+//                        path.getValue().readOperationsMap().entrySet()) {
+//                    // create display annotation of the operation
+//                    List<AnnotationNode> functionLevelAnnotationNodes = new ArrayList<>();
+//                    if (operation.getValue().getExtensions() != null) {
+//                        Map<String, Object> extensions = operation.getValue().getExtensions();
+//                        DocCommentsGenerator.extractDisplayAnnotation(extensions, functionLevelAnnotationNodes);
+//                    }
+//                    List<String> operationTags = operation.getValue().getTags();
+//                    String operationId = operation.getValue().getOperationId();
+//                    if (!filterTags.isEmpty() || !filterOperations.isEmpty()) {
+//                        // Generate remote function only if it is available in tag filter or operation filter or both
+//                        if (operationTags != null || ((!filterOperations.isEmpty()) && (operationId != null))) {
+//                            if (GeneratorUtils.hasTags(operationTags, filterTags) ||
+//                                    ((operationId != null) && filterOperations.contains(operationId.trim()))) {
+//                                // Generate remote function
+//                                FunctionDefinitionNode functionDefinitionNode =
+//                                        getClientMethodFunctionDefinitionNode(
+//                                                functionLevelAnnotationNodes, path.getKey(), operation);
+//                                functionDefinitionNodeList.add(functionDefinitionNode);
+//                            }
+//                        }
+//                    } else {
+//                        // Generate remote function
+//                        FunctionDefinitionNode functionDefinitionNode = getClientMethodFunctionDefinitionNode(
+//                                functionLevelAnnotationNodes, path.getKey(), operation);
+//                        functionDefinitionNodeList.add(functionDefinitionNode);
+//                    }
+////                }
+////            }
+////        }
         return functionDefinitionNodeList;
     }
 
-    /**
-     * Generate function definition node.
-     * <pre>
-     *     remote isolated function pathParameter(int 'version, string name) returns string|error {
-     *          string  path = string `/v1/${'version}/v2/${name}`;
-     *          string response = check self.clientEp-> get(path);
-     *          return response;
-     *    }
-     *    or
-     *     resource isolated function get v1/[string 'version]/v2/[sting name]() returns string|error {
-     *         string  path = string `/v1/${'version}/v2/${name}`;
-     *         string response = check self.clientEp-> get(path);
-     *         return response;
-     *     }
-     * </pre>
-     */
-    private FunctionDefinitionNode getClientMethodFunctionDefinitionNode(List<AnnotationNode> annotationNodes,
-                                                                         String path,
-                                                                         Map.Entry<PathItem.HttpMethod, Operation>
-                                                                                 operation)
+//    /**
+//     * Generate function definition node.
+//     * <pre>
+//     *     remote isolated function pathParameter(int 'version, string name) returns string|error {
+//     *          string  path = string `/v1/${'version}/v2/${name}`;
+//     *          string response = check self.clientEp-> get(path);
+//     *          return response;
+//     *    }
+//     *    or
+//     *     resource isolated function get v1/[string 'version]/v2/[sting name]() returns string|error {
+//     *         string  path = string `/v1/${'version}/v2/${name}`;
+//     *         string response = check self.clientEp-> get(path);
+//     *         return response;
+//     *     }
+//     * </pre>
+//     */
+    private FunctionDefinitionNode  getClientMethodFunctionDefinitionNode(AsyncApi25MessageImpl message)
             throws BallerinaAsyncApiException {
         // Create api doc for function
         List<Node> remoteFunctionDocs = new ArrayList<>();
-        if (operation.getValue().getSummary() != null) {
+
+        if (message.getSummary() != null) {
             remoteFunctionDocs.addAll(DocCommentsGenerator.createAPIDescriptionDoc(
-                    operation.getValue().getSummary(), true));
-        } else if (operation.getValue().getDescription() != null && !operation.getValue().getDescription().isBlank()) {
+                    message.getSummary(), true));
+        } else if (message.getDescription() != null && !message.getDescription().isBlank()) {
             remoteFunctionDocs.addAll(DocCommentsGenerator.createAPIDescriptionDoc(
-                    operation.getValue().getDescription(), true));
+                    message.getDescription(), true));
         } else {
             MarkdownDocumentationLineNode newLine = createMarkdownDocumentationLineNode(null,
                     createToken(SyntaxKind.HASH_TOKEN), createEmptyNodeList());
@@ -548,22 +587,17 @@ public class BallerinaClientGenerator {
 
         //Create qualifier list
         NodeList<Token> qualifierList = createNodeList(createToken(
-                        resourceMode ?
-                                RESOURCE_KEYWORD :
                                 REMOTE_KEYWORD),
                 createToken(ISOLATED_KEYWORD));
         Token functionKeyWord = createToken(FUNCTION_KEYWORD);
-        IdentifierToken functionName = createIdentifierToken(
-                resourceMode ?
-                        operation.getKey().name().toLowerCase(Locale.ENGLISH) :
-                        operation.getValue().getOperationId());
+        IdentifierToken functionName = createIdentifierToken("do"+message.getName());
 
-        remoteFunctionNameList.add(operation.getValue().getOperationId());
+        remoteFunctionNameList.add(message.getName());
 
         FunctionSignatureGenerator functionSignatureGenerator = new FunctionSignatureGenerator(asyncAPI,
                 ballerinaSchemaGenerator, typeDefinitionNodeList, resourceMode);
         FunctionSignatureNode functionSignatureNode =
-                functionSignatureGenerator.getFunctionSignatureNode(operation.getValue(),
+                functionSignatureGenerator.getFunctionSignatureNode(message.getPayload(),
                         remoteFunctionDocs);
         typeDefinitionNodeList = functionSignatureGenerator.getTypeDefinitionNodeList();
         // Create `Deprecated` annotation if an operation has mentioned as `deprecated:true`
@@ -614,13 +648,9 @@ public class BallerinaClientGenerator {
             Map<String, ServerVariable> variables = selectedServer.getVariables();
             URL url;
             String resolvedUrl = GeneratorUtils.buildUrl(selectedServer.getUrl(), variables);
-            try {
-                url = new URL(resolvedUrl);
-                serverURL = url.toString();
-            } catch (MalformedURLException e) {
-                throw new BallerinaAsyncApiException("Failed to read endpoint details of the server: " +
-                        selectedServer.getUrl(), e);
-            }
+            //                url = new URL(resolvedUrl);
+//                serverURL = url.toString();
+            serverURL=resolvedUrl.toString();
         } else {
             serverURL = selectedServer.getUrl();
         }
