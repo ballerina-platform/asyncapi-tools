@@ -43,7 +43,7 @@ under the License.
             <class name="io.ballerina.asyncapi.generators.asyncapi.ChannelTests"/>
             <class name="io.ballerina.asyncapi.generators.asyncapi.SecurityTests"/>
             <class name="io.ballerina.asyncapi.generators.asyncapi.OptionalTests"/>
-
+            <class name="io.ballerina.asyncapi.generators.client.PathParameterTests"/>
 
         </classes>
     </test>
