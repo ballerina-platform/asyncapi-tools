@@ -18,6 +18,10 @@
 
 package io.ballerina.asyncapi.core.generators.client;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25DocumentImpl;
+import io.ballerina.asyncapi.core.exception.BallerinaAsyncApiException;
+import io.ballerina.asyncapi.core.generators.schema.BallerinaTypesGenerator;
 import io.ballerina.compiler.syntax.tree.AnnotationNode;
 import io.ballerina.compiler.syntax.tree.BuiltinSimpleNameReferenceNode;
 import io.ballerina.compiler.syntax.tree.FunctionSignatureNode;
@@ -112,7 +116,7 @@ import static io.ballerina.openapi.core.GeneratorUtils.getValidName;
  * @since 1.3.0
  */
 public class FunctionSignatureGenerator {
-    private final OpenAPI openAPI;
+    private final AsyncApi25DocumentImpl asyncAPI;
     private final BallerinaTypesGenerator ballerinaSchemaGenerator;
     private final List<TypeDefinitionNode> typeDefinitionNodeList;
     private FunctionReturnTypeGenerator functionReturnType;
@@ -123,15 +127,15 @@ public class FunctionSignatureGenerator {
         return typeDefinitionNodeList;
     }
 
-    public FunctionSignatureGenerator(OpenAPI openAPI,
+    public FunctionSignatureGenerator(AsyncApi25DocumentImpl asyncAPI,
                                       BallerinaTypesGenerator ballerinaSchemaGenerator,
                                       List<TypeDefinitionNode> typeDefinitionNodeList, boolean isResource) {
 
-        this.openAPI = openAPI;
+        this.asyncAPI = asyncAPI;
         this.ballerinaSchemaGenerator = ballerinaSchemaGenerator;
         this.typeDefinitionNodeList = typeDefinitionNodeList;
         this.functionReturnType = new FunctionReturnTypeGenerator
-                (openAPI, ballerinaSchemaGenerator, typeDefinitionNodeList);
+                (this.asyncAPI, ballerinaSchemaGenerator, typeDefinitionNodeList);
         this.isResource = isResource;
 
     }
@@ -139,25 +143,25 @@ public class FunctionSignatureGenerator {
     /**
      * This function for generate function signatures.
      *
-     * @param operation - openapi operation
+     * @param payload - openapi operation
      * @return {@link FunctionSignatureNode}
-     * @throws BallerinaOpenApiException - throws exception when node creation fails.
+     * @throws BallerinaAsyncApiException - throws exception when node creation fails.
      */
-    public FunctionSignatureNode getFunctionSignatureNode(Operation operation, List<Node> remoteFunctionDoc)
-            throws BallerinaOpenApiException {
+    public FunctionSignatureNode getFunctionSignatureNode(JsonNode payload, List<Node> remoteFunctionDoc)
+            throws BallerinaAsyncApiException {
         // Store the parameters for method.
-        List<Node> parameterList = new ArrayList<>();
+//        List<Node> parameterList = new ArrayList<>();
 
-        setFunctionParameters(operation, parameterList, createToken(COMMA_TOKEN), remoteFunctionDoc);
+//        setFunctionParameters(operation, parameterList, createToken(COMMA_TOKEN), remoteFunctionDoc);
         functionReturnType = new FunctionReturnTypeGenerator
-                (openAPI, ballerinaSchemaGenerator, typeDefinitionNodeList);
-
-        if (parameterList.size() >= 2) {
-            parameterList.remove(parameterList.size() - 1);
-        }
-        SeparatedNodeList<ParameterNode> parameters = createSeparatedNodeList(parameterList);
+                (asyncAPI, ballerinaSchemaGenerator, typeDefinitionNodeList);
+//
+//        if (parameterList.size() >= 2) {
+//            parameterList.remove(parameterList.size() - 1);
+//        }
+//        SeparatedNodeList<ParameterNode> parameters = createSeparatedNodeList(parameterList);
         //Create Return type - function with response
-        String returnType = functionReturnType.getReturnType(operation, true);
+        String returnType = functionReturnType.getDType(payload);
         ApiResponses responses = operation.getResponses();
         Collection<ApiResponse> values = responses.values();
         Iterator<ApiResponse> iteratorRes = values.iterator();
@@ -183,7 +187,7 @@ public class FunctionSignatureGenerator {
      * Generate function parameters.
      */
     private void setFunctionParameters(Operation operation, List<Node> parameterList, Token comma,
-                                       List<Node> remoteFunctionDoc) throws BallerinaOpenApiException {
+                                       List<Node> remoteFunctionDoc) throws BallerinaAsyncApiException {
 
         List<Parameter> parameters = operation.getParameters();
         List<Node> defaultable = new ArrayList<>();
@@ -366,7 +370,7 @@ public class FunctionSignatureGenerator {
         Schema parameterSchema = parameter.getSchema();
         if (parameterSchema.get$ref() != null) {
             type = getValidName(extractReferenceType(parameterSchema.get$ref()), true);
-            Schema schema = openAPI.getComponents().getSchemas().get(type.trim());
+            Schema schema = asyncAPI.getComponents().getSchemas().get(type.trim());
             if (schema instanceof ObjectSchema) {
                 throw new BallerinaOpenApiException("Ballerina does not support object type path parameters.");
             }
@@ -483,7 +487,7 @@ public class FunctionSignatureGenerator {
         String referencedRequestBodyName = "";
         if (requestBody.get$ref() != null) {
             referencedRequestBodyName = extractReferenceType(requestBody.get$ref()).trim();
-            RequestBody referencedRequestBody = openAPI.getComponents()
+            RequestBody referencedRequestBody = asyncAPI.getComponents()
                     .getRequestBodies().get(referencedRequestBodyName);
             requestBodyContent = referencedRequestBody.getContent();
             // note : when there is referenced request body, the description at the reference is ignored.
