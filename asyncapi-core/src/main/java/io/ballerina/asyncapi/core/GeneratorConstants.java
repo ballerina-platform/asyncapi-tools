@@ -23,7 +23,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Constants for openapi code generator.
+ * Constants for asyncapi code generator.
  *
  * @since 1.3.0
  */
@@ -54,13 +54,13 @@ public class GeneratorConstants {
      * Enum to select the relevant ballerina http auth record.
      */
     public enum AuthConfigTypes {
-        BASIC("http:CredentialsConfig"),
-        BEARER("http:BearerTokenConfig"),
-        CLIENT_CREDENTIAL("http:OAuth2ClientCredentialsGrantConfig"),
+        BASIC("websocket:CredentialsConfig"),
+        BEARER("websocket:BearerTokenConfig"),
+        CLIENT_CREDENTIAL("websocket:OAuth2ClientCredentialsGrantConfig"),
         CUSTOM_CLIENT_CREDENTIAL("OAuth2ClientCredentialsGrantConfig"),
-        REFRESH_TOKEN("http:OAuth2RefreshTokenGrantConfig"),
+        REFRESH_TOKEN("websocket:OAuth2RefreshTokenGrantConfig"),
         CUSTOM_REFRESH_TOKEN("OAuth2RefreshTokenGrantConfig"),
-        PASSWORD("http:OAuth2PasswordGrantConfig"),
+        PASSWORD("websocket:OAuth2PasswordGrantConfig"),
         CUSTOM_PASSWORD("OAuth2PasswordGrantConfig");
 
         private final String authType;
@@ -90,6 +90,8 @@ public class GeneratorConstants {
     public static final String ESCAPE_PATTERN = "([\\[\\]\\\\?!<>@#&~`*\\-=^+();:\\/{}\\s|.$])";
     //ClientCode generator
     public static final String HTTP = "http";
+
+    public static final String WEBSOCKET = "websocket";
     public static final String URL = "url";
     public static final String MODULE_TEST = "test";
     public static final String BALLERINA = "ballerina";
@@ -143,24 +145,30 @@ public class GeneratorConstants {
     public static final String ENSURE_TYPE = "ensureType";
 
     // auth related constants
-    public static final String API_KEY = "apikey";
+    public static final String HTTP_API_KEY = "httpApiKey";
+
+    public static final String USER_PASSWORD = "userPassword";
+
+    public static final String API_KEY="apiKey";
     public static final String API_KEYS_CONFIG = "ApiKeysConfig";
     public static final String API_KEY_CONFIG_PARAM = "apiKeyConfig";
     public static final String AUTH = "auth";
     public static final String AUTH_CONFIG = "authConfig";
-    public static final String HTTP_CLIENT_CONFIG = "httpClientConfig";
+    public static final String WEBSOCKET_CLIENT_CONFIG = "websocketClientConfig";
     public static final String CLIENT_HTTP1_SETTINGS = "ClientHttp1Settings";
     public static final String CLIENT_HTTP1_SETTINGS_FIELD = "http1Settings";
-    public static final String HTTP2_SETTINGS = "http:ClientHttp2Settings";
-    public static final String HTTP2_SETTINGS_FIELD = "http2Settings";
+//    public static final String HTTP2_SETTINGS = "http:Cookie";
+//    public static final String COOKIES_FIELD = "cookies";
     public static final String SETTINGS = "settings";
     public static final String CACHE_CONFIG = "http:CacheConfig";
     public static final String CACHE_CONFIG_FIELD = "cache";
-    public static final String RESPONSE_LIMIT = "http:ResponseLimitConfigs";
-    public static final String RESPONSE_LIMIT_FIELD = "responseLimits";
-    public static final String SECURE_SOCKET = "http:ClientSecureSocket";
+    public static final String PING_PONG_SERVICE = "websocket:PingPongService";
+    public static final String PING_PONG_HANDLER_FIELD = "pingPongHandler";
+    public static final String SECURE_SOCKET = "websocket:ClientSecureSocket";
     public static final String SECURE_SOCKET_FIELD = "secureSocket";
-    public static final String PROXY = "http:ProxyConfig";
+
+    public static final String PING_PONG_SERVICE_FIELD= "PingPongService";
+    public static final String WEB_SOCKET_RETRY_CONFIG = "websocket:WebSocketRetryConfig";
 
     public static final String KEEP_ALIVE = "keepAlive";
     public static final String CHUNKING = "chunking";
@@ -172,7 +180,7 @@ public class GeneratorConstants {
     public static final String CONNECTION_CONFIG = "ConnectionConfig";
     public static final String OAUTH2 = "oauth2";
     public static final String SSL_FIELD_NAME = "secureSocket";
-    public static final String PROXY_CONFIG = "proxy";
+    public static final String RETRY_CONFIG_FIELD = "retryConfig";
     public static final String VALIDATION = "validation";
 
     public static final String DEFAULT_API_KEY_DESC = "API keys for authorization";
@@ -212,6 +220,8 @@ public class GeneratorConstants {
     public static final String QUERY = "query";
     public static final String HTTP_RESPONSE = "http:Response";
     public static final String DEFAULT = "default";
+
+    public static final String X_RESPONSE = "x-response";
     /**
      * Util for select http keywords with http codes.
      *
