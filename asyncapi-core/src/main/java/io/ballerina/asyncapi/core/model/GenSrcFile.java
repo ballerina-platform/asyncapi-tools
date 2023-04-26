@@ -16,7 +16,7 @@
  * under the License.
  */
 
-package io.ballerina.asyncapi.core.generators.asyncspec.model;
+package io.ballerina.asyncapi.core.model;
 
 /**
  * Model class to hold generated source file information.
