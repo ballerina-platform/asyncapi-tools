@@ -17,12 +17,15 @@
  */
 package io.ballerina.asyncapi.cli;
 
+import io.ballerina.asyncapi.core.model.GenSrcFile;
 import io.ballerina.asyncapi.core.generators.asyncspec.utils.ConverterCommonUtils;
 import io.ballerina.tools.diagnostics.DiagnosticInfo;
 import io.ballerina.tools.diagnostics.DiagnosticSeverity;
 import io.ballerina.tools.diagnostics.Location;
 
+import java.io.File;
 import java.util.Collections;
+import java.util.List;
 
 /**
  * Contains all the util functions used for asyncapi commands.

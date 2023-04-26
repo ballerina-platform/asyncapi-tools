@@ -18,76 +18,51 @@
 
 package io.ballerina.asyncapi.core;
 
-import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25Document;
-import io.ballerina.asyncapi.core.generators.asyncspec.model.GenSrcFile;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
+import io.apicurio.datamodels.Library;
+import io.apicurio.datamodels.models.Schema;
+import io.apicurio.datamodels.models.ServerVariable;
+import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25ChannelsImpl;
+import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25ComponentsImpl;
+import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25DocumentImpl;
+import io.apicurio.datamodels.validation.ValidationProblem;
+import io.ballerina.asyncapi.core.model.GenSrcFile;
 import io.ballerina.compiler.api.SemanticModel;
 import io.ballerina.compiler.api.symbols.Symbol;
 import io.ballerina.compiler.api.symbols.SymbolKind;
 import io.ballerina.compiler.syntax.tree.AbstractNodeFactory;
-import io.ballerina.compiler.syntax.tree.AnnotationNode;
-import io.ballerina.compiler.syntax.tree.BuiltinSimpleNameReferenceNode;
 import io.ballerina.compiler.syntax.tree.CaptureBindingPatternNode;
-import io.ballerina.compiler.syntax.tree.ChildNodeEntry;
-import io.ballerina.compiler.syntax.tree.ExpressionNode;
 import io.ballerina.compiler.syntax.tree.ExpressionStatementNode;
 import io.ballerina.compiler.syntax.tree.IdentifierToken;
 import io.ballerina.compiler.syntax.tree.ImportDeclarationNode;
 import io.ballerina.compiler.syntax.tree.ImportOrgNameNode;
-import io.ballerina.compiler.syntax.tree.MarkdownParameterDocumentationLineNode;
-import io.ballerina.compiler.syntax.tree.MetadataNode;
 import io.ballerina.compiler.syntax.tree.Minutiae;
 import io.ballerina.compiler.syntax.tree.MinutiaeList;
-import io.ballerina.compiler.syntax.tree.ModuleMemberDeclarationNode;
-import io.ballerina.compiler.syntax.tree.ModulePartNode;
-import io.ballerina.compiler.syntax.tree.Node;
 import io.ballerina.compiler.syntax.tree.NodeFactory;
-import io.ballerina.compiler.syntax.tree.NodeList;
 import io.ballerina.compiler.syntax.tree.NodeParser;
 import io.ballerina.compiler.syntax.tree.QualifiedNameReferenceNode;
-import io.ballerina.compiler.syntax.tree.RecordFieldNode;
-import io.ballerina.compiler.syntax.tree.RecordTypeDescriptorNode;
-import io.ballerina.compiler.syntax.tree.ResourcePathParameterNode;
 import io.ballerina.compiler.syntax.tree.SeparatedNodeList;
 import io.ballerina.compiler.syntax.tree.SimpleNameReferenceNode;
-import io.ballerina.compiler.syntax.tree.SpecificFieldNode;
 import io.ballerina.compiler.syntax.tree.StatementNode;
 import io.ballerina.compiler.syntax.tree.SyntaxInfo;
-import io.ballerina.compiler.syntax.tree.SyntaxKind;
-import io.ballerina.compiler.syntax.tree.SyntaxTree;
 import io.ballerina.compiler.syntax.tree.Token;
 import io.ballerina.compiler.syntax.tree.TypeDefinitionNode;
 import io.ballerina.compiler.syntax.tree.TypedBindingPatternNode;
 import io.ballerina.compiler.syntax.tree.VariableDeclarationNode;
 import io.ballerina.asyncapi.core.exception.BallerinaAsyncApiException;
-import io.ballerina.asyncapi.core.generators.client.BallerinaUtilGenerator;
-import io.ballerina.asyncapi.core.generators.document.DocCommentsGenerator;
-import io.ballerina.asyncapi.core.model.GenSrcFile;
 import io.ballerina.projects.DocumentId;
+import io.ballerina.projects.Module;
 import io.ballerina.projects.Project;
+import io.ballerina.projects.Package;
 import io.ballerina.projects.ProjectException;
 import io.ballerina.projects.ProjectKind;
 import io.ballerina.projects.directory.ProjectLoader;
+import io.ballerina.runtime.api.utils.IdentifierUtils;
 import io.ballerina.tools.diagnostics.Location;
-import io.swagger.parser.OpenAPIParser;
-import io.swagger.v3.oas.models.Components;
-import io.swagger.v3.oas.models.OpenAPI;
-import io.swagger.v3.oas.models.Operation;
-import io.swagger.v3.oas.models.PathItem;
-import io.swagger.v3.oas.models.media.ArraySchema;
-import io.swagger.v3.oas.models.media.ComposedSchema;
-import io.swagger.v3.oas.models.media.Schema;
-import io.swagger.v3.oas.models.parameters.Parameter;
-import io.swagger.v3.oas.models.servers.ServerVariable;
-import io.swagger.v3.oas.models.servers.ServerVariables;
-import io.swagger.v3.parser.core.models.ParseOptions;
-import io.swagger.v3.parser.core.models.SwaggerParseResult;
 import org.apache.commons.io.FileUtils;
-import org.ballerinalang.formatter.core.Formatter;
-import org.ballerinalang.formatter.core.FormatterException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-import javax.ws.rs.core.MediaType;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -95,16 +70,13 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import static io.ballerina.asyncapi.core.GeneratorConstants.*;
 import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.JSON_EXTENSION;
 import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.YAML_EXTENSION;
 import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.YML_EXTENSION;
@@ -112,55 +84,13 @@ import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createEmptyN
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createIdentifierToken;
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createSeparatedNodeList;
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createToken;
-import static io.ballerina.compiler.syntax.tree.NodeFactory.createBuiltinSimpleNameReferenceNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createCaptureBindingPatternNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createExpressionStatementNode;
-import static io.ballerina.compiler.syntax.tree.NodeFactory.createMappingConstructorExpressionNode;
-import static io.ballerina.compiler.syntax.tree.NodeFactory.createRequiredExpressionNode;
-import static io.ballerina.compiler.syntax.tree.NodeFactory.createResourcePathParameterNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createSimpleNameReferenceNode;
-import static io.ballerina.compiler.syntax.tree.NodeFactory.createSpecificFieldNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createTypedBindingPatternNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createVariableDeclarationNode;
-import static io.ballerina.compiler.syntax.tree.SyntaxKind.CLOSE_BRACE_TOKEN;
-import static io.ballerina.compiler.syntax.tree.SyntaxKind.CLOSE_BRACKET_TOKEN;
-import static io.ballerina.compiler.syntax.tree.SyntaxKind.COLON_TOKEN;
-import static io.ballerina.compiler.syntax.tree.SyntaxKind.COMMA_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.EQUAL_TOKEN;
-import static io.ballerina.compiler.syntax.tree.SyntaxKind.OPEN_BRACE_TOKEN;
-import static io.ballerina.compiler.syntax.tree.SyntaxKind.OPEN_BRACKET_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.SEMICOLON_TOKEN;
-import static io.ballerina.compiler.syntax.tree.SyntaxKind.SLASH_TOKEN;
-import static io.ballerina.compiler.syntax.tree.SyntaxKind.STRING_KEYWORD;
-import static io.ballerina.openapi.core.GeneratorConstants.BALLERINA;
-import static io.ballerina.openapi.core.GeneratorConstants.BALLERINA_TOML;
-import static io.ballerina.openapi.core.GeneratorConstants.BALLERINA_TOML_CONTENT;
-import static io.ballerina.openapi.core.GeneratorConstants.CLIENT_FILE_NAME;
-import static io.ballerina.openapi.core.GeneratorConstants.CLOSE_CURLY_BRACE;
-import static io.ballerina.openapi.core.GeneratorConstants.CONSTRAINT;
-import static io.ballerina.openapi.core.GeneratorConstants.DEFAULT_PARAM_COMMENT;
-import static io.ballerina.openapi.core.GeneratorConstants.EXPLODE;
-import static io.ballerina.openapi.core.GeneratorConstants.GET;
-import static io.ballerina.openapi.core.GeneratorConstants.HEAD;
-import static io.ballerina.openapi.core.GeneratorConstants.HTTP_REQUEST;
-import static io.ballerina.openapi.core.GeneratorConstants.HTTP_RESPONSE;
-import static io.ballerina.openapi.core.GeneratorConstants.IDENTIFIER;
-import static io.ballerina.openapi.core.GeneratorConstants.IMAGE_PNG;
-import static io.ballerina.openapi.core.GeneratorConstants.JSON_EXTENSION;
-import static io.ballerina.openapi.core.GeneratorConstants.LINE_SEPARATOR;
-import static io.ballerina.openapi.core.GeneratorConstants.OBJECT;
-import static io.ballerina.openapi.core.GeneratorConstants.OPEN_CURLY_BRACE;
-import static io.ballerina.openapi.core.GeneratorConstants.SERVICE_FILE_NAME;
-import static io.ballerina.openapi.core.GeneratorConstants.SLASH;
-import static io.ballerina.openapi.core.GeneratorConstants.SPECIAL_CHARACTERS_REGEX;
-import static io.ballerina.openapi.core.GeneratorConstants.SQUARE_BRACKETS;
-import static io.ballerina.openapi.core.GeneratorConstants.STRING;
-import static io.ballerina.openapi.core.GeneratorConstants.STYLE;
-import static io.ballerina.openapi.core.GeneratorConstants.TYPE_FILE_NAME;
-import static io.ballerina.openapi.core.GeneratorConstants.TYPE_NAME;
-import static io.ballerina.openapi.core.GeneratorConstants.UNSUPPORTED_OPENAPI_VERSION_PARSER_MESSAGE;
-import static io.ballerina.openapi.core.GeneratorConstants.YAML_EXTENSION;
-import static io.ballerina.openapi.core.GeneratorConstants.YML_EXTENSION;
 
 /**
  * This class util for store all the common scenarios.
@@ -172,8 +102,9 @@ public class GeneratorUtils {
     public static final MinutiaeList SINGLE_WS_MINUTIAE = getSingleWSMinutiae();
     public static final List<String> BAL_KEYWORDS = SyntaxInfo.keywords();
     public static final MinutiaeList SINGLE_END_OF_LINE_MINUTIAE = getEndOfLineMinutiae();
-    private static final Logger LOGGER = LoggerFactory.getLogger(BallerinaUtilGenerator.class);
+//    private static final Logger LOGGER = LoggerFactory.getLogger(BallerinaUtilGenerator.class);
 
+    //Create import ballerina/websocket;
     public static ImportDeclarationNode getImportDeclarationNode(String orgName, String moduleName) {
 
         Token importKeyword = AbstractNodeFactory.createIdentifierToken("import", SINGLE_WS_MINUTIAE,
@@ -197,105 +128,105 @@ public class GeneratorUtils {
         return NodeFactory.createQualifiedNameReferenceNode(modulePrefixToken, colon, identifierToken);
     }
 
-    /**
-     * Generated resource function relative path node list.
-     *
-     * @param path      - resource path
-     * @param operation - resource operation
-     * @return - node lists
-     * @throws BallerinaAsyncApiException
-     */
-    public static List<Node> getRelativeResourcePath(String path, Operation operation, List<Node> resourceFunctionDocs)
-            throws BallerinaAsyncApiException {
+//    /**
+//     * Generated resource function relative path node list.
+//     *
+//     * @param path      - resource path
+//     * @param operation - resource operation
+//     * @return - node lists
+//     * @throws BallerinaAsyncApiException
+//     */
+//    public static List<Node> getRelativeResourcePath(String path, Operation operation, List<Node> resourceFunctionDocs)
+//            throws BallerinaAsyncApiException {
+//
+//        List<Node> functionRelativeResourcePath = new ArrayList<>();
+//        String[] pathNodes = path.split(SLASH);
+//        if (pathNodes.length >= 2) {
+//            for (String pathNode : pathNodes) {
+//                if (pathNode.contains(OPEN_CURLY_BRACE)) {
+//                    String pathParam = pathNode;
+//                    pathParam = pathParam.substring(pathParam.indexOf(OPEN_CURLY_BRACE) + 1);
+//                    pathParam = pathParam.substring(0, pathParam.indexOf(CLOSE_CURLY_BRACE));
+//                    pathParam = getValidName(pathParam, false);
+//
+//                    /**
+//                     * TODO -> `onCall/[string id]\.json` type of url won't support from syntax
+//                     * issue https://github.com/ballerina-platform/ballerina-spec/issues/1138
+//                     * <pre>resource function get onCall/[string id]\.json() returns string {}</>
+//                     */
+//                    if (operation.getParameters() != null) {
+//                        extractPathParameterDetails(operation, functionRelativeResourcePath, pathNode,
+//                                pathParam, resourceFunctionDocs);
+//                    }
+//                } else if (!pathNode.isBlank()) {
+//                    IdentifierToken idToken = createIdentifierToken(escapeIdentifier(pathNode.trim()));
+//                    functionRelativeResourcePath.add(idToken);
+//                    functionRelativeResourcePath.add(createToken(SLASH_TOKEN));
+//                }
+//            }
+//            functionRelativeResourcePath.remove(functionRelativeResourcePath.size() - 1);
+//        } else if (pathNodes.length == 0) {
+//            IdentifierToken idToken = createIdentifierToken(".");
+//            functionRelativeResourcePath.add(idToken);
+//        } else {
+//            IdentifierToken idToken = createIdentifierToken(pathNodes[1].trim());
+//            functionRelativeResourcePath.add(idToken);
+//        }
+//        return functionRelativeResourcePath;
+//    }
 
-        List<Node> functionRelativeResourcePath = new ArrayList<>();
-        String[] pathNodes = path.split(SLASH);
-        if (pathNodes.length >= 2) {
-            for (String pathNode : pathNodes) {
-                if (pathNode.contains(OPEN_CURLY_BRACE)) {
-                    String pathParam = pathNode;
-                    pathParam = pathParam.substring(pathParam.indexOf(OPEN_CURLY_BRACE) + 1);
-                    pathParam = pathParam.substring(0, pathParam.indexOf(CLOSE_CURLY_BRACE));
-                    pathParam = getValidName(pathParam, false);
-
-                    /**
-                     * TODO -> `onCall/[string id]\.json` type of url won't support from syntax
-                     * issue https://github.com/ballerina-platform/ballerina-spec/issues/1138
-                     * <pre>resource function get onCall/[string id]\.json() returns string {}</>
-                     */
-                    if (operation.getParameters() != null) {
-                        extractPathParameterDetails(operation, functionRelativeResourcePath, pathNode,
-                                pathParam, resourceFunctionDocs);
-                    }
-                } else if (!pathNode.isBlank()) {
-                    IdentifierToken idToken = createIdentifierToken(escapeIdentifier(pathNode.trim()));
-                    functionRelativeResourcePath.add(idToken);
-                    functionRelativeResourcePath.add(createToken(SLASH_TOKEN));
-                }
-            }
-            functionRelativeResourcePath.remove(functionRelativeResourcePath.size() - 1);
-        } else if (pathNodes.length == 0) {
-            IdentifierToken idToken = createIdentifierToken(".");
-            functionRelativeResourcePath.add(idToken);
-        } else {
-            IdentifierToken idToken = createIdentifierToken(pathNodes[1].trim());
-            functionRelativeResourcePath.add(idToken);
-        }
-        return functionRelativeResourcePath;
-    }
-
-    private static void extractPathParameterDetails(Operation operation, List<Node> functionRelativeResourcePath,
-                                                    String pathNode, String pathParam, List<Node> resourceFunctionDocs)
-            throws BallerinaAsyncApiException {
-        // check whether path parameter segment has special character
-        String[] split = pathNode.split(CLOSE_CURLY_BRACE, 2);
-        Pattern pattern = Pattern.compile(SPECIAL_CHARACTERS_REGEX);
-        Matcher matcher = pattern.matcher(split[1]);
-        boolean hasSpecialCharacter = matcher.find();
-
-        for (Parameter parameter : operation.getParameters()) {
-            if (parameter.getIn() == null) {
-                break;
-            }
-            if (pathParam.trim().equals(getValidName(parameter.getName().trim(), false))
-                    && parameter.getIn().equals("path")) {
-
-                // TypeDescriptor
-                BuiltinSimpleNameReferenceNode builtSNRNode = createBuiltinSimpleNameReferenceNode(
-                        null,
-                        parameter.getSchema() == null ?
-                                createIdentifierToken(STRING) :
-                                createIdentifierToken(
-                                        convertAsyncAPITypeToBallerina(parameter.getSchema().getType())));
-                IdentifierToken paramName = createIdentifierToken(
-                        hasSpecialCharacter ?
-                                getValidName(pathNode, false) :
-                                pathParam);
-                ResourcePathParameterNode resourcePathParameterNode =
-                        createResourcePathParameterNode(
-                                SyntaxKind.RESOURCE_PATH_SEGMENT_PARAM,
-                                createToken(OPEN_BRACKET_TOKEN),
-                                NodeFactory.createEmptyNodeList(),
-                                builtSNRNode,
-                                null,
-                                paramName,
-                                createToken(CLOSE_BRACKET_TOKEN));
-                functionRelativeResourcePath.add(resourcePathParameterNode);
-                functionRelativeResourcePath.add(createToken(SLASH_TOKEN));
-
-                // Add documentation
-                if (resourceFunctionDocs != null) {
-                    String parameterName = paramName.text();
-                    String paramComment = parameter.getDescription() != null && !parameter.getDescription().isBlank() ?
-                            parameter.getDescription() : DEFAULT_PARAM_COMMENT;
-                    MarkdownParameterDocumentationLineNode paramAPIDoc =
-                            DocCommentsGenerator.createAPIParamDoc(parameterName, paramComment);
-                    resourceFunctionDocs.add(paramAPIDoc);
-                }
-                break;
-            }
-        }
-    }
+//    private static void extractPathParameterDetails(Operation operation, List<Node> functionRelativeResourcePath,
+//                                                    String pathNode, String pathParam, List<Node> resourceFunctionDocs)
+//            throws BallerinaAsyncApiException {
+//        // check whether path parameter segment has special character
+//        String[] split = pathNode.split(CLOSE_CURLY_BRACE, 2);
+//        Pattern pattern = Pattern.compile(SPECIAL_CHARACTERS_REGEX);
+//        Matcher matcher = pattern.matcher(split[1]);
+//        boolean hasSpecialCharacter = matcher.find();
+//
+//        for (Parameter parameter : operation.getParameters()) {
+//            if (parameter.getIn() == null) {
+//                break;
+//            }
+//            if (pathParam.trim().equals(getValidName(parameter.getName().trim(), false))
+//                    && parameter.getIn().equals("path")) {
+//
+//                // TypeDescriptor
+//                BuiltinSimpleNameReferenceNode builtSNRNode = createBuiltinSimpleNameReferenceNode(
+//                        null,
+//                        parameter.getSchema() == null ?
+//                                createIdentifierToken(STRING) :
+//                                createIdentifierToken(
+//                                        convertAsyncAPITypeToBallerina(parameter.getSchema().getType())));
+//                IdentifierToken paramName = createIdentifierToken(
+//                        hasSpecialCharacter ?
+//                                getValidName(pathNode, false) :
+//                                pathParam);
+//                ResourcePathParameterNode resourcePathParameterNode =
+//                        createResourcePathParameterNode(
+//                                SyntaxKind.RESOURCE_PATH_SEGMENT_PARAM,
+//                                createToken(OPEN_BRACKET_TOKEN),
+//                                NodeFactory.createEmptyNodeList(),
+//                                builtSNRNode,
+//                                null,
+//                                paramName,
+//                                createToken(CLOSE_BRACKET_TOKEN));
+//                functionRelativeResourcePath.add(resourcePathParameterNode);
+//                functionRelativeResourcePath.add(createToken(SLASH_TOKEN));
+//
+//                // Add documentation
+//                if (resourceFunctionDocs != null) {
+//                    String parameterName = paramName.text();
+//                    String paramComment = parameter.getDescription() != null && !parameter.getDescription().isBlank() ?
+//                            parameter.getDescription() : DEFAULT_PARAM_COMMENT;
+//                    MarkdownParameterDocumentationLineNode paramAPIDoc =
+//                            DocCommentsGenerator.createAPIParamDoc(parameterName, paramComment);
+//                    resourceFunctionDocs.add(paramAPIDoc);
+//                }
+//                break;
+//            }
+//        }
+//    }
 
     /**
      * Method for convert openApi type to ballerina type.
@@ -397,7 +328,7 @@ public class GeneratorUtils {
      */
     public static String extractReferenceType(String referenceVariable) throws BallerinaAsyncApiException {
 
-        if (referenceVariable.startsWith("#") && referenceVariable.contains("/")) {
+        if (referenceVariable.toString().startsWith("#") && referenceVariable.contains("/")) {
             String[] refArray = referenceVariable.split("/");
             return refArray[refArray.length - 1];
         } else {
@@ -414,7 +345,7 @@ public class GeneratorUtils {
     /**
      * Util for take OpenApi spec from given yaml file.
      */
-    public static AsyncApi25Document getAsyncAPIFromAsyncAPIV3Parser(Path definitionPath) throws
+    public static AsyncApi25DocumentImpl getAsyncAPIFromAsyncAPIV3Parser(Path definitionPath) throws
             IOException, BallerinaAsyncApiException {
 
         Path contractPath = java.nio.file.Paths.get(definitionPath.toString());
@@ -429,7 +360,23 @@ public class GeneratorUtils {
     //    add a parser
 
 
-//        String openAPIFileContent = Files.readString(definitionPath);
+        String asyncAPIFileContent = Files.readString(definitionPath);
+        ObjectMapper yamlReader = new ObjectMapper(new YAMLFactory());
+        Object obj = yamlReader.readValue(asyncAPIFileContent, Object.class);
+
+        ObjectMapper jsonWriter = new ObjectMapper();
+
+        AsyncApi25DocumentImpl document= (AsyncApi25DocumentImpl) Library.readDocumentFromJSONString(jsonWriter.writeValueAsString(obj));
+        List<ValidationProblem> validationProblems= Library.validate(document,null);
+        if(!validationProblems.isEmpty()){
+            StringBuilder errorMessage = new StringBuilder("AsyncAPI definition has errors: \n");
+            for (ValidationProblem validationProblem : validationProblems) {
+                errorMessage.append(validationProblem.message).append(LINE_SEPARATOR);
+            }
+            throw new BallerinaAsyncApiException(errorMessage.toString());
+        }
+        return document;
+
 //        ParseOptions parseOptions = new ParseOptions();
 //        parseOptions.setResolve(true);
 //        parseOptions.setFlatten(true);
@@ -447,45 +394,45 @@ public class GeneratorUtils {
 //        return parseResult.getOpenAPI();
     }
 
-    /**
-     * Check whether the given media type is currently supported in the tool.
-     *
-     * @param mediaTypeEntry
-     * @return
-     */
-    public static boolean isSupportedMediaType(Map.Entry<String,
-            io.swagger.v3.oas.models.media.MediaType> mediaTypeEntry) {
-        String mediaType = mediaTypeEntry.getKey();
-        String defaultBallerinaType = getBallerinaMediaType(mediaType, true);
-        Schema<?> schema = mediaTypeEntry.getValue().getSchema();
+//    /**
+//     * Check whether the given media type is currently supported in the tool.
+//     *
+//     * @param mediaTypeEntry
+//     * @return
+//     */
+//    public static boolean isSupportedMediaType(Map.Entry<String,
+//            io.swagger.v3.oas.models.media.MediaType> mediaTypeEntry) {
+//        String mediaType = mediaTypeEntry.getKey();
+//        String defaultBallerinaType = getBallerinaMediaType(mediaType, true);
+//        Schema<?> schema = mediaTypeEntry.getValue().getSchema();
+//
+//        boolean isValidMultipartFormData = mediaType.equals(MediaType.MULTIPART_FORM_DATA) && schema != null &&
+//                (schema.get$ref() != null || schema.getProperties() != null || schema.getType().equals(OBJECT));
+//
+//        if (defaultBallerinaType.equals(HTTP_REQUEST) && !isValidMultipartFormData) {
+//            return false;
+//        } else {
+//            return true;
+//        }
+//    }
 
-        boolean isValidMultipartFormData = mediaType.equals(MediaType.MULTIPART_FORM_DATA) && schema != null &&
-                (schema.get$ref() != null || schema.getProperties() != null || schema.getType().equals(OBJECT));
-
-        if (defaultBallerinaType.equals(HTTP_REQUEST) && !isValidMultipartFormData) {
-            return false;
-        } else {
-            return true;
-        }
-    }
-
-    /**
-     * Generate BallerinaMediaType for all the return mediaTypes.
-     */
-    public static String getBallerinaMediaType(String mediaType, boolean isRequest) {
-        if (mediaType.matches(".*/json") || mediaType.matches("application/.*\\+json")) {
-            return SyntaxKind.JSON_KEYWORD.stringValue();
-        } else if (mediaType.matches(".*/xml") || mediaType.matches("application/.*\\+xml")) {
-            return SyntaxKind.XML_KEYWORD.stringValue();
-        } else if (mediaType.equals(MediaType.APPLICATION_FORM_URLENCODED) || mediaType.matches("text/.*")) {
-            return STRING_KEYWORD.stringValue();
-        } else if (mediaType.equals(MediaType.APPLICATION_OCTET_STREAM) ||
-                mediaType.equals(IMAGE_PNG) || mediaType.matches("application/.*\\+octet-stream")) {
-            return SyntaxKind.BYTE_KEYWORD.stringValue() + SQUARE_BRACKETS;
-        } else {
-            return isRequest ? HTTP_REQUEST : HTTP_RESPONSE;
-        }
-    }
+//    /**
+//     * Generate BallerinaMediaType for all the return mediaTypes.
+//     */
+//    public static String getBallerinaMediaType(String mediaType, boolean isRequest) {
+//        if (mediaType.matches(".*/json") || mediaType.matches("application/.*\\+json")) {
+//            return SyntaxKind.JSON_KEYWORD.stringValue();
+//        } else if (mediaType.matches(".*/xml") || mediaType.matches("application/.*\\+xml")) {
+//            return SyntaxKind.XML_KEYWORD.stringValue();
+//        } else if (mediaType.equals(MediaType.APPLICATION_FORM_URLENCODED) || mediaType.matches("text/.*")) {
+//            return STRING_KEYWORD.stringValue();
+//        } else if (mediaType.equals(MediaType.APPLICATION_OCTET_STREAM) ||
+//                mediaType.equals(IMAGE_PNG) || mediaType.matches("application/.*\\+octet-stream")) {
+//            return SyntaxKind.BYTE_KEYWORD.stringValue() + SQUARE_BRACKETS;
+//        } else {
+//            return isRequest ? HTTP_REQUEST : HTTP_RESPONSE;
+//        }
+//    }
 
     /*
      * Generate variableDeclarationNode.
@@ -519,7 +466,7 @@ public class GeneratorUtils {
      * @param variables variable values to populate the url template
      * @return resolved url
      */
-    public static String buildUrl(String absUrl, ServerVariables variables) {
+    public static String buildUrl(String absUrl, Map<String, ServerVariable>  variables) {
 
         String url = absUrl;
         if (variables != null) {
@@ -564,33 +511,33 @@ public class GeneratorUtils {
                 gFile.getFileName().split("\\.")[1]);
     }
 
-    /**
-     * Create each item of the encoding map.
-     *
-     * @param filedOfMap Includes all the items in the encoding map
-     * @param style      Defines how multiple values are delimited and explode
-     * @param explode    Specifies whether arrays and objects should generate separate parameters
-     * @param key        Key of the item in the map
-     */
-    public static void createEncodingMap(List<Node> filedOfMap, String style, Boolean explode, String key) {
-
-        IdentifierToken fieldName = createIdentifierToken('"' + key + '"');
-        Token colon = createToken(COLON_TOKEN);
-        SpecificFieldNode styleField = createSpecificFieldNode(null,
-                createIdentifierToken(STYLE), createToken(COLON_TOKEN),
-                createRequiredExpressionNode(createIdentifierToken(style.toUpperCase(Locale.ROOT))));
-        SpecificFieldNode explodeField = createSpecificFieldNode(null,
-                createIdentifierToken(EXPLODE), createToken(COLON_TOKEN),
-                createRequiredExpressionNode(createIdentifierToken(explode.toString())));
-        ExpressionNode expressionNode = createMappingConstructorExpressionNode(
-                createToken(OPEN_BRACE_TOKEN), createSeparatedNodeList(styleField, createToken(COMMA_TOKEN),
-                        explodeField),
-                createToken(CLOSE_BRACE_TOKEN));
-        SpecificFieldNode specificFieldNode = createSpecificFieldNode(null,
-                fieldName, colon, expressionNode);
-        filedOfMap.add(specificFieldNode);
-        filedOfMap.add(createToken(COMMA_TOKEN));
-    }
+//    /**
+//     * Create each item of the encoding map.
+//     *
+//     * @param filedOfMap Includes all the items in the encoding map
+//     * @param style      Defines how multiple values are delimited and explode
+//     * @param explode    Specifies whether arrays and objects should generate separate parameters
+//     * @param key        Key of the item in the map
+//     */
+//    public static void createEncodingMap(List<Node> filedOfMap, String style, Boolean explode, String key) {
+//
+//        IdentifierToken fieldName = createIdentifierToken('"' + key + '"');
+//        Token colon = createToken(COLON_TOKEN);
+//        SpecificFieldNode styleField = createSpecificFieldNode(null,
+//                createIdentifierToken(STYLE), createToken(COLON_TOKEN),
+//                createRequiredExpressionNode(createIdentifierToken(style.toUpperCase(Locale.ROOT))));
+//        SpecificFieldNode explodeField = createSpecificFieldNode(null,
+//                createIdentifierToken(EXPLODE), createToken(COLON_TOKEN),
+//                createRequiredExpressionNode(createIdentifierToken(explode.toString())));
+//        ExpressionNode expressionNode = createMappingConstructorExpressionNode(
+//                createToken(OPEN_BRACE_TOKEN), createSeparatedNodeList(styleField, createToken(COMMA_TOKEN),
+//                        explodeField),
+//                createToken(CLOSE_BRACE_TOKEN));
+//        SpecificFieldNode specificFieldNode = createSpecificFieldNode(null,
+//                fieldName, colon, expressionNode);
+//        filedOfMap.add(specificFieldNode);
+//        filedOfMap.add(createToken(COMMA_TOKEN));
+//    }
 
     public static boolean checkImportDuplicate(List<ImportDeclarationNode> imports, String module) {
 
@@ -672,53 +619,53 @@ public class GeneratorUtils {
         }
         return bodyStatements;
     }
+//
+//    /**
+//     * This util is to check if the given schema contains any constraints.
+//     */
+//    public static boolean hasConstraints(Schema<?> value) {
+//
+//        if (value.getProperties() != null) {
+//            boolean constraintExists = value.getProperties().values().stream()
+//                    .anyMatch(GeneratorUtils::hasConstraints);
+//            if (constraintExists) {
+//                return true;
+//            }
+//        } else if (value instanceof ComposedSchema) {
+//            List<Schema> allOf = ((ComposedSchema) value).getAllOf();
+//            List<Schema> oneOf = ((ComposedSchema) value).getOneOf();
+//            List<Schema> anyOf = ((ComposedSchema) value).getAnyOf();
+//            boolean constraintExists = false;
+//            if (allOf != null) {
+//                constraintExists = allOf.stream().anyMatch(GeneratorUtils::hasConstraints);
+//            } else if (oneOf != null) {
+//                constraintExists = oneOf.stream().anyMatch(GeneratorUtils::hasConstraints);
+//            } else if (anyOf != null) {
+//                constraintExists = anyOf.stream().anyMatch(GeneratorUtils::hasConstraints);
+//            }
+//            if (constraintExists) {
+//                return true;
+//            }
+//
+//        } else if (value instanceof ArraySchema) {
+//            if (!isConstraintExists(value)) {
+//                return isConstraintExists(((ArraySchema) value).getItems());
+//            }
+//        }
+//        return isConstraintExists(value);
+//    }
 
-    /**
-     * This util is to check if the given schema contains any constraints.
-     */
-    public static boolean hasConstraints(Schema<?> value) {
-
-        if (value.getProperties() != null) {
-            boolean constraintExists = value.getProperties().values().stream()
-                    .anyMatch(GeneratorUtils::hasConstraints);
-            if (constraintExists) {
-                return true;
-            }
-        } else if (value instanceof ComposedSchema) {
-            List<Schema> allOf = ((ComposedSchema) value).getAllOf();
-            List<Schema> oneOf = ((ComposedSchema) value).getOneOf();
-            List<Schema> anyOf = ((ComposedSchema) value).getAnyOf();
-            boolean constraintExists = false;
-            if (allOf != null) {
-                constraintExists = allOf.stream().anyMatch(GeneratorUtils::hasConstraints);
-            } else if (oneOf != null) {
-                constraintExists = oneOf.stream().anyMatch(GeneratorUtils::hasConstraints);
-            } else if (anyOf != null) {
-                constraintExists = anyOf.stream().anyMatch(GeneratorUtils::hasConstraints);
-            }
-            if (constraintExists) {
-                return true;
-            }
-
-        } else if (value instanceof ArraySchema) {
-            if (!isConstraintExists(value)) {
-                return isConstraintExists(((ArraySchema) value).getItems());
-            }
-        }
-        return isConstraintExists(value);
-    }
-
-    private static boolean isConstraintExists(Schema<?> propertyValue) {
-
-        return propertyValue.getMaximum() != null ||
-                propertyValue.getMinimum() != null ||
-                propertyValue.getMaxLength() != null ||
-                propertyValue.getMinLength() != null ||
-                propertyValue.getMaxItems() != null ||
-                propertyValue.getMinItems() != null ||
-                propertyValue.getExclusiveMinimum() != null ||
-                propertyValue.getExclusiveMaximum() != null;
-    }
+//    private static boolean isConstraintExists(Schema<?> propertyValue) {
+//
+//        return propertyValue.getMaximum() != null ||
+//                propertyValue.getMinimum() != null ||
+//                propertyValue.getMaxLength() != null ||
+//                propertyValue.getMinLength() != null ||
+//                propertyValue.getMaxItems() != null ||
+//                propertyValue.getMinItems() != null ||
+//                propertyValue.getExclusiveMinimum() != null ||
+//                propertyValue.getExclusiveMaximum() != null;
+//    }
 
     /**
      * Normalized OpenAPI specification with adding proper naming to schema.
@@ -726,200 +673,203 @@ public class GeneratorUtils {
      * @param asyncAPIPath - openAPI file path
      * @return - openAPI specification
      * @throws IOException
-     * @throws BallerinaOpenApiException
+     * @throws BallerinaAsyncApiException
      */
-    public static AsyncApi25Document normalizeAsyncAPI(Path asyncAPIPath, boolean isClient) throws IOException,
+    public static AsyncApi25DocumentImpl normalizeAsyncAPI(Path asyncAPIPath) throws IOException,
             BallerinaAsyncApiException {
-        AsyncApi25Document openAPI = getAsyncAPIFromAsyncAPIV3Parser(asyncAPIPath);
-        io.swagger.v3.oas.models.Paths openAPIPaths = openAPI.;
-        if (isClient) {
-            validateOperationIds(openAPIPaths.entrySet());
-        }
-        validateRequestBody(openAPIPaths.entrySet());
+        AsyncApi25DocumentImpl asyncAPI = getAsyncAPIFromAsyncAPIV3Parser(asyncAPIPath);
 
-        if (openAPI.getComponents() != null) {
+        //TODO: Do some validations
+        AsyncApi25ChannelsImpl asyncApiChannels = (AsyncApi25ChannelsImpl) asyncAPI.getChannels();
+//        if (isClient) {
+//            validateOperationIds(openAPIPaths.entrySet());
+//        }
+//        validateRequestBody(openAPIPaths.entrySet());
+
+        if (asyncAPI.getComponents() != null) {
             // Refactor schema name with valid name
-            Components components = openAPI.getComponents();
+            AsyncApi25ComponentsImpl components = (AsyncApi25ComponentsImpl) asyncAPI.getComponents();
             Map<String, Schema> componentsSchemas = components.getSchemas();
             if (componentsSchemas != null) {
-                Map<String, Schema> refacSchema = new HashMap<>();
+//                Map<String, Schema> refacSchema = new HashMap<>();
                 for (Map.Entry<String, Schema> schemaEntry : componentsSchemas.entrySet()) {
                     String name = getValidName(schemaEntry.getKey(), true);
-                    refacSchema.put(name, schemaEntry.getValue());
+                    components.addSchema(name,schemaEntry.getValue());
+//                    refacSchema.put(name, schemaEntry.getValue());
                 }
-                openAPI.getComponents().setSchemas(refacSchema);
+//                asyncAPI.getComponents().setSchemas(refacSchema);
             }
         }
-        return openAPI;
+        return asyncAPI;
     }
+//
+//    /**
+//     * Check whether an operationId has been defined in each path. If given rename the operationId to accepted format.
+//     * -- ex: GetPetName -> getPetName
+//     *
+//     * @param paths List of paths given in the OpenAPI definition
+//     * @throws BallerinaOpenApiException When operationId is missing in any path
+//     */
+//    public static void validateOperationIds(Set<Map.Entry<String, PathItem>> paths) throws BallerinaOpenApiException {
+//        List<String> errorList = new ArrayList<>();
+//        for (Map.Entry<String, PathItem> entry : paths) {
+//            for (Map.Entry<PathItem.HttpMethod, Operation> operation :
+//                    entry.getValue().readOperationsMap().entrySet()) {
+//                if (operation.getValue().getOperationId() != null) {
+//                    String operationId = getValidName(operation.getValue().getOperationId(), false);
+//                    operation.getValue().setOperationId(operationId);
+//                } else {
+//                    errorList.add(String.format("OperationId is missing in the resource path: %s(%s)", entry.getKey(),
+//                            operation.getKey()));
+//                }
+//            }
+//        }
+//        if (!errorList.isEmpty()) {
+//            throw new BallerinaOpenApiException(
+//                    "OpenAPI definition has errors: " + LINE_SEPARATOR + String.join(LINE_SEPARATOR, errorList));
+//        }
+//    }
 
-    /**
-     * Check whether an operationId has been defined in each path. If given rename the operationId to accepted format.
-     * -- ex: GetPetName -> getPetName
-     *
-     * @param paths List of paths given in the OpenAPI definition
-     * @throws BallerinaOpenApiException When operationId is missing in any path
-     */
-    public static void validateOperationIds(Set<Map.Entry<String, PathItem>> paths) throws BallerinaOpenApiException {
-        List<String> errorList = new ArrayList<>();
-        for (Map.Entry<String, PathItem> entry : paths) {
-            for (Map.Entry<PathItem.HttpMethod, Operation> operation :
-                    entry.getValue().readOperationsMap().entrySet()) {
-                if (operation.getValue().getOperationId() != null) {
-                    String operationId = getValidName(operation.getValue().getOperationId(), false);
-                    operation.getValue().setOperationId(operationId);
-                } else {
-                    errorList.add(String.format("OperationId is missing in the resource path: %s(%s)", entry.getKey(),
-                            operation.getKey()));
-                }
-            }
-        }
-        if (!errorList.isEmpty()) {
-            throw new BallerinaOpenApiException(
-                    "OpenAPI definition has errors: " + LINE_SEPARATOR + String.join(LINE_SEPARATOR, errorList));
-        }
-    }
+//    /**
+//     * Validate if requestBody found in GET/DELETE/HEAD operation.
+//     *
+//     * @param paths - List of paths given in the OpenAPI definition
+//     * @throws BallerinaOpenApiException - If requestBody found in GET/DELETE/HEAD operation
+//     */
+//    public static void validateRequestBody(Set<Map.Entry<String, PathItem>> paths) throws BallerinaOpenApiException {
+//        List<String> errorList = new ArrayList<>();
+//        for (Map.Entry<String, PathItem> entry : paths) {
+//            if (!entry.getValue().readOperationsMap().isEmpty()) {
+//                for (Map.Entry<PathItem.HttpMethod, Operation> operation : entry.getValue().readOperationsMap()
+//                        .entrySet()) {
+//                    String method = operation.getKey().name().trim().toLowerCase(Locale.ENGLISH);
+//                    boolean isRequestBodyInvalid = method.equals(GET) || method.equals(HEAD);
+//                    if (isRequestBodyInvalid && operation.getValue().getRequestBody() != null) {
+//                        errorList.add(method.toUpperCase(Locale.ENGLISH) + " operation cannot have a requestBody. "
+//                                + "Error at operationId: " + operation.getValue().getOperationId());
+//                    }
+//                }
+//            }
+//        }
+//
+//        if (!errorList.isEmpty()) {
+//            StringBuilder errorMessage = new StringBuilder("OpenAPI definition has errors: " + LINE_SEPARATOR);
+//            for (String message : errorList) {
+//                errorMessage.append(message).append(LINE_SEPARATOR);
+//            }
+//            throw new BallerinaOpenApiException(errorMessage.toString());
+//        }
+//    }
+//
+//    public static String removeUnusedEntities(SyntaxTree schemaSyntaxTree, String clientContent, String schemaContent,
+//                                              String serviceContent) throws IOException, FormatterException {
+//        Map<String, String> tempSourceFiles = new HashMap<>();
+//        tempSourceFiles.put(CLIENT_FILE_NAME, clientContent);
+//        tempSourceFiles.put(TYPE_FILE_NAME, schemaContent);
+//        if (serviceContent != null) {
+//            tempSourceFiles.put(SERVICE_FILE_NAME, schemaContent);
+//        }
+//        List<String> unusedTypeDefinitionNameList = getUnusedTypeDefinitionNameList(tempSourceFiles);
+//        while (unusedTypeDefinitionNameList.size() > 0) {
+//            ModulePartNode modulePartNode = schemaSyntaxTree.rootNode();
+//            NodeList<ModuleMemberDeclarationNode> members = modulePartNode.members();
+//            List<ModuleMemberDeclarationNode> unusedTypeDefinitionNodeList = new ArrayList<>();
+//            for (ModuleMemberDeclarationNode node : members) {
+//                if (node.kind().equals(SyntaxKind.TYPE_DEFINITION)) {
+//                    for (ChildNodeEntry childNodeEntry : node.childEntries()) {
+//                        if (childNodeEntry.name().equals(TYPE_NAME)) {
+//                            if (unusedTypeDefinitionNameList.contains(childNodeEntry.node().get().toString())) {
+//                                unusedTypeDefinitionNodeList.add(node);
+//                            }
+//                        }
+//                    }
+//                } else if (node.kind().equals(SyntaxKind.ENUM_DECLARATION)) {
+//                    for (ChildNodeEntry childNodeEntry : node.childEntries()) {
+//                        if (childNodeEntry.name().equals(IDENTIFIER)) {
+//                            if (unusedTypeDefinitionNameList.contains(childNodeEntry.node().get().toString())) {
+//                                unusedTypeDefinitionNodeList.add(node);
+//                            }
+//                        }
+//                    }
+//                }
+//            }
+//            NodeList<ModuleMemberDeclarationNode> modifiedMembers = members.removeAll
+//                    (unusedTypeDefinitionNodeList);
+//            ModulePartNode modiedModulePartNode = modulePartNode.modify(modulePartNode.imports(),
+//                    modifiedMembers, modulePartNode.eofToken());
+//            schemaSyntaxTree = schemaSyntaxTree.modifyWith(modiedModulePartNode);
+//            schemaContent = Formatter.format(schemaSyntaxTree).toString();
+//            tempSourceFiles.put(TYPE_FILE_NAME, schemaContent);
+//            unusedTypeDefinitionNameList = getUnusedTypeDefinitionNameList(tempSourceFiles);
+//        }
+//        ModulePartNode rootNode = schemaSyntaxTree.rootNode();
+//        NodeList<ImportDeclarationNode> imports = rootNode.imports();
+//        imports = removeUnusedImports(rootNode, imports);
+//
+//        ModulePartNode modiedModulePartNode = rootNode.modify(imports, rootNode.members(), rootNode.eofToken());
+//        schemaSyntaxTree = schemaSyntaxTree.modifyWith(modiedModulePartNode);
+//        schemaContent = Formatter.format(schemaSyntaxTree).toString();
+//        return schemaContent;
+//    }
 
-    /**
-     * Validate if requestBody found in GET/DELETE/HEAD operation.
-     *
-     * @param paths - List of paths given in the OpenAPI definition
-     * @throws BallerinaOpenApiException - If requestBody found in GET/DELETE/HEAD operation
-     */
-    public static void validateRequestBody(Set<Map.Entry<String, PathItem>> paths) throws BallerinaOpenApiException {
-        List<String> errorList = new ArrayList<>();
-        for (Map.Entry<String, PathItem> entry : paths) {
-            if (!entry.getValue().readOperationsMap().isEmpty()) {
-                for (Map.Entry<PathItem.HttpMethod, Operation> operation : entry.getValue().readOperationsMap()
-                        .entrySet()) {
-                    String method = operation.getKey().name().trim().toLowerCase(Locale.ENGLISH);
-                    boolean isRequestBodyInvalid = method.equals(GET) || method.equals(HEAD);
-                    if (isRequestBodyInvalid && operation.getValue().getRequestBody() != null) {
-                        errorList.add(method.toUpperCase(Locale.ENGLISH) + " operation cannot have a requestBody. "
-                                + "Error at operationId: " + operation.getValue().getOperationId());
-                    }
-                }
-            }
-        }
+//    private static NodeList<ImportDeclarationNode> removeUnusedImports(ModulePartNode rootNode,
+//                                                                       NodeList<ImportDeclarationNode> imports) {
+//        //TODO: This function can be extended to check all the unused imports, for this time only handle constraint
+//        // imports
+//        boolean hasConstraint = false;
+//        NodeList<ModuleMemberDeclarationNode> members = rootNode.members();
+//        for (ModuleMemberDeclarationNode member:members) {
+//            if (member.kind().equals(SyntaxKind.TYPE_DEFINITION)) {
+//                TypeDefinitionNode typeDefNode = (TypeDefinitionNode) member;
+//                if (typeDefNode.typeDescriptor().kind().equals(SyntaxKind.RECORD_TYPE_DESC)) {
+//                    RecordTypeDescriptorNode record = (RecordTypeDescriptorNode) typeDefNode.typeDescriptor();
+//                    NodeList<Node> fields = record.fields();
+//                    //Traverse record fields to check for constraints
+//                    for (Node node: fields) {
+//                        if (node instanceof RecordFieldNode) {
+//                            RecordFieldNode recField = (RecordFieldNode) node;
+//                            if (recField.metadata().isPresent()) {
+//                                hasConstraint = traverseAnnotationNode(recField.metadata(), hasConstraint);
+//                            }
+//                        }
+//                        if (hasConstraint) {
+//                            break;
+//                        }
+//                    }
+//                }
+//
+//                if (typeDefNode.metadata().isPresent()) {
+//                    hasConstraint = traverseAnnotationNode(typeDefNode.metadata(), hasConstraint);
+//                }
+//            }
+//            if (hasConstraint) {
+//                break;
+//            }
+//        }
+//        if (!hasConstraint) {
+//            for (ImportDeclarationNode importNode: imports) {
+//                if (importNode.orgName().isPresent()) {
+//                    if (importNode.orgName().get().toString().equals("ballerina/") &&
+//                            importNode.moduleName().get(0).text().equals(CONSTRAINT)) {
+//                        imports = imports.remove(importNode);
+//                    }
+//                }
+//            }
+//        }
+//        return imports;
+//    }
 
-        if (!errorList.isEmpty()) {
-            StringBuilder errorMessage = new StringBuilder("OpenAPI definition has errors: " + LINE_SEPARATOR);
-            for (String message : errorList) {
-                errorMessage.append(message).append(LINE_SEPARATOR);
-            }
-            throw new BallerinaOpenApiException(errorMessage.toString());
-        }
-    }
-
-    public static String removeUnusedEntities(SyntaxTree schemaSyntaxTree, String clientContent, String schemaContent,
-                                              String serviceContent) throws IOException, FormatterException {
-        Map<String, String> tempSourceFiles = new HashMap<>();
-        tempSourceFiles.put(CLIENT_FILE_NAME, clientContent);
-        tempSourceFiles.put(TYPE_FILE_NAME, schemaContent);
-        if (serviceContent != null) {
-            tempSourceFiles.put(SERVICE_FILE_NAME, schemaContent);
-        }
-        List<String> unusedTypeDefinitionNameList = getUnusedTypeDefinitionNameList(tempSourceFiles);
-        while (unusedTypeDefinitionNameList.size() > 0) {
-            ModulePartNode modulePartNode = schemaSyntaxTree.rootNode();
-            NodeList<ModuleMemberDeclarationNode> members = modulePartNode.members();
-            List<ModuleMemberDeclarationNode> unusedTypeDefinitionNodeList = new ArrayList<>();
-            for (ModuleMemberDeclarationNode node : members) {
-                if (node.kind().equals(SyntaxKind.TYPE_DEFINITION)) {
-                    for (ChildNodeEntry childNodeEntry : node.childEntries()) {
-                        if (childNodeEntry.name().equals(TYPE_NAME)) {
-                            if (unusedTypeDefinitionNameList.contains(childNodeEntry.node().get().toString())) {
-                                unusedTypeDefinitionNodeList.add(node);
-                            }
-                        }
-                    }
-                } else if (node.kind().equals(SyntaxKind.ENUM_DECLARATION)) {
-                    for (ChildNodeEntry childNodeEntry : node.childEntries()) {
-                        if (childNodeEntry.name().equals(IDENTIFIER)) {
-                            if (unusedTypeDefinitionNameList.contains(childNodeEntry.node().get().toString())) {
-                                unusedTypeDefinitionNodeList.add(node);
-                            }
-                        }
-                    }
-                }
-            }
-            NodeList<ModuleMemberDeclarationNode> modifiedMembers = members.removeAll
-                    (unusedTypeDefinitionNodeList);
-            ModulePartNode modiedModulePartNode = modulePartNode.modify(modulePartNode.imports(),
-                    modifiedMembers, modulePartNode.eofToken());
-            schemaSyntaxTree = schemaSyntaxTree.modifyWith(modiedModulePartNode);
-            schemaContent = Formatter.format(schemaSyntaxTree).toString();
-            tempSourceFiles.put(TYPE_FILE_NAME, schemaContent);
-            unusedTypeDefinitionNameList = getUnusedTypeDefinitionNameList(tempSourceFiles);
-        }
-        ModulePartNode rootNode = schemaSyntaxTree.rootNode();
-        NodeList<ImportDeclarationNode> imports = rootNode.imports();
-        imports = removeUnusedImports(rootNode, imports);
-
-        ModulePartNode modiedModulePartNode = rootNode.modify(imports, rootNode.members(), rootNode.eofToken());
-        schemaSyntaxTree = schemaSyntaxTree.modifyWith(modiedModulePartNode);
-        schemaContent = Formatter.format(schemaSyntaxTree).toString();
-        return schemaContent;
-    }
-
-    private static NodeList<ImportDeclarationNode> removeUnusedImports(ModulePartNode rootNode,
-                                                                       NodeList<ImportDeclarationNode> imports) {
-        //TODO: This function can be extended to check all the unused imports, for this time only handle constraint
-        // imports
-        boolean hasConstraint = false;
-        NodeList<ModuleMemberDeclarationNode> members = rootNode.members();
-        for (ModuleMemberDeclarationNode member:members) {
-            if (member.kind().equals(SyntaxKind.TYPE_DEFINITION)) {
-                TypeDefinitionNode typeDefNode = (TypeDefinitionNode) member;
-                if (typeDefNode.typeDescriptor().kind().equals(SyntaxKind.RECORD_TYPE_DESC)) {
-                    RecordTypeDescriptorNode record = (RecordTypeDescriptorNode) typeDefNode.typeDescriptor();
-                    NodeList<Node> fields = record.fields();
-                    //Traverse record fields to check for constraints
-                    for (Node node: fields) {
-                        if (node instanceof RecordFieldNode) {
-                            RecordFieldNode recField = (RecordFieldNode) node;
-                            if (recField.metadata().isPresent()) {
-                                hasConstraint = traverseAnnotationNode(recField.metadata(), hasConstraint);
-                            }
-                        }
-                        if (hasConstraint) {
-                            break;
-                        }
-                    }
-                }
-
-                if (typeDefNode.metadata().isPresent()) {
-                    hasConstraint = traverseAnnotationNode(typeDefNode.metadata(), hasConstraint);
-                }
-            }
-            if (hasConstraint) {
-                break;
-            }
-        }
-        if (!hasConstraint) {
-            for (ImportDeclarationNode importNode: imports) {
-                if (importNode.orgName().isPresent()) {
-                    if (importNode.orgName().get().toString().equals("ballerina/") &&
-                            importNode.moduleName().get(0).text().equals(CONSTRAINT)) {
-                        imports = imports.remove(importNode);
-                    }
-                }
-            }
-        }
-        return imports;
-    }
-
-    private static boolean traverseAnnotationNode(Optional<MetadataNode> recField, boolean hasConstraint) {
-        MetadataNode metadata = recField.get();
-        for (AnnotationNode annotation : metadata.annotations()) {
-            String annotationRef = annotation.annotReference().toString();
-            if (annotationRef.startsWith(CONSTRAINT)) {
-                hasConstraint = true;
-                break;
-            }
-        }
-        return hasConstraint;
-    }
+//    private static boolean traverseAnnotationNode(Optional<MetadataNode> recField, boolean hasConstraint) {
+//        MetadataNode metadata = recField.get();
+//        for (AnnotationNode annotation : metadata.annotations()) {
+//            String annotationRef = annotation.annotReference().toString();
+//            if (annotationRef.startsWith(CONSTRAINT)) {
+//                hasConstraint = true;
+//                break;
+//            }
+//        }
+//        return hasConstraint;
+//    }
 
     private static List<String> getUnusedTypeDefinitionNameList(Map<String, String> srcFiles) throws IOException {
         List<String> unusedTypeDefinitionNameList = new ArrayList<>();
@@ -942,7 +892,7 @@ public class GeneratorUtils {
             try {
                 FileUtils.deleteDirectory(tmpDir.toFile());
             } catch (IOException ex) {
-                LOGGER.error("Unable to delete the temporary directory : " + tmpDir, ex);
+//                LOGGER.error("Unable to delete the temporary directory : " + tmpDir, ex);
             }
         }));
         return unusedTypeDefinitionNameList;
@@ -969,7 +919,7 @@ public class GeneratorUtils {
         // Load project instance for single ballerina file
         try {
             Project project = ProjectLoader.loadProject(clientPath);
-            Package packageName = project.currentPackage();
+            Package packageName= project.currentPackage();
             DocumentId docId;
 
             if (project.kind().equals(ProjectKind.BUILD_PROJECT)) {
@@ -984,5 +934,14 @@ public class GeneratorUtils {
         } catch (ProjectException e) {
             throw new ProjectException(e.getMessage());
         }
+    }
+
+    public static String unescapeIdentifier(String parameterName) {
+        String unescapedParamName = IdentifierUtils.unescapeBallerina(parameterName);
+        return unescapedParamName.trim().replaceAll("\\\\", "").replaceAll("'", "");
+    }
+
+    public static String removeNonAlphanumeric(String input) {
+        return input.replaceAll("[^a-zA-Z0-9]", "");
     }
 }
