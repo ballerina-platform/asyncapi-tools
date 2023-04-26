@@ -18,23 +18,15 @@
 
 package io.ballerina.asyncapi.core.generators.client;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25DocumentImpl;
+import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25SchemaImpl;
+import io.ballerina.asyncapi.core.GeneratorUtils;
+import io.ballerina.asyncapi.core.exception.BallerinaAsyncApiException;
+import io.ballerina.asyncapi.core.generators.document.DocCommentsGenerator;
+import io.ballerina.asyncapi.core.generators.schema.BallerinaTypesGenerator;
 import io.ballerina.compiler.syntax.tree.Node;
 import io.ballerina.compiler.syntax.tree.TypeDefinitionNode;
-import io.ballerina.openapi.core.GeneratorUtils;
-import io.ballerina.openapi.core.exception.BallerinaOpenApiException;
-import io.ballerina.openapi.core.generators.document.DocCommentsGenerator;
-import io.ballerina.openapi.core.generators.schema.BallerinaTypesGenerator;
-import io.swagger.v3.oas.models.OpenAPI;
-import io.swagger.v3.oas.models.Operation;
-import io.swagger.v3.oas.models.media.ArraySchema;
-import io.swagger.v3.oas.models.media.ComposedSchema;
-import io.swagger.v3.oas.models.media.Content;
-import io.swagger.v3.oas.models.media.MapSchema;
-import io.swagger.v3.oas.models.media.MediaType;
-import io.swagger.v3.oas.models.media.ObjectSchema;
-import io.swagger.v3.oas.models.media.Schema;
-import io.swagger.v3.oas.models.responses.ApiResponse;
-import io.swagger.v3.oas.models.responses.ApiResponses;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -44,19 +36,14 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
+import static io.ballerina.asyncapi.core.GeneratorConstants.*;
+import static io.ballerina.asyncapi.core.GeneratorUtils.*;
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createIdentifierToken;
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createToken;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createSimpleNameReferenceNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createTypeDefinitionNode;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.PIPE_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.SEMICOLON_TOKEN;
-import static io.ballerina.openapi.core.GeneratorConstants.DEFAULT_RETURN;
-import static io.ballerina.openapi.core.GeneratorConstants.ERROR;
-import static io.ballerina.openapi.core.GeneratorConstants.NILLABLE;
-import static io.ballerina.openapi.core.GeneratorUtils.convertOpenAPITypeToBallerina;
-import static io.ballerina.openapi.core.GeneratorUtils.extractReferenceType;
-import static io.ballerina.openapi.core.GeneratorUtils.getValidName;
-import static io.ballerina.openapi.core.GeneratorUtils.isValidSchemaName;
 
 /**
  * This util class for maintain the operation response with ballerina return type.
@@ -64,7 +51,7 @@ import static io.ballerina.openapi.core.GeneratorUtils.isValidSchemaName;
  * @since 1.3.0
  */
 public class FunctionReturnTypeGenerator {
-    private OpenAPI openAPI;
+    private AsyncApi25DocumentImpl asyncAPI;
     private BallerinaTypesGenerator ballerinaSchemaGenerator;
     private List<TypeDefinitionNode> typeDefinitionNodeList = new LinkedList<>();
 
@@ -72,10 +59,10 @@ public class FunctionReturnTypeGenerator {
 
     }
 
-    public FunctionReturnTypeGenerator(OpenAPI openAPI, BallerinaTypesGenerator ballerinaSchemaGenerator,
+    public FunctionReturnTypeGenerator(AsyncApi25DocumentImpl asyncAPI, BallerinaTypesGenerator ballerinaSchemaGenerator,
                                        List<TypeDefinitionNode> typeDefinitionNodeList) {
 
-        this.openAPI = openAPI;
+        this.asyncAPI = asyncAPI;
         this.ballerinaSchemaGenerator = ballerinaSchemaGenerator;
         this.typeDefinitionNodeList = typeDefinitionNodeList;
     }
@@ -85,9 +72,9 @@ public class FunctionReturnTypeGenerator {
      *
      * @param operation swagger operation.
      * @return string with return type.
-     * @throws BallerinaOpenApiException - throws exception if creating return type fails.
+     * @throws BallerinaAsyncApiException - throws exception if creating return type fails.
      */
-    public String getReturnType(Operation operation, boolean isSignature) throws BallerinaOpenApiException {
+    public String getReturnType(JsonNode payload, boolean isSignature) throws BallerinaAsyncApiException {
         //TODO: Handle multiple media-type
         Set<String> returnTypes = new HashSet<>();
         boolean noContentResponseFound = false;
@@ -132,51 +119,30 @@ public class FunctionReturnTypeGenerator {
         }
     }
 
-    /**
-     * Get return data type by traversing OAS schemas.
-     */
-    private String getDataType(Operation operation, boolean isSignature, ApiResponse response,
-                               Map.Entry<String, MediaType> media, String type, Schema schema)
-            throws BallerinaOpenApiException {
-
-        if (schema instanceof ComposedSchema) {
-            ComposedSchema composedSchema = (ComposedSchema) schema;
-            type = generateReturnDataTypeForComposedSchema(operation, type, composedSchema, isSignature);
-        } else if (schema instanceof ObjectSchema) {
-            ObjectSchema objectSchema = (ObjectSchema) schema;
-            type = handleInLineRecordInResponse(operation, media, objectSchema);
-        } else if (schema instanceof MapSchema) {
-            MapSchema mapSchema = (MapSchema) schema;
-            type = handleResponseWithMapSchema(operation, media, mapSchema);
-        } else if (schema.get$ref() != null) {
-            type = getValidName(extractReferenceType(schema.get$ref()), true);
-            Schema componentSchema = openAPI.getComponents().getSchemas().get(type);
+    public String getDType(JsonNode payload) throws BallerinaAsyncApiException {
+        String type="";
+        if (payload.get("$ref") != null) {
+            type = getValidName(extractReferenceType(payload.get("$ref").toString()), true);
+            AsyncApi25SchemaImpl componentSchema = (AsyncApi25SchemaImpl) asyncAPI.getComponents().getSchemas().get(type);
             if (!isValidSchemaName(type)) {
-                String operationId = operation.getOperationId();
-                type = Character.toUpperCase(operationId.charAt(0)) + operationId.substring(1) +
-                        "Response";
+//                String operationId = operation.getOperationId();
+//                type = Character.toUpperCase(operationId.charAt(0)) + operationId.substring(1) +
+//                        "Response";
                 List<Node> responseDocs = new ArrayList<>();
-                if (response.getDescription() != null && !response.getDescription().isBlank()) {
+                if (payload.get("description") != null) {
                     responseDocs.addAll(DocCommentsGenerator.createAPIDescriptionDoc(
-                            response.getDescription(), false));
+                            payload.get("description").toString(), false));
                 }
                 TypeDefinitionNode typeDefinitionNode = ballerinaSchemaGenerator.getTypeDefinitionNode
                         (componentSchema, type, responseDocs);
                 GeneratorUtils.updateTypeDefNodeList(type, typeDefinitionNode, typeDefinitionNodeList);
             }
-        } else if (schema instanceof ArraySchema) {
-            ArraySchema arraySchema = (ArraySchema) schema;
-            // TODO: Nested array when response has
-            type = generateReturnTypeForArraySchema(media, arraySchema, isSignature);
-        } else if (schema.getType() != null) {
-            type = convertOpenAPITypeToBallerina(schema.getType());
-        } else if (media.getKey().trim().equals("application/xml")) {
-            type = generateCustomTypeDefine("xml", "XML", isSignature);
-        } else {
-            type = GeneratorUtils.getBallerinaMediaType(media.getKey().trim(), false);
         }
-        return type;
+
+
     }
+
+
 
     /**
      * Get the return data type according to the OAS ArraySchema.
