@@ -1,0 +1,131 @@
+openapi: 3.0.1
+info:
+  title:  Pets store
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  version: 1.0.0
+paths:
+  /pet:
+    put:
+      summary: "scenario 01: Request body is with oneOf schema for application/json"
+      operationId: putKey
+      requestBody:
+        content:
+          application/json:
+            schema:
+              oneOf:
+                - $ref: "#/components/schemas/Dog"
+                - $ref: "#/components/schemas/Cat"
+      responses:
+        200:
+          description: Successful operation.
+    post:
+      summary: "scenario 02: Customised request body with oneOf schema"
+      operationId: post
+      requestBody:
+        description: "Customised request body"
+        content:
+          application/snowflake+json:
+            schema:
+              oneOf:
+                - $ref: "#/components/schemas/Dog"
+                - $ref: "#/components/schemas/Bird"
+      responses:
+        200:
+          description: Successful operation.
+  /pet02:
+    post:
+      summary: "scenario 03: Request body with oneOf schema with application/xml"
+      operationId: postKey
+      requestBody:
+        description: "Ballerina not support for oneOf data type in request body"
+        content:
+          application/xml:
+            schema:
+              oneOf:
+                - $ref: "#/components/schemas/Dog"
+                - $ref: "#/components/schemas/Cat"
+      responses:
+        200:
+          description: Successful operation.
+    put:
+      summary: "scenario 04: Request body with oneOf schema with integer, number (primitives)"
+      operationId: put
+      requestBody:
+        description: "Ballerina not support for oneOf data type in request body"
+        content:
+          text/plain:
+            schema:
+              oneOf:
+                - type: string
+                - type: integer
+                - type: number
+      responses:
+        200:
+          description: Successful operation.
+  /pet/{name}:
+    put:
+      summary: "scenarios05: requestBody is with oneOf array type"
+      operationId: key
+      parameters:
+        - name: name
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        description: ""
+        content:
+          text/plain:
+            schema:
+              oneOf:
+                - type: array
+                  items:
+                    oneOf:
+                      - type: string
+                      - type: integer
+                      - type: number
+      responses:
+        200:
+          description: Successful operation.
+        400:
+          description: Invalid storage space name supplied
+  /pet04:
+    post:
+      operationId: postKey04
+      requestBody:
+        description: "scenario04: Media type is with not main standard type. "
+        content:
+          application/zip:
+            schema:
+              oneOf:
+                - type: string
+                - type: integer
+                - type: number
+      responses:
+        200:
+          description: Successful operation.
+components:
+  schemas:
+    Dog:
+      type: object
+      properties:
+        name:
+          type: string
+        age:
+          type: string
+    Cat:
+      type: object
+      properties:
+        name:
+          type: string
+        kind:
+          type: string
+    Bird:
+      type: object
+      properties:
+        name:
+          type: string
+        isFly:
+          type: boolean

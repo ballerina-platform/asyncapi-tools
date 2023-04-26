@@ -17,6 +17,9 @@
  */
 package io.ballerina.asyncapi.core.generators.client;
 
+import io.ballerina.asyncapi.core.GeneratorConstants;
+import io.ballerina.asyncapi.core.GeneratorUtils;
+import io.ballerina.asyncapi.core.exception.BallerinaAsyncApiException;
 import io.ballerina.compiler.syntax.tree.AbstractNodeFactory;
 import io.ballerina.compiler.syntax.tree.AnnotationNode;
 import io.ballerina.compiler.syntax.tree.BuiltinSimpleNameReferenceNode;
@@ -50,9 +53,6 @@ import io.ballerina.compiler.syntax.tree.SyntaxTree;
 import io.ballerina.compiler.syntax.tree.Token;
 import io.ballerina.compiler.syntax.tree.TypeDescriptorNode;
 import io.ballerina.compiler.syntax.tree.TypedBindingPatternNode;
-import io.ballerina.openapi.core.GeneratorConstants;
-import io.ballerina.openapi.core.GeneratorUtils;
-import io.ballerina.openapi.core.exception.BallerinaOpenApiException;
 import io.ballerina.tools.text.TextDocument;
 import io.ballerina.tools.text.TextDocuments;
 import org.apache.commons.io.IOUtils;
@@ -65,6 +65,14 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 
+import static io.ballerina.asyncapi.core.GeneratorConstants.API_KEY_CONFIG_PARAM;
+import static io.ballerina.asyncapi.core.GeneratorConstants.BASIC;
+import static io.ballerina.asyncapi.core.GeneratorConstants.BEARER;
+import static io.ballerina.asyncapi.core.GeneratorConstants.CLIENT_CRED;
+import static io.ballerina.asyncapi.core.GeneratorConstants.CONNECTION_CONFIG;
+import static io.ballerina.asyncapi.core.GeneratorConstants.HTTP_API_KEY;
+import static io.ballerina.asyncapi.core.GeneratorConstants.PASSWORD;
+import static io.ballerina.asyncapi.core.GeneratorConstants.REFRESH_TOKEN;
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createEmptyNodeList;
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createIdentifierToken;
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createNodeList;
@@ -99,14 +107,6 @@ import static io.ballerina.compiler.syntax.tree.SyntaxKind.OPEN_BRACE_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.OPEN_PAREN_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.QUESTION_MARK_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.SEMICOLON_TOKEN;
-import static io.ballerina.openapi.core.GeneratorConstants.API_KEY;
-import static io.ballerina.openapi.core.GeneratorConstants.API_KEY_CONFIG_PARAM;
-import static io.ballerina.openapi.core.GeneratorConstants.BASIC;
-import static io.ballerina.openapi.core.GeneratorConstants.BEARER;
-import static io.ballerina.openapi.core.GeneratorConstants.CLIENT_CRED;
-import static io.ballerina.openapi.core.GeneratorConstants.CONNECTION_CONFIG;
-import static io.ballerina.openapi.core.GeneratorConstants.PASSWORD;
-import static io.ballerina.openapi.core.GeneratorConstants.REFRESH_TOKEN;
 
 /**
  * This class use for generating boilerplate codes for test cases.
@@ -132,9 +132,9 @@ public class BallerinaTestGenerator {
      *
      * @return {@link SyntaxTree}
      * @throws IOException               Throws exception when syntax tree not modified
-     * @throws BallerinaOpenApiException Throws exception if open api validation failed
+     * @throws BallerinaAsyncApiException Throws exception if open api validation failed
      */
-    public SyntaxTree generateSyntaxTree() throws IOException, BallerinaOpenApiException {
+    public SyntaxTree generateSyntaxTree() throws IOException, BallerinaAsyncApiException {
 
         List<FunctionDefinitionNode> functions = new ArrayList<>();
         getFunctionDefinitionNodes(functions);
@@ -253,10 +253,10 @@ public class BallerinaTestGenerator {
                     moduleVariableDeclarationNodes.add(getAuthConfigAssignmentNode());
                     configFileName = "refresh_token_config.toml";
                     break;
-                case API_KEY:
+                case HTTP_API_KEY:
                     isHttpOrOAuth = false;
                     boolean combinationOfApiKeyAndHTTPOAuth = ballerinaClientGenerator.getBallerinaAuthConfigGenerator()
-                            .isApiKey() && ballerinaClientGenerator.getBallerinaAuthConfigGenerator().isHttpOROAuth();
+                            .isHttpApiKey() && ballerinaClientGenerator.getBallerinaAuthConfigGenerator().isHttpOROAuth();
                     if (combinationOfApiKeyAndHTTPOAuth) {
                         // todo : The test file in the combination
                     } else {
@@ -321,7 +321,7 @@ public class BallerinaTestGenerator {
         NodeList<Token> nodeList = createNodeList(configurableNode);
         CaptureBindingPatternNode bindingPattern;
         boolean combinationOfApiKeyAndHTTPOAuth = ballerinaClientGenerator.getBallerinaAuthConfigGenerator()
-                .isApiKey() && ballerinaClientGenerator.getBallerinaAuthConfigGenerator().isHttpOROAuth();
+                .isHttpApiKey() && ballerinaClientGenerator.getBallerinaAuthConfigGenerator().isHttpOROAuth();
         if (isHttpOrOAuth || combinationOfApiKeyAndHTTPOAuth) {
             bindingPattern = createCaptureBindingPatternNode(
                     createIdentifierToken(GeneratorConstants.AUTH_CONFIG));

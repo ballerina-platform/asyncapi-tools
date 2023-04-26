@@ -18,8 +18,13 @@
 
 package io.ballerina.asyncapi.core.generators.schema.ballerinatypegenerators;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25SchemaImpl;
+import io.ballerina.asyncapi.core.GeneratorConstants;
+import io.ballerina.asyncapi.core.GeneratorUtils;
 import io.ballerina.asyncapi.core.exception.BallerinaAsyncApiException;
+import io.ballerina.asyncapi.core.generators.schema.TypeGeneratorUtils;
+import io.ballerina.asyncapi.core.generators.schema.model.GeneratorMetaData;
 import io.ballerina.compiler.syntax.tree.AnnotationNode;
 import io.ballerina.compiler.syntax.tree.ArrayDimensionNode;
 import io.ballerina.compiler.syntax.tree.ArrayTypeDescriptorNode;
@@ -75,9 +80,13 @@ public class ArrayTypeGenerator extends TypeGenerator {
     @Override
     public TypeDescriptorNode generateTypeDescriptorNode() throws BallerinaAsyncApiException {
 
-        assert schema instanceof ArraySchema;
+//        assert schema instanceof ArraySchema;
+        if(schema.getType()=="array"){
+            JsonNode arraySchema= schema.getItems();
+
+        }
         ArraySchema arraySchema = (ArraySchema) schema;
-        Schema<?> items = arraySchema.getItems();
+//        Schema<?> items = arraySchema.getItems();
         boolean isConstraintsAvailable =
                 !GeneratorMetaData.getInstance().isNullable() && hasConstraints(items) && typeName != null;
         TypeGenerator typeGenerator;
