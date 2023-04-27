@@ -136,13 +136,14 @@ public class BallerinaTypesGenerator {
             if (schemas != null) {
                 for (Map.Entry<String, Schema> schema : schemas.entrySet()) {
                     String schemaKey = schema.getKey().trim();
-                    if (!hasConstraints) {
-                        hasConstraints = GeneratorUtils.hasConstraints(schema.getValue());
-                    }
+                    //TODO: thushalya :- check this after uncomment hasConstraints
+//                    if (!hasConstraints) {
+//                        hasConstraints = GeneratorUtils.hasConstraints(schema.getValue());
+//                    }
                     if (GeneratorUtils.isValidSchemaName(schemaKey)) {
                         List<Node> schemaDoc = new ArrayList<>();
                         typeDefinitionNodeListForSchema.add(getTypeDefinitionNode
-                                (schema.getValue(), schemaKey, schemaDoc));
+                                ((AsyncApi25SchemaImpl) schema.getValue(), schemaKey, schemaDoc));
                     }
                 }
             }
