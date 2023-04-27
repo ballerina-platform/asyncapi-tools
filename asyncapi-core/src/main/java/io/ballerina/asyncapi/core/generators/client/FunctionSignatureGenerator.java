@@ -20,7 +20,9 @@ package io.ballerina.asyncapi.core.generators.client;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25DocumentImpl;
+import io.ballerina.asyncapi.core.GeneratorUtils;
 import io.ballerina.asyncapi.core.exception.BallerinaAsyncApiException;
+import io.ballerina.asyncapi.core.generators.document.DocCommentsGenerator;
 import io.ballerina.asyncapi.core.generators.schema.BallerinaTypesGenerator;
 import io.ballerina.compiler.syntax.tree.AnnotationNode;
 import io.ballerina.compiler.syntax.tree.BuiltinSimpleNameReferenceNode;
@@ -39,24 +41,6 @@ import io.ballerina.compiler.syntax.tree.SimpleNameReferenceNode;
 import io.ballerina.compiler.syntax.tree.Token;
 import io.ballerina.compiler.syntax.tree.TypeDefinitionNode;
 import io.ballerina.compiler.syntax.tree.TypeDescriptorNode;
-import io.ballerina.openapi.core.GeneratorUtils;
-import io.ballerina.openapi.core.exception.BallerinaOpenApiException;
-import io.ballerina.openapi.core.generators.document.DocCommentsGenerator;
-import io.ballerina.openapi.core.generators.schema.BallerinaTypesGenerator;
-import io.swagger.v3.oas.models.OpenAPI;
-import io.swagger.v3.oas.models.Operation;
-import io.swagger.v3.oas.models.headers.Header;
-import io.swagger.v3.oas.models.media.ArraySchema;
-import io.swagger.v3.oas.models.media.ComposedSchema;
-import io.swagger.v3.oas.models.media.Content;
-import io.swagger.v3.oas.models.media.Encoding;
-import io.swagger.v3.oas.models.media.MediaType;
-import io.swagger.v3.oas.models.media.ObjectSchema;
-import io.swagger.v3.oas.models.media.Schema;
-import io.swagger.v3.oas.models.parameters.Parameter;
-import io.swagger.v3.oas.models.parameters.RequestBody;
-import io.swagger.v3.oas.models.responses.ApiResponse;
-import io.swagger.v3.oas.models.responses.ApiResponses;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -64,6 +48,9 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+import static io.ballerina.asyncapi.core.GeneratorConstants.APPLICATION_OCTET_STREAM;
+import static io.ballerina.asyncapi.core.GeneratorConstants.SQUARE_BRACKETS;
+import static io.ballerina.asyncapi.core.GeneratorUtils.*;
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createEmptyMinutiaeList;
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createEmptyNodeList;
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createIdentifierToken;
@@ -87,27 +74,6 @@ import static io.ballerina.compiler.syntax.tree.SyntaxKind.EQUAL_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.OPEN_PAREN_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.QUESTION_MARK_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.RETURNS_KEYWORD;
-import static io.ballerina.openapi.core.ErrorMessages.invalidPathParamType;
-import static io.ballerina.openapi.core.GeneratorConstants.APPLICATION_OCTET_STREAM;
-import static io.ballerina.openapi.core.GeneratorConstants.ARRAY;
-import static io.ballerina.openapi.core.GeneratorConstants.BINARY;
-import static io.ballerina.openapi.core.GeneratorConstants.BOOLEAN;
-import static io.ballerina.openapi.core.GeneratorConstants.BYTE;
-import static io.ballerina.openapi.core.GeneratorConstants.HTTP_REQUEST;
-import static io.ballerina.openapi.core.GeneratorConstants.INTEGER;
-import static io.ballerina.openapi.core.GeneratorConstants.NILLABLE;
-import static io.ballerina.openapi.core.GeneratorConstants.NUMBER;
-import static io.ballerina.openapi.core.GeneratorConstants.OBJECT;
-import static io.ballerina.openapi.core.GeneratorConstants.PAYLOAD;
-import static io.ballerina.openapi.core.GeneratorConstants.REQUEST;
-import static io.ballerina.openapi.core.GeneratorConstants.SQUARE_BRACKETS;
-import static io.ballerina.openapi.core.GeneratorConstants.STRING;
-import static io.ballerina.openapi.core.GeneratorConstants.X_BALLERINA_DEPRECATED_REASON;
-import static io.ballerina.openapi.core.GeneratorUtils.convertOpenAPITypeToBallerina;
-import static io.ballerina.openapi.core.GeneratorUtils.escapeIdentifier;
-import static io.ballerina.openapi.core.GeneratorUtils.extractReferenceType;
-import static io.ballerina.openapi.core.GeneratorUtils.getBallerinaMediaType;
-import static io.ballerina.openapi.core.GeneratorUtils.getValidName;
 
 /**
  * This util class uses for generating {@link FunctionSignatureNode} for given OAS
@@ -129,7 +95,7 @@ public class FunctionSignatureGenerator {
 
     public FunctionSignatureGenerator(AsyncApi25DocumentImpl asyncAPI,
                                       BallerinaTypesGenerator ballerinaSchemaGenerator,
-                                      List<TypeDefinitionNode> typeDefinitionNodeList, boolean isResource) {
+                                      List<TypeDefinitionNode> typeDefinitionNodeList, boolean isResource) throws BallerinaAsyncApiException {
 
         this.asyncAPI = asyncAPI;
         this.ballerinaSchemaGenerator = ballerinaSchemaGenerator;
@@ -150,30 +116,32 @@ public class FunctionSignatureGenerator {
     public FunctionSignatureNode getFunctionSignatureNode(JsonNode payload, List<Node> remoteFunctionDoc)
             throws BallerinaAsyncApiException {
         // Store the parameters for method.
-//        List<Node> parameterList = new ArrayList<>();
+        List<Node> parameterList = new ArrayList<>();
+        payload.get("$ref").toString();
 
-//        setFunctionParameters(operation, parameterList, createToken(COMMA_TOKEN), remoteFunctionDoc);
+        setFunctionParameters(operation, parameterList, createToken(COMMA_TOKEN), remoteFunctionDoc);
         functionReturnType = new FunctionReturnTypeGenerator
                 (asyncAPI, ballerinaSchemaGenerator, typeDefinitionNodeList);
 //
 //        if (parameterList.size() >= 2) {
 //            parameterList.remove(parameterList.size() - 1);
 //        }
-//        SeparatedNodeList<ParameterNode> parameters = createSeparatedNodeList(parameterList);
+        SeparatedNodeList<ParameterNode> parameters = createSeparatedNodeList(parameterList);
         //Create Return type - function with response
         String returnType = functionReturnType.getDType(payload);
-        ApiResponses responses = operation.getResponses();
-        Collection<ApiResponse> values = responses.values();
-        Iterator<ApiResponse> iteratorRes = values.iterator();
-        if (iteratorRes.hasNext()) {
-            ApiResponse response = iteratorRes.next();
-            if (response.getDescription() != null && !response.getDescription().isBlank()) {
-                MarkdownParameterDocumentationLineNode returnDoc =
-                        DocCommentsGenerator.createAPIParamDoc("return",
-                        response.getDescription());
-                remoteFunctionDoc.add(returnDoc);
-            }
-        }
+        //TODO: Uncomment after figure out
+//        ApiResponses responses = operation.getResponses();
+//        Collection<ApiResponse> values = responses.values();
+//        Iterator<ApiResponse> iteratorRes = values.iterator();
+//        if (iteratorRes.hasNext()) {
+//            ApiResponse response = iteratorRes.next();
+//            if (response.getDescription() != null && !response.getDescription().isBlank()) {
+//                MarkdownParameterDocumentationLineNode returnDoc =
+//                        DocCommentsGenerator.createAPIParamDoc("return",
+//                        response.getDescription());
+//                remoteFunctionDoc.add(returnDoc);
+//            }
+//        }
 
         // Return Type
         ReturnTypeDescriptorNode returnTypeDescriptorNode = createReturnTypeDescriptorNode(createToken(RETURNS_KEYWORD),
@@ -183,72 +151,72 @@ public class FunctionSignatureGenerator {
                 returnTypeDescriptorNode);
     }
 
-    /**
-     * Generate function parameters.
-     */
-    private void setFunctionParameters(Operation operation, List<Node> parameterList, Token comma,
-                                       List<Node> remoteFunctionDoc) throws BallerinaAsyncApiException {
+//    /**
+//     * Generate function parameters.
+//     */
+//    private void setFunctionParameters(Operation operation, List<Node> parameterList, Token comma,
+//                                       List<Node> remoteFunctionDoc) throws BallerinaAsyncApiException {
+//
+//        List<Parameter> parameters = operation.getParameters();
+//        List<Node> defaultable = new ArrayList<>();
+//        List<Node> deprecatedParamDocComments = new ArrayList<>();
+//        if (parameters != null) {
+//            for (Parameter parameter : parameters) {
+//                if (parameter.getDescription() != null && !parameter.getDescription().isBlank()) {
+//                    MarkdownParameterDocumentationLineNode paramAPIDoc =
+//                            DocCommentsGenerator.createAPIParamDoc(getValidName(
+//                                    parameter.getName(), false), parameter.getDescription());
+//                    remoteFunctionDoc.add(paramAPIDoc);
+//                }
+//                List<AnnotationNode> parameterAnnotationNodeList =
+//                        getParameterAnnotationNodeList(parameter, deprecatedParamDocComments);
+//                String in = parameter.getIn();
+//                switch (in) {
+//                    case "path":
+//                        Node param = getPathParameters(parameter, createNodeList(parameterAnnotationNodeList));
+//                        // Path parameters are always required.
+//                        if (!isResource) {
+//                            parameterList.add(param);
+//                            parameterList.add(comma);
+//                        }
+//                        break;
+//                    case "query":
+//                        Node paramq = getQueryParameters(parameter, createNodeList(parameterAnnotationNodeList));
+//                        if (paramq instanceof RequiredParameterNode) {
+//                            parameterList.add(paramq);
+//                            parameterList.add(comma);
+//                        } else {
+//                            defaultable.add(paramq);
+//                            defaultable.add(comma);
+//                        }
+//                        break;
+//                    case "header":
+//                        Node paramh = getHeaderParameter(parameter, createNodeList(parameterAnnotationNodeList));
+//                        if (paramh instanceof RequiredParameterNode) {
+//                            parameterList.add(paramh);
+//                            parameterList.add(comma);
+//                        } else {
+//                            defaultable.add(paramh);
+//                            defaultable.add(comma);
+//                        }
+//                        break;
+//                    default:
+//                        break;
+//                }
+//            }
+//        }
 
-        List<Parameter> parameters = operation.getParameters();
-        List<Node> defaultable = new ArrayList<>();
-        List<Node> deprecatedParamDocComments = new ArrayList<>();
-        if (parameters != null) {
-            for (Parameter parameter : parameters) {
-                if (parameter.getDescription() != null && !parameter.getDescription().isBlank()) {
-                    MarkdownParameterDocumentationLineNode paramAPIDoc =
-                            DocCommentsGenerator.createAPIParamDoc(getValidName(
-                                    parameter.getName(), false), parameter.getDescription());
-                    remoteFunctionDoc.add(paramAPIDoc);
-                }
-                List<AnnotationNode> parameterAnnotationNodeList =
-                        getParameterAnnotationNodeList(parameter, deprecatedParamDocComments);
-                String in = parameter.getIn();
-                switch (in) {
-                    case "path":
-                        Node param = getPathParameters(parameter, createNodeList(parameterAnnotationNodeList));
-                        // Path parameters are always required.
-                        if (!isResource) {
-                            parameterList.add(param);
-                            parameterList.add(comma);
-                        }
-                        break;
-                    case "query":
-                        Node paramq = getQueryParameters(parameter, createNodeList(parameterAnnotationNodeList));
-                        if (paramq instanceof RequiredParameterNode) {
-                            parameterList.add(paramq);
-                            parameterList.add(comma);
-                        } else {
-                            defaultable.add(paramq);
-                            defaultable.add(comma);
-                        }
-                        break;
-                    case "header":
-                        Node paramh = getHeaderParameter(parameter, createNodeList(parameterAnnotationNodeList));
-                        if (paramh instanceof RequiredParameterNode) {
-                            parameterList.add(paramh);
-                            parameterList.add(comma);
-                        } else {
-                            defaultable.add(paramh);
-                            defaultable.add(comma);
-                        }
-                        break;
-                    default:
-                        break;
-                }
-            }
-        }
-
-        // Handle RequestBody
-        if (operation.getRequestBody() != null) {
-            setRequestBodyParameters(operation.getOperationId(), operation.getRequestBody(), remoteFunctionDoc,
-                    parameterList, defaultable);
-        }
-        remoteFunctionDoc.addAll(deprecatedParamDocComments);
-        //Filter defaultable parameters
-        if (!defaultable.isEmpty()) {
-            parameterList.addAll(defaultable);
-        }
-    }
+//        // Handle RequestBody
+//        if (operation.getRequestBody() != null) {
+//            setRequestBodyParameters(operation.getOperationId(), operation.getRequestBody(), remoteFunctionDoc,
+//                    parameterList, defaultable);
+//        }
+//        remoteFunctionDoc.addAll(deprecatedParamDocComments);
+//        //Filter defaultable parameters
+//        if (!defaultable.isEmpty()) {
+//            parameterList.addAll(defaultable);
+//        }
+//    }
 
     private List<AnnotationNode> getParameterAnnotationNodeList(Parameter parameter,
                                                                 List<Node> deprecatedParamDocComments) {
@@ -279,209 +247,209 @@ public class FunctionSignatureGenerator {
         return parameterAnnotationNodeList;
     }
 
-    /**
-     * Create query parameters.
-     * <p>
-     * Note: currently ballerina supports for this data type.
-     * type BasicType boolean|int|float|decimal|string;
-     * public type QueryParamType ()|BasicType|BasicType[];
-     */
-    public Node getQueryParameters(Parameter parameter, NodeList<AnnotationNode> parameterAnnotationNodeList)
-            throws BallerinaOpenApiException {
+//    /**
+//     * Create query parameters.
+//     * <p>
+//     * Note: currently ballerina supports for this data type.
+//     * type BasicType boolean|int|float|decimal|string;
+//     * public type QueryParamType ()|BasicType|BasicType[];
+//     */
+//    public Node getQueryParameters(Parameter parameter, NodeList<AnnotationNode> parameterAnnotationNodeList)
+//            throws BallerinaOpenApiException {
+//
+//        TypeDescriptorNode typeName;
+//
+//        Schema parameterSchema = parameter.getSchema();
+//        String paramType = "";
+//        if (parameterSchema.get$ref() != null) {
+//            paramType = getValidName(extractReferenceType(parameterSchema.get$ref()), true);
+//        } else {
+//            paramType = convertOpenAPITypeToBallerina(parameterSchema.getType().trim());
+//            if (parameterSchema.getType().equals(NUMBER)) {
+//                if (parameterSchema.getFormat() != null) {
+//                    paramType = convertOpenAPITypeToBallerina(parameterSchema.getFormat().trim());
+//                }
+//            } else if (parameterSchema instanceof ArraySchema) {
+//                ArraySchema arraySchema = (ArraySchema) parameterSchema;
+//                if (arraySchema.getItems().getType() != null) {
+//                    String itemType = arraySchema.getItems().getType();
+//                    if (itemType.equals(STRING) || itemType.equals(INTEGER) || itemType.equals(BOOLEAN)) {
+//                        paramType = convertOpenAPITypeToBallerina(itemType) + SQUARE_BRACKETS;
+//                    } else if (itemType.equals(NUMBER)) {
+//                        paramType = convertOpenAPITypeToBallerina
+//                                (arraySchema.getItems().getFormat().trim()) + SQUARE_BRACKETS;
+//                    } else {
+//                        throw new BallerinaOpenApiException("Unsupported parameter type is found in the parameter : " +
+//                                parameter.getName());
+//                    }
+//                } else if (arraySchema.getItems().get$ref() != null) {
+//                    paramType = getValidName(extractReferenceType(
+//                            arraySchema.getItems().get$ref().trim()), true) + SQUARE_BRACKETS;
+//                } else {
+//                    throw new BallerinaOpenApiException("Please define the array item type of the parameter : " +
+//                            parameter.getName());
+//                }
+//            }
+//        }
+//        if (parameter.getRequired()) {
+//            typeName = createBuiltinSimpleNameReferenceNode(null, createIdentifierToken(paramType));
+//            IdentifierToken paramName =
+//                    createIdentifierToken(getValidName(parameter.getName().trim(), false));
+//            return createRequiredParameterNode(parameterAnnotationNodeList, typeName, paramName);
+//        } else {
+//            IdentifierToken paramName =
+//                    createIdentifierToken(getValidName(parameter.getName().trim(), false));
+//            // Handle given default values in query parameter.
+//            if (parameterSchema.getDefault() != null) {
+//                typeName = createBuiltinSimpleNameReferenceNode(null, createIdentifierToken(paramType));
+//                LiteralValueToken literalValueToken;
+//                if (parameterSchema.getType().equals(STRING)) {
+//                    literalValueToken = createLiteralValueToken(null,
+//                            '"' + parameterSchema.getDefault().toString() + '"', createEmptyMinutiaeList(),
+//                            createEmptyMinutiaeList());
+//                } else {
+//                    literalValueToken =
+//                            createLiteralValueToken(null, parameterSchema.getDefault().toString(),
+//                                    createEmptyMinutiaeList(),
+//                                    createEmptyMinutiaeList());
+//
+//                }
+//                return createDefaultableParameterNode(parameterAnnotationNodeList, typeName, paramName,
+//                        createToken(EQUAL_TOKEN), literalValueToken);
+//            } else {
+//                typeName = createOptionalTypeDescriptorNode(createBuiltinSimpleNameReferenceNode(null,
+//                        createIdentifierToken(paramType)), createToken(QUESTION_MARK_TOKEN));
+//                NilLiteralNode nilLiteralNode =
+//                        createNilLiteralNode(createToken(OPEN_PAREN_TOKEN), createToken(CLOSE_PAREN_TOKEN));
+//                return createDefaultableParameterNode(parameterAnnotationNodeList, typeName, paramName,
+//                        createToken(EQUAL_TOKEN), nilLiteralNode);
+//            }
+//        }
+//    }
 
-        TypeDescriptorNode typeName;
+//    /**
+//     * Create path parameters.
+//     */
+//    public Node getPathParameters(Parameter parameter, NodeList<AnnotationNode> parameterAnnotationNodeList)
+//            throws BallerinaOpenApiException {
+//
+//        IdentifierToken paramName = createIdentifierToken(getValidName(parameter.getName(), false));
+//        String type = "";
+//        Schema parameterSchema = parameter.getSchema();
+//        if (parameterSchema.get$ref() != null) {
+//            type = getValidName(extractReferenceType(parameterSchema.get$ref()), true);
+//            Schema schema = asyncAPI.getComponents().getSchemas().get(type.trim());
+//            if (schema instanceof ObjectSchema) {
+//                throw new BallerinaOpenApiException("Ballerina does not support object type path parameters.");
+//            }
+//        } else {
+//            type = convertOpenAPITypeToBallerina(parameter.getSchema().getType().trim());
+//            if (type.equals("anydata") || type.equals(SQUARE_BRACKETS) || type.equals("record {}")) {
+//                throw new BallerinaOpenApiException(invalidPathParamType(parameter.getName().trim()));
+//            }
+//        }
+//        BuiltinSimpleNameReferenceNode typeName = createBuiltinSimpleNameReferenceNode(null,
+//                createIdentifierToken(type));
+//        return createRequiredParameterNode(parameterAnnotationNodeList, typeName, paramName);
+//    }
 
-        Schema parameterSchema = parameter.getSchema();
-        String paramType = "";
-        if (parameterSchema.get$ref() != null) {
-            paramType = getValidName(extractReferenceType(parameterSchema.get$ref()), true);
-        } else {
-            paramType = convertOpenAPITypeToBallerina(parameterSchema.getType().trim());
-            if (parameterSchema.getType().equals(NUMBER)) {
-                if (parameterSchema.getFormat() != null) {
-                    paramType = convertOpenAPITypeToBallerina(parameterSchema.getFormat().trim());
-                }
-            } else if (parameterSchema instanceof ArraySchema) {
-                ArraySchema arraySchema = (ArraySchema) parameterSchema;
-                if (arraySchema.getItems().getType() != null) {
-                    String itemType = arraySchema.getItems().getType();
-                    if (itemType.equals(STRING) || itemType.equals(INTEGER) || itemType.equals(BOOLEAN)) {
-                        paramType = convertOpenAPITypeToBallerina(itemType) + SQUARE_BRACKETS;
-                    } else if (itemType.equals(NUMBER)) {
-                        paramType = convertOpenAPITypeToBallerina
-                                (arraySchema.getItems().getFormat().trim()) + SQUARE_BRACKETS;
-                    } else {
-                        throw new BallerinaOpenApiException("Unsupported parameter type is found in the parameter : " +
-                                parameter.getName());
-                    }
-                } else if (arraySchema.getItems().get$ref() != null) {
-                    paramType = getValidName(extractReferenceType(
-                            arraySchema.getItems().get$ref().trim()), true) + SQUARE_BRACKETS;
-                } else {
-                    throw new BallerinaOpenApiException("Please define the array item type of the parameter : " +
-                            parameter.getName());
-                }
-            }
-        }
-        if (parameter.getRequired()) {
-            typeName = createBuiltinSimpleNameReferenceNode(null, createIdentifierToken(paramType));
-            IdentifierToken paramName =
-                    createIdentifierToken(getValidName(parameter.getName().trim(), false));
-            return createRequiredParameterNode(parameterAnnotationNodeList, typeName, paramName);
-        } else {
-            IdentifierToken paramName =
-                    createIdentifierToken(getValidName(parameter.getName().trim(), false));
-            // Handle given default values in query parameter.
-            if (parameterSchema.getDefault() != null) {
-                typeName = createBuiltinSimpleNameReferenceNode(null, createIdentifierToken(paramType));
-                LiteralValueToken literalValueToken;
-                if (parameterSchema.getType().equals(STRING)) {
-                    literalValueToken = createLiteralValueToken(null,
-                            '"' + parameterSchema.getDefault().toString() + '"', createEmptyMinutiaeList(),
-                            createEmptyMinutiaeList());
-                } else {
-                    literalValueToken =
-                            createLiteralValueToken(null, parameterSchema.getDefault().toString(),
-                                    createEmptyMinutiaeList(),
-                                    createEmptyMinutiaeList());
-
-                }
-                return createDefaultableParameterNode(parameterAnnotationNodeList, typeName, paramName,
-                        createToken(EQUAL_TOKEN), literalValueToken);
-            } else {
-                typeName = createOptionalTypeDescriptorNode(createBuiltinSimpleNameReferenceNode(null,
-                        createIdentifierToken(paramType)), createToken(QUESTION_MARK_TOKEN));
-                NilLiteralNode nilLiteralNode =
-                        createNilLiteralNode(createToken(OPEN_PAREN_TOKEN), createToken(CLOSE_PAREN_TOKEN));
-                return createDefaultableParameterNode(parameterAnnotationNodeList, typeName, paramName,
-                        createToken(EQUAL_TOKEN), nilLiteralNode);
-            }
-        }
-    }
-
-    /**
-     * Create path parameters.
-     */
-    public Node getPathParameters(Parameter parameter, NodeList<AnnotationNode> parameterAnnotationNodeList)
-            throws BallerinaOpenApiException {
-
-        IdentifierToken paramName = createIdentifierToken(getValidName(parameter.getName(), false));
-        String type = "";
-        Schema parameterSchema = parameter.getSchema();
-        if (parameterSchema.get$ref() != null) {
-            type = getValidName(extractReferenceType(parameterSchema.get$ref()), true);
-            Schema schema = asyncAPI.getComponents().getSchemas().get(type.trim());
-            if (schema instanceof ObjectSchema) {
-                throw new BallerinaOpenApiException("Ballerina does not support object type path parameters.");
-            }
-        } else {
-            type = convertOpenAPITypeToBallerina(parameter.getSchema().getType().trim());
-            if (type.equals("anydata") || type.equals(SQUARE_BRACKETS) || type.equals("record {}")) {
-                throw new BallerinaOpenApiException(invalidPathParamType(parameter.getName().trim()));
-            }
-        }
-        BuiltinSimpleNameReferenceNode typeName = createBuiltinSimpleNameReferenceNode(null,
-                createIdentifierToken(type));
-        return createRequiredParameterNode(parameterAnnotationNodeList, typeName, paramName);
-    }
-
-    /**
-     * Create header when it comes under the parameter section in swagger.
-     */
-    private Node getHeaderParameter(Parameter parameter, NodeList<AnnotationNode> parameterAnnotationNodeList)
-            throws BallerinaOpenApiException {
-
-        Schema schema = parameter.getSchema();
-        IdentifierToken paramName = createIdentifierToken(getValidName(parameter.getName().trim(), false));
-        return getHeader(parameter.getRequired(), schema, paramName, parameterAnnotationNodeList);
-    }
-
-    /**
-     * Create header when it comes under the multipart/form-data encoding section in swagger.
-     */
-    private Node getHeaderEncoding(Map.Entry<String, Header> parameter, List<Node> remoteFunctionDoc)
-            throws BallerinaOpenApiException {
-
-        boolean isRequired = false;
-        Schema schema = parameter.getValue().getSchema();
-        IdentifierToken paramName = createIdentifierToken(getValidName(parameter.getKey(), false));
-        List<AnnotationNode> parameterAnnotationNodeList = new ArrayList<>();
-
-        if (parameter.getValue().getDescription() != null && !parameter.getValue().getDescription().isBlank()) {
-            MarkdownParameterDocumentationLineNode paramAPIDoc = DocCommentsGenerator.createAPIParamDoc(
-                    getValidName(parameter.getKey(), false), parameter.getValue().getDescription());
-            remoteFunctionDoc.add(paramAPIDoc);
-        }
-        DocCommentsGenerator.extractDisplayAnnotation(parameter.getValue().getExtensions(),
-                parameterAnnotationNodeList);
-
-        if (parameter.getValue().getRequired() != null) {
-            isRequired = parameter.getValue().getRequired();
-        }
-        return getHeader(isRequired, schema, paramName, createNodeList(parameterAnnotationNodeList));
-    }
-
-    /**
-     * Create header for header parameter and encoding.
-     */
-    private Node getHeader(boolean isRequiredHeader, Schema schema, IdentifierToken paramName,
-                           NodeList<AnnotationNode> parameterAnnotationNodeList) throws BallerinaOpenApiException {
-
-        if (isRequiredHeader) {
-            String type = convertOpenAPITypeToBallerina(schema.getType().trim());
-            if (schema instanceof ArraySchema) {
-                ArraySchema arraySchema = (ArraySchema) schema;
-                if (arraySchema.getItems().get$ref() != null) {
-                    type = extractReferenceType(arraySchema.getItems().get$ref()) + SQUARE_BRACKETS;
-                } else {
-                    type = convertOpenAPITypeToBallerina(arraySchema.getItems().getType().trim()) + SQUARE_BRACKETS;
-                }
-            }
-            BuiltinSimpleNameReferenceNode typeName = createBuiltinSimpleNameReferenceNode(null,
-                    createIdentifierToken(type));
-            return createRequiredParameterNode(parameterAnnotationNodeList, typeName, paramName);
-        } else {
-            if (schema.getDefault() != null) {
-                BuiltinSimpleNameReferenceNode typeName = createBuiltinSimpleNameReferenceNode(null,
-                        createIdentifierToken(convertOpenAPITypeToBallerina(schema.getType().trim())));
-                LiteralValueToken literalValueToken;
-                if (schema.getType().equals(STRING)) {
-                    literalValueToken = createLiteralValueToken(null,
-                            '"' + schema.getDefault().toString() + '"', createEmptyMinutiaeList(),
-                            createEmptyMinutiaeList());
-                } else {
-                    literalValueToken = createLiteralValueToken(null, schema.getDefault().toString(),
-                            createEmptyMinutiaeList(), createEmptyMinutiaeList());
-                }
-                return createDefaultableParameterNode(parameterAnnotationNodeList, typeName, paramName,
-                        createToken(EQUAL_TOKEN), literalValueToken);
-            } else {
-                String type = convertOpenAPITypeToBallerina(schema.getType().trim()) + NILLABLE;
-                if (schema instanceof ArraySchema) {
-                    ArraySchema arraySchema = (ArraySchema) schema;
-                    if (arraySchema.getItems().get$ref() != null) {
-                        type = extractReferenceType(arraySchema.getItems().get$ref()) + SQUARE_BRACKETS + NILLABLE;
-                    } else {
-                        type = convertOpenAPITypeToBallerina(arraySchema.getItems().getType().trim()) + SQUARE_BRACKETS
-                                + NILLABLE;
-                    }
-                }
-                BuiltinSimpleNameReferenceNode typeName = createBuiltinSimpleNameReferenceNode(null,
-                        createIdentifierToken(type));
-                NilLiteralNode nilLiteralNode =
-                        createNilLiteralNode(createToken(OPEN_PAREN_TOKEN), createToken(CLOSE_PAREN_TOKEN));
-                return createDefaultableParameterNode(parameterAnnotationNodeList, typeName, paramName,
-                        createToken(EQUAL_TOKEN), nilLiteralNode);
-            }
-        }
-    }
+//    /**
+//     * Create header when it comes under the parameter section in swagger.
+//     */
+//    private Node getHeaderParameter(Parameter parameter, NodeList<AnnotationNode> parameterAnnotationNodeList)
+//            throws BallerinaOpenApiException {
+//
+//        Schema schema = parameter.getSchema();
+//        IdentifierToken paramName = createIdentifierToken(getValidName(parameter.getName().trim(), false));
+//        return getHeader(parameter.getRequired(), schema, paramName, parameterAnnotationNodeList);
+//    }
+//
+//    /**
+//     * Create header when it comes under the multipart/form-data encoding section in swagger.
+//     */
+//    private Node getHeaderEncoding(Map.Entry<String, Header> parameter, List<Node> remoteFunctionDoc)
+//            throws BallerinaOpenApiException {
+//
+//        boolean isRequired = false;
+//        Schema schema = parameter.getValue().getSchema();
+//        IdentifierToken paramName = createIdentifierToken(getValidName(parameter.getKey(), false));
+//        List<AnnotationNode> parameterAnnotationNodeList = new ArrayList<>();
+//
+//        if (parameter.getValue().getDescription() != null && !parameter.getValue().getDescription().isBlank()) {
+//            MarkdownParameterDocumentationLineNode paramAPIDoc = DocCommentsGenerator.createAPIParamDoc(
+//                    getValidName(parameter.getKey(), false), parameter.getValue().getDescription());
+//            remoteFunctionDoc.add(paramAPIDoc);
+//        }
+//        DocCommentsGenerator.extractDisplayAnnotation(parameter.getValue().getExtensions(),
+//                parameterAnnotationNodeList);
+//
+//        if (parameter.getValue().getRequired() != null) {
+//            isRequired = parameter.getValue().getRequired();
+//        }
+//        return getHeader(isRequired, schema, paramName, createNodeList(parameterAnnotationNodeList));
+//    }
+//
+//    /**
+//     * Create header for header parameter and encoding.
+//     */
+//    private Node getHeader(boolean isRequiredHeader, Schema schema, IdentifierToken paramName,
+//                           NodeList<AnnotationNode> parameterAnnotationNodeList) throws BallerinaOpenApiException {
+//
+//        if (isRequiredHeader) {
+//            String type = convertOpenAPITypeToBallerina(schema.getType().trim());
+//            if (schema instanceof ArraySchema) {
+//                ArraySchema arraySchema = (ArraySchema) schema;
+//                if (arraySchema.getItems().get$ref() != null) {
+//                    type = extractReferenceType(arraySchema.getItems().get$ref()) + SQUARE_BRACKETS;
+//                } else {
+//                    type = convertOpenAPITypeToBallerina(arraySchema.getItems().getType().trim()) + SQUARE_BRACKETS;
+//                }
+//            }
+//            BuiltinSimpleNameReferenceNode typeName = createBuiltinSimpleNameReferenceNode(null,
+//                    createIdentifierToken(type));
+//            return createRequiredParameterNode(parameterAnnotationNodeList, typeName, paramName);
+//        } else {
+//            if (schema.getDefault() != null) {
+//                BuiltinSimpleNameReferenceNode typeName = createBuiltinSimpleNameReferenceNode(null,
+//                        createIdentifierToken(convertOpenAPITypeToBallerina(schema.getType().trim())));
+//                LiteralValueToken literalValueToken;
+//                if (schema.getType().equals(STRING)) {
+//                    literalValueToken = createLiteralValueToken(null,
+//                            '"' + schema.getDefault().toString() + '"', createEmptyMinutiaeList(),
+//                            createEmptyMinutiaeList());
+//                } else {
+//                    literalValueToken = createLiteralValueToken(null, schema.getDefault().toString(),
+//                            createEmptyMinutiaeList(), createEmptyMinutiaeList());
+//                }
+//                return createDefaultableParameterNode(parameterAnnotationNodeList, typeName, paramName,
+//                        createToken(EQUAL_TOKEN), literalValueToken);
+//            } else {
+//                String type = convertOpenAPITypeToBallerina(schema.getType().trim()) + NILLABLE;
+//                if (schema instanceof ArraySchema) {
+//                    ArraySchema arraySchema = (ArraySchema) schema;
+//                    if (arraySchema.getItems().get$ref() != null) {
+//                        type = extractReferenceType(arraySchema.getItems().get$ref()) + SQUARE_BRACKETS + NILLABLE;
+//                    } else {
+//                        type = convertOpenAPITypeToBallerina(arraySchema.getItems().getType().trim()) + SQUARE_BRACKETS
+//                                + NILLABLE;
+//                    }
+//                }
+//                BuiltinSimpleNameReferenceNode typeName = createBuiltinSimpleNameReferenceNode(null,
+//                        createIdentifierToken(type));
+//                NilLiteralNode nilLiteralNode =
+//                        createNilLiteralNode(createToken(OPEN_PAREN_TOKEN), createToken(CLOSE_PAREN_TOKEN));
+//                return createDefaultableParameterNode(parameterAnnotationNodeList, typeName, paramName,
+//                        createToken(EQUAL_TOKEN), nilLiteralNode);
+//            }
+//        }
+//    }
 
     /**
      * Create request body parameter.
      */
     private void setRequestBodyParameters(String operationId, RequestBody requestBody, List<Node> requestBodyDoc,
                                           List<Node> parameterList, List<Node> defaultable)
-            throws BallerinaOpenApiException {
+            throws BallerinaAsyncApiException {
 
         Content requestBodyContent;
         String referencedRequestBodyName = "";
@@ -517,9 +485,9 @@ public class FunctionSignatureGenerator {
                         String typeOfPayload = schema.getType().trim();
                         if (typeOfPayload.equals(STRING) && schema.getFormat() != null
                                 && (schema.getFormat().equals(BINARY) || schema.getFormat().equals(BYTE))) {
-                            paramType = convertOpenAPITypeToBallerina(schema.getFormat());
+                            paramType = convertAsyncAPITypeToBallerina(schema.getFormat());
                         } else {
-                            paramType = convertOpenAPITypeToBallerina(typeOfPayload);
+                            paramType = convertAsyncAPITypeToBallerina(typeOfPayload);
                         }
                     } else if (schema instanceof ArraySchema) {
                         //TODO: handle nested array - this is impossible to handle
@@ -581,7 +549,7 @@ public class FunctionSignatureGenerator {
     }
 
     private void getRequestBodyParameterForObjectSchema (String recordName, ObjectSchema objectSchema)
-            throws BallerinaOpenApiException {
+            throws BallerinaAsyncApiException {
         TypeDefinitionNode record =
                 ballerinaSchemaGenerator.getTypeDefinitionNode(objectSchema, recordName, new ArrayList<>());
         GeneratorUtils.updateTypeDefNodeList(recordName, record, typeDefinitionNodeList);
@@ -591,12 +559,12 @@ public class FunctionSignatureGenerator {
      * Generate RequestBody for array type schema.
      */
     private String getRequestBodyParameterForArraySchema(String operationId, Map.Entry<String, MediaType> next,
-                                                         ArraySchema arraySchema) throws BallerinaOpenApiException {
+                                                         ArraySchema arraySchema) throws BallerinaAsyncApiException {
 
         String paramType;
         Schema<?> arrayItems = arraySchema.getItems();
         if (arrayItems.getType() != null) {
-            paramType = convertOpenAPITypeToBallerina(arrayItems.getType()) + SQUARE_BRACKETS;
+            paramType = convertAsyncAPITypeToBallerina(arrayItems.getType()) + SQUARE_BRACKETS;
         } else if (arrayItems.get$ref() != null) {
             paramType = getValidName(extractReferenceType(arrayItems.get$ref()), true) + SQUARE_BRACKETS;
         } else if (arrayItems instanceof ComposedSchema) {
