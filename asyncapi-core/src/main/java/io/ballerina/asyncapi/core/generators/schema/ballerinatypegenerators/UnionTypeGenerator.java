@@ -17,27 +17,29 @@
  */
 package io.ballerina.asyncapi.core.generators.schema.ballerinatypegenerators;
 
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import io.apicurio.datamodels.models.asyncapi.AsyncApiSchema;
+import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25Schema;
+import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25SchemaImpl;
+import io.ballerina.asyncapi.core.exception.BallerinaAsyncApiException;
+import io.ballerina.asyncapi.core.generators.schema.TypeGeneratorUtils;
+import io.ballerina.asyncapi.core.generators.schema.model.GeneratorMetaData;
 import io.ballerina.compiler.syntax.tree.Node;
 import io.ballerina.compiler.syntax.tree.OptionalTypeDescriptorNode;
 import io.ballerina.compiler.syntax.tree.TypeDescriptorNode;
 import io.ballerina.compiler.syntax.tree.UnionTypeDescriptorNode;
-import io.ballerina.openapi.core.exception.BallerinaOpenApiException;
-import io.ballerina.openapi.core.generators.schema.TypeGeneratorUtils;
-import io.ballerina.openapi.core.generators.schema.model.GeneratorMetaData;
-import io.swagger.v3.oas.models.media.ComposedSchema;
-import io.swagger.v3.oas.models.media.Schema;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import static io.ballerina.asyncapi.core.generators.schema.TypeGeneratorUtils.getTypeGenerator;
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createToken;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createOptionalTypeDescriptorNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createUnionTypeDescriptorNode;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.OPTIONAL_TYPE_DESC;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.PIPE_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.QUESTION_MARK_TOKEN;
-import static io.ballerina.openapi.core.generators.schema.TypeGeneratorUtils.getTypeGenerator;
 
 /**
  * Generate TypeDefinitionNode and TypeDescriptorNode for anyOf and oneOf schemas.
@@ -59,16 +61,16 @@ import static io.ballerina.openapi.core.generators.schema.TypeGeneratorUtils.get
  */
 public class UnionTypeGenerator extends TypeGenerator {
 
-    public UnionTypeGenerator(Schema<?> schema, String typeName) {
+    public UnionTypeGenerator(AsyncApi25SchemaImpl schema, String typeName) {
         super(schema, typeName);
     }
 
     @Override
-    public TypeDescriptorNode generateTypeDescriptorNode() throws BallerinaOpenApiException {
+    public TypeDescriptorNode generateTypeDescriptorNode() throws BallerinaAsyncApiException {
 
-        assert schema instanceof ComposedSchema;
-        ComposedSchema composedSchema = (ComposedSchema) schema;
-        List<Schema> schemas;
+//        assert schema instanceof ComposedSchema;
+        AsyncApi25SchemaImpl composedSchema =  schema;
+        List<AsyncApiSchema> schemas;
         if (composedSchema.getOneOf() != null) {
             schemas = composedSchema.getOneOf();
         } else {
@@ -84,14 +86,14 @@ public class UnionTypeGenerator extends TypeGenerator {
      * @param schemas  List of schemas included in the anyOf or oneOf schema
      * @param typeName This is parameter or variable name that used to populate error message meaningful
      * @return Union type
-     * @throws BallerinaOpenApiException when unsupported combination of schemas found
+     * @throws BallerinaAsyncApiException when unsupported combination of schemas found
      */
-    private TypeDescriptorNode getUnionType(List<Schema> schemas, String typeName)
-            throws BallerinaOpenApiException {
+    private TypeDescriptorNode getUnionType(List<AsyncApiSchema> schemas, String typeName)
+            throws BallerinaAsyncApiException {
 
         List<TypeDescriptorNode> typeDescriptorNodes = new ArrayList<>();
-        for (Schema<?> schema : schemas) {
-            TypeGenerator typeGenerator = getTypeGenerator(schema, typeName, null);
+        for (AsyncApiSchema schema : schemas) {
+            TypeGenerator typeGenerator = getTypeGenerator((AsyncApi25SchemaImpl) schema, typeName, null);
             TypeDescriptorNode typeDescNode = typeGenerator.generateTypeDescriptorNode();
             if (typeDescNode instanceof OptionalTypeDescriptorNode && GeneratorMetaData.getInstance().isNullable()) {
                 Node internalTypeDesc = ((OptionalTypeDescriptorNode) typeDescNode).typeDescriptor();
