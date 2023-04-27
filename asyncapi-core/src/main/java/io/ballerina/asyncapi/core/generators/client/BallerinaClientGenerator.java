@@ -482,36 +482,12 @@ public class BallerinaClientGenerator {
         for (Map.Entry<String, AsyncApiMessage> messageItem: messageItems){
             Map<String, JsonNode> extensions=((AsyncApi25MessageImpl)messageItem.getValue()).getExtensions();
             if(extensions!=null && extensions.get(X_RESPONSE)!=null ){
-                JsonNode ref=extensions.get(X_RESPONSE).get(PAYLOAD);
+//                JsonNode ref=extensions.get(X_RESPONSE).get(PAYLOAD);
                 FunctionDefinitionNode functionDefinitionNode =
-                        getClientMethodFunctionDefinitionNode( (AsyncApi25MessageImpl)messageItem.getValue());
+                        getClientMethodFunctionDefinitionNode( (AsyncApi25MessageImpl)messageItem.getValue(),extensions);
                 functionDefinitionNodeList.add(functionDefinitionNode);
 //
 
-                if(extensions.get(X_RESPONSE).get("oneOf")!=null){
-
-
-
-
-
-
-
-                } else if (extensions.get(X_RESPONSE).get("payload")!=null){
-
-
-
-
-
-
-                } else if (extensions.get(X_RESPONSE).get("$ref")!=null) {
-
-
-
-
-
-
-
-                }
 
             }
 
@@ -568,7 +544,8 @@ public class BallerinaClientGenerator {
 //     *     }
 //     * </pre>
 //     */
-    private FunctionDefinitionNode  getClientMethodFunctionDefinitionNode(AsyncApi25MessageImpl message)
+    private FunctionDefinitionNode  getClientMethodFunctionDefinitionNode(AsyncApi25MessageImpl message,
+                                                                          Map<String, JsonNode> extensions)
             throws BallerinaAsyncApiException {
         // Create api doc for function
         List<Node> remoteFunctionDocs = new ArrayList<>();
@@ -598,7 +575,7 @@ public class BallerinaClientGenerator {
                 ballerinaSchemaGenerator, typeDefinitionNodeList, resourceMode);
         FunctionSignatureNode functionSignatureNode =
                 functionSignatureGenerator.getFunctionSignatureNode(message.getPayload(),
-                        remoteFunctionDocs);
+                        remoteFunctionDocs,extensions);
         typeDefinitionNodeList = functionSignatureGenerator.getTypeDefinitionNodeList();
 //        // Create `Deprecated` annotation if an operation has mentioned as `deprecated:true`
 //        if (operation.getValue().getDeprecated() != null && operation.getValue().getDeprecated()) {
@@ -613,7 +590,7 @@ public class BallerinaClientGenerator {
         // Create Function Body
         FunctionBodyGenerator functionBodyGenerator = new FunctionBodyGenerator(imports, typeDefinitionNodeList,
                 asyncAPI, ballerinaSchemaGenerator, ballerinaAuthConfigGenerator, ballerinaUtilGenerator, resourceMode);
-        FunctionBodyNode functionBodyNode = functionBodyGenerator.getFunctionBodyNode(path, operation);
+        FunctionBodyNode functionBodyNode = functionBodyGenerator.getFunctionBodyNode(extensions);
         imports = functionBodyGenerator.getImports();
 
         //Generate relative path
