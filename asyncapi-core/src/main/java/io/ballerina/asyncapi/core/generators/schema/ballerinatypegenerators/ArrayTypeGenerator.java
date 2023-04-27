@@ -73,83 +73,90 @@ public class ArrayTypeGenerator extends TypeGenerator {
     }
 
 
-    /**
-     * Generate TypeDescriptorNode for array type schemas. If array type is not given, type will be `AnyData`
-     * public type StringArray string[];
-     */
+    //TODO : Change this override method
     @Override
     public TypeDescriptorNode generateTypeDescriptorNode() throws BallerinaAsyncApiException {
-
-//        assert schema instanceof ArraySchema;
-        if(schema.getType()=="array"){
-            JsonNode arraySchema= schema.getItems();
-
-        }
-        ArraySchema arraySchema = (ArraySchema) schema;
-//        Schema<?> items = arraySchema.getItems();
-        boolean isConstraintsAvailable =
-                !GeneratorMetaData.getInstance().isNullable() && hasConstraints(items) && typeName != null;
-        TypeGenerator typeGenerator;
-        if (isConstraintsAvailable) {
-            String normalizedTypeName = typeName.replaceAll(GeneratorConstants.SPECIAL_CHARACTER_REGEX, "").trim();
-            typeName = GeneratorUtils.getValidName(
-                    parentType != null ?
-                            parentType + "-" + normalizedTypeName + "-Items-" + items.getType() :
-                            normalizedTypeName + "-Items-" + items.getType(),
-                    true);
-            typeGenerator = TypeGeneratorUtils.getTypeGenerator(items, typeName, null);
-            List<AnnotationNode> typeAnnotations = new ArrayList<>();
-            AnnotationNode constraintNode = TypeGeneratorUtils.generateConstraintNode(items);
-            if (constraintNode != null) {
-                typeAnnotations.add(constraintNode);
-            }
-            TypeDefinitionNode arrayItemWithConstraint = typeGenerator.generateTypeDefinitionNode(
-                    createIdentifierToken(typeName),
-                    new ArrayList<>(),
-                    typeAnnotations);
-            typeDefinitionNodeList.add(arrayItemWithConstraint);
-        } else {
-            typeGenerator = TypeGeneratorUtils.getTypeGenerator(items, typeName, null);
-        }
-
-        TypeDescriptorNode typeDescriptorNode;
-        typeDefinitionNodeList.addAll(typeGenerator.getTypeDefinitionNodeList());
-        if ((typeGenerator instanceof PrimitiveTypeGenerator ||
-                typeGenerator instanceof ArrayTypeGenerator) && isConstraintsAvailable) {
-            typeDescriptorNode = NodeParser.parseTypeDescriptor(typeName);
-        } else {
-            typeDescriptorNode = typeGenerator.generateTypeDescriptorNode();
-        }
-
-        if (typeGenerator instanceof UnionTypeGenerator) {
-            typeDescriptorNode = createParenthesisedTypeDescriptorNode(
-                    createToken(OPEN_PAREN_TOKEN), typeDescriptorNode, createToken(CLOSE_PAREN_TOKEN));
-        }
-        if (typeDescriptorNode instanceof OptionalTypeDescriptorNode) {
-            Node node = ((OptionalTypeDescriptorNode) typeDescriptorNode).typeDescriptor();
-            typeDescriptorNode = (TypeDescriptorNode) node;
-        }
-
-        if (arraySchema.getMaxItems() != null) {
-            if (arraySchema.getMaxItems() > GeneratorConstants.MAX_ARRAY_LENGTH) {
-                throw new BallerinaOpenApiException("Maximum item count defined in the definition exceeds the " +
-                        "maximum ballerina array length.");
-            }
-        }
-        NodeList<ArrayDimensionNode> arrayDimensions = NodeFactory.createEmptyNodeList();
-        if (typeDescriptorNode.kind() == SyntaxKind.ARRAY_TYPE_DESC) {
-            ArrayTypeDescriptorNode innerArrayType = (ArrayTypeDescriptorNode) typeDescriptorNode;
-            arrayDimensions = innerArrayType.dimensions();
-            typeDescriptorNode = innerArrayType.memberTypeDesc();
-        }
-
-        ArrayDimensionNode arrayDimension = NodeFactory.createArrayDimensionNode(
-                createToken(SyntaxKind.OPEN_BRACKET_TOKEN), null,
-                createToken(SyntaxKind.CLOSE_BRACKET_TOKEN));
-        arrayDimensions = arrayDimensions.add(arrayDimension);
-        ArrayTypeDescriptorNode arrayTypeDescriptorNode = createArrayTypeDescriptorNode(typeDescriptorNode
-                , arrayDimensions);
-
-        return getNullableType(arraySchema, arrayTypeDescriptorNode);
+        return null;
     }
+
+
+//    /**
+//     * Generate TypeDescriptorNode for array type schemas. If array type is not given, type will be `AnyData`
+//     * public type StringArray string[];
+//     */
+//    @Override
+//    public TypeDescriptorNode generateTypeDescriptorNode() throws BallerinaAsyncApiException {
+//
+////        assert schema instanceof ArraySchema;
+//        if(schema.getType().equals("array")){
+//            JsonNode arraySchema= schema.getItems();
+//
+//        }
+//        AsyncApi25SchemaImpl arraySchema = schema;
+////        Schema<?> items = arraySchema.getItems();
+//        boolean isConstraintsAvailable =
+//                !GeneratorMetaData.getInstance().isNullable() && hasConstraints(items) && typeName != null;
+//        TypeGenerator typeGenerator;
+//        if (isConstraintsAvailable) {
+//            String normalizedTypeName = typeName.replaceAll(GeneratorConstants.SPECIAL_CHARACTER_REGEX, "").trim();
+//            typeName = GeneratorUtils.getValidName(
+//                    parentType != null ?
+//                            parentType + "-" + normalizedTypeName + "-Items-" + items.getType() :
+//                            normalizedTypeName + "-Items-" + items.getType(),
+//                    true);
+//            typeGenerator = TypeGeneratorUtils.getTypeGenerator(items, typeName, null);
+//            List<AnnotationNode> typeAnnotations = new ArrayList<>();
+//            AnnotationNode constraintNode = TypeGeneratorUtils.generateConstraintNode(items);
+//            if (constraintNode != null) {
+//                typeAnnotations.add(constraintNode);
+//            }
+//            TypeDefinitionNode arrayItemWithConstraint = typeGenerator.generateTypeDefinitionNode(
+//                    createIdentifierToken(typeName),
+//                    new ArrayList<>(),
+//                    typeAnnotations);
+//            typeDefinitionNodeList.add(arrayItemWithConstraint);
+//        } else {
+//            typeGenerator = TypeGeneratorUtils.getTypeGenerator(items, typeName, null);
+//        }
+//
+//        TypeDescriptorNode typeDescriptorNode;
+//        typeDefinitionNodeList.addAll(typeGenerator.getTypeDefinitionNodeList());
+//        if ((typeGenerator instanceof PrimitiveTypeGenerator ||
+//                typeGenerator instanceof ArrayTypeGenerator) && isConstraintsAvailable) {
+//            typeDescriptorNode = NodeParser.parseTypeDescriptor(typeName);
+//        } else {
+//            typeDescriptorNode = typeGenerator.generateTypeDescriptorNode();
+//        }
+//
+//        if (typeGenerator instanceof UnionTypeGenerator) {
+//            typeDescriptorNode = createParenthesisedTypeDescriptorNode(
+//                    createToken(OPEN_PAREN_TOKEN), typeDescriptorNode, createToken(CLOSE_PAREN_TOKEN));
+//        }
+//        if (typeDescriptorNode instanceof OptionalTypeDescriptorNode) {
+//            Node node = ((OptionalTypeDescriptorNode) typeDescriptorNode).typeDescriptor();
+//            typeDescriptorNode = (TypeDescriptorNode) node;
+//        }
+//
+//        if (arraySchema.getMaxItems() != null) {
+//            if (arraySchema.getMaxItems() > GeneratorConstants.MAX_ARRAY_LENGTH) {
+//                throw new BallerinaOpenApiException("Maximum item count defined in the definition exceeds the " +
+//                        "maximum ballerina array length.");
+//            }
+//        }
+//        NodeList<ArrayDimensionNode> arrayDimensions = NodeFactory.createEmptyNodeList();
+//        if (typeDescriptorNode.kind() == SyntaxKind.ARRAY_TYPE_DESC) {
+//            ArrayTypeDescriptorNode innerArrayType = (ArrayTypeDescriptorNode) typeDescriptorNode;
+//            arrayDimensions = innerArrayType.dimensions();
+//            typeDescriptorNode = innerArrayType.memberTypeDesc();
+//        }
+//
+//        ArrayDimensionNode arrayDimension = NodeFactory.createArrayDimensionNode(
+//                createToken(SyntaxKind.OPEN_BRACKET_TOKEN), null,
+//                createToken(SyntaxKind.CLOSE_BRACKET_TOKEN));
+//        arrayDimensions = arrayDimensions.add(arrayDimension);
+//        ArrayTypeDescriptorNode arrayTypeDescriptorNode = createArrayTypeDescriptorNode(typeDescriptorNode
+//                , arrayDimensions);
+//
+//        return getNullableType(arraySchema, arrayTypeDescriptorNode);
+//    }
 }
