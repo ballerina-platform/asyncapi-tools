@@ -202,7 +202,7 @@ public class FunctionReturnTypeGenerator {
      */
     private String generateReturnDataTypeForComposedSchema(Operation operation, String type,
                                                            ComposedSchema composedSchema, boolean isSignature)
-            throws BallerinaOpenApiException {
+            throws BallerinaAsyncApiException {
 
         if (composedSchema.getOneOf() != null) {
             // Get oneOfUnionType name
@@ -230,7 +230,7 @@ public class FunctionReturnTypeGenerator {
      */
     private String handleInLineRecordInResponse(Operation operation, Map.Entry<String, MediaType> media,
                                                 ObjectSchema objectSchema)
-            throws BallerinaOpenApiException {
+            throws BallerinaAsyncApiException {
 
         Map<String, Schema> properties = objectSchema.getProperties();
         String ref = objectSchema.get$ref();
