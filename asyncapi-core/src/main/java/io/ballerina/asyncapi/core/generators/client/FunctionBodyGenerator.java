@@ -18,6 +18,7 @@
 
 package io.ballerina.asyncapi.core.generators.client;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25Document;
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25DocumentImpl;
 import io.ballerina.asyncapi.core.GeneratorUtils;
@@ -58,6 +59,8 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import static io.ballerina.asyncapi.core.GeneratorConstants.*;
+import static io.ballerina.asyncapi.core.GeneratorUtils.generateBodyStatementForComplexUrl;
+import static io.ballerina.asyncapi.core.GeneratorUtils.isComplexURL;
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createEmptyMinutiaeList;
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createEmptyNodeList;
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createIdentifierToken;
@@ -139,30 +142,31 @@ public class FunctionBodyGenerator {
      * @return - {@link FunctionBodyNode}
      * @throws BallerinaAsyncApiException - throws exception if generating FunctionBodyNode fails.
      */
-    public FunctionBodyNode getFunctionBodyNode(String path, Map.Entry<PathItem.HttpMethod, Operation> operation)
+    public FunctionBodyNode getFunctionBodyNode(Map<String, JsonNode> extenstions)
             throws BallerinaAsyncApiException {
 
         NodeList<AnnotationNode> annotationNodes = createEmptyNodeList();
         FunctionReturnTypeGenerator functionReturnType = new FunctionReturnTypeGenerator(
-                openAPI, ballerinaSchemaGenerator, typeDefinitionNodeList);
+                asyncAPI, ballerinaSchemaGenerator, typeDefinitionNodeList);
         isHeader = false;
         // Create statements
         List<StatementNode> statementsList = new ArrayList<>();
         // Check whether given path is complex path , if complex it will handle adding these two statement
-        if (resourceMode && isComplexURL(path)) {
-            List<StatementNode> bodyStatements = generateBodyStatementForComplexUrl(path);
-            statementsList.addAll(bodyStatements);
-        }
+//        if (resourceMode && isComplexURL(path)) {
+//            List<StatementNode> bodyStatements = generateBodyStatementForComplexUrl(path);
+//            statementsList.addAll(bodyStatements);
+//        }
         //string path - common for every remote functions
-        VariableDeclarationNode pathInt = getPathStatement(path, annotationNodes);
-        statementsList.add(pathInt);
+//        VariableDeclarationNode pathInt = getPathStatement(path, annotationNodes);
+//        statementsList.add(pathInt);
 
-        //Handel query parameter map
+        //TODO: move this
+        //Handle query parameter map
         handleParameterSchemaInOperation(operation, statementsList);
 
         String method = operation.getKey().name().trim().toLowerCase(Locale.ENGLISH);
         // This return type for target data type binding.
-        String rType = functionReturnType.getReturnType(operation.getValue(), true);
+        String rType = functionReturnType.getReturnType(extenstions);
         String returnType = returnTypeForTargetTypeField(rType);
         // Statement Generator for requestBody
         if (operation.getValue().getRequestBody() != null) {
@@ -222,7 +226,7 @@ public class FunctionBodyGenerator {
      */
     public void handleQueryParamsAndHeaders(List<Parameter> queryParameters, List<Parameter> headerParameters,
                                             List<StatementNode> statementsList, List<String> queryApiKeyNameList,
-                                            List<String> headerApiKeyNameList) throws BallerinaOpenApiException {
+                                            List<String> headerApiKeyNameList) throws BallerinaAsyncApiException {
 
         boolean combinationOfApiKeyAndHTTPOAuth = ballerinaAuthConfigGenerator.isHttpOROAuth() &&
                 ballerinaAuthConfigGenerator.isHttpApiKey();
@@ -253,7 +257,7 @@ public class FunctionBodyGenerator {
      */
     private void addUpdatedPathAndHeaders(List<StatementNode> statementsList, List<String> queryApiKeyNameList,
                                           List<Parameter> queryParameters, List<String> headerApiKeyNameList,
-                                          List<Parameter> headerParameters) throws BallerinaOpenApiException {
+                                          List<Parameter> headerParameters) throws BallerinaAsyncApiException{
 
         List<StatementNode> ifBodyStatementsList = new ArrayList<>();
 
