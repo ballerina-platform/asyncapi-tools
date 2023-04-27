@@ -24,9 +24,11 @@ import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import io.apicurio.datamodels.Library;
 import io.apicurio.datamodels.models.Schema;
 import io.apicurio.datamodels.models.ServerVariable;
+import io.apicurio.datamodels.models.asyncapi.AsyncApiSchema;
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25ChannelsImpl;
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25ComponentsImpl;
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25DocumentImpl;
+import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25SchemaImpl;
 import io.apicurio.datamodels.validation.ValidationProblem;
 import io.ballerina.asyncapi.core.model.GenSrcFile;
 import io.ballerina.compiler.api.SemanticModel;
@@ -619,11 +621,11 @@ public class GeneratorUtils {
         }
         return bodyStatements;
     }
-//
+
 //    /**
 //     * This util is to check if the given schema contains any constraints.
 //     */
-//    public static boolean hasConstraints(Schema<?> value) {
+//    public static boolean hasConstraints(AsyncApi25SchemaImpl value) {
 //
 //        if (value.getProperties() != null) {
 //            boolean constraintExists = value.getProperties().values().stream()
@@ -631,10 +633,11 @@ public class GeneratorUtils {
 //            if (constraintExists) {
 //                return true;
 //            }
-//        } else if (value instanceof ComposedSchema) {
-//            List<Schema> allOf = ((ComposedSchema) value).getAllOf();
-//            List<Schema> oneOf = ((ComposedSchema) value).getOneOf();
-//            List<Schema> anyOf = ((ComposedSchema) value).getAnyOf();
+//        } else if ((value.getProperties() != null &&
+//                (value.getOneOf() != null || value.getAllOf() != null || value.getAnyOf() != null))) {
+//            List<Schema> allOf = value.getAllOf();
+//            List<AsyncApiSchema> oneOf = value.getOneOf();
+//            List<AsyncApiSchema> anyOf =  value.getAnyOf();
 //            boolean constraintExists = false;
 //            if (allOf != null) {
 //                constraintExists = allOf.stream().anyMatch(GeneratorUtils::hasConstraints);
@@ -647,15 +650,15 @@ public class GeneratorUtils {
 //                return true;
 //            }
 //
-//        } else if (value instanceof ArraySchema) {
+//        } else if (value.getType().equals("array")) {
 //            if (!isConstraintExists(value)) {
-//                return isConstraintExists(((ArraySchema) value).getItems());
+//                return isConstraintExists(value.getItems());
 //            }
 //        }
 //        return isConstraintExists(value);
 //    }
 
-//    private static boolean isConstraintExists(Schema<?> propertyValue) {
+//    private static boolean isConstraintExists(JsonNode propertyValue) {
 //
 //        return propertyValue.getMaximum() != null ||
 //                propertyValue.getMinimum() != null ||
