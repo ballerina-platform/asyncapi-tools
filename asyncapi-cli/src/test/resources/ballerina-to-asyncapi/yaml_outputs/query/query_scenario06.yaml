@@ -59,13 +59,13 @@ channels:
               default: null
             offsetNullableJson:
               type: object
-              additionalProperties: {}
+              additionalProperties: true
               extensions:
                 x-nullable: true
               default: "{x: {id: sss}}"
             offsetJson:
               type: object
-              additionalProperties: {}
+              additionalProperties: true
               default: "{x: {id: sss}}"
 components:
   schemas:

@@ -31,7 +31,7 @@ channels:
           - $ref: '#/components/messages/PaymentConflict'
           - payload:
               type: object
-              additionalProperties: {}
+              additionalProperties: true
           - $ref: '#/components/messages/PaymentSuccess'
     publish:
       message:
@@ -362,7 +362,7 @@ components:
           - $ref: '#/components/messages/PaymentConflict'
           - payload:
               type: object
-              additionalProperties: {}
+              additionalProperties: true
           - $ref: '#/components/messages/PaymentSuccess'
         description: '`PaymentCreated` or `PaymentConflict` representation'
       x-response-type: simple-rpc

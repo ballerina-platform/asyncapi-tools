@@ -17,9 +17,7 @@
  */
 package io.ballerina.asyncapi.core.generators.asyncspec.service;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.BooleanNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 import io.ballerina.asyncapi.core.generators.asyncspec.Constants.AsyncAPIType;
 import io.ballerina.asyncapi.core.generators.asyncspec.model.BalAsyncApi25SchemaImpl;
@@ -173,9 +171,9 @@ public class AsyncAPIHeaderMapper {
             if (headerSchema.getDefault() != null) {
                 arraySchema.setDefault(headerSchema.getDefault());
             }
-            ObjectMapper objectMapper = ConverterCommonUtils.callObjectMapper();
-            ObjectNode obj = objectMapper.valueToTree(itemSchema);
-            arraySchema.setItems(obj);
+//            ObjectMapper objectMapper = ConverterCommonUtils.callObjectMapper();
+//            ObjectNode obj = objectMapper.valueToTree(itemSchema);
+            arraySchema.setItems(itemSchema);
             bindingHeaderObject.addProperty(headerName, arraySchema);
         } else {
             bindingHeaderObject.addProperty(headerName, headerSchema);

@@ -18,4 +18,10 @@ public class BalAsyncApi25SchemaImpl extends io.apicurio.datamodels.models.async
     public boolean isEntity() {
         return false;
     }
+
+    @Override
+    public boolean isSchema() {
+        return false;
+    }
 }
+

@@ -26,7 +26,7 @@ channels:
               type: boolean
           - payload:
               type: object
-              additionalProperties: {}
+              additionalProperties: true
           - payload:
               type: object
               additionalProperties:
@@ -104,7 +104,7 @@ components:
               type: string
           - payload:
               type: object
-              additionalProperties: {}
+              additionalProperties: true
           - payload:
               type: object
               additionalProperties:

@@ -424,12 +424,14 @@ public class AsyncAPIResponseMapper {
 
         //create Message (there is no message reference)
         ObjectMapper objMapper = ConverterCommonUtils.callObjectMapper();
-        ObjectNode refObjNode = ConverterCommonUtils.createObjectNode();
+//        ObjectNode refObjNode = ConverterCommonUtils.createObjectNode();
 
         //Create schema reference
-        refObjNode.put(REF, SCHEMA_REFERENCE + ConverterCommonUtils.unescapeIdentifier(remoteReturnTypeName));
+        BalAsyncApi25SchemaImpl itemSchema= new BalAsyncApi25SchemaImpl();
+        itemSchema.set$ref(SCHEMA_REFERENCE + ConverterCommonUtils.unescapeIdentifier(remoteReturnTypeName));
+//        refObjNode.put(REF, SCHEMA_REFERENCE + ConverterCommonUtils.unescapeIdentifier(remoteReturnTypeName));
         BalAsyncApi25SchemaImpl arraySchema = getAsyncApiSchema(AsyncAPIType.ARRAY.toString());
-        arraySchema.setItems(objMapper.valueToTree(refObjNode));
+        arraySchema.setItems(itemSchema);
         setResponseOfRequest(subscribeMessage, componentMessage, SIMPLE_RPC,
                 returnDescription, objMapper, arraySchema, isOptional);
     }
@@ -734,8 +736,8 @@ public class AsyncAPIResponseMapper {
                     toLowerCase(Locale.ENGLISH);
             BalAsyncApi25SchemaImpl asyncApiSchema = getAsyncApiSchema(type02);
             ObjectMapper objectMapper = ConverterCommonUtils.callObjectMapper();
-            ObjectNode obj = objectMapper.valueToTree(asyncApiSchema);
-            arraySchema.setItems(obj);
+//            ObjectNode obj = objectMapper.valueToTree(asyncApiSchema);
+            arraySchema.setItems(asyncApiSchema);
 
             setResponseOfRequest(subscribeMessage, componentMessage,
                     SIMPLE_RPC, returnDescription, objectMapper, arraySchema, isOptional);

@@ -24,7 +24,7 @@ channels:
               type: string
           - payload:
               type: object
-              additionalProperties: {}
+              additionalProperties: true
           - $ref: '#/components/messages/LocationReturn'
     publish:
       message:
@@ -73,7 +73,7 @@ components:
               type: string
           - payload:
               type: object
-              additionalProperties: {}
+              additionalProperties: true
           - $ref: '#/components/messages/LocationReturn'
         description: '`Location` representation'
         extensions:

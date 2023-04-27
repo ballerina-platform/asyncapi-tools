@@ -19,11 +19,11 @@
 package io.ballerina.asyncapi.core.generators.asyncspec.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.BooleanNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 import io.apicurio.datamodels.models.Schema;
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25ComponentsImpl;
+import io.apicurio.datamodels.models.union.BooleanUnionValueImpl;
 import io.ballerina.asyncapi.core.generators.asyncspec.diagnostic.AsyncAPIConverterDiagnostic;
 import io.ballerina.asyncapi.core.generators.asyncspec.diagnostic.DiagnosticMessages;
 import io.ballerina.asyncapi.core.generators.asyncspec.diagnostic.IncompatibleRemoteDiagnostic;
@@ -184,7 +184,8 @@ public class AsyncAPIComponentMapper {
 //                } else {
                     schema.setType(AsyncAPIType.OBJECT.toString());
                     schema.setDescription(typeDoc);
-                    schema.setAdditionalProperties(asyncApiSchema);
+                    schema.setAdditionalProperties(asyncApiSchema.getType() == null ?
+                            new BooleanUnionValueImpl(true) : asyncApiSchema);
                     components.addSchema(componentName, schema);
 //                }
                     break;
@@ -334,7 +335,7 @@ public class AsyncAPIComponentMapper {
 //            String check=property.getType();
             if (property.getType() != null) {
                 if (property.getType().equals(AsyncAPIType.ARRAY.toString()) && !((property).getItems() != null &&
-                        (property).getItems().has("oneOf"))) {
+                        ((BalAsyncApi25SchemaImpl) (property).getItems().asSchema()).getOneOf() != null)) {
                     BooleanNode booleanNode = null;
                     if (property.getExtensions() != null) {
                         booleanNode = (BooleanNode) (property.getExtensions().get(X_NULLABLE));
@@ -590,7 +591,7 @@ public class AsyncAPIComponentMapper {
             arraySchema.setType(AsyncAPIType.ARRAY.toString());
             property.setItems(handleArray(arrayDimensions - 1, symbolProperty, arraySchema));
         } else {
-            property.setItems(ConverterCommonUtils.callObjectMapper().valueToTree(symbolProperty));
+            property.setItems(symbolProperty);
         }
         return property;
     }
@@ -648,8 +649,8 @@ public class AsyncAPIComponentMapper {
      * Handle nested array.
      */
     //TODO : Here needs to check objectMapper.valueToTree(property) because it may contatins entity:true
-    private JsonNode handleArray(int arrayDimensions, Schema property, BalAsyncApi25SchemaImpl arrayProperty) {
-        ObjectMapper objectMapper = ConverterCommonUtils.callObjectMapper();
+    private BalAsyncApi25SchemaImpl handleArray(int arrayDimensions, BalAsyncApi25SchemaImpl property,
+                                                BalAsyncApi25SchemaImpl arrayProperty) {
 
         if (arrayDimensions > 1) {
             BalAsyncApi25SchemaImpl nArray = new BalAsyncApi25SchemaImpl();
@@ -657,9 +658,9 @@ public class AsyncAPIComponentMapper {
             arrayProperty.setItems(handleArray(arrayDimensions - 1, property, nArray));
         } else if (arrayDimensions == 1) {
 
-            arrayProperty.setItems(objectMapper.valueToTree(property));
+            arrayProperty.setItems(property);
         }
-        return objectMapper.valueToTree(arrayProperty);
+        return arrayProperty;
     }
 
     public TypeSymbol excludeReadonlyIfPresent(TypeSymbol typeSymbol) {
