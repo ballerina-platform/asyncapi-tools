@@ -132,7 +132,7 @@ public class BallerinaClientGenerator {
     private List<String> apiKeyNameList = new ArrayList<>();
     private final AsyncApi25DocumentImpl asyncAPI;
     private final BallerinaTypesGenerator ballerinaSchemaGenerator;
-//    private final BallerinaUtilGenerator ballerinaUtilGenerator;
+    private final BallerinaUtilGenerator ballerinaUtilGenerator;
     private final List<String> remoteFunctionNameList;
     private String serverURL;
     private final BallerinaAuthConfigGenerator ballerinaAuthConfigGenerator;
@@ -186,7 +186,7 @@ public class BallerinaClientGenerator {
         this.asyncAPI = AASClientConfig.getOpenAPI();
         this.ballerinaSchemaGenerator = new BallerinaTypesGenerator(asyncAPI,
                 AASClientConfig.isNullable(), new LinkedList<>());
-//        this.ballerinaUtilGenerator = new BallerinaUtilGenerator();
+        this.ballerinaUtilGenerator = new BallerinaUtilGenerator();
         this.remoteFunctionNameList = new ArrayList<>();
         this.serverURL = "/";
         this.ballerinaAuthConfigGenerator = new BallerinaAuthConfigGenerator(false, false);
@@ -484,7 +484,7 @@ public class BallerinaClientGenerator {
             if(extensions!=null && extensions.get(X_RESPONSE)!=null ){
                 JsonNode ref=extensions.get(X_RESPONSE).get(PAYLOAD);
                 FunctionDefinitionNode functionDefinitionNode =
-                        getClientMethodFunctionDefinitionNode( (AsyncApi25MessageImpl)messageItem.getValue()));
+                        getClientMethodFunctionDefinitionNode( (AsyncApi25MessageImpl)messageItem.getValue());
                 functionDefinitionNodeList.add(functionDefinitionNode);
 //
 
@@ -600,12 +600,13 @@ public class BallerinaClientGenerator {
                 functionSignatureGenerator.getFunctionSignatureNode(message.getPayload(),
                         remoteFunctionDocs);
         typeDefinitionNodeList = functionSignatureGenerator.getTypeDefinitionNodeList();
-        // Create `Deprecated` annotation if an operation has mentioned as `deprecated:true`
-        if (operation.getValue().getDeprecated() != null && operation.getValue().getDeprecated()) {
-            DocCommentsGenerator.extractDeprecatedAnnotation(operation.getValue().getExtensions(),
-                    remoteFunctionDocs, annotationNodes);
-        }
+//        // Create `Deprecated` annotation if an operation has mentioned as `deprecated:true`
+//        if (operation.getValue().getDeprecated() != null && operation.getValue().getDeprecated()) {
+//            DocCommentsGenerator.extractDeprecatedAnnotation(operation.getValue().getExtensions(),
+//                    remoteFunctionDocs, annotationNodes);
+//        }
         // Create metadataNode add documentation string
+        List<AnnotationNode> annotationNodes = new ArrayList<>();
         MetadataNode metadataNode = createMetadataNode(createMarkdownDocumentationNode(
                 createNodeList(remoteFunctionDocs)), createNodeList(annotationNodes));
 
@@ -616,8 +617,10 @@ public class BallerinaClientGenerator {
         imports = functionBodyGenerator.getImports();
 
         //Generate relative path
-        NodeList<Node> relativeResourcePath = resourceMode ?
-                createNodeList(GeneratorUtils.getRelativeResourcePath(path, operation.getValue(), null)) :
+//        NodeList<Node> relativeResourcePath = resourceMode ?
+//                createNodeList(GeneratorUtils.getRelativeResourcePath(path, operation.getValue(), null)) :
+//                createEmptyNodeList();
+        NodeList<Node> relativeResourcePath =
                 createEmptyNodeList();
         return createFunctionDefinitionNode(null,
                 metadataNode, qualifierList, functionKeyWord, functionName, relativeResourcePath,
