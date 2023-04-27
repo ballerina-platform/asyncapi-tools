@@ -89,19 +89,20 @@ public class TypeGeneratorUtils {
 
         if (schemaValue.get$ref() != null) {
             return new ReferencedTypeGenerator(schemaValue, typeName);
-        } else if (schemaValue instanceof ComposedSchema) {
-            ComposedSchema composedSchema = (ComposedSchema) schemaValue;
-            if (composedSchema.getAllOf() != null) {
-                return new AllOfRecordTypeGenerator(schemaValue, typeName);
-            } else {
-                return new UnionTypeGenerator(schemaValue, typeName);
-            }
+
+//        } else if (schemaValue instanceof ComposedSchema) {
+//            ComposedSchema composedSchema = (ComposedSchema) schemaValue;
+//            if (composedSchema.getAllOf() != null) {
+//                return new AllOfRecordTypeGenerator(schemaValue, typeName);
+//            } else {
+//                return new UnionTypeGenerator(schemaValue, typeName);
+//            }
+            //TODO: include mapschema here see openapi code
         } else if ((schemaValue.getType() != null && schemaValue.getType().equals(GeneratorConstants.OBJECT)) ||
-                schemaValue instanceof ObjectSchema || schemaValue.getProperties() != null ||
-                schemaValue instanceof MapSchema) {
+                schemaValue.getProperties() != null) {
             return new RecordTypeGenerator(schemaValue, typeName);
-        } else if (schemaValue instanceof ArraySchema) {
-            return new ArrayTypeGenerator(schemaValue, typeName, parentName);
+//        } else if (schemaValue instanceof ArraySchema) {
+//            return new ArrayTypeGenerator(schemaValue, typeName, parentName);
         } else if (schemaValue.getType() != null && primitiveTypeList.contains(schemaValue.getType())) {
             return new PrimitiveTypeGenerator(schemaValue, typeName);
         } else { // when schemaValue.type == null
@@ -122,11 +123,11 @@ public class TypeGeneratorUtils {
      * @param originalTypeDesc Type name
      * @return Final type of the field
      */
-    public static TypeDescriptorNode getNullableType(Schema schema, TypeDescriptorNode originalTypeDesc) {
+    public static TypeDescriptorNode getNullableType(AsyncApi25SchemaImpl schema, TypeDescriptorNode originalTypeDesc) {
         TypeDescriptorNode nillableType = originalTypeDesc;
         boolean nullable = GeneratorMetaData.getInstance().isNullable();
-        if (schema.getNullable() != null) {
-            if (schema.getNullable()) {
+        if (schema.getExtensions() != null) {
+            if (schema.getExtensions().get("x-nullable").equals(true)) {
                 nillableType = createOptionalTypeDescriptorNode(originalTypeDesc, createToken(QUESTION_MARK_TOKEN));
             }
         } else if (nullable) {
@@ -137,8 +138,8 @@ public class TypeGeneratorUtils {
 
     public static void updateRecordFieldList(List<String> required,
                                              List<Node> recordFieldList,
-                                             Map.Entry<String, Schema<?>> field,
-                                             Schema<?> fieldSchema,
+                                             Map.Entry<String, Schema> field,
+                                             AsyncApi25SchemaImpl fieldSchema,
                                              NodeList<Node> schemaDocNodes,
                                              IdentifierToken fieldName,
                                              TypeDescriptorNode fieldTypeName) {
@@ -149,21 +150,25 @@ public class TypeGeneratorUtils {
 
     public static void updateRecordFieldList(List<String> required,
                                              List<Node> recordFieldList,
-                                             Map.Entry<String, Schema<?>> field,
-                                             Schema<?> fieldSchema,
+                                             Map.Entry<String, Schema> field,
+                                             AsyncApi25SchemaImpl fieldSchema,
                                              NodeList<Node> schemaDocNodes,
                                              IdentifierToken fieldName,
                                              TypeDescriptorNode fieldTypeName,
                                              PrintStream outStream) {
+
 
         MarkdownDocumentationNode documentationNode = createMarkdownDocumentationNode(schemaDocNodes);
         //Generate constraint annotation.
         AnnotationNode constraintNode = generateConstraintNode(fieldSchema);
         MetadataNode metadataNode;
         boolean isConstraintSupport =
-                constraintNode != null && fieldSchema.getNullable() != null && fieldSchema.getNullable() ||
-                        (fieldSchema instanceof ComposedSchema && (((ComposedSchema) fieldSchema).getOneOf() != null ||
-                                ((ComposedSchema) fieldSchema).getAnyOf() != null));
+                constraintNode != null && fieldSchema.getExtensions()!=null & fieldSchema.
+                        getExtensions().get("x-nullable") != null ||
+                        (((fieldSchema.getProperties() != null &&
+                                (fieldSchema.getOneOf() != null || fieldSchema.getAllOf() != null ||
+                                        fieldSchema.getAnyOf() != null))) && ( fieldSchema.getOneOf() != null ||
+                                fieldSchema.getAnyOf() != null));
         boolean nullable = GeneratorMetaData.getInstance().isNullable();
         if (nullable) {
             constraintNode = null;
@@ -189,8 +194,8 @@ public class TypeGeneratorUtils {
     }
 
     private static void setRequiredFields(List<String> required, List<Node> recordFieldList,
-                                          Map.Entry<String, Schema<?>> field,
-                                          Schema<?> fieldSchema,
+                                          Map.Entry<String, Schema> field,
+                                          AsyncApi25SchemaImpl fieldSchema,
                                           IdentifierToken fieldName,
                                           TypeDescriptorNode fieldTypeName,
                                           MetadataNode metadataNode) {
@@ -213,14 +218,14 @@ public class TypeGeneratorUtils {
         }
     }
 
-    private static RecordFieldWithDefaultValueNode getRecordFieldWithDefaultValueNode(Schema<?> fieldSchema,
+    private static RecordFieldWithDefaultValueNode getRecordFieldWithDefaultValueNode(AsyncApi25SchemaImpl fieldSchema,
                                                                                       IdentifierToken fieldName,
                                                                                       TypeDescriptorNode fieldTypeName,
                                                                                       MetadataNode metadataNode) {
 
         Token defaultValueToken;
         String defaultValue = fieldSchema.getDefault().toString().trim();
-        if (fieldSchema instanceof StringSchema) {
+        if (fieldSchema.getType().equals("string")) {
             if (defaultValue.equals("\"")) {
                 defaultValueToken = AbstractNodeFactory.createIdentifierToken("\"" + "\\" +
                         fieldSchema.getDefault().toString() + "\"");
@@ -230,7 +235,7 @@ public class TypeGeneratorUtils {
             }
         } else if (!defaultValue.matches("^[0-9]*$") && !defaultValue.matches("^(\\d*\\.)?\\d+$")
                 && !(defaultValue.startsWith("[") && defaultValue.endsWith("]")) &&
-                !(fieldSchema instanceof BooleanSchema)) {
+                !(fieldSchema.getType().equals("boolean"))) {
             //This regex was added due to avoid adding quotes for default values which are numbers and array values.
             //Ex: default: 123
             defaultValueToken = AbstractNodeFactory.createIdentifierToken("\"" +
@@ -243,35 +248,35 @@ public class TypeGeneratorUtils {
                 (metadataNode, null, fieldTypeName, fieldName, createToken(EQUAL_TOKEN),
                         expressionNode, createToken(SEMICOLON_TOKEN));
     }
-//
-//    /**
-//     * This util is to set the constraint validation for given data type in the record field and user define type.
-//     *
+
+    /**
+     * This util is to set the constraint validation for given data type in the record field and user define type.
+     *
 //     * @param fieldSchema Schema for data type
-//     * @return {@link MetadataNode}
-//     */
-//    public static AnnotationNode generateConstraintNode(Schema<?> fieldSchema) {
-//
-//        if (fieldSchema instanceof StringSchema) {
-//            StringSchema stringSchema = (StringSchema) fieldSchema;
-//            // Attributes : maxLength, minLength
-//            return generateStringConstraint(stringSchema);
-//        } else if (fieldSchema instanceof IntegerSchema || fieldSchema instanceof NumberSchema) {
-//            // Attribute : minimum, maximum, exclusiveMinimum, exclusiveMaximum
-//            return generateNumberConstraint(fieldSchema);
-//        } else if (fieldSchema instanceof ArraySchema) {
-//            ArraySchema arraySchema = (ArraySchema) fieldSchema;
-//            // Attributes: maxItems, minItems
-//            return generateArrayConstraint(arraySchema);
-//        }
-//        // Ignore Object, Map and Composed schemas.
-//        return null;
-//    }
+     * @return {@link MetadataNode}
+     */
+    public static AnnotationNode generateConstraintNode(AsyncApi25SchemaImpl fieldSchema) {
+
+        if (fieldSchema.getType().equals("string")) {
+            AsyncApi25SchemaImpl stringSchema = fieldSchema;
+            // Attributes : maxLength, minLength
+            return generateStringConstraint(stringSchema);
+        } else if (fieldSchema.getType().equals("integer")|| fieldSchema.getType().equals("number")) {
+            // Attribute : minimum, maximum, exclusiveMinimum, exclusiveMaximum
+            return generateNumberConstraint(fieldSchema);
+        } else if (fieldSchema.getType().equals("array")) {
+            AsyncApi25SchemaImpl arraySchema =fieldSchema;
+            // Attributes: maxItems, minItems
+            return generateArrayConstraint(arraySchema);
+        }
+        // Ignore Object, Map and Composed schemas.
+        return null;
+    }
 
     /**
      * Generate constraint for numbers : int, float, decimal.
      */
-    private static AnnotationNode generateNumberConstraint(Schema<?> fieldSchema) {
+    private static AnnotationNode generateNumberConstraint(AsyncApi25SchemaImpl fieldSchema) {
 
         List<String> fields = getNumberAnnotFields(fieldSchema);
         if (fields.isEmpty()) {
@@ -280,7 +285,7 @@ public class TypeGeneratorUtils {
         String annotBody = GeneratorConstants.OPEN_BRACE + String.join(GeneratorConstants.COMMA, fields) +
                 GeneratorConstants.CLOSE_BRACE;
         AnnotationNode annotationNode;
-        if (fieldSchema instanceof NumberSchema) {
+        if (fieldSchema.getType().equals("number")) {
             if (fieldSchema.getFormat() != null && fieldSchema.getFormat().equals(GeneratorConstants.FLOAT)) {
                 annotationNode = createAnnotationNode(GeneratorConstants.CONSTRAINT_FLOAT, annotBody);
             } else {
@@ -295,7 +300,7 @@ public class TypeGeneratorUtils {
     /**
      * Generate constraint for string.
      */
-    private static AnnotationNode generateStringConstraint(StringSchema stringSchema) {
+    private static AnnotationNode generateStringConstraint(AsyncApi25SchemaImpl stringSchema) {
 
         List<String> fields = getStringAnnotFields(stringSchema);
         if (fields.isEmpty()) {
@@ -309,7 +314,7 @@ public class TypeGeneratorUtils {
     /**
      * Generate constraint for array.
      */
-    private static AnnotationNode generateArrayConstraint(ArraySchema arraySchema) {
+    private static AnnotationNode generateArrayConstraint(AsyncApi25SchemaImpl arraySchema) {
 
         List<String> fields = getArrayAnnotFields(arraySchema);
         if (fields.isEmpty()) {
@@ -320,12 +325,12 @@ public class TypeGeneratorUtils {
         return createAnnotationNode(GeneratorConstants.CONSTRAINT_ARRAY, annotBody);
     }
 
-    private static List<String> getNumberAnnotFields(Schema<?> numberSchema) {
+    private static List<String> getNumberAnnotFields(AsyncApi25SchemaImpl numberSchema) {
 
         List<String> fields = new ArrayList<>();
-        boolean isInt = numberSchema instanceof IntegerSchema;
+        boolean isInt = numberSchema.getType().equals("integer");
         if (numberSchema.getMinimum() != null &&
-                BigDecimal.ZERO.compareTo(numberSchema.getMinimum()) != 0
+                BigDecimal.ZERO.compareTo((BigDecimal) numberSchema.getMinimum()) != 0
                 && numberSchema.getExclusiveMinimum() == null) {
             String value = numberSchema.getMinimum().toString();
             String fieldRef = GeneratorConstants.MINIMUM + GeneratorConstants.COLON +
@@ -333,24 +338,22 @@ public class TypeGeneratorUtils {
             fields.add(fieldRef);
         }
         if (numberSchema.getMaximum() != null &&
-                BigDecimal.ZERO.compareTo(numberSchema.getMaximum()) != 0
+                BigDecimal.ZERO.compareTo((BigDecimal) numberSchema.getMaximum()) != 0
                 && numberSchema.getExclusiveMaximum() == null) {
             String value = numberSchema.getMaximum().toString();
             String fieldRef = GeneratorConstants.MAXIMUM + GeneratorConstants.COLON +
                     (isInt ? numberSchema.getMaximum().intValue() : value);
             fields.add(fieldRef);
         }
-        if (numberSchema.getExclusiveMinimum() != null &&
-                numberSchema.getExclusiveMinimum() && numberSchema.getMinimum() != null &&
-                BigDecimal.ZERO.compareTo(numberSchema.getMinimum()) != 0) {
+        if (numberSchema.getExclusiveMinimum() != null && numberSchema.getMinimum() != null &&
+                BigDecimal.ZERO.compareTo((BigDecimal) numberSchema.getMinimum()) != 0) {
             String value = numberSchema.getMinimum().toString();
             String fieldRef = GeneratorConstants.EXCLUSIVE_MIN + GeneratorConstants.COLON +
                     (isInt ? numberSchema.getMinimum().intValue() : value);
             fields.add(fieldRef);
         }
-        if (numberSchema.getExclusiveMaximum() != null &&
-                numberSchema.getExclusiveMaximum() &&
-                numberSchema.getMaximum() != null && BigDecimal.ZERO.compareTo(numberSchema.getMaximum()) != 0) {
+        if (numberSchema.getExclusiveMaximum() != null  &&
+                numberSchema.getMaximum() != null && BigDecimal.ZERO.compareTo((BigDecimal) numberSchema.getMaximum()) != 0) {
             String value = numberSchema.getMaximum().toString();
             String fieldRef = GeneratorConstants.EXCLUSIVE_MAX + GeneratorConstants.COLON +
                     (isInt ? numberSchema.getMaximum().intValue() : value);
@@ -365,7 +368,7 @@ public class TypeGeneratorUtils {
         return fields;
     }
 
-    private static List<String> getStringAnnotFields(StringSchema stringSchema) {
+    private static List<String> getStringAnnotFields(AsyncApi25SchemaImpl stringSchema) {
 
         List<String> fields = new ArrayList<>();
         if (stringSchema.getMaxLength() != null && stringSchema.getMaxLength() != 0) {
@@ -387,7 +390,7 @@ public class TypeGeneratorUtils {
         return fields;
     }
 
-    private static List<String> getArrayAnnotFields(ArraySchema arraySchema) {
+    private static List<String> getArrayAnnotFields(AsyncApi25SchemaImpl arraySchema) {
 
         List<String> fields = new ArrayList<>();
         if (arraySchema.getMaxItems() != null && arraySchema.getMaxItems() != 0) {
@@ -431,7 +434,7 @@ public class TypeGeneratorUtils {
      * @param field Schema of the field to generate
      * @return Documentation node list
      */
-    public static List<Node> getFieldApiDocs(Schema<?> field) {
+    public static List<Node> getFieldApiDocs(AsyncApi25SchemaImpl field) {
 
         List<Node> schemaDoc = new ArrayList<>();
         if (field.getDescription() != null) {
@@ -442,7 +445,7 @@ public class TypeGeneratorUtils {
             String componentName = GeneratorUtils.getValidName(split[split.length - 1], true);
             AsyncApi25DocumentImpl openAPI = GeneratorMetaData.getInstance().getAsyncAPI();
             if (openAPI.getComponents().getSchemas().get(componentName) != null) {
-                Schema<?> schema = openAPI.getComponents().getSchemas().get(componentName);
+                AsyncApi25SchemaImpl schema = (AsyncApi25SchemaImpl) openAPI.getComponents().getSchemas().get(componentName);
                 if (schema.getDescription() != null) {
                     schemaDoc.addAll(DocCommentsGenerator.createAPIDescriptionDoc(
                             schema.getDescription(), false));
