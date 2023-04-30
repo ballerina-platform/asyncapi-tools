@@ -167,7 +167,7 @@ public class FunctionSignatureGenerator {
     public String getDType(JsonNode payload) throws BallerinaAsyncApiException {
         String type="";
         if (payload.get("$ref") != null) {
-            type = getValidName(extractReferenceType(payload.get("$ref").toString()), true);
+            type = getValidName(extractReferenceType(payload.get("$ref").textValue()), true);
             AsyncApi25SchemaImpl componentSchema = (AsyncApi25SchemaImpl) asyncAPI.getComponents().getSchemas().get(type);
             if (!isValidSchemaName(type)) {
 //                String operationId = operation.getOperationId();
