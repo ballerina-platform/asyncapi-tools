@@ -330,7 +330,12 @@ public class GeneratorUtils {
      */
     public static String extractReferenceType(String referenceVariable) throws BallerinaAsyncApiException {
 
-        if (referenceVariable.toString().startsWith("#") && referenceVariable.contains("/")) {
+        System.out.println(referenceVariable);
+
+        if(referenceVariable.toString().startsWith("#")){
+            System.out.println("hello");
+        }
+        if (referenceVariable.startsWith("#") && referenceVariable.contains("/")) {
             String[] refArray = referenceVariable.split("/");
             return refArray[refArray.length - 1];
         } else {
