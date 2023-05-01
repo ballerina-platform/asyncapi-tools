@@ -18,9 +18,12 @@
 
 package io.ballerina.asyncapi.core.generators.client;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import io.apicurio.datamodels.models.SecurityScheme;
-import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25DocumentImpl;
-import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25SecuritySchemeImpl;
+import io.apicurio.datamodels.models.asyncapi.AsyncApiChannelItem;
+import io.apicurio.datamodels.models.asyncapi.AsyncApiParameter;
+import io.apicurio.datamodels.models.asyncapi.AsyncApiParameters;
+import io.apicurio.datamodels.models.asyncapi.v25.*;
 import io.ballerina.asyncapi.core.GeneratorConstants;
 import io.ballerina.asyncapi.core.exception.BallerinaAsyncApiException;
 import io.ballerina.compiler.syntax.tree.*;
@@ -37,11 +40,13 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
+import static io.ballerina.asyncapi.core.ErrorMessages.invalidPathParamType;
 import static io.ballerina.asyncapi.core.GeneratorConstants.*;
-import static io.ballerina.asyncapi.core.GeneratorUtils.escapeIdentifier;
-import static io.ballerina.asyncapi.core.GeneratorUtils.getValidName;
 
+import static io.ballerina.asyncapi.core.GeneratorUtils.*;
 import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.STRING;
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createEmptyMinutiaeList;
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createEmptyNodeList;
@@ -66,11 +71,18 @@ public class BallerinaAuthConfigGenerator {
     private String clientCredGrantTokenUrl;
     private String passwordGrantTokenUrl;
     private String refreshTokenUrl;
+
+    private AsyncApi25DocumentImpl asyncAPI;
+
+    private BallerinaUtilGenerator ballerinaUtilGenerator;
     private List<TypeDefinitionNode> authRelatedTypeDefinitionNodes = new ArrayList<>();
 
-    public BallerinaAuthConfigGenerator(boolean isAPIKey, boolean isHttpOROAuth) {
+    public BallerinaAuthConfigGenerator(boolean isAPIKey, boolean isHttpOROAuth,AsyncApi25DocumentImpl asyncAPI,
+                                        BallerinaUtilGenerator ballerinaUtilGenerator) {
         this.httpApiKey = isAPIKey;
         this.httpOROAuth = isHttpOROAuth;
+        this.asyncAPI = asyncAPI;
+        this.ballerinaUtilGenerator=ballerinaUtilGenerator;
     }
 
     /**
@@ -141,11 +153,12 @@ public class BallerinaAuthConfigGenerator {
             }
 
             // generate related records
-            TypeDefinitionNode connectionConfigRecord = generateConnectionConfigRecord();
+//            TypeDefinitionNode connectionConfigRecord = generateConnectionConfigRecord();
+//            nodes.add(connectionConfigRecord);
+
 //            TypeDefinitionNode clientHttp1SettingsRecord = getClientHttp1SettingsRecord();
 //            TypeDefinitionNode customProxyConfigRecord = getCustomProxyRecord();
 //            nodes.addAll(Arrays.asList(connectionConfigRecord, clientHttp1SettingsRecord, customProxyConfigRecord));
-            nodes.add(connectionConfigRecord);
 
 
             if (isHttpApiKey()) {
@@ -444,68 +457,6 @@ public class BallerinaAuthConfigGenerator {
         return recordFieldNodes;
     }
 
-    /**
-     * Generates`ClientHttp1Settings` record.
-     *
-     * <pre>
-     *  # Provides settings related to HTTP/1.x protocol.
-     *  public type ClientHttp1Settings record {|
-     *     # Specifies whether to reuse a connection for multiple requests
-     *     http:KeepAlive keepAlive = http:KEEPALIVE_AUTO;
-     *     # The chunking behaviour of the request
-     *     http:Chunking chunking = http:CHUNKING_AUTO;
-     *     # Proxy server related options
-     *     ProxyConfig proxy?;
-     *  |};
-     * </pre>
-     *
-     * @return {@link TypeDefinitionNode}
-     */
-    private TypeDefinitionNode getClientHttp1SettingsRecord() {
-        Token recordTypeName = createIdentifierToken(CLIENT_HTTP1_SETTINGS);
-        NodeList<Node> recordFieldList = createNodeList(getClientHttp1SettingsRecordFields());
-        MetadataNode recordMetadataNode = getMetadataNode(
-                "Provides settings related to HTTP/1.x protocol.");
-        RecordTypeDescriptorNode recordTypeDescriptorNode = createRecordTypeDescriptorNode(createToken(RECORD_KEYWORD),
-                createToken(OPEN_BRACE_PIPE_TOKEN), recordFieldList, null,
-                createToken(CLOSE_BRACE_PIPE_TOKEN));
-        return createTypeDefinitionNode(recordMetadataNode, createToken(PUBLIC_KEYWORD), createToken(TYPE_KEYWORD),
-                recordTypeName, recordTypeDescriptorNode, createToken(SEMICOLON_TOKEN));
-
-    }
-
-    /**
-     * Generates`ProxyConfig` record.
-     *
-     * <pre>
-     *  # Proxy server configurations to be used with the HTTP client endpoint.
-     *  public type ProxyConfig record {|
-     *     # Host name of the proxy server
-     *     string host = "";
-     *     # Proxy server port
-     *     int port = 0;
-     *     # Proxy server username
-     *     string userName = "";
-     *     # Proxy server password
-     *     @display {label: "", kind: "password"}
-     *     string password = "";
-     *  |};
-     * </pre>
-     *
-     * @return {@link TypeDefinitionNode}
-     */
-    private TypeDefinitionNode getCustomProxyRecord() {
-        Token recordTypeName = createIdentifierToken("ProxyConfig");
-        NodeList<Node> recordFieldList = createNodeList(getCustomProxyRecordFields());
-        MetadataNode recordMetadataNode = getMetadataNode(
-                "Proxy server configurations to be used with the HTTP client endpoint.");
-        RecordTypeDescriptorNode recordTypeDescriptorNode = createRecordTypeDescriptorNode(createToken(RECORD_KEYWORD),
-                createToken(OPEN_BRACE_PIPE_TOKEN), recordFieldList, null,
-                createToken(CLOSE_BRACE_PIPE_TOKEN));
-        return createTypeDefinitionNode(recordMetadataNode, createToken(PUBLIC_KEYWORD), createToken(TYPE_KEYWORD),
-                recordTypeName, recordTypeDescriptorNode, createToken(SEMICOLON_TOKEN));
-
-    }
 
     /**
      * Generate Class variable for api key map {@code final readonly & ApiKeysConfig apiKeyConfig;}.
@@ -594,7 +545,212 @@ public class BallerinaAuthConfigGenerator {
                 parameters.add(serviceURLNode);
             }
         }
+
+//        string path - common for every remote functions
+//        VariableDeclarationNode pathInt = getPathStatement(serviceUrl, annotationNodes);
+//        statementsList.add(pathInt);
+////
+        //TODO: move this
+        //Handle query parameter map
+//        handleParameterSchemaInOperation(operation, statementsList);
+        setFunctionParameters(asyncAPI.getChannels().getItems().get(0), parameters, createToken(COMMA_TOKEN));
         return parameters;
+    }
+
+
+
+    /**
+     * Generate function parameters.
+     */
+    private void setFunctionParameters(AsyncApiChannelItem channelItem, List<Node> parameterList, Token comma,
+                                       List<Node> remoteFunctionDoc) throws BallerinaAsyncApiException {
+
+        AsyncApi25ParametersImpl parameters = (AsyncApi25ParametersImpl)channelItem.getParameters();
+        List<Node> defaultable = new ArrayList<>();
+        List<Node> deprecatedParamDocComments = new ArrayList<>();
+
+        if (parameters != null) {
+            for (String parameterName : parameters.getItemNames()) {
+                if (parameters.getItem(parameterName).getDescription() != null && !parameters.getItem(parameterName).
+                        getDescription().isBlank()) {
+                    MarkdownParameterDocumentationLineNode paramAPIDoc =
+                            DocCommentsGenerator.createAPIParamDoc(getValidName(
+                                    parameterName, false), parameters.getItem(parameterName).getDescription());
+                    remoteFunctionDoc.add(paramAPIDoc);
+                }
+//                List<AnnotationNode> parameterAnnotationNodeList =
+//                        getParameterAnnotationNodeList((AsyncApi25ParameterImpl) parameters.getItem(parameterName),
+//                                deprecatedParamDocComments);
+
+                Node param = getPathParameters(parameterName,(AsyncApi25ParameterImpl) parameters.getItem(parameterName),
+                        createNodeList(new ArrayList<>()));
+
+
+//                String in = parameter.getIn();
+//                switch (in) {
+//                    case "path":
+//                        Node param = getPathParameters(paramete, createNodeList(parameterAnnotationNodeList));
+//                        // Path parameters are always required.
+//                        if (!isResource) {
+//                            parameterList.add(param);
+//                            parameterList.add(comma);
+//                        }
+//                        break;
+//                    case "query":
+//                        Node paramq = getQueryParameters(parameter, createNodeList(parameterAnnotationNodeList));
+//                        if (paramq instanceof RequiredParameterNode) {
+//                            parameterList.add(paramq);
+//                            parameterList.add(comma);
+//                        } else {
+//                            defaultable.add(paramq);
+//                            defaultable.add(comma);
+//                        }
+//                        break;
+//                    case "header":
+//                        Node paramh = getHeaderParameter(parameter, createNodeList(parameterAnnotationNodeList));
+//                        if (paramh instanceof RequiredParameterNode) {
+//                            parameterList.add(paramh);
+//                            parameterList.add(comma);
+//                        } else {
+//                            defaultable.add(paramh);
+//                            defaultable.add(comma);
+//                        }
+//                        break;
+//                    default:
+//                        break;
+//                }
+            }
+        }
+
+        // Handle RequestBody
+        if (operation.getRequestBody() != null) {
+            setRequestBodyParameters(operation.getOperationId(), operation.getRequestBody(), remoteFunctionDoc,
+                    parameterList, defaultable);
+        }
+        remoteFunctionDoc.addAll(deprecatedParamDocComments);
+        //Filter defaultable parameters
+        if (!defaultable.isEmpty()) {
+            parameterList.addAll(defaultable);
+        }
+    }
+
+
+
+    /**
+     * Create path parameters.
+     */
+    public Node getPathParameters(String parameterName,AsyncApi25ParameterImpl parameter,
+                                  NodeList<AnnotationNode> parameterAnnotationNodeList)
+            throws BallerinaAsyncApiException {
+
+        IdentifierToken paramName = createIdentifierToken(getValidName(parameterName, false));
+        String type = "";
+        AsyncApi25SchemaImpl parameterSchema =( AsyncApi25SchemaImpl)parameter.getSchema();
+        if (parameterSchema.get$ref() != null) {
+            type = getValidName(extractReferenceType(parameterSchema.get$ref()), true);
+            AsyncApi25SchemaImpl schema = (AsyncApi25SchemaImpl) asyncAPI.getComponents().getSchemas().
+                    get(type.trim());
+            if (schema.getType().equals("object")) {
+                throw new BallerinaAsyncApiException("Ballerina does not support object type path parameters.");
+            }
+        } else {
+            type = convertAsyncAPITypeToBallerina(parameter.getSchema().getType().trim());
+            if (type.equals("anydata") || type.equals(SQUARE_BRACKETS) || type.equals("record {}")) {
+                throw new BallerinaAsyncApiException(invalidPathParamType(parameterName.trim()));
+            }
+        }
+        BuiltinSimpleNameReferenceNode typeName = createBuiltinSimpleNameReferenceNode(null,
+                createIdentifierToken(type));
+        return createRequiredParameterNode(parameterAnnotationNodeList, typeName, paramName);
+    }
+
+//    private List<AnnotationNode> getParameterAnnotationNodeList(AsyncApi25ParameterImpl parameter,
+//                                                                List<Node> deprecatedParamDocComments) {
+//
+//        List<AnnotationNode> parameterAnnotationNodeList = new ArrayList<>();
+//        Map<String, JsonNode> extensions= parameter.getExtensions();
+////        DocCommentsGenerator.extractDisplayAnnotation(parameter.getExtensions(), parameterAnnotationNodeList);
+//
+//        if (parameter.getDeprecated() != null && parameter.getDeprecated()) {
+//            if (!this.deprecatedParamFound) {
+//                deprecatedParamDocComments.addAll(DocCommentsGenerator.createAPIDescriptionDoc(
+//                        "# Deprecated parameters", false));
+//                this.deprecatedParamFound = true;
+//            }
+//            String deprecatedDescription = "";
+//            if (parameter.getExtensions() != null) {
+//                for (Map.Entry<String, Object> extension : parameter.getExtensions().entrySet()) {
+//                    if (extension.getKey().trim().equals(X_BALLERINA_DEPRECATED_REASON)) {
+//                        deprecatedDescription = extension.getValue().toString();
+//                        break;
+//                    }
+//                }
+//            }
+//            MarkdownParameterDocumentationLineNode paramAPIDoc =
+//                    DocCommentsGenerator.createAPIParamDoc(getValidName(
+//                            parameter.getName(), false), deprecatedDescription);
+//            deprecatedParamDocComments.add(paramAPIDoc);
+//            parameterAnnotationNodeList.add(createAnnotationNode(createToken(AT_TOKEN),
+//                    createSimpleNameReferenceNode(createIdentifierToken("deprecated")), null));
+//        }
+//        return parameterAnnotationNodeList;
+//    }
+
+
+
+
+    /**
+     * This method use to generate Path statement inside the function body node.
+     * <p>
+     * ex:
+     * <pre> string  path = string `/weather`; </pre>
+     *
+     * @param path            - Given path
+     * @param annotationNodes - Node list for path implementation
+     * @return - VariableDeclarationNode for path statement.
+     */
+    private VariableDeclarationNode getPathStatement(String path, NodeList<AnnotationNode> annotationNodes) {
+
+        TypedBindingPatternNode typedBindingPatternNode = createTypedBindingPatternNode(createSimpleNameReferenceNode(
+                createToken(STRING_KEYWORD)), createCaptureBindingPatternNode(
+                createIdentifierToken(RESOURCE_PATH)));
+        // Create initializer
+        // Content  should decide with /pet and /pet/{pet}
+        path = generatePathWithPathParameter(path);
+        //String path generator
+        NodeList<Node> content = createNodeList(createLiteralValueToken(null, path, createEmptyMinutiaeList(),
+                createEmptyMinutiaeList()));
+        TemplateExpressionNode initializer = createTemplateExpressionNode(null, createToken(STRING_KEYWORD),
+                createToken(BACKTICK_TOKEN), content, createToken(BACKTICK_TOKEN));
+        return createVariableDeclarationNode(annotationNodes, null,
+                typedBindingPatternNode, createToken(EQUAL_TOKEN), initializer, createToken(SEMICOLON_TOKEN));
+    }
+
+
+        /**
+     * This method is to used for generating path when it has path parameters.
+     *
+     * @param path - yaml contract path
+     * @return string of path
+     */
+    public String generatePathWithPathParameter(String path) {
+
+        if (path.contains("{")) {
+            String refinedPath = path;
+            Pattern p = Pattern.compile("\\{[^}]*}");
+            Matcher m = p.matcher(path);
+            while (m.find()) {
+                String pathVariable = path.substring(m.start(), m.end());
+                if (pathVariable.startsWith("{") && pathVariable.endsWith("}")) {
+                    String d = pathVariable.replace("{", "").replace("}", "");
+                    String replaceVariable = "{getEncodedUri(" + getValidName(d, false) + ")}";
+                    refinedPath = refinedPath.replace(pathVariable, replaceVariable);
+                }
+            }
+            path = refinedPath.replaceAll("[{]", "\\${");
+        }
+        ballerinaUtilGenerator.setPathParametersFound(true);
+        return path;
     }
 
     /**
@@ -650,7 +806,7 @@ public class BallerinaAuthConfigGenerator {
 
         // httpClientConfig.http2Settings = check config.http2Settings.ensureType(http:ClientHttp2Settings);
         FieldAccessExpressionNode fieldAccessExpressionNode = createFieldAccessExpressionNode(
-                createRequiredExpressionNode(createIdentifierToken(WEBSOCKET_CLIENT_CONFIG)),
+                createRequiredExpressionNode(createIdentifierToken(CLIENT_CONFIG)),
                 createToken(DOT_TOKEN),
                 createSimpleNameReferenceNode(createIdentifierToken(fieldName)));
 
@@ -787,7 +943,7 @@ public class BallerinaAuthConfigGenerator {
         SimpleNameReferenceNode typeBindingPattern = createSimpleNameReferenceNode(
                 createIdentifierToken("websocket:ClientConfiguration"));
         CaptureBindingPatternNode bindingPattern = createCaptureBindingPatternNode(
-                createIdentifierToken(WEBSOCKET_CLIENT_CONFIG));
+                createIdentifierToken(CLIENT_CONFIG));
         TypedBindingPatternNode typedBindingPatternNode = createTypedBindingPatternNode(typeBindingPattern,
                 bindingPattern);
 
@@ -918,7 +1074,7 @@ public class BallerinaAuthConfigGenerator {
         Token comma1 = createIdentifierToken(",");
 
         PositionalArgumentNode positionalArgumentNode02 = createPositionalArgumentNode(createSimpleNameReferenceNode(
-                createIdentifierToken(WEBSOCKET_CLIENT_CONFIG)));
+                createIdentifierToken(CLIENT_CONFIG)));
         argumentsList.add(comma1);
         argumentsList.add(positionalArgumentNode02);
 
@@ -1079,8 +1235,7 @@ public class BallerinaAuthConfigGenerator {
         // add secureSocket field
         MetadataNode secureSocketMetadata = getMetadataNode("SSL/TLS-related options");
         IdentifierToken secureSocketFieldName = AbstractNodeFactory.createIdentifierToken(SECURE_SOCKET_FIELD);
-        TypeDescriptorNode secureSocketfieldType = createSimpleNameReferenceNode(
-                createIdentifierToken("websocket:ClientSecureSocket"));
+        TypeDescriptorNode secureSocketfieldType = createOptionalTypeDescriptorNode(createIdentifierToken("websocket:ClientSecureSocket"),questionMarkToken);
         RecordFieldWithDefaultValueNode secureSocketFieldNode = NodeFactory.createRecordFieldWithDefaultValueNode(
                 secureSocketMetadata, null, secureSocketfieldType, secureSocketFieldName,
                 equalToken,createRequiredExpressionNode(createIdentifierToken("()")), semicolonToken);
@@ -1163,8 +1318,8 @@ public class BallerinaAuthConfigGenerator {
         // add retryConfig field
         MetadataNode retryConfigMetadata = getMetadataNode("Configurations associated with retrying");
         IdentifierToken retryConfigFieldName = AbstractNodeFactory.createIdentifierToken("retryConfig");
-        TypeDescriptorNode returConfigFieldType = createSimpleNameReferenceNode(
-                createIdentifierToken("websocket:WebSocketRetryConfig"));
+        TypeDescriptorNode returConfigFieldType = createOptionalTypeDescriptorNode(
+                createIdentifierToken("websocket:WebSocketRetryConfig"),questionMarkToken);
         RecordFieldWithDefaultValueNode retryConfigFieldNode = NodeFactory.createRecordFieldWithDefaultValueNode(
                 retryConfigMetadata, null, returConfigFieldType, retryConfigFieldName,
                 equalToken,createRequiredExpressionNode(createIdentifierToken("()")), semicolonToken);
@@ -1444,6 +1599,7 @@ public class BallerinaAuthConfigGenerator {
                         }
                         if (securitySchemaValue.getFlows().getPassword() != null) {
                             if (securitySchemaValue.getFlows().getPassword().getTokenUrl() != null) {
+
                                 passwordGrantTokenUrl = securitySchemaValue.getFlows().getPassword().getTokenUrl();
                             }
                             authTypes.add(PASSWORD);
