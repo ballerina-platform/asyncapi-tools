@@ -18,7 +18,11 @@
 
 package io.ballerina.asyncapi.core.generators.client;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.BooleanNode;
+import io.apicurio.datamodels.models.Schema;
 import io.apicurio.datamodels.models.SecurityScheme;
 import io.apicurio.datamodels.models.asyncapi.AsyncApiChannelItem;
 import io.apicurio.datamodels.models.asyncapi.AsyncApiParameter;
@@ -503,7 +507,7 @@ public class BallerinaAuthConfigGenerator {
      *
      * @return {@link List<Node>}  syntax tree node list of config parameters
      */
-    public List<Node> getConfigParamForClassInit(String serviceUrl) {
+    public List<Node> getConfigParamForClassInit(String serviceUrl,ArrayList initMetaDoc) throws BallerinaAsyncApiException, JsonProcessingException {
 
         NodeList<AnnotationNode> annotationNodes = createEmptyNodeList();
         Node serviceURLNode = getServiceURLNode(serviceUrl);
@@ -553,7 +557,7 @@ public class BallerinaAuthConfigGenerator {
         //TODO: move this
         //Handle query parameter map
 //        handleParameterSchemaInOperation(operation, statementsList);
-        setFunctionParameters(asyncAPI.getChannels().getItems().get(0), parameters, createToken(COMMA_TOKEN));
+        setFunctionParameters(asyncAPI.getChannels().getItems().get(0), parameters, createToken(COMMA_TOKEN),initMetaDoc);
         return parameters;
     }
 
@@ -563,9 +567,16 @@ public class BallerinaAuthConfigGenerator {
      * Generate function parameters.
      */
     private void setFunctionParameters(AsyncApiChannelItem channelItem, List<Node> parameterList, Token comma,
-                                       List<Node> remoteFunctionDoc) throws BallerinaAsyncApiException {
+                                       List<Node> remoteFunctionDoc) throws BallerinaAsyncApiException, JsonProcessingException {
 
-        AsyncApi25ParametersImpl parameters = (AsyncApi25ParametersImpl)channelItem.getParameters();
+        AsyncApi25ParametersImpl parameters = (AsyncApi25ParametersImpl) channelItem.getParameters();
+        AsyncApi25ChannelBindingsImpl bindings=(AsyncApi25ChannelBindingsImpl) channelItem.getBindings();
+        if(bindings!=null && bindings.getWs()==null){
+            throw new BallerinaAsyncApiException("This tool support only for websocket protocol,use ws bindings");
+        }
+        AsyncApi25BindingImpl wsBindings=(AsyncApi25BindingImpl) bindings.getWs();
+//            wsBindings.
+
         List<Node> defaultable = new ArrayList<>();
         List<Node> deprecatedParamDocComments = new ArrayList<>();
 
@@ -582,8 +593,38 @@ public class BallerinaAuthConfigGenerator {
 //                        getParameterAnnotationNodeList((AsyncApi25ParameterImpl) parameters.getItem(parameterName),
 //                                deprecatedParamDocComments);
 
-                Node param = getPathParameters(parameterName,(AsyncApi25ParameterImpl) parameters.getItem(parameterName),
+                Node param = getPathParameters(parameterName, (AsyncApi25ParameterImpl) parameters.getItem(parameterName),
                         createNodeList(new ArrayList<>()));
+                parameterList.add(param);
+            }
+        }
+
+        if(wsBindings.getItem("headers")!=null){
+            JsonNode headers=wsBindings.getItem("headers");
+            ObjectMapper objMapper=new ObjectMapper();
+
+            AsyncApi25SchemaImpl headerSchema=objMapper.treeToValue(headers,AsyncApi25SchemaImpl.class);
+            Map<String, Schema>  properties=headerSchema.getProperties();
+//            properties
+
+
+        }
+        if (wsBindings.getItem("query")!=null){
+            JsonNode query=wsBindings.getItem("query");
+            ObjectMapper objMapper=new ObjectMapper();
+
+            AsyncApi25SchemaImpl querySchema=objMapper.treeToValue(query,AsyncApi25SchemaImpl.class);
+            Map<String, Schema>  properties=querySchema.getProperties();
+
+            for (String queryName : properties.keySet()) {
+                Node param= getQueryParameters((AsyncApi25SchemaImpl)properties.get(queryName),queryName,
+                        createNodeList(new ArrayList<>()));
+                parameterList.add(param);
+            }
+
+        }
+//        if (((AsyncApi25BindingImpl)bindings)..)
+    }
 
 
 //                String in = parameter.getIn();
@@ -619,20 +660,22 @@ public class BallerinaAuthConfigGenerator {
 //                    default:
 //                        break;
 //                }
-            }
-        }
 
-        // Handle RequestBody
-        if (operation.getRequestBody() != null) {
-            setRequestBodyParameters(operation.getOperationId(), operation.getRequestBody(), remoteFunctionDoc,
-                    parameterList, defaultable);
-        }
-        remoteFunctionDoc.addAll(deprecatedParamDocComments);
-        //Filter defaultable parameters
-        if (!defaultable.isEmpty()) {
-            parameterList.addAll(defaultable);
-        }
-    }
+
+
+
+//
+//        // Handle RequestBody
+//        if (operation.getRequestBody() != null) {
+//            setRequestBodyParameters(operation.getOperationId(), operation.getRequestBody(), remoteFunctionDoc,
+//                    parameterList, defaultable);
+//        }
+//        remoteFunctionDoc.addAll(deprecatedParamDocComments);
+//        //Filter defaultable parameters
+//        if (!defaultable.isEmpty()) {
+//            parameterList.addAll(defaultable);
+//        }
+
 
 
 
@@ -662,6 +705,100 @@ public class BallerinaAuthConfigGenerator {
         BuiltinSimpleNameReferenceNode typeName = createBuiltinSimpleNameReferenceNode(null,
                 createIdentifierToken(type));
         return createRequiredParameterNode(parameterAnnotationNodeList, typeName, paramName);
+    }
+
+    /**
+     * Create query parameters.
+     * <p>
+     * Note: currently ballerina supports for this data type.
+     * type BasicType boolean|int|float|decimal|string;
+     * public type QueryParamType ()|BasicType|BasicType[];
+     */
+    public Node getQueryParameters(AsyncApi25SchemaImpl schema, String queryParamName, NodeList<AnnotationNode> parameterAnnotationNodeList)
+            throws BallerinaAsyncApiException, JsonProcessingException {
+
+        TypeDescriptorNode typeName;
+
+//        Schema parameterSchema = parameter.getSchema();
+        String paramType = "";
+//        if (parameterSchema.get$ref() != null) {
+//            paramType = getValidName(extractReferenceType(parameterSchema.get$ref()), true);
+//        } else {
+            paramType = convertAsyncAPITypeToBallerina(schema.getType().trim());
+            if (schema.getType().equals(NUMBER)) {
+                if (schema.getFormat() != null) {
+                    paramType = convertAsyncAPITypeToBallerina(schema.getFormat().trim());
+                }
+            } else if (schema.getType().equals("array")) {
+                ObjectMapper objMapper=new ObjectMapper();
+               AsyncApi25SchemaImpl itemsSchema=objMapper.treeToValue(schema.getItems(),AsyncApi25SchemaImpl.class);
+                if (itemsSchema.getType() != null) {
+                    String itemType = itemsSchema.getType();
+                    if (itemType.equals(STRING) || itemType.equals(INTEGER) || itemType.equals(BOOLEAN)) {
+                        paramType = convertAsyncAPITypeToBallerina(itemType) + SQUARE_BRACKETS;
+                    } else if (itemType.equals(NUMBER)) {
+                        paramType = convertAsyncAPITypeToBallerina
+                                (itemsSchema.getFormat().trim()) + SQUARE_BRACKETS;
+                    } else {
+                        throw new BallerinaAsyncApiException("Unsupported parameter type is found in the parameter : " +
+                                queryParamName);
+                    }
+                } else if (itemsSchema.get$ref() != null) {
+                    paramType = getValidName(extractReferenceType(
+                            itemsSchema.get$ref().trim()), true) + SQUARE_BRACKETS;
+                } else {
+                    throw new BallerinaAsyncApiException("Please define the array item type of the parameter : " +
+                            queryParamName);
+                }
+            }
+
+
+
+         if(schema.getDefault()!=null) {
+            IdentifierToken paramName =
+                    createIdentifierToken(getValidName(queryParamName.trim(), false));
+            // Handle given default values in query parameter.
+//            if (schema.getDefault() != null) {
+                LiteralValueToken literalValueToken;
+                if (schema.getType().equals(STRING)) {
+                    literalValueToken = createLiteralValueToken(null,
+                            '"' + schema.getDefault().toString() + '"', createEmptyMinutiaeList(),
+                            createEmptyMinutiaeList());
+                } else {
+                    literalValueToken =
+                            createLiteralValueToken(null,schema.getDefault().toString(),
+                                    createEmptyMinutiaeList(),
+                                    createEmptyMinutiaeList());
+
+                }
+                if(schema.getExtensions()!=null && schema.getExtensions().get("x-nullable")!=null &&
+                        schema.getExtensions().get("x-nullable").equals(BooleanNode.TRUE)){
+                    typeName = createOptionalTypeDescriptorNode(createBuiltinSimpleNameReferenceNode(null,
+                            createIdentifierToken(paramType)), createToken(QUESTION_MARK_TOKEN));
+                    return createDefaultableParameterNode(parameterAnnotationNodeList, typeName, paramName,
+                            createToken(EQUAL_TOKEN), literalValueToken);
+
+                }else{
+                    typeName = createBuiltinSimpleNameReferenceNode(null, createIdentifierToken(paramType));
+                    return createDefaultableParameterNode(parameterAnnotationNodeList, typeName, paramName,
+                            createToken(EQUAL_TOKEN), literalValueToken);
+
+                }
+
+//            } else {
+//                typeName = createOptionalTypeDescriptorNode(createBuiltinSimpleNameReferenceNode(null,
+//                        createIdentifierToken(paramType)), createToken(QUESTION_MARK_TOKEN));
+//                NilLiteralNode nilLiteralNode =
+//                        createNilLiteralNode(createToken(OPEN_PAREN_TOKEN), createToken(CLOSE_PAREN_TOKEN));
+//                return createDefaultableParameterNode(parameterAnnotationNodeList, typeName, paramName,
+//                        createToken(EQUAL_TOKEN), nilLiteralNode);
+//            }
+        }else{
+            typeName = createBuiltinSimpleNameReferenceNode(null, createIdentifierToken(paramType));
+            IdentifierToken paramName =
+                    createIdentifierToken(getValidName(queryParamName.trim(), false));
+            return createRequiredParameterNode(parameterAnnotationNodeList, typeName, paramName);
+        }
     }
 
 //    private List<AnnotationNode> getParameterAnnotationNodeList(AsyncApi25ParameterImpl parameter,
@@ -919,6 +1056,7 @@ public class BallerinaAuthConfigGenerator {
                 blockStatementNode, null);
     }
 
+    //TODO: Use this if try to use this in choreo
     /**
      * Generate `websocketClientConfig` variable.
      * <pre>
@@ -1403,151 +1541,8 @@ public class BallerinaAuthConfigGenerator {
                 ifBody, elseBody);
     }
 
-    private List<Node> getCustomProxyRecordFields() {
-        List<Node> recordFieldNodes = new ArrayList<>();
-        Token semicolonToken = createToken(SEMICOLON_TOKEN);
 
-        MetadataNode hostMetadataNode = getMetadataNode("Host name of the proxy server");
-        IdentifierToken hostFieldName = createIdentifierToken(escapeIdentifier("host"));
-        TypeDescriptorNode hostFieldType = createSimpleNameReferenceNode(createIdentifierToken(STRING));
-        ExpressionNode hostDefaultValue = createRequiredExpressionNode(
-                createIdentifierToken("\"\""));
-        RecordFieldWithDefaultValueNode hostRecordField = createRecordFieldWithDefaultValueNode(hostMetadataNode,
-                null, hostFieldType, hostFieldName, createToken(EQUAL_TOKEN),
-                hostDefaultValue, semicolonToken);
-        recordFieldNodes.add(hostRecordField);
 
-        MetadataNode proxyMetadataNode = getMetadataNode("Proxy server port");
-        IdentifierToken proxyFieldName = createIdentifierToken(escapeIdentifier("port"));
-        TypeDescriptorNode proxyFieldType = createSimpleNameReferenceNode(createIdentifierToken("int"));
-        ExpressionNode proxyDefaultValue = createRequiredExpressionNode(
-                createIdentifierToken("0"));
-        RecordFieldWithDefaultValueNode proxyRecordField = createRecordFieldWithDefaultValueNode(proxyMetadataNode,
-                null, proxyFieldType, proxyFieldName, createToken(EQUAL_TOKEN),
-                proxyDefaultValue, semicolonToken);
-        recordFieldNodes.add(proxyRecordField);
-
-        MetadataNode usernameMetadataNode = getMetadataNode("Proxy server username");
-        IdentifierToken usernameFieldName = createIdentifierToken(escapeIdentifier("userName"));
-        TypeDescriptorNode usernameFieldType = createSimpleNameReferenceNode(createIdentifierToken(STRING));
-        ExpressionNode usernameDefaultValue = createRequiredExpressionNode(
-                createIdentifierToken("\"\""));
-        RecordFieldWithDefaultValueNode usernameRecordField = createRecordFieldWithDefaultValueNode(
-                usernameMetadataNode, null, usernameFieldType, usernameFieldName,
-                createToken(EQUAL_TOKEN),
-                usernameDefaultValue, semicolonToken);
-        recordFieldNodes.add(usernameRecordField);
-
-        List<AnnotationNode> annotationNodes = Collections.singletonList(getDisplayAnnotationForPasswordField());
-
-        MetadataNode passwordMetadataNode = getMetadataNode("Proxy server password", annotationNodes);
-        IdentifierToken passwordFieldName = createIdentifierToken(escapeIdentifier("password"));
-        TypeDescriptorNode passwordFieldType = createSimpleNameReferenceNode(createIdentifierToken(STRING));
-        ExpressionNode passwordDefaultValue = createRequiredExpressionNode(
-                createIdentifierToken("\"\""));
-        RecordFieldWithDefaultValueNode passwordRecordField = createRecordFieldWithDefaultValueNode(
-                passwordMetadataNode, null, passwordFieldType, passwordFieldName,
-                createToken(EQUAL_TOKEN),
-                passwordDefaultValue, semicolonToken);
-        recordFieldNodes.add(passwordRecordField);
-
-        return recordFieldNodes;
-    }
-
-    private AnnotationNode getDisplayAnnotationForRecord(String label) {
-        List<Node> annotFields = new ArrayList<>();
-        BasicLiteralNode labelExpr = createBasicLiteralNode(STRING_LITERAL,
-                createLiteralValueToken(SyntaxKind.STRING_LITERAL_TOKEN,
-                        "\"" + label + "\"",
-                        createEmptyMinutiaeList(),
-                        createEmptyMinutiaeList()));
-        SpecificFieldNode labelField = createSpecificFieldNode(null,
-                createIdentifierToken("label"),
-                createToken(COLON_TOKEN), labelExpr);
-        annotFields.add(labelField);
-        MappingConstructorExpressionNode annotValue = createMappingConstructorExpressionNode(
-                createToken(OPEN_BRACE_TOKEN), createSeparatedNodeList(annotFields),
-                createToken(CLOSE_BRACE_TOKEN));
-
-        SimpleNameReferenceNode annotateReference =
-                createSimpleNameReferenceNode(createIdentifierToken("display"));
-
-        return createAnnotationNode(createToken(SyntaxKind.AT_TOKEN)
-                , annotateReference, annotValue);
-    }
-
-    private AnnotationNode getDisplayAnnotationForPasswordField() {
-        List<Node> annotFields = new ArrayList<>();
-        BasicLiteralNode labelExpr = createBasicLiteralNode(STRING_LITERAL,
-                createLiteralValueToken(SyntaxKind.STRING_LITERAL_TOKEN,
-                        "\"\"",
-                        createEmptyMinutiaeList(),
-                        createEmptyMinutiaeList()));
-        SpecificFieldNode labelField = createSpecificFieldNode(null,
-                createIdentifierToken("label"),
-                createToken(COLON_TOKEN), labelExpr);
-        annotFields.add(labelField);
-        annotFields.add(createToken(COMMA_TOKEN));
-        BasicLiteralNode kindExpr = createBasicLiteralNode(STRING_LITERAL,
-                createLiteralValueToken(SyntaxKind.STRING_LITERAL_TOKEN,
-                        "\"password\"",
-                        createEmptyMinutiaeList(),
-                        createEmptyMinutiaeList()));
-        SpecificFieldNode kindField = createSpecificFieldNode(null,
-                createIdentifierToken("kind"),
-                createToken(COLON_TOKEN), kindExpr);
-        annotFields.add(kindField);
-
-        MappingConstructorExpressionNode annotValue = createMappingConstructorExpressionNode(
-                createToken(OPEN_BRACE_TOKEN), createSeparatedNodeList(annotFields),
-                createToken(CLOSE_BRACE_TOKEN));
-
-        SimpleNameReferenceNode annotateReference =
-                createSimpleNameReferenceNode(createIdentifierToken("display"));
-
-        return createAnnotationNode(createToken(SyntaxKind.AT_TOKEN)
-                , annotateReference, annotValue);
-    }
-
-    private List<Node> getClientHttp1SettingsRecordFields() {
-        List<Node> recordFieldNodes = new ArrayList<>();
-        Token semicolonToken = createToken(SEMICOLON_TOKEN);
-
-        MetadataNode keepAliveMetadataNode = getMetadataNode(
-                "Specifies whether to reuse a connection for multiple requests");
-        IdentifierToken keepAliveFieldName = createIdentifierToken(escapeIdentifier(KEEP_ALIVE));
-        TypeDescriptorNode keepAliveFieldType = createSimpleNameReferenceNode(
-                createIdentifierToken("http:KeepAlive"));
-        ExpressionNode keepAliveDefaultValue = createRequiredExpressionNode(
-                createIdentifierToken("http:KEEPALIVE_AUTO"));
-        RecordFieldWithDefaultValueNode keepAliveRecordField = createRecordFieldWithDefaultValueNode(
-                keepAliveMetadataNode, null, keepAliveFieldType, keepAliveFieldName,
-                createToken(EQUAL_TOKEN), keepAliveDefaultValue, semicolonToken);
-        recordFieldNodes.add(keepAliveRecordField);
-
-        MetadataNode chunkingMetadataNode = getMetadataNode("The chunking behaviour of the request");
-        IdentifierToken chunkingFieldName = createIdentifierToken(escapeIdentifier(CHUNKING));
-        TypeDescriptorNode chunkingFieldType = createSimpleNameReferenceNode(
-                createIdentifierToken("http:Chunking"));
-        ExpressionNode chunkingDefaultValue = createRequiredExpressionNode(
-                createIdentifierToken("http:CHUNKING_AUTO"));
-        RecordFieldWithDefaultValueNode chunkingRecordField = createRecordFieldWithDefaultValueNode(
-                chunkingMetadataNode, null, chunkingFieldType, chunkingFieldName,
-                createToken(EQUAL_TOKEN), chunkingDefaultValue, semicolonToken);
-        recordFieldNodes.add(chunkingRecordField);
-
-        MetadataNode proxyMetadataNode = getMetadataNode("Proxy server related options");
-        IdentifierToken proxyFieldName = AbstractNodeFactory.createIdentifierToken(RETRY_CONFIG_FIELD);
-        TypeDescriptorNode proxyFieldType = createSimpleNameReferenceNode(
-                createIdentifierToken("ProxyConfig"));
-        RecordFieldNode proxyRecordField = NodeFactory.createRecordFieldNode(
-                proxyMetadataNode, null, proxyFieldType, proxyFieldName,
-                createToken(QUESTION_MARK_TOKEN), semicolonToken);
-        recordFieldNodes.add(proxyRecordField);
-
-        return recordFieldNodes;
-
-    }
 
     private MetadataNode getMetadataNode(String comment) {
 
