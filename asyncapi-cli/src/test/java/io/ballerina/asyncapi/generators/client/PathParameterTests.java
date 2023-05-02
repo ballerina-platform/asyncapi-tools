@@ -58,7 +58,7 @@ public class PathParameterTests {
 //        Path expectedPath = RESDIR.resolve("ballerina/path_parameter_valid.bal");
 //        AsyncApi25DocumentImpl openAPI = GeneratorUtils.normalizeAsyncAPI(definitionPath);
         BallerinaCodeGenerator ballerinaCodeGenerator=new BallerinaCodeGenerator();
-        ballerinaCodeGenerator.generateClient("src/test/resources/generators/client/swagger/path_parameter_valid.yaml","/Users/thushalya/Documents/out",true);
+        ballerinaCodeGenerator.generateClient("src/test/resources/generators/client/swagger/path_parameter_valid.yaml","/Users/thushalya/Documents/out",false);
 //        AASClientConfig.Builder clientMetaDataBuilder = new AASClientConfig.Builder();
 //        AASClientConfig oasClientConfig = clientMetaDataBuilder
 ////                .withFilters(filter)
