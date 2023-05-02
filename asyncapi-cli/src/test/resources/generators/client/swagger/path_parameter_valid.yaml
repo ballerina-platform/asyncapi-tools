@@ -4,32 +4,34 @@ info:
   version: 0.0.0
 servers:
   development:
-    url: "ws://{server}:{port}/payloadV"
+    url: "{server}:{port}/payloadV"
     protocol: ws
     protocolVersion: "13"
     variables:
       server:
-        default: ws://www.asyncapi.com
+        default: ws://localhost
       port:
-        default: "80"
+        default: "9090"
 channels:
-  /v1/{id}/v2/{name}:
+  /hello:
     subscribe:
       message:
         payload:
-          type: integer
-          format: int64
+          type: string
     publish:
       message:
         $ref: '#/components/messages/Subscribe'
-    parameters:
-      id:
-        schema:
-          type: integer
-          format: int64
-      name:
-        schema:
-          type: string
+    bindings:
+      ws:
+        bindingVersion: 0.1.0
+        query:
+          type: object
+          properties:
+            pet:
+              type: string
+        
+
+
 components:
   schemas:
     Subscribe:
@@ -50,6 +52,5 @@ components:
         $ref: '#/components/schemas/Subscribe'
       x-response:
         payload:
-          type: integer
-          format: int64
+          type: string
       x-response-type: simple-rpc
