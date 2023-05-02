@@ -73,7 +73,7 @@ public class ArrayTypeGenerator extends TypeGenerator {
     }
 
 
-    //TODO : Change this override method
+    //TODO : Change this override method after using rc-2
     @Override
     public TypeDescriptorNode generateTypeDescriptorNode() throws BallerinaAsyncApiException {
         return null;
