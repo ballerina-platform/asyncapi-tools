@@ -73,7 +73,7 @@ public abstract class TypeGenerator {
             throws BallerinaAsyncApiException {
 
         MarkdownDocumentationNode documentationNode = createMarkdownDocumentationNode(createNodeList(schemaDoc));
-        MetadataNode metadataNode = createMetadataNode(documentationNode, null);
+        MetadataNode metadataNode = createMetadataNode(documentationNode,createNodeList(new ArrayList<>()));
         return createTypeDefinitionNode(metadataNode, createToken(PUBLIC_KEYWORD), createToken(TYPE_KEYWORD),
                 typeName, generateTypeDescriptorNode(),
                 createToken(SEMICOLON_TOKEN));

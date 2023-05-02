@@ -108,6 +108,7 @@ public class FunctionReturnTypeGenerator {
 //                }
 //            }
 //        }
+        String type=null;
 
         if(extensions.get(X_RESPONSE).get("oneOf")!=null){
 
@@ -125,15 +126,17 @@ public class FunctionReturnTypeGenerator {
 
 
         } else if (extensions.get(X_RESPONSE).get("$ref")!=null) {
-            String reference= extensions.get(X_RESPONSE).get("$ref").toString();
-            AsyncApi25SchemaImpl refSchema = asyncAPI.getComponents().getSchemas().get(
-                    getValidName(extractReferenceType(reference);
-            getDataType(refSchema);
+            String reference= extensions.get(X_RESPONSE).get("$ref").asText();
+            String schemaName=getValidName(extractReferenceType(reference),true);
+            AsyncApi25SchemaImpl refSchema = (AsyncApi25SchemaImpl) asyncAPI.getComponents().getSchemas().get(
+                    schemaName);
+          type =getDataType(schemaName,refSchema);
 
 
 
 
         }
+        returnTypes.add(type);
 
         if (returnTypes.size() > 0) {
             StringBuilder finalReturnType = new StringBuilder();
@@ -155,15 +158,15 @@ public class FunctionReturnTypeGenerator {
     /**
      * Get return data type by traversing OAS schemas.
      */
-    private String getDataType(AsyncApi25SchemaImpl schema)
+    private String getDataType(String schemaName,AsyncApi25SchemaImpl schema)
             throws BallerinaAsyncApiException {
 
         String type=null;
         if (((schema.getProperties() != null &&
                (schema.getOneOf() != null || schema.getAllOf() != null || schema.getAnyOf() != null)))) {
-            type = generateReturnDataTypeForComposedSchema( schema,type);
+            type = generateReturnDataTypeForComposedSchema( schemaName,schema,type);
         } else if (schema.getType().equals("object")) {
-            type = handleInLineRecordInResponse( schema);
+            type = handleInLineRecordInResponse(schemaName, schema);
 //        } else if (schema instanceof MapSchema) {
 //            type = handleResponseWithMapSchema(operation, media, mapSchema);
         } else if (schema.get$ref() != null) {
@@ -270,12 +273,12 @@ public class FunctionReturnTypeGenerator {
     /**
      * Get the return data type according to the OAS ComposedSchemas ex: AllOf, OneOf, AnyOf.
      */
-    private String generateReturnDataTypeForComposedSchema(AsyncApi25SchemaImpl composedSchema,String type)
+    private String generateReturnDataTypeForComposedSchema(String schemaName,AsyncApi25SchemaImpl composedSchema,String type)
             throws BallerinaAsyncApiException {
 
         if (composedSchema.getOneOf() != null) {
             // Get oneOfUnionType name
-            String typeName = "OneOf" + "wso2_testing_oneof" + "Response";
+            String typeName = "OneOf" + getValidName(schemaName.trim(),true)+ "Response";
             TypeDefinitionNode typeDefNode = ballerinaSchemaGenerator.getTypeDefinitionNode(
                     composedSchema, typeName, new ArrayList<>());
             GeneratorUtils.updateTypeDefNodeList(typeName, typeDefNode, typeDefinitionNodeList);
@@ -284,7 +287,7 @@ public class FunctionReturnTypeGenerator {
 //                type = typeName;
 //            }
         } else if (composedSchema.getAllOf() != null) {
-            String recordName = "Compound" + "wso2_testing_compound" +
+            String recordName = "Compound" + getValidName(schemaName,true) +
                     "Response";
             TypeDefinitionNode allOfTypeDefinitionNode = ballerinaSchemaGenerator.getTypeDefinitionNode
                     (composedSchema, recordName, new ArrayList<>());
@@ -297,12 +300,12 @@ public class FunctionReturnTypeGenerator {
     /**
      * Handle inline record by generating record with name for response in OAS type ObjectSchema.
      */
-    private String handleInLineRecordInResponse( AsyncApi25SchemaImpl objectSchema)
+    private String handleInLineRecordInResponse(String schemaName, AsyncApi25SchemaImpl objectSchema)
             throws BallerinaAsyncApiException {
 
         Map<String, Schema> properties = objectSchema.getProperties();
         String ref = objectSchema.get$ref();
-        String type = "wso2_testing_object" + "Response";
+        String type = getValidName(schemaName,true)+ "Response";
 
         if (ref != null) {
             type = extractReferenceType(ref.trim());

@@ -19,43 +19,13 @@
 package io.ballerina.asyncapi.core.generators.client;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.TextNode;
 import io.apicurio.datamodels.models.ServerVariable;
 import io.apicurio.datamodels.models.asyncapi.AsyncApiMessage;
 import io.apicurio.datamodels.models.asyncapi.AsyncApiServer;
 import io.apicurio.datamodels.models.asyncapi.v25.*;
 import io.ballerina.asyncapi.core.exception.BallerinaAsyncApiException;
 import io.ballerina.asyncapi.core.generators.schema.BallerinaTypesGenerator;
-import io.ballerina.compiler.syntax.tree.AnnotationNode;
-import io.ballerina.compiler.syntax.tree.AssignmentStatementNode;
-import io.ballerina.compiler.syntax.tree.ClassDefinitionNode;
-import io.ballerina.compiler.syntax.tree.FieldAccessExpressionNode;
-import io.ballerina.compiler.syntax.tree.FunctionBodyNode;
-import io.ballerina.compiler.syntax.tree.FunctionDefinitionNode;
-import io.ballerina.compiler.syntax.tree.FunctionSignatureNode;
-import io.ballerina.compiler.syntax.tree.IdentifierToken;
-import io.ballerina.compiler.syntax.tree.ImportDeclarationNode;
-import io.ballerina.compiler.syntax.tree.MarkdownDocumentationLineNode;
-import io.ballerina.compiler.syntax.tree.MarkdownDocumentationNode;
-import io.ballerina.compiler.syntax.tree.MarkdownParameterDocumentationLineNode;
-import io.ballerina.compiler.syntax.tree.MetadataNode;
-import io.ballerina.compiler.syntax.tree.ModuleMemberDeclarationNode;
-import io.ballerina.compiler.syntax.tree.ModulePartNode;
-import io.ballerina.compiler.syntax.tree.Node;
-import io.ballerina.compiler.syntax.tree.NodeList;
-import io.ballerina.compiler.syntax.tree.ObjectFieldNode;
-import io.ballerina.compiler.syntax.tree.OptionalTypeDescriptorNode;
-import io.ballerina.compiler.syntax.tree.ParameterNode;
-import io.ballerina.compiler.syntax.tree.QualifiedNameReferenceNode;
-import io.ballerina.compiler.syntax.tree.ReturnStatementNode;
-import io.ballerina.compiler.syntax.tree.ReturnTypeDescriptorNode;
-import io.ballerina.compiler.syntax.tree.SeparatedNodeList;
-import io.ballerina.compiler.syntax.tree.SimpleNameReferenceNode;
-import io.ballerina.compiler.syntax.tree.StatementNode;
-import io.ballerina.compiler.syntax.tree.SyntaxKind;
-import io.ballerina.compiler.syntax.tree.SyntaxTree;
-import io.ballerina.compiler.syntax.tree.Token;
-import io.ballerina.compiler.syntax.tree.TypeDefinitionNode;
+import io.ballerina.compiler.syntax.tree.*;
 import io.ballerina.asyncapi.core.GeneratorConstants;
 import io.ballerina.asyncapi.core.GeneratorUtils;
 import io.ballerina.asyncapi.core.generators.client.model.AASClientConfig;
@@ -65,13 +35,10 @@ import io.ballerina.tools.text.TextDocument;
 import io.ballerina.tools.text.TextDocuments;
 
 
-import java.net.MalformedURLException;
 import java.net.URL;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
@@ -114,7 +81,6 @@ import static io.ballerina.compiler.syntax.tree.SyntaxKind.OPEN_PAREN_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.PUBLIC_KEYWORD;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.QUESTION_MARK_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.REMOTE_KEYWORD;
-import static io.ballerina.compiler.syntax.tree.SyntaxKind.RESOURCE_KEYWORD;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.RETURNS_KEYWORD;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.RETURN_KEYWORD;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.SEMICOLON_TOKEN;
@@ -189,7 +155,8 @@ public class BallerinaClientGenerator {
         this.ballerinaUtilGenerator = new BallerinaUtilGenerator();
         this.remoteFunctionNameList = new ArrayList<>();
         this.serverURL = "/";
-        this.ballerinaAuthConfigGenerator = new BallerinaAuthConfigGenerator(false, false);
+        this.ballerinaAuthConfigGenerator = new BallerinaAuthConfigGenerator(false, false , asyncAPI,
+                ballerinaUtilGenerator);
         this.resourceMode = AASClientConfig.isResourceMode();
     }
 
@@ -260,7 +227,6 @@ public class BallerinaClientGenerator {
         String stringClassName= asyncAPI.getInfo().getTitle().trim()+ GeneratorUtils.
                 removeNonAlphanumeric(asyncAPI.getChannels().getItemNames().get(0).trim())+"Client";
         IdentifierToken className= createIdentifierToken(stringClassName);
-        //TODO: Change this name as extracting it from the title of the asyncapi document
 //        IdentifierToken className = createIdentifierToken(GeneratorConstants.CLIENT_CLASS);
         NodeList<Token> classTypeQualifiers = createNodeList(
                 createToken(ISOLATED_KEYWORD), createToken(CLIENT_KEYWORD));
@@ -323,12 +289,12 @@ public class BallerinaClientGenerator {
      * @throws BallerinaAsyncApiException When invalid server URL is provided
      */
     private FunctionDefinitionNode createInitFunction() throws BallerinaAsyncApiException {
-
-        FunctionSignatureNode functionSignatureNode = getInitFunctionSignatureNode();
+        ArrayList initMetaDataDoc=new ArrayList();
+        FunctionSignatureNode functionSignatureNode = getInitFunctionSignatureNode(initMetaDataDoc);
         FunctionBodyNode functionBodyNode = getInitFunctionBodyNode();
         NodeList<Token> qualifierList = createNodeList(createToken(PUBLIC_KEYWORD), createToken(ISOLATED_KEYWORD));
         IdentifierToken functionName = createIdentifierToken("init");
-        return createFunctionDefinitionNode(null, getInitDocComment(), qualifierList, createToken(FUNCTION_KEYWORD),
+        return createFunctionDefinitionNode(null, getInitDocComment(initMetaDataDoc), qualifierList, createToken(FUNCTION_KEYWORD),
                 functionName, createEmptyNodeList(), functionSignatureNode, functionBodyNode);
     }
 
@@ -341,8 +307,8 @@ public class BallerinaClientGenerator {
 
         List<StatementNode> assignmentNodes = new ArrayList<>();
 
-        assignmentNodes.add(ballerinaAuthConfigGenerator.getWebsocketClientConfigVariableNode());
-        assignmentNodes.add(ballerinaAuthConfigGenerator.getClientConfigDoStatementNode());
+//        assignmentNodes.add(ballerinaAuthConfigGenerator.getWebsocketClientConfigVariableNode());
+//        assignmentNodes.add(ballerinaAuthConfigGenerator.getClientConfigDoStatementNode());
 
         // If both apiKey and httpOrOAuth is supported
         // todo : After revamping
@@ -385,11 +351,11 @@ public class BallerinaClientGenerator {
      * @return {@link FunctionSignatureNode}
      * @throws BallerinaAsyncApiException When invalid server URL is provided
      */
-    private FunctionSignatureNode getInitFunctionSignatureNode() throws BallerinaAsyncApiException {
+    private FunctionSignatureNode getInitFunctionSignatureNode(ArrayList initMetaDataNode) throws BallerinaAsyncApiException {
 
         serverURL = getServerURL((AsyncApi25ServersImpl) asyncAPI.getServers());
         SeparatedNodeList<ParameterNode> parameterList = createSeparatedNodeList(
-                ballerinaAuthConfigGenerator.getConfigParamForClassInit(serverURL));
+                ballerinaAuthConfigGenerator.getConfigParamForClassInit(serverURL,initMetaDataNode));
         OptionalTypeDescriptorNode returnType = createOptionalTypeDescriptorNode(createToken(ERROR_KEYWORD),
                 createToken(QUESTION_MARK_TOKEN));
         ReturnTypeDescriptorNode returnTypeDescriptorNode = createReturnTypeDescriptorNode(
@@ -403,9 +369,9 @@ public class BallerinaClientGenerator {
      *
      * @return {@link MetadataNode}    Metadata node containing entire function documentation comment.
      */
-    private MetadataNode getInitDocComment() {
+    private MetadataNode getInitDocComment(ArrayList docs) {
 
-        List<Node> docs = new ArrayList<>();
+//        List<Node> docs = new ArrayList<>();
         String clientInitDocComment = "Gets invoked to initialize the `connector`.\n";
         Map<String, JsonNode> extensions = ((AsyncApi25InfoImpl)asyncAPI.getInfo()).getExtensions();
         if (extensions != null && !extensions.isEmpty()) {
@@ -484,7 +450,7 @@ public class BallerinaClientGenerator {
             if(extensions!=null && extensions.get(X_RESPONSE)!=null ){
 //                JsonNode ref=extensions.get(X_RESPONSE).get(PAYLOAD);
                 FunctionDefinitionNode functionDefinitionNode =
-                        getClientMethodFunctionDefinitionNode( (AsyncApi25MessageImpl)messageItem.getValue(),extensions);
+                        getClientMethodFunctionDefinitionNode( messageItem,extensions);
                 functionDefinitionNodeList.add(functionDefinitionNode);
 //
 
@@ -544,18 +510,20 @@ public class BallerinaClientGenerator {
 //     *     }
 //     * </pre>
 //     */
-    private FunctionDefinitionNode  getClientMethodFunctionDefinitionNode(AsyncApi25MessageImpl message,
+    private FunctionDefinitionNode  getClientMethodFunctionDefinitionNode(Map.Entry<String, AsyncApiMessage> message,
                                                                           Map<String, JsonNode> extensions)
             throws BallerinaAsyncApiException {
         // Create api doc for function
         List<Node> remoteFunctionDocs = new ArrayList<>();
+        AsyncApi25MessageImpl messageValue= (AsyncApi25MessageImpl) message.getValue();
+        String messageName=message.getKey();
 
-        if (message.getSummary() != null) {
+        if (messageValue.getSummary() != null) {
             remoteFunctionDocs.addAll(DocCommentsGenerator.createAPIDescriptionDoc(
-                    message.getSummary(), true));
-        } else if (message.getDescription() != null && !message.getDescription().isBlank()) {
+                    messageValue.getSummary(), true));
+        } else if (messageValue.getDescription() != null && !messageValue.getDescription().isBlank()) {
             remoteFunctionDocs.addAll(DocCommentsGenerator.createAPIDescriptionDoc(
-                    message.getDescription(), true));
+                    messageValue.getDescription(), true));
         } else {
             MarkdownDocumentationLineNode newLine = createMarkdownDocumentationLineNode(null,
                     createToken(SyntaxKind.HASH_TOKEN), createEmptyNodeList());
@@ -567,14 +535,14 @@ public class BallerinaClientGenerator {
                                 REMOTE_KEYWORD),
                 createToken(ISOLATED_KEYWORD));
         Token functionKeyWord = createToken(FUNCTION_KEYWORD);
-        IdentifierToken functionName = createIdentifierToken("do"+message.getName());
+        IdentifierToken functionName = createIdentifierToken(REMOTE_METHOD_NAME_PREFIX +messageName);
 
-        remoteFunctionNameList.add(message.getName());
+        remoteFunctionNameList.add(messageName);
 
         FunctionSignatureGenerator functionSignatureGenerator = new FunctionSignatureGenerator(asyncAPI,
                 ballerinaSchemaGenerator, typeDefinitionNodeList, resourceMode);
         FunctionSignatureNode functionSignatureNode =
-                functionSignatureGenerator.getFunctionSignatureNode(message.getPayload(),
+                functionSignatureGenerator.getFunctionSignatureNode(messageValue.getPayload(),
                         remoteFunctionDocs,extensions);
         typeDefinitionNodeList = functionSignatureGenerator.getTypeDefinitionNodeList();
 //        // Create `Deprecated` annotation if an operation has mentioned as `deprecated:true`
@@ -583,6 +551,7 @@ public class BallerinaClientGenerator {
 //                    remoteFunctionDocs, annotationNodes);
 //        }
         // Create metadataNode add documentation string
+
         List<AnnotationNode> annotationNodes = new ArrayList<>();
         MetadataNode metadataNode = createMetadataNode(createMarkdownDocumentationNode(
                 createNodeList(remoteFunctionDocs)), createNodeList(annotationNodes));
@@ -590,7 +559,7 @@ public class BallerinaClientGenerator {
         // Create Function Body
         FunctionBodyGenerator functionBodyGenerator = new FunctionBodyGenerator(imports, typeDefinitionNodeList,
                 asyncAPI, ballerinaSchemaGenerator, ballerinaAuthConfigGenerator, ballerinaUtilGenerator, resourceMode);
-        FunctionBodyNode functionBodyNode = functionBodyGenerator.getFunctionBodyNode(extensions);
+        FunctionBodyNode functionBodyNode = functionBodyGenerator.getFunctionBodyNode(extensions, ((RequiredParameterNode)functionSignatureNode.parameters().get(0)).paramName().get().toString());
         imports = functionBodyGenerator.getImports();
 
         //Generate relative path

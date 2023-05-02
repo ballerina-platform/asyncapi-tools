@@ -243,6 +243,8 @@ public class RecordTypeGenerator extends TypeGenerator {
             if (typeGenerator instanceof RecordTypeGenerator) {
                 fieldTypeName = TypeGeneratorUtils.getNullableType(fieldSchema, fieldTypeName);
             }
+
+            //TODO: Need to figure out this
             if (typeGenerator instanceof ArrayTypeGenerator &&
                     !((ArrayTypeGenerator) typeGenerator).getTypeDefinitionNodeList().isEmpty()) {
                 typeDefinitionNodeList.addAll(((ArrayTypeGenerator) typeGenerator).getTypeDefinitionNodeList());
@@ -252,6 +254,7 @@ public class RecordTypeGenerator extends TypeGenerator {
                         ((UnionTypeGenerator) typeGenerator).getTypeDefinitionNodeList();
                 typeDefinitionNodeList.addAll(newConstraintNode);
             }
+            //TODO: uncomment this after figure out
             TypeGeneratorUtils.updateRecordFieldList(required, recordFieldList, field, fieldSchema, schemaDocNodes,
                     fieldName, fieldTypeName);
         }

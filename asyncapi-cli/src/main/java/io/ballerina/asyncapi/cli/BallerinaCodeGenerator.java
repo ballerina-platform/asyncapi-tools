@@ -25,6 +25,7 @@ import io.ballerina.asyncapi.core.generators.asyncspec.utils.CodegenUtils;
 import io.ballerina.asyncapi.core.generators.client.BallerinaClientGenerator;
 import io.ballerina.asyncapi.core.generators.client.BallerinaTestGenerator;
 import io.ballerina.asyncapi.core.generators.client.model.AASClientConfig;
+import io.ballerina.asyncapi.core.generators.schema.BallerinaTypesGenerator;
 //import io.ballerina.asyncapi.core.generators.schema.BallerinaTypesGenerator;
 import io.ballerina.asyncapi.core.model.GenSrcFile;
 import io.ballerina.compiler.syntax.tree.SyntaxTree;
@@ -329,20 +330,20 @@ public class BallerinaCodeGenerator {
         List<TypeDefinitionNode> preGeneratedTypeDefNodes = new ArrayList<>(
                 ballerinaClientGenerator.getBallerinaAuthConfigGenerator().getAuthRelatedTypeDefinitionNodes());
         preGeneratedTypeDefNodes.addAll(ballerinaClientGenerator.getTypeDefinitionNodeList());
-        // Generate ballerina records to represent schemas.
-//        BallerinaTypesGenerator ballerinaSchemaGenerator = new BallerinaTypesGenerator(
-//                asyncAPIDef, nullable, preGeneratedTypeDefNodes);
+//         Generate ballerina records to represent schemas.
+        BallerinaTypesGenerator ballerinaSchemaGenerator = new BallerinaTypesGenerator(
+                asyncAPIDef, nullable, preGeneratedTypeDefNodes);
 
-//        SyntaxTree schemaSyntaxTree = ballerinaSchemaGenerator.generateSyntaxTree();
-//        String schemaContent = Formatter.format(schemaSyntaxTree).toString();
+        SyntaxTree schemaSyntaxTree = ballerinaSchemaGenerator.generateSyntaxTree();
+        String schemaContent = Formatter.format(schemaSyntaxTree).toString();
 //        if (filter.getTags().size() > 0) {
 //            // Remove unused records and enums when generating the client by the tags given.
 //            schemaContent = GeneratorUtils.removeUnusedEntities(schemaSyntaxTree, mainContent, schemaContent, null);
 //        }
-//        if (!schemaContent.isBlank()) {
-//            sourceFiles.add(new GenSrcFile(GenSrcFile.GenFileType.MODEL_SRC, srcPackage, TYPE_FILE_NAME,
-//                    schemaContent));
-//        }
+        if (!schemaContent.isBlank()) {
+            sourceFiles.add(new GenSrcFile(GenSrcFile.GenFileType.MODEL_SRC, srcPackage, TYPE_FILE_NAME,
+                    schemaContent));
+        }
 
         // Generate test boilerplate code for test cases
         if (this.includeTestFiles) {

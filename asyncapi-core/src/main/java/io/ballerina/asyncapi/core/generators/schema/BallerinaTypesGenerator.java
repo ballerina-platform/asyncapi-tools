@@ -55,8 +55,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
-import static io.ballerina.asyncapi.core.GeneratorConstants.CONNECTION_CONFIG;
-import static io.ballerina.asyncapi.core.GeneratorConstants.HTTP;
+import static io.ballerina.asyncapi.core.GeneratorConstants.*;
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createEmptyNodeList;
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createNodeList;
 
@@ -142,8 +141,8 @@ public class BallerinaTypesGenerator {
 //                    }
                     if (GeneratorUtils.isValidSchemaName(schemaKey)) {
                         List<Node> schemaDoc = new ArrayList<>();
-                        typeDefinitionNodeListForSchema.add(getTypeDefinitionNode
-                                ((AsyncApi25SchemaImpl) schema.getValue(), schemaKey, schemaDoc));
+                        typeDefinitionNodeListForSchema.add(getTypeDefinitionNode(
+                                (AsyncApi25SchemaImpl) schema.getValue(), schemaKey, schemaDoc));
                     }
                 }
             }
@@ -188,30 +187,34 @@ public class BallerinaTypesGenerator {
                 continue;
             }
             if (node.typeName().text().equals(CONNECTION_CONFIG)) {
+                ImportDeclarationNode importForWebsocket = GeneratorUtils.getImportDeclarationNode(
+                        GeneratorConstants.BALLERINA,
+                        WEBSOCKET);
                 ImportDeclarationNode importForHttp = GeneratorUtils.getImportDeclarationNode(
                         GeneratorConstants.BALLERINA,
                         HTTP);
+                imports.add(importForWebsocket);
                 imports.add(importForHttp);
             }
-            RecordTypeDescriptorNode record = (RecordTypeDescriptorNode) node.typeDescriptor();
-            for (Node field : record.fields()) {
-                if (!(field instanceof TypeReferenceNode) ||
-                        !(((TypeReferenceNode) field).typeName() instanceof QualifiedNameReferenceNode)) {
-                    continue;
-                }
-                TypeReferenceNode recordField = (TypeReferenceNode) field;
-                QualifiedNameReferenceNode typeInclusion = (QualifiedNameReferenceNode) recordField.typeName();
-                boolean isHttpImportExist = imports.stream().anyMatch(importNode -> importNode.moduleName().stream()
-                        .anyMatch(moduleName -> moduleName.text().equals(HTTP)));
-
-                if (!isHttpImportExist && typeInclusion.modulePrefix().text().equals(HTTP)) {
-                    ImportDeclarationNode importForHttp = GeneratorUtils.getImportDeclarationNode(
-                            GeneratorConstants.BALLERINA,
-                            HTTP);
-                    imports.add(importForHttp);
-                    break;
-                }
-            }
+//            RecordTypeDescriptorNode record = (RecordTypeDescriptorNode) node.typeDescriptor();
+//            for (Node field : record.fields()) {
+//                if (!(field instanceof TypeReferenceNode) ||
+//                        !(((TypeReferenceNode) field).typeName() instanceof QualifiedNameReferenceNode)) {
+//                    continue;
+//                }
+//                TypeReferenceNode recordField = (TypeReferenceNode) field;
+//                QualifiedNameReferenceNode typeInclusion = (QualifiedNameReferenceNode) recordField.typeName();
+//                boolean isHttpImportExist = imports.stream().anyMatch(importNode -> importNode.moduleName().stream()
+//                        .anyMatch(moduleName -> moduleName.text().equals(WEBSOCKET)));
+//
+//                if (!isHttpImportExist && typeInclusion.modulePrefix().text().equals(WEBSOCKET)) {
+//                    ImportDeclarationNode importForHttp = GeneratorUtils.getImportDeclarationNode(
+//                            GeneratorConstants.BALLERINA,
+//                            WEBSOCKET);
+//                    imports.add(importForHttp);
+//                    break;
+//                }
+//            }
         }
     }
 
@@ -234,7 +237,7 @@ public class BallerinaTypesGenerator {
 //        if (constraintNode != null) {
 //            typeAnnotations.add(constraintNode);
 //        }
-        TypeGeneratorUtils.getRecordDocs(schemaDocs, (AsyncApi25SchemaImpl) schema);
+        TypeGeneratorUtils.getRecordDocs(schemaDocs,  schema);
         TypeDefinitionNode typeDefinitionNode =
                 typeGenerator.generateTypeDefinitionNode(typeNameToken, schemaDocs);
 

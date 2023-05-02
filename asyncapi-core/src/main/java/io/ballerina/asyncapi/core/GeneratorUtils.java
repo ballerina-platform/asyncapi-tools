@@ -241,7 +241,7 @@ public class GeneratorUtils {
         if (GeneratorConstants.TYPE_MAP.containsKey(type)) {
             return GeneratorConstants.TYPE_MAP.get(type);
         } else {
-            throw new BallerinaAsyncApiException("Unsupported OAS data type `" + type + "`");
+            throw new BallerinaAsyncApiException("Unsupported AsyncAPI data type `" + type + "`");
         }
     }
 

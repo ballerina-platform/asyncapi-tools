@@ -18,6 +18,7 @@
 
 package io.ballerina.asyncapi.core.generators.schema;
 
+import com.fasterxml.jackson.databind.node.BooleanNode;
 import io.apicurio.datamodels.models.Schema;
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25DocumentImpl;
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25SchemaImpl;
@@ -90,19 +91,19 @@ public class TypeGeneratorUtils {
         if (schemaValue.get$ref() != null) {
             return new ReferencedTypeGenerator(schemaValue, typeName);
 
-//        } else if (schemaValue instanceof ComposedSchema) {
-//            ComposedSchema composedSchema = (ComposedSchema) schemaValue;
-//            if (composedSchema.getAllOf() != null) {
-//                return new AllOfRecordTypeGenerator(schemaValue, typeName);
-//            } else {
-//                return new UnionTypeGenerator(schemaValue, typeName);
-//            }
+        } else if ((schemaValue.getProperties() != null &&
+                (schemaValue.getOneOf() != null || schemaValue.getAllOf() != null || schemaValue.getAnyOf() != null))) {
+            if (schemaValue.getAllOf() != null) {
+                return new AllOfRecordTypeGenerator(schemaValue, typeName);
+            } else {
+                return new UnionTypeGenerator(schemaValue, typeName);
+            }
             //TODO: include mapschema here see openapi code
         } else if ((schemaValue.getType() != null && schemaValue.getType().equals(GeneratorConstants.OBJECT)) ||
                 schemaValue.getProperties() != null) {
             return new RecordTypeGenerator(schemaValue, typeName);
-//        } else if (schemaValue instanceof ArraySchema) {
-//            return new ArrayTypeGenerator(schemaValue, typeName, parentName);
+        } else if (schemaValue.getType().equals("array")) {
+            return new ArrayTypeGenerator(schemaValue, typeName, parentName);
         } else if (schemaValue.getType() != null && primitiveTypeList.contains(schemaValue.getType())) {
             return new PrimitiveTypeGenerator(schemaValue, typeName);
         } else { // when schemaValue.type == null
@@ -127,7 +128,7 @@ public class TypeGeneratorUtils {
         TypeDescriptorNode nillableType = originalTypeDesc;
         boolean nullable = GeneratorMetaData.getInstance().isNullable();
         if (schema.getExtensions() != null) {
-            if (schema.getExtensions().get("x-nullable").equals(true)) {
+            if (schema.getExtensions().get("x-nullable").equals(BooleanNode.TRUE)) {
                 nillableType = createOptionalTypeDescriptorNode(originalTypeDesc, createToken(QUESTION_MARK_TOKEN));
             }
         } else if (nullable) {
@@ -160,29 +161,29 @@ public class TypeGeneratorUtils {
 
         MarkdownDocumentationNode documentationNode = createMarkdownDocumentationNode(schemaDocNodes);
         //Generate constraint annotation.
-        AnnotationNode constraintNode = generateConstraintNode(fieldSchema);
-        MetadataNode metadataNode;
-        boolean isConstraintSupport =
-                constraintNode != null && fieldSchema.getExtensions()!=null & fieldSchema.
-                        getExtensions().get("x-nullable") != null ||
-                        (((fieldSchema.getProperties() != null &&
-                                (fieldSchema.getOneOf() != null || fieldSchema.getAllOf() != null ||
-                                        fieldSchema.getAnyOf() != null))) && ( fieldSchema.getOneOf() != null ||
-                                fieldSchema.getAnyOf() != null));
-        boolean nullable = GeneratorMetaData.getInstance().isNullable();
-        if (nullable) {
-            constraintNode = null;
-        } else if (isConstraintSupport) {
-            outStream.printf("WARNING: constraints in the OpenAPI contract will be ignored for the " +
-                            "field `%s`, as constraints are not supported on Ballerina union types%n",
-                    fieldName.toString().trim());
-            constraintNode = null;
-        }
-        if (constraintNode == null) {
-            metadataNode = createMetadataNode(documentationNode, createEmptyNodeList());
-        } else {
-            metadataNode = createMetadataNode(documentationNode, createNodeList(constraintNode));
-        }
+//        AnnotationNode constraintNode = generateConstraintNode(fieldSchema);
+//        MetadataNode metadataNode;
+//        boolean isConstraintSupport =
+//                constraintNode != null && fieldSchema.getExtensions()!=null & fieldSchema.
+//                        getExtensions().get("x-nullable") != null ||
+//                        (((fieldSchema.getProperties() != null &&
+//                                (fieldSchema.getOneOf() != null || fieldSchema.getAllOf() != null ||
+//                                        fieldSchema.getAnyOf() != null))) && ( fieldSchema.getOneOf() != null ||
+//                                fieldSchema.getAnyOf() != null));
+//        boolean nullable = GeneratorMetaData.getInstance().isNullable();
+//        if (nullable) {
+//            constraintNode = null;
+//        } else if (isConstraintSupport) {
+//            outStream.printf("WARNING: constraints in the OpenAPI contract will be ignored for the " +
+//                            "field `%s`, as constraints are not supported on Ballerina union types%n",
+//                    fieldName.toString().trim());
+//            constraintNode = null;
+//        }
+//        if (constraintNode == null) {
+//            metadataNode = createMetadataNode(documentationNode, createEmptyNodeList());
+//        } else {
+          MetadataNode  metadataNode = createMetadataNode(documentationNode, createNodeList(new ArrayList<>()));
+//        }
 
         if (required != null) {
             setRequiredFields(required, recordFieldList, field, fieldSchema, fieldName, fieldTypeName, metadataNode);

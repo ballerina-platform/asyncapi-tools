@@ -98,7 +98,8 @@ public class GeneratorConstants {
     public static final String CLIENT_CLASS = "Client";
     public static final String CLIENT_EP = "clientEp";
     public static final String EQUAL = "=";
-    public static final String CONFIG = "config";
+    public static final String CLIENT_CONFIG = "clientConfig";
+    public static final String CONFIG = "clientConfig";
     public static final String FUNCTION = "function";
     public static final String PREFIX_TEST = " test";
     public static final String ANNOT_TEST = "test:Config";
@@ -154,7 +155,7 @@ public class GeneratorConstants {
     public static final String API_KEY_CONFIG_PARAM = "apiKeyConfig";
     public static final String AUTH = "auth";
     public static final String AUTH_CONFIG = "authConfig";
-    public static final String WEBSOCKET_CLIENT_CONFIG = "websocketClientConfig";
+
     public static final String CLIENT_HTTP1_SETTINGS = "ClientHttp1Settings";
     public static final String CLIENT_HTTP1_SETTINGS_FIELD = "http1Settings";
 //    public static final String HTTP2_SETTINGS = "http:Cookie";
@@ -167,7 +168,7 @@ public class GeneratorConstants {
     public static final String SECURE_SOCKET = "websocket:ClientSecureSocket";
     public static final String SECURE_SOCKET_FIELD = "secureSocket";
 
-    public static final String PING_PONG_SERVICE_FIELD= "PingPongService";
+    public static final String PING_PONG_SERVICE_FIELD= "pingPongHandler";
     public static final String WEB_SOCKET_RETRY_CONFIG = "websocket:WebSocketRetryConfig";
 
     public static final String KEEP_ALIVE = "keepAlive";
@@ -177,7 +178,12 @@ public class GeneratorConstants {
     public static final String REFRESH_TOKEN = "refresh_token";
     public static final String CLIENT_CRED = "client_cred";
     public static final String PASSWORD = "password";
-    public static final String CONNECTION_CONFIG = "ConnectionConfig";
+
+    public static final String REMOTE_METHOD_NAME_PREFIX ="do";
+
+//    public static final String CONNECTION_CONFIG = "ConnectionConfig";
+
+    public static final String CONNECTION_CONFIG = "websocket:ClientConfiguration";
     public static final String OAUTH2 = "oauth2";
     public static final String SSL_FIELD_NAME = "secureSocket";
     public static final String RETRY_CONFIG_FIELD = "retryConfig";

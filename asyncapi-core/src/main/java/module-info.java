@@ -40,5 +40,6 @@ module io.ballerina.asyncapi.core {
     exports io.ballerina.asyncapi.core.generators.asyncspec;
 //    exports io.ballerina.asyncapi.core.generators.schema;
     exports io.ballerina.asyncapi.core.model;
+    exports io.ballerina.asyncapi.core.generators.schema;
 }
 
