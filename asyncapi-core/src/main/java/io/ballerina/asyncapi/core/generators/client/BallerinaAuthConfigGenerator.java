@@ -22,21 +22,20 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.BooleanNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.apicurio.datamodels.models.Schema;
 import io.apicurio.datamodels.models.SecurityScheme;
 import io.apicurio.datamodels.models.asyncapi.AsyncApiChannelItem;
-import io.apicurio.datamodels.models.asyncapi.AsyncApiParameter;
-import io.apicurio.datamodels.models.asyncapi.AsyncApiParameters;
 import io.apicurio.datamodels.models.asyncapi.v25.*;
 import io.ballerina.asyncapi.core.GeneratorConstants;
 import io.ballerina.asyncapi.core.exception.BallerinaAsyncApiException;
+import io.ballerina.asyncapi.core.generators.asyncspec.model.BalAsyncApi25SchemaImpl;
 import io.ballerina.compiler.syntax.tree.*;
 import io.ballerina.asyncapi.core.generators.document.DocCommentsGenerator;
 
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
@@ -70,23 +69,21 @@ public class BallerinaAuthConfigGenerator {
     private final Map<String, String> queryApiKeyNameList = new HashMap<>();
     private final List<Node> apiKeysConfigRecordFields = new ArrayList<>();
     private final Set<String> authTypes = new LinkedHashSet<>();
+    private final AsyncApi25DocumentImpl asyncAPI;
+    private final BallerinaUtilGenerator ballerinaUtilGenerator;
     private boolean httpApiKey;
     private boolean httpOROAuth;
     private String clientCredGrantTokenUrl;
     private String passwordGrantTokenUrl;
     private String refreshTokenUrl;
-
-    private AsyncApi25DocumentImpl asyncAPI;
-
-    private BallerinaUtilGenerator ballerinaUtilGenerator;
     private List<TypeDefinitionNode> authRelatedTypeDefinitionNodes = new ArrayList<>();
 
-    public BallerinaAuthConfigGenerator(boolean isAPIKey, boolean isHttpOROAuth,AsyncApi25DocumentImpl asyncAPI,
+    public BallerinaAuthConfigGenerator(boolean isAPIKey, boolean isHttpOROAuth, AsyncApi25DocumentImpl asyncAPI,
                                         BallerinaUtilGenerator ballerinaUtilGenerator) {
         this.httpApiKey = isAPIKey;
         this.httpOROAuth = isHttpOROAuth;
         this.asyncAPI = asyncAPI;
-        this.ballerinaUtilGenerator=ballerinaUtilGenerator;
+        this.ballerinaUtilGenerator = ballerinaUtilGenerator;
     }
 
     /**
@@ -507,7 +504,7 @@ public class BallerinaAuthConfigGenerator {
      *
      * @return {@link List<Node>}  syntax tree node list of config parameters
      */
-    public List<Node> getConfigParamForClassInit(String serviceUrl,ArrayList initMetaDoc) throws BallerinaAsyncApiException, JsonProcessingException {
+    public List<Node> getConfigParamForClassInit(String serviceUrl, ArrayList initMetaDoc) throws BallerinaAsyncApiException {
 
         NodeList<AnnotationNode> annotationNodes = createEmptyNodeList();
         Node serviceURLNode = getServiceURLNode(serviceUrl);
@@ -557,24 +554,23 @@ public class BallerinaAuthConfigGenerator {
         //TODO: move this
         //Handle query parameter map
 //        handleParameterSchemaInOperation(operation, statementsList);
-        setFunctionParameters(asyncAPI.getChannels().getItems().get(0), parameters, createToken(COMMA_TOKEN),initMetaDoc);
+        setFunctionParameters(asyncAPI.getChannels().getItems().get(0), parameters, createToken(COMMA_TOKEN), initMetaDoc);
         return parameters;
     }
-
 
 
     /**
      * Generate function parameters.
      */
     private void setFunctionParameters(AsyncApiChannelItem channelItem, List<Node> parameterList, Token comma,
-                                       List<Node> remoteFunctionDoc) throws BallerinaAsyncApiException, JsonProcessingException {
+                                       List<Node> remoteFunctionDoc) throws BallerinaAsyncApiException{
 
         AsyncApi25ParametersImpl parameters = (AsyncApi25ParametersImpl) channelItem.getParameters();
-        AsyncApi25ChannelBindingsImpl bindings=(AsyncApi25ChannelBindingsImpl) channelItem.getBindings();
-        if(bindings!=null && bindings.getWs()==null){
+        AsyncApi25ChannelBindingsImpl bindings = (AsyncApi25ChannelBindingsImpl) channelItem.getBindings();
+        if (bindings != null && bindings.getWs() == null) {
             throw new BallerinaAsyncApiException("This tool support only for websocket protocol,use ws bindings");
         }
-        AsyncApi25BindingImpl wsBindings=(AsyncApi25BindingImpl) bindings.getWs();
+        AsyncApi25BindingImpl wsBindings = (AsyncApi25BindingImpl) bindings.getWs();
 //            wsBindings.
 
         List<Node> defaultable = new ArrayList<>();
@@ -596,34 +592,159 @@ public class BallerinaAuthConfigGenerator {
                 Node param = getPathParameters(parameterName, (AsyncApi25ParameterImpl) parameters.getItem(parameterName),
                         createNodeList(new ArrayList<>()));
                 parameterList.add(param);
+                parameterList.add(comma);
             }
         }
 
-        if(wsBindings.getItem("headers")!=null){
-            JsonNode headers=wsBindings.getItem("headers");
-            ObjectMapper objMapper=new ObjectMapper();
+        if (wsBindings.getItem("headers") != null) {
+            JsonNode headers = wsBindings.getItem("headers");
+            ObjectMapper objMapper = new ObjectMapper();
 
-            AsyncApi25SchemaImpl headerSchema=objMapper.treeToValue(headers,AsyncApi25SchemaImpl.class);
-            Map<String, Schema>  properties=headerSchema.getProperties();
+            AsyncApi25SchemaImpl headerSchema = null;
+            try {
+                headerSchema = objMapper.treeToValue(headers, AsyncApi25SchemaImpl.class);
+            } catch (JsonProcessingException e) {
+                throw new RuntimeException(e);
+            }
+            Map<String, Schema> properties = headerSchema.getProperties();
+            for (String headerName : properties.keySet()) {
+                Node paramh = getHeaderParameter((AsyncApi25SchemaImpl) properties.get(headerName), headerName,
+                        createNodeList(new ArrayList<>()));
+                parameterList.add(paramh);
+                parameterList.add(comma);
+
+            }
 //            properties
 
 
         }
-        if (wsBindings.getItem("query")!=null){
-            JsonNode query=wsBindings.getItem("query");
-            ObjectMapper objMapper=new ObjectMapper();
-
-            AsyncApi25SchemaImpl querySchema=objMapper.treeToValue(query,AsyncApi25SchemaImpl.class);
-            Map<String, Schema>  properties=querySchema.getProperties();
+        if (wsBindings.getItem("query") != null) {
+            ObjectNode query = (ObjectNode) wsBindings.getItem("query");
+            ObjectMapper objMapper = new ObjectMapper();
+            System.out.println(query.get("type"));
+            AsyncApi25SchemaImpl querySchema = null;
+            try {
+                querySchema = objMapper.treeToValue(query, AsyncApi25SchemaImpl.class);
+            } catch (JsonProcessingException e) {
+//                System.out.println(query.);
+                throw new RuntimeException(e);
+            }
+            Map<String, Schema> properties = querySchema.getProperties();
 
             for (String queryName : properties.keySet()) {
-                Node param= getQueryParameters((AsyncApi25SchemaImpl)properties.get(queryName),queryName,
+                Node paramq = getQueryParameters((AsyncApi25SchemaImpl) properties.get(queryName), queryName,
                         createNodeList(new ArrayList<>()));
-                parameterList.add(param);
+                parameterList.add(paramq);
+                parameterList.add(comma);
             }
 
         }
 //        if (((AsyncApi25BindingImpl)bindings)..)
+    }
+
+    /**
+     * Create header when it comes under the parameter section in swagger.
+     */
+    private Node getHeaderParameter(AsyncApi25SchemaImpl schema, String headerName, NodeList<AnnotationNode> parameterAnnotationNodeList)
+            throws BallerinaAsyncApiException {
+
+        IdentifierToken paramName = createIdentifierToken(getValidName(headerName.trim(), false));
+        return getHeader(schema, paramName, parameterAnnotationNodeList);
+    }
+
+
+    /**
+     * Create header for header parameter and encoding.
+     */
+    private Node getHeader(AsyncApi25SchemaImpl schema, IdentifierToken paramName,
+                           NodeList<AnnotationNode> parameterAnnotationNodeList) throws BallerinaAsyncApiException{
+
+        ObjectMapper objMapper = new ObjectMapper();
+        AsyncApi25SchemaImpl itemSchema = null;
+        try {
+            itemSchema = objMapper.treeToValue(schema.getItems(), AsyncApi25SchemaImpl.class);
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
+        }
+
+//        String paramType = "";
+        if (schema.getDefault() != null) {
+
+            LiteralValueToken literalValueToken;
+            if (schema.getType().equals(STRING)) {
+                literalValueToken = createLiteralValueToken(null,
+                        '"' + schema.getDefault().toString() + '"', createEmptyMinutiaeList(),
+                        createEmptyMinutiaeList());
+            } else {
+                literalValueToken = createLiteralValueToken(null, schema.getDefault().toString(),
+                        createEmptyMinutiaeList(), createEmptyMinutiaeList());
+            }
+
+            if (schema.getExtensions() != null && schema.getExtensions().get("x-nullable") != null &&
+                    schema.getExtensions().get("x-nullable").equals(BooleanNode.TRUE)) {
+                String type = convertAsyncAPITypeToBallerina(schema.getType().trim()) + NILLABLE;
+
+                if (schema.getType().equals("array")) {
+                    if (itemSchema.get$ref() != null) {
+                        type = extractReferenceType(itemSchema.get$ref()) + SQUARE_BRACKETS + NILLABLE;
+                    } else {
+                        type = convertAsyncAPITypeToBallerina(itemSchema.getType().trim()) + SQUARE_BRACKETS
+                                + NILLABLE;
+                    }
+                }
+                BuiltinSimpleNameReferenceNode typeName = createBuiltinSimpleNameReferenceNode(null,
+                        createIdentifierToken(type));
+
+                NilLiteralNode nilLiteralNode =
+                        createNilLiteralNode(createToken(OPEN_PAREN_TOKEN), createToken(CLOSE_PAREN_TOKEN));
+                return createDefaultableParameterNode(parameterAnnotationNodeList, typeName, paramName,
+                        createToken(EQUAL_TOKEN), nilLiteralNode);
+
+
+            }
+            BuiltinSimpleNameReferenceNode typeName = createBuiltinSimpleNameReferenceNode(null,
+                    createIdentifierToken(convertAsyncAPITypeToBallerina(schema.getType().trim())));
+
+//            typeName = createBuiltinSimpleNameReferenceNode(null, createIdentifierToken(paramType));
+
+
+
+            return createDefaultableParameterNode(parameterAnnotationNodeList, typeName, paramName,
+                    createToken(EQUAL_TOKEN), literalValueToken);
+
+
+        } else {
+            String type = convertAsyncAPITypeToBallerina(schema.getType().trim());
+            if (schema.getType().equals("array")) {
+
+                if (itemSchema.get$ref() != null) {
+                    type = extractReferenceType(itemSchema.get$ref()) + SQUARE_BRACKETS;
+                } else {
+                    type = convertAsyncAPITypeToBallerina(itemSchema.getType().trim()) + SQUARE_BRACKETS;
+                }
+            }
+            BuiltinSimpleNameReferenceNode typeName = createBuiltinSimpleNameReferenceNode(null,
+                    createIdentifierToken(type));
+            return createRequiredParameterNode(parameterAnnotationNodeList, typeName, paramName);
+//                String type = convertAsyncAPITypeToBallerina(schema.getType().trim()) + NILLABLE;
+//                if (schema.getType().equals("array")) {
+////                    ArraySchema arraySchema = (ArraySchema) schema;
+//
+//                    if (itemSchema.get$ref() != null) {
+//                        type = extractReferenceType(itemSchema.get$ref()) + SQUARE_BRACKETS + NILLABLE;
+//                    } else {
+//                        type = convertAsyncAPITypeToBallerina(itemSchema.getType().trim()) + SQUARE_BRACKETS
+//                                + NILLABLE;
+//                    }
+//                }
+//                BuiltinSimpleNameReferenceNode typeName = createBuiltinSimpleNameReferenceNode(null,
+//                        createIdentifierToken(type));
+//                NilLiteralNode nilLiteralNode =
+//                        createNilLiteralNode(createToken(OPEN_PAREN_TOKEN), createToken(CLOSE_PAREN_TOKEN));
+//                return createDefaultableParameterNode(parameterAnnotationNodeList, typeName, paramName,
+//                        createToken(EQUAL_TOKEN), nilLiteralNode);
+        }
+
     }
 
 
@@ -662,8 +783,6 @@ public class BallerinaAuthConfigGenerator {
 //                }
 
 
-
-
 //
 //        // Handle RequestBody
 //        if (operation.getRequestBody() != null) {
@@ -677,18 +796,16 @@ public class BallerinaAuthConfigGenerator {
 //        }
 
 
-
-
     /**
      * Create path parameters.
      */
-    public Node getPathParameters(String parameterName,AsyncApi25ParameterImpl parameter,
+    public Node getPathParameters(String parameterName, AsyncApi25ParameterImpl parameter,
                                   NodeList<AnnotationNode> parameterAnnotationNodeList)
             throws BallerinaAsyncApiException {
 
         IdentifierToken paramName = createIdentifierToken(getValidName(parameterName, false));
         String type = "";
-        AsyncApi25SchemaImpl parameterSchema =( AsyncApi25SchemaImpl)parameter.getSchema();
+        AsyncApi25SchemaImpl parameterSchema = (AsyncApi25SchemaImpl) parameter.getSchema();
         if (parameterSchema.get$ref() != null) {
             type = getValidName(extractReferenceType(parameterSchema.get$ref()), true);
             AsyncApi25SchemaImpl schema = (AsyncApi25SchemaImpl) asyncAPI.getComponents().getSchemas().
@@ -715,7 +832,7 @@ public class BallerinaAuthConfigGenerator {
      * public type QueryParamType ()|BasicType|BasicType[];
      */
     public Node getQueryParameters(AsyncApi25SchemaImpl schema, String queryParamName, NodeList<AnnotationNode> parameterAnnotationNodeList)
-            throws BallerinaAsyncApiException, JsonProcessingException {
+            throws BallerinaAsyncApiException {
 
         TypeDescriptorNode typeName;
 
@@ -724,66 +841,73 @@ public class BallerinaAuthConfigGenerator {
 //        if (parameterSchema.get$ref() != null) {
 //            paramType = getValidName(extractReferenceType(parameterSchema.get$ref()), true);
 //        } else {
-            paramType = convertAsyncAPITypeToBallerina(schema.getType().trim());
-            if (schema.getType().equals(NUMBER)) {
-                if (schema.getFormat() != null) {
-                    paramType = convertAsyncAPITypeToBallerina(schema.getFormat().trim());
-                }
-            } else if (schema.getType().equals("array")) {
-                ObjectMapper objMapper=new ObjectMapper();
-               AsyncApi25SchemaImpl itemsSchema=objMapper.treeToValue(schema.getItems(),AsyncApi25SchemaImpl.class);
-                if (itemsSchema.getType() != null) {
-                    String itemType = itemsSchema.getType();
-                    if (itemType.equals(STRING) || itemType.equals(INTEGER) || itemType.equals(BOOLEAN)) {
-                        paramType = convertAsyncAPITypeToBallerina(itemType) + SQUARE_BRACKETS;
-                    } else if (itemType.equals(NUMBER)) {
-                        paramType = convertAsyncAPITypeToBallerina
-                                (itemsSchema.getFormat().trim()) + SQUARE_BRACKETS;
-                    } else {
-                        throw new BallerinaAsyncApiException("Unsupported parameter type is found in the parameter : " +
-                                queryParamName);
-                    }
-                } else if (itemsSchema.get$ref() != null) {
-                    paramType = getValidName(extractReferenceType(
-                            itemsSchema.get$ref().trim()), true) + SQUARE_BRACKETS;
+        paramType = convertAsyncAPITypeToBallerina(schema.getType().trim());
+        if (schema.getType().equals(NUMBER)) {
+            if (schema.getFormat() != null) {
+                paramType = convertAsyncAPITypeToBallerina(schema.getFormat().trim());
+            }
+        } else if (schema.getType().equals("array")) {
+            ObjectMapper objMapper = new ObjectMapper();
+            AsyncApi25SchemaImpl itemsSchema = null;
+            try {
+                itemsSchema = objMapper.treeToValue(schema.getItems(), AsyncApi25SchemaImpl.class);
+            } catch (JsonProcessingException e) {
+                throw new RuntimeException(e);
+            }
+            if (itemsSchema.getType() != null) {
+                String itemType = itemsSchema.getType();
+                if (itemType.equals(STRING) || itemType.equals(INTEGER) || itemType.equals(BOOLEAN)) {
+                    paramType = convertAsyncAPITypeToBallerina(itemType) + SQUARE_BRACKETS;
+                } else if (itemType.equals(NUMBER)) {
+                    paramType = convertAsyncAPITypeToBallerina
+                            (itemsSchema.getFormat().trim()) + SQUARE_BRACKETS;
                 } else {
-                    throw new BallerinaAsyncApiException("Please define the array item type of the parameter : " +
+                    throw new BallerinaAsyncApiException("Unsupported parameter type is found in the parameter : " +
                             queryParamName);
                 }
+            } else if (itemsSchema.get$ref() != null) {
+                paramType = getValidName(extractReferenceType(
+                        itemsSchema.get$ref().trim()), true) + SQUARE_BRACKETS;
+            } else {
+                throw new BallerinaAsyncApiException("Please define the array item type of the parameter : " +
+                        queryParamName);
             }
+        }
 
 
-
-         if(schema.getDefault()!=null) {
+        if (schema.getDefault() != null) {
             IdentifierToken paramName =
                     createIdentifierToken(getValidName(queryParamName.trim(), false));
             // Handle given default values in query parameter.
 //            if (schema.getDefault() != null) {
-                LiteralValueToken literalValueToken;
-                if (schema.getType().equals(STRING)) {
-                    literalValueToken = createLiteralValueToken(null,
-                            '"' + schema.getDefault().toString() + '"', createEmptyMinutiaeList(),
-                            createEmptyMinutiaeList());
-                } else {
-                    literalValueToken =
-                            createLiteralValueToken(null,schema.getDefault().toString(),
-                                    createEmptyMinutiaeList(),
-                                    createEmptyMinutiaeList());
+            LiteralValueToken literalValueToken;
+            if (schema.getType().equals(STRING)) {
+                literalValueToken = createLiteralValueToken(null,
+                        '"' + schema.getDefault().toString() + '"', createEmptyMinutiaeList(),
+                        createEmptyMinutiaeList());
+            } else {
+                literalValueToken =
+                        createLiteralValueToken(null, schema.getDefault().toString(),
+                                createEmptyMinutiaeList(),
+                                createEmptyMinutiaeList());
 
-                }
-                if(schema.getExtensions()!=null && schema.getExtensions().get("x-nullable")!=null &&
-                        schema.getExtensions().get("x-nullable").equals(BooleanNode.TRUE)){
-                    typeName = createOptionalTypeDescriptorNode(createBuiltinSimpleNameReferenceNode(null,
-                            createIdentifierToken(paramType)), createToken(QUESTION_MARK_TOKEN));
-                    return createDefaultableParameterNode(parameterAnnotationNodeList, typeName, paramName,
-                            createToken(EQUAL_TOKEN), literalValueToken);
+            }
+            if (schema.getExtensions() != null && schema.getExtensions().get("x-nullable") != null &&
+                    schema.getExtensions().get("x-nullable").equals(BooleanNode.TRUE)) {
+                typeName = createOptionalTypeDescriptorNode(createBuiltinSimpleNameReferenceNode(null,
+                        createIdentifierToken(paramType)), createToken(QUESTION_MARK_TOKEN));
+                NilLiteralNode nilLiteralNode =
+                        createNilLiteralNode(createToken(OPEN_PAREN_TOKEN), createToken(CLOSE_PAREN_TOKEN));
+                return createDefaultableParameterNode(parameterAnnotationNodeList, typeName, paramName,
+                        createToken(EQUAL_TOKEN), nilLiteralNode);
 
-                }else{
-                    typeName = createBuiltinSimpleNameReferenceNode(null, createIdentifierToken(paramType));
-                    return createDefaultableParameterNode(parameterAnnotationNodeList, typeName, paramName,
-                            createToken(EQUAL_TOKEN), literalValueToken);
+            } else {
+                typeName = createBuiltinSimpleNameReferenceNode(null, createIdentifierToken(paramType));
+                return createDefaultableParameterNode(parameterAnnotationNodeList, typeName, paramName,
+                        createToken(EQUAL_TOKEN), literalValueToken);
 
-                }
+            }
+
 
 //            } else {
 //                typeName = createOptionalTypeDescriptorNode(createBuiltinSimpleNameReferenceNode(null,
@@ -793,7 +917,7 @@ public class BallerinaAuthConfigGenerator {
 //                return createDefaultableParameterNode(parameterAnnotationNodeList, typeName, paramName,
 //                        createToken(EQUAL_TOKEN), nilLiteralNode);
 //            }
-        }else{
+        } else {
             typeName = createBuiltinSimpleNameReferenceNode(null, createIdentifierToken(paramType));
             IdentifierToken paramName =
                     createIdentifierToken(getValidName(queryParamName.trim(), false));
@@ -834,8 +958,6 @@ public class BallerinaAuthConfigGenerator {
 //    }
 
 
-
-
     /**
      * This method use to generate Path statement inside the function body node.
      * <p>
@@ -864,7 +986,7 @@ public class BallerinaAuthConfigGenerator {
     }
 
 
-        /**
+    /**
      * This method is to used for generating path when it has path parameters.
      *
      * @param path - yaml contract path
@@ -1057,6 +1179,7 @@ public class BallerinaAuthConfigGenerator {
     }
 
     //TODO: Use this if try to use this in choreo
+
     /**
      * Generate `websocketClientConfig` variable.
      * <pre>
@@ -1254,32 +1377,32 @@ public class BallerinaAuthConfigGenerator {
 
     /**
      * Returns fields in ClientConfig record.
-     *          # Configurations related to client authentication
-     *          websocket:BearerTokenConfig|websocket:OAuth2RefreshTokenGrantConfig auth;
-     *          # Negotiable sub protocols of the client
-     *          string[] subProtocols = [];
-     *          # Custom headers, which should be sent to the server
-     *          map<string> customHeaders = {};
-     *          # Read timeout (in seconds) of the client
-     *          decimal readTimeout = -1;
-     *          # Write timeout (in seconds) of the client
-     *          decimal writeTimeout = -1;
-     *          # SSL/TLS-related options
-     *          websocket:ClientSecureSocket? secureSocket = ();
-     *          # The maximum payload size of a WebSocket frame in bytes
-     *          int maxFrameSize = 65536;
-     *          # Enable support for compression in the WebSocket
-     *          boolean webSocketCompressionEnabled = true;
-     *          # Time (in seconds) that a connection waits to get the response of the WebSocket handshake.
-     *          decimal handShakeTimeout = 300;
-     *          # An Array of http:Cookie
-     *          http:Cookie[] cookies?;
-     *          # A service to handle the ping/pong frames.
-     *          PingPongService pingPongHandler?;
-     *          # Configurations associated with retrying
-     *          websocket:WebSocketRetryConfig retryConfig? = ();
-     *          Enable/disable constraint validation
-     *          boolean validation = true;
+     * # Configurations related to client authentication
+     * websocket:BearerTokenConfig|websocket:OAuth2RefreshTokenGrantConfig auth;
+     * # Negotiable sub protocols of the client
+     * string[] subProtocols = [];
+     * # Custom headers, which should be sent to the server
+     * map<string> customHeaders = {};
+     * # Read timeout (in seconds) of the client
+     * decimal readTimeout = -1;
+     * # Write timeout (in seconds) of the client
+     * decimal writeTimeout = -1;
+     * # SSL/TLS-related options
+     * websocket:ClientSecureSocket? secureSocket = ();
+     * # The maximum payload size of a WebSocket frame in bytes
+     * int maxFrameSize = 65536;
+     * # Enable support for compression in the WebSocket
+     * boolean webSocketCompressionEnabled = true;
+     * # Time (in seconds) that a connection waits to get the response of the WebSocket handshake.
+     * decimal handShakeTimeout = 300;
+     * # An Array of http:Cookie
+     * http:Cookie[] cookies?;
+     * # A service to handle the ping/pong frames.
+     * PingPongService pingPongHandler?;
+     * # Configurations associated with retrying
+     * websocket:WebSocketRetryConfig retryConfig? = ();
+     * Enable/disable constraint validation
+     * boolean validation = true;
      */
     private List<Node> getClientConfigRecordFields() {
 
@@ -1328,15 +1451,15 @@ public class BallerinaAuthConfigGenerator {
                 createRequiredExpressionNode(createIdentifierToken("[]"));
         RecordFieldWithDefaultValueNode subProtocolsFieldNode = NodeFactory.createRecordFieldWithDefaultValueNode(
                 subProtocolsMetadata, null, subProtocolsFieldType, subProtocolsFieldName,
-                equalToken, subProtocolsExpression , semicolonToken);
+                equalToken, subProtocolsExpression, semicolonToken);
         recordFieldNodes.add(subProtocolsFieldNode);
 
         // add customHeaders field
         TypeDescriptorNode customHeadersMapParamType = createSimpleNameReferenceNode(createToken(STRING_KEYWORD));
-        TypeParameterNode customHeadersTypeParamsNode=createTypeParameterNode(createToken(LT_TOKEN),
-                customHeadersMapParamType,createToken(GT_TOKEN));
-       MapTypeDescriptorNode customHeadersFieldType= createMapTypeDescriptorNode(createToken(MAP_KEYWORD),
-               customHeadersTypeParamsNode);
+        TypeParameterNode customHeadersTypeParamsNode = createTypeParameterNode(createToken(LT_TOKEN),
+                customHeadersMapParamType, createToken(GT_TOKEN));
+        MapTypeDescriptorNode customHeadersFieldType = createMapTypeDescriptorNode(createToken(MAP_KEYWORD),
+                customHeadersTypeParamsNode);
         MetadataNode customHeadersMetadata = getMetadataNode("Custom headers, " +
                 "which should be sent to the server");
         IdentifierToken customHeadersFieldName = createIdentifierToken("customHeaders");
@@ -1344,7 +1467,7 @@ public class BallerinaAuthConfigGenerator {
                 createRequiredExpressionNode(createIdentifierToken("{}"));
         RecordFieldWithDefaultValueNode customHeadersFieldNode = createRecordFieldWithDefaultValueNode(
                 customHeadersMetadata, null, customHeadersFieldType, customHeadersFieldName,
-                equalToken,customHeadersExpression, semicolonToken);
+                equalToken, customHeadersExpression, semicolonToken);
         recordFieldNodes.add(customHeadersFieldNode);
 
         // add readTimeout field
@@ -1355,7 +1478,7 @@ public class BallerinaAuthConfigGenerator {
         ExpressionNode readTimeOutDecimalLiteralNode = createRequiredExpressionNode(createIdentifierToken("-1"));
         RecordFieldWithDefaultValueNode readTimeoutFieldNode = NodeFactory.createRecordFieldWithDefaultValueNode(
                 readTimeOutMetadata, null, readTimeOutFieldType, readTimeoutFieldName,
-                equalToken, readTimeOutDecimalLiteralNode,semicolonToken);
+                equalToken, readTimeOutDecimalLiteralNode, semicolonToken);
         recordFieldNodes.add(readTimeoutFieldNode);
 
         // add writeTimeout field
@@ -1366,17 +1489,17 @@ public class BallerinaAuthConfigGenerator {
         ExpressionNode writeTimeOutDecimalLiteralNode = createRequiredExpressionNode(createIdentifierToken("-1"));
         RecordFieldWithDefaultValueNode writeTimeoutFieldNode = NodeFactory.createRecordFieldWithDefaultValueNode(
                 writeTimeOutMetadata, null, writeTimeOutFieldType, writeTimeoutFieldName,
-                equalToken, writeTimeOutDecimalLiteralNode,semicolonToken);
+                equalToken, writeTimeOutDecimalLiteralNode, semicolonToken);
         recordFieldNodes.add(writeTimeoutFieldNode);
 
 
         // add secureSocket field
         MetadataNode secureSocketMetadata = getMetadataNode("SSL/TLS-related options");
         IdentifierToken secureSocketFieldName = AbstractNodeFactory.createIdentifierToken(SECURE_SOCKET_FIELD);
-        TypeDescriptorNode secureSocketfieldType = createOptionalTypeDescriptorNode(createIdentifierToken("websocket:ClientSecureSocket"),questionMarkToken);
+        TypeDescriptorNode secureSocketfieldType = createOptionalTypeDescriptorNode(createIdentifierToken("websocket:ClientSecureSocket"), questionMarkToken);
         RecordFieldWithDefaultValueNode secureSocketFieldNode = NodeFactory.createRecordFieldWithDefaultValueNode(
                 secureSocketMetadata, null, secureSocketfieldType, secureSocketFieldName,
-                equalToken,createRequiredExpressionNode(createIdentifierToken("()")), semicolonToken);
+                equalToken, createRequiredExpressionNode(createIdentifierToken("()")), semicolonToken);
         recordFieldNodes.add(secureSocketFieldNode);
 
 
@@ -1390,7 +1513,7 @@ public class BallerinaAuthConfigGenerator {
                 createIdentifierToken("65536"));
         RecordFieldWithDefaultValueNode maxFrameSizeFieldNode = NodeFactory.createRecordFieldWithDefaultValueNode(
                 maxFrameSizeMetadata, null, maxFrameSizeFieldType, maxFrameSizeFieldName,
-                equalToken, maxFrameSizeDecimalLiteralNode,semicolonToken);
+                equalToken, maxFrameSizeDecimalLiteralNode, semicolonToken);
         recordFieldNodes.add(maxFrameSizeFieldNode);
 
         // add webSocketCompressionEnabled field
@@ -1402,10 +1525,10 @@ public class BallerinaAuthConfigGenerator {
                 "webSocketCompressionEnabled");
         RecordFieldWithDefaultValueNode webSocketCompressionEnabledFieldNode = NodeFactory.
                 createRecordFieldWithDefaultValueNode(
-                webSocketCompressionEnabledMetadata, null, webSocketCompressionEnabledFieldType,
+                        webSocketCompressionEnabledMetadata, null, webSocketCompressionEnabledFieldType,
                         webSocketCompressionEnabledFieldName,
-                equalToken, createRequiredExpressionNode(
-                                createToken(TRUE_KEYWORD)),semicolonToken);
+                        equalToken, createRequiredExpressionNode(
+                                createToken(TRUE_KEYWORD)), semicolonToken);
         recordFieldNodes.add(webSocketCompressionEnabledFieldNode);
 
 
@@ -1419,7 +1542,7 @@ public class BallerinaAuthConfigGenerator {
                 createIdentifierToken("300"));
         RecordFieldWithDefaultValueNode handShakeTimeoutFieldNode = NodeFactory.createRecordFieldWithDefaultValueNode(
                 handShakeTimeoutMetadata, null, handShakeTimeoutFieldType, handShakeTimeoutFieldName,
-                equalToken, handShakeTimeoutDecimalLiteralNode,semicolonToken);
+                equalToken, handShakeTimeoutDecimalLiteralNode, semicolonToken);
         recordFieldNodes.add(handShakeTimeoutFieldNode);
 
 
@@ -1439,7 +1562,7 @@ public class BallerinaAuthConfigGenerator {
                 createRequiredExpressionNode(createIdentifierToken("[]"));
         RecordFieldNode cookiesFieldNode = NodeFactory.createRecordFieldNode(
                 cookiesMetadata, null, cookiesFieldType, cookiesFieldName,
-                questionMarkToken,  semicolonToken);
+                questionMarkToken, semicolonToken);
         recordFieldNodes.add(cookiesFieldNode);
 
 
@@ -1457,10 +1580,10 @@ public class BallerinaAuthConfigGenerator {
         MetadataNode retryConfigMetadata = getMetadataNode("Configurations associated with retrying");
         IdentifierToken retryConfigFieldName = AbstractNodeFactory.createIdentifierToken("retryConfig");
         TypeDescriptorNode returConfigFieldType = createOptionalTypeDescriptorNode(
-                createIdentifierToken("websocket:WebSocketRetryConfig"),questionMarkToken);
+                createIdentifierToken("websocket:WebSocketRetryConfig"), questionMarkToken);
         RecordFieldWithDefaultValueNode retryConfigFieldNode = NodeFactory.createRecordFieldWithDefaultValueNode(
                 retryConfigMetadata, null, returConfigFieldType, retryConfigFieldName,
-                equalToken,createRequiredExpressionNode(createIdentifierToken("()")), semicolonToken);
+                equalToken, createRequiredExpressionNode(createIdentifierToken("()")), semicolonToken);
         recordFieldNodes.add(retryConfigFieldNode);
 
 
@@ -1542,8 +1665,6 @@ public class BallerinaAuthConfigGenerator {
     }
 
 
-
-
     private MetadataNode getMetadataNode(String comment) {
 
         List<Node> docs = new ArrayList<>(DocCommentsGenerator.createAPIDescriptionDoc(comment, false));
@@ -1569,7 +1690,7 @@ public class BallerinaAuthConfigGenerator {
             BallerinaAsyncApiException {
 
         for (Map.Entry<String, SecurityScheme> securitySchemeEntry : securitySchemeMap.entrySet()) {
-            AsyncApi25SecuritySchemeImpl securitySchemaValue = (AsyncApi25SecuritySchemeImpl)securitySchemeEntry.getValue();
+            AsyncApi25SecuritySchemeImpl securitySchemaValue = (AsyncApi25SecuritySchemeImpl) securitySchemeEntry.getValue();
             if (securitySchemaValue != null && securitySchemaValue.getType() != null) {
                 String schemaType = securitySchemaValue.getType().toLowerCase(Locale.getDefault());
 
@@ -1664,7 +1785,7 @@ public class BallerinaAuthConfigGenerator {
 
     /**
      * Travers through the authTypes and generate the field type name of auth field in ClientConfig record.
-
+     *
      * @return {@link String}   Field type name of auth field
      * Ex: {@code http:BearerTokenConfig|http:OAuth2RefreshTokenGrantConfig}
      */
