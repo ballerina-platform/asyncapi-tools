@@ -18,7 +18,7 @@ channels:
       message:
         payload:
           type: object
-          additionalProperties: true
+          additionalProperties: {}
     publish:
       message:
         $ref: '#/components/messages/Subscribe'
@@ -43,5 +43,5 @@ components:
       x-response:
         payload:
           type: object
-          additionalProperties: true
+          additionalProperties: {}
       x-response-type: simple-rpc
