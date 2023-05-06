@@ -661,11 +661,12 @@ public class BallerinaAuthConfigGenerator {
 
         ObjectMapper objMapper = new ObjectMapper();
         AsyncApi25SchemaImpl itemSchema = null;
-        try {
-            itemSchema = objMapper.treeToValue(schema.getItems(), AsyncApi25SchemaImpl.class);
-        } catch (JsonProcessingException e) {
-            throw new RuntimeException(e);
-        }
+//        try {
+//            itemSchema = objMapper.treeToValue(schema.getItems(), AsyncApi25SchemaImpl.class);
+//        } catch (JsonProcessingException e) {
+//            throw new RuntimeException(e);
+//        }
+        itemSchema= (AsyncApi25SchemaImpl) schema.getItems().asSchema();
 
 //        String paramType = "";
         if (schema.getDefault() != null) {
@@ -849,11 +850,10 @@ public class BallerinaAuthConfigGenerator {
         } else if (schema.getType().equals("array")) {
             ObjectMapper objMapper = new ObjectMapper();
             AsyncApi25SchemaImpl itemsSchema = null;
-            try {
-                itemsSchema = objMapper.treeToValue(schema.getItems(), AsyncApi25SchemaImpl.class);
-            } catch (JsonProcessingException e) {
-                throw new RuntimeException(e);
-            }
+
+//                itemsSchema = objMapper.treeToValue(schema.getItems(), AsyncApi25SchemaImpl.class);
+            itemsSchema= (AsyncApi25SchemaImpl) schema.getItems().asSchema();
+
             if (itemsSchema.getType() != null) {
                 String itemType = itemsSchema.getType();
                 if (itemType.equals(STRING) || itemType.equals(INTEGER) || itemType.equals(BOOLEAN)) {

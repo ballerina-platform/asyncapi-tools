@@ -218,7 +218,7 @@ public class AllOfRecordTypeGenerator extends RecordTypeGenerator {
 
     private void addAdditionalSchemas(AsyncApi25SchemaImpl refSchema) {
         if (refSchema.getAdditionalProperties() != null && refSchema.getAdditionalProperties() instanceof Schema) {
-            restSchemas.add( refSchema.getAdditionalProperties());
+            restSchemas.add( refSchema.getAdditionalProperties().asSchema());
         }
     }
 }

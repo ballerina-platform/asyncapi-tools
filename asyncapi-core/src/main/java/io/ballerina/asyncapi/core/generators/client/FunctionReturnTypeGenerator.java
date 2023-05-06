@@ -209,8 +209,9 @@ public class FunctionReturnTypeGenerator {
             BallerinaAsyncApiException {
 
         String type;
-        if (arraySchema.getItems().get("$ref")!=null) {
-            String name = getValidName(extractReferenceType(arraySchema.getItems().get("$ref").toString()), true);
+        AsyncApi25SchemaImpl arraySchemaItems= (AsyncApi25SchemaImpl) arraySchema.getItems().asSchema();
+        if (arraySchemaItems.get$ref()!=null) {
+            String name = getValidName(extractReferenceType(arraySchemaItems.get$ref().toString()), true);
             type = name + "[]";
             String typeName = name + "Arr";
             TypeDefinitionNode typeDefNode = createTypeDefinitionNode(null, null,
@@ -241,20 +242,22 @@ public class FunctionReturnTypeGenerator {
             String typeName;
             ObjectMapper objMapper=new ObjectMapper();
             AsyncApi25SchemaImpl nestedSchema= null;
-            try {
-                nestedSchema = objMapper.treeToValue(arraySchema.getItems(), AsyncApi25SchemaImpl.class);
-            } catch (JsonProcessingException e) {
-                throw new RuntimeException(e);
-            }
+//            try {
+//                nestedSchema = objMapper.treeToValue(arraySchema.getItems(), AsyncApi25SchemaImpl.class);
+//            } catch (JsonProcessingException e) {
+//                throw new RuntimeException(e);
+//            }
+            nestedSchema= (AsyncApi25SchemaImpl) arraySchemaItems.asSchema();
             if (arraySchema.getItems()!=null) {
 //                AsyncApi25SchemaImpl nestedSchema=objMapper.treeToValue(arraySchema.getItems(),
 //                        AsyncApi25SchemaImpl.class);
                 AsyncApi25SchemaImpl nestedArraySchema= null;
-                try {
-                    nestedArraySchema = objMapper.treeToValue(nestedSchema.getItems(), AsyncApi25SchemaImpl.class);
-                } catch (JsonProcessingException e) {
-                    throw new RuntimeException(e);
-                }
+//                try {
+//                    nestedArraySchema = objMapper.treeToValue(nestedSchema.getItems(), AsyncApi25SchemaImpl.class);
+//                } catch (JsonProcessingException e) {
+//                    throw new RuntimeException(e);
+//                }
+                nestedArraySchema= (AsyncApi25SchemaImpl) nestedSchema.getItems();
 //                Schema nestedSchema = arraySchema.getItems();
 //                ArraySchema nestedArraySchema = (ArraySchema) nestedSchema;
                 String inlineArrayType = convertAsyncAPITypeToBallerina(nestedArraySchema.getType());
