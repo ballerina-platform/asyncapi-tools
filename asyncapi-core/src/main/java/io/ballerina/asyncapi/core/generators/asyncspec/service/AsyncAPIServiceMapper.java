@@ -134,13 +134,13 @@ public class AsyncAPIServiceMapper {
                 AsyncAPIRemoteMapper resourceMapper = new AsyncAPIRemoteMapper(this.semanticModel);
                 AsyncApi25ChannelsImpl generatedChannels = resourceMapper.getChannels((FunctionDefinitionNode) function,
                         classDefinitionNodes, dispatcherValue);
-                if (!generatedChannels.getItems().isEmpty()) {
+//                if (!generatedChannels.getItems().isEmpty()) {
                     asyncApi.setChannels(generatedChannels);
-                }
+//                }
                 AsyncApi25ComponentsImpl generatedComponents = resourceMapper.getComponents();
-                if (generatedComponents.getSchemas() != null || generatedComponents.getMessages() != null) {
+//                if (generatedComponents.getSchemas() != null || generatedComponents.getMessages() != null) {
                     asyncApi.setComponents(generatedComponents);
-                }
+//                }
                 errors.addAll(resourceMapper.getErrors());
             }
         }
