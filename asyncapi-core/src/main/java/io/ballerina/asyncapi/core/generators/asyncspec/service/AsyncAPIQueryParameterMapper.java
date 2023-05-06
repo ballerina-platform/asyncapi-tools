@@ -18,7 +18,6 @@
 package io.ballerina.asyncapi.core.generators.asyncspec.service;
 
 import com.fasterxml.jackson.databind.node.BooleanNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25ComponentsImpl;
 import io.ballerina.asyncapi.core.generators.asyncspec.Constants.AsyncAPIType;
@@ -239,9 +238,9 @@ public class AsyncAPIQueryParameterMapper {
             itemSchema = ConverterCommonUtils.getAsyncApiSchema(itemTypeNode.toString().trim());
         }
 
-        ObjectNode obj = ConverterCommonUtils.callObjectMapper().valueToTree(itemSchema);
+//        ObjectNode obj = ConverterCommonUtils.callObjectMapper().valueToTree(itemSchema);
 
-        arraySchema.setItems(obj);
+        arraySchema.setItems(itemSchema);
 
         //TODO : setRequired(true) , check this is in asyncapi schema
 //        queryParameter.setRequired(true);
@@ -272,8 +271,8 @@ public class AsyncAPIQueryParameterMapper {
             TypeDescriptorNode itemTypeNode = arrayNode.memberTypeDesc();
             BalAsyncApi25SchemaImpl itemSchema = ConverterCommonUtils.getAsyncApiSchema(itemTypeNode.toString().trim());
             //TODO : Decide whether this will be another object , because of the field entity:true
-            ObjectNode obj = ConverterCommonUtils.callObjectMapper().valueToTree(itemSchema);
-            arraySchema.setItems(obj);
+//            ObjectNode obj = ConverterCommonUtils.callObjectMapper().valueToTree(itemSchema);
+            arraySchema.setItems(itemSchema);
 //            queryParameter.schema(arraySchema);
 //            queryParameter.setName(ConverterCommonUtils.unescapeIdentifier(queryParamName));
             if (!apidocs.isEmpty() && apidocs.containsKey(queryParamName)) {

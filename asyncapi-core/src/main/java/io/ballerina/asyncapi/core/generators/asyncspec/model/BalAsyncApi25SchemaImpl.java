@@ -1,6 +1,8 @@
 package io.ballerina.asyncapi.core.generators.asyncspec.model;
 
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 /**
  * In Apicurio data model they are using JsonNodes for bindings
  * therefore we have to convert Java object to a Jackson ObjectNode we have to use new ObjectMapper().
@@ -14,8 +16,16 @@ package io.ballerina.asyncapi.core.generators.asyncspec.model;
 
 public class BalAsyncApi25SchemaImpl extends io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25SchemaImpl {
 
+    @JsonIgnore
     @Override
     public boolean isEntity() {
-        return false;
+        return true;
+    }
+
+    @JsonIgnore
+    @Override
+    public boolean isSchema() {
+        return true;
     }
 }
+

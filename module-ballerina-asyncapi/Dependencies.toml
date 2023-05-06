@@ -5,12 +5,12 @@
 
 [ballerina]
 dependencies-toml-version = "2"
-distribution-version = "2201.5.0-SNAPSHOT"
+distribution-version = "2201.5.0"
 
 [[package]]
 org = "ballerina"
 name = "asyncapi1"
-version = "1.4.0"
+version = "1.5.0"
 modules = [
 	{org = "ballerina", packageName = "asyncapi1", moduleName = "asyncapi1"}
 ]

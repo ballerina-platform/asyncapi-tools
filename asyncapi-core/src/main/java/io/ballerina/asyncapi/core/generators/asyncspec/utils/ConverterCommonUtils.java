@@ -36,6 +36,7 @@ import io.ballerina.asyncapi.core.generators.asyncspec.diagnostic.DiagnosticMess
 import io.ballerina.asyncapi.core.generators.asyncspec.diagnostic.ExceptionDiagnostic;
 import io.ballerina.asyncapi.core.generators.asyncspec.model.AsyncAPIResult;
 import io.ballerina.asyncapi.core.generators.asyncspec.model.BalAsyncApi25SchemaImpl;
+import io.ballerina.asyncapi.core.generators.asyncspec.model.BalBooleanSchema;
 import io.ballerina.compiler.api.SemanticModel;
 import io.ballerina.compiler.api.symbols.ModuleSymbol;
 import io.ballerina.compiler.api.symbols.ServiceDeclarationSymbol;
@@ -109,7 +110,7 @@ public class ConverterCommonUtils {
             case Constants.BYTE_ARRAY:
             case Constants.OCTET_STREAM:
                 schema.setType(AsyncAPIType.STRING.toString());
-                schema.setFormat("byte");
+                schema.setFormat("uuid");
                 break;
             case Constants.NUMBER:
             case Constants.DECIMAL:
@@ -126,22 +127,14 @@ public class ConverterCommonUtils {
                 // map<map<int>> then those also need to be handle
                 break;
             case Constants.MAP_JSON:
-            case Constants.MAP_STRING:
+//            case Constants.MAP_STRING:
             case Constants.MAP:
-                BalAsyncApi25SchemaImpl objectSchema = new BalAsyncApi25SchemaImpl();
 //                objectSchema.setType(AsyncAPIType.RECORD.toString());
                 schema.setType(AsyncAPIType.OBJECT.toString());
-                //TODO : Have to give an BalAsyncApi25SchemaImpl object as additionalProperties , It is depend
-                // upon ballerina map
-                schema.setAdditionalProperties(objectSchema);
+                schema.setAdditionalProperties(new BalBooleanSchema(true));
 //                schema.setAdditionalProperties(true);
 //                schema.setAdditionalProperties(true);
 //                schema.additionalProperties(true);
-                break;
-            case Constants.X_WWW_FORM_URLENCODED:
-                BalAsyncApi25SchemaImpl stringSchema = new BalAsyncApi25SchemaImpl();
-                stringSchema.setType(AsyncAPIType.STRING.toString());
-                schema.setAdditionalProperties(stringSchema);
                 break;
             case Constants.TYPE_REFERENCE:
             case Constants.TYPEREFERENCE:
@@ -179,7 +172,7 @@ public class ConverterCommonUtils {
                 break;
             case BYTE_TYPE_DESC:
                 schema.setType("string");
-                schema.setFormat("byte");
+                schema.setFormat("uuid");
                 break;
             case DECIMAL_TYPE_DESC:
                 schema.setType("number");

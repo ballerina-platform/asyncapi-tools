@@ -93,7 +93,7 @@ components:
             format: float
         item:
           type: object
-          additionalProperties: {}
+          additionalProperties: true
         mapArray:
           type: object
           additionalProperties:
@@ -104,7 +104,7 @@ components:
           type: object
           additionalProperties:
             type: object
-            additionalProperties: {}
+            additionalProperties: true
         arrayItemMap:
           type: array
           items:

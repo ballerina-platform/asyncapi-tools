@@ -14,6 +14,7 @@ import io.ballerina.asyncapi.core.generators.asyncspec.diagnostic.DiagnosticMess
 import io.ballerina.asyncapi.core.generators.asyncspec.diagnostic.IncompatibleRemoteDiagnostic;
 import io.ballerina.asyncapi.core.generators.asyncspec.model.BalAsyncApi25MessageImpl;
 import io.ballerina.asyncapi.core.generators.asyncspec.model.BalAsyncApi25SchemaImpl;
+import io.ballerina.asyncapi.core.generators.asyncspec.model.BalBooleanSchema;
 import io.ballerina.asyncapi.core.generators.asyncspec.utils.ConverterCommonUtils;
 import io.ballerina.compiler.api.SemanticModel;
 import io.ballerina.compiler.api.symbols.IntersectionTypeSymbol;
@@ -49,8 +50,8 @@ import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.ONEOF;
 import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.PAYLOAD;
 import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.REF;
 import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.SCHEMA_REFERENCE;
-import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.SIMPLE_RPC;
 import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.SERVER_STREAMING;
+import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.SIMPLE_RPC;
 import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.TRUE;
 import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.UNION_STREAMING_SIMPLE_RPC_ERROR;
 import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.X_REQUIRED;
@@ -91,7 +92,7 @@ public class AsyncAPIResponseMapper {
 
 
     public void createResponse(BalAsyncApi25MessageImpl subscribeMessage, BalAsyncApi25MessageImpl componentMessage,
-                               Node remoteReturnType, String returnDescription,String isOptional) {
+                               Node remoteReturnType, String returnDescription, String isOptional) {
         String remoteReturnTypeString = ConverterCommonUtils.unescapeIdentifier(remoteReturnType.toString().trim());
         ObjectMapper objectMapper = ConverterCommonUtils.callObjectMapper();
 
@@ -105,7 +106,7 @@ public class AsyncAPIResponseMapper {
 
                 BalAsyncApi25SchemaImpl remoteReturnSchema = getAsyncApiSchema(remoteReturnTypeString);
                 setResponseOfRequest(subscribeMessage, componentMessage, SIMPLE_RPC, returnDescription, objectMapper,
-                        remoteReturnSchema,isOptional);
+                        remoteReturnSchema, isOptional);
                 break;
 
             //TODO : Edit this after figure out how to do this
@@ -119,34 +120,34 @@ public class AsyncAPIResponseMapper {
 
                 //TODO : Set this schema into main asyncapi doc
                 setResponseOfRequest(subscribeMessage, componentMessage, SIMPLE_RPC,
-                        returnDescription, objectMapper, jsonSchema,isOptional);
+                        returnDescription, objectMapper, jsonSchema, isOptional);
                 break;
 
             case SIMPLE_NAME_REFERENCE:
                 if (remoteReturnType instanceof SimpleNameReferenceNode) {
                     SimpleNameReferenceNode recordNode = (SimpleNameReferenceNode) remoteReturnType;
                     handleReferenceResponse(subscribeMessage, componentMessage, recordNode,
-                            returnDescription,isOptional);
+                            returnDescription, isOptional);
                 }
                 break;
 
             case UNION_TYPE_DESC:
                 if (remoteReturnType instanceof UnionTypeDescriptorNode) {
                     mapUnionReturns(subscribeMessage, componentMessage,
-                            (UnionTypeDescriptorNode) remoteReturnType, returnDescription,isOptional);
+                            (UnionTypeDescriptorNode) remoteReturnType, returnDescription, isOptional);
                 }
                 break;
             case RECORD_TYPE_DESC:
                 //TODO : Problem in map inline record return
                 if (remoteReturnType instanceof RecordTypeDescriptorNode) {
                     mapInlineRecordInReturn(subscribeMessage, componentMessage,
-                            (RecordTypeDescriptorNode) remoteReturnType, returnDescription,isOptional);
+                            (RecordTypeDescriptorNode) remoteReturnType, returnDescription, isOptional);
                 }
                 break;
             case ARRAY_TYPE_DESC:
                 if (remoteReturnType instanceof ArrayTypeDescriptorNode) {
                     getApiResponsesForArrayTypes(subscribeMessage, componentMessage,
-                            (ArrayTypeDescriptorNode) remoteReturnType, returnDescription,isOptional);
+                            (ArrayTypeDescriptorNode) remoteReturnType, returnDescription, isOptional);
                 }
                 break;
 
@@ -154,7 +155,7 @@ public class AsyncAPIResponseMapper {
                 if (remoteReturnType instanceof OptionalTypeDescriptorNode) {
                     createResponse(subscribeMessage, componentMessage,
                             ((OptionalTypeDescriptorNode) remoteReturnType).typeDescriptor(),
-                            returnDescription,TRUE);
+                            returnDescription, TRUE);
                 }
                 break;
             case MAP_TYPE_DESC:
@@ -165,9 +166,11 @@ public class AsyncAPIResponseMapper {
                     //TODO : I changed this kind to string
                     BalAsyncApi25SchemaImpl apiSchema = getAsyncApiSchema(mapNode.mapTypeParamsNode().
                             typeNode().kind());
-                    objectSchema.setAdditionalProperties(apiSchema);
+//                    BalAsyncApi25SchemaImpl booleanTrue=;
+                    objectSchema.setAdditionalProperties(apiSchema.getType() == null ?
+                            new BalBooleanSchema(Boolean.TRUE) : apiSchema);
                     setResponseOfRequest(subscribeMessage, componentMessage,
-                            SIMPLE_RPC, returnDescription, objectMapper, objectSchema,isOptional);
+                            SIMPLE_RPC, returnDescription, objectMapper, objectSchema, isOptional);
                 }
                 break;
 
@@ -180,7 +183,7 @@ public class AsyncAPIResponseMapper {
                         BalAsyncApi25SchemaImpl remoteReturnStreamSchema = getAsyncApiSchema(remoteReturnStream);
 //                        remoteReturnStreamSchema.addExtension(X_RESPONSE_TYPE,new TextNode(SERVER_STREAMING));
                         setResponseOfRequest(subscribeMessage, componentMessage, SERVER_STREAMING, returnDescription,
-                                objectMapper, remoteReturnStreamSchema,isOptional);
+                                objectMapper, remoteReturnStreamSchema, isOptional);
                     } else {
                         throw new NoSuchElementException(NO_TYPE_IN_STREAM);
                     }
@@ -191,7 +194,7 @@ public class AsyncAPIResponseMapper {
 //                TypeSymbol qualifiedNameReferenceSymbol = (TypeSymbol) semanticModel.symbol(remoteReturnType).get();
 
                 handleQualifiedNameTypeReference(subscribeMessage, componentMessage,
-                        returnDescription, remoteReturnType,isOptional);
+                        returnDescription, remoteReturnType, isOptional);
 
                 break;
 
@@ -208,7 +211,7 @@ public class AsyncAPIResponseMapper {
     private void handleQualifiedNameTypeReference(BalAsyncApi25MessageImpl subscribeMessage,
                                                   BalAsyncApi25MessageImpl componentMessage,
                                                   String returnDescription,
-                                                  Node remoteReturnType,String isOptional ) {
+                                                  Node remoteReturnType, String isOptional) {
         TypeSymbol qualifiedNameReferenceSymbol = (TypeSymbol) semanticModel.symbol(remoteReturnType).get();
 
         String remoteReturnTypeName = ConverterCommonUtils.unescapeIdentifier(
@@ -232,13 +235,13 @@ public class AsyncAPIResponseMapper {
 
                 //create Schema
                 updateArraySchema(subscribeMessage, componentMessage, returnDescription,
-                        qualifiedNameReferenceSymbol, remoteReturnTypeName,isOptional);
+                        qualifiedNameReferenceSymbol, remoteReturnTypeName, isOptional);
 
 
             } else if (typeSymbol.typeKind() == TypeDescKind.RECORD) {
                 handleRecordTypeSymbol(subscribeMessage, componentMessage, returnDescription,
                         qualifiedNameReferenceSymbol,
-                        qualifiedNameReferenceSymbol.getName().get(),isOptional);
+                        qualifiedNameReferenceSymbol.getName().get(), isOptional);
             }
         }
     }
@@ -246,7 +249,7 @@ public class AsyncAPIResponseMapper {
     private void setResponseOfRequest(BalAsyncApi25MessageImpl subscribeMessage,
                                       BalAsyncApi25MessageImpl componentMessage,
                                       String responseType, String returnDescription, ObjectMapper objMapper,
-                                      BalAsyncApi25SchemaImpl schema,String isOptional) {
+                                      BalAsyncApi25SchemaImpl schema, String isOptional) {
         //create new subscribe oneOf message
         BalAsyncApi25MessageImpl subscribeOneOf = new BalAsyncApi25MessageImpl();
 
@@ -264,8 +267,8 @@ public class AsyncAPIResponseMapper {
         Map<String, JsonNode> xResponses = componentMessage.getExtensions();
         if (xResponses != null && xResponses.get(X_RESPONSE) != null) {
 
-            if(xResponses.get(X_RESPONSE_TYPE).equals(new TextNode(SERVER_STREAMING))
-                    && responseType.equals(SIMPLE_RPC)  ||
+            if (xResponses.get(X_RESPONSE_TYPE).equals(new TextNode(SERVER_STREAMING))
+                    && responseType.equals(SIMPLE_RPC) ||
                     (xResponses.get(X_RESPONSE_TYPE).equals(new TextNode(SIMPLE_RPC))
                             && responseType.equals(SERVER_STREAMING))) {
                 throw new NoSuchElementException(UNION_STREAMING_SIMPLE_RPC_ERROR);
@@ -297,10 +300,10 @@ public class AsyncAPIResponseMapper {
             }
             //Set the description for oneOfSchema
             setDescriptionAndXResponsesForOneOf(componentMessage, returnDescription, objMapper,
-                    oneOfSchema,responseType,isOptional);
+                    oneOfSchema, responseType, isOptional);
         } else {
 
-            setDescriptionForOneResponse(returnDescription, payloadObject, componentMessage, responseType,isOptional);
+            setDescriptionForOneResponse(returnDescription, payloadObject, componentMessage, responseType, isOptional);
         }
 
     }
@@ -335,7 +338,7 @@ public class AsyncAPIResponseMapper {
     }
 
     private void setSchemasForChannelsAsOneOfSchema(BalAsyncApi25MessageImpl oneOfSchema,
-                                                    BalAsyncApi25MessageImpl schema){
+                                                    BalAsyncApi25MessageImpl schema) {
 
         if (oneOfSchema.getOneOf() == null) {
             oneOfSchema.addOneOf(schema);
@@ -344,9 +347,9 @@ public class AsyncAPIResponseMapper {
             if (schema.get$ref() != null) {
                 boolean check = false;
                 for (AsyncApiMessage s : oneOfSchema.getOneOf()) {
-                    if(((BalAsyncApi25MessageImpl) s).get$ref()!=null) {
-                        if(((BalAsyncApi25MessageImpl) s).get$ref().equals(schema.get$ref())){
-                            check=true;
+                    if (((BalAsyncApi25MessageImpl) s).get$ref() != null) {
+                        if (((BalAsyncApi25MessageImpl) s).get$ref().equals(schema.get$ref())) {
+                            check = true;
 
                         }
                     }
@@ -357,9 +360,9 @@ public class AsyncAPIResponseMapper {
             } else if (schema.getPayload() != null) {
                 boolean check = false;
                 for (AsyncApiMessage s : oneOfSchema.getOneOf()) {
-                    if(s.getPayload()!=null) {
-                        if(s.getPayload().equals(schema.getPayload())){
-                            check=true;
+                    if (s.getPayload() != null) {
+                        if (s.getPayload().equals(schema.getPayload())) {
+                            check = true;
                         }
                     }
                 }
@@ -374,14 +377,14 @@ public class AsyncAPIResponseMapper {
     private void handleReferenceResponse(BalAsyncApi25MessageImpl subscribeMessage,
                                          BalAsyncApi25MessageImpl componentMessage,
                                          SimpleNameReferenceNode referenceNode,
-                                         String returnDescription,String isOptional) {
+                                         String returnDescription, String isOptional) {
         TypeSymbol returnTypeSymbol = (TypeSymbol) semanticModel.symbol(referenceNode).orElseThrow();
         String remoteReturnTypeName = ConverterCommonUtils.unescapeIdentifier(referenceNode.name().toString().trim());
 
         if (referenceNode.parent().kind().equals(ARRAY_TYPE_DESC)) {
 
             updateArraySchema(subscribeMessage, componentMessage, returnDescription,
-                    returnTypeSymbol, remoteReturnTypeName,isOptional);
+                    returnTypeSymbol, remoteReturnTypeName, isOptional);
 
 
         } else if (returnTypeSymbol.typeKind() == TypeDescKind.TYPE_REFERENCE) {
@@ -390,7 +393,7 @@ public class AsyncAPIResponseMapper {
 //            if (referredTypeSymbol.typeKind() == TypeDescKind.RECORD) {
 //                componentMapper.createComponentSchema(referredTypeSymbol, null);
             handleRecordTypeSymbol(subscribeMessage, componentMessage, returnDescription,
-                    returnTypeSymbol, remoteReturnTypeName,isOptional);
+                    returnTypeSymbol, remoteReturnTypeName, isOptional);
 
 
             //handle record for components
@@ -424,14 +427,16 @@ public class AsyncAPIResponseMapper {
 
         //create Message (there is no message reference)
         ObjectMapper objMapper = ConverterCommonUtils.callObjectMapper();
-        ObjectNode refObjNode = ConverterCommonUtils.createObjectNode();
+//        ObjectNode refObjNode = ConverterCommonUtils.createObjectNode();
 
         //Create schema reference
-        refObjNode.put(REF, SCHEMA_REFERENCE + ConverterCommonUtils.unescapeIdentifier(remoteReturnTypeName));
+        BalAsyncApi25SchemaImpl itemSchema = new BalAsyncApi25SchemaImpl();
+        itemSchema.set$ref(SCHEMA_REFERENCE + ConverterCommonUtils.unescapeIdentifier(remoteReturnTypeName));
+//        refObjNode.put(REF, SCHEMA_REFERENCE + ConverterCommonUtils.unescapeIdentifier(remoteReturnTypeName));
         BalAsyncApi25SchemaImpl arraySchema = getAsyncApiSchema(AsyncAPIType.ARRAY.toString());
-        arraySchema.setItems(objMapper.valueToTree(refObjNode));
+        arraySchema.setItems(itemSchema);
         setResponseOfRequest(subscribeMessage, componentMessage, SIMPLE_RPC,
-                returnDescription, objMapper, arraySchema,isOptional);
+                returnDescription, objMapper, arraySchema, isOptional);
     }
 
     private void handleRecordTypeSymbol(BalAsyncApi25MessageImpl subscribeMessage,
@@ -460,7 +465,7 @@ public class AsyncAPIResponseMapper {
         Map<String, JsonNode> xResponses = componentMessage.getExtensions();
         if (xResponses != null && xResponses.get(X_RESPONSE) != null) {
 
-            if( xResponses.get(X_RESPONSE_TYPE).equals(new TextNode(SERVER_STREAMING))){
+            if (xResponses.get(X_RESPONSE_TYPE).equals(new TextNode(SERVER_STREAMING))) {
                 throw new NoSuchElementException(UNION_STREAMING_SIMPLE_RPC_ERROR);
             }
 
@@ -500,11 +505,11 @@ public class AsyncAPIResponseMapper {
             }
             //Set the description for oneOfSchema
             setDescriptionAndXResponsesForOneOf(componentMessage, returnDescription, objMapper,
-                    oneOfSchema,SIMPLE_RPC,isOptional);
+                    oneOfSchema, SIMPLE_RPC, isOptional);
 
         } else {
             setDescriptionForOneResponse(returnDescription, messageRefObject, componentMessage,
-                    SIMPLE_RPC,isOptional);
+                    SIMPLE_RPC, isOptional);
         }
 
     }
@@ -513,13 +518,13 @@ public class AsyncAPIResponseMapper {
     private void setDescriptionForOneResponse(String returnDescription,
                                               ObjectNode messageRefObject,
                                               BalAsyncApi25MessageImpl componentMessage,
-                                              String responseType,String isOptional) {
+                                              String responseType, String isOptional) {
         //Set the description
         if (returnDescription != null) {
             messageRefObject.put(DESCRIPTION, returnDescription);
         }
-        if(isOptional.equals(TRUE)){
-            messageRefObject.put(X_REQUIRED,BooleanNode.FALSE);
+        if (isOptional.equals(TRUE)) {
+            messageRefObject.put(X_REQUIRED, BooleanNode.FALSE);
         }
         //Set x-response and x-response type of the request
         componentMessage.addExtension(X_RESPONSE, messageRefObject);
@@ -531,20 +536,18 @@ public class AsyncAPIResponseMapper {
                                                      String returnDescription,
                                                      ObjectMapper objMapper,
                                                      BalAsyncApi25MessageImpl oneOfSchema,
-                                                     String responseType,String isOptional) {
+                                                     String responseType, String isOptional) {
         //Set the description
         if (returnDescription != null) {
             oneOfSchema.setDescription(returnDescription);
         }
-        if(isOptional.equals(TRUE)){
+        if (isOptional.equals(TRUE)) {
 //            componentMessage.addExtension(X_OPTIONAL,new TextNode(isOptional.toString()));
             oneOfSchema.addExtension(X_REQUIRED, BooleanNode.FALSE);
         }
         //Set x-response and x-response type as extensions to request
         componentMessage.addExtension(X_RESPONSE, objMapper.valueToTree(oneOfSchema));
         componentMessage.addExtension(X_RESPONSE_TYPE, new TextNode(responseType));
-
-
 
 
 //        if(componentMessage.getExtensions()!=null && componentMessage.getExtensions().get(X_RESPONSE_TYPE).
@@ -628,23 +631,23 @@ public class AsyncAPIResponseMapper {
      * </pre>
      */
     private void mapUnionReturns(BalAsyncApi25MessageImpl subscribeMessage, BalAsyncApi25MessageImpl componentMessage,
-                                 UnionTypeDescriptorNode typeNode, String returnDescription,String isOptional) {
+                                 UnionTypeDescriptorNode typeNode, String returnDescription, String isOptional) {
 
         TypeDescriptorNode rightNode = typeNode.rightTypeDesc();
         TypeDescriptorNode leftNode = typeNode.leftTypeDesc();
         // Handle leftNode because it is main node
-        createResponse(subscribeMessage, componentMessage, leftNode, returnDescription,isOptional);
+        createResponse(subscribeMessage, componentMessage, leftNode, returnDescription, isOptional);
         // Handle rest of the union type
         if (rightNode instanceof UnionTypeDescriptorNode) {
             UnionTypeDescriptorNode traversRightNode = (UnionTypeDescriptorNode) rightNode;
             while (traversRightNode.rightTypeDesc() != null) {
                 if (leftNode.kind() == QUALIFIED_NAME_REFERENCE) {
                     leftNode = ((UnionTypeDescriptorNode) rightNode).leftTypeDesc();
-                    createResponse(subscribeMessage, componentMessage, leftNode, returnDescription,isOptional);
+                    createResponse(subscribeMessage, componentMessage, leftNode, returnDescription, isOptional);
                 }
             }
         } else {
-            createResponse(subscribeMessage, componentMessage, rightNode, returnDescription,isOptional);
+            createResponse(subscribeMessage, componentMessage, rightNode, returnDescription, isOptional);
         }
     }
 
@@ -705,7 +708,7 @@ public class AsyncAPIResponseMapper {
             }
         }
         setResponseOfRequest(subscribeMessage, componentMessage, SIMPLE_RPC,
-                returnDescription, callObjectMapper(), inlineSchema,isOptional);
+                returnDescription, callObjectMapper(), inlineSchema, isOptional);
 
     }
 
@@ -715,17 +718,17 @@ public class AsyncAPIResponseMapper {
     private void getApiResponsesForArrayTypes(BalAsyncApi25MessageImpl subscribeMessage,
                                               BalAsyncApi25MessageImpl componentMessage,
                                               ArrayTypeDescriptorNode array,
-                                              String returnDescription,String isOptional) {
+                                              String returnDescription, String isOptional) {
 
 
         if (array.memberTypeDesc().kind() == SIMPLE_NAME_REFERENCE) {
             handleReferenceResponse(subscribeMessage, componentMessage,
-                    (SimpleNameReferenceNode) array.memberTypeDesc(), returnDescription,isOptional);
+                    (SimpleNameReferenceNode) array.memberTypeDesc(), returnDescription, isOptional);
 
         } else if (array.memberTypeDesc().kind() == QUALIFIED_NAME_REFERENCE) {
 //            TypeSymbol qualifiedNameReferenceSymbol = (TypeSymbol) semanticModel.symbol(array.memberTypeDesc()).get();
-            handleQualifiedNameTypeReference(subscribeMessage,componentMessage,returnDescription,
-                    array.memberTypeDesc(),isOptional);
+            handleQualifiedNameTypeReference(subscribeMessage, componentMessage, returnDescription,
+                    array.memberTypeDesc(), isOptional);
 //            if (optionalAPIResponses.isPresent()) {
 //                ApiResponses responses = optionalAPIResponses.get();
 //            updateResponseWithArraySchema(responses);
@@ -736,15 +739,14 @@ public class AsyncAPIResponseMapper {
                     toLowerCase(Locale.ENGLISH);
             BalAsyncApi25SchemaImpl asyncApiSchema = getAsyncApiSchema(type02);
             ObjectMapper objectMapper = ConverterCommonUtils.callObjectMapper();
-            ObjectNode obj = objectMapper.valueToTree(asyncApiSchema);
-            arraySchema.setItems(obj);
+//            ObjectNode obj = objectMapper.valueToTree(asyncApiSchema);
+            arraySchema.setItems(asyncApiSchema);
 
             setResponseOfRequest(subscribeMessage, componentMessage,
-                    SIMPLE_RPC, returnDescription, objectMapper, arraySchema,isOptional);
+                    SIMPLE_RPC, returnDescription, objectMapper, arraySchema, isOptional);
 
         }
     }
-
 
 
 }
