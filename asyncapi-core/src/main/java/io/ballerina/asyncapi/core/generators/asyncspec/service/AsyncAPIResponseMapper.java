@@ -14,6 +14,7 @@ import io.ballerina.asyncapi.core.generators.asyncspec.diagnostic.DiagnosticMess
 import io.ballerina.asyncapi.core.generators.asyncspec.diagnostic.IncompatibleRemoteDiagnostic;
 import io.ballerina.asyncapi.core.generators.asyncspec.model.BalAsyncApi25MessageImpl;
 import io.ballerina.asyncapi.core.generators.asyncspec.model.BalAsyncApi25SchemaImpl;
+import io.ballerina.asyncapi.core.generators.asyncspec.model.BalBooleanSchema;
 import io.ballerina.asyncapi.core.generators.asyncspec.utils.ConverterCommonUtils;
 import io.ballerina.compiler.api.SemanticModel;
 import io.ballerina.compiler.api.symbols.IntersectionTypeSymbol;
@@ -165,7 +166,9 @@ public class AsyncAPIResponseMapper {
                     //TODO : I changed this kind to string
                     BalAsyncApi25SchemaImpl apiSchema = getAsyncApiSchema(mapNode.mapTypeParamsNode().
                             typeNode().kind());
-                    objectSchema.setAdditionalProperties(apiSchema);
+//                    BalAsyncApi25SchemaImpl booleanTrue=;
+                    objectSchema.setAdditionalProperties(apiSchema.getType() == null ?
+                            new BalBooleanSchema(Boolean.TRUE) : apiSchema);
                     setResponseOfRequest(subscribeMessage, componentMessage,
                             SIMPLE_RPC, returnDescription, objectMapper, objectSchema, isOptional);
                 }
@@ -427,7 +430,7 @@ public class AsyncAPIResponseMapper {
 //        ObjectNode refObjNode = ConverterCommonUtils.createObjectNode();
 
         //Create schema reference
-        BalAsyncApi25SchemaImpl itemSchema= new BalAsyncApi25SchemaImpl();
+        BalAsyncApi25SchemaImpl itemSchema = new BalAsyncApi25SchemaImpl();
         itemSchema.set$ref(SCHEMA_REFERENCE + ConverterCommonUtils.unescapeIdentifier(remoteReturnTypeName));
 //        refObjNode.put(REF, SCHEMA_REFERENCE + ConverterCommonUtils.unescapeIdentifier(remoteReturnTypeName));
         BalAsyncApi25SchemaImpl arraySchema = getAsyncApiSchema(AsyncAPIType.ARRAY.toString());
