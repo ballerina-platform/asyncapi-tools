@@ -22,4 +22,26 @@ channels:
     publish:
       message:
         $ref: '#/components/messages/Subscribe'
-
+components:
+  schemas:
+    Subscribe:
+      type: object
+      required:
+        - id
+        - type1
+      properties:
+        id:
+          type: integer
+          format: int64
+        type1:
+          type: string
+          const: Subscribe
+  messages:
+    Subscribe:
+      payload:
+        $ref: '#/components/schemas/Subscribe'
+      x-response:
+        payload:
+          type: integer
+          format: int64
+      x-response-type: simple-rpc

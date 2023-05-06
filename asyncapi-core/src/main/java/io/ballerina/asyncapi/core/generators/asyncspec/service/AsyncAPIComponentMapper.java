@@ -19,7 +19,6 @@
 package io.ballerina.asyncapi.core.generators.asyncspec.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.BooleanNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 import io.apicurio.datamodels.models.Schema;
@@ -28,6 +27,7 @@ import io.ballerina.asyncapi.core.generators.asyncspec.diagnostic.AsyncAPIConver
 import io.ballerina.asyncapi.core.generators.asyncspec.diagnostic.DiagnosticMessages;
 import io.ballerina.asyncapi.core.generators.asyncspec.diagnostic.IncompatibleRemoteDiagnostic;
 import io.ballerina.asyncapi.core.generators.asyncspec.model.BalAsyncApi25SchemaImpl;
+import io.ballerina.asyncapi.core.generators.asyncspec.model.BalBooleanSchema;
 import io.ballerina.asyncapi.core.generators.asyncspec.utils.ConverterCommonUtils;
 import io.ballerina.compiler.api.symbols.ArrayTypeSymbol;
 import io.ballerina.compiler.api.symbols.ConstantSymbol;
@@ -67,6 +67,7 @@ import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.FALSE;
 import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.FLOAT;
 import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.INTEGER;
 import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.NUMBER;
+import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.OBJECT;
 import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.SCHEMA_REFERENCE;
 import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.STRING;
 import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.TRUE;
@@ -133,6 +134,18 @@ public class AsyncAPIComponentMapper {
                     // Handle typeInclusions with allOf type binding
                     handleRecordTypeSymbol((RecordTypeSymbol) type, componentName, apiDocs, dispatcherValue);
                     break;
+
+                case TYPE_REFERENCE:
+                    schema.setType(OBJECT);
+                    schema.set$ref(ConverterCommonUtils.unescapeIdentifier(
+                            type.getName().orElseThrow().trim()));
+//                    schema.put(componentName, new ObjectSchema().$ref(ConverterCommonUtils.unescapeIdentifier(
+//                            type.getName().orElseThrow().trim())));
+                    components.addSchema(componentName, schema);
+//                    components.setSchemas(schema);
+                    TypeReferenceTypeSymbol referredType = (TypeReferenceTypeSymbol) type;
+                    createComponentSchema(referredType, dispatcherValue);
+                    break;
                 case STRING:
                     schema.setType(STRING);
                     schema.setDescription(typeDoc);
@@ -169,11 +182,28 @@ public class AsyncAPIComponentMapper {
                     break;
                 case MAP:
                     MapTypeSymbol mapTypeSymbol = (MapTypeSymbol) type;
-                    TypeDescKind typeDescKind = mapTypeSymbol.typeParam().typeKind();
-                    BalAsyncApi25SchemaImpl asyncApiSchema = getAsyncApiSchema(typeDescKind.getName());
-                    //TODO : have to check here asyncApiSchema.getType() == null ? true : asyncApiSchema
-//                BalAsyncApi25SchemaImpl objectSchema= new BalAsyncApi25SchemaImpl();
-//                objectSchema.setType(AsyncAPIType.RECORD.toString());
+                    TypeSymbol typeParam = mapTypeSymbol.typeParam();
+                    if (typeParam.typeKind() == TypeDescKind.TYPE_REFERENCE) {
+                        TypeReferenceTypeSymbol typeReferenceTypeSymbol = (TypeReferenceTypeSymbol) typeParam;
+                        BalAsyncApi25SchemaImpl objectSchema = new BalAsyncApi25SchemaImpl();
+                        objectSchema.setType(AsyncAPIType.OBJECT.toString());
+                        BalAsyncApi25SchemaImpl objectSchema2 = new BalAsyncApi25SchemaImpl();
+                        objectSchema2.setType(AsyncAPIType.OBJECT.toString());
+                        objectSchema2.set$ref(ConverterCommonUtils.unescapeIdentifier(
+                                typeReferenceTypeSymbol.getName().orElseThrow().trim()));
+                        objectSchema.setAdditionalProperties(objectSchema2);
+                        components.addSchema(componentName, objectSchema);
+//                        schema.put(componentName, new ObjectSchema().additionalProperties(new ObjectSchema()
+//                                .$ref(ConverterCommonUtils.unescapeIdentifier(
+//                                        typeReferenceTypeSymbol.getName().orElseThrow().trim()))));
+                        createComponentSchema(typeReferenceTypeSymbol, dispatcherValue);
+                    } else {
+
+                        TypeDescKind typeDescKind = mapTypeSymbol.typeParam().typeKind();
+                        BalAsyncApi25SchemaImpl asyncApiSchema = getAsyncApiSchema(typeDescKind.getName());
+                        //TODO : have to check here asyncApiSchema.getType() == null ? true : asyncApiSchema
+                        BalAsyncApi25SchemaImpl objectSchema = new BalAsyncApi25SchemaImpl();
+                        objectSchema.setType(AsyncAPIType.OBJECT.toString());
 //                schema.put(componentName,
 //                        new ObjectSchema().additionalProperties(
 //                                asyncApiSchema.getType() == null ? true : asyncApiSchema)
@@ -182,11 +212,15 @@ public class AsyncAPIComponentMapper {
 //                if (schemas != null) {
 //                    schemas.putAll(schema);
 //                } else {
-                    schema.setType(AsyncAPIType.OBJECT.toString());
-                    schema.setDescription(typeDoc);
-                    schema.setAdditionalProperties(asyncApiSchema);
-                    components.addSchema(componentName, schema);
+//                    schema.setType(AsyncAPIType.OBJECT.toString());
+//                    schema.setDescription(typeDoc);
+//                    schema.setAdditionalProperties(asyncApiSchema.getType() == null ?
+//                            new BooleanUnionValueImpl(true) : asyncApiSchema);
+                        objectSchema.setAdditionalProperties(asyncApiSchema.getType() == null ?
+                                new BalBooleanSchema(true) : asyncApiSchema);
+                        components.addSchema(componentName, objectSchema);
 //                }
+                    }
                     break;
                 default:
                     // Diagnostic for currently unsupported data types.
@@ -334,7 +368,7 @@ public class AsyncAPIComponentMapper {
 //            String check=property.getType();
             if (property.getType() != null) {
                 if (property.getType().equals(AsyncAPIType.ARRAY.toString()) && !((property).getItems() != null &&
-                        (property).getItems().has("oneOf"))) {
+                        ((BalAsyncApi25SchemaImpl) (property).getItems().asSchema()).getOneOf() != null)) {
                     BooleanNode booleanNode = null;
                     if (property.getExtensions() != null) {
                         booleanNode = (BooleanNode) (property.getExtensions().get(X_NULLABLE));
@@ -405,7 +439,8 @@ public class AsyncAPIComponentMapper {
 //            objectSchema.setType(AsyncAPIType.RECORD.toString());
             //TODO : Have to consider about asyncApiSchema.getType() == null ? true :
             // asyncApiSchema in addtionalProperties
-            property.setAdditionalProperties(asyncApiSchema);
+            property.setAdditionalProperties(asyncApiSchema.getType() == null ?
+                    new BalBooleanSchema(true) : asyncApiSchema);
         }
         return property;
     }
@@ -590,7 +625,7 @@ public class AsyncAPIComponentMapper {
             arraySchema.setType(AsyncAPIType.ARRAY.toString());
             property.setItems(handleArray(arrayDimensions - 1, symbolProperty, arraySchema));
         } else {
-            property.setItems(ConverterCommonUtils.callObjectMapper().valueToTree(symbolProperty));
+            property.setItems(symbolProperty);
         }
         return property;
     }
@@ -648,8 +683,8 @@ public class AsyncAPIComponentMapper {
      * Handle nested array.
      */
     //TODO : Here needs to check objectMapper.valueToTree(property) because it may contatins entity:true
-    private JsonNode handleArray(int arrayDimensions, Schema property, BalAsyncApi25SchemaImpl arrayProperty) {
-        ObjectMapper objectMapper = ConverterCommonUtils.callObjectMapper();
+    private BalAsyncApi25SchemaImpl handleArray(int arrayDimensions, BalAsyncApi25SchemaImpl property,
+                                                BalAsyncApi25SchemaImpl arrayProperty) {
 
         if (arrayDimensions > 1) {
             BalAsyncApi25SchemaImpl nArray = new BalAsyncApi25SchemaImpl();
@@ -657,9 +692,9 @@ public class AsyncAPIComponentMapper {
             arrayProperty.setItems(handleArray(arrayDimensions - 1, property, nArray));
         } else if (arrayDimensions == 1) {
 
-            arrayProperty.setItems(objectMapper.valueToTree(property));
+            arrayProperty.setItems(property);
         }
-        return objectMapper.valueToTree(arrayProperty);
+        return arrayProperty;
     }
 
     public TypeSymbol excludeReadonlyIfPresent(TypeSymbol typeSymbol) {
