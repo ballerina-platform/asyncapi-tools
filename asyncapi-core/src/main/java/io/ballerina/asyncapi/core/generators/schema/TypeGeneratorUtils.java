@@ -22,10 +22,18 @@ import com.fasterxml.jackson.databind.node.BooleanNode;
 import io.apicurio.datamodels.models.Schema;
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25DocumentImpl;
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25SchemaImpl;
+import io.ballerina.asyncapi.core.GeneratorConstants;
 import io.ballerina.asyncapi.core.GeneratorUtils;
 import io.ballerina.asyncapi.core.exception.BallerinaAsyncApiException;
 import io.ballerina.asyncapi.core.generators.document.DocCommentsGenerator;
-import io.ballerina.asyncapi.core.generators.schema.ballerinatypegenerators.*;
+import io.ballerina.asyncapi.core.generators.schema.ballerinatypegenerators.AllOfRecordTypeGenerator;
+import io.ballerina.asyncapi.core.generators.schema.ballerinatypegenerators.AnyDataTypeGenerator;
+import io.ballerina.asyncapi.core.generators.schema.ballerinatypegenerators.ArrayTypeGenerator;
+import io.ballerina.asyncapi.core.generators.schema.ballerinatypegenerators.PrimitiveTypeGenerator;
+import io.ballerina.asyncapi.core.generators.schema.ballerinatypegenerators.RecordTypeGenerator;
+import io.ballerina.asyncapi.core.generators.schema.ballerinatypegenerators.ReferencedTypeGenerator;
+import io.ballerina.asyncapi.core.generators.schema.ballerinatypegenerators.TypeGenerator;
+import io.ballerina.asyncapi.core.generators.schema.ballerinatypegenerators.UnionTypeGenerator;
 import io.ballerina.asyncapi.core.generators.schema.model.GeneratorMetaData;
 import io.ballerina.compiler.syntax.tree.AbstractNodeFactory;
 import io.ballerina.compiler.syntax.tree.AnnotationNode;
@@ -43,9 +51,6 @@ import io.ballerina.compiler.syntax.tree.RecordFieldWithDefaultValueNode;
 import io.ballerina.compiler.syntax.tree.SimpleNameReferenceNode;
 import io.ballerina.compiler.syntax.tree.Token;
 import io.ballerina.compiler.syntax.tree.TypeDescriptorNode;
-import io.ballerina.asyncapi.core.GeneratorConstants;
-
-
 
 import java.io.PrintStream;
 import java.math.BigDecimal;
@@ -54,7 +59,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
-import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createEmptyNodeList;
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createIdentifierToken;
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createNodeList;
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createToken;
@@ -182,7 +186,7 @@ public class TypeGeneratorUtils {
 //        if (constraintNode == null) {
 //            metadataNode = createMetadataNode(documentationNode, createEmptyNodeList());
 //        } else {
-          MetadataNode  metadataNode = createMetadataNode(documentationNode, createNodeList(new ArrayList<>()));
+        MetadataNode metadataNode = createMetadataNode(documentationNode, createNodeList(new ArrayList<>()));
 //        }
 
         if (required != null) {
@@ -252,8 +256,9 @@ public class TypeGeneratorUtils {
 
     /**
      * This util is to set the constraint validation for given data type in the record field and user define type.
+     * <p>
+     * //     * @param fieldSchema Schema for data type
      *
-//     * @param fieldSchema Schema for data type
      * @return {@link MetadataNode}
      */
     public static AnnotationNode generateConstraintNode(AsyncApi25SchemaImpl fieldSchema) {
@@ -262,11 +267,11 @@ public class TypeGeneratorUtils {
             AsyncApi25SchemaImpl stringSchema = fieldSchema;
             // Attributes : maxLength, minLength
             return generateStringConstraint(stringSchema);
-        } else if (fieldSchema.getType().equals("integer")|| fieldSchema.getType().equals("number")) {
+        } else if (fieldSchema.getType().equals("integer") || fieldSchema.getType().equals("number")) {
             // Attribute : minimum, maximum, exclusiveMinimum, exclusiveMaximum
             return generateNumberConstraint(fieldSchema);
         } else if (fieldSchema.getType().equals("array")) {
-            AsyncApi25SchemaImpl arraySchema =fieldSchema;
+            AsyncApi25SchemaImpl arraySchema = fieldSchema;
             // Attributes: maxItems, minItems
             return generateArrayConstraint(arraySchema);
         }
@@ -353,8 +358,9 @@ public class TypeGeneratorUtils {
                     (isInt ? numberSchema.getMinimum().intValue() : value);
             fields.add(fieldRef);
         }
-        if (numberSchema.getExclusiveMaximum() != null  &&
-                numberSchema.getMaximum() != null && BigDecimal.ZERO.compareTo((BigDecimal) numberSchema.getMaximum()) != 0) {
+        if (numberSchema.getExclusiveMaximum() != null &&
+                numberSchema.getMaximum() != null && BigDecimal.ZERO.compareTo((BigDecimal)
+                numberSchema.getMaximum()) != 0) {
             String value = numberSchema.getMaximum().toString();
             String fieldRef = GeneratorConstants.EXCLUSIVE_MAX + GeneratorConstants.COLON +
                     (isInt ? numberSchema.getMaximum().intValue() : value);
@@ -446,7 +452,8 @@ public class TypeGeneratorUtils {
             String componentName = GeneratorUtils.getValidName(split[split.length - 1], true);
             AsyncApi25DocumentImpl openAPI = GeneratorMetaData.getInstance().getAsyncAPI();
             if (openAPI.getComponents().getSchemas().get(componentName) != null) {
-                AsyncApi25SchemaImpl schema = (AsyncApi25SchemaImpl) openAPI.getComponents().getSchemas().get(componentName);
+                AsyncApi25SchemaImpl schema = (AsyncApi25SchemaImpl) openAPI.getComponents()
+                        .getSchemas().get(componentName);
                 if (schema.getDescription() != null) {
                     schemaDoc.addAll(DocCommentsGenerator.createAPIDescriptionDoc(
                             schema.getDescription(), false));
@@ -459,12 +466,12 @@ public class TypeGeneratorUtils {
     /**
      * Creates record documentation.
      *
-     * @param documentation   Documentation node list
-     * @param schemaValue     OpenAPI schema
-//     * @param typeAnnotations Annotation list of the record
+     * @param documentation Documentation node list
+     * @param schemaValue   OpenAPI schema
+     *                      //     * @param typeAnnotations Annotation list of the record
      */
     public static void getRecordDocs(List<Node> documentation, AsyncApi25SchemaImpl schemaValue
-                                     ) throws BallerinaAsyncApiException {
+    ) throws BallerinaAsyncApiException {
 
         if (schemaValue.getDescription() != null) {
             documentation.addAll(DocCommentsGenerator.createAPIDescriptionDoc(
