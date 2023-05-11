@@ -17,8 +17,8 @@
  */
 package io.ballerina.asyncapi.cli;
 
-import io.ballerina.asyncapi.core.model.GenSrcFile;
 import io.ballerina.asyncapi.core.generators.asyncspec.utils.ConverterCommonUtils;
+import io.ballerina.asyncapi.core.model.GenSrcFile;
 import io.ballerina.tools.diagnostics.DiagnosticInfo;
 import io.ballerina.tools.diagnostics.DiagnosticSeverity;
 import io.ballerina.tools.diagnostics.Location;

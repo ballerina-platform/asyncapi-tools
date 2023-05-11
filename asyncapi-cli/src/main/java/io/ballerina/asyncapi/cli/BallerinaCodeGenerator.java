@@ -26,7 +26,6 @@ import io.ballerina.asyncapi.core.generators.client.BallerinaClientGenerator;
 import io.ballerina.asyncapi.core.generators.client.BallerinaTestGenerator;
 import io.ballerina.asyncapi.core.generators.client.model.AASClientConfig;
 import io.ballerina.asyncapi.core.generators.schema.BallerinaTypesGenerator;
-//import io.ballerina.asyncapi.core.generators.schema.BallerinaTypesGenerator;
 import io.ballerina.asyncapi.core.model.GenSrcFile;
 import io.ballerina.compiler.syntax.tree.SyntaxTree;
 import io.ballerina.compiler.syntax.tree.TypeDefinitionNode;
@@ -39,14 +38,25 @@ import java.io.PrintStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
-import static io.ballerina.asyncapi.cli.CmdConstants.*;
+import static io.ballerina.asyncapi.cli.CmdConstants.CLIENT_FILE_NAME;
+import static io.ballerina.asyncapi.cli.CmdConstants.CONFIG_FILE_NAME;
+import static io.ballerina.asyncapi.cli.CmdConstants.DEFAULT_CLIENT_PKG;
 import static io.ballerina.asyncapi.cli.CmdConstants.GenType.GEN_CLIENT;
 import static io.ballerina.asyncapi.cli.CmdConstants.GenType.GEN_SERVICE;
+import static io.ballerina.asyncapi.cli.CmdConstants.TEST_DIR;
+import static io.ballerina.asyncapi.cli.CmdConstants.TEST_FILE_NAME;
+import static io.ballerina.asyncapi.cli.CmdConstants.TYPE_FILE_NAME;
 import static io.ballerina.asyncapi.cli.CmdUtils.setGeneratedFileName;
 import static io.ballerina.asyncapi.core.GeneratorConstants.OAS_PATH_SEPARATOR;
 
@@ -56,11 +66,10 @@ import static io.ballerina.asyncapi.core.GeneratorConstants.OAS_PATH_SEPARATOR;
  * @since 1.3.0
  */
 public class BallerinaCodeGenerator {
+    private static final PrintStream outStream = System.err;
     private String srcPackage;
     private String licenseHeader = "";
     private boolean includeTestFiles;
-
-    private static final PrintStream outStream = System.err;
 
 //    /**
 //     * Generates ballerina source for provided Open API Definition in {@code definitionPath}.
@@ -182,10 +191,10 @@ public class BallerinaCodeGenerator {
      * @param definitionPath Input Open Api Definition file path
      * @param outPath        Destination file path to save generated source files. If not provided
      *                       {@code definitionPath} will be used as the default destination path
-//     * @param filter         For take the tags and operation option values
+     *                       //     * @param filter         For take the tags and operation option values
      * @param nullable       Enable nullable option for make record field optional
-     * @throws IOException               when file operations fail
-//     * @throws BallerinaOpenApiException when code generator fails
+     * @throws IOException when file operations fail
+     *                     //     * @throws BallerinaOpenApiException when code generator fails
      */
     public void generateClient(String definitionPath, String outPath, boolean nullable)
             throws IOException, BallerinaAsyncApiException, FormatterException {
@@ -212,7 +221,8 @@ public class BallerinaCodeGenerator {
 //            throws IOException, BallerinaAsyncApiException, FormatterException {
 //        Path srcPath = Paths.get(outPath);
 //        Path implPath = CodegenUtils.getImplPath(srcPackage, srcPath);
-//        List<GenSrcFile> genFiles = generateBallerinaService(Paths.get(definitionPath), serviceName,nullable, generateServiceType);
+//        List<GenSrcFile> genFiles = generateBallerinaService(Paths.get(definitionPath),
+//        serviceName,nullable, generateServiceType);
 //        writeGeneratedSources(genFiles, srcPath, implPath, GEN_SERVICE);
 //    }
 
@@ -312,13 +322,13 @@ public class BallerinaCodeGenerator {
         AsyncApi25DocumentImpl asyncAPIDef = GeneratorUtils.normalizeAsyncAPI(asyncAPI);
         // Generate ballerina service and resources.
         AASClientConfig.Builder clientMetaDataBuilder = new AASClientConfig.Builder();
-        AASClientConfig AASClientConfig = clientMetaDataBuilder
+        AASClientConfig asyncAPIClientConfig = clientMetaDataBuilder
 //                .withNullable(nullable)
                 .withPlugin(false)
                 .withAsyncAPI(asyncAPIDef)
                 .withLicense(licenseHeader)
                 .build();
-        BallerinaClientGenerator ballerinaClientGenerator = new BallerinaClientGenerator(AASClientConfig);
+        BallerinaClientGenerator ballerinaClientGenerator = new BallerinaClientGenerator(asyncAPIClientConfig);
         String mainContent = Formatter.format(ballerinaClientGenerator.generateSyntaxTree()).toString();
         sourceFiles.add(new GenSrcFile(GenSrcFile.GenFileType.GEN_SRC, srcPackage, CLIENT_FILE_NAME, mainContent));
 //        String utilContent = Formatter.format(

@@ -86,7 +86,8 @@
 //                        "map<any>headerValues={\"x-ms-client-request-id\":xMsClientRequestId," +
 //                        "\"x-ms-date\":xMsDate,\"x-ms-version\":xMsVersion};map<string|string[]> " +
 //                        "httpHeaders = getMapForHeaders(headerValues);" +
-//                        "http:Responseresponse=check self.clientEp-> head(resourcePath, httpHeaders);returnresponse;}"},
+//                        "http:Responseresponse=check self.clientEp-> head(resourcePath, httpHeaders);
+//                        returnresponse;}"},
 //                {"diagnostic_files/operation_delete.yaml", "/pets/{petId}", "{string resourcePath = " +
 //                        "string `/pets/${getEncodedUri(petId)}`;" +
 //                        "http:Response response = check self.clientEp-> delete(resourcePath);" +

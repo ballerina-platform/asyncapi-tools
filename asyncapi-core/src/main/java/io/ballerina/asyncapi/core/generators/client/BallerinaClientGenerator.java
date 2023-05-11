@@ -22,18 +22,50 @@ import com.fasterxml.jackson.databind.JsonNode;
 import io.apicurio.datamodels.models.ServerVariable;
 import io.apicurio.datamodels.models.asyncapi.AsyncApiMessage;
 import io.apicurio.datamodels.models.asyncapi.AsyncApiServer;
-import io.apicurio.datamodels.models.asyncapi.v25.*;
-import io.ballerina.asyncapi.core.exception.BallerinaAsyncApiException;
-import io.ballerina.asyncapi.core.generators.schema.BallerinaTypesGenerator;
-import io.ballerina.compiler.syntax.tree.*;
+import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25DocumentImpl;
+import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25InfoImpl;
+import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25MessageImpl;
+import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25ServerImpl;
+import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25ServersImpl;
 import io.ballerina.asyncapi.core.GeneratorConstants;
 import io.ballerina.asyncapi.core.GeneratorUtils;
+import io.ballerina.asyncapi.core.exception.BallerinaAsyncApiException;
 import io.ballerina.asyncapi.core.generators.client.model.AASClientConfig;
 import io.ballerina.asyncapi.core.generators.document.DocCommentsGenerator;
-//import io.ballerina.asyncapi.core.generators.schema.BallerinaTypesGenerator;
+import io.ballerina.asyncapi.core.generators.schema.BallerinaTypesGenerator;
+import io.ballerina.compiler.syntax.tree.AnnotationNode;
+import io.ballerina.compiler.syntax.tree.AssignmentStatementNode;
+import io.ballerina.compiler.syntax.tree.ClassDefinitionNode;
+import io.ballerina.compiler.syntax.tree.FieldAccessExpressionNode;
+import io.ballerina.compiler.syntax.tree.FunctionBodyNode;
+import io.ballerina.compiler.syntax.tree.FunctionDefinitionNode;
+import io.ballerina.compiler.syntax.tree.FunctionSignatureNode;
+import io.ballerina.compiler.syntax.tree.IdentifierToken;
+import io.ballerina.compiler.syntax.tree.ImportDeclarationNode;
+import io.ballerina.compiler.syntax.tree.MarkdownDocumentationLineNode;
+import io.ballerina.compiler.syntax.tree.MarkdownDocumentationNode;
+import io.ballerina.compiler.syntax.tree.MarkdownParameterDocumentationLineNode;
+import io.ballerina.compiler.syntax.tree.MetadataNode;
+import io.ballerina.compiler.syntax.tree.ModuleMemberDeclarationNode;
+import io.ballerina.compiler.syntax.tree.ModulePartNode;
+import io.ballerina.compiler.syntax.tree.Node;
+import io.ballerina.compiler.syntax.tree.NodeList;
+import io.ballerina.compiler.syntax.tree.ObjectFieldNode;
+import io.ballerina.compiler.syntax.tree.OptionalTypeDescriptorNode;
+import io.ballerina.compiler.syntax.tree.ParameterNode;
+import io.ballerina.compiler.syntax.tree.QualifiedNameReferenceNode;
+import io.ballerina.compiler.syntax.tree.RequiredParameterNode;
+import io.ballerina.compiler.syntax.tree.ReturnStatementNode;
+import io.ballerina.compiler.syntax.tree.ReturnTypeDescriptorNode;
+import io.ballerina.compiler.syntax.tree.SeparatedNodeList;
+import io.ballerina.compiler.syntax.tree.SimpleNameReferenceNode;
+import io.ballerina.compiler.syntax.tree.StatementNode;
+import io.ballerina.compiler.syntax.tree.SyntaxKind;
+import io.ballerina.compiler.syntax.tree.SyntaxTree;
+import io.ballerina.compiler.syntax.tree.Token;
+import io.ballerina.compiler.syntax.tree.TypeDefinitionNode;
 import io.ballerina.tools.text.TextDocument;
 import io.ballerina.tools.text.TextDocuments;
-
 
 import java.net.URL;
 import java.util.ArrayList;
@@ -42,7 +74,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import static io.ballerina.asyncapi.core.GeneratorConstants.*;
+import static io.ballerina.asyncapi.core.GeneratorConstants.DEFAULT_API_KEY_DESC;
+import static io.ballerina.asyncapi.core.GeneratorConstants.REMOTE_METHOD_NAME_PREFIX;
+import static io.ballerina.asyncapi.core.GeneratorConstants.SELF;
+import static io.ballerina.asyncapi.core.GeneratorConstants.WEBSOCKET;
+import static io.ballerina.asyncapi.core.GeneratorConstants.X_BALLERINA_INIT_DESCRIPTION;
+import static io.ballerina.asyncapi.core.GeneratorConstants.X_RESPONSE;
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createEmptyNodeList;
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createIdentifierToken;
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createNodeList;
@@ -92,17 +129,33 @@ import static io.ballerina.compiler.syntax.tree.SyntaxKind.SEMICOLON_TOKEN;
  */
 public class BallerinaClientGenerator {
 
-//    private final Filter filters;
-    private List<ImportDeclarationNode> imports;
-    private List<TypeDefinitionNode> typeDefinitionNodeList;
-    private List<String> apiKeyNameList = new ArrayList<>();
     private final AsyncApi25DocumentImpl asyncAPI;
     private final BallerinaTypesGenerator ballerinaSchemaGenerator;
     private final BallerinaUtilGenerator ballerinaUtilGenerator;
     private final List<String> remoteFunctionNameList;
-    private String serverURL;
     private final BallerinaAuthConfigGenerator ballerinaAuthConfigGenerator;
     private final boolean resourceMode;
+    //    private final Filter filters;
+    private List<ImportDeclarationNode> imports;
+    private List<TypeDefinitionNode> typeDefinitionNodeList;
+    private List<String> apiKeyNameList = new ArrayList<>();
+    private String serverURL;
+
+    public BallerinaClientGenerator(AASClientConfig asyncAPIClientConfig) {
+
+//        this.filters = oasClientConfig.getFilters();
+        this.imports = new ArrayList<>();
+        this.typeDefinitionNodeList = new ArrayList<>();
+        this.asyncAPI = asyncAPIClientConfig.getOpenAPI();
+        this.ballerinaSchemaGenerator = new BallerinaTypesGenerator(asyncAPI,
+                asyncAPIClientConfig.isNullable(), new LinkedList<>());
+        this.ballerinaUtilGenerator = new BallerinaUtilGenerator();
+        this.remoteFunctionNameList = new ArrayList<>();
+        this.serverURL = "/";
+        this.ballerinaAuthConfigGenerator = new BallerinaAuthConfigGenerator(false, false, asyncAPI,
+                ballerinaUtilGenerator);
+        this.resourceMode = asyncAPIClientConfig.isResourceMode();
+    }
 
     /**
      * Returns a list of type definition nodes.
@@ -113,20 +166,20 @@ public class BallerinaClientGenerator {
     }
 
     /**
-     * Returns ballerinaAuthConfigGenerator.
-     */
-    public BallerinaAuthConfigGenerator getBallerinaAuthConfigGenerator() {
-
-        return ballerinaAuthConfigGenerator;
-    }
-
-    /**
      * Set the typeDefinitionNodeList.
      */
     public void setTypeDefinitionNodeList(
             List<TypeDefinitionNode> typeDefinitionNodeList) {
 
         this.typeDefinitionNodeList = typeDefinitionNodeList;
+    }
+
+    /**
+     * Returns ballerinaAuthConfigGenerator.
+     */
+    public BallerinaAuthConfigGenerator getBallerinaAuthConfigGenerator() {
+
+        return ballerinaAuthConfigGenerator;
     }
 
     public List<String> getRemoteFunctionNameList() {
@@ -142,22 +195,6 @@ public class BallerinaClientGenerator {
     public String getServerUrl() {
 
         return serverURL;
-    }
-
-    public BallerinaClientGenerator(AASClientConfig AASClientConfig) {
-
-//        this.filters = oasClientConfig.getFilters();
-        this.imports = new ArrayList<>();
-        this.typeDefinitionNodeList = new ArrayList<>();
-        this.asyncAPI = AASClientConfig.getOpenAPI();
-        this.ballerinaSchemaGenerator = new BallerinaTypesGenerator(asyncAPI,
-                AASClientConfig.isNullable(), new LinkedList<>());
-        this.ballerinaUtilGenerator = new BallerinaUtilGenerator();
-        this.remoteFunctionNameList = new ArrayList<>();
-        this.serverURL = "/";
-        this.ballerinaAuthConfigGenerator = new BallerinaAuthConfigGenerator(false, false , asyncAPI,
-                ballerinaUtilGenerator);
-        this.resourceMode = AASClientConfig.isResourceMode();
     }
 
     /**
@@ -224,9 +261,9 @@ public class BallerinaClientGenerator {
         // Generate the class combining members
         MetadataNode metadataNode = getClassMetadataNode();
 
-        String stringClassName= asyncAPI.getInfo().getTitle().trim()+ GeneratorUtils.
-                removeNonAlphanumeric(asyncAPI.getChannels().getItemNames().get(0).trim())+"Client";
-        IdentifierToken className= createIdentifierToken(stringClassName);
+        String stringClassName = asyncAPI.getInfo().getTitle().trim() + GeneratorUtils.
+                removeNonAlphanumeric(asyncAPI.getChannels().getItemNames().get(0).trim()) + "Client";
+        IdentifierToken className = createIdentifierToken(stringClassName);
 //        IdentifierToken className = createIdentifierToken(GeneratorConstants.CLIENT_CLASS);
         NodeList<Token> classTypeQualifiers = createNodeList(
                 createToken(ISOLATED_KEYWORD), createToken(CLIENT_KEYWORD));
@@ -289,12 +326,13 @@ public class BallerinaClientGenerator {
      * @throws BallerinaAsyncApiException When invalid server URL is provided
      */
     private FunctionDefinitionNode createInitFunction() throws BallerinaAsyncApiException {
-        ArrayList initMetaDataDoc=new ArrayList();
+        ArrayList initMetaDataDoc = new ArrayList();
         FunctionSignatureNode functionSignatureNode = getInitFunctionSignatureNode(initMetaDataDoc);
         FunctionBodyNode functionBodyNode = getInitFunctionBodyNode();
         NodeList<Token> qualifierList = createNodeList(createToken(PUBLIC_KEYWORD), createToken(ISOLATED_KEYWORD));
         IdentifierToken functionName = createIdentifierToken("init");
-        return createFunctionDefinitionNode(null, getInitDocComment(initMetaDataDoc), qualifierList, createToken(FUNCTION_KEYWORD),
+        return createFunctionDefinitionNode(null, getInitDocComment(initMetaDataDoc), qualifierList,
+                createToken(FUNCTION_KEYWORD),
                 functionName, createEmptyNodeList(), functionSignatureNode, functionBodyNode);
     }
 
@@ -351,11 +389,13 @@ public class BallerinaClientGenerator {
      * @return {@link FunctionSignatureNode}
      * @throws BallerinaAsyncApiException When invalid server URL is provided
      */
-    private FunctionSignatureNode getInitFunctionSignatureNode(ArrayList initMetaDataNode) throws BallerinaAsyncApiException {
+    private FunctionSignatureNode getInitFunctionSignatureNode(ArrayList initMetaDataNode)
+            throws BallerinaAsyncApiException {
 
         serverURL = getServerURL((AsyncApi25ServersImpl) asyncAPI.getServers());
         SeparatedNodeList<ParameterNode> parameterList = createSeparatedNodeList(
-                ballerinaAuthConfigGenerator.getConfigParamForClassInit(serverURL,initMetaDataNode));
+                ballerinaAuthConfigGenerator.getConfigParamForClassInit(serverURL, initMetaDataNode));
+
         OptionalTypeDescriptorNode returnType = createOptionalTypeDescriptorNode(createToken(ERROR_KEYWORD),
                 createToken(QUESTION_MARK_TOKEN));
         ReturnTypeDescriptorNode returnTypeDescriptorNode = createReturnTypeDescriptorNode(
@@ -373,9 +413,9 @@ public class BallerinaClientGenerator {
 
 //        List<Node> docs = new ArrayList<>();
         String clientInitDocComment = "Gets invoked to initialize the `connector`.\n";
-        Map<String, JsonNode> extensions = ((AsyncApi25InfoImpl)asyncAPI.getInfo()).getExtensions();
+        Map<String, JsonNode> extensions = ((AsyncApi25InfoImpl) asyncAPI.getInfo()).getExtensions();
         if (extensions != null && !extensions.isEmpty()) {
-            for (Map.Entry<String,JsonNode> extension : extensions.entrySet()) {
+            for (Map.Entry<String, JsonNode> extension : extensions.entrySet()) {
                 if (extension.getKey().trim().equals(X_BALLERINA_INIT_DESCRIPTION)) {
                     clientInitDocComment = clientInitDocComment.concat(extension.getValue().toString());
                     break;
@@ -431,9 +471,10 @@ public class BallerinaClientGenerator {
 
     /**
      * Generate remote functions for OpenAPI operations.
+     * <p>
+     * //     * @param paths  openAPI Paths
+     * //     * @param filter user given tags and operations
      *
-//     * @param paths  openAPI Paths
-//     * @param filter user given tags and operations
      * @return FunctionDefinitionNodes list
      * @throws BallerinaAsyncApiException - throws when creating remote functions fails
      */
@@ -445,12 +486,12 @@ public class BallerinaClientGenerator {
         List<FunctionDefinitionNode> functionDefinitionNodeList = new ArrayList<>();
 //        Set<Map.Entry<String, PathItem>> pathsItems = paths.entrySet();
         Set<Map.Entry<String, AsyncApiMessage>> messageItems = messages.entrySet();
-        for (Map.Entry<String, AsyncApiMessage> messageItem: messageItems){
-            Map<String, JsonNode> extensions=((AsyncApi25MessageImpl)messageItem.getValue()).getExtensions();
-            if(extensions!=null && extensions.get(X_RESPONSE)!=null ){
+        for (Map.Entry<String, AsyncApiMessage> messageItem : messageItems) {
+            Map<String, JsonNode> extensions = ((AsyncApi25MessageImpl) messageItem.getValue()).getExtensions();
+            if (extensions != null && extensions.get(X_RESPONSE) != null) {
 //                JsonNode ref=extensions.get(X_RESPONSE).get(PAYLOAD);
                 FunctionDefinitionNode functionDefinitionNode =
-                        getClientMethodFunctionDefinitionNode( messageItem,extensions);
+                        getClientMethodFunctionDefinitionNode(messageItem, extensions);
                 functionDefinitionNodeList.add(functionDefinitionNode);
 //
 
@@ -494,7 +535,7 @@ public class BallerinaClientGenerator {
         return functionDefinitionNodeList;
     }
 
-//    /**
+    //    /**
 //     * Generate function definition node.
 //     * <pre>
 //     *     remote isolated function pathParameter(int 'version, string name) returns string|error {
@@ -510,13 +551,13 @@ public class BallerinaClientGenerator {
 //     *     }
 //     * </pre>
 //     */
-    private FunctionDefinitionNode  getClientMethodFunctionDefinitionNode(Map.Entry<String, AsyncApiMessage> message,
-                                                                          Map<String, JsonNode> extensions)
+    private FunctionDefinitionNode getClientMethodFunctionDefinitionNode(Map.Entry<String, AsyncApiMessage> message,
+                                                                         Map<String, JsonNode> extensions)
             throws BallerinaAsyncApiException {
         // Create api doc for function
         List<Node> remoteFunctionDocs = new ArrayList<>();
-        AsyncApi25MessageImpl messageValue= (AsyncApi25MessageImpl) message.getValue();
-        String messageName=message.getKey();
+        AsyncApi25MessageImpl messageValue = (AsyncApi25MessageImpl) message.getValue();
+        String messageName = message.getKey();
 
         if (messageValue.getSummary() != null) {
             remoteFunctionDocs.addAll(DocCommentsGenerator.createAPIDescriptionDoc(
@@ -532,10 +573,10 @@ public class BallerinaClientGenerator {
 
         //Create qualifier list
         NodeList<Token> qualifierList = createNodeList(createToken(
-                                REMOTE_KEYWORD),
+                        REMOTE_KEYWORD),
                 createToken(ISOLATED_KEYWORD));
         Token functionKeyWord = createToken(FUNCTION_KEYWORD);
-        IdentifierToken functionName = createIdentifierToken(REMOTE_METHOD_NAME_PREFIX +messageName);
+        IdentifierToken functionName = createIdentifierToken(REMOTE_METHOD_NAME_PREFIX + messageName);
 
         remoteFunctionNameList.add(messageName);
 
@@ -543,7 +584,7 @@ public class BallerinaClientGenerator {
                 ballerinaSchemaGenerator, typeDefinitionNodeList, resourceMode);
         FunctionSignatureNode functionSignatureNode =
                 functionSignatureGenerator.getFunctionSignatureNode(messageValue.getPayload(),
-                        remoteFunctionDocs,extensions);
+                        remoteFunctionDocs, extensions);
         typeDefinitionNodeList = functionSignatureGenerator.getTypeDefinitionNodeList();
 //        // Create `Deprecated` annotation if an operation has mentioned as `deprecated:true`
 //        if (operation.getValue().getDeprecated() != null && operation.getValue().getDeprecated()) {
@@ -559,7 +600,8 @@ public class BallerinaClientGenerator {
         // Create Function Body
         FunctionBodyGenerator functionBodyGenerator = new FunctionBodyGenerator(imports, typeDefinitionNodeList,
                 asyncAPI, ballerinaSchemaGenerator, ballerinaAuthConfigGenerator, ballerinaUtilGenerator, resourceMode);
-        FunctionBodyNode functionBodyNode = functionBodyGenerator.getFunctionBodyNode(extensions, ((RequiredParameterNode)functionSignatureNode.parameters().get(0)).paramName().get().toString());
+        FunctionBodyNode functionBodyNode = functionBodyGenerator.getFunctionBodyNode(extensions,
+                ((RequiredParameterNode) functionSignatureNode.parameters().get(0)).paramName().get().toString());
         imports = functionBodyGenerator.getImports();
 
         //Generate relative path
@@ -574,15 +616,14 @@ public class BallerinaClientGenerator {
     }
 
     /**
-     *
      * Generate serverUrl for client default value.
      */
     private String getServerURL(AsyncApi25ServersImpl servers) throws BallerinaAsyncApiException {
 
 
         String serverURL;
-        List<AsyncApiServer > serversList=servers.getItems();
-        AsyncApi25ServerImpl selectedServer =(AsyncApi25ServerImpl) serversList.get(0);
+        List<AsyncApiServer> serversList = servers.getItems();
+        AsyncApi25ServerImpl selectedServer = (AsyncApi25ServerImpl) serversList.get(0);
         if (!selectedServer.getUrl().startsWith("https:") && servers.getItems().size() > 1) {
             for (AsyncApiServer server : serversList) {
                 if (server.getUrl().startsWith("https:")) {
@@ -599,7 +640,7 @@ public class BallerinaClientGenerator {
             String resolvedUrl = GeneratorUtils.buildUrl(selectedServer.getUrl(), variables);
             //                url = new URL(resolvedUrl);
 //                serverURL = url.toString();
-            serverURL=resolvedUrl.toString();
+            serverURL = resolvedUrl;
         } else {
             serverURL = selectedServer.getUrl();
         }

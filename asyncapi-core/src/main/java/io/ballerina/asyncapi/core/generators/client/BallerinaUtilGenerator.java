@@ -17,34 +17,6 @@
  */
 package io.ballerina.asyncapi.core.generators.client;
 
-import io.ballerina.compiler.syntax.tree.CaptureBindingPatternNode;
-import io.ballerina.compiler.syntax.tree.ChildNodeEntry;
-import io.ballerina.compiler.syntax.tree.EnumDeclarationNode;
-import io.ballerina.compiler.syntax.tree.EnumMemberNode;
-import io.ballerina.compiler.syntax.tree.ExpressionNode;
-import io.ballerina.compiler.syntax.tree.ImportDeclarationNode;
-import io.ballerina.compiler.syntax.tree.IntersectionTypeDescriptorNode;
-import io.ballerina.compiler.syntax.tree.MarkdownDocumentationNode;
-import io.ballerina.compiler.syntax.tree.MetadataNode;
-import io.ballerina.compiler.syntax.tree.ModuleMemberDeclarationNode;
-import io.ballerina.compiler.syntax.tree.ModulePartNode;
-import io.ballerina.compiler.syntax.tree.ModuleVariableDeclarationNode;
-import io.ballerina.compiler.syntax.tree.Node;
-import io.ballerina.compiler.syntax.tree.NodeList;
-import io.ballerina.compiler.syntax.tree.RecordFieldNode;
-import io.ballerina.compiler.syntax.tree.RecordFieldWithDefaultValueNode;
-import io.ballerina.compiler.syntax.tree.SeparatedNodeList;
-import io.ballerina.compiler.syntax.tree.SyntaxKind;
-import io.ballerina.compiler.syntax.tree.SyntaxTree;
-import io.ballerina.compiler.syntax.tree.TypeDefinitionNode;
-import io.ballerina.compiler.syntax.tree.TypeDescriptorNode;
-import io.ballerina.compiler.syntax.tree.TypedBindingPatternNode;
-import io.ballerina.projects.DocumentId;
-import io.ballerina.projects.Package;
-import io.ballerina.projects.Project;
-import io.ballerina.projects.directory.ProjectLoader;
-import io.ballerina.tools.text.TextDocument;
-import io.ballerina.tools.text.TextDocuments;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.slf4j.Logger;
@@ -56,49 +28,6 @@ import java.io.PrintWriter;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Set;
-
-import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createEmptyNodeList;
-import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createIdentifierToken;
-import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createNodeList;
-import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createSeparatedNodeList;
-import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createToken;
-import static io.ballerina.compiler.syntax.tree.NodeFactory.createCaptureBindingPatternNode;
-import static io.ballerina.compiler.syntax.tree.NodeFactory.createEnumDeclarationNode;
-import static io.ballerina.compiler.syntax.tree.NodeFactory.createEnumMemberNode;
-import static io.ballerina.compiler.syntax.tree.NodeFactory.createIntersectionTypeDescriptorNode;
-import static io.ballerina.compiler.syntax.tree.NodeFactory.createMarkdownDocumentationNode;
-import static io.ballerina.compiler.syntax.tree.NodeFactory.createMetadataNode;
-import static io.ballerina.compiler.syntax.tree.NodeFactory.createModulePartNode;
-import static io.ballerina.compiler.syntax.tree.NodeFactory.createModuleVariableDeclarationNode;
-import static io.ballerina.compiler.syntax.tree.NodeFactory.createNilLiteralNode;
-import static io.ballerina.compiler.syntax.tree.NodeFactory.createRecordFieldNode;
-import static io.ballerina.compiler.syntax.tree.NodeFactory.createRecordFieldWithDefaultValueNode;
-import static io.ballerina.compiler.syntax.tree.NodeFactory.createRecordTypeDescriptorNode;
-import static io.ballerina.compiler.syntax.tree.NodeFactory.createRequiredExpressionNode;
-import static io.ballerina.compiler.syntax.tree.NodeFactory.createSimpleNameReferenceNode;
-import static io.ballerina.compiler.syntax.tree.NodeFactory.createSingletonTypeDescriptorNode;
-import static io.ballerina.compiler.syntax.tree.NodeFactory.createTypeDefinitionNode;
-import static io.ballerina.compiler.syntax.tree.NodeFactory.createTypedBindingPatternNode;
-import static io.ballerina.compiler.syntax.tree.SyntaxKind.BITWISE_AND_TOKEN;
-import static io.ballerina.compiler.syntax.tree.SyntaxKind.BOOLEAN_KEYWORD;
-import static io.ballerina.compiler.syntax.tree.SyntaxKind.CLOSE_BRACE_TOKEN;
-import static io.ballerina.compiler.syntax.tree.SyntaxKind.COMMA_TOKEN;
-import static io.ballerina.compiler.syntax.tree.SyntaxKind.ENUM_KEYWORD;
-import static io.ballerina.compiler.syntax.tree.SyntaxKind.EOF_TOKEN;
-import static io.ballerina.compiler.syntax.tree.SyntaxKind.EQUAL_TOKEN;
-import static io.ballerina.compiler.syntax.tree.SyntaxKind.FINAL_KEYWORD;
-import static io.ballerina.compiler.syntax.tree.SyntaxKind.OPEN_BRACE_TOKEN;
-import static io.ballerina.compiler.syntax.tree.SyntaxKind.QUESTION_MARK_TOKEN;
-import static io.ballerina.compiler.syntax.tree.SyntaxKind.READONLY_KEYWORD;
-import static io.ballerina.compiler.syntax.tree.SyntaxKind.RECORD_KEYWORD;
-import static io.ballerina.compiler.syntax.tree.SyntaxKind.SEMICOLON_TOKEN;
-import static io.ballerina.compiler.syntax.tree.SyntaxKind.STRING_KEYWORD;
-import static io.ballerina.compiler.syntax.tree.SyntaxKind.TYPE_KEYWORD;
 
 /**
  * This class is used to generate util file syntax tree according to the generated client.
@@ -107,13 +36,7 @@ import static io.ballerina.compiler.syntax.tree.SyntaxKind.TYPE_KEYWORD;
  */
 public class BallerinaUtilGenerator {
 
-    private boolean headersFound = false;
-    private boolean pathParametersFound = false;
-    private boolean queryParamsFound = false;
-    private boolean requestBodyEncodingFound = false;
-    private boolean requestBodyMultipartFormDatafound = false;
     private static final Logger LOGGER = LoggerFactory.getLogger(BallerinaUtilGenerator.class);
-
     private static final String CREATE_FORM_URLENCODED_REQUEST_BODY = "createFormURLEncodedRequestBody";
     private static final String GET_DEEP_OBJECT_STYLE_REQUEST = "getDeepObjectStyleRequest";
     private static final String GET_FORM_STYLE_REQUEST = "getFormStyleRequest";
@@ -124,12 +47,17 @@ public class BallerinaUtilGenerator {
     private static final String GET_MAP_FOR_HEADERS = "getMapForHeaders";
     private static final String GET_SERIALIZED_RECORD_ARRAY = "getSerializedRecordArray";
     private static final String CREATE_MULTIPART_BODY_PARTS = "createBodyParts";
+    private final boolean headersFound = false;
+    private boolean pathParametersFound = false;
+    private final boolean queryParamsFound = false;
+    private final boolean requestBodyEncodingFound = false;
+    private final boolean requestBodyMultipartFormDatafound = false;
 
     /**
-//     * Set `queryParamsFound` flag to `true` when at least one query parameter found.
-//     *
-//     * @param flag Function will be called only in the occasions where flag needs to be set to `true`
-//     */
+     //     * Set `queryParamsFound` flag to `true` when at least one query parameter found.
+     //     *
+     //     * @param flag Function will be called only in the occasions where flag needs to be set to `true`
+     //     */
 //    public void setQueryParamsFound(boolean flag) {
 //        this.queryParamsFound = flag;
 //    }
@@ -144,6 +72,7 @@ public class BallerinaUtilGenerator {
 //        this.headersFound = flag;
 //    }
 //
+
     /**
      * Set `pathParametersFound` flag to `true` when at least one path parameter found.
      *
@@ -154,7 +83,8 @@ public class BallerinaUtilGenerator {
     }
 //
 //    /**
-//     * Set `setRequestBodyEncodingFound` flag to `true` when at least one function found with URL-encoded request body.
+//     * Set `setRequestBodyEncodingFound` flag to `true` when at least one function found with URL-encoded
+//     request body.
 //     *
 //     * @param flag Function will be called only in the occasions where value needs to be set to `true`.
 //     */
@@ -302,7 +232,8 @@ public class BallerinaUtilGenerator {
 //                "Specifies the custom content type", false));
 //        MarkdownDocumentationNode contentTypeDocumentationNode = createMarkdownDocumentationNode(
 //                createNodeList(contentTypeDoc));
-//        MetadataNode contentTypeMetadataNode = createMetadataNode(contentTypeDocumentationNode, createEmptyNodeList());
+//        MetadataNode contentTypeMetadataNode = createMetadataNode(contentTypeDocumentationNode,
+//        createEmptyNodeList());
 //        RecordFieldNode contentTypeFieldNode = createRecordFieldNode(contentTypeMetadataNode,
 //                null, createToken(STRING_KEYWORD), createIdentifierToken("contentType"),
 //                createToken(QUESTION_MARK_TOKEN), createToken(SEMICOLON_TOKEN));
@@ -310,7 +241,8 @@ public class BallerinaUtilGenerator {
 //        // create `contentType` field
 //        List<Node> headerDoc = new ArrayList<>(DocCommentsGenerator.createAPIDescriptionDoc(
 //                "Specifies the custom headers", false));
-//        MarkdownDocumentationNode headerDocumentationNode = createMarkdownDocumentationNode(createNodeList(headerDoc));
+//        MarkdownDocumentationNode headerDocumentationNode =
+//        createMarkdownDocumentationNode(createNodeList(headerDoc));
 //        MetadataNode headerMetadataNode = createMetadataNode(headerDocumentationNode, createEmptyNodeList());
 //        RecordFieldNode headerFieldNode = createRecordFieldNode(headerMetadataNode, null,
 //                createIdentifierToken("map<any>"), createIdentifierToken("headers"),

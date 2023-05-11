@@ -255,8 +255,10 @@ public class BallerinaTestGenerator {
                     break;
                 case HTTP_API_KEY:
                     isHttpOrOAuth = false;
-                    boolean combinationOfApiKeyAndHTTPOAuth = ballerinaClientGenerator.getBallerinaAuthConfigGenerator()
-                            .isHttpApiKey() && ballerinaClientGenerator.getBallerinaAuthConfigGenerator().isHttpOROAuth();
+                    boolean combinationOfApiKeyAndHTTPOAuth = ballerinaClientGenerator.
+                            getBallerinaAuthConfigGenerator()
+                            .isHttpApiKey() && ballerinaClientGenerator.getBallerinaAuthConfigGenerator().
+                            isHttpOROAuth();
                     if (combinationOfApiKeyAndHTTPOAuth) {
                         // todo : The test file in the combination
                     } else {

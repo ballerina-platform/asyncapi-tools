@@ -18,7 +18,6 @@
 
 package io.ballerina.asyncapi.core.generators.client;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.apicurio.datamodels.models.Schema;
@@ -39,8 +38,13 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
-import static io.ballerina.asyncapi.core.GeneratorConstants.*;
-import static io.ballerina.asyncapi.core.GeneratorUtils.*;
+import static io.ballerina.asyncapi.core.GeneratorConstants.DEFAULT_RETURN;
+import static io.ballerina.asyncapi.core.GeneratorConstants.ERROR;
+import static io.ballerina.asyncapi.core.GeneratorConstants.X_RESPONSE;
+import static io.ballerina.asyncapi.core.GeneratorUtils.convertAsyncAPITypeToBallerina;
+import static io.ballerina.asyncapi.core.GeneratorUtils.extractReferenceType;
+import static io.ballerina.asyncapi.core.GeneratorUtils.getValidName;
+import static io.ballerina.asyncapi.core.GeneratorUtils.isValidSchemaName;
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createIdentifierToken;
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createToken;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createSimpleNameReferenceNode;
@@ -62,7 +66,8 @@ public class FunctionReturnTypeGenerator {
 
     }
 
-    public FunctionReturnTypeGenerator(AsyncApi25DocumentImpl asyncAPI, BallerinaTypesGenerator ballerinaSchemaGenerator,
+    public FunctionReturnTypeGenerator(AsyncApi25DocumentImpl asyncAPI,
+                                       BallerinaTypesGenerator ballerinaSchemaGenerator,
                                        List<TypeDefinitionNode> typeDefinitionNodeList) {
 
         this.asyncAPI = asyncAPI;
@@ -72,12 +77,13 @@ public class FunctionReturnTypeGenerator {
 
     /**
      * Get return type of the remote function.
+     * <p>
+     * //     * @param operation swagger operation.
      *
-//     * @param operation swagger operation.
      * @return string with return type.
      * @throws BallerinaAsyncApiException - throws exception if creating return type fails.
      */
-    public String getReturnType( Map<String, JsonNode> extensions) throws BallerinaAsyncApiException {
+    public String getReturnType(Map<String, JsonNode> extensions) throws BallerinaAsyncApiException {
         //TODO: Handle multiple media-type
         Set<String> returnTypes = new HashSet<>();
 //        boolean noContentResponseFound = false;
@@ -108,47 +114,35 @@ public class FunctionReturnTypeGenerator {
 //                }
 //            }
 //        }
-        String type=null;
+        String type = null;
 
-        if(extensions.get(X_RESPONSE).get("oneOf")!=null){
-
-
+        if (extensions.get(X_RESPONSE).get("oneOf") != null) {
 
 
+        } else if (extensions.get(X_RESPONSE).get("payload") != null) {
 
 
-
-        } else if (extensions.get(X_RESPONSE).get("payload")!=null){
-
-
-
-
-
-
-        } else if (extensions.get(X_RESPONSE).get("$ref")!=null) {
-            String reference= extensions.get(X_RESPONSE).get("$ref").asText();
-            String schemaName=getValidName(extractReferenceType(reference),true);
+        } else if (extensions.get(X_RESPONSE).get("$ref") != null) {
+            String reference = extensions.get(X_RESPONSE).get("$ref").asText();
+            String schemaName = getValidName(extractReferenceType(reference), true);
             AsyncApi25SchemaImpl refSchema = (AsyncApi25SchemaImpl) asyncAPI.getComponents().getSchemas().get(
                     schemaName);
-          type =getDataType(schemaName,refSchema);
-
-
+            type = getDataType(schemaName, refSchema);
 
 
         }
         returnTypes.add(type);
 
         if (returnTypes.size() > 0) {
-            StringBuilder finalReturnType = new StringBuilder();
-            finalReturnType.append(String.join(PIPE_TOKEN.stringValue(), returnTypes));
-            finalReturnType.append(PIPE_TOKEN.stringValue());
-            finalReturnType.append(ERROR);
+            String finalReturnType = String.join(PIPE_TOKEN.stringValue(), returnTypes) +
+                    PIPE_TOKEN.stringValue() +
+                    ERROR;
 //            if (noContentResponseFound) {
             //TODO: change this after figure out
 
 //                finalReturnType.append(NILLABLE);
 //            }
-            return finalReturnType.toString();
+            return finalReturnType;
         } else {
             return DEFAULT_RETURN;
         }
@@ -158,13 +152,13 @@ public class FunctionReturnTypeGenerator {
     /**
      * Get return data type by traversing OAS schemas.
      */
-    private String getDataType(String schemaName,AsyncApi25SchemaImpl schema)
+    private String getDataType(String schemaName, AsyncApi25SchemaImpl schema)
             throws BallerinaAsyncApiException {
 
-        String type=null;
+        String type = null;
         if (((schema.getProperties() != null &&
-               (schema.getOneOf() != null || schema.getAllOf() != null || schema.getAnyOf() != null)))) {
-            type = generateReturnDataTypeForComposedSchema( schemaName,schema,type);
+                (schema.getOneOf() != null || schema.getAllOf() != null || schema.getAnyOf() != null)))) {
+            type = generateReturnDataTypeForComposedSchema(schemaName, schema, type);
         } else if (schema.getType().equals("object")) {
             type = handleInLineRecordInResponse(schemaName, schema);
 //        } else if (schema instanceof MapSchema) {
@@ -199,19 +193,16 @@ public class FunctionReturnTypeGenerator {
     }
 
 
-
-
-
     /**
      * Get the return data type according to the OAS ArraySchema.
      */
-    private String generateReturnTypeForArraySchema( AsyncApi25SchemaImpl arraySchema) throws
+    private String generateReturnTypeForArraySchema(AsyncApi25SchemaImpl arraySchema) throws
             BallerinaAsyncApiException {
 
         String type;
-        AsyncApi25SchemaImpl arraySchemaItems= (AsyncApi25SchemaImpl) arraySchema.getItems().asSchema();
-        if (arraySchemaItems.get$ref()!=null) {
-            String name = getValidName(extractReferenceType(arraySchemaItems.get$ref().toString()), true);
+        AsyncApi25SchemaImpl arraySchemaItems = (AsyncApi25SchemaImpl) arraySchema.getItems().asSchema();
+        if (arraySchemaItems.get$ref() != null) {
+            String name = getValidName(extractReferenceType(arraySchemaItems.get$ref()), true);
             type = name + "[]";
             String typeName = name + "Arr";
             TypeDefinitionNode typeDefNode = createTypeDefinitionNode(null, null,
@@ -240,24 +231,24 @@ public class FunctionReturnTypeGenerator {
 //            }
         } else {
             String typeName;
-            ObjectMapper objMapper=new ObjectMapper();
-            AsyncApi25SchemaImpl nestedSchema= null;
+            ObjectMapper objMapper = new ObjectMapper();
+            AsyncApi25SchemaImpl nestedSchema = null;
 //            try {
 //                nestedSchema = objMapper.treeToValue(arraySchema.getItems(), AsyncApi25SchemaImpl.class);
 //            } catch (JsonProcessingException e) {
 //                throw new RuntimeException(e);
 //            }
-            nestedSchema= (AsyncApi25SchemaImpl) arraySchemaItems.asSchema();
-            if (arraySchema.getItems()!=null) {
+            nestedSchema = (AsyncApi25SchemaImpl) arraySchemaItems.asSchema();
+            if (arraySchema.getItems() != null) {
 //                AsyncApi25SchemaImpl nestedSchema=objMapper.treeToValue(arraySchema.getItems(),
 //                        AsyncApi25SchemaImpl.class);
-                AsyncApi25SchemaImpl nestedArraySchema= null;
+                AsyncApi25SchemaImpl nestedArraySchema = null;
 //                try {
 //                    nestedArraySchema = objMapper.treeToValue(nestedSchema.getItems(), AsyncApi25SchemaImpl.class);
 //                } catch (JsonProcessingException e) {
 //                    throw new RuntimeException(e);
 //                }
-                nestedArraySchema= (AsyncApi25SchemaImpl) nestedSchema.getItems();
+                nestedArraySchema = (AsyncApi25SchemaImpl) nestedSchema.getItems();
 //                Schema nestedSchema = arraySchema.getItems();
 //                ArraySchema nestedArraySchema = (ArraySchema) nestedSchema;
                 String inlineArrayType = convertAsyncAPITypeToBallerina(nestedArraySchema.getType());
@@ -276,12 +267,13 @@ public class FunctionReturnTypeGenerator {
     /**
      * Get the return data type according to the OAS ComposedSchemas ex: AllOf, OneOf, AnyOf.
      */
-    private String generateReturnDataTypeForComposedSchema(String schemaName,AsyncApi25SchemaImpl composedSchema,String type)
+    private String generateReturnDataTypeForComposedSchema(String schemaName, AsyncApi25SchemaImpl composedSchema,
+                                                           String type)
             throws BallerinaAsyncApiException {
 
         if (composedSchema.getOneOf() != null) {
             // Get oneOfUnionType name
-            String typeName = "OneOf" + getValidName(schemaName.trim(),true)+ "Response";
+            String typeName = "OneOf" + getValidName(schemaName.trim(), true) + "Response";
             TypeDefinitionNode typeDefNode = ballerinaSchemaGenerator.getTypeDefinitionNode(
                     composedSchema, typeName, new ArrayList<>());
             GeneratorUtils.updateTypeDefNodeList(typeName, typeDefNode, typeDefinitionNodeList);
@@ -290,7 +282,7 @@ public class FunctionReturnTypeGenerator {
 //                type = typeName;
 //            }
         } else if (composedSchema.getAllOf() != null) {
-            String recordName = "Compound" + getValidName(schemaName,true) +
+            String recordName = "Compound" + getValidName(schemaName, true) +
                     "Response";
             TypeDefinitionNode allOfTypeDefinitionNode = ballerinaSchemaGenerator.getTypeDefinitionNode
                     (composedSchema, recordName, new ArrayList<>());
@@ -308,7 +300,7 @@ public class FunctionReturnTypeGenerator {
 
         Map<String, Schema> properties = objectSchema.getProperties();
         String ref = objectSchema.get$ref();
-        String type = getValidName(schemaName,true)+ "Response";
+        String type = getValidName(schemaName, true) + "Response";
 
         if (ref != null) {
             type = extractReferenceType(ref.trim());
@@ -316,15 +308,16 @@ public class FunctionReturnTypeGenerator {
 //            if (properties.isEmpty()) {
 //                type = GeneratorUtils.getBallerinaMediaType(media.getKey().trim(), false);
 //            } else {
-                List<Node> returnTypeDocs = new ArrayList<>();
-//                String description = operation.getResponses().entrySet().iterator().next().getValue().getDescription();
+            List<Node> returnTypeDocs = new ArrayList<>();
+//                String description = operation.getResponses().entrySet().iterator().next().getValue().
+//               getDescription();
 //                if (description != null) {
 //                    returnTypeDocs.addAll(DocCommentsGenerator.createAPIDescriptionDoc(
 //                            description, false));
 //                }
-                TypeDefinitionNode recordNode = ballerinaSchemaGenerator.getTypeDefinitionNode
-                        (objectSchema, type, returnTypeDocs);
-                GeneratorUtils.updateTypeDefNodeList(type, recordNode, typeDefinitionNodeList);
+            TypeDefinitionNode recordNode = ballerinaSchemaGenerator.getTypeDefinitionNode
+                    (objectSchema, type, returnTypeDocs);
+            GeneratorUtils.updateTypeDefNodeList(type, recordNode, typeDefinitionNodeList);
 //            }
 //        } else {
 //            type = GeneratorUtils.getBallerinaMediaType(media.getKey().trim(), false);
@@ -351,7 +344,8 @@ public class FunctionReturnTypeGenerator {
 //                type = GeneratorUtils.getBallerinaMediaType(media.getKey().trim(), false);
 //            } else {
 //                List<Node> schemaDocs = new ArrayList<>();
-//                String description = operation.getResponses().entrySet().iterator().next().getValue().getDescription();
+//                String description = operation.getResponses().entrySet().iterator().next().getValue().
+//                getDescription();
 //                if (description != null) {
 //                    schemaDocs.addAll(DocCommentsGenerator.createAPIDescriptionDoc(
 //                            description, false));
@@ -384,7 +378,7 @@ public class FunctionReturnTypeGenerator {
 //        if (!isSignature) {
 //            return typeName;
 //        } else {
-            return type;
+        return type;
 //        }
     }
 }
