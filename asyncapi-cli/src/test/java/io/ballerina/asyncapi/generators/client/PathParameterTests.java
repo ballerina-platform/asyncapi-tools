@@ -17,12 +17,8 @@
  */
 package io.ballerina.asyncapi.generators.client;
 
-import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25DocumentImpl;
 import io.ballerina.asyncapi.cli.BallerinaCodeGenerator;
-import io.ballerina.asyncapi.core.GeneratorUtils;
 import io.ballerina.asyncapi.core.exception.BallerinaAsyncApiException;
-import io.ballerina.asyncapi.core.generators.client.BallerinaClientGenerator;
-import io.ballerina.asyncapi.core.generators.client.model.AASClientConfig;
 import io.ballerina.compiler.syntax.tree.SyntaxTree;
 import org.ballerinalang.formatter.core.FormatterException;
 import org.testng.annotations.Test;
@@ -33,32 +29,31 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 
-import static io.ballerina.asyncapi.generators.common.TestUtils.compareGeneratedSyntaxTreeWithExpectedSyntaxTree;
-
 /**
  * This tests class for the tests Path parameters in swagger file.
  */
 public class PathParameterTests {
     private static final Path RESDIR = Paths.get("src/test/resources/generators/client").toAbsolutePath();
-    private SyntaxTree syntaxTree;
     List<String> list1 = new ArrayList<>();
     List<String> list2 = new ArrayList<>();
+    private SyntaxTree syntaxTree;
 //    Filter filter = new Filter(list1, list2);
 
     @Test(description = "Generate Client for path parameter has parameter name as key word - unit tests for method")
-    public void generatePathWithPathParameterTests() throws IOException, BallerinaAsyncApiException, FormatterException {
+    public void generatePathWithPathParameterTests() throws IOException, BallerinaAsyncApiException,
+            FormatterException {
         // "/v1/v2"), "/v1/v2"
         // "/v1/{version}/v2/{name}", "/v1/${'version}/v2/${name}"
         // "/v1/{version}/v2/{limit}", "/v1/${'version}/v2/${'limit}"
         // "/v1/{age}/v2/{name}", "/v1/${age}/v2/${name}"
 
         BallerinaCodeGenerator codeGenerator = new BallerinaCodeGenerator();
-        Path definitionPath = RESDIR.resolve(RESDIR.toString()+"/swagger/path_parameter_valid.yaml");
-        System.out.println(definitionPath);
+        Path definitionPath = RESDIR.resolve(RESDIR + "/swagger/path_parameter_valid.yaml");
 //        Path expectedPath = RESDIR.resolve("ballerina/path_parameter_valid.bal");
 //        AsyncApi25DocumentImpl openAPI = GeneratorUtils.normalizeAsyncAPI(definitionPath);
-        BallerinaCodeGenerator ballerinaCodeGenerator=new BallerinaCodeGenerator();
-        ballerinaCodeGenerator.generateClient("src/test/resources/generators/client/swagger/path_parameter_valid.yaml","/Users/thushalya/Documents/out",false);
+        BallerinaCodeGenerator ballerinaCodeGenerator = new BallerinaCodeGenerator();
+        ballerinaCodeGenerator.generateClient("src/test/resources/generators/client/swagger" +
+                "/path_parameter_valid.yaml", "/Users/thushalya/Documents/out", false);
 //        AASClientConfig.Builder clientMetaDataBuilder = new AASClientConfig.Builder();
 //        AASClientConfig oasClientConfig = clientMetaDataBuilder
 ////                .withFilters(filter)

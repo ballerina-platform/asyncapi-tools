@@ -18,18 +18,16 @@
 
 package io.ballerina.asyncapi.core;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import io.apicurio.datamodels.Library;
 import io.apicurio.datamodels.models.Schema;
 import io.apicurio.datamodels.models.ServerVariable;
-import io.apicurio.datamodels.models.asyncapi.AsyncApiSchema;
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25ChannelsImpl;
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25ComponentsImpl;
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25DocumentImpl;
-import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25SchemaImpl;
 import io.apicurio.datamodels.validation.ValidationProblem;
+import io.ballerina.asyncapi.core.exception.BallerinaAsyncApiException;
 import io.ballerina.asyncapi.core.model.GenSrcFile;
 import io.ballerina.compiler.api.SemanticModel;
 import io.ballerina.compiler.api.symbols.Symbol;
@@ -53,11 +51,10 @@ import io.ballerina.compiler.syntax.tree.Token;
 import io.ballerina.compiler.syntax.tree.TypeDefinitionNode;
 import io.ballerina.compiler.syntax.tree.TypedBindingPatternNode;
 import io.ballerina.compiler.syntax.tree.VariableDeclarationNode;
-import io.ballerina.asyncapi.core.exception.BallerinaAsyncApiException;
 import io.ballerina.projects.DocumentId;
 import io.ballerina.projects.Module;
-import io.ballerina.projects.Project;
 import io.ballerina.projects.Package;
+import io.ballerina.projects.Project;
 import io.ballerina.projects.ProjectException;
 import io.ballerina.projects.ProjectKind;
 import io.ballerina.projects.directory.ProjectLoader;
@@ -68,6 +65,7 @@ import org.apache.commons.io.FileUtils;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -78,13 +76,21 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.regex.Pattern;
 
-import static io.ballerina.asyncapi.core.GeneratorConstants.*;
+import static io.ballerina.asyncapi.core.GeneratorConstants.BALLERINA;
+import static io.ballerina.asyncapi.core.GeneratorConstants.BALLERINA_TOML;
+import static io.ballerina.asyncapi.core.GeneratorConstants.BALLERINA_TOML_CONTENT;
+import static io.ballerina.asyncapi.core.GeneratorConstants.CLIENT_FILE_NAME;
+import static io.ballerina.asyncapi.core.GeneratorConstants.CLOSE_CURLY_BRACE;
+import static io.ballerina.asyncapi.core.GeneratorConstants.LINE_SEPARATOR;
+import static io.ballerina.asyncapi.core.GeneratorConstants.OPEN_CURLY_BRACE;
+import static io.ballerina.asyncapi.core.GeneratorConstants.SLASH;
+import static io.ballerina.asyncapi.core.GeneratorConstants.SPECIAL_CHARACTERS_REGEX;
+import static io.ballerina.asyncapi.core.GeneratorConstants.TYPE_FILE_NAME;
 import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.JSON_EXTENSION;
 import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.YAML_EXTENSION;
 import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.YML_EXTENSION;
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createEmptyNodeList;
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createIdentifierToken;
-import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createSeparatedNodeList;
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createToken;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createCaptureBindingPatternNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createExpressionStatementNode;
@@ -138,7 +144,8 @@ public class GeneratorUtils {
 //     * @return - node lists
 //     * @throws BallerinaAsyncApiException
 //     */
-//    public static List<Node> getRelativeResourcePath(String path, Operation operation, List<Node> resourceFunctionDocs)
+//    public static List<Node> getRelativeResourcePath(String path, Operation operation, List<Node>
+//    resourceFunctionDocs)
 //            throws BallerinaAsyncApiException {
 //
 //        List<Node> functionRelativeResourcePath = new ArrayList<>();
@@ -178,7 +185,7 @@ public class GeneratorUtils {
 //    }
 
 //    private static void extractPathParameterDetails(Operation operation, List<Node> functionRelativeResourcePath,
-//                                                    String pathNode, String pathParam, List<Node> resourceFunctionDocs)
+//                                                 String pathNode, String pathParam, List<Node> resourceFunctionDocs)
 //            throws BallerinaAsyncApiException {
 //        // check whether path parameter segment has special character
 //        String[] split = pathNode.split(CLOSE_CURLY_BRACE, 2);
@@ -219,7 +226,8 @@ public class GeneratorUtils {
 //                // Add documentation
 //                if (resourceFunctionDocs != null) {
 //                    String parameterName = paramName.text();
-//                    String paramComment = parameter.getDescription() != null && !parameter.getDescription().isBlank() ?
+//                    String paramComment = parameter.getDescription() != null && !parameter.getDescription()
+//                    .isBlank() ?
 //                            parameter.getDescription() : DEFAULT_PARAM_COMMENT;
 //                    MarkdownParameterDocumentationLineNode paramAPIDoc =
 //                            DocCommentsGenerator.createAPIParamDoc(parameterName, paramComment);
@@ -326,14 +334,11 @@ public class GeneratorUtils {
      * @param referenceVariable - Reference String
      * @return Reference variable name
      * @throws BallerinaAsyncApiException - Throws an exception if the reference string is incompatible.
-     *                                   Note : Current implementation will not support external links a references.
+     *                                    Note : Current implementation will not support external links a references.
      */
     public static String extractReferenceType(String referenceVariable) throws BallerinaAsyncApiException {
 
-        System.out.println(referenceVariable);
-
-        if(referenceVariable.toString().startsWith("#")){
-            System.out.println("hello");
+        if (referenceVariable.startsWith("#")) {
         }
         if (referenceVariable.startsWith("#") && referenceVariable.contains("/")) {
             String[] refArray = referenceVariable.split("/");
@@ -364,7 +369,7 @@ public class GeneratorUtils {
                 definitionPath.toString().endsWith(YML_EXTENSION))) {
             throw new BallerinaAsyncApiException(ErrorMessages.invalidFileType());
         }
-    //    add a parser
+        //    add a parser
 
 
         String asyncAPIFileContent = Files.readString(definitionPath);
@@ -373,9 +378,10 @@ public class GeneratorUtils {
 
         ObjectMapper jsonWriter = new ObjectMapper();
 
-        AsyncApi25DocumentImpl document= (AsyncApi25DocumentImpl) Library.readDocumentFromJSONString(jsonWriter.writeValueAsString(obj));
-        List<ValidationProblem> validationProblems= Library.validate(document,null);
-        if(!validationProblems.isEmpty()){
+        AsyncApi25DocumentImpl document = (AsyncApi25DocumentImpl) Library.readDocumentFromJSONString
+                (jsonWriter.writeValueAsString(obj));
+        List<ValidationProblem> validationProblems = Library.validate(document, null);
+        if (!validationProblems.isEmpty()) {
             StringBuilder errorMessage = new StringBuilder("AsyncAPI definition has errors: \n");
             for (ValidationProblem validationProblem : validationProblems) {
                 errorMessage.append(validationProblem.message).append(LINE_SEPARATOR);
@@ -473,7 +479,7 @@ public class GeneratorUtils {
      * @param variables variable values to populate the url template
      * @return resolved url
      */
-    public static String buildUrl(String absUrl, Map<String, ServerVariable>  variables) {
+    public static String buildUrl(String absUrl, Map<String, ServerVariable> variables) {
 
         String url = absUrl;
         if (variables != null) {
@@ -702,7 +708,7 @@ public class GeneratorUtils {
 //                Map<String, Schema> refacSchema = new HashMap<>();
                 for (Map.Entry<String, Schema> schemaEntry : componentsSchemas.entrySet()) {
                     String name = getValidName(schemaEntry.getKey(), true);
-                    components.addSchema(name,schemaEntry.getValue());
+                    components.addSchema(name, schemaEntry.getValue());
 //                    refacSchema.put(name, schemaEntry.getValue());
                 }
 //                asyncAPI.getComponents().setSchemas(refacSchema);
@@ -913,7 +919,7 @@ public class GeneratorUtils {
             String key = entry.getKey();
             Path filePath = tmpDir.resolve(key);
             try {
-                writer = new PrintWriter(filePath.toString(), "UTF-8");
+                writer = new PrintWriter(filePath.toString(), StandardCharsets.UTF_8);
                 writer.print(entry.getValue());
             } finally {
                 if (writer != null) {
@@ -927,7 +933,7 @@ public class GeneratorUtils {
         // Load project instance for single ballerina file
         try {
             Project project = ProjectLoader.loadProject(clientPath);
-            Package packageName= project.currentPackage();
+            Package packageName = project.currentPackage();
             DocumentId docId;
 
             if (project.kind().equals(ProjectKind.BUILD_PROJECT)) {

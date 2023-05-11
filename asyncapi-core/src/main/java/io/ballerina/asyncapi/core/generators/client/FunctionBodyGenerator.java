@@ -19,46 +19,41 @@
 package io.ballerina.asyncapi.core.generators.client;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25Document;
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25DocumentImpl;
 import io.ballerina.asyncapi.core.GeneratorUtils;
 import io.ballerina.asyncapi.core.exception.BallerinaAsyncApiException;
 import io.ballerina.asyncapi.core.generators.schema.BallerinaTypesGenerator;
-import io.ballerina.compiler.syntax.tree.*;
+import io.ballerina.compiler.syntax.tree.AnnotationNode;
+import io.ballerina.compiler.syntax.tree.ExpressionStatementNode;
+import io.ballerina.compiler.syntax.tree.FunctionBodyNode;
+import io.ballerina.compiler.syntax.tree.ImportDeclarationNode;
+import io.ballerina.compiler.syntax.tree.NodeList;
+import io.ballerina.compiler.syntax.tree.ReturnStatementNode;
+import io.ballerina.compiler.syntax.tree.SimpleNameReferenceNode;
+import io.ballerina.compiler.syntax.tree.StatementNode;
+import io.ballerina.compiler.syntax.tree.SyntaxKind;
+import io.ballerina.compiler.syntax.tree.Token;
+import io.ballerina.compiler.syntax.tree.TypeDefinitionNode;
+import io.ballerina.compiler.syntax.tree.VariableDeclarationNode;
 
 import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
-import java.util.Set;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
-import static io.ballerina.asyncapi.core.GeneratorConstants.*;
-import static io.ballerina.asyncapi.core.GeneratorUtils.generateBodyStatementForComplexUrl;
-import static io.ballerina.asyncapi.core.GeneratorUtils.isComplexURL;
-import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createEmptyMinutiaeList;
+import static io.ballerina.asyncapi.core.GeneratorConstants.NILLABLE;
+import static io.ballerina.asyncapi.core.GeneratorConstants.RESPONSE;
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createEmptyNodeList;
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createIdentifierToken;
-import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createLiteralValueToken;
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createNodeList;
-import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createSeparatedNodeList;
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createToken;
-import static io.ballerina.compiler.syntax.tree.NodeFactory.*;
-import static io.ballerina.compiler.syntax.tree.SyntaxKind.BACKTICK_TOKEN;
+import static io.ballerina.compiler.syntax.tree.NodeFactory.createExpressionStatementNode;
+import static io.ballerina.compiler.syntax.tree.NodeFactory.createFunctionBodyBlockNode;
+import static io.ballerina.compiler.syntax.tree.NodeFactory.createReturnStatementNode;
+import static io.ballerina.compiler.syntax.tree.NodeFactory.createSimpleNameReferenceNode;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.CLOSE_BRACE_TOKEN;
-import static io.ballerina.compiler.syntax.tree.SyntaxKind.COLON_TOKEN;
-import static io.ballerina.compiler.syntax.tree.SyntaxKind.COMMA_TOKEN;
-import static io.ballerina.compiler.syntax.tree.SyntaxKind.DOT_TOKEN;
-import static io.ballerina.compiler.syntax.tree.SyntaxKind.EQUAL_TOKEN;
-import static io.ballerina.compiler.syntax.tree.SyntaxKind.IF_KEYWORD;
-import static io.ballerina.compiler.syntax.tree.SyntaxKind.IS_KEYWORD;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.OPEN_BRACE_TOKEN;
-import static io.ballerina.compiler.syntax.tree.SyntaxKind.QUESTION_MARK_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.SEMICOLON_TOKEN;
-import static io.ballerina.compiler.syntax.tree.SyntaxKind.STRING_KEYWORD;
+
 /**
  * This Util class uses for generating remote function body  {@link FunctionBodyNode}.
  *
@@ -66,22 +61,14 @@ import static io.ballerina.compiler.syntax.tree.SyntaxKind.STRING_KEYWORD;
  */
 public class FunctionBodyGenerator {
 
-    private List<ImportDeclarationNode> imports;
-    private boolean isHeader;
     private final List<TypeDefinitionNode> typeDefinitionNodeList;
     private final AsyncApi25DocumentImpl asyncAPI;
     private final BallerinaTypesGenerator ballerinaSchemaGenerator;
     private final BallerinaUtilGenerator ballerinaUtilGenerator;
     private final BallerinaAuthConfigGenerator ballerinaAuthConfigGenerator;
     private final boolean resourceMode;
-
-    public List<ImportDeclarationNode> getImports() {
-        return imports;
-    }
-
-    public void setImports(List<ImportDeclarationNode> imports) {
-        this.imports = imports;
-    }
+    private List<ImportDeclarationNode> imports;
+    private boolean isHeader;
 
     public FunctionBodyGenerator(List<ImportDeclarationNode> imports, List<TypeDefinitionNode> typeDefinitionNodeList,
                                  AsyncApi25DocumentImpl asyncAPI, BallerinaTypesGenerator ballerinaSchemaGenerator,
@@ -98,15 +85,24 @@ public class FunctionBodyGenerator {
         this.resourceMode = resourceMode;
     }
 
+    public List<ImportDeclarationNode> getImports() {
+        return imports;
+    }
+
+    public void setImports(List<ImportDeclarationNode> imports) {
+        this.imports = imports;
+    }
+
     /**
      * Generate function body node for the remote function.
+     * <p>
+     * //     * @param path      - remote function path
+     * //     * @param operation - opneapi operation
      *
-//     * @param path      - remote function path
-//     * @param operation - opneapi operation
      * @return - {@link FunctionBodyNode}
      * @throws BallerinaAsyncApiException - throws exception if generating FunctionBodyNode fails.
      */
-    public FunctionBodyNode getFunctionBodyNode(Map<String, JsonNode> extenstions,String paramName)
+    public FunctionBodyNode getFunctionBodyNode(Map<String, JsonNode> extenstions, String paramName)
             throws BallerinaAsyncApiException {
 
         NodeList<AnnotationNode> annotationNodes = createEmptyNodeList();
@@ -137,7 +133,7 @@ public class FunctionBodyGenerator {
 //            RequestBody requestBody = operation.getValue().getRequestBody();
 //            handleRequestBodyInOperation(statementsList, method, returnType, requestBody);
 //        } else {
-            createCommonFunctionBodyStatements(statementsList,paramName, returnType);
+        createCommonFunctionBodyStatements(statementsList, paramName, returnType);
 //        }
         //Create statements
         NodeList<StatementNode> statements = createNodeList(statementsList);
@@ -213,7 +209,8 @@ public class FunctionBodyGenerator {
 //     * Generate statements for query parameters and headers.
 //     */
 //    private void handleParameterSchemaInOperation(Map.Entry<PathItem.HttpMethod, Operation> operation,
-//                                                  List<StatementNode> statementsList) throws BallerinaAsyncApiException {
+//                                                  List<StatementNode> statementsList)
+//                                                  throws BallerinaAsyncApiException {
 //
 //        List<String> queryApiKeyNameList = new ArrayList<>();
 //        List<String> headerApiKeyNameList = new ArrayList<>();
@@ -413,7 +410,8 @@ public class FunctionBodyGenerator {
 //    /**
 //     * Generate VariableDeclarationNode for query parameter encoding map which includes the data related serialization
 //     * mechanism that needs to be used with object or array type parameters. Parameters in primitive types will not be
-//     * included to the map even when the serialization mechanisms are specified. These data is given in the `style` and
+//     * included to the map even when the serialization mechanisms are specified. These data is given in the `style`
+//     and
 //     * `explode` sections of the OpenAPI definition. Style defines how multiple values are delimited and explode
 //     * specifies whether arrays and objects should generate separate parameters
 //     * <p>
@@ -557,11 +555,11 @@ public class FunctionBodyGenerator {
 //            statementsList.add(expressionStatementNode);
 //            clientReadStatement = "check self.clientEp-> " + method + "(" + RESOURCE_PATH + ", request)";
 //        } else {
-        String clientCallStatement = "check self.clientEp->" + "writeMessage"+ "(" + paramName + ")";
-        ExpressionStatementNode clientCall= createExpressionStatementNode(SyntaxKind.CHECK_EXPRESSION,
+        String clientCallStatement = "check self.clientEp->" + "writeMessage" + "(" + paramName + ")";
+        ExpressionStatementNode clientCall = createExpressionStatementNode(SyntaxKind.CHECK_EXPRESSION,
                 createSimpleNameReferenceNode(createIdentifierToken(clientCallStatement)),
-                 createToken(SEMICOLON_TOKEN));
-        String clientReadStatement = "check self.clientEp->" + "readMessage"+ "(" + ")";
+                createToken(SEMICOLON_TOKEN));
+        String clientReadStatement = "check self.clientEp->" + "readMessage" + "(" + ")";
 //        }
         //Return Variable
         VariableDeclarationNode clientRead = GeneratorUtils.getSimpleStatement(returnType, RESPONSE,

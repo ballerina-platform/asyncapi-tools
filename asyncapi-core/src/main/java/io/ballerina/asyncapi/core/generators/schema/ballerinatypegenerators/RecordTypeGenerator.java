@@ -89,8 +89,66 @@ import static io.ballerina.compiler.syntax.tree.SyntaxKind.SEMICOLON_TOKEN;
 public class RecordTypeGenerator extends TypeGenerator {
 
     public static final PrintStream OUT_STREAM = System.err;
+
     public RecordTypeGenerator(AsyncApi25SchemaImpl schema, String typeName) {
         super(schema, typeName);
+    }
+
+    /**
+     * Creates reference rest node when additional property has reference.
+     */
+    public static RecordRestDescriptorNode getRestDescriptorNodeForReference(AsyncApi25SchemaImpl additionalPropSchema)
+            throws BallerinaAsyncApiException {
+        ReferencedTypeGenerator referencedTypeGenerator = new ReferencedTypeGenerator(additionalPropSchema, null);
+        TypeDescriptorNode refNode = referencedTypeGenerator.generateTypeDescriptorNode();
+        return NodeFactory.createRecordRestDescriptorNode(refNode, createToken(ELLIPSIS_TOKEN),
+                createToken(SEMICOLON_TOKEN));
+    }
+
+    /**
+     * Generates {@code RecordRestDescriptorNode} for the additional properties in object schema.
+     * <pre>
+     *    type User record {
+     *       string...;
+     *     }
+     * </pre>
+     */
+    public static RecordRestDescriptorNode getRecordRestDescriptorNode(AsyncApi25SchemaImpl additionalPropSchema)
+            throws BallerinaAsyncApiException {
+
+        RecordRestDescriptorNode recordRestDescNode = null;
+        if (additionalPropSchema.getType() != null && additionalPropSchema.getType().equals("number") &&
+                additionalPropSchema.getFormat() != null) {
+            // this is special for `NumberSchema` because it has format with its expected type.
+            String type = additionalPropSchema.getFormat();
+            SimpleNameReferenceNode numberNode = NodeFactory.createSimpleNameReferenceNode(createIdentifierToken(type));
+            recordRestDescNode = NodeFactory.createRecordRestDescriptorNode(
+                    TypeGeneratorUtils.getNullableType(additionalPropSchema, numberNode),
+                    createToken(ELLIPSIS_TOKEN),
+                    createToken(SEMICOLON_TOKEN));
+        } else if (additionalPropSchema.getType() != null && additionalPropSchema.getType().equals("object")) {
+            RecordTypeGenerator record = new RecordTypeGenerator(additionalPropSchema, null);
+            TypeDescriptorNode recordNode = TypeGeneratorUtils.getNullableType(additionalPropSchema,
+                    record.generateTypeDescriptorNode());
+            recordRestDescNode = NodeFactory.createRecordRestDescriptorNode(recordNode, createToken(ELLIPSIS_TOKEN),
+                    createToken(SEMICOLON_TOKEN));
+        } else if (additionalPropSchema.getType() != null && additionalPropSchema.getType().equals("array")) {
+            ArrayTypeGenerator arrayTypeGenerator = new ArrayTypeGenerator(additionalPropSchema, null, null);
+            TypeDescriptorNode arrayNode = arrayTypeGenerator.generateTypeDescriptorNode();
+            recordRestDescNode = NodeFactory.createRecordRestDescriptorNode(arrayNode, createToken(ELLIPSIS_TOKEN),
+                    createToken(SEMICOLON_TOKEN));
+        } else if (additionalPropSchema.getType() != null && additionalPropSchema.getType().equals("integer") ||
+                additionalPropSchema.getType().equals("string") ||
+                additionalPropSchema.getType().equals("boolean")) {
+            PrimitiveTypeGenerator primitiveTypeGenerator = new PrimitiveTypeGenerator(additionalPropSchema, null);
+            TypeDescriptorNode primitiveNode = primitiveTypeGenerator.generateTypeDescriptorNode();
+            recordRestDescNode = NodeFactory.createRecordRestDescriptorNode(primitiveNode, createToken(ELLIPSIS_TOKEN),
+                    createToken(SEMICOLON_TOKEN));
+        } else {
+            OUT_STREAM.printf("WARNING: the Ballerina rest record field does not support with the data type `%s`",
+                    additionalPropSchema.getType());
+        }
+        return recordRestDescNode;
     }
 
     /**
@@ -153,7 +211,8 @@ public class RecordTypeGenerator extends TypeGenerator {
 //                    recordRestDescNode = getRecordRestDescriptorNode(additionalPropSchema);
 //                } else if (additionalPropSchema instanceof ComposedSchema) {
 //                    OUT_STREAM.println("WARNING: generating Ballerina rest record field will be ignored for the " +
-//                            "OpenAPI contract additionalProperties type `ComposedSchema`, as it is not supported on " +
+//                            "OpenAPI contract additionalProperties type `ComposedSchema`, as it is not supported on
+//                            " +
 //                            "Ballerina rest record field.");
 //                }
 //            } else if (additionalProperties.equals(false)) {
@@ -162,72 +221,15 @@ public class RecordTypeGenerator extends TypeGenerator {
 //        }
 
         return new RecordMetadata.Builder()
-                        .withIsOpenRecord(isOpenRecord)
-                        .withRestDescriptorNode(recordRestDescNode).build();
-    }
-
-    /**
-     * Creates reference rest node when additional property has reference.
-     */
-    public static RecordRestDescriptorNode getRestDescriptorNodeForReference(AsyncApi25SchemaImpl additionalPropSchema)
-            throws BallerinaAsyncApiException {
-        ReferencedTypeGenerator referencedTypeGenerator = new ReferencedTypeGenerator(additionalPropSchema, null);
-        TypeDescriptorNode refNode = referencedTypeGenerator.generateTypeDescriptorNode();
-        return NodeFactory.createRecordRestDescriptorNode(refNode, createToken(ELLIPSIS_TOKEN),
-                createToken(SEMICOLON_TOKEN));
-    }
-
-    /**
-     * Generates {@code RecordRestDescriptorNode} for the additional properties in object schema.
-     * <pre>
-     *    type User record {
-     *       string...;
-     *     }
-     * </pre>
-     */
-    public static RecordRestDescriptorNode getRecordRestDescriptorNode(AsyncApi25SchemaImpl additionalPropSchema)
-            throws BallerinaAsyncApiException {
-
-        RecordRestDescriptorNode recordRestDescNode = null;
-        if ( additionalPropSchema.getType() != null && additionalPropSchema.getType().equals("number")&&
-                additionalPropSchema.getFormat() != null) {
-            // this is special for `NumberSchema` because it has format with its expected type.
-            String type = additionalPropSchema.getFormat();
-            SimpleNameReferenceNode numberNode = NodeFactory.createSimpleNameReferenceNode(createIdentifierToken(type));
-            recordRestDescNode = NodeFactory.createRecordRestDescriptorNode(
-                    TypeGeneratorUtils.getNullableType(additionalPropSchema, numberNode),
-                    createToken(ELLIPSIS_TOKEN),
-                    createToken(SEMICOLON_TOKEN));
-        } else if ( additionalPropSchema.getType() != null && additionalPropSchema.getType().equals("object")) {
-            RecordTypeGenerator record = new RecordTypeGenerator(additionalPropSchema, null);
-            TypeDescriptorNode recordNode = TypeGeneratorUtils.getNullableType(additionalPropSchema,
-                    record.generateTypeDescriptorNode());
-            recordRestDescNode = NodeFactory.createRecordRestDescriptorNode(recordNode, createToken(ELLIPSIS_TOKEN),
-                    createToken(SEMICOLON_TOKEN));
-        } else if (additionalPropSchema.getType() != null && additionalPropSchema.getType().equals("array")) {
-            ArrayTypeGenerator arrayTypeGenerator = new ArrayTypeGenerator(additionalPropSchema, null, null);
-            TypeDescriptorNode arrayNode = arrayTypeGenerator.generateTypeDescriptorNode();
-            recordRestDescNode = NodeFactory.createRecordRestDescriptorNode(arrayNode, createToken(ELLIPSIS_TOKEN),
-                    createToken(SEMICOLON_TOKEN));
-        } else if (additionalPropSchema.getType() != null && additionalPropSchema.getType().equals("integer") ||
-                additionalPropSchema.getType().equals("string") ||
-                additionalPropSchema.getType().equals("boolean")) {
-            PrimitiveTypeGenerator primitiveTypeGenerator = new PrimitiveTypeGenerator(additionalPropSchema, null);
-            TypeDescriptorNode primitiveNode = primitiveTypeGenerator.generateTypeDescriptorNode();
-            recordRestDescNode = NodeFactory.createRecordRestDescriptorNode(primitiveNode, createToken(ELLIPSIS_TOKEN),
-                    createToken(SEMICOLON_TOKEN));
-        } else {
-            OUT_STREAM.printf("WARNING: the Ballerina rest record field does not support with the data type `%s`",
-                    additionalPropSchema.getType());
-        }
-        return recordRestDescNode;
+                .withIsOpenRecord(isOpenRecord)
+                .withRestDescriptorNode(recordRestDescNode).build();
     }
 
     /**
      * This util for generating record field with given schema properties.
      */
     public List<Node> addRecordFields(List<String> required, Set<Map.Entry<String, Schema>> fields,
-                                      String recordName) throws BallerinaAsyncApiException{
+                                      String recordName) throws BallerinaAsyncApiException {
         // TODO: Handle allOf , oneOf, anyOf
         List<Node> recordFieldList = new ArrayList<>();
         for (Map.Entry<String, Schema> field : fields) {
@@ -246,12 +248,12 @@ public class RecordTypeGenerator extends TypeGenerator {
 
             //TODO: Need to figure out this
             if (typeGenerator instanceof ArrayTypeGenerator &&
-                    !((ArrayTypeGenerator) typeGenerator).getTypeDefinitionNodeList().isEmpty()) {
-                typeDefinitionNodeList.addAll(((ArrayTypeGenerator) typeGenerator).getTypeDefinitionNodeList());
+                    !typeGenerator.getTypeDefinitionNodeList().isEmpty()) {
+                typeDefinitionNodeList.addAll(typeGenerator.getTypeDefinitionNodeList());
             } else if (typeGenerator instanceof UnionTypeGenerator &&
-                    !((UnionTypeGenerator) typeGenerator).getTypeDefinitionNodeList().isEmpty()) {
+                    !typeGenerator.getTypeDefinitionNodeList().isEmpty()) {
                 List<TypeDefinitionNode> newConstraintNode =
-                        ((UnionTypeGenerator) typeGenerator).getTypeDefinitionNodeList();
+                        typeGenerator.getTypeDefinitionNodeList();
                 typeDefinitionNodeList.addAll(newConstraintNode);
             }
             //TODO: uncomment this after figure out

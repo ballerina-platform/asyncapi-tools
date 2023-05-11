@@ -144,7 +144,8 @@
 //        Assert.assertTrue(diagnostics.isEmpty());
 //    }
 //
-//    @Test(description = "Validate the util functions generated for OpenAPI definition when all the scenarios are given")
+//    @Test(description = "Validate the util functions generated for OpenAPI definition when all the
+//    scenarios are given")
 //    public void testCompleteUtilFileGen() throws IOException, BallerinaOpenApiException,
 //            FormatterException {
 //        Path definitionPath = RESDIR.resolve("swagger/complete_util_gen.yaml");

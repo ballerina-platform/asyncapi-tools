@@ -25,55 +25,33 @@ import io.ballerina.asyncapi.core.GeneratorUtils;
 import io.ballerina.asyncapi.core.exception.BallerinaAsyncApiException;
 import io.ballerina.asyncapi.core.generators.document.DocCommentsGenerator;
 import io.ballerina.asyncapi.core.generators.schema.BallerinaTypesGenerator;
-import io.ballerina.compiler.syntax.tree.AnnotationNode;
-import io.ballerina.compiler.syntax.tree.BuiltinSimpleNameReferenceNode;
 import io.ballerina.compiler.syntax.tree.FunctionSignatureNode;
 import io.ballerina.compiler.syntax.tree.IdentifierToken;
-import io.ballerina.compiler.syntax.tree.LiteralValueToken;
-import io.ballerina.compiler.syntax.tree.MarkdownParameterDocumentationLineNode;
-import io.ballerina.compiler.syntax.tree.NilLiteralNode;
 import io.ballerina.compiler.syntax.tree.Node;
-import io.ballerina.compiler.syntax.tree.NodeList;
 import io.ballerina.compiler.syntax.tree.ParameterNode;
-import io.ballerina.compiler.syntax.tree.RequiredParameterNode;
 import io.ballerina.compiler.syntax.tree.ReturnTypeDescriptorNode;
 import io.ballerina.compiler.syntax.tree.SeparatedNodeList;
-import io.ballerina.compiler.syntax.tree.SimpleNameReferenceNode;
-import io.ballerina.compiler.syntax.tree.Token;
 import io.ballerina.compiler.syntax.tree.TypeDefinitionNode;
 import io.ballerina.compiler.syntax.tree.TypeDescriptorNode;
 
 import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-import static io.ballerina.asyncapi.core.GeneratorConstants.*;
-import static io.ballerina.asyncapi.core.GeneratorConstants.X_RESPONSE;
-import static io.ballerina.asyncapi.core.GeneratorUtils.*;
-import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createEmptyMinutiaeList;
+import static io.ballerina.asyncapi.core.GeneratorUtils.extractReferenceType;
+import static io.ballerina.asyncapi.core.GeneratorUtils.getValidName;
+import static io.ballerina.asyncapi.core.GeneratorUtils.isValidSchemaName;
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createEmptyNodeList;
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createIdentifierToken;
-import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createLiteralValueToken;
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createNodeList;
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createSeparatedNodeList;
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createToken;
-import static io.ballerina.compiler.syntax.tree.NodeFactory.createAnnotationNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createBuiltinSimpleNameReferenceNode;
-import static io.ballerina.compiler.syntax.tree.NodeFactory.createDefaultableParameterNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createFunctionSignatureNode;
-import static io.ballerina.compiler.syntax.tree.NodeFactory.createNilLiteralNode;
-import static io.ballerina.compiler.syntax.tree.NodeFactory.createOptionalTypeDescriptorNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createRequiredParameterNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createReturnTypeDescriptorNode;
-import static io.ballerina.compiler.syntax.tree.NodeFactory.createSimpleNameReferenceNode;
-import static io.ballerina.compiler.syntax.tree.SyntaxKind.AT_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.CLOSE_PAREN_TOKEN;
-import static io.ballerina.compiler.syntax.tree.SyntaxKind.COMMA_TOKEN;
-import static io.ballerina.compiler.syntax.tree.SyntaxKind.EQUAL_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.OPEN_PAREN_TOKEN;
-import static io.ballerina.compiler.syntax.tree.SyntaxKind.QUESTION_MARK_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.RETURNS_KEYWORD;
 
 /**
@@ -86,17 +64,23 @@ public class FunctionSignatureGenerator {
     private final AsyncApi25DocumentImpl asyncAPI;
     private final BallerinaTypesGenerator ballerinaSchemaGenerator;
     private final List<TypeDefinitionNode> typeDefinitionNodeList;
+    //    /**
+//     * Generate function parameters.
+//     */
+//    private void setFunctionParameters(Operation operation, List<Node> parameterList, Token comma,
+//                                       List<Node> remoteFunctionDoc) throws BallerinaAsyncApiException {
+//
+//        List<Parameter> parameters = operation.getParameters();
+//        List<Node> defaultable = new ArrayList<>();
+    List<Node> deprecatedParamDocComments = new ArrayList<>();
     private FunctionReturnTypeGenerator functionReturnType;
-    private boolean deprecatedParamFound = false;
-    private boolean isResource;
-
-    public List<TypeDefinitionNode> getTypeDefinitionNodeList() {
-        return typeDefinitionNodeList;
-    }
+    private final boolean deprecatedParamFound = false;
+    private final boolean isResource;
 
     public FunctionSignatureGenerator(AsyncApi25DocumentImpl asyncAPI,
                                       BallerinaTypesGenerator ballerinaSchemaGenerator,
-                                      List<TypeDefinitionNode> typeDefinitionNodeList, boolean isResource) throws BallerinaAsyncApiException {
+                                      List<TypeDefinitionNode> typeDefinitionNodeList,
+                                      boolean isResource) throws BallerinaAsyncApiException {
 
         this.asyncAPI = asyncAPI;
         this.ballerinaSchemaGenerator = ballerinaSchemaGenerator;
@@ -105,6 +89,10 @@ public class FunctionSignatureGenerator {
                 (this.asyncAPI, ballerinaSchemaGenerator, typeDefinitionNodeList);
         this.isResource = isResource;
 
+    }
+
+    public List<TypeDefinitionNode> getTypeDefinitionNodeList() {
+        return typeDefinitionNodeList;
     }
 
     /**
@@ -126,7 +114,7 @@ public class FunctionSignatureGenerator {
 
 //
         String parameterType = getDType(payload);
-        Node param=getParameterNode(parameterType,parameterList);
+        Node param = getParameterNode(parameterType, parameterList);
         parameterList.add(param);
 
         functionReturnType = new FunctionReturnTypeGenerator
@@ -136,7 +124,7 @@ public class FunctionSignatureGenerator {
 //        }
 
 
-       String returnType= functionReturnType.getReturnType(extensions);
+        String returnType = functionReturnType.getReturnType(extensions);
         SeparatedNodeList<ParameterNode> parameters = createSeparatedNodeList(parameterList);
         //Create Return type - function with response
 
@@ -162,13 +150,12 @@ public class FunctionSignatureGenerator {
                 returnTypeDescriptorNode);
     }
 
-
-
     public String getDType(JsonNode payload) throws BallerinaAsyncApiException {
-        String type="";
+        String type = "";
         if (payload.get("$ref") != null) {
             type = getValidName(extractReferenceType(payload.get("$ref").textValue()), true);
-            AsyncApi25SchemaImpl componentSchema = (AsyncApi25SchemaImpl) asyncAPI.getComponents().getSchemas().get(type);
+            AsyncApi25SchemaImpl componentSchema = (AsyncApi25SchemaImpl) asyncAPI.getComponents().
+                    getSchemas().get(type);
             if (!isValidSchemaName(type)) {
 //                String operationId = operation.getOperationId();
 //                type = Character.toUpperCase(operationId.charAt(0)) + operationId.substring(1) +
@@ -187,16 +174,6 @@ public class FunctionSignatureGenerator {
 
 
     }
-
-//    /**
-//     * Generate function parameters.
-//     */
-//    private void setFunctionParameters(Operation operation, List<Node> parameterList, Token comma,
-//                                       List<Node> remoteFunctionDoc) throws BallerinaAsyncApiException {
-//
-//        List<Parameter> parameters = operation.getParameters();
-//        List<Node> defaultable = new ArrayList<>();
-        List<Node> deprecatedParamDocComments = new ArrayList<>();
 //        if (parameters != null) {
 //            for (Parameter parameter : parameters) {
 //                if (parameter.getDescription() != null && !parameter.getDescription().isBlank()) {
@@ -284,8 +261,6 @@ public class FunctionSignatureGenerator {
 //        return parameterAnnotationNodeList;
 //    }
 
-
-
     /**
      * Create parameter for remote function.
      * <p>
@@ -297,7 +272,7 @@ public class FunctionSignatureGenerator {
         TypeDescriptorNode typeName;
         typeName = createBuiltinSimpleNameReferenceNode(null, createIdentifierToken(paramType));
         IdentifierToken paramName =
-                    createIdentifierToken(getValidName(paramType, false));
+                createIdentifierToken(getValidName(paramType, false));
         return createRequiredParameterNode(createNodeList(new ArrayList<>()), typeName, paramName);
 //        if (parameter.getRequired()) {
 //            typeName = createBuiltinSimpleNameReferenceNode(null, createIdentifierToken(paramType));
@@ -367,7 +342,8 @@ public class FunctionSignatureGenerator {
 //                        paramType = convertOpenAPITypeToBallerina
 //                                (arraySchema.getItems().getFormat().trim()) + SQUARE_BRACKETS;
 //                    } else {
-//                        throw new BallerinaOpenApiException("Unsupported parameter type is found in the parameter : " +
+//                        throw new BallerinaOpenApiException("Unsupported parameter type is found in the parameter
+//                        : " +
 //                                parameter.getName());
 //                    }
 //                } else if (arraySchema.getItems().get$ref() != null) {
@@ -518,7 +494,8 @@ public class FunctionSignatureGenerator {
 //                    if (arraySchema.getItems().get$ref() != null) {
 //                        type = extractReferenceType(arraySchema.getItems().get$ref()) + SQUARE_BRACKETS + NILLABLE;
 //                    } else {
-//                        type = convertOpenAPITypeToBallerina(arraySchema.getItems().getType().trim()) + SQUARE_BRACKETS
+//                        type = convertOpenAPITypeToBallerina(arraySchema.getItems().getType().trim()) +
+//                        SQUARE_BRACKETS
 //                                + NILLABLE;
 //                    }
 //                }
@@ -568,7 +545,8 @@ public class FunctionSignatureGenerator {
 //                } else {
 //                    if (schema.get$ref() != null) {
 //                        paramType = getValidName(extractReferenceType(schema.get$ref().trim()), true);
-//                    } else if (schema.getType() != null && !schema.getType().equals(ARRAY) && !schema.getType().equals(
+//                    } else if (schema.getType() != null && !schema.getType().equals(ARRAY) && !schema.getType().
+//                    equals(
 //                            OBJECT)) {
 //                        String typeOfPayload = schema.getType().trim();
 //                        if (typeOfPayload.equals(STRING) && schema.getFormat() != null

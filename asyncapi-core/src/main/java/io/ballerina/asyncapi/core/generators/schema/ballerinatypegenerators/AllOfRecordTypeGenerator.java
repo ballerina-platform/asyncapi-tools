@@ -19,8 +19,6 @@
 package io.ballerina.asyncapi.core.generators.schema.ballerinatypegenerators;
 
 import io.apicurio.datamodels.models.Schema;
-import io.apicurio.datamodels.models.asyncapi.AsyncApiDocument;
-import io.apicurio.datamodels.models.asyncapi.AsyncApiSchema;
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25DocumentImpl;
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25SchemaImpl;
 import io.ballerina.asyncapi.core.GeneratorUtils;
@@ -36,6 +34,7 @@ import io.ballerina.compiler.syntax.tree.Token;
 import io.ballerina.compiler.syntax.tree.TypeDescriptorNode;
 import io.ballerina.compiler.syntax.tree.TypeReferenceNode;
 import io.ballerina.compiler.syntax.tree.UnionTypeDescriptorNode;
+
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
@@ -86,6 +85,64 @@ public class AllOfRecordTypeGenerator extends RecordTypeGenerator {
     }
 
     /**
+     * This util is to create the union record rest fields, when given allOf schema has multiple additional fields.
+     * Note: This scenario only happens with AllOf scenarios since it maps with type inclusions.
+     * <p>
+     * ex: string|int...
+     *
+     * @return
+     */
+    private static RecordRestDescriptorNode getRestDescriptorNodeForAllOf(List<Schema> restSchemas)
+            throws BallerinaAsyncApiException {
+        TypeDescriptorNode unionType = getUnionType(restSchemas);
+        return NodeFactory.createRecordRestDescriptorNode(unionType, createToken(ELLIPSIS_TOKEN),
+                createToken(SEMICOLON_TOKEN));
+    }
+
+    /**
+     * Creates the UnionType done for a given schema list.
+     *
+     * @param schemas List of schemas included in additional fields.
+     * @return Union type
+     * @throws BallerinaAsyncApiException when unsupported combination of schemas found
+     */
+    private static TypeDescriptorNode getUnionType(List<Schema> schemas) throws BallerinaAsyncApiException {
+
+        // TODO: this has issue with generating union type with `string?|int?...
+        // this will be tracked via https://github.com/ballerina-platform/openapi-tools/issues/810
+        List<TypeDescriptorNode> typeDescriptorNodes = new ArrayList<>();
+        for (Schema schema : schemas) {
+            TypeGenerator typeGenerator = getTypeGenerator((AsyncApi25SchemaImpl) schema, null,
+                    null);
+            TypeDescriptorNode typeDescriptorNode = typeGenerator.generateTypeDescriptorNode();
+            typeDescriptorNodes.add(typeDescriptorNode);
+            // error for rest field unhandled constraint support
+
+            //    TODO : thushalya:- check this after uncomment has constraints
+//            if (GeneratorUtils.hasConstraints(schema)) {
+//                // use printStream for echo the error, because current openapi to ballerina implementation won't
+//                // handle diagnostic message.
+//                OUT_STREAM.println("WARNING: constraints in the OpenAPI contract will be ignored for the " +
+//                        "additionalProperties field, as constraints are not supported on Ballerina rest record " +
+//                        "field.");
+//            }
+        }
+        if (typeDescriptorNodes.size() > 1) {
+            UnionTypeDescriptorNode unionTypeDescriptorNode = null;
+            TypeDescriptorNode leftTypeDesc = typeDescriptorNodes.get(0);
+            for (int i = 1; i < typeDescriptorNodes.size(); i++) {
+                TypeDescriptorNode rightTypeDesc = typeDescriptorNodes.get(i);
+                unionTypeDescriptorNode = createUnionTypeDescriptorNode(leftTypeDesc, createToken(PIPE_TOKEN),
+                        rightTypeDesc);
+                leftTypeDesc = unionTypeDescriptorNode;
+            }
+            return unionTypeDescriptorNode;
+        } else {
+            return typeDescriptorNodes.get(0);
+        }
+    }
+
+    /**
      * Generates TypeDescriptorNode for allOf schemas.
      */
     @Override
@@ -94,15 +151,15 @@ public class AllOfRecordTypeGenerator extends RecordTypeGenerator {
         // filtering as input. Has to use this assertion statement instead of `if` condition, because to avoid
         // unreachable else statement.
 //        assert schema instanceof ComposedSchema;
-        AsyncApi25SchemaImpl composedSchema =schema;
-        List<Schema> allOfSchemas=null;
+        AsyncApi25SchemaImpl composedSchema = schema;
+        List<Schema> allOfSchemas = null;
         if (composedSchema.getAllOf() != null) {
             allOfSchemas = composedSchema.getAllOf();
         }
 
         RecordMetadata recordMetadata = getRecordMetadata();
         RecordRestDescriptorNode restDescriptorNode = recordMetadata.getRestDescriptorNode();
-        if (allOfSchemas.size() == 1 && ((AsyncApi25SchemaImpl)allOfSchemas.get(0)).get$ref() != null) {
+        if (allOfSchemas.size() == 1 && ((AsyncApi25SchemaImpl) allOfSchemas.get(0)).get$ref() != null) {
             ReferencedTypeGenerator referencedTypeGenerator = new ReferencedTypeGenerator((AsyncApi25SchemaImpl)
                     allOfSchemas.get(0),
                     typeName);
@@ -128,14 +185,15 @@ public class AllOfRecordTypeGenerator extends RecordTypeGenerator {
         for (Schema schema : allOfSchemas) {
             AsyncApi25SchemaImpl allOfSchema = (AsyncApi25SchemaImpl) schema;
             if ((allOfSchema).get$ref() != null) {
-                String extractedSchemaName = GeneratorUtils.extractReferenceType(((AsyncApi25SchemaImpl)allOfSchema).get$ref());
+                String extractedSchemaName = GeneratorUtils.extractReferenceType(allOfSchema.get$ref());
                 String modifiedSchemaName = GeneratorUtils.getValidName(extractedSchemaName, true);
                 Token typeRef = AbstractNodeFactory.createIdentifierToken(modifiedSchemaName);
                 TypeReferenceNode recordField = NodeFactory.createTypeReferenceNode(createToken(ASTERISK_TOKEN),
                         typeRef, createToken(SEMICOLON_TOKEN));
                 // check whether given reference schema has additional fields.
                 AsyncApi25DocumentImpl openAPI = GeneratorMetaData.getInstance().getAsyncAPI();
-                AsyncApi25SchemaImpl refSchema = (AsyncApi25SchemaImpl) openAPI.getComponents().getSchemas().get(modifiedSchemaName);
+                AsyncApi25SchemaImpl refSchema = (AsyncApi25SchemaImpl) openAPI.getComponents()
+                        .getSchemas().get(modifiedSchemaName);
                 addAdditionalSchemas(refSchema);
 
                 recordFieldList.add(recordField);
@@ -145,8 +203,9 @@ public class AllOfRecordTypeGenerator extends RecordTypeGenerator {
                 recordFieldList.addAll(addRecordFields(required, properties.entrySet(), typeName));
                 addAdditionalSchemas(allOfSchema);
             } else if ((allOfSchema.getProperties() != null &&
-                (allOfSchema.getOneOf() != null || allOfSchema.getAllOf() != null || allOfSchema.getAnyOf() != null))){
-                AsyncApi25SchemaImpl nestedComposedSchema =  allOfSchema;
+                    (allOfSchema.getOneOf() != null || allOfSchema.getAllOf() != null ||
+                            allOfSchema.getAnyOf() != null))) {
+                AsyncApi25SchemaImpl nestedComposedSchema = allOfSchema;
                 if (nestedComposedSchema.getAllOf() != null) {
                     recordFieldList.addAll(generateAllOfRecordFields(nestedComposedSchema.getAllOf()));
                 } else {
@@ -159,66 +218,9 @@ public class AllOfRecordTypeGenerator extends RecordTypeGenerator {
         return recordFieldList;
     }
 
-    /**
-     * This util is to create the union record rest fields, when given allOf schema has multiple additional fields.
-     * Note: This scenario only happens with AllOf scenarios since it maps with type inclusions.
-     *
-     * ex: string|int...
-     * @return
-     */
-    private static RecordRestDescriptorNode getRestDescriptorNodeForAllOf(List<Schema> restSchemas)
-            throws BallerinaAsyncApiException {
-        TypeDescriptorNode unionType = getUnionType(restSchemas);
-        return NodeFactory.createRecordRestDescriptorNode(unionType, createToken(ELLIPSIS_TOKEN),
-                createToken(SEMICOLON_TOKEN));
-    }
-
-    /**
-     * Creates the UnionType done for a given schema list.
-     *
-     * @param schemas  List of schemas included in additional fields.
-     * @return Union type
-     * @throws BallerinaAsyncApiException when unsupported combination of schemas found
-     */
-    private static TypeDescriptorNode getUnionType(List<Schema> schemas) throws BallerinaAsyncApiException {
-
-        // TODO: this has issue with generating union type with `string?|int?...
-        // this will be tracked via https://github.com/ballerina-platform/openapi-tools/issues/810
-        List<TypeDescriptorNode> typeDescriptorNodes = new ArrayList<>();
-        for (Schema schema : schemas) {
-            TypeGenerator typeGenerator = getTypeGenerator((AsyncApi25SchemaImpl) schema, null,
-                    null);
-            TypeDescriptorNode typeDescriptorNode = typeGenerator.generateTypeDescriptorNode();
-            typeDescriptorNodes.add(typeDescriptorNode);
-            // error for rest field unhandled constraint support
-
-        //    TODO : thushalya:- check this after uncomment has constraints
-//            if (GeneratorUtils.hasConstraints(schema)) {
-//                // use printStream for echo the error, because current openapi to ballerina implementation won't
-//                // handle diagnostic message.
-//                OUT_STREAM.println("WARNING: constraints in the OpenAPI contract will be ignored for the " +
-//                        "additionalProperties field, as constraints are not supported on Ballerina rest record " +
-//                        "field.");
-//            }
-        }
-        if (typeDescriptorNodes.size() > 1) {
-            UnionTypeDescriptorNode unionTypeDescriptorNode = null;
-            TypeDescriptorNode leftTypeDesc = typeDescriptorNodes.get(0);
-            for (int i = 1; i < typeDescriptorNodes.size(); i++) {
-                TypeDescriptorNode rightTypeDesc = typeDescriptorNodes.get(i);
-                unionTypeDescriptorNode = createUnionTypeDescriptorNode(leftTypeDesc, createToken(PIPE_TOKEN),
-                        rightTypeDesc);
-                leftTypeDesc = unionTypeDescriptorNode;
-            }
-            return unionTypeDescriptorNode;
-        } else {
-            return typeDescriptorNodes.get(0);
-        }
-    }
-
     private void addAdditionalSchemas(AsyncApi25SchemaImpl refSchema) {
         if (refSchema.getAdditionalProperties() != null && refSchema.getAdditionalProperties() instanceof Schema) {
-            restSchemas.add( refSchema.getAdditionalProperties().asSchema());
+            restSchemas.add(refSchema.getAdditionalProperties().asSchema());
         }
     }
 }

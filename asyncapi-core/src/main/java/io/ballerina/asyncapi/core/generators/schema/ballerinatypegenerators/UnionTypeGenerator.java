@@ -17,9 +17,7 @@
  */
 package io.ballerina.asyncapi.core.generators.schema.ballerinatypegenerators;
 
-import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import io.apicurio.datamodels.models.asyncapi.AsyncApiSchema;
-import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25Schema;
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25SchemaImpl;
 import io.ballerina.asyncapi.core.exception.BallerinaAsyncApiException;
 import io.ballerina.asyncapi.core.generators.schema.TypeGeneratorUtils;
@@ -69,7 +67,7 @@ public class UnionTypeGenerator extends TypeGenerator {
     public TypeDescriptorNode generateTypeDescriptorNode() throws BallerinaAsyncApiException {
 
 //        assert schema instanceof ComposedSchema;
-        AsyncApi25SchemaImpl composedSchema =  schema;
+        AsyncApi25SchemaImpl composedSchema = schema;
         List<AsyncApiSchema> schemas;
         if (composedSchema.getOneOf() != null) {
             schemas = composedSchema.getOneOf();
@@ -101,7 +99,7 @@ public class UnionTypeGenerator extends TypeGenerator {
             }
             typeDescriptorNodes.add(typeDescNode);
             if (typeGenerator instanceof ArrayTypeGenerator &&
-                    !((ArrayTypeGenerator) typeGenerator).getTypeDefinitionNodeList().isEmpty()) {
+                    !typeGenerator.getTypeDefinitionNodeList().isEmpty()) {
                 typeDefinitionNodeList.addAll(typeGenerator.getTypeDefinitionNodeList());
             }
         }

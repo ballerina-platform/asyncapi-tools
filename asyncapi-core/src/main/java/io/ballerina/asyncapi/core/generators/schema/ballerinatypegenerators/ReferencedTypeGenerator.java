@@ -18,7 +18,6 @@
 
 package io.ballerina.asyncapi.core.generators.schema.ballerinatypegenerators;
 
-import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25SchemaImpl;
 import io.ballerina.asyncapi.core.GeneratorUtils;
 import io.ballerina.asyncapi.core.exception.BallerinaAsyncApiException;
@@ -62,9 +61,11 @@ public class ReferencedTypeGenerator extends TypeGenerator {
 
         String extractName = GeneratorUtils.extractReferenceType(schema.get$ref());
         String typeName = GeneratorUtils.getValidName(extractName, true);
-        AsyncApi25SchemaImpl refSchema = (AsyncApi25SchemaImpl) GeneratorMetaData.getInstance().getAsyncAPI().getComponents().getSchemas().get(typeName);
+        AsyncApi25SchemaImpl refSchema = (AsyncApi25SchemaImpl) GeneratorMetaData.getInstance().getAsyncAPI()
+                .getComponents().getSchemas().get(typeName);
         refSchema = refSchema == null ?
-                (AsyncApi25SchemaImpl) GeneratorMetaData.getInstance().getAsyncAPI().getComponents().getSchemas().get(extractName) : refSchema;
+                (AsyncApi25SchemaImpl) GeneratorMetaData.getInstance().getAsyncAPI().getComponents().getSchemas()
+                        .get(extractName) : refSchema;
         TypeDescriptorNode typeDescriptorNode = createSimpleNameReferenceNode(createIdentifierToken(typeName));
         if (refSchema == null) {
             throw new BallerinaAsyncApiException(String.format("Undefined $ref: '%s' in openAPI contract.",

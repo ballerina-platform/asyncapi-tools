@@ -29,51 +29,6 @@ import java.util.Map;
  */
 public class GeneratorConstants {
 
-    /**
-     * Enum to select the code generation mode.
-     * Ballerina service, mock and client generation is available
-     */
-    public enum GenType {
-        GEN_SERVICE("gen_service"),
-        GEN_CLIENT("gen_client"),
-        GEN_BOTH("gen_both");
-
-        private String name;
-
-        GenType(String name) {
-            this.name = name;
-        }
-
-        @Override
-        public String toString() {
-            return this.name;
-        }
-    }
-
-    /**
-     * Enum to select the relevant ballerina http auth record.
-     */
-    public enum AuthConfigTypes {
-        BASIC("websocket:CredentialsConfig"),
-        BEARER("websocket:BearerTokenConfig"),
-        CLIENT_CREDENTIAL("websocket:OAuth2ClientCredentialsGrantConfig"),
-        CUSTOM_CLIENT_CREDENTIAL("OAuth2ClientCredentialsGrantConfig"),
-        REFRESH_TOKEN("websocket:OAuth2RefreshTokenGrantConfig"),
-        CUSTOM_REFRESH_TOKEN("OAuth2RefreshTokenGrantConfig"),
-        PASSWORD("websocket:OAuth2PasswordGrantConfig"),
-        CUSTOM_PASSWORD("OAuth2PasswordGrantConfig");
-
-        private final String authType;
-
-        AuthConfigTypes(String authType) {
-            this.authType = authType;
-        }
-
-        public String getValue() {
-            return authType;
-        }
-    }
-
     public static final String TYPE_FILE_NAME = "types.bal";
     public static final String CLIENT_FILE_NAME = "client.bal";
     public static final String UTIL_FILE_NAME = "utils.bal";
@@ -85,12 +40,10 @@ public class GeneratorConstants {
             "org= \"ballerina\"\n" +
             "name= \"testopenapi\"\n" +
             "version= \"0.0.0\"\n";
-
     public static final String OAS_PATH_SEPARATOR = "/";
     public static final String ESCAPE_PATTERN = "([\\[\\]\\\\?!<>@#&~`*\\-=^+();:\\/{}\\s|.$])";
     //ClientCode generator
     public static final String HTTP = "http";
-
     public static final String WEBSOCKET = "websocket";
     public static final String URL = "url";
     public static final String MODULE_TEST = "test";
@@ -134,7 +87,6 @@ public class GeneratorConstants {
     public static final String ERROR = "error";
     public static final String MAP_JSON = "map<json>";
     public static final String MEDIA_TYPE_KEYWORD = "mediaType";
-
     public static final String ANY_TYPE = "*/*";
     public static final String APPLICATION_JSON = "application/json";
     public static final String APPLICATION_PDF = "application/pdf";
@@ -144,21 +96,17 @@ public class GeneratorConstants {
     public static final String TEXT = "text";
     public static final String IMAGE_PNG = "image/png";
     public static final String ENSURE_TYPE = "ensureType";
-
     // auth related constants
     public static final String HTTP_API_KEY = "httpApiKey";
-
     public static final String USER_PASSWORD = "userPassword";
-
-    public static final String API_KEY="apiKey";
+    public static final String API_KEY = "apiKey";
     public static final String API_KEYS_CONFIG = "ApiKeysConfig";
     public static final String API_KEY_CONFIG_PARAM = "apiKeyConfig";
     public static final String AUTH = "auth";
     public static final String AUTH_CONFIG = "authConfig";
-
     public static final String CLIENT_HTTP1_SETTINGS = "ClientHttp1Settings";
     public static final String CLIENT_HTTP1_SETTINGS_FIELD = "http1Settings";
-//    public static final String HTTP2_SETTINGS = "http:Cookie";
+    //    public static final String HTTP2_SETTINGS = "http:Cookie";
 //    public static final String COOKIES_FIELD = "cookies";
     public static final String SETTINGS = "settings";
     public static final String CACHE_CONFIG = "http:CacheConfig";
@@ -167,10 +115,8 @@ public class GeneratorConstants {
     public static final String PING_PONG_HANDLER_FIELD = "pingPongHandler";
     public static final String SECURE_SOCKET = "websocket:ClientSecureSocket";
     public static final String SECURE_SOCKET_FIELD = "secureSocket";
-
-    public static final String PING_PONG_SERVICE_FIELD= "pingPongHandler";
+    public static final String PING_PONG_SERVICE_FIELD = "pingPongHandler";
     public static final String WEB_SOCKET_RETRY_CONFIG = "websocket:WebSocketRetryConfig";
-
     public static final String KEEP_ALIVE = "keepAlive";
     public static final String CHUNKING = "chunking";
     public static final String BASIC = "basic";
@@ -178,23 +124,18 @@ public class GeneratorConstants {
     public static final String REFRESH_TOKEN = "refresh_token";
     public static final String CLIENT_CRED = "client_cred";
     public static final String PASSWORD = "password";
-
-    public static final String REMOTE_METHOD_NAME_PREFIX ="do";
-
-//    public static final String CONNECTION_CONFIG = "ConnectionConfig";
-
+    public static final String REMOTE_METHOD_NAME_PREFIX = "do";
     public static final String CONNECTION_CONFIG = "websocket:ClientConfiguration";
     public static final String OAUTH2 = "oauth2";
+
+//    public static final String CONNECTION_CONFIG = "ConnectionConfig";
     public static final String SSL_FIELD_NAME = "secureSocket";
     public static final String RETRY_CONFIG_FIELD = "retryConfig";
     public static final String VALIDATION = "validation";
-
     public static final String DEFAULT_API_KEY_DESC = "API keys for authorization";
-
     public static final String RESPONSE = "response";
     public static final String TYPE = "type";
     public static final String ANY_DATA = "anydata";
-
     //Http Methods
     public static final String POST = "post";
     public static final String GET = "get";
@@ -213,12 +154,10 @@ public class GeneratorConstants {
     public static final String ENCODING_STYLE = "EncodingStyle";
     public static final String STYLE = "style";
     public static final String EXPLODE = "explode";
-
     //OpenAPI Ballerina extensions
     public static final String X_BALLERINA_INIT_DESCRIPTION = "x-ballerina-init-description";
     public static final String X_BALLERINA_DISPLAY = "x-ballerina-display";
     public static final String X_BALLERINA_DEPRECATED_REASON = "x-ballerina-deprecated-reason";
-
     //Service related
     public static final String HOST = "host";
     public static final String NEW = "new";
@@ -226,7 +165,6 @@ public class GeneratorConstants {
     public static final String QUERY = "query";
     public static final String HTTP_RESPONSE = "http:Response";
     public static final String DEFAULT = "default";
-
     public static final String X_RESPONSE = "x-response";
     /**
      * Util for select http keywords with http codes.
@@ -235,6 +173,64 @@ public class GeneratorConstants {
      * @return Http identification word.
      */
     public static final Map<String, String> HTTP_CODES_DES;
+    public static final String HTTP_200 = "200";
+    public static final String HTTP_201 = "201";
+    public static final String INTEGER = "integer";
+    public static final String BOOLEAN = "boolean";
+    public static final String NUMBER = "number";
+    public static final String OBJECT = "object";
+    public static final Integer MAX_ARRAY_LENGTH = 2147483637;
+    public static final String NILLABLE = "?";
+    public static final String SQUARE_BRACKETS = "[]";
+    public static final Map<String, String> TYPE_MAP;
+    //Error related
+    public static final String UNSUPPORTED_MEDIA_ERROR = "Unsupported media type '%s' is given in the request body";
+    // OS specific line separator
+    public static final String LINE_SEPARATOR = System.lineSeparator();
+    public static final String DOUBLE_LINE_SEPARATOR = LINE_SEPARATOR + LINE_SEPARATOR;
+    public static final String DEFAULT_RETURN = HTTP_RESPONSE + "|" + ERROR;
+    // Service Generation
+    public static final String TREAT_NILABLE_AS_OPTIONAL = "treatNilableAsOptional";
+    public static final String SERVICE_CONFIG = "http:ServiceConfig";
+    public static final String FALSE = "false";
+    public static final String HEADER_ANNOT = "Header";
+    public static final String MAP_STRING = "map<string>";
+    public static final String TEXT_WILDCARD_REGEX = "text/.*";
+    public static final String BODY = "body";
+    public static final String SPECIAL_CHARACTERS_REGEX = "[^a-zA-Z0-9]";
+    public static final String OPEN_CURLY_BRACE = "{";
+    public static final String CLOSE_CURLY_BRACE = "}";
+    public static final String SLASH = "/";
+    public static final String CONSTRAINT = "constraint";
+    public static final String CONSTRAINT_STRING = "constraint:String";
+    public static final String CONSTRAINT_NUMBER = "constraint:Number";
+    public static final String CONSTRAINT_FLOAT = "constraint:Float";
+    public static final String CONSTRAINT_INT = "constraint:Int";
+    public static final String CONSTRAINT_ARRAY = "constraint:Array";
+    public static final String OPEN_BRACE = "{";
+    public static final String CLOSE_BRACE = "}";
+    public static final String COLON = ":";
+    public static final String COMMA = ",";
+    public static final String MAX_LENGTH = "maxLength";
+    public static final String MIN_LENGTH = "minLength";
+    public static final String MINIMUM = "minValue";
+    public static final String MAXIMUM = "maxValue";
+    public static final String EXCLUSIVE_MAX = "maxValueExclusive";
+    public static final String EXCLUSIVE_MIN = "minValueExclusive";
+    public static final String SPECIAL_CHARACTER_REGEX = "([\\[\\]\\\\?!<>@#&~`*\\-=^+'();:\\/\\_{}\\s|.$])";
+    public static final String HTTP_VERSION = "http:HttpVersion";
+    public static final String YAML_EXTENSION = ".yaml";
+    public static final String YML_EXTENSION = ".yml";
+    public static final String JSON_EXTENSION = ".json";
+    public static final String UNSUPPORTED_OPENAPI_VERSION_PARSER_MESSAGE = "attribute swaggerVersion is unexpected";
+    public static final String PIPE = "|";
+    public static final String RETURNS = "returns";
+    public static final String ANYDATA = "anydata";
+    public static final String RESPONSE_RECORD_NAME = "Response";
+    public static final String SERVICE_TYPE_NAME = "OASServiceType";
+    public static final String DEFAULT_RETURN_COMMENT = "return value description";
+    public static final String DEFAULT_FUNC_COMMENT = "Description";
+    public static final String DEFAULT_PARAM_COMMENT = "parameter description";
 
     static {
         Map<String, String> httpCodeMap = new HashMap<>();
@@ -302,18 +298,6 @@ public class GeneratorConstants {
         HTTP_CODES_DES = Collections.unmodifiableMap(httpCodeMap);
     }
 
-    public static final String HTTP_200 = "200";
-    public static final String HTTP_201 = "201";
-    public static final String INTEGER = "integer";
-    public static final String BOOLEAN = "boolean";
-    public static final String NUMBER = "number";
-    public static final String OBJECT = "object";
-    public static final Integer MAX_ARRAY_LENGTH = 2147483637;
-    public static final String NILLABLE = "?";
-    public static final String SQUARE_BRACKETS = "[]";
-
-    public static final Map<String, String> TYPE_MAP;
-
     static {
         Map<String, String> typeMap = new HashMap<>();
         typeMap.put("integer", "int");
@@ -329,56 +313,47 @@ public class GeneratorConstants {
         typeMap.put("byte", "byte[]");
         TYPE_MAP = Collections.unmodifiableMap(typeMap);
     }
+    /**
+     * Enum to select the code generation mode.
+     * Ballerina service, mock and client generation is available
+     */
+    public enum GenType {
+        GEN_SERVICE("gen_service"),
+        GEN_CLIENT("gen_client"),
+        GEN_BOTH("gen_both");
 
-    //Error related
-    public static final String UNSUPPORTED_MEDIA_ERROR = "Unsupported media type '%s' is given in the request body";
+        private final String name;
 
-    // OS specific line separator
-    public static final String LINE_SEPARATOR = System.lineSeparator();
-    public static final String DOUBLE_LINE_SEPARATOR = LINE_SEPARATOR + LINE_SEPARATOR;
-    public static final String DEFAULT_RETURN = HTTP_RESPONSE + "|" + ERROR;
+        GenType(String name) {
+            this.name = name;
+        }
 
-    // Service Generation
-    public static final String TREAT_NILABLE_AS_OPTIONAL = "treatNilableAsOptional";
-    public static final String SERVICE_CONFIG = "http:ServiceConfig";
-    public static final String FALSE = "false";
-    public static final String HEADER_ANNOT = "Header";
-    public static final String MAP_STRING = "map<string>";
-    public static final String TEXT_WILDCARD_REGEX = "text/.*";
-    public static final String BODY = "body";
-    public static final String SPECIAL_CHARACTERS_REGEX = "[^a-zA-Z0-9]";
-    public static final String OPEN_CURLY_BRACE = "{";
-    public static final String CLOSE_CURLY_BRACE = "}";
-    public static final String SLASH = "/";
+        @Override
+        public String toString() {
+            return this.name;
+        }
+    }
+    /**
+     * Enum to select the relevant ballerina http auth record.
+     */
+    public enum AuthConfigTypes {
+        BASIC("websocket:CredentialsConfig"),
+        BEARER("websocket:BearerTokenConfig"),
+        CLIENT_CREDENTIAL("websocket:OAuth2ClientCredentialsGrantConfig"),
+        CUSTOM_CLIENT_CREDENTIAL("OAuth2ClientCredentialsGrantConfig"),
+        REFRESH_TOKEN("websocket:OAuth2RefreshTokenGrantConfig"),
+        CUSTOM_REFRESH_TOKEN("OAuth2RefreshTokenGrantConfig"),
+        PASSWORD("websocket:OAuth2PasswordGrantConfig"),
+        CUSTOM_PASSWORD("OAuth2PasswordGrantConfig");
 
-    public static final String CONSTRAINT = "constraint";
-    public static final String CONSTRAINT_STRING = "constraint:String";
-    public static final String CONSTRAINT_NUMBER = "constraint:Number";
-    public static final String CONSTRAINT_FLOAT = "constraint:Float";
-    public static final String CONSTRAINT_INT = "constraint:Int";
-    public static final String CONSTRAINT_ARRAY = "constraint:Array";
-    public static final String OPEN_BRACE = "{";
-    public static final String CLOSE_BRACE = "}";
-    public static final String COLON = ":";
-    public static final String COMMA = ",";
-    public static final String MAX_LENGTH = "maxLength";
-    public static final String MIN_LENGTH = "minLength";
-    public static final String MINIMUM = "minValue";
-    public static final String MAXIMUM = "maxValue";
-    public static final String EXCLUSIVE_MAX = "maxValueExclusive";
-    public static final String EXCLUSIVE_MIN = "minValueExclusive";
-    public static final String SPECIAL_CHARACTER_REGEX = "([\\[\\]\\\\?!<>@#&~`*\\-=^+'();:\\/\\_{}\\s|.$])";
-    public static final String HTTP_VERSION = "http:HttpVersion";
-    public static final String YAML_EXTENSION = ".yaml";
-    public static final String YML_EXTENSION = ".yml";
-    public static final String JSON_EXTENSION = ".json";
-    public static final String UNSUPPORTED_OPENAPI_VERSION_PARSER_MESSAGE = "attribute swaggerVersion is unexpected";
-    public static final String PIPE = "|";
-    public static final String RETURNS = "returns";
-    public static final String ANYDATA = "anydata";
-    public static final String RESPONSE_RECORD_NAME = "Response";
-    public static final String SERVICE_TYPE_NAME = "OASServiceType";
-    public static final String DEFAULT_RETURN_COMMENT = "return value description";
-    public static final String DEFAULT_FUNC_COMMENT = "Description";
-    public static final String DEFAULT_PARAM_COMMENT = "parameter description";
+        private final String authType;
+
+        AuthConfigTypes(String authType) {
+            this.authType = authType;
+        }
+
+        public String getValue() {
+            return authType;
+        }
+    }
 }

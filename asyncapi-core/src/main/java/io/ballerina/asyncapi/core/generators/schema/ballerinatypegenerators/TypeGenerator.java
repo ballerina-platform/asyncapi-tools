@@ -20,7 +20,6 @@ package io.ballerina.asyncapi.core.generators.schema.ballerinatypegenerators;
 
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25SchemaImpl;
 import io.ballerina.asyncapi.core.exception.BallerinaAsyncApiException;
-import io.ballerina.compiler.syntax.tree.AnnotationNode;
 import io.ballerina.compiler.syntax.tree.IdentifierToken;
 import io.ballerina.compiler.syntax.tree.MarkdownDocumentationNode;
 import io.ballerina.compiler.syntax.tree.MetadataNode;
@@ -47,9 +46,9 @@ import static io.ballerina.compiler.syntax.tree.SyntaxKind.TYPE_KEYWORD;
  */
 public abstract class TypeGenerator {
 
+    final List<TypeDefinitionNode> typeDefinitionNodeList = new ArrayList<>();
     AsyncApi25SchemaImpl schema;
     String typeName;
-    final List<TypeDefinitionNode> typeDefinitionNodeList = new ArrayList<>();
 
     public TypeGenerator(AsyncApi25SchemaImpl schema, String typeName) {
         this.schema = schema;
@@ -63,9 +62,10 @@ public abstract class TypeGenerator {
     /**
      * Create Type Definition Node for a given OpenAPI schema.
      *
-     * @param typeName        IdentifierToken of the name of the type
-     * @param schemaDoc       Documentation of the type
-//     * @param typeAnnotations Annotations related to the type. Currently, only includes `Deprecated` annotation
+     * @param typeName  IdentifierToken of the name of the type
+     * @param schemaDoc Documentation of the type
+     *                  //     * @param typeAnnotations Annotations related to the type. Currently, only includes
+     *                  `Deprecated` annotation
      * @return {@link TypeDefinitionNode}
      * @throws BallerinaAsyncApiException when unsupported schema type is found
      */
@@ -73,7 +73,7 @@ public abstract class TypeGenerator {
             throws BallerinaAsyncApiException {
 
         MarkdownDocumentationNode documentationNode = createMarkdownDocumentationNode(createNodeList(schemaDoc));
-        MetadataNode metadataNode = createMetadataNode(documentationNode,createNodeList(new ArrayList<>()));
+        MetadataNode metadataNode = createMetadataNode(documentationNode, createNodeList(new ArrayList<>()));
         return createTypeDefinitionNode(metadataNode, createToken(PUBLIC_KEYWORD), createToken(TYPE_KEYWORD),
                 typeName, generateTypeDescriptorNode(),
                 createToken(SEMICOLON_TOKEN));

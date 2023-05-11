@@ -168,7 +168,7 @@ public class AsyncAPICmd implements BLauncherCmd {
                     outStream.println(e.getLocalizedMessage());
                     exitError(this.exitWhenFinish);
                 }
-            }else if (fileName.endsWith(BAL_EXTENSION)) {
+            } else if (fileName.endsWith(BAL_EXTENSION)) {
                 try {
 
                     ballerinaToAsyncApi(fileName);
@@ -251,11 +251,11 @@ public class AsyncAPICmd implements BLauncherCmd {
 //        generator.setIncludeTestFiles(this.includeTestFiles);
         final File openApiFile = new File(fileName);
         String serviceName;
-        if (generatedServiceName != null) {
-            serviceName = generatedServiceName;
-        } else {
-            serviceName = openApiFile.getName().split("\\.")[0];
-        }
+//        if (generatedServiceName != null) {
+//            serviceName = generatedServiceName;
+//        } else {
+//            serviceName = openApiFile.getName().split("\\.")[0];
+//        }
         getTargetOutputPath();
         Path resourcePath = Paths.get(openApiFile.getCanonicalPath());
         if (nullable) {
@@ -319,8 +319,9 @@ public class AsyncAPICmd implements BLauncherCmd {
 
     /**
      * A Util to Client generation.
-     * @param generator         generator object
-     * @param resourcePath      resource Path
+     *
+     * @param generator    generator object
+     * @param resourcePath resource Path
      */
     private void generatesClientFile(BallerinaCodeGenerator generator, Path resourcePath) {
         try {
@@ -335,7 +336,6 @@ public class AsyncAPICmd implements BLauncherCmd {
             }
         }
     }
-
 
 
     @Override
