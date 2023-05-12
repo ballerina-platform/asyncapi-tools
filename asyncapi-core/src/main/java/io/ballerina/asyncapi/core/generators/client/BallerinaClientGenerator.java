@@ -35,12 +35,18 @@ import io.ballerina.asyncapi.core.generators.document.DocCommentsGenerator;
 import io.ballerina.asyncapi.core.generators.schema.BallerinaTypesGenerator;
 import io.ballerina.compiler.syntax.tree.AnnotationNode;
 import io.ballerina.compiler.syntax.tree.AssignmentStatementNode;
+import io.ballerina.compiler.syntax.tree.BlockStatementNode;
 import io.ballerina.compiler.syntax.tree.ClassDefinitionNode;
+import io.ballerina.compiler.syntax.tree.ExpressionNode;
+import io.ballerina.compiler.syntax.tree.ExpressionStatementNode;
 import io.ballerina.compiler.syntax.tree.FieldAccessExpressionNode;
+import io.ballerina.compiler.syntax.tree.FunctionArgumentNode;
 import io.ballerina.compiler.syntax.tree.FunctionBodyNode;
+import io.ballerina.compiler.syntax.tree.FunctionCallExpressionNode;
 import io.ballerina.compiler.syntax.tree.FunctionDefinitionNode;
 import io.ballerina.compiler.syntax.tree.FunctionSignatureNode;
 import io.ballerina.compiler.syntax.tree.IdentifierToken;
+import io.ballerina.compiler.syntax.tree.ImplicitNewExpressionNode;
 import io.ballerina.compiler.syntax.tree.ImportDeclarationNode;
 import io.ballerina.compiler.syntax.tree.MapTypeDescriptorNode;
 import io.ballerina.compiler.syntax.tree.MarkdownDocumentationLineNode;
@@ -49,11 +55,13 @@ import io.ballerina.compiler.syntax.tree.MarkdownParameterDocumentationLineNode;
 import io.ballerina.compiler.syntax.tree.MetadataNode;
 import io.ballerina.compiler.syntax.tree.ModuleMemberDeclarationNode;
 import io.ballerina.compiler.syntax.tree.ModulePartNode;
+import io.ballerina.compiler.syntax.tree.NamedWorkerDeclarator;
 import io.ballerina.compiler.syntax.tree.Node;
 import io.ballerina.compiler.syntax.tree.NodeList;
 import io.ballerina.compiler.syntax.tree.ObjectFieldNode;
 import io.ballerina.compiler.syntax.tree.OptionalTypeDescriptorNode;
 import io.ballerina.compiler.syntax.tree.ParameterNode;
+import io.ballerina.compiler.syntax.tree.ParenthesizedArgList;
 import io.ballerina.compiler.syntax.tree.QualifiedNameReferenceNode;
 import io.ballerina.compiler.syntax.tree.RequiredParameterNode;
 import io.ballerina.compiler.syntax.tree.ReturnStatementNode;
@@ -91,23 +99,37 @@ import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createNodeLi
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createSeparatedNodeList;
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createToken;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createAssignmentStatementNode;
+import static io.ballerina.compiler.syntax.tree.NodeFactory.createBasicLiteralNode;
+import static io.ballerina.compiler.syntax.tree.NodeFactory.createBlockStatementNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createClassDefinitionNode;
+import static io.ballerina.compiler.syntax.tree.NodeFactory.createErrorBindingPatternNode;
+import static io.ballerina.compiler.syntax.tree.NodeFactory.createErrorConstructorExpressionNode;
+import static io.ballerina.compiler.syntax.tree.NodeFactory.createErrorMatchPatternNode;
+import static io.ballerina.compiler.syntax.tree.NodeFactory.createExpressionStatementNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createFieldAccessExpressionNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createFunctionBodyBlockNode;
+import static io.ballerina.compiler.syntax.tree.NodeFactory.createFunctionCallExpressionNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createFunctionDefinitionNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createFunctionSignatureNode;
+import static io.ballerina.compiler.syntax.tree.NodeFactory.createImplicitNewExpressionNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createMapTypeDescriptorNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createMarkdownDocumentationLineNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createMarkdownDocumentationNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createMetadataNode;
+import static io.ballerina.compiler.syntax.tree.NodeFactory.createMethodCallExpressionNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createModulePartNode;
+import static io.ballerina.compiler.syntax.tree.NodeFactory.createNamedWorkerDeclarationNode;
+import static io.ballerina.compiler.syntax.tree.NodeFactory.createNamedWorkerDeclarator;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createObjectFieldNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createOptionalTypeDescriptorNode;
+import static io.ballerina.compiler.syntax.tree.NodeFactory.createParenthesizedArgList;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createQualifiedNameReferenceNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createReturnStatementNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createReturnTypeDescriptorNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createSimpleNameReferenceNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createTypeParameterNode;
+import static io.ballerina.compiler.syntax.tree.NodeFactory.createVariableDeclarationNode;
+import static io.ballerina.compiler.syntax.tree.NodeFactory.createWhileStatementNode;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.CLASS_KEYWORD;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.CLIENT_KEYWORD;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.CLOSE_BRACE_TOKEN;
@@ -118,11 +140,13 @@ import static io.ballerina.compiler.syntax.tree.SyntaxKind.EOF_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.EQUAL_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.ERROR_KEYWORD;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.FINAL_KEYWORD;
+import static io.ballerina.compiler.syntax.tree.SyntaxKind.FUNCTION_CALL;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.FUNCTION_KEYWORD;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.GT_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.ISOLATED_KEYWORD;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.LT_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.MAP_KEYWORD;
+import static io.ballerina.compiler.syntax.tree.SyntaxKind.NEW_KEYWORD;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.OPEN_BRACE_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.OPEN_PAREN_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.PUBLIC_KEYWORD;
@@ -132,6 +156,9 @@ import static io.ballerina.compiler.syntax.tree.SyntaxKind.RETURNS_KEYWORD;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.RETURN_KEYWORD;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.SEMICOLON_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.STRING_KEYWORD;
+import static io.ballerina.compiler.syntax.tree.SyntaxKind.TRUE_KEYWORD;
+import static io.ballerina.compiler.syntax.tree.SyntaxKind.WHILE_KEYWORD;
+import static io.ballerina.compiler.syntax.tree.SyntaxKind.WORKER_KEYWORD;
 
 /**
  * This class is used to generate ballerina client file according to given yaml file.
@@ -272,6 +299,10 @@ public class BallerinaClientGenerator {
         // Add init function to class definition node
         memberNodeList.add(createInitFunction());
         // Generate remote function Nodes
+        memberNodeList.add(createStartInterMediator());
+
+
+
         memberNodeList.addAll(createRemoteFunctions(asyncAPI.getComponents().getMessages()));
         // Generate the class combining members
         MetadataNode metadataNode = getClassMetadataNode();
@@ -285,6 +316,69 @@ public class BallerinaClientGenerator {
         return createClassDefinitionNode(metadataNode, createToken(PUBLIC_KEYWORD), classTypeQualifiers,
                 createToken(CLASS_KEYWORD), className, createToken(OPEN_BRACE_TOKEN),
                 createNodeList(memberNodeList), createToken(CLOSE_BRACE_TOKEN), null);
+    }
+
+    private Node createStartInterMediator() throws BallerinaAsyncApiException {
+        ArrayList initMetaDataDoc = new ArrayList();
+        FunctionSignatureNode functionSignatureNode = getStartInterMediatorFunctionSignatureNode(initMetaDataDoc);
+        FunctionBodyNode functionBodyNode = getInterMediatorFunctionBodyNode();
+        NodeList<Token> qualifierList = createNodeList(createToken(PUBLIC_KEYWORD), createToken(ISOLATED_KEYWORD));
+        IdentifierToken functionName = createIdentifierToken("startInterMediator");
+        return createFunctionDefinitionNode(null, getInitDocComment(initMetaDataDoc), qualifierList,
+                createToken(FUNCTION_KEYWORD),
+                functionName, createEmptyNodeList(), functionSignatureNode, functionBodyNode);
+    }
+
+    private FunctionBodyNode getInterMediatorFunctionBodyNode() {
+        NodeList<AnnotationNode> annotations = createEmptyNodeList();
+
+
+        NodeList<StatementNode> whileStatements =createNodeList();
+
+        createVariableDeclarationNode(createEmptyNodeList(),null,)
+
+
+
+
+
+
+
+
+
+
+        BlockStatementNode whileBody=createBlockStatementNode(createToken(OPEN_BRACE_TOKEN),whileStatements,
+                createToken(CLOSE_BRACE_TOKEN));
+        NodeList<StatementNode> workerStatements= createNodeList(createWhileStatementNode(createToken(WHILE_KEYWORD),
+                createBasicLiteralNode(TRUE_KEYWORD,createToken(TRUE_KEYWORD)),whileBody,null));
+
+
+       NodeList workerDeclarationNodes= createNodeList(createNamedWorkerDeclarationNode(annotations,null,createToken(WORKER_KEYWORD)
+                ,createIdentifierToken("InterMediator"),createReturnTypeDescriptorNode(
+                        createToken(RETURNS_KEYWORD),createEmptyNodeList(),createToken(ERROR_KEYWORD)),
+                createBlockStatementNode(createToken(OPEN_BRACE_TOKEN),workerStatements,
+                        createToken(CLOSE_BRACE_TOKEN))));
+
+
+        return createFunctionBodyBlockNode(createToken(OPEN_BRACE_TOKEN),
+                null, workerDeclarationNodes, createToken(CLOSE_BRACE_TOKEN), null);
+
+
+    }
+
+
+    //TODO: Add metdata for the function
+    private FunctionSignatureNode getStartInterMediatorFunctionSignatureNode(ArrayList initMetaDataNode)
+            throws BallerinaAsyncApiException {
+
+//        serverURL = getServerURL((AsyncApi25ServersImpl) asyncAPI.getServers());
+        SeparatedNodeList<ParameterNode> parameterList = createSeparatedNodeList(new ArrayList<>());
+//
+//        OptionalTypeDescriptorNode returnType = createOptionalTypeDescriptorNode(createToken(ERROR_KEYWORD),
+//                createToken(QUESTION_MARK_TOKEN));
+//        ReturnTypeDescriptorNode returnTypeDescriptorNode = createReturnTypeDescriptorNode(
+//                createToken(RETURNS_KEYWORD), createEmptyNodeList(), returnType);
+        return createFunctionSignatureNode(
+                createToken(OPEN_PAREN_TOKEN), parameterList, createToken(CLOSE_PAREN_TOKEN),null);
     }
 
     /**
@@ -370,14 +464,62 @@ public class BallerinaClientGenerator {
         }
         // create initialization statement of websocket:Client class instance
         assignmentNodes.add(ballerinaAuthConfigGenerator.getClientInitializationNode());
+
+
         // create {@code self.clientEp = httpEp;} assignment node
-        FieldAccessExpressionNode varRef = createFieldAccessExpressionNode(
+        FieldAccessExpressionNode selfClientEp = createFieldAccessExpressionNode(
                 createSimpleNameReferenceNode(createIdentifierToken(SELF)), createToken(DOT_TOKEN),
                 createSimpleNameReferenceNode(createIdentifierToken("clientEp")));
-        SimpleNameReferenceNode expr = createSimpleNameReferenceNode(createIdentifierToken("websocketEp"));
-        AssignmentStatementNode httpClientAssignmentStatementNode = createAssignmentStatementNode(varRef,
-                createToken(EQUAL_TOKEN), expr, createToken(SEMICOLON_TOKEN));
-        assignmentNodes.add(httpClientAssignmentStatementNode);
+        SimpleNameReferenceNode selfClientEpValue = createSimpleNameReferenceNode(createIdentifierToken("websocketEp"));
+        AssignmentStatementNode selfWebsocketClientAssignmentStatementNode = createAssignmentStatementNode(selfClientEp,
+                createToken(EQUAL_TOKEN),selfClientEpValue, createToken(SEMICOLON_TOKEN));
+        assignmentNodes.add(selfWebsocketClientAssignmentStatementNode);
+
+        // create {@code self.pipes ={};} assignment node
+        FieldAccessExpressionNode selfPipes = createFieldAccessExpressionNode(
+                createSimpleNameReferenceNode(createIdentifierToken(SELF)), createToken(DOT_TOKEN),
+                createSimpleNameReferenceNode(createIdentifierToken("pipes")));
+        SimpleNameReferenceNode selfPipesValue = createSimpleNameReferenceNode(createIdentifierToken("{}"));
+        AssignmentStatementNode selfPipesAssignmentStatementNode = createAssignmentStatementNode(selfPipes,
+                createToken(EQUAL_TOKEN),selfPipesValue, createToken(SEMICOLON_TOKEN));
+        assignmentNodes.add(selfPipesAssignmentStatementNode);
+
+
+        // create {@code self.globalQueue = new (10000);} assignment node
+        List<Node> argumentsList = new ArrayList<>();
+        FieldAccessExpressionNode selfGlobalQueues = createFieldAccessExpressionNode(
+                createSimpleNameReferenceNode(createIdentifierToken(SELF)), createToken(DOT_TOKEN),
+                createSimpleNameReferenceNode(createIdentifierToken("globalQueue")));
+        argumentsList.add(createIdentifierToken("10000"));
+        SeparatedNodeList<FunctionArgumentNode> arguments = createSeparatedNodeList(argumentsList);
+        Token closeParenArg = createToken(CLOSE_PAREN_TOKEN);
+        Token openParenArg=createToken(OPEN_PAREN_TOKEN);
+        ParenthesizedArgList parenthesizedArgList = createParenthesizedArgList(openParenArg,
+                arguments,
+                closeParenArg);
+        ImplicitNewExpressionNode expressionNode = createImplicitNewExpressionNode(createToken(NEW_KEYWORD),
+                parenthesizedArgList);
+
+        AssignmentStatementNode selfGlobalQueuesAssignmentStatementNode = createAssignmentStatementNode(selfGlobalQueues,
+                createToken(EQUAL_TOKEN),expressionNode, createToken(SEMICOLON_TOKEN));
+        assignmentNodes.add(selfGlobalQueuesAssignmentStatementNode);
+
+
+        // create {@code self.startInterMediator()} assignment node
+        List startInterMediatorArgumentsList=new ArrayList<>();
+        SeparatedNodeList<FunctionArgumentNode> startInterMediatorArguments =
+                createSeparatedNodeList(startInterMediatorArgumentsList);
+        ExpressionStatementNode startInterMediatorFunctionCall=createExpressionStatementNode(FUNCTION_CALL,
+                createMethodCallExpressionNode( createSimpleNameReferenceNode(createIdentifierToken(SELF)),
+                        createToken(DOT_TOKEN),createSimpleNameReferenceNode(
+                                createIdentifierToken("startInterMediator")),openParenArg,
+                startInterMediatorArguments,closeParenArg),createToken(SEMICOLON_TOKEN));
+
+
+        assignmentNodes.add(startInterMediatorFunctionCall);
+
+
+
 
 
         // Get API key assignment node if authentication mechanism type is only `apiKey`
