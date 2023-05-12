@@ -42,6 +42,7 @@ import io.ballerina.compiler.syntax.tree.FunctionDefinitionNode;
 import io.ballerina.compiler.syntax.tree.FunctionSignatureNode;
 import io.ballerina.compiler.syntax.tree.IdentifierToken;
 import io.ballerina.compiler.syntax.tree.ImportDeclarationNode;
+import io.ballerina.compiler.syntax.tree.MapTypeDescriptorNode;
 import io.ballerina.compiler.syntax.tree.MarkdownDocumentationLineNode;
 import io.ballerina.compiler.syntax.tree.MarkdownDocumentationNode;
 import io.ballerina.compiler.syntax.tree.MarkdownParameterDocumentationLineNode;
@@ -64,6 +65,8 @@ import io.ballerina.compiler.syntax.tree.SyntaxKind;
 import io.ballerina.compiler.syntax.tree.SyntaxTree;
 import io.ballerina.compiler.syntax.tree.Token;
 import io.ballerina.compiler.syntax.tree.TypeDefinitionNode;
+import io.ballerina.compiler.syntax.tree.TypeDescriptorNode;
+import io.ballerina.compiler.syntax.tree.TypeParameterNode;
 import io.ballerina.tools.text.TextDocument;
 import io.ballerina.tools.text.TextDocuments;
 
@@ -75,11 +78,13 @@ import java.util.Map;
 import java.util.Set;
 
 import static io.ballerina.asyncapi.core.GeneratorConstants.DEFAULT_API_KEY_DESC;
+import static io.ballerina.asyncapi.core.GeneratorConstants.NUVINDU_PIPE;
 import static io.ballerina.asyncapi.core.GeneratorConstants.REMOTE_METHOD_NAME_PREFIX;
 import static io.ballerina.asyncapi.core.GeneratorConstants.SELF;
 import static io.ballerina.asyncapi.core.GeneratorConstants.WEBSOCKET;
 import static io.ballerina.asyncapi.core.GeneratorConstants.X_BALLERINA_INIT_DESCRIPTION;
 import static io.ballerina.asyncapi.core.GeneratorConstants.X_RESPONSE;
+import static io.ballerina.asyncapi.core.GeneratorConstants.SIMPLE_PIPE;
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createEmptyNodeList;
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createIdentifierToken;
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createNodeList;
@@ -91,6 +96,7 @@ import static io.ballerina.compiler.syntax.tree.NodeFactory.createFieldAccessExp
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createFunctionBodyBlockNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createFunctionDefinitionNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createFunctionSignatureNode;
+import static io.ballerina.compiler.syntax.tree.NodeFactory.createMapTypeDescriptorNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createMarkdownDocumentationLineNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createMarkdownDocumentationNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createMetadataNode;
@@ -101,6 +107,7 @@ import static io.ballerina.compiler.syntax.tree.NodeFactory.createQualifiedNameR
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createReturnStatementNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createReturnTypeDescriptorNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createSimpleNameReferenceNode;
+import static io.ballerina.compiler.syntax.tree.NodeFactory.createTypeParameterNode;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.CLASS_KEYWORD;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.CLIENT_KEYWORD;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.CLOSE_BRACE_TOKEN;
@@ -112,7 +119,10 @@ import static io.ballerina.compiler.syntax.tree.SyntaxKind.EQUAL_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.ERROR_KEYWORD;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.FINAL_KEYWORD;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.FUNCTION_KEYWORD;
+import static io.ballerina.compiler.syntax.tree.SyntaxKind.GT_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.ISOLATED_KEYWORD;
+import static io.ballerina.compiler.syntax.tree.SyntaxKind.LT_TOKEN;
+import static io.ballerina.compiler.syntax.tree.SyntaxKind.MAP_KEYWORD;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.OPEN_BRACE_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.OPEN_PAREN_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.PUBLIC_KEYWORD;
@@ -121,6 +131,7 @@ import static io.ballerina.compiler.syntax.tree.SyntaxKind.REMOTE_KEYWORD;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.RETURNS_KEYWORD;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.RETURN_KEYWORD;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.SEMICOLON_TOKEN;
+import static io.ballerina.compiler.syntax.tree.SyntaxKind.STRING_KEYWORD;
 
 /**
  * This class is used to generate ballerina client file according to given yaml file.
@@ -209,7 +220,11 @@ public class BallerinaClientGenerator {
         ImportDeclarationNode importForWebsocket = GeneratorUtils.getImportDeclarationNode(GeneratorConstants.BALLERINA
                 , WEBSOCKET);
 
+        ImportDeclarationNode importForNuvinduPipe= GeneratorUtils.getImportDeclarationNode(GeneratorConstants.NUVINDU
+                , NUVINDU_PIPE);
+
         imports.add(importForWebsocket);
+        imports.add(importForNuvinduPipe);
         List<ModuleMemberDeclarationNode> nodes = new ArrayList<>();
         // Add authentication related records
         ballerinaAuthConfigGenerator.addAuthRelatedRecords(asyncAPI);
@@ -450,8 +465,10 @@ public class BallerinaClientGenerator {
      */
     private List<ObjectFieldNode> createClassInstanceVariables() {
 
-        //final websocket:Client clientEp;
+
         List<ObjectFieldNode> fieldNodeList = new ArrayList<>();
+
+        //final websocket:Client clientEp;
         Token finalKeywordToken = createToken(FINAL_KEYWORD);
         NodeList<Token> qualifierList = createNodeList(finalKeywordToken);
         QualifiedNameReferenceNode typeName = createQualifiedNameReferenceNode(createIdentifierToken(WEBSOCKET),
@@ -460,7 +477,41 @@ public class BallerinaClientGenerator {
         MetadataNode metadataNode = createMetadataNode(null, createEmptyNodeList());
         ObjectFieldNode websocketClientField = createObjectFieldNode(metadataNode, null,
                 qualifierList, typeName, fieldName, null, null, createToken(SEMICOLON_TOKEN));
+
+        //final pipe:Pipe globalQueue;
+        QualifiedNameReferenceNode pipeTypeName = createQualifiedNameReferenceNode(createIdentifierToken(SIMPLE_PIPE),
+                createToken(COLON_TOKEN), createIdentifierToken(GeneratorConstants.CAPITAL_PIPE));
+        IdentifierToken globalQueueFieldName = createIdentifierToken(GeneratorConstants.GLOBAL_QUEUE);
+        MetadataNode pipeGlobalQueuemetadataNode = createMetadataNode(null, createEmptyNodeList());
+        ObjectFieldNode pipeGlobalQueueClientField = createObjectFieldNode(pipeGlobalQueuemetadataNode, null,
+                qualifierList, pipeTypeName, globalQueueFieldName, null, null, createToken(SEMICOLON_TOKEN));
+
+
+
+        //        //final map<pipe:Pipe> pipes;
+        TypeParameterNode pipesTypeParamsNode = createTypeParameterNode(createToken(LT_TOKEN),
+                pipeTypeName, createToken(GT_TOKEN));
+        MapTypeDescriptorNode pipesTypeName = createMapTypeDescriptorNode(createToken(MAP_KEYWORD),
+                pipesTypeParamsNode);
+//        MetadataNode customHeadersMetadata = getMetadataNode("Custom headers, " +
+//                "which should be sent to the server");
+        IdentifierToken pipesFieldName = createIdentifierToken(GeneratorConstants.PIPES);
+        MetadataNode pipesMetadataNode = createMetadataNode(null, createEmptyNodeList());
+        ObjectFieldNode pipesField = createObjectFieldNode(pipesMetadataNode, null,
+                qualifierList, pipesTypeName, pipesFieldName, null, null, createToken(SEMICOLON_TOKEN));
+
+
+
+
+
+
+
         fieldNodeList.add(websocketClientField);
+        fieldNodeList.add(pipeGlobalQueueClientField);
+        fieldNodeList.add(pipesField);
+
+
+
         // add apiKey instance variable when API key security schema is given
         ObjectFieldNode apiKeyFieldNode = ballerinaAuthConfigGenerator.getApiKeyMapClassVariable();
         if (apiKeyFieldNode != null) {
