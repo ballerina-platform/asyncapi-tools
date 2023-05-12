@@ -36,6 +36,7 @@ import io.ballerina.asyncapi.core.generators.schema.BallerinaTypesGenerator;
 import io.ballerina.compiler.syntax.tree.AnnotationNode;
 import io.ballerina.compiler.syntax.tree.AssignmentStatementNode;
 import io.ballerina.compiler.syntax.tree.BlockStatementNode;
+import io.ballerina.compiler.syntax.tree.CheckExpressionNode;
 import io.ballerina.compiler.syntax.tree.ClassDefinitionNode;
 import io.ballerina.compiler.syntax.tree.ExpressionNode;
 import io.ballerina.compiler.syntax.tree.ExpressionStatementNode;
@@ -75,6 +76,7 @@ import io.ballerina.compiler.syntax.tree.Token;
 import io.ballerina.compiler.syntax.tree.TypeDefinitionNode;
 import io.ballerina.compiler.syntax.tree.TypeDescriptorNode;
 import io.ballerina.compiler.syntax.tree.TypeParameterNode;
+import io.ballerina.compiler.syntax.tree.VariableDeclarationNode;
 import io.ballerina.tools.text.TextDocument;
 import io.ballerina.tools.text.TextDocuments;
 
@@ -95,18 +97,22 @@ import static io.ballerina.asyncapi.core.GeneratorConstants.X_RESPONSE;
 import static io.ballerina.asyncapi.core.GeneratorConstants.SIMPLE_PIPE;
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createEmptyNodeList;
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createIdentifierToken;
+import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createLiteralValueToken;
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createNodeList;
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createSeparatedNodeList;
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createToken;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createAssignmentStatementNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createBasicLiteralNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createBlockStatementNode;
+import static io.ballerina.compiler.syntax.tree.NodeFactory.createBuiltinSimpleNameReferenceNode;
+import static io.ballerina.compiler.syntax.tree.NodeFactory.createCheckExpressionNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createClassDefinitionNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createErrorBindingPatternNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createErrorConstructorExpressionNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createErrorMatchPatternNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createExpressionStatementNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createFieldAccessExpressionNode;
+import static io.ballerina.compiler.syntax.tree.NodeFactory.createFieldBindingPatternVarnameNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createFunctionBodyBlockNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createFunctionCallExpressionNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createFunctionDefinitionNode;
@@ -123,13 +129,19 @@ import static io.ballerina.compiler.syntax.tree.NodeFactory.createNamedWorkerDec
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createObjectFieldNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createOptionalTypeDescriptorNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createParenthesizedArgList;
+import static io.ballerina.compiler.syntax.tree.NodeFactory.createPositionalArgumentNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createQualifiedNameReferenceNode;
+import static io.ballerina.compiler.syntax.tree.NodeFactory.createRequiredExpressionNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createReturnStatementNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createReturnTypeDescriptorNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createSimpleNameReferenceNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createTypeParameterNode;
+import static io.ballerina.compiler.syntax.tree.NodeFactory.createTypedBindingPatternNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createVariableDeclarationNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createWhileStatementNode;
+import static io.ballerina.compiler.syntax.tree.SyntaxKind.ACTION_STATEMENT;
+import static io.ballerina.compiler.syntax.tree.SyntaxKind.ANYDATA_KEYWORD;
+import static io.ballerina.compiler.syntax.tree.SyntaxKind.CHECK_KEYWORD;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.CLASS_KEYWORD;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.CLIENT_KEYWORD;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.CLOSE_BRACE_TOKEN;
@@ -154,6 +166,7 @@ import static io.ballerina.compiler.syntax.tree.SyntaxKind.QUESTION_MARK_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.REMOTE_KEYWORD;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.RETURNS_KEYWORD;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.RETURN_KEYWORD;
+import static io.ballerina.compiler.syntax.tree.SyntaxKind.RIGHT_ARROW_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.SEMICOLON_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.STRING_KEYWORD;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.TRUE_KEYWORD;
@@ -332,22 +345,69 @@ public class BallerinaClientGenerator {
     private FunctionBodyNode getInterMediatorFunctionBodyNode() {
         NodeList<AnnotationNode> annotations = createEmptyNodeList();
 
+        List<StatementNode> whileStatements =new ArrayList<>();
+        Token openParanToken=createToken(OPEN_PAREN_TOKEN);
+        Token closeParanToken=createToken(CLOSE_PAREN_TOKEN);
+        Token openBraceToken=createToken(OPEN_BRACE_TOKEN);
+        Token closeBraceToken=createToken(CLOSE_BRACE_TOKEN);
+        Token semicolonToken = createToken(SEMICOLON_TOKEN);
+        Token equalToken = createToken(EQUAL_TOKEN);
+        Token dotToken = createToken(DOT_TOKEN);
+        Token rightArrowToken = createToken(RIGHT_ARROW_TOKEN);
 
-        NodeList<StatementNode> whileStatements =createNodeList();
+        //anydata queueData = check self.globalQueue.consume(5);
+       FieldAccessExpressionNode globalQueue= createFieldAccessExpressionNode(
+                createSimpleNameReferenceNode(createIdentifierToken(SELF)), createToken(DOT_TOKEN),
+                createSimpleNameReferenceNode(createIdentifierToken("globalQueue")));
+        CheckExpressionNode checkExpressionNode=createCheckExpressionNode(null,createToken(CHECK_KEYWORD),
+                createMethodCallExpressionNode(globalQueue,dotToken,
+                        createSimpleNameReferenceNode(createIdentifierToken("consume")),openParanToken,createSeparatedNodeList(
+                                createPositionalArgumentNode(createRequiredExpressionNode(createIdentifierToken("5")))
+                        ),closeParanToken));
+        VariableDeclarationNode queueData= createVariableDeclarationNode(createEmptyNodeList(),null,createTypedBindingPatternNode(
+                createBuiltinSimpleNameReferenceNode(null,createToken(ANYDATA_KEYWORD)),
+                createFieldBindingPatternVarnameNode(createSimpleNameReferenceNode(createIdentifierToken("queueData")))),equalToken,checkExpressionNode,semicolonToken);
 
-        createVariableDeclarationNode(createEmptyNodeList(),null,)
+
+        //check self.clientEp->writeMessage(queueData);
+        FieldAccessExpressionNode clientEp= createFieldAccessExpressionNode(
+                createSimpleNameReferenceNode(createIdentifierToken(SELF)), createToken(DOT_TOKEN),
+                createSimpleNameReferenceNode(createIdentifierToken("clientEp")));
+        CheckExpressionNode checkWriteMessage=createCheckExpressionNode(ACTION_STATEMENT,createToken(CHECK_KEYWORD),
+                createMethodCallExpressionNode(clientEp,rightArrowToken,
+                        createSimpleNameReferenceNode(createIdentifierToken("writeMessage")),openParanToken,createSeparatedNodeList(
+                                createPositionalArgumentNode(createRequiredExpressionNode(createIdentifierToken("queueData")))
+                        ),closeParanToken));
+        ExpressionStatementNode writeMessage=createExpressionStatementNode(null,checkWriteMessage,createToken(SEMICOLON_TOKEN));
 
 
+        //ResponseMessage responseMessage = check self.clientEp->readMessage();
+        CheckExpressionNode responseMessageCheckExpressionNode=createCheckExpressionNode(null,createToken(CHECK_KEYWORD),
+                createMethodCallExpressionNode(clientEp,rightArrowToken,
+                        createSimpleNameReferenceNode(createIdentifierToken("readMessage")),openParanToken,createSeparatedNodeList(new ArrayList<>()),closeParanToken));
+        VariableDeclarationNode responseMessage= createVariableDeclarationNode(createEmptyNodeList(),null,createTypedBindingPatternNode(
+                createBuiltinSimpleNameReferenceNode(null,createIdentifierToken("ResponseMessage")),
+                createFieldBindingPatternVarnameNode(createSimpleNameReferenceNode(createIdentifierToken("responseMessage")))),
+                equalToken,responseMessageCheckExpressionNode,semicolonToken);
 
 
+        //check self.callRelevantPipe(responseMessage);
+        CheckExpressionNode callCheckRelavantPipeNode=createCheckExpressionNode(null,createToken(CHECK_KEYWORD),
+                createMethodCallExpressionNode( createSimpleNameReferenceNode(createIdentifierToken(SELF)),dotToken,
+                        createSimpleNameReferenceNode(createIdentifierToken("callRelevantPipe")),openParanToken,createSeparatedNodeList(
+                                createPositionalArgumentNode(createRequiredExpressionNode(createIdentifierToken("responseMessage")))
+                        ),closeParanToken));
+        ExpressionStatementNode callRelavantPipeNode =createExpressionStatementNode(null,callCheckRelavantPipeNode,createToken(SEMICOLON_TOKEN));
 
 
+        whileStatements.add(queueData);
+        whileStatements.add(writeMessage);
+        whileStatements.add(responseMessage);
+        whileStatements.add(callRelavantPipeNode);
 
 
-
-
-        BlockStatementNode whileBody=createBlockStatementNode(createToken(OPEN_BRACE_TOKEN),whileStatements,
-                createToken(CLOSE_BRACE_TOKEN));
+        BlockStatementNode whileBody=createBlockStatementNode(openBraceToken,createNodeList(whileStatements),
+                closeBraceToken);
         NodeList<StatementNode> workerStatements= createNodeList(createWhileStatementNode(createToken(WHILE_KEYWORD),
                 createBasicLiteralNode(TRUE_KEYWORD,createToken(TRUE_KEYWORD)),whileBody,null));
 
@@ -355,12 +415,12 @@ public class BallerinaClientGenerator {
        NodeList workerDeclarationNodes= createNodeList(createNamedWorkerDeclarationNode(annotations,null,createToken(WORKER_KEYWORD)
                 ,createIdentifierToken("InterMediator"),createReturnTypeDescriptorNode(
                         createToken(RETURNS_KEYWORD),createEmptyNodeList(),createToken(ERROR_KEYWORD)),
-                createBlockStatementNode(createToken(OPEN_BRACE_TOKEN),workerStatements,
-                        createToken(CLOSE_BRACE_TOKEN))));
+                createBlockStatementNode(openBraceToken,workerStatements,
+                        closeBraceToken)));
 
 
-        return createFunctionBodyBlockNode(createToken(OPEN_BRACE_TOKEN),
-                null, workerDeclarationNodes, createToken(CLOSE_BRACE_TOKEN), null);
+        return createFunctionBodyBlockNode(openBraceToken,
+                null, workerDeclarationNodes, closeBraceToken, null);
 
 
     }
