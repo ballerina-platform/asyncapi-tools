@@ -23,7 +23,12 @@ import io.ballerina.asyncapi.codegenerator.configuration.BallerinaAsyncApiExcept
 import io.ballerina.cli.BLauncherCmd;
 import picocli.CommandLine;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.PrintStream;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
@@ -33,7 +38,7 @@ import java.util.List;
  */
 @CommandLine.Command(
         name = "asyncapi",
-        description = "Generates Ballerina client for AsyncAPI document of an Event-API."
+        description = "Generate the Ballerina sources for a given AsyncAPI definition."
 )
 public class AsyncApiCmd implements BLauncherCmd {
     private static final String CMD_NAME = "asyncapi";
@@ -125,7 +130,18 @@ public class AsyncApiCmd implements BLauncherCmd {
     }
 
     @Override
-    public void printLongDesc(StringBuilder stringBuilder) {}
+    public void printLongDesc(StringBuilder stringBuilder) {
+        try (InputStream inputStream = ClassLoader.getSystemResourceAsStream("ballerina-asyncapi.help");
+             InputStreamReader inputStreamReader = new InputStreamReader(inputStream, StandardCharsets.UTF_8);
+             BufferedReader br = new BufferedReader(inputStreamReader)) {
+
+            String content;
+            while ((content = br.readLine()) != null) {
+                stringBuilder.append(content).append('\n');
+            }
+        } catch (IOException ignored) {
+        }
+    }
 
     @Override
     public void printUsage(StringBuilder stringBuilder) {}
