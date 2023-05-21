@@ -21,6 +21,7 @@ package io.ballerina.asyncapi.core.generators.schema.ballerinatypegenerators;
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25SchemaImpl;
 import io.ballerina.asyncapi.core.GeneratorUtils;
 import io.ballerina.asyncapi.core.exception.BallerinaAsyncApiException;
+import io.ballerina.asyncapi.core.generators.asyncspec.model.BalAsyncApi25SchemaImpl;
 import io.ballerina.asyncapi.core.generators.schema.TypeGeneratorUtils;
 import io.ballerina.asyncapi.core.generators.schema.model.GeneratorMetaData;
 import io.ballerina.compiler.syntax.tree.TypeDescriptorNode;
@@ -68,9 +69,11 @@ public class ReferencedTypeGenerator extends TypeGenerator {
                         .get(extractName) : refSchema;
         TypeDescriptorNode typeDescriptorNode = createSimpleNameReferenceNode(createIdentifierToken(typeName));
         if (refSchema == null) {
-            throw new BallerinaAsyncApiException(String.format("Undefined $ref: '%s' in openAPI contract.",
+            throw new BallerinaAsyncApiException(String.format("Undefined $ref: '%s' in asyncAPI contract.",
                     schema.get$ref()));
         }
-        return TypeGeneratorUtils.getNullableType(refSchema, typeDescriptorNode);
+        //TODO: check if we want this nullable in references then uncomment below line
+//        return TypeGeneratorUtils.getNullableType(refSchema, typeDescriptorNode);
+        return typeDescriptorNode;
     }
 }

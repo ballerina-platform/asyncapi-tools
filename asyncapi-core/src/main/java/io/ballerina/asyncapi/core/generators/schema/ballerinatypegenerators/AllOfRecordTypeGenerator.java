@@ -23,6 +23,8 @@ import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25DocumentImpl;
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25SchemaImpl;
 import io.ballerina.asyncapi.core.GeneratorUtils;
 import io.ballerina.asyncapi.core.exception.BallerinaAsyncApiException;
+import io.ballerina.asyncapi.core.generators.asyncspec.model.BalAsyncApi25SchemaImpl;
+import io.ballerina.asyncapi.core.generators.schema.BallerinaTypesGenerator;
 import io.ballerina.asyncapi.core.generators.schema.model.GeneratorMetaData;
 import io.ballerina.asyncapi.core.generators.schema.model.RecordMetadata;
 import io.ballerina.compiler.syntax.tree.AbstractNodeFactory;
@@ -112,7 +114,7 @@ public class AllOfRecordTypeGenerator extends RecordTypeGenerator {
         // this will be tracked via https://github.com/ballerina-platform/openapi-tools/issues/810
         List<TypeDescriptorNode> typeDescriptorNodes = new ArrayList<>();
         for (Schema schema : schemas) {
-            TypeGenerator typeGenerator = getTypeGenerator((AsyncApi25SchemaImpl) schema, null,
+            TypeGenerator typeGenerator = getTypeGenerator((BalAsyncApi25SchemaImpl) schema, null,
                     null);
             TypeDescriptorNode typeDescriptorNode = typeGenerator.generateTypeDescriptorNode();
             typeDescriptorNodes.add(typeDescriptorNode);
@@ -160,7 +162,7 @@ public class AllOfRecordTypeGenerator extends RecordTypeGenerator {
         RecordMetadata recordMetadata = getRecordMetadata();
         RecordRestDescriptorNode restDescriptorNode = recordMetadata.getRestDescriptorNode();
         if (allOfSchemas.size() == 1 && ((AsyncApi25SchemaImpl) allOfSchemas.get(0)).get$ref() != null) {
-            ReferencedTypeGenerator referencedTypeGenerator = new ReferencedTypeGenerator((AsyncApi25SchemaImpl)
+            ReferencedTypeGenerator referencedTypeGenerator = new ReferencedTypeGenerator((BalAsyncApi25SchemaImpl)
                     allOfSchemas.get(0),
                     typeName);
             return referencedTypeGenerator.generateTypeDescriptorNode();

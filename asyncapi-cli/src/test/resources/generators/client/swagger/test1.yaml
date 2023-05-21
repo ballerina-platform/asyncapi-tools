@@ -1,0 +1,237 @@
+asyncapi: 2.5.0
+info:
+  title: PayloadV
+  version: 0.0.0
+servers:
+  development:
+    url: "{server}:{port}/payloadV"
+    protocol: ws
+    protocolVersion: "13"
+    variables:
+      server:
+        default: ws://localhost
+      port:
+        default: "9090"
+channels:
+  /hello:
+    subscribe:
+      message:
+        payload:
+          type: string
+    publish:
+      message:
+        $ref: '#/components/messages/Subscribe'
+    parameters:
+      id:
+        description: Unique identification of location
+        schema:
+          type: string
+      hello:
+        description: Unique identification of location
+        schema:
+          type: integer
+      hi:
+        description: Unique identification of location
+        schema:
+          type: boolean
+    bindings:
+      ws:
+        bindingVersion: 0.1.0
+        headers:
+          type: object
+          properties:
+            x-client:
+              type: string
+              default: header1
+            X-Client:
+              type: string
+            headerValue:
+              type: string
+            x-request-client:
+              type: string
+              extensions:
+                x-nullable: true
+            headerValue1:
+              type: string
+              extensions:
+                x-nullable: true
+            x-client1:
+              type: string
+              default: header1
+            x-client2:
+              type: string
+              extensions:
+                x-nullable: true
+              default: header1
+            headerValue3:
+              type: array
+              items:
+                type: boolean
+            x-client4:
+              type: array
+              items:
+                type: boolean
+              default: "[true, false]"
+            XClient:
+              type: array
+              items:
+                type: string
+            x-item:
+              type: array
+              items:
+                type: string
+
+        query:
+          type: object
+          properties:
+            pet:
+              type: string
+              default: "hello"
+            offsetInteger:
+              type: integer
+              format: int64
+              default: "5"
+            offsetDecimal:
+              type: number
+              format: double
+              default: "100.08"
+            offsetBoolean:
+              type: boolean
+              default: "true"
+            offsetFloat:
+              type: number
+              format: float
+              default: "100.08"
+            offsetIntegerArray:
+              type: array
+              items:
+                type: integer
+                format: int64
+              default: "[2, 1, 3, 4]"
+            offset:
+              type: integer
+              format: int64
+              extensions:
+                x-nullable: true
+              default: null
+            offsetNullableJson:
+              type: object
+              additionalProperties:
+                type: string
+              extensions:
+                x-nullable: true
+              default: "{\"x\": \"Hello\"}"
+            offsetJson:
+              type: object
+              additionalProperties: {}
+              default: "{\"x\": {\"id\": \"sss\"}}"
+components:
+  schemas:
+    Subscribe:
+      type: object
+      required:
+        - id
+        - event
+      properties:
+        id:
+          type: integer
+          format: int64
+        event:
+          type: string
+          const: Subscribe1
+    Cat:
+      type: object
+      required:
+        - id
+        - testing
+      properties:
+        id:
+          type: integer
+          format: int64
+
+        eat:
+          type: string
+
+        testing:
+          type: string
+    Link:
+      type: object
+      required:
+        - books
+        - rels
+        - actions
+        - salary
+        - action
+      properties:
+        books:
+          $ref: '#/components/schemas/Books'
+        rels:
+          $ref: '#/components/schemas/Rels'
+        actions:
+          $ref: '#/components/schemas/Action'
+        count:
+          $ref: '#/components/schemas/Count'
+        salary:
+          $ref: '#/components/schemas/Salary'
+        action:
+          type: string
+          const: Link
+    Books:
+      type: object
+      additionalProperties:
+        type: string
+      x-nullable: true
+    Rels:
+      type: array
+      items:
+        type: string
+      x-nullable: true
+    Action:
+      type: object
+      required:
+        - id
+        - testing
+      properties:
+        id:
+          type: integer
+          format: int64
+        eat:
+          type: string
+        testing:
+          type: string
+    Count:
+      type: number
+      format: double
+      x-nullable: true
+    Salary:
+      oneOf:
+        - type: integer
+          format: int64
+        - type: number
+          format: float
+        - type: number
+          format: double
+      x-nullable: true
+  messages:
+    Cat:
+      payload:
+        $ref: '#/components/schemas/Cat'
+    Subscribe:
+      payload:
+        $ref: '#/components/schemas/Subscribe'
+      x-response:
+        $ref: '#/components/messages/Cat'
+      x-response-type: simple-rpc
+    Action:
+      payload:
+        $ref: '#/components/schemas/Action'
+    Link:
+      payload:
+        $ref: '#/components/schemas/Link'
+        description: message description
+      description: Remote link description
+      x-response:
+        $ref: '#/components/messages/Action'
+        description: this is return description
+      x-response-type: simple-rpc
+

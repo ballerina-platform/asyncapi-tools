@@ -2,6 +2,12 @@ package io.ballerina.asyncapi.core.generators.asyncspec.model;
 
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.DeserializationContext;
+import com.fasterxml.jackson.databind.JsonDeserializer;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import io.apicurio.datamodels.models.Schema;
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25SchemaImpl;
@@ -10,11 +16,9 @@ import io.apicurio.datamodels.models.union.BooleanUnionValueImpl;
 import io.apicurio.datamodels.models.union.SchemaListUnionValueImpl;
 import io.apicurio.datamodels.models.union.SchemaSchemaListUnion;
 
-@JsonDeserialize(as = BalAsyncApi25SchemaImpl.class)
-interface MockSchema extends Schema {
-
-
-}
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 
 //@JsonTypeInfo( use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.PROPERTY, property = "class")
 //@JsonSubTypes({
@@ -32,7 +36,7 @@ interface MockSchema extends Schema {
  * @since 2.0.0
  */
 
-public class BalAsyncApi25SchemaImpl extends io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25SchemaImpl {
+public class BalAsyncApi25SchemaImpl extends io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25SchemaImpl{
 
 //    public BalAsyncApi25SchemaImpl() {
 //        super();
@@ -43,6 +47,9 @@ public class BalAsyncApi25SchemaImpl extends io.apicurio.datamodels.models.async
 
     @JsonDeserialize(as = BalAsyncApi25SchemaImpl.class)
     private BooleanSchemaUnion additionalProperties;
+
+//    @JsonDeserialize(as=BalAsyncApi25SchemaImpl.class)
+//    private Map<String, Schema> properties;
 
     @JsonIgnore
     @Override
@@ -59,3 +66,33 @@ public class BalAsyncApi25SchemaImpl extends io.apicurio.datamodels.models.async
 
 
 }
+
+//
+//class PropertiesDeserializer extends JsonDeserializer<Map<String, AsyncApi25SchemaImpl>> {
+//    @Override
+//    public Map<String, AsyncApi25SchemaImpl> deserialize(JsonParser jsonParser, DeserializationContext deserializationContext) throws IOException, JsonProcessingException {
+//        ObjectMapper objectMapper = new ObjectMapper();
+//        JsonNode node = jsonParser.getCodec().readTree(jsonParser);
+//
+//        Map<String, AsyncApi25SchemaImpl> properties = new HashMap<>();
+//
+//        // Iterate through the JSON object properties and deserialize them
+//        node.fields().forEachRemaining(entry -> {
+//            String propertyName = entry.getKey();
+//            JsonNode propertyNode = entry.getValue();
+//
+//            try {
+//                // Deserialize each property value as an AsyncAPI25Schema object
+//                AsyncApi25SchemaImpl propertySchema = objectMapper.treeToValue(propertyNode, AsyncApi25SchemaImpl.class);
+//                properties.put(propertyName, propertySchema);
+//            } catch (JsonProcessingException e) {
+//                // Handle exception if deserialization fails
+//                e.printStackTrace();
+//            }
+//        });
+//
+//        return properties;
+//    }
+//}
+
+

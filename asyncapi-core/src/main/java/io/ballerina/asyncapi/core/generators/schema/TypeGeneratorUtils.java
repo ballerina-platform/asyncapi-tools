@@ -25,10 +25,12 @@ import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25SchemaImpl;
 import io.ballerina.asyncapi.core.GeneratorConstants;
 import io.ballerina.asyncapi.core.GeneratorUtils;
 import io.ballerina.asyncapi.core.exception.BallerinaAsyncApiException;
+import io.ballerina.asyncapi.core.generators.asyncspec.model.BalAsyncApi25SchemaImpl;
 import io.ballerina.asyncapi.core.generators.document.DocCommentsGenerator;
 import io.ballerina.asyncapi.core.generators.schema.ballerinatypegenerators.AllOfRecordTypeGenerator;
 import io.ballerina.asyncapi.core.generators.schema.ballerinatypegenerators.AnyDataTypeGenerator;
 import io.ballerina.asyncapi.core.generators.schema.ballerinatypegenerators.ArrayTypeGenerator;
+import io.ballerina.asyncapi.core.generators.schema.ballerinatypegenerators.MapTypeGenerator;
 import io.ballerina.asyncapi.core.generators.schema.ballerinatypegenerators.PrimitiveTypeGenerator;
 import io.ballerina.asyncapi.core.generators.schema.ballerinatypegenerators.RecordTypeGenerator;
 import io.ballerina.asyncapi.core.generators.schema.ballerinatypegenerators.ReferencedTypeGenerator;
@@ -59,6 +61,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
+import static io.ballerina.asyncapi.core.GeneratorUtils.convertAsyncAPITypeToBallerina;
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createIdentifierToken;
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createNodeList;
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createToken;
@@ -95,13 +98,28 @@ public class TypeGeneratorUtils {
         if (schemaValue.get$ref() != null) {
             return new ReferencedTypeGenerator(schemaValue, typeName);
 
-        } else if ((schemaValue.getProperties() != null &&
+        } else if ((
                 (schemaValue.getOneOf() != null || schemaValue.getAllOf() != null || schemaValue.getAnyOf() != null))) {
             if (schemaValue.getAllOf() != null) {
                 return new AllOfRecordTypeGenerator(schemaValue, typeName);
             } else {
                 return new UnionTypeGenerator(schemaValue, typeName);
             }
+        } else if (schemaValue.getAdditionalProperties()!=null && schemaValue.getAdditionalProperties() instanceof AsyncApi25SchemaImpl) {
+
+            if (((AsyncApi25SchemaImpl) schemaValue.getAdditionalProperties()).getType() == null) {
+                return new MapTypeGenerator(schemaValue, typeName);
+
+
+            } else if (((AsyncApi25SchemaImpl) schemaValue.getAdditionalProperties()).getType() != null) {
+                return new MapTypeGenerator(schemaValue, typeName);
+
+            }else{
+                return  null;
+            }
+
+
+
             //TODO: include mapschema here see openapi code
         } else if ((schemaValue.getType() != null && schemaValue.getType().equals(GeneratorConstants.OBJECT)) ||
                 schemaValue.getProperties() != null) {
@@ -205,6 +223,22 @@ public class TypeGeneratorUtils {
                                           TypeDescriptorNode fieldTypeName,
                                           MetadataNode metadataNode) {
 
+//        if (!required.contains(field.getKey().trim())) {
+//            if (fieldSchema.getDefault() != null) {
+//                RecordFieldWithDefaultValueNode defaultNode =
+//                        getRecordFieldWithDefaultValueNode(fieldSchema, fieldName, fieldTypeName, metadataNode);
+//                recordFieldList.add(defaultNode);
+//            } else {
+//                RecordFieldNode recordFieldNode = NodeFactory.createRecordFieldNode(metadataNode, null,
+//                        fieldTypeName, fieldName, createToken(QUESTION_MARK_TOKEN),
+//                        createToken(SEMICOLON_TOKEN));
+//                recordFieldList.add(recordFieldNode);
+//            }
+//        } else {
+//            RecordFieldNode recordFieldNode = NodeFactory.createRecordFieldNode(metadataNode, null,
+//                    fieldTypeName, fieldName, null, createToken(SEMICOLON_TOKEN));
+//            recordFieldList.add(recordFieldNode);
+//        }
         if (!required.contains(field.getKey().trim())) {
             if (fieldSchema.getDefault() != null) {
                 RecordFieldWithDefaultValueNode defaultNode =
@@ -217,9 +251,17 @@ public class TypeGeneratorUtils {
                 recordFieldList.add(recordFieldNode);
             }
         } else {
-            RecordFieldNode recordFieldNode = NodeFactory.createRecordFieldNode(metadataNode, null,
-                    fieldTypeName, fieldName, null, createToken(SEMICOLON_TOKEN));
-            recordFieldList.add(recordFieldNode);
+            if (fieldSchema.getDefault() != null) {
+                RecordFieldWithDefaultValueNode defaultNode =
+                        getRecordFieldWithDefaultValueNode(fieldSchema, fieldName, fieldTypeName, metadataNode);
+                recordFieldList.add(defaultNode);
+            }else{
+                RecordFieldNode recordFieldNode = NodeFactory.createRecordFieldNode(metadataNode, null,
+                        fieldTypeName, fieldName, null, createToken(SEMICOLON_TOKEN));
+                recordFieldList.add(recordFieldNode);
+
+            }
+
         }
     }
 
@@ -229,24 +271,25 @@ public class TypeGeneratorUtils {
                                                                                       MetadataNode metadataNode) {
 
         Token defaultValueToken;
-        String defaultValue = fieldSchema.getDefault().toString().trim();
+        String defaultValue = fieldSchema.getDefault().asText().trim();
         if (fieldSchema.getType().equals("string")) {
             if (defaultValue.equals("\"")) {
                 defaultValueToken = AbstractNodeFactory.createIdentifierToken("\"" + "\\" +
-                        fieldSchema.getDefault().toString() + "\"");
+                        fieldSchema.getDefault().asText() + "\"");
             } else {
-                defaultValueToken = AbstractNodeFactory.createIdentifierToken("\"" +
-                        fieldSchema.getDefault().toString() + "\"");
+                defaultValueToken = AbstractNodeFactory.createIdentifierToken(
+                        fieldSchema.getDefault().toString());
             }
         } else if (!defaultValue.matches("^[0-9]*$") && !defaultValue.matches("^(\\d*\\.)?\\d+$")
                 && !(defaultValue.startsWith("[") && defaultValue.endsWith("]")) &&
                 !(fieldSchema.getType().equals("boolean"))) {
             //This regex was added due to avoid adding quotes for default values which are numbers and array values.
             //Ex: default: 123
-            defaultValueToken = AbstractNodeFactory.createIdentifierToken("\"" +
-                    fieldSchema.getDefault().toString() + "\"");
+            defaultValueToken = AbstractNodeFactory.createIdentifierToken(
+                    fieldSchema.getDefault().asText());
         } else {
-            defaultValueToken = AbstractNodeFactory.createIdentifierToken(fieldSchema.getDefault().toString());
+
+            defaultValueToken = AbstractNodeFactory.createIdentifierToken(fieldSchema.getDefault().asText().trim().replaceAll("\\\\", ""));
         }
         ExpressionNode expressionNode = createRequiredExpressionNode(defaultValueToken);
         return NodeFactory.createRecordFieldWithDefaultValueNode

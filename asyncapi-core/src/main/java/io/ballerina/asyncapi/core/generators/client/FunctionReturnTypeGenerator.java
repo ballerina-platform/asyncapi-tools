@@ -20,18 +20,21 @@ package io.ballerina.asyncapi.core.generators.client;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.TextNode;
 import io.apicurio.datamodels.models.Schema;
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25DocumentImpl;
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25SchemaImpl;
 import io.ballerina.asyncapi.core.GeneratorUtils;
 import io.ballerina.asyncapi.core.exception.BallerinaAsyncApiException;
-import io.ballerina.asyncapi.core.generators.document.DocCommentsGenerator;
+import io.ballerina.asyncapi.core.generators.asyncspec.model.BalAsyncApi25SchemaImpl;
 import io.ballerina.asyncapi.core.generators.schema.BallerinaTypesGenerator;
 import io.ballerina.compiler.syntax.tree.Node;
 import io.ballerina.compiler.syntax.tree.TypeDefinitionNode;
 
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -44,7 +47,6 @@ import static io.ballerina.asyncapi.core.GeneratorConstants.X_RESPONSE;
 import static io.ballerina.asyncapi.core.GeneratorUtils.convertAsyncAPITypeToBallerina;
 import static io.ballerina.asyncapi.core.GeneratorUtils.extractReferenceType;
 import static io.ballerina.asyncapi.core.GeneratorUtils.getValidName;
-import static io.ballerina.asyncapi.core.GeneratorUtils.isValidSchemaName;
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createIdentifierToken;
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createToken;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createSimpleNameReferenceNode;
@@ -116,22 +118,50 @@ public class FunctionReturnTypeGenerator {
 //        }
         String type = null;
 
-        if (extensions.get(X_RESPONSE).get("oneOf") != null) {
+        if (extensions.get(X_RESPONSE).get("oneOf") != null) {  //Handle Union references
+            if(extensions.get(X_RESPONSE).get("oneOf") instanceof ArrayNode){
+                ArrayNode test= (ArrayNode) extensions.get(X_RESPONSE).get("oneOf");
+
+                for (Iterator<JsonNode> it = test.iterator(); it.hasNext(); ) {
+                    JsonNode jsonNode = it.next();
+                    if(jsonNode.get("$ref")!=null){
+                        String reference = jsonNode.get("$ref").asText();
+                        String schemaName = getValidName(extractReferenceType(reference), true);
+                        AsyncApi25SchemaImpl refSchema = (AsyncApi25SchemaImpl) asyncAPI.getComponents().getSchemas().get(
+                                schemaName);
+                        type = getDataType(schemaName, refSchema);
+                        returnTypes.add(type);
 
 
-        } else if (extensions.get(X_RESPONSE).get("payload") != null) {
+                    } else if (jsonNode.get("payload")!=null) {
+                        throw new BallerinaAsyncApiException("Ballerina service file cannot be generate to the " +
+                                "given AsyncAPI specification, Response type must be a Record");
 
 
-        } else if (extensions.get(X_RESPONSE).get("$ref") != null) {
+                    }
+
+                    System.out.println("test");
+                }
+            }
+
+        } else if (extensions.get(X_RESPONSE).get("payload")!=null && extensions.get(X_RESPONSE).get("payload")
+                .get("type") != new TextNode("object")) { //Handle payload references
+            throw new BallerinaAsyncApiException("Ballerina service file cannot be generate to the " +
+                    "given AsyncAPI specification, Response type must be a Record");
+
+
+
+        } else if (extensions.get(X_RESPONSE).get("$ref") != null) { //Handle reference responses
             String reference = extensions.get(X_RESPONSE).get("$ref").asText();
             String schemaName = getValidName(extractReferenceType(reference), true);
             AsyncApi25SchemaImpl refSchema = (AsyncApi25SchemaImpl) asyncAPI.getComponents().getSchemas().get(
                     schemaName);
             type = getDataType(schemaName, refSchema);
+            returnTypes.add(type);
+
 
 
         }
-        returnTypes.add(type);
 
         if (returnTypes.size() > 0) {
             String finalReturnType = String.join(PIPE_TOKEN.stringValue(), returnTypes) +
@@ -150,45 +180,52 @@ public class FunctionReturnTypeGenerator {
 
 
     /**
-     * Get return data type by traversing OAS schemas.
+     * Get return data type by traversing AsyncAPI schemas.
      */
-    private String getDataType(String schemaName, AsyncApi25SchemaImpl schema)
+    private String getDataType(String schemaName,AsyncApi25SchemaImpl schema)
             throws BallerinaAsyncApiException {
-
         String type = null;
-        if (((schema.getProperties() != null &&
-                (schema.getOneOf() != null || schema.getAllOf() != null || schema.getAnyOf() != null)))) {
-            type = generateReturnDataTypeForComposedSchema(schemaName, schema, type);
-        } else if (schema.getType().equals("object")) {
+
+        if(schema.getType().equals("object")){
             type = handleInLineRecordInResponse(schemaName, schema);
-//        } else if (schema instanceof MapSchema) {
-//            type = handleResponseWithMapSchema(operation, media, mapSchema);
-        } else if (schema.get$ref() != null) {
-            type = getValidName(extractReferenceType(schema.get$ref()), true);
-            Schema componentSchema = asyncAPI.getComponents().getSchemas().get(type);
-            if (!isValidSchemaName(type)) {
-//                String operationId = operation.getOperationId();
-//                type = Character.toUpperCase(operationId.charAt(0)) + operationId.substring(1) +
-//                        "Response";
-                List<Node> responseDocs = new ArrayList<>();
-                if (schema.getDescription() != null && !schema.getDescription().isBlank()) {
-                    responseDocs.addAll(DocCommentsGenerator.createAPIDescriptionDoc(schema.getDescription(),
-                            false));
-                }
-                TypeDefinitionNode typeDefinitionNode = ballerinaSchemaGenerator.getTypeDefinitionNode
-                        ((AsyncApi25SchemaImpl) componentSchema, type, responseDocs);
-                GeneratorUtils.updateTypeDefNodeList(type, typeDefinitionNode, typeDefinitionNodeList);
-            }
-        } else if (schema.getType().equals("array")) {
-            // TODO: Nested array when response has
-            type = generateReturnTypeForArraySchema(schema);
-        } else if (schema.getType() != null) {
-            type = convertAsyncAPITypeToBallerina(schema.getType());
-//        } else if (media.getKey().trim().equals("application/xml")) {
-//            type = generateCustomTypeDefine("xml", "XML", isSignature);
-//        } else {
-//            type = GeneratorUtils.getBallerinaMediaType(media.getKey().trim(), false);
+
+        }else{
+            throw new BallerinaAsyncApiException("Response type must be a record");
         }
+//
+//        if (((schema.getProperties() != null &&
+//                (schema.getOneOf() != null || schema.getAllOf() != null || schema.getAnyOf() != null)))) {
+//            type = generateReturnDataTypeForComposedSchema(schemaName, schema, type);
+//        } else if (schema.getType().equals("object")) {
+//            type = handleInLineRecordInResponse(schemaName, schema);
+////        } else if (schema instanceof MapSchema) {
+////            type = handleResponseWithMapSchema(operation, media, mapSchema);
+//        } else if (schema.get$ref() != null) {
+//            type = getValidName(extractReferenceType(schema.get$ref()), true);
+//            Schema componentSchema = asyncAPI.getComponents().getSchemas().get(type);
+//            if (!isValidSchemaName(type)) {
+////                String operationId = operation.getOperationId();
+////                type = Character.toUpperCase(operationId.charAt(0)) + operationId.substring(1) +
+////                        "Response";
+//                List<Node> responseDocs = new ArrayList<>();
+//                if (schema.getDescription() != null && !schema.getDescription().isBlank()) {
+//                    responseDocs.addAll(DocCommentsGenerator.createAPIDescriptionDoc(schema.getDescription(),
+//                            false));
+//                }
+//                TypeDefinitionNode typeDefinitionNode = ballerinaSchemaGenerator.getTypeDefinitionNode
+//                        ((AsyncApi25SchemaImpl) componentSchema, type, responseDocs);
+//                GeneratorUtils.updateTypeDefNodeList(type, typeDefinitionNode, typeDefinitionNodeList);
+//            }
+//        } else if (schema.getType().equals("array")) {
+//            // TODO: Nested array when response has
+//            type = generateReturnTypeForArraySchema(schema);
+//        } else if (schema.getType() != null) {
+//            type = convertAsyncAPITypeToBallerina(schema.getType());
+////        } else if (media.getKey().trim().equals("application/xml")) {
+////            type = generateCustomTypeDefine("xml", "XML", isSignature);
+////        } else {
+////            type = GeneratorUtils.getBallerinaMediaType(media.getKey().trim(), false);
+//        }
         return type;
     }
 
@@ -267,7 +304,7 @@ public class FunctionReturnTypeGenerator {
     /**
      * Get the return data type according to the OAS ComposedSchemas ex: AllOf, OneOf, AnyOf.
      */
-    private String generateReturnDataTypeForComposedSchema(String schemaName, AsyncApi25SchemaImpl composedSchema,
+    private String generateReturnDataTypeForComposedSchema(String schemaName, BalAsyncApi25SchemaImpl composedSchema,
                                                            String type)
             throws BallerinaAsyncApiException {
 
@@ -300,7 +337,9 @@ public class FunctionReturnTypeGenerator {
 
         Map<String, Schema> properties = objectSchema.getProperties();
         String ref = objectSchema.get$ref();
-        String type = getValidName(schemaName, true) + "Response";
+//        String type = getValidName(schemaName, true) + "Response";
+        String type = getValidName(schemaName, true) ;
+
 
         if (ref != null) {
             type = extractReferenceType(ref.trim());
@@ -308,16 +347,17 @@ public class FunctionReturnTypeGenerator {
 //            if (properties.isEmpty()) {
 //                type = GeneratorUtils.getBallerinaMediaType(media.getKey().trim(), false);
 //            } else {
-            List<Node> returnTypeDocs = new ArrayList<>();
+//            List<Node> returnTypeDocs = new ArrayList<>();
 //                String description = operation.getResponses().entrySet().iterator().next().getValue().
 //               getDescription();
 //                if (description != null) {
 //                    returnTypeDocs.addAll(DocCommentsGenerator.createAPIDescriptionDoc(
 //                            description, false));
 //                }
-            TypeDefinitionNode recordNode = ballerinaSchemaGenerator.getTypeDefinitionNode
-                    (objectSchema, type, returnTypeDocs);
-            GeneratorUtils.updateTypeDefNodeList(type, recordNode, typeDefinitionNodeList);
+            //create return type schema
+//            TypeDefinitionNode recordNode = ballerinaSchemaGenerator.getTypeDefinitionNode
+//                    (objectSchema, type, returnTypeDocs);
+//            GeneratorUtils.updateTypeDefNodeList(type, recordNode, typeDefinitionNodeList);
 //            }
 //        } else {
 //            type = GeneratorUtils.getBallerinaMediaType(media.getKey().trim(), false);

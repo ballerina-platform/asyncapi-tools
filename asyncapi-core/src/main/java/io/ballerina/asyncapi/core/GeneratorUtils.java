@@ -18,16 +18,20 @@
 
 package io.ballerina.asyncapi.core;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import io.apicurio.datamodels.Library;
 import io.apicurio.datamodels.models.Schema;
 import io.apicurio.datamodels.models.ServerVariable;
+import io.apicurio.datamodels.models.asyncapi.AsyncApiSchema;
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25ChannelsImpl;
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25ComponentsImpl;
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25DocumentImpl;
+import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25SchemaImpl;
 import io.apicurio.datamodels.validation.ValidationProblem;
 import io.ballerina.asyncapi.core.exception.BallerinaAsyncApiException;
+import io.ballerina.asyncapi.core.generators.asyncspec.model.BalAsyncApi25SchemaImpl;
 import io.ballerina.asyncapi.core.model.GenSrcFile;
 import io.ballerina.compiler.api.SemanticModel;
 import io.ballerina.compiler.api.symbols.Symbol;
@@ -633,53 +637,54 @@ public class GeneratorUtils {
         return bodyStatements;
     }
 
-//    /**
-//     * This util is to check if the given schema contains any constraints.
-//     */
-//    public static boolean hasConstraints(AsyncApi25SchemaImpl value) {
-//
-//        if (value.getProperties() != null) {
-//            boolean constraintExists = value.getProperties().values().stream()
-//                    .anyMatch(GeneratorUtils::hasConstraints);
-//            if (constraintExists) {
-//                return true;
-//            }
-//        } else if ((value.getProperties() != null &&
-//                (value.getOneOf() != null || value.getAllOf() != null || value.getAnyOf() != null))) {
-//            List<Schema> allOf = value.getAllOf();
-//            List<AsyncApiSchema> oneOf = value.getOneOf();
-//            List<AsyncApiSchema> anyOf =  value.getAnyOf();
-//            boolean constraintExists = false;
-//            if (allOf != null) {
-//                constraintExists = allOf.stream().anyMatch(GeneratorUtils::hasConstraints);
-//            } else if (oneOf != null) {
-//                constraintExists = oneOf.stream().anyMatch(GeneratorUtils::hasConstraints);
-//            } else if (anyOf != null) {
-//                constraintExists = anyOf.stream().anyMatch(GeneratorUtils::hasConstraints);
-//            }
-//            if (constraintExists) {
-//                return true;
-//            }
-//
-//        } else if (value.getType().equals("array")) {
-//            if (!isConstraintExists(value)) {
-//                return isConstraintExists(value.getItems());
-//            }
-//        }
-//        return isConstraintExists(value);
-//    }
+    /**
+     * This util is to check if the given schema contains any constraints.
+     */
+    public static boolean hasConstraints(Schema schema) {
+        AsyncApi25SchemaImpl value=(AsyncApi25SchemaImpl) schema;
 
-//    private static boolean isConstraintExists(JsonNode propertyValue) {
-//
-//        return propertyValue.getMaximum() != null ||
-//                propertyValue.getMinimum() != null ||
-//                propertyValue.getMaxLength() != null ||
-//                propertyValue.getMinLength() != null ||
-//                propertyValue.getMaxItems() != null ||
-//                propertyValue.getMinItems() != null ||
-//                propertyValue.getExclusiveMinimum() != null ||
-//                propertyValue.getExclusiveMaximum() != null;
-//    }
+        if (value.getProperties() != null) {
+            boolean constraintExists = value.getProperties().values().stream()
+                    .anyMatch(GeneratorUtils::hasConstraints);
+            if (constraintExists) {
+                return true;
+            }
+        } else if ((value.getProperties() != null &&
+                (value.getOneOf() != null || value.getAllOf() != null || value.getAnyOf() != null))) {
+            List<Schema> allOf = value.getAllOf();
+            List<AsyncApiSchema> oneOf = value.getOneOf();
+            List<AsyncApiSchema> anyOf =  value.getAnyOf();
+            boolean constraintExists = false;
+            if (allOf != null) {
+                constraintExists = allOf.stream().anyMatch(GeneratorUtils::hasConstraints);
+            } else if (oneOf != null) {
+                constraintExists = oneOf.stream().anyMatch(GeneratorUtils::hasConstraints);
+            } else if (anyOf != null) {
+                constraintExists = anyOf.stream().anyMatch(GeneratorUtils::hasConstraints);
+            }
+            if (constraintExists) {
+                return true;
+            }
+
+        } else if (value.getType()!=null && value.getType().equals("array")) {
+            if (!isConstraintExists(value)) {
+                return isConstraintExists((AsyncApi25SchemaImpl)value.getItems());
+            }
+        }
+        return isConstraintExists(value);
+    }
+
+    private static boolean isConstraintExists(AsyncApi25SchemaImpl propertyValue) {
+
+        return propertyValue.getMaximum() != null ||
+                propertyValue.getMinimum() != null ||
+                propertyValue.getMaxLength() != null ||
+                propertyValue.getMinLength() != null ||
+                propertyValue.getMaxItems() != null ||
+                propertyValue.getMinItems() != null ||
+                propertyValue.getExclusiveMinimum() != null ||
+                propertyValue.getExclusiveMaximum() != null;
+    }
 
     /**
      * Normalized OpenAPI specification with adding proper naming to schema.

@@ -33,6 +33,7 @@ module io.ballerina.asyncapi.core {
     exports io.ballerina.asyncapi.core.generators.asyncspec.diagnostic;
     exports io.ballerina.asyncapi.core.generators.asyncspec.utils;
     exports io.ballerina.asyncapi.core.generators.asyncspec.model;
+    exports io.ballerina.asyncapi.core.generators.asyncspec.service;
     exports io.ballerina.asyncapi.core.exception;
     exports io.ballerina.asyncapi.core;
     exports io.ballerina.asyncapi.core.generators.client.model;
@@ -41,5 +42,8 @@ module io.ballerina.asyncapi.core {
 //    exports io.ballerina.asyncapi.core.generators.schema;
     exports io.ballerina.asyncapi.core.model;
     exports io.ballerina.asyncapi.core.generators.schema;
+    exports io.ballerina.asyncapi.core.generators.schema.ballerinatypegenerators;
+    exports io.ballerina.asyncapi.core.generators.schema.model;
+
 }
 

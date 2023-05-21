@@ -20,8 +20,12 @@ package io.ballerina.asyncapi.core.generators.schema.ballerinatypegenerators;
 
 import io.apicurio.datamodels.models.Schema;
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25SchemaImpl;
+import io.apicurio.datamodels.models.union.BooleanSchemaUnion;
+import io.apicurio.datamodels.models.union.BooleanUnionValueImpl;
 import io.ballerina.asyncapi.core.GeneratorUtils;
 import io.ballerina.asyncapi.core.exception.BallerinaAsyncApiException;
+import io.ballerina.asyncapi.core.generators.asyncspec.model.BalAsyncApi25SchemaImpl;
+import io.ballerina.asyncapi.core.generators.asyncspec.model.BalBooleanSchema;
 import io.ballerina.asyncapi.core.generators.schema.TypeGeneratorUtils;
 import io.ballerina.asyncapi.core.generators.schema.model.RecordMetadata;
 import io.ballerina.compiler.syntax.tree.AbstractNodeFactory;
@@ -190,35 +194,36 @@ public class RecordTypeGenerator extends TypeGenerator {
     public RecordMetadata getRecordMetadata() throws BallerinaAsyncApiException {
         boolean isOpenRecord = true;
         RecordRestDescriptorNode recordRestDescNode = null;
-//
-//        if (schema.getAdditionalProperties() != null) {
-//            Object additionalProperties = schema.getAdditionalProperties();
-//            if (additionalProperties instanceof Schema) {
-//                AsyncApi25SchemaImpl additionalPropSchema = (AsyncApi25SchemaImpl) additionalProperties;
-//                if (GeneratorUtils.hasConstraints(additionalPropSchema)) {
-//                    // use printStream to echo the error, because current openapi to ballerina implementation doesn't
-//                    // handle diagnostic message.
-//                    isOpenRecord = false;
-//                    OUT_STREAM.println("WARNING: constraints in the OpenAPI contract will be ignored for the " +
-//                            "additionalProperties field, as constraints are not supported on Ballerina rest record " +
-//                            "field.");
-//                }
-//                if (additionalPropSchema.get$ref() != null) {
-//                    isOpenRecord = false;
-//                    recordRestDescNode = getRestDescriptorNodeForReference(additionalPropSchema);
-//                } else if (additionalPropSchema.getType() != null) {
-//                    isOpenRecord = false;
-//                    recordRestDescNode = getRecordRestDescriptorNode(additionalPropSchema);
-//                } else if (additionalPropSchema instanceof ComposedSchema) {
-//                    OUT_STREAM.println("WARNING: generating Ballerina rest record field will be ignored for the " +
-//                            "OpenAPI contract additionalProperties type `ComposedSchema`, as it is not supported on
-//                            " +
-//                            "Ballerina rest record field.");
-//                }
-//            } else if (additionalProperties.equals(false)) {
-//                isOpenRecord = false;
-//            }
-//        }
+
+
+        if (schema.getAdditionalProperties() != null) {
+            Object additionalProperties = schema.getAdditionalProperties();
+            if (additionalProperties instanceof Schema) {
+                AsyncApi25SchemaImpl additionalPropSchema = (AsyncApi25SchemaImpl) additionalProperties;
+                if (GeneratorUtils.hasConstraints(additionalPropSchema)) {
+                    // use printStream to echo the error, because current openapi to ballerina implementation doesn't
+                    // handle diagnostic message.
+                    isOpenRecord = false;
+                    OUT_STREAM.println("WARNING: constraints in the AsyncAPI contract will be ignored for the " +
+                            "additionalProperties field, as constraints are not supported on Ballerina rest record " +
+                            "field.");
+                }
+                if (additionalPropSchema.get$ref() != null) {
+                    isOpenRecord = false;
+                    recordRestDescNode = getRestDescriptorNodeForReference(additionalPropSchema);
+                } else if (additionalPropSchema.getType() != null) {
+                    isOpenRecord = false;
+                    recordRestDescNode = getRecordRestDescriptorNode(additionalPropSchema);
+                } else if ((
+                        (additionalPropSchema.getOneOf() != null || additionalPropSchema.getAllOf() != null || additionalPropSchema.getAnyOf() != null))) {
+                    OUT_STREAM.println("WARNING: generating Ballerina rest record field will be ignored for the " +
+                            "AsyncAPI contract additionalProperties type `ComposedSchema`, as it is not supported on " +
+                            "Ballerina rest record field.");
+                }
+            } else if (((BooleanSchemaUnion) additionalProperties).asBoolean().equals(false)) {
+                isOpenRecord = false;
+            }
+        }
 
         return new RecordMetadata.Builder()
                 .withIsOpenRecord(isOpenRecord)

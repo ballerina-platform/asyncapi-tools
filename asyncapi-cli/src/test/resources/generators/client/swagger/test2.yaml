@@ -25,17 +25,6 @@ channels:
         $ref: '#/components/messages/Subscribe'
 components:
   schemas:
-    Links:
-      type: object
-      required:
-        - links
-      properties:
-        links:
-          type: array
-          items:
-            $ref: '#/components/schemas/Link'
-          description: Array links
-      description: Link details
     Subscribe:
       type: object
       required:
@@ -48,44 +37,6 @@ components:
         event:
           type: string
           const: Subscribe
-
-    User:
-      type: object
-      required:
-        - id
-        - event
-      properties:
-        id:
-          type: integer
-          format: int64
-        event:
-          type: string
-          const: User
-
-    Time:
-      type: object
-      required:
-        - id
-        - event
-      properties:
-        id:
-          type: integer
-          format: int64
-        event:
-          type: string
-          const: Time
-    Tuple:
-      type: object
-      required:
-        - id
-        - event
-      properties:
-        id:
-          type: integer
-          format: int64
-        event:
-          type: string
-          const: Tuple
     Link:
       type: object
       required:
@@ -115,7 +66,17 @@ components:
               - PATCH
           description: actions
       description: Link details
-
+    Links:
+      type: object
+      required:
+        - links
+      properties:
+        links:
+          type: array
+          items:
+            $ref: '#/components/schemas/Link'
+          description: Array links
+      description: Link details
     ReserveRoom:
       type: object
       required:
@@ -187,12 +148,6 @@ components:
         body:
           type: string
   messages:
-    Tuple:
-      payload:
-        $ref: '#/components/schemas/Tuple'
-      x-response:
-        $ref: '#/components/messages/ReservationConflict'
-      x-response-type: simple-rpc
     ReservationCreated:
       payload:
         $ref: '#/components/schemas/ReservationCreated'
@@ -207,4 +162,3 @@ components:
           - $ref: '#/components/messages/ReservationCreated'
           - $ref: '#/components/messages/ReservationConflict'
       x-response-type: simple-rpc
-

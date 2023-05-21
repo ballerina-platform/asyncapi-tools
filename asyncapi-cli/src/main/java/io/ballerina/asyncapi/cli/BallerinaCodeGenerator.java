@@ -58,7 +58,7 @@ import static io.ballerina.asyncapi.cli.CmdConstants.TEST_DIR;
 import static io.ballerina.asyncapi.cli.CmdConstants.TEST_FILE_NAME;
 import static io.ballerina.asyncapi.cli.CmdConstants.TYPE_FILE_NAME;
 import static io.ballerina.asyncapi.cli.CmdUtils.setGeneratedFileName;
-import static io.ballerina.asyncapi.core.GeneratorConstants.OAS_PATH_SEPARATOR;
+import static io.ballerina.asyncapi.core.GeneratorConstants.AsyncAPI_PATH_SEPARATOR;
 
 /**
  * This class generates Ballerina Services/Clients for a provided OAS definition.
@@ -279,8 +279,8 @@ public class BallerinaCodeGenerator {
                 if (file.getFileName().equals(TEST_FILE_NAME) || file.getFileName().equals(CONFIG_FILE_NAME) ||
                         isDuplicatedFileInTests) {
                     // Create test directory if not exists in the path. If exists do not throw an error
-                    Files.createDirectories(Paths.get(srcPath + OAS_PATH_SEPARATOR + TEST_DIR));
-                    filePath = Paths.get(srcPath.resolve(TEST_DIR + OAS_PATH_SEPARATOR +
+                    Files.createDirectories(Paths.get(srcPath + AsyncAPI_PATH_SEPARATOR + TEST_DIR));
+                    filePath = Paths.get(srcPath.resolve(TEST_DIR + AsyncAPI_PATH_SEPARATOR +
                             file.getFileName()).toFile().getCanonicalPath());
                 } else {
                     filePath = Paths.get(srcPath.resolve(file.getFileName()).toFile().getCanonicalPath());
@@ -293,7 +293,7 @@ public class BallerinaCodeGenerator {
 
         //This will print the generated files to the console
         if (type.equals(GEN_SERVICE)) {
-            outStream.println("Service generated successfully and the OpenAPI contract is copied to path " + srcPath
+            outStream.println("Service generated successfully and the AsyncAPI contract is copied to path " + srcPath
                     + ".");
         } else if (type.equals(GEN_CLIENT)) {
             outStream.println("Client generated successfully.");
@@ -328,24 +328,36 @@ public class BallerinaCodeGenerator {
                 .withAsyncAPI(asyncAPIDef)
                 .withLicense(licenseHeader)
                 .build();
+
+
+        //Generate client intermediate code
         BallerinaClientGenerator ballerinaClientGenerator = new BallerinaClientGenerator(asyncAPIClientConfig);
         String mainContent = Formatter.format(ballerinaClientGenerator.generateSyntaxTree()).toString();
         sourceFiles.add(new GenSrcFile(GenSrcFile.GenFileType.GEN_SRC, srcPackage, CLIENT_FILE_NAME, mainContent));
+
+
+
+        //Generate utl functions
 //        String utilContent = Formatter.format(
 //                ballerinaClientGenerator.getBallerinaUtilGenerator().generateUtilSyntaxTree()).toString();
 //        if (!utilContent.isBlank()) {
 //            sourceFiles.add(new GenSrcFile(GenSrcFile.GenFileType.UTIL_SRC, srcPackage, UTIL_FILE_NAME, utilContent));
 //        }
-
         List<TypeDefinitionNode> preGeneratedTypeDefNodes = new ArrayList<>(
                 ballerinaClientGenerator.getBallerinaAuthConfigGenerator().getAuthRelatedTypeDefinitionNodes());
         preGeneratedTypeDefNodes.addAll(ballerinaClientGenerator.getTypeDefinitionNodeList());
-//         Generate ballerina records to represent schemas.
+
+
+//
+        //Generate ballerina records to represent schemas.
         BallerinaTypesGenerator ballerinaSchemaGenerator = new BallerinaTypesGenerator(
                 asyncAPIDef, nullable, preGeneratedTypeDefNodes);
 
         SyntaxTree schemaSyntaxTree = ballerinaSchemaGenerator.generateSyntaxTree();
         String schemaContent = Formatter.format(schemaSyntaxTree).toString();
+
+
+
 //        if (filter.getTags().size() > 0) {
 //            // Remove unused records and enums when generating the client by the tags given.
 //            schemaContent = GeneratorUtils.removeUnusedEntities(schemaSyntaxTree, mainContent, schemaContent, null);

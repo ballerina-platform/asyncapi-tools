@@ -53,6 +53,9 @@ import java.util.Map;
 
 import static io.ballerina.asyncapi.core.GeneratorConstants.CONNECTION_CONFIG;
 import static io.ballerina.asyncapi.core.GeneratorConstants.HTTP;
+import static io.ballerina.asyncapi.core.GeneratorConstants.OBJECT;
+import static io.ballerina.asyncapi.core.GeneratorConstants.RESPONSE_MESSAGE;
+import static io.ballerina.asyncapi.core.GeneratorConstants.STRING;
 import static io.ballerina.asyncapi.core.GeneratorConstants.WEBSOCKET;
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createEmptyNodeList;
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createNodeList;
@@ -65,7 +68,7 @@ import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createNodeLi
  */
 public class BallerinaTypesGenerator {
 
-    private final List<TypeDefinitionNode> typeDefinitionNodeList;
+    private static List<TypeDefinitionNode> typeDefinitionNodeList;
     private final boolean hasConstraints;
 
     /**
@@ -125,15 +128,22 @@ public class BallerinaTypesGenerator {
      * Generate syntaxTree for component schema.
      */
     public SyntaxTree generateSyntaxTree() throws BallerinaAsyncApiException {
-        AsyncApi25DocumentImpl openAPI = GeneratorMetaData.getInstance().getAsyncAPI();
+        AsyncApi25DocumentImpl asyncAPI = GeneratorMetaData.getInstance().getAsyncAPI();
         List<TypeDefinitionNode> typeDefinitionNodeListForSchema = new ArrayList<>();
-        if (openAPI.getComponents() != null) {
+        String dispatcherKey="event";
+        String dispatcheStreamId="id";
+        if (asyncAPI.getComponents() != null) {
             // Create typeDefinitionNode
-            AsyncApi25ComponentsImpl components = (AsyncApi25ComponentsImpl) openAPI.getComponents();
+            AsyncApi25ComponentsImpl components = (AsyncApi25ComponentsImpl) asyncAPI.getComponents();
             Map<String, Schema> schemas = components.getSchemas();
+
+            //createResponseMessageRecord
+            createResponseMessageRecord(dispatcherKey,dispatcheStreamId,schemas);
+
             if (schemas != null) {
                 for (Map.Entry<String, Schema> schema : schemas.entrySet()) {
                     String schemaKey = schema.getKey().trim();
+                    System.out.println(schemaKey);
                     //TODO: thushalya :- check this after uncomment hasConstraints
 //                    if (!hasConstraints) {
 //                        hasConstraints = GeneratorUtils.hasConstraints(schema.getValue());
@@ -146,6 +156,7 @@ public class BallerinaTypesGenerator {
                 }
             }
         }
+
         //Create imports for the http module, when record has http type inclusions.
         NodeList<ImportDeclarationNode> imports = generateImportNodes();
         typeDefinitionNodeList.addAll(typeDefinitionNodeListForSchema);
@@ -159,6 +170,25 @@ public class BallerinaTypesGenerator {
         TextDocument textDocument = TextDocuments.from("");
         SyntaxTree syntaxTree = SyntaxTree.from(textDocument);
         return syntaxTree.modifyWith(modulePartNode);
+    }
+
+    private void createResponseMessageRecord(String dispatcherKey, String dispatcherStreamId,Map<String, Schema> schemas) {
+        //create ResponseMessage record
+        AsyncApi25SchemaImpl responseMessage= new AsyncApi25SchemaImpl();
+        responseMessage.setType(OBJECT);
+        AsyncApi25SchemaImpl stringEventSchema=new AsyncApi25SchemaImpl();
+        AsyncApi25SchemaImpl stringIdSchema=new AsyncApi25SchemaImpl();
+
+        stringEventSchema.setType(STRING);
+        stringIdSchema.setType(STRING);
+        List requiredFields=new ArrayList();
+        requiredFields.add(dispatcherKey);
+        requiredFields.add(dispatcherStreamId);
+
+        responseMessage.setRequired(requiredFields);
+        responseMessage.addProperty(dispatcherKey,stringEventSchema);
+        responseMessage.addProperty(dispatcherStreamId,stringIdSchema);
+        schemas.put(RESPONSE_MESSAGE,responseMessage);
     }
 
     private NodeList<ImportDeclarationNode> generateImportNodes() {
@@ -220,12 +250,12 @@ public class BallerinaTypesGenerator {
     /**
      * Create Type Definition Node for a given OpenAPI schema.
      *
-     * @param schema   OpenAPI schema
+     * @param schema   AsyncAPI schema
      * @param typeName IdentifierToken of the name of the type
      * @return {@link TypeDefinitionNode}
      * @throws BallerinaAsyncApiException when unsupported schema type is found
      */
-    public TypeDefinitionNode getTypeDefinitionNode(AsyncApi25SchemaImpl schema, String typeName, List<Node> schemaDocs)
+    public static TypeDefinitionNode getTypeDefinitionNode(AsyncApi25SchemaImpl schema, String typeName, List<Node> schemaDocs)
             throws BallerinaAsyncApiException {
         IdentifierToken typeNameToken = AbstractNodeFactory.createIdentifierToken(GeneratorUtils.getValidName(
                 typeName.trim(), true));
@@ -259,7 +289,7 @@ public class BallerinaTypesGenerator {
     /**
      * Remove duplicate of the TypeDefinitionNode.
      */
-    private void removeDuplicateNode(List<TypeDefinitionNode> newConstraintNode) {
+    private static void removeDuplicateNode(List<TypeDefinitionNode> newConstraintNode) {
 
         for (TypeDefinitionNode newNode : newConstraintNode) {
             boolean isExist = false;

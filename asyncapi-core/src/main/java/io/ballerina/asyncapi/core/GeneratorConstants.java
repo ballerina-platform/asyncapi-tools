@@ -40,16 +40,65 @@ public class GeneratorConstants {
             "org= \"ballerina\"\n" +
             "name= \"testopenapi\"\n" +
             "version= \"0.0.0\"\n";
-    public static final String OAS_PATH_SEPARATOR = "/";
+    public static final String AsyncAPI_PATH_SEPARATOR = "/";
     public static final String ESCAPE_PATTERN = "([\\[\\]\\\\?!<>@#&~`*\\-=^+();:\\/{}\\s|.$])";
     //ClientCode generator
     public static final String HTTP = "http";
     public static final String WEBSOCKET = "websocket";
+
+    public static final String LANG_RUNTIME="lang.runtime";
+
+    public static final String SIMPLE_PIPE ="pipe";
+
+    public static final String CAPITAL_PIPE ="Pipe";
+    public static final String NUVINDU_PIPE = "pipe";
+
     public static final String URL = "url";
     public static final String MODULE_TEST = "test";
     public static final String BALLERINA = "ballerina";
+    public static final String NUVINDU = "nuvindu";
     public static final String CLIENT_CLASS = "Client";
     public static final String CLIENT_EP = "clientEp";
+
+    public static final String WRITE_MESSAGE_QUEUE = "writeMessageQueue";
+
+    public static final String READ_MESSAGE_QUEUE= "readMessageQueue";
+
+    public static final String START_MESSAGE_READING="startMessageReading";
+
+    public static final String START_MESSAGE_WRITING="startMessageWriting";
+
+    public static final String START_PIPE_TRIGGERING="startPipeTriggering";
+
+    public static final String CONSUME="consume";
+
+    public static final String PRODUCE="produce";
+
+    public static final String DEFAULT_TIME_OUT ="5";
+
+    public static final String REQUEST_MESSAGE="requestMessage";
+
+    public static final String WRITE_MESSAGE="writeMessage";
+
+    public static final String READ_MESSAGE="readMessage";
+
+    public static final String PIPE_TRIGGER="pipeTrigger";
+    public static final String RESPONSE_MESSAGE="ResponseMessage";
+
+    public static final String RESPONSE_MESSAGE_VAR_NAME="responseMessage";
+
+    public static final String WORKER_SLEEP_TIME_OUT="0.01";
+
+    public static final String SLEEP="sleep";
+    public static final String RUNTIME="runtime";
+
+
+
+
+
+
+
+    public static final String PIPES = "pipes";
     public static final String EQUAL = "=";
     public static final String CLIENT_CONFIG = "clientConfig";
     public static final String CONFIG = "clientConfig";
@@ -163,7 +212,7 @@ public class GeneratorConstants {
     public static final String NEW = "new";
     public static final String RESOURCE = "resource";
     public static final String QUERY = "query";
-    public static final String HTTP_RESPONSE = "http:Response";
+    public static final String HTTP_RESPONSE = "webscoekt:Response";
     public static final String DEFAULT = "default";
     public static final String X_RESPONSE = "x-response";
     /**
@@ -311,6 +360,7 @@ public class GeneratorConstants {
         typeMap.put("float", "float");
         typeMap.put("binary", "byte[]");
         typeMap.put("byte", "byte[]");
+        typeMap.put("{}","json");
         TYPE_MAP = Collections.unmodifiableMap(typeMap);
     }
     /**

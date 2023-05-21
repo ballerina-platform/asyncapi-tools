@@ -19,10 +19,12 @@
 package io.ballerina.asyncapi.core.generators.client;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import io.apicurio.datamodels.models.Schema;
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25DocumentImpl;
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25SchemaImpl;
 import io.ballerina.asyncapi.core.GeneratorUtils;
 import io.ballerina.asyncapi.core.exception.BallerinaAsyncApiException;
+import io.ballerina.asyncapi.core.generators.asyncspec.model.BalAsyncApi25SchemaImpl;
 import io.ballerina.asyncapi.core.generators.document.DocCommentsGenerator;
 import io.ballerina.asyncapi.core.generators.schema.BallerinaTypesGenerator;
 import io.ballerina.compiler.syntax.tree.FunctionSignatureNode;
@@ -48,9 +50,11 @@ import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createSepara
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createToken;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createBuiltinSimpleNameReferenceNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createFunctionSignatureNode;
+import static io.ballerina.compiler.syntax.tree.NodeFactory.createRequiredExpressionNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createRequiredParameterNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createReturnTypeDescriptorNode;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.CLOSE_PAREN_TOKEN;
+import static io.ballerina.compiler.syntax.tree.SyntaxKind.COMMA_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.OPEN_PAREN_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.RETURNS_KEYWORD;
 
@@ -114,8 +118,13 @@ public class FunctionSignatureGenerator {
 
 //
         String parameterType = getDType(payload);
-        Node param = getParameterNode(parameterType, parameterList);
-        parameterList.add(param);
+        Node requestTypeParamNode = getRequestTypeParameterNode(parameterType);
+        String timeoutType="decimal";
+        String paramName="timeout";
+        Node timeoutNode = getTimeOutParameterNode(timeoutType,paramName);
+        parameterList.add(requestTypeParamNode);
+        parameterList.add(createToken(COMMA_TOKEN));
+        parameterList.add(timeoutNode);
 
         functionReturnType = new FunctionReturnTypeGenerator
                 (asyncAPI, ballerinaSchemaGenerator, typeDefinitionNodeList);
@@ -150,12 +159,21 @@ public class FunctionSignatureGenerator {
                 returnTypeDescriptorNode);
     }
 
+    private Node getTimeOutParameterNode(String timeoutType,String paramName) {
+        TypeDescriptorNode typeName = createBuiltinSimpleNameReferenceNode(null, createIdentifierToken(timeoutType));
+        IdentifierToken paramNameNode =createIdentifierToken(paramName);
+
+
+
+        return createRequiredParameterNode(createNodeList(),typeName,paramNameNode);
+    }
+
     public String getDType(JsonNode payload) throws BallerinaAsyncApiException {
         String type = "";
         if (payload.get("$ref") != null) {
             type = getValidName(extractReferenceType(payload.get("$ref").textValue()), true);
-            AsyncApi25SchemaImpl componentSchema = (AsyncApi25SchemaImpl) asyncAPI.getComponents().
-                    getSchemas().get(type);
+            Schema componentSchema = asyncAPI.getComponents().
+                    getSchemas().get(type).asSchema();
             if (!isValidSchemaName(type)) {
 //                String operationId = operation.getOperationId();
 //                type = Character.toUpperCase(operationId.charAt(0)) + operationId.substring(1) +
@@ -166,7 +184,7 @@ public class FunctionSignatureGenerator {
                             payload.get("description").toString(), false));
                 }
                 TypeDefinitionNode typeDefinitionNode = ballerinaSchemaGenerator.getTypeDefinitionNode
-                        (componentSchema, type, responseDocs);
+                        ((BalAsyncApi25SchemaImpl) componentSchema, type, responseDocs);
                 GeneratorUtils.updateTypeDefNodeList(type, typeDefinitionNode, typeDefinitionNodeList);
             }
         }
@@ -265,7 +283,7 @@ public class FunctionSignatureGenerator {
      * Create parameter for remote function.
      * <p>
      */
-    public Node getParameterNode(String paramType, List<Node> parameterList)
+    public Node getRequestTypeParameterNode(String paramType)
             throws BallerinaAsyncApiException {
 
 

@@ -20,6 +20,8 @@ package io.ballerina.asyncapi.core.generators.schema.ballerinatypegenerators;
 
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25SchemaImpl;
 import io.ballerina.asyncapi.core.exception.BallerinaAsyncApiException;
+import io.ballerina.asyncapi.core.generators.asyncspec.model.BalAsyncApi25SchemaImpl;
+import io.ballerina.compiler.syntax.tree.AnnotationNode;
 import io.ballerina.compiler.syntax.tree.IdentifierToken;
 import io.ballerina.compiler.syntax.tree.MarkdownDocumentationNode;
 import io.ballerina.compiler.syntax.tree.MetadataNode;
@@ -80,7 +82,7 @@ public abstract class TypeGenerator {
     }
 
     /**
-     * Create Type Descriptor Node for a given OpenAPI schema.
+     * Create Type Descriptor Node for a given AsyncAPI schema.
      *
      * @return {@link TypeDescriptorNode}
      * @throws BallerinaAsyncApiException when unsupported schema type is found
