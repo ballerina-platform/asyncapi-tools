@@ -23,6 +23,7 @@ import com.fasterxml.jackson.databind.node.BooleanNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 import io.apicurio.datamodels.models.Schema;
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25ComponentsImpl;
+import io.apicurio.datamodels.models.union.BooleanUnionValueImpl;
 import io.ballerina.asyncapi.core.generators.asyncspec.diagnostic.AsyncAPIConverterDiagnostic;
 import io.ballerina.asyncapi.core.generators.asyncspec.diagnostic.DiagnosticMessages;
 import io.ballerina.asyncapi.core.generators.asyncspec.diagnostic.IncompatibleRemoteDiagnostic;
@@ -380,6 +381,9 @@ public class AsyncAPIComponentMapper {
             } else if (fieldTypeKind==TypeDescKind.RECORD) {
               property=  handleRecordTypeSymbol((RecordTypeSymbol) field.getValue().typeDescriptor(),
                       null,new HashMap<>(),null);
+
+            } else if (fieldTypeKind==TypeDescKind.JSON) {
+                property.setAdditionalProperties(new BooleanUnionValueImpl(true));
 
             }
             //TODO : Have to check && !(property.getItems() instanceof ObjectNode)

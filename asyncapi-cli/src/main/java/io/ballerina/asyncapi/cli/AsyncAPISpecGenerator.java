@@ -54,7 +54,7 @@ import static io.ballerina.asyncapi.core.generators.asyncspec.utils.CodegenUtils
  * @since 2.3.0
  */
 
-public class AsyncAPIContractGenerator {
+public class AsyncAPISpecGenerator {
     private SyntaxTree syntaxTree;
     private SemanticModel semanticModel;
     private Project project;
@@ -64,7 +64,7 @@ public class AsyncAPIContractGenerator {
     /**
      * Initialize constructor.
      */
-    public AsyncAPIContractGenerator() {
+    public AsyncAPISpecGenerator() {
 
     }
 
@@ -132,7 +132,8 @@ public class AsyncAPIContractGenerator {
                             content = definition.getJson();
                         } else {
                             content = definition.getYaml();
-                        }String fileName = resolveContractFileName(outPath, definition.getServiceName(), needJson);
+                        }
+                        String fileName = resolveContractFileName(outPath, definition.getServiceName(), needJson);
                         CodegenUtils.writeFile(outPath.resolve(fileName), content.get());
                         fileNames.add(fileName);
                     }
