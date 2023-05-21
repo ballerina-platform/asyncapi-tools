@@ -89,11 +89,12 @@ import static io.ballerina.compiler.syntax.tree.SyntaxKind.QUALIFIED_NAME_REFERE
  * @since 2.0.0
  */
 public class AsyncAPIRemoteMapper {
-    private final SemanticModel semanticModel;
+    private SemanticModel semanticModel;
     private final AsyncApi25ChannelsImpl channelObject = new AsyncApi25ChannelsImpl();
     private final AsyncApi25ComponentsImpl components = new AsyncApi25ComponentsImpl();
 
     private final AsyncAPIComponentMapper componentMapper = new AsyncAPIComponentMapper(components);
+
     private final List<AsyncAPIConverterDiagnostic> errors;
 
     /**
@@ -234,9 +235,11 @@ public class AsyncAPIRemoteMapper {
                             } else {
                                 throw new NoSuchElementException(FUNCTION_SIGNATURE_ABSENT);
                             }
-                        } else {
-                            throw new NoSuchElementException(FUNCTION_DEFAULT_NAME_CONTAINS_ERROR);
                         }
+                        //TODO: Change because onError and onIdleTimeout in graphql over websocket
+//                        else {
+//                            throw new NoSuchElementException(FUNCTION_DEFAULT_NAME_CONTAINS_ERROR);
+//                        }
 
                     } else {
                         throw new NoSuchElementException(FUNCTION_WRONG_NAME);

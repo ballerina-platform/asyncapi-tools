@@ -132,8 +132,7 @@ public class AsyncAPIContractGenerator {
                             content = definition.getJson();
                         } else {
                             content = definition.getYaml();
-                        }
-                        String fileName = resolveContractFileName(outPath, definition.getServiceName(), needJson);
+                        }String fileName = resolveContractFileName(outPath, definition.getServiceName(), needJson);
                         CodegenUtils.writeFile(outPath.resolve(fileName), content.get());
                         fileNames.add(fileName);
                     }
