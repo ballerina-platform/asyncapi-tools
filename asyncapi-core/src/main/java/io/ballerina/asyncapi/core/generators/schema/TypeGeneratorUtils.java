@@ -118,13 +118,11 @@ public class TypeGeneratorUtils {
                 return  null;
             }
 
-
-
             //TODO: include mapschema here see openapi code
         } else if ((schemaValue.getType() != null && schemaValue.getType().equals(GeneratorConstants.OBJECT)) ||
                 schemaValue.getProperties() != null) {
             return new RecordTypeGenerator(schemaValue, typeName);
-        } else if (schemaValue.getType().equals("array")) {
+        } else if (schemaValue.getType()!=null && schemaValue.getType().equals("array")) {
             return new ArrayTypeGenerator(schemaValue, typeName, parentName);
         } else if (schemaValue.getType() != null && primitiveTypeList.contains(schemaValue.getType())) {
             return new PrimitiveTypeGenerator(schemaValue, typeName);

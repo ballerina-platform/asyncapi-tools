@@ -38,7 +38,7 @@ public class GeneratorConstants {
     public static final String BALLERINA_TOML = "Ballerina.toml";
     public static final String BALLERINA_TOML_CONTENT = "[package]\n" +
             "org= \"ballerina\"\n" +
-            "name= \"testopenapi\"\n" +
+            "name= \"testasyncapi\"\n" +
             "version= \"0.0.0\"\n";
     public static final String AsyncAPI_PATH_SEPARATOR = "/";
     public static final String ESCAPE_PATTERN = "([\\[\\]\\\\?!<>@#&~`*\\-=^+();:\\/{}\\s|.$])";
@@ -51,12 +51,15 @@ public class GeneratorConstants {
     public static final String SIMPLE_PIPE ="pipe";
 
     public static final String CAPITAL_PIPE ="Pipe";
-    public static final String NUVINDU_PIPE = "pipe";
 
     public static final String URL = "url";
     public static final String MODULE_TEST = "test";
     public static final String BALLERINA = "ballerina";
+
+    //Honour goes to Nuvindu
     public static final String NUVINDU = "nuvindu";
+    public static final String NUVINDU_PIPE = "pipe";
+
     public static final String CLIENT_CLASS = "Client";
     public static final String CLIENT_EP = "clientEp";
 
@@ -91,12 +94,6 @@ public class GeneratorConstants {
 
     public static final String SLEEP="sleep";
     public static final String RUNTIME="runtime";
-
-
-
-
-
-
 
     public static final String PIPES = "pipes";
     public static final String EQUAL = "=";
@@ -215,15 +212,12 @@ public class GeneratorConstants {
     public static final String HTTP_RESPONSE = "webscoekt:Response";
     public static final String DEFAULT = "default";
     public static final String X_RESPONSE = "x-response";
-    /**
-     * Util for select http keywords with http codes.
-     *
-     * @param code http code.
-     * @return Http identification word.
-     */
-    public static final Map<String, String> HTTP_CODES_DES;
-    public static final String HTTP_200 = "200";
-    public static final String HTTP_201 = "201";
+
+    public static final String X_RESPONSE_TYPE = "x-response-type";
+
+    public static final String STREAMING = "streaming";
+
+    public static final String SIMPLE_RPC = "simple-rpc";
     public static final String INTEGER = "integer";
     public static final String BOOLEAN = "boolean";
     public static final String NUMBER = "number";
@@ -237,7 +231,6 @@ public class GeneratorConstants {
     // OS specific line separator
     public static final String LINE_SEPARATOR = System.lineSeparator();
     public static final String DOUBLE_LINE_SEPARATOR = LINE_SEPARATOR + LINE_SEPARATOR;
-    public static final String DEFAULT_RETURN = HTTP_RESPONSE + "|" + ERROR;
     // Service Generation
     public static final String TREAT_NILABLE_AS_OPTIONAL = "treatNilableAsOptional";
     public static final String SERVICE_CONFIG = "http:ServiceConfig";
@@ -281,71 +274,9 @@ public class GeneratorConstants {
     public static final String DEFAULT_FUNC_COMMENT = "Description";
     public static final String DEFAULT_PARAM_COMMENT = "parameter description";
 
-    static {
-        Map<String, String> httpCodeMap = new HashMap<>();
-        httpCodeMap.put("100", "Continue");
-        httpCodeMap.put("101", "SwitchingProtocols");
-        httpCodeMap.put("102", "Processing");
-        httpCodeMap.put("103", "EarlyHints");
-        httpCodeMap.put("200", "Ok");
-        httpCodeMap.put("201", "Created");
-        httpCodeMap.put("202", "Accepted");
-        httpCodeMap.put("203", "NonAuthoritativeInformation");
-        httpCodeMap.put("204", "NoContent");
-        httpCodeMap.put("205", "RestContent");
-        httpCodeMap.put("206", "PartialContent");
-        httpCodeMap.put("207", "MultiStatus");
-        httpCodeMap.put("208", "AlreadyReported");
-        httpCodeMap.put("226", "IMUsed");
-        httpCodeMap.put("300", "MultipleChoices");
-        httpCodeMap.put("301", "MovedPermanently");
-        httpCodeMap.put("302", "Found");
-        httpCodeMap.put("303", "SeeOther");
-        httpCodeMap.put("304", "NotModified");
-        httpCodeMap.put("305", "UseProxy");
-        httpCodeMap.put("307", "TemporaryRedirect");
-        httpCodeMap.put("308", "PermanentRedirect");
-        httpCodeMap.put("400", "BadRequest");
-        httpCodeMap.put("401", "Unauthorized");
-        httpCodeMap.put("402", "PaymentRequired");
-        httpCodeMap.put("403", "Forbidden");
-        httpCodeMap.put("404", "NotFound");
-        httpCodeMap.put("405", "MethodNotAllowed");
-        httpCodeMap.put("406", "NotAcceptable");
-        httpCodeMap.put("407", "ProxyAuthenticationRequired");
-        httpCodeMap.put("408", "RequestTimeOut");
-        httpCodeMap.put("409", "Conflict");
-        httpCodeMap.put("410", "Gone");
-        httpCodeMap.put("411", "LengthRequired");
-        httpCodeMap.put("412", "PreconditionFailed");
-        httpCodeMap.put("413", "PayloadTooLarge");
-        httpCodeMap.put("414", "UriTooLong");
-        httpCodeMap.put("415", "UnsupportedMediaType");
-        httpCodeMap.put("416", "RangeNotSatisfiable");
-        httpCodeMap.put("417", "ExpectationFailed");
-        httpCodeMap.put("421", "MisdirectedRequest");
-        httpCodeMap.put("422", "UnprocessableEntity");
-        httpCodeMap.put("423", "Locked");
-        httpCodeMap.put("424", "FailedDependency");
-        httpCodeMap.put("425", "TooEarly");
-        httpCodeMap.put("426", "UpgradeRequired");
-        httpCodeMap.put("428", "PreconditionRequired");
-        httpCodeMap.put("429", "TooManyRequests");
-        httpCodeMap.put("431", "RequestHeaderFieldsTooLarge");
-        httpCodeMap.put("451", "UnavailableDueToLegalReasons");
-        httpCodeMap.put("500", "InternalServerError");
-        httpCodeMap.put("501", "NotImplemented");
-        httpCodeMap.put("502", "BadGateway");
-        httpCodeMap.put("503", "ServiceUnavailable");
-        httpCodeMap.put("504", "GatewayTimeOut");
-        httpCodeMap.put("505", "HttpVersionNotSupported");
-        httpCodeMap.put("506", "VariantAlsoNegotiates");
-        httpCodeMap.put("507", "InsufficientStorage");
-        httpCodeMap.put("508", "LoopDetected");
-        httpCodeMap.put("510", "NotExtended");
-        httpCodeMap.put("511", "NetworkAuthenticationRequired");
-        HTTP_CODES_DES = Collections.unmodifiableMap(httpCodeMap);
-    }
+    public static final String DEFAULT_RETURN = "null";
+
+
 
     static {
         Map<String, String> typeMap = new HashMap<>();

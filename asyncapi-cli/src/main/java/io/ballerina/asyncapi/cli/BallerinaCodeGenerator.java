@@ -205,7 +205,7 @@ public class BallerinaCodeGenerator {
     }
 
 //    /**
-//     * Generates ballerina source for provided Open API Definition in {@code definitionPath}.
+//     * Generates ballerina source for provided Async API Definition in {@code definitionPath}.
 //     * Generated source will be written to a ballerina module at {@code outPath}
 //     * Method can be user for generating Ballerina clients.
 //     *

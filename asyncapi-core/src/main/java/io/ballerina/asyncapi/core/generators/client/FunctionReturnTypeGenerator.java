@@ -43,7 +43,10 @@ import java.util.Set;
 
 import static io.ballerina.asyncapi.core.GeneratorConstants.DEFAULT_RETURN;
 import static io.ballerina.asyncapi.core.GeneratorConstants.ERROR;
+import static io.ballerina.asyncapi.core.GeneratorConstants.SIMPLE_RPC;
+import static io.ballerina.asyncapi.core.GeneratorConstants.STREAMING;
 import static io.ballerina.asyncapi.core.GeneratorConstants.X_RESPONSE;
+import static io.ballerina.asyncapi.core.GeneratorConstants.X_RESPONSE_TYPE;
 import static io.ballerina.asyncapi.core.GeneratorUtils.convertAsyncAPITypeToBallerina;
 import static io.ballerina.asyncapi.core.GeneratorUtils.extractReferenceType;
 import static io.ballerina.asyncapi.core.GeneratorUtils.getValidName;
@@ -121,26 +124,33 @@ public class FunctionReturnTypeGenerator {
         if (extensions.get(X_RESPONSE).get("oneOf") != null) {  //Handle Union references
             if(extensions.get(X_RESPONSE).get("oneOf") instanceof ArrayNode){
                 ArrayNode test= (ArrayNode) extensions.get(X_RESPONSE).get("oneOf");
+                if(extensions.get(X_RESPONSE_TYPE)!=null) {
+                    if (extensions.get(X_RESPONSE_TYPE) == new TextNode(STREAMING)){
 
-                for (Iterator<JsonNode> it = test.iterator(); it.hasNext(); ) {
-                    JsonNode jsonNode = it.next();
-                    if(jsonNode.get("$ref")!=null){
-                        String reference = jsonNode.get("$ref").asText();
-                        String schemaName = getValidName(extractReferenceType(reference), true);
-                        AsyncApi25SchemaImpl refSchema = (AsyncApi25SchemaImpl) asyncAPI.getComponents().getSchemas().get(
-                                schemaName);
-                        type = getDataType(schemaName, refSchema);
-                        returnTypes.add(type);
-
-
-                    } else if (jsonNode.get("payload")!=null) {
-                        throw new BallerinaAsyncApiException("Ballerina service file cannot be generate to the " +
-                                "given AsyncAPI specification, Response type must be a Record");
-
+                    } else if (extensions.get(X_RESPONSE_TYPE) == new TextNode(SIMPLE_RPC)) {
 
                     }
+                    for (Iterator<JsonNode> it = test.iterator(); it.hasNext(); ) {
+                        JsonNode jsonNode = it.next();
+                        if (jsonNode.get("$ref") != null) {
+                            String reference = jsonNode.get("$ref").asText();
+                            String schemaName = getValidName(extractReferenceType(reference), true);
+                            AsyncApi25SchemaImpl refSchema = (AsyncApi25SchemaImpl) asyncAPI.getComponents().getSchemas().get(
+                                    schemaName);
+                            type = getDataType(schemaName, refSchema);
+                            returnTypes.add(type);
 
-                    System.out.println("test");
+
+                        } else if (jsonNode.get("payload") != null) {
+                            throw new BallerinaAsyncApiException("Ballerina service file cannot be generate to the " +
+                                    "given AsyncAPI specification, Response type must be a Record");
+                        }
+
+                        System.out.println("test");
+                    }
+                }else{
+                    throw new BallerinaAsyncApiException("x-response-type must be included ex:-" +
+                            " x-response-type: streaming || x-response-type: simple-rpc");
                 }
             }
 
@@ -159,10 +169,9 @@ public class FunctionReturnTypeGenerator {
             type = getDataType(schemaName, refSchema);
             returnTypes.add(type);
 
-
-
         }
 
+        //Add |error to the response
         if (returnTypes.size() > 0) {
             String finalReturnType = String.join(PIPE_TOKEN.stringValue(), returnTypes) +
                     PIPE_TOKEN.stringValue() +
@@ -231,7 +240,7 @@ public class FunctionReturnTypeGenerator {
 
 
     /**
-     * Get the return data type according to the OAS ArraySchema.
+     * Get the return data type according to the AsyncAPI ArraySchema.
      */
     private String generateReturnTypeForArraySchema(AsyncApi25SchemaImpl arraySchema) throws
             BallerinaAsyncApiException {
@@ -302,7 +311,7 @@ public class FunctionReturnTypeGenerator {
     }
 
     /**
-     * Get the return data type according to the OAS ComposedSchemas ex: AllOf, OneOf, AnyOf.
+     * Get the return data type according to the AsyncAPI ComposedSchemas ex: AllOf, OneOf, AnyOf.
      */
     private String generateReturnDataTypeForComposedSchema(String schemaName, BalAsyncApi25SchemaImpl composedSchema,
                                                            String type)
@@ -330,7 +339,7 @@ public class FunctionReturnTypeGenerator {
     }
 
     /**
-     * Handle inline record by generating record with name for response in OAS type ObjectSchema.
+     * Handle inline record by generating record with name for response in AsyncAPI type ObjectSchema.
      */
     private String handleInLineRecordInResponse(String schemaName, AsyncApi25SchemaImpl objectSchema)
             throws BallerinaAsyncApiException {
@@ -368,7 +377,7 @@ public class FunctionReturnTypeGenerator {
     }
 
 //    /**
-//     * Get the return data type according to the OAS MapSchema type.
+//     * Get the return data type according to the AsyncAPI MapSchema type.
 //     */
 //    private String handleResponseWithMapSchema(Operation operation, Map.Entry<String, MediaType> media,
 //                                               MapSchema mapSchema) throws BallerinaOpenApiException {

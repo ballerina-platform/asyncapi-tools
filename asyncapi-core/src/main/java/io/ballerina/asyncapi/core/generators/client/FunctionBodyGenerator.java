@@ -657,7 +657,7 @@ public class FunctionBodyGenerator {
                 createSeparatedNodeList(createSimpleNameReferenceNode(createIdentifierToken("\""+dispatcherStreamId+"\""))),
                 closeBracketToken);
         AssignmentStatementNode idValueAssignmentStatementNode = createAssignmentStatementNode(requestTypeVarRef,
-                equalToken,createSimpleNameReferenceNode(createIdentifierToken(count)), semicolonToken);
+                equalToken,createSimpleNameReferenceNode(createIdentifierToken("\""+count+"\"")), semicolonToken);
         statementsList.add(idValueAssignmentStatementNode);
 
         //pipe:Pipe tuplePipe = new (1);

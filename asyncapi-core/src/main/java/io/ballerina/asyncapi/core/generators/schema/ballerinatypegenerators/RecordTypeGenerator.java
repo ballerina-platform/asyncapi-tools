@@ -217,7 +217,7 @@ public class RecordTypeGenerator extends TypeGenerator {
                 } else if ((
                         (additionalPropSchema.getOneOf() != null || additionalPropSchema.getAllOf() != null || additionalPropSchema.getAnyOf() != null))) {
                     OUT_STREAM.println("WARNING: generating Ballerina rest record field will be ignored for the " +
-                            "AsyncAPI contract additionalProperties type `ComposedSchema`, as it is not supported on " +
+                            "AsyncAPI contract additionalProperties type `allOf, oneOf, anyOf`, as it is not supported on " +
                             "Ballerina rest record field.");
                 }
             } else if (((BooleanSchemaUnion) additionalProperties).asBoolean().equals(false)) {
