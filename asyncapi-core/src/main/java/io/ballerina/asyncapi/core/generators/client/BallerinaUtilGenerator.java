@@ -18,13 +18,25 @@
 package io.ballerina.asyncapi.core.generators.client;
 
 import io.ballerina.asyncapi.core.GeneratorUtils;
+import io.ballerina.asyncapi.core.generators.document.DocCommentsGenerator;
 import io.ballerina.compiler.syntax.tree.ChildNodeEntry;
+import io.ballerina.compiler.syntax.tree.EnumDeclarationNode;
+import io.ballerina.compiler.syntax.tree.EnumMemberNode;
+import io.ballerina.compiler.syntax.tree.ExpressionNode;
 import io.ballerina.compiler.syntax.tree.ImportDeclarationNode;
+import io.ballerina.compiler.syntax.tree.MarkdownDocumentationNode;
+import io.ballerina.compiler.syntax.tree.MetadataNode;
 import io.ballerina.compiler.syntax.tree.ModuleMemberDeclarationNode;
 import io.ballerina.compiler.syntax.tree.ModulePartNode;
+import io.ballerina.compiler.syntax.tree.Node;
 import io.ballerina.compiler.syntax.tree.NodeList;
+import io.ballerina.compiler.syntax.tree.RecordFieldNode;
+import io.ballerina.compiler.syntax.tree.RecordFieldWithDefaultValueNode;
+import io.ballerina.compiler.syntax.tree.SeparatedNodeList;
 import io.ballerina.compiler.syntax.tree.SyntaxKind;
 import io.ballerina.compiler.syntax.tree.SyntaxTree;
+import io.ballerina.compiler.syntax.tree.TypeDefinitionNode;
+import io.ballerina.compiler.syntax.tree.TypeDescriptorNode;
 import io.ballerina.projects.DocumentId;
 import io.ballerina.projects.Package;
 import io.ballerina.projects.Project;
@@ -49,12 +61,45 @@ import java.util.List;
 import java.util.Set;
 
 import static io.ballerina.asyncapi.core.GeneratorConstants.BALLERINA;
+import static io.ballerina.asyncapi.core.GeneratorConstants.DEEP_OBJECT;
+import static io.ballerina.asyncapi.core.GeneratorConstants.ENCODING;
+import static io.ballerina.asyncapi.core.GeneratorConstants.ENCODING_STYLE;
+import static io.ballerina.asyncapi.core.GeneratorConstants.EXPLODE;
+import static io.ballerina.asyncapi.core.GeneratorConstants.FORM;
 import static io.ballerina.asyncapi.core.GeneratorConstants.MIME;
+import static io.ballerina.asyncapi.core.GeneratorConstants.PIPE_DELIMITED;
+import static io.ballerina.asyncapi.core.GeneratorConstants.SPACE_DELIMITED;
+import static io.ballerina.asyncapi.core.GeneratorConstants.STYLE;
 import static io.ballerina.asyncapi.core.GeneratorConstants.URL;
+import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createEmptyNodeList;
+import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createIdentifierToken;
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createNodeList;
+import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createSeparatedNodeList;
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createToken;
+import static io.ballerina.compiler.syntax.tree.NodeFactory.createEnumDeclarationNode;
+import static io.ballerina.compiler.syntax.tree.NodeFactory.createEnumMemberNode;
+import static io.ballerina.compiler.syntax.tree.NodeFactory.createMarkdownDocumentationNode;
+import static io.ballerina.compiler.syntax.tree.NodeFactory.createMetadataNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createModulePartNode;
+import static io.ballerina.compiler.syntax.tree.NodeFactory.createRecordFieldNode;
+import static io.ballerina.compiler.syntax.tree.NodeFactory.createRecordFieldWithDefaultValueNode;
+import static io.ballerina.compiler.syntax.tree.NodeFactory.createRecordTypeDescriptorNode;
+import static io.ballerina.compiler.syntax.tree.NodeFactory.createRequiredExpressionNode;
+import static io.ballerina.compiler.syntax.tree.NodeFactory.createSimpleNameReferenceNode;
+import static io.ballerina.compiler.syntax.tree.NodeFactory.createSingletonTypeDescriptorNode;
+import static io.ballerina.compiler.syntax.tree.NodeFactory.createTypeDefinitionNode;
+import static io.ballerina.compiler.syntax.tree.SyntaxKind.BOOLEAN_KEYWORD;
+import static io.ballerina.compiler.syntax.tree.SyntaxKind.CLOSE_BRACE_TOKEN;
+import static io.ballerina.compiler.syntax.tree.SyntaxKind.COMMA_TOKEN;
+import static io.ballerina.compiler.syntax.tree.SyntaxKind.ENUM_KEYWORD;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.EOF_TOKEN;
+import static io.ballerina.compiler.syntax.tree.SyntaxKind.EQUAL_TOKEN;
+import static io.ballerina.compiler.syntax.tree.SyntaxKind.OPEN_BRACE_TOKEN;
+import static io.ballerina.compiler.syntax.tree.SyntaxKind.QUESTION_MARK_TOKEN;
+import static io.ballerina.compiler.syntax.tree.SyntaxKind.RECORD_KEYWORD;
+import static io.ballerina.compiler.syntax.tree.SyntaxKind.SEMICOLON_TOKEN;
+import static io.ballerina.compiler.syntax.tree.SyntaxKind.STRING_KEYWORD;
+import static io.ballerina.compiler.syntax.tree.SyntaxKind.TYPE_KEYWORD;
 
 /**
  * This class is used to generate util file syntax tree according to the generated client.
@@ -74,31 +119,31 @@ public class BallerinaUtilGenerator {
     private static final String GET_MAP_FOR_HEADERS = "getMapForHeaders";
     private static final String GET_SERIALIZED_RECORD_ARRAY = "getSerializedRecordArray";
     private static final String CREATE_MULTIPART_BODY_PARTS = "createBodyParts";
-    private final boolean headersFound = false;
-    private boolean pathParametersFound = false;
-    private final boolean queryParamsFound = false;
+    private boolean headersFound = false;
+    private boolean queryParamsFound = false;
     private final boolean requestBodyEncodingFound = false;
     private final boolean requestBodyMultipartFormDatafound = false;
+    private boolean pathParametersFound = false;
 
     /**
      //     * Set `queryParamsFound` flag to `true` when at least one query parameter found.
      //     *
      //     * @param flag Function will be called only in the occasions where flag needs to be set to `true`
      //     */
-//    public void setQueryParamsFound(boolean flag) {
-//        this.queryParamsFound = flag;
-//    }
-//
-//    /**
-//     * Set `headersFound` flag to `true` when at least one header found.
-//     *
-//     * @param flag Function will be called only in the occasions where flag needs to be set to `true`
-//     */
-//    public void setHeadersFound(boolean flag) {
-//
-//        this.headersFound = flag;
-//    }
-//
+    public void setQueryParamsFound(boolean flag) {
+        this.queryParamsFound = flag;
+    }
+
+    /**
+     * Set `headersFound` flag to `true` when at least one header found.
+     *
+     * @param flag Function will be called only in the occasions where flag needs to be set to `true`
+     */
+    public void setHeadersFound(boolean flag) {
+
+        this.headersFound = flag;
+    }
+
 
     /**
      * Set `pathParametersFound` flag to `true` when at least one path parameter found.
@@ -129,6 +174,7 @@ public class BallerinaUtilGenerator {
 //        this.requestBodyMultipartFormDatafound = flag;
 //    }
 //
+
     /**
      * Generates util file syntax tree.
      *
@@ -140,14 +186,14 @@ public class BallerinaUtilGenerator {
             functionNameList.addAll(Arrays.asList(
                     CREATE_FORM_URLENCODED_REQUEST_BODY, GET_DEEP_OBJECT_STYLE_REQUEST, GET_FORM_STYLE_REQUEST,
                     GET_ENCODED_URI, GET_ORIGINAL_KEY, GET_SERIALIZED_ARRAY, GET_SERIALIZED_RECORD_ARRAY
-                                                 ));
+            ));
         }
         if (queryParamsFound) {
             functionNameList.addAll(Arrays.asList(
                     GET_DEEP_OBJECT_STYLE_REQUEST, GET_FORM_STYLE_REQUEST,
                     GET_ENCODED_URI, GET_ORIGINAL_KEY, GET_SERIALIZED_ARRAY, GET_PATH_FOR_QUERY_PARAM,
                     GET_SERIALIZED_RECORD_ARRAY
-                                                 ));
+            ));
         }
         if (headersFound) {
             functionNameList.add(GET_MAP_FOR_HEADERS);
@@ -164,7 +210,7 @@ public class BallerinaUtilGenerator {
 
         Path path = getResourceFilePath();
 
-        Project project = ProjectLoader.loadProject(path);
+        Project project =ProjectLoader.loadProject(path);
         Package currentPackage = project.currentPackage();
         DocumentId docId = currentPackage.getDefaultModule().documentIds().iterator().next();
         SyntaxTree syntaxTree = currentPackage.getDefaultModule().document(docId).syntaxTree();
@@ -201,6 +247,7 @@ public class BallerinaUtilGenerator {
         return utilSyntaxTree.modifyWith(utilModulePartNode);
     }
 //
+
     /**
      * Set the type definition nodes related to the util functions generated.
      *
@@ -218,122 +265,124 @@ public class BallerinaUtilGenerator {
 //        }
     }
 
-//    /**
-//     * Generates `Encoding` record.
-//     * <pre>
-//     *     # Represents encoding mechanism details.
-//     *     type Encoding record {
-//     *          # Defines how multiple values are delimited
-//     *          string style = FORM;
-//     *          # Specifies whether arrays and objects should generate separate parameters
-//     *          boolean explode = true;
-//     *      };
-//     * </pre>
-//     *
-//     * @return {@link TypeDefinitionNode}
-//     */
-//    private TypeDefinitionNode getEncodingRecord() {
-//        // create `style` field
-//        List<Node> styleDoc = new ArrayList<>(DocCommentsGenerator.createAPIDescriptionDoc(
-//                "Defines how multiple values are delimited", false));
-//        MarkdownDocumentationNode styleDocumentationNode = createMarkdownDocumentationNode(createNodeList(styleDoc));
-//        MetadataNode styleMetadataNode = createMetadataNode(styleDocumentationNode, createEmptyNodeList());
-//        ExpressionNode styleExpressionNode = createRequiredExpressionNode(createIdentifierToken(FORM));
-//        RecordFieldWithDefaultValueNode styleFieldNode = createRecordFieldWithDefaultValueNode(styleMetadataNode,
-//                null, createToken(STRING_KEYWORD), createIdentifierToken(STYLE),
-//                createToken(EQUAL_TOKEN), styleExpressionNode, createToken(SEMICOLON_TOKEN));
+    /**
+     * Generates `Encoding` record.
+     * <pre>
+     *     # Represents encoding mechanism details.
+     *     type Encoding record {
+     *          # Defines how multiple values are delimited
+     *          string style = FORM;
+     *          # Specifies whether arrays and objects should generate separate parameters
+     *          boolean explode = true;
+     *      };
+     * </pre>
+     *
+     * @return {@link TypeDefinitionNode}
+     */
+    private TypeDefinitionNode getEncodingRecord() {
+        // create `style` field
+        List<Node> styleDoc = new ArrayList<>(DocCommentsGenerator.createAPIDescriptionDoc(
+                "Defines how multiple values are delimited", false));
+        MarkdownDocumentationNode styleDocumentationNode = createMarkdownDocumentationNode(createNodeList(styleDoc));
+        MetadataNode styleMetadataNode = createMetadataNode(styleDocumentationNode, createEmptyNodeList());
+        ExpressionNode styleExpressionNode = createRequiredExpressionNode(createIdentifierToken(FORM));
+        RecordFieldWithDefaultValueNode styleFieldNode = createRecordFieldWithDefaultValueNode(styleMetadataNode,
+                null, createToken(STRING_KEYWORD), createIdentifierToken(STYLE),
+                createToken(EQUAL_TOKEN), styleExpressionNode, createToken(SEMICOLON_TOKEN));
+
+        // create `explode` field
+        List<Node> explodeDoc = new ArrayList<>(DocCommentsGenerator.createAPIDescriptionDoc(
+                "Specifies whether arrays and objects should generate as separate fields", false));
+        MarkdownDocumentationNode explodeDocumentationNode = createMarkdownDocumentationNode(
+                createNodeList(explodeDoc));
+        MetadataNode explodeMetadataNode = createMetadataNode(explodeDocumentationNode, createEmptyNodeList());
+        ExpressionNode explodeExpressionNode = createRequiredExpressionNode(createIdentifierToken("true"));
+        RecordFieldWithDefaultValueNode explodeFieldNode = createRecordFieldWithDefaultValueNode(explodeMetadataNode,
+                null, createToken(BOOLEAN_KEYWORD), createIdentifierToken(EXPLODE),
+                createToken(EQUAL_TOKEN), explodeExpressionNode, createToken(SEMICOLON_TOKEN));
+
+        // create `contentType` field
+        List<Node> contentTypeDoc = new ArrayList<>(DocCommentsGenerator.createAPIDescriptionDoc(
+                "Specifies the custom content type", false));
+        MarkdownDocumentationNode contentTypeDocumentationNode = createMarkdownDocumentationNode(
+                createNodeList(contentTypeDoc));
+        MetadataNode contentTypeMetadataNode = createMetadataNode(contentTypeDocumentationNode,
+                createEmptyNodeList());
+        RecordFieldNode contentTypeFieldNode = createRecordFieldNode(contentTypeMetadataNode,
+                null, createToken(STRING_KEYWORD), createIdentifierToken("contentType"),
+                createToken(QUESTION_MARK_TOKEN), createToken(SEMICOLON_TOKEN));
+
+        // create `contentType` field
+        List<Node> headerDoc = new ArrayList<>(DocCommentsGenerator.createAPIDescriptionDoc(
+                "Specifies the custom headers", false));
+        MarkdownDocumentationNode headerDocumentationNode =
+                createMarkdownDocumentationNode(createNodeList(headerDoc));
+        MetadataNode headerMetadataNode = createMetadataNode(headerDocumentationNode, createEmptyNodeList());
+        RecordFieldNode headerFieldNode = createRecordFieldNode(headerMetadataNode, null,
+                createIdentifierToken("map<any>"), createIdentifierToken("headers"),
+                createToken(QUESTION_MARK_TOKEN), createToken(SEMICOLON_TOKEN));
+
+        // Assemble the TypeDefinitionNode
+        List<Node> typeDoc = new ArrayList<>(DocCommentsGenerator.createAPIDescriptionDoc(
+                "Represents encoding mechanism details.", false));
+        MarkdownDocumentationNode typeDocumentationNode = createMarkdownDocumentationNode(createNodeList(typeDoc));
+        MetadataNode typeMetadataNode = createMetadataNode(typeDocumentationNode, createEmptyNodeList());
+        NodeList<Node> fieldNodes = createNodeList(styleFieldNode, explodeFieldNode, contentTypeFieldNode,
+                headerFieldNode);
+        TypeDescriptorNode typeDescriptorNode = createRecordTypeDescriptorNode(createToken(RECORD_KEYWORD),
+                createToken(OPEN_BRACE_TOKEN), fieldNodes, null, createToken(CLOSE_BRACE_TOKEN));
+        return createTypeDefinitionNode(typeMetadataNode, null, createToken(TYPE_KEYWORD),
+                createIdentifierToken(ENCODING), typeDescriptorNode, createToken(SEMICOLON_TOKEN));
+    }
 //
-//        // create `explode` field
-//        List<Node> explodeDoc = new ArrayList<>(DocCommentsGenerator.createAPIDescriptionDoc(
-//                "Specifies whether arrays and objects should generate as separate fields", false));
-//        MarkdownDocumentationNode explodeDocumentationNode = createMarkdownDocumentationNode(
-//                createNodeList(explodeDoc));
-//        MetadataNode explodeMetadataNode = createMetadataNode(explodeDocumentationNode, createEmptyNodeList());
-//        ExpressionNode explodeExpressionNode = createRequiredExpressionNode(createIdentifierToken("true"));
-//        RecordFieldWithDefaultValueNode explodeFieldNode = createRecordFieldWithDefaultValueNode(explodeMetadataNode,
-//                null, createToken(BOOLEAN_KEYWORD), createIdentifierToken(EXPLODE),
-//                createToken(EQUAL_TOKEN), explodeExpressionNode, createToken(SEMICOLON_TOKEN));
+
+    /**
+     * Generates `EncodingStyles` enum.
+     * <pre>
+     *     enum EncodingStyle {
+     *          DEEPOBJECT,
+     *          FORM,
+     *          SPACEDELIMITED,
+     *          PIPEDELIMITED
+     *     }
+     * </pre>
+     *
+     * @return {@link EnumDeclarationNode}
+     */
+    private EnumDeclarationNode getStyleEnum() {
+        EnumMemberNode deepObject = createEnumMemberNode(null,
+                createIdentifierToken(DEEP_OBJECT), null, null);
+        EnumMemberNode form = createEnumMemberNode(null,
+                createIdentifierToken(FORM), null, null);
+        EnumMemberNode spaceDelimited = createEnumMemberNode(null,
+                createIdentifierToken(SPACE_DELIMITED), null, null);
+        EnumMemberNode pipeDelimited = createEnumMemberNode(null,
+                createIdentifierToken(PIPE_DELIMITED), null, null);
+        SeparatedNodeList<Node> enumMembers = createSeparatedNodeList(deepObject, createToken(COMMA_TOKEN), form,
+                createToken(COMMA_TOKEN), spaceDelimited, createToken(COMMA_TOKEN), pipeDelimited);
+
+        return createEnumDeclarationNode(null, null,
+                createToken(ENUM_KEYWORD), createIdentifierToken(ENCODING_STYLE), createToken(OPEN_BRACE_TOKEN),
+                enumMembers, createToken(CLOSE_BRACE_TOKEN), null);
+    }
 //
-//        // create `contentType` field
-//        List<Node> contentTypeDoc = new ArrayList<>(DocCommentsGenerator.createAPIDescriptionDoc(
-//                "Specifies the custom content type", false));
-//        MarkdownDocumentationNode contentTypeDocumentationNode = createMarkdownDocumentationNode(
-//                createNodeList(contentTypeDoc));
-//        MetadataNode contentTypeMetadataNode = createMetadataNode(contentTypeDocumentationNode,
-//        createEmptyNodeList());
-//        RecordFieldNode contentTypeFieldNode = createRecordFieldNode(contentTypeMetadataNode,
-//                null, createToken(STRING_KEYWORD), createIdentifierToken("contentType"),
-//                createToken(QUESTION_MARK_TOKEN), createToken(SEMICOLON_TOKEN));
-//
-//        // create `contentType` field
-//        List<Node> headerDoc = new ArrayList<>(DocCommentsGenerator.createAPIDescriptionDoc(
-//                "Specifies the custom headers", false));
-//        MarkdownDocumentationNode headerDocumentationNode =
-//        createMarkdownDocumentationNode(createNodeList(headerDoc));
-//        MetadataNode headerMetadataNode = createMetadataNode(headerDocumentationNode, createEmptyNodeList());
-//        RecordFieldNode headerFieldNode = createRecordFieldNode(headerMetadataNode, null,
-//                createIdentifierToken("map<any>"), createIdentifierToken("headers"),
-//                createToken(QUESTION_MARK_TOKEN), createToken(SEMICOLON_TOKEN));
-//
-//        // Assemble the TypeDefinitionNode
-//        List<Node> typeDoc = new ArrayList<>(DocCommentsGenerator.createAPIDescriptionDoc(
-//                "Represents encoding mechanism details.", false));
-//        MarkdownDocumentationNode typeDocumentationNode = createMarkdownDocumentationNode(createNodeList(typeDoc));
-//        MetadataNode typeMetadataNode = createMetadataNode(typeDocumentationNode, createEmptyNodeList());
-//        NodeList<Node> fieldNodes = createNodeList(styleFieldNode, explodeFieldNode, contentTypeFieldNode,
-//                headerFieldNode);
-//        TypeDescriptorNode typeDescriptorNode = createRecordTypeDescriptorNode(createToken(RECORD_KEYWORD),
-//                createToken(OPEN_BRACE_TOKEN), fieldNodes, null, createToken(CLOSE_BRACE_TOKEN));
-//        return createTypeDefinitionNode(typeMetadataNode, null, createToken(TYPE_KEYWORD),
-//                createIdentifierToken(ENCODING), typeDescriptorNode, createToken(SEMICOLON_TOKEN));
-//    }
-//
-//    /**
-//     * Generates `EncodingStyles` enum.
-//     * <pre>
-//     *     enum EncodingStyle {
-//     *          DEEPOBJECT,
-//     *          FORM,
-//     *          SPACEDELIMITED,
-//     *          PIPEDELIMITED
-//     *     }
-//     * </pre>
-//     *
-//     * @return {@link EnumDeclarationNode}
-//     */
-//    private EnumDeclarationNode getStyleEnum() {
-//        EnumMemberNode deepObject = createEnumMemberNode(null,
-//                createIdentifierToken(DEEP_OBJECT), null, null);
-//        EnumMemberNode form = createEnumMemberNode(null,
-//                createIdentifierToken(FORM), null, null);
-//        EnumMemberNode spaceDelimited = createEnumMemberNode(null,
-//                createIdentifierToken(SPACE_DELIMITED), null, null);
-//        EnumMemberNode pipeDelimited = createEnumMemberNode(null,
-//                createIdentifierToken(PIPE_DELIMITED), null, null);
-//        SeparatedNodeList<Node> enumMembers = createSeparatedNodeList(deepObject, createToken(COMMA_TOKEN), form,
-//                createToken(COMMA_TOKEN), spaceDelimited, createToken(COMMA_TOKEN), pipeDelimited);
-//
-//        return createEnumDeclarationNode(null, null,
-//                createToken(ENUM_KEYWORD), createIdentifierToken(ENCODING_STYLE), createToken(OPEN_BRACE_TOKEN),
-//                enumMembers, createToken(CLOSE_BRACE_TOKEN), null);
-//    }
-//
-//    /**
-//     * Generates `SimpleBasicType` type.
-//     * <pre>
-//     *     type SimpleBasicType string|boolean|int|float|decimal;
-//     * </pre>
-//     *
-//     * @return
-//     */
-//    private TypeDefinitionNode getSimpleBasicTypeDefinitionNode() {
-//
-//        TypeDescriptorNode typeDescriptorNode = createSingletonTypeDescriptorNode(
-//                createSimpleNameReferenceNode(createIdentifierToken("string|boolean|int|float|decimal")));
-//        return createTypeDefinitionNode(null, null,
-//                createToken(TYPE_KEYWORD), createIdentifierToken("SimpleBasicType"), typeDescriptorNode,
-//                createToken(SEMICOLON_TOKEN));
-//    }
+
+    /**
+     * Generates `SimpleBasicType` type.
+     * <pre>
+     *     type SimpleBasicType string|boolean|int|float|decimal;
+     * </pre>
+     *
+     * @return
+     */
+    private TypeDefinitionNode getSimpleBasicTypeDefinitionNode() {
+
+        TypeDescriptorNode typeDescriptorNode = createSingletonTypeDescriptorNode(
+                createSimpleNameReferenceNode(createIdentifierToken("string|boolean|int|float|decimal")));
+        return createTypeDefinitionNode(null, null,
+                createToken(TYPE_KEYWORD), createIdentifierToken("SimpleBasicType"), typeDescriptorNode,
+                createToken(SEMICOLON_TOKEN));
+    }
 
 //    /**
 //     * Generates `defaultEncoding` variable declaration node.
