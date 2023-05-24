@@ -59,6 +59,7 @@ import static io.ballerina.asyncapi.cli.CmdConstants.TEST_FILE_NAME;
 import static io.ballerina.asyncapi.cli.CmdConstants.TYPE_FILE_NAME;
 import static io.ballerina.asyncapi.cli.CmdUtils.setGeneratedFileName;
 import static io.ballerina.asyncapi.core.GeneratorConstants.AsyncAPI_PATH_SEPARATOR;
+import static io.ballerina.asyncapi.core.GeneratorConstants.UTIL_FILE_NAME;
 
 /**
  * This class generates Ballerina Services/Clients for a provided OAS definition.
@@ -337,12 +338,12 @@ public class BallerinaCodeGenerator {
 
 
 
-        //Generate utl functions
-//        String utilContent = Formatter.format(
-//                ballerinaClientGenerator.getBallerinaUtilGenerator().generateUtilSyntaxTree()).toString();
-//        if (!utilContent.isBlank()) {
-//            sourceFiles.add(new GenSrcFile(GenSrcFile.GenFileType.UTIL_SRC, srcPackage, UTIL_FILE_NAME, utilContent));
-//        }
+//        Generate util functions
+        String utilContent = Formatter.format(
+                ballerinaClientGenerator.getBallerinaUtilGenerator().generateUtilSyntaxTree()).toString();
+        if (!utilContent.isBlank()) {
+            sourceFiles.add(new GenSrcFile(GenSrcFile.GenFileType.UTIL_SRC, srcPackage, UTIL_FILE_NAME, utilContent));
+        }
         List<TypeDefinitionNode> preGeneratedTypeDefNodes = new ArrayList<>(
                 ballerinaClientGenerator.getBallerinaAuthConfigGenerator().getAuthRelatedTypeDefinitionNodes());
         preGeneratedTypeDefNodes.addAll(ballerinaClientGenerator.getTypeDefinitionNodeList());

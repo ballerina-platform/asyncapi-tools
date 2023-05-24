@@ -130,7 +130,7 @@ public class BallerinaTypesGenerator {
     public SyntaxTree generateSyntaxTree() throws BallerinaAsyncApiException {
         AsyncApi25DocumentImpl asyncAPI = GeneratorMetaData.getInstance().getAsyncAPI();
         List<TypeDefinitionNode> typeDefinitionNodeListForSchema = new ArrayList<>();
-        String dispatcherKey="event";
+        String dispatcherKey="type";
         String dispatcherStreamId="id";
         if (asyncAPI.getComponents() != null) {
             // Create typeDefinitionNode

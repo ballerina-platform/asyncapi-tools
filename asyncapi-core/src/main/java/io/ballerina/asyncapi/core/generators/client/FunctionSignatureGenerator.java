@@ -19,6 +19,7 @@
 package io.ballerina.asyncapi.core.generators.client;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.TextNode;
 import io.apicurio.datamodels.models.Schema;
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25DocumentImpl;
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25SchemaImpl;
@@ -33,6 +34,8 @@ import io.ballerina.compiler.syntax.tree.Node;
 import io.ballerina.compiler.syntax.tree.ParameterNode;
 import io.ballerina.compiler.syntax.tree.ReturnTypeDescriptorNode;
 import io.ballerina.compiler.syntax.tree.SeparatedNodeList;
+import io.ballerina.compiler.syntax.tree.StreamTypeDescriptorNode;
+import io.ballerina.compiler.syntax.tree.StreamTypeParamsNode;
 import io.ballerina.compiler.syntax.tree.TypeDefinitionNode;
 import io.ballerina.compiler.syntax.tree.TypeDescriptorNode;
 
@@ -40,6 +43,11 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import static io.ballerina.asyncapi.core.GeneratorConstants.DEFAULT_RETURN;
+import static io.ballerina.asyncapi.core.GeneratorConstants.ERROR;
+import static io.ballerina.asyncapi.core.GeneratorConstants.SERVER_STREAMING;
+import static io.ballerina.asyncapi.core.GeneratorConstants.X_RESPONSE;
+import static io.ballerina.asyncapi.core.GeneratorConstants.X_RESPONSE_TYPE;
 import static io.ballerina.asyncapi.core.GeneratorUtils.extractReferenceType;
 import static io.ballerina.asyncapi.core.GeneratorUtils.getValidName;
 import static io.ballerina.asyncapi.core.GeneratorUtils.isValidSchemaName;
@@ -53,10 +61,18 @@ import static io.ballerina.compiler.syntax.tree.NodeFactory.createFunctionSignat
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createRequiredExpressionNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createRequiredParameterNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createReturnTypeDescriptorNode;
+import static io.ballerina.compiler.syntax.tree.NodeFactory.createSimpleNameReferenceNode;
+import static io.ballerina.compiler.syntax.tree.NodeFactory.createStreamTypeDescriptorNode;
+import static io.ballerina.compiler.syntax.tree.NodeFactory.createStreamTypeParamsNode;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.CLOSE_PAREN_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.COMMA_TOKEN;
+import static io.ballerina.compiler.syntax.tree.SyntaxKind.ERROR_KEYWORD;
+import static io.ballerina.compiler.syntax.tree.SyntaxKind.GT_TOKEN;
+import static io.ballerina.compiler.syntax.tree.SyntaxKind.LT_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.OPEN_PAREN_TOKEN;
+import static io.ballerina.compiler.syntax.tree.SyntaxKind.PIPE_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.RETURNS_KEYWORD;
+import static io.ballerina.compiler.syntax.tree.SyntaxKind.STREAM_KEYWORD;
 
 /**
  * This util class uses for generating {@link FunctionSignatureNode} for given OAS
@@ -117,13 +133,18 @@ public class FunctionSignatureGenerator {
 //        getParameterNode(reference,parameterList);
 
 //
-        String parameterType = getDType(payload);
-        Node requestTypeParamNode = getRequestTypeParameterNode(parameterType);
+
+        if(payload!=null) {
+            String parameterType = getDType(payload);
+            Node requestTypeParamNode = getRequestTypeParameterNode(parameterType);
+            parameterList.add(requestTypeParamNode);
+            parameterList.add(createToken(COMMA_TOKEN));
+        }
+
+
         String timeoutType="decimal";
         String paramName="timeout";
         Node timeoutNode = getTimeOutParameterNode(timeoutType,paramName);
-        parameterList.add(requestTypeParamNode);
-        parameterList.add(createToken(COMMA_TOKEN));
         parameterList.add(timeoutNode);
 
         functionReturnType = new FunctionReturnTypeGenerator
@@ -133,7 +154,6 @@ public class FunctionSignatureGenerator {
 //        }
 
 
-        String returnType = functionReturnType.getReturnType(extensions);
         SeparatedNodeList<ParameterNode> parameters = createSeparatedNodeList(parameterList);
         //Create Return type - function with response
 
@@ -150,11 +170,38 @@ public class FunctionSignatureGenerator {
 //                remoteFunctionDoc.add(returnDoc);
 //            }
 //        }
+        ReturnTypeDescriptorNode returnTypeDescriptorNode;
+        if(extensions!=null) {
+            JsonNode x_response=extensions.get(X_RESPONSE);
+            JsonNode x_response_type=extensions.get(X_RESPONSE_TYPE);
+            String returnType = functionReturnType.getReturnType(x_response,x_response_type);
+            if(x_response_type.equals(new TextNode(SERVER_STREAMING))){
+                returnType="stream<"+returnType+">";
+            }
+            //Add |error to the response
+//            if (returnTypes.size() > 0) {
+                String finalReturnType = returnType+
+                        PIPE_TOKEN.stringValue() +
+                        ERROR;
+//            if (noContentResponseFound) {
+                //TODO: change this after figure out
 
-        // Return Type
-        ReturnTypeDescriptorNode returnTypeDescriptorNode = createReturnTypeDescriptorNode(createToken(RETURNS_KEYWORD),
-                createEmptyNodeList(), createBuiltinSimpleNameReferenceNode(null,
-                        createIdentifierToken(returnType)));
+//                finalReturnType.append(NILLABLE);
+//            }
+//                return finalReturnType;
+//            } else {
+//                return DEFAULT_RETURN;
+//            }
+
+            // Return Type
+            returnTypeDescriptorNode = createReturnTypeDescriptorNode(createToken(RETURNS_KEYWORD),
+                    createEmptyNodeList(), createBuiltinSimpleNameReferenceNode(null,
+                            createIdentifierToken(finalReturnType)));
+        }else{
+            returnTypeDescriptorNode = createReturnTypeDescriptorNode(createToken(RETURNS_KEYWORD),
+                    createEmptyNodeList(),createSimpleNameReferenceNode(createIdentifierToken("error?")));
+
+        }
         return createFunctionSignatureNode(createToken(OPEN_PAREN_TOKEN), parameters, createToken(CLOSE_PAREN_TOKEN),
                 returnTypeDescriptorNode);
     }

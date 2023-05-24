@@ -17,6 +17,20 @@
  */
 package io.ballerina.asyncapi.core.generators.client;
 
+import io.ballerina.asyncapi.core.GeneratorUtils;
+import io.ballerina.compiler.syntax.tree.ChildNodeEntry;
+import io.ballerina.compiler.syntax.tree.ImportDeclarationNode;
+import io.ballerina.compiler.syntax.tree.ModuleMemberDeclarationNode;
+import io.ballerina.compiler.syntax.tree.ModulePartNode;
+import io.ballerina.compiler.syntax.tree.NodeList;
+import io.ballerina.compiler.syntax.tree.SyntaxKind;
+import io.ballerina.compiler.syntax.tree.SyntaxTree;
+import io.ballerina.projects.DocumentId;
+import io.ballerina.projects.Package;
+import io.ballerina.projects.Project;
+import io.ballerina.projects.directory.ProjectLoader;
+import io.ballerina.tools.text.TextDocument;
+import io.ballerina.tools.text.TextDocuments;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.slf4j.Logger;
@@ -28,6 +42,19 @@ import java.io.PrintWriter;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Set;
+
+import static io.ballerina.asyncapi.core.GeneratorConstants.BALLERINA;
+import static io.ballerina.asyncapi.core.GeneratorConstants.MIME;
+import static io.ballerina.asyncapi.core.GeneratorConstants.URL;
+import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createNodeList;
+import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createToken;
+import static io.ballerina.compiler.syntax.tree.NodeFactory.createModulePartNode;
+import static io.ballerina.compiler.syntax.tree.SyntaxKind.EOF_TOKEN;
 
 /**
  * This class is used to generate util file syntax tree according to the generated client.
@@ -102,95 +129,95 @@ public class BallerinaUtilGenerator {
 //        this.requestBodyMultipartFormDatafound = flag;
 //    }
 //
-//    /**
-//     * Generates util file syntax tree.
-//     *
-//     * @return Syntax tree of the util.bal file
-//     */
-//    public SyntaxTree generateUtilSyntaxTree() throws IOException {
-//        Set<String> functionNameList = new LinkedHashSet<>();
-//        if (requestBodyEncodingFound) {
-//            functionNameList.addAll(Arrays.asList(
-//                    CREATE_FORM_URLENCODED_REQUEST_BODY, GET_DEEP_OBJECT_STYLE_REQUEST, GET_FORM_STYLE_REQUEST,
-//                    GET_ENCODED_URI, GET_ORIGINAL_KEY, GET_SERIALIZED_ARRAY, GET_SERIALIZED_RECORD_ARRAY
-//                                                 ));
-//        }
-//        if (queryParamsFound) {
-//            functionNameList.addAll(Arrays.asList(
-//                    GET_DEEP_OBJECT_STYLE_REQUEST, GET_FORM_STYLE_REQUEST,
-//                    GET_ENCODED_URI, GET_ORIGINAL_KEY, GET_SERIALIZED_ARRAY, GET_PATH_FOR_QUERY_PARAM,
-//                    GET_SERIALIZED_RECORD_ARRAY
-//                                                 ));
-//        }
-//        if (headersFound) {
-//            functionNameList.add(GET_MAP_FOR_HEADERS);
-//        }
-//        if (pathParametersFound) {
-//            functionNameList.add(GET_ENCODED_URI);
-//        }
-//        if (requestBodyMultipartFormDatafound) {
-//            functionNameList.add(CREATE_MULTIPART_BODY_PARTS);
-//        }
+    /**
+     * Generates util file syntax tree.
+     *
+     * @return Syntax tree of the util.bal file
+     */
+    public SyntaxTree generateUtilSyntaxTree() throws IOException {
+        Set<String> functionNameList = new LinkedHashSet<>();
+        if (requestBodyEncodingFound) {
+            functionNameList.addAll(Arrays.asList(
+                    CREATE_FORM_URLENCODED_REQUEST_BODY, GET_DEEP_OBJECT_STYLE_REQUEST, GET_FORM_STYLE_REQUEST,
+                    GET_ENCODED_URI, GET_ORIGINAL_KEY, GET_SERIALIZED_ARRAY, GET_SERIALIZED_RECORD_ARRAY
+                                                 ));
+        }
+        if (queryParamsFound) {
+            functionNameList.addAll(Arrays.asList(
+                    GET_DEEP_OBJECT_STYLE_REQUEST, GET_FORM_STYLE_REQUEST,
+                    GET_ENCODED_URI, GET_ORIGINAL_KEY, GET_SERIALIZED_ARRAY, GET_PATH_FOR_QUERY_PARAM,
+                    GET_SERIALIZED_RECORD_ARRAY
+                                                 ));
+        }
+        if (headersFound) {
+            functionNameList.add(GET_MAP_FOR_HEADERS);
+        }
+        if (pathParametersFound) {
+            functionNameList.add(GET_ENCODED_URI);
+        }
+        if (requestBodyMultipartFormDatafound) {
+            functionNameList.add(CREATE_MULTIPART_BODY_PARTS);
+        }
+
+        List<ModuleMemberDeclarationNode> memberDeclarationNodes = new ArrayList<>();
+        getUtilTypeDeclarationNodes(memberDeclarationNodes);
+
+        Path path = getResourceFilePath();
+
+        Project project = ProjectLoader.loadProject(path);
+        Package currentPackage = project.currentPackage();
+        DocumentId docId = currentPackage.getDefaultModule().documentIds().iterator().next();
+        SyntaxTree syntaxTree = currentPackage.getDefaultModule().document(docId).syntaxTree();
+
+        ModulePartNode modulePartNode = syntaxTree.rootNode();
+        NodeList<ModuleMemberDeclarationNode> members = modulePartNode.members();
+        for (ModuleMemberDeclarationNode node : members) {
+            if (node.kind().equals(SyntaxKind.FUNCTION_DEFINITION)) {
+                for (ChildNodeEntry childNodeEntry : node.childEntries()) {
+                    if (childNodeEntry.name().equals("functionName")) {
+                        if (functionNameList.contains(childNodeEntry.node().get().toString())) {
+                            memberDeclarationNodes.add(node);
+                        }
+                    }
+                }
+            }
+        }
+
+        List<ImportDeclarationNode> imports = new ArrayList<>();
+        if (functionNameList.contains(GET_ENCODED_URI)) {
+            ImportDeclarationNode importForUrl = GeneratorUtils.getImportDeclarationNode(BALLERINA, URL);
+            imports.add(importForUrl);
+        }
+        if (requestBodyMultipartFormDatafound) {
+            ImportDeclarationNode importMime = GeneratorUtils.getImportDeclarationNode(BALLERINA, MIME);
+            imports.add(importMime);
+        }
+
+        NodeList<ImportDeclarationNode> importsList = createNodeList(imports);
+        ModulePartNode utilModulePartNode =
+                createModulePartNode(importsList, createNodeList(memberDeclarationNodes), createToken(EOF_TOKEN));
+        TextDocument textDocument = TextDocuments.from("");
+        SyntaxTree utilSyntaxTree = SyntaxTree.from(textDocument);
+        return utilSyntaxTree.modifyWith(utilModulePartNode);
+    }
 //
-//        List<ModuleMemberDeclarationNode> memberDeclarationNodes = new ArrayList<>();
-//        getUtilTypeDeclarationNodes(memberDeclarationNodes);
-//
-//        Path path = getResourceFilePath();
-//
-//        Project project = ProjectLoader.loadProject(path);
-//        Package currentPackage = project.currentPackage();
-//        DocumentId docId = currentPackage.getDefaultModule().documentIds().iterator().next();
-//        SyntaxTree syntaxTree = currentPackage.getDefaultModule().document(docId).syntaxTree();
-//
-//        ModulePartNode modulePartNode = syntaxTree.rootNode();
-//        NodeList<ModuleMemberDeclarationNode> members = modulePartNode.members();
-//        for (ModuleMemberDeclarationNode node : members) {
-//            if (node.kind().equals(SyntaxKind.FUNCTION_DEFINITION)) {
-//                for (ChildNodeEntry childNodeEntry : node.childEntries()) {
-//                    if (childNodeEntry.name().equals("functionName")) {
-//                        if (functionNameList.contains(childNodeEntry.node().get().toString())) {
-//                            memberDeclarationNodes.add(node);
-//                        }
-//                    }
-//                }
-//            }
+    /**
+     * Set the type definition nodes related to the util functions generated.
+     *
+     * @param memberDeclarationNodes {@link ModuleMemberDeclarationNode}
+     */
+    private void getUtilTypeDeclarationNodes(List<ModuleMemberDeclarationNode> memberDeclarationNodes) {
+        if (requestBodyEncodingFound || queryParamsFound || headersFound || requestBodyMultipartFormDatafound) {
+            memberDeclarationNodes.add(getSimpleBasicTypeDefinitionNode());
+        }
+        if (requestBodyEncodingFound || queryParamsFound || requestBodyMultipartFormDatafound) {
+            memberDeclarationNodes.addAll(Arrays.asList(getEncodingRecord(), getStyleEnum()));
+        }
+//        if (requestBodyEncodingFound || queryParamsFound) {
+//            memberDeclarationNodes.add(getDefaultEncoding());
 //        }
-//
-//        List<ImportDeclarationNode> imports = new ArrayList<>();
-//        if (functionNameList.contains(GET_ENCODED_URI)) {
-//            ImportDeclarationNode importForUrl = GeneratorUtils.getImportDeclarationNode(BALLERINA, URL);
-//            imports.add(importForUrl);
-//        }
-//        if (requestBodyMultipartFormDatafound) {
-//            ImportDeclarationNode importMime = GeneratorUtils.getImportDeclarationNode(BALLERINA, MIME);
-//            imports.add(importMime);
-//        }
-//
-//        NodeList<ImportDeclarationNode> importsList = createNodeList(imports);
-//        ModulePartNode utilModulePartNode =
-//                createModulePartNode(importsList, createNodeList(memberDeclarationNodes), createToken(EOF_TOKEN));
-//        TextDocument textDocument = TextDocuments.from("");
-//        SyntaxTree utilSyntaxTree = SyntaxTree.from(textDocument);
-//        return utilSyntaxTree.modifyWith(utilModulePartNode);
-//    }
-//
-//    /**
-//     * Set the type definition nodes related to the util functions generated.
-//     *
-//     * @param memberDeclarationNodes {@link ModuleMemberDeclarationNode}
-//     */
-//    private void getUtilTypeDeclarationNodes(List<ModuleMemberDeclarationNode> memberDeclarationNodes) {
-//        if (requestBodyEncodingFound || queryParamsFound || headersFound || requestBodyMultipartFormDatafound) {
-//            memberDeclarationNodes.add(getSimpleBasicTypeDefinitionNode());
-//        }
-//        if (requestBodyEncodingFound || queryParamsFound || requestBodyMultipartFormDatafound) {
-//            memberDeclarationNodes.addAll(Arrays.asList(getEncodingRecord(), getStyleEnum()));
-//        }
-////        if (requestBodyEncodingFound || queryParamsFound) {
-////            memberDeclarationNodes.add(getDefaultEncoding());
-////        }
-//    }
-//
+    }
+
 //    /**
 //     * Generates `Encoding` record.
 //     * <pre>

@@ -22,6 +22,7 @@ import com.fasterxml.jackson.databind.node.BooleanNode;
 import io.apicurio.datamodels.models.Schema;
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25DocumentImpl;
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25SchemaImpl;
+import io.apicurio.datamodels.models.union.BooleanUnionValueImpl;
 import io.ballerina.asyncapi.core.GeneratorConstants;
 import io.ballerina.asyncapi.core.GeneratorUtils;
 import io.ballerina.asyncapi.core.exception.BallerinaAsyncApiException;
@@ -30,6 +31,7 @@ import io.ballerina.asyncapi.core.generators.document.DocCommentsGenerator;
 import io.ballerina.asyncapi.core.generators.schema.ballerinatypegenerators.AllOfRecordTypeGenerator;
 import io.ballerina.asyncapi.core.generators.schema.ballerinatypegenerators.AnyDataTypeGenerator;
 import io.ballerina.asyncapi.core.generators.schema.ballerinatypegenerators.ArrayTypeGenerator;
+import io.ballerina.asyncapi.core.generators.schema.ballerinatypegenerators.JsonTypeGenerator;
 import io.ballerina.asyncapi.core.generators.schema.ballerinatypegenerators.MapTypeGenerator;
 import io.ballerina.asyncapi.core.generators.schema.ballerinatypegenerators.PrimitiveTypeGenerator;
 import io.ballerina.asyncapi.core.generators.schema.ballerinatypegenerators.RecordTypeGenerator;
@@ -105,18 +107,24 @@ public class TypeGeneratorUtils {
             } else {
                 return new UnionTypeGenerator(schemaValue, typeName);
             }
-        } else if (schemaValue.getAdditionalProperties()!=null && schemaValue.getAdditionalProperties() instanceof AsyncApi25SchemaImpl) {
+        } else if (schemaValue.getType()==null &&  schemaValue.getAdditionalProperties()!=null){
+            return new JsonTypeGenerator(schemaValue,typeName);
+        } else if (schemaValue.getType()!=null && schemaValue.getType().equals(GeneratorConstants.OBJECT) &&
+                schemaValue.getAdditionalProperties()!=null &&
+                  (schemaValue.getAdditionalProperties() instanceof AsyncApi25SchemaImpl ||
+                          schemaValue.getAdditionalProperties() instanceof BooleanUnionValueImpl)) {
 
-            if (((AsyncApi25SchemaImpl) schemaValue.getAdditionalProperties()).getType() == null) {
+
+//            if (((AsyncApi25SchemaImpl) schemaValue.getAdditionalProperties()).getType() == null) {
+//                return new MapTypeGenerator(schemaValue, typeName);
+
+
+//            } else if (((AsyncApi25SchemaImpl) schemaValue.getAdditionalProperties()).getType() != null) {
                 return new MapTypeGenerator(schemaValue, typeName);
 
-
-            } else if (((AsyncApi25SchemaImpl) schemaValue.getAdditionalProperties()).getType() != null) {
-                return new MapTypeGenerator(schemaValue, typeName);
-
-            }else{
-                return  null;
-            }
+//            }else if (){
+//                return  null;
+//            }
 
             //TODO: include mapschema here see openapi code
         } else if ((schemaValue.getType() != null && schemaValue.getType().equals(GeneratorConstants.OBJECT)) ||

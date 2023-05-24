@@ -29,7 +29,6 @@ import io.ballerina.asyncapi.core.GeneratorUtils;
 import io.ballerina.asyncapi.core.exception.BallerinaAsyncApiException;
 import io.ballerina.asyncapi.core.generators.asyncspec.model.BalAsyncApi25SchemaImpl;
 import io.ballerina.asyncapi.core.generators.schema.BallerinaTypesGenerator;
-import io.ballerina.compiler.syntax.tree.Node;
 import io.ballerina.compiler.syntax.tree.TypeDefinitionNode;
 
 import java.util.ArrayList;
@@ -42,11 +41,6 @@ import java.util.Objects;
 import java.util.Set;
 
 import static io.ballerina.asyncapi.core.GeneratorConstants.DEFAULT_RETURN;
-import static io.ballerina.asyncapi.core.GeneratorConstants.ERROR;
-import static io.ballerina.asyncapi.core.GeneratorConstants.SIMPLE_RPC;
-import static io.ballerina.asyncapi.core.GeneratorConstants.STREAMING;
-import static io.ballerina.asyncapi.core.GeneratorConstants.X_RESPONSE;
-import static io.ballerina.asyncapi.core.GeneratorConstants.X_RESPONSE_TYPE;
 import static io.ballerina.asyncapi.core.GeneratorUtils.convertAsyncAPITypeToBallerina;
 import static io.ballerina.asyncapi.core.GeneratorUtils.extractReferenceType;
 import static io.ballerina.asyncapi.core.GeneratorUtils.getValidName;
@@ -88,9 +82,9 @@ public class FunctionReturnTypeGenerator {
      * @return string with return type.
      * @throws BallerinaAsyncApiException - throws exception if creating return type fails.
      */
-    public String getReturnType(Map<String, JsonNode> extensions) throws BallerinaAsyncApiException {
+    public String getReturnType(JsonNode x_response,JsonNode x_response_type) throws BallerinaAsyncApiException {
         //TODO: Handle multiple media-type
-        Set<String> returnTypes = new HashSet<>();
+        ArrayList<String> returnTypes = new ArrayList<>();
 //        boolean noContentResponseFound = false;
 //        if (operation.getResponses() != null) {
 //            ApiResponses responses = operation.getResponses();
@@ -121,15 +115,10 @@ public class FunctionReturnTypeGenerator {
 //        }
         String type = null;
 
-        if (extensions.get(X_RESPONSE).get("oneOf") != null) {  //Handle Union references
-            if(extensions.get(X_RESPONSE).get("oneOf") instanceof ArrayNode){
-                ArrayNode test= (ArrayNode) extensions.get(X_RESPONSE).get("oneOf");
-                if(extensions.get(X_RESPONSE_TYPE)!=null) {
-                    if (extensions.get(X_RESPONSE_TYPE) == new TextNode(STREAMING)){
-
-                    } else if (extensions.get(X_RESPONSE_TYPE) == new TextNode(SIMPLE_RPC)) {
-
-                    }
+        if (x_response.get("oneOf") != null) {  //Handle Union references
+            if(x_response.get("oneOf") instanceof ArrayNode){
+                ArrayNode test= (ArrayNode) x_response.get("oneOf");
+                if(x_response_type!=null) {
                     for (Iterator<JsonNode> it = test.iterator(); it.hasNext(); ) {
                         JsonNode jsonNode = it.next();
                         if (jsonNode.get("$ref") != null) {
@@ -154,15 +143,15 @@ public class FunctionReturnTypeGenerator {
                 }
             }
 
-        } else if (extensions.get(X_RESPONSE).get("payload")!=null && extensions.get(X_RESPONSE).get("payload")
+        } else if (x_response.get("payload")!=null && x_response.get("payload")
                 .get("type") != new TextNode("object")) { //Handle payload references
             throw new BallerinaAsyncApiException("Ballerina service file cannot be generate to the " +
                     "given AsyncAPI specification, Response type must be a Record");
 
 
 
-        } else if (extensions.get(X_RESPONSE).get("$ref") != null) { //Handle reference responses
-            String reference = extensions.get(X_RESPONSE).get("$ref").asText();
+        } else if (x_response.get("$ref") != null) { //Handle reference responses
+            String reference = x_response.get("$ref").asText();
             String schemaName = getValidName(extractReferenceType(reference), true);
             AsyncApi25SchemaImpl refSchema = (AsyncApi25SchemaImpl) asyncAPI.getComponents().getSchemas().get(
                     schemaName);
@@ -170,18 +159,23 @@ public class FunctionReturnTypeGenerator {
             returnTypes.add(type);
 
         }
+//        return type;
 
         //Add |error to the response
         if (returnTypes.size() > 0) {
-            String finalReturnType = String.join(PIPE_TOKEN.stringValue(), returnTypes) +
-                    PIPE_TOKEN.stringValue() +
-                    ERROR;
+            String finalReturnType = String.join(PIPE_TOKEN.stringValue(), returnTypes) ;
+
+
+            return finalReturnType;
+
+
+
 //            if (noContentResponseFound) {
             //TODO: change this after figure out
 
 //                finalReturnType.append(NILLABLE);
 //            }
-            return finalReturnType;
+//            return finalReturnType;
         } else {
             return DEFAULT_RETURN;
         }

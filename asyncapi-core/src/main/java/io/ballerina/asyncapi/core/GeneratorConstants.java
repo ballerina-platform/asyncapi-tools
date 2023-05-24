@@ -215,7 +215,7 @@ public class GeneratorConstants {
 
     public static final String X_RESPONSE_TYPE = "x-response-type";
 
-    public static final String STREAMING = "streaming";
+    public static final String SERVER_STREAMING = "server-streaming";
 
     public static final String SIMPLE_RPC = "simple-rpc";
     public static final String INTEGER = "integer";

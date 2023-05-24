@@ -19,12 +19,17 @@
 package io.ballerina.asyncapi.core.generators.client;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.JsonNodeFactory;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.fasterxml.jackson.databind.node.TextNode;
+import io.apicurio.datamodels.models.Schema;
 import io.apicurio.datamodels.models.ServerVariable;
 import io.apicurio.datamodels.models.asyncapi.AsyncApiMessage;
 import io.apicurio.datamodels.models.asyncapi.AsyncApiServer;
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25DocumentImpl;
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25InfoImpl;
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25MessageImpl;
+import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25SchemaImpl;
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25ServerImpl;
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25ServersImpl;
 import io.ballerina.asyncapi.core.GeneratorConstants;
@@ -33,6 +38,7 @@ import io.ballerina.asyncapi.core.exception.BallerinaAsyncApiException;
 import io.ballerina.asyncapi.core.generators.client.model.AASClientConfig;
 import io.ballerina.asyncapi.core.generators.document.DocCommentsGenerator;
 import io.ballerina.asyncapi.core.generators.schema.BallerinaTypesGenerator;
+import io.ballerina.compiler.api.symbols.RecordTypeSymbol;
 import io.ballerina.compiler.syntax.tree.AnnotationNode;
 import io.ballerina.compiler.syntax.tree.AssignmentStatementNode;
 import io.ballerina.compiler.syntax.tree.BlockStatementNode;
@@ -87,6 +93,7 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.ListIterator;
 import java.util.Map;
 import java.util.Set;
 
@@ -121,6 +128,7 @@ import static io.ballerina.asyncapi.core.GeneratorConstants.WRITE_MESSAGE_QUEUE;
 import static io.ballerina.asyncapi.core.GeneratorConstants.X_BALLERINA_INIT_DESCRIPTION;
 import static io.ballerina.asyncapi.core.GeneratorConstants.X_RESPONSE;
 import static io.ballerina.asyncapi.core.GeneratorConstants.SIMPLE_PIPE;
+import static io.ballerina.asyncapi.core.GeneratorConstants.X_RESPONSE_TYPE;
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createEmptyNodeList;
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createIdentifierToken;
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createNodeList;
@@ -190,6 +198,7 @@ import static io.ballerina.compiler.syntax.tree.SyntaxKind.NEW_KEYWORD;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.OPEN_BRACE_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.OPEN_BRACKET_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.OPEN_PAREN_TOKEN;
+import static io.ballerina.compiler.syntax.tree.SyntaxKind.PIPE_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.PRIVATE_KEYWORD;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.PUBLIC_KEYWORD;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.QUESTION_MARK_TOKEN;
@@ -313,10 +322,10 @@ public class BallerinaClientGenerator {
         return syntaxTree.modifyWith(modulePartNode);
     }
 
-//    public BallerinaUtilGenerator getBallerinaUtilGenerator() {
-//
-//        return ballerinaUtilGenerator;
-//    }
+    public BallerinaUtilGenerator getBallerinaUtilGenerator() {
+
+        return ballerinaUtilGenerator;
+    }
 
     /**
      * Generate Class definition Node with below code structure.
@@ -490,7 +499,7 @@ public class BallerinaClientGenerator {
     private Node createStartPipeTriggering(List<MatchClauseNode> matchClauseNodes ) throws BallerinaAsyncApiException{
         ArrayList initMetaDataDoc = new ArrayList();
         FunctionSignatureNode functionSignatureNode = getStartPipeTriggeringFunctionSignatureNode(initMetaDataDoc);
-        FunctionBodyNode functionBodyNode = getStartPipeTriggeringFunctionBodyNode("event","id",matchClauseNodes);
+        FunctionBodyNode functionBodyNode = getStartPipeTriggeringFunctionBodyNode("'type","id",matchClauseNodes);
 //        NodeList<Token> qualifierList = createNodeList(createToken(PRIVATE_KEYWORD), createToken(ISOLATED_KEYWORD));
         NodeList<Token> qualifierList = createNodeList(createToken(PRIVATE_KEYWORD));
         IdentifierToken functionName = createIdentifierToken(START_PIPE_TRIGGERING);
@@ -512,20 +521,7 @@ public class BallerinaClientGenerator {
         List<StatementNode> whileStatements =new ArrayList<>();
 
 
-
-
-
         List<StatementNode> callRelavantPipeStatements =new ArrayList<>();
-
-
-
-
-
-
-
-
-
-
 
 
         SimpleNameReferenceNode responseMessageNode=createSimpleNameReferenceNode(createIdentifierToken(RESPONSE_MESSAGE_VAR_NAME));
@@ -544,7 +540,6 @@ public class BallerinaClientGenerator {
                 createBuiltinSimpleNameReferenceNode(null,createIdentifierToken(RESPONSE_MESSAGE)),
                 createFieldBindingPatternVarnameNode(responseMessageNode)),equalToken,checkExpressionNode,semicolonToken);
         callRelavantPipeStatements.add(responseMessage);
-
 
         // string event=responseMessage.event;
        FieldAccessExpressionNode responseMessageEvent= createFieldAccessExpressionNode(responseMessageNode,dotToken,
@@ -813,7 +808,7 @@ public class BallerinaClientGenerator {
         assignmentNodes.add(ballerinaAuthConfigGenerator.getClientInitializationNode());
 
 
-        // create {@code self.clientEp = httpEp;} assignment node
+        // create {@code self.clientEp = websocketEp;} assignment node
         FieldAccessExpressionNode selfClientEp = createFieldAccessExpressionNode(
                 createSimpleNameReferenceNode(createIdentifierToken(SELF)), createToken(DOT_TOKEN),
                 createSimpleNameReferenceNode(createIdentifierToken("clientEp")));
@@ -1072,16 +1067,49 @@ public class BallerinaClientGenerator {
         Set<Map.Entry<String, AsyncApiMessage>> messageItems = messages.entrySet();
         LinkedHashMap<String,HashMap<String,String>> responseMap = new LinkedHashMap<>();
         int count=1;
+        Map<String, Schema> schemas=asyncAPI.getComponents().getSchemas();
+        ArrayList requestMessages= new ArrayList();
+        AsyncApi25MessageImpl errorMessage=new AsyncApi25MessageImpl();
+//        $ref: '#/components/messages/PongMessage';
+        ObjectNode objectNode=new ObjectNode(JsonNodeFactory.instance);
+        objectNode.put("$ref","#/components/messages/Error");
+
+       errorMessage.addExtension(X_RESPONSE, objectNode);
+       errorMessage.addExtension(X_RESPONSE_TYPE,new TextNode("simple-rpc"));
+        messages.put("Error",errorMessage);
         for (Map.Entry<String, AsyncApiMessage> messageItem : messageItems) {
             Map<String, JsonNode> extensions = ((AsyncApi25MessageImpl) messageItem.getValue()).getExtensions();
             if (extensions != null && extensions.get(X_RESPONSE) != null) {
+                AsyncApi25MessageImpl messageValue = (AsyncApi25MessageImpl) messageItem.getValue();
+                String messageName = messageItem.getKey();
 //                JsonNode ref=extensions.get(X_RESPONSE).get(PAYLOAD);
                 FunctionDefinitionNode functionDefinitionNode =
-                        getClientMethodFunctionDefinitionNode(messageItem, extensions,Integer.toString(count),responseMap);
+                         getClientMethodFunctionDefinitionNode(messageName,messageValue, extensions,
+                                Integer.toString(count),responseMap,schemas);
                 functionDefinitionNodeList.add(functionDefinitionNode);
+                requestMessages.add(messageItem.getKey());
                 count+=1;
             }
         }
+
+
+
+
+        ListIterator<AsyncApiMessage> remaningPublishMessages=asyncAPI.getChannels().getItems().get(0).getPublish().
+                getMessage().getOneOf().listIterator();
+        for (ListIterator<AsyncApiMessage> it = remaningPublishMessages; it.hasNext(); ) {
+            AsyncApi25MessageImpl message = (AsyncApi25MessageImpl) it.next();
+            String reference=message.get$ref();
+            String type=GeneratorUtils.extractReferenceType(reference);
+            if(!requestMessages.contains(type)){
+                FunctionDefinitionNode functionDefinitionNode =
+                        getClientMethodFunctionDefinitionNode(type, (AsyncApi25MessageImpl) messages.get(type), null,
+                                Integer.toString(count),responseMap,schemas);
+                functionDefinitionNodeList.add(functionDefinitionNode);
+            }
+
+        }
+
 
 
         for(Map.Entry<String, HashMap<String,String>> key:responseMap.entrySet()){
@@ -1196,7 +1224,13 @@ public class BallerinaClientGenerator {
         SimpleNameReferenceNode requestTypePipeNode=createSimpleNameReferenceNode(createIdentifierToken(requestTypePipe));
         SimpleNameReferenceNode responseMessageNode=createSimpleNameReferenceNode(createIdentifierToken(RESPONSE_MESSAGE_VAR_NAME));
         SimpleNameReferenceNode responseTypeName =createSimpleNameReferenceNode(createIdentifierToken(responseType));
-        SimpleNameReferenceNode responseNameNode=createSimpleNameReferenceNode(createIdentifierToken(responseTypeCamelCaseName));
+        SimpleNameReferenceNode responseNameNode;
+        if(!responseTypeCamelCaseName.equals("error") ){
+            responseNameNode = createSimpleNameReferenceNode(createIdentifierToken(responseTypeCamelCaseName));
+        }else{
+            responseNameNode = createSimpleNameReferenceNode(createIdentifierToken(responseTypeCamelCaseName+"Message"));
+
+        }
 
         //matchStatements
         //pipe:Pipe tuplePipe = check self.pipes["tuplePipe"].ensureType();
@@ -1260,9 +1294,26 @@ public class BallerinaClientGenerator {
         if(count!=null){
             responseType=count;
         }
-        MatchClauseNode matchClauseNode=createMatchClauseNode(createSeparatedNodeList(
-                        createIdentifierToken("\""+responseType+"\"")),null,rightDoubleArrow,
-                createBlockStatementNode(openBraceToken,statementNodes,closeBraceToken));
+        MatchClauseNode matchClauseNode;
+        if(responseType.contains("|")){
+            ArrayList<Node> streamList=new ArrayList<>();
+            String[] streamTypes=responseType.split("\\|");
+            for (String streamTypeName:streamTypes){
+               streamList.add(createIdentifierToken("\""+streamTypeName+"\""));
+               streamList.add(createToken(PIPE_TOKEN));
+
+            }
+            streamList.remove(streamList.size()-1);
+            matchClauseNode=createMatchClauseNode(createSeparatedNodeList(streamList),null,rightDoubleArrow,
+                    createBlockStatementNode(openBraceToken,statementNodes,closeBraceToken));
+
+        }else{
+            matchClauseNode=createMatchClauseNode(createSeparatedNodeList(
+                            createIdentifierToken("\""+responseType+"\"")),null,rightDoubleArrow,
+                    createBlockStatementNode(openBraceToken,statementNodes,closeBraceToken));
+
+        }
+
 
 
         matchClauseNodes.add(matchClauseNode);
@@ -1288,15 +1339,16 @@ public class BallerinaClientGenerator {
 //     *     }
 //     * </pre>
 //     */
-    private FunctionDefinitionNode getClientMethodFunctionDefinitionNode(Map.Entry<String, AsyncApiMessage> message,
+    private FunctionDefinitionNode getClientMethodFunctionDefinitionNode(String messageName,AsyncApi25MessageImpl messageValue,
                                                                          Map<String, JsonNode> extensions,String count,
                                                                          LinkedHashMap<String,
-                                                                                 HashMap<String,String>> responseMap)
+                                                                                 HashMap<String,String>> responseMap,Map<String, Schema> schemas)
             throws BallerinaAsyncApiException {
         // Create api doc for function
+
+        String dispatcherStreamId="id";
         List<Node> remoteFunctionDocs = new ArrayList<>();
-        AsyncApi25MessageImpl messageValue = (AsyncApi25MessageImpl) message.getValue();
-        String messageName = message.getKey();
+
 
         if (messageValue.getSummary() != null) {
             remoteFunctionDocs.addAll(DocCommentsGenerator.createAPIDescriptionDoc(
@@ -1339,8 +1391,17 @@ public class BallerinaClientGenerator {
         // Create Function Body
         FunctionBodyGenerator functionBodyGenerator = new FunctionBodyGenerator(imports, typeDefinitionNodeList,
                 asyncAPI, ballerinaSchemaGenerator, ballerinaAuthConfigGenerator, ballerinaUtilGenerator, resourceMode);
+        RequiredParameterNode parameterNode= ((RequiredParameterNode) functionSignatureNode.parameters().get(0));
+//        String schemaType=parameterNode.typeName().toString();
+//        String paramName=parameterNode.paramName().get().toString();
+
+       AsyncApi25SchemaImpl schema= (AsyncApi25SchemaImpl) schemas.get(messageName);
+       boolean isDispatcherStreamId=schema.getProperties().containsKey(dispatcherStreamId);
+        char requestTypeFirstChar = Character.toLowerCase(messageName.charAt(0)); // Lowercase the first character
+        String requestRemainingString = messageName.substring(1);
+        String requestTypeCamelCaseName=requestTypeFirstChar+requestRemainingString;
         FunctionBodyNode functionBodyNode = functionBodyGenerator.getFunctionBodyNode(extensions,
-                ((RequiredParameterNode) functionSignatureNode.parameters().get(0)).paramName().get().toString(),count,responseMap);
+                requestTypeCamelCaseName, count,responseMap,isDispatcherStreamId);
         imports = functionBodyGenerator.getImports();
 
         //Generate relative path
