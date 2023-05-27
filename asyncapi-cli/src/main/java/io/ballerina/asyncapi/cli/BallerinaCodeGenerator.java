@@ -195,7 +195,7 @@ public class BallerinaCodeGenerator {
      *                       //     * @param filter         For take the tags and operation option values
      * @param nullable       Enable nullable option for make record field optional
      * @throws IOException when file operations fail
-     *                     //     * @throws BallerinaOpenApiException when code generator fails
+     *                     //     * @throws BallerinaAsyncApiException when code generator fails
      */
     public void generateClient(String definitionPath, String outPath, boolean nullable)
             throws IOException, BallerinaAsyncApiException, FormatterException {

@@ -29,6 +29,8 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 
+import static io.ballerina.asyncapi.generators.common.TestUtils.compareGeneratedSyntaxTreeWithExpectedSyntaxTree;
+
 /**
  * This tests class for the tests Path parameters in swagger file.
  */

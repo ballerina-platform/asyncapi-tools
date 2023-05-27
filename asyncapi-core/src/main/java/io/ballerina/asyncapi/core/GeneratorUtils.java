@@ -709,15 +709,17 @@ public class GeneratorUtils {
             // Refactor schema name with valid name
             AsyncApi25ComponentsImpl components = (AsyncApi25ComponentsImpl) asyncAPI.getComponents();
             Map<String, Schema> componentsSchemas = components.getSchemas();
-            if (componentsSchemas != null) {
-//                Map<String, Schema> refacSchema = new HashMap<>();
-                for (Map.Entry<String, Schema> schemaEntry : componentsSchemas.entrySet()) {
-                    String name = getValidName(schemaEntry.getKey(), true);
-                    components.addSchema(name, schemaEntry.getValue());
-//                    refacSchema.put(name, schemaEntry.getValue());
-                }
-//                asyncAPI.getComponents().setSchemas(refacSchema);
-            }
+
+            //ToDO: uncomment this
+//            if (componentsSchemas != null) {
+////                Map<String, Schema> refacSchema = new HashMap<>();
+//                for (Map.Entry<String, Schema> schemaEntry : componentsSchemas.entrySet()) {
+//                    String name = getValidName(schemaEntry.getKey(), true);
+//                    components.addSchema(name, schemaEntry.getValue());
+////                    refacSchema.put(name, schemaEntry.getValue());
+//                }
+////                asyncAPI.getComponents().setSchemas(refacSchema);
+//            }
         }
         return asyncAPI;
     }

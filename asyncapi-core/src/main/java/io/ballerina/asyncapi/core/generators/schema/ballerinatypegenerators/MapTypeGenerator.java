@@ -29,7 +29,7 @@ public class MapTypeGenerator extends TypeGenerator {
     public TypeDescriptorNode generateTypeDescriptorNode() throws BallerinaAsyncApiException {
 
         if ( (schema.getAdditionalProperties() instanceof BooleanUnionValueImpl &&schema.getAdditionalProperties().asBoolean().equals(true))
-                ||((AsyncApi25SchemaImpl) schema.getAdditionalProperties()).getType() == null) {
+                ||(schema.getAdditionalProperties() instanceof AsyncApi25SchemaImpl && ((AsyncApi25SchemaImpl) schema.getAdditionalProperties()).getType() == null)) {
 
 //            paramType = "map<" + convertAsyncAPITypeToBallerina("{}") + ">";
 //            convertAsyncAPITypeToBallerina("{}")
@@ -43,7 +43,7 @@ public class MapTypeGenerator extends TypeGenerator {
 //                    metadataBuilder.isOpenRecord() ? createToken(CLOSE_BRACE_TOKEN) :
 //                            createToken(CLOSE_BRACE_PIPE_TOKEN));
 
-        } else if (((AsyncApi25SchemaImpl) schema.getAdditionalProperties()).getType() != null) {
+        } else if ( schema.getAdditionalProperties() instanceof AsyncApi25SchemaImpl && ((AsyncApi25SchemaImpl) schema.getAdditionalProperties()).getType() != null) {
 
 
             return NodeFactory.createMapTypeDescriptorNode(createToken(MAP_KEYWORD),NodeFactory.createTypeParameterNode(
