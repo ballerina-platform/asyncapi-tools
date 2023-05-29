@@ -654,14 +654,14 @@ public class BallerinaClientGenerator {
 
         //Else statements
         ArrayList<StatementNode> elseStatementNodes=new ArrayList<>();
-        // string id=responseMessageWithId.id;
+        // string type=responseMessage.type;
         FieldAccessExpressionNode responseDispatcherKey= createFieldAccessExpressionNode(responseMessageVarNode, dotToken,
                 createSimpleNameReferenceNode(createIdentifierToken(dispatcherKey)));
         VariableDeclarationNode dispatcherKeyStatement= createVariableDeclarationNode(createEmptyNodeList(),
                 null,createTypedBindingPatternNode(
                         createBuiltinSimpleNameReferenceNode(null,createIdentifierToken(STRING)),
                         createFieldBindingPatternVarnameNode(createSimpleNameReferenceNode(
-                                createIdentifierToken(dispatcherStreamId)))),
+                                createIdentifierToken(dispatcherKey)))),
                 equalToken,responseDispatcherKey, semicolonToken);
 //        createCommonPipeTriggerFunctionStatementNodes(dispatcherKey, responseMessageVarNode,elseStatementNodes);
         elseStatementNodes.add(dispatcherKeyStatement);

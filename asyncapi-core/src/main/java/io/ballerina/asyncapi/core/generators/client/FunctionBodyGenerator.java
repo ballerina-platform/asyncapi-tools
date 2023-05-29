@@ -1000,11 +1000,11 @@ public class FunctionBodyGenerator {
 
             CheckExpressionNode selfPipeCheck=createCheckExpressionNode(null,createToken(CHECK_KEYWORD),
                     methodCallExpressionNode);
-            SimpleNameReferenceNode responseTypePipeNode=createSimpleNameReferenceNode(createIdentifierToken(dispatcherStreamId +"Pipe"));
+//            SimpleNameReferenceNode responseTypePipeNode=createSimpleNameReferenceNode(createIdentifierToken(requestTypePipeNode));
             VariableDeclarationNode pipeTypeEnsureStatement= createVariableDeclarationNode(createEmptyNodeList(),null,
                     createTypedBindingPatternNode(
                             pipeTypeName,
-                            createFieldBindingPatternVarnameNode(responseTypePipeNode)),
+                            createFieldBindingPatternVarnameNode(requestTypePipeNode)),
                     equalToken,selfPipeCheck, semicolonToken);
             statementNodes.add(pipeTypeEnsureStatement);
 
