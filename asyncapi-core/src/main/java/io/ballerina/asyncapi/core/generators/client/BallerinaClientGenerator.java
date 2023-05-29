@@ -97,8 +97,6 @@ import io.ballerina.tools.text.TextDocuments;
 
 import java.net.URL;
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.ListIterator;
@@ -109,12 +107,13 @@ import java.util.regex.Pattern;
 
 import static io.ballerina.asyncapi.core.GeneratorConstants.CLIENT_EP;
 import static io.ballerina.asyncapi.core.GeneratorConstants.CONSUME;
+import static io.ballerina.asyncapi.core.GeneratorConstants.CUSTOM_HEADERS;
 import static io.ballerina.asyncapi.core.GeneratorConstants.DEFAULT_API_KEY_DESC;
 import static io.ballerina.asyncapi.core.GeneratorConstants.DEFAULT_TIME_OUT;
 import static io.ballerina.asyncapi.core.GeneratorConstants.ENSURE_TYPE;
 import static io.ballerina.asyncapi.core.GeneratorConstants.HEADER_PARAM;
-import static io.ballerina.asyncapi.core.GeneratorConstants.CUSTOM_HEADERS;
 import static io.ballerina.asyncapi.core.GeneratorConstants.LANG_RUNTIME;
+import static io.ballerina.asyncapi.core.GeneratorConstants.MODIFIED_URL;
 import static io.ballerina.asyncapi.core.GeneratorConstants.NUVINDU_PIPE;
 import static io.ballerina.asyncapi.core.GeneratorConstants.PIPES;
 import static io.ballerina.asyncapi.core.GeneratorConstants.PIPE_TRIGGER;
@@ -124,7 +123,6 @@ import static io.ballerina.asyncapi.core.GeneratorConstants.READ_MESSAGE;
 import static io.ballerina.asyncapi.core.GeneratorConstants.READ_MESSAGE_QUEUE;
 import static io.ballerina.asyncapi.core.GeneratorConstants.REMOTE_METHOD_NAME_PREFIX;
 import static io.ballerina.asyncapi.core.GeneratorConstants.REQUEST_MESSAGE;
-import static io.ballerina.asyncapi.core.GeneratorConstants.MODIFIED_URL;
 import static io.ballerina.asyncapi.core.GeneratorConstants.RESPONSE_MESSAGE;
 import static io.ballerina.asyncapi.core.GeneratorConstants.RESPONSE_MESSAGE_VAR_NAME;
 import static io.ballerina.asyncapi.core.GeneratorConstants.RESPONSE_MESSAGE_WITH_ID;
@@ -132,18 +130,19 @@ import static io.ballerina.asyncapi.core.GeneratorConstants.RESPONSE_MESSAGE_WIT
 import static io.ballerina.asyncapi.core.GeneratorConstants.RUNTIME;
 import static io.ballerina.asyncapi.core.GeneratorConstants.SELF;
 import static io.ballerina.asyncapi.core.GeneratorConstants.SERVICE_URL;
+import static io.ballerina.asyncapi.core.GeneratorConstants.SIMPLE_PIPE;
 import static io.ballerina.asyncapi.core.GeneratorConstants.SLEEP;
 import static io.ballerina.asyncapi.core.GeneratorConstants.START_MESSAGE_READING;
 import static io.ballerina.asyncapi.core.GeneratorConstants.START_MESSAGE_WRITING;
 import static io.ballerina.asyncapi.core.GeneratorConstants.START_PIPE_TRIGGERING;
 import static io.ballerina.asyncapi.core.GeneratorConstants.STRING;
+import static io.ballerina.asyncapi.core.GeneratorConstants.UUID;
 import static io.ballerina.asyncapi.core.GeneratorConstants.WEBSOCKET;
 import static io.ballerina.asyncapi.core.GeneratorConstants.WORKER_SLEEP_TIME_OUT;
 import static io.ballerina.asyncapi.core.GeneratorConstants.WRITE_MESSAGE;
 import static io.ballerina.asyncapi.core.GeneratorConstants.WRITE_MESSAGE_QUEUE;
 import static io.ballerina.asyncapi.core.GeneratorConstants.X_BALLERINA_INIT_DESCRIPTION;
 import static io.ballerina.asyncapi.core.GeneratorConstants.X_RESPONSE;
-import static io.ballerina.asyncapi.core.GeneratorConstants.SIMPLE_PIPE;
 import static io.ballerina.asyncapi.core.GeneratorConstants.X_RESPONSE_TYPE;
 import static io.ballerina.asyncapi.core.GeneratorUtils.getValidName;
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createEmptyMinutiaeList;
@@ -275,6 +274,20 @@ public class BallerinaClientGenerator {
         this.resourceMode = asyncAPIClientConfig.isResourceMode();
     }
 
+    private static void createCommonPipeTriggerFunctionStatementNodes(String dispatcherStreamId, SimpleNameReferenceNode responseMessageWithIdVarNode, ArrayList<StatementNode> ifStatementNodes) {
+
+
+        Token openBracketToken = createToken(OPEN_BRACKET_TOKEN);
+        Token closeBracketToken = createToken(CLOSE_BRACKET_TOKEN);
+        Token openParanToken = createToken(OPEN_PAREN_TOKEN);
+        Token closeParanToken = createToken(CLOSE_PAREN_TOKEN);
+        Token semicolonToken = createToken(SEMICOLON_TOKEN);
+        Token equalToken = createToken(EQUAL_TOKEN);
+        Token dotToken = createToken(DOT_TOKEN);
+
+
+    }
+
     /**
      * Returns a list of type definition nodes.
      */
@@ -327,9 +340,9 @@ public class BallerinaClientGenerator {
         ImportDeclarationNode importForWebsocket = GeneratorUtils.getImportDeclarationNode(GeneratorConstants.BALLERINA
                 , WEBSOCKET);
 
-        ImportDeclarationNode importForNuvinduPipe= GeneratorUtils.getImportDeclarationNode(GeneratorConstants.NUVINDU
+        ImportDeclarationNode importForNuvinduPipe = GeneratorUtils.getImportDeclarationNode(GeneratorConstants.NUVINDU
                 , NUVINDU_PIPE);
-        ImportDeclarationNode importForRunTime= GeneratorUtils.getImportDeclarationNode(GeneratorConstants.BALLERINA
+        ImportDeclarationNode importForRunTime = GeneratorUtils.getImportDeclarationNode(GeneratorConstants.BALLERINA
                 , LANG_RUNTIME);
 
         imports.add(importForWebsocket);
@@ -377,7 +390,7 @@ public class BallerinaClientGenerator {
     private ClassDefinitionNode getClassDefinitionNode() throws BallerinaAsyncApiException {
         // Collect members for class definition node
         List<Node> memberNodeList = new ArrayList<>();
-        List<MatchClauseNode> matchStatementList=new ArrayList<>();
+        List<MatchClauseNode> matchStatementList = new ArrayList<>();
         // Add instance variable to class definition node
         memberNodeList.addAll(createClassInstanceVariables());
         // Add init function to class definition node
@@ -388,14 +401,13 @@ public class BallerinaClientGenerator {
         memberNodeList.add(createStartMessageReading());
 
 
-        List<FunctionDefinitionNode> remoteFunctionNodes=createRemoteFunctions(asyncAPI.getComponents().getMessages(),matchStatementList);
+        List<FunctionDefinitionNode> remoteFunctionNodes = createRemoteFunctions(asyncAPI.getComponents().getMessages(), matchStatementList);
 
         // Add callRelevantPipe function
         memberNodeList.add(createStartPipeTriggering(matchStatementList));
 
         // Add remoteFunctionNodes
         memberNodeList.addAll(remoteFunctionNodes);
-
 
 
         // Generate the class combining members
@@ -407,7 +419,7 @@ public class BallerinaClientGenerator {
 //        IdentifierToken className = createIdentifierToken(GeneratorConstants.CLIENT_CLASS);
 //        NodeList<Token> classTypeQualifiers = createNodeList(
 //                createToken(ISOLATED_KEYWORD), createToken(CLIENT_KEYWORD));
-        NodeList<Token> classTypeQualifiers = createNodeList( createToken(CLIENT_KEYWORD));
+        NodeList<Token> classTypeQualifiers = createNodeList(createToken(CLIENT_KEYWORD));
         return createClassDefinitionNode(metadataNode, createToken(PUBLIC_KEYWORD), classTypeQualifiers,
                 createToken(CLASS_KEYWORD), className, createToken(OPEN_BRACE_TOKEN),
                 createNodeList(memberNodeList), createToken(CLOSE_BRACE_TOKEN), null);
@@ -428,58 +440,53 @@ public class BallerinaClientGenerator {
     private FunctionBodyNode getStartMessageReadingFunctionBodyNode() {
         NodeList<AnnotationNode> annotations = createEmptyNodeList();
 
-        List<StatementNode> whileStatements =new ArrayList<>();
-        Token openParanToken=createToken(OPEN_PAREN_TOKEN);
-        Token closeParanToken=createToken(CLOSE_PAREN_TOKEN);
-        Token openBraceToken=createToken(OPEN_BRACE_TOKEN);
-        Token closeBraceToken=createToken(CLOSE_BRACE_TOKEN);
+        List<StatementNode> whileStatements = new ArrayList<>();
+        Token openParanToken = createToken(OPEN_PAREN_TOKEN);
+        Token closeParanToken = createToken(CLOSE_PAREN_TOKEN);
+        Token openBraceToken = createToken(OPEN_BRACE_TOKEN);
+        Token closeBraceToken = createToken(CLOSE_BRACE_TOKEN);
         Token semicolonToken = createToken(SEMICOLON_TOKEN);
         Token equalToken = createToken(EQUAL_TOKEN);
         Token dotToken = createToken(DOT_TOKEN);
         Token rightArrowToken = createToken(RIGHT_ARROW_TOKEN);
 
 
-
-
         //ResponseMessage responseMessage = check self.clientEp->readMessage();
-        FieldAccessExpressionNode clientEp= createFieldAccessExpressionNode(
+        FieldAccessExpressionNode clientEp = createFieldAccessExpressionNode(
                 createSimpleNameReferenceNode(createIdentifierToken(SELF)), createToken(DOT_TOKEN),
                 createSimpleNameReferenceNode(createIdentifierToken(CLIENT_EP)));
-        CheckExpressionNode responseMessageCheckExpressionNode=createCheckExpressionNode(null,createToken(CHECK_KEYWORD),
-                createMethodCallExpressionNode(clientEp,rightArrowToken,
-                        createSimpleNameReferenceNode(createIdentifierToken(READ_MESSAGE)),openParanToken,createSeparatedNodeList(new ArrayList<>()),closeParanToken));
-        VariableDeclarationNode responseMessage= createVariableDeclarationNode(createEmptyNodeList(),null,createTypedBindingPatternNode(
-                createBuiltinSimpleNameReferenceNode(null,createIdentifierToken(RESPONSE_MESSAGE)),
-                createFieldBindingPatternVarnameNode(createSimpleNameReferenceNode(createIdentifierToken(RESPONSE_MESSAGE_VAR_NAME)))),
-                equalToken,responseMessageCheckExpressionNode,semicolonToken);
+        CheckExpressionNode responseMessageCheckExpressionNode = createCheckExpressionNode(null, createToken(CHECK_KEYWORD),
+                createMethodCallExpressionNode(clientEp, rightArrowToken,
+                        createSimpleNameReferenceNode(createIdentifierToken(READ_MESSAGE)), openParanToken, createSeparatedNodeList(new ArrayList<>()), closeParanToken));
+        VariableDeclarationNode responseMessage = createVariableDeclarationNode(createEmptyNodeList(), null, createTypedBindingPatternNode(
+                        createBuiltinSimpleNameReferenceNode(null, createIdentifierToken(RESPONSE_MESSAGE)),
+                        createFieldBindingPatternVarnameNode(createSimpleNameReferenceNode(createIdentifierToken(RESPONSE_MESSAGE_VAR_NAME)))),
+                equalToken, responseMessageCheckExpressionNode, semicolonToken);
 
 
         //check self.readMessageQueue.produce(responseMessage,5);
-        FieldAccessExpressionNode readMessageQueue= createFieldAccessExpressionNode(
+        FieldAccessExpressionNode readMessageQueue = createFieldAccessExpressionNode(
                 createSimpleNameReferenceNode(createIdentifierToken(SELF)), createToken(DOT_TOKEN),
                 createSimpleNameReferenceNode(createIdentifierToken(READ_MESSAGE_QUEUE)));
-        CheckExpressionNode checkReadMessageQueueProduceNode=createCheckExpressionNode(null,createToken(CHECK_KEYWORD),
-                createMethodCallExpressionNode(readMessageQueue,dotToken,
-                        createSimpleNameReferenceNode(createIdentifierToken(PRODUCE)),openParanToken,createSeparatedNodeList(
+        CheckExpressionNode checkReadMessageQueueProduceNode = createCheckExpressionNode(null, createToken(CHECK_KEYWORD),
+                createMethodCallExpressionNode(readMessageQueue, dotToken,
+                        createSimpleNameReferenceNode(createIdentifierToken(PRODUCE)), openParanToken, createSeparatedNodeList(
                                 createPositionalArgumentNode(createRequiredExpressionNode(createIdentifierToken(RESPONSE_MESSAGE_VAR_NAME))),
                                 createToken(COMMA_TOKEN),
                                 createPositionalArgumentNode(createRequiredExpressionNode(createIdentifierToken(DEFAULT_TIME_OUT)))
-                        ),closeParanToken));
-        ExpressionStatementNode readMessageQueueCheck=createExpressionStatementNode(null,
-                checkReadMessageQueueProduceNode,createToken(SEMICOLON_TOKEN));
-
+                        ), closeParanToken));
+        ExpressionStatementNode readMessageQueueCheck = createExpressionStatementNode(null,
+                checkReadMessageQueueProduceNode, createToken(SEMICOLON_TOKEN));
 
 
         //runtime:sleep(0.01);
-        QualifiedNameReferenceNode qualifiedNameReferenceNode=createQualifiedNameReferenceNode(createIdentifierToken(
-                RUNTIME),createToken(COLON_TOKEN),createIdentifierToken(SLEEP));
-        FunctionCallExpressionNode sleep=createFunctionCallExpressionNode(qualifiedNameReferenceNode,openParanToken,
+        QualifiedNameReferenceNode qualifiedNameReferenceNode = createQualifiedNameReferenceNode(createIdentifierToken(
+                RUNTIME), createToken(COLON_TOKEN), createIdentifierToken(SLEEP));
+        FunctionCallExpressionNode sleep = createFunctionCallExpressionNode(qualifiedNameReferenceNode, openParanToken,
                 createSeparatedNodeList(createPositionalArgumentNode(
-                createRequiredExpressionNode(createIdentifierToken(WORKER_SLEEP_TIME_OUT)))),closeParanToken);
-        ExpressionStatementNode runtimeSleep=createExpressionStatementNode(null,
-                sleep,createToken(SEMICOLON_TOKEN));
-
-
+                        createRequiredExpressionNode(createIdentifierToken(WORKER_SLEEP_TIME_OUT)))), closeParanToken);
+        ExpressionStatementNode runtimeSleep = createExpressionStatementNode(null,
+                sleep, createToken(SEMICOLON_TOKEN));
 
 
 //        whileStatements.add(writeMessage);
@@ -488,24 +495,21 @@ public class BallerinaClientGenerator {
         whileStatements.add(runtimeSleep);
 
 
-
-        BlockStatementNode whileBody=createBlockStatementNode(openBraceToken,createNodeList(whileStatements),
+        BlockStatementNode whileBody = createBlockStatementNode(openBraceToken, createNodeList(whileStatements),
                 closeBraceToken);
-        NodeList<StatementNode> workerStatements= createNodeList(createWhileStatementNode(createToken(WHILE_KEYWORD),
-                createBasicLiteralNode(TRUE_KEYWORD,createToken(TRUE_KEYWORD)),whileBody,null));
+        NodeList<StatementNode> workerStatements = createNodeList(createWhileStatementNode(createToken(WHILE_KEYWORD),
+                createBasicLiteralNode(TRUE_KEYWORD, createToken(TRUE_KEYWORD)), whileBody, null));
 
 
-        NodeList workerDeclarationNodes= createNodeList(createNamedWorkerDeclarationNode(annotations,null,createToken(WORKER_KEYWORD)
-                ,createIdentifierToken(READ_MESSAGE),createReturnTypeDescriptorNode(
-                        createToken(RETURNS_KEYWORD),createEmptyNodeList(),createToken(ERROR_KEYWORD)),
-                createBlockStatementNode(openBraceToken,workerStatements,
+        NodeList workerDeclarationNodes = createNodeList(createNamedWorkerDeclarationNode(annotations, null, createToken(WORKER_KEYWORD)
+                , createIdentifierToken(READ_MESSAGE), createReturnTypeDescriptorNode(
+                        createToken(RETURNS_KEYWORD), createEmptyNodeList(), createToken(ERROR_KEYWORD)),
+                createBlockStatementNode(openBraceToken, workerStatements,
                         closeBraceToken)));
 
 
         return createFunctionBodyBlockNode(openBraceToken,
                 null, workerDeclarationNodes, closeBraceToken, null);
-
-
 
 
     }
@@ -519,15 +523,15 @@ public class BallerinaClientGenerator {
 //        ReturnTypeDescriptorNode returnTypeDescriptorNode = createReturnTypeDescriptorNode(
 //                createToken(RETURNS_KEYWORD), createEmptyNodeList(), returnType);
         return createFunctionSignatureNode(
-                createToken(OPEN_PAREN_TOKEN), parameterList, createToken(CLOSE_PAREN_TOKEN),null);
+                createToken(OPEN_PAREN_TOKEN), parameterList, createToken(CLOSE_PAREN_TOKEN), null);
 
 
     }
 
-    private Node createStartPipeTriggering(List<MatchClauseNode> matchClauseNodes ) throws BallerinaAsyncApiException{
+    private Node createStartPipeTriggering(List<MatchClauseNode> matchClauseNodes) throws BallerinaAsyncApiException {
         ArrayList initMetaDataDoc = new ArrayList();
         FunctionSignatureNode functionSignatureNode = getStartPipeTriggeringFunctionSignatureNode(initMetaDataDoc);
-        FunctionBodyNode functionBodyNode = getStartPipeTriggeringFunctionBodyNode("'type","id",matchClauseNodes);
+        FunctionBodyNode functionBodyNode = getStartPipeTriggeringFunctionBodyNode("'type", "id", matchClauseNodes);
 //        NodeList<Token> qualifierList = createNodeList(createToken(PRIVATE_KEYWORD), createToken(ISOLATED_KEYWORD));
         NodeList<Token> qualifierList = createNodeList(createToken(PRIVATE_KEYWORD));
         IdentifierToken functionName = createIdentifierToken(START_PIPE_TRIGGERING);
@@ -536,116 +540,114 @@ public class BallerinaClientGenerator {
                 functionName, createEmptyNodeList(), functionSignatureNode, functionBodyNode);
     }
 
-    private FunctionBodyNode getStartPipeTriggeringFunctionBodyNode(String dispatcherKey, String dispatcherStreamId,List<MatchClauseNode> matchClauseNodes) {
-        Token openParanToken=createToken(OPEN_PAREN_TOKEN);
-        Token closeParanToken=createToken(CLOSE_PAREN_TOKEN);
-        Token openBraceToken=createToken(OPEN_BRACE_TOKEN);
-        Token closeBraceToken=createToken(CLOSE_BRACE_TOKEN);
+    private FunctionBodyNode getStartPipeTriggeringFunctionBodyNode(String dispatcherKey, String dispatcherStreamId, List<MatchClauseNode> matchClauseNodes) {
+        Token openParanToken = createToken(OPEN_PAREN_TOKEN);
+        Token closeParanToken = createToken(CLOSE_PAREN_TOKEN);
+        Token openBraceToken = createToken(OPEN_BRACE_TOKEN);
+        Token closeBraceToken = createToken(CLOSE_BRACE_TOKEN);
         Token semicolonToken = createToken(SEMICOLON_TOKEN);
         Token equalToken = createToken(EQUAL_TOKEN);
         Token dotToken = createToken(DOT_TOKEN);
-        Token openBracketToken= createToken(OPEN_BRACKET_TOKEN);
-        Token closeBracketToken=createToken(CLOSE_BRACKET_TOKEN);
+        Token openBracketToken = createToken(OPEN_BRACKET_TOKEN);
+        Token closeBracketToken = createToken(CLOSE_BRACKET_TOKEN);
 
         NodeList<AnnotationNode> annotations = createEmptyNodeList();
 
-        List<StatementNode> whileStatements =new ArrayList<>();
+        List<StatementNode> whileStatements = new ArrayList<>();
 
 
-        List<StatementNode> callRelevantPipeStatements =new ArrayList<>();
+        List<StatementNode> callRelevantPipeStatements = new ArrayList<>();
 
 
-        SimpleNameReferenceNode responseMessageWithIdNode=createSimpleNameReferenceNode(createIdentifierToken(RESPONSE_MESSAGE_WITH_ID));
-        SimpleNameReferenceNode responseMessageNode=createSimpleNameReferenceNode(createIdentifierToken(RESPONSE_MESSAGE));
-        SimpleNameReferenceNode responseMessageVarNode=createSimpleNameReferenceNode(createIdentifierToken(RESPONSE_MESSAGE_VAR_NAME));
-        SimpleNameReferenceNode responseMessageWithIdVarNode=createSimpleNameReferenceNode(createIdentifierToken(RESPONSE_MESSAGE_WITH_ID_VAR_NAME));
+        SimpleNameReferenceNode responseMessageWithIdNode = createSimpleNameReferenceNode(createIdentifierToken(RESPONSE_MESSAGE_WITH_ID));
+        SimpleNameReferenceNode responseMessageNode = createSimpleNameReferenceNode(createIdentifierToken(RESPONSE_MESSAGE));
+        SimpleNameReferenceNode responseMessageVarNode = createSimpleNameReferenceNode(createIdentifierToken(RESPONSE_MESSAGE_VAR_NAME));
+        SimpleNameReferenceNode responseMessageWithIdVarNode = createSimpleNameReferenceNode(createIdentifierToken(RESPONSE_MESSAGE_WITH_ID_VAR_NAME));
 
 
         //ResponseMessage responseMessage = check self.readMessageQueue.consume(5);
-        FieldAccessExpressionNode globalQueue= createFieldAccessExpressionNode(
+        FieldAccessExpressionNode globalQueue = createFieldAccessExpressionNode(
                 createSimpleNameReferenceNode(createIdentifierToken(SELF)), createToken(DOT_TOKEN),
                 createSimpleNameReferenceNode(createIdentifierToken(READ_MESSAGE_QUEUE)));
-        CheckExpressionNode checkExpressionNode=createCheckExpressionNode(null,createToken(CHECK_KEYWORD),
-                createMethodCallExpressionNode(globalQueue,dotToken,
-                        createSimpleNameReferenceNode(createIdentifierToken(CONSUME)),openParanToken,createSeparatedNodeList(
+        CheckExpressionNode checkExpressionNode = createCheckExpressionNode(null, createToken(CHECK_KEYWORD),
+                createMethodCallExpressionNode(globalQueue, dotToken,
+                        createSimpleNameReferenceNode(createIdentifierToken(CONSUME)), openParanToken, createSeparatedNodeList(
                                 createPositionalArgumentNode(createRequiredExpressionNode(createIdentifierToken(DEFAULT_TIME_OUT)))
-                        ),closeParanToken));
+                        ), closeParanToken));
 
-        VariableDeclarationNode responseMessage= createVariableDeclarationNode(createEmptyNodeList(),null,createTypedBindingPatternNode(
+        VariableDeclarationNode responseMessage = createVariableDeclarationNode(createEmptyNodeList(), null, createTypedBindingPatternNode(
                 responseMessageNode,
-                createFieldBindingPatternVarnameNode(responseMessageVarNode)),equalToken,checkExpressionNode,semicolonToken);
+                createFieldBindingPatternVarnameNode(responseMessageVarNode)), equalToken, checkExpressionNode, semicolonToken);
         callRelevantPipeStatements.add(responseMessage);
 
 
-        ArrayList<StatementNode> ifStatementNodes=new ArrayList<>();
-
+        ArrayList<StatementNode> ifStatementNodes = new ArrayList<>();
 
 
         //ResponseMessageWithId responseMessageWithId = check responseMessage.cloneWithType();
-        MethodCallExpressionNode cloneWithTypeMethodCallExpressionNode= createMethodCallExpressionNode(
-                responseMessageVarNode,dotToken,
+        MethodCallExpressionNode cloneWithTypeMethodCallExpressionNode = createMethodCallExpressionNode(
+                responseMessageVarNode, dotToken,
                 createSimpleNameReferenceNode(createIdentifierToken("cloneWithType")),
-                openParanToken,createSeparatedNodeList(),closeParanToken);
+                openParanToken, createSeparatedNodeList(), closeParanToken);
 
-        CheckExpressionNode cloneWithTypeCheck=createCheckExpressionNode(null,createToken(CHECK_KEYWORD),
+        CheckExpressionNode cloneWithTypeCheck = createCheckExpressionNode(null, createToken(CHECK_KEYWORD),
                 cloneWithTypeMethodCallExpressionNode);
 
 
-
-        VariableDeclarationNode responseTypeCloneStatement= createVariableDeclarationNode(createEmptyNodeList(),null,
+        VariableDeclarationNode responseTypeCloneStatement = createVariableDeclarationNode(createEmptyNodeList(), null,
                 createTypedBindingPatternNode(
                         responseMessageWithIdNode,
                         createFieldBindingPatternVarnameNode(
                                 responseMessageWithIdVarNode)),
-                equalToken,cloneWithTypeCheck,semicolonToken);
+                equalToken, cloneWithTypeCheck, semicolonToken);
 
         ifStatementNodes.add(responseTypeCloneStatement);
 
         // string id=responseMessageWithId.id;
-        FieldAccessExpressionNode responseMessageId= createFieldAccessExpressionNode(responseMessageWithIdVarNode, dotToken,
+        FieldAccessExpressionNode responseMessageId = createFieldAccessExpressionNode(responseMessageWithIdVarNode, dotToken,
                 createSimpleNameReferenceNode(createIdentifierToken(dispatcherStreamId)));
-        VariableDeclarationNode dispatcherStreamStatement= createVariableDeclarationNode(createEmptyNodeList(),
-                null,createTypedBindingPatternNode(
-                        createBuiltinSimpleNameReferenceNode(null,createIdentifierToken(STRING)),
+        VariableDeclarationNode dispatcherStreamStatement = createVariableDeclarationNode(createEmptyNodeList(),
+                null, createTypedBindingPatternNode(
+                        createBuiltinSimpleNameReferenceNode(null, createIdentifierToken(STRING)),
                         createFieldBindingPatternVarnameNode(createSimpleNameReferenceNode(
                                 createIdentifierToken(dispatcherStreamId)))),
-                equalToken,responseMessageId, semicolonToken);
+                equalToken, responseMessageId, semicolonToken);
 
 
         //pipe:Pipe idPipe = check self.pipes[id].ensureType();
         QualifiedNameReferenceNode pipeTypeName = createQualifiedNameReferenceNode(createIdentifierToken(SIMPLE_PIPE),
                 createToken(COLON_TOKEN), createIdentifierToken(GeneratorConstants.CAPITAL_PIPE));
-        IndexedExpressionNode selfPipes=createIndexedExpressionNode(createFieldAccessExpressionNode(
+        IndexedExpressionNode selfPipes = createIndexedExpressionNode(createFieldAccessExpressionNode(
                         createSimpleNameReferenceNode(createIdentifierToken(SELF)), createToken(DOT_TOKEN),
                         createSimpleNameReferenceNode(createIdentifierToken(PIPES))), openBracketToken,
                 createSeparatedNodeList(createSimpleNameReferenceNode(createIdentifierToken(dispatcherStreamId))),
                 closeBracketToken);
-        MethodCallExpressionNode methodCallExpressionNode= createMethodCallExpressionNode(selfPipes, dotToken,
+        MethodCallExpressionNode methodCallExpressionNode = createMethodCallExpressionNode(selfPipes, dotToken,
                 createSimpleNameReferenceNode(createIdentifierToken(ENSURE_TYPE)),
-                openParanToken,createSeparatedNodeList(), closeParanToken);
+                openParanToken, createSeparatedNodeList(), closeParanToken);
 
-        CheckExpressionNode selfPipeCheck=createCheckExpressionNode(null,createToken(CHECK_KEYWORD),
+        CheckExpressionNode selfPipeCheck = createCheckExpressionNode(null, createToken(CHECK_KEYWORD),
                 methodCallExpressionNode);
-        SimpleNameReferenceNode responseTypePipeNode=createSimpleNameReferenceNode(createIdentifierToken(dispatcherStreamId +"Pipe"));
-        VariableDeclarationNode pipeTypeEnsureStatement= createVariableDeclarationNode(createEmptyNodeList(),null,
+        SimpleNameReferenceNode responseTypePipeNode = createSimpleNameReferenceNode(createIdentifierToken(dispatcherStreamId + "Pipe"));
+        VariableDeclarationNode pipeTypeEnsureStatement = createVariableDeclarationNode(createEmptyNodeList(), null,
                 createTypedBindingPatternNode(
                         pipeTypeName,
                         createFieldBindingPatternVarnameNode(responseTypePipeNode)),
-                equalToken,selfPipeCheck, semicolonToken);
+                equalToken, selfPipeCheck, semicolonToken);
 
         //check idPipe.produce(user, 5);
-        List<Node> nodes=new ArrayList<>();
+        List<Node> nodes = new ArrayList<>();
         nodes.add(responseMessageWithIdVarNode);
         nodes.add(createToken(COMMA_TOKEN));
         nodes.add(createIdentifierToken("5"));
-        MethodCallExpressionNode pipeProduceExpressionNode= createMethodCallExpressionNode(responseTypePipeNode, dotToken,
+        MethodCallExpressionNode pipeProduceExpressionNode = createMethodCallExpressionNode(responseTypePipeNode, dotToken,
                 createSimpleNameReferenceNode(createIdentifierToken("produce")),
-                openParanToken,createSeparatedNodeList(nodes), closeParanToken);
+                openParanToken, createSeparatedNodeList(nodes), closeParanToken);
 
-        CheckExpressionNode pipeProduceCheck=createCheckExpressionNode(null,createToken(CHECK_KEYWORD),
+        CheckExpressionNode pipeProduceCheck = createCheckExpressionNode(null, createToken(CHECK_KEYWORD),
                 pipeProduceExpressionNode);
-        ExpressionStatementNode pipeProduceExpression= createExpressionStatementNode(null,
-                pipeProduceCheck,createToken(SEMICOLON_TOKEN));
+        ExpressionStatementNode pipeProduceExpression = createExpressionStatementNode(null,
+                pipeProduceCheck, createToken(SEMICOLON_TOKEN));
 
         ifStatementNodes.add(dispatcherStreamStatement);
         ifStatementNodes.add(pipeTypeEnsureStatement);
@@ -653,67 +655,50 @@ public class BallerinaClientGenerator {
 
 
         //Else statements
-        ArrayList<StatementNode> elseStatementNodes=new ArrayList<>();
+        ArrayList<StatementNode> elseStatementNodes = new ArrayList<>();
         // string type=responseMessage.type;
-        FieldAccessExpressionNode responseDispatcherKey= createFieldAccessExpressionNode(responseMessageVarNode, dotToken,
+        FieldAccessExpressionNode responseDispatcherKey = createFieldAccessExpressionNode(responseMessageVarNode, dotToken,
                 createSimpleNameReferenceNode(createIdentifierToken(dispatcherKey)));
-        VariableDeclarationNode dispatcherKeyStatement= createVariableDeclarationNode(createEmptyNodeList(),
-                null,createTypedBindingPatternNode(
-                        createBuiltinSimpleNameReferenceNode(null,createIdentifierToken(STRING)),
+        VariableDeclarationNode dispatcherKeyStatement = createVariableDeclarationNode(createEmptyNodeList(),
+                null, createTypedBindingPatternNode(
+                        createBuiltinSimpleNameReferenceNode(null, createIdentifierToken(STRING)),
                         createFieldBindingPatternVarnameNode(createSimpleNameReferenceNode(
                                 createIdentifierToken(dispatcherKey)))),
-                equalToken,responseDispatcherKey, semicolonToken);
+                equalToken, responseDispatcherKey, semicolonToken);
 //        createCommonPipeTriggerFunctionStatementNodes(dispatcherKey, responseMessageVarNode,elseStatementNodes);
         elseStatementNodes.add(dispatcherKeyStatement);
 
 
+        MatchStatementNode matchStatementNode = createMatchStatementNode(createToken(MATCH_KEYWORD),
+                createBracedExpressionNode(null, openParanToken,
+                        createSimpleNameReferenceNode(createIdentifierToken(dispatcherKey)),
+                        closeParanToken), openBraceToken, createNodeList(matchClauseNodes), closeBraceToken, null);
+        elseStatementNodes.add(matchStatementNode);
 
 
-
-       MatchStatementNode matchStatementNode=createMatchStatementNode(createToken(MATCH_KEYWORD),
-               createBracedExpressionNode(null,openParanToken,
-                       createSimpleNameReferenceNode(createIdentifierToken(dispatcherKey)),
-                       closeParanToken),openBraceToken,createNodeList(matchClauseNodes),closeBraceToken,null);
-       elseStatementNodes.add(matchStatementNode);
-
-
-        IfElseStatementNode ifElseStatementNode= createIfElseStatementNode(createToken(IF_KEYWORD),
-                createMethodCallExpressionNode(responseMessageVarNode,dotToken,createSimpleNameReferenceNode(createIdentifierToken("hasKey")),
-                        openParanToken,createSeparatedNodeList(createSimpleNameReferenceNode(createIdentifierToken("\""+dispatcherStreamId+"\""))),
-                        closeParanToken),createBlockStatementNode(openBraceToken,createNodeList(ifStatementNodes),closeBraceToken),createElseBlockNode(createToken(ELSE_KEYWORD),createBlockStatementNode(openBraceToken,createNodeList(elseStatementNodes),closeBraceToken)));
+        IfElseStatementNode ifElseStatementNode = createIfElseStatementNode(createToken(IF_KEYWORD),
+                createMethodCallExpressionNode(responseMessageVarNode, dotToken, createSimpleNameReferenceNode(createIdentifierToken("hasKey")),
+                        openParanToken, createSeparatedNodeList(createSimpleNameReferenceNode(createIdentifierToken("\"" + dispatcherStreamId + "\""))),
+                        closeParanToken), createBlockStatementNode(openBraceToken, createNodeList(ifStatementNodes), closeBraceToken), createElseBlockNode(createToken(ELSE_KEYWORD), createBlockStatementNode(openBraceToken, createNodeList(elseStatementNodes), closeBraceToken)));
 
         callRelevantPipeStatements.add(ifElseStatementNode);
-       whileStatements.addAll(callRelevantPipeStatements);
+        whileStatements.addAll(callRelevantPipeStatements);
 
         //statements
-        BlockStatementNode whileBody=createBlockStatementNode(openBraceToken,createNodeList(whileStatements),
+        BlockStatementNode whileBody = createBlockStatementNode(openBraceToken, createNodeList(whileStatements),
                 closeBraceToken);
-        NodeList<StatementNode> workerStatements= createNodeList(createWhileStatementNode(createToken(WHILE_KEYWORD),
-                createBasicLiteralNode(TRUE_KEYWORD,createToken(TRUE_KEYWORD)),whileBody,null));
+        NodeList<StatementNode> workerStatements = createNodeList(createWhileStatementNode(createToken(WHILE_KEYWORD),
+                createBasicLiteralNode(TRUE_KEYWORD, createToken(TRUE_KEYWORD)), whileBody, null));
 
 
-        NodeList workerDeclarationNodes= createNodeList(createNamedWorkerDeclarationNode(annotations,null,createToken(WORKER_KEYWORD)
-                ,createIdentifierToken(PIPE_TRIGGER),createReturnTypeDescriptorNode(
-                        createToken(RETURNS_KEYWORD),createEmptyNodeList(),createToken(ERROR_KEYWORD)),
-                createBlockStatementNode(openBraceToken,workerStatements,
+        NodeList workerDeclarationNodes = createNodeList(createNamedWorkerDeclarationNode(annotations, null, createToken(WORKER_KEYWORD)
+                , createIdentifierToken(PIPE_TRIGGER), createReturnTypeDescriptorNode(
+                        createToken(RETURNS_KEYWORD), createEmptyNodeList(), createToken(ERROR_KEYWORD)),
+                createBlockStatementNode(openBraceToken, workerStatements,
                         closeBraceToken)));
 
         return createFunctionBodyBlockNode(openBraceToken,
                 null, workerDeclarationNodes, closeBraceToken, null);
-
-    }
-
-    private static void createCommonPipeTriggerFunctionStatementNodes(String dispatcherStreamId,SimpleNameReferenceNode responseMessageWithIdVarNode, ArrayList<StatementNode> ifStatementNodes) {
-
-
-        Token openBracketToken= createToken(OPEN_BRACKET_TOKEN);
-        Token closeBracketToken=createToken(CLOSE_BRACKET_TOKEN);
-        Token openParanToken=createToken(OPEN_PAREN_TOKEN);
-        Token closeParanToken=createToken(CLOSE_PAREN_TOKEN);
-        Token semicolonToken = createToken(SEMICOLON_TOKEN);
-        Token equalToken = createToken(EQUAL_TOKEN);
-        Token dotToken = createToken(DOT_TOKEN);
-
 
     }
 
@@ -724,9 +709,8 @@ public class BallerinaClientGenerator {
         SeparatedNodeList<ParameterNode> parameterList = createSeparatedNodeList();
 
 
-
         return createFunctionSignatureNode(
-                createToken(OPEN_PAREN_TOKEN), parameterList, createToken(CLOSE_PAREN_TOKEN),null);
+                createToken(OPEN_PAREN_TOKEN), parameterList, createToken(CLOSE_PAREN_TOKEN), null);
     }
 
     private Node createStartMessageWriting() throws BallerinaAsyncApiException {
@@ -744,51 +728,50 @@ public class BallerinaClientGenerator {
     private FunctionBodyNode getStartMessageWritingFunctionBodyNode() {
         NodeList<AnnotationNode> annotations = createEmptyNodeList();
 
-        List<StatementNode> whileStatements =new ArrayList<>();
-        Token openParanToken=createToken(OPEN_PAREN_TOKEN);
-        Token closeParanToken=createToken(CLOSE_PAREN_TOKEN);
-        Token openBraceToken=createToken(OPEN_BRACE_TOKEN);
-        Token closeBraceToken=createToken(CLOSE_BRACE_TOKEN);
+        List<StatementNode> whileStatements = new ArrayList<>();
+        Token openParanToken = createToken(OPEN_PAREN_TOKEN);
+        Token closeParanToken = createToken(CLOSE_PAREN_TOKEN);
+        Token openBraceToken = createToken(OPEN_BRACE_TOKEN);
+        Token closeBraceToken = createToken(CLOSE_BRACE_TOKEN);
         Token semicolonToken = createToken(SEMICOLON_TOKEN);
         Token equalToken = createToken(EQUAL_TOKEN);
         Token dotToken = createToken(DOT_TOKEN);
         Token rightArrowToken = createToken(RIGHT_ARROW_TOKEN);
 
         //anydata requestMessage = check self.writeMessageQueue.consume(5);
-       FieldAccessExpressionNode globalQueue= createFieldAccessExpressionNode(
+        FieldAccessExpressionNode globalQueue = createFieldAccessExpressionNode(
                 createSimpleNameReferenceNode(createIdentifierToken(SELF)), createToken(DOT_TOKEN),
                 createSimpleNameReferenceNode(createIdentifierToken(WRITE_MESSAGE_QUEUE)));
-        CheckExpressionNode checkExpressionNode=createCheckExpressionNode(null,createToken(CHECK_KEYWORD),
-                createMethodCallExpressionNode(globalQueue,dotToken,
-                        createSimpleNameReferenceNode(createIdentifierToken(CONSUME)),openParanToken,createSeparatedNodeList(
+        CheckExpressionNode checkExpressionNode = createCheckExpressionNode(null, createToken(CHECK_KEYWORD),
+                createMethodCallExpressionNode(globalQueue, dotToken,
+                        createSimpleNameReferenceNode(createIdentifierToken(CONSUME)), openParanToken, createSeparatedNodeList(
                                 createPositionalArgumentNode(createRequiredExpressionNode(createIdentifierToken(DEFAULT_TIME_OUT)))
-                        ),closeParanToken));
-        VariableDeclarationNode queueData= createVariableDeclarationNode(createEmptyNodeList(),null,createTypedBindingPatternNode(
-                createBuiltinSimpleNameReferenceNode(null,createToken(ANYDATA_KEYWORD)),
-                createFieldBindingPatternVarnameNode(createSimpleNameReferenceNode(createIdentifierToken(REQUEST_MESSAGE)))),equalToken,checkExpressionNode,semicolonToken);
+                        ), closeParanToken));
+        VariableDeclarationNode queueData = createVariableDeclarationNode(createEmptyNodeList(), null, createTypedBindingPatternNode(
+                createBuiltinSimpleNameReferenceNode(null, createToken(ANYDATA_KEYWORD)),
+                createFieldBindingPatternVarnameNode(createSimpleNameReferenceNode(createIdentifierToken(REQUEST_MESSAGE)))), equalToken, checkExpressionNode, semicolonToken);
 
 
         //check self.clientEp->writeMessage(requestMessage);
-        FieldAccessExpressionNode clientEp= createFieldAccessExpressionNode(
+        FieldAccessExpressionNode clientEp = createFieldAccessExpressionNode(
                 createSimpleNameReferenceNode(createIdentifierToken(SELF)), createToken(DOT_TOKEN),
                 createSimpleNameReferenceNode(createIdentifierToken(CLIENT_EP)));
-        CheckExpressionNode checkWriteMessage=createCheckExpressionNode(ACTION_STATEMENT,createToken(CHECK_KEYWORD),
-                createMethodCallExpressionNode(clientEp,rightArrowToken,
-                        createSimpleNameReferenceNode(createIdentifierToken(WRITE_MESSAGE)),openParanToken,createSeparatedNodeList(
+        CheckExpressionNode checkWriteMessage = createCheckExpressionNode(ACTION_STATEMENT, createToken(CHECK_KEYWORD),
+                createMethodCallExpressionNode(clientEp, rightArrowToken,
+                        createSimpleNameReferenceNode(createIdentifierToken(WRITE_MESSAGE)), openParanToken, createSeparatedNodeList(
                                 createPositionalArgumentNode(createRequiredExpressionNode(createIdentifierToken(REQUEST_MESSAGE)))
-                        ),closeParanToken));
-        ExpressionStatementNode writeMessage=createExpressionStatementNode(null,checkWriteMessage,createToken(SEMICOLON_TOKEN));
-
+                        ), closeParanToken));
+        ExpressionStatementNode writeMessage = createExpressionStatementNode(null, checkWriteMessage, createToken(SEMICOLON_TOKEN));
 
 
         //runtime:sleep(0.01);
-        QualifiedNameReferenceNode qualifiedNameReferenceNode=createQualifiedNameReferenceNode(createIdentifierToken(
-                "runtime"),createToken(COLON_TOKEN),createIdentifierToken("sleep"));
-        FunctionCallExpressionNode sleep=createFunctionCallExpressionNode(qualifiedNameReferenceNode,openParanToken,
+        QualifiedNameReferenceNode qualifiedNameReferenceNode = createQualifiedNameReferenceNode(createIdentifierToken(
+                "runtime"), createToken(COLON_TOKEN), createIdentifierToken("sleep"));
+        FunctionCallExpressionNode sleep = createFunctionCallExpressionNode(qualifiedNameReferenceNode, openParanToken,
                 createSeparatedNodeList(createPositionalArgumentNode(
-                        createRequiredExpressionNode(createIdentifierToken("0.01")))),closeParanToken);
-        ExpressionStatementNode runtimeSleep=createExpressionStatementNode(null,
-                sleep,createToken(SEMICOLON_TOKEN));
+                        createRequiredExpressionNode(createIdentifierToken("0.01")))), closeParanToken);
+        ExpressionStatementNode runtimeSleep = createExpressionStatementNode(null,
+                sleep, createToken(SEMICOLON_TOKEN));
 //        //ResponseMessage responseMessage = check self.clientEp->readMessage();
 //        CheckExpressionNode responseMessageCheckExpressionNode=createCheckExpressionNode(null,createToken(CHECK_KEYWORD),
 //                createMethodCallExpressionNode(clientEp,rightArrowToken,
@@ -815,16 +798,16 @@ public class BallerinaClientGenerator {
 //        whileStatements.add(callRelavantPipeNode);
 
 
-        BlockStatementNode whileBody=createBlockStatementNode(openBraceToken,createNodeList(whileStatements),
+        BlockStatementNode whileBody = createBlockStatementNode(openBraceToken, createNodeList(whileStatements),
                 closeBraceToken);
-        NodeList<StatementNode> workerStatements= createNodeList(createWhileStatementNode(createToken(WHILE_KEYWORD),
-                createBasicLiteralNode(TRUE_KEYWORD,createToken(TRUE_KEYWORD)),whileBody,null));
+        NodeList<StatementNode> workerStatements = createNodeList(createWhileStatementNode(createToken(WHILE_KEYWORD),
+                createBasicLiteralNode(TRUE_KEYWORD, createToken(TRUE_KEYWORD)), whileBody, null));
 
 
-       NodeList workerDeclarationNodes= createNodeList(createNamedWorkerDeclarationNode(annotations,null,createToken(WORKER_KEYWORD)
-                ,createIdentifierToken(WRITE_MESSAGE),createReturnTypeDescriptorNode(
-                        createToken(RETURNS_KEYWORD),createEmptyNodeList(),createToken(ERROR_KEYWORD)),
-                createBlockStatementNode(openBraceToken,workerStatements,
+        NodeList workerDeclarationNodes = createNodeList(createNamedWorkerDeclarationNode(annotations, null, createToken(WORKER_KEYWORD)
+                , createIdentifierToken(WRITE_MESSAGE), createReturnTypeDescriptorNode(
+                        createToken(RETURNS_KEYWORD), createEmptyNodeList(), createToken(ERROR_KEYWORD)),
+                createBlockStatementNode(openBraceToken, workerStatements,
                         closeBraceToken)));
 
 
@@ -847,7 +830,7 @@ public class BallerinaClientGenerator {
 //        ReturnTypeDescriptorNode returnTypeDescriptorNode = createReturnTypeDescriptorNode(
 //                createToken(RETURNS_KEYWORD), createEmptyNodeList(), returnType);
         return createFunctionSignatureNode(
-                createToken(OPEN_PAREN_TOKEN), parameterList, createToken(CLOSE_PAREN_TOKEN),null);
+                createToken(OPEN_PAREN_TOKEN), parameterList, createToken(CLOSE_PAREN_TOKEN), null);
     }
 
     /**
@@ -905,10 +888,10 @@ public class BallerinaClientGenerator {
      */
     private FunctionDefinitionNode createInitFunction() throws BallerinaAsyncApiException {
         ArrayList initMetaDataDoc = new ArrayList();
-        AsyncApi25SchemaImpl headerSchema=new AsyncApi25SchemaImpl();
-        AsyncApi25SchemaImpl querySchema=new AsyncApi25SchemaImpl();
-        FunctionSignatureNode functionSignatureNode = getInitFunctionSignatureNode(initMetaDataDoc,querySchema,headerSchema);
-        FunctionBodyNode functionBodyNode = getInitFunctionBodyNode(querySchema,headerSchema);
+        AsyncApi25SchemaImpl headerSchema = new AsyncApi25SchemaImpl();
+        AsyncApi25SchemaImpl querySchema = new AsyncApi25SchemaImpl();
+        FunctionSignatureNode functionSignatureNode = getInitFunctionSignatureNode(initMetaDataDoc, querySchema, headerSchema);
+        FunctionBodyNode functionBodyNode = getInitFunctionBodyNode(querySchema, headerSchema);
 //        NodeList<Token> qualifierList = createNodeList(createToken(PUBLIC_KEYWORD), createToken(ISOLATED_KEYWORD));
         NodeList<Token> qualifierList = createNodeList(createToken(PUBLIC_KEYWORD));
         IdentifierToken functionName = createIdentifierToken("init");
@@ -922,7 +905,7 @@ public class BallerinaClientGenerator {
      *
      * @return {@link FunctionBodyNode}
      */
-    private FunctionBodyNode getInitFunctionBodyNode(AsyncApi25SchemaImpl querySchema,AsyncApi25SchemaImpl headerSchema) throws BallerinaAsyncApiException {
+    private FunctionBodyNode getInitFunctionBodyNode(AsyncApi25SchemaImpl querySchema, AsyncApi25SchemaImpl headerSchema) throws BallerinaAsyncApiException {
 
         List<StatementNode> assignmentNodes = new ArrayList<>();
 
@@ -936,14 +919,13 @@ public class BallerinaClientGenerator {
         }
 
 
-
         // create {@code self.pipes ={};} assignment node
         FieldAccessExpressionNode selfPipes = createFieldAccessExpressionNode(
                 createSimpleNameReferenceNode(createIdentifierToken(SELF)), createToken(DOT_TOKEN),
                 createSimpleNameReferenceNode(createIdentifierToken("pipes")));
         SimpleNameReferenceNode selfPipesValue = createSimpleNameReferenceNode(createIdentifierToken("{}"));
         AssignmentStatementNode selfPipesAssignmentStatementNode = createAssignmentStatementNode(selfPipes,
-                createToken(EQUAL_TOKEN),selfPipesValue, createToken(SEMICOLON_TOKEN));
+                createToken(EQUAL_TOKEN), selfPipesValue, createToken(SEMICOLON_TOKEN));
         assignmentNodes.add(selfPipesAssignmentStatementNode);
 
 
@@ -955,7 +937,7 @@ public class BallerinaClientGenerator {
         argumentsList.add(createIdentifierToken("1000"));
         SeparatedNodeList<FunctionArgumentNode> arguments = createSeparatedNodeList(argumentsList);
         Token closeParenArg = createToken(CLOSE_PAREN_TOKEN);
-        Token openParenArg=createToken(OPEN_PAREN_TOKEN);
+        Token openParenArg = createToken(OPEN_PAREN_TOKEN);
         ParenthesizedArgList parenthesizedArgList = createParenthesizedArgList(openParenArg,
                 arguments,
                 closeParenArg);
@@ -963,7 +945,7 @@ public class BallerinaClientGenerator {
                 parenthesizedArgList);
 
         AssignmentStatementNode selfWriteQueueAssignmentStatementNode = createAssignmentStatementNode(selfWriteMessageQueues,
-                createToken(EQUAL_TOKEN),expressionNode, createToken(SEMICOLON_TOKEN));
+                createToken(EQUAL_TOKEN), expressionNode, createToken(SEMICOLON_TOKEN));
         assignmentNodes.add(selfWriteQueueAssignmentStatementNode);
 
 
@@ -972,67 +954,62 @@ public class BallerinaClientGenerator {
                 createSimpleNameReferenceNode(createIdentifierToken(SELF)), createToken(DOT_TOKEN),
                 createSimpleNameReferenceNode(createIdentifierToken(READ_MESSAGE_QUEUE)));
         AssignmentStatementNode selfReadQueuesAssignmentStatementNode = createAssignmentStatementNode(selfReadMessageQueues,
-                createToken(EQUAL_TOKEN),expressionNode, createToken(SEMICOLON_TOKEN));
+                createToken(EQUAL_TOKEN), expressionNode, createToken(SEMICOLON_TOKEN));
         assignmentNodes.add(selfReadQueuesAssignmentStatementNode);
 
 
-
         // create {@code self.startMessageWriting()} assignment node
-        List workersArgumentsList=new ArrayList<>();
+        List workersArgumentsList = new ArrayList<>();
         SeparatedNodeList<FunctionArgumentNode> workersArguments =
                 createSeparatedNodeList(workersArgumentsList);
-        ExpressionStatementNode startMessageWriting=createExpressionStatementNode(FUNCTION_CALL,
-                createMethodCallExpressionNode( createSimpleNameReferenceNode(createIdentifierToken(SELF)),
-                        createToken(DOT_TOKEN),createSimpleNameReferenceNode(
-                                createIdentifierToken(START_MESSAGE_WRITING)),openParenArg,
-                workersArguments,closeParenArg),createToken(SEMICOLON_TOKEN));
+        ExpressionStatementNode startMessageWriting = createExpressionStatementNode(FUNCTION_CALL,
+                createMethodCallExpressionNode(createSimpleNameReferenceNode(createIdentifierToken(SELF)),
+                        createToken(DOT_TOKEN), createSimpleNameReferenceNode(
+                                createIdentifierToken(START_MESSAGE_WRITING)), openParenArg,
+                        workersArguments, closeParenArg), createToken(SEMICOLON_TOKEN));
 
         // create {@code self.startMessageReading()} assignment node
 
-        ExpressionStatementNode startMessageReading=createExpressionStatementNode(FUNCTION_CALL,
-                createMethodCallExpressionNode( createSimpleNameReferenceNode(createIdentifierToken(SELF)),
-                        createToken(DOT_TOKEN),createSimpleNameReferenceNode(
-                                createIdentifierToken(START_MESSAGE_READING)),openParenArg,
-                        workersArguments,closeParenArg),createToken(SEMICOLON_TOKEN));
+        ExpressionStatementNode startMessageReading = createExpressionStatementNode(FUNCTION_CALL,
+                createMethodCallExpressionNode(createSimpleNameReferenceNode(createIdentifierToken(SELF)),
+                        createToken(DOT_TOKEN), createSimpleNameReferenceNode(
+                                createIdentifierToken(START_MESSAGE_READING)), openParenArg,
+                        workersArguments, closeParenArg), createToken(SEMICOLON_TOKEN));
 
         // create {@code self.startPipeTriggering()} assignment node
 
-        ExpressionStatementNode startPipeTriggering=createExpressionStatementNode(FUNCTION_CALL,
-                createMethodCallExpressionNode( createSimpleNameReferenceNode(createIdentifierToken(SELF)),
-                        createToken(DOT_TOKEN),createSimpleNameReferenceNode(
-                                createIdentifierToken(START_PIPE_TRIGGERING)),openParenArg,
-                      workersArguments,closeParenArg),createToken(SEMICOLON_TOKEN));
-
-
-
-
+        ExpressionStatementNode startPipeTriggering = createExpressionStatementNode(FUNCTION_CALL,
+                createMethodCallExpressionNode(createSimpleNameReferenceNode(createIdentifierToken(SELF)),
+                        createToken(DOT_TOKEN), createSimpleNameReferenceNode(
+                                createIdentifierToken(START_PIPE_TRIGGERING)), openParenArg,
+                        workersArguments, closeParenArg), createToken(SEMICOLON_TOKEN));
 
 
         assignmentNodes.add(startMessageWriting);
         assignmentNodes.add(startMessageReading);
         assignmentNodes.add(startPipeTriggering);
 
-        List<String> channelList=asyncAPI.getChannels().getItemNames();
-        if(channelList.size()!=1){
+        List<String> channelList = asyncAPI.getChannels().getItemNames();
+        if (channelList.size() != 1) {
             throw new BallerinaAsyncApiException("Ballerina websocket doesn't support for multiple channels");
         }
-        String path=channelList.get(0);
+        String path = channelList.get(0);
 
-        if(!path.equals("/") || querySchema.getProperties()!=null){
-            if(!path.equals("/")){
+        if (!path.equals("/") || querySchema.getProperties() != null) {
+            if (!path.equals("/")) {
                 VariableDeclarationNode pathInt = getPathStatement(path);
                 assignmentNodes.add(pathInt);
-                handleParameterSchemaInOperation(querySchema,headerSchema, assignmentNodes,false);
+                handleParameterSchemaInOperation(querySchema, headerSchema, assignmentNodes, false);
 
-            }else{
-                handleParameterSchemaInOperation(querySchema,headerSchema, assignmentNodes,true);
+            } else {
+                handleParameterSchemaInOperation(querySchema, headerSchema, assignmentNodes, true);
 
             }
 
             assignmentNodes.add(ballerinaAuthConfigGenerator.getClientInitializationNode(MODIFIED_URL));
 
 
-        }else{
+        } else {
             assignmentNodes.add(ballerinaAuthConfigGenerator.getClientInitializationNode(SERVICE_URL));
 
         }
@@ -1050,11 +1027,8 @@ public class BallerinaClientGenerator {
                 createSimpleNameReferenceNode(createIdentifierToken("clientEp")));
         SimpleNameReferenceNode selfClientEpValue = createSimpleNameReferenceNode(createIdentifierToken("websocketEp"));
         AssignmentStatementNode selfWebsocketClientAssignmentStatementNode = createAssignmentStatementNode(selfClientEp,
-                createToken(EQUAL_TOKEN),selfClientEpValue, createToken(SEMICOLON_TOKEN));
+                createToken(EQUAL_TOKEN), selfClientEpValue, createToken(SEMICOLON_TOKEN));
         assignmentNodes.add(selfWebsocketClientAssignmentStatementNode);
-
-
-
 
 
         // Get API key assignment node if authentication mechanism type is only `apiKey`
@@ -1079,8 +1053,8 @@ public class BallerinaClientGenerator {
     /**
      * Generate statements for query parameters and headers.
      */
-    private void handleParameterSchemaInOperation(AsyncApi25SchemaImpl querySchema,AsyncApi25SchemaImpl headerSchema,
-                                                  List<StatementNode> statementsList,boolean initalized)
+    private void handleParameterSchemaInOperation(AsyncApi25SchemaImpl querySchema, AsyncApi25SchemaImpl headerSchema,
+                                                  List<StatementNode> statementsList, boolean initalized)
             throws BallerinaAsyncApiException {
 
         List<String> queryApiKeyNameList = new ArrayList<>();
@@ -1100,14 +1074,14 @@ public class BallerinaClientGenerator {
 //            }
 //        }
 
-        handleQueryParamsAndHeaders(querySchema, headerSchema, statementsList,initalized);
+        handleQueryParamsAndHeaders(querySchema, headerSchema, statementsList, initalized);
     }
 
     /**
      * Handle query parameters and headers within a remote function.
      */
     public void handleQueryParamsAndHeaders(AsyncApi25SchemaImpl querySchema, AsyncApi25SchemaImpl headerSchema,
-                                            List<StatementNode> statementsList,boolean initalized) throws BallerinaAsyncApiException {
+                                            List<StatementNode> statementsList, boolean initalized) throws BallerinaAsyncApiException {
 
 //        boolean combinationOfApiKeyAndHTTPOAuth = ballerinaAuthConfigGenerator.isHttpOROAuth() &&
 //                ballerinaAuthConfigGenerator.isHttpApiKey();
@@ -1115,16 +1089,16 @@ public class BallerinaClientGenerator {
 //            addUpdatedPathAndHeaders(statementsList, queryApiKeyNameList, queryParameters,
 //                    headerApiKeyNameList, headerParameters);
 //        } else {
-        if (querySchema.getProperties()!=null) {
+        if (querySchema.getProperties() != null) {
             ballerinaUtilGenerator.setQueryParamsFound(true);
             statementsList.add(getMapForParameters(querySchema, "map<anydata>",
                     QUERY_PARAM));
             ExpressionStatementNode updatedPath;
-            if(initalized) {
+            if (initalized) {
                 updatedPath = GeneratorUtils.getSimpleExpressionStatementNode(
                         "string " + MODIFIED_URL + " = " + SERVICE_URL + " + check getPathForQueryParam(queryParam)");
 
-            }else{
+            } else {
                 updatedPath = GeneratorUtils.getSimpleExpressionStatementNode(
                         MODIFIED_URL + " = " + MODIFIED_URL + " + check getPathForQueryParam(queryParam)");
 
@@ -1132,7 +1106,7 @@ public class BallerinaClientGenerator {
             statementsList.add(updatedPath);
 
         }
-        if (headerSchema.getProperties()!=null) {
+        if (headerSchema.getProperties() != null) {
             statementsList.add(getMapForParameters(headerSchema, "map<string>",
                     HEADER_PARAM));
             statementsList.add(GeneratorUtils.getSimpleExpressionStatementNode(
@@ -1147,8 +1121,6 @@ public class BallerinaClientGenerator {
     }
 
 
-
-
     /**
      * Generate map variable for query parameters and headers.
      */
@@ -1160,13 +1132,13 @@ public class BallerinaClientGenerator {
         CaptureBindingPatternNode bindingPattern = createCaptureBindingPatternNode(
                 createIdentifierToken(mapName));
         TypedBindingPatternNode bindingPatternNode = createTypedBindingPatternNode(mapType, bindingPattern);
-        Map<String, Schema> properties=parameters.getProperties();
-        for (Map.Entry<String , Schema> entry : properties.entrySet() ) {
+        Map<String, Schema> properties = parameters.getProperties();
+        for (Map.Entry<String, Schema> entry : properties.entrySet()) {
             // Initializer
             IdentifierToken fieldName = createIdentifierToken('"' + (entry.getKey().trim()) + '"');
             Token colon = createToken(COLON_TOKEN);
             SimpleNameReferenceNode valueExpr = createSimpleNameReferenceNode(
-                    createIdentifierToken("queryParams."+getValidName(entry.getKey().trim(), false)));
+                    createIdentifierToken("queryParams." + getValidName(entry.getKey().trim(), false)));
             SpecificFieldNode specificFieldNode = createSpecificFieldNode(null,
                     fieldName, colon, valueExpr);
             filedOfMap.add(specificFieldNode);
@@ -1189,7 +1161,7 @@ public class BallerinaClientGenerator {
      * ex:
      * <pre> string  path = string `/weather`; </pre>
      *
-     * @param path            - Given path
+     * @param path - Given path
      * @return - VariableDeclarationNode for path statement.
      */
     private VariableDeclarationNode getPathStatement(String path) {
@@ -1203,15 +1175,14 @@ public class BallerinaClientGenerator {
         //String path generator
         NodeList<Node> content = createNodeList(createLiteralValueToken(null, path, createEmptyMinutiaeList(),
                 createEmptyMinutiaeList()));
-        SimpleNameReferenceNode LHSExpr= createSimpleNameReferenceNode(createIdentifierToken(SERVICE_URL));
+        SimpleNameReferenceNode LHSExpr = createSimpleNameReferenceNode(createIdentifierToken(SERVICE_URL));
         TemplateExpressionNode RHSExpr = createTemplateExpressionNode(null, createToken(STRING_KEYWORD),
                 createToken(BACKTICK_TOKEN), content, createToken(BACKTICK_TOKEN));
-        BinaryExpressionNode initializer= createBinaryExpressionNode(null,LHSExpr,createToken(PLUS_TOKEN),RHSExpr);
+        BinaryExpressionNode initializer = createBinaryExpressionNode(null, LHSExpr, createToken(PLUS_TOKEN), RHSExpr);
 
         return createVariableDeclarationNode(createEmptyNodeList(), null,
                 typedBindingPatternNode, createToken(EQUAL_TOKEN), initializer, createToken(SEMICOLON_TOKEN));
     }
-
 
 
     /**
@@ -1230,7 +1201,7 @@ public class BallerinaClientGenerator {
                 String pathVariable = path.substring(m.start(), m.end());
                 if (pathVariable.startsWith("{") && pathVariable.endsWith("}")) {
                     String d = pathVariable.replace("{", "").replace("}", "");
-                    String replaceVariable = "{getEncodedUri(" + "pathParams."+getValidName(d, false) + ")}";
+                    String replaceVariable = "{getEncodedUri(" + "pathParams." + getValidName(d, false) + ")}";
                     refinedPath = refinedPath.replace(pathVariable, replaceVariable);
                 }
             }
@@ -1247,18 +1218,18 @@ public class BallerinaClientGenerator {
      * @return {@link FunctionSignatureNode}
      * @throws BallerinaAsyncApiException When invalid server URL is provided
      */
-    private FunctionSignatureNode getInitFunctionSignatureNode(ArrayList initMetaDataNode,AsyncApi25SchemaImpl querySchema,  AsyncApi25SchemaImpl headerSchema)
+    private FunctionSignatureNode getInitFunctionSignatureNode(ArrayList initMetaDataNode, AsyncApi25SchemaImpl querySchema, AsyncApi25SchemaImpl headerSchema)
             throws BallerinaAsyncApiException {
         //string serviceUrl = "ws://localhost:9090/payloadV"
         serverURL = getServerURL((AsyncApi25ServersImpl) asyncAPI.getServers());
 
         List<Node> parameters = new ArrayList<>();
 
-       AsyncApiChannelItem channelItem= asyncAPI.getChannels().getItems().get(0);
+        AsyncApiChannelItem channelItem = asyncAPI.getChannels().getItems().get(0);
         //set pathParams,queryParams,headerParams
-       ballerinaAuthConfigGenerator.setFunctionParameters(channelItem, parameters, createToken(COMMA_TOKEN),
-                initMetaDataNode,querySchema,headerSchema);
-        ballerinaAuthConfigGenerator.getConfigParamForClassInit(serverURL, initMetaDataNode,parameters);
+        ballerinaAuthConfigGenerator.setFunctionParameters(channelItem, parameters, createToken(COMMA_TOKEN),
+                initMetaDataNode, querySchema, headerSchema);
+        ballerinaAuthConfigGenerator.getConfigParamForClassInit(serverURL, initMetaDataNode, parameters);
         SeparatedNodeList<ParameterNode> parameterList = createSeparatedNodeList(parameters);
 
         //error?
@@ -1321,7 +1292,7 @@ public class BallerinaClientGenerator {
         List<ObjectFieldNode> fieldNodeList = new ArrayList<>();
         Token privateKeywordToken = createToken(PRIVATE_KEYWORD);
         Token finalKeywordToken = createToken(FINAL_KEYWORD);
-        ArrayList<Token> prefixTokens=new ArrayList<>();
+        ArrayList<Token> prefixTokens = new ArrayList<>();
         prefixTokens.add(privateKeywordToken);
         prefixTokens.add(finalKeywordToken);
         NodeList<Token> qualifierList = createNodeList(prefixTokens);
@@ -1362,13 +1333,10 @@ public class BallerinaClientGenerator {
                 qualifierList, pipesTypeName, pipesFieldName, null, null, createToken(SEMICOLON_TOKEN));
 
 
-
-
         fieldNodeList.add(websocketClientField);
         fieldNodeList.add(writeMessageQueueClientField);
         fieldNodeList.add(readMessageQueueClientField);
         fieldNodeList.add(pipesField);
-
 
 
         // add apiKey instance variable when API key security schema is given
@@ -1390,7 +1358,7 @@ public class BallerinaClientGenerator {
      */
     private List<FunctionDefinitionNode> createRemoteFunctions(Map<String, AsyncApiMessage> messages, List<MatchClauseNode> matchStatementList)
             throws BallerinaAsyncApiException {
-        String dispatcherStreamId="id";
+        String dispatcherStreamId = "id";
 
 //        List<String> filterTags = filter.getTags();
 //        List<String> filterOperations = filter.getOperations();
@@ -1399,7 +1367,7 @@ public class BallerinaClientGenerator {
         Set<Map.Entry<String, AsyncApiMessage>> messageItems = messages.entrySet();
 
 //        int count=1;
-        Map<String, Schema> schemas=asyncAPI.getComponents().getSchemas();
+        Map<String, Schema> schemas = asyncAPI.getComponents().getSchemas();
 //        AsyncApi25SchemaImpl errorSchema=new AsyncApi25SchemaImpl();
 //        errorSchema.setType("object");
 //        AsyncApi25SchemaImpl stringSchema=new AsyncApi25SchemaImpl();
@@ -1407,8 +1375,8 @@ public class BallerinaClientGenerator {
 //        errorSchema.addProperty("id",stringSchema);
 //        errorSchema.addProperty("type",stringSchema);
 ////        schemas.put("Error",errorSchema);
-        ArrayList requestMessages= new ArrayList();
-        if(schemas.containsKey("Error")) {
+        ArrayList requestMessages = new ArrayList();
+        if (schemas.containsKey("Error")) {
             AsyncApi25MessageImpl errorMessage = new AsyncApi25MessageImpl();
 //        $ref: '#/components/messages/PongMessage';
             ObjectNode objectNode = new ObjectNode(JsonNodeFactory.instance);
@@ -1417,7 +1385,7 @@ public class BallerinaClientGenerator {
             errorMessage.addExtension(X_RESPONSE_TYPE, new TextNode("simple-rpc"));
             messages.put("Error", errorMessage);
         }
-
+        int count = 0;
         for (Map.Entry<String, AsyncApiMessage> messageItem : messageItems) {
             Map<String, JsonNode> extensions = ((AsyncApi25MessageImpl) messageItem.getValue()).getExtensions();
             if (extensions != null && extensions.get(X_RESPONSE) != null) {
@@ -1425,17 +1393,16 @@ public class BallerinaClientGenerator {
                 String messageName = messageItem.getKey();
 //                JsonNode ref=extensions.get(X_RESPONSE).get(PAYLOAD);
                 FunctionDefinitionNode functionDefinitionNode =
-                         getClientMethodFunctionDefinitionNode(messageName,messageValue, extensions,schemas,matchStatementList);
+                        getClientMethodFunctionDefinitionNode(messageName, messageValue, extensions, schemas, matchStatementList);
                 functionDefinitionNodeList.add(functionDefinitionNode);
                 requestMessages.add(messageItem.getKey());
-//                count+=1;
+//
             }
         }
 
-
-        List<AsyncApiMessage> publishMessages= asyncAPI.getChannels().getItems().get(0).getPublish().
+        List<AsyncApiMessage> publishMessages = asyncAPI.getChannels().getItems().get(0).getPublish().
                 getMessage().getOneOf();
-        if(publishMessages!=null) {
+        if (publishMessages != null) {
             ListIterator<AsyncApiMessage> remainingPublishMessages = publishMessages.listIterator();
             for (ListIterator<AsyncApiMessage> it = remainingPublishMessages; it.hasNext(); ) {
                 AsyncApi25MessageImpl message = (AsyncApi25MessageImpl) it.next();
@@ -1444,13 +1411,12 @@ public class BallerinaClientGenerator {
                 if (!requestMessages.contains(type)) {
                     FunctionDefinitionNode functionDefinitionNode =
                             getClientMethodFunctionDefinitionNode(type, (AsyncApi25MessageImpl) messages.get(type), null,
-                                   schemas,null);
+                                    schemas, null);
                     functionDefinitionNodeList.add(functionDefinitionNode);
                 }
 
             }
         }
-
 
 
 //        for(Map.Entry<String, HashMap<String,String>> key:responseMap.entrySet()){
@@ -1680,12 +1646,13 @@ public class BallerinaClientGenerator {
 //     *     }
 //     * </pre>
 //     */
-    private FunctionDefinitionNode getClientMethodFunctionDefinitionNode(String messageName,AsyncApi25MessageImpl messageValue,
-                                                                         Map<String, JsonNode> extensions,Map<String, Schema> schemas, List<MatchClauseNode> matchStatementList)
+    private FunctionDefinitionNode getClientMethodFunctionDefinitionNode(String messageName, AsyncApi25MessageImpl messageValue,
+                                                                         Map<String, JsonNode> extensions, Map<String, Schema> schemas,
+                                                                         List<MatchClauseNode> matchStatementList)
             throws BallerinaAsyncApiException {
         // Create api doc for function
 
-        String dispatcherStreamId="id";
+        String dispatcherStreamId = "id";
         List<Node> remoteFunctionDocs = new ArrayList<>();
 
 
@@ -1730,21 +1697,36 @@ public class BallerinaClientGenerator {
         // Create Function Body
         FunctionBodyGenerator functionBodyGenerator = new FunctionBodyGenerator(imports, typeDefinitionNodeList,
                 asyncAPI, ballerinaSchemaGenerator, ballerinaAuthConfigGenerator, ballerinaUtilGenerator, resourceMode);
-        RequiredParameterNode parameterNode= ((RequiredParameterNode) functionSignatureNode.parameters().get(0));
+        RequiredParameterNode parameterNode = ((RequiredParameterNode) functionSignatureNode.parameters().get(0));
 //        String schemaType=parameterNode.typeName().toString();
 //        String paramName=parameterNode.paramName().get().toString();
 
-       AsyncApi25SchemaImpl schema= (AsyncApi25SchemaImpl) schemas.get(messageName);
-       if(!schema.getProperties().containsKey(dispatcherStreamId)){
+        AsyncApi25SchemaImpl schema = (AsyncApi25SchemaImpl) schemas.get(messageName);
 
-           dispatcherStreamId=null;
-       }
+        //Check if the schema has dispatcherStreamId
+        if (!schema.getProperties().containsKey(dispatcherStreamId)) {
+
+            //If no dispatcherStreamId found
+            dispatcherStreamId = null;
+
+
+        } else {
+            //If found at least one dispatcherStreamId
+            ImportDeclarationNode importForUUID = GeneratorUtils.getImportDeclarationNode(GeneratorConstants.BALLERINA
+                    , UUID);
+            if (!imports.get(imports.size() - 1).moduleName().get(0).text().equals(UUID)) {
+                imports.add(importForUUID);
+
+
+            }
+
+        }
 //       boolean isDispatcherStreamId=schema.getProperties().containsKey(dispatcherStreamId);
         char requestTypeFirstChar = Character.toLowerCase(messageName.charAt(0)); // Lowercase the first character
         String requestRemainingString = messageName.substring(1);
-        String requestTypeCamelCaseName=requestTypeFirstChar+requestRemainingString;
+        String requestTypeCamelCaseName = requestTypeFirstChar + requestRemainingString;
         FunctionBodyNode functionBodyNode = functionBodyGenerator.getFunctionBodyNode(extensions,
-                requestTypeCamelCaseName,dispatcherStreamId,matchStatementList);
+                requestTypeCamelCaseName, dispatcherStreamId, matchStatementList);
         imports = functionBodyGenerator.getImports();
 
         //Generate relative path

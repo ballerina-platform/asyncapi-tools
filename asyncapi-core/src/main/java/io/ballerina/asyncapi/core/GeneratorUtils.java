@@ -116,7 +116,7 @@ public class GeneratorUtils {
     public static final MinutiaeList SINGLE_END_OF_LINE_MINUTIAE = getEndOfLineMinutiae();
 //    private static final Logger LOGGER = LoggerFactory.getLogger(BallerinaUtilGenerator.class);
 
-    //Create import ballerina/websocket;
+    //Create imports;
     public static ImportDeclarationNode getImportDeclarationNode(String orgName, String moduleName) {
 
         Token importKeyword = AbstractNodeFactory.createIdentifierToken("import", SINGLE_WS_MINUTIAE,

@@ -885,46 +885,7 @@ public class FunctionBodyGenerator {
      */
     private void createSimpleRPCFunctionBodyStatements(List<StatementNode> statementsList, String requestType,
                                                        String responseType, String dispatcherStreamId, List<MatchClauseNode> matchStatementList) {
-//
-//        String clientReadStatement;
-//
-//        // This condition for several methods.
-//        boolean isEntityBodyMethods = method.equals(POST) || method.equals(PUT) || method.equals(PATCH)
-//                || method.equals(EXECUTE);
-//        if (isHeader) {
-//            if (isEntityBodyMethods) {
-//                ExpressionStatementNode requestStatementNode = GeneratorUtils.getSimpleExpressionStatementNode(
-//                        "http:Request request = new");
-//                statementsList.add(requestStatementNode);
-//                ExpressionStatementNode expressionStatementNode = GeneratorUtils.getSimpleExpressionStatementNode(
-//                        "//TODO: Update the request as needed");
-//                statementsList.add(expressionStatementNode);
-//                clientReadStatement = "check self.clientEp->" + method + "(" + RESOURCE_PATH +
-//                        ", request, " + HTTP_HEADERS + ")";
-//            } else if (method.equals(DELETE)) {
-//                clientReadStatement = "check self.clientEp->" + method + "(" + RESOURCE_PATH +
-//                        ", headers = " + HTTP_HEADERS + ")";
-//            } else if (method.equals(HEAD)) {
-//                clientReadStatement = "check self.clientEp->" + method + "(" + RESOURCE_PATH + ", " +
-//                        HTTP_HEADERS + ")";
-//            } else {
-//                clientReadStatement = "check self.clientEp->" + method + "(" + RESOURCE_PATH + ", " +
-//                        HTTP_HEADERS + ")";
-//            }
-//        } else if (method.equals(DELETE)) {
-//            clientReadStatement = "check self.clientEp-> " + method + "(" + RESOURCE_PATH + ")";
-//        } else if (isEntityBodyMethods) {
-//            ExpressionStatementNode requestStatementNode = GeneratorUtils.getSimpleExpressionStatementNode(
-//                    "http:Request request = new");
-//            statementsList.add(requestStatementNode);
-//            ExpressionStatementNode expressionStatementNode = GeneratorUtils.getSimpleExpressionStatementNode(
-//                    "//TODO: Update the request as needed");
-//            statementsList.add(expressionStatementNode);
-//            clientReadStatement = "check self.clientEp-> " + method + "(" + RESOURCE_PATH + ", request)";
-//        } else {
 
-
-//        String dispatcherStreamId="id";
 
 
         //requestType substring
@@ -982,7 +943,11 @@ public class FunctionBodyGenerator {
         statementsList.add(remotePipeTypeEnsureStatement);
 
         //tuple["id"] = id;
+
         createCommentStatementsForDispatcherId(statementsList, requestType,dispatcherStreamId, requestTypePipe);
+
+
+        //Create pipes using request Type names when there is no dispatcherStreamId
         if(dispatcherStreamId==null){
             ArrayList<StatementNode> statementNodes=new ArrayList<>();
 //                NodeList<StatementNode> statementNodes=createNodeList(matchStatementNode);
@@ -992,7 +957,7 @@ public class FunctionBodyGenerator {
             IndexedExpressionNode selfPipes=createIndexedExpressionNode(createFieldAccessExpressionNode(
                             createSimpleNameReferenceNode(createIdentifierToken(SELF)), createToken(DOT_TOKEN),
                             createSimpleNameReferenceNode(createIdentifierToken(PIPES))), openBracketToken,
-                    createSeparatedNodeList(createSimpleNameReferenceNode(createIdentifierToken(requestType))),
+                    createSeparatedNodeList(createSimpleNameReferenceNode(createIdentifierToken("\""+requestType+"\""))),
                     closeBracketToken);
             MethodCallExpressionNode methodCallExpressionNode= createMethodCallExpressionNode(selfPipes, dotToken,
                     createSimpleNameReferenceNode(createIdentifierToken(ENSURE_TYPE)),
@@ -1171,6 +1136,7 @@ public class FunctionBodyGenerator {
 
 
         ArrayList<StatementNode> lockStatements=new ArrayList<>();
+        //Create remote function body when dispatcherStreamId is present
         if(dispatcherStreamId!=null) {
             SimpleNameReferenceNode dispatcherStreamIdNode= createSimpleNameReferenceNode(createIdentifierToken(dispatcherStreamId));
             //string id;
@@ -1225,7 +1191,7 @@ public class FunctionBodyGenerator {
             IndexedExpressionNode remoteSelfPipes=createIndexedExpressionNode(createFieldAccessExpressionNode(
                             createSimpleNameReferenceNode(createIdentifierToken(SELF)), dotToken,
                             createSimpleNameReferenceNode(createIdentifierToken("pipes"))), openBracketToken,
-                    createSeparatedNodeList(createSimpleNameReferenceNode(createIdentifierToken("\""+ requestTypePipe +"\""))),
+                    createSeparatedNodeList(createSimpleNameReferenceNode(createIdentifierToken("\""+ requestType +"\""))),
                     closeBracketToken);
             AssignmentStatementNode selfPipesAssignmentStatementNode = createAssignmentStatementNode(remoteSelfPipes,
                     equalToken, requestypePipeNode, semicolonToken);
