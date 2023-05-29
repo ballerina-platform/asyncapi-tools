@@ -18,9 +18,9 @@ isolated class StreamGenerator{
 
     # Next method to return next stream message
     public isolated function next() returns record {|NextMessage|CompleteMessage|ErrorMessage value;|}|error?{
-        anydata responseMessage = check self.pipe.consume(self.timeout);
-        NextMessage|CompleteMessage|ErrorMessage response = check responseMessage.cloneWithType();
-        return {value: response};
+       anydata responseMessage = check self.pipe.consume(self.timeout);
+       NextMessage|CompleteMessage|ErrorMessage response = check responseMessage.cloneWithType();
+       return {value: response};
     }
 }
 

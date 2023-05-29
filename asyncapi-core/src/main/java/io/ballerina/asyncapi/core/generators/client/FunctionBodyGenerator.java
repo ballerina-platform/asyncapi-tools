@@ -25,10 +25,9 @@ import io.ballerina.asyncapi.core.GeneratorConstants;
 import io.ballerina.asyncapi.core.exception.BallerinaAsyncApiException;
 import io.ballerina.asyncapi.core.generators.schema.BallerinaTypesGenerator;
 import io.ballerina.compiler.syntax.tree.AnnotationNode;
-import io.ballerina.compiler.syntax.tree.ArrayTypeDescriptorNode;
 import io.ballerina.compiler.syntax.tree.AssignmentStatementNode;
-import io.ballerina.compiler.syntax.tree.BlockStatementNode;
 import io.ballerina.compiler.syntax.tree.CheckExpressionNode;
+import io.ballerina.compiler.syntax.tree.ExpressionNode;
 import io.ballerina.compiler.syntax.tree.ExpressionStatementNode;
 import io.ballerina.compiler.syntax.tree.FieldAccessExpressionNode;
 import io.ballerina.compiler.syntax.tree.FunctionArgumentNode;
@@ -51,27 +50,28 @@ import io.ballerina.compiler.syntax.tree.SimpleNameReferenceNode;
 import io.ballerina.compiler.syntax.tree.StatementNode;
 import io.ballerina.compiler.syntax.tree.StreamTypeDescriptorNode;
 import io.ballerina.compiler.syntax.tree.StreamTypeParamsNode;
+import io.ballerina.compiler.syntax.tree.SyntaxKind;
 import io.ballerina.compiler.syntax.tree.Token;
 import io.ballerina.compiler.syntax.tree.TypeDefinitionNode;
 import io.ballerina.compiler.syntax.tree.VariableDeclarationNode;
-import io.ballerina.compiler.syntax.tree.WhileStatementNode;
 
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
 import static io.ballerina.asyncapi.core.GeneratorConstants.CONSUME;
+import static io.ballerina.asyncapi.core.GeneratorConstants.CREATE_TYPE1_AS_STRING;
+import static io.ballerina.asyncapi.core.GeneratorConstants.ENSURE_TYPE;
 import static io.ballerina.asyncapi.core.GeneratorConstants.NILLABLE;
 import static io.ballerina.asyncapi.core.GeneratorConstants.PIPE;
+import static io.ballerina.asyncapi.core.GeneratorConstants.PIPES;
 import static io.ballerina.asyncapi.core.GeneratorConstants.PRODUCE;
 import static io.ballerina.asyncapi.core.GeneratorConstants.RESPONSE_MESSAGE;
 import static io.ballerina.asyncapi.core.GeneratorConstants.RESPONSE_MESSAGE_VAR_NAME;
 import static io.ballerina.asyncapi.core.GeneratorConstants.SELF;
 import static io.ballerina.asyncapi.core.GeneratorConstants.SIMPLE_PIPE;
 import static io.ballerina.asyncapi.core.GeneratorConstants.SERVER_STREAMING;
-import static io.ballerina.asyncapi.core.GeneratorConstants.STRING;
+import static io.ballerina.asyncapi.core.GeneratorConstants.UUID;
 import static io.ballerina.asyncapi.core.GeneratorConstants.WRITE_MESSAGE_QUEUE;
 import static io.ballerina.asyncapi.core.GeneratorConstants.X_RESPONSE;
 import static io.ballerina.asyncapi.core.GeneratorConstants.X_RESPONSE_TYPE;
@@ -80,14 +80,8 @@ import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createIdenti
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createNodeList;
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createSeparatedNodeList;
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createToken;
-import static io.ballerina.compiler.syntax.tree.NodeFactory.createArrayDimensionNode;
-import static io.ballerina.compiler.syntax.tree.NodeFactory.createArrayTypeDescriptorNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createAssignmentStatementNode;
-import static io.ballerina.compiler.syntax.tree.NodeFactory.createBasicLiteralNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createBlockStatementNode;
-import static io.ballerina.compiler.syntax.tree.NodeFactory.createBracedExpressionNode;
-import static io.ballerina.compiler.syntax.tree.NodeFactory.createBreakStatementNode;
-import static io.ballerina.compiler.syntax.tree.NodeFactory.createBuiltinSimpleNameReferenceNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createCheckExpressionNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createExpressionStatementNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createFieldAccessExpressionNode;
@@ -99,7 +93,6 @@ import static io.ballerina.compiler.syntax.tree.NodeFactory.createLockStatementN
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createMatchClauseNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createMatchStatementNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createMethodCallExpressionNode;
-import static io.ballerina.compiler.syntax.tree.NodeFactory.createNamedArgumentNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createParenthesizedArgList;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createPositionalArgumentNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createQualifiedNameReferenceNode;
@@ -110,9 +103,6 @@ import static io.ballerina.compiler.syntax.tree.NodeFactory.createStreamTypeDesc
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createStreamTypeParamsNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createTypedBindingPatternNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createVariableDeclarationNode;
-import static io.ballerina.compiler.syntax.tree.NodeFactory.createWhileStatementNode;
-import static io.ballerina.compiler.syntax.tree.SyntaxKind.BREAK_KEYWORD;
-import static io.ballerina.compiler.syntax.tree.SyntaxKind.CHECK_EXPRESSION;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.CHECK_KEYWORD;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.CLOSE_BRACE_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.CLOSE_BRACKET_TOKEN;
@@ -124,7 +114,6 @@ import static io.ballerina.compiler.syntax.tree.SyntaxKind.EQUAL_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.GT_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.LOCK_KEYWORD;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.LT_TOKEN;
-import static io.ballerina.compiler.syntax.tree.SyntaxKind.MATCH_KEYWORD;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.NEW_KEYWORD;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.OPEN_BRACE_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.OPEN_BRACKET_TOKEN;
@@ -132,9 +121,6 @@ import static io.ballerina.compiler.syntax.tree.SyntaxKind.OPEN_PAREN_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.RIGHT_DOUBLE_ARROW_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.SEMICOLON_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.STREAM_KEYWORD;
-import static io.ballerina.compiler.syntax.tree.SyntaxKind.STREAM_TYPE_DESC;
-import static io.ballerina.compiler.syntax.tree.SyntaxKind.TRUE_KEYWORD;
-import static io.ballerina.compiler.syntax.tree.SyntaxKind.WHILE_KEYWORD;
 
 /**
  * This Util class uses for generating remote function body  {@link FunctionBodyNode}.
@@ -184,9 +170,7 @@ public class FunctionBodyGenerator {
      * @return - {@link FunctionBodyNode}
      * @throws BallerinaAsyncApiException - throws exception if generating FunctionBodyNode fails.
      */
-    public FunctionBodyNode getFunctionBodyNode(Map<String, JsonNode> extensions, String requestType,
-                                                String count, LinkedHashMap<String,
-            HashMap<String,String>> responseMap,boolean isDispatcherStreamId)
+    public FunctionBodyNode getFunctionBodyNode(Map<String, JsonNode> extensions, String requestType, String dispatcherStreamId, List<MatchClauseNode> matchStatementList)
             throws BallerinaAsyncApiException {
 
         NodeList<AnnotationNode> annotationNodes = createEmptyNodeList();
@@ -200,13 +184,8 @@ public class FunctionBodyGenerator {
 //            List<StatementNode> bodyStatements = generateBodyStatementForComplexUrl(path);
 //            statementsList.addAll(bodyStatements);
 //        }
-        //string path - common for every remote functions
-//        VariableDeclarationNode pathInt = getPathStatement(path, annotationNodes);
-//        statementsList.add(pathInt);
+//        string path - common for every remote functions
 
-        //TODO: move this
-        //Handle query parameter map
-//        handleParameterSchemaInOperation(operation, statementsList);
 
 //        String method = operation.getKey().name().trim().toLowerCase(Locale.ENGLISH);
         // This return type for target data type binding.
@@ -217,13 +196,13 @@ public class FunctionBodyGenerator {
 
             String responseType = functionReturnType.getReturnType(x_response,x_response_type);
             if (x_response_type.equals(new TextNode(SERVER_STREAMING))){
-                createStreamFunctionBodyStatements(statementsList, requestType, responseType, count, responseMap, isDispatcherStreamId);
+                createStreamFunctionBodyStatements(statementsList, requestType, responseType, dispatcherStreamId);
 
 
 
             } else {
 //            String returnType = returnTypeForTargetTypeField(rType);
-                createSimpleRPCFunctionBodyStatements(statementsList, requestType, responseType, count, responseMap, isDispatcherStreamId);
+                createSimpleRPCFunctionBodyStatements(statementsList, requestType, responseType, dispatcherStreamId,matchStatementList);
             }
 
         }else{
@@ -244,11 +223,10 @@ public class FunctionBodyGenerator {
     }
 
     private void createStreamFunctionBodyStatements(List<StatementNode> statementsList,
-                                                    String requestType, String responseType, String count,
-                                                    LinkedHashMap<String, HashMap<String, String>> responseMap,
-                                                    boolean isDispatcherStreamId) {
+                                                    String requestType, String responseType,
 
-        String dispatcherStreamId="id";
+                                                    String dispatcherStreamId) {
+
         String dispatcherKey="'type";
 
 
@@ -287,18 +265,18 @@ public class FunctionBodyGenerator {
         QualifiedNameReferenceNode pipeTypeCombined = createQualifiedNameReferenceNode(createIdentifierToken(SIMPLE_PIPE),
                 createToken(COLON_TOKEN), createIdentifierToken(GeneratorConstants.CAPITAL_PIPE));
 
-        //tuple["id"] = "1";
-        if(isDispatcherStreamId) {
-            IndexedExpressionNode requestTypeVarRef = createIndexedExpressionNode(createSimpleNameReferenceNode(createIdentifierToken(requestType)), openBracketToken,
-                    createSeparatedNodeList(createSimpleNameReferenceNode(createIdentifierToken("\"" + dispatcherStreamId + "\""))),
-                    closeBracketToken);
-            AssignmentStatementNode idValueAssignmentStatementNode = createAssignmentStatementNode(requestTypeVarRef,
-                    equalToken, createSimpleNameReferenceNode(createIdentifierToken("\"" + count + "\"")), semicolonToken);
-            statementsList.add(idValueAssignmentStatementNode);
+//        //tuple["id"] = "1";
+//        if(isDispatcherStreamId) {
+//            IndexedExpressionNode requestTypeVarRef = createIndexedExpressionNode(createSimpleNameReferenceNode(createIdentifierToken(requestType)), openBracketToken,
+//                    createSeparatedNodeList(createSimpleNameReferenceNode(createIdentifierToken("\"" + dispatcherStreamId + "\""))),
+//                    closeBracketToken);
+//            AssignmentStatementNode idValueAssignmentStatementNode = createAssignmentStatementNode(requestTypeVarRef,
+//                    equalToken, createSimpleNameReferenceNode(createIdentifierToken("\"" + count + "\"")), semicolonToken);
+//            statementsList.add(idValueAssignmentStatementNode);
+//
+//        }
 
-        }
-
-        //pipe:Pipe tuplePipe = new (1);
+        //pipe:Pipe tuplePipe = new (10000);
         List<Node> argumentsList = new ArrayList<>();
         argumentsList.add(createIdentifierToken("10000"));
         SeparatedNodeList<FunctionArgumentNode> arguments = createSeparatedNodeList(argumentsList);
@@ -316,17 +294,19 @@ public class FunctionBodyGenerator {
         statementsList.add(remotePipeTypeEnsureStatement);
 
 
-        //self.pipes["tuplePipe"] = tuplePipe;
-        IndexedExpressionNode remoteSelfPipes=createIndexedExpressionNode(createFieldAccessExpressionNode(
-                        createSimpleNameReferenceNode(createIdentifierToken(SELF)), dotToken,
-                        createSimpleNameReferenceNode(createIdentifierToken("pipes"))),openBracketToken,
-                createSeparatedNodeList(createSimpleNameReferenceNode(createIdentifierToken("\""+requestTypePipe+"\""))),
-                closeBracketToken);
-        AssignmentStatementNode selfPipesAssignmentStatementNode = createAssignmentStatementNode(remoteSelfPipes,
-                equalToken,requestTypePipeNode, semicolonToken);
-        statementsList.add(selfPipesAssignmentStatementNode);
+//        //self.pipes["tuplePipe"] = tuplePipe;
+//        IndexedExpressionNode remoteSelfPipes=createIndexedExpressionNode(createFieldAccessExpressionNode(
+//                        createSimpleNameReferenceNode(createIdentifierToken(SELF)), dotToken,
+//                        createSimpleNameReferenceNode(createIdentifierToken("pipes"))),openBracketToken,
+//                createSeparatedNodeList(createSimpleNameReferenceNode(createIdentifierToken("\""+requestTypePipe+"\""))),
+//                closeBracketToken);
+//        AssignmentStatementNode selfPipesAssignmentStatementNode = createAssignmentStatementNode(remoteSelfPipes,
+//                equalToken,requestTypePipeNode, semicolonToken);
+//        statementsList.add(selfPipesAssignmentStatementNode);
 
         PositionalArgumentNode responseTypeTimeOut = createPositionalArgumentNode(createRequiredExpressionNode(createIdentifierToken("timeout")));
+        createCommentStatementsForDispatcherId(statementsList, requestType,dispatcherStreamId, requestTypePipe);
+
 
         if(!requestType.equals("error")) {
             // check self.writeMessageQueue.produce(tuple, timeout);
@@ -348,6 +328,7 @@ public class FunctionBodyGenerator {
         }
         SimpleNameReferenceNode responseMessageTypeName =createSimpleNameReferenceNode(createIdentifierToken(RESPONSE_MESSAGE));
 
+
 //
 //        // ResponseMessage[] responseMessageArray = [];
 //        SimpleNameReferenceNode responseMessageArrayNode = createSimpleNameReferenceNode(createIdentifierToken("responseMessageArray"));
@@ -367,7 +348,7 @@ public class FunctionBodyGenerator {
         //  ResponseMessage responseMessage = check subscribeMessagePipe.consume(timeout);
 //        responseNameNode;
 ////        if(!requestType.equals("error")) {
-        SimpleNameReferenceNode responseNameNode = createSimpleNameReferenceNode(createIdentifierToken(responseType));
+        SimpleNameReferenceNode responseNameNode = createSimpleNameReferenceNode(createIdentifierToken(responseType+",error?"));
        SimpleNameReferenceNode streamMessageNode= createSimpleNameReferenceNode(createIdentifierToken("streamMessages"));
 ////        }else{
 ////            responseNameNode = createSimpleNameReferenceNode(createIdentifierToken(responseTypeCamelCaseName+"Message"));
@@ -518,7 +499,7 @@ public class FunctionBodyGenerator {
 
 
 
-        HashMap requestTypes;
+//        HashMap requestTypes;
 //        if(responseType.contains(PIPE)){
 //            String[] unionResponses=responseType.split("\\"+PIPE);
 //            for(String response:unionResponses){
@@ -533,15 +514,15 @@ public class FunctionBodyGenerator {
 //            }
 //        }
 //        else {
-            if (responseMap.get(responseType) != null) {
-                requestTypes = responseMap.get(responseType);
-                requestTypes.put(requestType,count);
-            } else {
-                requestTypes = new LinkedHashMap();
-                requestTypes.put(requestType,count);
-            }
-            responseMap.put(responseType, requestTypes);
-//        }
+//            if (responseMap.get(responseType) != null) {
+//                requestTypes = responseMap.get(responseType);
+//                requestTypes.put(requestType,count);
+//            } else {
+//                requestTypes = new LinkedHashMap();
+//                requestTypes.put(requestType,count);
+//            }
+//            responseMap.put(responseType, requestTypes);
+////        }
 
 
 
@@ -660,76 +641,7 @@ public class FunctionBodyGenerator {
 //        }
 //    }
 
-//    /**
-//     * Generate statements for query parameters and headers.
-//     */
-//    private void handleParameterSchemaInOperation(Map.Entry<PathItem.HttpMethod, Operation> operation,
-//                                                  List<StatementNode> statementsList)
-//                                                  throws BallerinaAsyncApiException {
-//
-//        List<String> queryApiKeyNameList = new ArrayList<>();
-//        List<String> headerApiKeyNameList = new ArrayList<>();
-//
-//        Set<String> securitySchemesAvailable = getSecurityRequirementForOperation(operation.getValue());
-//
-//        if (securitySchemesAvailable.size() > 0) {
-//            Map<String, String> queryApiKeyMap = ballerinaAuthConfigGenerator.getQueryApiKeyNameList();
-//            Map<String, String> headerApiKeyMap = ballerinaAuthConfigGenerator.getHeaderApiKeyNameList();
-//            for (String schemaName : securitySchemesAvailable) {
-//                if (queryApiKeyMap.containsKey(schemaName)) {
-//                    queryApiKeyNameList.add(queryApiKeyMap.get(schemaName));
-//                } else if (headerApiKeyMap.containsKey(schemaName)) {
-//                    headerApiKeyNameList.add(headerApiKeyMap.get(schemaName));
-//                }
-//            }
-//        }
-//
-//        List<Parameter> queryParameters = new ArrayList<>();
-//        List<Parameter> headerParameters = new ArrayList<>();
-//
-//        if (operation.getValue().getParameters() != null) {
-//            List<Parameter> parameters = operation.getValue().getParameters();
-//            for (Parameter parameter : parameters) {
-//                if (parameter.getIn().trim().equals(QUERY)) {
-//                    queryParameters.add(parameter);
-//                } else if (parameter.getIn().trim().equals(HEADER)) {
-//                    headerParameters.add(parameter);
-//                }
-//            }
-//        }
-//        handleQueryParamsAndHeaders(queryParameters, headerParameters, statementsList, queryApiKeyNameList,
-//                headerApiKeyNameList);
-//    }
 
-//    /**
-//     * Handle query parameters and headers within a remote function.
-//     */
-//    public void handleQueryParamsAndHeaders(List<Parameter> queryParameters, List<Parameter> headerParameters,
-//                                            List<StatementNode> statementsList, List<String> queryApiKeyNameList,
-//                                            List<String> headerApiKeyNameList) throws BallerinaAsyncApiException {
-//
-//        boolean combinationOfApiKeyAndHTTPOAuth = ballerinaAuthConfigGenerator.isHttpOROAuth() &&
-//                ballerinaAuthConfigGenerator.isHttpApiKey();
-//        if (combinationOfApiKeyAndHTTPOAuth) {
-//            addUpdatedPathAndHeaders(statementsList, queryApiKeyNameList, queryParameters,
-//                    headerApiKeyNameList, headerParameters);
-//        } else {
-//            if (!queryParameters.isEmpty() || !queryApiKeyNameList.isEmpty()) {
-//                ballerinaUtilGenerator.setQueryParamsFound(true);
-//                statementsList.add(getMapForParameters(queryParameters, "map<anydata>",
-//                        QUERY_PARAM, queryApiKeyNameList));
-//                getUpdatedPathHandlingQueryParamEncoding(statementsList, queryParameters);
-//            }
-//            if (!headerParameters.isEmpty() || !headerApiKeyNameList.isEmpty()) {
-//                statementsList.add(getMapForParameters(headerParameters, "map<any>",
-//                        HEADER_VALUES, headerApiKeyNameList));
-//                statementsList.add(GeneratorUtils.getSimpleExpressionStatementNode(
-//                        "map<string|string[]> " + HTTP_HEADERS + " = getMapForHeaders(headerValues)"));
-//                isHeader = true;
-//                ballerinaUtilGenerator.setHeadersFound(true);
-//            }
-//        }
-//    }
 
 //    /**
 //     * Generate statements for query parameters and headers when a client supports both ApiKey and HTTPOrOAuth
@@ -972,7 +884,7 @@ public class FunctionBodyGenerator {
      * Generate common statements in function body.
      */
     private void createSimpleRPCFunctionBodyStatements(List<StatementNode> statementsList, String requestType,
-                                                       String responseType, String count, LinkedHashMap<String,HashMap<String,String>> responseMap, boolean isDispatcherStreamId) {
+                                                       String responseType, String dispatcherStreamId, List<MatchClauseNode> matchStatementList) {
 //
 //        String clientReadStatement;
 //
@@ -1012,7 +924,7 @@ public class FunctionBodyGenerator {
 //        } else {
 
 
-        String dispatcherStreamId="id";
+//        String dispatcherStreamId="id";
 
 
         //requestType substring
@@ -1038,25 +950,19 @@ public class FunctionBodyGenerator {
         Token dotToken =createToken(DOT_TOKEN);
         Token closeParenToken = createToken(CLOSE_PAREN_TOKEN);
         Token openParenToken=createToken(OPEN_PAREN_TOKEN);
+        Token openBraceToken=createToken(OPEN_BRACE_TOKEN);
+        Token closeBraceToken =createToken(CLOSE_BRACE_TOKEN);
+        Token rightDoubleArrow=createToken(RIGHT_DOUBLE_ARROW_TOKEN);
 
 
 
 //
+
         SimpleNameReferenceNode requestTypePipeNode=createSimpleNameReferenceNode(createIdentifierToken(requestTypePipe));
         SimpleNameReferenceNode responseMessageNode=createSimpleNameReferenceNode(createIdentifierToken(RESPONSE_MESSAGE_VAR_NAME));
         QualifiedNameReferenceNode pipeTypeCombined = createQualifiedNameReferenceNode(createIdentifierToken(SIMPLE_PIPE),
                 createToken(COLON_TOKEN), createIdentifierToken(GeneratorConstants.CAPITAL_PIPE));
 
-        //tuple["id"] = "1";
-        if(isDispatcherStreamId) {
-            IndexedExpressionNode requestTypeVarRef = createIndexedExpressionNode(createSimpleNameReferenceNode(createIdentifierToken(requestType)), openBracketToken,
-                    createSeparatedNodeList(createSimpleNameReferenceNode(createIdentifierToken("\"" + dispatcherStreamId + "\""))),
-                    closeBracketToken);
-            AssignmentStatementNode idValueAssignmentStatementNode = createAssignmentStatementNode(requestTypeVarRef,
-                    equalToken, createSimpleNameReferenceNode(createIdentifierToken("\"" + count + "\"")), semicolonToken);
-            statementsList.add(idValueAssignmentStatementNode);
-
-        }
 
         //pipe:Pipe tuplePipe = new (1);
         List<Node> argumentsList = new ArrayList<>();
@@ -1075,16 +981,54 @@ public class FunctionBodyGenerator {
                 equalToken,expressionNode,semicolonToken);
         statementsList.add(remotePipeTypeEnsureStatement);
 
+        //tuple["id"] = id;
+        createCommentStatementsForDispatcherId(statementsList, requestType,dispatcherStreamId, requestTypePipe);
+        if(dispatcherStreamId==null){
+            ArrayList<StatementNode> statementNodes=new ArrayList<>();
+//                NodeList<StatementNode> statementNodes=createNodeList(matchStatementNode);
+            //pipe:Pipe idPipe = check self.pipes[id].ensureType();
+            QualifiedNameReferenceNode pipeTypeName = createQualifiedNameReferenceNode(createIdentifierToken(SIMPLE_PIPE),
+                    createToken(COLON_TOKEN), createIdentifierToken(GeneratorConstants.CAPITAL_PIPE));
+            IndexedExpressionNode selfPipes=createIndexedExpressionNode(createFieldAccessExpressionNode(
+                            createSimpleNameReferenceNode(createIdentifierToken(SELF)), createToken(DOT_TOKEN),
+                            createSimpleNameReferenceNode(createIdentifierToken(PIPES))), openBracketToken,
+                    createSeparatedNodeList(createSimpleNameReferenceNode(createIdentifierToken(requestType))),
+                    closeBracketToken);
+            MethodCallExpressionNode methodCallExpressionNode= createMethodCallExpressionNode(selfPipes, dotToken,
+                    createSimpleNameReferenceNode(createIdentifierToken(ENSURE_TYPE)),
+                    openParenToken,createSeparatedNodeList(), closeParenToken);
 
-        //self.pipes["tuplePipe"] = tuplePipe;
-        IndexedExpressionNode remoteSelfPipes=createIndexedExpressionNode(createFieldAccessExpressionNode(
-                        createSimpleNameReferenceNode(createIdentifierToken(SELF)), dotToken,
-                        createSimpleNameReferenceNode(createIdentifierToken("pipes"))),openBracketToken,
-                createSeparatedNodeList(createSimpleNameReferenceNode(createIdentifierToken("\""+requestTypePipe+"\""))),
-                closeBracketToken);
-        AssignmentStatementNode selfPipesAssignmentStatementNode = createAssignmentStatementNode(remoteSelfPipes,
-               equalToken,requestTypePipeNode, semicolonToken);
-        statementsList.add(selfPipesAssignmentStatementNode);
+            CheckExpressionNode selfPipeCheck=createCheckExpressionNode(null,createToken(CHECK_KEYWORD),
+                    methodCallExpressionNode);
+            SimpleNameReferenceNode responseTypePipeNode=createSimpleNameReferenceNode(createIdentifierToken(dispatcherStreamId +"Pipe"));
+            VariableDeclarationNode pipeTypeEnsureStatement= createVariableDeclarationNode(createEmptyNodeList(),null,
+                    createTypedBindingPatternNode(
+                            pipeTypeName,
+                            createFieldBindingPatternVarnameNode(responseTypePipeNode)),
+                    equalToken,selfPipeCheck, semicolonToken);
+            statementNodes.add(pipeTypeEnsureStatement);
+
+            List<Node> nodes=new ArrayList<>();
+            nodes.add(responseMessageNode);
+            nodes.add(createToken(COMMA_TOKEN));
+            nodes.add(createIdentifierToken("5"));
+            MethodCallExpressionNode pipeProduceExpressionNode= createMethodCallExpressionNode(requestTypePipeNode, dotToken,
+                    createSimpleNameReferenceNode(createIdentifierToken(PRODUCE)),
+                    openParenToken,createSeparatedNodeList(nodes), closeParenToken);
+
+            CheckExpressionNode pipeProduceCheck=createCheckExpressionNode(null,createToken(CHECK_KEYWORD),
+                    pipeProduceExpressionNode);
+            ExpressionStatementNode pipeProduceExpression= createExpressionStatementNode(null,
+                    pipeProduceCheck,createToken(SEMICOLON_TOKEN));
+            statementNodes.add(pipeProduceExpression);
+
+
+            MatchClauseNode matchClauseNode=createMatchClauseNode(createSeparatedNodeList(
+                            createIdentifierToken("\""+responseType+"\"")),null,rightDoubleArrow,
+                    createBlockStatementNode(openBraceToken,createNodeList(statementNodes),closeBraceToken));
+            matchStatementList.add(matchClauseNode);
+        }
+
 
         PositionalArgumentNode responseTypeTimeOut = createPositionalArgumentNode(createRequiredExpressionNode(createIdentifierToken("timeout")));
 
@@ -1108,8 +1052,10 @@ public class FunctionBodyGenerator {
         }
 
 
-        // User user = check tuplePipe.consume(timeout);
+        // anydata user = check tuplePipe.consume(timeout);
         SimpleNameReferenceNode responseTypeName =createSimpleNameReferenceNode(createIdentifierToken(responseType));
+        SimpleNameReferenceNode anydata =createSimpleNameReferenceNode(createIdentifierToken("anydata"));
+        SimpleNameReferenceNode responseMessageVarNode =createSimpleNameReferenceNode(createIdentifierToken("responseMessage"));
         SimpleNameReferenceNode responseNameNode;
         if(!requestType.equals("error")) {
            responseNameNode = createSimpleNameReferenceNode(createIdentifierToken(responseTypeCamelCaseName));
@@ -1118,43 +1064,73 @@ public class FunctionBodyGenerator {
 
         }
 
-        CheckExpressionNode callRelevantPipeProduceNode=createCheckExpressionNode(null,createToken(CHECK_KEYWORD),
+        CheckExpressionNode callRelevantPipeConsumeNode=createCheckExpressionNode(null,createToken(CHECK_KEYWORD),
                 createMethodCallExpressionNode(requestTypePipeNode,dotToken,
                         createSimpleNameReferenceNode(createIdentifierToken(CONSUME)),openParenToken,createSeparatedNodeList(
                                 responseTypeTimeOut
                         ),closeParenToken));
         VariableDeclarationNode callRelevantPipeProduceVar= createVariableDeclarationNode(createEmptyNodeList(),null,
                 createTypedBindingPatternNode(
-                        responseTypeName,
-                        createFieldBindingPatternVarnameNode(responseNameNode)),
-                equalToken,callRelevantPipeProduceNode,semicolonToken);
+                        anydata,
+                        createFieldBindingPatternVarnameNode(responseMessageVarNode)),
+                equalToken,callRelevantPipeConsumeNode,semicolonToken);
         statementsList.add(callRelevantPipeProduceVar);
 
 
-        HashMap requestTypes;
-        if(responseType.contains(PIPE)){
-            String[] unionResponses=responseType.split("\\"+PIPE);
-            for(String response:unionResponses){
-                if(responseMap.get(response)!=null){
-                    requestTypes=responseMap.get(response);
-                    requestTypes.put(requestType,count);
-                }else{
-                    requestTypes=new LinkedHashMap<>();
-                    requestTypes.put(requestType,count);
-                }
-                responseMap.put(response,requestTypes);
-            }
-        }
-        else {
-            if (responseMap.get(responseType) != null) {
-                requestTypes = responseMap.get(responseType);
-                requestTypes.put(requestType,count);
-            } else {
-                requestTypes = new LinkedHashMap();
-                requestTypes.put(requestType,count);
-            }
-            responseMap.put(responseType, requestTypes);
-        }
+        //PongMessage pongMessage = check responseMessage.cloneWithType();
+        MethodCallExpressionNode cloneWithTypeMethodCallExpressionNode= createMethodCallExpressionNode(
+                responseMessageVarNode,dotToken,
+                createSimpleNameReferenceNode(createIdentifierToken("cloneWithType")),
+                openParenToken,createSeparatedNodeList(),closeParenToken);
+
+        CheckExpressionNode cloneWithTypeCheck=createCheckExpressionNode(null,createToken(CHECK_KEYWORD),
+                cloneWithTypeMethodCallExpressionNode);
+
+
+
+        VariableDeclarationNode responseTypeCloneStatement= createVariableDeclarationNode(createEmptyNodeList(),null,
+                createTypedBindingPatternNode(
+                        responseTypeName,
+                        createFieldBindingPatternVarnameNode(
+                                responseNameNode)),
+                equalToken,cloneWithTypeCheck,semicolonToken);
+        statementsList.add(responseTypeCloneStatement);
+
+
+
+        //check pongMessagePipe.immediateClose();
+        CheckExpressionNode immediateCloseCheck=createCheckExpressionNode(null,createToken(CHECK_KEYWORD),createMethodCallExpressionNode(requestTypePipeNode,dotToken,createSimpleNameReferenceNode(createIdentifierToken("immediateClose")),openParenToken,createSeparatedNodeList(),closeParenToken));
+
+        ExpressionStatementNode immediateCloseExpressionNode = createExpressionStatementNode(null,immediateCloseCheck,createToken(SEMICOLON_TOKEN));
+        statementsList.add(immediateCloseExpressionNode);
+
+
+
+
+//        HashMap requestTypes;
+//        if(responseType.contains(PIPE)){
+//            String[] unionResponses=responseType.split("\\"+PIPE);
+//            for(String response:unionResponses){
+//                if(responseMap.get(response)!=null){
+//                    requestTypes=responseMap.get(response);
+//                    requestTypes.put(requestType,count);
+//                }else{
+//                    requestTypes=new LinkedHashMap<>();
+//                    requestTypes.put(requestType,count);
+//                }
+//                responseMap.put(response,requestTypes);
+//            }
+//        }
+//        else {
+//            if (responseMap.get(responseType) != null) {
+//                requestTypes = responseMap.get(responseType);
+//                requestTypes.put(requestType,count);
+//            } else {
+//                requestTypes = new LinkedHashMap();
+//                requestTypes.put(requestType,count);
+//            }
+//            responseMap.put(responseType, requestTypes);
+//        }
 
 
 
@@ -1182,58 +1158,85 @@ public class FunctionBodyGenerator {
         statementsList.add(returnStatementNode);
     }
 
-//    /**
-//     * This method use to generate Path statement inside the function body node.
-//     * <p>
-//     * ex:
-//     * <pre> string  path = string `/weather`; </pre>
-//     *
-//     * @param path            - Given path
-//     * @param annotationNodes - Node list for path implementation
-//     * @return - VariableDeclarationNode for path statement.
-//     */
-//    private VariableDeclarationNode getPathStatement(String path, NodeList<AnnotationNode> annotationNodes) {
-//
-//        TypedBindingPatternNode typedBindingPatternNode = createTypedBindingPatternNode(createSimpleNameReferenceNode(
-//                createToken(STRING_KEYWORD)), createCaptureBindingPatternNode(
-//                createIdentifierToken(RESOURCE_PATH)));
-//        // Create initializer
-//        // Content  should decide with /pet and /pet/{pet}
-//        path = generatePathWithPathParameter(path);
-//        //String path generator
-//        NodeList<Node> content = createNodeList(createLiteralValueToken(null, path, createEmptyMinutiaeList(),
-//                createEmptyMinutiaeList()));
-//        TemplateExpressionNode initializer = createTemplateExpressionNode(null, createToken(STRING_KEYWORD),
-//                createToken(BACKTICK_TOKEN), content, createToken(BACKTICK_TOKEN));
-//        return createVariableDeclarationNode(annotationNodes, null,
-//                typedBindingPatternNode, createToken(EQUAL_TOKEN), initializer, createToken(SEMICOLON_TOKEN));
-//    }
+    private static void createCommentStatementsForDispatcherId(List<StatementNode> statementsList, String requestType,  String dispatcherStreamId, String requestTypePipe) {
 
-//    /**
-//     * This method is to used for generating path when it has path parameters.
-//     *
-//     * @param path - yaml contract path
-//     * @return string of path
-//     */
-//    public String generatePathWithPathParameter(String path) {
-//
-//        if (path.contains("{")) {
-//            String refinedPath = path;
-//            Pattern p = Pattern.compile("\\{[^}]*}");
-//            Matcher m = p.matcher(path);
-//            while (m.find()) {
-//                String pathVariable = path.substring(m.start(), m.end());
-//                if (pathVariable.startsWith("{") && pathVariable.endsWith("}")) {
-//                    String d = pathVariable.replace("{", "").replace("}", "");
-//                    String replaceVariable = "{getEncodedUri(" + getValidName(d, false) + ")}";
-//                    refinedPath = refinedPath.replace(pathVariable, replaceVariable);
-//                }
-//            }
-//            path = refinedPath.replaceAll("[{]", "\\${");
-//        }
-//        ballerinaUtilGenerator.setPathParametersFound(true);
-//        return path;
-//    }
+        SimpleNameReferenceNode requestypePipeNode=createSimpleNameReferenceNode(createIdentifierToken(requestTypePipe));
+        Token equalToken = createToken(EQUAL_TOKEN);
+        Token semicolonToken = createToken(SEMICOLON_TOKEN);
+        Token openBracketToken= createToken(OPEN_BRACKET_TOKEN);
+        Token closeBracketToken=createToken(CLOSE_BRACKET_TOKEN);
+        Token dotToken =createToken(DOT_TOKEN);
+        Token openBraceToken=createToken(OPEN_BRACE_TOKEN);
+        Token closeBraceToken =createToken(CLOSE_BRACE_TOKEN);
+
+
+        ArrayList<StatementNode> lockStatements=new ArrayList<>();
+        if(dispatcherStreamId!=null) {
+            SimpleNameReferenceNode dispatcherStreamIdNode= createSimpleNameReferenceNode(createIdentifierToken(dispatcherStreamId));
+            //string id;
+            VariableDeclarationNode dispatcherStreamIdDefineNode= createVariableDeclarationNode(createEmptyNodeList(),null,
+                    createTypedBindingPatternNode(
+                            createSimpleNameReferenceNode(createIdentifierToken("string")),
+                            createFieldBindingPatternVarnameNode(dispatcherStreamIdNode)),
+                    null,null, semicolonToken);
+            statementsList.add(dispatcherStreamIdDefineNode);
+
+            //lock{
+            //      id = uuid:createType1AsString();
+            //      self.pipes["Pongmessage"] = pongMessagePipe;
+            // }
+
+            QualifiedNameReferenceNode uuidNode = createQualifiedNameReferenceNode(createIdentifierToken(UUID),
+                    createToken(COLON_TOKEN), createIdentifierToken(CREATE_TYPE1_AS_STRING));
+            AssignmentStatementNode uuidAssignmentNode= createAssignmentStatementNode(dispatcherStreamIdNode,
+                    equalToken,uuidNode, semicolonToken);
+            lockStatements.add(uuidAssignmentNode);
+            IndexedExpressionNode remoteSelfPipes=createIndexedExpressionNode(createFieldAccessExpressionNode(
+                            createSimpleNameReferenceNode(createIdentifierToken(SELF)), dotToken,
+                            createSimpleNameReferenceNode(createIdentifierToken("pipes"))), openBracketToken,
+                    createSeparatedNodeList(createSimpleNameReferenceNode(createIdentifierToken(dispatcherStreamId))),
+                    closeBracketToken);
+            AssignmentStatementNode selfPipesAssignmentStatementNode = createAssignmentStatementNode(remoteSelfPipes,
+                    equalToken, requestypePipeNode, semicolonToken);
+
+            lockStatements.add(selfPipesAssignmentStatementNode);
+            LockStatementNode functionLockStatementNode= createLockStatementNode(createToken(LOCK_KEYWORD),createBlockStatementNode(openBraceToken,createNodeList(lockStatements), closeBraceToken),null);
+            statementsList.add(functionLockStatementNode);
+
+            // pingMessage["id"]=id;
+            IndexedExpressionNode requestTypeVarRef = createIndexedExpressionNode(createSimpleNameReferenceNode(createIdentifierToken(requestType)), openBracketToken,
+                    createSeparatedNodeList(createSimpleNameReferenceNode(createIdentifierToken("\"" + dispatcherStreamId + "\""))),
+                    closeBracketToken);
+            AssignmentStatementNode idValueAssignmentStatementNode = createAssignmentStatementNode(requestTypeVarRef,
+                    equalToken, dispatcherStreamIdNode, semicolonToken);
+            statementsList.add(idValueAssignmentStatementNode);
+
+
+        }else{
+
+//            MatchStatementNode matchStatementNode=createMatchStatementNode(createToken(MATCH_KEYWORD),
+////                        createBracedExpressionNode(null,openParenToken,
+////                                createSimpleNameReferenceNode(createIdentxifierToken(dispatcherStreamId)),
+////                                closeParenToken),openBraceToken,createNodeList(internalMatchStatementList),
+////                        closeBraceToken,null);
+
+
+            //self.pipes["tuplePipe"] = tuplePipe;
+            IndexedExpressionNode remoteSelfPipes=createIndexedExpressionNode(createFieldAccessExpressionNode(
+                            createSimpleNameReferenceNode(createIdentifierToken(SELF)), dotToken,
+                            createSimpleNameReferenceNode(createIdentifierToken("pipes"))), openBracketToken,
+                    createSeparatedNodeList(createSimpleNameReferenceNode(createIdentifierToken("\""+ requestTypePipe +"\""))),
+                    closeBracketToken);
+            AssignmentStatementNode selfPipesAssignmentStatementNode = createAssignmentStatementNode(remoteSelfPipes,
+                    equalToken, requestypePipeNode, semicolonToken);
+            lockStatements.add(selfPipesAssignmentStatementNode);
+
+            LockStatementNode functionLockStatementNode= createLockStatementNode(createToken(LOCK_KEYWORD),createBlockStatementNode(openBraceToken,createNodeList(lockStatements), closeBraceToken),null);
+            statementsList.add(functionLockStatementNode);
+
+        }
+    }
+
 
 //    /**
 //     * This function for creating requestBody statements.

@@ -112,7 +112,7 @@ public class TypeGeneratorUtils {
         } else if (schemaValue.getType()!=null && schemaValue.getType().equals(GeneratorConstants.OBJECT) &&
                 schemaValue.getAdditionalProperties()!=null &&
                   (schemaValue.getAdditionalProperties() instanceof AsyncApi25SchemaImpl ||
-                          schemaValue.getAdditionalProperties() instanceof BooleanUnionValueImpl)) {
+                          (schemaValue.getAdditionalProperties() instanceof BooleanUnionValueImpl &&schemaValue.getAdditionalProperties().asBoolean().equals(true)))) {
 
 
 //            if (((AsyncApi25SchemaImpl) schemaValue.getAdditionalProperties()).getType() == null) {

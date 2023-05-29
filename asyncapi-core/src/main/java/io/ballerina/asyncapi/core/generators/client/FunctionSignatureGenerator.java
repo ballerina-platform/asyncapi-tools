@@ -176,7 +176,7 @@ public class FunctionSignatureGenerator {
             JsonNode x_response_type=extensions.get(X_RESPONSE_TYPE);
             String returnType = functionReturnType.getReturnType(x_response,x_response_type);
             if(x_response_type.equals(new TextNode(SERVER_STREAMING))){
-                returnType="stream<"+returnType+">";
+                returnType="stream<"+returnType+",error?>";
             }
             //Add |error to the response
 //            if (returnTypes.size() > 0) {

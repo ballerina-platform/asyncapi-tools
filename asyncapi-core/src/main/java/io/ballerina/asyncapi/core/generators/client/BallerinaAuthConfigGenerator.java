@@ -23,7 +23,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.BooleanNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import io.apicurio.datamodels.models.Schema;
 import io.apicurio.datamodels.models.SecurityScheme;
 import io.apicurio.datamodels.models.asyncapi.AsyncApiChannelItem;
 import io.apicurio.datamodels.models.asyncapi.AsyncApiParameter;
@@ -35,15 +34,12 @@ import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25ParametersImpl;
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25SchemaImpl;
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25SecuritySchemeImpl;
 import io.apicurio.datamodels.models.union.BooleanUnionValueImpl;
-import io.apicurio.datamodels.models.union.SchemaListUnionValueImpl;
 import io.ballerina.asyncapi.core.GeneratorConstants;
 import io.ballerina.asyncapi.core.exception.BallerinaAsyncApiException;
 import io.ballerina.asyncapi.core.generators.asyncspec.model.BalAsyncApi25SchemaImpl;
-import io.ballerina.asyncapi.core.generators.asyncspec.model.BalBooleanSchema;
 import io.ballerina.asyncapi.core.generators.asyncspec.utils.ConverterCommonUtils;
 import io.ballerina.asyncapi.core.generators.document.DocCommentsGenerator;
 import io.ballerina.asyncapi.core.generators.schema.BallerinaTypesGenerator;
-import io.ballerina.asyncapi.core.generators.schema.TypeGeneratorUtils;
 import io.ballerina.compiler.syntax.tree.AbstractNodeFactory;
 import io.ballerina.compiler.syntax.tree.AnnotationNode;
 import io.ballerina.compiler.syntax.tree.ArrayDimensionNode;
@@ -101,6 +97,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
@@ -134,7 +131,7 @@ import static io.ballerina.asyncapi.core.GeneratorConstants.PING_PONG_HANDLER_FI
 import static io.ballerina.asyncapi.core.GeneratorConstants.PING_PONG_SERVICE;
 import static io.ballerina.asyncapi.core.GeneratorConstants.PING_PONG_SERVICE_FIELD;
 import static io.ballerina.asyncapi.core.GeneratorConstants.REFRESH_TOKEN;
-import static io.ballerina.asyncapi.core.GeneratorConstants.RESOURCE_PATH;
+import static io.ballerina.asyncapi.core.GeneratorConstants.MODIFIED_URL;
 import static io.ballerina.asyncapi.core.GeneratorConstants.RETRY_CONFIG_FIELD;
 import static io.ballerina.asyncapi.core.GeneratorConstants.SECURE_SOCKET;
 import static io.ballerina.asyncapi.core.GeneratorConstants.SECURE_SOCKET_FIELD;
@@ -676,16 +673,13 @@ public class BallerinaAuthConfigGenerator {
      *
      * @return {@link List<Node>}  syntax tree node list of config parameters
      */
-    public List<Node> getConfigParamForClassInit(String serviceUrl, ArrayList initMetaDoc)
+    public void getConfigParamForClassInit(String serviceUrl, ArrayList initMetaDoc,List<Node> parameters)
             throws BallerinaAsyncApiException {
 
         NodeList<AnnotationNode> annotationNodes = createEmptyNodeList();
         Node serviceURLNode = getServiceURLNode(serviceUrl);
-        List<Node> parameters = new ArrayList<>();
 
-        //set pathParams,queryParams,headerParams
-        setFunctionParameters(asyncAPI.getChannels().getItems().get(0), parameters, createToken(COMMA_TOKEN),
-                initMetaDoc);
+
 
         IdentifierToken equalToken = createIdentifierToken(GeneratorConstants.EQUAL);
         if (httpOROAuth) {
@@ -737,15 +731,15 @@ public class BallerinaAuthConfigGenerator {
 //        if (parameters.size() >= 2) {
 //            parameters.remove(parameters.size() - 1);
 //        }
-        return parameters;
+//        return parameters;
     }
 
 
     /**
      * Generate function parameters.
      */
-    private void setFunctionParameters(AsyncApiChannelItem channelItem, List<Node> parameterList, Token comma,
-                                       List<Node> remoteFunctionDoc) throws BallerinaAsyncApiException {
+    public void setFunctionParameters(AsyncApiChannelItem channelItem, List<Node> parameterList, Token comma,
+                                      List<Node> remoteFunctionDoc, AsyncApi25SchemaImpl querySchema,AsyncApi25SchemaImpl headerSchema) throws BallerinaAsyncApiException {
 
         AsyncApi25ParametersImpl parameters = (AsyncApi25ParametersImpl) channelItem.getParameters();
         AsyncApi25ChannelBindingsImpl bindings = (AsyncApi25ChannelBindingsImpl) channelItem.getBindings();
@@ -788,7 +782,6 @@ public class BallerinaAuthConfigGenerator {
                 pathRequiredFields.add(parameterName);
             }
             pathSchema.setRequired(pathRequiredFields);
-            System.out.println("fdf");
             authRelatedTypeDefinitionNodes.add(BallerinaTypesGenerator.getTypeDefinitionNode(pathSchema,
                     "PathParams",new ArrayList<>()));
             BuiltinSimpleNameReferenceNode typeName = createBuiltinSimpleNameReferenceNode(null,
@@ -816,7 +809,7 @@ public class BallerinaAuthConfigGenerator {
 //                    throw new RuntimeException(e);
 //                }
 //                Map<String, Schema> properties = headerSchema.getProperties();
-                    AsyncApi25SchemaImpl headerSchema = new AsyncApi25SchemaImpl();
+
                     headerSchema.setType("object");
                     headerSchema.setAdditionalProperties(new BooleanUnionValueImpl(false));
                     List<String> headerRequiredFields = new ArrayList<>();
@@ -872,7 +865,7 @@ public class BallerinaAuthConfigGenerator {
 //                throw new RuntimeException(e);
 //            }
 //                Map<String, Schema> properties = querySchema.getProperties();
-                    AsyncApi25SchemaImpl querySchema = new AsyncApi25SchemaImpl();
+
                     querySchema.setType("object");
                     querySchema.setAdditionalProperties(new BooleanUnionValueImpl(false));
                     List<String> queryRequiredFields = new ArrayList<>();
@@ -1277,7 +1270,7 @@ public class BallerinaAuthConfigGenerator {
 
         TypedBindingPatternNode typedBindingPatternNode = createTypedBindingPatternNode(createSimpleNameReferenceNode(
                 createToken(STRING_KEYWORD)), createCaptureBindingPatternNode(
-                createIdentifierToken(RESOURCE_PATH)));
+                createIdentifierToken(MODIFIED_URL)));
         // Create initializer
         // Content  should decide with /pet and /pet/{pet}
         path = generatePathWithPathParameter(path);
@@ -1622,7 +1615,7 @@ public class BallerinaAuthConfigGenerator {
      *
      * @return {@link VariableDeclarationNode}   Syntax tree node of client initialization
      */
-    public VariableDeclarationNode getClientInitializationNode() {
+    public VariableDeclarationNode getClientInitializationNode(String url) {
 
         NodeList<AnnotationNode> annotationNodes = createEmptyNodeList();
         // http:Client variable declaration
@@ -1636,7 +1629,7 @@ public class BallerinaAuthConfigGenerator {
         // Expression node
         List<Node> argumentsList = new ArrayList<>();
         PositionalArgumentNode positionalArgumentNode01 = createPositionalArgumentNode(createSimpleNameReferenceNode(
-                createIdentifierToken(GeneratorConstants.SERVICE_URL)));
+                createIdentifierToken(url)));
         argumentsList.add(positionalArgumentNode01);
         Token comma1 = createIdentifierToken(",");
 

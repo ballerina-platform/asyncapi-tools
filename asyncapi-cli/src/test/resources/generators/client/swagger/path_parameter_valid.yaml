@@ -76,30 +76,6 @@ components:
               x-nullable: true
             extensions:
               x-nullable: true
-    Tuple:
-      type: object
-      required:
-        - id
-        - type
-        - payload
-      properties:
-        id:
-          type: string
-        type:
-          type: string
-          const: SubscribeMessage
-        payload:
-          type: object
-          required:
-            - query
-          properties:
-            operationName:
-              type: string
-              x-nullable: true
-            query:
-              type: string
-            variables:
-              x-nullable: true
     NextMessage:
       type: object
       required:
@@ -183,15 +159,6 @@ components:
     SubscribeMessage:
       payload:
         $ref: '#/components/schemas/SubscribeMessage'
-      x-response:
-        oneOf:
-          - $ref: '#/components/messages/NextMessage'
-          - $ref: '#/components/messages/CompleteMessage'
-          - $ref: '#/components/messages/ErrorMessage'
-      x-response-type: server-streaming
-    Tuple:
-      payload:
-        $ref: '#/components/schemas/Tuple'
       x-response:
         oneOf:
           - $ref: '#/components/messages/NextMessage'

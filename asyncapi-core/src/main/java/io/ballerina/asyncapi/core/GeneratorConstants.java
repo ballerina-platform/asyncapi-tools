@@ -50,6 +50,10 @@ public class GeneratorConstants {
 
     public static final String SIMPLE_PIPE ="pipe";
 
+    public static final String UUID="uuid";
+
+    public static final String CREATE_TYPE1_AS_STRING="createType1AsString";
+
     public static final String CAPITAL_PIPE ="Pipe";
 
     public static final String URL = "url";
@@ -88,7 +92,10 @@ public class GeneratorConstants {
     public static final String PIPE_TRIGGER="pipeTrigger";
     public static final String RESPONSE_MESSAGE="ResponseMessage";
 
+    public static final String RESPONSE_MESSAGE_WITH_ID="ResponseMessageWithId";
+
     public static final String RESPONSE_MESSAGE_VAR_NAME="responseMessage";
+    public static final String RESPONSE_MESSAGE_WITH_ID_VAR_NAME="responseMessagWithId";
 
     public static final String WORKER_SLEEP_TIME_OUT="0.01";
 
@@ -114,7 +121,7 @@ public class GeneratorConstants {
     public static final String DOUBLE = "double";
     public static final String FLOAT = "float";
     public static final String HEADER = "header";
-    public static final String HEADER_VALUES = "headerValues";
+    public static final String HEADER_PARAM = "headerParam";
     public static final String PAYLOAD = "payload";
     public static final String PAYLOAD_KEYWORD = "Payload";
     public static final String REQUEST = "request";
@@ -127,8 +134,8 @@ public class GeneratorConstants {
     public static final String IMAGE = "image";
     public static final String VENDOR_SPECIFIC_TYPE = "vnd.";
     public static final String MIME = "mime";
-    public static final String HTTP_HEADERS = "httpHeaders";
-    public static final String RESOURCE_PATH = "resourcePath";
+    public static final String CUSTOM_HEADERS = "customHeaders";
+    public static final String MODIFIED_URL = "modifiedUrl";
     public static final String ARRAY = "array";
     public static final String ERROR = "error";
     public static final String MAP_JSON = "map<json>";

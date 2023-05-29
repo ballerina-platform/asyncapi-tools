@@ -189,7 +189,7 @@ public class FunctionReturnTypeGenerator {
             throws BallerinaAsyncApiException {
         String type = null;
 
-        if(schema.getType().equals("object")){
+        if(schema!=null && schema.getType()!=null && schema.getType().equals("object")){
             type = handleInLineRecordInResponse(schemaName, schema);
 
         }else{
