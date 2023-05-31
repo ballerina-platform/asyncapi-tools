@@ -247,7 +247,7 @@ import static io.ballerina.compiler.syntax.tree.SyntaxKind.WORKER_KEYWORD;
 public class BallerinaClientGenerator {
 
     private final AsyncApi25DocumentImpl asyncAPI;
-    private final BallerinaTypesGenerator ballerinaSchemaGenerator;
+    private final BallerinaTypesGenerator ballerinaTypesGenerator;
     private final BallerinaUtilGenerator ballerinaUtilGenerator;
     private final List<String> remoteFunctionNameList;
     private final BallerinaAuthConfigGenerator ballerinaAuthConfigGenerator;
@@ -259,11 +259,10 @@ public class BallerinaClientGenerator {
 
     public BallerinaClientGenerator(AASClientConfig asyncAPIClientConfig) {
 
-//        this.filters = oasClientConfig.getFilters();
         this.imports = new ArrayList<>();
         this.typeDefinitionNodeList = new ArrayList<>();
         this.asyncAPI = asyncAPIClientConfig.getOpenAPI();
-        this.ballerinaSchemaGenerator = new BallerinaTypesGenerator(asyncAPI, new LinkedList<>());
+        this.ballerinaTypesGenerator = new BallerinaTypesGenerator(asyncAPI, new LinkedList<>());
         this.ballerinaUtilGenerator = new BallerinaUtilGenerator();
         this.remoteFunctionNameList = new ArrayList<>();
         this.serverURL = "/";
@@ -313,10 +312,9 @@ public class BallerinaClientGenerator {
      */
     public SyntaxTree generateSyntaxTree() throws BallerinaAsyncApiException {
 
-        // Create `ballerina/websocket` import declaration node
+        // Create `ballerina/websocket` import declaration node, "ballerina/uuid will be imported only for streaming"
         ImportDeclarationNode importForWebsocket = GeneratorUtils.getImportDeclarationNode(GeneratorConstants.BALLERINA
                 , WEBSOCKET);
-
         ImportDeclarationNode importForNuvinduPipe = GeneratorUtils.getImportDeclarationNode(GeneratorConstants.NUVINDU
                 , NUVINDU_PIPE);
         ImportDeclarationNode importForRunTime = GeneratorUtils.getImportDeclarationNode(GeneratorConstants.BALLERINA
@@ -375,13 +373,13 @@ public class BallerinaClientGenerator {
         // Add startInterMediator function
         memberNodeList.add(createStartMessageWriting());
 
+        // Add startMessageReading function
         memberNodeList.add(createStartMessageReading());
-
 
         List<FunctionDefinitionNode> remoteFunctionNodes = createRemoteFunctions(asyncAPI.getComponents().
                 getMessages(), matchStatementList);
 
-        // Add callRelevantPipe function
+        // Add startPipeTriggering function
         memberNodeList.add(createStartPipeTriggering(matchStatementList));
 
         // Add remoteFunctionNodes
@@ -1443,7 +1441,7 @@ public class BallerinaClientGenerator {
         remoteFunctionNameList.add(messageName);
 
         FunctionSignatureGenerator functionSignatureGenerator = new FunctionSignatureGenerator(asyncAPI,
-                ballerinaSchemaGenerator, typeDefinitionNodeList);
+                ballerinaTypesGenerator, typeDefinitionNodeList);
         FunctionSignatureNode functionSignatureNode =
                 functionSignatureGenerator.getFunctionSignatureNode(messageValue.getPayload(),
                         remoteFunctionDocs, extensions);
@@ -1456,7 +1454,7 @@ public class BallerinaClientGenerator {
 
         // Create Function Body
         FunctionBodyGenerator functionBodyGenerator = new FunctionBodyGenerator(imports, typeDefinitionNodeList,
-                asyncAPI, ballerinaSchemaGenerator);
+                asyncAPI, ballerinaTypesGenerator);
         RequiredParameterNode parameterNode = ((RequiredParameterNode) functionSignatureNode.parameters().get(0));
 //        String schemaType=parameterNode.typeName().toString();
 //        String paramName=parameterNode.paramName().get().toString();

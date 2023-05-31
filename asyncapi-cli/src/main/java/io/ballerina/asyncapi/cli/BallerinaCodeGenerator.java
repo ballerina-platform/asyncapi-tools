@@ -72,28 +72,22 @@ public class BallerinaCodeGenerator {
     private String licenseHeader = "";
     private boolean includeTestFiles;
 
-    public static <T> Predicate<T> distinctByKey(
-            Function<? super T, ?> keyExtractor) {
-        Map<Object, Boolean> seen = new ConcurrentHashMap<>();
-        return t -> seen.putIfAbsent(keyExtractor.apply(t), Boolean.TRUE) == null;
-    }
-
     /**
-     * Generates ballerina source for provided Async API Definition in {@code definitionPath}.
+     * Generates ballerina client for provided Async API Definition in {@code definitionPath}.
      * Generated source will be written to a ballerina module at {@code outPath}
-     * Method can be user for generating Ballerina clients.
+     * Method can be use for generating Ballerina clients.
      *
      * @param definitionPath Input Async Api Definition file path
-     * @param outPath        Destination file path to save generated source files. If not provided
-     *                       {@code definitionPath} will be used as the default destination path
+     * @param outPath        Destination file path to save generated client files including types.bal, utils.bal.
+     *                       If not provided {@code definitionPath} will be used as the default destination path
      * @throws IOException when file operations fail
      * @throws BallerinaAsyncApiException when code generator fails
      */
-    public void generateClient(String definitionPath, String outPath, boolean nullable)
+    public void generateClient(String definitionPath, String outPath)
             throws IOException, BallerinaAsyncApiException, FormatterException {
         Path srcPath = Paths.get(outPath);
         Path implPath = CodegenUtils.getImplPath(srcPackage, srcPath);
-        List<GenSrcFile> genFiles = generateClientFiles(Paths.get(definitionPath), nullable);
+        List<GenSrcFile> genFiles = generateClientFiles(Paths.get(definitionPath));
         writeGeneratedSources(genFiles, srcPath, implPath, GEN_CLIENT);
     }
 
@@ -182,7 +176,7 @@ public class BallerinaCodeGenerator {
      * @return generated source files as a list of {@link GenSrcFile}
      * @throws IOException when code generation with specified templates fails
      */
-    private List<GenSrcFile> generateClientFiles(Path asyncAPI, boolean nullable)
+    private List<GenSrcFile> generateClientFiles(Path asyncAPI)
             throws IOException, BallerinaAsyncApiException, FormatterException {
         if (srcPackage == null || srcPackage.isEmpty()) {
             srcPackage = DEFAULT_CLIENT_PKG;
@@ -206,7 +200,7 @@ public class BallerinaCodeGenerator {
 
 
 
-//        Generate util functions
+        //Generate util functions for client intermediate code
         String utilContent = Formatter.format(
                 ballerinaClientGenerator.getBallerinaUtilGenerator().generateUtilSyntaxTree()).toString();
         if (!utilContent.isBlank()) {
@@ -217,8 +211,7 @@ public class BallerinaCodeGenerator {
         preGeneratedTypeDefNodes.addAll(ballerinaClientGenerator.getTypeDefinitionNodeList());
 
 
-//
-        //Generate ballerina records to represent schemas.
+        //Generate ballerina records to represent schemas in client intermediate code
         BallerinaTypesGenerator ballerinaSchemaGenerator = new BallerinaTypesGenerator(
                 asyncAPIDef, preGeneratedTypeDefNodes);
 
@@ -231,7 +224,7 @@ public class BallerinaCodeGenerator {
                     schemaContent));
         }
 
-        // Generate test boilerplate code for test cases
+        // Generate test boilerplate code for test cases //TODO: this has to be implemented
         if (this.includeTestFiles) {
             BallerinaTestGenerator ballerinaTestGenerator = new BallerinaTestGenerator(ballerinaClientGenerator);
             String testContent = Formatter.format(ballerinaTestGenerator.generateSyntaxTree()).toString();
