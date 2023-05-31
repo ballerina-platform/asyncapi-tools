@@ -95,19 +95,17 @@ public class FunctionSignatureGenerator {
     List<Node> deprecatedParamDocComments = new ArrayList<>();
     private FunctionReturnTypeGenerator functionReturnType;
     private final boolean deprecatedParamFound = false;
-    private final boolean isResource;
 
     public FunctionSignatureGenerator(AsyncApi25DocumentImpl asyncAPI,
                                       BallerinaTypesGenerator ballerinaSchemaGenerator,
-                                      List<TypeDefinitionNode> typeDefinitionNodeList,
-                                      boolean isResource) throws BallerinaAsyncApiException {
+                                      List<TypeDefinitionNode> typeDefinitionNodeList) throws BallerinaAsyncApiException {
 
         this.asyncAPI = asyncAPI;
         this.ballerinaSchemaGenerator = ballerinaSchemaGenerator;
         this.typeDefinitionNodeList = typeDefinitionNodeList;
         this.functionReturnType = new FunctionReturnTypeGenerator
                 (this.asyncAPI, ballerinaSchemaGenerator, typeDefinitionNodeList);
-        this.isResource = isResource;
+
 
     }
 

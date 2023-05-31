@@ -96,7 +96,7 @@ public class ArrayTypeGenerator extends TypeGenerator {
         AsyncApi25SchemaImpl arraySchema = schema;
         AsyncApi25SchemaImpl  items = (AsyncApi25SchemaImpl) arraySchema.getItems();
         boolean isConstraintsAvailable =
-                !GeneratorMetaData.getInstance().isNullable() && hasConstraints(items) && typeName != null;
+               hasConstraints(items) && typeName != null;
         TypeGenerator typeGenerator;
         if (isConstraintsAvailable) {
             String normalizedTypeName = typeName.replaceAll(GeneratorConstants.SPECIAL_CHARACTER_REGEX, "").trim();

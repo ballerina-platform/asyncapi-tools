@@ -19,7 +19,6 @@
 //package io.ballerina.asyncapi.generators.client;
 //
 //import io.ballerina.compiler.syntax.tree.ImportDeclarationNode;
-//import io.ballerina.openapi.core.model.Filter;
 //import org.testng.Assert;
 //import org.testng.annotations.Test;
 //
@@ -27,8 +26,6 @@
 //import java.nio.file.Paths;
 //import java.util.ArrayList;
 //import java.util.List;
-//
-//import static io.ballerina.openapi.core.GeneratorUtils.getImportDeclarationNode;
 //
 ///**
 // * This tests class for the tests imports in the generation.
@@ -39,7 +36,6 @@
 //
 //    List<String> list1 = new ArrayList<>();
 //    List<String> list2 = new ArrayList<>();
-//    Filter filter = new Filter(list1, list2);
 //    @Test(description = "Generate imports")
 //    public void generateImports() {
 //        ImportDeclarationNode importDeclarationNode = getImportDeclarationNode("ballerina",

@@ -18,13 +18,11 @@
 //
 //package io.ballerina.asyncapi.generators.client;
 //
+//import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25DocumentImpl;
+//import io.ballerina.asyncapi.core.exception.BallerinaAsyncApiException;
+//import io.ballerina.asyncapi.core.generators.client.FunctionSignatureGenerator;
+//import io.ballerina.asyncapi.core.generators.schema.BallerinaTypesGenerator;
 //import io.ballerina.compiler.syntax.tree.*;
-//import io.ballerina.openapi.core.GeneratorUtils;
-//import io.ballerina.openapi.core.exception.BallerinaOpenApiException;
-//import io.ballerina.openapi.core.generators.client.FunctionSignatureGenerator;
-//import io.ballerina.openapi.core.generators.schema.BallerinaTypesGenerator;
-//import io.ballerina.openapi.core.model.Filter;
-//import io.swagger.v3.oas.models.OpenAPI;
 //import org.testng.Assert;
 //import org.testng.annotations.AfterTest;
 //import org.testng.annotations.Test;
@@ -36,7 +34,6 @@
 //import java.util.ArrayList;
 //import java.util.List;
 //
-//import static io.ballerina.openapi.generators.common.TestUtils.getOpenAPI;
 //
 ///**
 // * All the tests related to the functionSignatureNode in {
@@ -49,11 +46,10 @@
 //    SyntaxTree syntaxTree;
 //    List<String> list1 = new ArrayList<>();
 //    List<String> list2 = new ArrayList<>();
-//    Filter filter = new Filter(list1, list2);
 //
 //    @Test(description = "Test for generate function signature for given operations")
-//    public void getFunctionSignatureNodeTests() throws IOException, BallerinaOpenApiException {
-//        OpenAPI openAPI = getOpenAPI(RESDIR.resolve("swagger/valid_operation.yaml"));
+//    public void getFunctionSignatureNodeTests() throws IOException, BallerinaAsyncApiException {
+//        AsyncApi25DocumentImpl openAPI = getOpenAPI(RESDIR.resolve("swagger/valid_operation.yaml"));
 //        FunctionSignatureGenerator functionSignatureGenerator = new FunctionSignatureGenerator(openAPI,
 //                new BallerinaTypesGenerator(openAPI), new ArrayList<>(), false);
 //        FunctionSignatureNode signature = functionSignatureGenerator.getFunctionSignatureNode(openAPI.getPaths()
@@ -82,7 +78,7 @@
 //    }
 //
 //    @Test(description = "Test for generate function signature for xml request body")
-//    public void testFunctionSignatureNodeForXMLPayload() throws IOException, BallerinaOpenApiException {
+//    public void testFunctionSignatureNodeForXMLPayload() throws IOException, BallerinaAsyncApiException {
 //        OpenAPI openAPI = getOpenAPI(RESDIR.resolve("swagger/xml_request_payload.yaml"));
 //        FunctionSignatureGenerator functionSignatureGenerator = new FunctionSignatureGenerator(openAPI,
 //                new BallerinaTypesGenerator(openAPI), new ArrayList<>(), false);
@@ -100,8 +96,8 @@
 //    }
 //
 //    @Test(description = "Test for generate function signature for json request body")
-//    public void testFunctionSignatureNodeForJSONPayload() throws IOException, BallerinaOpenApiException {
-//        OpenAPI openAPI = getOpenAPI(RESDIR.resolve("swagger/json_request_payload.yaml"));
+//    public void testFunctionSignatureNodeForJSONPayload() throws IOException, BallerinaAsyncApiException {
+//        AsyncApi25DocumentImpl openAPI = getOpenAPI(RESDIR.resolve("swagger/json_request_payload.yaml"));
 //        FunctionSignatureGenerator functionSignatureGenerator = new FunctionSignatureGenerator(openAPI,
 //                new BallerinaTypesGenerator(openAPI), new ArrayList<>(), false);
 //        FunctionSignatureNode signature = functionSignatureGenerator.getFunctionSignatureNode(openAPI.getPaths()

@@ -19,14 +19,21 @@ package io.ballerina.asyncapi.core.generators.client;
 
 import io.ballerina.asyncapi.core.GeneratorUtils;
 import io.ballerina.compiler.syntax.tree.ChildNodeEntry;
+import io.ballerina.compiler.syntax.tree.ClassDefinitionNode;
+import io.ballerina.compiler.syntax.tree.FunctionDefinitionNode;
 import io.ballerina.compiler.syntax.tree.ImportDeclarationNode;
 import io.ballerina.compiler.syntax.tree.ModuleMemberDeclarationNode;
 import io.ballerina.compiler.syntax.tree.ModulePartNode;
+import io.ballerina.compiler.syntax.tree.Node;
 import io.ballerina.compiler.syntax.tree.NodeList;
+import io.ballerina.compiler.syntax.tree.RecordFieldNode;
+import io.ballerina.compiler.syntax.tree.RecordTypeDescriptorNode;
+import io.ballerina.compiler.syntax.tree.ReturnTypeDescriptorNode;
 import io.ballerina.compiler.syntax.tree.SyntaxKind;
 import io.ballerina.compiler.syntax.tree.SyntaxTree;
 import io.ballerina.compiler.syntax.tree.TypeDefinitionNode;
 import io.ballerina.compiler.syntax.tree.TypeDescriptorNode;
+import io.ballerina.compiler.syntax.tree.UnionTypeDescriptorNode;
 import io.ballerina.projects.DocumentId;
 import io.ballerina.projects.Package;
 import io.ballerina.projects.Project;
@@ -59,6 +66,7 @@ import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createNodeLi
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createSeparatedNodeList;
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createToken;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createModulePartNode;
+import static io.ballerina.compiler.syntax.tree.NodeFactory.createRecordFieldNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createSimpleNameReferenceNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createSingletonTypeDescriptorNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createTypeDefinitionNode;
@@ -148,11 +156,16 @@ private static final String STREAM_GENERATOR = "StreamGenerator";
         ModulePartNode modulePartNode = syntaxTree.rootNode();
         NodeList<ModuleMemberDeclarationNode> members = modulePartNode.members();
         for (ModuleMemberDeclarationNode node : members) {
-            if (node.kind().equals(SyntaxKind.FUNCTION_DEFINITION) || node.kind().equals(SyntaxKind.CLASS_DEFINITION)  ) {
+            if (node.kind().equals(SyntaxKind.FUNCTION_DEFINITION) || node.kind().equals(SyntaxKind.CLASS_DEFINITION)){
                 for (ChildNodeEntry childNodeEntry : node.childEntries()) {
                     if (childNodeEntry.name().equals("functionName") || childNodeEntry.name().equals("className")) {
                         if (functionNameList.contains(childNodeEntry.node().get().toString())) {
-                            memberDeclarationNodes.add(node);
+//                            if(childNodeEntry.name().equals("className")){
+//                                changeStreamReturn(node,memberDeclarationNodes);
+//                            }else{
+                                memberDeclarationNodes.add(node);
+
+//                            }
                         }
                     }
                 }
@@ -176,6 +189,34 @@ private static final String STREAM_GENERATOR = "StreamGenerator";
         SyntaxTree utilSyntaxTree = SyntaxTree.from(textDocument);
         return utilSyntaxTree.modifyWith(utilModulePartNode);
     }
+
+//    private void changeStreamReturn (ModuleMemberDeclarationNode node, List<ModuleMemberDeclarationNode>
+//    memberDeclarationNodes){
+//        String returnName="User";
+//        NodeList<Node> members=((ClassDefinitionNode)node).members();
+//        for(Node member:members){
+//            if( member instanceof FunctionDefinitionNode && ((FunctionDefinitionNode) member).functionName()
+//            .equals("next")){
+//               FunctionDefinitionNode functionDefinitionNode=  (FunctionDefinitionNode) member;
+//               ReturnTypeDescriptorNode returnTypeDescriptorNode=functionDefinitionNode.functionSignature()
+//               .returnTypeDesc().get();
+//               UnionTypeDescriptorNode unionTypeDescriptorNode= (UnionTypeDescriptorNode) returnTypeDescriptorNode
+//               .type();
+//               RecordTypeDescriptorNode recordTypeDescriptorNode= (RecordTypeDescriptorNode) unionTypeDescriptorNode
+//               .leftTypeDesc();
+//                NodeList<Node> fields = recordTypeDescriptorNode.fields();
+//                fields.remove(0);
+//                RecordFieldNode returnFieldNode= createRecordFieldNode(null,null,createSimpleNameReferenceNode
+//                (createIdentifierToken(returnName)),createIdentifierToken("value"),null,createToken(SEMICOLON_TOKEN));
+//                fields.add(returnFieldNode);
+//
+//                break;
+//            }
+//
+//        }
+//        memberDeclarationNodes.add( node);
+//
+//    }
 //
 
     /**

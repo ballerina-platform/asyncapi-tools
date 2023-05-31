@@ -18,7 +18,6 @@
 
 package io.ballerina.asyncapi.core;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import io.apicurio.datamodels.Library;
@@ -31,7 +30,6 @@ import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25DocumentImpl;
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25SchemaImpl;
 import io.apicurio.datamodels.validation.ValidationProblem;
 import io.ballerina.asyncapi.core.exception.BallerinaAsyncApiException;
-import io.ballerina.asyncapi.core.generators.asyncspec.model.BalAsyncApi25SchemaImpl;
 import io.ballerina.asyncapi.core.model.GenSrcFile;
 import io.ballerina.compiler.api.SemanticModel;
 import io.ballerina.compiler.api.symbols.Symbol;
@@ -361,7 +359,7 @@ public class GeneratorUtils {
     /**
      * Util for take OpenApi spec from given yaml file.
      */
-    public static AsyncApi25DocumentImpl getAsyncAPIFromAsyncAPIV3Parser(Path definitionPath) throws
+    public static AsyncApi25DocumentImpl getAsyncAPIFromAsyncAPIParser(Path definitionPath) throws
             IOException, BallerinaAsyncApiException {
 
         Path contractPath = java.nio.file.Paths.get(definitionPath.toString());
@@ -696,7 +694,7 @@ public class GeneratorUtils {
      */
     public static AsyncApi25DocumentImpl normalizeAsyncAPI(Path asyncAPIPath) throws IOException,
             BallerinaAsyncApiException {
-        AsyncApi25DocumentImpl asyncAPI = getAsyncAPIFromAsyncAPIV3Parser(asyncAPIPath);
+        AsyncApi25DocumentImpl asyncAPI = getAsyncAPIFromAsyncAPIParser(asyncAPIPath);
 
         //TODO: Do some validations
         AsyncApi25ChannelsImpl asyncApiChannels = (AsyncApi25ChannelsImpl) asyncAPI.getChannels();

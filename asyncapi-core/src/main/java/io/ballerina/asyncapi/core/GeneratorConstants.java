@@ -53,7 +53,7 @@ public class GeneratorConstants {
 
     public static final String UUID="uuid";
 
-    public static final String CREATE_TYPE1_AS_STRING="createType1AsString";
+    public static final String CREATE_TYPE1_AS_STRING="createType1AsString()";
 
     public static final String CAPITAL_PIPE ="Pipe";
 

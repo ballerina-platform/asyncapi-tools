@@ -154,14 +154,15 @@ public class TypeGeneratorUtils {
      */
     public static TypeDescriptorNode getNullableType(AsyncApi25SchemaImpl schema, TypeDescriptorNode originalTypeDesc) {
         TypeDescriptorNode nillableType = originalTypeDesc;
-        boolean nullable = GeneratorMetaData.getInstance().isNullable();
+//        boolean nullable = GeneratorMetaData.getInstance().isNullable();
         if (schema.getExtensions() != null) {
             if (schema.getExtensions().get("x-nullable").equals(BooleanNode.TRUE)) {
                 nillableType = createOptionalTypeDescriptorNode(originalTypeDesc, createToken(QUESTION_MARK_TOKEN));
             }
-        } else if (nullable) {
-            nillableType = createOptionalTypeDescriptorNode(originalTypeDesc, createToken(QUESTION_MARK_TOKEN));
         }
+//        } else if (nullable) {
+//            nillableType = createOptionalTypeDescriptorNode(originalTypeDesc, createToken(QUESTION_MARK_TOKEN));
+//        }
         return nillableType;
     }
 

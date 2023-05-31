@@ -28,18 +28,17 @@ import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25DocumentImpl;
 public class GeneratorMetaData {
 
     private final AsyncApi25DocumentImpl asyncAPI;
-    private final boolean nullable;
     private final boolean generateServiceType;
     private static GeneratorMetaData generatorMetaData = null;
 
-    private GeneratorMetaData(AsyncApi25DocumentImpl asyncAPI, boolean nullable, boolean generateServiceType) {
+    private GeneratorMetaData(AsyncApi25DocumentImpl asyncAPI,  boolean generateServiceType) {
         this.asyncAPI = asyncAPI;
-        this.nullable = nullable;
+
         this.generateServiceType = generateServiceType;
     }
 
-    public static void createInstance(AsyncApi25DocumentImpl openAPI, boolean nullable, boolean generateServiceType) {
-        generatorMetaData = new GeneratorMetaData(openAPI, nullable, generateServiceType);
+    public static void createInstance(AsyncApi25DocumentImpl openAPI,  boolean generateServiceType) {
+        generatorMetaData = new GeneratorMetaData(openAPI, generateServiceType);
     }
 
     public static GeneratorMetaData getInstance() {
@@ -50,9 +49,6 @@ public class GeneratorMetaData {
         return asyncAPI;
     }
 
-    public boolean isNullable() {
-        return nullable;
-    }
 
     public boolean isServiceTypeRequired() {
         return generateServiceType;

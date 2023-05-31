@@ -674,7 +674,7 @@ public class BallerinaAuthConfigGenerator {
      * @return {@link List<Node>}  syntax tree node list of config parameters
      */
     public void getConfigParamForClassInit(String serviceUrl, ArrayList initMetaDoc,List<Node> parameters)
-            throws BallerinaAsyncApiException {
+       {
 
         NodeList<AnnotationNode> annotationNodes = createEmptyNodeList();
         Node serviceURLNode = getServiceURLNode(serviceUrl);
@@ -719,19 +719,6 @@ public class BallerinaAuthConfigGenerator {
             }
         }
 
-//        string path - common for every remote functions
-//        VariableDeclarationNode pathInt = getPathStatement(serviceUrl, annotationNodes);
-//        statementsList.add(pathInt);
-////
-        //TODO: move this
-
-        //Handle all type of parameters(path,query and header)
-//        parameters.add(createToken(COMMA_TOKEN));
-
-//        if (parameters.size() >= 2) {
-//            parameters.remove(parameters.size() - 1);
-//        }
-//        return parameters;
     }
 
 
@@ -746,11 +733,6 @@ public class BallerinaAuthConfigGenerator {
         if (bindings != null && bindings.getWs() == null) {
             throw new BallerinaAsyncApiException("This tool support only for websocket protocol,use ws bindings");
         }
-
-//            wsBindings.
-
-//        List<Node> defaultable = new ArrayList<>();
-//        List<Node> deprecatedParamDocComments = new ArrayList<>();
 
         //Go through path Parameters
         if (parameters != null) {
@@ -768,15 +750,6 @@ public class BallerinaAuthConfigGenerator {
                                     parameterName, false), parameter.getDescription());
                     remoteFunctionDoc.add(paramAPIDoc);
                 }
-//                List<AnnotationNode> parameterAnnotationNodeList =
-//                        getParameterAnnotationNodeList((AsyncApi25ParameterImpl) parameters.getItem(parameterName),
-//                                deprecatedParamDocComments);
-
-//                Node param = getPathParameters(parameterName, (AsyncApi25ParameterImpl)
-//                                parameters.getItem(parameterName),
-//                        createNodeList(new ArrayList<>()));
-//
-//                parameterList.add(param);
 
                 pathSchema.addProperty(parameterName,parameter.getSchema());
                 pathRequiredFields.add(parameterName);
@@ -802,13 +775,6 @@ public class BallerinaAuthConfigGenerator {
 
                 if (headers.get("properties") != null) {
                     Iterator<Map.Entry<String, JsonNode>> properties = headers.get("properties").fields();
-//                AsyncApi25SchemaImpl headerSchema = null;
-//                try {
-//                    headerSchema = objMapper.treeToValue(headers, BalAsyncApi25SchemaImpl.class);
-//                } catch (JsonProcessingException e) {
-//                    throw new RuntimeException(e);
-//                }
-//                Map<String, Schema> properties = headerSchema.getProperties();
 
                     headerSchema.setType("object");
                     headerSchema.setAdditionalProperties(new BooleanUnionValueImpl(false));
@@ -852,25 +818,12 @@ public class BallerinaAuthConfigGenerator {
 
                 ObjectNode query = (ObjectNode) wsBindings.getItem("query");
                 ObjectMapper objMapper = ConverterCommonUtils.callObjectMapper();
-//            objMapper.registerSubtypes(AsyncApi25SchemaImpl.class);
-
                 if (query.get("properties") != null) {
                     Iterator<Map.Entry<String, JsonNode>> properties = query.get("properties").fields();
-
-//                Schema querySchema = null;
-
-//            try {
-//                querySchema = objMapper.treeToValue(query,Schema.class);
-//            } catch (JsonProcessingException e) {
-//                throw new RuntimeException(e);
-//            }
-//                Map<String, Schema> properties = querySchema.getProperties();
 
                     querySchema.setType("object");
                     querySchema.setAdditionalProperties(new BooleanUnionValueImpl(false));
                     List<String> queryRequiredFields = new ArrayList<>();
-
-
                     for (Iterator<Map.Entry<String, JsonNode>> it = properties; it.hasNext(); ) {
                         Map.Entry<String, JsonNode> field = it.next();
                         String queryName = field.getKey();
@@ -879,16 +832,11 @@ public class BallerinaAuthConfigGenerator {
                                     BalAsyncApi25SchemaImpl.class);
                             querySchema.addProperty(queryName, schema);
                             queryRequiredFields.add(queryName);
-
-//                        Node paramq = getQueryParameters(schema, queryName, createNodeList(new ArrayList<>()));
-//                        parameterList.add(comma);
-//                        parameterList.add(paramq);
                         } catch (JsonProcessingException e) {
                             throw new RuntimeException(e);
                         }
                     }
                     querySchema.setRequired(queryRequiredFields);
-                    System.out.println("fdf");
                     authRelatedTypeDefinitionNodes.add(BallerinaTypesGenerator.getTypeDefinitionNode(querySchema,
                             "QueryParams", new ArrayList<>()));
                     BuiltinSimpleNameReferenceNode typeName = createBuiltinSimpleNameReferenceNode(null,
@@ -904,411 +852,8 @@ public class BallerinaAuthConfigGenerator {
 
             }
         }
-//        if (((AsyncApi25BindingImpl)bindings)..)
     }
 
-    /**
-     * Create header when it comes under the parameter section in swagger.
-     */
-    private Node getHeaderParameter(AsyncApi25SchemaImpl schema, String headerName,
-                                    NodeList<AnnotationNode> parameterAnnotationNodeList)
-            throws BallerinaAsyncApiException {
-
-        IdentifierToken paramName = createIdentifierToken(getValidName(headerName.trim(), false));
-        return getHeader(schema, paramName, parameterAnnotationNodeList);
-    }
-
-
-    /**
-     * Create header for header parameter and encoding.
-     */
-    private Node getHeader(AsyncApi25SchemaImpl schema, IdentifierToken paramName,
-                           NodeList<AnnotationNode> parameterAnnotationNodeList) throws BallerinaAsyncApiException {
-
-        ObjectMapper objMapper = new ObjectMapper();
-        BalAsyncApi25SchemaImpl itemSchema = null;
-//        try {
-//            itemSchema = objMapper.treeToValue(schema.getItems(), AsyncApi25SchemaImpl.class);
-//        } catch (JsonProcessingException e) {
-//            throw new RuntimeException(e);
-//        }
-        itemSchema = (BalAsyncApi25SchemaImpl) schema.getItems();
-
-//        String paramType = "";
-        if (schema.getDefault() != null) {
-
-            LiteralValueToken literalValueToken;
-            if (schema.getType().equals(STRING)) {
-                literalValueToken = createLiteralValueToken(null,
-                        '"' + schema.getDefault().toString() + '"', createEmptyMinutiaeList(),
-                        createEmptyMinutiaeList());
-            } else {
-                literalValueToken = createLiteralValueToken(null, schema.getDefault().toString(),
-                        createEmptyMinutiaeList(), createEmptyMinutiaeList());
-            }
-
-            if (schema.getExtensions() != null && schema.getExtensions().get("x-nullable") != null &&
-                    schema.getExtensions().get("x-nullable").equals(BooleanNode.TRUE)) {
-                String type = convertAsyncAPITypeToBallerina(schema.getType().trim()) + NILLABLE;
-
-                if (schema.getType().equals("array")) {
-                    if (itemSchema.get$ref() != null) {
-                        type = extractReferenceType(itemSchema.get$ref()) + SQUARE_BRACKETS + NILLABLE;
-                    } else {
-                        type = convertAsyncAPITypeToBallerina(itemSchema.getType().trim()) + SQUARE_BRACKETS
-                                + NILLABLE;
-                    }
-                }
-                BuiltinSimpleNameReferenceNode typeName = createBuiltinSimpleNameReferenceNode(null,
-                        createIdentifierToken(type));
-
-                NilLiteralNode nilLiteralNode =
-                        createNilLiteralNode(createToken(OPEN_PAREN_TOKEN), createToken(CLOSE_PAREN_TOKEN));
-                return createDefaultableParameterNode(parameterAnnotationNodeList, typeName, paramName,
-                        createToken(EQUAL_TOKEN), nilLiteralNode);
-
-
-            }
-            BuiltinSimpleNameReferenceNode typeName = createBuiltinSimpleNameReferenceNode(null,
-                    createIdentifierToken(convertAsyncAPITypeToBallerina(schema.getType().trim())));
-
-//            typeName = createBuiltinSimpleNameReferenceNode(null, createIdentifierToken(paramType));
-
-
-            return createDefaultableParameterNode(parameterAnnotationNodeList, typeName, paramName,
-                    createToken(EQUAL_TOKEN), literalValueToken);
-
-
-        } else {
-            String type = convertAsyncAPITypeToBallerina(schema.getType().trim());
-            if (schema.getType().equals("array")) {
-
-                if (itemSchema.get$ref() != null) {
-                    type = extractReferenceType(itemSchema.get$ref()) + SQUARE_BRACKETS;
-                } else {
-                    type = convertAsyncAPITypeToBallerina(itemSchema.getType().trim()) + SQUARE_BRACKETS;
-                }
-            }
-            BuiltinSimpleNameReferenceNode typeName = createBuiltinSimpleNameReferenceNode(null,
-                    createIdentifierToken(type));
-            return createRequiredParameterNode(parameterAnnotationNodeList, typeName, paramName);
-//                String type = convertAsyncAPITypeToBallerina(schema.getType().trim()) + NILLABLE;
-//                if (schema.getType().equals("array")) {
-////                    ArraySchema arraySchema = (ArraySchema) schema;
-//
-//                    if (itemSchema.get$ref() != null) {
-//                        type = extractReferenceType(itemSchema.get$ref()) + SQUARE_BRACKETS + NILLABLE;
-//                    } else {
-//                        type = convertAsyncAPITypeToBallerina(itemSchema.getType().trim()) + SQUARE_BRACKETS
-//                                + NILLABLE;
-//                    }
-//                }
-//                BuiltinSimpleNameReferenceNode typeName = createBuiltinSimpleNameReferenceNode(null,
-//                        createIdentifierToken(type));
-//                NilLiteralNode nilLiteralNode =
-//                        createNilLiteralNode(createToken(OPEN_PAREN_TOKEN), createToken(CLOSE_PAREN_TOKEN));
-//                return createDefaultableParameterNode(parameterAnnotationNodeList, typeName, paramName,
-//                        createToken(EQUAL_TOKEN), nilLiteralNode);
-        }
-
-    }
-
-
-//                String in = parameter.getIn();
-//                switch (in) {
-//                    case "path":
-//                        Node param = getPathParameters(paramete, createNodeList(parameterAnnotationNodeList));
-//                        // Path parameters are always required.
-//                        if (!isResource) {
-//                            parameterList.add(param);
-//                            parameterList.add(comma);
-//                        }
-//                        break;
-//                    case "query":
-//                        Node paramq = getQueryParameters(parameter, createNodeList(parameterAnnotationNodeList));
-//                        if (paramq instanceof RequiredParameterNode) {
-//                            parameterList.add(paramq);
-//                            parameterList.add(comma);
-//                        } else {
-//                            defaultable.add(paramq);
-//                            defaultable.add(comma);
-//                        }
-//                        break;
-//                    case "header":
-//                        Node paramh = getHeaderParameter(parameter, createNodeList(parameterAnnotationNodeList));
-//                        if (paramh instanceof RequiredParameterNode) {
-//                            parameterList.add(paramh);
-//                            parameterList.add(comma);
-//                        } else {
-//                            defaultable.add(paramh);
-//                            defaultable.add(comma);
-//                        }
-//                        break;
-//                    default:
-//                        break;
-//                }
-
-
-//
-//        // Handle RequestBody
-//        if (operation.getRequestBody() != null) {
-//            setRequestBodyParameters(operation.getOperationId(), operation.getRequestBody(), remoteFunctionDoc,
-//                    parameterList, defaultable);
-//        }
-//        remoteFunctionDoc.addAll(deprecatedParamDocComments);
-//        //Filter defaultable parameters
-//        if (!defaultable.isEmpty()) {
-//            parameterList.addAll(defaultable);
-//        }
-
-
-    /**
-     * Create path parameters.
-     */
-    public Node getPathParameters(String parameterName, AsyncApi25ParameterImpl parameter,
-                                  NodeList<AnnotationNode> parameterAnnotationNodeList)
-            throws BallerinaAsyncApiException {
-
-        IdentifierToken paramName = createIdentifierToken(getValidName(parameterName, false));
-        String type = "";
-        AsyncApi25SchemaImpl parameterSchema = (AsyncApi25SchemaImpl) parameter.getSchema();
-        if (parameterSchema.get$ref() != null) {
-            type = getValidName(extractReferenceType(parameterSchema.get$ref()), true);
-            AsyncApi25SchemaImpl schema = (AsyncApi25SchemaImpl) asyncAPI.getComponents().getSchemas().
-                    get(type.trim());
-            if (schema.getType().equals("object")) {
-                throw new BallerinaAsyncApiException("Ballerina does not support object type path parameters.");
-            }
-        } else {
-            type = convertAsyncAPITypeToBallerina(parameter.getSchema().getType().trim());
-            if (type.equals("anydata") || type.equals(SQUARE_BRACKETS) || type.equals("record {}")) {
-                throw new BallerinaAsyncApiException(invalidPathParamType(parameterName.trim()));
-            }
-        }
-        BuiltinSimpleNameReferenceNode typeName = createBuiltinSimpleNameReferenceNode(null,
-                createIdentifierToken(type));
-        return createRequiredParameterNode(parameterAnnotationNodeList, typeName, paramName);
-    }
-
-    /**
-     * Create query parameters.
-     * <p>
-     * Note: currently ballerina supports for this data type.
-     * type BasicType boolean|int|float|decimal|string;
-     * public type QueryParamType ()|BasicType|BasicType[];
-     */
-    public Node getQueryParameters(BalAsyncApi25SchemaImpl schema, String queryParamName,
-                                   NodeList<AnnotationNode> parameterAnnotationNodeList)
-            throws BallerinaAsyncApiException {
-
-        TypeDescriptorNode typeName;
-
-//        Schema parameterSchema = parameter.getSchema();
-        String paramType = "";
-//        if (parameterSchema.get$ref() != null) {
-//            paramType = getValidName(extractReferenceType(parameterSchema.get$ref()), true);
-//        } else {
-        if(schema.getAdditionalProperties()!=null){
-            if(((AsyncApi25SchemaImpl)schema.getAdditionalProperties()).getType()==null){
-            paramType ="map<"+ convertAsyncAPITypeToBallerina("{}")+">";
-
-            } else if (((AsyncApi25SchemaImpl)schema.getAdditionalProperties()).getType()!=null) {
-                paramType="map<"+convertAsyncAPITypeToBallerina(((AsyncApi25SchemaImpl)schema.
-                    getAdditionalProperties()).getType())+">";
-
-            }
-
-        }else{
-            paramType = convertAsyncAPITypeToBallerina(schema.getType().trim());
-
-        }
-        if (schema.getType().equals(NUMBER)) {
-            if (schema.getFormat() != null) {
-                paramType = convertAsyncAPITypeToBallerina(schema.getFormat().trim());
-            }
-        } else if (schema.getType().equals("array")) {
-//          AsyncApi25SchemaImpl schemas= (AsyncApi25SchemaImpl) schema.getItems();
-
-//       z
-            ObjectMapper objMapper = new ObjectMapper();
-           BalAsyncApi25SchemaImpl itemsSchema = null;
-
-//                itemsSchema = objMapper.treeToValue(schema.getItems(), AsyncApi25SchemaImpl.class);
-//            System.out.println(schema.getItems());
-            itemsSchema = (BalAsyncApi25SchemaImpl) schema.getItems();
-
-            if (itemsSchema.getType() != null) {
-                String itemType = itemsSchema.getType();
-                if (itemType.equals(STRING) || itemType.equals(INTEGER) || itemType.equals(BOOLEAN)) {
-                    paramType = convertAsyncAPITypeToBallerina(itemType) + SQUARE_BRACKETS;
-                } else if (itemType.equals(NUMBER)) {
-                    paramType = convertAsyncAPITypeToBallerina
-                            (itemsSchema.getFormat().trim()) + SQUARE_BRACKETS;
-                } else {
-                    throw new BallerinaAsyncApiException("Unsupported parameter type is found in the parameter : " +
-                            queryParamName);
-                }
-            } else if (itemsSchema.get$ref() != null) {
-                paramType = getValidName(extractReferenceType(
-                        itemsSchema.get$ref().trim()), true) + SQUARE_BRACKETS;
-            } else {
-                throw new BallerinaAsyncApiException("Please define the array item type of the parameter : " +
-                        queryParamName);
-            }
-        }
-
-
-        if (schema.getDefault() != null) {
-            IdentifierToken paramName =
-                    createIdentifierToken(getValidName(queryParamName.trim(), false));
-            // Handle given default values in query parameter.
-//            if (schema.getDefault() != null) {
-            LiteralValueToken literalValueToken;
-            if (schema.getType().equals(STRING)) {
-                literalValueToken = createLiteralValueToken(null,
-                        schema.getDefault().toString(), createEmptyMinutiaeList(),
-                        createEmptyMinutiaeList());
-            } else {
-                literalValueToken =
-                        createLiteralValueToken(null, schema.getDefault().asText().trim().replaceAll("\\\\", ""),
-                                createEmptyMinutiaeList(),
-                                createEmptyMinutiaeList());
-
-            }
-            if (schema.getExtensions() != null && schema.getExtensions().get("x-nullable") != null &&
-                    schema.getExtensions().get("x-nullable").equals(BooleanNode.TRUE)) {
-                typeName = createOptionalTypeDescriptorNode(createBuiltinSimpleNameReferenceNode(null,
-                        createIdentifierToken(paramType)), createToken(QUESTION_MARK_TOKEN));
-
-                NilLiteralNode nilLiteralNode =
-                        createNilLiteralNode(createToken(OPEN_PAREN_TOKEN), createToken(CLOSE_PAREN_TOKEN));
-                return createDefaultableParameterNode(parameterAnnotationNodeList, typeName, paramName,
-                        createToken(EQUAL_TOKEN), literalValueToken);
-
-            } else {
-                typeName = createBuiltinSimpleNameReferenceNode(null, createIdentifierToken(paramType));
-                return createDefaultableParameterNode(parameterAnnotationNodeList, typeName, paramName,
-                        createToken(EQUAL_TOKEN), literalValueToken);
-
-            }
-
-
-//            } else {
-//                typeName = createOptionalTypeDescriptorNode(createBuiltinSimpleNameReferenceNode(null,
-//                        createIdentifierToken(paramType)), createToken(QUESTION_MARK_TOKEN));
-//                NilLiteralNode nilLiteralNode =
-//                        createNilLiteralNode(createToken(OPEN_PAREN_TOKEN), createToken(CLOSE_PAREN_TOKEN));
-//                return createDefaultableParameterNode(parameterAnnotationNodeList, typeName, paramName,
-//                        createToken(EQUAL_TOKEN), nilLiteralNode);
-//            }
-        } else {
-            IdentifierToken paramName =
-                createIdentifierToken(getValidName(queryParamName.trim(), false));
-
-
-            if (schema.getExtensions() != null && schema.getExtensions().get("x-nullable") != null &&
-                    schema.getExtensions().get("x-nullable").equals(BooleanNode.TRUE)) {
-                typeName = createOptionalTypeDescriptorNode(createBuiltinSimpleNameReferenceNode(null,
-                        createIdentifierToken(paramType)), createToken(QUESTION_MARK_TOKEN));
-                NilLiteralNode nilLiteralNode =
-                        createNilLiteralNode(createToken(OPEN_PAREN_TOKEN), createToken(CLOSE_PAREN_TOKEN));
-                return createDefaultableParameterNode(parameterAnnotationNodeList, typeName, paramName,
-                        createToken(EQUAL_TOKEN), nilLiteralNode);
-
-            } else {
-                typeName = createBuiltinSimpleNameReferenceNode(null, createIdentifierToken(paramType));
-
-                return createRequiredParameterNode(parameterAnnotationNodeList, typeName, paramName);
-            }
-        }
-    }
-
-//    private List<AnnotationNode> getParameterAnnotationNodeList(AsyncApi25ParameterImpl parameter,
-//                                                                List<Node> deprecatedParamDocComments) {
-//
-//        List<AnnotationNode> parameterAnnotationNodeList = new ArrayList<>();
-//        Map<String, JsonNode> extensions= parameter.getExtensions();
-////        DocCommentsGenerator.extractDisplayAnnotation(parameter.getExtensions(), parameterAnnotationNodeList);
-//
-//        if (parameter.getDeprecated() != null && parameter.getDeprecated()) {
-//            if (!this.deprecatedParamFound) {
-//                deprecatedParamDocComments.addAll(DocCommentsGenerator.createAPIDescriptionDoc(
-//                        "# Deprecated parameters", false));
-//                this.deprecatedParamFound = true;
-//            }
-//            String deprecatedDescription = "";
-//            if (parameter.getExtensions() != null) {
-//                for (Map.Entry<String, Object> extension : parameter.getExtensions().entrySet()) {
-//                    if (extension.getKey().trim().equals(X_BALLERINA_DEPRECATED_REASON)) {
-//                        deprecatedDescription = extension.getValue().toString();
-//                        break;
-//                    }
-//                }
-//            }
-//            MarkdownParameterDocumentationLineNode paramAPIDoc =
-//                    DocCommentsGenerator.createAPIParamDoc(getValidName(
-//                            parameter.getName(), false), deprecatedDescription);
-//            deprecatedParamDocComments.add(paramAPIDoc);
-//            parameterAnnotationNodeList.add(createAnnotationNode(createToken(AT_TOKEN),
-//                    createSimpleNameReferenceNode(createIdentifierToken("deprecated")), null));
-//        }
-//        return parameterAnnotationNodeList;
-//    }
-
-
-    /**
-     * This method use to generate Path statement inside the function body node.
-     * <p>
-     * ex:
-     * <pre> string  path = string `/weather`; </pre>
-     *
-     * @param path            - Given path
-     * @param annotationNodes - Node list for path implementation
-     * @return - VariableDeclarationNode for path statement.
-     */
-    private VariableDeclarationNode getPathStatement(String path, NodeList<AnnotationNode> annotationNodes) {
-
-        TypedBindingPatternNode typedBindingPatternNode = createTypedBindingPatternNode(createSimpleNameReferenceNode(
-                createToken(STRING_KEYWORD)), createCaptureBindingPatternNode(
-                createIdentifierToken(MODIFIED_URL)));
-        // Create initializer
-        // Content  should decide with /pet and /pet/{pet}
-        path = generatePathWithPathParameter(path);
-        //String path generator
-        NodeList<Node> content = createNodeList(createLiteralValueToken(null, path, createEmptyMinutiaeList(),
-                createEmptyMinutiaeList()));
-        TemplateExpressionNode initializer = createTemplateExpressionNode(null, createToken(STRING_KEYWORD),
-                createToken(BACKTICK_TOKEN), content, createToken(BACKTICK_TOKEN));
-        return createVariableDeclarationNode(annotationNodes, null,
-                typedBindingPatternNode, createToken(EQUAL_TOKEN), initializer, createToken(SEMICOLON_TOKEN));
-    }
-
-
-    /**
-     * This method is to used for generating path when it has path parameters.
-     *
-     * @param path - yaml contract path
-     * @return string of path
-     */
-    public String generatePathWithPathParameter(String path) {
-
-        if (path.contains("{")) {
-            String refinedPath = path;
-            Pattern p = Pattern.compile("\\{[^}]*}");
-            Matcher m = p.matcher(path);
-            while (m.find()) {
-                String pathVariable = path.substring(m.start(), m.end());
-                if (pathVariable.startsWith("{") && pathVariable.endsWith("}")) {
-                    String d = pathVariable.replace("{", "").replace("}", "");
-                    String replaceVariable = "{getEncodedUri(" + getValidName(d, false) + ")}";
-                    refinedPath = refinedPath.replace(pathVariable, replaceVariable);
-                }
-            }
-            path = refinedPath.replaceAll("[{]", "\\${");
-        }
-        ballerinaUtilGenerator.setPathParametersFound(true);
-        return path;
-    }
 
     /**
      * Generate the serviceUrl parameters of the client class init method.

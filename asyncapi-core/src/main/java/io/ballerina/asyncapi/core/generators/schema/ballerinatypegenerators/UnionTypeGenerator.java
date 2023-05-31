@@ -94,7 +94,7 @@ public class UnionTypeGenerator extends TypeGenerator {
         for (AsyncApiSchema schema : schemas) {
             TypeGenerator typeGenerator = getTypeGenerator((AsyncApi25SchemaImpl) schema, typeName, null);
             TypeDescriptorNode typeDescNode = typeGenerator.generateTypeDescriptorNode();
-            if (typeDescNode instanceof OptionalTypeDescriptorNode && GeneratorMetaData.getInstance().isNullable()) {
+            if (typeDescNode instanceof OptionalTypeDescriptorNode ) {
                 Node internalTypeDesc = ((OptionalTypeDescriptorNode) typeDescNode).typeDescriptor();
                 typeDescNode = (TypeDescriptorNode) internalTypeDesc;
             }
