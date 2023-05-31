@@ -22,8 +22,8 @@ import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25DocumentImpl;
 import io.ballerina.asyncapi.core.GeneratorUtils;
 import io.ballerina.asyncapi.core.exception.BallerinaAsyncApiException;
 import io.ballerina.asyncapi.core.generators.asyncspec.utils.CodegenUtils;
-import io.ballerina.asyncapi.core.generators.client.BallerinaClientGenerator;
-import io.ballerina.asyncapi.core.generators.client.BallerinaTestGenerator;
+import io.ballerina.asyncapi.core.generators.client.IntermediateClientGenerator;
+import io.ballerina.asyncapi.core.generators.client.TestGenerator;
 import io.ballerina.asyncapi.core.generators.client.model.AASClientConfig;
 import io.ballerina.asyncapi.core.generators.schema.BallerinaTypesGenerator;
 import io.ballerina.asyncapi.core.model.GenSrcFile;
@@ -43,11 +43,7 @@ import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 import java.util.Objects;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.function.Function;
-import java.util.function.Predicate;
 
 import static io.ballerina.asyncapi.cli.CmdConstants.CLIENT_FILE_NAME;
 import static io.ballerina.asyncapi.cli.CmdConstants.CONFIG_FILE_NAME;
@@ -194,21 +190,21 @@ public class BallerinaCodeGenerator {
 
 
         //Generate client intermediate code
-        BallerinaClientGenerator ballerinaClientGenerator = new BallerinaClientGenerator(asyncAPIClientConfig);
-        String mainContent = Formatter.format(ballerinaClientGenerator.generateSyntaxTree()).toString();
+        IntermediateClientGenerator intermediateClientGenerator = new IntermediateClientGenerator(asyncAPIClientConfig);
+        String mainContent = Formatter.format(intermediateClientGenerator.generateSyntaxTree()).toString();
         sourceFiles.add(new GenSrcFile(GenSrcFile.GenFileType.GEN_SRC, srcPackage, CLIENT_FILE_NAME, mainContent));
 
 
 
         //Generate util functions for client intermediate code
         String utilContent = Formatter.format(
-                ballerinaClientGenerator.getBallerinaUtilGenerator().generateUtilSyntaxTree()).toString();
+                intermediateClientGenerator.getBallerinaUtilGenerator().generateUtilSyntaxTree()).toString();
         if (!utilContent.isBlank()) {
             sourceFiles.add(new GenSrcFile(GenSrcFile.GenFileType.UTIL_SRC, srcPackage, UTIL_FILE_NAME, utilContent));
         }
         List<TypeDefinitionNode> preGeneratedTypeDefNodes = new ArrayList<>(
-                ballerinaClientGenerator.getBallerinaAuthConfigGenerator().getAuthRelatedTypeDefinitionNodes());
-        preGeneratedTypeDefNodes.addAll(ballerinaClientGenerator.getTypeDefinitionNodeList());
+                intermediateClientGenerator.getBallerinaAuthConfigGenerator().getAuthRelatedTypeDefinitionNodes());
+        preGeneratedTypeDefNodes.addAll(intermediateClientGenerator.getTypeDefinitionNodeList());
 
 
         //Generate ballerina records to represent schemas in client intermediate code
@@ -226,11 +222,11 @@ public class BallerinaCodeGenerator {
 
         // Generate test boilerplate code for test cases //TODO: this has to be implemented
         if (this.includeTestFiles) {
-            BallerinaTestGenerator ballerinaTestGenerator = new BallerinaTestGenerator(ballerinaClientGenerator);
-            String testContent = Formatter.format(ballerinaTestGenerator.generateSyntaxTree()).toString();
+            TestGenerator testGenerator = new TestGenerator(intermediateClientGenerator);
+            String testContent = Formatter.format(testGenerator.generateSyntaxTree()).toString();
             sourceFiles.add(new GenSrcFile(GenSrcFile.GenFileType.GEN_SRC, srcPackage, TEST_FILE_NAME, testContent));
 
-            String configContent = ballerinaTestGenerator.getConfigTomlFile();
+            String configContent = testGenerator.getConfigTomlFile();
             if (!configContent.isBlank()) {
                 sourceFiles.add(new GenSrcFile(GenSrcFile.GenFileType.GEN_SRC, srcPackage,
                         CONFIG_FILE_NAME, configContent));

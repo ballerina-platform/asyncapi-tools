@@ -112,7 +112,7 @@ public class GeneratorUtils {
     public static final MinutiaeList SINGLE_WS_MINUTIAE = getSingleWSMinutiae();
     public static final List<String> BAL_KEYWORDS = SyntaxInfo.keywords();
     public static final MinutiaeList SINGLE_END_OF_LINE_MINUTIAE = getEndOfLineMinutiae();
-//    private static final Logger LOGGER = LoggerFactory.getLogger(BallerinaUtilGenerator.class);
+//    private static final Logger LOGGER = LoggerFactory.getLogger(UtilGenerator.class);
 
     //Create imports;
     public static ImportDeclarationNode getImportDeclarationNode(String orgName, String moduleName) {

@@ -1,10 +1,9 @@
 package io.ballerina.asyncapi.generators.client;
 
-import com.beust.ah.A;
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25DocumentImpl;
 import io.ballerina.asyncapi.core.GeneratorUtils;
 import io.ballerina.asyncapi.core.exception.BallerinaAsyncApiException;
-import io.ballerina.asyncapi.core.generators.client.BallerinaClientGenerator;
+import io.ballerina.asyncapi.core.generators.client.IntermediateClientGenerator;
 import io.ballerina.asyncapi.core.generators.client.model.AASClientConfig;
 import io.ballerina.asyncapi.generators.common.TestUtils;
 import io.ballerina.compiler.syntax.tree.*;
@@ -51,9 +50,9 @@ public class UtilGenerationTests {
         AASClientConfig oasClientConfig = clientMetaDataBuilder
 //                .withFilters(filter)
                 .withAsyncAPI(openAPI).build();
-        BallerinaClientGenerator ballerinaClientGenerator = new BallerinaClientGenerator(oasClientConfig);
-        SyntaxTree clientSyntaxTree = ballerinaClientGenerator.generateSyntaxTree();
-        SyntaxTree utlisSyntaxTree = ballerinaClientGenerator.getBallerinaUtilGenerator().generateUtilSyntaxTree();
+        IntermediateClientGenerator intermediateClientGenerator = new IntermediateClientGenerator(oasClientConfig);
+        SyntaxTree clientSyntaxTree = intermediateClientGenerator.generateSyntaxTree();
+        SyntaxTree utlisSyntaxTree = intermediateClientGenerator.getBallerinaUtilGenerator().generateUtilSyntaxTree();
         TestUtils.compareGeneratedSyntaxTreewithExpectedSyntaxTree("client/ballerina/default_util.bal",
                 utlisSyntaxTree);
     }
@@ -67,12 +66,12 @@ public class UtilGenerationTests {
         AASClientConfig oasClientConfig = clientMetaDataBuilder
 
                 .withAsyncAPI(openAPI).build();
-        BallerinaClientGenerator ballerinaClientGenerator = new BallerinaClientGenerator(oasClientConfig);
-        SyntaxTree clientSyntaxTree = ballerinaClientGenerator.generateSyntaxTree();
+        IntermediateClientGenerator intermediateClientGenerator = new IntermediateClientGenerator(oasClientConfig);
+        SyntaxTree clientSyntaxTree = intermediateClientGenerator.generateSyntaxTree();
         List<String> invalidFunctionNames = Arrays.asList(CREATE_FORM_URLENCODED_REQUEST_BODY, GET_MAP_FOR_HEADERS);
         Assert.assertTrue(checkUtil(invalidFunctionNames,
-                ballerinaClientGenerator.getBallerinaUtilGenerator().generateUtilSyntaxTree()));
-        List<Diagnostic> diagnostics = getDiagnostics(clientSyntaxTree, openAPI, ballerinaClientGenerator);
+                intermediateClientGenerator.getBallerinaUtilGenerator().generateUtilSyntaxTree()));
+        List<Diagnostic> diagnostics = getDiagnostics(clientSyntaxTree, openAPI, intermediateClientGenerator);
         Assert.assertTrue(diagnostics.isEmpty());
     }
 
@@ -84,14 +83,14 @@ public class UtilGenerationTests {
         AASClientConfig.Builder clientMetaDataBuilder = new AASClientConfig.Builder();
         AASClientConfig oasClientConfig = clientMetaDataBuilder
                 .withAsyncAPI(openAPI).build();
-        BallerinaClientGenerator ballerinaClientGenerator = new BallerinaClientGenerator(oasClientConfig);
-        SyntaxTree clientSyntaxTree = ballerinaClientGenerator.generateSyntaxTree();
+        IntermediateClientGenerator intermediateClientGenerator = new IntermediateClientGenerator(oasClientConfig);
+        SyntaxTree clientSyntaxTree = intermediateClientGenerator.generateSyntaxTree();
         List<String> invalidFunctionNames = Arrays.asList(CREATE_FORM_URLENCODED_REQUEST_BODY,
                 GET_DEEP_OBJECT_STYLE_REQUEST, GET_FORM_STYLE_REQUEST, GET_SERIALIZED_ARRAY,
                 GET_ORIGINAL_KEY, GET_PATH_FOR_QUERY_PARAM, GET_SERIALIZED_RECORD_ARRAY);
         Assert.assertTrue(checkUtil(invalidFunctionNames,
-                ballerinaClientGenerator.getBallerinaUtilGenerator().generateUtilSyntaxTree()));
-        List<Diagnostic> diagnostics = getDiagnostics(clientSyntaxTree, openAPI, ballerinaClientGenerator);
+                intermediateClientGenerator.getBallerinaUtilGenerator().generateUtilSyntaxTree()));
+        List<Diagnostic> diagnostics = getDiagnostics(clientSyntaxTree, openAPI, intermediateClientGenerator);
         Assert.assertTrue(diagnostics.isEmpty());
     }
 
@@ -103,12 +102,12 @@ public class UtilGenerationTests {
         AASClientConfig.Builder clientMetaDataBuilder = new AASClientConfig.Builder();
         AASClientConfig oasClientConfig = clientMetaDataBuilder
                 .withAsyncAPI(openAPI).build();
-        BallerinaClientGenerator ballerinaClientGenerator = new BallerinaClientGenerator(oasClientConfig);
-        SyntaxTree clientSyntaxTree = ballerinaClientGenerator.generateSyntaxTree();
+        IntermediateClientGenerator intermediateClientGenerator = new IntermediateClientGenerator(oasClientConfig);
+        SyntaxTree clientSyntaxTree = intermediateClientGenerator.generateSyntaxTree();
         List<String> invalidFunctionNames = Arrays.asList(GET_PATH_FOR_QUERY_PARAM, GET_MAP_FOR_HEADERS);
         Assert.assertTrue(checkUtil(invalidFunctionNames,
-                ballerinaClientGenerator.getBallerinaUtilGenerator().generateUtilSyntaxTree()));
-        List<Diagnostic> diagnostics = getDiagnostics(clientSyntaxTree, openAPI, ballerinaClientGenerator);
+                intermediateClientGenerator.getBallerinaUtilGenerator().generateUtilSyntaxTree()));
+        List<Diagnostic> diagnostics = getDiagnostics(clientSyntaxTree, openAPI, intermediateClientGenerator);
         Assert.assertTrue(diagnostics.isEmpty());
     }
 
@@ -121,12 +120,12 @@ public class UtilGenerationTests {
         AASClientConfig.Builder clientMetaDataBuilder = new AASClientConfig.Builder();
         AASClientConfig oasClientConfig = clientMetaDataBuilder
                 .withAsyncAPI(openAPI).build();
-        BallerinaClientGenerator ballerinaClientGenerator = new BallerinaClientGenerator(oasClientConfig);
-        SyntaxTree clientSyntaxTree = ballerinaClientGenerator.generateSyntaxTree();
+        IntermediateClientGenerator intermediateClientGenerator = new IntermediateClientGenerator(oasClientConfig);
+        SyntaxTree clientSyntaxTree = intermediateClientGenerator.generateSyntaxTree();
         List<String> invalidFunctionNames = Arrays.asList(GET_PATH_FOR_QUERY_PARAM, GET_MAP_FOR_HEADERS);
         Assert.assertTrue(checkUtil(invalidFunctionNames,
-                ballerinaClientGenerator.getBallerinaUtilGenerator().generateUtilSyntaxTree()));
-        List<Diagnostic> diagnostics = getDiagnostics(clientSyntaxTree, openAPI, ballerinaClientGenerator);
+                intermediateClientGenerator.getBallerinaUtilGenerator().generateUtilSyntaxTree()));
+        List<Diagnostic> diagnostics = getDiagnostics(clientSyntaxTree, openAPI, intermediateClientGenerator);
         Assert.assertTrue(diagnostics.isEmpty());
     }
 
@@ -138,9 +137,9 @@ public class UtilGenerationTests {
         AASClientConfig.Builder clientMetaDataBuilder = new AASClientConfig.Builder();
         AASClientConfig oasClientConfig = clientMetaDataBuilder
                 .withAsyncAPI(openAPI).build();
-        BallerinaClientGenerator ballerinaClientGenerator = new BallerinaClientGenerator(oasClientConfig);
-        SyntaxTree clientSyntaxTree = ballerinaClientGenerator.generateSyntaxTree();
-        List<Diagnostic> diagnostics = getDiagnostics(clientSyntaxTree, openAPI, ballerinaClientGenerator);
+        IntermediateClientGenerator intermediateClientGenerator = new IntermediateClientGenerator(oasClientConfig);
+        SyntaxTree clientSyntaxTree = intermediateClientGenerator.generateSyntaxTree();
+        List<Diagnostic> diagnostics = getDiagnostics(clientSyntaxTree, openAPI, intermediateClientGenerator);
         Assert.assertTrue(diagnostics.isEmpty());
     }
 
@@ -152,9 +151,9 @@ public class UtilGenerationTests {
         AASClientConfig.Builder clientMetaDataBuilder = new AASClientConfig.Builder();
         AASClientConfig oasClientConfig = clientMetaDataBuilder
                 .withAsyncAPI(openAPI).build();
-        BallerinaClientGenerator ballerinaClientGenerator = new BallerinaClientGenerator(oasClientConfig);
-        SyntaxTree clientSyntaxTree = ballerinaClientGenerator.generateSyntaxTree();
-        List<Diagnostic> diagnostics = getDiagnostics(clientSyntaxTree, openAPI, ballerinaClientGenerator);
+        IntermediateClientGenerator intermediateClientGenerator = new IntermediateClientGenerator(oasClientConfig);
+        SyntaxTree clientSyntaxTree = intermediateClientGenerator.generateSyntaxTree();
+        List<Diagnostic> diagnostics = getDiagnostics(clientSyntaxTree, openAPI, intermediateClientGenerator);
         Assert.assertTrue(diagnostics.isEmpty());
     }
 
@@ -165,9 +164,9 @@ public class UtilGenerationTests {
         AASClientConfig.Builder clientMetaDataBuilder = new AASClientConfig.Builder();
         AASClientConfig oasClientConfig = clientMetaDataBuilder
                 .withAsyncAPI(openAPI).build();
-        BallerinaClientGenerator ballerinaClientGenerator = new BallerinaClientGenerator(oasClientConfig);
-        SyntaxTree clientSyntaxTree = ballerinaClientGenerator.generateSyntaxTree();
-        List<Diagnostic> diagnostics = getDiagnostics(clientSyntaxTree, openAPI, ballerinaClientGenerator);
+        IntermediateClientGenerator intermediateClientGenerator = new IntermediateClientGenerator(oasClientConfig);
+        SyntaxTree clientSyntaxTree = intermediateClientGenerator.generateSyntaxTree();
+        List<Diagnostic> diagnostics = getDiagnostics(clientSyntaxTree, openAPI, intermediateClientGenerator);
         Assert.assertTrue(diagnostics.isEmpty());
     }
 
@@ -179,9 +178,9 @@ public class UtilGenerationTests {
         AASClientConfig.Builder clientMetaDataBuilder = new AASClientConfig.Builder();
         AASClientConfig oasClientConfig = clientMetaDataBuilder
                 .withAsyncAPI(openAPI).build();
-        BallerinaClientGenerator ballerinaClientGenerator = new BallerinaClientGenerator(oasClientConfig);
-        SyntaxTree clientSyntaxTree = ballerinaClientGenerator.generateSyntaxTree();
-        List<Diagnostic> diagnostics = getDiagnostics(clientSyntaxTree, openAPI, ballerinaClientGenerator);
+        IntermediateClientGenerator intermediateClientGenerator = new IntermediateClientGenerator(oasClientConfig);
+        SyntaxTree clientSyntaxTree = intermediateClientGenerator.generateSyntaxTree();
+        List<Diagnostic> diagnostics = getDiagnostics(clientSyntaxTree, openAPI, intermediateClientGenerator);
         Assert.assertTrue(diagnostics.isEmpty());
     }
 

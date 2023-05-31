@@ -21,7 +21,7 @@
 //import io.ballerina.compiler.syntax.tree.SyntaxTree;
 //import io.ballerina.openapi.core.GeneratorUtils;
 //import io.ballerina.openapi.core.exception.BallerinaOpenApiException;
-//import io.ballerina.openapi.core.generators.client.BallerinaClientGenerator;
+//import io.ballerina.openapi.core.generators.client.IntermediateClientGenerator;
 //import io.ballerina.openapi.core.generators.client.model.OASClientConfig;
 //import io.ballerina.openapi.core.model.Filter;
 //import io.ballerina.openapi.generators.common.TestUtils;
@@ -44,7 +44,7 @@
 //
 ///**
 // * All the tests related to the check diagnostic issue in code generators
-// * {{@link io.ballerina.openapi.core.generators.client.BallerinaClientGenerator}} util.
+// * {{@link io.ballerina.openapi.core.generators.client.IntermediateClientGenerator}} util.
 // */
 //public class BallerinaDiagnosticTests {
 //    private static final Path RESDIR =
@@ -66,7 +66,7 @@
 //                .withOpenAPI(openAPI)
 //                .withResourceMode(false)
 //                .build();
-//        BallerinaClientGenerator ballerinaClientGenerator = new BallerinaClientGenerator(oasClientConfig);
+//        IntermediateClientGenerator ballerinaClientGenerator = new IntermediateClientGenerator(oasClientConfig);
 //        syntaxTree = ballerinaClientGenerator.generateSyntaxTree();
 //        List<Diagnostic> diagnostics = getDiagnostics(syntaxTree, openAPI, ballerinaClientGenerator);
 //        boolean hasErrors = diagnostics.stream()

@@ -65,7 +65,11 @@ public class GeneratorConstants {
     public static final String NUVINDU = "nuvindu";
     public static final String NUVINDU_PIPE = "pipe";
 
-    public static final String CLIENT_CLASS = "Client";
+    public static final String X_DISPATCHER_KEY="x-dispatcherKey";
+
+    public static final String X_DISPATCHER_STREAM_ID="x-dispatcherKey";
+
+    public static final String CLIENT_CLASS_NAME = "Client";
     public static final String CLIENT_EP = "clientEp";
 
     public static final String WRITE_MESSAGE_QUEUE = "writeMessageQueue";
@@ -210,7 +214,12 @@ public class GeneratorConstants {
     public static final String EXPLODE = "explode";
     //OpenAPI Ballerina extensions
     public static final String X_BALLERINA_INIT_DESCRIPTION = "x-ballerina-init-description";
-    public static final String X_BALLERINA_DISPLAY = "x-ballerina-display";
+
+    public static final String X_BALLERINA_MESSAGE_WRITE_DESCRIPTION="x-ballerina-write-message-description";
+
+    public static final String X_BALLERINA_MESSAGE_READ_DESCRIPTION="x-ballerina-read-message-description";
+
+    public static  final String X_BALLERINA_PIPE_TRIGGER_DESCRIPTION="x-ballerina-pipe-trigger-description";
     public static final String X_BALLERINA_DEPRECATED_REASON = "x-ballerina-deprecated-reason";
     //Service related
     public static final String HOST = "host";
@@ -222,6 +231,11 @@ public class GeneratorConstants {
     public static final String X_RESPONSE = "x-response";
 
     public static final String X_RESPONSE_TYPE = "x-response-type";
+
+    public static final String DECIMAL="decimal";
+
+    public static final String TIMEOUT="timeout";
+
 
     public static final String SERVER_STREAMING = "server-streaming";
 

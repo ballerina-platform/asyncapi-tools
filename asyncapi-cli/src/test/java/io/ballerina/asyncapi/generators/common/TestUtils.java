@@ -20,7 +20,7 @@ package io.ballerina.asyncapi.generators.common;
 
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25DocumentImpl;
 import io.ballerina.asyncapi.core.exception.BallerinaAsyncApiException;
-import io.ballerina.asyncapi.core.generators.client.BallerinaClientGenerator;
+import io.ballerina.asyncapi.core.generators.client.IntermediateClientGenerator;
 import io.ballerina.asyncapi.core.generators.schema.BallerinaTypesGenerator;
 import io.ballerina.compiler.api.SemanticModel;
 import io.ballerina.compiler.syntax.tree.SyntaxTree;
@@ -64,16 +64,16 @@ public class TestUtils {
 
     // Get diagnostics
     public static List<Diagnostic> getDiagnostics(SyntaxTree syntaxTree, AsyncApi25DocumentImpl openAPI,
-                                                  BallerinaClientGenerator ballerinaClientGenerator)
+                                                  IntermediateClientGenerator intermediateClientGenerator)
             throws FormatterException, IOException, BallerinaAsyncApiException {
         List<TypeDefinitionNode> preGeneratedTypeDefinitionNodes = new LinkedList<>();
-        preGeneratedTypeDefinitionNodes.addAll(ballerinaClientGenerator.
+        preGeneratedTypeDefinitionNodes.addAll(intermediateClientGenerator.
                 getBallerinaAuthConfigGenerator().getAuthRelatedTypeDefinitionNodes());
-        preGeneratedTypeDefinitionNodes.addAll(ballerinaClientGenerator.getTypeDefinitionNodeList());
+        preGeneratedTypeDefinitionNodes.addAll(intermediateClientGenerator.getTypeDefinitionNodeList());
         BallerinaTypesGenerator ballerinaSchemaGenerator = new BallerinaTypesGenerator(
                 openAPI,  preGeneratedTypeDefinitionNodes);
         SyntaxTree schemaSyntax = ballerinaSchemaGenerator.generateSyntaxTree();
-        SyntaxTree utilSyntaxTree = ballerinaClientGenerator.getBallerinaUtilGenerator().generateUtilSyntaxTree();
+        SyntaxTree utilSyntaxTree = intermediateClientGenerator.getBallerinaUtilGenerator().generateUtilSyntaxTree();
         writeFile(clientPath, Formatter.format(syntaxTree).toString());
         writeFile(schemaPath, Formatter.format(schemaSyntax).toString());
         writeFile(utilPath, Formatter.format(utilSyntaxTree).toString());

@@ -20,7 +20,7 @@
 //
 //import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25DocumentImpl;
 //import io.ballerina.asyncapi.core.exception.BallerinaAsyncApiException;
-//import io.ballerina.asyncapi.core.generators.client.FunctionReturnTypeGenerator;
+//import io.ballerina.asyncapi.core.generators.client.RemoteFunctionReturnTypeGenerator;
 //import io.ballerina.asyncapi.core.generators.schema.BallerinaTypesGenerator;
 //import org.testng.Assert;
 //import org.testng.annotations.Test;
@@ -34,13 +34,13 @@
 //
 ///**
 // * All the tests related to the functionSignatureNode  Return type tests in
-// * {{@link io.ballerina.openapi.core.generators.client.BallerinaClientGenerator}} util.
+// * {{@link io.ballerina.openapi.core.generators.client.IntermediateClientGenerator}} util.
 // */
 //public class FunctionSignatureReturnTypeTests {
 //    private static final Path RES_DIR = Paths.get("src/test/resources/generators/client").toAbsolutePath();
 //    @Test(description = "Tests for returnType")
 //    public void getReturnTypeTests() throws IOException, BallerinaAsyncApiException {
-//        FunctionReturnTypeGenerator functionReturnType = new FunctionReturnTypeGenerator();
+//        RemoteFunctionReturnTypeGenerator functionReturnType = new RemoteFunctionReturnTypeGenerator();
 //        AsyncApi25DocumentImpl array = getOpenAPI(RES_DIR.resolve("swagger/return_type/all_return_type_operation.yaml"));
 //        Assert.assertEquals(functionReturnType.getReturnType(array.getPaths().get("/jsonproducts").getGet(),
 //                true), "json|error");
@@ -60,7 +60,7 @@
 //    public void getReturnTypeForObjectSchema() throws IOException, BallerinaAsyncApiException {
 //        AsyncApi25DocumentImpl array = getOpenAPI(RES_DIR.resolve("swagger/return_type/response_without_properties_with_additional" +
 //                ".yaml"));
-//        FunctionReturnTypeGenerator functionReturnType = new FunctionReturnTypeGenerator();
+//        RemoteFunctionReturnTypeGenerator functionReturnType = new RemoteFunctionReturnTypeGenerator();
 //        String returnType = functionReturnType.getReturnType(array.getPaths().get("/products").getGet(),
 //                true);
 //        Assert.assertEquals(returnType, "json|error");
@@ -70,7 +70,7 @@
 //    public void getReturnTypeForMapSchema() throws IOException, BallerinaAsyncApiException {
 //        AsyncApi25DocumentImpl array = getOpenAPI(RES_DIR.resolve("swagger/return_type/" +
 //                "response_with_properties_with_additional.yaml"));
-//        FunctionReturnTypeGenerator functionReturnType = new FunctionReturnTypeGenerator(array,
+//        RemoteFunctionReturnTypeGenerator functionReturnType = new RemoteFunctionReturnTypeGenerator(array,
 //                new BallerinaTypesGenerator(array), new ArrayList<>());
 //        String returnType = functionReturnType.getReturnType(array.getPaths().get("/products").getGet(),
 //                true);
@@ -82,7 +82,7 @@
 //        AsyncApi25DocumentImpl array = getOpenAPI(RES_DIR.resolve("swagger/return_type" +
 //                "/response_without_properties_without_additional" +
 //                ".yaml"));
-//        FunctionReturnTypeGenerator functionReturnType = new FunctionReturnTypeGenerator();
+//        RemoteFunctionReturnTypeGenerator functionReturnType = new RemoteFunctionReturnTypeGenerator();
 //        String returnType = functionReturnType.getReturnType(array.getPaths().get("/products").getGet(),
 //                true);
 //        Assert.assertEquals(returnType, "json|error");
@@ -92,7 +92,7 @@
 //    public void getReturnTypeForMapSchemaWithOutAdditionalProperties() throws IOException, BallerinaAsyncApiException {
 //        AsyncApi25DocumentImpl array = getOpenAPI(RES_DIR.resolve("swagger/return_type/response_with_properties_without_additional" +
 //                ".yaml"));
-//        FunctionReturnTypeGenerator functionReturnType = new FunctionReturnTypeGenerator(array,
+//        RemoteFunctionReturnTypeGenerator functionReturnType = new RemoteFunctionReturnTypeGenerator(array,
 //                new BallerinaTypesGenerator(array), new ArrayList<>());
 //        String returnType = functionReturnType.getReturnType(array.getPaths().get("/products").getGet(),
 //                true);
@@ -102,7 +102,7 @@
 //    @Test(description = "Tests for the response with no schema")
 //    public void getReturnTypeForResponseWithoutSchema() throws IOException, BallerinaAsyncApiException {
 //        AsyncApi25DocumentImpl array = getOpenAPI(RES_DIR.resolve("swagger/return_type/response_no_schema.yaml"));
-//        FunctionReturnTypeGenerator functionReturnType = new FunctionReturnTypeGenerator(array,
+//        RemoteFunctionReturnTypeGenerator functionReturnType = new RemoteFunctionReturnTypeGenerator(array,
 //                new BallerinaTypesGenerator(array), new ArrayList<>());
 //        String returnType = functionReturnType.getReturnType(array.getPaths().get("/path01").getGet(),
 //                true);
@@ -112,7 +112,7 @@
 //    @Test(description = "Tests for the empty response")
 //    public void getReturnTypeForEmptyResponse() throws IOException, BallerinaAsyncApiException {
 //        AsyncApi25DocumentImpl array = getOpenAPI(RES_DIR.resolve("swagger/return_type/no_response.yaml"));
-//        FunctionReturnTypeGenerator functionReturnType = new FunctionReturnTypeGenerator(array,
+//        RemoteFunctionReturnTypeGenerator functionReturnType = new RemoteFunctionReturnTypeGenerator(array,
 //                new BallerinaTypesGenerator(array), new ArrayList<>());
 //        String returnType = functionReturnType.getReturnType(array.getPaths().get("/pets").getGet(),
 //                true);

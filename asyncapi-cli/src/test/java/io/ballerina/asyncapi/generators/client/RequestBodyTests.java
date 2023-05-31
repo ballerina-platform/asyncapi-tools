@@ -22,7 +22,7 @@
 //import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25DocumentImpl;
 //import io.ballerina.asyncapi.core.GeneratorUtils;
 //import io.ballerina.asyncapi.core.exception.BallerinaAsyncApiException;
-//import io.ballerina.asyncapi.core.generators.client.BallerinaClientGenerator;
+//import io.ballerina.asyncapi.core.generators.client.IntermediateClientGenerator;
 //import io.ballerina.asyncapi.core.generators.client.model.AASClientConfig;
 //import io.ballerina.compiler.syntax.tree.SyntaxTree;
 //import org.testng.annotations.AfterTest;
@@ -40,7 +40,7 @@
 //
 ///**
 // * All the tests related to the functionSignatureNode in
-// * {@link io.ballerina.openapi.core.generators.client.BallerinaClientGenerator} util when have diffrent
+// * {@link io.ballerina.openapi.core.generators.client.IntermediateClientGenerator} util when have diffrent
 // * scenarios in Request Body.
 // */
 //public class RequestBodyTests {
@@ -59,7 +59,7 @@
 //        AASClientConfig.Builder clientMetaDataBuilder = new AASClientConfig.Builder();
 //        AASClientConfig oasClientConfig = clientMetaDataBuilder
 //                .withAsyncAPI(openAPI).build();
-//        BallerinaClientGenerator ballerinaClientGenerator = new BallerinaClientGenerator(oasClientConfig);
+//        IntermediateClientGenerator ballerinaClientGenerator = new IntermediateClientGenerator(oasClientConfig);
 //        syntaxTree = ballerinaClientGenerator.generateSyntaxTree();
 //        compareGeneratedSyntaxTreeWithExpectedSyntaxTree(expectedPath, syntaxTree);
 //    }
@@ -72,7 +72,7 @@
 //        AASClientConfig.Builder clientMetaDataBuilder = new AASClientConfig.Builder();
 //        AASClientConfig oasClientConfig = clientMetaDataBuilder
 //                .withAsyncAPI(openAPI).build();
-//        BallerinaClientGenerator ballerinaClientGenerator = new BallerinaClientGenerator(oasClientConfig);
+//        IntermediateClientGenerator ballerinaClientGenerator = new IntermediateClientGenerator(oasClientConfig);
 //        syntaxTree = ballerinaClientGenerator.generateSyntaxTree();
 //        compareGeneratedSyntaxTreeWithExpectedSyntaxTree(expectedPath, syntaxTree);
 //    }
@@ -85,7 +85,7 @@
 //        AASClientConfig.Builder clientMetaDataBuilder = new AASClientConfig.Builder();
 //        AASClientConfig oasClientConfig = clientMetaDataBuilder
 //                .withAsyncAPI(openAPI).build();
-//        BallerinaClientGenerator ballerinaClientGenerator = new BallerinaClientGenerator(oasClientConfig);
+//        IntermediateClientGenerator ballerinaClientGenerator = new IntermediateClientGenerator(oasClientConfig);
 //        syntaxTree = ballerinaClientGenerator.generateSyntaxTree();
 //        compareGeneratedSyntaxTreeWithExpectedSyntaxTree(expectedPath, syntaxTree);
 //    }
@@ -98,7 +98,7 @@
 //        AASClientConfig.Builder clientMetaDataBuilder = new AASClientConfig.Builder();
 //        AASClientConfig oasClientConfig = clientMetaDataBuilder
 //                .withAsyncAPI(openAPI).build();
-//        BallerinaClientGenerator ballerinaClientGenerator = new BallerinaClientGenerator(oasClientConfig);
+//        IntermediateClientGenerator ballerinaClientGenerator = new IntermediateClientGenerator(oasClientConfig);
 //        syntaxTree = ballerinaClientGenerator.generateSyntaxTree();
 //        compareGeneratedSyntaxTreeWithExpectedSyntaxTree(expectedPath, syntaxTree);
 //    }
@@ -111,7 +111,7 @@
 //        AASClientConfig.Builder clientMetaDataBuilder = new AASClientConfig.Builder();
 //        AASClientConfig oasClientConfig = clientMetaDataBuilder
 //                .withAsyncAPI(openAPI).build();
-//        BallerinaClientGenerator ballerinaClientGenerator = new BallerinaClientGenerator(oasClientConfig);
+//        IntermediateClientGenerator ballerinaClientGenerator = new IntermediateClientGenerator(oasClientConfig);
 //        syntaxTree = ballerinaClientGenerator.generateSyntaxTree();
 //        compareGeneratedSyntaxTreeWithExpectedSyntaxTree(expectedPath, syntaxTree);
 //    }
@@ -124,7 +124,7 @@
 //        AASClientConfig.Builder clientMetaDataBuilder = new AASClientConfig.Builder();
 //        AASClientConfig oasClientConfig = clientMetaDataBuilder
 //                .withAsyncAPI(openAPI).build();
-//        BallerinaClientGenerator ballerinaClientGenerator = new BallerinaClientGenerator(oasClientConfig);
+//        IntermediateClientGenerator ballerinaClientGenerator = new IntermediateClientGenerator(oasClientConfig);
 //        syntaxTree = ballerinaClientGenerator.generateSyntaxTree();
 //        compareGeneratedSyntaxTreeWithExpectedSyntaxTree(expectedPath, syntaxTree);
 //    }
@@ -145,7 +145,7 @@
 //        AASClientConfig.Builder clientMetaDataBuilder = new AASClientConfig.Builder();
 //        AASClientConfig oasClientConfig = clientMetaDataBuilder
 //                .withAsyncAPI(openAPI).build();
-//        BallerinaClientGenerator ballerinaClientGenerator = new BallerinaClientGenerator(oasClientConfig);
+//        IntermediateClientGenerator ballerinaClientGenerator = new IntermediateClientGenerator(oasClientConfig);
 //        syntaxTree = ballerinaClientGenerator.generateSyntaxTree();
 //        compareGeneratedSyntaxTreeWithExpectedSyntaxTree(expectedPath, syntaxTree);
 //    }
@@ -159,7 +159,7 @@
 //        AASClientConfig.Builder clientMetaDataBuilder = new AASClientConfig.Builder();
 //        AASClientConfig oasClientConfig = clientMetaDataBuilder
 //                .withAsyncAPI(openAPI).build();
-//        BallerinaClientGenerator ballerinaClientGenerator = new BallerinaClientGenerator(oasClientConfig);
+//        IntermediateClientGenerator ballerinaClientGenerator = new IntermediateClientGenerator(oasClientConfig);
 //        syntaxTree = ballerinaClientGenerator.generateSyntaxTree();
 //        compareGeneratedSyntaxTreeWithExpectedSyntaxTree(expectedPath, syntaxTree);
 //    }
@@ -172,7 +172,7 @@
 //        AASClientConfig.Builder clientMetaDataBuilder = new AASClientConfig.Builder();
 //        AASClientConfig oasClientConfig = clientMetaDataBuilder
 //                .withAsyncAPI(openAPI).build();
-//        BallerinaClientGenerator ballerinaClientGenerator = new BallerinaClientGenerator(oasClientConfig);
+//        IntermediateClientGenerator ballerinaClientGenerator = new IntermediateClientGenerator(oasClientConfig);
 //        syntaxTree = ballerinaClientGenerator.generateSyntaxTree();
 //        compareGeneratedSyntaxTreeWithExpectedSyntaxTree(expectedPath, syntaxTree);
 //    }
@@ -187,7 +187,7 @@
 //                .withFilters(filter)
 //                .withOpenAPI(openAPI)
 //                .withResourceMode(false).build();
-//        BallerinaClientGenerator ballerinaClientGenerator = new BallerinaClientGenerator(oasClientConfig);
+//        IntermediateClientGenerator ballerinaClientGenerator = new IntermediateClientGenerator(oasClientConfig);
 //        syntaxTree = ballerinaClientGenerator.generateSyntaxTree();
 //        compareGeneratedSyntaxTreeWithExpectedSyntaxTree(expectedPath, syntaxTree);
 //    }
@@ -202,7 +202,7 @@
 //                .withFilters(filter)
 //                .withOpenAPI(openAPI)
 //                .withResourceMode(false).build();
-//        BallerinaClientGenerator ballerinaClientGenerator = new BallerinaClientGenerator(oasClientConfig);
+//        IntermediateClientGenerator ballerinaClientGenerator = new IntermediateClientGenerator(oasClientConfig);
 //        syntaxTree = ballerinaClientGenerator.generateSyntaxTree();
 //        compareGeneratedSyntaxTreeWithExpectedSyntaxTree(expectedPath, syntaxTree);
 //    }
@@ -218,7 +218,7 @@
 //                .withFilters(filter)
 //                .withOpenAPI(openAPI)
 //                .withResourceMode(false).build();
-//        BallerinaClientGenerator ballerinaClientGenerator = new BallerinaClientGenerator(oasClientConfig);
+//        IntermediateClientGenerator ballerinaClientGenerator = new IntermediateClientGenerator(oasClientConfig);
 //        syntaxTree = ballerinaClientGenerator.generateSyntaxTree();
 //        compareGeneratedSyntaxTreeWithExpectedSyntaxTree(expectedPath, syntaxTree);
 //    }
@@ -233,7 +233,7 @@
 //                .withFilters(filter)
 //                .withOpenAPI(openAPI)
 //                .withResourceMode(false).build();
-//        BallerinaClientGenerator ballerinaClientGenerator = new BallerinaClientGenerator(oasClientConfig);
+//        IntermediateClientGenerator ballerinaClientGenerator = new IntermediateClientGenerator(oasClientConfig);
 //        syntaxTree = ballerinaClientGenerator.generateSyntaxTree();
 //        compareGeneratedSyntaxTreeWithExpectedSyntaxTree(expectedPath, syntaxTree);
 //    }
@@ -248,7 +248,7 @@
 //                .withFilters(filter)
 //                .withOpenAPI(openAPI)
 //                .withResourceMode(false).build();
-//        BallerinaClientGenerator ballerinaClientGenerator = new BallerinaClientGenerator(oasClientConfig);
+//        IntermediateClientGenerator ballerinaClientGenerator = new IntermediateClientGenerator(oasClientConfig);
 //        syntaxTree = ballerinaClientGenerator.generateSyntaxTree();
 //        compareGeneratedSyntaxTreeWithExpectedSyntaxTree(expectedPath, syntaxTree);
 //    }
@@ -265,7 +265,7 @@
 //                .withFilters(filter)
 //                .withOpenAPI(openAPI)
 //                .withResourceMode(false).build();
-//        BallerinaClientGenerator ballerinaClientGenerator = new BallerinaClientGenerator(oasClientConfig);
+//        IntermediateClientGenerator ballerinaClientGenerator = new IntermediateClientGenerator(oasClientConfig);
 //        syntaxTree = ballerinaClientGenerator.generateSyntaxTree();
 //        compareGeneratedSyntaxTreeWithExpectedSyntaxTree(expectedPath, syntaxTree);
 //    }
@@ -282,7 +282,7 @@
 //                .withFilters(filter)
 //                .withOpenAPI(openAPI)
 //                .withResourceMode(false).build();
-//        BallerinaClientGenerator ballerinaClientGenerator = new BallerinaClientGenerator(oasClientConfig);
+//        IntermediateClientGenerator ballerinaClientGenerator = new IntermediateClientGenerator(oasClientConfig);
 //        syntaxTree = ballerinaClientGenerator.generateSyntaxTree();
 //        compareGeneratedSyntaxTreeWithExpectedSyntaxTree(expectedPath, syntaxTree);
 //    }
@@ -297,7 +297,7 @@
 //                .withFilters(filter)
 //                .withOpenAPI(openAPI)
 //                .withResourceMode(false).build();
-//        BallerinaClientGenerator ballerinaClientGenerator = new BallerinaClientGenerator(oasClientConfig);
+//        IntermediateClientGenerator ballerinaClientGenerator = new IntermediateClientGenerator(oasClientConfig);
 //        syntaxTree = ballerinaClientGenerator.generateSyntaxTree();
 //        compareGeneratedSyntaxTreeWithExpectedSyntaxTree(expectedPath, syntaxTree);
 //    }
@@ -312,7 +312,7 @@
 //                .withFilters(filter)
 //                .withOpenAPI(openAPI)
 //                .withResourceMode(false).build();
-//        BallerinaClientGenerator ballerinaClientGenerator = new BallerinaClientGenerator(oasClientConfig);
+//        IntermediateClientGenerator ballerinaClientGenerator = new IntermediateClientGenerator(oasClientConfig);
 //        syntaxTree = ballerinaClientGenerator.generateSyntaxTree();
 //        compareGeneratedSyntaxTreeWithExpectedSyntaxTree(expectedPath, syntaxTree);
 //    }
@@ -328,7 +328,7 @@
 //                .withFilters(filter)
 //                .withOpenAPI(openAPI)
 //                .withResourceMode(true).build();
-//        BallerinaClientGenerator ballerinaClientGenerator = new BallerinaClientGenerator(oasClientConfig);
+//        IntermediateClientGenerator ballerinaClientGenerator = new IntermediateClientGenerator(oasClientConfig);
 //        syntaxTree = ballerinaClientGenerator.generateSyntaxTree();
 //        compareGeneratedSyntaxTreeWithExpectedSyntaxTree(expectedPath, syntaxTree);
 //    }

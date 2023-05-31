@@ -21,7 +21,7 @@
 //import io.ballerina.compiler.syntax.tree.SyntaxTree;
 //import io.ballerina.openapi.core.GeneratorUtils;
 //import io.ballerina.openapi.core.exception.BallerinaOpenApiException;
-//import io.ballerina.openapi.core.generators.client.BallerinaClientGenerator;
+//import io.ballerina.openapi.core.generators.client.IntermediateClientGenerator;
 //import io.ballerina.openapi.core.generators.client.model.OASClientConfig;
 //import io.ballerina.openapi.core.model.Filter;
 //import io.ballerina.openapi.generators.common.TestUtils;
@@ -44,7 +44,7 @@
 //import static io.ballerina.openapi.generators.common.TestUtils.getDiagnostics;
 //
 ///**
-// * All the tests related to the {{@link io.ballerina.openapi.core.generators.client.BallerinaClientGenerator}} util.
+// * All the tests related to the {{@link io.ballerina.openapi.core.generators.client.IntermediateClientGenerator}} util.
 // */
 //public class ComparedGeneratedFileTests {
 //    private static final Path RES_DIR = Paths.get("src/test/resources/generators/client").toAbsolutePath();
@@ -69,7 +69,7 @@
 //                .withFilters(filter)
 //                .withOpenAPI(openAPI)
 //                .withResourceMode(false).build();
-//        BallerinaClientGenerator ballerinaClientGenerator = new BallerinaClientGenerator(oasClientConfig);
+//        IntermediateClientGenerator ballerinaClientGenerator = new IntermediateClientGenerator(oasClientConfig);
 //        syntaxTree = ballerinaClientGenerator.generateSyntaxTree();
 //        List<Diagnostic> diagnostics = getDiagnostics(syntaxTree, openAPI, ballerinaClientGenerator);
 //        Assert.assertTrue(diagnostics.isEmpty());
@@ -88,7 +88,7 @@
 //                .withFilters(filter)
 //                .withOpenAPI(openAPI)
 //                .withResourceMode(false).build();
-//        BallerinaClientGenerator ballerinaClientGenerator = new BallerinaClientGenerator(oasClientConfig);
+//        IntermediateClientGenerator ballerinaClientGenerator = new IntermediateClientGenerator(oasClientConfig);
 //        syntaxTree = ballerinaClientGenerator.generateSyntaxTree();
 //        List<Diagnostic> diagnostics = getDiagnostics(syntaxTree, openAPI, ballerinaClientGenerator);
 //        Assert.assertTrue(diagnostics.isEmpty());

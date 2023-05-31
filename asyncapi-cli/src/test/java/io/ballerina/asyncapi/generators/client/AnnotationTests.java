@@ -23,7 +23,7 @@
 //import io.ballerina.compiler.syntax.tree.SyntaxTree;
 //import io.ballerina.openapi.core.GeneratorUtils;
 //import io.ballerina.openapi.core.exception.BallerinaOpenApiException;
-//import io.ballerina.openapi.core.generators.client.BallerinaClientGenerator;
+//import io.ballerina.openapi.core.generators.client.IntermediateClientGenerator;
 //import io.ballerina.openapi.core.generators.client.model.OASClientConfig;
 //import io.ballerina.openapi.core.generators.document.DocCommentsGenerator;
 //import io.ballerina.openapi.core.model.Filter;
@@ -44,7 +44,7 @@
 //
 ///**
 // * All the tests related to the Display Annotation in the generated code related to the
-// * {{@link io.ballerina.openapi.core.generators.client.BallerinaClientGenerator}}
+// * {{@link io.ballerina.openapi.core.generators.client.IntermediateClientGenerator}}
 // * util.
 // */
 //public class AnnotationTests {
@@ -105,7 +105,7 @@
 //                .withFilters(filter)
 //                .withOpenAPI(openAPI)
 //                .withResourceMode(false).build();
-//        BallerinaClientGenerator ballerinaClientGenerator = new BallerinaClientGenerator(oasClientConfig);
+//        IntermediateClientGenerator ballerinaClientGenerator = new IntermediateClientGenerator(oasClientConfig);
 //        SyntaxTree syntaxTree = ballerinaClientGenerator.generateSyntaxTree();
 //        compareGeneratedSyntaxTreeWithExpectedSyntaxTree(expectedPath, syntaxTree);
 //    }

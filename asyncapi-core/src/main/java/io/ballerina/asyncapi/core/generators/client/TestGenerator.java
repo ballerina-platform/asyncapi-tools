@@ -113,16 +113,16 @@ import static io.ballerina.compiler.syntax.tree.SyntaxKind.SEMICOLON_TOKEN;
  *
  * @since 1.3.0
  */
-public class BallerinaTestGenerator {
-    private final BallerinaClientGenerator ballerinaClientGenerator;
+public class TestGenerator {
+    private final IntermediateClientGenerator intermediateClientGenerator;
     private final List<String> remoteFunctionNameList;
     private String configFileName;
     private boolean isHttpOrOAuth;
 
-    public BallerinaTestGenerator(BallerinaClientGenerator ballerinaClientGenerator) {
+    public TestGenerator(IntermediateClientGenerator intermediateClientGenerator) {
 
-        this.ballerinaClientGenerator = ballerinaClientGenerator;
-        this.remoteFunctionNameList = ballerinaClientGenerator.getRemoteFunctionNameList();
+        this.intermediateClientGenerator = intermediateClientGenerator;
+        this.remoteFunctionNameList = intermediateClientGenerator.getRemoteFunctionNameList();
         this.configFileName = "";
         this.isHttpOrOAuth = false;
     }
@@ -181,7 +181,7 @@ public class BallerinaTestGenerator {
             if (!isHttpOrOAuth) {
                 StringBuilder configFileContent = new StringBuilder("[" + API_KEY_CONFIG_PARAM + "]\n");
 
-                for (String apiKey : ballerinaClientGenerator.getApiKeyNameList()) {
+                for (String apiKey : intermediateClientGenerator.getApiKeyNameList()) {
                     configFileContent.append(GeneratorUtils.getValidName(apiKey, false)).
                             append(" = \"<Enter Value>\"\n");
                 }
@@ -208,7 +208,7 @@ public class BallerinaTestGenerator {
      */
     private List<ModuleVariableDeclarationNode> getModuleVariableDeclarationNodes() {
         isHttpOrOAuth = true;
-        Set<String> authTypes = ballerinaClientGenerator.getAuthType();
+        Set<String> authTypes = intermediateClientGenerator.getAuthType();
         List<ModuleVariableDeclarationNode> moduleVariableDeclarationNodes = new ArrayList<>();
         BuiltinSimpleNameReferenceNode typeBindingPattern;
         if (!authTypes.isEmpty()) {
@@ -255,9 +255,9 @@ public class BallerinaTestGenerator {
                     break;
                 case HTTP_API_KEY:
                     isHttpOrOAuth = false;
-                    boolean combinationOfApiKeyAndHTTPOAuth = ballerinaClientGenerator.
+                    boolean combinationOfApiKeyAndHTTPOAuth = intermediateClientGenerator.
                             getBallerinaAuthConfigGenerator()
-                            .isHttpApiKey() && ballerinaClientGenerator.getBallerinaAuthConfigGenerator().
+                            .isHttpApiKey() && intermediateClientGenerator.getBallerinaAuthConfigGenerator().
                             isHttpOROAuth();
                     if (combinationOfApiKeyAndHTTPOAuth) {
                         // todo : The test file in the combination
@@ -322,8 +322,8 @@ public class BallerinaTestGenerator {
         Token configurableNode = createIdentifierToken("configurable");
         NodeList<Token> nodeList = createNodeList(configurableNode);
         CaptureBindingPatternNode bindingPattern;
-        boolean combinationOfApiKeyAndHTTPOAuth = ballerinaClientGenerator.getBallerinaAuthConfigGenerator()
-                .isHttpApiKey() && ballerinaClientGenerator.getBallerinaAuthConfigGenerator().isHttpOROAuth();
+        boolean combinationOfApiKeyAndHTTPOAuth = intermediateClientGenerator.getBallerinaAuthConfigGenerator()
+                .isHttpApiKey() && intermediateClientGenerator.getBallerinaAuthConfigGenerator().isHttpOROAuth();
         if (isHttpOrOAuth || combinationOfApiKeyAndHTTPOAuth) {
             bindingPattern = createCaptureBindingPatternNode(
                     createIdentifierToken(GeneratorConstants.AUTH_CONFIG));
@@ -350,10 +350,10 @@ public class BallerinaTestGenerator {
      */
     private ModuleVariableDeclarationNode getClientInitializationNode(String configRecordName) {
 
-        String serverURL = ballerinaClientGenerator.getServerUrl();
+        String serverURL = intermediateClientGenerator.getServerUrl();
         MetadataNode metadataNode = createMetadataNode(null, createEmptyNodeList());
         BuiltinSimpleNameReferenceNode typeBindingPattern = createBuiltinSimpleNameReferenceNode(null,
-                createIdentifierToken(GeneratorConstants.CLIENT_CLASS));
+                createIdentifierToken(GeneratorConstants.CLIENT_CLASS_NAME));
         CaptureBindingPatternNode bindingPattern = createCaptureBindingPatternNode(
                 createIdentifierToken("baseClient"));
         TypedBindingPatternNode typedBindingPatternNode = createTypedBindingPatternNode(typeBindingPattern,
@@ -376,7 +376,7 @@ public class BallerinaTestGenerator {
         ParenthesizedArgList parenthesizedArgList = createParenthesizedArgList(openParenArg, arguments,
                 closeParenArg);
         TypeDescriptorNode clientClassType = createBuiltinSimpleNameReferenceNode(null, createIdentifierToken
-                (GeneratorConstants.CLIENT_CLASS));
+                (GeneratorConstants.CLIENT_CLASS_NAME));
 
         ExplicitNewExpressionNode explicitNewExpressionNode = createExplicitNewExpressionNode(newKeyWord,
                 clientClassType, parenthesizedArgList);
@@ -394,10 +394,10 @@ public class BallerinaTestGenerator {
      */
     private ModuleVariableDeclarationNode getClientInitForNoAuth() {
 
-        String serverURL = ballerinaClientGenerator.getServerUrl();
+        String serverURL = intermediateClientGenerator.getServerUrl();
         MetadataNode metadataNode = createMetadataNode(null, createEmptyNodeList());
         BuiltinSimpleNameReferenceNode typeBindingPattern = createBuiltinSimpleNameReferenceNode(null,
-                createIdentifierToken(GeneratorConstants.CLIENT_CLASS));
+                createIdentifierToken(GeneratorConstants.CLIENT_CLASS_NAME));
         CaptureBindingPatternNode bindingPattern = createCaptureBindingPatternNode(
                 createIdentifierToken("baseClient"));
         TypedBindingPatternNode typedBindingPatternNode = createTypedBindingPatternNode(typeBindingPattern,
@@ -415,7 +415,7 @@ public class BallerinaTestGenerator {
         ParenthesizedArgList parenthesizedArgList = createParenthesizedArgList(openParenArg, arguments,
                 closeParenArg);
         TypeDescriptorNode clientClassType = createBuiltinSimpleNameReferenceNode(null, createIdentifierToken
-                (GeneratorConstants.CLIENT_CLASS));
+                (GeneratorConstants.CLIENT_CLASS_NAME));
 
         ExplicitNewExpressionNode explicitNewExpressionNode = createExplicitNewExpressionNode(newKeyWord,
                 clientClassType, parenthesizedArgList);

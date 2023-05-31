@@ -19,7 +19,7 @@
 //package io.ballerina.asyncapi.generators.client;
 //
 //import io.ballerina.openapi.core.exception.BallerinaOpenApiException;
-//import io.ballerina.openapi.core.generators.client.FunctionReturnTypeGenerator;
+//import io.ballerina.openapi.core.generators.client.RemoteFunctionReturnTypeGenerator;
 //import io.ballerina.openapi.core.generators.schema.BallerinaTypesGenerator;
 //import io.swagger.v3.oas.models.OpenAPI;
 //import org.testng.Assert;
@@ -34,7 +34,7 @@
 //
 ///**
 // * All the tests related to the functionSignatureNode  Return type tests in
-// * {@link io.ballerina.openapi.core.generators.client.BallerinaClientGenerator} util.
+// * {@link io.ballerina.openapi.core.generators.client.IntermediateClientGenerator} util.
 // */
 //public class AllOfResponsesTests {
 //    private static final Path RES_DIR = Paths.get("src/test/resources/generators/client").toAbsolutePath();
@@ -43,7 +43,7 @@
 //    public void getReturnTypeTests() throws IOException, BallerinaOpenApiException {
 //        OpenAPI response = getOpenAPI(RES_DIR.resolve("swagger/return_type/response_with_allof_reference.yaml"));
 //        BallerinaTypesGenerator ballerinaSchemaGenerator = new BallerinaTypesGenerator(response);
-//        FunctionReturnTypeGenerator functionReturnType = new FunctionReturnTypeGenerator(response,
+//        RemoteFunctionReturnTypeGenerator functionReturnType = new RemoteFunctionReturnTypeGenerator(response,
 //                ballerinaSchemaGenerator, new ArrayList<>());
 //        Assert.assertEquals(functionReturnType.getReturnType(response.getPaths().get("/products").getGet(),
 //                true), "CompoundTestsProductsResponse|error");
@@ -52,7 +52,7 @@
 //    public void getReturnTypeForAllOf() throws IOException, BallerinaOpenApiException {
 //        OpenAPI response = getOpenAPI(RES_DIR.resolve("swagger/return_type/inline_all_of_response.yaml"));
 //        BallerinaTypesGenerator ballerinaSchemaGenerator = new BallerinaTypesGenerator(response);
-//        FunctionReturnTypeGenerator functionReturnType = new FunctionReturnTypeGenerator(response,
+//        RemoteFunctionReturnTypeGenerator functionReturnType = new RemoteFunctionReturnTypeGenerator(response,
 //                ballerinaSchemaGenerator, new ArrayList<>());
 //        Assert.assertEquals(functionReturnType.getReturnType(response.getPaths().get("/users/{userId}/meetings")
 //                        .getPost(), true), "CompoundCreateMeetingResponse|error");
@@ -62,7 +62,7 @@
 //        OpenAPI response = getOpenAPI(RES_DIR.resolve("swagger/return_type/" +
 //                "response_without_properties_with_additional.yaml"));
 //        BallerinaTypesGenerator ballerinaSchemaGenerator = new BallerinaTypesGenerator(response);
-//        FunctionReturnTypeGenerator functionReturnType = new FunctionReturnTypeGenerator(response,
+//        RemoteFunctionReturnTypeGenerator functionReturnType = new RemoteFunctionReturnTypeGenerator(response,
 //                ballerinaSchemaGenerator, new ArrayList<>());
 //
 //        String returnType = functionReturnType.getReturnType(response.getPaths().get("/products").getGet(),
@@ -75,7 +75,7 @@
 //        OpenAPI response = getOpenAPI(RES_DIR.resolve("swagger/return_type/response_with_properties_with_additional" +
 //                ".yaml"));
 //        BallerinaTypesGenerator ballerinaSchemaGenerator = new BallerinaTypesGenerator(response);
-//        FunctionReturnTypeGenerator functionReturnType = new FunctionReturnTypeGenerator(response,
+//        RemoteFunctionReturnTypeGenerator functionReturnType = new RemoteFunctionReturnTypeGenerator(response,
 //                ballerinaSchemaGenerator, new ArrayList<>());
 //
 //        String returnType = functionReturnType.getReturnType(response.getPaths().get("/products").getGet(),
@@ -88,7 +88,7 @@
 //        OpenAPI response = getOpenAPI(RES_DIR.resolve("swagger/return_type" +
 //                "/response_without_properties_without_additional.yaml"));
 //        BallerinaTypesGenerator ballerinaSchemaGenerator = new BallerinaTypesGenerator(response);
-//        FunctionReturnTypeGenerator functionReturnType = new FunctionReturnTypeGenerator(response,
+//        RemoteFunctionReturnTypeGenerator functionReturnType = new RemoteFunctionReturnTypeGenerator(response,
 //                ballerinaSchemaGenerator, new ArrayList<>());
 //
 //        String returnType = functionReturnType.getReturnType(response.getPaths().get("/products").getGet(),
@@ -101,7 +101,7 @@
 //        OpenAPI response = getOpenAPI(RES_DIR.resolve("swagger/return_type/" +
 //                "response_with_properties_without_additional.yaml"));
 //        BallerinaTypesGenerator ballerinaSchemaGenerator = new BallerinaTypesGenerator(response);
-//        FunctionReturnTypeGenerator functionReturnType = new FunctionReturnTypeGenerator(
+//        RemoteFunctionReturnTypeGenerator functionReturnType = new RemoteFunctionReturnTypeGenerator(
 //                response, ballerinaSchemaGenerator, new ArrayList<>());
 //
 //        String returnType = functionReturnType.getReturnType(response.getPaths().get("/products").getGet(),

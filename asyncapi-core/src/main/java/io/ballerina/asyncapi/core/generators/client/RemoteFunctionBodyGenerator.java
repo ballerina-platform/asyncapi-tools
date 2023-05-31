@@ -24,7 +24,6 @@ import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25DocumentImpl;
 import io.ballerina.asyncapi.core.GeneratorConstants;
 import io.ballerina.asyncapi.core.exception.BallerinaAsyncApiException;
 import io.ballerina.asyncapi.core.generators.schema.BallerinaTypesGenerator;
-import io.ballerina.compiler.syntax.tree.AnnotationNode;
 import io.ballerina.compiler.syntax.tree.AssignmentStatementNode;
 import io.ballerina.compiler.syntax.tree.CheckExpressionNode;
 import io.ballerina.compiler.syntax.tree.ExpressionStatementNode;
@@ -66,6 +65,7 @@ import static io.ballerina.asyncapi.core.GeneratorConstants.RESPONSE_MESSAGE_VAR
 import static io.ballerina.asyncapi.core.GeneratorConstants.SELF;
 import static io.ballerina.asyncapi.core.GeneratorConstants.SERVER_STREAMING;
 import static io.ballerina.asyncapi.core.GeneratorConstants.SIMPLE_PIPE;
+import static io.ballerina.asyncapi.core.GeneratorConstants.TIMEOUT;
 import static io.ballerina.asyncapi.core.GeneratorConstants.UUID;
 import static io.ballerina.asyncapi.core.GeneratorConstants.WRITE_MESSAGE_QUEUE;
 import static io.ballerina.asyncapi.core.GeneratorConstants.X_RESPONSE;
@@ -121,7 +121,7 @@ import static io.ballerina.compiler.syntax.tree.SyntaxKind.STREAM_KEYWORD;
  *
  * @since 1.3.0
  */
-public class FunctionBodyGenerator {
+public class RemoteFunctionBodyGenerator {
 
     private final List<TypeDefinitionNode> typeDefinitionNodeList;
     private final AsyncApi25DocumentImpl asyncAPI;
@@ -129,8 +129,8 @@ public class FunctionBodyGenerator {
     private List<ImportDeclarationNode> imports;
     private boolean isHeader;
 
-    public FunctionBodyGenerator(List<ImportDeclarationNode> imports, List<TypeDefinitionNode> typeDefinitionNodeList,
-                                 AsyncApi25DocumentImpl asyncAPI, BallerinaTypesGenerator ballerinaSchemaGenerator) {
+    public RemoteFunctionBodyGenerator(List<ImportDeclarationNode> imports, List<TypeDefinitionNode> typeDefinitionNodeList,
+                                       AsyncApi25DocumentImpl asyncAPI, BallerinaTypesGenerator ballerinaSchemaGenerator) {
 
         this.imports = imports;
         this.isHeader = false;
@@ -242,8 +242,8 @@ public class FunctionBodyGenerator {
                                                 String dispatcherStreamId, List<MatchClauseNode> matchStatementList)
             throws BallerinaAsyncApiException {
 
-        FunctionReturnTypeGenerator functionReturnType = new FunctionReturnTypeGenerator(
-                asyncAPI, ballerinaSchemaGenerator, typeDefinitionNodeList);
+        RemoteFunctionReturnTypeGenerator functionReturnType = new RemoteFunctionReturnTypeGenerator(
+                asyncAPI, typeDefinitionNodeList);
         isHeader = false;
         // Create statements
         List<StatementNode> statementsList = new ArrayList<>();
@@ -316,7 +316,7 @@ public class FunctionBodyGenerator {
         statementsList.add(remotePipeTypeEnsureStatement);
 
         PositionalArgumentNode responseTypeTimeOut = createPositionalArgumentNode(createRequiredExpressionNode(
-                createIdentifierToken("timeout")));
+                createIdentifierToken(TIMEOUT)));
         createCommentStatementsForDispatcherId(statementsList, requestType, dispatcherStreamId, requestTypePipe);
 
 

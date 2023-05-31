@@ -18,15 +18,13 @@
 //
 //package io.ballerina.asyncapi.generators.client;
 //
+//import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25DocumentImpl;
+//import io.ballerina.asyncapi.core.exception.BallerinaAsyncApiException;
+//import io.ballerina.asyncapi.core.generators.client.BallerinaAuthConfigGenerator;
+//import io.ballerina.asyncapi.core.generators.client.UtilGenerator;
+//import io.ballerina.asyncapi.core.generators.client.RemoteFunctionBodyGenerator;
+//import io.ballerina.asyncapi.core.generators.schema.BallerinaTypesGenerator;
 //import io.ballerina.compiler.syntax.tree.FunctionBodyNode;
-//import io.ballerina.openapi.core.exception.BallerinaOpenApiException;
-//import io.ballerina.openapi.core.generators.client.BallerinaAuthConfigGenerator;
-//import io.ballerina.openapi.core.generators.client.BallerinaUtilGenerator;
-//import io.ballerina.openapi.core.generators.client.FunctionBodyGenerator;
-//import io.ballerina.openapi.core.generators.schema.BallerinaTypesGenerator;
-//import io.swagger.v3.oas.models.OpenAPI;
-//import io.swagger.v3.oas.models.Operation;
-//import io.swagger.v3.oas.models.PathItem;
 //import org.testng.Assert;
 //import org.testng.annotations.AfterTest;
 //import org.testng.annotations.DataProvider;
@@ -41,11 +39,9 @@
 //import java.util.Map;
 //import java.util.Set;
 //
-//import static io.ballerina.openapi.generators.common.TestUtils.getOpenAPI;
-//
 ///**
 // * All the tests related to the FunctionBodyNode generation in {
-// * {@link io.ballerina.openapi.core.generators.client.BallerinaClientGenerator}} util.
+// * {@link io.ballerina.openapi.core.generators.client.IntermediateClientGenerator}} util.
 // */
 //public class FunctionBodyNodeTests {
 //    private static final Path RESDIR = Paths.get("src/test/resources/generators/client").toAbsolutePath();
@@ -55,15 +51,15 @@
 //    @Test(description = "Tests functionBodyNodes including statements according to the different scenarios",
 //            dataProvider = "dataProviderForFunctionBody")
 //    public void getFunctionBodyNodes(String yamlFile, String path, String content) throws IOException,
-//            BallerinaOpenApiException {
+//            BallerinaAsyncApiException {
 //        Path definitionPath = RESDIR.resolve(yamlFile);
-//        OpenAPI display = getOpenAPI(definitionPath);
+//        AsyncApi25DocumentImpl display = getOpenAPI(definitionPath);
 //        Set<Map.Entry<PathItem.HttpMethod, Operation>> operation =
 //                display.getPaths().get(path).readOperationsMap().entrySet();
 //        Iterator<Map.Entry<PathItem.HttpMethod, Operation>> iterator = operation.iterator();
-//        FunctionBodyGenerator functionBodyGenerator = new FunctionBodyGenerator(new ArrayList<>(),
+//        RemoteFunctionBodyGenerator functionBodyGenerator = new RemoteFunctionBodyGenerator(new ArrayList<>(),
 //                new ArrayList<>(), display, new BallerinaTypesGenerator(display),
-//                new BallerinaAuthConfigGenerator(false, false), new BallerinaUtilGenerator(),
+//                new BallerinaAuthConfigGenerator(false, false), new UtilGenerator(),
 //                false);
 //        FunctionBodyNode bodyNode = functionBodyGenerator.getFunctionBodyNode(path, iterator.next());
 //        content = content.trim().replaceAll("\n", "").replaceAll("\\s+", "");

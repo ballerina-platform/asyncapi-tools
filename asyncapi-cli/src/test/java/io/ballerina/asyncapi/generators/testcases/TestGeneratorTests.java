@@ -21,8 +21,8 @@ import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25DocumentImpl;
 import io.ballerina.asyncapi.cli.BallerinaCodeGenerator;
 import io.ballerina.asyncapi.core.GeneratorUtils;
 import io.ballerina.asyncapi.core.exception.BallerinaAsyncApiException;
-import io.ballerina.asyncapi.core.generators.client.BallerinaClientGenerator;
-import io.ballerina.asyncapi.core.generators.client.BallerinaTestGenerator;
+import io.ballerina.asyncapi.core.generators.client.IntermediateClientGenerator;
+import io.ballerina.asyncapi.core.generators.client.TestGenerator;
 import io.ballerina.asyncapi.core.generators.client.model.AASClientConfig;
 import io.ballerina.asyncapi.core.generators.schema.BallerinaTypesGenerator;
 import io.ballerina.asyncapi.generators.common.TestUtils;
@@ -51,7 +51,7 @@ import static io.ballerina.asyncapi.core.GeneratorConstants.TEST_DIR;
 /**
  * Test cases related to ballerina test skeleton generation.
  */
-public class BallerinaTestGeneratorTests {
+public class TestGeneratorTests {
     private static final Path RES_DIR = Paths.get("src/test/resources/generators/test_cases/").toAbsolutePath();
     private static final Path PROJECT_DIR = RES_DIR.resolve("ballerina_project");
     private static final Path clientPath = RES_DIR.resolve("ballerina_project/client.bal");
@@ -74,19 +74,19 @@ public class BallerinaTestGeneratorTests {
         AASClientConfig.Builder clientMetaDataBuilder = new AASClientConfig.Builder();
         AASClientConfig oasClientConfig = clientMetaDataBuilder
                 .withAsyncAPI(openAPI).build();
-        BallerinaClientGenerator ballerinaClientGenerator = new BallerinaClientGenerator(oasClientConfig);
-        SyntaxTree syntaxTreeClient = ballerinaClientGenerator.generateSyntaxTree();
+        IntermediateClientGenerator intermediateClientGenerator = new IntermediateClientGenerator(oasClientConfig);
+        SyntaxTree syntaxTreeClient = intermediateClientGenerator.generateSyntaxTree();
         List<TypeDefinitionNode> preGeneratedTypeDefinitionNodes = new LinkedList<>();
-        preGeneratedTypeDefinitionNodes.addAll(ballerinaClientGenerator.
+        preGeneratedTypeDefinitionNodes.addAll(intermediateClientGenerator.
                 getBallerinaAuthConfigGenerator().getAuthRelatedTypeDefinitionNodes());
-        preGeneratedTypeDefinitionNodes.addAll(ballerinaClientGenerator.getTypeDefinitionNodeList());
+        preGeneratedTypeDefinitionNodes.addAll(intermediateClientGenerator.getTypeDefinitionNodeList());
         BallerinaTypesGenerator schemaGenerator = new BallerinaTypesGenerator(
                 openAPI,  preGeneratedTypeDefinitionNodes);
-        BallerinaTestGenerator ballerinaTestGenerator = new BallerinaTestGenerator(ballerinaClientGenerator);
-        SyntaxTree syntaxTreeTest = ballerinaTestGenerator.generateSyntaxTree();
+        TestGenerator testGenerator = new TestGenerator(intermediateClientGenerator);
+        SyntaxTree syntaxTreeTest = testGenerator.generateSyntaxTree();
         SyntaxTree syntaxTreeSchema = schemaGenerator.generateSyntaxTree();
-        SyntaxTree utilSyntaxTree = ballerinaClientGenerator.getBallerinaUtilGenerator().generateUtilSyntaxTree();
-        String configFile = ballerinaTestGenerator.getConfigTomlFile();
+        SyntaxTree utilSyntaxTree = intermediateClientGenerator.getBallerinaUtilGenerator().generateUtilSyntaxTree();
+        String configFile = testGenerator.getConfigTomlFile();
         List<Diagnostic> diagnostics = getDiagnostics(syntaxTreeClient, syntaxTreeTest,
                 syntaxTreeSchema, configFile, utilSyntaxTree);
         Assert.assertTrue(diagnostics.isEmpty());
