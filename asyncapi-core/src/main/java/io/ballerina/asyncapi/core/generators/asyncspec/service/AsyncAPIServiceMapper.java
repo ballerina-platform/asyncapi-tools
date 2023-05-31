@@ -19,6 +19,7 @@
 
 package io.ballerina.asyncapi.core.generators.asyncspec.service;
 
+import com.fasterxml.jackson.databind.node.TextNode;
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25ChannelsImpl;
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25ComponentsImpl;
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25DocumentImpl;
@@ -55,14 +56,17 @@ import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.NO_DISPA
  */
 public class AsyncAPIServiceMapper {
     private final SemanticModel semanticModel;
+    private static AsyncApi25DocumentImpl asyncAPI;
     private final List<AsyncAPIConverterDiagnostic> errors = new ArrayList<>();
 
     /**
      * Initializes a service parser for AsyncApi.
      */
-    public AsyncAPIServiceMapper(SemanticModel semanticModel) {
+    public AsyncAPIServiceMapper(SemanticModel semanticModel,AsyncApi25DocumentImpl asyncAPI) {
         // Default object mapper is JSON mapper available in asyncApi utils.
         this.semanticModel = semanticModel;
+
+        this.asyncAPI=asyncAPI;
     }
 
     private static String extractDispatcherValue(ServiceDeclarationNode service) {
@@ -86,9 +90,11 @@ public class AsyncAPIServiceMapper {
                             dispatcherValue = specificFieldNode.valueExpr().get().toString().trim();
                             dispatcherValue = dispatcherValue.replaceAll("\"", "");
                             if (dispatcherValue.equals("")) {
-                                //TODO : Give a proper name for Exception
+                                //TODO : Give a proper name for Exception message
                                 throw new NoSuchElementException(DISPATCHER_KEY_VALUE_CANNOT_BE_EMPTY);
                             }
+                            asyncAPI.addExtension("x-dispatcherKey",new TextNode(dispatcherValue));
+
                             return dispatcherValue.trim();
 
                         }
