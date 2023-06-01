@@ -159,12 +159,15 @@ components:
     SubscribeMessage:
       payload:
         $ref: '#/components/schemas/SubscribeMessage'
+        description: subscribe payload description
       x-response:
         oneOf:
           - $ref: '#/components/messages/NextMessage'
           - $ref: '#/components/messages/CompleteMessage'
           - $ref: '#/components/messages/ErrorMessage'
+        description: subscribe response description
       x-response-type: server-streaming
+      description: subscribemessage description
     PongMessage:
       payload:
         $ref: '#/components/schemas/PongMessage'

@@ -234,6 +234,8 @@ public class GeneratorConstants {
 
     public static final String DECIMAL="decimal";
 
+    public static final String DESCRIPTION="description";
+
     public static final String TIMEOUT="timeout";
 
 

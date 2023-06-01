@@ -29,6 +29,7 @@ import io.ballerina.asyncapi.core.generators.document.DocCommentsGenerator;
 import io.ballerina.asyncapi.core.generators.schema.BallerinaTypesGenerator;
 import io.ballerina.compiler.syntax.tree.FunctionSignatureNode;
 import io.ballerina.compiler.syntax.tree.IdentifierToken;
+import io.ballerina.compiler.syntax.tree.MarkdownParameterDocumentationLineNode;
 import io.ballerina.compiler.syntax.tree.Node;
 import io.ballerina.compiler.syntax.tree.ParameterNode;
 import io.ballerina.compiler.syntax.tree.ReturnTypeDescriptorNode;
@@ -41,6 +42,7 @@ import java.util.List;
 import java.util.Map;
 
 import static io.ballerina.asyncapi.core.GeneratorConstants.DECIMAL;
+import static io.ballerina.asyncapi.core.GeneratorConstants.DESCRIPTION;
 import static io.ballerina.asyncapi.core.GeneratorConstants.ERROR;
 import static io.ballerina.asyncapi.core.GeneratorConstants.SERVER_STREAMING;
 import static io.ballerina.asyncapi.core.GeneratorConstants.TIMEOUT;
@@ -111,16 +113,24 @@ public class RemoteFunctionSignatureGenerator {
 
 
         if(payload!=null) {
-            String parameterType = getDType(payload);
+            String parameterType = getDataType(payload);
             Node requestTypeParamNode = getRequestTypeParameterNode(parameterType);
             parameterList.add(requestTypeParamNode);
             parameterList.add(createToken(COMMA_TOKEN));
+            TextNode descriptionNode= (TextNode) payload.get(DESCRIPTION);
+            if(descriptionNode!=null){
+                MarkdownParameterDocumentationLineNode paramDoc =
+                    DocCommentsGenerator.createAPIParamDoc(getValidName(parameterType,false),
+                            descriptionNode.asText());
+                MarkdownParameterDocumentationLineNode timeoutDoc =
+                        DocCommentsGenerator.createAPIParamDoc(TIMEOUT,
+                                "waiting period to keep the event in the buffer in seconds");
+                remoteFunctionDoc.add(paramDoc);
+                remoteFunctionDoc.add(timeoutDoc);
+            }
         }
 
-
-        String timeoutType=DECIMAL;
-        String paramName=TIMEOUT;
-        Node timeoutNode = getTimeOutParameterNode(timeoutType,paramName);
+        Node timeoutNode = getTimeOutParameterNode(DECIMAL,TIMEOUT);
         parameterList.add(timeoutNode);
 
         functionReturnType = new RemoteFunctionReturnTypeGenerator
@@ -142,7 +152,12 @@ public class RemoteFunctionSignatureGenerator {
                 String finalReturnType = returnType+
                         PIPE_TOKEN.stringValue() +
                         ERROR;
-
+           TextNode responseDescription= (TextNode) x_response.get(DESCRIPTION);
+           if(x_response.get(DESCRIPTION)!=null) {
+               MarkdownParameterDocumentationLineNode returnDoc =
+                       DocCommentsGenerator.createAPIParamDoc("return", responseDescription.asText());
+               remoteFunctionDoc.add(returnDoc);
+           }
 
             // Return Type
             returnTypeDescriptorNode = createReturnTypeDescriptorNode(createToken(RETURNS_KEYWORD),
@@ -167,7 +182,7 @@ public class RemoteFunctionSignatureGenerator {
         return createRequiredParameterNode(createNodeList(),typeName,paramNameNode);
     }
 
-    public String getDType(JsonNode payload) throws BallerinaAsyncApiException {
+    public String getDataType(JsonNode payload) throws BallerinaAsyncApiException {
         String type = "";
         if (payload.get("$ref") != null) {
             type = getValidName(extractReferenceType(payload.get("$ref").textValue()), true);
@@ -178,9 +193,9 @@ public class RemoteFunctionSignatureGenerator {
 //                type = Character.toUpperCase(operationId.charAt(0)) + operationId.substring(1) +
 //                        "Response";
                 List<Node> responseDocs = new ArrayList<>();
-                if (payload.get("description") != null) {
+                if (payload.get(DESCRIPTION) != null) {
                     responseDocs.addAll(DocCommentsGenerator.createAPIDescriptionDoc(
-                            payload.get("description").toString(), false));
+                            payload.get(DESCRIPTION).asText(), false));
                 }
                 TypeDefinitionNode typeDefinitionNode = ballerinaSchemaGenerator.getTypeDefinitionNode
                         ((BalAsyncApi25SchemaImpl) componentSchema, type, responseDocs);

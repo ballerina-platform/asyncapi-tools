@@ -584,11 +584,8 @@ public class IntermediateClientGenerator {
      */
     private Node createStartMessageReading() {
 
-        //List to store metadata of the function
-        ArrayList initMetaDataDoc = new ArrayList();
-
         //Create function signature node with metadata documentation
-        FunctionSignatureNode functionSignatureNode = getStartMessageReadingFunctionSignatureNode(initMetaDataDoc);
+        FunctionSignatureNode functionSignatureNode = getStartMessageReadingFunctionSignatureNode();
 
         //Create function body node
         FunctionBodyNode functionBodyNode = getStartMessageReadingFunctionBodyNode();
@@ -694,7 +691,7 @@ public class IntermediateClientGenerator {
 
     }
 
-    private FunctionSignatureNode getStartMessageReadingFunctionSignatureNode(ArrayList initMetaDataDoc) {
+    private FunctionSignatureNode getStartMessageReadingFunctionSignatureNode() {
 
         SeparatedNodeList<ParameterNode> parameterList = createSeparatedNodeList(new ArrayList<>());
 
@@ -1473,7 +1470,7 @@ public class IntermediateClientGenerator {
         Map<String, JsonNode> extensions = ((AsyncApi25InfoImpl) asyncAPI.getInfo()).getExtensions();
         if (extensions != null && !extensions.isEmpty()) {
             for (Map.Entry<String, JsonNode> extension : extensions.entrySet()) {
-                if (extension.getKey().trim().equals(functionType)) {
+                if (extension.getKey().trim().equals(new TextNode(functionType))) {
                     comment = comment.concat(extension.getValue().toString());
                     break;
                 }
@@ -1679,9 +1676,8 @@ public class IntermediateClientGenerator {
         typeDefinitionNodeList = remoteFunctionSignatureGenerator.getTypeDefinitionNodeList();
         // Create metadataNode add documentation string
 
-        List<AnnotationNode> annotationNodes = new ArrayList<>();
         MetadataNode metadataNode = createMetadataNode(createMarkdownDocumentationNode(
-                createNodeList(remoteFunctionDocs)), createNodeList(annotationNodes));
+                createNodeList(remoteFunctionDocs)), createNodeList());
 
         // Create Function Body
         RemoteFunctionBodyGenerator remoteFunctionBodyGenerator = new RemoteFunctionBodyGenerator(imports, typeDefinitionNodeList,
