@@ -22,38 +22,31 @@ import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25SchemaImpl;
 import io.ballerina.asyncapi.core.GeneratorConstants;
 import io.ballerina.asyncapi.core.GeneratorUtils;
 import io.ballerina.asyncapi.core.exception.BallerinaAsyncApiException;
-import io.ballerina.asyncapi.core.generators.asyncspec.model.BalAsyncApi25SchemaImpl;
 import io.ballerina.asyncapi.core.generators.schema.TypeGeneratorUtils;
-import io.ballerina.asyncapi.core.generators.schema.model.GeneratorMetaData;
-import io.ballerina.compiler.syntax.tree.AnnotationNode;
 import io.ballerina.compiler.syntax.tree.ArrayDimensionNode;
 import io.ballerina.compiler.syntax.tree.ArrayTypeDescriptorNode;
 import io.ballerina.compiler.syntax.tree.Node;
 import io.ballerina.compiler.syntax.tree.NodeList;
 import io.ballerina.compiler.syntax.tree.NodeParser;
-
-import static io.ballerina.asyncapi.core.GeneratorUtils.hasConstraints;
-import static io.ballerina.asyncapi.core.generators.schema.TypeGeneratorUtils.getNullableType;
-import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createEmptyNodeList;
-import static io.ballerina.compiler.syntax.tree.NodeFactory.createArrayDimensionNode;
-import static io.ballerina.compiler.syntax.tree.NodeFactory.createArrayTypeDescriptorNode;
-import static io.ballerina.compiler.syntax.tree.NodeFactory.createParenthesisedTypeDescriptorNode;
-
-import static io.ballerina.compiler.syntax.tree.SyntaxKind.ARRAY_TYPE_DESC;
-import static io.ballerina.compiler.syntax.tree.SyntaxKind.CLOSE_BRACKET_TOKEN;
-import static io.ballerina.compiler.syntax.tree.SyntaxKind.CLOSE_PAREN_TOKEN;
-import static io.ballerina.compiler.syntax.tree.SyntaxKind.OPEN_BRACKET_TOKEN;
-import static io.ballerina.compiler.syntax.tree.SyntaxKind.OPEN_PAREN_TOKEN;
-
 import io.ballerina.compiler.syntax.tree.OptionalTypeDescriptorNode;
 import io.ballerina.compiler.syntax.tree.TypeDefinitionNode;
 import io.ballerina.compiler.syntax.tree.TypeDescriptorNode;
 
 import java.util.ArrayList;
-import java.util.List;
 
+import static io.ballerina.asyncapi.core.GeneratorUtils.hasConstraints;
+import static io.ballerina.asyncapi.core.generators.schema.TypeGeneratorUtils.getNullableType;
+import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createEmptyNodeList;
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createIdentifierToken;
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createToken;
+import static io.ballerina.compiler.syntax.tree.NodeFactory.createArrayDimensionNode;
+import static io.ballerina.compiler.syntax.tree.NodeFactory.createArrayTypeDescriptorNode;
+import static io.ballerina.compiler.syntax.tree.NodeFactory.createParenthesisedTypeDescriptorNode;
+import static io.ballerina.compiler.syntax.tree.SyntaxKind.ARRAY_TYPE_DESC;
+import static io.ballerina.compiler.syntax.tree.SyntaxKind.CLOSE_BRACKET_TOKEN;
+import static io.ballerina.compiler.syntax.tree.SyntaxKind.CLOSE_PAREN_TOKEN;
+import static io.ballerina.compiler.syntax.tree.SyntaxKind.OPEN_BRACKET_TOKEN;
+import static io.ballerina.compiler.syntax.tree.SyntaxKind.OPEN_PAREN_TOKEN;
 
 /**
  * Generate TypeDefinitionNode and TypeDescriptorNode for array schemas.
@@ -94,12 +87,13 @@ public class ArrayTypeGenerator extends TypeGenerator {
 //
 //        }
         AsyncApi25SchemaImpl arraySchema = schema;
-        AsyncApi25SchemaImpl  items = (AsyncApi25SchemaImpl) arraySchema.getItems();
+        AsyncApi25SchemaImpl items = (AsyncApi25SchemaImpl) arraySchema.getItems();
         boolean isConstraintsAvailable =
-               hasConstraints(items) && typeName != null;
+                hasConstraints(items) && typeName != null;
         TypeGenerator typeGenerator;
         if (isConstraintsAvailable) {
-            String normalizedTypeName = typeName.replaceAll(GeneratorConstants.SPECIAL_CHARACTER_REGEX, "").trim();
+            String normalizedTypeName = typeName.replaceAll(GeneratorConstants.SPECIAL_CHARACTER_REGEX,
+                    "").trim();
             typeName = GeneratorUtils.getValidName(
                     parentType != null ?
                             parentType + "-" + normalizedTypeName + "-Items-" + items.getType() :

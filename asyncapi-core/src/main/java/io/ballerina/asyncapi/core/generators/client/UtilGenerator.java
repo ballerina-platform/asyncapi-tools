@@ -56,7 +56,6 @@ import static io.ballerina.asyncapi.core.GeneratorConstants.NUVINDU_PIPE;
 import static io.ballerina.asyncapi.core.GeneratorConstants.URL;
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createIdentifierToken;
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createNodeList;
-import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createSeparatedNodeList;
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createToken;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createModulePartNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createSimpleNameReferenceNode;
@@ -75,19 +74,20 @@ public class UtilGenerator {
     private static final Logger LOGGER = LoggerFactory.getLogger(UtilGenerator.class);
     private static final String GET_ENCODED_URI = "getEncodedUri";
 
-private static final String STREAM_GENERATOR = "StreamGenerator";
+    private static final String STREAM_GENERATOR = "StreamGenerator";
     private static final String GET_PATH_FOR_QUERY_PARAM = "getPathForQueryParam";
     private static final String GET_COMBINE_HEADERS = "getCombineHeaders";
-    private static final boolean streamFound=true;
+    private static final boolean streamFound = true;
     private boolean headersFound = true;
     private boolean queryParamsFound = true;
     private boolean pathParametersFound = true;
 
     /**
-     //     * Set `queryParamsFound` flag to `true` when at least one query parameter found.
-     //     *
-     //     * @param flag Function will be called only in the occasions where flag needs to be set to `true`
-     //     */
+     * //     * Set `queryParamsFound` flag to `true` when at least one query parameter found.
+     * //     *
+     * //     * @param flag Function will be called only in the occasions where flag needs to be set to `true`
+     * //
+     */
     public void setQueryParamsFound(boolean flag) {
         this.queryParamsFound = flag;
     }
@@ -131,7 +131,7 @@ private static final String STREAM_GENERATOR = "StreamGenerator";
         if (pathParametersFound) {
             functionNameList.add(GET_ENCODED_URI);
         }
-        if(streamFound){
+        if (streamFound) {
             functionNameList.add(STREAM_GENERATOR);
         }
 
@@ -140,7 +140,7 @@ private static final String STREAM_GENERATOR = "StreamGenerator";
 
         Path path = getResourceFilePath();
 
-        Project project =ProjectLoader.loadProject(path);
+        Project project = ProjectLoader.loadProject(path);
         Package currentPackage = project.currentPackage();
         DocumentId docId = currentPackage.getDefaultModule().documentIds().iterator().next();
         SyntaxTree syntaxTree = currentPackage.getDefaultModule().document(docId).syntaxTree();
@@ -148,14 +148,14 @@ private static final String STREAM_GENERATOR = "StreamGenerator";
         ModulePartNode modulePartNode = syntaxTree.rootNode();
         NodeList<ModuleMemberDeclarationNode> members = modulePartNode.members();
         for (ModuleMemberDeclarationNode node : members) {
-            if (node.kind().equals(SyntaxKind.FUNCTION_DEFINITION) || node.kind().equals(SyntaxKind.CLASS_DEFINITION)){
+            if (node.kind().equals(SyntaxKind.FUNCTION_DEFINITION) || node.kind().equals(SyntaxKind.CLASS_DEFINITION)) {
                 for (ChildNodeEntry childNodeEntry : node.childEntries()) {
                     if (childNodeEntry.name().equals("functionName") || childNodeEntry.name().equals("className")) {
                         if (functionNameList.contains(childNodeEntry.node().get().toString())) {
 //                            if(childNodeEntry.name().equals("className")){
 //                                changeStreamReturn(node,memberDeclarationNodes);
 //                            }else{
-                                memberDeclarationNodes.add(node);
+                            memberDeclarationNodes.add(node);
 
 //                            }
                         }
@@ -169,8 +169,8 @@ private static final String STREAM_GENERATOR = "StreamGenerator";
             ImportDeclarationNode importForUrl = GeneratorUtils.getImportDeclarationNode(BALLERINA, URL);
             imports.add(importForUrl);
         }
-        if (functionNameList.contains(STREAM_GENERATOR)){
-            ImportDeclarationNode importForUrl = GeneratorUtils.getImportDeclarationNode(NUVINDU,NUVINDU_PIPE);
+        if (functionNameList.contains(STREAM_GENERATOR)) {
+            ImportDeclarationNode importForUrl = GeneratorUtils.getImportDeclarationNode(NUVINDU, NUVINDU_PIPE);
             imports.add(importForUrl);
         }
 
@@ -217,7 +217,7 @@ private static final String STREAM_GENERATOR = "StreamGenerator";
      * @param memberDeclarationNodes {@link ModuleMemberDeclarationNode}
      */
     private void getUtilTypeDeclarationNodes(List<ModuleMemberDeclarationNode> memberDeclarationNodes) {
-        if ( queryParamsFound || headersFound ) {
+        if (queryParamsFound || headersFound) {
             memberDeclarationNodes.add(getSimpleBasicTypeDefinitionNode());
         }
     }

@@ -34,7 +34,7 @@ public class RemoteFunctionNameValidationTests {
             expectedExceptions = BallerinaAsyncApiException.class,
             expectedExceptionsMessageRegExp = "OpenAPI definition has errors: " +
                     "\\ROperationId is missing in the resource path: .*")
-    public void testMissionOperationId() throws IOException, BallerinaAsyncApiException{
+    public void testMissionOperationId() throws IOException, BallerinaAsyncApiException {
         Path definitionPath = RESDIR.resolve("petstore_without_operation_id.yaml");
         AsyncApi25DocumentImpl openAPI = GeneratorUtils.normalizeAsyncAPI(definitionPath);
         AASClientConfig.Builder clientMetaDataBuilder = new AASClientConfig.Builder();

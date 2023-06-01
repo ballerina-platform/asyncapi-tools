@@ -24,16 +24,12 @@ import io.apicurio.datamodels.Library;
 import io.apicurio.datamodels.models.Schema;
 import io.apicurio.datamodels.models.ServerVariable;
 import io.apicurio.datamodels.models.asyncapi.AsyncApiSchema;
-import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25ChannelsImpl;
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25ComponentsImpl;
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25DocumentImpl;
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25SchemaImpl;
 import io.apicurio.datamodels.validation.ValidationProblem;
 import io.ballerina.asyncapi.core.exception.BallerinaAsyncApiException;
 import io.ballerina.asyncapi.core.model.GenSrcFile;
-import io.ballerina.compiler.api.SemanticModel;
-import io.ballerina.compiler.api.symbols.Symbol;
-import io.ballerina.compiler.api.symbols.SymbolKind;
 import io.ballerina.compiler.syntax.tree.AbstractNodeFactory;
 import io.ballerina.compiler.syntax.tree.CaptureBindingPatternNode;
 import io.ballerina.compiler.syntax.tree.ExpressionStatementNode;
@@ -53,41 +49,24 @@ import io.ballerina.compiler.syntax.tree.Token;
 import io.ballerina.compiler.syntax.tree.TypeDefinitionNode;
 import io.ballerina.compiler.syntax.tree.TypedBindingPatternNode;
 import io.ballerina.compiler.syntax.tree.VariableDeclarationNode;
-import io.ballerina.projects.DocumentId;
-import io.ballerina.projects.Module;
-import io.ballerina.projects.Package;
-import io.ballerina.projects.Project;
-import io.ballerina.projects.ProjectException;
-import io.ballerina.projects.ProjectKind;
-import io.ballerina.projects.directory.ProjectLoader;
-import io.ballerina.runtime.api.utils.IdentifierUtils;
-import io.ballerina.tools.diagnostics.Location;
-import org.apache.commons.io.FileUtils;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.PrintWriter;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.regex.Pattern;
 
 import static io.ballerina.asyncapi.core.GeneratorConstants.BALLERINA;
-import static io.ballerina.asyncapi.core.GeneratorConstants.BALLERINA_TOML;
-import static io.ballerina.asyncapi.core.GeneratorConstants.BALLERINA_TOML_CONTENT;
-import static io.ballerina.asyncapi.core.GeneratorConstants.CLIENT_FILE_NAME;
 import static io.ballerina.asyncapi.core.GeneratorConstants.CLOSE_CURLY_BRACE;
 import static io.ballerina.asyncapi.core.GeneratorConstants.LINE_SEPARATOR;
 import static io.ballerina.asyncapi.core.GeneratorConstants.OPEN_CURLY_BRACE;
 import static io.ballerina.asyncapi.core.GeneratorConstants.SLASH;
 import static io.ballerina.asyncapi.core.GeneratorConstants.SPECIAL_CHARACTERS_REGEX;
-import static io.ballerina.asyncapi.core.GeneratorConstants.TYPE_FILE_NAME;
 import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.JSON_EXTENSION;
 import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.YAML_EXTENSION;
 import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.YML_EXTENSION;
@@ -298,7 +277,8 @@ public class GeneratorUtils {
         if (isSchema) {
             return identifier.substring(0, 1).toUpperCase(Locale.ENGLISH) + identifier.substring(1);
         } else {
-            return escapeIdentifier(identifier.substring(0, 1).toLowerCase(Locale.ENGLISH) + identifier.substring(1));
+            return escapeIdentifier(identifier.substring(0, 1).toLowerCase(Locale.ENGLISH) +
+                    identifier.substring(1));
         }
     }
 
@@ -340,8 +320,7 @@ public class GeneratorUtils {
      */
     public static String extractReferenceType(String referenceVariable) throws BallerinaAsyncApiException {
 
-        if (referenceVariable.startsWith("#")) {
-        }
+
         if (referenceVariable.startsWith("#") && referenceVariable.contains("/")) {
             String[] refArray = referenceVariable.split("/");
             return refArray[refArray.length - 1];
@@ -357,7 +336,7 @@ public class GeneratorUtils {
     }
 
     /**
-     * Util for take OpenApi spec from given yaml file.
+     * Util for take AsyncAPI spec from given yaml file.
      */
     public static AsyncApi25DocumentImpl getAsyncAPIFromAsyncAPIParser(Path definitionPath) throws
             IOException, BallerinaAsyncApiException {
@@ -639,7 +618,7 @@ public class GeneratorUtils {
      * This util is to check if the given schema contains any constraints.
      */
     public static boolean hasConstraints(Schema schema) {
-        AsyncApi25SchemaImpl value=(AsyncApi25SchemaImpl) schema;
+        AsyncApi25SchemaImpl value = (AsyncApi25SchemaImpl) schema;
 
         if (value.getProperties() != null) {
             boolean constraintExists = value.getProperties().values().stream()
@@ -651,7 +630,7 @@ public class GeneratorUtils {
                 (value.getOneOf() != null || value.getAllOf() != null || value.getAnyOf() != null))) {
             List<Schema> allOf = value.getAllOf();
             List<AsyncApiSchema> oneOf = value.getOneOf();
-            List<AsyncApiSchema> anyOf =  value.getAnyOf();
+            List<AsyncApiSchema> anyOf = value.getAnyOf();
             boolean constraintExists = false;
             if (allOf != null) {
                 constraintExists = allOf.stream().anyMatch(GeneratorUtils::hasConstraints);
@@ -664,9 +643,9 @@ public class GeneratorUtils {
                 return true;
             }
 
-        } else if (value.getType()!=null && value.getType().equals("array")) {
+        } else if (value.getType() != null && value.getType().equals("array")) {
             if (!isConstraintExists(value)) {
-                return isConstraintExists((AsyncApi25SchemaImpl)value.getItems());
+                return isConstraintExists((AsyncApi25SchemaImpl) value.getItems());
             }
         }
         return isConstraintExists(value);
@@ -696,40 +675,38 @@ public class GeneratorUtils {
             BallerinaAsyncApiException {
         AsyncApi25DocumentImpl asyncAPI = getAsyncAPIFromAsyncAPIParser(asyncAPIPath);
 
-        //TODO: Do some validations
-        AsyncApi25ChannelsImpl asyncApiChannels = (AsyncApi25ChannelsImpl) asyncAPI.getChannels();
-//        if (isClient) {
-//            validateOperationIds(openAPIPaths.entrySet());
-//        }
-//        validateRequestBody(openAPIPaths.entrySet());
-
         if (asyncAPI.getComponents() != null) {
-            // Refactor schema name with valid name
             AsyncApi25ComponentsImpl components = (AsyncApi25ComponentsImpl) asyncAPI.getComponents();
-            Map<String, Schema> componentsSchemas = components.getSchemas();
 
-            //ToDO: uncomment this
-//            if (componentsSchemas != null) {
-////                Map<String, Schema> refacSchema = new HashMap<>();
-//                for (Map.Entry<String, Schema> schemaEntry : componentsSchemas.entrySet()) {
-//                    String name = getValidName(schemaEntry.getKey(), true);
-//                    components.addSchema(name, schemaEntry.getValue());
-////                    refacSchema.put(name, schemaEntry.getValue());
-//                }
-////                asyncAPI.getComponents().setSchemas(refacSchema);
-//            }
+            if (components.getSchemas() != null) {
+                Map<String, Schema> componentsSchemas = components.getSchemas();
+                //Remove unnecessary characters from the schema name
+                for (Map.Entry<String, Schema> schemaEntry : componentsSchemas.entrySet()) {
+                    // Remove default name
+                    components.removeSchema(schemaEntry.getKey());
+                    // Refactor schema name with valid name
+                    String name = getValidName(schemaEntry.getKey(), true);
+                    components.addSchema(name, schemaEntry.getValue());
+                }
+                asyncAPI.setComponents(components);
+            } else {
+                throw new BallerinaAsyncApiException("Schemas section missing");
+            }
+        } else {
+            throw new BallerinaAsyncApiException("Components section missing");
         }
         return asyncAPI;
     }
-//
+
 //    /**
 //     * Check whether an operationId has been defined in each path. If given rename the operationId to accepted format.
 //     * -- ex: GetPetName -> getPetName
 //     *
 //     * @param paths List of paths given in the OpenAPI definition
-//     * @throws BallerinaOpenApiException When operationId is missing in any path
+//     * @throws BallerinaAsyncApiException When operationId is missing in any path
 //     */
-//    public static void validateOperationIds(Set<Map.Entry<String, PathItem>> paths) throws BallerinaOpenApiException {
+//    public static void validateOperationIds(Set<Map.Entry<String, PathItem>> paths)
+//    throws BallerinaAsyncApiException {
 //        List<String> errorList = new ArrayList<>();
 //        for (Map.Entry<String, PathItem> entry : paths) {
 //            for (Map.Entry<PathItem.HttpMethod, Operation> operation :
@@ -744,7 +721,7 @@ public class GeneratorUtils {
 //            }
 //        }
 //        if (!errorList.isEmpty()) {
-//            throw new BallerinaOpenApiException(
+//            throw new BallerinaAsyncApiException(
 //                    "OpenAPI definition has errors: " + LINE_SEPARATOR + String.join(LINE_SEPARATOR, errorList));
 //        }
 //    }
@@ -890,75 +867,50 @@ public class GeneratorUtils {
 //        return hasConstraint;
 //    }
 
-    private static List<String> getUnusedTypeDefinitionNameList(Map<String, String> srcFiles) throws IOException {
-        List<String> unusedTypeDefinitionNameList = new ArrayList<>();
-        Path tmpDir = Files.createTempDirectory(".openapi-tmp" + System.nanoTime());
-        writeFilesTemp(srcFiles, tmpDir);
-        if (Files.exists(tmpDir.resolve(CLIENT_FILE_NAME)) && Files.exists(tmpDir.resolve(TYPE_FILE_NAME)) &&
-                Files.exists(tmpDir.resolve(BALLERINA_TOML))) {
-            SemanticModel semanticModel = getSemanticModel(tmpDir.resolve(CLIENT_FILE_NAME));
-            List<Symbol> symbols = semanticModel.moduleSymbols();
-            for (Symbol symbol : symbols) {
-                if (symbol.kind().equals(SymbolKind.TYPE_DEFINITION) || symbol.kind().equals(SymbolKind.ENUM)) {
-                    List<Location> references = semanticModel.references(symbol);
-                    if (references.size() == 1) {
-                        unusedTypeDefinitionNameList.add(symbol.getName().get());
-                    }
-                }
-            }
-        }
-        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-            try {
-                FileUtils.deleteDirectory(tmpDir.toFile());
-            } catch (IOException ex) {
-//                LOGGER.error("Unable to delete the temporary directory : " + tmpDir, ex);
-            }
-        }));
-        return unusedTypeDefinitionNameList;
-    }
+//    private static List<String> getUnusedTypeDefinitionNameList(Map<String, String> srcFiles) throws IOException {
+//        List<String> unusedTypeDefinitionNameList = new ArrayList<>();
+//        Path tmpDir = Files.createTempDirectory(".openapi-tmp" + System.nanoTime());
+//        writeFilesTemp(srcFiles, tmpDir);
+//        if (Files.exists(tmpDir.resolve(CLIENT_FILE_NAME)) && Files.exists(tmpDir.resolve(TYPE_FILE_NAME)) &&
+//                Files.exists(tmpDir.resolve(BALLERINA_TOML))) {
+//            SemanticModel semanticModel = getSemanticModel(tmpDir.resolve(CLIENT_FILE_NAME));
+//            List<Symbol> symbols = semanticModel.moduleSymbols();
+//            for (Symbol symbol : symbols) {
+//                if (symbol.kind().equals(SymbolKind.TYPE_DEFINITION) || symbol.kind().equals(SymbolKind.ENUM)) {
+//                    List<Location> references = semanticModel.references(symbol);
+//                    if (references.size() == 1) {
+//                        unusedTypeDefinitionNameList.add(symbol.getName().get());
+//                    }
+//                }
+//            }
+//        }
+//        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+//            try {
+//                FileUtils.deleteDirectory(tmpDir.toFile());
+//            } catch (IOException ex) {
+////                LOGGER.error("Unable to delete the temporary directory : " + tmpDir, ex);
+//            }
+//        }));
+//        return unusedTypeDefinitionNameList;
+//    }
 
-    private static void writeFilesTemp(Map<String, String> srcFiles, Path tmpDir) throws IOException {
-        srcFiles.put(BALLERINA_TOML, BALLERINA_TOML_CONTENT);
-        PrintWriter writer = null;
-        for (Map.Entry<String, String> entry : srcFiles.entrySet()) {
-            String key = entry.getKey();
-            Path filePath = tmpDir.resolve(key);
-            try {
-                writer = new PrintWriter(filePath.toString(), StandardCharsets.UTF_8);
-                writer.print(entry.getValue());
-            } finally {
-                if (writer != null) {
-                    writer.close();
-                }
-            }
-        }
-    }
+//    private static void writeFilesTemp(Map<String, String> srcFiles, Path tmpDir) throws IOException {
+//        srcFiles.put(BALLERINA_TOML, BALLERINA_TOML_CONTENT);
+//        PrintWriter writer = null;
+//        for (Map.Entry<String, String> entry : srcFiles.entrySet()) {
+//            String key = entry.getKey();
+//            Path filePath = tmpDir.resolve(key);
+//            try {
+//                writer = new PrintWriter(filePath.toString(), StandardCharsets.UTF_8);
+//                writer.print(entry.getValue());
+//            } finally {
+//                if (writer != null) {
+//                    writer.close();
+//                }
+//            }
+//        }
+//    }
 
-    private static SemanticModel getSemanticModel(Path clientPath) throws ProjectException {
-        // Load project instance for single ballerina file
-        try {
-            Project project = ProjectLoader.loadProject(clientPath);
-            Package packageName = project.currentPackage();
-            DocumentId docId;
-
-            if (project.kind().equals(ProjectKind.BUILD_PROJECT)) {
-                docId = project.documentId(clientPath);
-            } else {
-                // Take module instance for traversing the syntax tree
-                Module currentModule = packageName.getDefaultModule();
-                Iterator<DocumentId> documentIterator = currentModule.documentIds().iterator();
-                docId = documentIterator.next();
-            }
-            return project.currentPackage().getCompilation().getSemanticModel(docId.moduleId());
-        } catch (ProjectException e) {
-            throw new ProjectException(e.getMessage());
-        }
-    }
-
-    public static String unescapeIdentifier(String parameterName) {
-        String unescapedParamName = IdentifierUtils.unescapeBallerina(parameterName);
-        return unescapedParamName.trim().replaceAll("\\\\", "").replaceAll("'", "");
-    }
 
     public static String removeNonAlphanumeric(String input) {
         return input.replaceAll("[^a-zA-Z0-9]", "");

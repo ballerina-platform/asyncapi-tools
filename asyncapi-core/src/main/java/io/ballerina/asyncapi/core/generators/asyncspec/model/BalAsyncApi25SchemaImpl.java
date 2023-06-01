@@ -2,23 +2,9 @@ package io.ballerina.asyncapi.core.generators.asyncspec.model;
 
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.core.JsonParser;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.DeserializationContext;
-import com.fasterxml.jackson.databind.JsonDeserializer;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import io.apicurio.datamodels.models.Schema;
-import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25SchemaImpl;
 import io.apicurio.datamodels.models.union.BooleanSchemaUnion;
-import io.apicurio.datamodels.models.union.BooleanUnionValueImpl;
-import io.apicurio.datamodels.models.union.SchemaListUnionValueImpl;
 import io.apicurio.datamodels.models.union.SchemaSchemaListUnion;
-
-import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
 
 //@JsonTypeInfo( use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.PROPERTY, property = "class")
 //@JsonSubTypes({
@@ -36,11 +22,7 @@ import java.util.Map;
  * @since 2.0.0
  */
 
-public class BalAsyncApi25SchemaImpl extends io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25SchemaImpl{
-
-//    public BalAsyncApi25SchemaImpl() {
-//        super();
-//    }
+public class BalAsyncApi25SchemaImpl extends io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25SchemaImpl {
 
     @JsonDeserialize(as = BalAsyncApi25SchemaImpl.class)
     private SchemaSchemaListUnion items;
@@ -70,7 +52,8 @@ public class BalAsyncApi25SchemaImpl extends io.apicurio.datamodels.models.async
 //
 //class PropertiesDeserializer extends JsonDeserializer<Map<String, AsyncApi25SchemaImpl>> {
 //    @Override
-//    public Map<String, AsyncApi25SchemaImpl> deserialize(JsonParser jsonParser, DeserializationContext deserializationContext) throws IOException, JsonProcessingException {
+//    public Map<String, AsyncApi25SchemaImpl> deserialize(JsonParser jsonParser,
+//    DeserializationContext deserializationContext) throws IOException, JsonProcessingException {
 //        ObjectMapper objectMapper = new ObjectMapper();
 //        JsonNode node = jsonParser.getCodec().readTree(jsonParser);
 //
@@ -83,11 +66,11 @@ public class BalAsyncApi25SchemaImpl extends io.apicurio.datamodels.models.async
 //
 //            try {
 //                // Deserialize each property value as an AsyncAPI25Schema object
-//                AsyncApi25SchemaImpl propertySchema = objectMapper.treeToValue(propertyNode, AsyncApi25SchemaImpl.class);
+//                AsyncApi25SchemaImpl propertySchema = objectMapper.treeToValue(propertyNode,
+//                AsyncApi25SchemaImpl.class);
 //                properties.put(propertyName, propertySchema);
 //            } catch (JsonProcessingException e) {
 //                // Handle exception if deserialization fails
-//                e.printStackTrace();
 //            }
 //        });
 //

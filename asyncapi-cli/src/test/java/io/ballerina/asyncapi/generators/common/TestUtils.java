@@ -137,7 +137,8 @@ public class TestUtils {
         return project.currentPackage().getCompilation().getSemanticModel(docId.moduleId());
     }
 
-//    public static AsyncApi25DocumentImpl getAsyncAPI(Path definitionPath) throws IOException, BallerinaAsyncApiException{
+//    public static AsyncApi25DocumentImpl getAsyncAPI(Path definitionPath) throws IOException,
+//    BallerinaAsyncApiException{
 //        String openAPIFileContent = Files.readString(definitionPath);
 //        SwaggerParseResult parseResult = new AsyncAPipar().readContents(openAPIFileContent);
 //        return parseResult.getOpenAPI();

@@ -21,11 +21,8 @@ package io.ballerina.asyncapi.core.generators.schema.ballerinatypegenerators;
 import io.apicurio.datamodels.models.Schema;
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25SchemaImpl;
 import io.apicurio.datamodels.models.union.BooleanSchemaUnion;
-import io.apicurio.datamodels.models.union.BooleanUnionValueImpl;
 import io.ballerina.asyncapi.core.GeneratorUtils;
 import io.ballerina.asyncapi.core.exception.BallerinaAsyncApiException;
-import io.ballerina.asyncapi.core.generators.asyncspec.model.BalAsyncApi25SchemaImpl;
-import io.ballerina.asyncapi.core.generators.asyncspec.model.BalBooleanSchema;
 import io.ballerina.asyncapi.core.generators.schema.TypeGeneratorUtils;
 import io.ballerina.asyncapi.core.generators.schema.model.RecordMetadata;
 import io.ballerina.compiler.syntax.tree.AbstractNodeFactory;
@@ -103,7 +100,8 @@ public class RecordTypeGenerator extends TypeGenerator {
      */
     public static RecordRestDescriptorNode getRestDescriptorNodeForReference(AsyncApi25SchemaImpl additionalPropSchema)
             throws BallerinaAsyncApiException {
-        ReferencedTypeGenerator referencedTypeGenerator = new ReferencedTypeGenerator(additionalPropSchema, null);
+        ReferencedTypeGenerator referencedTypeGenerator = new ReferencedTypeGenerator(additionalPropSchema,
+                null);
         TypeDescriptorNode refNode = referencedTypeGenerator.generateTypeDescriptorNode();
         return NodeFactory.createRecordRestDescriptorNode(refNode, createToken(ELLIPSIS_TOKEN),
                 createToken(SEMICOLON_TOKEN));
@@ -137,14 +135,16 @@ public class RecordTypeGenerator extends TypeGenerator {
             recordRestDescNode = NodeFactory.createRecordRestDescriptorNode(recordNode, createToken(ELLIPSIS_TOKEN),
                     createToken(SEMICOLON_TOKEN));
         } else if (additionalPropSchema.getType() != null && additionalPropSchema.getType().equals("array")) {
-            ArrayTypeGenerator arrayTypeGenerator = new ArrayTypeGenerator(additionalPropSchema, null, null);
+            ArrayTypeGenerator arrayTypeGenerator = new ArrayTypeGenerator(additionalPropSchema, null,
+                    null);
             TypeDescriptorNode arrayNode = arrayTypeGenerator.generateTypeDescriptorNode();
             recordRestDescNode = NodeFactory.createRecordRestDescriptorNode(arrayNode, createToken(ELLIPSIS_TOKEN),
                     createToken(SEMICOLON_TOKEN));
         } else if (additionalPropSchema.getType() != null && additionalPropSchema.getType().equals("integer") ||
                 additionalPropSchema.getType().equals("string") ||
                 additionalPropSchema.getType().equals("boolean")) {
-            PrimitiveTypeGenerator primitiveTypeGenerator = new PrimitiveTypeGenerator(additionalPropSchema, null);
+            PrimitiveTypeGenerator primitiveTypeGenerator = new PrimitiveTypeGenerator(additionalPropSchema,
+                    null);
             TypeDescriptorNode primitiveNode = primitiveTypeGenerator.generateTypeDescriptorNode();
             recordRestDescNode = NodeFactory.createRecordRestDescriptorNode(primitiveNode, createToken(ELLIPSIS_TOKEN),
                     createToken(SEMICOLON_TOKEN));
@@ -215,10 +215,11 @@ public class RecordTypeGenerator extends TypeGenerator {
                     isOpenRecord = false;
                     recordRestDescNode = getRecordRestDescriptorNode(additionalPropSchema);
                 } else if ((
-                        (additionalPropSchema.getOneOf() != null || additionalPropSchema.getAllOf() != null || additionalPropSchema.getAnyOf() != null))) {
+                        (additionalPropSchema.getOneOf() != null || additionalPropSchema.getAllOf() != null ||
+                                additionalPropSchema.getAnyOf() != null))) {
                     OUT_STREAM.println("WARNING: generating Ballerina rest record field will be ignored for the " +
-                            "AsyncAPI contract additionalProperties type `allOf, oneOf, anyOf`, as it is not supported on " +
-                            "Ballerina rest record field.");
+                            "AsyncAPI contract additionalProperties type `allOf, oneOf, anyOf`, as it is" +
+                            " not supported on Ballerina rest record field.");
                 }
             } else if (((BooleanSchemaUnion) additionalProperties).asBoolean().equals(false)) {
                 isOpenRecord = false;

@@ -230,7 +230,8 @@
 //        }
 //    }
 //
-//    @Test(description = "Test Ballerina types generation when nullable option is given in the cmd and definition both")
+//    @Test(description = "Test Ballerina types generation when nullable option is given in the cmd and definition
+//    both")
 //    public void generateTypesWithNullableFieldsAndGlobalNullableTrue() {
 //        String definitionPath = RES_DIR.resolve("petstore_nullable_false.yaml").toString();
 //        BallerinaCodeGenerator generator = new BallerinaCodeGenerator();

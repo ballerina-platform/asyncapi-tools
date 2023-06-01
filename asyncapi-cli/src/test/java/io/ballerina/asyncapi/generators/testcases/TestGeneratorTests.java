@@ -45,7 +45,7 @@ import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 
-import static io.ballerina.asyncapi.core.GeneratorConstants.AsyncAPI_PATH_SEPARATOR;
+import static io.ballerina.asyncapi.core.GeneratorConstants.ASYNCAPI_PATH_SEPARATOR;
 import static io.ballerina.asyncapi.core.GeneratorConstants.TEST_DIR;
 
 /**
@@ -64,9 +64,9 @@ public class TestGeneratorTests {
     List<String> list2 = new ArrayList<>();
 
     @Test(description = "Generate Client with test skelotins", dataProvider = "httpAuthIOProvider")
-    public void generateclientWithTestSkel(String yamlFile) throws IOException, BallerinaAsyncApiException,
+    public void generateclientWithTestSkel(String yamlFile) throws IOException,
             FormatterException, BallerinaAsyncApiException, URISyntaxException {
-        Files.createDirectories(Paths.get(PROJECT_DIR + AsyncAPI_PATH_SEPARATOR+ TEST_DIR));
+        Files.createDirectories(Paths.get(PROJECT_DIR + ASYNCAPI_PATH_SEPARATOR + TEST_DIR));
         Path definitionPath = RES_DIR.resolve("sample_yamls/" + yamlFile);
         BallerinaCodeGenerator codeGenerator = new BallerinaCodeGenerator();
         codeGenerator.setIncludeTestFiles(true);
@@ -81,7 +81,7 @@ public class TestGeneratorTests {
                 getBallerinaAuthConfigGenerator().getAuthRelatedTypeDefinitionNodes());
         preGeneratedTypeDefinitionNodes.addAll(intermediateClientGenerator.getTypeDefinitionNodeList());
         BallerinaTypesGenerator schemaGenerator = new BallerinaTypesGenerator(
-                openAPI,  preGeneratedTypeDefinitionNodes);
+                openAPI, preGeneratedTypeDefinitionNodes);
         TestGenerator testGenerator = new TestGenerator(intermediateClientGenerator);
         SyntaxTree syntaxTreeTest = testGenerator.generateSyntaxTree();
         SyntaxTree syntaxTreeSchema = schemaGenerator.generateSyntaxTree();

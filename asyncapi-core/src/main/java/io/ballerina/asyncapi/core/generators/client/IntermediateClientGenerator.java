@@ -77,7 +77,6 @@ import io.ballerina.compiler.syntax.tree.OptionalTypeDescriptorNode;
 import io.ballerina.compiler.syntax.tree.ParameterNode;
 import io.ballerina.compiler.syntax.tree.ParenthesizedArgList;
 import io.ballerina.compiler.syntax.tree.QualifiedNameReferenceNode;
-import io.ballerina.compiler.syntax.tree.RequiredParameterNode;
 import io.ballerina.compiler.syntax.tree.ReturnStatementNode;
 import io.ballerina.compiler.syntax.tree.ReturnTypeDescriptorNode;
 import io.ballerina.compiler.syntax.tree.SeparatedNodeList;
@@ -147,8 +146,6 @@ import static io.ballerina.asyncapi.core.GeneratorConstants.X_BALLERINA_INIT_DES
 import static io.ballerina.asyncapi.core.GeneratorConstants.X_BALLERINA_MESSAGE_READ_DESCRIPTION;
 import static io.ballerina.asyncapi.core.GeneratorConstants.X_BALLERINA_MESSAGE_WRITE_DESCRIPTION;
 import static io.ballerina.asyncapi.core.GeneratorConstants.X_BALLERINA_PIPE_TRIGGER_DESCRIPTION;
-import static io.ballerina.asyncapi.core.GeneratorConstants.X_DISPATCHER_KEY;
-import static io.ballerina.asyncapi.core.GeneratorConstants.X_DISPATCHER_STREAM_ID;
 import static io.ballerina.asyncapi.core.GeneratorConstants.X_RESPONSE;
 import static io.ballerina.asyncapi.core.GeneratorConstants.X_RESPONSE_TYPE;
 import static io.ballerina.asyncapi.core.GeneratorUtils.getValidName;
@@ -254,12 +251,12 @@ import static io.ballerina.compiler.syntax.tree.SyntaxKind.WORKER_KEYWORD;
 public class IntermediateClientGenerator {
 
     private final AsyncApi25DocumentImpl asyncAPI;
-    private final BallerinaTypesGenerator ballerinaTypesGenerator;
     private final UtilGenerator utilGenerator;
     private final List<String> remoteFunctionNameList;
     private final BallerinaAuthConfigGenerator ballerinaAuthConfigGenerator;
     //    private final Filter filters;
-    private List<ImportDeclarationNode> imports;
+    private final List<ImportDeclarationNode> imports;
+    private final BallerinaTypesGenerator ballerinaSchemaGenerator;
     private List<TypeDefinitionNode> typeDefinitionNodeList;
     private List<String> apiKeyNameList = new ArrayList<>();
     private String serverURL;
@@ -269,13 +266,12 @@ public class IntermediateClientGenerator {
         this.imports = new ArrayList<>();
         this.typeDefinitionNodeList = new ArrayList<>();
         this.asyncAPI = asyncAPIClientConfig.getOpenAPI();
-        this.ballerinaTypesGenerator = new BallerinaTypesGenerator(asyncAPI, new LinkedList<>());
         this.utilGenerator = new UtilGenerator();
         this.remoteFunctionNameList = new ArrayList<>();
+        this.ballerinaSchemaGenerator = new BallerinaTypesGenerator(asyncAPI, new LinkedList<>());
         this.serverURL = "/";
         this.ballerinaAuthConfigGenerator = new BallerinaAuthConfigGenerator(false, false,
-                asyncAPI,
-                utilGenerator);
+                ballerinaSchemaGenerator);
 
     }
 
@@ -367,7 +363,8 @@ public class IntermediateClientGenerator {
      *     # + config - The configurations to be used when initializing the `connector`
      *     # + serviceUrl - URL of the target service
      *     # + return - An error if connector initialization failed
-     *     public function init(websocket:ClientConfiguration clientConfig =  {}, string serviceUrl = "ws://localhost:9090/chat") returns error? {
+     *     public function init(websocket:ClientConfiguration clientConfig =  {},
+     *     string serviceUrl = "ws://localhost:9090/chat") returns error? {
      *         self.pipes = {};
      *         self.writeMessageQueue = new (1000);
      *         self.readMessageQueue = new (1000);
@@ -428,7 +425,8 @@ public class IntermediateClientGenerator {
      *                             check pingMessagePipe.produce(responseMessage, 5);
      *                         }
      *                         "connection_ack_message" => {
-     *                             pipe:Pipe connectionInitMessagePipe = check self.pipes["connectionInitMessage"].ensureType();
+     *                             pipe:Pipe connectionInitMessagePipe =
+     *                             check self.pipes["connectionInitMessage"].ensureType();
      *                             check connectionInitMessagePipe.produce(responseMessage, 5);
      *                         }
      *                         "error" => {
@@ -441,7 +439,8 @@ public class IntermediateClientGenerator {
      *         }
      *     }
      *     #
-     *     remote isolated function doSubscribeMessage(SubscribeMessage subscribeMessage, decimal timeout) returns stream<NextMessage|CompleteMessage|ErrorMessage,error?>|error {
+     *     remote isolated function doSubscribeMessage(SubscribeMessage subscribeMessage, decimal timeout)
+     *     returns stream<NextMessage|CompleteMessage|ErrorMessage,error?>|error {
      *         pipe:Pipe subscribeMessagePipe = new (10000);
      *         string id;
      *         lock {
@@ -470,7 +469,8 @@ public class IntermediateClientGenerator {
      *         return pongMessage;
      *     }
      *     #
-     *     remote isolated function doConnectionInitMessage(ConnectionInitMessage connectionInitMessage, decimal timeout) returns ConnectionAckMessage|error {
+     *     remote isolated function doConnectionInitMessage(ConnectionInitMessage connectionInitMessage,
+     *     decimal timeout) returns ConnectionAckMessage|error {
      *         pipe:Pipe connectionInitMessagePipe = new (1);
      *         lock {
      *             self.pipes["connectionInitMessage"] = connectionInitMessagePipe;
@@ -497,7 +497,8 @@ public class IntermediateClientGenerator {
      *         check self.writeMessageQueue.produce(pongMessage, timeout);
      *     }
      *     #
-     *     remote isolated function doCompleteMessage(CompleteMessage completeMessage, decimal timeout) returns error? {
+     *     remote isolated function doCompleteMessage(CompleteMessage completeMessage, decimal timeout)
+     *     returns error? {
      *         check self.writeMessageQueue.produce(completeMessage, timeout);
      *     }
      * }
@@ -512,7 +513,7 @@ public class IntermediateClientGenerator {
 //        String dispatcherStreamId =asyncAPI.getExtensions().get(new TextNode(X_DISPATCHER_STREAM_ID)).asText();
 
         //Get dispatcherKey
-        String dispatcherKey= "'type";
+        String dispatcherKey = "'type";
 
         //Get dispatcherStreamId
         String dispatcherStreamId = "id";
@@ -537,10 +538,10 @@ public class IntermediateClientGenerator {
 
         // Adding remote functions
         List<FunctionDefinitionNode> remoteFunctionNodes = createRemoteFunctions(asyncAPI.getComponents().
-                getMessages(), matchStatementList,dispatcherStreamId);
+                getMessages(), matchStatementList, dispatcherStreamId);
 
         // Add startPipeTriggering function
-        memberNodeList.add(createStartPipeTriggering(matchStatementList,dispatcherKey,dispatcherStreamId));
+        memberNodeList.add(createStartPipeTriggering(matchStatementList, dispatcherKey, dispatcherStreamId));
 
         // Add remoteFunctionNodes
         memberNodeList.addAll(remoteFunctionNodes);
@@ -549,10 +550,10 @@ public class IntermediateClientGenerator {
         MetadataNode metadataNode = getClassMetadataNode();
 
         //Get title name from the specification
-        String titleName=asyncAPI.getInfo().getTitle().trim();
+        String titleName = asyncAPI.getInfo().getTitle().trim();
 
         //Get channel name from the specification
-        String channelName=GeneratorUtils.
+        String channelName = GeneratorUtils.
                 removeNonAlphanumeric(asyncAPI.getChannels().getItemNames().get(0).trim());
 
         //Combine class name as titleName+channelName+Client
@@ -570,7 +571,7 @@ public class IntermediateClientGenerator {
 
     /**
      * Create startMessageReading function.
-     *<pre>
+     * <pre>
      *     private function startMessageReading() {
      *         worker readMessage returns error {
      *             while true {
@@ -580,7 +581,7 @@ public class IntermediateClientGenerator {
      *             }
      *         }
      *     }
-     *</pre>
+     * </pre>
      */
     private Node createStartMessageReading() {
 
@@ -669,7 +670,6 @@ public class IntermediateClientGenerator {
         whileStatements.add(runtimeSleep);
 
 
-
         BlockStatementNode whileBody = createBlockStatementNode(openBraceToken, createNodeList(whileStatements),
                 closeBraceToken);
         NodeList<StatementNode> workerStatements = createNodeList(createWhileStatementNode(createToken(WHILE_KEYWORD),
@@ -701,7 +701,7 @@ public class IntermediateClientGenerator {
     }
 
     private Node createStartPipeTriggering(List<MatchClauseNode> matchClauseNodes,
-                                           String dispatcherKey,String dispatcherStreamId) {
+                                           String dispatcherKey, String dispatcherStreamId) {
 
         //List to store metadata of the function
         ArrayList initMetaDataDoc = new ArrayList();
@@ -766,8 +766,8 @@ public class IntermediateClientGenerator {
 
         VariableDeclarationNode responseMessageNode = createVariableDeclarationNode(createEmptyNodeList(),
                 null, createTypedBindingPatternNode(
-                responseMessageTypeNode,
-                createFieldBindingPatternVarnameNode(responseMessageVarNode)), equalToken, checkExpressionNode,
+                        responseMessageTypeNode,
+                        createFieldBindingPatternVarnameNode(responseMessageVarNode)), equalToken, checkExpressionNode,
                 semicolonToken);
 
 
@@ -852,7 +852,6 @@ public class IntermediateClientGenerator {
         ifStatementNodes.add(pipeProduceExpression);
 
 
-
         ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
         //Else statements
         ArrayList<StatementNode> elseStatementNodes = new ArrayList<>();
@@ -883,13 +882,12 @@ public class IntermediateClientGenerator {
         //Create if else statement node
         IfElseStatementNode ifElseStatementNode = createIfElseStatementNode(createToken(IF_KEYWORD),
                 createMethodCallExpressionNode(responseMessageVarNode, dotToken, createSimpleNameReferenceNode(
-                        createIdentifierToken("hasKey")),
+                                createIdentifierToken("hasKey")),
                         openParanToken, createSeparatedNodeList(createSimpleNameReferenceNode(
                                 createIdentifierToken("\"" + dispatcherStreamId + "\""))),
                         closeParanToken), createBlockStatementNode(openBraceToken, createNodeList(ifStatementNodes),
                         closeBraceToken), createElseBlockNode(createToken(ELSE_KEYWORD),
                         createBlockStatementNode(openBraceToken, createNodeList(elseStatementNodes), closeBraceToken)));
-
 
 
         //Add responseMessageNode and IfElseStatementNodes
@@ -925,13 +923,14 @@ public class IntermediateClientGenerator {
                 createToken(OPEN_PAREN_TOKEN), parameterList, createToken(CLOSE_PAREN_TOKEN), null);
     }
 
-    private Node createStartMessageWriting()  {
+    private Node createStartMessageWriting() {
 
         FunctionSignatureNode functionSignatureNode = getStartMessageWritingFunctionSignatureNode();
         FunctionBodyNode functionBodyNode = getStartMessageWritingFunctionBodyNode();
         NodeList<Token> qualifierList = createNodeList(createToken(PRIVATE_KEYWORD));
         IdentifierToken functionName = createIdentifierToken(START_MESSAGE_WRITING);
-        return createFunctionDefinitionNode(null, getDocCommentsForWorker(X_BALLERINA_MESSAGE_WRITE_DESCRIPTION,"Use to write messages to the websocket."), qualifierList,
+        return createFunctionDefinitionNode(null, getDocCommentsForWorker(X_BALLERINA_MESSAGE_WRITE_DESCRIPTION,
+                        "Use to write messages to the websocket."), qualifierList,
                 createToken(FUNCTION_KEYWORD),
                 functionName, createEmptyNodeList(), functionSignatureNode, functionBodyNode);
     }
@@ -962,9 +961,10 @@ public class IntermediateClientGenerator {
                         ), closeParanToken));
         VariableDeclarationNode queueData = createVariableDeclarationNode(createEmptyNodeList(),
                 null, createTypedBindingPatternNode(
-                createBuiltinSimpleNameReferenceNode(null, createToken(ANYDATA_KEYWORD)),
-                createFieldBindingPatternVarnameNode(createSimpleNameReferenceNode(
-                        createIdentifierToken(REQUEST_MESSAGE)))), equalToken, checkExpressionNode, semicolonToken);
+                        createBuiltinSimpleNameReferenceNode(null, createToken(ANYDATA_KEYWORD)),
+                        createFieldBindingPatternVarnameNode(createSimpleNameReferenceNode(
+                                createIdentifierToken(REQUEST_MESSAGE)))), equalToken, checkExpressionNode,
+                semicolonToken);
 
 
         //check self.clientEp->writeMessage(requestMessage);
@@ -1019,8 +1019,7 @@ public class IntermediateClientGenerator {
 
 
     //TODO: Add metdata for the function
-    private FunctionSignatureNode getStartMessageWritingFunctionSignatureNode()
-           {
+    private FunctionSignatureNode getStartMessageWritingFunctionSignatureNode() {
 
         SeparatedNodeList<ParameterNode> parameterList = createSeparatedNodeList(new ArrayList<>());
 
@@ -1081,7 +1080,7 @@ public class IntermediateClientGenerator {
     private FunctionDefinitionNode createInitFunction() throws BallerinaAsyncApiException {
         AsyncApi25SchemaImpl headerSchema = new AsyncApi25SchemaImpl();
         AsyncApi25SchemaImpl querySchema = new AsyncApi25SchemaImpl();
-        FunctionSignatureNode functionSignatureNode = getInitFunctionSignatureNode( querySchema,
+        FunctionSignatureNode functionSignatureNode = getInitFunctionSignatureNode(querySchema,
                 headerSchema);
         FunctionBodyNode functionBodyNode = getInitFunctionBodyNode(querySchema, headerSchema);
         NodeList<Token> qualifierList = createNodeList(createToken(PUBLIC_KEYWORD));
@@ -1149,8 +1148,6 @@ public class IntermediateClientGenerator {
                 selfReadMessageQueues,
                 createToken(EQUAL_TOKEN), expressionNode, createToken(SEMICOLON_TOKEN));
         assignmentNodes.add(selfReadQueuesAssignmentStatementNode);
-
-
 
 
         List<String> channelList = asyncAPI.getChannels().getItemNames();
@@ -1346,11 +1343,11 @@ public class IntermediateClientGenerator {
         //String path generator
         NodeList<Node> content = createNodeList(createLiteralValueToken(null, path, createEmptyMinutiaeList(),
                 createEmptyMinutiaeList()));
-        SimpleNameReferenceNode LHSExpr = createSimpleNameReferenceNode(createIdentifierToken(SERVICE_URL));
-        TemplateExpressionNode RHSExpr = createTemplateExpressionNode(null, createToken(STRING_KEYWORD),
+        SimpleNameReferenceNode lhsExpr = createSimpleNameReferenceNode(createIdentifierToken(SERVICE_URL));
+        TemplateExpressionNode rhsExpr = createTemplateExpressionNode(null, createToken(STRING_KEYWORD),
                 createToken(BACKTICK_TOKEN), content, createToken(BACKTICK_TOKEN));
-        BinaryExpressionNode initializer = createBinaryExpressionNode(null, LHSExpr, createToken(PLUS_TOKEN),
-                RHSExpr);
+        BinaryExpressionNode initializer = createBinaryExpressionNode(null, lhsExpr, createToken(PLUS_TOKEN),
+                rhsExpr);
 
         return createVariableDeclarationNode(createEmptyNodeList(), null,
                 typedBindingPatternNode, createToken(EQUAL_TOKEN), initializer, createToken(SEMICOLON_TOKEN));
@@ -1373,7 +1370,7 @@ public class IntermediateClientGenerator {
                 String pathVariable = path.substring(m.start(), m.end());
                 if (pathVariable.startsWith("{") && pathVariable.endsWith("}")) {
                     String d = pathVariable.replace("{", "").replace("}", "");
-                    String replaceVariable = "{getEncodedUri(" + "pathParams." + getValidName(d, false) +")}";
+                    String replaceVariable = "{getEncodedUri(" + "pathParams." + getValidName(d, false) + ")}";
                     refinedPath = refinedPath.replace(pathVariable, replaceVariable);
                 }
             }
@@ -1391,8 +1388,8 @@ public class IntermediateClientGenerator {
      * @throws BallerinaAsyncApiException When invalid server URL is provided
      */
     private FunctionSignatureNode getInitFunctionSignatureNode(
-                                                               AsyncApi25SchemaImpl querySchema,
-                                                               AsyncApi25SchemaImpl headerSchema)
+            AsyncApi25SchemaImpl querySchema,
+            AsyncApi25SchemaImpl headerSchema)
             throws BallerinaAsyncApiException {
         //string serviceUrl = "ws://localhost:9090/payloadV"
         serverURL = getServerURL((AsyncApi25ServersImpl) asyncAPI.getServers());
@@ -1402,8 +1399,8 @@ public class IntermediateClientGenerator {
         AsyncApiChannelItem channelItem = asyncAPI.getChannels().getItems().get(0);
         //set pathParams,queryParams,headerParams
         ballerinaAuthConfigGenerator.setFunctionParameters(channelItem, parameters, createToken(COMMA_TOKEN),
-               querySchema, headerSchema);
-        ballerinaAuthConfigGenerator.getConfigParamForClassInit(serverURL,  parameters);
+                querySchema, headerSchema);
+        ballerinaAuthConfigGenerator.getConfigParamForClassInit(serverURL, parameters);
         SeparatedNodeList<ParameterNode> parameterList = createSeparatedNodeList(parameters);
 
         //error?
@@ -1463,14 +1460,14 @@ public class IntermediateClientGenerator {
      *
      * @return {@link MetadataNode} Metadata node containing entire function documentation comment.
      */
-    private MetadataNode getDocCommentsForWorker(String functionType,String comment) {
+    private MetadataNode getDocCommentsForWorker(String functionType, String comment) {
 
         List<Node> docs = new ArrayList<>();
 //        String clientInitDocComment = "Gets invoked to initialize the `connector`.\n";
         Map<String, JsonNode> extensions = ((AsyncApi25InfoImpl) asyncAPI.getInfo()).getExtensions();
         if (extensions != null && !extensions.isEmpty()) {
             for (Map.Entry<String, JsonNode> extension : extensions.entrySet()) {
-                if (extension.getKey().trim().equals(new TextNode(functionType))) {
+                if (extension.getKey().trim().equals(functionType)) {
                     comment = comment.concat(extension.getValue().toString());
                     break;
                 }
@@ -1554,9 +1551,9 @@ public class IntermediateClientGenerator {
     }
 
     /**
-     * Generate remote functions for AsyncAPI messages
+     * Generate remote functions for AsyncAPI messages.
      * <p>
-//     * @param paths  asyncAPI Paths
+     * //     * @param paths  asyncAPI Paths
      *
      * @return FunctionDefinitionNodes list
      * @throws BallerinaAsyncApiException - throws when creating remote functions fails
@@ -1570,8 +1567,10 @@ public class IntermediateClientGenerator {
         List<FunctionDefinitionNode> functionDefinitionNodeList = new ArrayList<>();
         Set<Map.Entry<String, AsyncApiMessage>> messageItems = messages.entrySet();
 
+        //Take all schemas
         Map<String, Schema> schemas = asyncAPI.getComponents().getSchemas();
 
+        // Create an array to store all request messages
         ArrayList requestMessages = new ArrayList();
         if (schemas.containsKey("Error")) {
             AsyncApi25MessageImpl errorMessage = new AsyncApi25MessageImpl();
@@ -1590,7 +1589,7 @@ public class IntermediateClientGenerator {
                 String messageName = messageItem.getKey();
                 FunctionDefinitionNode functionDefinitionNode =
                         getClientMethodFunctionDefinitionNode(messageName, messageValue, extensions, schemas,
-                                matchStatementList,dispatcherStreamId);
+                                matchStatementList, dispatcherStreamId);
                 functionDefinitionNodeList.add(functionDefinitionNode);
                 requestMessages.add(messageItem.getKey());
             }
@@ -1606,9 +1605,9 @@ public class IntermediateClientGenerator {
                 String type = GeneratorUtils.extractReferenceType(reference);
                 if (!requestMessages.contains(type)) {
                     FunctionDefinitionNode functionDefinitionNode =
-                        getClientMethodFunctionDefinitionNode(type, (AsyncApi25MessageImpl) messages.get(type),
+                            getClientMethodFunctionDefinitionNode(type, (AsyncApi25MessageImpl) messages.get(type),
                                     null,
-                                    schemas, null,dispatcherStreamId);
+                                    schemas, null, dispatcherStreamId);
                     functionDefinitionNodeList.add(functionDefinitionNode);
                 }
 
@@ -1618,8 +1617,7 @@ public class IntermediateClientGenerator {
     }
 
 
-
-        /**
+    /**
      * Generate function definition node.
      * <pre>
      *     remote isolated function pathParameter(int 'version, string name) returns string|error {
@@ -1668,8 +1666,8 @@ public class IntermediateClientGenerator {
 
         remoteFunctionNameList.add(messageName);
 
-        RemoteFunctionSignatureGenerator remoteFunctionSignatureGenerator = new RemoteFunctionSignatureGenerator(asyncAPI,
-                ballerinaTypesGenerator, typeDefinitionNodeList);
+        RemoteFunctionSignatureGenerator remoteFunctionSignatureGenerator = new
+                RemoteFunctionSignatureGenerator(asyncAPI, ballerinaSchemaGenerator, typeDefinitionNodeList);
         FunctionSignatureNode functionSignatureNode =
                 remoteFunctionSignatureGenerator.getFunctionSignatureNode(messageValue.getPayload(),
                         remoteFunctionDocs, extensions);
@@ -1680,8 +1678,8 @@ public class IntermediateClientGenerator {
                 createNodeList(remoteFunctionDocs)), createNodeList());
 
         // Create Function Body
-        RemoteFunctionBodyGenerator remoteFunctionBodyGenerator = new RemoteFunctionBodyGenerator(imports, typeDefinitionNodeList,
-                asyncAPI, ballerinaTypesGenerator);
+        RemoteFunctionBodyGenerator remoteFunctionBodyGenerator = new RemoteFunctionBodyGenerator(imports,
+                asyncAPI);
 
         AsyncApi25SchemaImpl schema = (AsyncApi25SchemaImpl) schemas.get(messageName);
 

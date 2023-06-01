@@ -61,7 +61,6 @@ import io.ballerina.compiler.syntax.tree.MapTypeDescriptorNode;
 import io.ballerina.compiler.syntax.tree.MappingConstructorExpressionNode;
 import io.ballerina.compiler.syntax.tree.MappingFieldNode;
 import io.ballerina.compiler.syntax.tree.MarkdownDocumentationNode;
-import io.ballerina.compiler.syntax.tree.MarkdownParameterDocumentationLineNode;
 import io.ballerina.compiler.syntax.tree.MetadataNode;
 import io.ballerina.compiler.syntax.tree.MethodCallExpressionNode;
 import io.ballerina.compiler.syntax.tree.Node;
@@ -216,21 +215,21 @@ public class BallerinaAuthConfigGenerator {
     private final Map<String, String> queryApiKeyNameList = new HashMap<>();
     private final List<Node> apiKeysConfigRecordFields = new ArrayList<>();
     private final Set<String> authTypes = new LinkedHashSet<>();
-    private final AsyncApi25DocumentImpl asyncAPI;
-    private final UtilGenerator utilGenerator;
     private boolean httpApiKey;
     private boolean httpOROAuth;
     private String clientCredGrantTokenUrl;
     private String passwordGrantTokenUrl;
     private String refreshTokenUrl;
+
+    private final BallerinaTypesGenerator ballerinaSchemaGenerator;
     private List<TypeDefinitionNode> authRelatedTypeDefinitionNodes = new ArrayList<>();
 
-    public BallerinaAuthConfigGenerator(boolean isAPIKey, boolean isHttpOROAuth, AsyncApi25DocumentImpl asyncAPI,
-                                        UtilGenerator utilGenerator) {
+    public BallerinaAuthConfigGenerator(boolean isAPIKey, boolean isHttpOROAuth,
+                                        BallerinaTypesGenerator ballerinaSchemaGenerator) {
         this.httpApiKey = isAPIKey;
         this.httpOROAuth = isHttpOROAuth;
-        this.asyncAPI = asyncAPI;
-        this.utilGenerator = utilGenerator;
+        this.ballerinaSchemaGenerator = ballerinaSchemaGenerator;
+
     }
 
     /**
@@ -648,15 +647,11 @@ public class BallerinaAuthConfigGenerator {
      * -- ex: Config param for combination of API Key and Http or OAuth 2.0 Authentication mechanisms.
      * {@code AuthConfig authConfig,ConnectionConfig config =  {},
      * string serviceUrl = "https://asyncapi.com:443/v2" }
-     *
-     * @return {@link List<Node>}  syntax tree node list of config parameters
      */
-    public void getConfigParamForClassInit(String serviceUrl,List<Node> parameters)
-       {
+    public void getConfigParamForClassInit(String serviceUrl, List<Node> parameters) {
 
         NodeList<AnnotationNode> annotationNodes = createEmptyNodeList();
         Node serviceURLNode = getServiceURLNode(serviceUrl);
-
 
 
         IdentifierToken equalToken = createIdentifierToken(GeneratorConstants.EQUAL);
@@ -704,7 +699,8 @@ public class BallerinaAuthConfigGenerator {
      * Generate function parameters.
      */
     public void setFunctionParameters(AsyncApiChannelItem channelItem, List<Node> parameterList, Token comma,
-                                      AsyncApi25SchemaImpl querySchema,AsyncApi25SchemaImpl headerSchema) throws BallerinaAsyncApiException {
+                                      AsyncApi25SchemaImpl querySchema, AsyncApi25SchemaImpl headerSchema)
+            throws BallerinaAsyncApiException {
 
         AsyncApi25ParametersImpl parameters = (AsyncApi25ParametersImpl) channelItem.getParameters();
         AsyncApi25ChannelBindingsImpl bindings = (AsyncApi25ChannelBindingsImpl) channelItem.getBindings();
@@ -714,13 +710,13 @@ public class BallerinaAuthConfigGenerator {
 
         //Go through path Parameters
         if (parameters != null) {
-            AsyncApi25SchemaImpl pathSchema= new AsyncApi25SchemaImpl();
+            AsyncApi25SchemaImpl pathSchema = new AsyncApi25SchemaImpl();
             pathSchema.setType("object");
             pathSchema.setAdditionalProperties(new BooleanUnionValueImpl(false));
-            List<String> pathRequiredFields= new ArrayList<>();
+            List<String> pathRequiredFields = new ArrayList<>();
 
             for (String parameterName : parameters.getItemNames()) {
-                AsyncApiParameter parameter=parameters.getItem(parameterName);
+                AsyncApiParameter parameter = parameters.getItem(parameterName);
 //                if (parameter.getDescription() != null && !parameter.
 //                        getDescription().isBlank()) {
 //                    MarkdownParameterDocumentationLineNode paramAPIDoc =
@@ -728,15 +724,15 @@ public class BallerinaAuthConfigGenerator {
 //                                    parameterName, false), parameter.getDescription());
 //                }
 
-                pathSchema.addProperty(parameterName,parameter.getSchema());
+                pathSchema.addProperty(parameterName, parameter.getSchema());
                 pathRequiredFields.add(parameterName);
             }
             pathSchema.setRequired(pathRequiredFields);
-            authRelatedTypeDefinitionNodes.add(BallerinaTypesGenerator.getTypeDefinitionNode(pathSchema,
-                    "PathParams",new ArrayList<>()));
+            authRelatedTypeDefinitionNodes.add(ballerinaSchemaGenerator.getTypeDefinitionNode(pathSchema,
+                    "PathParams", new ArrayList<>()));
             BuiltinSimpleNameReferenceNode typeName = createBuiltinSimpleNameReferenceNode(null,
                     createIdentifierToken("PathParams"));
-            RequiredParameterNode pathParamNode= createRequiredParameterNode(createNodeList(), typeName,
+            RequiredParameterNode pathParamNode = createRequiredParameterNode(createNodeList(), typeName,
                     createIdentifierToken("pathParams"));
 
             parameterList.add(pathParamNode);
@@ -744,7 +740,7 @@ public class BallerinaAuthConfigGenerator {
         }
 
         //Go through header parameters
-        if(bindings!=null) {
+        if (bindings != null) {
             AsyncApi25BindingImpl wsBindings = (AsyncApi25BindingImpl) bindings.getWs();
             if (wsBindings.getItem("headers") != null) {
                 JsonNode headers = wsBindings.getItem("headers");
@@ -770,7 +766,7 @@ public class BallerinaAuthConfigGenerator {
                         }
                     }
                     headerSchema.setRequired(headerRequiredFields);
-                    authRelatedTypeDefinitionNodes.add(BallerinaTypesGenerator.getTypeDefinitionNode(headerSchema,
+                    authRelatedTypeDefinitionNodes.add(ballerinaSchemaGenerator.getTypeDefinitionNode(headerSchema,
                             "HeaderParams", new ArrayList<>()));
                     BuiltinSimpleNameReferenceNode typeName = createBuiltinSimpleNameReferenceNode(null,
                             createIdentifierToken("HeaderParams"));
@@ -808,7 +804,7 @@ public class BallerinaAuthConfigGenerator {
                         }
                     }
                     querySchema.setRequired(queryRequiredFields);
-                    authRelatedTypeDefinitionNodes.add(BallerinaTypesGenerator.getTypeDefinitionNode(querySchema,
+                    authRelatedTypeDefinitionNodes.add(ballerinaSchemaGenerator.getTypeDefinitionNode(querySchema,
                             "QueryParams", new ArrayList<>()));
                     BuiltinSimpleNameReferenceNode typeName = createBuiltinSimpleNameReferenceNode(null,
                             createIdentifierToken("QueryParams"));
@@ -1374,8 +1370,8 @@ public class BallerinaAuthConfigGenerator {
                 ("http:Cookie"));
         ArrayTypeDescriptorNode cookiesFieldType = createArrayTypeDescriptorNode(cookiesArrayMemberType
                 , cookiesArrayDimensions);
-        RequiredExpressionNode cookiesExpression =
-                createRequiredExpressionNode(createIdentifierToken("[]"));
+//        RequiredExpressionNode cookiesExpression =
+//                createRequiredExpressionNode(createIdentifierToken("[]"));
         RecordFieldNode cookiesFieldNode = NodeFactory.createRecordFieldNode(
                 cookiesMetadata, null, cookiesFieldType, cookiesFieldName,
                 questionMarkToken, semicolonToken);
@@ -1489,12 +1485,6 @@ public class BallerinaAuthConfigGenerator {
         return createMetadataNode(authDocumentationNode, createEmptyNodeList());
     }
 
-    private MetadataNode getMetadataNode(String comment, List<AnnotationNode> annotationNodes) {
-        List<Node> docs = new ArrayList<>(DocCommentsGenerator.createAPIDescriptionDoc(comment, false));
-        MarkdownDocumentationNode authDocumentationNode = createMarkdownDocumentationNode(
-                createNodeList(docs));
-        return createMetadataNode(authDocumentationNode, createNodeList(annotationNodes));
-    }
 
     /**
      * Travers through the security schemas of the given async api spec.

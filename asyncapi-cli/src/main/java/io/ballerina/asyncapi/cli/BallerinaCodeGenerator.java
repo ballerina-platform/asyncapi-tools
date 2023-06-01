@@ -54,7 +54,7 @@ import static io.ballerina.asyncapi.cli.CmdConstants.TEST_DIR;
 import static io.ballerina.asyncapi.cli.CmdConstants.TEST_FILE_NAME;
 import static io.ballerina.asyncapi.cli.CmdConstants.TYPE_FILE_NAME;
 import static io.ballerina.asyncapi.cli.CmdUtils.setGeneratedFileName;
-import static io.ballerina.asyncapi.core.GeneratorConstants.AsyncAPI_PATH_SEPARATOR;
+import static io.ballerina.asyncapi.core.GeneratorConstants.ASYNCAPI_PATH_SEPARATOR;
 import static io.ballerina.asyncapi.core.GeneratorConstants.UTIL_FILE_NAME;
 
 /**
@@ -140,8 +140,8 @@ public class BallerinaCodeGenerator {
                 if (file.getFileName().equals(TEST_FILE_NAME) || file.getFileName().equals(CONFIG_FILE_NAME) ||
                         isDuplicatedFileInTests) {
                     // Create test directory if not exists in the path. If exists do not throw an error
-                    Files.createDirectories(Paths.get(srcPath + AsyncAPI_PATH_SEPARATOR + TEST_DIR));
-                    filePath = Paths.get(srcPath.resolve(TEST_DIR + AsyncAPI_PATH_SEPARATOR +
+                    Files.createDirectories(Paths.get(srcPath + ASYNCAPI_PATH_SEPARATOR + TEST_DIR));
+                    filePath = Paths.get(srcPath.resolve(TEST_DIR + ASYNCAPI_PATH_SEPARATOR +
                             file.getFileName()).toFile().getCanonicalPath());
                 } else {
                     filePath = Paths.get(srcPath.resolve(file.getFileName()).toFile().getCanonicalPath());

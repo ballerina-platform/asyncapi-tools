@@ -40,7 +40,8 @@
 //
 //    @Test(description = "Tests for returnType when response has array oneOf")
 //    public void getReturnTypeOneOfArray() throws IOException, BallerinaAsyncApiException {
-//        AsyncApi25DocumentImpl response = getOpenAPI(RES_DIR.resolve("swagger/return_type/inline_oneOf_response.yaml"));
+//        AsyncApi25DocumentImpl response = getOpenAPI(RES_DIR.resolve("swagger/return_type/
+//        inline_oneOf_response.yaml"));
 //        BallerinaTypesGenerator ballerinaSchemaGenerator = new BallerinaTypesGenerator(response);
 //        RemoteFunctionReturnTypeGenerator functionReturnType = new RemoteFunctionReturnTypeGenerator(response,
 //                ballerinaSchemaGenerator,  new ArrayList<>());
@@ -50,7 +51,8 @@
 //
 //    @Test(description = "Tests for returnType when response has array oneOf when it has function body")
 //    public void getReturnTypeOneOfArrayInTargetType() throws IOException, BallerinaAsyncApiException {
-//        AsyncApi25DocumentImpl response = getOpenAPI(RES_DIR.resolve("swagger/return_type/inline_oneOf_response.yaml"));
+//        AsyncApi25DocumentImpl response = getOpenAPI(RES_DIR.resolve("swagger/return_type/
+//        inline_oneOf_response.yaml"));
 //        BallerinaTypesGenerator ballerinaSchemaGenerator = new BallerinaTypesGenerator(response);
 //        RemoteFunctionReturnTypeGenerator functionReturnType = new RemoteFunctionReturnTypeGenerator(response,
 //                ballerinaSchemaGenerator, new ArrayList<>());

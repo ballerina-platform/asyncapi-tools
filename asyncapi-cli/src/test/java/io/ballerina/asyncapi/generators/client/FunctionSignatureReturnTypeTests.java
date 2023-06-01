@@ -41,7 +41,8 @@
 //    @Test(description = "Tests for returnType")
 //    public void getReturnTypeTests() throws IOException, BallerinaAsyncApiException {
 //        RemoteFunctionReturnTypeGenerator functionReturnType = new RemoteFunctionReturnTypeGenerator();
-//        AsyncApi25DocumentImpl array = getOpenAPI(RES_DIR.resolve("swagger/return_type/all_return_type_operation.yaml"));
+//        AsyncApi25DocumentImpl array = getOpenAPI(RES_DIR.resolve("swagger/return_type/
+//        all_return_type_operation.yaml"));
 //        Assert.assertEquals(functionReturnType.getReturnType(array.getPaths().get("/jsonproducts").getGet(),
 //                true), "json|error");
 //        Assert.assertEquals(functionReturnType.getReturnType(array.getPaths().get("/stringproducts/record").getGet(),
@@ -58,7 +59,8 @@
 //
 //    @Test(description = "Tests for the object response without property")
 //    public void getReturnTypeForObjectSchema() throws IOException, BallerinaAsyncApiException {
-//        AsyncApi25DocumentImpl array = getOpenAPI(RES_DIR.resolve("swagger/return_type/response_without_properties_with_additional" +
+//        AsyncApi25DocumentImpl array = getOpenAPI(RES_DIR.resolve("swagger/return_type/
+//        response_without_properties_with_additional" +
 //                ".yaml"));
 //        RemoteFunctionReturnTypeGenerator functionReturnType = new RemoteFunctionReturnTypeGenerator();
 //        String returnType = functionReturnType.getReturnType(array.getPaths().get("/products").getGet(),
@@ -89,8 +91,10 @@
 //    }
 //
 //    @Test(description = "Tests for the map response with property without additional properties")
-//    public void getReturnTypeForMapSchemaWithOutAdditionalProperties() throws IOException, BallerinaAsyncApiException {
-//        AsyncApi25DocumentImpl array = getOpenAPI(RES_DIR.resolve("swagger/return_type/response_with_properties_without_additional" +
+//    public void getReturnTypeForMapSchemaWithOutAdditionalProperties() throws IOException,
+//    BallerinaAsyncApiException{
+//        AsyncApi25DocumentImpl array = getOpenAPI(RES_DIR.resolve("swagger/return_type/
+//        response_with_properties_without_additional" +
 //                ".yaml"));
 //        RemoteFunctionReturnTypeGenerator functionReturnType = new RemoteFunctionReturnTypeGenerator(array,
 //                new BallerinaTypesGenerator(array), new ArrayList<>());

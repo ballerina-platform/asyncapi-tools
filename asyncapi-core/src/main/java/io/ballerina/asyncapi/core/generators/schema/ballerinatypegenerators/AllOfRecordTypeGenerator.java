@@ -24,7 +24,6 @@ import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25SchemaImpl;
 import io.ballerina.asyncapi.core.GeneratorUtils;
 import io.ballerina.asyncapi.core.exception.BallerinaAsyncApiException;
 import io.ballerina.asyncapi.core.generators.asyncspec.model.BalAsyncApi25SchemaImpl;
-import io.ballerina.asyncapi.core.generators.schema.BallerinaTypesGenerator;
 import io.ballerina.asyncapi.core.generators.schema.model.GeneratorMetaData;
 import io.ballerina.asyncapi.core.generators.schema.model.RecordMetadata;
 import io.ballerina.compiler.syntax.tree.AbstractNodeFactory;
@@ -161,13 +160,17 @@ public class AllOfRecordTypeGenerator extends RecordTypeGenerator {
 
         RecordMetadata recordMetadata = getRecordMetadata();
         RecordRestDescriptorNode restDescriptorNode = recordMetadata.getRestDescriptorNode();
-        if (allOfSchemas.size() == 1 && ((AsyncApi25SchemaImpl) allOfSchemas.get(0)).get$ref() != null) {
+        if (allOfSchemas != null && allOfSchemas.size() == 1 && ((AsyncApi25SchemaImpl)
+                allOfSchemas.get(0)).get$ref() != null) {
             ReferencedTypeGenerator referencedTypeGenerator = new ReferencedTypeGenerator((BalAsyncApi25SchemaImpl)
                     allOfSchemas.get(0),
                     typeName);
             return referencedTypeGenerator.generateTypeDescriptorNode();
         } else {
-            List<Node> recordFieldList = generateAllOfRecordFields(allOfSchemas);
+            List<Node> recordFieldList = null;
+            if (allOfSchemas != null) {
+                recordFieldList = generateAllOfRecordFields(allOfSchemas);
+            }
             addAdditionalSchemas(schema);
             restDescriptorNode =
                     restSchemas.size() > 1 ? getRestDescriptorNodeForAllOf(restSchemas) : restDescriptorNode;

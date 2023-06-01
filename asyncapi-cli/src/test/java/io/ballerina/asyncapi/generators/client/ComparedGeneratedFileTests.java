@@ -44,7 +44,8 @@
 //import static io.ballerina.openapi.generators.common.TestUtils.getDiagnostics;
 //
 ///**
-// * All the tests related to the {{@link io.ballerina.openapi.core.generators.client.IntermediateClientGenerator}} util.
+// * All the tests related to the {{@link io.ballerina.openapi.core.generators.client.IntermediateClientGenerator}}
+// util.
 // */
 //public class ComparedGeneratedFileTests {
 //    private static final Path RES_DIR = Paths.get("src/test/resources/generators/client").toAbsolutePath();

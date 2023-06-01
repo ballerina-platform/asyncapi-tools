@@ -23,7 +23,6 @@ import io.ballerina.asyncapi.core.exception.BallerinaAsyncApiException;
 import io.ballerina.asyncapi.core.generators.client.IntermediateClientGenerator;
 import io.ballerina.asyncapi.core.generators.client.model.AASClientConfig;
 import io.ballerina.compiler.syntax.tree.SyntaxTree;
-
 import org.testng.annotations.Test;
 
 import java.io.IOException;
@@ -40,9 +39,9 @@ import static io.ballerina.asyncapi.generators.common.TestUtils.compareGenerated
  */
 public class HeadersTests {
     private static final Path RES_DIR = Paths.get("src/test/resources/generators/client").toAbsolutePath();
-    private SyntaxTree syntaxTree;
     List<String> list1 = new ArrayList<>();
     List<String> list2 = new ArrayList<>();
+    private SyntaxTree syntaxTree;
 
     @Test(description = "Test for header that comes under the parameter section")
     public void getHeaderTests() throws IOException, BallerinaAsyncApiException {
@@ -58,7 +57,7 @@ public class HeadersTests {
     }
 
     @Test(description = "Test for header that comes under the parameter section")
-    public void getHeaderTestsWithoutParameter() throws IOException, BallerinaAsyncApiException{
+    public void getHeaderTestsWithoutParameter() throws IOException, BallerinaAsyncApiException {
         Path definitionPath = RES_DIR.resolve("swagger/header_without_parameter.yaml");
         Path expectedPath = RES_DIR.resolve("ballerina/header_without_parameter.bal");
         AsyncApi25DocumentImpl openAPI = GeneratorUtils.normalizeAsyncAPI(definitionPath);
@@ -69,6 +68,7 @@ public class HeadersTests {
         syntaxTree = intermediateClientGenerator.generateSyntaxTree();
         compareGeneratedSyntaxTreeWithExpectedSyntaxTree(expectedPath, syntaxTree);
     }
+
     @Test(description = "Test for header with default values")
     public void getHeaderTestsWithDefaultValues() throws IOException, BallerinaAsyncApiException {
         Path definitionPath = RES_DIR.resolve("swagger/header_param_with_default_value.yaml");
@@ -83,7 +83,7 @@ public class HeadersTests {
     }
 
     @Test(description = "Test for optional headers without default values")
-    public void getOptionalHeaderTestsWithoutDefaultValues() throws IOException, BallerinaAsyncApiException{
+    public void getOptionalHeaderTestsWithoutDefaultValues() throws IOException, BallerinaAsyncApiException {
         Path definitionPath = RES_DIR.resolve("swagger/header_optional.yaml");
         Path expectedPath = RES_DIR.resolve("ballerina/header_optional.bal");
         AsyncApi25DocumentImpl openAPI = GeneratorUtils.normalizeAsyncAPI(definitionPath);

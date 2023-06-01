@@ -18,7 +18,6 @@
 
 package io.ballerina.asyncapi.generators.schema;
 
-import io.apicurio.datamodels.models.Schema;
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25DocumentImpl;
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25SchemaImpl;
 import io.ballerina.asyncapi.core.GeneratorUtils;

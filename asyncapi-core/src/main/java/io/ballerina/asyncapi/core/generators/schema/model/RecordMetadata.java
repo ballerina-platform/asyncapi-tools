@@ -48,10 +48,12 @@ public class RecordMetadata {
     public static class Builder {
         private boolean isOpenRecord = false;
         private RecordRestDescriptorNode restDescriptorNode = null;
+
         public Builder withIsOpenRecord(boolean isOpenRecord) {
             this.isOpenRecord = isOpenRecord;
             return this;
         }
+
         public Builder withRestDescriptorNode(RecordRestDescriptorNode restDescriptorNode) {
             this.restDescriptorNode = restDescriptorNode;
             return this;

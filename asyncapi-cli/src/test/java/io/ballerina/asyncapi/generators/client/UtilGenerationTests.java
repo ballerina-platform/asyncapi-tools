@@ -6,7 +6,12 @@ import io.ballerina.asyncapi.core.exception.BallerinaAsyncApiException;
 import io.ballerina.asyncapi.core.generators.client.IntermediateClientGenerator;
 import io.ballerina.asyncapi.core.generators.client.model.AASClientConfig;
 import io.ballerina.asyncapi.generators.common.TestUtils;
-import io.ballerina.compiler.syntax.tree.*;
+import io.ballerina.compiler.syntax.tree.ChildNodeEntry;
+import io.ballerina.compiler.syntax.tree.ModuleMemberDeclarationNode;
+import io.ballerina.compiler.syntax.tree.ModulePartNode;
+import io.ballerina.compiler.syntax.tree.NodeList;
+import io.ballerina.compiler.syntax.tree.SyntaxKind;
+import io.ballerina.compiler.syntax.tree.SyntaxTree;
 import io.ballerina.tools.diagnostics.Diagnostic;
 import org.ballerinalang.formatter.core.FormatterException;
 import org.testng.Assert;
@@ -23,14 +28,11 @@ import java.util.List;
 import static io.ballerina.asyncapi.generators.common.TestUtils.getDiagnostics;
 
 /**
-Test util file generation for ballerina connectors.
+ * Test util file generation for ballerina connectors.
  */
 public class UtilGenerationTests {
     private static final Path RESDIR =
             Paths.get("src/test/resources/generators/client/utils").toAbsolutePath();
-    List<String> list1 = new ArrayList<>();
-    List<String> list2 = new ArrayList<>();
-
     private static final String CREATE_FORM_URLENCODED_REQUEST_BODY = "createFormURLEncodedRequestBody";
     private static final String GET_DEEP_OBJECT_STYLE_REQUEST = "getDeepObjectStyleRequest";
     private static final String GET_FORM_STYLE_REQUEST = "getFormStyleRequest";
@@ -40,7 +42,8 @@ public class UtilGenerationTests {
     private static final String GET_PATH_FOR_QUERY_PARAM = "getPathForQueryParam";
     private static final String GET_MAP_FOR_HEADERS = "getMapForHeaders";
     private static final String GET_SERIALIZED_RECORD_ARRAY = "getSerializedRecordArray";
-
+    List<String> list1 = new ArrayList<>();
+    List<String> list2 = new ArrayList<>();
 
     @Test(description = "Test default util file generation")
     public void testDefaultUtilFileGen() throws IOException, BallerinaAsyncApiException {

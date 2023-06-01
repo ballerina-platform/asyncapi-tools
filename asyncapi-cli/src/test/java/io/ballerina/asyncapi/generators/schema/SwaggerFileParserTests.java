@@ -46,14 +46,16 @@ public class SwaggerFileParserTests {
     @Test(description = "Test invalid file type",
             expectedExceptions = BallerinaAsyncApiException.class)
     public void testInvalidFileType() throws IOException, BallerinaAsyncApiException {
-        AsyncApi25DocumentImpl openAPI = GeneratorUtils.getAsyncAPIFromAsyncAPIParser(RES_DIR.resolve("swagger/petstore.txt"));
+        AsyncApi25DocumentImpl openAPI = GeneratorUtils.getAsyncAPIFromAsyncAPIParser(RES_DIR.resolve(
+                "swagger/petstore.txt"));
     }
 
     //TODO expectedExceptionsMessageRegExp = "OpenAPI file has errors: .*"
     @Test(description = "Test invalid swagger file ",
             expectedExceptions = BallerinaAsyncApiException.class)
     public void testInvalidFile() throws IOException, BallerinaAsyncApiException {
-        AsyncApi25DocumentImpl openAPI = GeneratorUtils.getAsyncAPIFromAsyncAPIParser(RES_DIR.resolve("swagger/invalid.yaml"));
+        AsyncApi25DocumentImpl openAPI = GeneratorUtils.getAsyncAPIFromAsyncAPIParser(RES_DIR.resolve(
+                "swagger/invalid.yaml"));
     }
 
     @Test(description = "Test swagger file has undocumented reference in schema.",
@@ -61,7 +63,8 @@ public class SwaggerFileParserTests {
             expectedExceptionsMessageRegExp = "OpenAPI definition has errors: \n" +
                     "attribute components.schemas.Person.Person01 is not of type `schema`.*")
     public void testForUndocumentedReference() throws IOException, BallerinaAsyncApiException {
-        AsyncApi25DocumentImpl openAPI = GeneratorUtils.normalizeAsyncAPI(RES_DIR.resolve("swagger/undocument_ref.yaml"));
+        AsyncApi25DocumentImpl openAPI = GeneratorUtils.normalizeAsyncAPI(RES_DIR.resolve(
+                "swagger/undocument_ref.yaml"));
         BallerinaTypesGenerator ballerinaSchemaGenerator = new BallerinaTypesGenerator(openAPI);
         SyntaxTree syntaxTree = ballerinaSchemaGenerator.generateSyntaxTree();
     }

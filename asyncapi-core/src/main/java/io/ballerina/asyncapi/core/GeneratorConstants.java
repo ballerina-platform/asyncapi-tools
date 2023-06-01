@@ -32,30 +32,27 @@ public class GeneratorConstants {
     public static final String TYPE_FILE_NAME = "types.bal";
     public static final String CLIENT_FILE_NAME = "client.bal";
     public static final String UTIL_FILE_NAME = "utils.bal";
-    public static final String TEST_FILE_NAME = "test.bal";
-    public static final String SERVICE_FILE_NAME = "service.bal";
-    public static final String CONFIG_FILE_NAME = "Config.toml";
     public static final String BALLERINA_TOML = "Ballerina.toml";
     public static final String BALLERINA_TOML_CONTENT = "[package]\n" +
             "org= \"ballerina\"\n" +
             "name= \"testasyncapi\"\n" +
             "version= \"0.0.0\"\n";
-    public static final String AsyncAPI_PATH_SEPARATOR = "/";
+    public static final String ASYNCAPI_PATH_SEPARATOR = "/";
     public static final String ESCAPE_PATTERN = "([\\[\\]\\\\?!<>@#&~`*\\-=^+();:\\/{}\\s|.$])";
     //ClientCode generator
     public static final String HTTP = "http";
     public static final String WEBSOCKET = "websocket";
 
-    public static final String LANG_RUNTIME="lang.runtime";
+    public static final String LANG_RUNTIME = "lang.runtime";
 
 
-    public static final String SIMPLE_PIPE ="pipe";
+    public static final String SIMPLE_PIPE = "pipe";
 
-    public static final String UUID="uuid";
+    public static final String UUID = "uuid";
 
-    public static final String CREATE_TYPE1_AS_STRING="createType1AsString()";
+    public static final String CREATE_TYPE1_AS_STRING = "createType1AsString()";
 
-    public static final String CAPITAL_PIPE ="Pipe";
+    public static final String CAPITAL_PIPE = "Pipe";
 
     public static final String URL = "url";
     public static final String MODULE_TEST = "test";
@@ -65,94 +62,74 @@ public class GeneratorConstants {
     public static final String NUVINDU = "nuvindu";
     public static final String NUVINDU_PIPE = "pipe";
 
-    public static final String X_DISPATCHER_KEY="x-dispatcherKey";
+    public static final String X_DISPATCHER_KEY = "x-dispatcherKey";
 
-    public static final String X_DISPATCHER_STREAM_ID="x-dispatcherKey";
+    public static final String X_DISPATCHER_STREAM_ID = "x-dispatcherKey";
 
     public static final String CLIENT_CLASS_NAME = "Client";
     public static final String CLIENT_EP = "clientEp";
 
     public static final String WRITE_MESSAGE_QUEUE = "writeMessageQueue";
 
-    public static final String READ_MESSAGE_QUEUE= "readMessageQueue";
+    public static final String READ_MESSAGE_QUEUE = "readMessageQueue";
 
-    public static final String START_MESSAGE_READING="startMessageReading";
+    public static final String START_MESSAGE_READING = "startMessageReading";
 
-    public static final String START_MESSAGE_WRITING="startMessageWriting";
+    public static final String START_MESSAGE_WRITING = "startMessageWriting";
 
-    public static final String START_PIPE_TRIGGERING="startPipeTriggering";
+    public static final String START_PIPE_TRIGGERING = "startPipeTriggering";
 
-    public static final String CONSUME="consume";
+    public static final String CONSUME = "consume";
 
-    public static final String PRODUCE="produce";
+    public static final String PRODUCE = "produce";
 
-    public static final String DEFAULT_TIME_OUT ="5";
+    public static final String DEFAULT_TIME_OUT = "5";
 
-    public static final String REQUEST_MESSAGE="requestMessage";
+    public static final String REQUEST_MESSAGE = "requestMessage";
 
-    public static final String WRITE_MESSAGE="writeMessage";
+    public static final String WRITE_MESSAGE = "writeMessage";
 
-    public static final String READ_MESSAGE="readMessage";
+    public static final String READ_MESSAGE = "readMessage";
 
-    public static final String PIPE_TRIGGER="pipeTrigger";
-    public static final String RESPONSE_MESSAGE="ResponseMessage";
+    public static final String PIPE_TRIGGER = "pipeTrigger";
+    public static final String RESPONSE_MESSAGE = "ResponseMessage";
 
-    public static final String RESPONSE_MESSAGE_WITH_ID="ResponseMessageWithId";
+    public static final String RESPONSE_MESSAGE_WITH_ID = "ResponseMessageWithId";
 
-    public static final String RESPONSE_MESSAGE_VAR_NAME="responseMessage";
-    public static final String RESPONSE_MESSAGE_WITH_ID_VAR_NAME="responseMessagWithId";
+    public static final String RESPONSE_MESSAGE_VAR_NAME = "responseMessage";
+    public static final String RESPONSE_MESSAGE_WITH_ID_VAR_NAME = "responseMessagWithId";
 
-    public static final String WORKER_SLEEP_TIME_OUT="0.01";
+    public static final String WORKER_SLEEP_TIME_OUT = "0.01";
 
-    public static final String SLEEP="sleep";
-    public static final String RUNTIME="runtime";
+    public static final String SLEEP = "sleep";
+    public static final String RUNTIME = "runtime";
 
     public static final String PIPES = "pipes";
     public static final String EQUAL = "=";
     public static final String CLIENT_CONFIG = "clientConfig";
     public static final String CONFIG = "clientConfig";
-    public static final String FUNCTION = "function";
     public static final String PREFIX_TEST = " test";
     public static final String ANNOT_TEST = "test:Config";
     public static final String TEST_DIR = "tests";
     public static final String STRING = "string";
     public static final String XML = "xml";
-    public static final String BYTE = "byte";
     public static final String JSON = "json";
     public static final String SERVICE_URL = "serviceUrl";
     public static final String IDENTIFIER = "identifier";
-    public static final String TYPE_NAME = "typeName";
+
     public static final String BINARY = "binary";
     public static final String DOUBLE = "double";
     public static final String FLOAT = "float";
-    public static final String HEADER = "header";
     public static final String HEADER_PARAM = "headerParam";
-    public static final String PAYLOAD = "payload";
-    public static final String PAYLOAD_KEYWORD = "Payload";
-    public static final String REQUEST = "request";
-    public static final String HTTP_REQUEST = "http:Request";
     public static final String PDF = "pdf";
     public static final String QUERY_PARAM = "queryParam";
     public static final String SELF = "self";
-    public static final String TEXT_PREFIX = "text/";
-    public static final String XML_DATA = "xmldata";
-    public static final String IMAGE = "image";
-    public static final String VENDOR_SPECIFIC_TYPE = "vnd.";
+
     public static final String MIME = "mime";
     public static final String CUSTOM_HEADERS = "customHeaders";
     public static final String MODIFIED_URL = "modifiedUrl";
-    public static final String ARRAY = "array";
     public static final String ERROR = "error";
-    public static final String MAP_JSON = "map<json>";
-    public static final String MEDIA_TYPE_KEYWORD = "mediaType";
-    public static final String ANY_TYPE = "*/*";
-    public static final String APPLICATION_JSON = "application/json";
-    public static final String APPLICATION_PDF = "application/pdf";
-    public static final String APPLICATION_XML = "application/xml";
-    public static final String APPLICATION_OCTET_STREAM = "application/octet-stream";
-    public static final String APPLICATION_URL_ENCODE = "application/x-www-form-urlencoded";
-    public static final String TEXT = "text";
-    public static final String IMAGE_PNG = "image/png";
+
     public static final String ENSURE_TYPE = "ensureType";
     // auth related constants
     public static final String HTTP_API_KEY = "httpApiKey";
@@ -162,21 +139,13 @@ public class GeneratorConstants {
     public static final String API_KEY_CONFIG_PARAM = "apiKeyConfig";
     public static final String AUTH = "auth";
     public static final String AUTH_CONFIG = "authConfig";
-    public static final String CLIENT_HTTP1_SETTINGS = "ClientHttp1Settings";
-    public static final String CLIENT_HTTP1_SETTINGS_FIELD = "http1Settings";
-    //    public static final String HTTP2_SETTINGS = "http:Cookie";
-//    public static final String COOKIES_FIELD = "cookies";
-    public static final String SETTINGS = "settings";
-    public static final String CACHE_CONFIG = "http:CacheConfig";
-    public static final String CACHE_CONFIG_FIELD = "cache";
+
     public static final String PING_PONG_SERVICE = "websocket:PingPongService";
     public static final String PING_PONG_HANDLER_FIELD = "pingPongHandler";
     public static final String SECURE_SOCKET = "websocket:ClientSecureSocket";
     public static final String SECURE_SOCKET_FIELD = "secureSocket";
     public static final String PING_PONG_SERVICE_FIELD = "pingPongHandler";
     public static final String WEB_SOCKET_RETRY_CONFIG = "websocket:WebSocketRetryConfig";
-    public static final String KEEP_ALIVE = "keepAlive";
-    public static final String CHUNKING = "chunking";
     public static final String BASIC = "basic";
     public static final String BEARER = "bearer";
     public static final String REFRESH_TOKEN = "refresh_token";
@@ -186,57 +155,31 @@ public class GeneratorConstants {
     public static final String CONNECTION_CONFIG = "websocket:ClientConfiguration";
     public static final String OAUTH2 = "oauth2";
 
-//    public static final String CONNECTION_CONFIG = "ConnectionConfig";
-    public static final String SSL_FIELD_NAME = "secureSocket";
     public static final String RETRY_CONFIG_FIELD = "retryConfig";
     public static final String VALIDATION = "validation";
     public static final String DEFAULT_API_KEY_DESC = "API keys for authorization";
-    public static final String RESPONSE = "response";
-    public static final String TYPE = "type";
     public static final String ANY_DATA = "anydata";
-    //Http Methods
-    public static final String POST = "post";
-    public static final String GET = "get";
-    public static final String PUT = "put";
-    public static final String DELETE = "delete";
-    public static final String PATCH = "patch";
-    public static final String EXECUTE = "execute";
-    public static final String HEAD = "head";
+
     public static final String OPTIONS = "options";
-    //Encoding related constants
-    public static final String DEEP_OBJECT = "DEEPOBJECT";
-    public static final String FORM = "FORM";
-    public static final String SPACE_DELIMITED = "SPACEDELIMITED";
-    public static final String PIPE_DELIMITED = "PIPEDELIMITED";
-    public static final String ENCODING = "Encoding";
-    public static final String ENCODING_STYLE = "EncodingStyle";
-    public static final String STYLE = "style";
-    public static final String EXPLODE = "explode";
     //OpenAPI Ballerina extensions
     public static final String X_BALLERINA_INIT_DESCRIPTION = "x-ballerina-init-description";
 
-    public static final String X_BALLERINA_MESSAGE_WRITE_DESCRIPTION="x-ballerina-write-message-description";
+    public static final String X_BALLERINA_MESSAGE_WRITE_DESCRIPTION = "x-ballerina-write-message-description";
 
-    public static final String X_BALLERINA_MESSAGE_READ_DESCRIPTION="x-ballerina-read-message-description";
+    public static final String X_BALLERINA_MESSAGE_READ_DESCRIPTION = "x-ballerina-read-message-description";
 
-    public static  final String X_BALLERINA_PIPE_TRIGGER_DESCRIPTION="x-ballerina-pipe-trigger-description";
+    public static final String X_BALLERINA_PIPE_TRIGGER_DESCRIPTION = "x-ballerina-pipe-trigger-description";
     public static final String X_BALLERINA_DEPRECATED_REASON = "x-ballerina-deprecated-reason";
     //Service related
-    public static final String HOST = "host";
-    public static final String NEW = "new";
-    public static final String RESOURCE = "resource";
-    public static final String QUERY = "query";
-    public static final String HTTP_RESPONSE = "webscoekt:Response";
-    public static final String DEFAULT = "default";
     public static final String X_RESPONSE = "x-response";
 
     public static final String X_RESPONSE_TYPE = "x-response-type";
 
-    public static final String DECIMAL="decimal";
+    public static final String DECIMAL = "decimal";
 
-    public static final String DESCRIPTION="description";
+    public static final String DESCRIPTION = "description";
 
-    public static final String TIMEOUT="timeout";
+    public static final String TIMEOUT = "timeout";
 
 
     public static final String SERVER_STREAMING = "server-streaming";
@@ -247,22 +190,7 @@ public class GeneratorConstants {
     public static final String NUMBER = "number";
     public static final String OBJECT = "object";
     public static final Integer MAX_ARRAY_LENGTH = 2147483637;
-    public static final String NILLABLE = "?";
-    public static final String SQUARE_BRACKETS = "[]";
-    public static final Map<String, String> TYPE_MAP;
-    //Error related
-    public static final String UNSUPPORTED_MEDIA_ERROR = "Unsupported media type '%s' is given in the request body";
-    // OS specific line separator
     public static final String LINE_SEPARATOR = System.lineSeparator();
-    public static final String DOUBLE_LINE_SEPARATOR = LINE_SEPARATOR + LINE_SEPARATOR;
-    // Service Generation
-    public static final String TREAT_NILABLE_AS_OPTIONAL = "treatNilableAsOptional";
-    public static final String SERVICE_CONFIG = "http:ServiceConfig";
-    public static final String FALSE = "false";
-    public static final String HEADER_ANNOT = "Header";
-    public static final String MAP_STRING = "map<string>";
-    public static final String TEXT_WILDCARD_REGEX = "text/.*";
-    public static final String BODY = "body";
     public static final String SPECIAL_CHARACTERS_REGEX = "[^a-zA-Z0-9]";
     public static final String OPEN_CURLY_BRACE = "{";
     public static final String CLOSE_CURLY_BRACE = "}";
@@ -284,23 +212,11 @@ public class GeneratorConstants {
     public static final String EXCLUSIVE_MAX = "maxValueExclusive";
     public static final String EXCLUSIVE_MIN = "minValueExclusive";
     public static final String SPECIAL_CHARACTER_REGEX = "([\\[\\]\\\\?!<>@#&~`*\\-=^+'();:\\/\\_{}\\s|.$])";
-    public static final String HTTP_VERSION = "http:HttpVersion";
-    public static final String YAML_EXTENSION = ".yaml";
-    public static final String YML_EXTENSION = ".yml";
-    public static final String JSON_EXTENSION = ".json";
-    public static final String UNSUPPORTED_OPENAPI_VERSION_PARSER_MESSAGE = "attribute swaggerVersion is unexpected";
     public static final String PIPE = "|";
-    public static final String RETURNS = "returns";
-    public static final String ANYDATA = "anydata";
-    public static final String RESPONSE_RECORD_NAME = "Response";
-    public static final String SERVICE_TYPE_NAME = "OASServiceType";
-    public static final String DEFAULT_RETURN_COMMENT = "return value description";
-    public static final String DEFAULT_FUNC_COMMENT = "Description";
-    public static final String DEFAULT_PARAM_COMMENT = "parameter description";
 
     public static final String DEFAULT_RETURN = "null";
 
-
+    public static final Map<String, String> TYPE_MAP;
 
     static {
         Map<String, String> typeMap = new HashMap<>();
@@ -315,9 +231,10 @@ public class GeneratorConstants {
         typeMap.put("float", "float");
         typeMap.put("binary", "byte[]");
         typeMap.put("byte", "byte[]");
-        typeMap.put("{}","json");
+        typeMap.put("{}", "json");
         TYPE_MAP = Collections.unmodifiableMap(typeMap);
     }
+
     /**
      * Enum to select the code generation mode.
      * Ballerina service, mock and client generation is available
@@ -338,6 +255,7 @@ public class GeneratorConstants {
             return this.name;
         }
     }
+
     /**
      * Enum to select the relevant ballerina http auth record.
      */

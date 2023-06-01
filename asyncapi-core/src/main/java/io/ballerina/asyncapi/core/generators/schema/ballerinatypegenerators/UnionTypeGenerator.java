@@ -20,9 +20,7 @@ package io.ballerina.asyncapi.core.generators.schema.ballerinatypegenerators;
 import io.apicurio.datamodels.models.asyncapi.AsyncApiSchema;
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25SchemaImpl;
 import io.ballerina.asyncapi.core.exception.BallerinaAsyncApiException;
-import io.ballerina.asyncapi.core.generators.asyncspec.model.BalAsyncApi25SchemaImpl;
 import io.ballerina.asyncapi.core.generators.schema.TypeGeneratorUtils;
-import io.ballerina.asyncapi.core.generators.schema.model.GeneratorMetaData;
 import io.ballerina.compiler.syntax.tree.Node;
 import io.ballerina.compiler.syntax.tree.OptionalTypeDescriptorNode;
 import io.ballerina.compiler.syntax.tree.TypeDescriptorNode;
@@ -94,7 +92,7 @@ public class UnionTypeGenerator extends TypeGenerator {
         for (AsyncApiSchema schema : schemas) {
             TypeGenerator typeGenerator = getTypeGenerator((AsyncApi25SchemaImpl) schema, typeName, null);
             TypeDescriptorNode typeDescNode = typeGenerator.generateTypeDescriptorNode();
-            if (typeDescNode instanceof OptionalTypeDescriptorNode ) {
+            if (typeDescNode instanceof OptionalTypeDescriptorNode) {
                 Node internalTypeDesc = ((OptionalTypeDescriptorNode) typeDescNode).typeDescriptor();
                 typeDescNode = (TypeDescriptorNode) internalTypeDesc;
             }

@@ -26,7 +26,6 @@ import io.apicurio.datamodels.models.union.BooleanUnionValueImpl;
 import io.ballerina.asyncapi.core.GeneratorConstants;
 import io.ballerina.asyncapi.core.GeneratorUtils;
 import io.ballerina.asyncapi.core.exception.BallerinaAsyncApiException;
-import io.ballerina.asyncapi.core.generators.asyncspec.model.BalAsyncApi25SchemaImpl;
 import io.ballerina.asyncapi.core.generators.document.DocCommentsGenerator;
 import io.ballerina.asyncapi.core.generators.schema.ballerinatypegenerators.AllOfRecordTypeGenerator;
 import io.ballerina.asyncapi.core.generators.schema.ballerinatypegenerators.AnyDataTypeGenerator;
@@ -63,7 +62,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
-import static io.ballerina.asyncapi.core.GeneratorUtils.convertAsyncAPITypeToBallerina;
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createIdentifierToken;
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createNodeList;
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createToken;
@@ -95,24 +93,27 @@ public class TypeGeneratorUtils {
      * @param typeName    parameter name
      * @return Relevant SchemaType object
      */
-    public static TypeGenerator getTypeGenerator(AsyncApi25SchemaImpl schemaValue, String typeName, String parentName) {
+    public static TypeGenerator getTypeGenerator(AsyncApi25SchemaImpl schemaValue, String typeName,
+                                                 String parentName) {
 
         if (schemaValue.get$ref() != null) {
             return new ReferencedTypeGenerator(schemaValue, typeName);
 
         } else if ((
-                (schemaValue.getOneOf() != null || schemaValue.getAllOf() != null || schemaValue.getAnyOf() != null))) {
+                (schemaValue.getOneOf() != null || schemaValue.getAllOf() != null ||
+                        schemaValue.getAnyOf() != null))) {
             if (schemaValue.getAllOf() != null) {
                 return new AllOfRecordTypeGenerator(schemaValue, typeName);
             } else {
                 return new UnionTypeGenerator(schemaValue, typeName);
             }
-        } else if (schemaValue.getType()==null &&  schemaValue.getAdditionalProperties()!=null){
-            return new JsonTypeGenerator(schemaValue,typeName);
-        } else if (schemaValue.getType()!=null && schemaValue.getType().equals(GeneratorConstants.OBJECT) &&
-                schemaValue.getAdditionalProperties()!=null &&
-                  (schemaValue.getAdditionalProperties() instanceof AsyncApi25SchemaImpl ||
-                          (schemaValue.getAdditionalProperties() instanceof BooleanUnionValueImpl &&schemaValue.getAdditionalProperties().asBoolean().equals(true)))) {
+        } else if (schemaValue.getType() == null && schemaValue.getAdditionalProperties() != null) {
+            return new JsonTypeGenerator(schemaValue, typeName);
+        } else if (schemaValue.getType() != null && schemaValue.getType().equals(GeneratorConstants.OBJECT) &&
+                schemaValue.getAdditionalProperties() != null &&
+                (schemaValue.getAdditionalProperties() instanceof AsyncApi25SchemaImpl ||
+                        (schemaValue.getAdditionalProperties() instanceof BooleanUnionValueImpl &&
+                                schemaValue.getAdditionalProperties().asBoolean().equals(true)))) {
 
 
 //            if (((AsyncApi25SchemaImpl) schemaValue.getAdditionalProperties()).getType() == null) {
@@ -120,7 +121,7 @@ public class TypeGeneratorUtils {
 
 
 //            } else if (((AsyncApi25SchemaImpl) schemaValue.getAdditionalProperties()).getType() != null) {
-                return new MapTypeGenerator(schemaValue, typeName);
+            return new MapTypeGenerator(schemaValue, typeName);
 
 //            }else if (){
 //                return  null;
@@ -130,7 +131,7 @@ public class TypeGeneratorUtils {
         } else if ((schemaValue.getType() != null && schemaValue.getType().equals(GeneratorConstants.OBJECT)) ||
                 schemaValue.getProperties() != null) {
             return new RecordTypeGenerator(schemaValue, typeName);
-        } else if (schemaValue.getType()!=null && schemaValue.getType().equals("array")) {
+        } else if (schemaValue.getType() != null && schemaValue.getType().equals("array")) {
             return new ArrayTypeGenerator(schemaValue, typeName, parentName);
         } else if (schemaValue.getType() != null && primitiveTypeList.contains(schemaValue.getType())) {
             return new PrimitiveTypeGenerator(schemaValue, typeName);
@@ -152,7 +153,8 @@ public class TypeGeneratorUtils {
      * @param originalTypeDesc Type name
      * @return Final type of the field
      */
-    public static TypeDescriptorNode getNullableType(AsyncApi25SchemaImpl schema, TypeDescriptorNode originalTypeDesc) {
+    public static TypeDescriptorNode getNullableType(AsyncApi25SchemaImpl schema,
+                                                     TypeDescriptorNode originalTypeDesc) {
         TypeDescriptorNode nillableType = originalTypeDesc;
 //        boolean nullable = GeneratorMetaData.getInstance().isNullable();
         if (schema.getExtensions() != null) {
@@ -262,7 +264,7 @@ public class TypeGeneratorUtils {
                 RecordFieldWithDefaultValueNode defaultNode =
                         getRecordFieldWithDefaultValueNode(fieldSchema, fieldName, fieldTypeName, metadataNode);
                 recordFieldList.add(defaultNode);
-            }else{
+            } else {
                 RecordFieldNode recordFieldNode = NodeFactory.createRecordFieldNode(metadataNode, null,
                         fieldTypeName, fieldName, null, createToken(SEMICOLON_TOKEN));
                 recordFieldList.add(recordFieldNode);
@@ -296,7 +298,8 @@ public class TypeGeneratorUtils {
                     fieldSchema.getDefault().asText());
         } else {
 
-            defaultValueToken = AbstractNodeFactory.createIdentifierToken(fieldSchema.getDefault().asText().trim().replaceAll("\\\\", ""));
+            defaultValueToken = AbstractNodeFactory.createIdentifierToken(fieldSchema.
+                    getDefault().asText().trim().replaceAll("\\\\", ""));
         }
         ExpressionNode expressionNode = createRequiredExpressionNode(defaultValueToken);
         return NodeFactory.createRecordFieldWithDefaultValueNode

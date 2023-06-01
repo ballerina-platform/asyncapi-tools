@@ -23,7 +23,6 @@ import com.fasterxml.jackson.databind.node.TextNode;
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25DocumentImpl;
 import io.ballerina.asyncapi.core.GeneratorConstants;
 import io.ballerina.asyncapi.core.exception.BallerinaAsyncApiException;
-import io.ballerina.asyncapi.core.generators.schema.BallerinaTypesGenerator;
 import io.ballerina.compiler.syntax.tree.AssignmentStatementNode;
 import io.ballerina.compiler.syntax.tree.CheckExpressionNode;
 import io.ballerina.compiler.syntax.tree.ExpressionStatementNode;
@@ -48,7 +47,6 @@ import io.ballerina.compiler.syntax.tree.StatementNode;
 import io.ballerina.compiler.syntax.tree.StreamTypeDescriptorNode;
 import io.ballerina.compiler.syntax.tree.StreamTypeParamsNode;
 import io.ballerina.compiler.syntax.tree.Token;
-import io.ballerina.compiler.syntax.tree.TypeDefinitionNode;
 import io.ballerina.compiler.syntax.tree.VariableDeclarationNode;
 
 import java.util.ArrayList;
@@ -123,20 +121,15 @@ import static io.ballerina.compiler.syntax.tree.SyntaxKind.STREAM_KEYWORD;
  */
 public class RemoteFunctionBodyGenerator {
 
-    private final List<TypeDefinitionNode> typeDefinitionNodeList;
     private final AsyncApi25DocumentImpl asyncAPI;
-    private final BallerinaTypesGenerator ballerinaSchemaGenerator;
-    private List<ImportDeclarationNode> imports;
-    private boolean isHeader;
+    private final List<ImportDeclarationNode> imports;
 
-    public RemoteFunctionBodyGenerator(List<ImportDeclarationNode> imports, List<TypeDefinitionNode> typeDefinitionNodeList,
-                                       AsyncApi25DocumentImpl asyncAPI, BallerinaTypesGenerator ballerinaSchemaGenerator) {
+    public RemoteFunctionBodyGenerator(List<ImportDeclarationNode> imports,
+                                       AsyncApi25DocumentImpl asyncAPI
+    ) {
 
         this.imports = imports;
-        this.isHeader = false;
-        this.typeDefinitionNodeList = typeDefinitionNodeList;
         this.asyncAPI = asyncAPI;
-        this.ballerinaSchemaGenerator = ballerinaSchemaGenerator;
     }
 
     private static void createCommentStatementsForDispatcherId(List<StatementNode> statementsList,
@@ -243,19 +236,18 @@ public class RemoteFunctionBodyGenerator {
             throws BallerinaAsyncApiException {
 
         RemoteFunctionReturnTypeGenerator functionReturnType = new RemoteFunctionReturnTypeGenerator(
-                asyncAPI, typeDefinitionNodeList);
-        isHeader = false;
+                asyncAPI);
         // Create statements
         List<StatementNode> statementsList = new ArrayList<>();
 
         // This return type for target data type binding.
 
         if (extensions != null) {
-            JsonNode x_response = extensions.get(X_RESPONSE);
-            JsonNode x_response_type = extensions.get(X_RESPONSE_TYPE);
+            JsonNode xResponse = extensions.get(X_RESPONSE);
+            JsonNode xResponseType = extensions.get(X_RESPONSE_TYPE);
 
-            String responseType = functionReturnType.getReturnType(x_response, x_response_type);
-            if (x_response_type.equals(new TextNode(SERVER_STREAMING))) {
+            String responseType = functionReturnType.getReturnType(xResponse, xResponseType);
+            if (xResponseType.equals(new TextNode(SERVER_STREAMING))) {
                 createStreamFunctionBodyStatements(statementsList, requestType, responseType, dispatcherStreamId);
 
 
@@ -332,7 +324,7 @@ public class RemoteFunctionBodyGenerator {
                     createSimpleNameReferenceNode(createIdentifierToken(SELF)), dotToken,
                     createSimpleNameReferenceNode(createIdentifierToken(WRITE_MESSAGE_QUEUE)));
             CheckExpressionNode callGlobalQueueProduce = createCheckExpressionNode(null, createToken(
-                    CHECK_KEYWORD),
+                            CHECK_KEYWORD),
                     createMethodCallExpressionNode(globalQueue, dotToken,
                             createSimpleNameReferenceNode(createIdentifierToken(PRODUCE)), openParenToken,
                             createSeparatedNodeList(

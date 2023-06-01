@@ -38,8 +38,8 @@ import java.nio.file.Paths;
  */
 public class ArrayDataTypeTests {
     private static final Path RES_DIR = Paths.get("src/test/resources/generators/schema").toAbsolutePath();
-    SyntaxTree syntaxTree;
     private final PrintStream originalStdOut = System.out;
+    SyntaxTree syntaxTree;
     private ByteArrayOutputStream consoleContent = new ByteArrayOutputStream();
 
     @BeforeMethod
@@ -67,7 +67,7 @@ public class ArrayDataTypeTests {
     }
 
     @Test(description = "Generate record with record type array filed record")
-    public void generateRecordWithRecordArrayField() throws IOException, BallerinaAsyncApiException{
+    public void generateRecordWithRecordArrayField() throws IOException, BallerinaAsyncApiException {
         Path definitionPath = RES_DIR.resolve("swagger/scenario06.yaml");
         AsyncApi25DocumentImpl openAPI = GeneratorUtils.normalizeAsyncAPI(definitionPath);
         BallerinaTypesGenerator ballerinaSchemaGenerator = new BallerinaTypesGenerator(openAPI);

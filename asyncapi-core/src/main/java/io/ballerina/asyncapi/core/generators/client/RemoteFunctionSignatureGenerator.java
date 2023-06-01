@@ -75,22 +75,18 @@ import static io.ballerina.compiler.syntax.tree.SyntaxKind.RETURNS_KEYWORD;
  */
 public class RemoteFunctionSignatureGenerator {
     private final AsyncApi25DocumentImpl asyncAPI;
-    private final BallerinaTypesGenerator ballerinaSchemaGenerator;
     private final List<TypeDefinitionNode> typeDefinitionNodeList;
-
     private RemoteFunctionReturnTypeGenerator functionReturnType;
-    private final boolean deprecatedParamFound = false;
+
+    private final BallerinaTypesGenerator ballerinaSchemaGenerator;
 
     public RemoteFunctionSignatureGenerator(AsyncApi25DocumentImpl asyncAPI,
                                             BallerinaTypesGenerator ballerinaSchemaGenerator,
-                                            List<TypeDefinitionNode> typeDefinitionNodeList) throws BallerinaAsyncApiException {
-
+                                            List<TypeDefinitionNode> typeDefinitionNodeList) {
         this.asyncAPI = asyncAPI;
         this.ballerinaSchemaGenerator = ballerinaSchemaGenerator;
         this.typeDefinitionNodeList = typeDefinitionNodeList;
-        this.functionReturnType = new RemoteFunctionReturnTypeGenerator
-                (this.asyncAPI, typeDefinitionNodeList);
-
+        this.functionReturnType = new RemoteFunctionReturnTypeGenerator(this.asyncAPI);
 
     }
 
@@ -112,16 +108,16 @@ public class RemoteFunctionSignatureGenerator {
         List<Node> parameterList = new ArrayList<>();
 
 
-        if(payload!=null) {
+        if (payload != null) {
             String parameterType = getDataType(payload);
             Node requestTypeParamNode = getRequestTypeParameterNode(parameterType);
             parameterList.add(requestTypeParamNode);
             parameterList.add(createToken(COMMA_TOKEN));
-            TextNode descriptionNode= (TextNode) payload.get(DESCRIPTION);
-            if(descriptionNode!=null){
+            TextNode descriptionNode = (TextNode) payload.get(DESCRIPTION);
+            if (descriptionNode != null) {
                 MarkdownParameterDocumentationLineNode paramDoc =
-                    DocCommentsGenerator.createAPIParamDoc(getValidName(parameterType,false),
-                            descriptionNode.asText());
+                        DocCommentsGenerator.createAPIParamDoc(getValidName(parameterType, false),
+                                descriptionNode.asText());
                 MarkdownParameterDocumentationLineNode timeoutDoc =
                         DocCommentsGenerator.createAPIParamDoc(TIMEOUT,
                                 "waiting period to keep the event in the buffer in seconds");
@@ -130,11 +126,11 @@ public class RemoteFunctionSignatureGenerator {
             }
         }
 
-        Node timeoutNode = getTimeOutParameterNode(DECIMAL,TIMEOUT);
+        Node timeoutNode = getTimeOutParameterNode(DECIMAL, TIMEOUT);
         parameterList.add(timeoutNode);
 
         functionReturnType = new RemoteFunctionReturnTypeGenerator
-                (asyncAPI, typeDefinitionNodeList);
+                (asyncAPI);
 
 
         SeparatedNodeList<ParameterNode> parameters = createSeparatedNodeList(parameterList);
@@ -142,44 +138,43 @@ public class RemoteFunctionSignatureGenerator {
 
         //TODO: thushalya  check and Uncomment after figure out
         ReturnTypeDescriptorNode returnTypeDescriptorNode;
-        if(extensions!=null) {
-            JsonNode x_response=extensions.get(X_RESPONSE);
-            JsonNode x_response_type=extensions.get(X_RESPONSE_TYPE);
-            String returnType = functionReturnType.getReturnType(x_response,x_response_type);
-            if(x_response_type.equals(new TextNode(SERVER_STREAMING))){
-                returnType="stream<"+returnType+",error?>";
+        if (extensions != null) {
+            JsonNode xResponse = extensions.get(X_RESPONSE);
+            JsonNode xResponseType = extensions.get(X_RESPONSE_TYPE);
+            String returnType = functionReturnType.getReturnType(xResponse, xResponseType);
+            if (xResponseType.equals(new TextNode(SERVER_STREAMING))) {
+                returnType = "stream<" + returnType + ",error?>";
             }
-                String finalReturnType = returnType+
-                        PIPE_TOKEN.stringValue() +
-                        ERROR;
-           TextNode responseDescription= (TextNode) x_response.get(DESCRIPTION);
-           if(x_response.get(DESCRIPTION)!=null) {
-               MarkdownParameterDocumentationLineNode returnDoc =
-                       DocCommentsGenerator.createAPIParamDoc("return", responseDescription.asText());
-               remoteFunctionDoc.add(returnDoc);
-           }
+            String finalReturnType = returnType +
+                    PIPE_TOKEN.stringValue() +
+                    ERROR;
+            TextNode responseDescription = (TextNode) xResponse.get(DESCRIPTION);
+            if (xResponse.get(DESCRIPTION) != null) {
+                MarkdownParameterDocumentationLineNode returnDoc =
+                        DocCommentsGenerator.createAPIParamDoc("return", responseDescription.asText());
+                remoteFunctionDoc.add(returnDoc);
+            }
 
             // Return Type
             returnTypeDescriptorNode = createReturnTypeDescriptorNode(createToken(RETURNS_KEYWORD),
                     createEmptyNodeList(), createBuiltinSimpleNameReferenceNode(null,
                             createIdentifierToken(finalReturnType)));
-        }else{
+        } else {
             returnTypeDescriptorNode = createReturnTypeDescriptorNode(createToken(RETURNS_KEYWORD),
-                    createEmptyNodeList(),createSimpleNameReferenceNode(createIdentifierToken("error?")));
+                    createEmptyNodeList(), createSimpleNameReferenceNode(createIdentifierToken("error?")));
 
         }
         return createFunctionSignatureNode(createToken(OPEN_PAREN_TOKEN), parameters, createToken(CLOSE_PAREN_TOKEN),
                 returnTypeDescriptorNode);
     }
 
-    private Node getTimeOutParameterNode(String timeoutType,String paramName) {
+    private Node getTimeOutParameterNode(String timeoutType, String paramName) {
         TypeDescriptorNode typeName = createBuiltinSimpleNameReferenceNode(null,
                 createIdentifierToken(timeoutType));
-        IdentifierToken paramNameNode =createIdentifierToken(paramName);
+        IdentifierToken paramNameNode = createIdentifierToken(paramName);
 
 
-
-        return createRequiredParameterNode(createNodeList(),typeName,paramNameNode);
+        return createRequiredParameterNode(createNodeList(), typeName, paramNameNode);
     }
 
     public String getDataType(JsonNode payload) throws BallerinaAsyncApiException {
@@ -189,9 +184,6 @@ public class RemoteFunctionSignatureGenerator {
             Schema componentSchema = asyncAPI.getComponents().
                     getSchemas().get(type).asSchema();
             if (!isValidSchemaName(type)) {
-//                String operationId = operation.getOperationId();
-//                type = Character.toUpperCase(operationId.charAt(0)) + operationId.substring(1) +
-//                        "Response";
                 List<Node> responseDocs = new ArrayList<>();
                 if (payload.get(DESCRIPTION) != null) {
                     responseDocs.addAll(DocCommentsGenerator.createAPIDescriptionDoc(
@@ -206,6 +198,7 @@ public class RemoteFunctionSignatureGenerator {
 
 
     }
+
     /**
      * Create parameter for remote function.
      * <p>

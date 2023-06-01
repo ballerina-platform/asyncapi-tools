@@ -23,7 +23,6 @@ import io.ballerina.asyncapi.core.exception.BallerinaAsyncApiException;
 import io.ballerina.asyncapi.core.generators.schema.BallerinaTypesGenerator;
 import io.ballerina.asyncapi.generators.common.TestUtils;
 import io.ballerina.compiler.syntax.tree.SyntaxTree;
-
 import io.ballerina.tools.diagnostics.Diagnostic;
 import io.ballerina.tools.diagnostics.DiagnosticSeverity;
 import org.ballerinalang.formatter.core.FormatterException;
@@ -47,7 +46,8 @@ public class ConstraintTests {
     @Test(description = "Tests with record field has constraint and record field type can be user defined datatype " +
             "with constraint.")
     public void testRecordFiledConstraint() throws IOException, BallerinaAsyncApiException, FormatterException {
-        AsyncApi25DocumentImpl openAPI = GeneratorUtils.normalizeAsyncAPI(RES_DIR.resolve("swagger/constraint/record_field.yaml"));
+        AsyncApi25DocumentImpl openAPI = GeneratorUtils.normalizeAsyncAPI(RES_DIR.resolve(
+                "swagger/constraint/record_field.yaml"));
         BallerinaTypesGenerator ballerinaSchemaGenerator = new BallerinaTypesGenerator(openAPI);
 
         SyntaxTree syntaxTree = ballerinaSchemaGenerator.generateSyntaxTree();
@@ -64,7 +64,8 @@ public class ConstraintTests {
             "Use case 04 : Array items have constrained with number format" +
             "Use case 05 : Only array items have constrained with number format")
     public void testForArray() throws IOException, BallerinaAsyncApiException, FormatterException {
-        AsyncApi25DocumentImpl openAPI = GeneratorUtils.normalizeAsyncAPI(RES_DIR.resolve("swagger/constraint/array.yaml"));
+        AsyncApi25DocumentImpl openAPI = GeneratorUtils.normalizeAsyncAPI(RES_DIR.resolve(
+                "swagger/constraint/array.yaml"));
         BallerinaTypesGenerator ballerinaSchemaGenerator = new BallerinaTypesGenerator(openAPI);
         SyntaxTree syntaxTree = ballerinaSchemaGenerator.generateSyntaxTree();
         TestUtils.compareGeneratedSyntaxTreewithExpectedSyntaxTree("schema/ballerina/constraint/array.bal",
@@ -78,8 +79,9 @@ public class ConstraintTests {
             "Use case 02 : Annotations on a type" +
             "Use case 03 : Annotations on a type used as a record field")
     public void testForReference() throws IOException, BallerinaAsyncApiException, FormatterException {
-        AsyncApi25DocumentImpl openAPI = GeneratorUtils.normalizeAsyncAPI(RES_DIR.resolve("swagger/constraint/type_def_node.yaml")
-            );
+        AsyncApi25DocumentImpl openAPI = GeneratorUtils.normalizeAsyncAPI(RES_DIR.resolve(
+                "swagger/constraint/type_def_node.yaml")
+        );
         BallerinaTypesGenerator ballerinaSchemaGenerator = new BallerinaTypesGenerator(openAPI);
         SyntaxTree syntaxTree = ballerinaSchemaGenerator.generateSyntaxTree();
         TestUtils.compareGeneratedSyntaxTreewithExpectedSyntaxTree("schema/ballerina/constraint/type_def_node.bal",
@@ -92,7 +94,8 @@ public class ConstraintTests {
     @Test(description = "Tests with record field has constraint value with zero.")
     public void testRecordFiledConstraintWithZeroValue() throws IOException, BallerinaAsyncApiException,
             FormatterException {
-        AsyncApi25DocumentImpl openAPI = GeneratorUtils.normalizeAsyncAPI(RES_DIR.resolve("swagger/constraint/record_field_02.yaml"));
+        AsyncApi25DocumentImpl openAPI = GeneratorUtils.normalizeAsyncAPI(RES_DIR.resolve(
+                "swagger/constraint/record_field_02.yaml"));
         BallerinaTypesGenerator ballerinaSchemaGenerator = new BallerinaTypesGenerator(openAPI);
 
         SyntaxTree syntaxTree = ballerinaSchemaGenerator.generateSyntaxTree();
@@ -106,7 +109,7 @@ public class ConstraintTests {
     public void testNestedArrayWithConstraint() throws IOException, BallerinaAsyncApiException,
             FormatterException {
         AsyncApi25DocumentImpl openAPI = GeneratorUtils.normalizeAsyncAPI(RES_DIR.resolve("swagger/constraint" +
-                        "/nested_array_with_constraint.yaml"));
+                "/nested_array_with_constraint.yaml"));
         BallerinaTypesGenerator ballerinaSchemaGenerator = new BallerinaTypesGenerator(openAPI);
         SyntaxTree syntaxTree = ballerinaSchemaGenerator.generateSyntaxTree();
         TestUtils.compareGeneratedSyntaxTreewithExpectedSyntaxTree("schema/ballerina/constraint/nested_array.bal",

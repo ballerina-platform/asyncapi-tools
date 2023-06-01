@@ -18,13 +18,18 @@
 //
 //package io.ballerina.asyncapi.generators.client;
 //
+//import com.fasterxml.jackson.databind.JsonNode;
 //import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25DocumentImpl;
+//import io.ballerina.asyncapi.core.GeneratorUtils;
 //import io.ballerina.asyncapi.core.exception.BallerinaAsyncApiException;
 //import io.ballerina.asyncapi.core.generators.client.BallerinaAuthConfigGenerator;
 //import io.ballerina.asyncapi.core.generators.client.UtilGenerator;
 //import io.ballerina.asyncapi.core.generators.client.RemoteFunctionBodyGenerator;
 //import io.ballerina.asyncapi.core.generators.schema.BallerinaTypesGenerator;
 //import io.ballerina.compiler.syntax.tree.FunctionBodyNode;
+//import io.ballerina.compiler.syntax.tree.ImportDeclarationNode;
+//import io.ballerina.compiler.syntax.tree.MatchClauseNode;
+//import io.ballerina.compiler.syntax.tree.TypeDefinitionNode;
 //import org.testng.Assert;
 //import org.testng.annotations.AfterTest;
 //import org.testng.annotations.DataProvider;
@@ -36,6 +41,7 @@
 //import java.nio.file.Paths;
 //import java.util.ArrayList;
 //import java.util.Iterator;
+//import java.util.List;
 //import java.util.Map;
 //import java.util.Set;
 //
@@ -53,14 +59,15 @@
 //    public void getFunctionBodyNodes(String yamlFile, String path, String content) throws IOException,
 //            BallerinaAsyncApiException {
 //        Path definitionPath = RESDIR.resolve(yamlFile);
-//        AsyncApi25DocumentImpl display = getOpenAPI(definitionPath);
-//        Set<Map.Entry<PathItem.HttpMethod, Operation>> operation =
-//                display.getPaths().get(path).readOperationsMap().entrySet();
-//        Iterator<Map.Entry<PathItem.HttpMethod, Operation>> iterator = operation.iterator();
+//        AsyncApi25DocumentImpl display = GeneratorUtils.getAsyncAPIFromAsyncAPIParser(definitionPath);
+////        Set<Map.Entry<PathItem.HttpMethod, Operation>> operation =
+////                display.getPaths().get(path).readOperationsMap().entrySet();
+////        Iterator<Map.Entry<PathItem.HttpMethod, Operation>> iterator = operation.iterator();
+//
 //        RemoteFunctionBodyGenerator functionBodyGenerator = new RemoteFunctionBodyGenerator(new ArrayList<>(),
-//                new ArrayList<>(), display, new BallerinaTypesGenerator(display),
-//                new BallerinaAuthConfigGenerator(false, false), new UtilGenerator(),
-//                false);
+//                new ArrayList<>(), display, new BallerinaTypesGenerator(display));
+//        (Map<String, JsonNode > extensions, String requestType,
+//                String dispatcherStreamId, List< MatchClauseNode > matchStatementList)
 //        FunctionBodyNode bodyNode = functionBodyGenerator.getFunctionBodyNode(path, iterator.next());
 //        content = content.trim().replaceAll("\n", "").replaceAll("\\s+", "");
 //        String bodyNodeContent = bodyNode.toString().trim().replaceAll("\n", "")
