@@ -3,18 +3,18 @@ import nuvindu/pipe;
 import ballerina/lang.runtime;
 import ballerina/uuid;
 
-public client class ChatClient {
+public client isolated class ChatClient {
     private final websocket:Client clientEp;
     private final pipe:Pipe writeMessageQueue;
     private final pipe:Pipe readMessageQueue;
-    private final map<pipe:Pipe> pipes;
+    private final PipesMap pipes;
     # Gets invoked to initialize the `connector`.
     #
     # + config - The configurations to be used when initializing the `connector`
     # + serviceUrl - URL of the target service
     # + return - An error if connector initialization failed
-    public function init(string serviceUrl,websocket:ClientConfiguration clientConfig =  {}) returns error? {
-        self.pipes = {};
+    public isolated function init(string serviceUrl, websocket:ClientConfiguration clientConfig =  {}) returns error? {
+        self.pipes = new ();
         self.writeMessageQueue = new (1000);
         self.readMessageQueue = new (1000);
         websocket:Client websocketEp = check new (serviceUrl, clientConfig);
@@ -26,7 +26,7 @@ public client class ChatClient {
     }
     # Use to write messages to the websocket.
     #
-    private function startMessageWriting() {
+    private isolated function startMessageWriting() {
         worker writeMessage returns error {
             while true {
                 anydata requestMessage = check self.writeMessageQueue.consume(5);
@@ -37,7 +37,7 @@ public client class ChatClient {
     }
     # Use to read messages from the websocket.
     #
-    private function startMessageReading() {
+    private isolated function startMessageReading() {
         worker readMessage returns error {
             while true {
                 ResponseMessage responseMessage = check self.clientEp->readMessage();
@@ -48,28 +48,28 @@ public client class ChatClient {
     }
     # Use to map received message responses into relevant requests.
     #
-    private function startPipeTriggering() {
+    private isolated function startPipeTriggering() {
         worker pipeTrigger returns error {
             while true {
                 ResponseMessage responseMessage = check self.readMessageQueue.consume(5);
                 if responseMessage.hasKey("id") {
                     ResponseMessageWithId responseMessagWithId = check responseMessage.cloneWithType();
                     string id = responseMessagWithId.id;
-                    pipe:Pipe idPipe = check self.pipes[id].ensureType();
+                    pipe:Pipe idPipe = self.pipes.getPipe(id);
                     check idPipe.produce(responseMessagWithId, 5);
                 } else {
                     string 'type = responseMessage.'type;
                     match ('type) {
                         "PongMessage" => {
-                            pipe:Pipe pingMessagePipe = check self.pipes["pingMessage"].ensureType();
+                            pipe:Pipe pingMessagePipe = self.pipes.getPipe("pingMessage");
                             check pingMessagePipe.produce(responseMessage, 5);
                         }
                         "ConnectionAckMessage" => {
-                            pipe:Pipe connectionInitMessagePipe = check self.pipes["connectionInitMessage"].ensureType();
+                            pipe:Pipe connectionInitMessagePipe = self.pipes.getPipe("connectionInitMessage");
                             check connectionInitMessagePipe.produce(responseMessage, 5);
                         }
                         "Error" => {
-                            pipe:Pipe errorPipe = check self.pipes["error"].ensureType();
+                            pipe:Pipe errorPipe = self.pipes.getPipe("error");
                             check errorPipe.produce(responseMessage, 5);
                         }
                     }
@@ -87,8 +87,8 @@ public client class ChatClient {
         string id;
         lock {
             id = uuid:createType1AsString();
-            self.pipes[id] = subscribeMessagePipe;
         }
+        self.pipes.addPipe(id, subscribeMessagePipe);
         subscribeMessage["id"] = id;
         check self.writeMessageQueue.produce(subscribeMessage, timeout);
         stream<NextMessage|CompleteMessage|ErrorMessage,error?> streamMessages;
@@ -101,9 +101,7 @@ public client class ChatClient {
     #
     remote isolated function doPingMessage(PingMessage pingMessage, decimal timeout) returns PongMessage|error {
         pipe:Pipe pingMessagePipe = new (1);
-        lock {
-            self.pipes["pingMessage"] = pingMessagePipe;
-        }
+        self.pipes.addPipe("pingMessage", pingMessagePipe);
         check self.writeMessageQueue.produce(pingMessage, timeout);
         anydata responseMessage = check pingMessagePipe.consume(timeout);
         PongMessage pongMessage = check responseMessage.cloneWithType();
@@ -113,9 +111,7 @@ public client class ChatClient {
     #
     remote isolated function doConnectionInitMessage(ConnectionInitMessage connectionInitMessage, decimal timeout) returns ConnectionAckMessage|error {
         pipe:Pipe connectionInitMessagePipe = new (1);
-        lock {
-            self.pipes["connectionInitMessage"] = connectionInitMessagePipe;
-        }
+        self.pipes.addPipe("connectionInitMessage", connectionInitMessagePipe);
         check self.writeMessageQueue.produce(connectionInitMessage, timeout);
         anydata responseMessage = check connectionInitMessagePipe.consume(timeout);
         ConnectionAckMessage connectionAckMessage = check responseMessage.cloneWithType();
@@ -125,9 +121,7 @@ public client class ChatClient {
     #
     remote isolated function doError(decimal timeout) returns Error|error {
         pipe:Pipe errorPipe = new (1);
-        lock {
-            self.pipes["error"] = errorPipe;
-        }
+        self.pipes.addPipe("error", errorPipe);
         anydata responseMessage = check errorPipe.consume(timeout);
         Error errorMessage = check responseMessage.cloneWithType();
         check errorPipe.immediateClose();

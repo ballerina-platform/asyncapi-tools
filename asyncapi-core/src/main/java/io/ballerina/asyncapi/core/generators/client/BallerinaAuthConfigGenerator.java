@@ -61,6 +61,7 @@ import io.ballerina.compiler.syntax.tree.MapTypeDescriptorNode;
 import io.ballerina.compiler.syntax.tree.MappingConstructorExpressionNode;
 import io.ballerina.compiler.syntax.tree.MappingFieldNode;
 import io.ballerina.compiler.syntax.tree.MarkdownDocumentationNode;
+import io.ballerina.compiler.syntax.tree.MarkdownParameterDocumentationLineNode;
 import io.ballerina.compiler.syntax.tree.MetadataNode;
 import io.ballerina.compiler.syntax.tree.MethodCallExpressionNode;
 import io.ballerina.compiler.syntax.tree.Node;
@@ -216,20 +217,36 @@ public class BallerinaAuthConfigGenerator {
     private final List<Node> apiKeysConfigRecordFields = new ArrayList<>();
     private final Set<String> authTypes = new LinkedHashSet<>();
     private boolean httpApiKey;
+    private boolean isPathParam = false;
+    private boolean isQueryParam = false;
+    private boolean isHeaderParam = false;
     private boolean httpOROAuth;
     private String clientCredGrantTokenUrl;
     private String passwordGrantTokenUrl;
     private String refreshTokenUrl;
+    private final UtilGenerator utilGenerator;
 
     private final BallerinaTypesGenerator ballerinaSchemaGenerator;
     private List<TypeDefinitionNode> authRelatedTypeDefinitionNodes = new ArrayList<>();
 
     public BallerinaAuthConfigGenerator(boolean isAPIKey, boolean isHttpOROAuth,
-                                        BallerinaTypesGenerator ballerinaSchemaGenerator) {
+                                        BallerinaTypesGenerator ballerinaSchemaGenerator, UtilGenerator utilGenerator) {
         this.httpApiKey = isAPIKey;
         this.httpOROAuth = isHttpOROAuth;
         this.ballerinaSchemaGenerator = ballerinaSchemaGenerator;
+        this.utilGenerator=utilGenerator;
 
+    }
+    public boolean isPathParam(){
+        return isPathParam;
+    }
+
+    public boolean isQueryParam(){
+        return isQueryParam;
+    }
+
+    public boolean isHeaderParam(){
+        return isHeaderParam;
     }
 
     /**
@@ -715,25 +732,32 @@ public class BallerinaAuthConfigGenerator {
             pathSchema.setAdditionalProperties(new BooleanUnionValueImpl(false));
             List<String> pathRequiredFields = new ArrayList<>();
 
+            List<Node> schemaDocs=new ArrayList<>();
+            String pathParamDescription= "Path parameters as a record";
+            schemaDocs.addAll(DocCommentsGenerator.createAPIDescriptionDoc(pathParamDescription, true));
             for (String parameterName : parameters.getItemNames()) {
                 AsyncApiParameter parameter = parameters.getItem(parameterName);
-//                if (parameter.getDescription() != null && !parameter.
-//                        getDescription().isBlank()) {
-//                    MarkdownParameterDocumentationLineNode paramAPIDoc =
-//                            DocCommentsGenerator.createAPIParamDoc(getValidName(
-//                                    parameterName, false), parameter.getDescription());
-//                }
+                if (parameter.getDescription() != null && !parameter.
+                        getDescription().isBlank()) {
+                    MarkdownParameterDocumentationLineNode paramAPIDoc =
+                            DocCommentsGenerator.createAPIParamDoc(getValidName(
+                                    parameterName, false), parameter.getDescription());
+                    schemaDocs.add(paramAPIDoc);
+                }
 
                 pathSchema.addProperty(parameterName, parameter.getSchema());
                 pathRequiredFields.add(parameterName);
             }
             pathSchema.setRequired(pathRequiredFields);
             authRelatedTypeDefinitionNodes.add(ballerinaSchemaGenerator.getTypeDefinitionNode(pathSchema,
-                    "PathParams", new ArrayList<>()));
+                    "PathParams", schemaDocs));
             BuiltinSimpleNameReferenceNode typeName = createBuiltinSimpleNameReferenceNode(null,
                     createIdentifierToken("PathParams"));
             RequiredParameterNode pathParamNode = createRequiredParameterNode(createNodeList(), typeName,
                     createIdentifierToken("pathParams"));
+
+            isPathParam=true;
+            utilGenerator.setPathParametersFound(true);
 
             parameterList.add(pathParamNode);
             parameterList.add(comma);
@@ -752,12 +776,24 @@ public class BallerinaAuthConfigGenerator {
                     headerSchema.setType("object");
                     headerSchema.setAdditionalProperties(new BooleanUnionValueImpl(false));
                     List<String> headerRequiredFields = new ArrayList<>();
+                    List<Node> schemaDocs=new ArrayList<>();
+                    String headerParamDescription= "Header parameters as a record";
+                    schemaDocs.addAll(DocCommentsGenerator.createAPIDescriptionDoc(
+                            headerParamDescription, true));
                     for (Iterator<Map.Entry<String, JsonNode>> it = properties; it.hasNext(); ) {
                         Map.Entry<String, JsonNode> field = it.next();
                         String headerName = field.getKey();
                         try {
                             BalAsyncApi25SchemaImpl schema = objMapper.treeToValue(field.getValue(),
                                     BalAsyncApi25SchemaImpl.class);
+                            if (schema.getDescription() != null && !schema.
+                                    getDescription().isBlank()) {
+                                MarkdownParameterDocumentationLineNode paramAPIDoc =
+                                        DocCommentsGenerator.createAPIParamDoc(getValidName(
+                                                headerName, false), schema.getDescription());
+                                schemaDocs.add(paramAPIDoc);
+                            }
+
                             headerSchema.addProperty(headerName, schema);
                             headerRequiredFields.add(headerName);
 
@@ -774,8 +810,8 @@ public class BallerinaAuthConfigGenerator {
                             createIdentifierToken("headerParams"));
                     parameterList.add(headerParamNode);
                     parameterList.add(comma);
-
-
+                    isHeaderParam=true;
+                    utilGenerator.setHeadersFound(true);
                 }
 
 
@@ -791,12 +827,23 @@ public class BallerinaAuthConfigGenerator {
                     querySchema.setType("object");
                     querySchema.setAdditionalProperties(new BooleanUnionValueImpl(false));
                     List<String> queryRequiredFields = new ArrayList<>();
+                    List<Node> schemaDocs=new ArrayList<>();
+                    String queryParamDescription= "Query parameters as a record";
+                    schemaDocs.addAll(DocCommentsGenerator.createAPIDescriptionDoc(
+                            queryParamDescription, true));
                     for (Iterator<Map.Entry<String, JsonNode>> it = properties; it.hasNext(); ) {
                         Map.Entry<String, JsonNode> field = it.next();
                         String queryName = field.getKey();
                         try {
                             BalAsyncApi25SchemaImpl schema = objMapper.treeToValue(field.getValue(),
                                     BalAsyncApi25SchemaImpl.class);
+                            if (schema.getDescription() != null && !schema.
+                                    getDescription().isBlank()) {
+                                MarkdownParameterDocumentationLineNode paramAPIDoc =
+                                        DocCommentsGenerator.createAPIParamDoc(getValidName(
+                                                queryName, false), schema.getDescription());
+                                schemaDocs.add(paramAPIDoc);
+                            }
                             querySchema.addProperty(queryName, schema);
                             queryRequiredFields.add(queryName);
                         } catch (JsonProcessingException e) {
@@ -813,7 +860,8 @@ public class BallerinaAuthConfigGenerator {
 
                     parameterList.add(queryParamNode);
                     parameterList.add(comma);
-
+                    isQueryParam=true;
+                    utilGenerator.setQueryParamsFound(true);
 
                 }
 

@@ -55,6 +55,7 @@ import static io.ballerina.asyncapi.core.GeneratorConstants.CONNECTION_CONFIG;
 import static io.ballerina.asyncapi.core.GeneratorConstants.HTTP;
 import static io.ballerina.asyncapi.core.GeneratorConstants.OBJECT;
 import static io.ballerina.asyncapi.core.GeneratorConstants.RESPONSE_MESSAGE;
+import static io.ballerina.asyncapi.core.GeneratorConstants.RESPONSE_MESSAGE_WITH_ID_VAR_NAME;
 import static io.ballerina.asyncapi.core.GeneratorConstants.STRING;
 import static io.ballerina.asyncapi.core.GeneratorConstants.WEBSOCKET;
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createEmptyNodeList;
@@ -70,6 +71,7 @@ public class BallerinaTypesGenerator {
 
     private final List<TypeDefinitionNode> typeDefinitionNodeList;
     private final boolean hasConstraints;
+
 
     /**
      * This public constructor is used to generate record and other relevant data type when the nullable flag is
@@ -121,6 +123,7 @@ public class BallerinaTypesGenerator {
         this.typeDefinitionNodeList = typeDefinitionNodeList;
         this.hasConstraints = false;
     }
+
 
     /**
      * Create Type Definition Node for a given OpenAPI schema.
@@ -186,16 +189,19 @@ public class BallerinaTypesGenerator {
     public SyntaxTree generateSyntaxTree() throws BallerinaAsyncApiException {
         AsyncApi25DocumentImpl asyncAPI = GeneratorMetaData.getInstance().getAsyncAPI();
         List<TypeDefinitionNode> typeDefinitionNodeListForSchema = new ArrayList<>();
-        String dispatcherKey = "type";
-        String dispatcherStreamId = "id";
         if (asyncAPI.getComponents() != null) {
             // Create typeDefinitionNode
             AsyncApi25ComponentsImpl components = (AsyncApi25ComponentsImpl) asyncAPI.getComponents();
             Map<String, Schema> schemas = components.getSchemas();
 
             if (schemas != null) {
-                //createResponseMessageRecord
-                createResponseMessageRecord(dispatcherKey, dispatcherStreamId, schemas);
+//                createResponseMessageRecord(schemas);
+//                if(idMethodsPresent){
+//                    createResponseMessageWithIDRecord(schemas);
+//
+//
+//                }
+//                createResponseMessageRecord(dispatcherKey, dispatcherStreamId, schemas);
                 for (Map.Entry<String, Schema> schema : schemas.entrySet()) {
                     String schemaKey = schema.getKey().trim();
                     //TODO: thushalya :- check this after uncomment hasConstraints
@@ -226,25 +232,40 @@ public class BallerinaTypesGenerator {
         return syntaxTree.modifyWith(modulePartNode);
     }
 
-    private void createResponseMessageRecord(String dispatcherKey, String dispatcherStreamId,
-                                             Map<String, Schema> schemas) {
-        //create ResponseMessage record
-        AsyncApi25SchemaImpl responseMessage = new AsyncApi25SchemaImpl();
-        responseMessage.setType(OBJECT);
-        AsyncApi25SchemaImpl stringEventSchema = new AsyncApi25SchemaImpl();
-        AsyncApi25SchemaImpl stringIdSchema = new AsyncApi25SchemaImpl();
+//    private void createResponseMessageWithIDRecord(Map<String, Schema> schemas) {
+//        //create ResponseMessage record
+//        AsyncApi25SchemaImpl responseMessageWithId = new AsyncApi25SchemaImpl();
+//        responseMessageWithId.setType(OBJECT);
+//        AsyncApi25SchemaImpl stringEventSchema = new AsyncApi25SchemaImpl();
+//        AsyncApi25SchemaImpl stringIdSchema = new AsyncApi25SchemaImpl();
+//
+//        stringEventSchema.setType(STRING);
+//        stringIdSchema.setType(STRING);
+//        List requiredFields = new ArrayList();
+//        requiredFields.add(dispatcherKey);
+//        requiredFields.add(dispatcherStreamId);
+//
+//        responseMessageWithId.setRequired(requiredFields);
+//        responseMessageWithId.addProperty(dispatcherKey, stringEventSchema);
+//        responseMessageWithId.addProperty(dispatcherStreamId, stringIdSchema);
+//        schemas.put(RESPONSE_MESSAGE_WITH_ID_VAR_NAME, responseMessageWithId);
+//    }
 
-        stringEventSchema.setType(STRING);
-        stringIdSchema.setType(STRING);
-        List requiredFields = new ArrayList();
-        requiredFields.add(dispatcherKey);
-        requiredFields.add(dispatcherStreamId);
+//    private void createResponseMessageRecord(Map<String, Schema> schemas) {
+//        //create ResponseMessage record
+//        AsyncApi25SchemaImpl responseMessage = new AsyncApi25SchemaImpl();
+//        responseMessage.setType(OBJECT);
+//        AsyncApi25SchemaImpl stringEventSchema = new AsyncApi25SchemaImpl();
+//
+//        stringEventSchema.setType(STRING);
+//        List requiredFields = new ArrayList();
+//        requiredFields.add(dispatcherKey);
+//
+//        responseMessage.setRequired(requiredFields);
+//        responseMessage.addProperty(dispatcherKey, stringEventSchema);
+//        schemas.put(RESPONSE_MESSAGE, responseMessage);
+//    }
 
-        responseMessage.setRequired(requiredFields);
-        responseMessage.addProperty(dispatcherKey, stringEventSchema);
-        responseMessage.addProperty(dispatcherStreamId, stringIdSchema);
-        schemas.put(RESPONSE_MESSAGE, responseMessage);
-    }
 
     private NodeList<ImportDeclarationNode> generateImportNodes() {
         List<ImportDeclarationNode> imports = new ArrayList<>();

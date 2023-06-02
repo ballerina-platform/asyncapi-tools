@@ -145,7 +145,6 @@ components:
         payload:
           type: object
           additionalProperties: true
-
   messages:
     NextMessage:
       payload:

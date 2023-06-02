@@ -1,55 +1,81 @@
-import ballerina/http;
+import ballerina/websocket;
+import nuvindu/pipe;
+import ballerina/lang.runtime;
+import ballerina/uuid;
 
-public isolated client class Client {
-    final http:Client clientEp;
+public client isolated class PayloadVv1versionv2versionnameClient {
+    private final websocket:Client clientEp;
+    private final pipe:Pipe writeMessageQueue;
+    private final pipe:Pipe readMessageQueue;
+    private final PipesMap pipes;
     # Gets invoked to initialize the `connector`.
     #
     # + config - The configurations to be used when initializing the `connector`
     # + serviceUrl - URL of the target service
     # + return - An error if connector initialization failed
-    public isolated function init(ConnectionConfig config =  {}, string serviceUrl = "localhost:9090/payloadV") returns error? {
-        http:ClientConfiguration httpClientConfig = {httpVersion: config.httpVersion, timeout: config.timeout, forwarded: config.forwarded, poolConfig: config.poolConfig, compression: config.compression, circuitBreaker: config.circuitBreaker, retryConfig: config.retryConfig, validation: config.validation};
-        do {
-            if config.http1Settings is ClientHttp1Settings {
-                ClientHttp1Settings settings = check config.http1Settings.ensureType(ClientHttp1Settings);
-                httpClientConfig.http1Settings = {...settings};
-            }
-            if config.http2Settings is http:ClientHttp2Settings {
-                httpClientConfig.http2Settings = check config.http2Settings.ensureType(http:ClientHttp2Settings);
-            }
-            if config.cache is http:CacheConfig {
-                httpClientConfig.cache = check config.cache.ensureType(http:CacheConfig);
-            }
-            if config.responseLimits is http:ResponseLimitConfigs {
-                httpClientConfig.responseLimits = check config.responseLimits.ensureType(http:ResponseLimitConfigs);
-            }
-            if config.secureSocket is http:ClientSecureSocket {
-                httpClientConfig.secureSocket = check config.secureSocket.ensureType(http:ClientSecureSocket);
-            }
-            if config.proxy is http:ProxyConfig {
-                httpClientConfig.proxy = check config.proxy.ensureType(http:ProxyConfig);
-            }
-        }
-        http:Client httpEp = check new (serviceUrl, httpClientConfig);
-        self.clientEp = httpEp;
+    # + pathParams - path parameters
+    public isolated function init(PathParams pathParams, websocket:ClientConfiguration clientConfig =  {}, string serviceUrl = "ws://localhost:9090/payloadV") returns error? {
+        self.pipes = new ();
+        self.writeMessageQueue = new (1000);
+        self.readMessageQueue = new (1000);
+        string modifiedUrl = serviceUrl + string `/v1/${getEncodedUri(pathParams.version)}/v2/${getEncodedUri(pathParams.versionName)}`;
+        websocket:Client websocketEp = check new (modifiedUrl, clientConfig);
+        self.clientEp = websocketEp;
+        self.startMessageWriting();
+        self.startMessageReading();
+        self.startPipeTriggering();
         return;
     }
+    # Use to write messages to the websocket.
     #
-    # + version - Version Id
-    # + versionName - Version Name
-    # + return - Ok
-    remote isolated function operationId04(int version, string versionName) returns string|error {
-        string resourcePath = string `/v1/${getEncodedUri(version)}/v2/${getEncodedUri(versionName)}`;
-        string response = check self.clientEp-> get(resourcePath);
-        return response;
+    private isolated function startMessageWriting() {
+        worker writeMessage returns error {
+            while true {
+                anydata requestMessage = check self.writeMessageQueue.consume(5);
+                check self.clientEp->writeMessage(requestMessage);
+                runtime:sleep(0.01);
+            }
+        }
+    }
+    # Use to read messages from the websocket.
+    #
+    private isolated function startMessageReading() {
+        worker readMessage returns error {
+            while true {
+                ResponseMessage responseMessage = check self.clientEp->readMessage();
+                check self.readMessageQueue.produce(responseMessage, 5);
+                runtime:sleep(0.01);
+            }
+        }
+    }
+    # Use to map received message responses into relevant requests.
+    #
+    private isolated function startPipeTriggering() {
+        worker pipeTrigger returns error {
+            while true {
+                ResponseMessage responseMessage = check self.readMessageQueue.consume(5);
+                if responseMessage.hasKey("id") {
+                    ResponseMessageWithId responseMessagWithId = check responseMessage.cloneWithType();
+                    string id = responseMessagWithId.id;
+                    pipe:Pipe idPipe = self.pipes.getPipe(id);
+                    check idPipe.produce(responseMessagWithId, 5);
+                }
+            }
+        }
     }
     #
-    # + versionId - Version Id
-    # + versionLimit - Version Limit
-    # + return - Ok
-    remote isolated function operationId05(int versionId, int versionLimit) returns string|error {
-        string resourcePath = string `/v1/${getEncodedUri(versionId)}/v2/${getEncodedUri(versionLimit)}`;
-        string response = check self.clientEp-> get(resourcePath);
-        return response;
+    remote isolated function doSubscribe(Subscribe subscribe, decimal timeout) returns UnSubscribe|error {
+        pipe:Pipe subscribePipe = new (1);
+        string id;
+        lock {
+            id = uuid:createType1AsString();
+        }
+        self.pipes.addPipe(id, subscribePipe);
+        subscribe["id"] = id;
+        check self.writeMessageQueue.produce(subscribe, timeout);
+        anydata responseMessage = check subscribePipe.consume(timeout);
+        UnSubscribe unSubscribe = check responseMessage.cloneWithType();
+        check subscribePipe.immediateClose();
+        return unSubscribe;
     }
 }

@@ -23,7 +23,9 @@ import io.ballerina.asyncapi.core.GeneratorUtils;
 import io.ballerina.asyncapi.core.exception.BallerinaAsyncApiException;
 import io.ballerina.asyncapi.core.generators.client.IntermediateClientGenerator;
 import io.ballerina.asyncapi.core.generators.client.model.AASClientConfig;
+import io.ballerina.asyncapi.core.generators.schema.BallerinaTypesGenerator;
 import io.ballerina.compiler.syntax.tree.SyntaxTree;
+import io.ballerina.compiler.syntax.tree.TypeDefinitionNode;
 import org.ballerinalang.formatter.core.FormatterException;
 import org.testng.annotations.Test;
 
@@ -58,11 +60,11 @@ public class PathParameterTests {
 //        Path expectedPath = RESDIR.resolve("ballerina/path_parameter_valid.bal");
 //        AsyncApi25DocumentImpl openAPI = GeneratorUtils.normalizeAsyncAPI(definitionPath);
         BallerinaCodeGenerator ballerinaCodeGenerator = new BallerinaCodeGenerator();
-        ballerinaCodeGenerator.generateClient("src/test/resources/asyncapi-to-ballerina/client/PathParam" +
-                "/path_parameter_valid.yaml", "/Users/thushalya/Documents/out");
-//        ballerinaCodeGenerator.generateClient(
-//                "src/test/resources/asyncapi-to-ballerina/client/PathParam/path_param_with_ref_schemas.yaml",
-//                "/Users/thushalya/Documents/out");
+//        ballerinaCodeGenerator.generateClient("src/test/resources/asyncapi-to-ballerina/client/PathParam" +
+//                "/path_parameter_valid.yaml", "/Users/thushalya/Documents/out");
+        ballerinaCodeGenerator.generateClient(
+                "src/test/resources/asyncapi-to-ballerina/client/PathParam/path_parameter_special_name.yaml",
+                "/Users/thushalya/Documents/out");
 //        AASClientConfig.Builder clientMetaDataBuilder = new AASClientConfig.Builder();
 ////        AASClientConfig oasClientConfig = clientMetaDataBuilder
 //////                .withFilters(filter)
@@ -73,6 +75,7 @@ public class PathParameterTests {
 //        compareGeneratedSyntaxTreeWithExpectedSyntaxTree(expectedPath, syntaxTree);
     }
 
+    //DOne
     @Test(description = "Generate Client for path parameter with referenced schema")
     public void generatePathParamWithReferencedSchema() throws IOException, BallerinaAsyncApiException {
         Path definitionPath = RESDIR.resolve("PathParam/path_param_with_ref_schemas.yaml");
@@ -82,14 +85,25 @@ public class PathParameterTests {
         AASClientConfig oasClientConfig = clientMetaDataBuilder
                 .withAsyncAPI(openAPI).build();
         IntermediateClientGenerator intermediateClientGenerator = new IntermediateClientGenerator(oasClientConfig);
-        syntaxTree = intermediateClientGenerator.generateSyntaxTree();
-        compareGeneratedSyntaxTreeWithExpectedSyntaxTree(expectedPath, syntaxTree);
+        intermediateClientGenerator.generateSyntaxTree();
+
+        List<TypeDefinitionNode> preGeneratedTypeDefNodes = new ArrayList<>(
+                intermediateClientGenerator.getBallerinaAuthConfigGenerator().getAuthRelatedTypeDefinitionNodes());
+        preGeneratedTypeDefNodes.addAll(intermediateClientGenerator.getTypeDefinitionNodeList());
+
+        //Generate ballerina records to represent schemas in client intermediate code
+        BallerinaTypesGenerator ballerinaSchemaGenerator = new BallerinaTypesGenerator(
+                openAPI, preGeneratedTypeDefNodes);
+
+        SyntaxTree schemaSyntaxTree = ballerinaSchemaGenerator.generateSyntaxTree();
+
+        compareGeneratedSyntaxTreeWithExpectedSyntaxTree(expectedPath, schemaSyntaxTree);
     }
 
     @Test(description = "Generate Client while handling special characters in path parameter name")
     public void generateFormattedPathParamName() throws IOException, BallerinaAsyncApiException {
-        Path definitionPath = RESDIR.resolve("swagger/path_parameter_special_name.yaml");
-        Path expectedPath = RESDIR.resolve("ballerina/path_parameter_with_special_name.bal");
+        Path definitionPath = RESDIR.resolve("PathParam/path_parameter_special_name.yaml");
+        Path expectedPath = RESDIR.resolve("baloutputs/PathParam/path_parameter_with_special_name.bal");
         AsyncApi25DocumentImpl openAPI = GeneratorUtils.normalizeAsyncAPI(definitionPath);
         AASClientConfig.Builder clientMetaDataBuilder = new AASClientConfig.Builder();
         AASClientConfig oasClientConfig = clientMetaDataBuilder
@@ -101,8 +115,8 @@ public class PathParameterTests {
 
     @Test(description = "Generate Client with duplicated path parameter name in the path")
     public void generateFormattedDuplicatedPathParamName() throws IOException, BallerinaAsyncApiException {
-        Path definitionPath = RESDIR.resolve("swagger/path_param_duplicated_name.yaml");
-        Path expectedPath = RESDIR.resolve("ballerina/path_param_duplicated_name.bal");
+        Path definitionPath = RESDIR.resolve("PathParam/path_param_duplicated_name.yaml");
+        Path expectedPath = RESDIR.resolve("baloutputs/PathParam/path_param_duplicated_name.bal");
         AsyncApi25DocumentImpl openAPI = GeneratorUtils.normalizeAsyncAPI(definitionPath);
         AASClientConfig.Builder clientMetaDataBuilder = new AASClientConfig.Builder();
         AASClientConfig oasClientConfig = clientMetaDataBuilder
@@ -116,7 +130,7 @@ public class PathParameterTests {
             expectedExceptions = BallerinaAsyncApiException.class,
             expectedExceptionsMessageRegExp = "Invalid path parameter data type for the parameter: .*")
     public void testInvalidPathParameterType() throws IOException, BallerinaAsyncApiException {
-        Path definitionPath = RESDIR.resolve("swagger/path_parameter_invalid.yaml");
+        Path definitionPath = RESDIR.resolve("PathParam/path_parameter_invalid.yaml");
         AsyncApi25DocumentImpl openAPI = GeneratorUtils.normalizeAsyncAPI(definitionPath);
         AASClientConfig.Builder clientMetaDataBuilder = new AASClientConfig.Builder();
         AASClientConfig oasClientConfig = clientMetaDataBuilder
@@ -127,9 +141,9 @@ public class PathParameterTests {
 
     @Test(description = "When given data type not match with ballerina data type",
             expectedExceptions = BallerinaAsyncApiException.class,
-            expectedExceptionsMessageRegExp = "Unsupported OAS data type .*")
+            expectedExceptionsMessageRegExp = "Unsupported AAS data type .*")
     public void testInvalidDataType() throws IOException, BallerinaAsyncApiException {
-        Path definitionPath = RESDIR.resolve("swagger/path_parameter_invalid02.yaml");
+        Path definitionPath = RESDIR.resolve("PathParam/path_parameter_invalid02.yaml");
         AsyncApi25DocumentImpl openAPI = GeneratorUtils.normalizeAsyncAPI(definitionPath);
         AASClientConfig.Builder clientMetaDataBuilder = new AASClientConfig.Builder();
         AASClientConfig oasClientConfig = clientMetaDataBuilder

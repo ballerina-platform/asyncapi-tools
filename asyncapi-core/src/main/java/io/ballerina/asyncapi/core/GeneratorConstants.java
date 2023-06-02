@@ -64,7 +64,7 @@ public class GeneratorConstants {
 
     public static final String X_DISPATCHER_KEY = "x-dispatcherKey";
 
-    public static final String X_DISPATCHER_STREAM_ID = "x-dispatcherKey";
+    public static final String X_DISPATCHER_STREAM_ID = "x-dispatcherStreamId";
 
     public static final String CLIENT_CLASS_NAME = "Client";
     public static final String CLIENT_EP = "clientEp";

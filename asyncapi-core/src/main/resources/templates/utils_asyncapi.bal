@@ -25,7 +25,7 @@ isolated class StreamGenerator{
 }
 
 # Pipesmap class
-public isolated class PipesMap {
+isolated class PipesMap{
     private final map<pipe:Pipe> pipes;
     public isolated function init() {
         self.pipes = {};

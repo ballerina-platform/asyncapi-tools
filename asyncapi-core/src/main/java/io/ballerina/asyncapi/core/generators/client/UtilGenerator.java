@@ -77,10 +77,10 @@ public class UtilGenerator {
     private static final String STREAM_GENERATOR = "StreamGenerator";
     private static final String GET_PATH_FOR_QUERY_PARAM = "getPathForQueryParam";
     private static final String GET_COMBINE_HEADERS = "getCombineHeaders";
-    private static final boolean streamFound = true;
-    private boolean headersFound = true;
-    private boolean queryParamsFound = true;
-    private boolean pathParametersFound = true;
+    private boolean streamFound = false;
+    private boolean headersFound = false;
+    private boolean queryParamsFound = false;
+    private boolean pathParametersFound = false;
 
     /**
      * //     * Set `queryParamsFound` flag to `true` when at least one query parameter found.
@@ -102,6 +102,11 @@ public class UtilGenerator {
         this.headersFound = flag;
     }
 
+    public void setStreamFound(boolean flag) {
+
+        this.streamFound = flag;
+    }
+
     /**
      * Set `pathParametersFound` flag to `true` when at least one path parameter found.
      *
@@ -119,6 +124,14 @@ public class UtilGenerator {
      */
     public SyntaxTree generateUtilSyntaxTree() throws IOException {
         Set<String> functionNameList = new LinkedHashSet<>();
+        List<ImportDeclarationNode> imports = new ArrayList<>();
+
+
+        functionNameList.add("PipesMap");
+        ImportDeclarationNode importForPipes = GeneratorUtils.getImportDeclarationNode(NUVINDU,NUVINDU_PIPE);
+        imports.add(importForPipes);
+
+
         if (queryParamsFound) {
             functionNameList.addAll(Arrays.asList(
                     GET_ENCODED_URI,
@@ -164,7 +177,6 @@ public class UtilGenerator {
             }
         }
 
-        List<ImportDeclarationNode> imports = new ArrayList<>();
         if (functionNameList.contains(GET_ENCODED_URI)) {
             ImportDeclarationNode importForUrl = GeneratorUtils.getImportDeclarationNode(BALLERINA, URL);
             imports.add(importForUrl);

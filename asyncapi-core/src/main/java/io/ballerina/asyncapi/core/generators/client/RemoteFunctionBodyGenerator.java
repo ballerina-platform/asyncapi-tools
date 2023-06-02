@@ -124,12 +124,14 @@ public class RemoteFunctionBodyGenerator {
     private final AsyncApi25DocumentImpl asyncAPI;
     private final List<ImportDeclarationNode> imports;
 
+    private final UtilGenerator utilGenerator;
+
     public RemoteFunctionBodyGenerator(List<ImportDeclarationNode> imports,
-                                       AsyncApi25DocumentImpl asyncAPI
-    ) {
+                                       AsyncApi25DocumentImpl asyncAPI,UtilGenerator utilGenerator) {
 
         this.imports = imports;
         this.asyncAPI = asyncAPI;
+        this.utilGenerator =utilGenerator;
     }
 
     private static void createCommentStatementsForDispatcherId(List<StatementNode> statementsList,
@@ -274,6 +276,8 @@ public class RemoteFunctionBodyGenerator {
 
             String responseType = functionReturnType.getReturnType(xResponse, xResponseType);
             if (xResponseType.equals(new TextNode(SERVER_STREAMING))) {
+                //TODO: Include a if condition to check this only one time
+                utilGenerator.setStreamFound(true);
                 createStreamFunctionBodyStatements(statementsList, requestType, responseType, dispatcherStreamId);
 
 
