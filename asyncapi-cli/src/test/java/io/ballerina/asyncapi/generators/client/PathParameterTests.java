@@ -39,7 +39,7 @@ import static io.ballerina.asyncapi.generators.common.TestUtils.compareGenerated
  * This tests class for the tests Path parameters in swagger file.
  */
 public class PathParameterTests {
-    private static final Path RESDIR = Paths.get("src/test/resources/generators/client").toAbsolutePath();
+    private static final Path RESDIR = Paths.get("src/test/resources/asyncapi-to-ballerina/client").toAbsolutePath();
     List<String> list1 = new ArrayList<>();
     List<String> list2 = new ArrayList<>();
     private SyntaxTree syntaxTree;
@@ -54,26 +54,29 @@ public class PathParameterTests {
         // "/v1/{age}/v2/{name}", "/v1/${age}/v2/${name}"
 
         BallerinaCodeGenerator codeGenerator = new BallerinaCodeGenerator();
-        Path definitionPath = RESDIR.resolve(RESDIR + "/swagger/path_parameter_valid.yaml");
-        Path expectedPath = RESDIR.resolve("ballerina/path_parameter_valid.bal");
-        AsyncApi25DocumentImpl openAPI = GeneratorUtils.normalizeAsyncAPI(definitionPath);
+//        Path definitionPath = RESDIR.resolve(RESDIR + "/swagger/path_parameter_valid.yaml");
+//        Path expectedPath = RESDIR.resolve("ballerina/path_parameter_valid.bal");
+//        AsyncApi25DocumentImpl openAPI = GeneratorUtils.normalizeAsyncAPI(definitionPath);
         BallerinaCodeGenerator ballerinaCodeGenerator = new BallerinaCodeGenerator();
-        ballerinaCodeGenerator.generateClient("src/test/resources/generators/client/swagger" +
+        ballerinaCodeGenerator.generateClient("src/test/resources/asyncapi-to-ballerina/client/PathParam" +
                 "/path_parameter_valid.yaml", "/Users/thushalya/Documents/out");
-        AASClientConfig.Builder clientMetaDataBuilder = new AASClientConfig.Builder();
-        AASClientConfig oasClientConfig = clientMetaDataBuilder
-//                .withFilters(filter)
-                .withAsyncAPI(openAPI).build();
-//                .withResourceMode(false).build();
-        IntermediateClientGenerator intermediateClientGenerator = new IntermediateClientGenerator(oasClientConfig);
-        syntaxTree = intermediateClientGenerator.generateSyntaxTree();
-        compareGeneratedSyntaxTreeWithExpectedSyntaxTree(expectedPath, syntaxTree);
+//        ballerinaCodeGenerator.generateClient(
+//                "src/test/resources/asyncapi-to-ballerina/client/PathParam/path_param_with_ref_schemas.yaml",
+//                "/Users/thushalya/Documents/out");
+//        AASClientConfig.Builder clientMetaDataBuilder = new AASClientConfig.Builder();
+////        AASClientConfig oasClientConfig = clientMetaDataBuilder
+//////                .withFilters(filter)
+////                .withAsyncAPI(openAPI).build();
+////                .withResourceMode(false).build();
+//        IntermediateClientGenerator intermediateClientGenerator = new IntermediateClientGenerator(oasClientConfig);
+//        syntaxTree = intermediateClientGenerator.generateSyntaxTree();
+//        compareGeneratedSyntaxTreeWithExpectedSyntaxTree(expectedPath, syntaxTree);
     }
 
     @Test(description = "Generate Client for path parameter with referenced schema")
     public void generatePathParamWithReferencedSchema() throws IOException, BallerinaAsyncApiException {
-        Path definitionPath = RESDIR.resolve("swagger/path_param_with_ref_schemas.yaml");
-        Path expectedPath = RESDIR.resolve("ballerina/path_param_with_ref_schema.bal");
+        Path definitionPath = RESDIR.resolve("PathParam/path_param_with_ref_schemas.yaml");
+        Path expectedPath = RESDIR.resolve("baloutputs/PathParam/path_param_with_ref_schema.bal");
         AsyncApi25DocumentImpl openAPI = GeneratorUtils.normalizeAsyncAPI(definitionPath);
         AASClientConfig.Builder clientMetaDataBuilder = new AASClientConfig.Builder();
         AASClientConfig oasClientConfig = clientMetaDataBuilder

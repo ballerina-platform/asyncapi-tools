@@ -146,6 +146,8 @@ public class RemoteFunctionBodyGenerator {
         Token dotToken = createToken(DOT_TOKEN);
         Token openBraceToken = createToken(OPEN_BRACE_TOKEN);
         Token closeBraceToken = createToken(CLOSE_BRACE_TOKEN);
+        Token openParenToken=createToken(OPEN_PAREN_TOKEN);
+        Token closeParenToken=createToken(CLOSE_PAREN_TOKEN);
 
 
         ArrayList<StatementNode> lockStatements = new ArrayList<>();
@@ -171,19 +173,33 @@ public class RemoteFunctionBodyGenerator {
             AssignmentStatementNode uuidAssignmentNode = createAssignmentStatementNode(dispatcherStreamIdNode,
                     equalToken, uuidNode, semicolonToken);
             lockStatements.add(uuidAssignmentNode);
-            IndexedExpressionNode remoteSelfPipes = createIndexedExpressionNode(createFieldAccessExpressionNode(
+            FieldAccessExpressionNode remoteSelfPipes =createFieldAccessExpressionNode(
                             createSimpleNameReferenceNode(createIdentifierToken(SELF)), dotToken,
-                            createSimpleNameReferenceNode(createIdentifierToken("pipes"))), openBracketToken,
-                    createSeparatedNodeList(createSimpleNameReferenceNode(createIdentifierToken(dispatcherStreamId))),
-                    closeBracketToken);
-            AssignmentStatementNode selfPipesAssignmentStatementNode = createAssignmentStatementNode(remoteSelfPipes,
-                    equalToken, requestypePipeNode, semicolonToken);
+                            createSimpleNameReferenceNode(createIdentifierToken("pipes")));
 
-            lockStatements.add(selfPipesAssignmentStatementNode);
+            MethodCallExpressionNode addPipeMethodCallExpressionNode = createMethodCallExpressionNode(remoteSelfPipes,
+                    dotToken,
+                    createSimpleNameReferenceNode(createIdentifierToken("addPipe")),
+                    openParenToken, createSeparatedNodeList(dispatcherStreamIdNode,createToken(COMMA_TOKEN),
+                            requestypePipeNode), closeParenToken);
+
+//                    createSeparatedNodeList(createSimpleNameReferenceNode(createIdentifierToken(dispatcherStreamId)));
+//            VariableDeclarationNode pipeTypeEnsureStatement = createVariableDeclarationNode(
+//                    createEmptyNodeList(), null,
+//                    createTypedBindingPatternNode(
+//                            pipeTypeName,
+//                            createFieldBindingPatternVarnameNode(requestTypePipeNode)),
+//                    equalToken, addPipeMethodCallExpressionNode, semicolonToken);
+           ExpressionStatementNode addPipeByIdStatement=createExpressionStatementNode(null,
+                   addPipeMethodCallExpressionNode,semicolonToken);
+
+//            lockStatements.add(selfPipesAssignmentStatementNode);
             LockStatementNode functionLockStatementNode = createLockStatementNode(createToken(LOCK_KEYWORD),
                     createBlockStatementNode(openBraceToken, createNodeList(lockStatements), closeBraceToken),
                     null);
             statementsList.add(functionLockStatementNode);
+            statementsList.add(addPipeByIdStatement);
+
 
             // pingMessage["id"]=id;
             IndexedExpressionNode requestTypeVarRef = createIndexedExpressionNode(createSimpleNameReferenceNode(
@@ -196,23 +212,33 @@ public class RemoteFunctionBodyGenerator {
             statementsList.add(idValueAssignmentStatementNode);
 
 
+
+
+
         } else {
 
             //self.pipes["tuplePipe"] = tuplePipe;
-            IndexedExpressionNode remoteSelfPipes = createIndexedExpressionNode(createFieldAccessExpressionNode(
-                            createSimpleNameReferenceNode(createIdentifierToken(SELF)), dotToken,
-                            createSimpleNameReferenceNode(createIdentifierToken("pipes"))), openBracketToken,
-                    createSeparatedNodeList(createSimpleNameReferenceNode(createIdentifierToken("\"" +
-                            requestType + "\""))),
-                    closeBracketToken);
-            AssignmentStatementNode selfPipesAssignmentStatementNode = createAssignmentStatementNode(remoteSelfPipes,
-                    equalToken, requestypePipeNode, semicolonToken);
-            lockStatements.add(selfPipesAssignmentStatementNode);
+//            AssignmentStatementNode selfPipesAssignmentStatementNode = createAssignmentStatementNode(remoteSelfPipes,
+//                    equalToken, requestypePipeNode, semicolonToken);
+            FieldAccessExpressionNode remoteSelfPipes =createFieldAccessExpressionNode(
+                    createSimpleNameReferenceNode(createIdentifierToken(SELF)), dotToken,
+                    createSimpleNameReferenceNode(createIdentifierToken("pipes")));
 
-            LockStatementNode functionLockStatementNode = createLockStatementNode(createToken(LOCK_KEYWORD),
-                    createBlockStatementNode(openBraceToken, createNodeList(lockStatements), closeBraceToken),
-                    null);
-            statementsList.add(functionLockStatementNode);
+            MethodCallExpressionNode addPipeMethodCallExpressionNode = createMethodCallExpressionNode(remoteSelfPipes,
+                    dotToken,
+                    createSimpleNameReferenceNode(createIdentifierToken("addPipe")),
+                    openParenToken, createSeparatedNodeList(createSimpleNameReferenceNode(createIdentifierToken("\"" +
+                            requestType + "\"")),createToken(COMMA_TOKEN),
+                            requestypePipeNode), closeParenToken);
+
+            ExpressionStatementNode addPipeByTypeStatement=createExpressionStatementNode(null,
+                    addPipeMethodCallExpressionNode,semicolonToken);
+//            lockStatements.add(selfPipesAssignmentStatementNode);
+//
+//            LockStatementNode functionLockStatementNode = createLockStatementNode(createToken(LOCK_KEYWORD),
+//                    createBlockStatementNode(openBraceToken, createNodeList(lockStatements), closeBraceToken),
+//                    null);
+            statementsList.add(addPipeByTypeStatement);
 
         }
     }
@@ -509,24 +535,24 @@ public class RemoteFunctionBodyGenerator {
             QualifiedNameReferenceNode pipeTypeName = createQualifiedNameReferenceNode(
                     createIdentifierToken(SIMPLE_PIPE),
                     createToken(COLON_TOKEN), createIdentifierToken(GeneratorConstants.CAPITAL_PIPE));
-            IndexedExpressionNode selfPipes = createIndexedExpressionNode(createFieldAccessExpressionNode(
+            FieldAccessExpressionNode selfPipes = createFieldAccessExpressionNode(
                             createSimpleNameReferenceNode(createIdentifierToken(SELF)), createToken(DOT_TOKEN),
-                            createSimpleNameReferenceNode(createIdentifierToken(PIPES))), openBracketToken,
-                    createSeparatedNodeList(createSimpleNameReferenceNode(
-                            createIdentifierToken("\"" + requestType + "\""))),
-                    closeBracketToken);
+                            createSimpleNameReferenceNode(createIdentifierToken(PIPES)));
+//                    createSeparatedNodeList(createSimpleNameReferenceNode(
+//                            createIdentifierToken("\"" + requestType + "\""))),
+//                    closeBracketToken);
             MethodCallExpressionNode methodCallExpressionNode = createMethodCallExpressionNode(selfPipes, dotToken,
-                    createSimpleNameReferenceNode(createIdentifierToken(ENSURE_TYPE)),
-                    openParenToken, createSeparatedNodeList(), closeParenToken);
+                    createSimpleNameReferenceNode(createIdentifierToken("getPipe")),
+                    openParenToken, createSeparatedNodeList(createSimpleNameReferenceNode(
+                            createIdentifierToken("\"" + requestType + "\""))), closeParenToken);
 
-            CheckExpressionNode selfPipeCheck = createCheckExpressionNode(null, createToken(CHECK_KEYWORD),
-                    methodCallExpressionNode);
+
             VariableDeclarationNode pipeTypeEnsureStatement = createVariableDeclarationNode(
                     createEmptyNodeList(), null,
                     createTypedBindingPatternNode(
                             pipeTypeName,
                             createFieldBindingPatternVarnameNode(requestTypePipeNode)),
-                    equalToken, selfPipeCheck, semicolonToken);
+                    equalToken, methodCallExpressionNode, semicolonToken);
             statementNodes.add(pipeTypeEnsureStatement);
 
             List<Node> nodes = new ArrayList<>();
