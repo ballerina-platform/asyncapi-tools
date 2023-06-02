@@ -19,29 +19,29 @@ import static io.ballerina.asyncapi.generators.common.TestUtils.compareGenerated
 
 
 /**
- * Test client generation when server url is not given in the open-api definition.
+ * Test client generation when server url is not given in the async-api definition.
  */
 public class NoServerURLTest {
-    private static final Path RES_DIR = Paths.get("src/test/resources/generators/client").toAbsolutePath();
+    private static final Path RES_DIR = Paths.get("src/test/resources/asyncapi-to-ballerina/client").toAbsolutePath();
     private SyntaxTree syntaxTree;
     List<String> list1 = new ArrayList<>();
     List<String> list2 = new ArrayList<>();
 
     @Test(description = "Test for no server url with no security schema given")
     public void getClientForNoServerURL() throws IOException, BallerinaAsyncApiException {
-        BallerinaCodeGenerator codeGenerator = new BallerinaCodeGenerator();
-        Path definitionPath = RES_DIR.resolve("swagger/missing_server_url.yaml");
-        Path expectedPath = RES_DIR.resolve("ballerina/missing_server_url.bal");
+        Path definitionPath = RES_DIR.resolve("NoServerUrl/missing_server_url.yaml");
+        Path expectedPath = RES_DIR.resolve("baloutputs/NoServerUrl/missing_server_url.bal");
 
-        AsyncApi25DocumentImpl openAPI = GeneratorUtils.normalizeAsyncAPI(definitionPath);
+        AsyncApi25DocumentImpl asyncAPI = GeneratorUtils.normalizeAsyncAPI(definitionPath);
         AASClientConfig.Builder clientMetaDataBuilder = new AASClientConfig.Builder();
-        AASClientConfig oasClientConfig = clientMetaDataBuilder
-                .withAsyncAPI(openAPI).build();
-        IntermediateClientGenerator intermediateClientGenerator = new IntermediateClientGenerator(oasClientConfig);
+        AASClientConfig aasClientConfig = clientMetaDataBuilder
+                .withAsyncAPI(asyncAPI).build();
+        IntermediateClientGenerator intermediateClientGenerator = new IntermediateClientGenerator(aasClientConfig);
         syntaxTree = intermediateClientGenerator.generateSyntaxTree();
         compareGeneratedSyntaxTreeWithExpectedSyntaxTree(expectedPath, syntaxTree);
     }
-//
+//TODO: Uncomment after adding authentication mechanisms
+
 //    @Test(description = "Test for no server url with HTTP authentication mechanism")
 //    public void getClientForNoServerURLWithHTTPAuth() {
 //        BallerinaAuthConfigGenerator ballerinaAuthConfigGenerator = new BallerinaAuthConfigGenerator(

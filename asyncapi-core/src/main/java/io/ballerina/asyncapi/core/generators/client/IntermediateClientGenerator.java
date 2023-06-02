@@ -94,6 +94,9 @@ import io.ballerina.compiler.syntax.tree.VariableDeclarationNode;
 import io.ballerina.tools.text.TextDocument;
 import io.ballerina.tools.text.TextDocuments;
 
+import java.net.MalformedURLException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.LinkedList;
@@ -222,6 +225,7 @@ import static io.ballerina.compiler.syntax.tree.SyntaxKind.FUNCTION_KEYWORD;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.GT_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.IF_KEYWORD;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.ISOLATED_KEYWORD;
+import static io.ballerina.compiler.syntax.tree.SyntaxKind.IS_KEYWORD;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.LT_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.MAP_KEYWORD;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.MATCH_KEYWORD;
@@ -561,7 +565,7 @@ public class IntermediateClientGenerator {
 
 
         IdentifierToken className = createIdentifierToken(stringClassName);
-        NodeList<Token> classTypeQualifiers = createNodeList(createToken(CLIENT_KEYWORD));
+        NodeList<Token> classTypeQualifiers = createNodeList(createToken(CLIENT_KEYWORD),createToken(ISOLATED_KEYWORD));
 
         return createClassDefinitionNode(metadataNode, createToken(PUBLIC_KEYWORD), classTypeQualifiers,
                 createToken(CLASS_KEYWORD), className, createToken(OPEN_BRACE_TOKEN),
@@ -592,7 +596,7 @@ public class IntermediateClientGenerator {
         FunctionBodyNode functionBodyNode = getStartMessageReadingFunctionBodyNode();
 
         //Create function name
-        NodeList<Token> qualifierList = createNodeList(createToken(PRIVATE_KEYWORD));
+        NodeList<Token> qualifierList = createNodeList(createToken(PRIVATE_KEYWORD),createToken(ISOLATED_KEYWORD));
         IdentifierToken functionName = createIdentifierToken(START_MESSAGE_READING);
 
         //Return function
@@ -714,7 +718,7 @@ public class IntermediateClientGenerator {
                 dispatcherStreamId, matchClauseNodes);
 
         //Create function name
-        NodeList<Token> qualifierList = createNodeList(createToken(PRIVATE_KEYWORD));
+        NodeList<Token> qualifierList = createNodeList(createToken(PRIVATE_KEYWORD),createToken(ISOLATED_KEYWORD));
         IdentifierToken functionName = createIdentifierToken(START_PIPE_TRIGGERING);
 
 
@@ -807,20 +811,20 @@ public class IntermediateClientGenerator {
                 equalToken, responseMessageId, semicolonToken);
 
 
-        //pipe:Pipe idPipe = check self.pipes[id].ensureType();
+        //pipe:Pipe idPipe = self.pipes.getPipe(id);
         QualifiedNameReferenceNode pipeTypeName = createQualifiedNameReferenceNode(createIdentifierToken(SIMPLE_PIPE),
                 createToken(COLON_TOKEN), createIdentifierToken(GeneratorConstants.CAPITAL_PIPE));
-        IndexedExpressionNode selfPipes = createIndexedExpressionNode(createFieldAccessExpressionNode(
+        FieldAccessExpressionNode selfPipes =createFieldAccessExpressionNode(
                         createSimpleNameReferenceNode(createIdentifierToken(SELF)), createToken(DOT_TOKEN),
-                        createSimpleNameReferenceNode(createIdentifierToken(PIPES))), openBracketToken,
-                createSeparatedNodeList(createSimpleNameReferenceNode(createIdentifierToken(dispatcherStreamId))),
-                closeBracketToken);
-        MethodCallExpressionNode methodCallExpressionNode = createMethodCallExpressionNode(selfPipes, dotToken,
-                createSimpleNameReferenceNode(createIdentifierToken(ENSURE_TYPE)),
-                openParanToken, createSeparatedNodeList(), closeParanToken);
+                        createSimpleNameReferenceNode(createIdentifierToken(PIPES)));
 
-        CheckExpressionNode selfPipeCheck = createCheckExpressionNode(null, createToken(CHECK_KEYWORD),
-                methodCallExpressionNode);
+        MethodCallExpressionNode methodCallExpressionNode = createMethodCallExpressionNode(selfPipes, dotToken,
+                createSimpleNameReferenceNode(createIdentifierToken("getPipe")),
+                openParanToken, createSeparatedNodeList( createSimpleNameReferenceNode(
+                        createIdentifierToken(dispatcherStreamId))), closeParanToken);
+
+//        CheckExpressionNode selfPipeCheck = createCheckExpressionNode(null, createToken(CHECK_KEYWORD),
+//                methodCallExpressionNode);
         SimpleNameReferenceNode responseTypePipeNode = createSimpleNameReferenceNode(createIdentifierToken(
                 dispatcherStreamId + "Pipe"));
         VariableDeclarationNode pipeTypeEnsureStatement = createVariableDeclarationNode(createEmptyNodeList(),
@@ -828,7 +832,7 @@ public class IntermediateClientGenerator {
                 createTypedBindingPatternNode(
                         pipeTypeName,
                         createFieldBindingPatternVarnameNode(responseTypePipeNode)),
-                equalToken, selfPipeCheck, semicolonToken);
+                equalToken, methodCallExpressionNode, semicolonToken);
 
         //check idPipe.produce(user, 5);
         List<Node> nodes = new ArrayList<>();
@@ -927,7 +931,7 @@ public class IntermediateClientGenerator {
 
         FunctionSignatureNode functionSignatureNode = getStartMessageWritingFunctionSignatureNode();
         FunctionBodyNode functionBodyNode = getStartMessageWritingFunctionBodyNode();
-        NodeList<Token> qualifierList = createNodeList(createToken(PRIVATE_KEYWORD));
+        NodeList<Token> qualifierList = createNodeList(createToken(PRIVATE_KEYWORD),createToken(ISOLATED_KEYWORD));
         IdentifierToken functionName = createIdentifierToken(START_MESSAGE_WRITING);
         return createFunctionDefinitionNode(null, getDocCommentsForWorker(X_BALLERINA_MESSAGE_WRITE_DESCRIPTION,
                         "Use to write messages to the websocket."), qualifierList,
@@ -1083,7 +1087,7 @@ public class IntermediateClientGenerator {
         FunctionSignatureNode functionSignatureNode = getInitFunctionSignatureNode(querySchema,
                 headerSchema);
         FunctionBodyNode functionBodyNode = getInitFunctionBodyNode(querySchema, headerSchema);
-        NodeList<Token> qualifierList = createNodeList(createToken(PUBLIC_KEYWORD));
+        NodeList<Token> qualifierList = createNodeList(createToken(PUBLIC_KEYWORD),createToken(ISOLATED_KEYWORD));
         IdentifierToken functionName = createIdentifierToken("init");
         return createFunctionDefinitionNode(null, getInitDocComment(), qualifierList,
                 createToken(FUNCTION_KEYWORD),
@@ -1109,13 +1113,23 @@ public class IntermediateClientGenerator {
         }
 
 
-        // create {@code self.pipes ={};} assignment node
+        // create {@code self.pipes =new ();} assignment node
+        List<Node> pipesArgumentsList = new ArrayList<>();
+        SeparatedNodeList<FunctionArgumentNode> pipesArguments = createSeparatedNodeList(pipesArgumentsList);
+        Token closeParenArg = createToken(CLOSE_PAREN_TOKEN);
+        Token openParenArg = createToken(OPEN_PAREN_TOKEN);
+        ParenthesizedArgList pipesParenthesizedArgList = createParenthesizedArgList(openParenArg,
+                pipesArguments,
+                closeParenArg);
+        ImplicitNewExpressionNode pipesExpressionNode = createImplicitNewExpressionNode(createToken(NEW_KEYWORD),
+                pipesParenthesizedArgList);
+
         FieldAccessExpressionNode selfPipes = createFieldAccessExpressionNode(
                 createSimpleNameReferenceNode(createIdentifierToken(SELF)), createToken(DOT_TOKEN),
                 createSimpleNameReferenceNode(createIdentifierToken("pipes")));
-        SimpleNameReferenceNode selfPipesValue = createSimpleNameReferenceNode(createIdentifierToken("{}"));
+//        SimpleNameReferenceNode selfPipesValue = createSimpleNameReferenceNode(createIdentifierToken("{}"));
         AssignmentStatementNode selfPipesAssignmentStatementNode = createAssignmentStatementNode(selfPipes,
-                createToken(EQUAL_TOKEN), selfPipesValue, createToken(SEMICOLON_TOKEN));
+                createToken(EQUAL_TOKEN), pipesExpressionNode, createToken(SEMICOLON_TOKEN));
         assignmentNodes.add(selfPipesAssignmentStatementNode);
 
 
@@ -1126,8 +1140,6 @@ public class IntermediateClientGenerator {
                 createSimpleNameReferenceNode(createIdentifierToken(WRITE_MESSAGE_QUEUE)));
         argumentsList.add(createIdentifierToken("1000"));
         SeparatedNodeList<FunctionArgumentNode> arguments = createSeparatedNodeList(argumentsList);
-        Token closeParenArg = createToken(CLOSE_PAREN_TOKEN);
-        Token openParenArg = createToken(OPEN_PAREN_TOKEN);
         ParenthesizedArgList parenthesizedArgList = createParenthesizedArgList(openParenArg,
                 arguments,
                 closeParenArg);
@@ -1525,8 +1537,9 @@ public class IntermediateClientGenerator {
         //private final map<pipe:Pipe> pipes;
         TypeParameterNode pipesTypeParamsNode = createTypeParameterNode(createToken(LT_TOKEN),
                 pipeTypeName, createToken(GT_TOKEN));
-        MapTypeDescriptorNode pipesTypeName = createMapTypeDescriptorNode(createToken(MAP_KEYWORD),
-                pipesTypeParamsNode);
+//        MapTypeDescriptorNode pipesTypeName = createMapTypeDescriptorNode(createToken(MAP_KEYWORD),
+//                pipesTypeParamsNode);
+        SimpleNameReferenceNode pipesTypeName= createSimpleNameReferenceNode(createIdentifierToken("PipesMap"));
 //        MetadataNode customHeadersMetadata = getMetadataNode("Custom headers, " +
 //                "which should be sent to the server");
         IdentifierToken pipesFieldName = createIdentifierToken(GeneratorConstants.PIPES);
@@ -1718,33 +1731,47 @@ public class IntermediateClientGenerator {
     /**
      * Generate serverUrl for client default value.
      */
-    private String getServerURL(AsyncApi25ServersImpl servers) {
+    private String getServerURL(AsyncApi25ServersImpl servers) throws BallerinaAsyncApiException {
 
 
         String serverURL;
-        List<AsyncApiServer> serversList = servers.getItems();
-        AsyncApi25ServerImpl selectedServer = (AsyncApi25ServerImpl) serversList.get(0);
-        if (!selectedServer.getUrl().startsWith("https:") && servers.getItems().size() > 1) {
-            for (AsyncApiServer server : serversList) {
-                if (server.getUrl().startsWith("https:")) {
-                    selectedServer = (AsyncApi25ServerImpl) server;
-                    break;
+        if(servers!=null) {
+            List<AsyncApiServer> serversList = servers.getItems();
+            AsyncApi25ServerImpl selectedServer = (AsyncApi25ServerImpl) serversList.get(0);
+            if (!selectedServer.getUrl().startsWith("wss:") && servers.getItems().size() > 1) {
+                for (AsyncApiServer server : serversList) {
+                    if (server.getUrl().startsWith("wss:")) {
+                        selectedServer = (AsyncApi25ServerImpl) server;
+                        break;
+                    }
                 }
             }
-        }
-        if (selectedServer.getUrl() == null) {
-            serverURL = "http://localhost:9090/v1";
-        } else if (selectedServer.getVariables() != null) {
-            Map<String, ServerVariable> variables = selectedServer.getVariables();
-            URL url;
-            String resolvedUrl = GeneratorUtils.buildUrl(selectedServer.getUrl(), variables);
-            //                url = new URL(resolvedUrl);
+            if (selectedServer.getUrl() == null) {
+                serverURL = "ws://localhost:9090/v1";
+            } else if (selectedServer.getVariables() != null) {
+                Map<String, ServerVariable> variables = selectedServer.getVariables();
+                URI url;
+                String resolvedUrl = GeneratorUtils.buildUrl(selectedServer.getUrl(), variables);
+
+                try {
+                    url = new URI(resolvedUrl);
+                } catch (URISyntaxException e) {
+                    throw new BallerinaAsyncApiException("Failed to read endpoint details of the server: " +
+                            selectedServer.getUrl(), e);
+                }
+                serverURL = url.toString();
+
+
 //                serverURL = url.toString();
-            serverURL = resolvedUrl;
-        } else {
-            serverURL = selectedServer.getUrl();
+                serverURL = resolvedUrl;
+            } else {
+                serverURL = selectedServer.getUrl();
+            }
+            return serverURL;
+        }else{
+            serverURL="/";
+            return serverURL;
         }
-        return serverURL;
     }
 
     /**

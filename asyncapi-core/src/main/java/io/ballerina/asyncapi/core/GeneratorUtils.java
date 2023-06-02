@@ -371,62 +371,8 @@ public class GeneratorUtils {
         }
         return document;
 
-//        ParseOptions parseOptions = new ParseOptions();
-//        parseOptions.setResolve(true);
-//        parseOptions.setFlatten(true);
-//        SwaggerParseResult parseResult = new OpenAPIParser().readContents(openAPIFileContent, null, parseOptions);
-//        if (!parseResult.getMessages().isEmpty()) {
-//            if (parseResult.getMessages().contains(UNSUPPORTED_OPENAPI_VERSION_PARSER_MESSAGE)) {
-//                throw new BallerinaOpenApiException(ErrorMessages.unsupportedOpenAPIVersion());
-//            }
-//            StringBuilder errorMessage = new StringBuilder("OpenAPI definition has errors: \n");
-//            for (String message : parseResult.getMessages()) {
-//                errorMessage.append(message).append(LINE_SEPARATOR);
-//            }
-//            throw new BallerinaOpenApiException(errorMessage.toString());
-//        }
-//        return parseResult.getOpenAPI();
     }
 
-//    /**
-//     * Check whether the given media type is currently supported in the tool.
-//     *
-//     * @param mediaTypeEntry
-//     * @return
-//     */
-//    public static boolean isSupportedMediaType(Map.Entry<String,
-//            io.swagger.v3.oas.models.media.MediaType> mediaTypeEntry) {
-//        String mediaType = mediaTypeEntry.getKey();
-//        String defaultBallerinaType = getBallerinaMediaType(mediaType, true);
-//        Schema<?> schema = mediaTypeEntry.getValue().getSchema();
-//
-//        boolean isValidMultipartFormData = mediaType.equals(MediaType.MULTIPART_FORM_DATA) && schema != null &&
-//                (schema.get$ref() != null || schema.getProperties() != null || schema.getType().equals(OBJECT));
-//
-//        if (defaultBallerinaType.equals(HTTP_REQUEST) && !isValidMultipartFormData) {
-//            return false;
-//        } else {
-//            return true;
-//        }
-//    }
-
-//    /**
-//     * Generate BallerinaMediaType for all the return mediaTypes.
-//     */
-//    public static String getBallerinaMediaType(String mediaType, boolean isRequest) {
-//        if (mediaType.matches(".*/json") || mediaType.matches("application/.*\\+json")) {
-//            return SyntaxKind.JSON_KEYWORD.stringValue();
-//        } else if (mediaType.matches(".*/xml") || mediaType.matches("application/.*\\+xml")) {
-//            return SyntaxKind.XML_KEYWORD.stringValue();
-//        } else if (mediaType.equals(MediaType.APPLICATION_FORM_URLENCODED) || mediaType.matches("text/.*")) {
-//            return STRING_KEYWORD.stringValue();
-//        } else if (mediaType.equals(MediaType.APPLICATION_OCTET_STREAM) ||
-//                mediaType.equals(IMAGE_PNG) || mediaType.matches("application/.*\\+octet-stream")) {
-//            return SyntaxKind.BYTE_KEYWORD.stringValue() + SQUARE_BRACKETS;
-//        } else {
-//            return isRequest ? HTTP_REQUEST : HTTP_RESPONSE;
-//        }
-//    }
 
     /*
      * Generate variableDeclarationNode.
@@ -674,27 +620,30 @@ public class GeneratorUtils {
     public static AsyncApi25DocumentImpl normalizeAsyncAPI(Path asyncAPIPath) throws IOException,
             BallerinaAsyncApiException {
         AsyncApi25DocumentImpl asyncAPI = getAsyncAPIFromAsyncAPIParser(asyncAPIPath);
+        //TODO: have to add a asyncapi validator to here
 
-        if (asyncAPI.getComponents() != null) {
-            AsyncApi25ComponentsImpl components = (AsyncApi25ComponentsImpl) asyncAPI.getComponents();
-
-            if (components.getSchemas() != null) {
-                Map<String, Schema> componentsSchemas = components.getSchemas();
-                //Remove unnecessary characters from the schema name
-                for (Map.Entry<String, Schema> schemaEntry : componentsSchemas.entrySet()) {
-                    // Remove default name
-                    components.removeSchema(schemaEntry.getKey());
-                    // Refactor schema name with valid name
-                    String name = getValidName(schemaEntry.getKey(), true);
-                    components.addSchema(name, schemaEntry.getValue());
-                }
-                asyncAPI.setComponents(components);
-            } else {
-                throw new BallerinaAsyncApiException("Schemas section missing");
-            }
-        } else {
-            throw new BallerinaAsyncApiException("Components section missing");
-        }
+        //TODO: throw this exception when creating remote functions
+//        if (asyncAPI.getComponents() != null) {
+//            AsyncApi25ComponentsImpl components = (AsyncApi25ComponentsImpl) asyncAPI.getComponents();
+//
+//            if (components.getSchemas() != null) {
+//                Map<String, Schema> componentsSchemas = components.getSchemas();
+//                //Remove unnecessary characters from the schema name
+//                for (Map.Entry<String, Schema> schemaEntry : componentsSchemas.entrySet()) {
+//                    // Remove default name
+//
+//                    components.removeSchema(schemaEntry.getKey());
+//                    // Refactor schema name with valid name
+//                    String name = getValidName(schemaEntry.getKey(), true);
+//                    components.addSchema(name, schemaEntry.getValue());
+//                }
+//                asyncAPI.setComponents(components);
+//            } else {
+//                throw new BallerinaAsyncApiException("Schemas section missing");
+//            }
+//        } else {
+//            throw new BallerinaAsyncApiException("Components section missing");
+//        }
         return asyncAPI;
     }
 
