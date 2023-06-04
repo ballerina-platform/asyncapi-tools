@@ -1,96 +1,94 @@
-openapi: "3.0.1"
-
+asyncapi: 2.5.0
 info:
-  title: "OpenWeather Map API for Query parameter"
-  description: "Get current weather, daily forecast for 16 days, and 3-hourly forecast 5 days for your city."
-  version: "2.5.2"
-  x-ballerina-display:
-    label: Open Weather Client
-
+  title: PayloadV
+  version: 0.0.0
 servers:
-  - url: "http://api.openweathermap.org/data/2.5/"
-
-paths:
-  /onecall:
-    get:
-      tags:
-        - Weather Forecast
-      summary: "Provide weather forecast for any geographical coordinates"
-      description: "test"
-      operationId: getWeatherForecast
-      parameters:
-        - description: "Latitude"
-          in: query
-          name: lat
-          required: true
-          schema:
-            type: string
-          x-ballerina-display:
-            label: Latitude
-        - description: "Longtitude"
-          in: query
-          name: lon
-          required: true
-          schema:
-            type: string
-          x-ballerina-display:
-            label: Longtitude
-        - description: "test"
-          in: header
-          name: exclude
-          required: false
-          schema:
-            type: string
-            default: 'current'
-          x-ballerina-display:
-            label: Exclude
-        - description: 'tests'
-          in: header
-          name: units
-          required: false
-          schema:
-            type: integer
-            default: 12
-          x-ballerina-display:
-            label: Units
-      x-ballerina-display:
-        label: "Weather Forecast"
-      responses:
-        200:
-          description: Successful response
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/WeatherForecast'
-        404:
-          description: Not found response
-          content:
-            text/plain:
-              schema:
-                title: Weather not found
-                type: string
-                example: Not found
-
-security:
-  - app_id: []
-
-tags:
-  - name: Current Weather Data
-    description: "Get current weather details"
-  - name: Weather Forecast
-    description: "Get data related to weather forecast"
+  development:
+    url: "{server}:{port}/payloadV"
+    protocol: ws
+    protocolVersion: "13"
+    variables:
+      server:
+        default: ws://localhost
+      port:
+        default: "9090"
+channels:
+  /v1:
+    subscribe:
+      message:
+        $ref: '#/components/messages/UnSubscribe'
+    publish:
+      message:
+        $ref: '#/components/messages/Subscribe'
+    bindings:
+      ws:
+        bindingVersion: 0.1.0
+        headers:
+          type: object
+          description: header params
+          properties:
+            offset:
+              type: integer
+              description: "offset"
+              default: 5
+            lat:
+              type: string
+              description: "Latitude"
+              default: "78'08"
+            lon:
+              type: string
+              description: 'Longtitude'
+              default: "90'78"
+            exclude:
+              type: string
+              description: 'exclude'
+              default: "56'89"
+            units:
+              type: integer
+              default: 12
+              description: 'units description'
 components:
   schemas:
-    WeatherForecast:
+    Subscribe:
       type: object
+      required:
+        - id
+        - event
       properties:
-        lat:
-          type: number
-        lon:
-          type: number
-  securitySchemes:
-    app_id:
-      type: apiKey
-      description: API key.
-      name: appid
-      in: query
+        id:
+          type: string
+          format: int64
+        event:
+          type: string
+          const: Subscribe
+    UnSubscribe:
+      type: object
+      required:
+        - type
+      properties:
+        type:
+          type: string
+          const: UnSubscribe
+        payload:
+          type: object
+          additionalProperties: true
+  messages:
+    UnSubscribe:
+      payload:
+        $ref: '#/components/schemas/UnSubscribe'
+    Subscribe:
+      payload:
+        $ref: '#/components/schemas/Subscribe'
+        description: subscribe description
+      x-response:
+        $ref: '#/components/messages/UnSubscribe'
+        description: unsubscribe description
+      description: remote description
+      x-response-type: simple-rpc
+x-dispatcherKey: event
+x-dispatcherStreamId: id
+
+
+
+
+

@@ -13,22 +13,35 @@ servers:
       port:
         default: "9090"
 channels:
-  /v1/{version}/version-name/{version-name}:
+  /v1:
     subscribe:
       message:
         $ref: '#/components/messages/UnSubscribe'
     publish:
       message:
         $ref: '#/components/messages/Subscribe'
-    parameters:
-      version:
-        schema:
-          type: integer
-        description: Version Id
-      version-name:
-        schema:
-          type: string
-        description: Version Name
+    bindings:
+      ws:
+        bindingVersion: 0.1.0
+        query:
+          type: object
+          description: query params
+          properties:
+            offset:
+              type: boolean
+              description: "Offset"
+            lat:
+              type: string
+              description: "Latitude"
+            lon:
+              type: string
+              description: "Longtitude"
+            exclude:
+              type: string
+              description: 'exclude'
+            units:
+              type: integer
+              description: 'units description'
 components:
   schemas:
     Subscribe:
@@ -61,8 +74,15 @@ components:
     Subscribe:
       payload:
         $ref: '#/components/schemas/Subscribe'
+        description: subscribe description
       x-response:
         $ref: '#/components/messages/UnSubscribe'
+        description: unsubscribe description
+      description: remote description
       x-response-type: simple-rpc
 x-dispatcherKey: event
 x-dispatcherStreamId: id
+
+
+
+

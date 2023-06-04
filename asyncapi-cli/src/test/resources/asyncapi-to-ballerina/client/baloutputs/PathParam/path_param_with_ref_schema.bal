@@ -1,3 +1,6 @@
+# Path parameters as a record
+#
+# + id - Unique identification of location
 public type PathParams record {|
     Id id;
 |};
@@ -18,7 +21,7 @@ public type Subscribe record {
 
 public type Id int;
 
-public type PongMessage record {
+public type UnSubscribe record {
     string 'type;
     map<json> payload?;
 };

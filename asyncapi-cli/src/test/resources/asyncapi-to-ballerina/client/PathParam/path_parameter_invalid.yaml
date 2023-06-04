@@ -1,45 +1,70 @@
-openapi: 3.0.1
+asyncapi: 2.5.0
 info:
-  title: ' payloadV'
-  version: 1.0.0
+  title: PayloadV
+  version: 0.0.0
 servers:
-  - url: localhost:9090/payloadV
-paths:
-  /:
-    get:
-      operationId: operationId01
-      responses:
-        "200":
-          description: Ok
-          content:
-            text/plain:
-              schema:
-                type: string
-    post:
-      operationId: operationId02
-      responses:
-        "200":
-          description: Ok
-          content:
-            text/plain:
-              schema:
-                type: string
-  /v1/{id}:
-    get:
-      operationId: "op2"
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: array
-            items:
-              type: integer
-      responses:
-        "200":
-          description: Ok
-          content:
-            text/plain:
-              schema:
-                type: string
-components: {}
+  development:
+    url: "{server}:{port}/payloadV"
+    protocol: ws
+    protocolVersion: "13"
+    variables:
+      server:
+        default: ws://localhost
+      port:
+        default: "9090"
+channels:
+  /locations/{id}/rooms:
+    description: Reperesents Snowpeak room collection resource
+    subscribe:
+      message:
+        $ref: '#/components/messages/UnSubscribe'
+    publish:
+      message:
+        $ref: '#/components/messages/Subscribe'
+    parameters:
+      id:
+        description: Unique identification of location
+        schema:
+          type: array
+          items:
+            type: integer
+components:
+  schemas:
+    Subscribe:
+      type: object
+      required:
+        - id
+        - event
+      properties:
+        id:
+          type: string
+          format: int64
+        event:
+          type: string
+          const: Subscribe
+    UnSubscribe:
+      type: object
+      required:
+        - type
+      properties:
+        type:
+          type: string
+          const: UnSubscribe
+        payload:
+          type: object
+          additionalProperties: true
+  messages:
+    UnSubscribe:
+      payload:
+        $ref: '#/components/schemas/UnSubscribe'
+    Subscribe:
+      payload:
+        $ref: '#/components/schemas/Subscribe'
+      x-response:
+        $ref: '#/components/messages/UnSubscribe'
+      x-response-type: simple-rpc
+x-dispatcherKey: event
+x-dispatcherStreamId: id
+
+
+

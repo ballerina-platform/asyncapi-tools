@@ -2,13 +2,13 @@
 #
 public type HeaderParams record {|
     # offset
-    int offset = 5;
+    int offset;
     # Latitude
-    string lat = "78'08";
+    string lat;
     # Longtitude
-    string lon = "90'78";
+    string lon;
     # exclude
-    string exclude = "56'89";
+    string exclude;
     # units description
     int units = 12;
 |};

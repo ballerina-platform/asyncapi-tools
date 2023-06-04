@@ -22,7 +22,9 @@ import io.ballerina.asyncapi.core.GeneratorUtils;
 import io.ballerina.asyncapi.core.exception.BallerinaAsyncApiException;
 import io.ballerina.asyncapi.core.generators.client.IntermediateClientGenerator;
 import io.ballerina.asyncapi.core.generators.client.model.AASClientConfig;
+import io.ballerina.asyncapi.core.generators.schema.BallerinaTypesGenerator;
 import io.ballerina.compiler.syntax.tree.SyntaxTree;
+import io.ballerina.compiler.syntax.tree.TypeDefinitionNode;
 import org.testng.annotations.Test;
 
 import java.io.IOException;
@@ -38,79 +40,94 @@ import static io.ballerina.asyncapi.generators.common.TestUtils.compareGenerated
  * This tests class for the tests Query parameters in swagger file.
  */
 public class QueryParameterTests {
-    private static final Path RES_DIR = Paths.get("src/test/resources/generators/client").toAbsolutePath();
-    List<String> list1 = new ArrayList<>();
-    List<String> list2 = new ArrayList<>();
+    private static final Path RES_DIR = Paths.get("src/test/resources/asyncapi-to-ballerina/client").toAbsolutePath();
+
     SyntaxTree syntaxTree;
 
     @Test(description = "Generate Client for query parameter has default value")
     public void generateQueryParamWithDefault() throws IOException, BallerinaAsyncApiException {
-        Path definitionPath = RES_DIR.resolve("swagger/query_param_with_default_value.yaml");
-        Path expectedPath = RES_DIR.resolve("ballerina/query_param_with_default_value.bal");
+        Path definitionPath = RES_DIR.resolve("QueryParam/query_param_with_default_value.yaml");
+        Path expectedPath = RES_DIR.resolve("baloutputs/QueryParam/query_param_with_default_value.bal");
 
-        AsyncApi25DocumentImpl openAPI = GeneratorUtils.normalizeAsyncAPI(definitionPath);
+        AsyncApi25DocumentImpl asyncAPI = GeneratorUtils.normalizeAsyncAPI(definitionPath);
         AASClientConfig.Builder clientMetaDataBuilder = new AASClientConfig.Builder();
         AASClientConfig oasClientConfig = clientMetaDataBuilder
-                .withAsyncAPI(openAPI).build();
+                .withAsyncAPI(asyncAPI).build();
         IntermediateClientGenerator intermediateClientGenerator = new IntermediateClientGenerator(oasClientConfig);
         syntaxTree = intermediateClientGenerator.generateSyntaxTree();
-        compareGeneratedSyntaxTreeWithExpectedSyntaxTree(expectedPath, syntaxTree);
+        List<TypeDefinitionNode> preGeneratedTypeDefNodes = new ArrayList<>(
+                intermediateClientGenerator.getBallerinaAuthConfigGenerator().getAuthRelatedTypeDefinitionNodes());
+        preGeneratedTypeDefNodes.addAll(intermediateClientGenerator.getTypeDefinitionNodeList());
+
+        //Generate ballerina records to represent schemas in client intermediate code
+        BallerinaTypesGenerator ballerinaSchemaGenerator = new BallerinaTypesGenerator(
+                asyncAPI, preGeneratedTypeDefNodes);
+
+        SyntaxTree schemaSyntaxTree = ballerinaSchemaGenerator.generateSyntaxTree();
+        compareGeneratedSyntaxTreeWithExpectedSyntaxTree(expectedPath, schemaSyntaxTree);
     }
 
     @Test(description = "Generate Client for query parameter without default value")
     public void generateQueryParamWithOutDefault() throws IOException, BallerinaAsyncApiException {
-        Path definitionPath = RES_DIR.resolve("swagger/query_param_without_default_value.yaml");
-        Path expectedPath = RES_DIR.resolve("ballerina/query_param_without_default_value.bal");
+        Path definitionPath = RES_DIR.resolve("QueryParam/query_param_without_default_value.yaml");
+        Path expectedPath = RES_DIR.resolve("baloutputs/QueryParam/query_param_without_default_value.bal");
 
-        AsyncApi25DocumentImpl openAPI = GeneratorUtils.normalizeAsyncAPI(definitionPath);
+        AsyncApi25DocumentImpl asyncAPI = GeneratorUtils.normalizeAsyncAPI(definitionPath);
         AASClientConfig.Builder clientMetaDataBuilder = new AASClientConfig.Builder();
         AASClientConfig oasClientConfig = clientMetaDataBuilder
-                .withAsyncAPI(openAPI).build();
+                .withAsyncAPI(asyncAPI).build();
         IntermediateClientGenerator intermediateClientGenerator = new IntermediateClientGenerator(oasClientConfig);
         syntaxTree = intermediateClientGenerator.generateSyntaxTree();
-        compareGeneratedSyntaxTreeWithExpectedSyntaxTree(expectedPath, syntaxTree);
+        List<TypeDefinitionNode> preGeneratedTypeDefNodes = new ArrayList<>(
+                intermediateClientGenerator.getBallerinaAuthConfigGenerator().getAuthRelatedTypeDefinitionNodes());
+        preGeneratedTypeDefNodes.addAll(intermediateClientGenerator.getTypeDefinitionNodeList());
+
+        //Generate ballerina records to represent schemas in client intermediate code
+        BallerinaTypesGenerator ballerinaSchemaGenerator = new BallerinaTypesGenerator(
+                asyncAPI, preGeneratedTypeDefNodes);
+
+        SyntaxTree schemaSyntaxTree = ballerinaSchemaGenerator.generateSyntaxTree();
+        compareGeneratedSyntaxTreeWithExpectedSyntaxTree(expectedPath, schemaSyntaxTree);
     }
 
     @Test(description = "Generate Client for query parameter with referenced schema")
     public void generateQueryParamWithReferencedSchema() throws IOException, BallerinaAsyncApiException {
-        Path definitionPath = RES_DIR.resolve("swagger/query_param_with_ref_schema.yaml");
-        Path expectedPath = RES_DIR.resolve("ballerina/query_param_with_ref_schema.bal");
+        Path definitionPath = RES_DIR.resolve("QueryParam/query_param_with_ref_schema.yaml");
+        Path expectedPath = RES_DIR.resolve("baloutputs/QueryParam/query_param_with_ref_schema.bal");
 
-        AsyncApi25DocumentImpl openAPI = GeneratorUtils.normalizeAsyncAPI(definitionPath);
+        AsyncApi25DocumentImpl asyncAPI = GeneratorUtils.normalizeAsyncAPI(definitionPath);
         AASClientConfig.Builder clientMetaDataBuilder = new AASClientConfig.Builder();
         AASClientConfig oasClientConfig = clientMetaDataBuilder
-                .withAsyncAPI(openAPI).build();
+                .withAsyncAPI(asyncAPI).build();
         IntermediateClientGenerator intermediateClientGenerator = new IntermediateClientGenerator(oasClientConfig);
         syntaxTree = intermediateClientGenerator.generateSyntaxTree();
-        compareGeneratedSyntaxTreeWithExpectedSyntaxTree(expectedPath, syntaxTree);
+        List<TypeDefinitionNode> preGeneratedTypeDefNodes = new ArrayList<>(
+                intermediateClientGenerator.getBallerinaAuthConfigGenerator().getAuthRelatedTypeDefinitionNodes());
+        preGeneratedTypeDefNodes.addAll(intermediateClientGenerator.getTypeDefinitionNodeList());
+
+        //Generate ballerina records to represent schemas in client intermediate code
+        BallerinaTypesGenerator ballerinaSchemaGenerator = new BallerinaTypesGenerator(
+                asyncAPI, preGeneratedTypeDefNodes);
+
+        SyntaxTree schemaSyntaxTree = ballerinaSchemaGenerator.generateSyntaxTree();
+        compareGeneratedSyntaxTreeWithExpectedSyntaxTree(expectedPath, schemaSyntaxTree);
     }
 
-    @Test(description = "Generate query parameters when both apikeys and http/OAuth is supported")
-    public void genQueryParamsForCombinationOfApiKeyAndHTTPOrOAuth() throws IOException, BallerinaAsyncApiException {
-        Path definitionPath = RES_DIR.resolve("swagger/combination_of_apikey_and_http_oauth.yaml");
-        Path expectedPath = RES_DIR.resolve("ballerina/combination_of_apikey_and_http_oauth.bal");
+    //TODO: Uncomment after adding apikeys and http/oAuth support
+//    @Test(description = "Generate query parameters when both apikeys and http/OAuth is supported")
+//    public void genQueryParamsForCombinationOfApiKeyAndHTTPOrOAuth() throws IOException, BallerinaAsyncApiException {
+//        Path definitionPath = RES_DIR.resolve("QueryParam/query_param_combination_of_apikey_and_http_oauth.yaml");
+//        Path expectedPath = RES_DIR.resolve("baloutputs/QueryParam/combination_of_apikey_and_http_oauth.bal");
+//
+//        AsyncApi25DocumentImpl asyncAPI = GeneratorUtils.normalizeAsyncAPI(definitionPath);
+//        AASClientConfig.Builder clientMetaDataBuilder = new AASClientConfig.Builder();
+//        AASClientConfig oasClientConfig = clientMetaDataBuilder
+//                .withAsyncAPI(asyncAPI).build();
+//        IntermediateClientGenerator intermediateClientGenerator = new IntermediateClientGenerator(oasClientConfig);
+//        syntaxTree = intermediateClientGenerator.generateSyntaxTree();
+//        compareGeneratedSyntaxTreeWithExpectedSyntaxTree(expectedPath, syntaxTree);
+//    }
 
-        AsyncApi25DocumentImpl openAPI = GeneratorUtils.normalizeAsyncAPI(definitionPath);
-        AASClientConfig.Builder clientMetaDataBuilder = new AASClientConfig.Builder();
-        AASClientConfig oasClientConfig = clientMetaDataBuilder
-                .withAsyncAPI(openAPI).build();
-        IntermediateClientGenerator intermediateClientGenerator = new IntermediateClientGenerator(oasClientConfig);
-        syntaxTree = intermediateClientGenerator.generateSyntaxTree();
-        compareGeneratedSyntaxTreeWithExpectedSyntaxTree(expectedPath, syntaxTree);
-    }
 
-    @Test(description = "Generate encoding map for query parameters")
-    public void genQueryParamEncodingMap() throws IOException, BallerinaAsyncApiException {
-        Path definitionPath = RES_DIR.resolve("swagger/queryparam_encoding_map_gen.yaml");
-        Path expectedPath = RES_DIR.resolve("ballerina/queryparam_encoding_map_gen.bal");
-
-        AsyncApi25DocumentImpl openAPI = GeneratorUtils.normalizeAsyncAPI(definitionPath);
-        AASClientConfig.Builder clientMetaDataBuilder = new AASClientConfig.Builder();
-        AASClientConfig oasClientConfig = clientMetaDataBuilder
-                .withAsyncAPI(openAPI).build();
-        IntermediateClientGenerator intermediateClientGenerator = new IntermediateClientGenerator(oasClientConfig);
-        syntaxTree = intermediateClientGenerator.generateSyntaxTree();
-        compareGeneratedSyntaxTreeWithExpectedSyntaxTree(expectedPath, syntaxTree);
-    }
 
 }

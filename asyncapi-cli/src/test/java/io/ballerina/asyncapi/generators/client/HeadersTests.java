@@ -22,7 +22,9 @@ import io.ballerina.asyncapi.core.GeneratorUtils;
 import io.ballerina.asyncapi.core.exception.BallerinaAsyncApiException;
 import io.ballerina.asyncapi.core.generators.client.IntermediateClientGenerator;
 import io.ballerina.asyncapi.core.generators.client.model.AASClientConfig;
+import io.ballerina.asyncapi.core.generators.schema.BallerinaTypesGenerator;
 import io.ballerina.compiler.syntax.tree.SyntaxTree;
+import io.ballerina.compiler.syntax.tree.TypeDefinitionNode;
 import org.testng.annotations.Test;
 
 import java.io.IOException;
@@ -38,73 +40,87 @@ import static io.ballerina.asyncapi.generators.common.TestUtils.compareGenerated
  * All the tests related to the Header sections in the swagger file.
  */
 public class HeadersTests {
-    private static final Path RES_DIR = Paths.get("src/test/resources/generators/client").toAbsolutePath();
-    List<String> list1 = new ArrayList<>();
-    List<String> list2 = new ArrayList<>();
+    private static final Path RES_DIR = Paths.get("src/test/resources/asyncapi-to-ballerina/client").toAbsolutePath();
     private SyntaxTree syntaxTree;
 
     @Test(description = "Test for header that comes under the parameter section")
     public void getHeaderTests() throws IOException, BallerinaAsyncApiException {
-        Path definitionPath = RES_DIR.resolve("swagger/header_parameter.yaml");
-        Path expectedPath = RES_DIR.resolve("ballerina/header_parameter.bal");
-        AsyncApi25DocumentImpl openAPI = GeneratorUtils.normalizeAsyncAPI(definitionPath);
+        Path definitionPath = RES_DIR.resolve("HeaderParam/header_parameter.yaml");
+        Path expectedPathForTypes = RES_DIR.resolve("baloutputs/HeaderParam/header_parameter_types.bal");
+        Path expectedPathForClient = RES_DIR.resolve("baloutputs/HeaderParam/header_parameter_client.bal");
+        Path expectedPathForUtils = RES_DIR.resolve("baloutputs/HeaderParam/header_parameter_utils.bal");
+        AsyncApi25DocumentImpl asyncAPI = GeneratorUtils.normalizeAsyncAPI(definitionPath);
         AASClientConfig.Builder clientMetaDataBuilder = new AASClientConfig.Builder();
         AASClientConfig oasClientConfig = clientMetaDataBuilder
-                .withAsyncAPI(openAPI).build();
+                .withAsyncAPI(asyncAPI).build();
         IntermediateClientGenerator intermediateClientGenerator = new IntermediateClientGenerator(oasClientConfig);
         syntaxTree = intermediateClientGenerator.generateSyntaxTree();
-        compareGeneratedSyntaxTreeWithExpectedSyntaxTree(expectedPath, syntaxTree);
+        SyntaxTree utilsSyntaxTree=intermediateClientGenerator.getBallerinaUtilGenerator().generateUtilSyntaxTree();
+        List<TypeDefinitionNode> preGeneratedTypeDefNodes = new ArrayList<>(
+                intermediateClientGenerator.getBallerinaAuthConfigGenerator().getAuthRelatedTypeDefinitionNodes());
+        preGeneratedTypeDefNodes.addAll(intermediateClientGenerator.getTypeDefinitionNodeList());
+
+        //Generate ballerina records to represent schemas in client intermediate code
+        BallerinaTypesGenerator ballerinaSchemaGenerator = new BallerinaTypesGenerator(
+                asyncAPI, preGeneratedTypeDefNodes);
+
+        SyntaxTree schemaSyntaxTree = ballerinaSchemaGenerator.generateSyntaxTree();
+
+        compareGeneratedSyntaxTreeWithExpectedSyntaxTree(expectedPathForClient, syntaxTree);
+        compareGeneratedSyntaxTreeWithExpectedSyntaxTree(expectedPathForUtils, utilsSyntaxTree);
+        compareGeneratedSyntaxTreeWithExpectedSyntaxTree(expectedPathForTypes, schemaSyntaxTree);
     }
 
-    @Test(description = "Test for header that comes under the parameter section")
-    public void getHeaderTestsWithoutParameter() throws IOException, BallerinaAsyncApiException {
-        Path definitionPath = RES_DIR.resolve("swagger/header_without_parameter.yaml");
-        Path expectedPath = RES_DIR.resolve("ballerina/header_without_parameter.bal");
-        AsyncApi25DocumentImpl openAPI = GeneratorUtils.normalizeAsyncAPI(definitionPath);
-        AASClientConfig.Builder clientMetaDataBuilder = new AASClientConfig.Builder();
-        AASClientConfig oasClientConfig = clientMetaDataBuilder
-                .withAsyncAPI(openAPI).build();
-        IntermediateClientGenerator intermediateClientGenerator = new IntermediateClientGenerator(oasClientConfig);
-        syntaxTree = intermediateClientGenerator.generateSyntaxTree();
-        compareGeneratedSyntaxTreeWithExpectedSyntaxTree(expectedPath, syntaxTree);
-    }
+    //TODO: uncomment after add the capable of sending apikey as a header
+//    @Test(description = "Test for header that comes under the parameter section")
+//    public void getHeaderTestsWithoutParameter() throws IOException, BallerinaAsyncApiException {
+//        Path definitionPath = RES_DIR.resolve("HeaderParam/header_without_parameter.yaml");
+//        Path expectedPath = RES_DIR.resolve("baloutputs/HeaderParam/header_without_parameter.bal");
+//        AsyncApi25DocumentImpl asyncAPI = GeneratorUtils.normalizeAsyncAPI(definitionPath);
+//        AASClientConfig.Builder clientMetaDataBuilder = new AASClientConfig.Builder();
+//        AASClientConfig oasClientConfig = clientMetaDataBuilder
+//                .withAsyncAPI(asyncAPI).build();
+//        IntermediateClientGenerator intermediateClientGenerator = new IntermediateClientGenerator(oasClientConfig);
+//        syntaxTree = intermediateClientGenerator.generateSyntaxTree();
+//        compareGeneratedSyntaxTreeWithExpectedSyntaxTree(expectedPath, syntaxTree);
+//    }
+
 
     @Test(description = "Test for header with default values")
     public void getHeaderTestsWithDefaultValues() throws IOException, BallerinaAsyncApiException {
-        Path definitionPath = RES_DIR.resolve("swagger/header_param_with_default_value.yaml");
-        Path expectedPath = RES_DIR.resolve("ballerina/header_param_with_default_value.bal");
-        AsyncApi25DocumentImpl openAPI = GeneratorUtils.normalizeAsyncAPI(definitionPath);
+        Path definitionPath = RES_DIR.resolve("HeaderParam/header_param_with_default_value.yaml");
+        Path expectedPath = RES_DIR.resolve("baloutputs/HeaderParam/header_param_with_default_value.bal");
+        AsyncApi25DocumentImpl asyncAPI = GeneratorUtils.normalizeAsyncAPI(definitionPath);
         AASClientConfig.Builder clientMetaDataBuilder = new AASClientConfig.Builder();
         AASClientConfig oasClientConfig = clientMetaDataBuilder
-                .withAsyncAPI(openAPI).build();
+                .withAsyncAPI(asyncAPI).build();
         IntermediateClientGenerator intermediateClientGenerator = new IntermediateClientGenerator(oasClientConfig);
         syntaxTree = intermediateClientGenerator.generateSyntaxTree();
-        compareGeneratedSyntaxTreeWithExpectedSyntaxTree(expectedPath, syntaxTree);
+        List<TypeDefinitionNode> preGeneratedTypeDefNodes = new ArrayList<>(
+                intermediateClientGenerator.getBallerinaAuthConfigGenerator().getAuthRelatedTypeDefinitionNodes());
+        preGeneratedTypeDefNodes.addAll(intermediateClientGenerator.getTypeDefinitionNodeList());
+
+        //Generate ballerina records to represent schemas in client intermediate code
+        BallerinaTypesGenerator ballerinaSchemaGenerator = new BallerinaTypesGenerator(
+                asyncAPI, preGeneratedTypeDefNodes);
+
+        SyntaxTree schemaSyntaxTree = ballerinaSchemaGenerator.generateSyntaxTree();
+
+        compareGeneratedSyntaxTreeWithExpectedSyntaxTree(expectedPath, schemaSyntaxTree);
     }
 
     @Test(description = "Test for optional headers without default values")
     public void getOptionalHeaderTestsWithoutDefaultValues() throws IOException, BallerinaAsyncApiException {
-        Path definitionPath = RES_DIR.resolve("swagger/header_optional.yaml");
-        Path expectedPath = RES_DIR.resolve("ballerina/header_optional.bal");
-        AsyncApi25DocumentImpl openAPI = GeneratorUtils.normalizeAsyncAPI(definitionPath);
+        Path definitionPath = RES_DIR.resolve("HeaderParam/header_with_query.yaml");
+        Path expectedPath = RES_DIR.resolve("baloutputs/HeaderParam/header_with_query.bal");
+        AsyncApi25DocumentImpl asyncAPI = GeneratorUtils.normalizeAsyncAPI(definitionPath);
         AASClientConfig.Builder clientMetaDataBuilder = new AASClientConfig.Builder();
         AASClientConfig oasClientConfig = clientMetaDataBuilder
-                .withAsyncAPI(openAPI).build();
+                .withAsyncAPI(asyncAPI).build();
         IntermediateClientGenerator intermediateClientGenerator = new IntermediateClientGenerator(oasClientConfig);
         syntaxTree = intermediateClientGenerator.generateSyntaxTree();
         compareGeneratedSyntaxTreeWithExpectedSyntaxTree(expectedPath, syntaxTree);
     }
 
-    @Test(description = "Test for headers with delete values")
-    public void getHeaderWithDeleteOperation() throws IOException, BallerinaAsyncApiException {
-        Path definitionPath = RES_DIR.resolve("swagger/delete_with_header.yaml");
-        Path expectedPath = RES_DIR.resolve("ballerina/delete_with_header.bal");
-        AsyncApi25DocumentImpl openAPI = GeneratorUtils.normalizeAsyncAPI(definitionPath);
-        AASClientConfig.Builder clientMetaDataBuilder = new AASClientConfig.Builder();
-        AASClientConfig oasClientConfig = clientMetaDataBuilder
-                .withAsyncAPI(openAPI).build();
-        IntermediateClientGenerator intermediateClientGenerator = new IntermediateClientGenerator(oasClientConfig);
-        syntaxTree = intermediateClientGenerator.generateSyntaxTree();
-        compareGeneratedSyntaxTreeWithExpectedSyntaxTree(expectedPath, syntaxTree);
-    }
+
 }

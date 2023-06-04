@@ -94,8 +94,11 @@ public class TypeGeneratorUtils {
      * @return Relevant SchemaType object
      */
     public static TypeGenerator getTypeGenerator(AsyncApi25SchemaImpl schemaValue, String typeName,
-                                                 String parentName) {
+                                                 String parentName) throws BallerinaAsyncApiException {
+        if (schemaValue.getType()!=null){
+            GeneratorUtils.convertAsyncAPITypeToBallerina(schemaValue.getType());
 
+        }
         if (schemaValue.get$ref() != null) {
             return new ReferencedTypeGenerator(schemaValue, typeName);
 
@@ -136,6 +139,7 @@ public class TypeGeneratorUtils {
         } else if (schemaValue.getType() != null && primitiveTypeList.contains(schemaValue.getType())) {
             return new PrimitiveTypeGenerator(schemaValue, typeName);
         } else { // when schemaValue.type == null
+
             return new AnyDataTypeGenerator(schemaValue, typeName);
         }
     }

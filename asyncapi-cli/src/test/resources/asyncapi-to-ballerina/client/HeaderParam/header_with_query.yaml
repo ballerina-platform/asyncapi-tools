@@ -23,6 +23,26 @@ channels:
     bindings:
       ws:
         bindingVersion: 0.1.0
+        query:
+          type: object
+          description: header params
+          properties:
+            offset:
+              type: integer
+              description: "offset"
+            lat:
+              type: string
+              description: "Latitude"
+            lon:
+              type: string
+              description: 'Longtitude'
+            exclude:
+              type: string
+              description: 'exclude'
+            units:
+              type: integer
+              default: 12
+              description: 'units description'
         headers:
           type: object
           description: header params

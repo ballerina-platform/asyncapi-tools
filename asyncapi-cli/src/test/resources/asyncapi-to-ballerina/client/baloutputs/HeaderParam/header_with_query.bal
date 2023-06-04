@@ -3,7 +3,7 @@ import nuvindu/pipe;
 import ballerina/lang.runtime;
 import ballerina/uuid;
 
-public client isolated class PayloadVv1versionversionnameversionnameClient {
+public client isolated class PayloadVv1Client {
     private final websocket:Client clientEp;
     private final pipe:Pipe writeMessageQueue;
     private final pipe:Pipe readMessageQueue;
@@ -13,12 +13,18 @@ public client isolated class PayloadVv1versionversionnameversionnameClient {
     # + config - The configurations to be used when initializing the `connector`
     # + serviceUrl - URL of the target service
     # + return - An error if connector initialization failed
-    # + pathParams - path parameters
-    public isolated function init(PathParams pathParams, websocket:ClientConfiguration clientConfig =  {}, string serviceUrl = "ws://localhost:9090/payloadV") returns error? {
+    # + queryParams - query parameters
+    # + headerParams - header parameters
+    public isolated function init(HeaderParams headerParams, QueryParams queryParams, websocket:ClientConfiguration clientConfig =  {}, string serviceUrl = "ws://localhost:9090/payloadV") returns error? {
         self.pipes = new ();
         self.writeMessageQueue = new (1000);
         self.readMessageQueue = new (1000);
-        string modifiedUrl = serviceUrl + string `/v1/${getEncodedUri(pathParams.version)}/version-name/${getEncodedUri(pathParams.versionName)}`;
+        string modifiedUrl = serviceUrl + string `/v1`;
+        map<anydata> queryParam = {"offset": queryParams.offset, "lat": queryParams.lat, "lon": queryParams.lon, "exclude": queryParams.exclude, "units": queryParams.units};
+        modifiedUrl = modifiedUrl + check getPathForQueryParam(queryParam);
+        map<string> headerParam = {"offset": headerParams.offset, "lat": headerParams.lat, "lon": headerParams.lon, "exclude": headerParams.exclude, "units": headerParams.units};
+        map<string> customHeaders = getCombineHeaders(clientConfig.customHeaders,headerParam);
+        clientConfig.customHeaders=customHeaders;
         websocket:Client websocketEp = check new (modifiedUrl, clientConfig);
         self.clientEp = websocketEp;
         self.startMessageWriting();
@@ -63,7 +69,11 @@ public client isolated class PayloadVv1versionversionnameversionnameClient {
             }
         }
     }
+    # remote description
     #
+    # + subscribe - subscribe description
+    # + timeout - waiting period to keep the event in the buffer in seconds
+    # + return - unsubscribe description
     remote isolated function doSubscribe(Subscribe subscribe, decimal timeout) returns UnSubscribe|error {
         pipe:Pipe subscribePipe = new (1);
         string id;

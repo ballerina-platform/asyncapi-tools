@@ -25,7 +25,7 @@ channels:
       id:
         description: Unique identification of location
         schema:
-          type: integer
+          $ref: "#/components/schemas/Id"
 components:
   schemas:
     Subscribe:
@@ -40,6 +40,8 @@ components:
         event:
           type: string
           const: Subscribe
+    Id:
+      type: integer
     UnSubscribe:
       type: object
       required:

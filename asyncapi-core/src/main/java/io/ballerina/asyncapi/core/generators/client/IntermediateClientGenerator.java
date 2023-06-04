@@ -1465,7 +1465,7 @@ public class IntermediateClientGenerator {
             IdentifierToken fieldName = createIdentifierToken('"' + (entry.getKey().trim()) + '"');
             Token colon = createToken(COLON_TOKEN);
             SimpleNameReferenceNode valueExpr = createSimpleNameReferenceNode(
-                    createIdentifierToken("queryParams." + getValidName(entry.getKey().trim(), false)));
+                    createIdentifierToken(mapName+"s." + getValidName(entry.getKey().trim(), false)));
             SpecificFieldNode specificFieldNode = createSpecificFieldNode(null,
                     fieldName, colon, valueExpr);
             filedOfMap.add(specificFieldNode);
@@ -1534,8 +1534,9 @@ public class IntermediateClientGenerator {
                 }
             }
             path = refinedPath.replaceAll("[{]", "\\${");
+            utilGenerator.setPathParametersFound(true);
+
         }
-        utilGenerator.setPathParametersFound(true);
         return path;
     }
 

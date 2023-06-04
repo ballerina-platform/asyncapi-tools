@@ -125,7 +125,7 @@ public class TestGeneratorTests {
 //                "oauth2_implicit.yaml",
 //                "query_api_key.yaml",
 //                "no_auth.yaml",
-////                "combination_of_apikey_and_http_oauth.yaml",
+////                "query_param_combination_of_apikey_and_http_oauth.yaml",
 //                "oauth2_password.yaml"
 //        };
 //    }

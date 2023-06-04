@@ -733,10 +733,18 @@ public class BallerinaAuthConfigGenerator {
             List<String> pathRequiredFields = new ArrayList<>();
 
             List<Node> schemaDocs=new ArrayList<>();
+
             String pathParamDescription= "Path parameters as a record";
             schemaDocs.addAll(DocCommentsGenerator.createAPIDescriptionDoc(pathParamDescription, true));
             for (String parameterName : parameters.getItemNames()) {
                 AsyncApiParameter parameter = parameters.getItem(parameterName);
+                String type= parameter.getSchema().getType();
+                if(type!=null && type.equals("array")){
+                    throw new BallerinaAsyncApiException("Ballerina doesn't support array type path parameters");
+                }
+                if(type!=null && type.equals("object")){
+                    throw new BallerinaAsyncApiException("Ballerina doesn't support record type path parameters");
+                }
                 if (parameter.getDescription() != null && !parameter.
                         getDescription().isBlank()) {
                     MarkdownParameterDocumentationLineNode paramAPIDoc =
@@ -755,9 +763,8 @@ public class BallerinaAuthConfigGenerator {
                     createIdentifierToken("PathParams"));
             RequiredParameterNode pathParamNode = createRequiredParameterNode(createNodeList(), typeName,
                     createIdentifierToken("pathParams"));
-
             isPathParam=true;
-            utilGenerator.setPathParametersFound(true);
+//            utilGenerator.setPathParametersFound(true);
 
             parameterList.add(pathParamNode);
             parameterList.add(comma);
@@ -786,13 +793,22 @@ public class BallerinaAuthConfigGenerator {
                         try {
                             BalAsyncApi25SchemaImpl schema = objMapper.treeToValue(field.getValue(),
                                     BalAsyncApi25SchemaImpl.class);
-                            if (schema.getDescription() != null && !schema.
-                                    getDescription().isBlank()) {
-                                MarkdownParameterDocumentationLineNode paramAPIDoc =
-                                        DocCommentsGenerator.createAPIParamDoc(getValidName(
-                                                headerName, false), schema.getDescription());
-                                schemaDocs.add(paramAPIDoc);
+                            String type= schema.getType();
+                            if(type!=null && type.equals("array")){
+                                throw new BallerinaAsyncApiException(
+                                        "Ballerina doesn't support array type header parameters");
                             }
+                            if(type!=null && type.equals("object")){
+                                throw new BallerinaAsyncApiException(
+                                        "Ballerina doesn't support record type header parameters");
+                            }
+//                            if (schema.getDescription() != null && !schema.
+//                                    getDescription().isBlank()) {
+//                                MarkdownParameterDocumentationLineNode paramAPIDoc =
+//                                        DocCommentsGenerator.createAPIParamDoc(getValidName(
+//                                                headerName, false), schema.getDescription());
+//                                schemaDocs.add(paramAPIDoc);
+//                            }
 
                             headerSchema.addProperty(headerName, schema);
                             headerRequiredFields.add(headerName);
@@ -803,7 +819,7 @@ public class BallerinaAuthConfigGenerator {
                     }
                     headerSchema.setRequired(headerRequiredFields);
                     authRelatedTypeDefinitionNodes.add(ballerinaSchemaGenerator.getTypeDefinitionNode(headerSchema,
-                            "HeaderParams", new ArrayList<>()));
+                            "HeaderParams", schemaDocs));
                     BuiltinSimpleNameReferenceNode typeName = createBuiltinSimpleNameReferenceNode(null,
                             createIdentifierToken("HeaderParams"));
                     RequiredParameterNode headerParamNode = createRequiredParameterNode(createNodeList(), typeName,
@@ -811,7 +827,7 @@ public class BallerinaAuthConfigGenerator {
                     parameterList.add(headerParamNode);
                     parameterList.add(comma);
                     isHeaderParam=true;
-                    utilGenerator.setHeadersFound(true);
+//                    utilGenerator.setHeadersFound(true);
                 }
 
 
@@ -837,13 +853,22 @@ public class BallerinaAuthConfigGenerator {
                         try {
                             BalAsyncApi25SchemaImpl schema = objMapper.treeToValue(field.getValue(),
                                     BalAsyncApi25SchemaImpl.class);
-                            if (schema.getDescription() != null && !schema.
-                                    getDescription().isBlank()) {
-                                MarkdownParameterDocumentationLineNode paramAPIDoc =
-                                        DocCommentsGenerator.createAPIParamDoc(getValidName(
-                                                queryName, false), schema.getDescription());
-                                schemaDocs.add(paramAPIDoc);
+                            String type= schema.getType();
+                            if(type!=null && type.equals("array")){
+                                throw new BallerinaAsyncApiException(
+                                        "Ballerina doesn't support array type query parameters");
                             }
+                            if(type!=null && type.equals("object")){
+                                throw new BallerinaAsyncApiException(
+                                        "Ballerina doesn't support record type query parameters");
+                            }
+//                            if (schema.getDescription() != null && !schema.
+//                                    getDescription().isBlank()) {
+//                                MarkdownParameterDocumentationLineNode paramAPIDoc =
+//                                        DocCommentsGenerator.createAPIParamDoc(getValidName(
+//                                                queryName, false), schema.getDescription());
+//                                schemaDocs.add(paramAPIDoc);
+//                            }
                             querySchema.addProperty(queryName, schema);
                             queryRequiredFields.add(queryName);
                         } catch (JsonProcessingException e) {
@@ -852,7 +877,7 @@ public class BallerinaAuthConfigGenerator {
                     }
                     querySchema.setRequired(queryRequiredFields);
                     authRelatedTypeDefinitionNodes.add(ballerinaSchemaGenerator.getTypeDefinitionNode(querySchema,
-                            "QueryParams", new ArrayList<>()));
+                            "QueryParams", schemaDocs));
                     BuiltinSimpleNameReferenceNode typeName = createBuiltinSimpleNameReferenceNode(null,
                             createIdentifierToken("QueryParams"));
                     RequiredParameterNode queryParamNode = createRequiredParameterNode(createNodeList(), typeName,
@@ -861,7 +886,7 @@ public class BallerinaAuthConfigGenerator {
                     parameterList.add(queryParamNode);
                     parameterList.add(comma);
                     isQueryParam=true;
-                    utilGenerator.setQueryParamsFound(true);
+//                    utilGenerator.setQueryParamsFound(true);
 
                 }
 
