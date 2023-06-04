@@ -46,6 +46,7 @@ under the License.
             <class name="io.ballerina.asyncapi.generators.client.PathParameterTests"/>
             <class name="io.ballerina.asyncapi.generators.client.HeadersTests"/>
             <class name="io.ballerina.asyncapi.generators.client.QueryParameterTests"/>
+            <class name="io.ballerina.asyncapi.generators.client.StreamResponseTests"/>
             <class name="io.ballerina.asyncapi.generators.client.NoServerURLTest"/>
 
         </classes>

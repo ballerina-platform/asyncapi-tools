@@ -19,26 +19,26 @@
 package io.ballerina.asyncapi.core;
 
 /**
- * Container for error messages of the OpenAPI command.
+ * Container for error messages of the AsyncAPI command.
  *
  * @since 1.3.0
  */
 public class ErrorMessages {
 
     public static String invalidFilePath(String path) {
-        return String.format("OpenAPI contract doesn't exist in the given location:%n%s", path);
+        return String.format("AsyncAPI contract doesn't exist in the given location:%n%s", path);
     }
 
     public static String invalidFileType() {
         return "Invalid file type. Provide either a .yaml or .json file.";
     }
 
-    public static String invalidPathParamType(String parameterName) {
-        return String.format("Invalid path parameter data type for the parameter: '%s'", parameterName);
-    }
-
-    public static String unsupportedOpenAPIVersion() {
-        return "Provided OpenAPI contract version is not supported in the tool. " +
-                "Use OpenAPI specification version 2 or higher";
-    }
+//    public static String invalidPathParamType(String parameterName) {
+//        return String.format("Invalid path parameter data type for the parameter: '%s'", parameterName);
+//    }
+//
+//    public static String unsupportedOpenAPIVersion() {
+//        return "Provided AsyncAPI contract version is not supported in the tool. " +
+//                "Use AsyncAPI specification version 2 or higher";
+//    }
 }

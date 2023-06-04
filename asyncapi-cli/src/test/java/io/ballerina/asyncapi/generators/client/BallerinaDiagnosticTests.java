@@ -84,7 +84,7 @@
 //                {"header_parameter.yaml"},
 //                {"petstore_post.yaml"},
 //                {"petstore_with_oneOf_response.yaml"},
-//                {"response_nested_array.yaml"},
+//                {"one_response_with_no_dispatcherStreamId.yaml"},
 //                {"xml_payload.yaml"},
 //                {"xml_payload_with_ref.yaml"},
 //                {"duplicated_response.yaml"},

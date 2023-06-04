@@ -512,24 +512,35 @@ public class IntermediateClientGenerator {
 
         //Get dispatcherKey
         Map<String, JsonNode> extensions= asyncAPI.getExtensions();
-        TextNode dispatcherKeyNode= (TextNode) extensions.get(X_DISPATCHER_KEY);
-        if(dispatcherKeyNode==null){
+//        if(extensions==null){
+//            throw new BallerinaAsyncApiException("x-dispatcherKey must include in the specification");
+//        }
+        if(extensions==null || extensions.get(X_DISPATCHER_KEY)==null){
             throw new BallerinaAsyncApiException("x-dispatcherKey must include in the specification");
         }
+        TextNode dispatcherKeyNode= (TextNode) extensions.get(X_DISPATCHER_KEY);
+
 //        if()
         String dispatcherKey = dispatcherKeyNode.asText();
-        if(dispatcherKey.equals("")){
+        if(dispatcherKey.equals("")) {
             throw new BallerinaAsyncApiException("x-dispatcherKey cannot be empty");
         }
+//        } else if (dispatcherKey.equals("type")) {
+//            dispatcherKey="'type";
+//        }
 
         //Get dispatcherStreamId
-        String dispatcherStreamId;
-        TextNode dispatcherStreamIdNode=(TextNode)extensions.get(X_DISPATCHER_STREAM_ID);
-        if(dispatcherStreamIdNode!=null) {
-            dispatcherStreamId = extensions.get(X_DISPATCHER_STREAM_ID).asText();
-        }else{
-            dispatcherStreamId=null;
+        String dispatcherStreamId=null;
+        if(extensions.get(X_DISPATCHER_STREAM_ID)!=null){
+            TextNode dispatcherStreamIdNode=(TextNode)extensions.get(X_DISPATCHER_STREAM_ID);
+            if(dispatcherStreamIdNode!=null) {
+                dispatcherStreamId = extensions.get(X_DISPATCHER_STREAM_ID).asText();
+                if(dispatcherStreamId.equals("")){
+                    throw new BallerinaAsyncApiException("x-dispatcherStreamId cannot be empty");
+                }
+            }
         }
+
 //        ballerinaSchemaGenerator.setDispatcherKey(dispatcherKey);
 //        ballerinaSchemaGenerator.setDispatcherStreamId(dispatcherStreamId);
 
@@ -768,7 +779,6 @@ public class IntermediateClientGenerator {
         //Create a list to add while statements
         List<StatementNode> whileStatements = new ArrayList<>();
 
-
         //ResponseMessage responseMessage = check self.readMessageQueue.consume(5);
         FieldAccessExpressionNode globalQueue = createFieldAccessExpressionNode(
                 createSimpleNameReferenceNode(createIdentifierToken(SELF)), createToken(DOT_TOKEN),
@@ -799,7 +809,9 @@ public class IntermediateClientGenerator {
         whileStatements.add(responseMessageNode);
 
         ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
+        if(dispatcherKey.equals("type")){
+            dispatcherKey="'type";
+        }
         IfElseStatementNode ifElseStatementNode;
         if (matchClauseNodes.size() != 0 && idMethods.size() != 0) {
             ArrayList<StatementNode> ifStatementNodes = getIfStatementNodes(dispatcherStreamId);
@@ -1782,8 +1794,8 @@ public class IntermediateClientGenerator {
                                 String.format("dispatcherKey type must be string in %s schema",messageName));
                     }
                 } else {
-                    throw new BallerinaAsyncApiException(String.format("%s schema must contain dispatcherKey",
-                            messageName));
+                    throw new BallerinaAsyncApiException(String.format("%s schema must contain dispatcherKey \"%s\"",
+                            messageName,dispatcherKey));
                 }
             }
         }
@@ -1805,7 +1817,7 @@ public class IntermediateClientGenerator {
                                     getClientMethodFunctionDefinitionNode(type,
                                             (AsyncApi25MessageImpl) messages.get(type),
                                             null,
-                                            schemas, null, dispatcherStreamId,null);
+                                            schemas, null, dispatcherStreamId,idMethods);
                             functionDefinitionNodeList.add(functionDefinitionNode);
                         } else {
                             throw new BallerinaAsyncApiException("dispatcherKey type must be string");

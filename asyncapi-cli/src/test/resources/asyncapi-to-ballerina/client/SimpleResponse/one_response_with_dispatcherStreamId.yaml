@@ -13,21 +13,14 @@ servers:
       port:
         default: "9090"
 channels:
-  /locations/{id}/rooms:
+  /locations:
     description: Reperesents Snowpeak room collection resource
     subscribe:
       message:
-        payload:
-          type: integer
-          format: int64
+        $ref: '#/components/messages/UnSubscribe'
     publish:
       message:
         $ref: '#/components/messages/Subscribe'
-    parameters:
-      id:
-        description: Unique identification of location
-        schema:
-          $ref: "#/components/schemas/Id"
 components:
   schemas:
     Subscribe:
@@ -37,20 +30,33 @@ components:
         - event
       properties:
         id:
-          type: integer
+          type: string
           format: int64
         event:
           type: string
           const: Subscribe
-    Id:
-      type: integer
+    UnSubscribe:
+      type: object
+      required:
+        - type
+      properties:
+        type:
+          type: string
+          const: UnSubscribe
+        payload:
+          type: object
+          additionalProperties: true
   messages:
+    UnSubscribe:
+      payload:
+        $ref: '#/components/schemas/UnSubscribe'
     Subscribe:
       payload:
         $ref: '#/components/schemas/Subscribe'
       x-response:
-        payload:
-          type: integer
-          format: int64
+        $ref: '#/components/messages/UnSubscribe'
       x-response-type: simple-rpc
+x-dispatcherKey: event
+x-dispatcherStreamId: id
+
 

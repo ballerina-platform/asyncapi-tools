@@ -142,7 +142,7 @@
 //
 //    @Test(description = "Test for generate function signature with nested array return type")
 //    public void getFunctionSignatureForNestedArrayResponse() throws IOException, BallerinaOpenApiException {
-//        OpenAPI openAPI = getOpenAPI(RESDIR.resolve("swagger/response_nested_array.yaml"));
+//        OpenAPI openAPI = getOpenAPI(RESDIR.resolve("swagger/one_response_with_no_dispatcherStreamId.yaml"));
 //        RemoteFunctionSignatureGenerator functionSignatureGenerator = new RemoteFunctionSignatureGenerator(openAPI,
 //                new BallerinaTypesGenerator(openAPI), new ArrayList<>(), false);
 //        FunctionSignatureNode signature = functionSignatureGenerator.getFunctionSignatureNode(openAPI.getPaths()
@@ -153,7 +153,7 @@
 //
 //    @Test(description = "Test for generate function signature with string array return type")
 //    public void getFunctionSignatureForStringArrayResponse() throws IOException, BallerinaOpenApiException {
-//        OpenAPI openAPI = getOpenAPI(RESDIR.resolve("swagger/response_string_array.yaml"));
+//        OpenAPI openAPI = getOpenAPI(RESDIR.resolve("swagger/multiple_response_with_dispatcherStreamId.yaml"));
 //        RemoteFunctionSignatureGenerator functionSignatureGenerator = new RemoteFunctionSignatureGenerator(openAPI,
 //                new BallerinaTypesGenerator(openAPI), new ArrayList<>(), false);
 //        FunctionSignatureNode signature = functionSignatureGenerator.getFunctionSignatureNode(openAPI.getPaths()

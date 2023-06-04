@@ -112,7 +112,7 @@
 //                        "request.setPayload(xmlBody, \"application/xml\");" +
 //                        "http:Response response = check self.clientEp->post(resourcePath, request);" +
 //                        "return response;}"},
-//                {"swagger/response_type_order.yaml", "/pet/{petId}",
+//                {"swagger/multiple_response_with_no_dispatcherStreamId.yaml", "/pet/{petId}",
 //                        "{string resourcePath = string `/pet/${getEncodedUri(petId)}`;" +
 //                        "Pet response = check self.clientEp->get(resourcePath);" +
 //                        "return response;}"},

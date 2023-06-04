@@ -110,6 +110,7 @@ import static io.ballerina.compiler.syntax.tree.SyntaxKind.NEW_KEYWORD;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.OPEN_BRACE_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.OPEN_BRACKET_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.OPEN_PAREN_TOKEN;
+import static io.ballerina.compiler.syntax.tree.SyntaxKind.RIGHT_ARROW_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.RIGHT_DOUBLE_ARROW_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.SEMICOLON_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.STREAM_KEYWORD;
@@ -278,7 +279,8 @@ public class RemoteFunctionBodyGenerator {
             if (xResponseType.equals(new TextNode(SERVER_STREAMING))) {
                 //TODO: Include a if condition to check this only one time
                 utilGenerator.setStreamFound(true);
-                createStreamFunctionBodyStatements(statementsList, requestType, responseType, dispatcherStreamId);
+                createStreamFunctionBodyStatements(statementsList, requestType, responseType, dispatcherStreamId
+                        ,matchStatementList);
 
 
             } else {
@@ -300,7 +302,8 @@ public class RemoteFunctionBodyGenerator {
     private void createStreamFunctionBodyStatements(List<StatementNode> statementsList,
                                                     String requestType, String responseType,
 
-                                                    String dispatcherStreamId) {
+                                                    String dispatcherStreamId,
+                                                    List<MatchClauseNode> matchStatementList) {
 
         String requestTypePipe = requestType + "Pipe";
 
@@ -312,9 +315,12 @@ public class RemoteFunctionBodyGenerator {
         Token dotToken = createToken(DOT_TOKEN);
         Token closeParenToken = createToken(CLOSE_PAREN_TOKEN);
         Token openParenToken = createToken(OPEN_PAREN_TOKEN);
+        Token rightDoubleArrow =createToken(RIGHT_DOUBLE_ARROW_TOKEN);
 
         SimpleNameReferenceNode requestTypePipeNode = createSimpleNameReferenceNode(createIdentifierToken(
                 requestTypePipe));
+        SimpleNameReferenceNode responseMessageNode = createSimpleNameReferenceNode(
+                createIdentifierToken(RESPONSE_MESSAGE_VAR_NAME));
         QualifiedNameReferenceNode pipeTypeCombined = createQualifiedNameReferenceNode(
                 createIdentifierToken(SIMPLE_PIPE),
                 createToken(COLON_TOKEN), createIdentifierToken(GeneratorConstants.CAPITAL_PIPE));
@@ -340,6 +346,67 @@ public class RemoteFunctionBodyGenerator {
         PositionalArgumentNode responseTypeTimeOut = createPositionalArgumentNode(createRequiredExpressionNode(
                 createIdentifierToken(TIMEOUT)));
         createCommentStatementsForDispatcherId(statementsList, requestType, dispatcherStreamId, requestTypePipe);
+
+        if (dispatcherStreamId == null) {
+            ArrayList<StatementNode> statementNodes = new ArrayList<>();
+            QualifiedNameReferenceNode pipeTypeName = createQualifiedNameReferenceNode(
+                    createIdentifierToken(SIMPLE_PIPE),
+                    createToken(COLON_TOKEN), createIdentifierToken(GeneratorConstants.CAPITAL_PIPE));
+            FieldAccessExpressionNode selfPipes = createFieldAccessExpressionNode(
+                    createSimpleNameReferenceNode(createIdentifierToken(SELF)), createToken(DOT_TOKEN),
+                    createSimpleNameReferenceNode(createIdentifierToken(PIPES)));
+//                    createSeparatedNodeList(createSimpleNameReferenceNode(
+//                            createIdentifierToken("\"" + requestType + "\""))),
+//                    closeBracketToken);
+            MethodCallExpressionNode methodCallExpressionNode = createMethodCallExpressionNode(selfPipes, dotToken,
+                    createSimpleNameReferenceNode(createIdentifierToken("getPipe")),
+                    openParenToken, createSeparatedNodeList(createSimpleNameReferenceNode(
+                            createIdentifierToken("\"" + requestType + "\""))), closeParenToken);
+
+
+            VariableDeclarationNode pipeTypeEnsureStatement = createVariableDeclarationNode(
+                    createEmptyNodeList(), null,
+                    createTypedBindingPatternNode(
+                            pipeTypeName,
+                            createFieldBindingPatternVarnameNode(requestTypePipeNode)),
+                    equalToken, methodCallExpressionNode, semicolonToken);
+            statementNodes.add(pipeTypeEnsureStatement);
+
+            List<Node> nodes = new ArrayList<>();
+            nodes.add(responseMessageNode);
+            nodes.add(createToken(COMMA_TOKEN));
+            nodes.add(createIdentifierToken("5"));
+            MethodCallExpressionNode pipeProduceExpressionNode = createMethodCallExpressionNode(
+                    requestTypePipeNode, dotToken,
+                    createSimpleNameReferenceNode(createIdentifierToken(PRODUCE)),
+                    openParenToken, createSeparatedNodeList(nodes), closeParenToken);
+
+            CheckExpressionNode pipeProduceCheck = createCheckExpressionNode(null, createToken(CHECK_KEYWORD),
+                    pipeProduceExpressionNode);
+            ExpressionStatementNode pipeProduceExpression = createExpressionStatementNode(null,
+                    pipeProduceCheck, createToken(SEMICOLON_TOKEN));
+            statementNodes.add(pipeProduceExpression);
+            List<Node> responseNodeList=new ArrayList<>();
+            if(responseType.contains("|")){
+               String[] responseArray= responseType.split("\\|");
+               for(String response: responseArray){
+                   responseNodeList.add(createIdentifierToken("\""+response.trim()+"\""));
+                   responseNodeList.add(createIdentifierToken("|"));
+
+               }
+               responseNodeList.remove(responseNodeList.size()-1);
+
+            }else{
+              responseNodeList.add(createIdentifierToken("\"" + responseType + "\""));
+
+
+            }
+            MatchClauseNode matchClauseNode = createMatchClauseNode(createSeparatedNodeList(responseNodeList),
+                    null, rightDoubleArrow,
+                    createBlockStatementNode(openBraceToken, createNodeList(statementNodes), closeBraceToken));
+            matchStatementList.add(matchClauseNode);
+        }
+
 
 
         if (!requestType.equals("error")) {
@@ -394,8 +461,7 @@ public class RemoteFunctionBodyGenerator {
         ArrayList<StatementNode> streamStatementList = new ArrayList<>();
 
         ArrayList<Node> streamGeneratorArguments = new ArrayList<>();
-        streamGeneratorArguments.add(createPositionalArgumentNode(createSimpleNameReferenceNode(createIdentifierToken(
-                "subscribeMessagePipe"))));
+        streamGeneratorArguments.add(createPositionalArgumentNode(requestTypePipeNode));
         streamGeneratorArguments.add(createToken(COMMA_TOKEN));
         streamGeneratorArguments.add(createPositionalArgumentNode(createSimpleNameReferenceNode(createIdentifierToken(
                 "timeout"))));
