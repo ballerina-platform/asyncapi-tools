@@ -276,7 +276,7 @@ public class RemoteFunctionBodyGenerator {
             JsonNode xResponseType = extensions.get(X_RESPONSE_TYPE);
 
             String responseType = functionReturnType.getReturnType(xResponse, xResponseType);
-            if (xResponseType.equals(new TextNode(SERVER_STREAMING))) {
+            if (xResponseType!=null && xResponseType.equals(new TextNode(SERVER_STREAMING))) {
                 //TODO: Include a if condition to check this only one time
                 utilGenerator.setStreamFound(true);
                 createStreamFunctionBodyStatements(statementsList, requestType, responseType, dispatcherStreamId

@@ -100,7 +100,7 @@ public class RemoteFunctionReturnTypeGenerator {
 
         } else if (xResponse.get("$ref") != null) { //Handle reference responses
             String reference = xResponse.get("$ref").asText();
-            String schemaName = getValidName(extractReferenceType(reference), true);
+            String schemaName = getValidName(extractReferenceType(reference), false);
             AsyncApi25SchemaImpl refSchema = (AsyncApi25SchemaImpl) asyncAPI.getComponents().getSchemas().get(
                     schemaName);
             type = getDataType(schemaName, refSchema);
@@ -131,14 +131,14 @@ public class RemoteFunctionReturnTypeGenerator {
         String type = null;
 
         if (schema != null && schema.getType() != null && schema.getType().equals("object")
-                && schema.getProperties()!=null) {
+                ) {
             type = handleInLineRecordInResponse(schemaName, schema);
 
         } else {
-            if(schema.getProperties()==null){
-                throw new BallerinaAsyncApiException(String.format(
-                        "Response type must be a record, %s schema must contain properies field",schemaName));
-            }
+//            if(schema.getProperties()==null){
+//                throw new BallerinaAsyncApiException(String.format(
+//                        "Response type must be a record, %s schema must contain properies field",schemaName));
+//            }
             throw new BallerinaAsyncApiException(String.format(
                     "Response type must be a record, invalid response type %s in %s schema",schema.getType(),schemaName));
         }

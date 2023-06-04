@@ -50,6 +50,7 @@ under the License.
             <class name="io.ballerina.asyncapi.generators.client.SimpleResponseTests"/>
             <class name="io.ballerina.asyncapi.generators.client.RemoteFunctionTests"/>
             <class name="io.ballerina.asyncapi.generators.client.InvalidResponseTests"/>
+            <class name="io.ballerina.asyncapi.generators.client.ComparedGeneratedFileTests"/>
             <class name="io.ballerina.asyncapi.generators.client.UtilGenerationTests"/>
             <class name="io.ballerina.asyncapi.generators.client.NoServerURLTest"/>
 

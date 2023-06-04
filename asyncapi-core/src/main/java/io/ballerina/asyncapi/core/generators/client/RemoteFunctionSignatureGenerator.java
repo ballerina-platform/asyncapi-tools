@@ -142,7 +142,7 @@ public class RemoteFunctionSignatureGenerator {
             JsonNode xResponse = extensions.get(X_RESPONSE);
             JsonNode xResponseType = extensions.get(X_RESPONSE_TYPE);
             String returnType = functionReturnType.getReturnType(xResponse, xResponseType);
-            if (xResponseType.equals(new TextNode(SERVER_STREAMING))) {
+            if (xResponseType!=null && xResponseType.equals(new TextNode(SERVER_STREAMING))) {
                 returnType = "stream<" + returnType + ",error?>";
             }
             String finalReturnType = returnType +
@@ -180,7 +180,7 @@ public class RemoteFunctionSignatureGenerator {
     public String getDataType(JsonNode payload) throws BallerinaAsyncApiException {
         String type = "";
         if (payload.get("$ref") != null) {
-            type = getValidName(extractReferenceType(payload.get("$ref").textValue()), true);
+            type = getValidName(extractReferenceType(payload.get("$ref").textValue()), false);
             Schema componentSchema = asyncAPI.getComponents().
                     getSchemas().get(type).asSchema();
             if (!isValidSchemaName(type)) {
@@ -207,7 +207,8 @@ public class RemoteFunctionSignatureGenerator {
 
 
         TypeDescriptorNode typeName;
-        typeName = createBuiltinSimpleNameReferenceNode(null, createIdentifierToken(paramType));
+        typeName = createBuiltinSimpleNameReferenceNode(null, createIdentifierToken(
+                getValidName(paramType, true)));
         IdentifierToken paramName =
                 createIdentifierToken(getValidName(paramType, false));
         return createRequiredParameterNode(createNodeList(new ArrayList<>()), typeName, paramName);

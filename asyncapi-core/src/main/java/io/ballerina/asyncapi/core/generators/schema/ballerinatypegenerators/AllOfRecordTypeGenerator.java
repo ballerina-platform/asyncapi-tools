@@ -198,7 +198,7 @@ public class AllOfRecordTypeGenerator extends RecordTypeGenerator {
                 // check whether given reference schema has additional fields.
                 AsyncApi25DocumentImpl openAPI = GeneratorMetaData.getInstance().getAsyncAPI();
                 AsyncApi25SchemaImpl refSchema = (AsyncApi25SchemaImpl) openAPI.getComponents()
-                        .getSchemas().get(modifiedSchemaName);
+                        .getSchemas().get(extractedSchemaName);
                 addAdditionalSchemas(refSchema);
 
                 recordFieldList.add(recordField);
