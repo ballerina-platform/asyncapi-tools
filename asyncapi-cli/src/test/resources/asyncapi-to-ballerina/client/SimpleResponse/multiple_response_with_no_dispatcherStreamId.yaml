@@ -1,45 +1,97 @@
-openapi: 3.0.1
+asyncapi: 2.5.0
 info:
-  title: Swagger Petstore
-  description: 'This is a sample server Petstore server.'
-  version: 1.0.0
+  title: PayloadV
+  version: 0.0.0
 servers:
-  - url: https://petstore.swagger.io/v2
-paths:
-  /pet/{petId}:
-    get:
-      tags:
-        - pet
-      summary: Find pet by ID
-      operationId: getPetById
-      parameters:
-        - name: petId
-          in: path
-          description: ID of pet to return
-          required: true
-          schema:
-            type: integer
-      responses:
-        400:
-          description: Invalid ID supplied
-          content: {}
-        200:
-          description: successful operation
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Pet'
-        404:
-          description: Pet not found
-          content: {}
+  development:
+    url: "{server}:{port}/payloadV"
+    protocol: ws
+    protocolVersion: "13"
+    variables:
+      server:
+        default: ws://localhost
+      port:
+        default: "9090"
+channels:
+  /locations:
+    description: Reperesents Snowpeak room collection resource
+    subscribe:
+      message:
+        oneOf:
+          - $ref: '#/components/messages/Response'
+          - $ref: '#/components/messages/UnSubscribe'
+    publish:
+      message:
+        oneOf:
+          - $ref: '#/components/messages/Request'
+          - $ref: '#/components/messages/Subscribe'
 components:
   schemas:
-    Pet:
-      required:
-        - name
+    Subscribe:
       type: object
+      required:
+        - id
+        - event
       properties:
         id:
-          type: integer
-        name:
           type: string
+          format: int64
+        event:
+          type: string
+          const: Subscribe
+    UnSubscribe:
+      type: object
+      required:
+        - type
+      properties:
+        type:
+          type: string
+          const: UnSubscribe
+        payload:
+          type: object
+          additionalProperties: true
+    Request:
+      type: object
+      required:
+        - id
+        - event
+      properties:
+        id:
+          type: string
+          format: int64
+        event:
+          type: string
+          const: Subscribe
+    Response:
+      type: object
+      required:
+        - type
+      properties:
+        type:
+          type: string
+          const: UnSubscribe
+        payload:
+          type: object
+          additionalProperties: true
+  messages:
+    UnSubscribe:
+      payload:
+        $ref: '#/components/schemas/UnSubscribe'
+    Subscribe:
+      payload:
+        $ref: '#/components/schemas/Subscribe'
+      x-response:
+        $ref: '#/components/messages/UnSubscribe'
+      x-response-type: simple-rpc
+    Response:
+      payload:
+        $ref: '#/components/schemas/Response'
+    Request:
+      payload:
+        $ref: '#/components/schemas/Request'
+      x-response:
+        $ref: '#/components/messages/Response'
+      x-response-type: simple-rpc
+x-dispatcherKey: event
+
+

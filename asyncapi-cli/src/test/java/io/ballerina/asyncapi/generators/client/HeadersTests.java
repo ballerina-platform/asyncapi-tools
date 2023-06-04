@@ -48,14 +48,14 @@ public class HeadersTests {
         Path definitionPath = RES_DIR.resolve("HeaderParam/header_parameter.yaml");
         Path expectedPathForTypes = RES_DIR.resolve("baloutputs/HeaderParam/header_parameter_types.bal");
         Path expectedPathForClient = RES_DIR.resolve("baloutputs/HeaderParam/header_parameter_client.bal");
-        Path expectedPathForUtils = RES_DIR.resolve("baloutputs/HeaderParam/header_parameter_utils.bal");
+//        Path expectedPathForUtils = RES_DIR.resolve("baloutputs/HeaderParam/header_parameter_utils.bal");
         AsyncApi25DocumentImpl asyncAPI = GeneratorUtils.normalizeAsyncAPI(definitionPath);
         AASClientConfig.Builder clientMetaDataBuilder = new AASClientConfig.Builder();
         AASClientConfig oasClientConfig = clientMetaDataBuilder
                 .withAsyncAPI(asyncAPI).build();
         IntermediateClientGenerator intermediateClientGenerator = new IntermediateClientGenerator(oasClientConfig);
         syntaxTree = intermediateClientGenerator.generateSyntaxTree();
-        SyntaxTree utilsSyntaxTree=intermediateClientGenerator.getBallerinaUtilGenerator().generateUtilSyntaxTree();
+//        SyntaxTree utilsSyntaxTree=intermediateClientGenerator.getBallerinaUtilGenerator().generateUtilSyntaxTree();
         List<TypeDefinitionNode> preGeneratedTypeDefNodes = new ArrayList<>(
                 intermediateClientGenerator.getBallerinaAuthConfigGenerator().getAuthRelatedTypeDefinitionNodes());
         preGeneratedTypeDefNodes.addAll(intermediateClientGenerator.getTypeDefinitionNodeList());
@@ -67,7 +67,7 @@ public class HeadersTests {
         SyntaxTree schemaSyntaxTree = ballerinaSchemaGenerator.generateSyntaxTree();
 
         compareGeneratedSyntaxTreeWithExpectedSyntaxTree(expectedPathForClient, syntaxTree);
-        compareGeneratedSyntaxTreeWithExpectedSyntaxTree(expectedPathForUtils, utilsSyntaxTree);
+//        compareGeneratedSyntaxTreeWithExpectedSyntaxTree(expectedPathForUtils, utilsSyntaxTree);
         compareGeneratedSyntaxTreeWithExpectedSyntaxTree(expectedPathForTypes, schemaSyntaxTree);
     }
 

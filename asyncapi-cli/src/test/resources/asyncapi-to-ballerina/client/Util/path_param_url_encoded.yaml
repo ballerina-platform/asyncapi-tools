@@ -24,49 +24,6 @@ channels:
       message:
         oneOf:
           - $ref: '#/components/messages/SubscribeMessage'
-    bindings:
-      ws:
-        bindingVersion: 0.1.0
-        headers:
-          type: object
-          description: header params
-          properties:
-            offset:
-              type: integer
-              description: "offset"
-            lat:
-              type: string
-              description: "Latitude"
-            lon:
-              type: string
-              description: 'Longtitude'
-            exclude:
-              type: string
-              description: 'exclude'
-            units:
-              type: integer
-              default: 12
-              description: 'units description'
-        query:
-          type: object
-          description: header params
-          properties:
-            offset:
-              type: integer
-              description: "offset"
-            lat:
-              type: string
-              description: "Latitude"
-            lon:
-              type: string
-              description: 'Longtitude'
-            exclude:
-              type: string
-              description: 'exclude'
-            units:
-              type: integer
-              default: 12
-              description: 'units description'
     parameters:
       version:
         schema:

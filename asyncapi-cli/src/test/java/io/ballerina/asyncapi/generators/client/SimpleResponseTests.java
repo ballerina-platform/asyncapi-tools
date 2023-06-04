@@ -21,9 +21,9 @@ public class SimpleResponseTests {
 
     @Test(description = "Test for stream request with no dispatcherStreamId")
     public void testOneResponseWithNoDispatcherStreamIdRequest() throws IOException, BallerinaAsyncApiException {
-        Path definitionPath = RES_DIR.resolve("SimpleResponse/one_stream_with_no_dispatcherStreamId.yaml");
+        Path definitionPath = RES_DIR.resolve("SimpleResponse/one_response_with_no_dispatcherStreamId.yaml");
 //        Path expectedPathForTypes = RES_DIR.resolve("baloutputs/HeaderParam/header_parameter_types.bal");
-        Path expectedPathForClient = RES_DIR.resolve("baloutputs/StreamResponse/one_stream_with_no_dispatcherStreamId.bal");
+        Path expectedPathForClient = RES_DIR.resolve("baloutputs/SimpleResponse/one_response_with_no_dispatcherStreamId.bal");
 //        Path expectedPathForUtils = RES_DIR.resolve("baloutputs/HeaderParam/header_parameter_utils.bal");
         AsyncApi25DocumentImpl asyncAPI = GeneratorUtils.normalizeAsyncAPI(definitionPath);
         AASClientConfig.Builder clientMetaDataBuilder = new AASClientConfig.Builder();
@@ -40,7 +40,7 @@ public class SimpleResponseTests {
     public void testOneResponseWithDispatcherStreamIdRequest() throws IOException, BallerinaAsyncApiException {
         Path definitionPath = RES_DIR.resolve("SimpleResponse/one_response_with_dispatcherStreamId.yaml");
 //        Path expectedPathForTypes = RES_DIR.resolve("baloutputs/HeaderParam/header_parameter_types.bal");
-        Path expectedPathForClient = RES_DIR.resolve("baloutputs/StreamResponse/one_response_with_dispatcherStreamId.bal");
+        Path expectedPathForClient = RES_DIR.resolve("baloutputs/SimpleResponse/one_response_with_dispatcherStreamId.bal");
 //        Path expectedPathForUtils = RES_DIR.resolve("baloutputs/HeaderParam/header_parameter_utils.bal");
         AsyncApi25DocumentImpl asyncAPI = GeneratorUtils.normalizeAsyncAPI(definitionPath);
         AASClientConfig.Builder clientMetaDataBuilder = new AASClientConfig.Builder();
@@ -60,7 +60,7 @@ public class SimpleResponseTests {
             BallerinaAsyncApiException {
         Path definitionPath = RES_DIR.resolve("SimpleResponse/multiple_response_with_no_dispatcherStreamId.yaml");
 //        Path expectedPathForTypes = RES_DIR.resolve("baloutputs/HeaderParam/header_parameter_types.bal");
-        Path expectedPathForClient = RES_DIR.resolve("baloutputs/StreamResponse/multiple_response_with_no_dispatcherStreamId.bal");
+        Path expectedPathForClient = RES_DIR.resolve("baloutputs/SimpleResponse/multiple_response_with_no_dispatcherStreamId.bal");
 //        Path expectedPathForUtils = RES_DIR.resolve("baloutputs/HeaderParam/header_parameter_utils.bal");
         AsyncApi25DocumentImpl asyncAPI = GeneratorUtils.normalizeAsyncAPI(definitionPath);
         AASClientConfig.Builder clientMetaDataBuilder = new AASClientConfig.Builder();
@@ -79,7 +79,7 @@ public class SimpleResponseTests {
             BallerinaAsyncApiException {
         Path definitionPath = RES_DIR.resolve("SimpleResponse/multiple_response_with_dispatcherStreamId.yaml");
 //        Path expectedPathForTypes = RES_DIR.resolve("baloutputs/HeaderParam/header_parameter_types.bal");
-        Path expectedPathForClient = RES_DIR.resolve("baloutputs/StreamResponse/multiple_response_with_dispatcherStreamId.bal");
+        Path expectedPathForClient = RES_DIR.resolve("baloutputs/SimpleResponse/multiple_response_with_dispatcherStreamId.bal");
 //        Path expectedPathForUtils = RES_DIR.resolve("baloutputs/HeaderParam/header_parameter_utils.bal");
         AsyncApi25DocumentImpl asyncAPI = GeneratorUtils.normalizeAsyncAPI(definitionPath);
         AASClientConfig.Builder clientMetaDataBuilder = new AASClientConfig.Builder();

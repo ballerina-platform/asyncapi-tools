@@ -13,18 +13,36 @@ servers:
       port:
         default: "9090"
 channels:
-  /locations:
-    description: Reperesents Snowpeak room collection resource
+  /v1:
     subscribe:
       message:
-        oneOf:
-          - $ref: '#/components/messages/Response'
-          - $ref: '#/components/messages/UnSubscribe'
+        $ref: '#/components/messages/UnSubscribe'
     publish:
       message:
-        oneOf:
-          - $ref: '#/components/messages/Request'
-          - $ref: '#/components/messages/Subscribe'
+        $ref: '#/components/messages/Subscribe'
+    bindings:
+      ws:
+        bindingVersion: 0.1.0
+        query:
+          type: object
+          description: header params
+          properties:
+            offset:
+              type: integer
+              description: "offset"
+            lat:
+              type: string
+              description: "Latitude"
+            lon:
+              type: string
+              description: 'Longtitude'
+            exclude:
+              type: string
+              description: 'exclude'
+            units:
+              type: integer
+              default: 12
+              description: 'units description'
 components:
   schemas:
     Subscribe:
@@ -50,29 +68,6 @@ components:
         payload:
           type: object
           additionalProperties: true
-    Request:
-      type: object
-      required:
-        - id
-        - event
-      properties:
-        id:
-          type: string
-          format: int64
-        event:
-          type: string
-          const: Subscribe
-    Response:
-      type: object
-      required:
-        - type
-      properties:
-        type:
-          type: string
-          const: UnSubscribe
-        payload:
-          type: object
-          additionalProperties: true
   messages:
     UnSubscribe:
       payload:
@@ -80,19 +75,16 @@ components:
     Subscribe:
       payload:
         $ref: '#/components/schemas/Subscribe'
+        description: subscribe description
       x-response:
         $ref: '#/components/messages/UnSubscribe'
-      x-response-type: simple-rpc
-    Response:
-      payload:
-        $ref: '#/components/schemas/Response'
-    Request:
-      payload:
-        $ref: '#/components/schemas/Request'
-      x-response:
-        $ref: '#/components/messages/Response'
+        description: unsubscribe description
+      description: remote description
       x-response-type: simple-rpc
 x-dispatcherKey: event
 x-dispatcherStreamId: id
+
+
+
 
 

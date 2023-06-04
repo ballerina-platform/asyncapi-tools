@@ -37,15 +37,7 @@ components:
           const: Subscribe
     UnSubscribe:
       type: object
-      required:
-        - type
-      properties:
-        type:
-          type: string
-          const: UnSubscribe
-        payload:
-          type: object
-          additionalProperties: true
+      additionalProperties: true
   messages:
     UnSubscribe:
       payload:
@@ -57,5 +49,6 @@ components:
         $ref: '#/components/messages/UnSubscribe'
       x-response-type: simple-rpc
 x-dispatcherKey: event
+x-dispatcherStreamId: id
 
 

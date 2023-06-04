@@ -1,10 +1,10 @@
 asyncapi: 2.5.0
 info:
-  title: PayloadV
+  title: Chat
   version: 0.0.0
 servers:
   development:
-    url: "{server}:{port}/payloadV"
+    url: "{server}:{port}/chat"
     protocol: ws
     protocolVersion: "13"
     variables:
@@ -13,72 +13,43 @@ servers:
       port:
         default: "9090"
 channels:
-  /v1/{version}/v2/{version-name}:
+  /:
     subscribe:
       message:
         oneOf:
           - $ref: '#/components/messages/NextMessage'
           - $ref: '#/components/messages/CompleteMessage'
           - $ref: '#/components/messages/ErrorMessage'
+          - $ref: '#/components/messages/PongMessage'
+          - $ref: '#/components/messages/ConnectionAckMessage'
     publish:
       message:
         oneOf:
           - $ref: '#/components/messages/SubscribeMessage'
-    bindings:
-      ws:
-        bindingVersion: 0.1.0
-        headers:
-          type: object
-          description: header params
-          properties:
-            offset:
-              type: integer
-              description: "offset"
-            lat:
-              type: string
-              description: "Latitude"
-            lon:
-              type: string
-              description: 'Longtitude'
-            exclude:
-              type: string
-              description: 'exclude'
-            units:
-              type: integer
-              default: 12
-              description: 'units description'
-        query:
-          type: object
-          description: header params
-          properties:
-            offset:
-              type: integer
-              description: "offset"
-            lat:
-              type: string
-              description: "Latitude"
-            lon:
-              type: string
-              description: 'Longtitude'
-            exclude:
-              type: string
-              description: 'exclude'
-            units:
-              type: integer
-              default: 12
-              description: 'units description'
-    parameters:
-      version:
-        schema:
-          type: integer
-        description: Version Id
-      version-name:
-        schema:
-          type: string
-        description: Version Name
-
+          - $ref: '#/components/messages/PingMessage'
+          - $ref: '#/components/messages/PongMessage'
+          - $ref: '#/components/messages/ConnectionInitMessage'
+          - $ref: '#/components/messages/CompleteMessage'
 components:
   schemas:
+    Error:
+      type: object
+      required:
+        - type
+      properties:
+        type:
+          type: string
+    PingMessage:
+      type: object
+      required:
+        - type
+      properties:
+        type:
+          type: string
+          const: PingMessage
+        payload:
+          type: object
+          additionalProperties: true
     SubscribeMessage:
       type: object
       required:
@@ -142,6 +113,38 @@ components:
           type: string
         payload:
           additionalProperties: true
+    PongMessage:
+      type: object
+      required:
+        - type
+      properties:
+        type:
+          type: string
+          const: PongMessage
+        payload:
+          type: object
+          additionalProperties: true
+    ConnectionInitMessage:
+      type: object
+      required:
+        - type
+      properties:
+        type:
+          type: string
+          const: ConnectionInitMessage
+        payload:
+          type: object
+          additionalProperties: true
+    ConnectionAckMessage:
+      type: object
+      required:
+        - type
+      properties:
+        type:
+          type: string
+        payload:
+          type: object
+          additionalProperties: true
   messages:
     NextMessage:
       payload:
@@ -155,15 +158,32 @@ components:
     SubscribeMessage:
       payload:
         $ref: '#/components/schemas/SubscribeMessage'
+        description: subscribe payload description
       x-response:
         oneOf:
           - $ref: '#/components/messages/NextMessage'
           - $ref: '#/components/messages/CompleteMessage'
           - $ref: '#/components/messages/ErrorMessage'
+        description: subscribe response description
       x-response-type: server-streaming
+      description: subscribemessage description
+    PongMessage:
+      payload:
+        $ref: '#/components/schemas/PongMessage'
+    PingMessage:
+      payload:
+        $ref: '#/components/schemas/PingMessage'
+      x-response:
+        $ref: '#/components/messages/PongMessage'
+      x-response-type: simple-rpc
+    ConnectionAckMessage:
+      payload:
+        $ref: '#/components/schemas/ConnectionAckMessage'
+    ConnectionInitMessage:
+      payload:
+        $ref: '#/components/schemas/ConnectionInitMessage'
+      x-response:
+        $ref: '#/components/messages/ConnectionAckMessage'
+      x-response-type: simple-rpc
 x-dispatcherKey: type
 x-dispatcherStreamId: id
-
-
-
-

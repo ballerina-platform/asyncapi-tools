@@ -56,7 +56,7 @@ import java.util.stream.Stream;
  */
 public class TestUtils {
 
-    private static final Path RES_DIR = Paths.get("src/test/resources/generators/").toAbsolutePath();
+    private static final Path RES_DIR = Paths.get("src/test/resources/asyncapi-to-ballerina/client").toAbsolutePath();
     private static final Path clientPath = RES_DIR.resolve("ballerina_project/client.bal");
     private static final Path schemaPath = RES_DIR.resolve("ballerina_project/types.bal");
     private static final Path utilPath = RES_DIR.resolve("ballerina_project/utils.bal");

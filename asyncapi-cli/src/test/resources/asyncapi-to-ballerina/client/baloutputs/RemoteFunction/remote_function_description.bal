@@ -62,7 +62,11 @@ public client isolated class PayloadVlocationsClient {
             }
         }
     }
+    # remote description
     #
+    # + subscribe - subscribe request description
+    # + timeout - waiting period to keep the event in the buffer in seconds
+    # + return - unsubscribe response description
     remote isolated function doSubscribe(Subscribe subscribe, decimal timeout) returns UnSubscribe|error {
         pipe:Pipe subscribePipe = new (1);
         self.pipes.addPipe("subscribe", subscribePipe);

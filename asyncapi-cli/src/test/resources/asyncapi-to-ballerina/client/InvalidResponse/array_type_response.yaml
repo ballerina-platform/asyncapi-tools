@@ -36,16 +36,11 @@ components:
           type: string
           const: Subscribe
     UnSubscribe:
-      type: object
-      required:
-        - type
-      properties:
-        type:
-          type: string
-          const: UnSubscribe
-        payload:
-          type: object
-          additionalProperties: true
+      type: array
+      items:
+        $ref: "#/components/schemas/Pet"
+    Pet:
+      type: integer
   messages:
     UnSubscribe:
       payload:
@@ -57,5 +52,6 @@ components:
         $ref: '#/components/messages/UnSubscribe'
       x-response-type: simple-rpc
 x-dispatcherKey: event
+x-dispatcherStreamId: id
 
 

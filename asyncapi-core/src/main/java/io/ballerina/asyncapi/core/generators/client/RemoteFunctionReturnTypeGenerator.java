@@ -130,11 +130,17 @@ public class RemoteFunctionReturnTypeGenerator {
             throws BallerinaAsyncApiException {
         String type = null;
 
-        if (schema != null && schema.getType() != null && schema.getType().equals("object")) {
+        if (schema != null && schema.getType() != null && schema.getType().equals("object")
+                && schema.getProperties()!=null) {
             type = handleInLineRecordInResponse(schemaName, schema);
 
         } else {
-            throw new BallerinaAsyncApiException("Response type must be a record");
+            if(schema.getProperties()==null){
+                throw new BallerinaAsyncApiException(String.format(
+                        "Response type must be a record, %s schema must contain properies field",schemaName));
+            }
+            throw new BallerinaAsyncApiException(String.format(
+                    "Response type must be a record, invalid response type %s in %s schema",schema.getType(),schemaName));
         }
         return type;
     }
