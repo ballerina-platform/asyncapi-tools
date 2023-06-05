@@ -18,7 +18,7 @@ import ballerina/websocket;
 import ballerina/io;
 
 @websocket:ServiceConfig {dispatcherKey: "type", subProtocols: ["graphql-transport-ws"]}
-service /chat on new websocket:Listener(9090) {
+service /payloadV on new websocket:Listener(9090) {
     resource function get .() returns websocket:Service|websocket:UpgradeError {
         return new ChatServer();
 
@@ -28,7 +28,7 @@ service /chat on new websocket:Listener(9090) {
 service class ChatServer {
     *websocket:Service;
 
-    remote function onSubscribeMessage(SubscribeMessage message) returns stream<NextMessage|CompleteMessage|ErrorMessage> {
+    remote function onSubscribeMessage(SubscribeMessage message) returns stream<NextMessage|CompleteMessage|TestMessage> {
         NextMessage returnMessage = {id: message.id, payload: (), 'type: "next"};
         NextMessage[] array = genStream(10, returnMessage, message.id);
         return array.toStream();
@@ -107,7 +107,7 @@ public type CompleteMessage record {
 
 };
 
-public type ErrorMessage record {
+public type TestMessage record {
     string id;
     string 'type = "error";
     json payload;

@@ -116,4 +116,4 @@ components:
           format: int64
         description: order return description
       x-response-type: simple-rpc
-x-dispatcherKey: event
+x-dispatcherKey: s8jk

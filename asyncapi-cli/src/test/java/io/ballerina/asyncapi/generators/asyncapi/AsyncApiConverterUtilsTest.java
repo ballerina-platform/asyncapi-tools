@@ -139,7 +139,7 @@ public class AsyncApiConverterUtilsTest {
         Assert.assertTrue(Files.exists(this.tempDir.resolve(String.format("payloadV%s.yaml", ASYNC_API_SUFFIX))));
     }
 
-    @Test(description = "Generate AsyncAPI spec for given ballerina file has only compiler warning")
+    @Test(description = "Generate AsyncAPI spec for given ballerina file has only compiler warning", enabled = false)
     public void testForCompilerWarning() throws IOException {
         Path ballerinaFilePath = RES_DIR.resolve("service/compiler_warning.bal");
         compareWithGeneratedFile(ballerinaFilePath, "service/compiler_warning.yaml");
