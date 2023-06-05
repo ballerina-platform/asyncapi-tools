@@ -94,3 +94,4 @@ components:
         $ref: '#/components/messages/Action'
         description: this is return description
       x-response-type: simple-rpc
+x-dispatcherKey: event

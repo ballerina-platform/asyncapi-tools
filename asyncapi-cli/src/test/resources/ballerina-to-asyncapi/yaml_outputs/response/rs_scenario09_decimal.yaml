@@ -45,3 +45,4 @@ components:
           type: number
           format: double
       x-response-type: simple-rpc
+x-dispatcherKey: event

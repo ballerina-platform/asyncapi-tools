@@ -81,3 +81,4 @@ components:
       x-response:
         $ref: '#/components/messages/Cat'
       x-response-type: simple-rpc
+x-dispatcherKey: event

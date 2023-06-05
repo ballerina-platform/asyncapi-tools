@@ -55,3 +55,4 @@ components:
             body:
               type: string
       x-response-type: simple-rpc
+x-dispatcherKey: event

@@ -66,3 +66,4 @@ components:
           type: integer
           format: int64
       x-response-type: simple-rpc
+x-dispatcherKey: event

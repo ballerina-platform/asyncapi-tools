@@ -75,3 +75,4 @@ components:
           items:
             $ref: '#/components/schemas/Product'
       x-response-type: simple-rpc
+x-dispatcherKey: event

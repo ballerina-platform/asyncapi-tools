@@ -366,3 +366,4 @@ components:
           - $ref: '#/components/messages/PaymentSuccess'
         description: '`PaymentCreated` or `PaymentConflict` representation'
       x-response-type: simple-rpc
+x-dispatcherKey: event

@@ -109,3 +109,4 @@ components:
         $ref: '#/components/messages/PriceMap'
         description: this is User return description
       x-response-type: simple-rpc
+x-dispatcherKey: event

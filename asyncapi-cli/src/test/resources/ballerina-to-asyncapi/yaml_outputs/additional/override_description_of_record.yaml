@@ -55,3 +55,4 @@ components:
       x-response:
         $ref: '#/components/messages/Ticker'
       x-response-type: simple-rpc
+x-dispatcherKey: event
