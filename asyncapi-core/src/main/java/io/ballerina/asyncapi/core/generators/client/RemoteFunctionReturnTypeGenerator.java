@@ -72,7 +72,9 @@ public class RemoteFunctionReturnTypeGenerator {
                         JsonNode jsonNode = it.next();
                         if (jsonNode.get("$ref") != null) {
                             String reference = jsonNode.get("$ref").asText();
-                            String schemaName = getValidName(extractReferenceType(reference), true);
+                            // TODO: Consider adding getValidName here , removed because of lowercase and
+                            //  uppercase error
+                            String schemaName = extractReferenceType(reference);
                             AsyncApi25SchemaImpl refSchema = (AsyncApi25SchemaImpl) asyncAPI.getComponents().
                                     getSchemas().get(
                                             schemaName);
@@ -100,7 +102,8 @@ public class RemoteFunctionReturnTypeGenerator {
 
         } else if (xResponse.get("$ref") != null) { //Handle reference responses
             String reference = xResponse.get("$ref").asText();
-            String schemaName = getValidName(extractReferenceType(reference), false);
+            // TODO: Consider adding getValidName here , removed because of lowercase and uppercase error
+            String schemaName = extractReferenceType(reference);
             AsyncApi25SchemaImpl refSchema = (AsyncApi25SchemaImpl) asyncAPI.getComponents().getSchemas().get(
                     schemaName);
             type = getDataType(schemaName, refSchema);

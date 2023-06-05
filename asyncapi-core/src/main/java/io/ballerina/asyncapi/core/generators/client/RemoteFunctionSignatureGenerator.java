@@ -179,7 +179,8 @@ public class RemoteFunctionSignatureGenerator {
     public String getDataType(JsonNode payload) throws BallerinaAsyncApiException {
         String type = "";
         if (payload.get("$ref") != null) {
-            type = getValidName(extractReferenceType(payload.get("$ref").textValue()), false);
+            // TODO: Consider adding getValidName here , removed because of lowercase and uppercase error
+            type = extractReferenceType(payload.get("$ref").textValue());
             Schema componentSchema = asyncAPI.getComponents().
                     getSchemas().get(type).asSchema();
             if (!isValidSchemaName(type)) {
