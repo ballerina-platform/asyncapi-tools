@@ -177,13 +177,26 @@ public class AsyncAPIResponseMapper {
             case STREAM_TYPE_DESC:
                 if (remoteReturnType instanceof StreamTypeDescriptorNode) {
                     if (((StreamTypeDescriptorNode) remoteReturnType).streamTypeParamsNode().isPresent()) {
-                        String remoteReturnStream = ((StreamTypeParamsNode) ((StreamTypeDescriptorNode)
-                                remoteReturnType).streamTypeParamsNode().get()).leftTypeDescNode().toString().trim();
+                        Node remoteReturnStream = ((StreamTypeParamsNode) ((StreamTypeDescriptorNode)
+                                remoteReturnType).streamTypeParamsNode().get()).leftTypeDescNode();
+                        if( remoteReturnStream instanceof UnionTypeDescriptorNode) {
+                            mapUnionReturns(subscribeMessage, componentMessage,
+                                    (UnionTypeDescriptorNode) remoteReturnStream, returnDescription, isOptional);
 
-                        BalAsyncApi25SchemaImpl remoteReturnStreamSchema = getAsyncApiSchema(remoteReturnStream);
+                            componentMessage.addExtension(X_RESPONSE_TYPE, new TextNode(SERVER_STREAMING));
+//                        String remoteReturnStream = ((StreamTypeParamsNode) ((StreamTypeDescriptorNode)
+//                                remoteReturnType).streamTypeParamsNode().get()).leftTypeDescNode().toString().trim();
+//                        if(remoteReturnStream.contains("|")){
+//                            String[] unionStreamTypes=remoteReturnStream.split("\\|");
+//                            System.out.println("ff");
+//
+                        }else {
+                            BalAsyncApi25SchemaImpl remoteReturnStreamSchema = getAsyncApiSchema(
+                                    remoteReturnStream.toString().trim());
 //                        remoteReturnStreamSchema.addExtension(X_RESPONSE_TYPE,new TextNode(SERVER_STREAMING));
-                        setResponseOfRequest(subscribeMessage, componentMessage, SERVER_STREAMING, returnDescription,
-                                objectMapper, remoteReturnStreamSchema, isOptional);
+                            setResponseOfRequest(subscribeMessage, componentMessage, SERVER_STREAMING, returnDescription,
+                                    objectMapper, remoteReturnStreamSchema, isOptional);
+                        }
                     } else {
                         throw new NoSuchElementException(NO_TYPE_IN_STREAM);
                     }

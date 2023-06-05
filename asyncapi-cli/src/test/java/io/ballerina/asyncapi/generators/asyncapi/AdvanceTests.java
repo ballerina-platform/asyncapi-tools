@@ -17,7 +17,7 @@
  */
 package io.ballerina.asyncapi.generators.asyncapi;
 
-import io.ballerina.asyncapi.cli.AsyncAPIContractGenerator;
+import io.ballerina.asyncapi.cli.AsyncAPISpecGenerator;
 import org.testng.Assert;
 import org.testng.annotations.AfterMethod;
 import org.testng.annotations.AfterTest;
@@ -39,7 +39,7 @@ import static io.ballerina.asyncapi.generators.asyncapi.TestUtils.deleteDirector
 /**
  * This test class contains the service nodes related special scenarios.
  */
-public class ServiceDeclarationNodesTests {
+public class AdvanceTests {
     private static final Path RES_DIR = Paths.get("src/test/resources/ballerina-to-asyncapi").toAbsolutePath();
     private Path tempDir;
 
@@ -83,13 +83,21 @@ public class ServiceDeclarationNodesTests {
                 "_no_base_path%s.yaml", ASYNC_API_SUFFIX), "multiple_services_no_base_path_");
     }
 
+
+    @Test(description = "When graphql protocol use as a sub-protocol over websocket")
+    public void testGraphqlOverWebsocket() throws IOException {
+        Path ballerinaFilePath = RES_DIR.resolve("advance/graphql_over_websocket.bal");
+        //Compare generated yaml file with expected yaml content
+        TestUtils.compareWithGeneratedFile(ballerinaFilePath, "advance/graphql_over_websocket.yaml");
+    }
+
     private void executeMethod(Path ballerinaFilePath, String yamlFile, String generatedYamlFile,
                                String secondGeneratedFile) throws IOException {
         Path tempDir = Files.createTempDirectory("bal-to-asyncapi-test-out-" + System.nanoTime());
         try {
             String expectedYamlContent = getStringFromGivenBalFile(RES_DIR.resolve("yaml_outputs/service"),
                     yamlFile);
-            AsyncAPIContractGenerator asyncApiConverter = new AsyncAPIContractGenerator();
+            AsyncAPISpecGenerator asyncApiConverter = new AsyncAPISpecGenerator();
             asyncApiConverter.generateAsyncAPIDefinitionsAllService(ballerinaFilePath, tempDir,
                     null, false);
 

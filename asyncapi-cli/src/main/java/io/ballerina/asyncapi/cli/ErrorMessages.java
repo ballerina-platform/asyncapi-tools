@@ -26,7 +26,7 @@ package io.ballerina.asyncapi.cli;
 public class ErrorMessages {
 
     public static final String MISSING_CONTRACT_PATH = "Bal service file is required to generate the " +
-            "asyncapi definition. \ne.g: bal asyncapi --input <Ballerina file path>";
+            "asyncAPI definition. \ne.g: bal asyncapi --input <Ballerina file path>";
 
     private ErrorMessages() {
         throw new AssertionError();

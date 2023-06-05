@@ -55,3 +55,4 @@ components:
       x-response:
         $ref: '#/components/messages/SubscriptionStatus'
       x-response-type: simple-rpc
+x-dispatcherKey: event

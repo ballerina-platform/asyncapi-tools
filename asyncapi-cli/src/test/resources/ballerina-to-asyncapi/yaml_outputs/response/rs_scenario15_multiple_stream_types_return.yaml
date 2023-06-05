@@ -72,3 +72,4 @@ components:
           - payload:
               type: boolean
       x-response-type: server-streaming
+x-dispatcherKey: event

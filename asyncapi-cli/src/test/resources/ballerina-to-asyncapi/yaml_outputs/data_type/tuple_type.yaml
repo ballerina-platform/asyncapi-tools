@@ -104,3 +104,4 @@ components:
         $ref: '#/components/messages/User'
         description: this is User return description
       x-response-type: simple-rpc
+x-dispatcherKey: event

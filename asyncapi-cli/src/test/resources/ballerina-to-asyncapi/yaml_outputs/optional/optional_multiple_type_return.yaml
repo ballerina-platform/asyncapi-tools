@@ -79,3 +79,4 @@ components:
         extensions:
           x-required: false
       x-response-type: simple-rpc
+x-dispatcherKey: event

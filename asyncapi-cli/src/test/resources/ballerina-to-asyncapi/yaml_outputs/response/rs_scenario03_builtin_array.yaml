@@ -86,3 +86,4 @@ components:
           items:
             type: string
       x-response-type: simple-rpc
+x-dispatcherKey: event

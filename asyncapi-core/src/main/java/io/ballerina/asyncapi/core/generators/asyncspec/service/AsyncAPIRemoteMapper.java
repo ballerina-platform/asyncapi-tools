@@ -89,11 +89,12 @@ import static io.ballerina.compiler.syntax.tree.SyntaxKind.QUALIFIED_NAME_REFERE
  * @since 2.0.0
  */
 public class AsyncAPIRemoteMapper {
-    private final SemanticModel semanticModel;
+    private SemanticModel semanticModel;
     private final AsyncApi25ChannelsImpl channelObject = new AsyncApi25ChannelsImpl();
     private final AsyncApi25ComponentsImpl components = new AsyncApi25ComponentsImpl();
 
     private final AsyncAPIComponentMapper componentMapper = new AsyncAPIComponentMapper(components);
+
     private final List<AsyncAPIConverterDiagnostic> errors;
 
     /**
@@ -178,6 +179,7 @@ public class AsyncAPIRemoteMapper {
                                     unescapeIdentifier(functionName.substring(2));
                             RequiredParameterNode requiredParameterNode =
                                     checkParameterContainsCustomType(remoteRequestTypeName, remoteFunctionNode);
+                            //TODO: uncomment after handle onError is capable to have in the server side
                             if (requiredParameterNode != null) {
                                 String paramName = requiredParameterNode.paramName().get().toString().trim();
                                 Node parameterTypeNode = requiredParameterNode.typeName();
@@ -221,7 +223,7 @@ public class AsyncAPIRemoteMapper {
                                         }
                                         //Call createResponse method to create the response
                                         responseMapper.createResponse(subscribeMessage, componentMessage,
-                                                remoteReturnType, returnDescription , FALSE);
+                                                remoteReturnType, returnDescription, FALSE);
                                     }
                                     //Add publish message related to remote method
                                     components.addMessage(remoteRequestTypeName, componentMessage);
@@ -230,11 +232,13 @@ public class AsyncAPIRemoteMapper {
                                     throw new NoSuchElementException(String.format(FUNCTION_SIGNATURE_WRONG_TYPE,
                                             remoteRequestTypeName, type.typeKind().getName()));
                                 }
-
-                            } else {
-                                throw new NoSuchElementException(FUNCTION_SIGNATURE_ABSENT);
                             }
-                        } else {
+//                            } else {
+//                                throw new NoSuchElementException(FUNCTION_SIGNATURE_ABSENT);
+//                            }
+                        }
+                        //TODO: Change because onError and onIdleTimeout in graphql over websocket
+                        else {
                             throw new NoSuchElementException(FUNCTION_DEFAULT_NAME_CONTAINS_ERROR);
                         }
 
@@ -279,10 +283,15 @@ public class AsyncAPIRemoteMapper {
     }
 
     private Boolean isRemoteFunctionNameValid(String providedFunctionName) {
-        String[] invalidRemoteFunctionNames = {ON_IDLE_TIME_OUT,
+//        String[] invalidRemoteFunctionNames = {ON_IDLE_TIME_OUT,
+//                ON_MESSAGE, ON_TEXT_MESSAGE,
+//                ON_BINARY_MESSAGE, ON_CLOSE,
+//                ON_OPEN, ON_ERROR, ON_PING, ON_PONG};
+        //TODO: Remove onError and onIdleTimeOut
+        String[] invalidRemoteFunctionNames = {
                 ON_MESSAGE, ON_TEXT_MESSAGE,
                 ON_BINARY_MESSAGE, ON_CLOSE,
-                ON_OPEN, ON_ERROR, ON_PING, ON_PONG};
+                ON_OPEN, ON_PING, ON_PONG};
         return !(Arrays.stream(invalidRemoteFunctionNames).anyMatch(
                 remoteFunctionName -> remoteFunctionName.equals(providedFunctionName)));
     }

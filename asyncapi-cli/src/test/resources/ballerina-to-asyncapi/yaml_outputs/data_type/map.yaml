@@ -128,3 +128,4 @@ components:
         description: remote return description
         x-required: false
       x-response-type: simple-rpc
+x-dispatcherKey: event

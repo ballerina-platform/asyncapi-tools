@@ -35,6 +35,8 @@ public class Constants {
     public static final String DOUBLE = "double";
     public static final String OBJECT = "object";
     public static final String TYPE_REFERENCE = "type_reference";
+
+    public static final String FIELD_RECORD="record";
     public static final String WEBSOCKET = "websocket";
     public static final String DISPATCHER_KEY = "dispatcherKey";
     public static final String BALLERINA = "ballerina";
@@ -164,8 +166,8 @@ public class Constants {
             "convention ex-onHeartBeat,onRemoteFunctionTestName";
     public static final String FUNCTION_PARAMETERS_EXCEEDED = "ERROR: Function name can only have two parameters," +
             " websocket:caller and type";
-    public static final String FUNCTION_DEFAULT_NAME_CONTAINS_ERROR = "ERROR: OnIdleTimeOut, onMessage, OnTextMessage,"
-            + " OnBinaryMessage, OnClose, OnOpen, and OnError names are not permitted in a function's name";
+    public static final String FUNCTION_DEFAULT_NAME_CONTAINS_ERROR = "ERROR: onIdleTimeOut, onMessage, onTextMessage,"
+            + " onBinaryMessage, onClose, onOpen, and onError names are not permitted in a function's name";
     public static final String NO_ANNOTATION_PRESENT = "ERROR: No Annotation present, " +
             "use @websocket:ServiceConfig{dispatcherKey: \"event\"} above the service";
     public static final String NO_DISPATCHER_KEY = "ERROR: No dispatcherKey field is present in " +

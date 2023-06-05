@@ -17,7 +17,7 @@
  */
 package io.ballerina.asyncapi.generators.asyncapi;
 
-import io.ballerina.asyncapi.cli.AsyncAPIContractGenerator;
+import io.ballerina.asyncapi.cli.AsyncAPISpecGenerator;
 import io.ballerina.asyncapi.core.generators.asyncspec.diagnostic.AsyncAPIConverterDiagnostic;
 import org.testng.Assert;
 import org.testng.annotations.AfterMethod;
@@ -77,7 +77,7 @@ public class ListenerTests {
     @Test(description = "When given ballerina file contain some compilation issue.")
     public void testListeners06() {
         Path ballerinaFilePath = RES_DIR.resolve("listeners/listener_scenario06.bal");
-        AsyncAPIContractGenerator asyncApiConverter = new AsyncAPIContractGenerator();
+        AsyncAPISpecGenerator asyncApiConverter = new AsyncAPISpecGenerator();
         asyncApiConverter.generateAsyncAPIDefinitionsAllService(ballerinaFilePath, tempDir, null
                 , false);
         List<AsyncAPIConverterDiagnostic> errors = asyncApiConverter.getErrors();
