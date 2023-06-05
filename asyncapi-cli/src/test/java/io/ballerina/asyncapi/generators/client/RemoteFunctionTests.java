@@ -17,6 +17,9 @@ import java.nio.file.Paths;
 import static io.ballerina.asyncapi.core.GeneratorUtils.getValidName;
 import static io.ballerina.asyncapi.generators.common.TestUtils.compareGeneratedSyntaxTreeWithExpectedSyntaxTree;
 
+/**
+ * Test remote function tests for given asyncapi specification.
+ */
 public class RemoteFunctionTests {
     private static final Path RES_DIR = Paths.get("src/test/resources/asyncapi-to-ballerina/client").toAbsolutePath();
     private SyntaxTree syntaxTree;

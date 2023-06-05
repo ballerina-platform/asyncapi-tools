@@ -6,9 +6,7 @@ import io.ballerina.asyncapi.core.exception.BallerinaAsyncApiException;
 import io.ballerina.asyncapi.core.generators.client.IntermediateClientGenerator;
 import io.ballerina.asyncapi.core.generators.client.model.AASClientConfig;
 import io.ballerina.compiler.syntax.tree.SyntaxTree;
-import io.ballerina.tools.diagnostics.Diagnostic;
 import org.ballerinalang.formatter.core.FormatterException;
-import org.testng.Assert;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
@@ -16,10 +14,10 @@ import java.io.IOException;
 import java.net.URISyntaxException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.List;
 
-import static io.ballerina.asyncapi.generators.common.TestUtils.compareGeneratedSyntaxTreeWithExpectedSyntaxTree;
-
+/**
+ * Test invalid responses for given asyncapi specification.
+ */
 public class InvalidResponseTests {
     private static final Path RES_DIR = Paths.get(
             "src/test/resources/asyncapi-to-ballerina/client").toAbsolutePath();
@@ -87,10 +85,11 @@ public class InvalidResponseTests {
 //        compareGeneratedSyntaxTreeWithExpectedSyntaxTree(expectedPathForUtils, utilsSyntaxTree);
 //        compareGeneratedSyntaxTreeWithExpectedSyntaxTree(expectedPathForTypes, schemaSyntaxTree);
     }
-    @Test(description = "Test primitive type responses",expectedExceptions = BallerinaAsyncApiException.class,
+
+    @Test(description = "Test primitive type responses", expectedExceptions = BallerinaAsyncApiException.class,
             expectedExceptionsMessageRegExp = "Response type must be a record, .*",
             dataProvider = "fileProviderForFilesComparison")
-    public void  testPrimitiveTypeResponses(String yamlFile) throws IOException,
+    public void testPrimitiveTypeResponses(String yamlFile) throws IOException,
             BallerinaAsyncApiException, FormatterException, URISyntaxException {
         Path definitionPath = RES_DIR.resolve("InvalidResponse/" + yamlFile);
 //        Path expectedPath = RES_DIR.resolve(" baloutputs/InvalidResponse/" + expectedFile);

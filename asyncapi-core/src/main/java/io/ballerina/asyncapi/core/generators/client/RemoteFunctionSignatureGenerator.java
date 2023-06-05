@@ -76,9 +76,8 @@ import static io.ballerina.compiler.syntax.tree.SyntaxKind.RETURNS_KEYWORD;
 public class RemoteFunctionSignatureGenerator {
     private final AsyncApi25DocumentImpl asyncAPI;
     private final List<TypeDefinitionNode> typeDefinitionNodeList;
-    private RemoteFunctionReturnTypeGenerator functionReturnType;
-
     private final BallerinaTypesGenerator ballerinaSchemaGenerator;
+    private RemoteFunctionReturnTypeGenerator functionReturnType;
 
     public RemoteFunctionSignatureGenerator(AsyncApi25DocumentImpl asyncAPI,
                                             BallerinaTypesGenerator ballerinaSchemaGenerator,
@@ -142,7 +141,7 @@ public class RemoteFunctionSignatureGenerator {
             JsonNode xResponse = extensions.get(X_RESPONSE);
             JsonNode xResponseType = extensions.get(X_RESPONSE_TYPE);
             String returnType = functionReturnType.getReturnType(xResponse, xResponseType);
-            if (xResponseType!=null && xResponseType.equals(new TextNode(SERVER_STREAMING))) {
+            if (xResponseType != null && xResponseType.equals(new TextNode(SERVER_STREAMING))) {
                 returnType = "stream<" + returnType + ",error?>";
             }
             String finalReturnType = returnType +

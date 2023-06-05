@@ -38,7 +38,7 @@ import java.util.List;
 import static io.ballerina.asyncapi.generators.common.TestUtils.compareGeneratedSyntaxTreeWithExpectedSyntaxTree;
 
 /**
- * This tests class for the tests Path parameters in swagger file.
+ * This tests class for the tests Path parameters in asyncapi file.
  */
 public class PathParameterTests {
     private static final Path RESDIR = Paths.get("src/test/resources/asyncapi-to-ballerina/client").toAbsolutePath();

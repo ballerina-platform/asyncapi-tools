@@ -37,7 +37,7 @@ import static io.ballerina.asyncapi.generators.common.TestUtils.compareGenerated
 
 
 /**
- * This tests class for the tests Query parameters in swagger file.
+ * This tests class for the tests Query parameters in asyncapi file.
  */
 public class QueryParameterTests {
     private static final Path RES_DIR = Paths.get("src/test/resources/asyncapi-to-ballerina/client").toAbsolutePath();

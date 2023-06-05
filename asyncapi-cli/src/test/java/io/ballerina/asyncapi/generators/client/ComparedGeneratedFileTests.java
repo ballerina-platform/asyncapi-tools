@@ -25,10 +25,7 @@ import io.ballerina.asyncapi.core.generators.client.IntermediateClientGenerator;
 import io.ballerina.asyncapi.core.generators.client.model.AASClientConfig;
 import io.ballerina.asyncapi.generators.common.TestUtils;
 import io.ballerina.compiler.syntax.tree.SyntaxTree;
-
-import io.ballerina.tools.diagnostics.Diagnostic;
 import org.ballerinalang.formatter.core.FormatterException;
-import org.testng.Assert;
 import org.testng.annotations.AfterTest;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
@@ -37,14 +34,12 @@ import java.io.IOException;
 import java.net.URISyntaxException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.List;
 
 import static io.ballerina.asyncapi.generators.common.TestUtils.compareGeneratedSyntaxTreeWithExpectedSyntaxTree;
 
 /**
  * All the tests related to the {{@link io.ballerina.asyncapi.core.generators.client.IntermediateClientGenerator}}
- util.
+ * util.
  */
 public class ComparedGeneratedFileTests {
     private static final Path RES_DIR = Paths.get("src/test/resources/asyncapi-to-ballerina/client").toAbsolutePath();
@@ -52,7 +47,7 @@ public class ComparedGeneratedFileTests {
 
     @Test(description = "Test openAPI definition to ballerina client source code generation",
             dataProvider = "fileProviderForFilesComparison")
-    public void  openApiToBallerinaCodeGenTestForClient(String yamlFile, String expectedFile) throws IOException,
+    public void openApiToBallerinaCodeGenTestForClient(String yamlFile, String expectedFile) throws IOException,
             BallerinaAsyncApiException, FormatterException, URISyntaxException {
         Path definitionPath = RES_DIR.resolve("Real/" + yamlFile);
         Path expectedPath = RES_DIR.resolve("baloutputs/Real/" + expectedFile);
@@ -69,7 +64,7 @@ public class ComparedGeneratedFileTests {
     public Object[][] fileProviderForFilesComparison() {
         return new Object[][]{
 //                {"gemini_websocket.yaml", "gemini_websocket.bal"},
-                {"kraken_websocket.yaml","kraken_websocket.bal"}
+                {"kraken_websocket.yaml", "kraken_websocket.bal"}
 //                {"uber_openapi.yaml", "uber_openapi.bal"},
 //                {"multiple_pathparam.yaml", "multiple_pathparam.bal"},
 //                {"display_annotation.yaml", "display_annotation.bal"},

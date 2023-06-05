@@ -216,6 +216,7 @@ public class BallerinaAuthConfigGenerator {
     private final Map<String, String> queryApiKeyNameList = new HashMap<>();
     private final List<Node> apiKeysConfigRecordFields = new ArrayList<>();
     private final Set<String> authTypes = new LinkedHashSet<>();
+    private final BallerinaTypesGenerator ballerinaSchemaGenerator;
     private boolean httpApiKey;
     private boolean isPathParam = false;
     private boolean isQueryParam = false;
@@ -224,28 +225,26 @@ public class BallerinaAuthConfigGenerator {
     private String clientCredGrantTokenUrl;
     private String passwordGrantTokenUrl;
     private String refreshTokenUrl;
-    private final UtilGenerator utilGenerator;
-
-    private final BallerinaTypesGenerator ballerinaSchemaGenerator;
     private List<TypeDefinitionNode> authRelatedTypeDefinitionNodes = new ArrayList<>();
 
     public BallerinaAuthConfigGenerator(boolean isAPIKey, boolean isHttpOROAuth,
-                                        BallerinaTypesGenerator ballerinaSchemaGenerator, UtilGenerator utilGenerator) {
+                                        BallerinaTypesGenerator ballerinaSchemaGenerator) {
         this.httpApiKey = isAPIKey;
         this.httpOROAuth = isHttpOROAuth;
         this.ballerinaSchemaGenerator = ballerinaSchemaGenerator;
-        this.utilGenerator=utilGenerator;
+
 
     }
-    public boolean isPathParam(){
+
+    public boolean isPathParam() {
         return isPathParam;
     }
 
-    public boolean isQueryParam(){
+    public boolean isQueryParam() {
         return isQueryParam;
     }
 
-    public boolean isHeaderParam(){
+    public boolean isHeaderParam() {
         return isHeaderParam;
     }
 
@@ -732,17 +731,17 @@ public class BallerinaAuthConfigGenerator {
             pathSchema.setAdditionalProperties(new BooleanUnionValueImpl(false));
             List<String> pathRequiredFields = new ArrayList<>();
 
-            List<Node> schemaDocs=new ArrayList<>();
+            List<Node> schemaDocs = new ArrayList<>();
 
-            String pathParamDescription= "Path parameters as a record";
+            String pathParamDescription = "Path parameters as a record";
             schemaDocs.addAll(DocCommentsGenerator.createAPIDescriptionDoc(pathParamDescription, true));
             for (String parameterName : parameters.getItemNames()) {
                 AsyncApiParameter parameter = parameters.getItem(parameterName);
-                String type= parameter.getSchema().getType();
-                if(type!=null && type.equals("array")){
+                String type = parameter.getSchema().getType();
+                if (type != null && type.equals("array")) {
                     throw new BallerinaAsyncApiException("Ballerina doesn't support array type path parameters");
                 }
-                if(type!=null && type.equals("object")){
+                if (type != null && type.equals("object")) {
                     throw new BallerinaAsyncApiException("Ballerina doesn't support record type path parameters");
                 }
                 if (parameter.getDescription() != null && !parameter.
@@ -763,7 +762,7 @@ public class BallerinaAuthConfigGenerator {
                     createIdentifierToken("PathParams"));
             RequiredParameterNode pathParamNode = createRequiredParameterNode(createNodeList(), typeName,
                     createIdentifierToken("pathParams"));
-            isPathParam=true;
+            isPathParam = true;
 //            utilGenerator.setPathParametersFound(true);
 
             parameterList.add(pathParamNode);
@@ -783,8 +782,8 @@ public class BallerinaAuthConfigGenerator {
                     headerSchema.setType("object");
                     headerSchema.setAdditionalProperties(new BooleanUnionValueImpl(false));
                     List<String> headerRequiredFields = new ArrayList<>();
-                    List<Node> schemaDocs=new ArrayList<>();
-                    String headerParamDescription= "Header parameters as a record";
+                    List<Node> schemaDocs = new ArrayList<>();
+                    String headerParamDescription = "Header parameters as a record";
                     schemaDocs.addAll(DocCommentsGenerator.createAPIDescriptionDoc(
                             headerParamDescription, true));
                     for (Iterator<Map.Entry<String, JsonNode>> it = properties; it.hasNext(); ) {
@@ -793,12 +792,12 @@ public class BallerinaAuthConfigGenerator {
                         try {
                             BalAsyncApi25SchemaImpl schema = objMapper.treeToValue(field.getValue(),
                                     BalAsyncApi25SchemaImpl.class);
-                            String type= schema.getType();
-                            if(type!=null && type.equals("array")){
+                            String type = schema.getType();
+                            if (type != null && type.equals("array")) {
                                 throw new BallerinaAsyncApiException(
                                         "Ballerina doesn't support array type header parameters");
                             }
-                            if(type!=null && type.equals("object")){
+                            if (type != null && type.equals("object")) {
                                 throw new BallerinaAsyncApiException(
                                         "Ballerina doesn't support record type header parameters");
                             }
@@ -826,7 +825,7 @@ public class BallerinaAuthConfigGenerator {
                             createIdentifierToken("headerParams"));
                     parameterList.add(headerParamNode);
                     parameterList.add(comma);
-                    isHeaderParam=true;
+                    isHeaderParam = true;
 //                    utilGenerator.setHeadersFound(true);
                 }
 
@@ -843,8 +842,8 @@ public class BallerinaAuthConfigGenerator {
                     querySchema.setType("object");
                     querySchema.setAdditionalProperties(new BooleanUnionValueImpl(false));
                     List<String> queryRequiredFields = new ArrayList<>();
-                    List<Node> schemaDocs=new ArrayList<>();
-                    String queryParamDescription= "Query parameters as a record";
+                    List<Node> schemaDocs = new ArrayList<>();
+                    String queryParamDescription = "Query parameters as a record";
                     schemaDocs.addAll(DocCommentsGenerator.createAPIDescriptionDoc(
                             queryParamDescription, true));
                     for (Iterator<Map.Entry<String, JsonNode>> it = properties; it.hasNext(); ) {
@@ -853,12 +852,12 @@ public class BallerinaAuthConfigGenerator {
                         try {
                             BalAsyncApi25SchemaImpl schema = objMapper.treeToValue(field.getValue(),
                                     BalAsyncApi25SchemaImpl.class);
-                            String type= schema.getType();
-                            if(type!=null && type.equals("array")){
+                            String type = schema.getType();
+                            if (type != null && type.equals("array")) {
                                 throw new BallerinaAsyncApiException(
                                         "Ballerina doesn't support array type query parameters");
                             }
-                            if(type!=null && type.equals("object")){
+                            if (type != null && type.equals("object")) {
                                 throw new BallerinaAsyncApiException(
                                         "Ballerina doesn't support record type query parameters");
                             }
@@ -885,7 +884,7 @@ public class BallerinaAuthConfigGenerator {
 
                     parameterList.add(queryParamNode);
                     parameterList.add(comma);
-                    isQueryParam=true;
+                    isQueryParam = true;
 //                    utilGenerator.setQueryParamsFound(true);
 
                 }

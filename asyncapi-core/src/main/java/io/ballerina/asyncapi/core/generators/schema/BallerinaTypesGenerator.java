@@ -53,10 +53,6 @@ import java.util.Map;
 
 import static io.ballerina.asyncapi.core.GeneratorConstants.CONNECTION_CONFIG;
 import static io.ballerina.asyncapi.core.GeneratorConstants.HTTP;
-import static io.ballerina.asyncapi.core.GeneratorConstants.OBJECT;
-import static io.ballerina.asyncapi.core.GeneratorConstants.RESPONSE_MESSAGE;
-import static io.ballerina.asyncapi.core.GeneratorConstants.RESPONSE_MESSAGE_WITH_ID_VAR_NAME;
-import static io.ballerina.asyncapi.core.GeneratorConstants.STRING;
 import static io.ballerina.asyncapi.core.GeneratorConstants.WEBSOCKET;
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createEmptyNodeList;
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createNodeList;
@@ -134,7 +130,7 @@ public class BallerinaTypesGenerator {
      * @throws BallerinaAsyncApiException when unsupported schema type is found
      */
     public TypeDefinitionNode getTypeDefinitionNode(AsyncApi25SchemaImpl schema, String typeName,
-                                                           List<Node> schemaDocs)
+                                                    List<Node> schemaDocs)
             throws BallerinaAsyncApiException {
         IdentifierToken typeNameToken = AbstractNodeFactory.createIdentifierToken(GeneratorUtils.getValidName(
                 typeName.trim(), true));

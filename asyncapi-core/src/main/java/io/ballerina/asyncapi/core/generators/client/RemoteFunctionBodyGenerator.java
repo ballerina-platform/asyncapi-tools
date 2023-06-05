@@ -55,7 +55,6 @@ import java.util.Map;
 
 import static io.ballerina.asyncapi.core.GeneratorConstants.CONSUME;
 import static io.ballerina.asyncapi.core.GeneratorConstants.CREATE_TYPE1_AS_STRING;
-import static io.ballerina.asyncapi.core.GeneratorConstants.ENSURE_TYPE;
 import static io.ballerina.asyncapi.core.GeneratorConstants.PIPE;
 import static io.ballerina.asyncapi.core.GeneratorConstants.PIPES;
 import static io.ballerina.asyncapi.core.GeneratorConstants.PRODUCE;
@@ -110,7 +109,6 @@ import static io.ballerina.compiler.syntax.tree.SyntaxKind.NEW_KEYWORD;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.OPEN_BRACE_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.OPEN_BRACKET_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.OPEN_PAREN_TOKEN;
-import static io.ballerina.compiler.syntax.tree.SyntaxKind.RIGHT_ARROW_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.RIGHT_DOUBLE_ARROW_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.SEMICOLON_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.STREAM_KEYWORD;
@@ -128,11 +126,11 @@ public class RemoteFunctionBodyGenerator {
     private final UtilGenerator utilGenerator;
 
     public RemoteFunctionBodyGenerator(List<ImportDeclarationNode> imports,
-                                       AsyncApi25DocumentImpl asyncAPI,UtilGenerator utilGenerator) {
+                                       AsyncApi25DocumentImpl asyncAPI, UtilGenerator utilGenerator) {
 
         this.imports = imports;
         this.asyncAPI = asyncAPI;
-        this.utilGenerator =utilGenerator;
+        this.utilGenerator = utilGenerator;
     }
 
     private static void createCommentStatementsForDispatcherId(List<StatementNode> statementsList,
@@ -149,8 +147,8 @@ public class RemoteFunctionBodyGenerator {
         Token dotToken = createToken(DOT_TOKEN);
         Token openBraceToken = createToken(OPEN_BRACE_TOKEN);
         Token closeBraceToken = createToken(CLOSE_BRACE_TOKEN);
-        Token openParenToken=createToken(OPEN_PAREN_TOKEN);
-        Token closeParenToken=createToken(CLOSE_PAREN_TOKEN);
+        Token openParenToken = createToken(OPEN_PAREN_TOKEN);
+        Token closeParenToken = createToken(CLOSE_PAREN_TOKEN);
 
 
         ArrayList<StatementNode> lockStatements = new ArrayList<>();
@@ -176,14 +174,14 @@ public class RemoteFunctionBodyGenerator {
             AssignmentStatementNode uuidAssignmentNode = createAssignmentStatementNode(dispatcherStreamIdNode,
                     equalToken, uuidNode, semicolonToken);
             lockStatements.add(uuidAssignmentNode);
-            FieldAccessExpressionNode remoteSelfPipes =createFieldAccessExpressionNode(
-                            createSimpleNameReferenceNode(createIdentifierToken(SELF)), dotToken,
-                            createSimpleNameReferenceNode(createIdentifierToken("pipes")));
+            FieldAccessExpressionNode remoteSelfPipes = createFieldAccessExpressionNode(
+                    createSimpleNameReferenceNode(createIdentifierToken(SELF)), dotToken,
+                    createSimpleNameReferenceNode(createIdentifierToken("pipes")));
 
             MethodCallExpressionNode addPipeMethodCallExpressionNode = createMethodCallExpressionNode(remoteSelfPipes,
                     dotToken,
                     createSimpleNameReferenceNode(createIdentifierToken("addPipe")),
-                    openParenToken, createSeparatedNodeList(dispatcherStreamIdNode,createToken(COMMA_TOKEN),
+                    openParenToken, createSeparatedNodeList(dispatcherStreamIdNode, createToken(COMMA_TOKEN),
                             requestypePipeNode), closeParenToken);
 
 //                    createSeparatedNodeList(createSimpleNameReferenceNode(createIdentifierToken(dispatcherStreamId)));
@@ -193,8 +191,8 @@ public class RemoteFunctionBodyGenerator {
 //                            pipeTypeName,
 //                            createFieldBindingPatternVarnameNode(requestTypePipeNode)),
 //                    equalToken, addPipeMethodCallExpressionNode, semicolonToken);
-           ExpressionStatementNode addPipeByIdStatement=createExpressionStatementNode(null,
-                   addPipeMethodCallExpressionNode,semicolonToken);
+            ExpressionStatementNode addPipeByIdStatement = createExpressionStatementNode(null,
+                    addPipeMethodCallExpressionNode, semicolonToken);
 
 //            lockStatements.add(selfPipesAssignmentStatementNode);
             LockStatementNode functionLockStatementNode = createLockStatementNode(createToken(LOCK_KEYWORD),
@@ -215,15 +213,12 @@ public class RemoteFunctionBodyGenerator {
             statementsList.add(idValueAssignmentStatementNode);
 
 
-
-
-
         } else {
 
             //self.pipes["tuplePipe"] = tuplePipe;
 //            AssignmentStatementNode selfPipesAssignmentStatementNode = createAssignmentStatementNode(remoteSelfPipes,
 //                    equalToken, requestypePipeNode, semicolonToken);
-            FieldAccessExpressionNode remoteSelfPipes =createFieldAccessExpressionNode(
+            FieldAccessExpressionNode remoteSelfPipes = createFieldAccessExpressionNode(
                     createSimpleNameReferenceNode(createIdentifierToken(SELF)), dotToken,
                     createSimpleNameReferenceNode(createIdentifierToken("pipes")));
 
@@ -231,11 +226,11 @@ public class RemoteFunctionBodyGenerator {
                     dotToken,
                     createSimpleNameReferenceNode(createIdentifierToken("addPipe")),
                     openParenToken, createSeparatedNodeList(createSimpleNameReferenceNode(createIdentifierToken("\"" +
-                            requestType + "\"")),createToken(COMMA_TOKEN),
+                                    requestType + "\"")), createToken(COMMA_TOKEN),
                             requestypePipeNode), closeParenToken);
 
-            ExpressionStatementNode addPipeByTypeStatement=createExpressionStatementNode(null,
-                    addPipeMethodCallExpressionNode,semicolonToken);
+            ExpressionStatementNode addPipeByTypeStatement = createExpressionStatementNode(null,
+                    addPipeMethodCallExpressionNode, semicolonToken);
 //            lockStatements.add(selfPipesAssignmentStatementNode);
 //
 //            LockStatementNode functionLockStatementNode = createLockStatementNode(createToken(LOCK_KEYWORD),
@@ -276,11 +271,11 @@ public class RemoteFunctionBodyGenerator {
             JsonNode xResponseType = extensions.get(X_RESPONSE_TYPE);
 
             String responseType = functionReturnType.getReturnType(xResponse, xResponseType);
-            if (xResponseType!=null && xResponseType.equals(new TextNode(SERVER_STREAMING))) {
+            if (xResponseType != null && xResponseType.equals(new TextNode(SERVER_STREAMING))) {
                 //TODO: Include a if condition to check this only one time
                 utilGenerator.setStreamFound(true);
                 createStreamFunctionBodyStatements(statementsList, requestType, responseType, dispatcherStreamId
-                        ,matchStatementList);
+                        , matchStatementList);
 
 
             } else {
@@ -315,7 +310,7 @@ public class RemoteFunctionBodyGenerator {
         Token dotToken = createToken(DOT_TOKEN);
         Token closeParenToken = createToken(CLOSE_PAREN_TOKEN);
         Token openParenToken = createToken(OPEN_PAREN_TOKEN);
-        Token rightDoubleArrow =createToken(RIGHT_DOUBLE_ARROW_TOKEN);
+        Token rightDoubleArrow = createToken(RIGHT_DOUBLE_ARROW_TOKEN);
 
         SimpleNameReferenceNode requestTypePipeNode = createSimpleNameReferenceNode(createIdentifierToken(
                 requestTypePipe));
@@ -386,18 +381,18 @@ public class RemoteFunctionBodyGenerator {
             ExpressionStatementNode pipeProduceExpression = createExpressionStatementNode(null,
                     pipeProduceCheck, createToken(SEMICOLON_TOKEN));
             statementNodes.add(pipeProduceExpression);
-            List<Node> responseNodeList=new ArrayList<>();
-            if(responseType.contains("|")){
-               String[] responseArray= responseType.split("\\|");
-               for(String response: responseArray){
-                   responseNodeList.add(createIdentifierToken("\""+response.trim()+"\""));
-                   responseNodeList.add(createIdentifierToken("|"));
+            List<Node> responseNodeList = new ArrayList<>();
+            if (responseType.contains("|")) {
+                String[] responseArray = responseType.split("\\|");
+                for (String response : responseArray) {
+                    responseNodeList.add(createIdentifierToken("\"" + response.trim() + "\""));
+                    responseNodeList.add(createIdentifierToken("|"));
 
-               }
-               responseNodeList.remove(responseNodeList.size()-1);
+                }
+                responseNodeList.remove(responseNodeList.size() - 1);
 
-            }else{
-              responseNodeList.add(createIdentifierToken("\"" + responseType + "\""));
+            } else {
+                responseNodeList.add(createIdentifierToken("\"" + responseType + "\""));
 
 
             }
@@ -406,7 +401,6 @@ public class RemoteFunctionBodyGenerator {
                     createBlockStatementNode(openBraceToken, createNodeList(statementNodes), closeBraceToken));
             matchStatementList.add(matchClauseNode);
         }
-
 
 
         if (!requestType.equals("error")) {
@@ -559,8 +553,6 @@ public class RemoteFunctionBodyGenerator {
 
         Token equalToken = createToken(EQUAL_TOKEN);
         Token semicolonToken = createToken(SEMICOLON_TOKEN);
-        Token openBracketToken = createToken(OPEN_BRACKET_TOKEN);
-        Token closeBracketToken = createToken(CLOSE_BRACKET_TOKEN);
         Token dotToken = createToken(DOT_TOKEN);
         Token closeParenToken = createToken(CLOSE_PAREN_TOKEN);
         Token openParenToken = createToken(OPEN_PAREN_TOKEN);
@@ -606,8 +598,8 @@ public class RemoteFunctionBodyGenerator {
                     createIdentifierToken(SIMPLE_PIPE),
                     createToken(COLON_TOKEN), createIdentifierToken(GeneratorConstants.CAPITAL_PIPE));
             FieldAccessExpressionNode selfPipes = createFieldAccessExpressionNode(
-                            createSimpleNameReferenceNode(createIdentifierToken(SELF)), createToken(DOT_TOKEN),
-                            createSimpleNameReferenceNode(createIdentifierToken(PIPES)));
+                    createSimpleNameReferenceNode(createIdentifierToken(SELF)), createToken(DOT_TOKEN),
+                    createSimpleNameReferenceNode(createIdentifierToken(PIPES)));
 //                    createSeparatedNodeList(createSimpleNameReferenceNode(
 //                            createIdentifierToken("\"" + requestType + "\""))),
 //                    closeBracketToken);

@@ -1,7 +1,6 @@
 package io.ballerina.asyncapi.generators.client;
 
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25DocumentImpl;
-import io.ballerina.asyncapi.cli.BallerinaCodeGenerator;
 import io.ballerina.asyncapi.core.GeneratorUtils;
 import io.ballerina.asyncapi.core.exception.BallerinaAsyncApiException;
 import io.ballerina.asyncapi.core.generators.client.IntermediateClientGenerator;
@@ -23,9 +22,9 @@ import static io.ballerina.asyncapi.generators.common.TestUtils.compareGenerated
  */
 public class NoServerURLTest {
     private static final Path RES_DIR = Paths.get("src/test/resources/asyncapi-to-ballerina/client").toAbsolutePath();
-    private SyntaxTree syntaxTree;
     List<String> list1 = new ArrayList<>();
     List<String> list2 = new ArrayList<>();
+    private SyntaxTree syntaxTree;
 
     @Test(description = "Test for no server url with no security schema given")
     public void getClientForNoServerURL() throws IOException, BallerinaAsyncApiException {

@@ -14,6 +14,9 @@ import java.nio.file.Paths;
 
 import static io.ballerina.asyncapi.generators.common.TestUtils.compareGeneratedSyntaxTreeWithExpectedSyntaxTree;
 
+/**
+ * Test subProtocols that can run over websocket.
+ */
 public class SubProtocolTests {
     private static final Path RES_DIR = Paths.get("src/test/resources/asyncapi-to-ballerina/client").toAbsolutePath();
     private SyntaxTree syntaxTree;

@@ -95,7 +95,7 @@ public class TypeGeneratorUtils {
      */
     public static TypeGenerator getTypeGenerator(AsyncApi25SchemaImpl schemaValue, String typeName,
                                                  String parentName) throws BallerinaAsyncApiException {
-        if (schemaValue.getType()!=null){
+        if (schemaValue.getType() != null) {
             GeneratorUtils.convertAsyncAPITypeToBallerina(schemaValue.getType());
 
         }

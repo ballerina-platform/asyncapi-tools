@@ -116,7 +116,7 @@ components:
     unsubscribe:
       description: Unsubscribe, can specify a channelID or multiple currency pairs.
       payload:
-        $ref: '#/components/schemas/subscribe'
+        $ref: '#/components/schemas/unsubscribe'
       examples:
         - payload:
             event: unsubscribe

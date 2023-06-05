@@ -76,7 +76,7 @@ public class BallerinaCodeGenerator {
      * @param definitionPath Input Async Api Definition file path
      * @param outPath        Destination file path to save generated client files including types.bal, utils.bal.
      *                       If not provided {@code definitionPath} will be used as the default destination path
-     * @throws IOException when file operations fail
+     * @throws IOException                when file operations fail
      * @throws BallerinaAsyncApiException when code generator fails
      */
     public void generateClient(String definitionPath, String outPath)
@@ -193,7 +193,6 @@ public class BallerinaCodeGenerator {
         IntermediateClientGenerator intermediateClientGenerator = new IntermediateClientGenerator(asyncAPIClientConfig);
         String mainContent = Formatter.format(intermediateClientGenerator.generateSyntaxTree()).toString();
         sourceFiles.add(new GenSrcFile(GenSrcFile.GenFileType.GEN_SRC, srcPackage, CLIENT_FILE_NAME, mainContent));
-
 
 
         //Generate util functions for client intermediate code

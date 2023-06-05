@@ -107,7 +107,8 @@ public class UtilGenerationTests {
 
     //
 //
-    @Test(description = "Validate the util functions generated for AsyncAPI definition when all the scenarios are given")
+    @Test(description = "Validate the util functions generated for AsyncAPI definition" +
+            " when all the scenarios are given")
     public void testCompleteUtilFileGen() throws IOException, BallerinaAsyncApiException,
             FormatterException {
         Path definitionPath = RESDIR.resolve("Util/complete_util_gen.yaml");
