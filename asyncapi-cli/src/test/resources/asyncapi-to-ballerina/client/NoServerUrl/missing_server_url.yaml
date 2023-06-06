@@ -176,3 +176,4 @@ components:
       x-response:
         $ref: '#/components/messages/ConnectionAckMessage'
       x-response-type: simple-rpc
+x-dispatcherKey: type

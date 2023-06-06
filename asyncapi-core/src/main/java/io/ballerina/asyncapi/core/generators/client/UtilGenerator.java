@@ -17,20 +17,14 @@
  */
 package io.ballerina.asyncapi.core.generators.client;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.TextNode;
-import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25InfoImpl;
-import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25SchemaImpl;
 import io.ballerina.asyncapi.core.GeneratorConstants;
 import io.ballerina.asyncapi.core.GeneratorUtils;
-import io.ballerina.asyncapi.core.exception.BallerinaAsyncApiException;
 import io.ballerina.asyncapi.core.generators.document.DocCommentsGenerator;
 import io.ballerina.compiler.syntax.tree.AnnotationNode;
 import io.ballerina.compiler.syntax.tree.AssignmentStatementNode;
 import io.ballerina.compiler.syntax.tree.CheckExpressionNode;
 import io.ballerina.compiler.syntax.tree.ChildNodeEntry;
 import io.ballerina.compiler.syntax.tree.ClassDefinitionNode;
-import io.ballerina.compiler.syntax.tree.ExpressionNode;
 import io.ballerina.compiler.syntax.tree.FunctionBodyNode;
 import io.ballerina.compiler.syntax.tree.FunctionDefinitionNode;
 import io.ballerina.compiler.syntax.tree.FunctionSignatureNode;
@@ -38,7 +32,6 @@ import io.ballerina.compiler.syntax.tree.IdentifierToken;
 import io.ballerina.compiler.syntax.tree.ImportDeclarationNode;
 import io.ballerina.compiler.syntax.tree.MarkdownDocumentationNode;
 import io.ballerina.compiler.syntax.tree.MarkdownParameterDocumentationLineNode;
-import io.ballerina.compiler.syntax.tree.MatchClauseNode;
 import io.ballerina.compiler.syntax.tree.MetadataNode;
 import io.ballerina.compiler.syntax.tree.MethodCallExpressionNode;
 import io.ballerina.compiler.syntax.tree.ModuleMemberDeclarationNode;
@@ -50,8 +43,6 @@ import io.ballerina.compiler.syntax.tree.OptionalTypeDescriptorNode;
 import io.ballerina.compiler.syntax.tree.ParameterNode;
 import io.ballerina.compiler.syntax.tree.PositionalArgumentNode;
 import io.ballerina.compiler.syntax.tree.QualifiedNameReferenceNode;
-import io.ballerina.compiler.syntax.tree.RecordFieldNode;
-import io.ballerina.compiler.syntax.tree.RecordTypeDescriptorNode;
 import io.ballerina.compiler.syntax.tree.RequiredParameterNode;
 import io.ballerina.compiler.syntax.tree.ReturnStatementNode;
 import io.ballerina.compiler.syntax.tree.ReturnTypeDescriptorNode;
@@ -63,7 +54,6 @@ import io.ballerina.compiler.syntax.tree.SyntaxTree;
 import io.ballerina.compiler.syntax.tree.Token;
 import io.ballerina.compiler.syntax.tree.TypeDefinitionNode;
 import io.ballerina.compiler.syntax.tree.TypeDescriptorNode;
-import io.ballerina.compiler.syntax.tree.UnionTypeDescriptorNode;
 import io.ballerina.compiler.syntax.tree.VariableDeclarationNode;
 import io.ballerina.projects.DocumentId;
 import io.ballerina.projects.Package;
@@ -86,23 +76,15 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 import static io.ballerina.asyncapi.core.GeneratorConstants.BALLERINA;
-import static io.ballerina.asyncapi.core.GeneratorConstants.CLIENT_CLASS_NAME;
 import static io.ballerina.asyncapi.core.GeneratorConstants.CONSUME;
-import static io.ballerina.asyncapi.core.GeneratorConstants.DEFAULT_API_KEY_DESC;
 import static io.ballerina.asyncapi.core.GeneratorConstants.NUVINDU;
 import static io.ballerina.asyncapi.core.GeneratorConstants.NUVINDU_PIPE;
 import static io.ballerina.asyncapi.core.GeneratorConstants.RESPONSE_MESSAGE_VAR_NAME;
 import static io.ballerina.asyncapi.core.GeneratorConstants.SIMPLE_PIPE;
-import static io.ballerina.asyncapi.core.GeneratorConstants.START_MESSAGE_WRITING;
 import static io.ballerina.asyncapi.core.GeneratorConstants.URL;
-import static io.ballerina.asyncapi.core.GeneratorConstants.WEBSOCKET;
-import static io.ballerina.asyncapi.core.GeneratorConstants.X_BALLERINA_MESSAGE_WRITE_DESCRIPTION;
-import static io.ballerina.asyncapi.core.GeneratorConstants.X_DISPATCHER_KEY;
-import static io.ballerina.asyncapi.core.GeneratorConstants.X_DISPATCHER_STREAM_ID;
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createEmptyNodeList;
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createIdentifierToken;
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createNodeList;
@@ -123,7 +105,6 @@ import static io.ballerina.compiler.syntax.tree.NodeFactory.createObjectFieldNod
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createOptionalTypeDescriptorNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createPositionalArgumentNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createQualifiedNameReferenceNode;
-import static io.ballerina.compiler.syntax.tree.NodeFactory.createRecordFieldNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createRequiredExpressionNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createRequiredParameterNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createReturnStatementNode;
@@ -169,12 +150,12 @@ public class UtilGenerator {
     private static final String STREAM_GENERATOR = "StreamGenerator";
     private static final String GET_PATH_FOR_QUERY_PARAM = "getPathForQueryParam";
     private static final String GET_COMBINE_HEADERS = "getCombineHeaders";
-//    private boolean streamFound = false;
+    //    private boolean streamFound = false;
     private boolean headersFound = false;
     private boolean queryParamsFound = false;
     private boolean pathParametersFound = false;
 
-    private ArrayList<String> streamReturns;
+    private final ArrayList<String> streamReturns;
 
     public UtilGenerator(ArrayList<String> streamReturns) {
         this.streamReturns = streamReturns;
@@ -230,7 +211,6 @@ public class UtilGenerator {
         imports.add(importForNuvinduPipe);
 
 
-
         if (queryParamsFound) {
             functionNameList.addAll(Arrays.asList(
                     GET_ENCODED_URI,
@@ -262,16 +242,17 @@ public class UtilGenerator {
                 for (ChildNodeEntry childNodeEntry : node.childEntries()) {
                     if (childNodeEntry.name().equals("functionName") || childNodeEntry.name().equals("className")) {
                         if (functionNameList.contains(childNodeEntry.node().get().toString())) {
-                            if(childNodeEntry.name().equals("className")){
-//                                if(((ClassDefinitionNode)childNodeEntry.node().get()).className().equals("StreamGenerator")){
+
+//                                if(((ClassDefinitionNode)childNodeEntry.node().get()).className()
+//                                .equals("StreamGenerator")){
 //                                        createStreamGenerator(memberDeclarationNodes,node);
 //                                }
-//                                System.out.println();
+//
 //                                changeStreamReturn(node,memberDeclarationNodes);
 //                            }else{
                             memberDeclarationNodes.add(node);
 
-                            }
+
                         }
                     }
                 }
@@ -282,8 +263,8 @@ public class UtilGenerator {
             ImportDeclarationNode importForUrl = GeneratorUtils.getImportDeclarationNode(BALLERINA, URL);
             imports.add(importForUrl);
         }
-        if (streamReturns.size()>0) {
-            for(String returnType: streamReturns){
+        if (streamReturns.size() > 0) {
+            for (String returnType : streamReturns) {
 
                 memberDeclarationNodes.add(createStreamGenerator(returnType));
             }
@@ -302,7 +283,7 @@ public class UtilGenerator {
         return utilSyntaxTree.modifyWith(utilModulePartNode);
     }
 
-    private ClassDefinitionNode createStreamGenerator (String returnType){
+    private ClassDefinitionNode createStreamGenerator(String returnType) {
 
 //        String returnName="User";
 //        NodeList<Node> members=((ClassDefinitionNode)node).members();
@@ -331,7 +312,6 @@ public class UtilGenerator {
         //Get dispatcherKey
 
 
-
 //        ballerinaSchemaGenerator.setDispatcherKey(dispatcherKey);
 //        ballerinaSchemaGenerator.setDispatcherStreamId(dispatcherStreamId);
 
@@ -349,7 +329,6 @@ public class UtilGenerator {
 
         // Add startMessageReading function
 
-        returnType=GeneratorUtils.getStreamGeneratorName(returnType);
 
         // Generate the class combining members
         MetadataNode metadataNode = getClassMetadataNode(returnType);
@@ -362,9 +341,10 @@ public class UtilGenerator {
 //        //Combine class name as titleName+channelName+Client
 //        String stringClassName = titleName + channelName + CLIENT_CLASS_NAME;
 
+        returnType = GeneratorUtils.getStreamGeneratorName(returnType);
 
 
-        IdentifierToken className = createIdentifierToken(returnType+"StreamGenerator");
+        IdentifierToken className = createIdentifierToken(returnType + "StreamGenerator");
         NodeList<Token> classTypeQualifiers = createNodeList(createToken(CLIENT_KEYWORD),
                 createToken(ISOLATED_KEYWORD));
 
@@ -373,6 +353,7 @@ public class UtilGenerator {
                 createNodeList(memberNodeList), createToken(CLOSE_BRACE_TOKEN), null);
 
     }
+
     private List<ObjectFieldNode> createClassInstanceVariables() {
 
         List<ObjectFieldNode> fieldNodeList = new ArrayList<>();
@@ -384,7 +365,6 @@ public class UtilGenerator {
         NodeList<Token> qualifierList = createNodeList(prefixTokens);
 
 
-
         //private final pipe:Pipe pipe;
         QualifiedNameReferenceNode pipeTypeName = createQualifiedNameReferenceNode(createIdentifierToken(SIMPLE_PIPE),
                 createToken(COLON_TOKEN), createIdentifierToken(GeneratorConstants.CAPITAL_PIPE));
@@ -392,7 +372,7 @@ public class UtilGenerator {
         MetadataNode pipeNode = createMetadataNode(null, createEmptyNodeList());
         ObjectFieldNode pipeField = createObjectFieldNode(pipeNode,
                 null,
-                qualifierList, pipeTypeName,pipe, null, null,
+                qualifierList, pipeTypeName, pipe, null, null,
                 createToken(SEMICOLON_TOKEN));
 
         //private final pipe:Pipe pipe;
@@ -403,9 +383,9 @@ public class UtilGenerator {
         IdentifierToken timeout = createIdentifierToken("timeout");
 
         MetadataNode timeoutNode = createMetadataNode(null, createEmptyNodeList());
-        ObjectFieldNode timeoutField= createObjectFieldNode(timeoutNode,
+        ObjectFieldNode timeoutField = createObjectFieldNode(timeoutNode,
                 null,
-                qualifierList, decimalType,timeout, null, null,
+                qualifierList, decimalType, timeout, null, null,
                 createToken(SEMICOLON_TOKEN));
 
 //        fieldNodeList.add(websocketClientField);
@@ -422,6 +402,7 @@ public class UtilGenerator {
 //        }
         return fieldNodeList;
     }
+
     private MetadataNode getClassMetadataNode(String returnType) {
 
         List<AnnotationNode> classLevelAnnotationNodes = new ArrayList<>();
@@ -433,24 +414,25 @@ public class UtilGenerator {
 //                    asyncAPI.getInfo().getDescription(), false));
 //        }
         documentationLines.addAll(DocCommentsGenerator.createAPIDescriptionDoc(
-                    "Stream generator class for "+returnType, false));
+                "Stream generator class for " + returnType + " return type", false));
         MarkdownDocumentationNode apiDoc = createMarkdownDocumentationNode(createNodeList(documentationLines));
         return createMetadataNode(apiDoc, createNodeList(classLevelAnnotationNodes));
     }
 
-    private FunctionDefinitionNode createNextFunction(String returnType){
+    private FunctionDefinitionNode createNextFunction(String returnType) {
         FunctionSignatureNode functionSignatureNode = getNextFunctionSignatureNode(returnType);
         FunctionBodyNode functionBodyNode = getNextFunctionBodyNode(returnType);
         NodeList<Token> qualifierList = createNodeList(createToken(PUBLIC_KEYWORD), createToken(ISOLATED_KEYWORD));
         IdentifierToken functionName = createIdentifierToken("next");
-        return createFunctionDefinitionNode(null,getDocCommentsForNextMethod(" " +
+        return createFunctionDefinitionNode(null, getDocCommentsForNextMethod(" " +
                         "Next method to return next stream message")
-, qualifierList,
+                , qualifierList,
                 createToken(FUNCTION_KEYWORD),
                 functionName, createEmptyNodeList(), functionSignatureNode, functionBodyNode);
 
     }
-    private MetadataNode getDocCommentsForNextMethod( String comment) {
+
+    private MetadataNode getDocCommentsForNextMethod(String comment) {
 
         List<Node> docs = new ArrayList<>();
 //        String clientInitDocComment = "Gets invoked to initialize the `connector`.\n";
@@ -470,21 +452,21 @@ public class UtilGenerator {
     }
 
 
-    private FunctionSignatureNode getNextFunctionSignatureNode(String returnType){
-        SimpleNameReferenceNode returnTypeNode =createSimpleNameReferenceNode(createIdentifierToken(
-                "record {|"+returnType+" value;|}|error?"));
+    private FunctionSignatureNode getNextFunctionSignatureNode(String returnType) {
+        SimpleNameReferenceNode returnTypeNode = createSimpleNameReferenceNode(createIdentifierToken(
+                "record {|" + returnType + " value;|}|error?"));
         //returns
         ReturnTypeDescriptorNode returnTypeDescriptorNode = createReturnTypeDescriptorNode(
                 createToken(RETURNS_KEYWORD), createEmptyNodeList(), returnTypeNode);
 
         return createFunctionSignatureNode(
-                createToken(OPEN_PAREN_TOKEN),createSeparatedNodeList(), createToken(CLOSE_PAREN_TOKEN),
+                createToken(OPEN_PAREN_TOKEN), createSeparatedNodeList(), createToken(CLOSE_PAREN_TOKEN),
                 returnTypeDescriptorNode);
 
 
     }
 
-    private FunctionBodyNode getNextFunctionBodyNode(String returnType){
+    private FunctionBodyNode getNextFunctionBodyNode(String returnType) {
         Token openParanToken = createToken(OPEN_PAREN_TOKEN);
         Token closeParanToken = createToken(CLOSE_PAREN_TOKEN);
         Token semicolonToken = createToken(SEMICOLON_TOKEN);
@@ -539,9 +521,9 @@ public class UtilGenerator {
         assignmentNodes.add(responseMessageNode);
         assignmentNodes.add(responseTypeCloneStatement);
 
-        ReturnStatementNode valueReturnStatementNode= createReturnStatementNode(createToken(RETURN_KEYWORD),
+        ReturnStatementNode valueReturnStatementNode = createReturnStatementNode(createToken(RETURN_KEYWORD),
                 createSimpleNameReferenceNode(createIdentifierToken(
-                "{value: response}")),semicolonToken);
+                        "{value: response}")), semicolonToken);
         assignmentNodes.add(valueReturnStatementNode);
 
         NodeList<StatementNode> statementList = createNodeList(assignmentNodes);
@@ -551,9 +533,9 @@ public class UtilGenerator {
 
     }
 
-    private FunctionDefinitionNode createInitFunction(){
+    private FunctionDefinitionNode createInitFunction() {
 
-        FunctionSignatureNode functionSignatureNode =getStreamInitFunctionSignatureNode();
+        FunctionSignatureNode functionSignatureNode = getStreamInitFunctionSignatureNode();
         FunctionBodyNode functionBodyNode = getStreamInitFunctionBodyNode();
         NodeList<Token> qualifierList = createNodeList(createToken(PUBLIC_KEYWORD), createToken(ISOLATED_KEYWORD));
         IdentifierToken functionName = createIdentifierToken("init");
@@ -562,7 +544,7 @@ public class UtilGenerator {
                 functionName, createEmptyNodeList(), functionSignatureNode, functionBodyNode);
     }
 
-    private MetadataNode getInitDocComment(){
+    private MetadataNode getInitDocComment() {
         List<Node> docs = new ArrayList<>();
 
         docs.addAll(DocCommentsGenerator.createAPIDescriptionDoc("StreamGenerator", true));
@@ -572,7 +554,7 @@ public class UtilGenerator {
                 "pipe",
                 "Pipe to hold stream messages");
         docs.add(pipeNodeDocs);
-        MarkdownParameterDocumentationLineNode timeoutNodeDocs= DocCommentsGenerator.createAPIParamDoc(
+        MarkdownParameterDocumentationLineNode timeoutNodeDocs = DocCommentsGenerator.createAPIParamDoc(
                 "timeout",
                 "Waiting time");
         docs.add(timeoutNodeDocs);
@@ -585,14 +567,14 @@ public class UtilGenerator {
     }
 
 
-    private FunctionSignatureNode getStreamInitFunctionSignatureNode(){
+    private FunctionSignatureNode getStreamInitFunctionSignatureNode() {
         RequiredParameterNode pipeNode = createRequiredParameterNode(createNodeList(),
                 createSimpleNameReferenceNode(createIdentifierToken("pipe:Pipe")),
                 createIdentifierToken("pipe"));
         RequiredParameterNode decimalNode = createRequiredParameterNode(createNodeList(), createSimpleNameReferenceNode(
                         createIdentifierToken("decimal")),
                 createIdentifierToken("timeout"));
-        List<Node> parameterList= new ArrayList<>();
+        List<Node> parameterList = new ArrayList<>();
         parameterList.add(pipeNode);
         parameterList.add(createToken(COMMA_TOKEN));
         parameterList.add(decimalNode);
@@ -607,15 +589,16 @@ public class UtilGenerator {
 
                 createToken(OPEN_PAREN_TOKEN), parameters, createToken(CLOSE_PAREN_TOKEN), returnTypeDescriptorNode);
     }
-    private FunctionBodyNode getStreamInitFunctionBodyNode(){
+
+    private FunctionBodyNode getStreamInitFunctionBodyNode() {
         List<StatementNode> assignmentNodes = new ArrayList<>();
 
-        AssignmentStatementNode selfPipe= createAssignmentStatementNode(createIdentifierToken("self.pipe"),
+        AssignmentStatementNode selfPipe = createAssignmentStatementNode(createIdentifierToken("self.pipe"),
                 createToken(EQUAL_TOKEN),
-                createSimpleNameReferenceNode(createIdentifierToken("pipe")),createToken(SEMICOLON_TOKEN));
-        AssignmentStatementNode selfTimeout= createAssignmentStatementNode(createIdentifierToken("self.timeout"),
+                createSimpleNameReferenceNode(createIdentifierToken("pipe")), createToken(SEMICOLON_TOKEN));
+        AssignmentStatementNode selfTimeout = createAssignmentStatementNode(createIdentifierToken("self.timeout"),
                 createToken(EQUAL_TOKEN),
-                createSimpleNameReferenceNode(createIdentifierToken("timeout")),createToken(SEMICOLON_TOKEN));
+                createSimpleNameReferenceNode(createIdentifierToken("timeout")), createToken(SEMICOLON_TOKEN));
         assignmentNodes.add(selfPipe);
         assignmentNodes.add(selfTimeout);
 

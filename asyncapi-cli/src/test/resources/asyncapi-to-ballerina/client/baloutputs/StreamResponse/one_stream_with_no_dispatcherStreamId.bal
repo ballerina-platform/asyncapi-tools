@@ -68,7 +68,7 @@ public client isolated class ChatClient {
         check self.writeMessageQueue.produce(subscribeMessage, timeout);
         stream<NextMessage|CompleteMessage|ErrorMessage,error?> streamMessages;
         lock {
-            StreamGenerator streamGenerator = check new (subscribeMessagePipe, timeout);
+            NextMessageCompleteMessageErrorMessageStreamGenerator streamGenerator = check new (subscribeMessagePipe, timeout);
             streamMessages = new (streamGenerator);
         }
         return streamMessages;

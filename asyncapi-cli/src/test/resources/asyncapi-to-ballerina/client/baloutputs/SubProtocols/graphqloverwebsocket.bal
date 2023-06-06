@@ -68,10 +68,6 @@ public client isolated class ChatClient {
                             pipe:Pipe connectionInitMessagePipe = self.pipes.getPipe("connectionInitMessage");
                             check connectionInitMessagePipe.produce(responseMessage, 5);
                         }
-                        "Error" => {
-                            pipe:Pipe errorPipe = self.pipes.getPipe("error");
-                            check errorPipe.produce(responseMessage, 5);
-                        }
                     }
                 }
             }
@@ -93,7 +89,7 @@ public client isolated class ChatClient {
         check self.writeMessageQueue.produce(subscribeMessage, timeout);
         stream<NextMessage|CompleteMessage|ErrorMessage,error?> streamMessages;
         lock {
-            StreamGenerator streamGenerator = check new (subscribeMessagePipe, timeout);
+            NextMessageCompleteMessageErrorMessageStreamGenerator streamGenerator = check new (subscribeMessagePipe, timeout);
             streamMessages = new (streamGenerator);
         }
         return streamMessages;
@@ -109,6 +105,10 @@ public client isolated class ChatClient {
         return pongMessage;
     }
     #
+    remote isolated function doPongMessage(PongMessage pongMessage, decimal timeout) returns error? {
+        check self.writeMessageQueue.produce(pongMessage, timeout);
+    }
+    #
     remote isolated function doConnectionInitMessage(ConnectionInitMessage connectionInitMessage, decimal timeout) returns ConnectionAckMessage|error {
         pipe:Pipe connectionInitMessagePipe = new (1);
         self.pipes.addPipe("connectionInitMessage", connectionInitMessagePipe);
@@ -117,19 +117,6 @@ public client isolated class ChatClient {
         ConnectionAckMessage connectionAckMessage = check responseMessage.cloneWithType();
         check connectionInitMessagePipe.immediateClose();
         return connectionAckMessage;
-    }
-    #
-    remote isolated function doError(decimal timeout) returns Error|error {
-        pipe:Pipe errorPipe = new (1);
-        self.pipes.addPipe("error", errorPipe);
-        anydata responseMessage = check errorPipe.consume(timeout);
-        Error errorMessage = check responseMessage.cloneWithType();
-        check errorPipe.immediateClose();
-        return errorMessage;
-    }
-    #
-    remote isolated function doPongMessage(PongMessage pongMessage, decimal timeout) returns error? {
-        check self.writeMessageQueue.produce(pongMessage, timeout);
     }
     #
     remote isolated function doCompleteMessage(CompleteMessage completeMessage, decimal timeout) returns error? {

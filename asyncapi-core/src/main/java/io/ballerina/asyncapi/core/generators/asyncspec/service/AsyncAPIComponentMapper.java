@@ -27,11 +27,9 @@ import io.apicurio.datamodels.models.union.BooleanUnionValueImpl;
 import io.ballerina.asyncapi.core.generators.asyncspec.diagnostic.AsyncAPIConverterDiagnostic;
 import io.ballerina.asyncapi.core.generators.asyncspec.diagnostic.DiagnosticMessages;
 import io.ballerina.asyncapi.core.generators.asyncspec.diagnostic.IncompatibleRemoteDiagnostic;
-import io.ballerina.asyncapi.core.generators.asyncspec.model.BalAsyncApi25MessageImpl;
 import io.ballerina.asyncapi.core.generators.asyncspec.model.BalAsyncApi25SchemaImpl;
 import io.ballerina.asyncapi.core.generators.asyncspec.model.BalBooleanSchema;
 import io.ballerina.asyncapi.core.generators.asyncspec.utils.ConverterCommonUtils;
-import io.ballerina.compiler.api.SemanticModel;
 import io.ballerina.compiler.api.symbols.ArrayTypeSymbol;
 import io.ballerina.compiler.api.symbols.ConstantSymbol;
 import io.ballerina.compiler.api.symbols.Documentable;
@@ -50,11 +48,6 @@ import io.ballerina.compiler.api.symbols.TypeDescKind;
 import io.ballerina.compiler.api.symbols.TypeReferenceTypeSymbol;
 import io.ballerina.compiler.api.symbols.TypeSymbol;
 import io.ballerina.compiler.api.symbols.UnionTypeSymbol;
-import io.ballerina.compiler.syntax.tree.Node;
-import io.ballerina.compiler.syntax.tree.NodeList;
-import io.ballerina.compiler.syntax.tree.RecordFieldNode;
-import io.ballerina.compiler.syntax.tree.RecordTypeDescriptorNode;
-import io.ballerina.compiler.syntax.tree.SimpleNameReferenceNode;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -78,14 +71,10 @@ import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.INTEGER;
 import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.NUMBER;
 import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.OBJECT;
 import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.SCHEMA_REFERENCE;
-import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.SIMPLE_RPC;
 import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.STRING;
 import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.TRUE;
 import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.X_NULLABLE;
-import static io.ballerina.asyncapi.core.generators.asyncspec.utils.ConverterCommonUtils.callObjectMapper;
 import static io.ballerina.asyncapi.core.generators.asyncspec.utils.ConverterCommonUtils.getAsyncApiSchema;
-import static io.ballerina.compiler.syntax.tree.SyntaxKind.RECORD_FIELD;
-import static io.ballerina.compiler.syntax.tree.SyntaxKind.SIMPLE_NAME_REFERENCE;
 
 
 /**
@@ -247,14 +236,16 @@ public class AsyncAPIComponentMapper {
     }
 
     private BalAsyncApi25SchemaImpl handleRecordTypeSymbol(RecordTypeSymbol recordTypeSymbol,
-                                        String componentName, Map<String, String> apiDocs, String dispatcherValue) {
+                                                           String componentName,
+                                                           Map<String, String> apiDocs,
+                                                           String dispatcherValue) {
         // Handle typeInclusions with allOf type binding
         List<TypeSymbol> typeInclusions = recordTypeSymbol.typeInclusions();
         Map<String, RecordFieldSymbol> recordFields = recordTypeSymbol.fieldDescriptors();
         HashSet<String> unionKeys = new HashSet<>(recordFields.keySet());
-        BalAsyncApi25SchemaImpl recordSchema =null;
+        BalAsyncApi25SchemaImpl recordSchema = null;
         if (typeInclusions.isEmpty()) {
-            recordSchema=generateObjectSchemaFromRecordFields(componentName, recordFields, apiDocs, dispatcherValue);
+            recordSchema = generateObjectSchemaFromRecordFields(componentName, recordFields, apiDocs, dispatcherValue);
         } else {
             mapTypeInclusionToAllOfSchema(componentName, typeInclusions, recordFields,
                     unionKeys, apiDocs, dispatcherValue);
@@ -378,11 +369,11 @@ public class AsyncAPIComponentMapper {
                 MapTypeSymbol mapTypeSymbol = (MapTypeSymbol) field.getValue().typeDescriptor();
                 property = handleMapType(componentName, property, mapTypeSymbol);
 
-            } else if (fieldTypeKind==TypeDescKind.RECORD) {
-              property=  handleRecordTypeSymbol((RecordTypeSymbol) field.getValue().typeDescriptor(),
-                      null,new HashMap<>(),null);
+            } else if (fieldTypeKind == TypeDescKind.RECORD) {
+                property = handleRecordTypeSymbol((RecordTypeSymbol) field.getValue().typeDescriptor(),
+                        null, new HashMap<>(), null);
 
-            } else if (fieldTypeKind==TypeDescKind.JSON) {
+            } else if (fieldTypeKind == TypeDescKind.JSON) {
                 property.setAdditionalProperties(new BooleanUnionValueImpl(true));
 
             }
@@ -518,7 +509,7 @@ public class AsyncAPIComponentMapper {
                 property = mapArrayToArraySchema(union, parentComponentName);
                 properties.add(property);
             } else if (union.typeKind() == TypeDescKind.MAP) {
-                if(parentComponentName!=null) {
+                if (parentComponentName != null) {
                     MapTypeSymbol mapTypeSymbol = (MapTypeSymbol) union;
                     TypeDescKind typeDescKind = mapTypeSymbol.typeParam().typeKind();
                     BalAsyncApi25SchemaImpl asyncApiSchema = getAsyncApiSchema(typeDescKind.getName());

@@ -68,14 +68,27 @@ public client isolated class ChatClient {
                             pipe:Pipe connectionInitMessagePipe = self.pipes.getPipe("connectionInitMessage");
                             check connectionInitMessagePipe.produce(responseMessage, 5);
                         }
-                        "Error" => {
-                            pipe:Pipe errorPipe = self.pipes.getPipe("error");
-                            check errorPipe.produce(responseMessage, 5);
-                        }
                     }
                 }
             }
         }
+    }
+    #
+    remote isolated function doTesting(Testing testing, decimal timeout) returns stream<NextMessage,error?>|error {
+        pipe:Pipe testingPipe = new (10000);
+        string id;
+        lock {
+            id = uuid:createType1AsString();
+        }
+        self.pipes.addPipe(id, testingPipe);
+        testing["id"] = id;
+        check self.writeMessageQueue.produce(testing, timeout);
+        stream<NextMessage,error?> streamMessages;
+        lock {
+            NextMessageStreamGenerator streamGenerator = check new (testingPipe, timeout);
+            streamMessages = new (streamGenerator);
+        }
+        return streamMessages;
     }
     #
     remote isolated function doSubscribeMessage(SubscribeMessage subscribeMessage, decimal timeout) returns stream<NextMessage|CompleteMessage|ErrorMessage,error?>|error {
@@ -89,24 +102,7 @@ public client isolated class ChatClient {
         check self.writeMessageQueue.produce(subscribeMessage, timeout);
         stream<NextMessage|CompleteMessage|ErrorMessage,error?> streamMessages;
         lock {
-            StreamGenerator streamGenerator = check new (subscribeMessagePipe, timeout);
-            streamMessages = new (streamGenerator);
-        }
-        return streamMessages;
-    }
-    #
-    remote isolated function doTuple(Tuple tuple, decimal timeout) returns stream<NextMessage|CompleteMessage|ErrorMessage,error?>|error {
-        pipe:Pipe tuplePipe = new (10000);
-        string id;
-        lock {
-            id = uuid:createType1AsString();
-        }
-        self.pipes.addPipe(id, tuplePipe);
-        tuple["id"] = id;
-        check self.writeMessageQueue.produce(tuple, timeout);
-        stream<NextMessage|CompleteMessage|ErrorMessage,error?> streamMessages;
-        lock {
-            StreamGenerator streamGenerator = check new (tuplePipe, timeout);
+            NextMessageCompleteMessageErrorMessageStreamGenerator streamGenerator = check new (subscribeMessagePipe, timeout);
             streamMessages = new (streamGenerator);
         }
         return streamMessages;
@@ -122,6 +118,10 @@ public client isolated class ChatClient {
         return pongMessage;
     }
     #
+    remote isolated function doPongMessage(PongMessage pongMessage, decimal timeout) returns error? {
+        check self.writeMessageQueue.produce(pongMessage, timeout);
+    }
+    #
     remote isolated function doConnectionInitMessage(ConnectionInitMessage connectionInitMessage, decimal timeout) returns ConnectionAckMessage|error {
         pipe:Pipe connectionInitMessagePipe = new (1);
         self.pipes.addPipe("connectionInitMessage", connectionInitMessagePipe);
@@ -130,19 +130,6 @@ public client isolated class ChatClient {
         ConnectionAckMessage connectionAckMessage = check responseMessage.cloneWithType();
         check connectionInitMessagePipe.immediateClose();
         return connectionAckMessage;
-    }
-    #
-    remote isolated function doError(decimal timeout) returns Error|error {
-        pipe:Pipe errorPipe = new (1);
-        self.pipes.addPipe("error", errorPipe);
-        anydata responseMessage = check errorPipe.consume(timeout);
-        Error errorMessage = check responseMessage.cloneWithType();
-        check errorPipe.immediateClose();
-        return errorMessage;
-    }
-    #
-    remote isolated function doPongMessage(PongMessage pongMessage, decimal timeout) returns error? {
-        check self.writeMessageQueue.produce(pongMessage, timeout);
     }
     #
     remote isolated function doCompleteMessage(CompleteMessage completeMessage, decimal timeout) returns error? {

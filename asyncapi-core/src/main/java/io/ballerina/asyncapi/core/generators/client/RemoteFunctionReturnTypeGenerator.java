@@ -33,7 +33,6 @@ import java.util.Map;
 import static io.ballerina.asyncapi.core.GeneratorConstants.DEFAULT_RETURN;
 import static io.ballerina.asyncapi.core.GeneratorUtils.extractReferenceType;
 import static io.ballerina.asyncapi.core.GeneratorUtils.getValidName;
-import static io.ballerina.asyncapi.core.GeneratorUtils.isValidSchemaName;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.PIPE_TOKEN;
 
 /**
@@ -62,12 +61,12 @@ public class RemoteFunctionReturnTypeGenerator {
      * @return string with return type.
      * @throws BallerinaAsyncApiException - throws exception if creating return type fails.
      */
-    public String getReturnType(JsonNode xResponse, JsonNode xResponseType,ArrayList responseMessages
+    public String getReturnType(JsonNode xResponse, JsonNode xResponseType, ArrayList responseMessages
     ) throws BallerinaAsyncApiException {
         //TODO: Handle multiple media-type
         ArrayList<String> returnTypes = new ArrayList<>();
         String type = null;
-        Map<String, AsyncApiMessage> messages=asyncAPI.getComponents().getMessages();
+        Map<String, AsyncApiMessage> messages = asyncAPI.getComponents().getMessages();
 
 
         if (xResponse.get("oneOf") != null) {  //Handle Union references
@@ -81,12 +80,15 @@ public class RemoteFunctionReturnTypeGenerator {
                             // TODO: Consider adding getValidName here , removed because of lowercase and
                             //  uppercase error
                             String messageName = extractReferenceType(reference);
-                            AsyncApiMessage message=  messages.get(messageName);
-                            TextNode schemaReference= (TextNode) message.getPayload().get("$ref");
-                            String schemaName=extractReferenceType(    schemaReference.asText());
+                            AsyncApiMessage message = messages.get(messageName);
+                            TextNode schemaReference = (TextNode) message.getPayload().get("$ref");
+                            String schemaName = extractReferenceType(schemaReference.asText());
                             AsyncApi25SchemaImpl refSchema = (AsyncApi25SchemaImpl) asyncAPI.getComponents().
                                     getSchemas().get(
                                             schemaName);
+                            if (responseMessages != null) {
+                                responseMessages.add(schemaName);
+                            }
                             type = getDataType(schemaName, refSchema);
                             returnTypes.add(type);
 
@@ -113,19 +115,20 @@ public class RemoteFunctionReturnTypeGenerator {
             String reference = xResponse.get("$ref").asText();
             // TODO: Consider adding getValidName here , removed because of lowercase and uppercase error
             String messageName = extractReferenceType(reference);
-            AsyncApiMessage message=  messages.get(messageName);
-            TextNode schemaReference= (TextNode) message.getPayload().get("$ref");
-            String schemaName=extractReferenceType(    schemaReference.asText());
+            AsyncApiMessage message = messages.get(messageName);
+            TextNode schemaReference = (TextNode) message.getPayload().get("$ref");
+            String schemaName = extractReferenceType(schemaReference.asText());
             AsyncApi25SchemaImpl refSchema = (AsyncApi25SchemaImpl) asyncAPI.getComponents().getSchemas().get(
-                schemaName);
+                    schemaName);
+            if (responseMessages != null) {
+                responseMessages.add(schemaName);
+            }
             type = getDataType(schemaName, refSchema);
             returnTypes.add(type);
 
         }
 //        return type;
-        if(responseMessages!=null) {
-            responseMessages.addAll(returnTypes);
-        }
+
 
         //Add |error to the response
         if (returnTypes.size() > 0) {
@@ -150,6 +153,9 @@ public class RemoteFunctionReturnTypeGenerator {
 
         if (schema != null && schema.getType() != null && schema.getType().equals("object")
         ) {
+            if (schema.getProperties() == null) {
+                throw new BallerinaAsyncApiException("Response type must be a record, invalid response schema");
+            }
             type = handleInLineRecordInResponse(schemaName, schema);
 
         } else {

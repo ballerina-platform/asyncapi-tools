@@ -179,7 +179,7 @@ public class AsyncAPIResponseMapper {
                     if (((StreamTypeDescriptorNode) remoteReturnType).streamTypeParamsNode().isPresent()) {
                         Node remoteReturnStream = ((StreamTypeParamsNode) ((StreamTypeDescriptorNode)
                                 remoteReturnType).streamTypeParamsNode().get()).leftTypeDescNode();
-                        if( remoteReturnStream instanceof UnionTypeDescriptorNode) {
+                        if (remoteReturnStream instanceof UnionTypeDescriptorNode) {
                             mapUnionReturns(subscribeMessage, componentMessage,
                                     (UnionTypeDescriptorNode) remoteReturnStream, returnDescription, isOptional);
 
@@ -188,13 +188,14 @@ public class AsyncAPIResponseMapper {
 //                                remoteReturnType).streamTypeParamsNode().get()).leftTypeDescNode().toString().trim();
 //                        if(remoteReturnStream.contains("|")){
 //                            String[] unionStreamTypes=remoteReturnStream.split("\\|");
-//                            System.out.println("ff");
 //
-                        }else {
+//
+                        } else {
                             BalAsyncApi25SchemaImpl remoteReturnStreamSchema = getAsyncApiSchema(
                                     remoteReturnStream.toString().trim());
 //                        remoteReturnStreamSchema.addExtension(X_RESPONSE_TYPE,new TextNode(SERVER_STREAMING));
-                            setResponseOfRequest(subscribeMessage, componentMessage, SERVER_STREAMING, returnDescription,
+                            setResponseOfRequest(subscribeMessage, componentMessage, SERVER_STREAMING,
+                                    returnDescription,
                                     objectMapper, remoteReturnStreamSchema, isOptional);
                         }
                     } else {

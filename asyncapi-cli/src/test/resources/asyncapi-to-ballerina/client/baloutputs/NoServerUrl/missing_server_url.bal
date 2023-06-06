@@ -1,7 +1,6 @@
 import ballerina/websocket;
 import nuvindu/pipe;
 import ballerina/lang.runtime;
-import ballerina/uuid;
 
 public client isolated class ChatClient {
     private final websocket:Client clientEp;
@@ -52,26 +51,19 @@ public client isolated class ChatClient {
         worker pipeTrigger returns error {
             while true {
                 ResponseMessage responseMessage = check self.readMessageQueue.consume(5);
-                if responseMessage.hasKey("id") {
-                    ResponseMessageWithId responseMessagWithId = check responseMessage.cloneWithType();
-                    string id = responseMessagWithId.id;
-                    pipe:Pipe idPipe = self.pipes.getPipe(id);
-                    check idPipe.produce(responseMessagWithId, 5);
-                } else {
-                    string 'type = responseMessage.'type;
-                    match ('type) {
-                        "PongMessage" => {
-                            pipe:Pipe pingMessagePipe = self.pipes.getPipe("pingMessage");
-                            check pingMessagePipe.produce(responseMessage, 5);
-                        }
-                        "ConnectionAckMessage" => {
-                            pipe:Pipe connectionInitMessagePipe = self.pipes.getPipe("connectionInitMessage");
-                            check connectionInitMessagePipe.produce(responseMessage, 5);
-                        }
-                        "Error" => {
-                            pipe:Pipe errorPipe = self.pipes.getPipe("error");
-                            check errorPipe.produce(responseMessage, 5);
-                        }
+                string 'type = responseMessage.'type;
+                match ('type) {
+                    "NextMessage"|"CompleteMessage"|"ErrorMessage" => {
+                        pipe:Pipe subscribeMessagePipe = self.pipes.getPipe("subscribeMessage");
+                        check subscribeMessagePipe.produce(responseMessage, 5);
+                    }
+                    "PongMessage" => {
+                        pipe:Pipe pingMessagePipe = self.pipes.getPipe("pingMessage");
+                        check pingMessagePipe.produce(responseMessage, 5);
+                    }
+                    "ConnectionAckMessage" => {
+                        pipe:Pipe connectionInitMessagePipe = self.pipes.getPipe("connectionInitMessage");
+                        check connectionInitMessagePipe.produce(responseMessage, 5);
                     }
                 }
             }
@@ -84,16 +76,11 @@ public client isolated class ChatClient {
     # + return - subscribe response description
     remote isolated function doSubscribeMessage(SubscribeMessage subscribeMessage, decimal timeout) returns stream<NextMessage|CompleteMessage|ErrorMessage,error?>|error {
         pipe:Pipe subscribeMessagePipe = new (10000);
-        string id;
-        lock {
-            id = uuid:createType1AsString();
-        }
-        self.pipes.addPipe(id, subscribeMessagePipe);
-        subscribeMessage["id"] = id;
+        self.pipes.addPipe("subscribeMessage", subscribeMessagePipe);
         check self.writeMessageQueue.produce(subscribeMessage, timeout);
         stream<NextMessage|CompleteMessage|ErrorMessage,error?> streamMessages;
         lock {
-            StreamGenerator streamGenerator = check new (subscribeMessagePipe, timeout);
+            NextMessageCompleteMessageErrorMessageStreamGenerator streamGenerator = check new (subscribeMessagePipe, timeout);
             streamMessages = new (streamGenerator);
         }
         return streamMessages;
@@ -109,6 +96,10 @@ public client isolated class ChatClient {
         return pongMessage;
     }
     #
+    remote isolated function doPongMessage(PongMessage pongMessage, decimal timeout) returns error? {
+        check self.writeMessageQueue.produce(pongMessage, timeout);
+    }
+    #
     remote isolated function doConnectionInitMessage(ConnectionInitMessage connectionInitMessage, decimal timeout) returns ConnectionAckMessage|error {
         pipe:Pipe connectionInitMessagePipe = new (1);
         self.pipes.addPipe("connectionInitMessage", connectionInitMessagePipe);
@@ -117,19 +108,6 @@ public client isolated class ChatClient {
         ConnectionAckMessage connectionAckMessage = check responseMessage.cloneWithType();
         check connectionInitMessagePipe.immediateClose();
         return connectionAckMessage;
-    }
-    #
-    remote isolated function doError(decimal timeout) returns Error|error {
-        pipe:Pipe errorPipe = new (1);
-        self.pipes.addPipe("error", errorPipe);
-        anydata responseMessage = check errorPipe.consume(timeout);
-        Error errorMessage = check responseMessage.cloneWithType();
-        check errorPipe.immediateClose();
-        return errorMessage;
-    }
-    #
-    remote isolated function doPongMessage(PongMessage pongMessage, decimal timeout) returns error? {
-        check self.writeMessageQueue.produce(pongMessage, timeout);
     }
     #
     remote isolated function doCompleteMessage(CompleteMessage completeMessage, decimal timeout) returns error? {

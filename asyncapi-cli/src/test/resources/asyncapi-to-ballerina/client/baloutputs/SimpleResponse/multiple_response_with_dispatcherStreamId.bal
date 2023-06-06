@@ -63,21 +63,6 @@ public client isolated class PayloadVlocationsClient {
         }
     }
     #
-    remote isolated function doSubscribe(Subscribe subscribe, decimal timeout) returns UnSubscribe|error {
-        pipe:Pipe subscribePipe = new (1);
-        string id;
-        lock {
-            id = uuid:createType1AsString();
-        }
-        self.pipes.addPipe(id, subscribePipe);
-        subscribe["id"] = id;
-        check self.writeMessageQueue.produce(subscribe, timeout);
-        anydata responseMessage = check subscribePipe.consume(timeout);
-        UnSubscribe unSubscribe = check responseMessage.cloneWithType();
-        check subscribePipe.immediateClose();
-        return unSubscribe;
-    }
-    #
     remote isolated function doRequest(Request request, decimal timeout) returns Response|error {
         pipe:Pipe requestPipe = new (1);
         string id;
@@ -91,5 +76,20 @@ public client isolated class PayloadVlocationsClient {
         Response response = check responseMessage.cloneWithType();
         check requestPipe.immediateClose();
         return response;
+    }
+    #
+    remote isolated function doSubscribe(Subscribe subscribe, decimal timeout) returns UnSubscribe|error {
+        pipe:Pipe subscribePipe = new (1);
+        string id;
+        lock {
+            id = uuid:createType1AsString();
+        }
+        self.pipes.addPipe(id, subscribePipe);
+        subscribe["id"] = id;
+        check self.writeMessageQueue.produce(subscribe, timeout);
+        anydata responseMessage = check subscribePipe.consume(timeout);
+        UnSubscribe unSubscribe = check responseMessage.cloneWithType();
+        check subscribePipe.immediateClose();
+        return unSubscribe;
     }
 }

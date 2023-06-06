@@ -22,7 +22,7 @@ public client isolated class PayloadVv1Client {
         string modifiedUrl = serviceUrl + string `/v1`;
         map<anydata> queryParam = {"offset": queryParams.offset, "lat": queryParams.lat, "lon": queryParams.lon, "exclude": queryParams.exclude, "units": queryParams.units};
         modifiedUrl = modifiedUrl + check getPathForQueryParam(queryParam);
-        map<string> headerParam = {"offset": headerParams.offset, "lat": headerParams.lat, "lon": headerParams.lon, "exclude": headerParams.exclude, "units": headerParams.units};
+        map<string> headerParam = {"offset": headerParams.offset.toString(), "lat": headerParams.lat, "lon": headerParams.lon, "exclude": headerParams.exclude, "units": headerParams.units.toString()};
         map<string> customHeaders = getCombineHeaders(clientConfig.customHeaders,headerParam);
         clientConfig.customHeaders=customHeaders;
         websocket:Client websocketEp = check new (modifiedUrl, clientConfig);

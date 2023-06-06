@@ -55,18 +55,17 @@ import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.NO_DISPA
  * @since 2.0.0
  */
 public class AsyncAPIServiceMapper {
-    private final SemanticModel semanticModel;
     private static AsyncApi25DocumentImpl asyncAPI;
+    private final SemanticModel semanticModel;
     private final List<AsyncAPIConverterDiagnostic> errors = new ArrayList<>();
 
     /**
      * Initializes a service parser for AsyncApi.
      */
-    public AsyncAPIServiceMapper(SemanticModel semanticModel,AsyncApi25DocumentImpl asyncAPI) {
+    public AsyncAPIServiceMapper(SemanticModel semanticModel, AsyncApi25DocumentImpl asyncAPI) {
         // Default object mapper is JSON mapper available in asyncApi utils.
         this.semanticModel = semanticModel;
-
-        this.asyncAPI=asyncAPI;
+        AsyncAPIServiceMapper.asyncAPI = asyncAPI;
     }
 
     private static String extractDispatcherValue(ServiceDeclarationNode service) {
@@ -93,7 +92,7 @@ public class AsyncAPIServiceMapper {
                                 //TODO : Give a proper name for Exception message
                                 throw new NoSuchElementException(DISPATCHER_KEY_VALUE_CANNOT_BE_EMPTY);
                             }
-                            asyncAPI.addExtension("x-dispatcherKey",new TextNode(dispatcherValue));
+                            asyncAPI.addExtension("x-dispatcherKey", new TextNode(dispatcherValue));
 
                             return dispatcherValue.trim();
 
@@ -141,11 +140,11 @@ public class AsyncAPIServiceMapper {
                 AsyncApi25ChannelsImpl generatedChannels = resourceMapper.getChannels((FunctionDefinitionNode) function,
                         classDefinitionNodes, dispatcherValue);
 //                if (!generatedChannels.getItems().isEmpty()) {
-                    asyncApi.setChannels(generatedChannels);
+                asyncApi.setChannels(generatedChannels);
 //                }
                 AsyncApi25ComponentsImpl generatedComponents = resourceMapper.getComponents();
 //                if (generatedComponents.getSchemas() != null || generatedComponents.getMessages() != null) {
-                    asyncApi.setComponents(generatedComponents);
+                asyncApi.setComponents(generatedComponents);
 //                }
                 errors.addAll(resourceMapper.getErrors());
             }

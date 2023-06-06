@@ -388,9 +388,9 @@ public class GeneratorUtils {
                 createToken(EQUAL_TOKEN), init, createToken(SEMICOLON_TOKEN));
     }
 
-    public static String getStreamGeneratorName(String returnType){
-        if(returnType.contains("|")){
-            returnType=returnType.replaceAll("\\|","");
+    public static String getStreamGeneratorName(String returnType) {
+        if (returnType.contains("|")) {
+            returnType = returnType.replaceAll("\\|", "");
         }
         return returnType.substring(0, 1).toUpperCase()
                 + returnType.substring(1);

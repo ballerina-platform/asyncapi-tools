@@ -65,14 +65,11 @@ import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.CAMEL_CA
 import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.FALSE;
 import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.FUNCTION_DEFAULT_NAME_CONTAINS_ERROR;
 import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.FUNCTION_PARAMETERS_EXCEEDED;
-import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.FUNCTION_SIGNATURE_ABSENT;
 import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.FUNCTION_SIGNATURE_WRONG_TYPE;
 import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.FUNCTION_WRONG_NAME;
 import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.NO_SERVICE_CLASS;
 import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.ON_BINARY_MESSAGE;
 import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.ON_CLOSE;
-import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.ON_ERROR;
-import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.ON_IDLE_TIME_OUT;
 import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.ON_MESSAGE;
 import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.ON_OPEN;
 import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.ON_PING;
@@ -89,13 +86,11 @@ import static io.ballerina.compiler.syntax.tree.SyntaxKind.QUALIFIED_NAME_REFERE
  * @since 2.0.0
  */
 public class AsyncAPIRemoteMapper {
-    private SemanticModel semanticModel;
     private final AsyncApi25ChannelsImpl channelObject = new AsyncApi25ChannelsImpl();
     private final AsyncApi25ComponentsImpl components = new AsyncApi25ComponentsImpl();
-
     private final AsyncAPIComponentMapper componentMapper = new AsyncAPIComponentMapper(components);
-
     private final List<AsyncAPIConverterDiagnostic> errors;
+    private final SemanticModel semanticModel;
 
     /**
      * Initializes a resource parser for asyncApi.
@@ -236,9 +231,8 @@ public class AsyncAPIRemoteMapper {
 //                            } else {
 //                                throw new NoSuchElementException(FUNCTION_SIGNATURE_ABSENT);
 //                            }
-                        }
-                        //TODO: Change because onError and onIdleTimeout in graphql over websocket
-                        else {
+                            //TODO: Change because onError and onIdleTimeout in graphql over websocket
+                        } else {
                             throw new NoSuchElementException(FUNCTION_DEFAULT_NAME_CONTAINS_ERROR);
                         }
 

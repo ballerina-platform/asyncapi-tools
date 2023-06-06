@@ -144,7 +144,7 @@ public class RemoteFunctionSignatureGenerator {
             JsonNode xResponseType = extensions.get(X_RESPONSE_TYPE);
             String returnType = functionReturnType.getReturnType(xResponse, xResponseType, responseMessages);
             if (xResponseType != null && xResponseType.equals(new TextNode(SERVER_STREAMING))) {
-                if(!streamReturns.contains(returnType)) {
+                if (!streamReturns.contains(returnType)) {
                     streamReturns.add(returnType);
                 }
                 returnType = "stream<" + returnType + ",error?>";

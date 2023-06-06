@@ -110,7 +110,6 @@ public class InvalidResponseTests {
                 {"float_type_response.yaml"},
                 {"boolean_type_response.yaml"},
                 {"string_type_response.yaml"},
-                {"map_type_response.yaml"},
                 {"array_type_response.yaml"},
 
         };

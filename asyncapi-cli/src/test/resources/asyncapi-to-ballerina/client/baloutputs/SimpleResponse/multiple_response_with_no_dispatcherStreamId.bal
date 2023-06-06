@@ -54,27 +54,17 @@ public client isolated class PayloadVlocationsClient {
                 ResponseMessage responseMessage = check self.readMessageQueue.consume(5);
                 string event = responseMessage.event;
                 match (event) {
-                    "UnSubscribe" => {
-                        pipe:Pipe subscribePipe = self.pipes.getPipe("subscribe");
-                        check subscribePipe.produce(responseMessage, 5);
-                    }
                     "Response" => {
                         pipe:Pipe requestPipe = self.pipes.getPipe("request");
                         check requestPipe.produce(responseMessage, 5);
                     }
+                    "UnSubscribe" => {
+                        pipe:Pipe subscribePipe = self.pipes.getPipe("subscribe");
+                        check subscribePipe.produce(responseMessage, 5);
+                    }
                 }
             }
         }
-    }
-    #
-    remote isolated function doSubscribe(Subscribe subscribe, decimal timeout) returns UnSubscribe|error {
-        pipe:Pipe subscribePipe = new (1);
-        self.pipes.addPipe("subscribe", subscribePipe);
-        check self.writeMessageQueue.produce(subscribe, timeout);
-        anydata responseMessage = check subscribePipe.consume(timeout);
-        UnSubscribe unSubscribe = check responseMessage.cloneWithType();
-        check subscribePipe.immediateClose();
-        return unSubscribe;
     }
     #
     remote isolated function doRequest(Request request, decimal timeout) returns Response|error {
@@ -85,5 +75,15 @@ public client isolated class PayloadVlocationsClient {
         Response response = check responseMessage.cloneWithType();
         check requestPipe.immediateClose();
         return response;
+    }
+    #
+    remote isolated function doSubscribe(Subscribe subscribe, decimal timeout) returns UnSubscribe|error {
+        pipe:Pipe subscribePipe = new (1);
+        self.pipes.addPipe("subscribe", subscribePipe);
+        check self.writeMessageQueue.produce(subscribe, timeout);
+        anydata responseMessage = check subscribePipe.consume(timeout);
+        UnSubscribe unSubscribe = check responseMessage.cloneWithType();
+        check subscribePipe.immediateClose();
+        return unSubscribe;
     }
 }

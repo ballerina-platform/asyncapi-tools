@@ -77,6 +77,14 @@ public client isolated class KrakenWebsocketsAPIClient {
                         pipe:Pipe unsubscribePipe = self.pipes.getPipe("unsubscribe");
                         check unsubscribePipe.produce(responseMessage, 5);
                     }
+                    "Heartbeat" => {
+                        pipe:Pipe heartbeatPipe = self.pipes.getPipe("heartbeat");
+                        check heartbeatPipe.produce(responseMessage, 5);
+                    }
+                    "SystemStatus" => {
+                        pipe:Pipe systemStatusPipe = self.pipes.getPipe("systemStatus");
+                        check systemStatusPipe.produce(responseMessage, 5);
+                    }
                 }
             }
         }
@@ -113,5 +121,23 @@ public client isolated class KrakenWebsocketsAPIClient {
         SubscriptionStatus subscriptionStatus = check responseMessage.cloneWithType();
         check unsubscribePipe.immediateClose();
         return subscriptionStatus;
+    }
+    #
+    remote isolated function doHeartbeat(decimal timeout) returns Heartbeat|error {
+        pipe:Pipe heartbeatPipe = new (1);
+        self.pipes.addPipe("heartbeat", heartbeatPipe);
+        anydata responseMessage = check heartbeatPipe.consume(timeout);
+        Heartbeat heartbeat = check responseMessage.cloneWithType();
+        check heartbeatPipe.immediateClose();
+        return heartbeat;
+    }
+    #
+    remote isolated function doSystemStatus(decimal timeout) returns SystemStatus|error {
+        pipe:Pipe systemStatusPipe = new (1);
+        self.pipes.addPipe("systemStatus", systemStatusPipe);
+        anydata responseMessage = check systemStatusPipe.consume(timeout);
+        SystemStatus systemStatus = check responseMessage.cloneWithType();
+        check systemStatusPipe.immediateClose();
+        return systemStatus;
     }
 }

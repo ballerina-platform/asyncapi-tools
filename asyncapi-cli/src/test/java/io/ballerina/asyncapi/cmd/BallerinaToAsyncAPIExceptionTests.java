@@ -22,7 +22,6 @@ import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.NO_ANNOT
 import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.NO_DISPATCHER_KEY;
 import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.NO_SERVICE_CLASS;
 import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.PATH_PARAM_DASH_CONTAIN_ERROR;
-import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.UNION_STREAMING_SIMPLE_RPC_ERROR;
 
 
 /**
@@ -445,24 +444,24 @@ public class BallerinaToAsyncAPIExceptionTests extends AsyncAPICommandTest {
         }
     }
 
-    @Test(description = "Test remote function returns multiple return options with stream type")
-    public void testMultipleReturnTypesIncludingStreamTypeError() {
-        Path filePath = resourceDir.resolve(Paths.get("cmd/ballerina-to-asyncapi/exceptions" +
-                "/optional_multiple_type_stream_include_return.bal"));
-        String[] args = {"--input", filePath.toString(), "-o", this.tmpDir.toString()};
-        AsyncAPICmd cmd = new AsyncAPICmd(printStream, tmpDir, false);
-        new CommandLine(cmd).parseArgs(args);
-
-        String output = "";
-        try {
-            cmd.execute();
-            output = readOutput(true);
-            Assert.assertTrue(output.trim().contains(String.format(UNION_STREAMING_SIMPLE_RPC_ERROR)));
-        } catch (BLauncherException | IOException e) {
-            output = e.toString();
-            Assert.fail(output);
-        }
-    }
+//    @Test(description = "Test remote function returns multiple return options with stream type")
+//    public void testMultipleReturnTypesIncludingStreamTypeError() {
+//        Path filePath = resourceDir.resolve(Paths.get("cmd/ballerina-to-asyncapi/exceptions" +
+//                "/optional_multiple_type_stream_include_return.bal"));
+//        String[] args = {"--input", filePath.toString(), "-o", this.tmpDir.toString()};
+//        AsyncAPICmd cmd = new AsyncAPICmd(printStream, tmpDir, false);
+//        new CommandLine(cmd).parseArgs(args);
+//
+//        String output = "";
+//        try {
+//            cmd.execute();
+//            output = readOutput(true);
+//            Assert.assertTrue(output.trim().contains(String.format(UNION_STREAMING_SIMPLE_RPC_ERROR)));
+//        } catch (BLauncherException | IOException e) {
+//            output = e.toString();
+//            Assert.fail(output);
+//        }
+//    }
 
 
 }

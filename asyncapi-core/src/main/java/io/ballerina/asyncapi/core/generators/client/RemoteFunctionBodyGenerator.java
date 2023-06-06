@@ -124,14 +124,14 @@ public class RemoteFunctionBodyGenerator {
     private final AsyncApi25DocumentImpl asyncAPI;
     private final List<ImportDeclarationNode> imports;
 
-    private final UtilGenerator utilGenerator;
+
 
     public RemoteFunctionBodyGenerator(List<ImportDeclarationNode> imports,
-                                       AsyncApi25DocumentImpl asyncAPI, UtilGenerator utilGenerator) {
+                                       AsyncApi25DocumentImpl asyncAPI) {
 
         this.imports = imports;
         this.asyncAPI = asyncAPI;
-        this.utilGenerator = utilGenerator;
+//        this.utilGenerator = utilGenerator;
     }
 
     private static void createCommentStatementsForDispatcherId(List<StatementNode> statementsList,
@@ -272,7 +272,7 @@ public class RemoteFunctionBodyGenerator {
             JsonNode xResponse = extensions.get(X_RESPONSE);
             JsonNode xResponseType = extensions.get(X_RESPONSE_TYPE);
 
-            String responseType = functionReturnType.getReturnType(xResponse, xResponseType,null);
+            String responseType = functionReturnType.getReturnType(xResponse, xResponseType, null);
             if (xResponseType != null && xResponseType.equals(new TextNode(SERVER_STREAMING))) {
                 //TODO: Include a if condition to check this only one time
 //                utilGenerator.setStreamFound(true);
@@ -288,7 +288,7 @@ public class RemoteFunctionBodyGenerator {
             } else {
 
                 createSimpleRPCFunctionBodyStatements(statementsList, requestType, responseType, dispatcherStreamId,
-                        matchStatementList,isSubscribe);
+                        matchStatementList, isSubscribe);
             }
 
         } else {
@@ -305,7 +305,7 @@ public class RemoteFunctionBodyGenerator {
                                                     String requestType, String responseType,
 
                                                     String dispatcherStreamId,
-                                                    List<MatchClauseNode> matchStatementList,boolean isSubscribe) {
+                                                    List<MatchClauseNode> matchStatementList, boolean isSubscribe) {
 
         String requestTypePipe = requestType + "Pipe";
 
@@ -460,7 +460,7 @@ public class RemoteFunctionBodyGenerator {
         //     streamMessages = new (streamGenerator);
         //  }
         ArrayList<StatementNode> streamStatementList = new ArrayList<>();
-        String streamGenName= GeneratorUtils.getStreamGeneratorName(responseType);
+        String streamGenName = GeneratorUtils.getStreamGeneratorName(responseType);
 
         ArrayList<Node> streamGeneratorArguments = new ArrayList<>();
         streamGeneratorArguments.add(createPositionalArgumentNode(requestTypePipeNode));
@@ -476,7 +476,7 @@ public class RemoteFunctionBodyGenerator {
                 "streamGenerator"));
         VariableDeclarationNode streamGenerator = createVariableDeclarationNode(createEmptyNodeList(),
                 null, createTypedBindingPatternNode(createSimpleNameReferenceNode(createIdentifierToken(
-                                responseType+"StreamGenerator"))
+                                streamGenName + "StreamGenerator"))
 
                         , createFieldBindingPatternVarnameNode(streamGeneratorNode)), equalToken, checkExpressionNode,
                 semicolonToken);
@@ -544,7 +544,7 @@ public class RemoteFunctionBodyGenerator {
      */
     private void createSimpleRPCFunctionBodyStatements(List<StatementNode> statementsList, String requestType,
                                                        String responseType, String dispatcherStreamId,
-                                                       List<MatchClauseNode> matchStatementList,boolean isSubscribe) {
+                                                       List<MatchClauseNode> matchStatementList, boolean isSubscribe) {
 
 
         String requestTypePipe = requestType + "Pipe";

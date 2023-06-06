@@ -3,28 +3,6 @@ import ballerina/url;
 
 type SimpleBasicType string|boolean|int|float|decimal;
 
-# Stream generator class
-isolated class StreamGenerator {
-    private final pipe:Pipe pipe;
-    private final decimal timeout;
-
-    # Description
-    #
-    # + pipe - Pipe to hold stream messages
-    # + timeout - Waiting time
-    isolated function init(pipe:Pipe pipe, decimal timeout) returns error? {
-        self.pipe = pipe;
-        self.timeout = timeout;
-    }
-
-    # Next method to return next stream message
-    public isolated function next() returns record {|NextMessage|CompleteMessage|ErrorMessage value;|}|error? {
-        anydata responseMessage = check self.pipe.consume(self.timeout);
-        NextMessage|CompleteMessage|ErrorMessage response = check responseMessage.cloneWithType();
-        return {value: response};
-    }
-}
-
 # Pipesmap class
 isolated class PipesMap {
     private final map<pipe:Pipe> pipes;
@@ -98,5 +76,23 @@ isolated function getCombineHeaders(map<string> customHeaders, map<string> param
 
 }
 
-
-
+# Stream generator class for NextMessage|CompleteMessage|ErrorMessage return type
+public client isolated class NextMessageCompleteMessageErrorMessageStreamGenerator {
+    private final pipe:Pipe pipe;
+    private final decimal timeout;
+    # StreamGenerator
+    #
+    # + pipe - Pipe to hold stream messages
+    # + timeout - Waiting time
+    public isolated function init(pipe:Pipe pipe, decimal timeout) returns error? {
+        self.pipe = pipe;
+        self.timeout = timeout;
+    }
+    #  Next method to return next stream message
+    #
+    public isolated function next() returns record {|NextMessage|CompleteMessage|ErrorMessage value;|}|error? {
+        anydata responseMessage = check self.pipe.consume(self.timeout);
+        NextMessage|CompleteMessage|ErrorMessage response = check responseMessage.cloneWithType();
+        return {value: response};
+    }
+}
