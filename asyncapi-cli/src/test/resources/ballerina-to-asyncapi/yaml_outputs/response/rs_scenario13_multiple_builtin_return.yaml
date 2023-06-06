@@ -111,3 +111,4 @@ components:
                 type: string
         description: '`PaymentCreated` or `PaymentConflict` representation'
       x-response-type: simple-rpc
+x-dispatcherKey: event

@@ -54,7 +54,7 @@ public class APIDocTests {
     @Test(description = "Query parameter api doc mapped to AAS parameter description")
     public void testsForQueryParameter() throws IOException {
         Path ballerinaFilePath = RES_DIR.resolve("apidoc/resource_function_with_queryparam_scenario.bal");
-        TestUtils.compareWithGeneratedFile(ballerinaFilePath, "apidoc/query_parameter.yaml");
+        TestUtils.compareWithGeneratedFile(ballerinaFilePath, "apidoc/query_param.yaml");
     }
 
     @Test(description = "Request payload api doc mapped to AAS requestBody description")

@@ -1,19 +1,19 @@
 asyncapi: 2.5.0
 info:
-  title: PayloadV
+  title: Hello
   version: 0.0.0
 servers:
   development:
-    url: "{server}:{port}/payloadV"
+    url: "{server}:{port}/hello"
     protocol: ws
     protocolVersion: "13"
     variables:
       server:
         default: ws://localhost
       port:
-        default: "9090"
+        default: "80"
 channels:
-  /:
+  /hi:
     subscribe:
       message:
         payload:
@@ -21,34 +21,21 @@ channels:
           format: int64
     publish:
       message:
-        oneOf:
-          - $ref: '#/components/messages/Subscribe'
-          - $ref: '#/components/messages/UnSubscribe'
+        $ref: '#/components/messages/Subscribe'
 components:
   schemas:
     Subscribe:
       type: object
       required:
         - id
-        - event
+        - type1
       properties:
         id:
           type: integer
           format: int64
-        event:
+        type1:
           type: string
           const: Subscribe
-    UnSubscribe:
-      type: object
-      required:
-        - id
-        - event
-      properties:
-        id:
-          type: string
-        event:
-          type: string
-          const: UnSubscribe
   messages:
     Subscribe:
       payload:
@@ -58,11 +45,4 @@ components:
           type: integer
           format: int64
       x-response-type: simple-rpc
-    UnSubscribe:
-      payload:
-        $ref: '#/components/schemas/UnSubscribe'
-      x-response:
-        payload:
-          type: integer
-          format: int64
-      x-response-type: simple-rpc
+x-dispatcherKey: event

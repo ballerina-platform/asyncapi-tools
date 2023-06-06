@@ -37,3 +37,4 @@ components:
       payload:
         $ref: '#/components/schemas/Location'
       description: Represents Snowpeak location resource
+x-dispatcherKey: event

@@ -17,7 +17,7 @@
  */
 package io.ballerina.asyncapi.generators.asyncapi;
 
-import io.ballerina.asyncapi.cli.AsyncAPIContractGenerator;
+import io.ballerina.asyncapi.cli.AsyncAPISpecGenerator;
 import org.testng.Assert;
 import org.testng.annotations.AfterMethod;
 import org.testng.annotations.AfterTest;
@@ -95,7 +95,7 @@ public class ResponseTests {
     @Test(description = "When the response has float return type")
     public void testResponseWithFloatReturnType() throws IOException {
         Path ballerinaFilePath = RES_DIR.resolve("response/rs_scenario08_float.bal");
-        AsyncAPIContractGenerator openApiConverterUtils = new AsyncAPIContractGenerator();
+        AsyncAPISpecGenerator openApiConverterUtils = new AsyncAPISpecGenerator();
         openApiConverterUtils.generateAsyncAPIDefinitionsAllService(ballerinaFilePath, this.tempDir, null
                 , false);
         Assert.assertTrue(openApiConverterUtils.getErrors().isEmpty());
@@ -105,7 +105,7 @@ public class ResponseTests {
     @Test(description = "When the response has decimal return type")
     public void testResponseWithDecimalReturnType() throws IOException {
         Path ballerinaFilePath = RES_DIR.resolve("response/rs_scenario09_decimal.bal");
-        AsyncAPIContractGenerator openApiConverterUtils = new AsyncAPIContractGenerator();
+        AsyncAPISpecGenerator openApiConverterUtils = new AsyncAPISpecGenerator();
         openApiConverterUtils.generateAsyncAPIDefinitionsAllService(ballerinaFilePath, this.tempDir, null
                 , false);
         Assert.assertTrue(openApiConverterUtils.getErrors().isEmpty());

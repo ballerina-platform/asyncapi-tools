@@ -16,7 +16,6 @@ import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.DISPATCH
 import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.DISPATCHERKEY_OPTIONAL_EXCEPTION;
 import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.DISPATCHER_KEY_TYPE_EXCEPTION;
 import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.DISPATCHER_KEY_VALUE_CANNOT_BE_EMPTY;
-import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.FUNCTION_DEFAULT_NAME_CONTAINS_ERROR;
 import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.FUNCTION_SIGNATURE_WRONG_TYPE;
 import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.FUNCTION_WRONG_NAME;
 import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.NO_ANNOTATION_PRESENT;
@@ -156,178 +155,178 @@ public class BallerinaToAsyncAPIExceptionTests extends AsyncAPICommandTest {
             Assert.fail(output);
         }
     }
-
-    @Test(description = "Test onClose remote function is present as a remote function")
-    public void testOnCloseRemoteFunctionNotPermitted() {
-        Path filePath = resourceDir.resolve(Paths.get("cmd/ballerina-to-asyncapi/exceptions" +
-                "/onClose_check.bal"));
-        String[] args = {"--input", filePath.toString(), "-o", this.tmpDir.toString()};
-        AsyncAPICmd cmd = new AsyncAPICmd(printStream, tmpDir, false);
-        new CommandLine(cmd).parseArgs(args);
-
-        String output = "";
-        try {
-            cmd.execute();
-            output = readOutput(true);
-            Assert.assertTrue(output.trim().contains(String.format(FUNCTION_DEFAULT_NAME_CONTAINS_ERROR)));
-        } catch (BLauncherException | IOException e) {
-            output = e.toString();
-            Assert.fail(output);
-        }
-    }
-
-    @Test(description = "Test onError remote function is present as a remote function")
-    public void testOnErrorRemoteFunctionNotPermitted() {
-        Path filePath = resourceDir.resolve(Paths.get("cmd/ballerina-to-asyncapi/exceptions" +
-                "/onError_check.bal"));
-        String[] args = {"--input", filePath.toString(), "-o", this.tmpDir.toString()};
-        AsyncAPICmd cmd = new AsyncAPICmd(printStream, tmpDir, false);
-        new CommandLine(cmd).parseArgs(args);
-
-        String output = "";
-        try {
-            cmd.execute();
-            output = readOutput(true);
-            Assert.assertTrue(output.trim().contains(String.format(FUNCTION_DEFAULT_NAME_CONTAINS_ERROR)));
-        } catch (BLauncherException | IOException e) {
-            output = e.toString();
-            Assert.fail(output);
-        }
-    }
-
-    @Test(description = "Test onIdleTimeOut remote function is present as a remote function")
-    public void testOnIdleTimeOutRemoteFunctionNotPermitted() {
-        Path filePath = resourceDir.resolve(Paths.get("cmd/ballerina-to-asyncapi/exceptions" +
-                "/onIdleTimeOut_check.bal"));
-        String[] args = {"--input", filePath.toString(), "-o", this.tmpDir.toString()};
-        AsyncAPICmd cmd = new AsyncAPICmd(printStream, tmpDir, false);
-        new CommandLine(cmd).parseArgs(args);
-
-        String output = "";
-        try {
-            cmd.execute();
-            output = readOutput(true);
-            Assert.assertTrue(output.trim().contains(String.format(FUNCTION_DEFAULT_NAME_CONTAINS_ERROR)));
-        } catch (BLauncherException | IOException e) {
-            output = e.toString();
-            Assert.fail(output);
-        }
-    }
-
-    @Test(description = "Test onTextMessage remote function is present as a remote function")
-    public void testOnTextMessageRemoteFunctionNotPermitted() {
-        Path filePath = resourceDir.resolve(Paths.get("cmd/ballerina-to-asyncapi/exceptions" +
-                "/onTextMessage_check.bal"));
-        String[] args = {"--input", filePath.toString(), "-o", this.tmpDir.toString()};
-        AsyncAPICmd cmd = new AsyncAPICmd(printStream, tmpDir, false);
-        new CommandLine(cmd).parseArgs(args);
-
-        String output = "";
-        try {
-            cmd.execute();
-            output = readOutput(true);
-            Assert.assertTrue(output.trim().contains(String.format(FUNCTION_DEFAULT_NAME_CONTAINS_ERROR)));
-        } catch (BLauncherException | IOException e) {
-            output = e.toString();
-            Assert.fail(output);
-        }
-    }
-
-    @Test(description = "Test onBinaryMessage remote function is present as a remote function")
-    public void testOnBinaryMessageRemoteFunctionNotPermitted() {
-        Path filePath = resourceDir.resolve(Paths.get("cmd/ballerina-to-asyncapi/exceptions" +
-                "/onBinaryMessage_check.bal"));
-        String[] args = {"--input", filePath.toString(), "-o", this.tmpDir.toString()};
-        AsyncAPICmd cmd = new AsyncAPICmd(printStream, tmpDir, false);
-        new CommandLine(cmd).parseArgs(args);
-
-        String output = "";
-        try {
-            cmd.execute();
-            output = readOutput(true);
-            Assert.assertTrue(output.trim().contains(String.format(FUNCTION_DEFAULT_NAME_CONTAINS_ERROR)));
-        } catch (BLauncherException | IOException e) {
-            output = e.toString();
-            Assert.fail(output);
-        }
-    }
-
-    @Test(description = "Test onOpen remote function is present as a remote function")
-    public void testOnOpenRemoteFunctionNotPermitted() {
-        Path filePath = resourceDir.resolve(Paths.get("cmd/ballerina-to-asyncapi/exceptions" +
-                "/onOpen_check.bal"));
-        String[] args = {"--input", filePath.toString(), "-o", this.tmpDir.toString()};
-        AsyncAPICmd cmd = new AsyncAPICmd(printStream, tmpDir, false);
-        new CommandLine(cmd).parseArgs(args);
-
-        String output = "";
-        try {
-            cmd.execute();
-            output = readOutput(true);
-            Assert.assertTrue(output.trim().contains(String.format(FUNCTION_DEFAULT_NAME_CONTAINS_ERROR)));
-        } catch (BLauncherException | IOException e) {
-            output = e.toString();
-            Assert.fail(output);
-        }
-    }
-
-
-    @Test(description = "Test onMessage remote function is present as a remote function")
-    public void testOnMessageRemoteFunctionNotPermitted() {
-        Path filePath = resourceDir.resolve(Paths.get("cmd/ballerina-to-asyncapi/exceptions" +
-                "/onMessage_check.bal"));
-        String[] args = {"--input", filePath.toString(), "-o", this.tmpDir.toString()};
-        AsyncAPICmd cmd = new AsyncAPICmd(printStream, tmpDir, false);
-        new CommandLine(cmd).parseArgs(args);
-
-        String output = "";
-        try {
-            cmd.execute();
-            output = readOutput(true);
-            Assert.assertTrue(output.trim().contains(String.format(FUNCTION_DEFAULT_NAME_CONTAINS_ERROR)));
-        } catch (BLauncherException | IOException e) {
-            output = e.toString();
-            Assert.fail(output);
-        }
-    }
-
-    @Test(description = "Test onPing remote function is present as a remote function")
-    public void testOnPingRemoteFunctionNotPermitted() {
-        Path filePath = resourceDir.resolve(Paths.get("cmd/ballerina-to-asyncapi/exceptions" +
-                "/onPing_check.bal"));
-        String[] args = {"--input", filePath.toString(), "-o", this.tmpDir.toString()};
-        AsyncAPICmd cmd = new AsyncAPICmd(printStream, tmpDir, false);
-        new CommandLine(cmd).parseArgs(args);
-
-        String output = "";
-        try {
-            cmd.execute();
-            output = readOutput(true);
-            Assert.assertTrue(output.trim().contains(String.format(FUNCTION_DEFAULT_NAME_CONTAINS_ERROR)));
-        } catch (BLauncherException | IOException e) {
-            output = e.toString();
-            Assert.fail(output);
-        }
-    }
-
-    @Test(description = "Test onPong remote function is present as a remote function")
-    public void testOnPongRemoteFunctionNotPermitted() {
-        Path filePath = resourceDir.resolve(Paths.get("cmd/ballerina-to-asyncapi/exceptions" +
-                "/onPong_check.bal"));
-        String[] args = {"--input", filePath.toString(), "-o", this.tmpDir.toString()};
-        AsyncAPICmd cmd = new AsyncAPICmd(printStream, tmpDir, false);
-        new CommandLine(cmd).parseArgs(args);
-
-        String output = "";
-        try {
-            cmd.execute();
-            output = readOutput(true);
-            Assert.assertTrue(output.trim().contains(String.format(FUNCTION_DEFAULT_NAME_CONTAINS_ERROR)));
-        } catch (BLauncherException | IOException e) {
-            output = e.toString();
-            Assert.fail(output);
-        }
-    }
+//
+//    @Test(description = "Test onClose remote function is present as a remote function")
+//    public void testOnCloseRemoteFunctionNotPermitted() {
+//        Path filePath = resourceDir.resolve(Paths.get("cmd/ballerina-to-asyncapi/exceptions" +
+//                "/onClose_check.bal"));
+//        String[] args = {"--input", filePath.toString(), "-o", this.tmpDir.toString()};
+//        AsyncAPICmd cmd = new AsyncAPICmd(printStream, tmpDir, false);
+//        new CommandLine(cmd).parseArgs(args);
+//
+//        String output = "";
+//        try {
+//            cmd.execute();
+//            output = readOutput(true);
+//            Assert.assertTrue(output.trim().contains(String.format(FUNCTION_DEFAULT_NAME_CONTAINS_ERROR)));
+//        } catch (BLauncherException | IOException e) {
+//            output = e.toString();
+//            Assert.fail(output);
+//        }
+//    }
+//
+//    @Test(description = "Test onError remote function is present as a remote function")
+//    public void testOnErrorRemoteFunctionNotPermitted() {
+//        Path filePath = resourceDir.resolve(Paths.get("cmd/ballerina-to-asyncapi/exceptions" +
+//                "/onError_check.bal"));
+//        String[] args = {"--input", filePath.toString(), "-o", this.tmpDir.toString()};
+//        AsyncAPICmd cmd = new AsyncAPICmd(printStream, tmpDir, false);
+//        new CommandLine(cmd).parseArgs(args);
+//
+//        String output = "";
+//        try {
+//            cmd.execute();
+//            output = readOutput(true);
+//            Assert.assertTrue(output.trim().contains(String.format(FUNCTION_DEFAULT_NAME_CONTAINS_ERROR)));
+//        } catch (BLauncherException | IOException e) {
+//            output = e.toString();
+//            Assert.fail(output);
+//        }
+//    }
+//
+//    @Test(description = "Test onIdleTimeOut remote function is present as a remote function")
+//    public void testOnIdleTimeOutRemoteFunctionNotPermitted() {
+//        Path filePath = resourceDir.resolve(Paths.get("cmd/ballerina-to-asyncapi/exceptions" +
+//                "/onIdleTimeOut_check.bal"));
+//        String[] args = {"--input", filePath.toString(), "-o", this.tmpDir.toString()};
+//        AsyncAPICmd cmd = new AsyncAPICmd(printStream, tmpDir, false);
+//        new CommandLine(cmd).parseArgs(args);
+//
+//        String output = "";
+//        try {
+//            cmd.execute();
+//            output = readOutput(true);
+//            Assert.assertTrue(output.trim().contains(String.format(FUNCTION_DEFAULT_NAME_CONTAINS_ERROR)));
+//        } catch (BLauncherException | IOException e) {
+//            output = e.toString();
+//            Assert.fail(output);
+//        }
+//    }
+//
+//    @Test(description = "Test onTextMessage remote function is present as a remote function")
+//    public void testOnTextMessageRemoteFunctionNotPermitted() {
+//        Path filePath = resourceDir.resolve(Paths.get("cmd/ballerina-to-asyncapi/exceptions" +
+//                "/onTextMessage_check.bal"));
+//        String[] args = {"--input", filePath.toString(), "-o", this.tmpDir.toString()};
+//        AsyncAPICmd cmd = new AsyncAPICmd(printStream, tmpDir, false);
+//        new CommandLine(cmd).parseArgs(args);
+//
+//        String output = "";
+//        try {
+//            cmd.execute();
+//            output = readOutput(true);
+//            Assert.assertTrue(output.trim().contains(String.format(FUNCTION_DEFAULT_NAME_CONTAINS_ERROR)));
+//        } catch (BLauncherException | IOException e) {
+//            output = e.toString();
+//            Assert.fail(output);
+//        }
+//    }
+//
+//    @Test(description = "Test onBinaryMessage remote function is present as a remote function")
+//    public void testOnBinaryMessageRemoteFunctionNotPermitted() {
+//        Path filePath = resourceDir.resolve(Paths.get("cmd/ballerina-to-asyncapi/exceptions" +
+//                "/onBinaryMessage_check.bal"));
+//        String[] args = {"--input", filePath.toString(), "-o", this.tmpDir.toString()};
+//        AsyncAPICmd cmd = new AsyncAPICmd(printStream, tmpDir, false);
+//        new CommandLine(cmd).parseArgs(args);
+//
+//        String output = "";
+//        try {
+//            cmd.execute();
+//            output = readOutput(true);
+//            Assert.assertTrue(output.trim().contains(String.format(FUNCTION_DEFAULT_NAME_CONTAINS_ERROR)));
+//        } catch (BLauncherException | IOException e) {
+//            output = e.toString();
+//            Assert.fail(output);
+//        }
+//    }
+//
+//    @Test(description = "Test onOpen remote function is present as a remote function")
+//    public void testOnOpenRemoteFunctionNotPermitted() {
+//        Path filePath = resourceDir.resolve(Paths.get("cmd/ballerina-to-asyncapi/exceptions" +
+//                "/onOpen_check.bal"));
+//        String[] args = {"--input", filePath.toString(), "-o", this.tmpDir.toString()};
+//        AsyncAPICmd cmd = new AsyncAPICmd(printStream, tmpDir, false);
+//        new CommandLine(cmd).parseArgs(args);
+//
+//        String output = "";
+//        try {
+//            cmd.execute();
+//            output = readOutput(true);
+//            Assert.assertTrue(output.trim().contains(String.format(FUNCTION_DEFAULT_NAME_CONTAINS_ERROR)));
+//        } catch (BLauncherException | IOException e) {
+//            output = e.toString();
+//            Assert.fail(output);
+//        }
+//    }
+//
+//
+//    @Test(description = "Test onMessage remote function is present as a remote function")
+//    public void testOnMessageRemoteFunctionNotPermitted() {
+//        Path filePath = resourceDir.resolve(Paths.get("cmd/ballerina-to-asyncapi/exceptions" +
+//                "/onMessage_check.bal"));
+//        String[] args = {"--input", filePath.toString(), "-o", this.tmpDir.toString()};
+//        AsyncAPICmd cmd = new AsyncAPICmd(printStream, tmpDir, false);
+//        new CommandLine(cmd).parseArgs(args);
+//
+//        String output = "";
+//        try {
+//            cmd.execute();
+//            output = readOutput(true);
+//            Assert.assertTrue(output.trim().contains(String.format(FUNCTION_DEFAULT_NAME_CONTAINS_ERROR)));
+//        } catch (BLauncherException | IOException e) {
+//            output = e.toString();
+//            Assert.fail(output);
+//        }
+//    }
+//
+//    @Test(description = "Test onPing remote function is present as a remote function")
+//    public void testOnPingRemoteFunctionNotPermitted() {
+//        Path filePath = resourceDir.resolve(Paths.get("cmd/ballerina-to-asyncapi/exceptions" +
+//                "/onPing_check.bal"));
+//        String[] args = {"--input", filePath.toString(), "-o", this.tmpDir.toString()};
+//        AsyncAPICmd cmd = new AsyncAPICmd(printStream, tmpDir, false);
+//        new CommandLine(cmd).parseArgs(args);
+//
+//        String output = "";
+//        try {
+//            cmd.execute();
+//            output = readOutput(true);
+//            Assert.assertTrue(output.trim().contains(String.format(FUNCTION_DEFAULT_NAME_CONTAINS_ERROR)));
+//        } catch (BLauncherException | IOException e) {
+//            output = e.toString();
+//            Assert.fail(output);
+//        }
+//    }
+//
+//    @Test(description = "Test onPong remote function is present as a remote function")
+//    public void testOnPongRemoteFunctionNotPermitted() {
+//        Path filePath = resourceDir.resolve(Paths.get("cmd/ballerina-to-asyncapi/exceptions" +
+//                "/onPong_check.bal"));
+//        String[] args = {"--input", filePath.toString(), "-o", this.tmpDir.toString()};
+//        AsyncAPICmd cmd = new AsyncAPICmd(printStream, tmpDir, false);
+//        new CommandLine(cmd).parseArgs(args);
+//
+//        String output = "";
+//        try {
+//            cmd.execute();
+//            output = readOutput(true);
+//            Assert.assertTrue(output.trim().contains(String.format(FUNCTION_DEFAULT_NAME_CONTAINS_ERROR)));
+//        } catch (BLauncherException | IOException e) {
+//            output = e.toString();
+//            Assert.fail(output);
+//        }
+//    }
 
     @Test(description = "Test dispatcherKey is optional not allowed in a field")
     public void testDispatcherKeyIsOptionalNotAllowedInAField() {

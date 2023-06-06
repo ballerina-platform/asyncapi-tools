@@ -16,15 +16,9 @@ channels:
   /:
     subscribe:
       message:
-        oneOf:
-          - payload:
-              type: array
-              items:
-                $ref: '#/components/schemas/SubscriptionStatus'
-          - payload:
-              type: array
-              items:
-                type: string
+        payload:
+          type: integer
+          format: int64
     publish:
       message:
         oneOf:
@@ -44,17 +38,6 @@ components:
         event:
           type: string
           const: Subscribe
-    SubscriptionStatus:
-      type: object
-      required:
-        - id
-        - type1
-      properties:
-        id:
-          type: integer
-          format: int64
-        type1:
-          type: string
     UnSubscribe:
       type: object
       required:
@@ -62,8 +45,7 @@ components:
         - event
       properties:
         id:
-          type: integer
-          format: int64
+          type: string
         event:
           type: string
           const: UnSubscribe
@@ -73,17 +55,15 @@ components:
         $ref: '#/components/schemas/Subscribe'
       x-response:
         payload:
-          type: array
-          items:
-            $ref: '#/components/schemas/SubscriptionStatus'
+          type: integer
+          format: int64
       x-response-type: simple-rpc
     UnSubscribe:
       payload:
         $ref: '#/components/schemas/UnSubscribe'
       x-response:
         payload:
-          type: array
-          items:
-            type: string
+          type: integer
+          format: int64
       x-response-type: simple-rpc
 x-dispatcherKey: event

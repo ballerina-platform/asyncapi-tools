@@ -94,6 +94,7 @@ import io.ballerina.tools.text.TextDocuments;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.ListIterator;
@@ -243,7 +244,7 @@ import static io.ballerina.compiler.syntax.tree.SyntaxKind.WORKER_KEYWORD;
 public class IntermediateClientGenerator {
 
     private final AsyncApi25DocumentImpl asyncAPI;
-    private final UtilGenerator utilGenerator;
+    private UtilGenerator utilGenerator;
     private final List<String> remoteFunctionNameList;
     private final BallerinaAuthConfigGenerator ballerinaAuthConfigGenerator;
     //    private final Filter filters;
@@ -258,7 +259,7 @@ public class IntermediateClientGenerator {
         this.imports = new ArrayList<>();
         this.typeDefinitionNodeList = new ArrayList<>();
         this.asyncAPI = asyncAPIClientConfig.getOpenAPI();
-        this.utilGenerator = new UtilGenerator();
+//        this.utilGenerator = new UtilGenerator();
         this.remoteFunctionNameList = new ArrayList<>();
         this.ballerinaSchemaGenerator = new BallerinaTypesGenerator(asyncAPI, new LinkedList<>());
         this.serverURL = "/";
@@ -266,6 +267,11 @@ public class IntermediateClientGenerator {
                 ballerinaSchemaGenerator);
 
     }
+
+    public void setUtilGenerator(UtilGenerator utilGenerator){
+        this.utilGenerator=utilGenerator;
+    }
+
 
 
     /**
@@ -805,9 +811,7 @@ public class IntermediateClientGenerator {
         whileStatements.add(responseMessageNode);
 
         ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
-        if (dispatcherKey.equals("type")) {
-            dispatcherKey = "'type";
-        }
+
         IfElseStatementNode ifElseStatementNode;
         if (matchClauseNodes.size() != 0 && idMethods.size() != 0) {
             ArrayList<StatementNode> ifStatementNodes = getIfStatementNodes(dispatcherStreamId);
@@ -818,7 +822,9 @@ public class IntermediateClientGenerator {
             GeneratorUtils.updateTypeDefNodeList(RESPONSE_MESSAGE_WITH_ID, typeDefinitionNode, typeDefinitionNodeList);
 //            ballerinaSchemaGenerator.setIdMethodsPresent(true);
 
-
+            if (dispatcherKey.equals("type")) {
+                dispatcherKey = "'type";
+            }
             ArrayList<StatementNode> elseStatementNodes = getElseStatementNodes(dispatcherKey,
                     matchClauseNodes);
 
@@ -855,6 +861,9 @@ public class IntermediateClientGenerator {
 
 
         } else {
+            if (dispatcherKey.equals("type")) {
+                dispatcherKey = "'type";
+            }
             // string type=responseMessage.type;
             FieldAccessExpressionNode responseDispatcherKey = createFieldAccessExpressionNode(responseMessageVarNode,
                     dotToken,
@@ -1475,8 +1484,21 @@ public class IntermediateClientGenerator {
             // Initializer
             IdentifierToken fieldName = createIdentifierToken('"' + (entry.getKey().trim()) + '"');
             Token colon = createToken(COLON_TOKEN);
-            SimpleNameReferenceNode valueExpr = createSimpleNameReferenceNode(
-                    createIdentifierToken(mapName + "s." + getValidName(entry.getKey().trim(), false)));
+            SimpleNameReferenceNode valueExpr;
+            if(entry.getValue().getType().equals("string") || mapName.equals(QUERY_PARAM)){
+                valueExpr = createSimpleNameReferenceNode(
+                        createIdentifierToken(mapName + "s." + getValidName(entry.getKey().trim(), false)));
+            }else if (!entry.getValue().getType().equals("string")&& mapName.equals(HEADER_PARAM)){
+                valueExpr = createSimpleNameReferenceNode(
+                        createIdentifierToken(mapName + "s." +
+                                getValidName(entry.getKey().trim(), false)+".toString()"));
+            }else{
+                valueExpr = createSimpleNameReferenceNode(
+                        createIdentifierToken(mapName + "s." +
+                                getValidName(entry.getKey().trim(), false)+".toString()"));
+
+            }
+
             SpecificFieldNode specificFieldNode = createSpecificFieldNode(null,
                     fieldName, colon, valueExpr);
             filedOfMap.add(specificFieldNode);
@@ -1757,13 +1779,13 @@ public class IntermediateClientGenerator {
 
 
         List<FunctionDefinitionNode> functionDefinitionNodeList = new ArrayList<>();
-        Set<Map.Entry<String, AsyncApiMessage>> messageItems = messages.entrySet();
 
         //Take all schemas
         Map<String, Schema> schemas = asyncAPI.getComponents().getSchemas();
+        ArrayList streamReturns=new ArrayList();
 
         // Create an array to store all request messages
-        ArrayList requestMessages = new ArrayList();
+        ArrayList remainingResponseMessages = new ArrayList();
         if (schemas.containsKey("Error")) {
             AsyncApi25MessageImpl errorMessage = new AsyncApi25MessageImpl();
             ObjectNode objectNode = new ObjectNode(JsonNodeFactory.instance);
@@ -1773,96 +1795,212 @@ public class IntermediateClientGenerator {
             messages.put("Error", errorMessage);
         }
 
-
-        for (Map.Entry<String, AsyncApiMessage> messageItem : messageItems) {
-            Map<String, JsonNode> extensions = ((AsyncApi25MessageImpl) messageItem.getValue()).getExtensions();
-            if (extensions != null && extensions.get(X_RESPONSE) != null) {
-                AsyncApi25MessageImpl messageValue = (AsyncApi25MessageImpl) messageItem.getValue();
-                String messageName = messageItem.getKey();
-                AsyncApi25SchemaImpl schema = (AsyncApi25SchemaImpl) schemas.get(messageName);
-                Map<String, Schema> properties = schema.getProperties();
-                if (properties.containsKey(dispatcherKey)) {
-                    if (properties.get(dispatcherKey).getType().equals("string")) {
-                        FunctionDefinitionNode functionDefinitionNode =
-                                getClientMethodFunctionDefinitionNode(messageName, messageValue, extensions, schemas,
-                                        matchStatementList, dispatcherStreamId, idMethods);
-                        functionDefinitionNodeList.add(functionDefinitionNode);
-                        requestMessages.add(messageItem.getKey());
-                    } else {
-                        throw new BallerinaAsyncApiException(
-                                String.format("dispatcherKey type must be string in %s schema", messageName));
-                    }
-                } else {
-                    throw new BallerinaAsyncApiException(String.format("%s schema must contain dispatcherKey \"%s\"",
-                            messageName, dispatcherKey));
-                }
-            }
-        }
+//        if (asyncAPI.getChannels().getItems().get(0).getPublish() != null) {
+//            for (Map.Entry<String, AsyncApiMessage> messageItem : messageItems) {
+//                Map<String, JsonNode> extensions = ((AsyncApi25MessageImpl) messageItem.getValue()).getExtensions();
+//                AsyncApi25MessageImpl messageValue = (AsyncApi25MessageImpl) messageItem.getValue();
+//                String messageName = messageItem.getKey();
+//                AsyncApi25SchemaImpl schema = (AsyncApi25SchemaImpl) schemas.get(messageName);
+//                Map<String, Schema> properties = schema.getProperties();
+//                if (properties.containsKey(dispatcherKey)) {
+//                    if (properties.get(dispatcherKey).getType().equals("string")) {
+//                        if (extensions != null && extensions.get(X_RESPONSE) != null) {
+//
+//
+//                            FunctionDefinitionNode functionDefinitionNode =
+//                                    getClientMethodFunctionDefinitionNode(messageName, messageValue, extensions, schemas,
+//                                            matchStatementList, dispatcherStreamId, idMethods);
+//                            functionDefinitionNodeList.add(functionDefinitionNode);
+//                            requestMessages.add(messageItem.getKey());
+//
+//                        } else {
+//                            FunctionDefinitionNode functionDefinitionNode =
+//                                    getClientMethodFunctionDefinitionNode(messageName,
+//                                            messageValue,
+//                                            null,
+//                                            schemas, null, dispatcherStreamId, idMethods);
+//                            functionDefinitionNodeList.add(functionDefinitionNode);
+//                        }
+//                    } else {
+//                        throw new BallerinaAsyncApiException(
+//                                String.format("dispatcherKey type must be string in %s schema", messageName));
+//                    }
+//                } else {
+//                    throw new BallerinaAsyncApiException(String.format("%s schema must contain dispatcherKey \"%s\"",
+//                            messageName, dispatcherKey));
+//                }
+//            }
+//        }
         if (asyncAPI.getChannels().getItems().get(0).getPublish() != null) {
-            List<AsyncApiMessage> publishMessages = asyncAPI.getChannels().getItems().get(0).getPublish().
-                    getMessage().getOneOf();
+            List<AsyncApiMessage> publishMessages=null ;
+            if(asyncAPI.getChannels().getItems().get(0).getPublish().
+                    getMessage().getOneOf()!=null){
+                publishMessages=asyncAPI.getChannels().getItems().get(0).getPublish().
+                        getMessage().getOneOf();
+            }else if (asyncAPI.getChannels().getItems().get(0).getPublish().
+                    getMessage()!=null){
+              AsyncApiMessage asyncApiMessage=   asyncAPI.getChannels().getItems().get(0).getPublish().
+                        getMessage();
+                List<AsyncApiMessage> onePublishMessage=new ArrayList<>();
+                onePublishMessage.add(asyncApiMessage);
+                publishMessages=onePublishMessage;
+              publishMessages.add(asyncApiMessage);
+
+            }
             if (publishMessages != null) {
-                ListIterator<AsyncApiMessage> remainingPublishMessages = publishMessages.listIterator();
-                for (ListIterator<AsyncApiMessage> it = remainingPublishMessages; it.hasNext(); ) {
+                ListIterator<AsyncApiMessage> requestMessages = publishMessages.listIterator();
+                for (ListIterator<AsyncApiMessage> it = requestMessages; it.hasNext(); ) {
+
                     AsyncApi25MessageImpl message = (AsyncApi25MessageImpl) it.next();
                     String reference = message.get$ref();
-                    String type = GeneratorUtils.extractReferenceType(reference);
-                    if (!requestMessages.contains(type)) {
-                        AsyncApi25SchemaImpl schema = (AsyncApi25SchemaImpl) schemas.get(type);
-                        Map<String, Schema> properties = schema.getProperties();
-                        if (properties.containsKey(dispatcherKey)) {
-                            if (properties.get(dispatcherKey).getType().equals("string")) {
-                                FunctionDefinitionNode functionDefinitionNode =
-                                        getClientMethodFunctionDefinitionNode(type,
-                                                (AsyncApi25MessageImpl) messages.get(type),
-                                                null,
-                                                schemas, null, dispatcherStreamId, idMethods);
-                                functionDefinitionNodeList.add(functionDefinitionNode);
-                            } else {
-                                throw new BallerinaAsyncApiException("dispatcherKey type must be string");
-                            }
-                        } else {
-                            throw new BallerinaAsyncApiException(String.format("Schema %s must contain dispatcherKey",
-                                    type));
-                        }
+                    String messageName = GeneratorUtils.extractReferenceType(reference);
+                    AsyncApi25MessageImpl componentMessage = (AsyncApi25MessageImpl) messages.get(messageName);
+//                    JsonNode jsonNode = componentMessage.getPayload();
+//                    TextNode textNode = (TextNode) jsonNode.get("$ref");
+//                    String schemaName = GeneratorUtils.extractReferenceType(textNode.asText());
+
+//                    AsyncApi25MessageImpl messageValue= (AsyncApi25MessageImpl) messages.get(messageName);
+//                    AsyncApi25SchemaImpl schema = (AsyncApi25SchemaImpl) schemas.get(schemaName);
+//                    Map<String, Schema> properties = schema.getProperties();
+                    Map<String, JsonNode> extensions = componentMessage.getExtensions();
+//                    checkdispatcherKey(schema, dispatcherKey);
+//                    if (!requestMessages.contains(type)) {
+//                        AsyncApi25SchemaImpl schema = (AsyncApi25SchemaImpl) schemas.get(type);
+//                        Map<String, Schema> properties = schema.getProperties();
+
+                    if (extensions != null && extensions.get(X_RESPONSE) != null) {
+                        FunctionDefinitionNode functionDefinitionNode =
+                                getRemoteFunctionDefinitionNode(messageName, componentMessage, extensions,
+                                        matchStatementList, dispatcherStreamId, idMethods,
+                                        remainingResponseMessages,false,streamReturns);
+                        functionDefinitionNodeList.add(functionDefinitionNode);
+//                                responseMessages.add(messageName);
+
+                    } else {
+                        FunctionDefinitionNode functionDefinitionNode =
+                                getRemoteFunctionDefinitionNode(messageName,
+                                        componentMessage,
+                                        null,
+                                         null, dispatcherStreamId, idMethods,
+                                        null,false,null);
+                        functionDefinitionNodeList.add(functionDefinitionNode);
                     }
+
+//                    }
 
                 }
             }
         }
+        setUtilGenerator(new UtilGenerator(streamReturns));
+        if (asyncAPI.getChannels().getItems().get(0).getSubscribe() != null) {
+            List<AsyncApiMessage> subscribeMessages=null;
+            if(asyncAPI.getChannels().getItems().get(0).getSubscribe().
+                    getMessage().getOneOf()!=null){
+                subscribeMessages=asyncAPI.getChannels().getItems().get(0).getSubscribe().
+                        getMessage().getOneOf();
+            }else if (asyncAPI.getChannels().getItems().get(0).getSubscribe().
+                    getMessage()!=null){
+                AsyncApiMessage asyncApiMessage=   asyncAPI.getChannels().getItems().get(0).getSubscribe().
+                        getMessage();
+                List<AsyncApiMessage> oneSubscribeMessage=new ArrayList<>();
+                oneSubscribeMessage.add(asyncApiMessage);
+                subscribeMessages=oneSubscribeMessage;
+
+            }
+            if(subscribeMessages!=null){
+
+                ListIterator<AsyncApiMessage> responseMessages = subscribeMessages.listIterator();
+                for (ListIterator<AsyncApiMessage> it = responseMessages; it.hasNext(); ) {
+                    AsyncApi25MessageImpl message = (AsyncApi25MessageImpl) it.next();
+                    String reference = message.get$ref();
+                    String messageName = GeneratorUtils.extractReferenceType(reference);
+                    if(!remainingResponseMessages.contains(messageName)) {
+                        Map<String, JsonNode> extensions=new LinkedHashMap<>();
+
+//                        AsyncApi25MessageImpl componentMessage = (AsyncApi25MessageImpl) messages.get(messageName);
+//                    JsonNode jsonNode = componentMessage.getPayload();
+//                    TextNode textNode = (TextNode) jsonNode.get("$ref");
+//                    String schemaName = GeneratorUtils.extractReferenceType(textNode.asText());
+                        AsyncApi25MessageImpl newMessage = new AsyncApi25MessageImpl();
+                        ObjectNode objectNode = new ObjectNode(JsonNodeFactory.instance);
+                        objectNode.put("$ref", reference);
+                        extensions.put(X_RESPONSE,objectNode);
+                        newMessage.addExtension(X_RESPONSE, objectNode);
+                        extensions.put(X_RESPONSE_TYPE, new TextNode(SIMPLE_RPC));
+                        newMessage.addExtension(X_RESPONSE_TYPE, new TextNode(SIMPLE_RPC));
+
+
+
+                        FunctionDefinitionNode functionDefinitionNode =
+                                getRemoteFunctionDefinitionNode(messageName,
+                                        newMessage,
+                                        extensions,
+                                        matchStatementList, dispatcherStreamId, idMethods,
+                                        null,true,streamReturns);
+                        functionDefinitionNodeList.add(functionDefinitionNode);
+                    }
+
+
+                }
+
+            }
+
+        }
+
+
         return functionDefinitionNodeList;
     }
 
+//    private void checkdispatcherKey(AsyncApi25SchemaImpl schema,String dispatcherKey) {
+//        Map<String, Schema> properties=null;
+//        if(schema.getProperties()!=null){
+//            properties=schema.getProperties();
+//        }else if (schema.getOneOf()!=null){
+//            List<AsyncApiSchema> oneOfSchemas= schema.getOneOf();
+//            for(AsyncApiSchema oneOfSchema: oneOfSchemas){
+//                AsyncApi25SchemaImpl oneOfSchema25Schema= (AsyncApi25SchemaImpl) oneOfSchema;
+//                if(oneOfSchema25Schema.get$ref()!=null){
+//
+//                }
+//
+//            }
+//
+//        }
+//        if (properties.containsKey(dispatcherKey)) {
+//        if (properties.get(dispatcherKey).getType().equals("string")) {
+//
+//        } else {
+//            throw new BallerinaAsyncApiException(
+//                    String.format("dispatcherKey type must be string in %s schema", messageName));
+//        }
+//        } else {
+//            throw new BallerinaAsyncApiException(String.format("%s schema must contain dispatcherKey \"%s\"",
+//                    messageName, dispatcherKey));
+//        }
+//    }
+
 
     /**
-     * Generate function definition node.
-     * <pre>
-     *     remote isolated function pathParameter(int 'version, string name) returns string|error {
-     *          string  path = string `/v1/${'version}/v2/${name}`;
-     *          string response = check self.clientEp-> get(path);
-     *          return response;
-     *    }
-     *    or
-     *     resource isolated function get v1/[string 'version]/v2/[sting name]() returns string|error {
-     *         string  path = string `/v1/${'version}/v2/${name}`;
-     *         string response = check self.clientEp-> get(path);
-     *         return response;
-     *     }
-     * </pre>
-     */
-    private FunctionDefinitionNode getClientMethodFunctionDefinitionNode(String messageName,
-                                                                         AsyncApi25MessageImpl messageValue,
-                                                                         Map<String, JsonNode> extensions,
-                                                                         Map<String, Schema> schemas,
-                                                                         List<MatchClauseNode> matchStatementList,
-                                                                         String dispatcherStreamId,
-                                                                         List<String> idMethods)
-            throws BallerinaAsyncApiException {
-        // Create api doc for function
+     * Generate remote function definition node.
 
+     */
+    private FunctionDefinitionNode getRemoteFunctionDefinitionNode(String messageName,
+                                                                   AsyncApi25MessageImpl messageValue,
+                                                                   Map<String, JsonNode> extensions,
+
+                                                                   List<MatchClauseNode> matchStatementList,
+                                                                   String dispatcherStreamId,
+                                                                   List<String> idMethods,
+                                                                   ArrayList responseMessages,boolean isSubscribe,
+                                                                   List<String> streamReturns)
+            throws BallerinaAsyncApiException {
+
+        Map<String, Schema> schemas = asyncAPI.getComponents().getSchemas();
+
+        // Create api doc for remote function
         List<Node> remoteFunctionDocs = new ArrayList<>();
 
-
+        //Add documentation for remote function
         if (messageValue.getSummary() != null) {
             remoteFunctionDocs.addAll(DocCommentsGenerator.createAPIDescriptionDoc(
                     messageValue.getSummary(), true));
@@ -1875,49 +2013,58 @@ public class IntermediateClientGenerator {
             remoteFunctionDocs.add(newLine);
         }
 
-        //Create qualifier list
-        NodeList<Token> qualifierList = createNodeList(createToken(
-                        REMOTE_KEYWORD),
-                createToken(ISOLATED_KEYWORD));
-        Token functionKeyWord = createToken(FUNCTION_KEYWORD);
-        IdentifierToken functionName = createIdentifierToken(REMOTE_METHOD_NAME_PREFIX +
-                getValidName(messageName, true));
 
+        //Add remote function for test files
         remoteFunctionNameList.add(messageName);
 
-        RemoteFunctionSignatureGenerator remoteFunctionSignatureGenerator = new
-                RemoteFunctionSignatureGenerator(asyncAPI, ballerinaSchemaGenerator, typeDefinitionNodeList);
-        FunctionSignatureNode functionSignatureNode =
-                remoteFunctionSignatureGenerator.getFunctionSignatureNode(messageValue.getPayload(),
-                        remoteFunctionDocs, extensions);
-        typeDefinitionNodeList = remoteFunctionSignatureGenerator.getTypeDefinitionNodeList();
-        // Create metadataNode add documentation string
 
+        //Create remote function signature
+        RemoteFunctionSignatureGenerator remoteFunctionSignatureGenerator = new
+                RemoteFunctionSignatureGenerator(
+                        asyncAPI,
+                ballerinaSchemaGenerator,
+                typeDefinitionNodeList);
+        FunctionSignatureNode functionSignatureNode =
+                remoteFunctionSignatureGenerator.getFunctionSignatureNode(
+                        messageValue.getPayload(),
+                        remoteFunctionDocs,
+                        extensions,
+                        responseMessages,
+                        streamReturns);
+        typeDefinitionNodeList = remoteFunctionSignatureGenerator.getTypeDefinitionNodeList();
+
+
+
+        // Create metadataNode add documentation string
         MetadataNode metadataNode = createMetadataNode(createMarkdownDocumentationNode(
                 createNodeList(remoteFunctionDocs)), createNodeList());
 
-        // Create Function Body
+
+        // Create remote Function Body
         RemoteFunctionBodyGenerator remoteFunctionBodyGenerator = new RemoteFunctionBodyGenerator(imports,
                 asyncAPI, utilGenerator);
-
-        AsyncApi25SchemaImpl schema = (AsyncApi25SchemaImpl) schemas.get(messageName);
-        Map<String, Schema> properties = schema.getProperties();
+        Map<String, Schema> properties= null;
+        if(messageValue.getPayload()!=null){
+            JsonNode jsonNode = messageValue.getPayload();
+            TextNode textNode = (TextNode) jsonNode.get("$ref");
+            String schemaName = GeneratorUtils.extractReferenceType(textNode.asText());
+            AsyncApi25SchemaImpl schema = (AsyncApi25SchemaImpl) schemas.get(schemaName);
+            properties = schema.getProperties();
+        }
 
         //Check if the schema has dispatcherStreamId
-        if ((dispatcherStreamId != null && !properties.containsKey(dispatcherStreamId))) {
+        if ((dispatcherStreamId != null && (properties!=null &&!properties.containsKey(dispatcherStreamId)))) {
             //If no dispatcherStreamId found
             dispatcherStreamId = null;
 
         } else if (dispatcherStreamId != null) {
             if (properties.get(dispatcherStreamId).getType().equals("string")) {
-                //If found at least one dispatcherStreamId
+                //If found at least one dispatcherStreamId then don't add uuid again and again
                 idMethods.add(messageName);
                 ImportDeclarationNode importForUUID = GeneratorUtils.
                         getImportDeclarationNode(GeneratorConstants.BALLERINA
                                 , UUID);
-//                if (!imports.get(imports.size() - 1).moduleName().get(0).text().equals(UUID)) {
-//                    imports.add(importForUUID);
-//                }
+
                 if (idMethods.size() == 1) {
                     imports.add(importForUUID);
                 }
@@ -1927,17 +2074,28 @@ public class IntermediateClientGenerator {
 
 
         }
-//       boolean isDispatcherStreamId=schema.getProperties().containsKey(dispatcherStreamId);
         char requestTypeFirstChar = Character.toLowerCase(messageName.charAt(0)); // Lowercase the first character
         String requestRemainingString = messageName.substring(1);
         String requestTypeCamelCaseName = requestTypeFirstChar + requestRemainingString;
-        FunctionBodyNode functionBodyNode = remoteFunctionBodyGenerator.getFunctionBodyNode(extensions,
-                requestTypeCamelCaseName, dispatcherStreamId, matchStatementList);
+        FunctionBodyNode functionBodyNode = remoteFunctionBodyGenerator.getFunctionBodyNode(
+                extensions,
+                requestTypeCamelCaseName,
+                dispatcherStreamId,
+                matchStatementList,
+                isSubscribe);
 
-        NodeList<Node> relativeResourcePath =
-                createEmptyNodeList();
+
+        //Create remote function details
+        NodeList<Token> qualifierList = createNodeList(createToken(
+                        REMOTE_KEYWORD),
+                createToken(ISOLATED_KEYWORD));
+        Token functionKeyWord = createToken(FUNCTION_KEYWORD);
+        IdentifierToken functionName = createIdentifierToken(REMOTE_METHOD_NAME_PREFIX +
+                getValidName(messageName, true));
+
+        //Create whole remote function
         return createFunctionDefinitionNode(null,
-                metadataNode, qualifierList, functionKeyWord, functionName, relativeResourcePath,
+                metadataNode, qualifierList, functionKeyWord, functionName,  createEmptyNodeList(),
                 functionSignatureNode, functionBodyNode);
     }
 

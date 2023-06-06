@@ -60,3 +60,4 @@ components:
         payload:
           type: string
       x-response-type: server-streaming
+x-dispatcherKey: event

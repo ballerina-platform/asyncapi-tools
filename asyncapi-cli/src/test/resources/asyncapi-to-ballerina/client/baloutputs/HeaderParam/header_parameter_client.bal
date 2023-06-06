@@ -19,7 +19,7 @@ public client isolated class PayloadVv1Client {
         self.writeMessageQueue = new (1000);
         self.readMessageQueue = new (1000);
         string modifiedUrl = serviceUrl + string `/v1`;
-        map<string> headerParam = {"offset": headerParams.offset, "lat": headerParams.lat, "lon": headerParams.lon, "exclude": headerParams.exclude, "units": headerParams.units};
+        map<string> headerParam = {"offset": headerParams.offset.toString(), "lat": headerParams.lat, "lon": headerParams.lon, "exclude": headerParams.exclude, "units": headerParams.units.toString()};
         map<string> customHeaders = getCombineHeaders(clientConfig.customHeaders,headerParam);
         clientConfig.customHeaders=customHeaders;
         websocket:Client websocketEp = check new (modifiedUrl, clientConfig);

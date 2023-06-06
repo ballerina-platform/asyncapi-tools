@@ -1,10 +1,10 @@
 asyncapi: 2.5.0
 info:
-  title: Chat
+  title: PayloadV
   version: 0.0.0
 servers:
   development:
-    url: "{server}:{port}/chat"
+    url: "{server}:{port}/payloadV"
     protocol: ws
     protocolVersion: "13"
     variables:
@@ -19,13 +19,12 @@ channels:
         oneOf:
           - $ref: '#/components/messages/NextMessage'
           - $ref: '#/components/messages/CompleteMessage'
-          - $ref: '#/components/messages/ErrorMessage'
+          - $ref: '#/components/messages/TestMessage'
           - $ref: '#/components/messages/PongMessage'
           - $ref: '#/components/messages/ConnectionAckMessage'
     publish:
       message:
         oneOf:
-          - $ref: '#/components/schemas/Testing'
           - $ref: '#/components/messages/SubscribeMessage'
           - $ref: '#/components/messages/PingMessage'
           - $ref: '#/components/messages/PongMessage'
@@ -33,24 +32,6 @@ channels:
           - $ref: '#/components/messages/CompleteMessage'
 components:
   schemas:
-    Error:
-      type: object
-      required:
-        - type
-      properties:
-        type:
-          type: string
-    PingMessage:
-      type: object
-      required:
-        - type
-      properties:
-        type:
-          type: string
-          const: PingMessage
-        payload:
-          type: object
-          additionalProperties: true
     SubscribeMessage:
       type: object
       required:
@@ -77,56 +58,6 @@ components:
               x-nullable: true
             extensions:
               x-nullable: true
-    Testing:
-      type: object
-      required:
-        - id
-        - type
-        - payload
-      properties:
-        id:
-          type: string
-        type:
-          type: string
-          const: SubscribeMessage
-        payload:
-          type: object
-          required:
-            - query
-          properties:
-            operationName:
-              type: string
-              x-nullable: true
-            query:
-              type: string
-            variables:
-              x-nullable: true
-            extensions:
-              x-nullable: true
-    Tuple:
-      type: object
-      required:
-        - id
-        - type
-        - payload
-      properties:
-        id:
-          type: string
-        type:
-          type: string
-          const: SubscribeMessage
-        payload:
-          type: object
-          required:
-            - query
-          properties:
-            operationName:
-              type: string
-              x-nullable: true
-            query:
-              type: string
-            variables:
-              x-nullable: true
     NextMessage:
       type: object
       required:
@@ -151,7 +82,7 @@ components:
         type:
           type: string
           const: CompleteMessage
-    ErrorMessage:
+    TestMessage:
       type: object
       required:
         - id
@@ -163,6 +94,17 @@ components:
         type:
           type: string
         payload:
+          additionalProperties: true
+    PingMessage:
+      type: object
+      required:
+        - type
+      properties:
+        type:
+          type: string
+          const: PingMessage
+        payload:
+          type: object
           additionalProperties: true
     PongMessage:
       type: object
@@ -203,9 +145,9 @@ components:
     CompleteMessage:
       payload:
         $ref: '#/components/schemas/CompleteMessage'
-    ErrorMessage:
+    TestMessage:
       payload:
-        $ref: '#/components/schemas/ErrorMessage'
+        $ref: '#/components/schemas/TestMessage'
     SubscribeMessage:
       payload:
         $ref: '#/components/schemas/SubscribeMessage'
@@ -213,22 +155,7 @@ components:
         oneOf:
           - $ref: '#/components/messages/NextMessage'
           - $ref: '#/components/messages/CompleteMessage'
-          - $ref: '#/components/messages/ErrorMessage'
-      x-response-type: server-streaming
-    Testing:
-      payload:
-        $ref: '#/components/schemas/Testing'
-      x-response:
-        $ref: '#/components/messages/NextMessage'
-      x-response-type: server-streaming
-    Tuple:
-      payload:
-        $ref: '#/components/schemas/Tuple'
-      x-response:
-        oneOf:
-          - $ref: '#/components/messages/NextMessage'
-          - $ref: '#/components/messages/CompleteMessage'
-          - $ref: '#/components/messages/ErrorMessage'
+          - $ref: '#/components/messages/TestMessage'
       x-response-type: server-streaming
     PongMessage:
       payload:
@@ -248,5 +175,4 @@ components:
       x-response:
         $ref: '#/components/messages/ConnectionAckMessage'
       x-response-type: simple-rpc
-x-dispatcherKey: "type"
-x-dispatcherStreamId: "id"
+x-dispatcherKey: type

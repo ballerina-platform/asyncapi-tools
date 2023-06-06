@@ -22,6 +22,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25DocumentImpl;
 import io.ballerina.asyncapi.core.GeneratorConstants;
+import io.ballerina.asyncapi.core.GeneratorUtils;
 import io.ballerina.asyncapi.core.exception.BallerinaAsyncApiException;
 import io.ballerina.compiler.syntax.tree.AssignmentStatementNode;
 import io.ballerina.compiler.syntax.tree.CheckExpressionNode;
@@ -256,7 +257,8 @@ public class RemoteFunctionBodyGenerator {
      * @throws BallerinaAsyncApiException - throws exception if generating FunctionBodyNode fails.
      */
     public FunctionBodyNode getFunctionBodyNode(Map<String, JsonNode> extensions, String requestType,
-                                                String dispatcherStreamId, List<MatchClauseNode> matchStatementList)
+                                                String dispatcherStreamId, List<MatchClauseNode> matchStatementList,
+                                                boolean isSubscribe)
             throws BallerinaAsyncApiException {
 
         RemoteFunctionReturnTypeGenerator functionReturnType = new RemoteFunctionReturnTypeGenerator(
@@ -270,18 +272,23 @@ public class RemoteFunctionBodyGenerator {
             JsonNode xResponse = extensions.get(X_RESPONSE);
             JsonNode xResponseType = extensions.get(X_RESPONSE_TYPE);
 
-            String responseType = functionReturnType.getReturnType(xResponse, xResponseType);
+            String responseType = functionReturnType.getReturnType(xResponse, xResponseType,null);
             if (xResponseType != null && xResponseType.equals(new TextNode(SERVER_STREAMING))) {
                 //TODO: Include a if condition to check this only one time
-                utilGenerator.setStreamFound(true);
-                createStreamFunctionBodyStatements(statementsList, requestType, responseType, dispatcherStreamId
-                        , matchStatementList);
+//                utilGenerator.setStreamFound(true);
+                createStreamFunctionBodyStatements(
+                        statementsList,
+                        requestType,
+                        responseType,
+                        dispatcherStreamId
+                        , matchStatementList,
+                        isSubscribe);
 
 
             } else {
 
                 createSimpleRPCFunctionBodyStatements(statementsList, requestType, responseType, dispatcherStreamId,
-                        matchStatementList);
+                        matchStatementList,isSubscribe);
             }
 
         } else {
@@ -298,7 +305,7 @@ public class RemoteFunctionBodyGenerator {
                                                     String requestType, String responseType,
 
                                                     String dispatcherStreamId,
-                                                    List<MatchClauseNode> matchStatementList) {
+                                                    List<MatchClauseNode> matchStatementList,boolean isSubscribe) {
 
         String requestTypePipe = requestType + "Pipe";
 
@@ -403,7 +410,7 @@ public class RemoteFunctionBodyGenerator {
         }
 
 
-        if (!requestType.equals("error")) {
+        if (!isSubscribe) {
             // check self.writeMessageQueue.produce(tuple, timeout);
             List<Node> argumentArrays = new ArrayList<>();
             PositionalArgumentNode requestTypeName = createPositionalArgumentNode(createRequiredExpressionNode(
@@ -453,6 +460,7 @@ public class RemoteFunctionBodyGenerator {
         //     streamMessages = new (streamGenerator);
         //  }
         ArrayList<StatementNode> streamStatementList = new ArrayList<>();
+        String streamGenName= GeneratorUtils.getStreamGeneratorName(responseType);
 
         ArrayList<Node> streamGeneratorArguments = new ArrayList<>();
         streamGeneratorArguments.add(createPositionalArgumentNode(requestTypePipeNode));
@@ -468,7 +476,7 @@ public class RemoteFunctionBodyGenerator {
                 "streamGenerator"));
         VariableDeclarationNode streamGenerator = createVariableDeclarationNode(createEmptyNodeList(),
                 null, createTypedBindingPatternNode(createSimpleNameReferenceNode(createIdentifierToken(
-                                "StreamGenerator"))
+                                responseType+"StreamGenerator"))
 
                         , createFieldBindingPatternVarnameNode(streamGeneratorNode)), equalToken, checkExpressionNode,
                 semicolonToken);
@@ -536,7 +544,7 @@ public class RemoteFunctionBodyGenerator {
      */
     private void createSimpleRPCFunctionBodyStatements(List<StatementNode> statementsList, String requestType,
                                                        String responseType, String dispatcherStreamId,
-                                                       List<MatchClauseNode> matchStatementList) {
+                                                       List<MatchClauseNode> matchStatementList,boolean isSubscribe) {
 
 
         String requestTypePipe = requestType + "Pipe";
@@ -643,7 +651,7 @@ public class RemoteFunctionBodyGenerator {
         PositionalArgumentNode responseTypeTimeOut = createPositionalArgumentNode(
                 createRequiredExpressionNode(createIdentifierToken("timeout")));
 
-        if (!requestType.equals("error")) {
+        if (!isSubscribe) {
             // check self.writeMessageQueue.produce(tuple, timeout);
             List<Node> argumentArrays = new ArrayList<>();
             PositionalArgumentNode requestTypeName = createPositionalArgumentNode(

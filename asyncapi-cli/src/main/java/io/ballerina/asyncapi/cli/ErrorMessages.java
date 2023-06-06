@@ -27,7 +27,7 @@ public class ErrorMessages {
     public static final String CLIENT_GENERATION_FAILED = "Error occurred when generating client for AsyncAPI contract";
 
     public static final String MISSING_CONTRACT_PATH = "Bal service file is required to generate the " +
-            "asyncapi definition. \ne.g: bal asyncapi --input <ballerina service file path>";
+            "asyncapi definition. \ne.g: bal asyncapi --input <Ballerina file path>";
 
     private ErrorMessages() {
         throw new AssertionError();

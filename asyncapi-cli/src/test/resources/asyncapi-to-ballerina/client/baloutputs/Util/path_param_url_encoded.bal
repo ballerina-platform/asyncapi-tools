@@ -1,6 +1,5 @@
 import nuvindu/pipe;
 import ballerina/url;
-import nuvindu/pipe;
 
 # Stream generator class
 isolated class StreamGenerator {

@@ -101,7 +101,9 @@ public class RemoteFunctionSignatureGenerator {
      * @throws BallerinaAsyncApiException - throws exception when node creation fails.
      */
     public FunctionSignatureNode getFunctionSignatureNode(JsonNode payload, List<Node> remoteFunctionDoc,
-                                                          Map<String, JsonNode> extensions)
+                                                          Map<String, JsonNode> extensions,
+                                                          ArrayList responseMessages,
+                                                          List<String> streamReturns)
             throws BallerinaAsyncApiException {
 
         List<Node> parameterList = new ArrayList<>();
@@ -140,8 +142,11 @@ public class RemoteFunctionSignatureGenerator {
         if (extensions != null) {
             JsonNode xResponse = extensions.get(X_RESPONSE);
             JsonNode xResponseType = extensions.get(X_RESPONSE_TYPE);
-            String returnType = functionReturnType.getReturnType(xResponse, xResponseType);
+            String returnType = functionReturnType.getReturnType(xResponse, xResponseType, responseMessages);
             if (xResponseType != null && xResponseType.equals(new TextNode(SERVER_STREAMING))) {
+                if(!streamReturns.contains(returnType)) {
+                    streamReturns.add(returnType);
+                }
                 returnType = "stream<" + returnType + ",error?>";
             }
             String finalReturnType = returnType +

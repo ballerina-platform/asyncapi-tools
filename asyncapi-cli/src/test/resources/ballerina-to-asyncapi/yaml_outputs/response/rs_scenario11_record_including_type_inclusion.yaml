@@ -162,3 +162,4 @@ components:
           - $ref: '#/components/messages/ReservationCreated'
           - $ref: '#/components/messages/ReservationConflict'
       x-response-type: simple-rpc
+x-dispatcherKey: event

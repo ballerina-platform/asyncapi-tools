@@ -17,16 +17,54 @@
  */
 package io.ballerina.asyncapi.core.generators.client;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.TextNode;
+import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25InfoImpl;
+import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25SchemaImpl;
+import io.ballerina.asyncapi.core.GeneratorConstants;
 import io.ballerina.asyncapi.core.GeneratorUtils;
+import io.ballerina.asyncapi.core.exception.BallerinaAsyncApiException;
+import io.ballerina.asyncapi.core.generators.document.DocCommentsGenerator;
+import io.ballerina.compiler.syntax.tree.AnnotationNode;
+import io.ballerina.compiler.syntax.tree.AssignmentStatementNode;
+import io.ballerina.compiler.syntax.tree.CheckExpressionNode;
 import io.ballerina.compiler.syntax.tree.ChildNodeEntry;
+import io.ballerina.compiler.syntax.tree.ClassDefinitionNode;
+import io.ballerina.compiler.syntax.tree.ExpressionNode;
+import io.ballerina.compiler.syntax.tree.FunctionBodyNode;
+import io.ballerina.compiler.syntax.tree.FunctionDefinitionNode;
+import io.ballerina.compiler.syntax.tree.FunctionSignatureNode;
+import io.ballerina.compiler.syntax.tree.IdentifierToken;
 import io.ballerina.compiler.syntax.tree.ImportDeclarationNode;
+import io.ballerina.compiler.syntax.tree.MarkdownDocumentationNode;
+import io.ballerina.compiler.syntax.tree.MarkdownParameterDocumentationLineNode;
+import io.ballerina.compiler.syntax.tree.MatchClauseNode;
+import io.ballerina.compiler.syntax.tree.MetadataNode;
+import io.ballerina.compiler.syntax.tree.MethodCallExpressionNode;
 import io.ballerina.compiler.syntax.tree.ModuleMemberDeclarationNode;
 import io.ballerina.compiler.syntax.tree.ModulePartNode;
+import io.ballerina.compiler.syntax.tree.Node;
 import io.ballerina.compiler.syntax.tree.NodeList;
+import io.ballerina.compiler.syntax.tree.ObjectFieldNode;
+import io.ballerina.compiler.syntax.tree.OptionalTypeDescriptorNode;
+import io.ballerina.compiler.syntax.tree.ParameterNode;
+import io.ballerina.compiler.syntax.tree.PositionalArgumentNode;
+import io.ballerina.compiler.syntax.tree.QualifiedNameReferenceNode;
+import io.ballerina.compiler.syntax.tree.RecordFieldNode;
+import io.ballerina.compiler.syntax.tree.RecordTypeDescriptorNode;
+import io.ballerina.compiler.syntax.tree.RequiredParameterNode;
+import io.ballerina.compiler.syntax.tree.ReturnStatementNode;
+import io.ballerina.compiler.syntax.tree.ReturnTypeDescriptorNode;
+import io.ballerina.compiler.syntax.tree.SeparatedNodeList;
+import io.ballerina.compiler.syntax.tree.SimpleNameReferenceNode;
+import io.ballerina.compiler.syntax.tree.StatementNode;
 import io.ballerina.compiler.syntax.tree.SyntaxKind;
 import io.ballerina.compiler.syntax.tree.SyntaxTree;
+import io.ballerina.compiler.syntax.tree.Token;
 import io.ballerina.compiler.syntax.tree.TypeDefinitionNode;
 import io.ballerina.compiler.syntax.tree.TypeDescriptorNode;
+import io.ballerina.compiler.syntax.tree.UnionTypeDescriptorNode;
+import io.ballerina.compiler.syntax.tree.VariableDeclarationNode;
 import io.ballerina.projects.DocumentId;
 import io.ballerina.projects.Package;
 import io.ballerina.projects.Project;
@@ -48,20 +86,74 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import static io.ballerina.asyncapi.core.GeneratorConstants.BALLERINA;
+import static io.ballerina.asyncapi.core.GeneratorConstants.CLIENT_CLASS_NAME;
+import static io.ballerina.asyncapi.core.GeneratorConstants.CONSUME;
+import static io.ballerina.asyncapi.core.GeneratorConstants.DEFAULT_API_KEY_DESC;
 import static io.ballerina.asyncapi.core.GeneratorConstants.NUVINDU;
 import static io.ballerina.asyncapi.core.GeneratorConstants.NUVINDU_PIPE;
+import static io.ballerina.asyncapi.core.GeneratorConstants.RESPONSE_MESSAGE_VAR_NAME;
+import static io.ballerina.asyncapi.core.GeneratorConstants.SIMPLE_PIPE;
+import static io.ballerina.asyncapi.core.GeneratorConstants.START_MESSAGE_WRITING;
 import static io.ballerina.asyncapi.core.GeneratorConstants.URL;
+import static io.ballerina.asyncapi.core.GeneratorConstants.WEBSOCKET;
+import static io.ballerina.asyncapi.core.GeneratorConstants.X_BALLERINA_MESSAGE_WRITE_DESCRIPTION;
+import static io.ballerina.asyncapi.core.GeneratorConstants.X_DISPATCHER_KEY;
+import static io.ballerina.asyncapi.core.GeneratorConstants.X_DISPATCHER_STREAM_ID;
+import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createEmptyNodeList;
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createIdentifierToken;
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createNodeList;
+import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createSeparatedNodeList;
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createToken;
+import static io.ballerina.compiler.syntax.tree.NodeFactory.createAssignmentStatementNode;
+import static io.ballerina.compiler.syntax.tree.NodeFactory.createCheckExpressionNode;
+import static io.ballerina.compiler.syntax.tree.NodeFactory.createClassDefinitionNode;
+import static io.ballerina.compiler.syntax.tree.NodeFactory.createFieldBindingPatternVarnameNode;
+import static io.ballerina.compiler.syntax.tree.NodeFactory.createFunctionBodyBlockNode;
+import static io.ballerina.compiler.syntax.tree.NodeFactory.createFunctionDefinitionNode;
+import static io.ballerina.compiler.syntax.tree.NodeFactory.createFunctionSignatureNode;
+import static io.ballerina.compiler.syntax.tree.NodeFactory.createMarkdownDocumentationNode;
+import static io.ballerina.compiler.syntax.tree.NodeFactory.createMetadataNode;
+import static io.ballerina.compiler.syntax.tree.NodeFactory.createMethodCallExpressionNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createModulePartNode;
+import static io.ballerina.compiler.syntax.tree.NodeFactory.createObjectFieldNode;
+import static io.ballerina.compiler.syntax.tree.NodeFactory.createOptionalTypeDescriptorNode;
+import static io.ballerina.compiler.syntax.tree.NodeFactory.createPositionalArgumentNode;
+import static io.ballerina.compiler.syntax.tree.NodeFactory.createQualifiedNameReferenceNode;
+import static io.ballerina.compiler.syntax.tree.NodeFactory.createRecordFieldNode;
+import static io.ballerina.compiler.syntax.tree.NodeFactory.createRequiredExpressionNode;
+import static io.ballerina.compiler.syntax.tree.NodeFactory.createRequiredParameterNode;
+import static io.ballerina.compiler.syntax.tree.NodeFactory.createReturnStatementNode;
+import static io.ballerina.compiler.syntax.tree.NodeFactory.createReturnTypeDescriptorNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createSimpleNameReferenceNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createSingletonTypeDescriptorNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createTypeDefinitionNode;
+import static io.ballerina.compiler.syntax.tree.NodeFactory.createTypedBindingPatternNode;
+import static io.ballerina.compiler.syntax.tree.NodeFactory.createVariableDeclarationNode;
+import static io.ballerina.compiler.syntax.tree.SyntaxKind.CHECK_KEYWORD;
+import static io.ballerina.compiler.syntax.tree.SyntaxKind.CLASS_KEYWORD;
+import static io.ballerina.compiler.syntax.tree.SyntaxKind.CLIENT_KEYWORD;
+import static io.ballerina.compiler.syntax.tree.SyntaxKind.CLOSE_BRACE_TOKEN;
+import static io.ballerina.compiler.syntax.tree.SyntaxKind.CLOSE_PAREN_TOKEN;
+import static io.ballerina.compiler.syntax.tree.SyntaxKind.COLON_TOKEN;
+import static io.ballerina.compiler.syntax.tree.SyntaxKind.COMMA_TOKEN;
+import static io.ballerina.compiler.syntax.tree.SyntaxKind.DOT_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.EOF_TOKEN;
+import static io.ballerina.compiler.syntax.tree.SyntaxKind.EQUAL_TOKEN;
+import static io.ballerina.compiler.syntax.tree.SyntaxKind.ERROR_KEYWORD;
+import static io.ballerina.compiler.syntax.tree.SyntaxKind.FINAL_KEYWORD;
+import static io.ballerina.compiler.syntax.tree.SyntaxKind.FUNCTION_KEYWORD;
+import static io.ballerina.compiler.syntax.tree.SyntaxKind.ISOLATED_KEYWORD;
+import static io.ballerina.compiler.syntax.tree.SyntaxKind.OPEN_BRACE_TOKEN;
+import static io.ballerina.compiler.syntax.tree.SyntaxKind.OPEN_PAREN_TOKEN;
+import static io.ballerina.compiler.syntax.tree.SyntaxKind.PRIVATE_KEYWORD;
+import static io.ballerina.compiler.syntax.tree.SyntaxKind.PUBLIC_KEYWORD;
+import static io.ballerina.compiler.syntax.tree.SyntaxKind.QUESTION_MARK_TOKEN;
+import static io.ballerina.compiler.syntax.tree.SyntaxKind.RETURNS_KEYWORD;
+import static io.ballerina.compiler.syntax.tree.SyntaxKind.RETURN_KEYWORD;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.SEMICOLON_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.TYPE_KEYWORD;
 
@@ -77,10 +169,16 @@ public class UtilGenerator {
     private static final String STREAM_GENERATOR = "StreamGenerator";
     private static final String GET_PATH_FOR_QUERY_PARAM = "getPathForQueryParam";
     private static final String GET_COMBINE_HEADERS = "getCombineHeaders";
-    private boolean streamFound = false;
+//    private boolean streamFound = false;
     private boolean headersFound = false;
     private boolean queryParamsFound = false;
     private boolean pathParametersFound = false;
+
+    private ArrayList<String> streamReturns;
+
+    public UtilGenerator(ArrayList<String> streamReturns) {
+        this.streamReturns = streamReturns;
+    }
 
     /**
      * //     * Set `queryParamsFound` flag to `true` when at least one query parameter found.
@@ -102,10 +200,10 @@ public class UtilGenerator {
         this.headersFound = flag;
     }
 
-    public void setStreamFound(boolean flag) {
-
-        this.streamFound = flag;
-    }
+//    public void setStreamFound(boolean flag) {
+//
+//        this.streamFound = flag;
+//    }
 
     /**
      * Set `pathParametersFound` flag to `true` when at least one path parameter found.
@@ -128,8 +226,9 @@ public class UtilGenerator {
 
 
         functionNameList.add("PipesMap");
-        ImportDeclarationNode importForPipes = GeneratorUtils.getImportDeclarationNode(NUVINDU, NUVINDU_PIPE);
-        imports.add(importForPipes);
+        ImportDeclarationNode importForNuvinduPipe = GeneratorUtils.getImportDeclarationNode(NUVINDU, NUVINDU_PIPE);
+        imports.add(importForNuvinduPipe);
+
 
 
         if (queryParamsFound) {
@@ -144,9 +243,7 @@ public class UtilGenerator {
         if (pathParametersFound) {
             functionNameList.add(GET_ENCODED_URI);
         }
-        if (streamFound) {
-            functionNameList.add(STREAM_GENERATOR);
-        }
+
 
         List<ModuleMemberDeclarationNode> memberDeclarationNodes = new ArrayList<>();
         getUtilTypeDeclarationNodes(memberDeclarationNodes);
@@ -165,12 +262,16 @@ public class UtilGenerator {
                 for (ChildNodeEntry childNodeEntry : node.childEntries()) {
                     if (childNodeEntry.name().equals("functionName") || childNodeEntry.name().equals("className")) {
                         if (functionNameList.contains(childNodeEntry.node().get().toString())) {
-//                            if(childNodeEntry.name().equals("className")){
+                            if(childNodeEntry.name().equals("className")){
+//                                if(((ClassDefinitionNode)childNodeEntry.node().get()).className().equals("StreamGenerator")){
+//                                        createStreamGenerator(memberDeclarationNodes,node);
+//                                }
+//                                System.out.println();
 //                                changeStreamReturn(node,memberDeclarationNodes);
 //                            }else{
                             memberDeclarationNodes.add(node);
 
-//                            }
+                            }
                         }
                     }
                 }
@@ -181,10 +282,17 @@ public class UtilGenerator {
             ImportDeclarationNode importForUrl = GeneratorUtils.getImportDeclarationNode(BALLERINA, URL);
             imports.add(importForUrl);
         }
-        if (functionNameList.contains(STREAM_GENERATOR)) {
-            ImportDeclarationNode importForUrl = GeneratorUtils.getImportDeclarationNode(NUVINDU, NUVINDU_PIPE);
-            imports.add(importForUrl);
+        if (streamReturns.size()>0) {
+            for(String returnType: streamReturns){
+
+                memberDeclarationNodes.add(createStreamGenerator(returnType));
+            }
+//            functionNameList.add(STREAM_GENERATOR);
         }
+//        if (functionNameList.contains(STREAM_GENERATOR)) {
+//            ImportDeclarationNode importForUrl = GeneratorUtils.getImportDeclarationNode(NUVINDU, NUVINDU_PIPE);
+//            imports.add(importForUrl);
+//        }
 
         NodeList<ImportDeclarationNode> importsList = createNodeList(imports);
         ModulePartNode utilModulePartNode =
@@ -194,8 +302,8 @@ public class UtilGenerator {
         return utilSyntaxTree.modifyWith(utilModulePartNode);
     }
 
-//    private void changeStreamReturn (ModuleMemberDeclarationNode node, List<ModuleMemberDeclarationNode>
-//    memberDeclarationNodes){
+    private ClassDefinitionNode createStreamGenerator (String returnType){
+
 //        String returnName="User";
 //        NodeList<Node> members=((ClassDefinitionNode)node).members();
 //        for(Node member:members){
@@ -219,9 +327,304 @@ public class UtilGenerator {
 //
 //        }
 //        memberDeclarationNodes.add( node);
+
+        //Get dispatcherKey
+
+
+
+//        ballerinaSchemaGenerator.setDispatcherKey(dispatcherKey);
+//        ballerinaSchemaGenerator.setDispatcherStreamId(dispatcherStreamId);
+
+        // Collect members for class definition node
+        List<Node> memberNodeList = new ArrayList<>();
+
+        // Add instance variable to class definition node
+        memberNodeList.addAll(createClassInstanceVariables());
+
+        // Add init function to class definition node
+        memberNodeList.add(createInitFunction());
+
+        // Add startInterMediator function
+        memberNodeList.add(createNextFunction(returnType));
+
+        // Add startMessageReading function
+
+        returnType=GeneratorUtils.getStreamGeneratorName(returnType);
+
+        // Generate the class combining members
+        MetadataNode metadataNode = getClassMetadataNode(returnType);
+
+
+//        //Get channel name from the specification
+//        String channelName = GeneratorUtils.
+//                removeNonAlphanumeric(asyncAPI.getChannels().getItemNames().get(0).trim());
 //
-//    }
-//
+//        //Combine class name as titleName+channelName+Client
+//        String stringClassName = titleName + channelName + CLIENT_CLASS_NAME;
+
+
+
+        IdentifierToken className = createIdentifierToken(returnType+"StreamGenerator");
+        NodeList<Token> classTypeQualifiers = createNodeList(createToken(CLIENT_KEYWORD),
+                createToken(ISOLATED_KEYWORD));
+
+        return createClassDefinitionNode(metadataNode, createToken(PUBLIC_KEYWORD), classTypeQualifiers,
+                createToken(CLASS_KEYWORD), className, createToken(OPEN_BRACE_TOKEN),
+                createNodeList(memberNodeList), createToken(CLOSE_BRACE_TOKEN), null);
+
+    }
+    private List<ObjectFieldNode> createClassInstanceVariables() {
+
+        List<ObjectFieldNode> fieldNodeList = new ArrayList<>();
+        Token privateKeywordToken = createToken(PRIVATE_KEYWORD);
+        Token finalKeywordToken = createToken(FINAL_KEYWORD);
+        ArrayList<Token> prefixTokens = new ArrayList<>();
+        prefixTokens.add(privateKeywordToken);
+        prefixTokens.add(finalKeywordToken);
+        NodeList<Token> qualifierList = createNodeList(prefixTokens);
+
+
+
+        //private final pipe:Pipe pipe;
+        QualifiedNameReferenceNode pipeTypeName = createQualifiedNameReferenceNode(createIdentifierToken(SIMPLE_PIPE),
+                createToken(COLON_TOKEN), createIdentifierToken(GeneratorConstants.CAPITAL_PIPE));
+        IdentifierToken pipe = createIdentifierToken("pipe");
+        MetadataNode pipeNode = createMetadataNode(null, createEmptyNodeList());
+        ObjectFieldNode pipeField = createObjectFieldNode(pipeNode,
+                null,
+                qualifierList, pipeTypeName,pipe, null, null,
+                createToken(SEMICOLON_TOKEN));
+
+        //private final pipe:Pipe pipe;
+//        QualifiedNameReferenceNode pipeTypeName = createQualifiedNameReferenceNode(createIdentifierToken(SIMPLE_PIPE),
+//                createToken(COLON_TOKEN), createIdentifierToken(GeneratorConstants.CAPITAL_PIPE));
+        SimpleNameReferenceNode decimalType = createSimpleNameReferenceNode(createIdentifierToken("decimal"));
+//        IdentifierToken pipe = createIdentifierToken("pipe");
+        IdentifierToken timeout = createIdentifierToken("timeout");
+
+        MetadataNode timeoutNode = createMetadataNode(null, createEmptyNodeList());
+        ObjectFieldNode timeoutField= createObjectFieldNode(timeoutNode,
+                null,
+                qualifierList, decimalType,timeout, null, null,
+                createToken(SEMICOLON_TOKEN));
+
+//        fieldNodeList.add(websocketClientField);
+        fieldNodeList.add(pipeField);
+        fieldNodeList.add(timeoutField);
+//        fieldNodeList.add(readMessageQueueClientField);
+//        fieldNodeList.add(pipesField);
+
+
+//        // add apiKey instance variable when API key security schema is given
+//        ObjectFieldNode apiKeyFieldNode = ballerinaAuthConfigGenerator.getApiKeyMapClassVariable();
+//        if (apiKeyFieldNode != null) {
+//            fieldNodeList.add(apiKeyFieldNode);
+//        }
+        return fieldNodeList;
+    }
+    private MetadataNode getClassMetadataNode(String returnType) {
+
+        List<AnnotationNode> classLevelAnnotationNodes = new ArrayList<>();
+
+        // Generate api doc
+        List<Node> documentationLines = new ArrayList<>();
+//        if (asyncAPI.getInfo().getDescription() != null && !asyncAPI.getInfo().getDescription().isBlank()) {
+//            documentationLines.addAll(DocCommentsGenerator.createAPIDescriptionDoc(
+//                    asyncAPI.getInfo().getDescription(), false));
+//        }
+        documentationLines.addAll(DocCommentsGenerator.createAPIDescriptionDoc(
+                    "Stream generator class for "+returnType, false));
+        MarkdownDocumentationNode apiDoc = createMarkdownDocumentationNode(createNodeList(documentationLines));
+        return createMetadataNode(apiDoc, createNodeList(classLevelAnnotationNodes));
+    }
+
+    private FunctionDefinitionNode createNextFunction(String returnType){
+        FunctionSignatureNode functionSignatureNode = getNextFunctionSignatureNode(returnType);
+        FunctionBodyNode functionBodyNode = getNextFunctionBodyNode(returnType);
+        NodeList<Token> qualifierList = createNodeList(createToken(PUBLIC_KEYWORD), createToken(ISOLATED_KEYWORD));
+        IdentifierToken functionName = createIdentifierToken("next");
+        return createFunctionDefinitionNode(null,getDocCommentsForNextMethod(" " +
+                        "Next method to return next stream message")
+, qualifierList,
+                createToken(FUNCTION_KEYWORD),
+                functionName, createEmptyNodeList(), functionSignatureNode, functionBodyNode);
+
+    }
+    private MetadataNode getDocCommentsForNextMethod( String comment) {
+
+        List<Node> docs = new ArrayList<>();
+//        String clientInitDocComment = "Gets invoked to initialize the `connector`.\n";
+//        Map<String, JsonNode> extensions = ((AsyncApi25InfoImpl) asyncAPI.getInfo()).getExtensions();
+//        if (extensions != null && !extensions.isEmpty()) {
+//            for (Map.Entry<String, JsonNode> extension : extensions.entrySet()) {
+//                if (extension.getKey().trim().equals(functionType)) {
+//                    comment = comment.concat(extension.getValue().toString());
+//                    break;
+//                }
+//            }
+//        }
+        //todo: setInitDocComment() pass the references
+        docs.addAll(DocCommentsGenerator.createAPIDescriptionDoc(comment, true));
+        MarkdownDocumentationNode workerDoc = createMarkdownDocumentationNode(createNodeList(docs));
+        return createMetadataNode(workerDoc, createEmptyNodeList());
+    }
+
+
+    private FunctionSignatureNode getNextFunctionSignatureNode(String returnType){
+        SimpleNameReferenceNode returnTypeNode =createSimpleNameReferenceNode(createIdentifierToken(
+                "record {|"+returnType+" value;|}|error?"));
+        //returns
+        ReturnTypeDescriptorNode returnTypeDescriptorNode = createReturnTypeDescriptorNode(
+                createToken(RETURNS_KEYWORD), createEmptyNodeList(), returnTypeNode);
+
+        return createFunctionSignatureNode(
+                createToken(OPEN_PAREN_TOKEN),createSeparatedNodeList(), createToken(CLOSE_PAREN_TOKEN),
+                returnTypeDescriptorNode);
+
+
+    }
+
+    private FunctionBodyNode getNextFunctionBodyNode(String returnType){
+        Token openParanToken = createToken(OPEN_PAREN_TOKEN);
+        Token closeParanToken = createToken(CLOSE_PAREN_TOKEN);
+        Token semicolonToken = createToken(SEMICOLON_TOKEN);
+        Token equalToken = createToken(EQUAL_TOKEN);
+        Token dotToken = createToken(DOT_TOKEN);
+
+
+        List<StatementNode> assignmentNodes = new ArrayList<>();
+
+        SimpleNameReferenceNode responseMessageVarNode = createSimpleNameReferenceNode(
+                createIdentifierToken(RESPONSE_MESSAGE_VAR_NAME));
+        SimpleNameReferenceNode responseVarNode = createSimpleNameReferenceNode(
+                createIdentifierToken("response"));
+        SimpleNameReferenceNode responseTypeNode = createSimpleNameReferenceNode(
+                createIdentifierToken(returnType));
+        MethodCallExpressionNode cloneWithTypeMethodCallExpressionNode = createMethodCallExpressionNode(
+                responseMessageVarNode, dotToken,
+                createSimpleNameReferenceNode(createIdentifierToken("cloneWithType")),
+                openParanToken, createSeparatedNodeList(), closeParanToken);
+
+        CheckExpressionNode cloneWithTypeCheck = createCheckExpressionNode(null, createToken(CHECK_KEYWORD),
+                cloneWithTypeMethodCallExpressionNode);
+
+
+        VariableDeclarationNode responseTypeCloneStatement = createVariableDeclarationNode(createEmptyNodeList(),
+                null,
+                createTypedBindingPatternNode(
+                        responseTypeNode,
+                        createFieldBindingPatternVarnameNode(
+                                responseVarNode)),
+                equalToken, cloneWithTypeCheck, semicolonToken);
+
+        PositionalArgumentNode responseTypeTimeOut = createPositionalArgumentNode(
+                createRequiredExpressionNode(createIdentifierToken("self.timeout")));
+        SimpleNameReferenceNode requestTypePipeNode = createSimpleNameReferenceNode(
+                createIdentifierToken("self.pipe"));
+        SimpleNameReferenceNode anydata = createSimpleNameReferenceNode(createIdentifierToken("anydata"));
+        CheckExpressionNode callRelevantPipeConsumeNode = createCheckExpressionNode(null,
+                createToken(CHECK_KEYWORD),
+                createMethodCallExpressionNode(requestTypePipeNode, dotToken,
+                        createSimpleNameReferenceNode(createIdentifierToken(CONSUME)),
+                        openParanToken, createSeparatedNodeList(
+                                responseTypeTimeOut
+                        ), closeParanToken));
+        VariableDeclarationNode responseMessageNode = createVariableDeclarationNode(createEmptyNodeList(),
+                null,
+                createTypedBindingPatternNode(
+                        anydata,
+                        createFieldBindingPatternVarnameNode(responseMessageVarNode)),
+                equalToken, callRelevantPipeConsumeNode, semicolonToken);
+
+        assignmentNodes.add(responseMessageNode);
+        assignmentNodes.add(responseTypeCloneStatement);
+
+        ReturnStatementNode valueReturnStatementNode= createReturnStatementNode(createToken(RETURN_KEYWORD),
+                createSimpleNameReferenceNode(createIdentifierToken(
+                "{value: response}")),semicolonToken);
+        assignmentNodes.add(valueReturnStatementNode);
+
+        NodeList<StatementNode> statementList = createNodeList(assignmentNodes);
+        return createFunctionBodyBlockNode(createToken(OPEN_BRACE_TOKEN),
+                null, statementList, createToken(CLOSE_BRACE_TOKEN), null);
+
+
+    }
+
+    private FunctionDefinitionNode createInitFunction(){
+
+        FunctionSignatureNode functionSignatureNode =getStreamInitFunctionSignatureNode();
+        FunctionBodyNode functionBodyNode = getStreamInitFunctionBodyNode();
+        NodeList<Token> qualifierList = createNodeList(createToken(PUBLIC_KEYWORD), createToken(ISOLATED_KEYWORD));
+        IdentifierToken functionName = createIdentifierToken("init");
+        return createFunctionDefinitionNode(null, getInitDocComment(), qualifierList,
+                createToken(FUNCTION_KEYWORD),
+                functionName, createEmptyNodeList(), functionSignatureNode, functionBodyNode);
+    }
+
+    private MetadataNode getInitDocComment(){
+        List<Node> docs = new ArrayList<>();
+
+        docs.addAll(DocCommentsGenerator.createAPIDescriptionDoc("StreamGenerator", true));
+
+        // Create method description
+        MarkdownParameterDocumentationLineNode pipeNodeDocs = DocCommentsGenerator.createAPIParamDoc(
+                "pipe",
+                "Pipe to hold stream messages");
+        docs.add(pipeNodeDocs);
+        MarkdownParameterDocumentationLineNode timeoutNodeDocs= DocCommentsGenerator.createAPIParamDoc(
+                "timeout",
+                "Waiting time");
+        docs.add(timeoutNodeDocs);
+//        MarkdownParameterDocumentationLineNode returnDoc = DocCommentsGenerator.createAPIParamDoc("return",
+//                "An error if connector initialization failed");
+//        docs.add(returnDoc);
+        MarkdownDocumentationNode clientInitDoc = createMarkdownDocumentationNode(createNodeList(docs));
+
+        return createMetadataNode(clientInitDoc, createEmptyNodeList());
+    }
+
+
+    private FunctionSignatureNode getStreamInitFunctionSignatureNode(){
+        RequiredParameterNode pipeNode = createRequiredParameterNode(createNodeList(),
+                createSimpleNameReferenceNode(createIdentifierToken("pipe:Pipe")),
+                createIdentifierToken("pipe"));
+        RequiredParameterNode decimalNode = createRequiredParameterNode(createNodeList(), createSimpleNameReferenceNode(
+                        createIdentifierToken("decimal")),
+                createIdentifierToken("timeout"));
+        List<Node> parameterList= new ArrayList<>();
+        parameterList.add(pipeNode);
+        parameterList.add(createToken(COMMA_TOKEN));
+        parameterList.add(decimalNode);
+        OptionalTypeDescriptorNode returnType = createOptionalTypeDescriptorNode(createToken(ERROR_KEYWORD),
+                createToken(QUESTION_MARK_TOKEN));
+        //returns
+        ReturnTypeDescriptorNode returnTypeDescriptorNode = createReturnTypeDescriptorNode(
+                createToken(RETURNS_KEYWORD), createEmptyNodeList(), returnType);
+        SeparatedNodeList<ParameterNode> parameters = createSeparatedNodeList(parameterList);
+
+        return createFunctionSignatureNode(
+
+                createToken(OPEN_PAREN_TOKEN), parameters, createToken(CLOSE_PAREN_TOKEN), returnTypeDescriptorNode);
+    }
+    private FunctionBodyNode getStreamInitFunctionBodyNode(){
+        List<StatementNode> assignmentNodes = new ArrayList<>();
+
+        AssignmentStatementNode selfPipe= createAssignmentStatementNode(createIdentifierToken("self.pipe"),
+                createToken(EQUAL_TOKEN),
+                createSimpleNameReferenceNode(createIdentifierToken("pipe")),createToken(SEMICOLON_TOKEN));
+        AssignmentStatementNode selfTimeout= createAssignmentStatementNode(createIdentifierToken("self.timeout"),
+                createToken(EQUAL_TOKEN),
+                createSimpleNameReferenceNode(createIdentifierToken("timeout")),createToken(SEMICOLON_TOKEN));
+        assignmentNodes.add(selfPipe);
+        assignmentNodes.add(selfTimeout);
+
+        NodeList<StatementNode> statementList = createNodeList(assignmentNodes);
+        return createFunctionBodyBlockNode(createToken(OPEN_BRACE_TOKEN),
+                null, statementList, createToken(CLOSE_BRACE_TOKEN), null);
+
+    }
+
 
     /**
      * Set the type definition nodes related to the util functions generated.
