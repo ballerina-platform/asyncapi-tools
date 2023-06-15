@@ -20,8 +20,8 @@ package io.ballerina.asyncapi.core.generators.client;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.TextNode;
-import io.apicurio.datamodels.models.Schema;
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25DocumentImpl;
+import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25SchemaImpl;
 import io.ballerina.asyncapi.core.GeneratorUtils;
 import io.ballerina.asyncapi.core.exception.BallerinaAsyncApiException;
 import io.ballerina.asyncapi.core.generators.asyncspec.model.BalAsyncApi25SchemaImpl;
@@ -46,6 +46,7 @@ import static io.ballerina.asyncapi.core.GeneratorConstants.DESCRIPTION;
 import static io.ballerina.asyncapi.core.GeneratorConstants.ERROR;
 import static io.ballerina.asyncapi.core.GeneratorConstants.SERVER_STREAMING;
 import static io.ballerina.asyncapi.core.GeneratorConstants.TIMEOUT;
+import static io.ballerina.asyncapi.core.GeneratorConstants.X_DISPATCHER_KEY;
 import static io.ballerina.asyncapi.core.GeneratorConstants.X_RESPONSE;
 import static io.ballerina.asyncapi.core.GeneratorConstants.X_RESPONSE_TYPE;
 import static io.ballerina.asyncapi.core.GeneratorUtils.extractReferenceType;
@@ -77,7 +78,7 @@ public class RemoteFunctionSignatureGenerator {
     private final AsyncApi25DocumentImpl asyncAPI;
     private final List<TypeDefinitionNode> typeDefinitionNodeList;
     private final BallerinaTypesGenerator ballerinaSchemaGenerator;
-    private RemoteFunctionReturnTypeGenerator functionReturnType;
+
 
     public RemoteFunctionSignatureGenerator(AsyncApi25DocumentImpl asyncAPI,
                                             BallerinaTypesGenerator ballerinaSchemaGenerator,
@@ -85,7 +86,7 @@ public class RemoteFunctionSignatureGenerator {
         this.asyncAPI = asyncAPI;
         this.ballerinaSchemaGenerator = ballerinaSchemaGenerator;
         this.typeDefinitionNodeList = typeDefinitionNodeList;
-        this.functionReturnType = new RemoteFunctionReturnTypeGenerator(this.asyncAPI);
+
 
     }
 
@@ -102,7 +103,7 @@ public class RemoteFunctionSignatureGenerator {
      */
     public FunctionSignatureNode getFunctionSignatureNode(JsonNode payload, List<Node> remoteFunctionDoc,
                                                           Map<String, JsonNode> extensions,
-                                                          ArrayList responseMessages,
+                                                          String returnType,
                                                           List<String> streamReturns)
             throws BallerinaAsyncApiException {
 
@@ -127,22 +128,19 @@ public class RemoteFunctionSignatureGenerator {
             }
         }
 
+
         Node timeoutNode = getTimeOutParameterNode(DECIMAL, TIMEOUT);
         parameterList.add(timeoutNode);
-
-        functionReturnType = new RemoteFunctionReturnTypeGenerator
-                (asyncAPI);
 
 
         SeparatedNodeList<ParameterNode> parameters = createSeparatedNodeList(parameterList);
         //Create Return type - function with response
 
-        //TODO: thushalya  check and Uncomment after figure out
         ReturnTypeDescriptorNode returnTypeDescriptorNode;
         if (extensions != null) {
             JsonNode xResponse = extensions.get(X_RESPONSE);
             JsonNode xResponseType = extensions.get(X_RESPONSE_TYPE);
-            String returnType = functionReturnType.getReturnType(xResponse, xResponseType, responseMessages);
+//            String returnType = functionReturnType.getReturnType(xResponse, xResponseType, responseMessages);
             if (xResponseType != null && xResponseType.equals(new TextNode(SERVER_STREAMING))) {
                 if (!streamReturns.contains(returnType)) {
                     streamReturns.add(returnType);
@@ -186,8 +184,15 @@ public class RemoteFunctionSignatureGenerator {
         if (payload.get("$ref") != null) {
             // TODO: Consider adding getValidName here , removed because of lowercase and uppercase error
             type = extractReferenceType(payload.get("$ref").textValue());
-            Schema componentSchema = asyncAPI.getComponents().
+            AsyncApi25SchemaImpl componentSchema = (AsyncApi25SchemaImpl) asyncAPI.getComponents().
                     getSchemas().get(type).asSchema();
+            TextNode textNode = (TextNode) asyncAPI.getExtensions().get(X_DISPATCHER_KEY);
+            String dispatcherKey = textNode.asText();
+            if(!CommonFunctionUtils.checkDispatcherPresent(type, componentSchema, dispatcherKey ,true)){
+                throw new BallerinaAsyncApiException(String.format(
+                        "dispatcherKey must be inside %s schema properties",type));
+            }
+
             if (!isValidSchemaName(type)) {
                 List<Node> responseDocs = new ArrayList<>();
                 if (payload.get(DESCRIPTION) != null) {
@@ -195,7 +200,7 @@ public class RemoteFunctionSignatureGenerator {
                             payload.get(DESCRIPTION).asText(), false));
                 }
                 TypeDefinitionNode typeDefinitionNode = ballerinaSchemaGenerator.getTypeDefinitionNode
-                        ((BalAsyncApi25SchemaImpl) componentSchema, type, responseDocs);
+                        (componentSchema, type, responseDocs);
                 GeneratorUtils.updateTypeDefNodeList(type, typeDefinitionNode, typeDefinitionNodeList);
             }
         }

@@ -120,13 +120,13 @@ public class AllOfRecordTypeGenerator extends RecordTypeGenerator {
             // error for rest field unhandled constraint support
 
             //    TODO : thushalya:- check this after uncomment has constraints
-//            if (GeneratorUtils.hasConstraints(schema)) {
-//                // use printStream for echo the error, because current openapi to ballerina implementation won't
-//                // handle diagnostic message.
-//                OUT_STREAM.println("WARNING: constraints in the OpenAPI contract will be ignored for the " +
-//                        "additionalProperties field, as constraints are not supported on Ballerina rest record " +
-//                        "field.");
-//            }
+            if (GeneratorUtils.hasConstraints(schema)) {
+                // use printStream for echo the error, because current openapi to ballerina implementation won't
+                // handle diagnostic message.
+                OUT_STREAM.println("WARNING: constraints in the AsyncAPI contract will be ignored for the " +
+                        "additionalProperties field, as constraints are not supported on Ballerina rest record " +
+                        "field.");
+            }
         }
         if (typeDescriptorNodes.size() > 1) {
             UnionTypeDescriptorNode unionTypeDescriptorNode = null;
@@ -162,7 +162,7 @@ public class AllOfRecordTypeGenerator extends RecordTypeGenerator {
         RecordRestDescriptorNode restDescriptorNode = recordMetadata.getRestDescriptorNode();
         if (allOfSchemas != null && allOfSchemas.size() == 1 && ((AsyncApi25SchemaImpl)
                 allOfSchemas.get(0)).get$ref() != null) {
-            ReferencedTypeGenerator referencedTypeGenerator = new ReferencedTypeGenerator((BalAsyncApi25SchemaImpl)
+            ReferencedTypeGenerator referencedTypeGenerator = new ReferencedTypeGenerator((AsyncApi25SchemaImpl)
                     allOfSchemas.get(0),
                     typeName);
             return referencedTypeGenerator.generateTypeDescriptorNode();
@@ -205,9 +205,10 @@ public class AllOfRecordTypeGenerator extends RecordTypeGenerator {
             } else if (allOfSchema.getProperties() != null) {
                 Map<String, Schema> properties = allOfSchema.getProperties();
                 List<String> required = allOfSchema.getRequired();
-                recordFieldList.addAll(addRecordFields(required, properties.entrySet(), typeName));
+                List<Node> recordFields= addRecordFields(required, properties.entrySet(), typeName);
+                recordFieldList.addAll(recordFields);
                 addAdditionalSchemas(allOfSchema);
-            } else if ((allOfSchema.getProperties() != null &&
+            } else if ((
                     (allOfSchema.getOneOf() != null || allOfSchema.getAllOf() != null ||
                             allOfSchema.getAnyOf() != null))) {
                 AsyncApi25SchemaImpl nestedComposedSchema = allOfSchema;

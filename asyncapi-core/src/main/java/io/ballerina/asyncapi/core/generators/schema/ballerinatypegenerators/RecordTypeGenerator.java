@@ -34,6 +34,7 @@ import io.ballerina.compiler.syntax.tree.RecordRestDescriptorNode;
 import io.ballerina.compiler.syntax.tree.SimpleNameReferenceNode;
 import io.ballerina.compiler.syntax.tree.TypeDefinitionNode;
 import io.ballerina.compiler.syntax.tree.TypeDescriptorNode;
+import org.apache.commons.lang3.tuple.ImmutablePair;
 
 import java.io.PrintStream;
 import java.util.ArrayList;
@@ -168,7 +169,8 @@ public class RecordTypeGenerator extends TypeGenerator {
         if (schema.getProperties() != null) {
             Map<String, Schema> properties = schema.getProperties();
             List<String> required = schema.getRequired();
-            recordFields.addAll(addRecordFields(required, properties.entrySet(), typeName));
+           List<Node> generatedRecordFields= addRecordFields(required, properties.entrySet(), typeName);
+            recordFields.addAll(generatedRecordFields);
             NodeList<Node> fieldNodes = AbstractNodeFactory.createNodeList(recordFields);
             return NodeFactory.createRecordTypeDescriptorNode(createToken(RECORD_KEYWORD),
                     metadataBuilder.isOpenRecord() ? createToken(OPEN_BRACE_TOKEN) : createToken(OPEN_BRACE_PIPE_TOKEN),
@@ -262,9 +264,13 @@ public class RecordTypeGenerator extends TypeGenerator {
                         typeGenerator.getTypeDefinitionNodeList();
                 typeDefinitionNodeList.addAll(newConstraintNode);
             }
-            //TODO: uncomment this after figure out
-            TypeGeneratorUtils.updateRecordFieldList(required, recordFieldList, field, fieldSchema, schemaDocNodes,
+
+            imports.addAll(typeGenerator.getImports());
+            ImmutablePair<List<Node>, Set<String>> fieldListWithImports =TypeGeneratorUtils.
+                    updateRecordFieldListWithImports(required, recordFieldList, field, fieldSchema, schemaDocNodes,
                     fieldName, fieldTypeName);
+            recordFieldList = fieldListWithImports.getLeft();
+            imports.addAll(fieldListWithImports.getRight());
         }
         return recordFieldList;
     }

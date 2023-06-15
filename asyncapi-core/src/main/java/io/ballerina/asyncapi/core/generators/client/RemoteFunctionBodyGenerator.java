@@ -258,21 +258,18 @@ public class RemoteFunctionBodyGenerator {
      */
     public FunctionBodyNode getFunctionBodyNode(Map<String, JsonNode> extensions, String requestType,
                                                 String dispatcherStreamId, List<MatchClauseNode> matchStatementList,
-                                                boolean isSubscribe)
+                                                boolean isSubscribe,String responseType)
             throws BallerinaAsyncApiException {
 
-        RemoteFunctionReturnTypeGenerator functionReturnType = new RemoteFunctionReturnTypeGenerator(
-                asyncAPI);
         // Create statements
         List<StatementNode> statementsList = new ArrayList<>();
 
         // This return type for target data type binding.
 
         if (extensions != null) {
-            JsonNode xResponse = extensions.get(X_RESPONSE);
+//            JsonNode xResponse = extensions.get(X_RESPONSE);
             JsonNode xResponseType = extensions.get(X_RESPONSE_TYPE);
 
-            String responseType = functionReturnType.getReturnType(xResponse, xResponseType, null);
             if (xResponseType != null && xResponseType.equals(new TextNode(SERVER_STREAMING))) {
                 //TODO: Include a if condition to check this only one time
 //                utilGenerator.setStreamFound(true);

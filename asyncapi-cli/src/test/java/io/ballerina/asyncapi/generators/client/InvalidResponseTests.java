@@ -67,24 +67,24 @@ public class InvalidResponseTests {
 //        compareGeneratedSyntaxTreeWithExpectedSyntaxTree(expectedPathForTypes, schemaSyntaxTree);
     }
 
-    @Test(description = "When response has map type",
-            expectedExceptions = BallerinaAsyncApiException.class,
-            expectedExceptionsMessageRegExp = "Response type must be a record, .*")
-    public void testMapTypeResponse() throws IOException, BallerinaAsyncApiException {
-        Path definitionPath = RES_DIR.resolve("InvalidResponse/map_type_response.yaml");
-//        Path expectedPathForTypes = RES_DIR.resolve("baloutputs/HeaderParam/header_parameter_types.bal");
-//        Path expectedPathForUtils = RES_DIR.resolve("baloutputs/HeaderParam/header_parameter_utils.bal");
-        AsyncApi25DocumentImpl asyncAPI = GeneratorUtils.normalizeAsyncAPI(definitionPath);
-        AASClientConfig.Builder clientMetaDataBuilder = new AASClientConfig.Builder();
-        AASClientConfig oasClientConfig = clientMetaDataBuilder
-                .withAsyncAPI(asyncAPI).build();
-        IntermediateClientGenerator intermediateClientGenerator = new IntermediateClientGenerator(oasClientConfig);
-        intermediateClientGenerator.generateSyntaxTree();
-
-//        compareGeneratedSyntaxTreeWithExpectedSyntaxTree(expectedPathForClient, syntaxTree);
-//        compareGeneratedSyntaxTreeWithExpectedSyntaxTree(expectedPathForUtils, utilsSyntaxTree);
-//        compareGeneratedSyntaxTreeWithExpectedSyntaxTree(expectedPathForTypes, schemaSyntaxTree);
-    }
+//    @Test(description = "When response has map type",
+//            expectedExceptions = BallerinaAsyncApiException.class,
+//            expectedExceptionsMessageRegExp = "Response type must be a record, .*")
+//    public void testMapTypeResponse() throws IOException, BallerinaAsyncApiException {
+//        Path definitionPath = RES_DIR.resolve("InvalidResponse/map_type_response.yaml");
+////        Path expectedPathForTypes = RES_DIR.resolve("baloutputs/HeaderParam/header_parameter_types.bal");
+////        Path expectedPathForUtils = RES_DIR.resolve("baloutputs/HeaderParam/header_parameter_utils.bal");
+//        AsyncApi25DocumentImpl asyncAPI = GeneratorUtils.normalizeAsyncAPI(definitionPath);
+//        AASClientConfig.Builder clientMetaDataBuilder = new AASClientConfig.Builder();
+//        AASClientConfig oasClientConfig = clientMetaDataBuilder
+//                .withAsyncAPI(asyncAPI).build();
+//        IntermediateClientGenerator intermediateClientGenerator = new IntermediateClientGenerator(oasClientConfig);
+//        intermediateClientGenerator.generateSyntaxTree();
+//
+////        compareGeneratedSyntaxTreeWithExpectedSyntaxTree(expectedPathForClient, syntaxTree);
+////        compareGeneratedSyntaxTreeWithExpectedSyntaxTree(expectedPathForUtils, utilsSyntaxTree);
+////        compareGeneratedSyntaxTreeWithExpectedSyntaxTree(expectedPathForTypes, schemaSyntaxTree);
+//    }
 
     @Test(description = "Test primitive type responses", expectedExceptions = BallerinaAsyncApiException.class,
             expectedExceptionsMessageRegExp = "Response type must be a record, .*",

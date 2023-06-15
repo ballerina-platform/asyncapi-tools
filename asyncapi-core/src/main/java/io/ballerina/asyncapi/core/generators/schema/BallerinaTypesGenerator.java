@@ -32,6 +32,7 @@ import io.ballerina.asyncapi.core.generators.schema.ballerinatypegenerators.Type
 import io.ballerina.asyncapi.core.generators.schema.ballerinatypegenerators.UnionTypeGenerator;
 import io.ballerina.asyncapi.core.generators.schema.model.GeneratorMetaData;
 import io.ballerina.compiler.syntax.tree.AbstractNodeFactory;
+import io.ballerina.compiler.syntax.tree.AnnotationNode;
 import io.ballerina.compiler.syntax.tree.IdentifierToken;
 import io.ballerina.compiler.syntax.tree.ImportDeclarationNode;
 import io.ballerina.compiler.syntax.tree.ModuleMemberDeclarationNode;
@@ -39,6 +40,7 @@ import io.ballerina.compiler.syntax.tree.ModulePartNode;
 import io.ballerina.compiler.syntax.tree.Node;
 import io.ballerina.compiler.syntax.tree.NodeFactory;
 import io.ballerina.compiler.syntax.tree.NodeList;
+import io.ballerina.compiler.syntax.tree.NodeParser;
 import io.ballerina.compiler.syntax.tree.RecordTypeDescriptorNode;
 import io.ballerina.compiler.syntax.tree.SyntaxTree;
 import io.ballerina.compiler.syntax.tree.Token;
@@ -47,9 +49,11 @@ import io.ballerina.tools.text.TextDocument;
 import io.ballerina.tools.text.TextDocuments;
 
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import static io.ballerina.asyncapi.core.GeneratorConstants.CONNECTION_CONFIG;
 import static io.ballerina.asyncapi.core.GeneratorConstants.HTTP;
@@ -66,7 +70,9 @@ import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createNodeLi
 public class BallerinaTypesGenerator {
 
     private final List<TypeDefinitionNode> typeDefinitionNodeList;
-    private final boolean hasConstraints;
+    private boolean hasConstraints;
+
+    private final Set<String> imports = new LinkedHashSet<>();
 
 
     /**
@@ -136,14 +142,14 @@ public class BallerinaTypesGenerator {
                 typeName.trim(), true));
         TypeGenerator typeGenerator = TypeGeneratorUtils.getTypeGenerator(schema, GeneratorUtils.getValidName(
                 typeName.trim(), true), null);
-//        List<AnnotationNode> typeAnnotations = new ArrayList<>();
-//        AnnotationNode constraintNode = TypeGeneratorUtils.generateConstraintNode(schema);
-//        if (constraintNode != null) {
-//            typeAnnotations.add(constraintNode);
-//        }
+        List<AnnotationNode> typeAnnotations = new ArrayList<>();
+        AnnotationNode constraintNode = TypeGeneratorUtils.generateConstraintNode(typeName,schema);
+        if (constraintNode != null) {
+            typeAnnotations.add(constraintNode);
+        }
         TypeGeneratorUtils.getRecordDocs(schemaDocs, schema);
         TypeDefinitionNode typeDefinitionNode =
-                typeGenerator.generateTypeDefinitionNode(typeNameToken, schemaDocs);
+                typeGenerator.generateTypeDefinitionNode(typeNameToken, schemaDocs, typeAnnotations);
         if (typeGenerator instanceof ArrayTypeGenerator &&
                 !typeGenerator.getTypeDefinitionNodeList().isEmpty()) {
             typeDefinitionNodeList.addAll(typeGenerator.getTypeDefinitionNodeList());
@@ -157,6 +163,7 @@ public class BallerinaTypesGenerator {
                 !typeGenerator.getTypeDefinitionNodeList().isEmpty()) {
             removeDuplicateNode(typeGenerator.getTypeDefinitionNodeList());
         }
+        imports.addAll(typeGenerator.getImports());
         return typeDefinitionNode;
     }
 
@@ -201,9 +208,9 @@ public class BallerinaTypesGenerator {
                 for (Map.Entry<String, Schema> schema : schemas.entrySet()) {
                     String schemaKey = schema.getKey().trim();
                     //TODO: thushalya :- check this after uncomment hasConstraints
-//                    if (!hasConstraints) {
-//                        hasConstraints = GeneratorUtils.hasConstraints(schema.getValue());
-//                    }
+                    if (!hasConstraints) {
+                        hasConstraints = GeneratorUtils.hasConstraints(schema.getValue());
+                    }
                     if (GeneratorUtils.isValidSchemaName(schemaKey)) {
                         List<Node> schemaDoc = new ArrayList<>();
                         typeDefinitionNodeListForSchema.add(getTypeDefinitionNode(
@@ -264,22 +271,21 @@ public class BallerinaTypesGenerator {
 
 
     private NodeList<ImportDeclarationNode> generateImportNodes() {
-        List<ImportDeclarationNode> imports = new ArrayList<>();
+        List<ImportDeclarationNode> importDeclarationNodes = new ArrayList<>();
         if (!typeDefinitionNodeList.isEmpty()) {
-            importsForTypeDefinitions(imports);
+            importsForTypeDefinitions(importDeclarationNodes);
         }
 //        boolean nullable = GeneratorMetaData.getInstance().isNullable();
-        if (hasConstraints) {
-            //import for constraint
-            ImportDeclarationNode importForConstraint = GeneratorUtils.getImportDeclarationNode(
-                    GeneratorConstants.BALLERINA,
-                    GeneratorConstants.CONSTRAINT);
-            imports.add(importForConstraint);
+        if (!imports.isEmpty()) {
+            for (String importValue : imports) {
+                ImportDeclarationNode importDeclarationNode = NodeParser.parseImportDeclaration(importValue);
+                importDeclarationNodes.add(importDeclarationNode);
+            }
         }
         if (imports.isEmpty()) {
             return createEmptyNodeList();
         }
-        return createNodeList(imports);
+        return createNodeList(importDeclarationNodes);
     }
 
     private void importsForTypeDefinitions(List<ImportDeclarationNode> imports) {

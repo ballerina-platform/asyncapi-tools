@@ -21,16 +21,20 @@ package io.ballerina.asyncapi.core.generators.client;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.TextNode;
+import io.apicurio.datamodels.models.Schema;
 import io.apicurio.datamodels.models.asyncapi.AsyncApiMessage;
+import io.apicurio.datamodels.models.asyncapi.AsyncApiSchema;
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25DocumentImpl;
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25SchemaImpl;
 import io.ballerina.asyncapi.core.exception.BallerinaAsyncApiException;
 
 import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 
 import static io.ballerina.asyncapi.core.GeneratorConstants.DEFAULT_RETURN;
+import static io.ballerina.asyncapi.core.GeneratorConstants.X_DISPATCHER_KEY;
 import static io.ballerina.asyncapi.core.GeneratorUtils.extractReferenceType;
 import static io.ballerina.asyncapi.core.GeneratorUtils.getValidName;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.PIPE_TOKEN;
@@ -65,7 +69,6 @@ public class RemoteFunctionReturnTypeGenerator {
     ) throws BallerinaAsyncApiException {
         //TODO: Handle multiple media-type
         ArrayList<String> returnTypes = new ArrayList<>();
-        String type = null;
         Map<String, AsyncApiMessage> messages = asyncAPI.getComponents().getMessages();
 
 
@@ -76,21 +79,7 @@ public class RemoteFunctionReturnTypeGenerator {
                     for (Iterator<JsonNode> it = test.iterator(); it.hasNext(); ) {
                         JsonNode jsonNode = it.next();
                         if (jsonNode.get("$ref") != null) {
-                            String reference = jsonNode.get("$ref").asText();
-                            // TODO: Consider adding getValidName here , removed because of lowercase and
-                            //  uppercase error
-                            String messageName = extractReferenceType(reference);
-                            AsyncApiMessage message = messages.get(messageName);
-                            TextNode schemaReference = (TextNode) message.getPayload().get("$ref");
-                            String schemaName = extractReferenceType(schemaReference.asText());
-                            AsyncApi25SchemaImpl refSchema = (AsyncApi25SchemaImpl) asyncAPI.getComponents().
-                                    getSchemas().get(
-                                            schemaName);
-                            if (responseMessages != null) {
-                                responseMessages.add(schemaName);
-                            }
-                            type = getDataType(schemaName, refSchema);
-                            returnTypes.add(type);
+                            handleReferenceReturn(jsonNode, messages, responseMessages,  returnTypes);
 
 
                         } else if (jsonNode.get("payload") != null) {
@@ -112,19 +101,7 @@ public class RemoteFunctionReturnTypeGenerator {
 
 
         } else if (xResponse.get("$ref") != null) { //Handle reference responses
-            String reference = xResponse.get("$ref").asText();
-            // TODO: Consider adding getValidName here , removed because of lowercase and uppercase error
-            String messageName = extractReferenceType(reference);
-            AsyncApiMessage message = messages.get(messageName);
-            TextNode schemaReference = (TextNode) message.getPayload().get("$ref");
-            String schemaName = extractReferenceType(schemaReference.asText());
-            AsyncApi25SchemaImpl refSchema = (AsyncApi25SchemaImpl) asyncAPI.getComponents().getSchemas().get(
-                    schemaName);
-            if (responseMessages != null) {
-                responseMessages.add(schemaName);
-            }
-            type = getDataType(schemaName, refSchema);
-            returnTypes.add(type);
+            handleReferenceReturn(xResponse, messages, responseMessages, returnTypes);
 
         }
 //        return type;
@@ -143,58 +120,55 @@ public class RemoteFunctionReturnTypeGenerator {
         }
     }
 
-
-    /**
-     * Get return data type by traversing AsyncAPI schemas.
-     */
-    private String getDataType(String schemaName, AsyncApi25SchemaImpl schema)
+    private String handleReferenceReturn(JsonNode jsonNode, Map<String, AsyncApiMessage> messages,
+                                       ArrayList responseMessages,  ArrayList<String> returnTypes)
             throws BallerinaAsyncApiException {
-        String type = null;
-
-        if (schema != null && schema.getType() != null && schema.getType().equals("object")
-        ) {
-            if (schema.getProperties() == null) {
-                throw new BallerinaAsyncApiException("Response type must be a record, invalid response schema");
-            }
-            type = handleInLineRecordInResponse(schemaName, schema);
-
-        } else {
-//            if(schema.getProperties()==null){
-//                throw new BallerinaAsyncApiException(String.format(
-//                        "Response type must be a record, %s schema must contain properies field",schemaName));
-//            }
-            if (schema == null) {
-                throw new BallerinaAsyncApiException("Response type must be a record, invalid response schema");
-
-            } else {
-                throw new BallerinaAsyncApiException(String.format(
-                        "Response type must be a record, invalid response type %s in %s schema",
-                        schema.getType(), schemaName));
-            }
-
+       TextNode textNode= (TextNode) asyncAPI.getExtensions().get(X_DISPATCHER_KEY);
+        String dispatcherKey=textNode.asText();
+        String reference = jsonNode.get("$ref").asText();
+        // TODO: Consider adding getValidName here , removed because of lowercase and
+        //  uppercase error
+        String messageName = extractReferenceType(reference);
+        AsyncApiMessage message = messages.get(messageName);
+        TextNode schemaReference = (TextNode) message.getPayload().get("$ref");
+        String schemaName = extractReferenceType(schemaReference.asText());
+        AsyncApi25SchemaImpl refSchema = (AsyncApi25SchemaImpl) asyncAPI.getComponents().
+                getSchemas().get(
+                        schemaName);
+        if (responseMessages != null) {
+            responseMessages.add(schemaName);
         }
+        if(!CommonFunctionUtils.checkDispatcherPresent(schemaName, refSchema, dispatcherKey , true)){
+            throw new BallerinaAsyncApiException(String.format(
+                    "dispatcherKey must be inside %s schema properties",schemaName));
+        }
+        String type = getValidName(schemaName, true);
+        returnTypes.add(type);
         return type;
     }
+
+
+
 
     /**
      * Handle inline record by generating record with name for response in AsyncAPI type ObjectSchema.
      */
-    private String handleInLineRecordInResponse(String schemaName, AsyncApi25SchemaImpl objectSchema)
-            throws BallerinaAsyncApiException {
-
-
-        String ref = objectSchema.get$ref();
-//        String type = getValidName(schemaName, true) + "Response";
-        String type = getValidName(schemaName, true);
-
-
-        if (ref != null) {
-            type = extractReferenceType(ref.trim());
-        }
-
-        return type;
-
-
-    }
+//    private String handleInLineRecordInResponse(String schemaName, AsyncApi25SchemaImpl objectSchema)
+//            throws BallerinaAsyncApiException {
+//
+//
+////        String ref = objectSchema.get$ref();
+////        String type = getValidName(schemaName, true) + "Response";
+//        String type = getValidName(schemaName, true);
+//
+//
+//        if (ref != null) {
+//            type = extractReferenceType(ref.trim());
+//        }
+//
+//        return type;
+//
+//
+//    }
 
 }

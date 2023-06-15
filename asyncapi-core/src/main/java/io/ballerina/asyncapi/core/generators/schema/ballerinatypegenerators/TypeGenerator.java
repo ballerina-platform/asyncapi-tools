@@ -19,8 +19,11 @@
 package io.ballerina.asyncapi.core.generators.schema.ballerinatypegenerators;
 
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25SchemaImpl;
+import io.ballerina.asyncapi.core.GeneratorUtils;
 import io.ballerina.asyncapi.core.exception.BallerinaAsyncApiException;
+import io.ballerina.compiler.syntax.tree.AnnotationNode;
 import io.ballerina.compiler.syntax.tree.IdentifierToken;
+import io.ballerina.compiler.syntax.tree.ImportDeclarationNode;
 import io.ballerina.compiler.syntax.tree.MarkdownDocumentationNode;
 import io.ballerina.compiler.syntax.tree.MetadataNode;
 import io.ballerina.compiler.syntax.tree.Node;
@@ -28,8 +31,11 @@ import io.ballerina.compiler.syntax.tree.TypeDefinitionNode;
 import io.ballerina.compiler.syntax.tree.TypeDescriptorNode;
 
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
 
+import static io.ballerina.asyncapi.core.GeneratorConstants.BALLERINA;
+import static io.ballerina.asyncapi.core.GeneratorConstants.CONSTRAINT;
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createNodeList;
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createToken;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createMarkdownDocumentationNode;
@@ -50,6 +56,8 @@ public abstract class TypeGenerator {
     AsyncApi25SchemaImpl schema;
     String typeName;
 
+    final LinkedHashSet<String> imports = new LinkedHashSet<>();
+
     public TypeGenerator(AsyncApi25SchemaImpl schema, String typeName) {
         this.schema = schema;
         this.typeName = typeName;
@@ -57,6 +65,10 @@ public abstract class TypeGenerator {
 
     public List<TypeDefinitionNode> getTypeDefinitionNodeList() {
         return typeDefinitionNodeList;
+    }
+
+    public LinkedHashSet<String> getImports() {
+        return imports;
     }
 
     /**
@@ -69,11 +81,21 @@ public abstract class TypeGenerator {
      * @return {@link TypeDefinitionNode}
      * @throws BallerinaAsyncApiException when unsupported schema type is found
      */
-    public TypeDefinitionNode generateTypeDefinitionNode(IdentifierToken typeName, List<Node> schemaDoc)
+    public TypeDefinitionNode generateTypeDefinitionNode(IdentifierToken typeName, List<Node> schemaDoc,
+    List<AnnotationNode> typeAnnotations)
             throws BallerinaAsyncApiException {
 
+        for (AnnotationNode annotation : typeAnnotations) {
+            String annotationRef = annotation.annotReference().toString();
+            if (annotationRef.startsWith(CONSTRAINT) ) {
+                ImportDeclarationNode constraintImport = GeneratorUtils.getImportDeclarationNode(BALLERINA, CONSTRAINT);
+                //Here we are unable to add ImportDeclarationNode since newly generated node has different hashcode.
+                imports.add(constraintImport.toSourceCode());
+            }
+        }
+
         MarkdownDocumentationNode documentationNode = createMarkdownDocumentationNode(createNodeList(schemaDoc));
-        MetadataNode metadataNode = createMetadataNode(documentationNode, createNodeList(new ArrayList<>()));
+        MetadataNode metadataNode = createMetadataNode(documentationNode, createNodeList(typeAnnotations));
         return createTypeDefinitionNode(metadataNode, createToken(PUBLIC_KEYWORD), createToken(TYPE_KEYWORD),
                 typeName, generateTypeDescriptorNode(),
                 createToken(SEMICOLON_TOKEN));

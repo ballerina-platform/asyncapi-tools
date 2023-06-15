@@ -37,73 +37,62 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 
 /**
- * Test implementation to verify the `oneOf` property related scenarios in openAPI schema generation, handled by
+ * Test implementation to verify the `oneOf` property related scenarios in asyncAPI schema generation, handled by
  * the {@link BallerinaTypesGenerator}.
  */
 public class OneOfDataTypeTests {
 
-    private static final Path RES_DIR = Paths.get("src/test/resources/").toAbsolutePath();
+    private static final Path RES_DIR = Paths.get("src/test/resources/asyncapi-to-ballerina/schema")
+            .toAbsolutePath();
 
-    @Test(description = "Generate record for schema has oneOF")
+    @Test(description = "Generate record for schema has two references for oneOf")
     public void generateForSchemaHasOneOf() throws IOException, BallerinaAsyncApiException {
-        Path definitionPath = RES_DIR.resolve("asyncapi-to-ballerina/schema/swagger/scenario12.yaml");
-        AsyncApi25DocumentImpl openAPI = GeneratorUtils.normalizeAsyncAPI(definitionPath);
-        AsyncApi25SchemaImpl schema = (AsyncApi25SchemaImpl) openAPI.getComponents().getSchemas().get("Error");
-        GeneratorMetaData.createInstance(openAPI,  false);
-        UnionTypeGenerator unionTypeGenerator = new UnionTypeGenerator(schema, "Error");
-        String oneOfUnionType = unionTypeGenerator.generateTypeDescriptorNode().toString().trim();
-
-        Assert.assertEquals(oneOfUnionType, "Activity|Profile");
+        Path definitionPath = RES_DIR.resolve("OneOf/twoOneOf.yaml");
+        AsyncApi25DocumentImpl asyncAPI = GeneratorUtils.normalizeAsyncAPI(definitionPath);
+        BallerinaTypesGenerator ballerinaSchemaGenerator = new BallerinaTypesGenerator(asyncAPI);
+        SyntaxTree syntaxTree = ballerinaSchemaGenerator.generateSyntaxTree();
+        TestUtils.compareGeneratedSyntaxTreewithExpectedSyntaxTree(
+                "schema/baloutputs/OneOf/twoOneOf.bal", syntaxTree);
     }
 
     @Test(description = "Generate record for schema has object type with OneOf")
     public void generateForSchemaObjectType() throws IOException, BallerinaAsyncApiException {
-        Path definitionPath = RES_DIR.resolve("asyncapi-to-ballerina/schema/swagger/scenario13.yaml");
-        AsyncApi25DocumentImpl openAPI = GeneratorUtils.normalizeAsyncAPI(definitionPath);
-        AsyncApi25SchemaImpl schema = (AsyncApi25SchemaImpl) openAPI.getComponents().getSchemas().get("Error");
-        GeneratorMetaData.createInstance(openAPI,  false);
-        UnionTypeGenerator unionTypeGenerator = new UnionTypeGenerator(schema, "Error");
-        String oneOfUnionType = unionTypeGenerator.generateTypeDescriptorNode().toString().trim();
-        Assert.assertEquals(oneOfUnionType, "Activity|Profile01");
-    }
-
-    @Test(description = "Generate union type when nullable is true")
-    public void generateUnionTypeWhenNullableTrue() throws IOException, BallerinaAsyncApiException {
-        Path definitionPath = RES_DIR.resolve("asyncapi-to-ballerina/schema/swagger/scenario12.yaml");
-        AsyncApi25DocumentImpl openAPI = GeneratorUtils.normalizeAsyncAPI(definitionPath);
-        AsyncApi25SchemaImpl schema = (AsyncApi25SchemaImpl) openAPI.getComponents().getSchemas().get("Error");
-        GeneratorMetaData.createInstance(openAPI,  false);
-        TypeGenerator typeGenerator = TypeGeneratorUtils.getTypeGenerator(schema, "Error", null);
-        String oneOfUnionType = typeGenerator.generateTypeDescriptorNode().toString().trim();
-        Assert.assertEquals(oneOfUnionType, "Activity|Profile?");
-    }
-
-    @Test(description = "Tests full schema genrations with oneOf type")
-    public void generateOneOFTests() throws IOException, BallerinaAsyncApiException {
-        Path definitionPath = RES_DIR.resolve("asyncapi-to-ballerina/schema/swagger/oneOf.yaml");
-        AsyncApi25DocumentImpl openAPI = GeneratorUtils.normalizeAsyncAPI(definitionPath);
-        BallerinaTypesGenerator ballerinaSchemaGenerator = new BallerinaTypesGenerator(openAPI);
+        Path definitionPath = RES_DIR.resolve("OneOf/twoOneOfWithObjectType.yaml");
+        AsyncApi25DocumentImpl asyncAPI = GeneratorUtils.normalizeAsyncAPI(definitionPath);
+        BallerinaTypesGenerator ballerinaSchemaGenerator = new BallerinaTypesGenerator(asyncAPI);
         SyntaxTree syntaxTree = ballerinaSchemaGenerator.generateSyntaxTree();
-        TestUtils.compareGeneratedSyntaxTreewithExpectedSyntaxTree("schema/ballerina/oneOf.bal", syntaxTree);
+        TestUtils.compareGeneratedSyntaxTreewithExpectedSyntaxTree(
+                "schema/baloutputs/OneOf/twoOneOfWithObjectType.bal", syntaxTree);
+    }
+
+
+    @Test(description = "Tests full schema generations with oneOf type")
+    public void generateOneOFTests() throws IOException, BallerinaAsyncApiException {
+        Path definitionPath = RES_DIR.resolve("OneOf/oneOfAsProperties.yaml");
+        AsyncApi25DocumentImpl asyncAPI = GeneratorUtils.normalizeAsyncAPI(definitionPath);
+        BallerinaTypesGenerator ballerinaSchemaGenerator = new BallerinaTypesGenerator(asyncAPI);
+        SyntaxTree syntaxTree = ballerinaSchemaGenerator.generateSyntaxTree();
+        TestUtils.compareGeneratedSyntaxTreewithExpectedSyntaxTree("schema/baloutputs/OneOf/" +
+                "oneOfAsProperties.bal", syntaxTree);
     }
 
     @Test(description = "Tests record generation for oneOf schemas with inline object schemas")
     public void oneOfWithInlineObject() throws IOException, BallerinaAsyncApiException {
-        Path definitionPath = RES_DIR.resolve("asyncapi-to-ballerina/schema/swagger/oneOf_with_inline_schemas.yaml");
-        AsyncApi25DocumentImpl openAPI = GeneratorUtils.normalizeAsyncAPI(definitionPath);
-        BallerinaTypesGenerator ballerinaSchemaGenerator = new BallerinaTypesGenerator(openAPI);
+        Path definitionPath = RES_DIR.resolve("OneOf/oneOfWithInlineSchemas.yaml");
+        AsyncApi25DocumentImpl asyncAPI = GeneratorUtils.normalizeAsyncAPI(definitionPath);
+        BallerinaTypesGenerator ballerinaSchemaGenerator = new BallerinaTypesGenerator(asyncAPI);
         SyntaxTree syntaxTree = ballerinaSchemaGenerator.generateSyntaxTree();
         TestUtils.compareGeneratedSyntaxTreewithExpectedSyntaxTree(
-                "schema/ballerina/oneOf_with_inline_schemas.bal", syntaxTree);
+                "schema/baloutputs/OneOf/oneOfWithInlineSchemas.bal", syntaxTree);
     }
 
     @Test(description = "Tests record generation for nested OneOf schema inside AllOf schema")
     public void oneOfWithNestedAllOf() throws IOException, BallerinaAsyncApiException {
-        Path definitionPath = RES_DIR.resolve("asyncapi-to-ballerina/schema/swagger/nested_oneOf_with_allOf.yaml");
-        AsyncApi25DocumentImpl openAPI = GeneratorUtils.normalizeAsyncAPI(definitionPath);
-        BallerinaTypesGenerator ballerinaSchemaGenerator = new BallerinaTypesGenerator(openAPI);
+        Path definitionPath = RES_DIR.resolve("OneOf/nestedOneOfWithAllOf.yaml");
+        AsyncApi25DocumentImpl asyncAPI = GeneratorUtils.normalizeAsyncAPI(definitionPath);
+        BallerinaTypesGenerator ballerinaSchemaGenerator = new BallerinaTypesGenerator(asyncAPI);
         SyntaxTree syntaxTree = ballerinaSchemaGenerator.generateSyntaxTree();
         TestUtils.compareGeneratedSyntaxTreewithExpectedSyntaxTree(
-                "schema/ballerina/nested_oneOf_with_allOf.bal", syntaxTree);
+                "schema/baloutputs/OneOf/nestedOneOfWithAllOf.bal", syntaxTree);
     }
 }

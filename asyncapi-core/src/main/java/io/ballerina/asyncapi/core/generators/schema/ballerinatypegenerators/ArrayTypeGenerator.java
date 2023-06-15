@@ -23,6 +23,7 @@ import io.ballerina.asyncapi.core.GeneratorConstants;
 import io.ballerina.asyncapi.core.GeneratorUtils;
 import io.ballerina.asyncapi.core.exception.BallerinaAsyncApiException;
 import io.ballerina.asyncapi.core.generators.schema.TypeGeneratorUtils;
+import io.ballerina.compiler.syntax.tree.AnnotationNode;
 import io.ballerina.compiler.syntax.tree.ArrayDimensionNode;
 import io.ballerina.compiler.syntax.tree.ArrayTypeDescriptorNode;
 import io.ballerina.compiler.syntax.tree.Node;
@@ -33,6 +34,7 @@ import io.ballerina.compiler.syntax.tree.TypeDefinitionNode;
 import io.ballerina.compiler.syntax.tree.TypeDescriptorNode;
 
 import java.util.ArrayList;
+import java.util.List;
 
 import static io.ballerina.asyncapi.core.GeneratorUtils.hasConstraints;
 import static io.ballerina.asyncapi.core.generators.schema.TypeGeneratorUtils.getNullableType;
@@ -94,23 +96,24 @@ public class ArrayTypeGenerator extends TypeGenerator {
         if (isConstraintsAvailable) {
             String normalizedTypeName = typeName.replaceAll(GeneratorConstants.SPECIAL_CHARACTER_REGEX,
                     "").trim();
+            List<AnnotationNode> typeAnnotations = new ArrayList<>();
+            AnnotationNode constraintNode = TypeGeneratorUtils.generateConstraintNode(typeName,items);
+            if (constraintNode != null) {
+                typeAnnotations.add(constraintNode);
+            }
             typeName = GeneratorUtils.getValidName(
                     parentType != null ?
                             parentType + "-" + normalizedTypeName + "-Items-" + items.getType() :
                             normalizedTypeName + "-Items-" + items.getType(),
                     true);
             typeGenerator = TypeGeneratorUtils.getTypeGenerator(items, typeName, null);
-//            List<AnnotationNode> typeAnnotations = new ArrayList<>();
-//            AnnotationNode constraintNode = TypeGeneratorUtils.generateConstraintNode(items);
-//            if (constraintNode != null) {
-//                typeAnnotations.add(constraintNode);
-//            }
-//            TypeDefinitionNode arrayItemWithConstraint = typeGenerator.generateTypeDefinitionNode(
-//                    createIdentifierToken(typeName),
-//                    new ArrayList<>(), typeAnnotations);
             TypeDefinitionNode arrayItemWithConstraint = typeGenerator.generateTypeDefinitionNode(
                     createIdentifierToken(typeName),
-                    new ArrayList<>());
+                    new ArrayList<>(), typeAnnotations);
+//            TypeDefinitionNode arrayItemWithConstraint = typeGenerator.generateTypeDefinitionNode(
+//                    createIdentifierToken(typeName),
+//                    new ArrayList<>());
+            imports.addAll(typeGenerator.getImports());
             typeDefinitionNodeList.add(arrayItemWithConstraint);
         } else {
             typeGenerator = TypeGeneratorUtils.getTypeGenerator(items, typeName, null);
@@ -125,7 +128,7 @@ public class ArrayTypeGenerator extends TypeGenerator {
             typeDescriptorNode = typeGenerator.generateTypeDescriptorNode();
         }
 
-        if (typeGenerator instanceof UnionTypeGenerator) {
+        if (typeGenerator instanceof UnionTypeGenerator || (items.getEnum() != null && items.getEnum().size() > 0)) {
             typeDescriptorNode = createParenthesisedTypeDescriptorNode(
                     createToken(OPEN_PAREN_TOKEN), typeDescriptorNode, createToken(CLOSE_PAREN_TOKEN));
         }
@@ -153,7 +156,7 @@ public class ArrayTypeGenerator extends TypeGenerator {
         arrayDimensions = arrayDimensions.add(arrayDimension);
         ArrayTypeDescriptorNode arrayTypeDescriptorNode = createArrayTypeDescriptorNode(typeDescriptorNode
                 , arrayDimensions);
-
+        imports.addAll(typeGenerator.getImports());
         return getNullableType(arraySchema, arrayTypeDescriptorNode);
     }
 }

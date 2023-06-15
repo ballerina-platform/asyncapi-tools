@@ -41,17 +41,18 @@ import static org.testng.Assert.assertTrue;
  * This test class is to contain the test related to constraint validation.
  */
 public class ConstraintTests {
-    private static final Path RES_DIR = Paths.get("src/test/resources/generators/schema").toAbsolutePath();
+    private static final Path RES_DIR = Paths.get("src/test/resources/asyncapi-to-ballerina/schema")
+            .toAbsolutePath();
 
     @Test(description = "Tests with record field has constraint and record field type can be user defined datatype " +
             "with constraint.")
     public void testRecordFiledConstraint() throws IOException, BallerinaAsyncApiException, FormatterException {
         AsyncApi25DocumentImpl openAPI = GeneratorUtils.normalizeAsyncAPI(RES_DIR.resolve(
-                "swagger/constraint/record_field.yaml"));
+                "Constraint/record_field.yaml"));
         BallerinaTypesGenerator ballerinaSchemaGenerator = new BallerinaTypesGenerator(openAPI);
 
         SyntaxTree syntaxTree = ballerinaSchemaGenerator.generateSyntaxTree();
-        TestUtils.compareGeneratedSyntaxTreewithExpectedSyntaxTree("schema/ballerina/constraint/record_field.bal",
+        TestUtils.compareGeneratedSyntaxTreewithExpectedSyntaxTree("schema/baloutputs/Constraint/record_field.bal",
                 syntaxTree);
         List<Diagnostic> diagnostics = getDiagnostics(syntaxTree);
         assertTrue(diagnostics.isEmpty());
@@ -65,10 +66,10 @@ public class ConstraintTests {
             "Use case 05 : Only array items have constrained with number format")
     public void testForArray() throws IOException, BallerinaAsyncApiException, FormatterException {
         AsyncApi25DocumentImpl openAPI = GeneratorUtils.normalizeAsyncAPI(RES_DIR.resolve(
-                "swagger/constraint/array.yaml"));
+                "Constraint/array.yaml"));
         BallerinaTypesGenerator ballerinaSchemaGenerator = new BallerinaTypesGenerator(openAPI);
         SyntaxTree syntaxTree = ballerinaSchemaGenerator.generateSyntaxTree();
-        TestUtils.compareGeneratedSyntaxTreewithExpectedSyntaxTree("schema/ballerina/constraint/array.bal",
+        TestUtils.compareGeneratedSyntaxTreewithExpectedSyntaxTree("schema/baloutputs/Constraint/array.bal",
                 syntaxTree);
         List<Diagnostic> diagnostics = getDiagnostics(syntaxTree);
         assertTrue(diagnostics.isEmpty());
@@ -80,11 +81,11 @@ public class ConstraintTests {
             "Use case 03 : Annotations on a type used as a record field")
     public void testForReference() throws IOException, BallerinaAsyncApiException, FormatterException {
         AsyncApi25DocumentImpl openAPI = GeneratorUtils.normalizeAsyncAPI(RES_DIR.resolve(
-                "swagger/constraint/type_def_node.yaml")
+                "Constraint/type_def_node.yaml")
         );
         BallerinaTypesGenerator ballerinaSchemaGenerator = new BallerinaTypesGenerator(openAPI);
         SyntaxTree syntaxTree = ballerinaSchemaGenerator.generateSyntaxTree();
-        TestUtils.compareGeneratedSyntaxTreewithExpectedSyntaxTree("schema/ballerina/constraint/type_def_node.bal",
+        TestUtils.compareGeneratedSyntaxTreewithExpectedSyntaxTree("schema/baloutputs/Constraint/type_def_node.bal",
                 syntaxTree);
         List<Diagnostic> diagnostics = getDiagnostics(syntaxTree);
         assertTrue(diagnostics.isEmpty());
@@ -95,11 +96,11 @@ public class ConstraintTests {
     public void testRecordFiledConstraintWithZeroValue() throws IOException, BallerinaAsyncApiException,
             FormatterException {
         AsyncApi25DocumentImpl openAPI = GeneratorUtils.normalizeAsyncAPI(RES_DIR.resolve(
-                "swagger/constraint/record_field_02.yaml"));
+                "Constraint/record_field_02.yaml"));
         BallerinaTypesGenerator ballerinaSchemaGenerator = new BallerinaTypesGenerator(openAPI);
 
         SyntaxTree syntaxTree = ballerinaSchemaGenerator.generateSyntaxTree();
-        TestUtils.compareGeneratedSyntaxTreewithExpectedSyntaxTree("schema/ballerina/constraint/record_field_02.bal",
+        TestUtils.compareGeneratedSyntaxTreewithExpectedSyntaxTree("schema/baloutputs/Constraint/record_field_02.bal",
                 syntaxTree);
         List<Diagnostic> diagnostics = getDiagnostics(syntaxTree);
         assertTrue(diagnostics.isEmpty());
@@ -108,11 +109,11 @@ public class ConstraintTests {
     @Test(description = "Tests with nested array field has constraint.")
     public void testNestedArrayWithConstraint() throws IOException, BallerinaAsyncApiException,
             FormatterException {
-        AsyncApi25DocumentImpl openAPI = GeneratorUtils.normalizeAsyncAPI(RES_DIR.resolve("swagger/constraint" +
+        AsyncApi25DocumentImpl openAPI = GeneratorUtils.normalizeAsyncAPI(RES_DIR.resolve("Constraint" +
                 "/nested_array_with_constraint.yaml"));
         BallerinaTypesGenerator ballerinaSchemaGenerator = new BallerinaTypesGenerator(openAPI);
         SyntaxTree syntaxTree = ballerinaSchemaGenerator.generateSyntaxTree();
-        TestUtils.compareGeneratedSyntaxTreewithExpectedSyntaxTree("schema/ballerina/constraint/nested_array.bal",
+        TestUtils.compareGeneratedSyntaxTreewithExpectedSyntaxTree("schema/baloutputs/Constraint/nested_array.bal",
                 syntaxTree);
         List<Diagnostic> diagnostics = getDiagnostics(syntaxTree);
         boolean hasErrors = diagnostics.stream()
@@ -123,12 +124,12 @@ public class ConstraintTests {
     @Test
     public void testAdditionalPropertiesWithConstraint() throws IOException, BallerinaAsyncApiException,
             FormatterException {
-        AsyncApi25DocumentImpl openAPI = GeneratorUtils.normalizeAsyncAPI(RES_DIR.resolve("swagger/constraint" +
+        AsyncApi25DocumentImpl openAPI = GeneratorUtils.normalizeAsyncAPI(RES_DIR.resolve("Constraint" +
                 "/additional_properties_with_constraint.yaml"));
         BallerinaTypesGenerator ballerinaSchemaGenerator = new BallerinaTypesGenerator(openAPI);
         SyntaxTree syntaxTree = ballerinaSchemaGenerator.generateSyntaxTree();
         TestUtils.compareGeneratedSyntaxTreewithExpectedSyntaxTree(
-                "schema/ballerina/constraint/additional_properties_with_constraint.bal", syntaxTree);
+                "schema/baloutputs/Constraint/additional_properties_with_constraint.bal", syntaxTree);
         List<Diagnostic> diagnostics = getDiagnostics(syntaxTree);
         boolean hasErrors = diagnostics.stream()
                 .anyMatch(d -> DiagnosticSeverity.ERROR.equals(d.diagnosticInfo().severity()));

@@ -54,6 +54,18 @@ under the License.
             <class name="io.ballerina.asyncapi.generators.client.UtilGenerationTests"/>
             <class name="io.ballerina.asyncapi.generators.client.SubProtocolTests"/>
             <class name="io.ballerina.asyncapi.generators.client.NoServerURLTest"/>
+            <class name="io.ballerina.asyncapi.generators.schema.AllOfDataTypeTests"/>
+            <class name="io.ballerina.asyncapi.generators.schema.OneOfDataTypeTests"/>
+            <class name="io.ballerina.asyncapi.generators.schema.AnyOfDataTypeTests"/>
+            <class name="io.ballerina.asyncapi.generators.schema.ArrayDataTypeTests"/>
+            <class name="io.ballerina.asyncapi.generators.schema.AsyncAPIFileParserTests"/>
+            <class name="io.ballerina.asyncapi.generators.schema.ConstraintTests"/>
+            <class name="io.ballerina.asyncapi.generators.schema.MapSchemaTests"/>
+            <class name="io.ballerina.asyncapi.generators.schema.NullableFieldTests"/>
+            <class name="io.ballerina.asyncapi.generators.schema.PrimitiveDataTypeTests"/>
+            <class name="io.ballerina.asyncapi.generators.schema.RecordDataTypeTests"/>
+            <class name="io.ballerina.asyncapi.generators.schema.ReferenceResolveTests"/>
+            <class name="io.ballerina.asyncapi.generators.schema.NestedRecordInclusionTests"/>
 
         </classes>
     </test>

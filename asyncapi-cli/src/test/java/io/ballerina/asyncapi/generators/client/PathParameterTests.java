@@ -41,7 +41,8 @@ import static io.ballerina.asyncapi.generators.common.TestUtils.compareGenerated
  * This tests class for the tests Path parameters in asyncapi file.
  */
 public class PathParameterTests {
-    private static final Path RESDIR = Paths.get("src/test/resources/asyncapi-to-ballerina/client").toAbsolutePath();
+    private static final Path RESDIR = Paths.get("src/test/resources/asyncapi-to-ballerina/client")
+            .toAbsolutePath();
     private SyntaxTree syntaxTree;
 
 
@@ -61,7 +62,7 @@ public class PathParameterTests {
 //        ballerinaCodeGenerator.generateClient("src/test/resources/asyncapi-to-ballerina/client/PathParam" +
 //                "/path_parameter_valid.yaml", "/Users/thushalya/Documents/out");
         ballerinaCodeGenerator.generateClient(
-                "src/test/resources/asyncapi-to-ballerina/client/InvalidResponse/map_type_response.yaml",
+                "src/test/resources/asyncapi-to-ballerina/schema/Nullable/null_empty_record.yaml",
                 "/Users/thushalya/Documents/out");
 //        AASClientConfig.Builder clientMetaDataBuilder = new AASClientConfig.Builder();
 ////        AASClientConfig oasClientConfig = clientMetaDataBuilder

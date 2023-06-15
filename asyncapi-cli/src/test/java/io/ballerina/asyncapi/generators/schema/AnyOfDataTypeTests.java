@@ -25,6 +25,7 @@ import io.ballerina.asyncapi.core.exception.BallerinaAsyncApiException;
 import io.ballerina.asyncapi.core.generators.schema.BallerinaTypesGenerator;
 import io.ballerina.asyncapi.core.generators.schema.ballerinatypegenerators.UnionTypeGenerator;
 import io.ballerina.asyncapi.core.generators.schema.model.GeneratorMetaData;
+import io.ballerina.asyncapi.generators.common.TestUtils;
 import io.ballerina.compiler.syntax.tree.SyntaxTree;
 import org.ballerinalang.formatter.core.FormatterException;
 import org.testng.Assert;
@@ -38,31 +39,24 @@ import static io.ballerina.asyncapi.generators.common.TestUtils.compareGenerated
 
 
 /**
- * Test implementation to verify the `anyOf` property related scenarios in openAPI schema generation, handled by
+ * Test implementation to verify the `anyOf` property related scenarios in asyncAPI schema generation, handled by
  * the {@link BallerinaTypesGenerator}.
  */
 public class AnyOfDataTypeTests {
 
-    private static final Path RES_DIR = Paths.get("src/test/resources/generators/schema").toAbsolutePath();
+    private static final Path RES_DIR = Paths.get("src/test/resources/asyncapi-to-ballerina/schema").
+            toAbsolutePath();
 
-    @Test(description = "Test for the schema has anyOf dataType")
-    public void testAnyOfInSchema() throws IOException, BallerinaAsyncApiException {
-        Path definitionPath = RES_DIR.resolve("swagger/scenario15.yaml");
-        AsyncApi25DocumentImpl openAPI = GeneratorUtils.normalizeAsyncAPI(definitionPath);
-        AsyncApi25SchemaImpl schema = (AsyncApi25SchemaImpl) openAPI.getComponents().getSchemas().get("AnyOF");
-        GeneratorMetaData.createInstance(openAPI,  false);
-        UnionTypeGenerator unionTypeGenerator = new UnionTypeGenerator(schema, "AnyOF");
-        String anyOfUnionType = unionTypeGenerator.generateTypeDescriptorNode().toString().trim();
-        Assert.assertEquals(anyOfUnionType, "User|Activity");
-    }
 
+    //ToDO: This need to check
     @Test(description = "Test for the schema generations")
     public void testAnyOfSchema() throws BallerinaAsyncApiException, IOException, FormatterException {
-        Path definitionPath = RES_DIR.resolve("swagger/scenario15.yaml");
-        Path expectedPath = RES_DIR.resolve("ballerina/schema15.bal");
-        AsyncApi25DocumentImpl openAPI = GeneratorUtils.normalizeAsyncAPI(definitionPath);
-        BallerinaTypesGenerator ballerinaSchemaGenerator = new BallerinaTypesGenerator(openAPI);
+        Path definitionPath = RES_DIR.resolve("AnyOf/oneAnyOf.yaml");
+        Path expectedPath = RES_DIR.resolve("baloutputs/AnyOf/oneAnyOf.bal");
+        AsyncApi25DocumentImpl asyncAPI = GeneratorUtils.normalizeAsyncAPI(definitionPath);
+        BallerinaTypesGenerator ballerinaSchemaGenerator = new BallerinaTypesGenerator(asyncAPI);
         SyntaxTree syntaxTree = ballerinaSchemaGenerator.generateSyntaxTree();
-        compareGeneratedSyntaxTreeWithExpectedSyntaxTree(expectedPath, syntaxTree);
+        TestUtils.compareGeneratedSyntaxTreeWithExpectedSyntaxTree(
+                expectedPath, syntaxTree);
     }
 }

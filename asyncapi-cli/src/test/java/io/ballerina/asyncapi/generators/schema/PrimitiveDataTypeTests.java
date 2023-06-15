@@ -39,7 +39,8 @@ import java.nio.file.Paths;
  * Tests for the primitive data type.
  */
 public class PrimitiveDataTypeTests {
-    private static final Path RES_DIR = Paths.get("src/test/resources/generators/schema").toAbsolutePath();
+    private static final Path RES_DIR = Paths.get("src/test/resources/asyncapi-to-ballerina/schema").
+            toAbsolutePath();
     private SyntaxTree syntaxTree;
     private ByteArrayOutputStream outContent;
 
@@ -51,7 +52,7 @@ public class PrimitiveDataTypeTests {
 
     @Test(description = "Generate single record")
     public void generateScenario01() throws IOException, BallerinaAsyncApiException {
-        Path definitionPath = RES_DIR.resolve("swagger/scenario01.yaml");
+        Path definitionPath = RES_DIR.resolve("/scenario01.yaml");
         AsyncApi25DocumentImpl openAPI = GeneratorUtils.normalizeAsyncAPI(definitionPath);
         BallerinaTypesGenerator ballerinaSchemaGenerator = new BallerinaTypesGenerator(openAPI);
         syntaxTree = ballerinaSchemaGenerator.generateSyntaxTree();

@@ -65,13 +65,7 @@ public class ComparedGeneratedFileTests {
         return new Object[][]{
 //                {"gemini_websocket.yaml", "gemini_websocket.bal"},
                 {"kraken_websocket.yaml", "kraken_websocket.bal"}
-//                {"uber_openapi.yaml", "uber_openapi.bal"},
-//                {"multiple_pathparam.yaml", "multiple_pathparam.bal"},
-//                {"display_annotation.yaml", "display_annotation.bal"},
-//                {"api2pdf.yaml", "api2pdf.bal"},
-//                {"nillable_response.yaml", "nillable_response.bal"},
-//                {"nillable_union_response.yaml", "nillable_union_response.bal"},
-//                {"duplicated_response.yaml", "duplicated_response.bal"}
+
         };
     }
 

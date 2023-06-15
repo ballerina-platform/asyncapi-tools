@@ -357,9 +357,17 @@ public class GeneratorUtils {
         Object obj = yamlReader.readValue(asyncAPIFileContent, Object.class);
 
         ObjectMapper jsonWriter = new ObjectMapper();
+        AsyncApi25DocumentImpl document;
+        try{
+            document = (AsyncApi25DocumentImpl) Library.readDocumentFromJSONString
+                    (jsonWriter.writeValueAsString(obj));
 
-        AsyncApi25DocumentImpl document = (AsyncApi25DocumentImpl) Library.readDocumentFromJSONString
-                (jsonWriter.writeValueAsString(obj));
+        }catch (ClassCastException e){
+            throw new BallerinaAsyncApiException("AsyncAPI definition has errors. " +
+                    "Ballerina client code can only be generate for 2.5.0 version");
+
+        }
+
         List<ValidationProblem> validationProblems = Library.validate(document, null);
         if (!validationProblems.isEmpty()) {
             StringBuilder errorMessage = new StringBuilder("AsyncAPI definition has errors: \n");
@@ -392,7 +400,7 @@ public class GeneratorUtils {
         if (returnType.contains("|")) {
             returnType = returnType.replaceAll("\\|", "");
         }
-        return returnType.substring(0, 1).toUpperCase()
+        return returnType.substring(0, 1).toUpperCase(Locale.ENGLISH)
                 + returnType.substring(1);
 
     }

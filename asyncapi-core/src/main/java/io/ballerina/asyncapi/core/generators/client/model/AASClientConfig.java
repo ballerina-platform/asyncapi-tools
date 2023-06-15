@@ -35,7 +35,7 @@ public class AASClientConfig {
         this.license = clientConfigBuilder.license;
     }
 
-    public AsyncApi25DocumentImpl getOpenAPI() {
+    public AsyncApi25DocumentImpl getAsyncAPI() {
         return asyncAPI;
     }
 

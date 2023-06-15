@@ -28,14 +28,14 @@ service /payloadV on new websocket:Listener(9090) {
 service class ChatServer {
     *websocket:Service;
 
-    remote function onSubscribeMessage(SubscribeMessage message) returns stream<NextMessage|CompleteMessage|TestMessage> {
+    remote function onSubscribeMessage(SubscribeMessage message) returns stream<NextMessage|CompleteMessage> {
         NextMessage returnMessage = {id: message.id, payload: (), 'type: "next"};
         NextMessage[] array = genStream(10, returnMessage, message.id);
         return array.toStream();
     }
 
     remote function onPingMessage(PingMessage message) returns PongMessage {
-        return {'type: "pong"};
+        return {'type: "error"};
     }
 
     remote function onPongMessage(PongMessage message) {

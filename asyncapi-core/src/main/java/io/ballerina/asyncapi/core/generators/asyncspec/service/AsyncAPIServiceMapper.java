@@ -44,6 +44,8 @@ import java.util.NoSuchElementException;
 
 import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.DISPATCHER_KEY;
 import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.DISPATCHER_KEY_VALUE_CANNOT_BE_EMPTY;
+import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.DISPATCHER_STREAM_ID;
+import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.DISPATCHER_STREAM_ID_VALUE_CANNOT_BE_EMPTY;
 import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.NO_ANNOTATION_PRESENT;
 import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.NO_DISPATCHER_KEY;
 
@@ -55,7 +57,7 @@ import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.NO_DISPA
  * @since 2.0.0
  */
 public class AsyncAPIServiceMapper {
-    private static AsyncApi25DocumentImpl asyncAPI;
+    private final AsyncApi25DocumentImpl asyncAPI;
     private final SemanticModel semanticModel;
     private final List<AsyncAPIConverterDiagnostic> errors = new ArrayList<>();
 
@@ -65,10 +67,10 @@ public class AsyncAPIServiceMapper {
     public AsyncAPIServiceMapper(SemanticModel semanticModel, AsyncApi25DocumentImpl asyncAPI) {
         // Default object mapper is JSON mapper available in asyncApi utils.
         this.semanticModel = semanticModel;
-        AsyncAPIServiceMapper.asyncAPI = asyncAPI;
+        this.asyncAPI = asyncAPI;
     }
 
-    private static String extractDispatcherValue(ServiceDeclarationNode service) {
+    private  String extractDispatcherValue(ServiceDeclarationNode service) {
         String dispatcherValue = "";
 //        String typeName=null;
         if (service.metadata().isPresent()) {
@@ -85,19 +87,24 @@ public class AsyncAPIServiceMapper {
                     if (field instanceof SpecificFieldNode) {
                         SpecificFieldNode specificFieldNode = (SpecificFieldNode) field;
                         String fieldName = specificFieldNode.fieldName().toString().trim();
-                        if (fieldName.equals(DISPATCHER_KEY)) {
-                            dispatcherValue = specificFieldNode.valueExpr().get().toString().trim();
-                            dispatcherValue = dispatcherValue.replaceAll("\"", "");
-                            if (dispatcherValue.equals("")) {
+                        dispatcherValue = setFieldValues(dispatcherValue, specificFieldNode, fieldName);
+                        if (fieldName.equals(DISPATCHER_STREAM_ID)) {
+                            String dispatcherStreamIdValue = specificFieldNode.valueExpr().get().toString().trim();
+                            dispatcherStreamIdValue = dispatcherStreamIdValue.replaceAll("\"", "");
+                            if (dispatcherStreamIdValue.equals("")) {
                                 //TODO : Give a proper name for Exception message
-                                throw new NoSuchElementException(DISPATCHER_KEY_VALUE_CANNOT_BE_EMPTY);
+                                throw new NoSuchElementException(DISPATCHER_STREAM_ID_VALUE_CANNOT_BE_EMPTY);
                             }
-                            asyncAPI.addExtension("x-dispatcherKey", new TextNode(dispatcherValue));
+                            asyncAPI.addExtension("x-dispatcherStreamId", new TextNode(dispatcherStreamIdValue));
 
-                            return dispatcherValue.trim();
-
+//                            return dispatcherValue.trim();
                         }
+
+
                     }
+                }
+                if(!dispatcherValue.equals("")){
+                    return dispatcherValue.trim();
                 }
 
                 if (dispatcherValue.isEmpty()) {
@@ -112,6 +119,21 @@ public class AsyncAPIServiceMapper {
             throw new NoSuchElementException(NO_ANNOTATION_PRESENT);
         }
         return null;
+    }
+
+    private String setFieldValues(String dispatcherValue, SpecificFieldNode specificFieldNode, String fieldName) {
+        if (fieldName.equals(DISPATCHER_KEY)) {
+            dispatcherValue = specificFieldNode.valueExpr().get().toString().trim();
+            dispatcherValue = dispatcherValue.replaceAll("\"", "");
+            if (dispatcherValue.equals("")) {
+                //TODO : Give a proper name for Exception message
+                throw new NoSuchElementException(DISPATCHER_KEY_VALUE_CANNOT_BE_EMPTY);
+            }
+            asyncAPI.addExtension("x-dispatcherKey", new TextNode(dispatcherValue));
+
+//                            return dispatcherValue.trim();
+        }
+        return dispatcherValue;
     }
 
     public List<AsyncAPIConverterDiagnostic> getErrors() {

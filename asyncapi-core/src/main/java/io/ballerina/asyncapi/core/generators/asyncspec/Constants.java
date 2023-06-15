@@ -39,6 +39,8 @@ public class Constants {
     public static final String FIELD_RECORD = "record";
     public static final String WEBSOCKET = "websocket";
     public static final String DISPATCHER_KEY = "dispatcherKey";
+
+    public static final String DISPATCHER_STREAM_ID = "dispatcherStreamId";
     public static final String BALLERINA = "ballerina";
     public static final String TYPEREFERENCE = "typeReference";
     public static final String HTTP_HEADER = "http:Header";
@@ -140,6 +142,8 @@ public class Constants {
     public static final String NO_DISPATCHER_KEY = "ERROR: No dispatcherKey field is present in " +
             "@websocket:ServiceConfig annotation";
     public static final String DISPATCHER_KEY_VALUE_CANNOT_BE_EMPTY = "ERROR: dispatcherKey cannot be empty";
+
+    public static final String DISPATCHER_STREAM_ID_VALUE_CANNOT_BE_EMPTY = "ERROR: dispatcherStreamId cannot be empty";
     public static final String NO_TYPE_IN_STREAM = "ERROR: No type present in stream";
     public static final String NO_SERVICE_CLASS = "ERROR: No service class present";
     public static final String UNION_STREAMING_SIMPLE_RPC_ERROR = "ERROR: Response server streaming types cannot be " +

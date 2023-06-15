@@ -84,7 +84,7 @@ public class BallerinaCodeGenerator {
         Path srcPath = Paths.get(outPath);
         Path implPath = CodegenUtils.getImplPath(srcPackage, srcPath);
         List<GenSrcFile> genFiles = generateClientFiles(Paths.get(definitionPath));
-         writeGeneratedSources(genFiles, srcPath, implPath, GEN_CLIENT);
+                 writeGeneratedSources(genFiles, srcPath, implPath, GEN_CLIENT);
     }
 
     private void writeGeneratedSources(List<GenSrcFile> sources, Path srcPath, Path implPath,
