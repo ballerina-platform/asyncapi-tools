@@ -34,13 +34,14 @@ import java.nio.file.Paths;
  */
 public class MapSchemaTests {
 
-    private static final Path RES_DIR = Paths.get("src/test/resources/generators/schema").toAbsolutePath();
+    private static final Path RES_DIR = Paths.get("src/test/resources/asyncapi-to-ballerina/schema")
+            .toAbsolutePath();
 
     @Test
     public void testForAdditionalProperties() throws IOException, BallerinaAsyncApiException, FormatterException {
-        AsyncApi25DocumentImpl openAPI = GeneratorUtils.normalizeAsyncAPI(RES_DIR.resolve("Map" +
+        AsyncApi25DocumentImpl asyncAPI = GeneratorUtils.normalizeAsyncAPI(RES_DIR.resolve("Map" +
                 "/additional_properties_true.yaml"));
-        BallerinaTypesGenerator ballerinaSchemaGenerator = new BallerinaTypesGenerator(openAPI);
+        BallerinaTypesGenerator ballerinaSchemaGenerator = new BallerinaTypesGenerator(asyncAPI);
         SyntaxTree syntaxTree = ballerinaSchemaGenerator.generateSyntaxTree();
         TestUtils.compareGeneratedSyntaxTreewithExpectedSyntaxTree(
                 "schema/baloutputs/Map/additional_properties_true.bal", syntaxTree);
@@ -49,9 +50,9 @@ public class MapSchemaTests {
     @Test
     public void testForAdditionalPropertiesComposedSchema()
             throws IOException, BallerinaAsyncApiException, FormatterException {
-        AsyncApi25DocumentImpl openAPI = GeneratorUtils.normalizeAsyncAPI(RES_DIR.resolve("Map" +
+        AsyncApi25DocumentImpl asyncAPI = GeneratorUtils.normalizeAsyncAPI(RES_DIR.resolve("Map" +
                 "/additional_properties_composed_schema.yaml"));
-        BallerinaTypesGenerator ballerinaSchemaGenerator = new BallerinaTypesGenerator(openAPI);
+        BallerinaTypesGenerator ballerinaSchemaGenerator = new BallerinaTypesGenerator(asyncAPI);
         SyntaxTree syntaxTree = ballerinaSchemaGenerator.generateSyntaxTree();
         TestUtils.compareGeneratedSyntaxTreewithExpectedSyntaxTree(
                 "schema/baloutputs/Map/additional_properties_composed_schema.bal", syntaxTree);

@@ -30,7 +30,7 @@ import static io.ballerina.compiler.syntax.tree.NodeFactory.createSimpleNameRefe
 /**
  * Generate TypeDefinitionNode and TypeDescriptorNode for schemas without type.
  * -- ex:
- * Sample OpenAPI :
+ * Sample AsyncAPI :
  * <pre>
  *     Pet:
  *       description: Details of the pet.

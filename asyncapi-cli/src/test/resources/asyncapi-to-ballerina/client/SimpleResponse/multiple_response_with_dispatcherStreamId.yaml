@@ -43,6 +43,7 @@ components:
       type: object
       required:
         - type
+        - event
       properties:
         type:
           type: string
@@ -50,6 +51,8 @@ components:
         payload:
           type: object
           additionalProperties: true
+        event:
+          type: string
     Request:
       type: object
       required:
@@ -66,6 +69,7 @@ components:
       type: object
       required:
         - type
+        - event
       properties:
         type:
           type: string
@@ -73,6 +77,8 @@ components:
         payload:
           type: object
           additionalProperties: true
+        event:
+          type: string
   messages:
     UnSubscribe:
       payload:

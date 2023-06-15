@@ -15,14 +15,14 @@
 // */
 //package io.ballerina.asyncapi;
 //
-//import io.ballerina.openapi.cmd.BallerinaCodeGenerator;
-//import io.ballerina.openapi.core.GeneratorConstants;
-//import io.ballerina.openapi.core.GeneratorUtils;
-//import io.ballerina.openapi.core.exception.BallerinaOpenApiException;
-//import io.ballerina.openapi.core.generators.service.ServiceGenerationUtils;
-//import io.ballerina.openapi.core.model.Filter;
-//import io.ballerina.openapi.core.model.GenSrcFile;
-//import io.ballerina.openapi.generators.common.TestUtils;
+//import io.ballerina.asyncAPI.cmd.AsyncAPIToBallerinaGenerator;
+//import io.ballerina.asyncAPI.core.GeneratorConstants;
+//import io.ballerina.asyncAPI.core.GeneratorUtils;
+//import io.ballerina.asyncAPI.core.exception.BallerinaasyncAPIException;
+//import io.ballerina.asyncAPI.core.generators.service.ServiceGenerationUtils;
+//import io.ballerina.asyncAPI.core.model.Filter;
+//import io.ballerina.asyncAPI.core.model.GenSrcFile;
+//import io.ballerina.asyncAPI.generators.common.TestUtils;
 //import org.apache.commons.io.FileUtils;
 //import org.ballerinalang.formatter.core.FormatterException;
 //import org.testng.Assert;
@@ -40,15 +40,15 @@
 //import java.util.stream.Collectors;
 //import java.util.stream.Stream;
 //
-//import static io.ballerina.openapi.core.GeneratorConstants.CLIENT_FILE_NAME;
-//import static io.ballerina.openapi.core.GeneratorConstants.CONFIG_FILE_NAME;
-//import static io.ballerina.openapi.core.GeneratorConstants.TEST_FILE_NAME;
-//import static io.ballerina.openapi.core.GeneratorConstants.TYPE_FILE_NAME;
-//import static io.ballerina.openapi.core.GeneratorConstants.UTIL_FILE_NAME;
-//import static io.ballerina.openapi.core.model.GenSrcFile.GenFileType.GEN_SRC;
+//import static io.ballerina.asyncAPI.core.GeneratorConstants.CLIENT_FILE_NAME;
+//import static io.ballerina.asyncAPI.core.GeneratorConstants.CONFIG_FILE_NAME;
+//import static io.ballerina.asyncAPI.core.GeneratorConstants.TEST_FILE_NAME;
+//import static io.ballerina.asyncAPI.core.GeneratorConstants.TYPE_FILE_NAME;
+//import static io.ballerina.asyncAPI.core.GeneratorConstants.UTIL_FILE_NAME;
+//import static io.ballerina.asyncAPI.core.model.GenSrcFile.GenFileType.GEN_SRC;
 //
 ///**
-// * Unit tests for {@link BallerinaCodeGenerator}.
+// * Unit tests for {@link AsyncAPIToBallerinaGenerator}.
 // */
 //public class CodeGeneratorTest {
 //    private static final Path RES_DIR = Paths.get("src/test/resources/").toAbsolutePath();
@@ -61,32 +61,32 @@
 //
 //    @Test(description = "Test Ballerina skeleton generation")
 //    public void generateSkeleton() {
-//        final String serviceName = "openapipetstore";
+//        final String serviceName = "asyncAPIpetstore";
 //        String definitionPath = RES_DIR.resolve("petstore.yaml").toString();
-//        BallerinaCodeGenerator generator = new BallerinaCodeGenerator();
+//        AsyncAPIToBallerinaGenerator generator = new AsyncAPIToBallerinaGenerator();
 //
 //        try {
 //            String expectedServiceContent = getStringFromGivenBalFile(expectedServiceFile, "generateSkeleton.bal");
 //            generator.generateService(definitionPath, serviceName, resourcePath.toString(), filter, false, false);
-//            if (Files.exists(resourcePath.resolve("openapipetstore_service.bal"))) {
-//                String generatedService = getStringFromGivenBalFile(resourcePath, "openapipetstore_service.bal");
+//            if (Files.exists(resourcePath.resolve("asyncAPIpetstore_service.bal"))) {
+//                String generatedService = getStringFromGivenBalFile(resourcePath, "asyncAPIpetstore_service.bal");
 //                generatedService = (generatedService.trim()).replaceAll("\\s+", "");
 //                expectedServiceContent = (expectedServiceContent.trim()).replaceAll("\\s+", "");
 //                Assert.assertTrue(generatedService.contains(expectedServiceContent));
 //            } else {
 //                Assert.fail("Service was not generated");
 //            }
-//        } catch (IOException | BallerinaOpenApiException | FormatterException e) {
+//        } catch (IOException | BallerinaasyncAPIException | FormatterException e) {
 //            Assert.fail("Error while generating the service. " + e.getMessage());
 //        } finally {
-//            deleteGeneratedFiles("openapipetstore_service.bal");
+//            deleteGeneratedFiles("asyncAPIpetstore_service.bal");
 //        }
 //    }
 //
 //    @Test(description = "Test Ballerina client generation")
 //    public void generateClient() {
 //        String definitionPath = RES_DIR.resolve("petstore.yaml").toString();
-//        BallerinaCodeGenerator generator = new BallerinaCodeGenerator();
+//        AsyncAPIToBallerinaGenerator generator = new AsyncAPIToBallerinaGenerator();
 //        try {
 //            String expectedClientContent = getStringFromGivenBalFile(expectedServiceFile, "generate_client.bal");
 //            generator.generateClient(definitionPath, resourcePath.toString(), filter, false, false);
@@ -98,7 +98,7 @@
 //            } else {
 //                Assert.fail("Client was not generated");
 //            }
-//        } catch (IOException | BallerinaOpenApiException | FormatterException e) {
+//        } catch (IOException | BallerinaasyncAPIException | FormatterException e) {
 //            Assert.fail("Error while generating the client. " + e.getMessage());
 //        } finally {
 //            deleteGeneratedFiles("client.bal");
@@ -107,17 +107,17 @@
 //
 //    @Test(description = "Test Ballerina service skeleton generation for OAS 2.0")
 //    public void generateServiceForOAS2() {
-//        final String serviceName = "openapipetstore";
+//        final String serviceName = "asyncAPIpetstore";
 //        String definitionPath = RES_DIR.resolve("petstore_swagger.yaml").toString();
-//        BallerinaCodeGenerator generator = new BallerinaCodeGenerator();
+//        AsyncAPIToBallerinaGenerator generator = new AsyncAPIToBallerinaGenerator();
 //
 //        try {
 //            String expectedServiceContent = getStringFromGivenBalFile(expectedServiceFile,
 //                    "petstore_service_swagger.bal");
 //            generator.generateService(definitionPath, serviceName, resourcePath.toString(), filter,
 //                    false, false);
-//            if (Files.exists(resourcePath.resolve("openapipetstore_service.bal"))) {
-//                String generatedService = getStringFromGivenBalFile(resourcePath, "openapipetstore_service.bal");
+//            if (Files.exists(resourcePath.resolve("asyncAPIpetstore_service.bal"))) {
+//                String generatedService = getStringFromGivenBalFile(resourcePath, "asyncAPIpetstore_service.bal");
 //                generatedService = (generatedService.trim()).replaceAll("\\s+", "");
 //                expectedServiceContent = (expectedServiceContent.trim()).replaceAll("\\s+", "");
 //                Assert.assertTrue(generatedService.contains(expectedServiceContent),
@@ -125,17 +125,17 @@
 //            } else {
 //                Assert.fail("Service was not generated");
 //            }
-//        } catch (IOException | BallerinaOpenApiException | FormatterException e) {
+//        } catch (IOException | BallerinaasyncAPIException | FormatterException e) {
 //            Assert.fail("Error while generating the service. " + e.getMessage());
 //        } finally {
-//            deleteGeneratedFiles("openapipetstore_service.bal");
+//            deleteGeneratedFiles("asyncAPIpetstore_service.bal");
 //        }
 //    }
 //
 //    @Test(description = "Test Ballerina client generation for OAS 2.0")
 //    public void generateClientForOAS2() {
 //        String definitionPath = RES_DIR.resolve("petstore_swagger.yaml").toString();
-//        BallerinaCodeGenerator generator = new BallerinaCodeGenerator();
+//        AsyncAPIToBallerinaGenerator generator = new AsyncAPIToBallerinaGenerator();
 //        try {
 //            String expectedClientContent = getStringFromGivenBalFile(expectedServiceFile,
 //                    "petstore_client_swagger.bal");
@@ -148,7 +148,7 @@
 //            } else {
 //                Assert.fail("Client was not generated");
 //            }
-//        } catch (IOException | BallerinaOpenApiException | FormatterException e) {
+//        } catch (IOException | BallerinaasyncAPIException | FormatterException e) {
 //            Assert.fail("Error while generating the client. " + e.getMessage());
 //        } finally {
 //            deleteGeneratedFiles("client.bal");
@@ -187,7 +187,7 @@
 //    @Test(description = "Test Ballerina client generation with doc comments in class init function")
 //    public void generateClientWithInitDocComments() {
 //        String definitionPath = RES_DIR.resolve("x_init_description.yaml").toString();
-//        BallerinaCodeGenerator generator = new BallerinaCodeGenerator();
+//        AsyncAPIToBallerinaGenerator generator = new AsyncAPIToBallerinaGenerator();
 //        try {
 //            String expectedClientContent = getStringFromGivenBalFile(expectedServiceFile, "x_init_description.bal");
 //            generator.generateClient(definitionPath, resourcePath.toString(), filter, false, false);
@@ -200,7 +200,7 @@
 //            } else {
 //                Assert.fail("Client was not generated");
 //            }
-//        } catch (IOException | BallerinaOpenApiException | FormatterException e) {
+//        } catch (IOException | BallerinaasyncAPIException | FormatterException e) {
 //            Assert.fail("Error while generating the client. " + e.getMessage());
 //        } finally {
 //            deleteGeneratedFiles("client.bal");
@@ -210,7 +210,7 @@
 //    @Test(description = "Test Ballerina types generation when nullable option is given")
 //    public void generateTypesWithNullableFields() {
 //        String definitionPath = RES_DIR.resolve("petstore.yaml").toString();
-//        BallerinaCodeGenerator generator = new BallerinaCodeGenerator();
+//        AsyncAPIToBallerinaGenerator generator = new AsyncAPIToBallerinaGenerator();
 //        try {
 //            String expectedClientContent = getStringFromGivenBalFile(expectedServiceFile, "nullable_types.bal");
 //            generator.generateClient(definitionPath, resourcePath.toString(), filter, true, false);
@@ -223,7 +223,7 @@
 //            } else {
 //                Assert.fail("Types were not generated");
 //            }
-//        } catch (IOException | BallerinaOpenApiException | FormatterException e) {
+//        } catch (IOException | BallerinaasyncAPIException | FormatterException e) {
 //            Assert.fail("Error while generating the client. " + e.getMessage());
 //        } finally {
 //            deleteGeneratedFiles("client.bal");
@@ -234,7 +234,7 @@
 //    both")
 //    public void generateTypesWithNullableFieldsAndGlobalNullableTrue() {
 //        String definitionPath = RES_DIR.resolve("petstore_nullable_false.yaml").toString();
-//        BallerinaCodeGenerator generator = new BallerinaCodeGenerator();
+//        AsyncAPIToBallerinaGenerator generator = new AsyncAPIToBallerinaGenerator();
 //        try {
 //            String expectedClientContent = getStringFromGivenBalFile(expectedServiceFile, "nullable_false_types.bal");
 //            generator.generateClient(definitionPath, resourcePath.toString(), filter, true, false);
@@ -247,7 +247,7 @@
 //            } else {
 //                Assert.fail("Types were not generated");
 //            }
-//        } catch (IOException | BallerinaOpenApiException | FormatterException e) {
+//        } catch (IOException | BallerinaasyncAPIException | FormatterException e) {
 //            Assert.fail("Error while generating the client. " + e.getMessage());
 //        } finally {
 //            deleteGeneratedFiles("client.bal");
@@ -257,7 +257,7 @@
 //    @Test(description = "Test Ballerina utils file generation")
 //    public void generateUtilsFile() {
 //        String definitionPath = RES_DIR.resolve("petstore.yaml").toString();
-//        BallerinaCodeGenerator generator = new BallerinaCodeGenerator();
+//        AsyncAPIToBallerinaGenerator generator = new AsyncAPIToBallerinaGenerator();
 //        try {
 //            String expectedClientContent = getStringFromGivenBalFile(expectedServiceFile, "utils.bal");
 //            generator.generateClient(definitionPath, resourcePath.toString(), filter, true, false);
@@ -270,7 +270,7 @@
 //            } else {
 //                Assert.fail("Utils were not generated");
 //            }
-//        } catch (IOException | BallerinaOpenApiException | FormatterException e) {
+//        } catch (IOException | BallerinaasyncAPIException | FormatterException e) {
 //            Assert.fail("Error while generating the connector. " + e.getMessage());
 //        } finally {
 //            deleteGeneratedFiles("client.bal");
@@ -280,7 +280,7 @@
 //    @Test(description = "Test Ballerina Config.toml file generation for API Key authentication")
 //    public void generateConfigFile() {
 //        String definitionPath = RES_DIR.resolve("petstore_with_apikey_auth.yaml").toString();
-//        BallerinaCodeGenerator generator = new BallerinaCodeGenerator();
+//        AsyncAPIToBallerinaGenerator generator = new AsyncAPIToBallerinaGenerator();
 //        try {
 //            String expectedConfigContent = getStringFromGivenBalFile(expectedServiceFile, "api_key_config.toml");
 //            generator.setIncludeTestFiles(true);
@@ -294,7 +294,7 @@
 //            } else {
 //                Assert.fail("Config.toml was not generated");
 //            }
-//        } catch (IOException | BallerinaOpenApiException | FormatterException e) {
+//        } catch (IOException | BallerinaasyncAPIException | FormatterException e) {
 //            Assert.fail("Error while generating the connector. " + e.getMessage());
 //        } finally {
 //            deleteGeneratedFiles("client.bal");
@@ -304,7 +304,7 @@
 //    @Test(description = "Test Ballerina client generation")
 //    public void generateFilteredClient() {
 //        String definitionPath = RES_DIR.resolve("petstore_tags.yaml").toString();
-//        BallerinaCodeGenerator generator = new BallerinaCodeGenerator();
+//        AsyncAPIToBallerinaGenerator generator = new AsyncAPIToBallerinaGenerator();
 //        List<String> listTags = new ArrayList<>();
 //        listTags.add("pets");
 //        listTags.add("dogs");
@@ -321,7 +321,7 @@
 //            } else {
 //                Assert.fail("Client was not generated");
 //            }
-//        } catch (IOException | BallerinaOpenApiException | FormatterException e) {
+//        } catch (IOException | BallerinaasyncAPIException | FormatterException e) {
 //            Assert.fail("Error while generating the client. " + e.getMessage());
 //        } finally {
 //            deleteGeneratedFiles("client.bal");
@@ -330,8 +330,8 @@
 //
 //    @Test(description = "Test Ballerina client generation with request body")
 //    public void generateClientwithRequestBody() {
-//        String definitionPath = RES_DIR.resolve("openapi-client-rb.yaml").toString();
-//        BallerinaCodeGenerator generator = new BallerinaCodeGenerator();
+//        String definitionPath = RES_DIR.resolve("asyncAPI-client-rb.yaml").toString();
+//        AsyncAPIToBallerinaGenerator generator = new AsyncAPIToBallerinaGenerator();
 //        try {
 //            String expectedClientContent = getStringFromGivenBalFile(expectedServiceFile,
 //                    "generate_client_requestbody.bal");
@@ -345,25 +345,25 @@
 //            } else {
 //                Assert.fail("Client was not generated");
 //            }
-//        } catch (IOException | BallerinaOpenApiException | FormatterException e) {
+//        } catch (IOException | BallerinaasyncAPIException | FormatterException e) {
 //            Assert.fail("Error while generating the client. " + e.getMessage());
 //        } finally {
-//            deleteGeneratedFiles("openapipetstore_client.bal");
+//            deleteGeneratedFiles("asyncAPIpetstore_client.bal");
 //        }
 //    }
 //
 //    @Test(description = "Test Ballerina skeleton generation")
 //    public void generateSkeletonForRequestbody() {
-//        final String serviceName = "openapipetstore";
+//        final String serviceName = "asyncAPIpetstore";
 //        String definitionPath = RES_DIR.resolve("requestBody.yaml").toString();
-//        BallerinaCodeGenerator generator = new BallerinaCodeGenerator();
+//        AsyncAPIToBallerinaGenerator generator = new AsyncAPIToBallerinaGenerator();
 //
 //        try {
 //            String expectedServiceContent = getStringFromGivenBalFile(expectedServiceFile, "generatedRB.bal");
 //            generator.generateService(definitionPath, serviceName, resourcePath.toString(), filter,
 //                    false, false);
-//            if (Files.exists(resourcePath.resolve("openapipetstore_service.bal"))) {
-//                String generatedService = getStringFromGivenBalFile(resourcePath, "openapipetstore_service.bal");
+//            if (Files.exists(resourcePath.resolve("asyncAPIpetstore_service.bal"))) {
+//                String generatedService = getStringFromGivenBalFile(resourcePath, "asyncAPIpetstore_service.bal");
 //                generatedService = (generatedService.trim()).replaceAll("\\s+", "");
 //                expectedServiceContent = (expectedServiceContent.trim()).replaceAll("\\s+", "");
 //
@@ -371,25 +371,25 @@
 //            } else {
 //                Assert.fail("Service was not generated");
 //            }
-//        } catch (IOException | BallerinaOpenApiException | FormatterException e) {
+//        } catch (IOException | BallerinaasyncAPIException | FormatterException e) {
 //            Assert.fail("Error while generating the service. " + e.getMessage());
 //        } finally {
-//            deleteGeneratedFiles("openapipetstore_service.bal");
+//            deleteGeneratedFiles("asyncAPIpetstore_service.bal");
 //        }
 //    }
 //
 //    @Test(description = "Test Ballerina skeleton generation for multiple Path parameter")
 //    public void generateSkeletonForTwoPathParameter() {
-//        final String serviceName = "openapipetstore";
+//        final String serviceName = "asyncAPIpetstore";
 //        String definitionPath = RES_DIR.resolve("multiPathParam.yaml").toString();
-//        BallerinaCodeGenerator generator = new BallerinaCodeGenerator();
+//        AsyncAPIToBallerinaGenerator generator = new AsyncAPIToBallerinaGenerator();
 //
 //        try {
 //            String expectedServiceContent = getStringFromGivenBalFile(expectedServiceFile, "generated_bal.bal");
 //            generator.generateService(definitionPath, serviceName, resourcePath.toString(),
 //                    filter, false, false);
-//            if (Files.exists(resourcePath.resolve("openapipetstore_service.bal"))) {
-//                String generatedService = getStringFromGivenBalFile(resourcePath, "openapipetstore_service.bal");
+//            if (Files.exists(resourcePath.resolve("asyncAPIpetstore_service.bal"))) {
+//                String generatedService = getStringFromGivenBalFile(resourcePath, "asyncAPIpetstore_service.bal");
 //                generatedService = (generatedService.trim()).replaceAll("\\s+", "");
 //                expectedServiceContent = (expectedServiceContent.trim()).replaceAll("\\s+", "");
 //
@@ -397,20 +397,20 @@
 //            } else {
 //                Assert.fail("Service was not generated");
 //            }
-//        } catch (IOException | BallerinaOpenApiException | FormatterException e) {
+//        } catch (IOException | BallerinaasyncAPIException | FormatterException e) {
 //            Assert.fail("Error while generating the service. " + e.getMessage());
 //        } finally {
-//            deleteGeneratedFiles("openapipetstore_service.bal");
+//            deleteGeneratedFiles("asyncAPIpetstore_service.bal");
 //        }
 //    }
 //
-//    @Test(description = "Test openapi definition to ballerina source code generation",
+//    @Test(description = "Test asyncAPI definition to ballerina source code generation",
 //            dataProvider = "fileProvider")
-//    public void openApiToBallerinaCodeGenTest(String yamlFile, String expectedFile) {
+//    public void asyncAPIToBallerinaCodeGenTest(String yamlFile, String expectedFile) {
 //        String definitionPath = RES_DIR.resolve(yamlFile).toString();
 //        Path expectedFilePath = RES_DIR.resolve(Paths.get("expected", expectedFile));
 //
-//        BallerinaCodeGenerator generator = new BallerinaCodeGenerator();
+//        AsyncAPIToBallerinaGenerator generator = new AsyncAPIToBallerinaGenerator();
 //        try {
 //            String expectedContent = new String(Files.readAllBytes(expectedFilePath));
 //            List<GenSrcFile> generatedFileList = generator.generateBallerinaService(
@@ -421,24 +421,24 @@
 //                        (expectedContent.trim()).replaceAll("\\s+", ""),
 //                        "expected content and actual generated content is mismatched for: " + yamlFile);
 //            }
-//        } catch (IOException | BallerinaOpenApiException | FormatterException e) {
-//            Assert.fail("Error while generating the ballerina content for the openapi definition: "
+//        } catch (IOException | BallerinaasyncAPIException | FormatterException e) {
+//            Assert.fail("Error while generating the ballerina content for the asyncAPI definition: "
 //                    + yamlFile + " " + e.getMessage());
 //        }
 //    }
 //
 //    @Test(description = "Test Ballerina skeleton generation for multiple Query parameter")
 //    public void generateSkeletonForTwoQueryParameter() {
-//        final String serviceName = "openapipetstore";
+//        final String serviceName = "asyncAPIpetstore";
 //        String definitionPath = RES_DIR.resolve("multiQueryParam.yaml").toString();
-//        BallerinaCodeGenerator generator = new BallerinaCodeGenerator();
+//        AsyncAPIToBallerinaGenerator generator = new AsyncAPIToBallerinaGenerator();
 //
 //        try {
 //            String expectedServiceContent = getStringFromGivenBalFile(expectedServiceFile, "multi_query_para.bal");
 //            generator.generateService(definitionPath, serviceName, resourcePath.toString(),
 //                    filter, false, false);
-//            if (Files.exists(resourcePath.resolve("openapipetstore_service.bal"))) {
-//                String generatedService = getStringFromGivenBalFile(resourcePath, "openapipetstore_service.bal");
+//            if (Files.exists(resourcePath.resolve("asyncAPIpetstore_service.bal"))) {
+//                String generatedService = getStringFromGivenBalFile(resourcePath, "asyncAPIpetstore_service.bal");
 //                generatedService = (generatedService.trim()).replaceAll("\\s+", "");
 //                expectedServiceContent = (expectedServiceContent.trim()).replaceAll("\\s+", "");
 //
@@ -446,18 +446,18 @@
 //            } else {
 //                Assert.fail("Service was not generated");
 //            }
-//        } catch (IOException | BallerinaOpenApiException | FormatterException e) {
+//        } catch (IOException | BallerinaasyncAPIException | FormatterException e) {
 //            Assert.fail("Error while generating the service. " + e.getMessage());
 //        } finally {
-//            deleteGeneratedFiles("openapipetstore_service.bal");
+//            deleteGeneratedFiles("asyncAPIpetstore_service.bal");
 //        }
 //    }
 //
 //    @Test(description = "Test Ballerina skeleton generation for tag filter")
 //    public void generateSkeletonForTagFilter() {
-//        final String serviceName = "openapipetstore";
+//        final String serviceName = "asyncAPIpetstore";
 //        String definitionPath = RES_DIR.resolve("petstoreTag.yaml").toString();
-//        BallerinaCodeGenerator generator = new BallerinaCodeGenerator();
+//        AsyncAPIToBallerinaGenerator generator = new AsyncAPIToBallerinaGenerator();
 //        List<String> list1 = new ArrayList<>();
 //        List<String> list2 = new ArrayList<>();
 //        list1.add("list");
@@ -467,8 +467,8 @@
 //            String expectedServiceContent = getStringFromGivenBalFile(expectedServiceFile, "petstoreTag.bal");
 //            generator.generateService(definitionPath, serviceName, resourcePath.toString(),
 //                    filter01, false, false);
-//            if (Files.exists(resourcePath.resolve("openapipetstore_service.bal"))) {
-//                String generatedService = getStringFromGivenBalFile(resourcePath, "openapipetstore_service.bal");
+//            if (Files.exists(resourcePath.resolve("asyncAPIpetstore_service.bal"))) {
+//                String generatedService = getStringFromGivenBalFile(resourcePath, "asyncAPIpetstore_service.bal");
 //                generatedService = (generatedService.trim()).replaceAll("\\s+", "");
 //                expectedServiceContent = (expectedServiceContent.trim()).replaceAll("\\s+", "");
 //
@@ -476,18 +476,18 @@
 //            } else {
 //                Assert.fail("Service was not generated");
 //            }
-//        } catch (IOException | BallerinaOpenApiException | FormatterException e) {
+//        } catch (IOException | BallerinaasyncAPIException | FormatterException e) {
 //            Assert.fail("Error while generating the service. " + e.getMessage());
 //        } finally {
-//            deleteGeneratedFiles("openapipetstore_service.bal");
+//            deleteGeneratedFiles("asyncAPIpetstore_service.bal");
 //        }
 //    }
 //
 //    @Test(description = "Test Ballerina skeleton generation for operation filter")
 //    public void generateSkeletonForOperationFilter() {
-//        final String serviceName = "openapipetstore";
+//        final String serviceName = "asyncAPIpetstore";
 //        String definitionPath = RES_DIR.resolve("petstoreOperation.yaml").toString();
-//        BallerinaCodeGenerator generator = new BallerinaCodeGenerator();
+//        AsyncAPIToBallerinaGenerator generator = new AsyncAPIToBallerinaGenerator();
 //        List<String> list1 = new ArrayList<>();
 //        List<String> list2 = new ArrayList<>();
 //        list1.add("list");
@@ -498,8 +498,8 @@
 //            String expectedServiceContent = getStringFromGivenBalFile(expectedServiceFile, "petstoreOperation.bal");
 //            generator.generateService(definitionPath,  serviceName, resourcePath.toString(),
 //                    filter01, false, false);
-//            if (Files.exists(resourcePath.resolve("openapipetstore_service.bal"))) {
-//                String generatedService = getStringFromGivenBalFile(resourcePath, "openapipetstore_service.bal");
+//            if (Files.exists(resourcePath.resolve("asyncAPIpetstore_service.bal"))) {
+//                String generatedService = getStringFromGivenBalFile(resourcePath, "asyncAPIpetstore_service.bal");
 //                generatedService = (generatedService.trim()).replaceAll("\\s+", "");
 //                expectedServiceContent = (expectedServiceContent.trim()).replaceAll("\\s+", "");
 //
@@ -507,10 +507,10 @@
 //            } else {
 //                Assert.fail("Service was not generated");
 //            }
-//        } catch (IOException | BallerinaOpenApiException | FormatterException e) {
+//        } catch (IOException | BallerinaasyncAPIException | FormatterException e) {
 //            Assert.fail("Error while generating the service. " + e.getMessage());
 //        } finally {
-//            deleteGeneratedFiles("openapipetstore_service.bal");
+//            deleteGeneratedFiles("asyncAPIpetstore_service.bal");
 //        }
 //    }
 //
@@ -518,14 +518,14 @@
 //    public void testCodeGenerationWithoutSchemasService() {
 //        final String serviceName = "no_schema";
 //        String definitionPath = RES_DIR.resolve("no_schema.yaml").toString();
-//        BallerinaCodeGenerator generator = new BallerinaCodeGenerator();
+//        AsyncAPIToBallerinaGenerator generator = new AsyncAPIToBallerinaGenerator();
 //        try {
 //            generator.generateService(definitionPath, serviceName, resourcePath.toString(),
 //                    filter, false, false);
 //            boolean hasTypeFileGenerated = Files.exists(resourcePath.resolve("no_schema_service.bal")) &&
 //                    Files.notExists(resourcePath.resolve("types.bal"));
 //            Assert.assertTrue(hasTypeFileGenerated, "Empty types.bal file has been generated");
-//        } catch (IOException | FormatterException | BallerinaOpenApiException e) {
+//        } catch (IOException | FormatterException | BallerinaasyncAPIException e) {
 //            Assert.fail("Error while generating the service. " + e.getMessage());
 //        } finally {
 //            deleteGeneratedFiles("no_schema_service.bal");
@@ -537,14 +537,14 @@
 //    public void testForGeneratingTypeFileWhenNoSchema() {
 //        final String serviceName = "no_schema";
 //        String definitionPath = RES_DIR.resolve("no_schema_with_type_bal.yaml").toString();
-//        BallerinaCodeGenerator generator = new BallerinaCodeGenerator();
+//        AsyncAPIToBallerinaGenerator generator = new AsyncAPIToBallerinaGenerator();
 //        try {
 //            generator.generateService(definitionPath, serviceName, resourcePath.toString(),
 //                    filter, false, false);
 //            boolean hasTypeFileGenerated = Files.exists(resourcePath.resolve("no_schema_service.bal")) &&
 //                    Files.exists(resourcePath.resolve("types.bal"));
 //            Assert.assertTrue(hasTypeFileGenerated, "types.bal file has not been generated");
-//        } catch (IOException | BallerinaOpenApiException | FormatterException e) {
+//        } catch (IOException | BallerinaasyncAPIException | FormatterException e) {
 //            Assert.fail("Error while generating the service. " + e.getMessage());
 //        } finally {
 //            deleteGeneratedFiles("no_schema_service.bal");
@@ -553,9 +553,9 @@
 //
 //    @Test(description = "Test service generation for request and responses with wildcard media type")
 //    public void testServiceGenerationWhenWildCardMediaTypeGiven() {
-//        final String serviceName = "openapipetstore";
+//        final String serviceName = "asyncAPIpetstore";
 //        String definitionPath = RES_DIR.resolve("petstore_wildcard.yaml").toString();
-//        BallerinaCodeGenerator generator = new BallerinaCodeGenerator();
+//        AsyncAPIToBallerinaGenerator generator = new AsyncAPIToBallerinaGenerator();
 //
 //        try {
 //            String expectedServiceContent = getStringFromGivenBalFile(
@@ -564,9 +564,9 @@
 //                    expectedServiceFile, "petstore_wildcard_types.bal");
 //            generator.generateService(definitionPath, serviceName, resourcePath.toString(), filter,
 //                    false, false);
-//            if (Files.exists(resourcePath.resolve("openapipetstore_service.bal")) &&
+//            if (Files.exists(resourcePath.resolve("asyncAPIpetstore_service.bal")) &&
 //                    Files.exists(resourcePath.resolve("types.bal"))) {
-//                String generatedService = getStringFromGivenBalFile(resourcePath, "openapipetstore_service.bal");
+//                String generatedService = getStringFromGivenBalFile(resourcePath, "asyncAPIpetstore_service.bal");
 //                generatedService = (generatedService.trim()).replaceAll("\\s+", "");
 //                expectedServiceContent = (expectedServiceContent.trim()).replaceAll("\\s+", "");
 //                Assert.assertTrue(generatedService.contains(expectedServiceContent),
@@ -581,31 +581,31 @@
 //            } else {
 //                Assert.fail("Service was not generated");
 //            }
-//        } catch (IOException | BallerinaOpenApiException | FormatterException e) {
+//        } catch (IOException | BallerinaasyncAPIException | FormatterException e) {
 //            Assert.fail("Error while generating the service. " + e.getMessage());
 //        } finally {
-//            deleteGeneratedFiles("openapipetstore_service.bal");
+//            deleteGeneratedFiles("asyncAPIpetstore_service.bal");
 //        }
 //    }
 //
-//    @Test(description = "Functionality tests when invalid OpenAPI definition is given",
-//            expectedExceptions = BallerinaOpenApiException.class,
-//            expectedExceptionsMessageRegExp = "OpenAPI definition has errors: .*")
-//    public void testForInvalidDefinition() throws IOException, BallerinaOpenApiException,
+//    @Test(description = "Functionality tests when invalid asyncAPI definition is given",
+//            expectedExceptions = BallerinaasyncAPIException.class,
+//            expectedExceptionsMessageRegExp = "asyncAPI definition has errors: .*")
+//    public void testForInvalidDefinition() throws IOException, BallerinaasyncAPIException,
 //            FormatterException {
 //        String definitionPath = RES_DIR.resolve("invalid_petstore.yaml").toString();
-//        BallerinaCodeGenerator generator = new BallerinaCodeGenerator();
+//        AsyncAPIToBallerinaGenerator generator = new AsyncAPIToBallerinaGenerator();
 //        generator.generateClient(definitionPath, "", filter, false, false);
 //    }
 //
 //    @Test(description = "Functionality tests when swagger 1.2 contract is given as input",
-//            expectedExceptions = BallerinaOpenApiException.class,
-//            expectedExceptionsMessageRegExp = "Provided OpenAPI contract version is not supported in the tool. " +
-//                    "Use OpenAPI specification version 2 or higher")
-//    public void testGenerationForUnsupportedOpenAPIVersion() throws IOException, BallerinaOpenApiException,
+//            expectedExceptions = BallerinaasyncAPIException.class,
+//            expectedExceptionsMessageRegExp = "Provided asyncAPI contract version is not supported in the tool. " +
+//                    "Use asyncAPI specification version 2 or higher")
+//    public void testGenerationForUnsupportedasyncAPIVersion() throws IOException, BallerinaasyncAPIException,
 //            FormatterException {
 //        String definitionPath = RES_DIR.resolve("petstore_swagger_1.2.json").toString();
-//        BallerinaCodeGenerator generator = new BallerinaCodeGenerator();
+//        AsyncAPIToBallerinaGenerator generator = new AsyncAPIToBallerinaGenerator();
 //        generator.generateClient(definitionPath, "", filter, false, false);
 //    }
 //

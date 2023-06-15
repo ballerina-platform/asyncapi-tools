@@ -24,7 +24,6 @@ import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25DocumentImpl;
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25SchemaImpl;
 import io.ballerina.asyncapi.core.GeneratorUtils;
 import io.ballerina.asyncapi.core.exception.BallerinaAsyncApiException;
-import io.ballerina.asyncapi.core.generators.asyncspec.model.BalAsyncApi25SchemaImpl;
 import io.ballerina.asyncapi.core.generators.document.DocCommentsGenerator;
 import io.ballerina.asyncapi.core.generators.schema.BallerinaTypesGenerator;
 import io.ballerina.compiler.syntax.tree.FunctionSignatureNode;
@@ -97,7 +96,7 @@ public class RemoteFunctionSignatureGenerator {
     /**
      * This function for generate function signatures.
      *
-     * @param payload - openapi operation
+     * @param payload - asyncAPI operation
      * @return {@link FunctionSignatureNode}
      * @throws BallerinaAsyncApiException - throws exception when node creation fails.
      */
@@ -188,9 +187,10 @@ public class RemoteFunctionSignatureGenerator {
                     getSchemas().get(type).asSchema();
             TextNode textNode = (TextNode) asyncAPI.getExtensions().get(X_DISPATCHER_KEY);
             String dispatcherKey = textNode.asText();
-            if(!CommonFunctionUtils.checkDispatcherPresent(type, componentSchema, dispatcherKey ,true)){
+            CommonFunctionUtils commonFunctionUtils = new CommonFunctionUtils(asyncAPI);
+            if (!commonFunctionUtils.isDispatcherPresent(type, componentSchema, dispatcherKey, true)) {
                 throw new BallerinaAsyncApiException(String.format(
-                        "dispatcherKey must be inside %s schema properties",type));
+                        "dispatcherKey must be inside %s schema properties", type));
             }
 
             if (!isValidSchemaName(type)) {

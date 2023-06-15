@@ -17,7 +17,7 @@
  */
 package io.ballerina.asyncapi.generators.asyncapi;
 
-import io.ballerina.asyncapi.cli.AsyncAPISpecGenerator;
+import io.ballerina.asyncapi.cli.BallerinaToAsyncAPIGenerator;
 import org.testng.Assert;
 import org.testng.annotations.AfterMethod;
 import org.testng.annotations.AfterTest;
@@ -97,7 +97,7 @@ public class AdvanceTests {
         try {
             String expectedYamlContent = getStringFromGivenBalFile(RES_DIR.resolve("yaml_outputs/service"),
                     yamlFile);
-            AsyncAPISpecGenerator asyncApiConverter = new AsyncAPISpecGenerator();
+            BallerinaToAsyncAPIGenerator asyncApiConverter = new BallerinaToAsyncAPIGenerator();
             asyncApiConverter.generateAsyncAPIDefinitionsAllService(ballerinaFilePath, tempDir,
                     null, false);
 
@@ -107,7 +107,7 @@ public class AdvanceTests {
                 expectedYamlContent = (expectedYamlContent.trim()).replaceAll("\\s+", "");
                 Assert.assertTrue(generatedYaml.contains(expectedYamlContent));
             } else {
-                Assert.fail("Yaml was not generated");
+                Assert.fail("Yaml was not generated, Ballerina service file might have compilation errors");
             }
         } catch (IOException e) {
             Assert.fail("Error while generating the service. " + e.getMessage());

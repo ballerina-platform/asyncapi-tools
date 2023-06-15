@@ -53,7 +53,7 @@ import static io.ballerina.compiler.syntax.tree.SyntaxKind.OPEN_PAREN_TOKEN;
 /**
  * Generate TypeDefinitionNode and TypeDescriptorNode for array schemas.
  * -- ex:
- * Sample OpenAPI :
+ * Sample AsyncAPI :
  * <pre>
  *     Pets:
  *       type: array
@@ -97,7 +97,7 @@ public class ArrayTypeGenerator extends TypeGenerator {
             String normalizedTypeName = typeName.replaceAll(GeneratorConstants.SPECIAL_CHARACTER_REGEX,
                     "").trim();
             List<AnnotationNode> typeAnnotations = new ArrayList<>();
-            AnnotationNode constraintNode = TypeGeneratorUtils.generateConstraintNode(typeName,items);
+            AnnotationNode constraintNode = TypeGeneratorUtils.generateConstraintNode(typeName, items);
             if (constraintNode != null) {
                 typeAnnotations.add(constraintNode);
             }

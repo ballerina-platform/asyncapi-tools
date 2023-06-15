@@ -37,7 +37,7 @@
 //
 ///**
 // * All the tests related to the functionSignatureNode in {
-// * {@link io.ballerina.openapi.core.generators.client.IntermediateClientGenerator}  util.
+// * {@link io.ballerina.asyncAPI.core.generators.client.IntermediateClientGenerator}  util.
 // */
 //public class FunctionSignatureNodeTests {
 //    private static final Path RESDIR = Paths.get("src/test/resources/generators/client").toAbsolutePath();
@@ -49,10 +49,10 @@
 //
 //    @Test(description = "Test for generate function signature for given operations")
 //    public void getFunctionSignatureNodeTests() throws IOException, BallerinaAsyncApiException {
-//        AsyncApi25DocumentImpl openAPI = getOpenAPI(RESDIR.resolve("swagger/valid_operation.yaml"));
-//        RemoteFunctionSignatureGenerator functionSignatureGenerator = new RemoteFunctionSignatureGenerator(openAPI,
-//                new BallerinaTypesGenerator(openAPI), new ArrayList<>(), false);
-//        FunctionSignatureNode signature = functionSignatureGenerator.getFunctionSignatureNode(openAPI.getPaths()
+//        AsyncApi25DocumentImpl asyncAPI = getasyncAPI(RESDIR.resolve("swagger/valid_operation.yaml"));
+//        RemoteFunctionSignatureGenerator functionSignatureGenerator = new RemoteFunctionSignatureGenerator(asyncAPI,
+//                new BallerinaTypesGenerator(asyncAPI), new ArrayList<>(), false);
+//        FunctionSignatureNode signature = functionSignatureGenerator.getFunctionSignatureNode(asyncAPI.getPaths()
 //                .get("/products/{country}").getGet(), new ArrayList<>());
 //        SeparatedNodeList<ParameterNode> parameters = signature.parameters();
 //        Assert.assertFalse(parameters.isEmpty());
@@ -79,10 +79,10 @@
 //
 //    @Test(description = "Test for generate function signature for xml request body")
 //    public void testFunctionSignatureNodeForXMLPayload() throws IOException, BallerinaAsyncApiException {
-//        OpenAPI openAPI = getOpenAPI(RESDIR.resolve("swagger/xml_request_payload.yaml"));
-//        RemoteFunctionSignatureGenerator functionSignatureGenerator = new RemoteFunctionSignatureGenerator(openAPI,
-//                new BallerinaTypesGenerator(openAPI), new ArrayList<>(), false);
-//        FunctionSignatureNode signature = functionSignatureGenerator.getFunctionSignatureNode(openAPI.getPaths()
+//        asyncAPI asyncAPI = getasyncAPI(RESDIR.resolve("swagger/xml_request_payload.yaml"));
+//        RemoteFunctionSignatureGenerator functionSignatureGenerator = new RemoteFunctionSignatureGenerator(asyncAPI,
+//                new BallerinaTypesGenerator(asyncAPI), new ArrayList<>(), false);
+//        FunctionSignatureNode signature = functionSignatureGenerator.getFunctionSignatureNode(asyncAPI.getPaths()
 //                .get("/pets").getPost(), new ArrayList<>());
 //        SeparatedNodeList<ParameterNode> parameters = signature.parameters();
 //        Assert.assertFalse(parameters.isEmpty());
@@ -97,10 +97,10 @@
 //
 //    @Test(description = "Test for generate function signature for json request body")
 //    public void testFunctionSignatureNodeForJSONPayload() throws IOException, BallerinaAsyncApiException {
-//        AsyncApi25DocumentImpl openAPI = getOpenAPI(RESDIR.resolve("swagger/json_request_payload.yaml"));
-//        RemoteFunctionSignatureGenerator functionSignatureGenerator = new RemoteFunctionSignatureGenerator(openAPI,
-//                new BallerinaTypesGenerator(openAPI), new ArrayList<>(), false);
-//        FunctionSignatureNode signature = functionSignatureGenerator.getFunctionSignatureNode(openAPI.getPaths()
+//        AsyncApi25DocumentImpl asyncAPI = getasyncAPI(RESDIR.resolve("swagger/json_request_payload.yaml"));
+//        RemoteFunctionSignatureGenerator functionSignatureGenerator = new RemoteFunctionSignatureGenerator(asyncAPI,
+//                new BallerinaTypesGenerator(asyncAPI), new ArrayList<>(), false);
+//        FunctionSignatureNode signature = functionSignatureGenerator.getFunctionSignatureNode(asyncAPI.getPaths()
 //                .get("/pets").getPost(), new ArrayList<>());
 //        SeparatedNodeList<ParameterNode> parameters = signature.parameters();
 //        Assert.assertFalse(parameters.isEmpty());
@@ -114,12 +114,12 @@
 //    }
 //
 //    @Test(description = "Test for generate function signature for multipart custom header")
-//    public void testFunctionSignatureNodeForMultipartCustomHeader() throws IOException, BallerinaOpenApiException {
-//        OpenAPI openAPI = GeneratorUtils.normalizeOpenAPI(
+//    public void testFunctionSignatureNodeForMultipartCustomHeader() throws IOException, BallerinaasyncAPIException {
+//        asyncAPI asyncAPI = GeneratorUtils.normalizeasyncAPI(
 //                RESDIR.resolve("swagger/multipart_formdata_custom.yaml"), true);
-//        RemoteFunctionSignatureGenerator functionSignatureGenerator = new RemoteFunctionSignatureGenerator(openAPI,
-//                new BallerinaTypesGenerator(openAPI), new ArrayList<>(), false);
-//        FunctionSignatureNode signature = functionSignatureGenerator.getFunctionSignatureNode(openAPI.getPaths()
+//        RemoteFunctionSignatureGenerator functionSignatureGenerator = new RemoteFunctionSignatureGenerator(asyncAPI,
+//                new BallerinaTypesGenerator(asyncAPI), new ArrayList<>(), false);
+//        FunctionSignatureNode signature = functionSignatureGenerator.getFunctionSignatureNode(asyncAPI.getPaths()
 //                .get("/pets").getPost(), new ArrayList<>());
 //        SeparatedNodeList<ParameterNode> parameters = signature.parameters();
 //        Assert.assertFalse(parameters.isEmpty());
@@ -141,33 +141,33 @@
 //    }
 //
 //    @Test(description = "Test for generate function signature with nested array return type")
-//    public void getFunctionSignatureForNestedArrayResponse() throws IOException, BallerinaOpenApiException {
-//        OpenAPI openAPI = getOpenAPI(RESDIR.resolve("swagger/one_response_with_no_dispatcherStreamId.yaml"));
-//        RemoteFunctionSignatureGenerator functionSignatureGenerator = new RemoteFunctionSignatureGenerator(openAPI,
-//                new BallerinaTypesGenerator(openAPI), new ArrayList<>(), false);
-//        FunctionSignatureNode signature = functionSignatureGenerator.getFunctionSignatureNode(openAPI.getPaths()
+//    public void getFunctionSignatureForNestedArrayResponse() throws IOException, BallerinaasyncAPIException {
+//        asyncAPI asyncAPI = getasyncAPI(RESDIR.resolve("swagger/one_response_with_no_dispatcherStreamId.yaml"));
+//        RemoteFunctionSignatureGenerator functionSignatureGenerator = new RemoteFunctionSignatureGenerator(asyncAPI,
+//                new BallerinaTypesGenerator(asyncAPI), new ArrayList<>(), false);
+//        FunctionSignatureNode signature = functionSignatureGenerator.getFunctionSignatureNode(asyncAPI.getPaths()
 //                .get("/timestags").getGet(), new ArrayList<>());
 //        ReturnTypeDescriptorNode returnTypeNode = signature.returnTypeDesc().orElseThrow();
 //        Assert.assertEquals(returnTypeNode.type().toString(), "string[][]|error");
 //    }
 //
 //    @Test(description = "Test for generate function signature with string array return type")
-//    public void getFunctionSignatureForStringArrayResponse() throws IOException, BallerinaOpenApiException {
-//        OpenAPI openAPI = getOpenAPI(RESDIR.resolve("swagger/multiple_response_with_dispatcherStreamId.yaml"));
-//        RemoteFunctionSignatureGenerator functionSignatureGenerator = new RemoteFunctionSignatureGenerator(openAPI,
-//                new BallerinaTypesGenerator(openAPI), new ArrayList<>(), false);
-//        FunctionSignatureNode signature = functionSignatureGenerator.getFunctionSignatureNode(openAPI.getPaths()
+//    public void getFunctionSignatureForStringArrayResponse() throws IOException, BallerinaasyncAPIException {
+//        asyncAPI asyncAPI = getasyncAPI(RESDIR.resolve("swagger/multiple_response_with_dispatcherStreamId.yaml"));
+//        RemoteFunctionSignatureGenerator functionSignatureGenerator = new RemoteFunctionSignatureGenerator(asyncAPI,
+//                new BallerinaTypesGenerator(asyncAPI), new ArrayList<>(), false);
+//        FunctionSignatureNode signature = functionSignatureGenerator.getFunctionSignatureNode(asyncAPI.getPaths()
 //                .get("/timestags").getGet(), new ArrayList<>());
 //        ReturnTypeDescriptorNode returnTypeNode = signature.returnTypeDesc().orElseThrow();
 //        Assert.assertEquals(returnTypeNode.type().toString(), "string[]|error");
 //    }
 //
 //    @Test(description = "Test parameter generation for request body with reference")
-//    public void getFunctionSignatureForRequestBodyWithRef() throws IOException, BallerinaOpenApiException {
-//        OpenAPI openAPI = getOpenAPI(RESDIR.resolve("swagger/request_body_with_ref.yaml"));
-//        RemoteFunctionSignatureGenerator functionSignatureGenerator = new RemoteFunctionSignatureGenerator(openAPI,
-//                new BallerinaTypesGenerator(openAPI), new ArrayList<>(), false);
-//        FunctionSignatureNode signature = functionSignatureGenerator.getFunctionSignatureNode(openAPI.getPaths()
+//    public void getFunctionSignatureForRequestBodyWithRef() throws IOException, BallerinaasyncAPIException {
+//        asyncAPI asyncAPI = getasyncAPI(RESDIR.resolve("swagger/request_body_with_ref.yaml"));
+//        RemoteFunctionSignatureGenerator functionSignatureGenerator = new RemoteFunctionSignatureGenerator(asyncAPI,
+//                new BallerinaTypesGenerator(asyncAPI), new ArrayList<>(), false);
+//        FunctionSignatureNode signature = functionSignatureGenerator.getFunctionSignatureNode(asyncAPI.getPaths()
 //                .get("/pets").getPost(), new ArrayList<>());
 //        SeparatedNodeList<ParameterNode> parameters = signature.parameters();
 //        Assert.assertFalse(parameters.isEmpty());
@@ -177,11 +177,11 @@
 //    }
 //
 //    @Test(description = "Test parameter generation for request body with unsupported (application/pdf) media type")
-//    public void getFunctionSignatureForUnsupportedRequests() throws IOException, BallerinaOpenApiException {
-//        OpenAPI openAPI = getOpenAPI(RESDIR.resolve("swagger/pdf_payload.yaml"));
-//        RemoteFunctionSignatureGenerator functionSignatureGenerator = new RemoteFunctionSignatureGenerator(openAPI,
-//                new BallerinaTypesGenerator(openAPI), new ArrayList<>(), false);
-//        FunctionSignatureNode signature = functionSignatureGenerator.getFunctionSignatureNode(openAPI.getPaths()
+//    public void getFunctionSignatureForUnsupportedRequests() throws IOException, BallerinaasyncAPIException {
+//        asyncAPI asyncAPI = getasyncAPI(RESDIR.resolve("swagger/pdf_payload.yaml"));
+//        RemoteFunctionSignatureGenerator functionSignatureGenerator = new RemoteFunctionSignatureGenerator(asyncAPI,
+//                new BallerinaTypesGenerator(asyncAPI), new ArrayList<>(), false);
+//        FunctionSignatureNode signature = functionSignatureGenerator.getFunctionSignatureNode(asyncAPI.getPaths()
 //                .get("/pets").getPost(), new ArrayList<>());
 //        SeparatedNodeList<ParameterNode> parameters = signature.parameters();
 //        Assert.assertFalse(parameters.isEmpty());
@@ -191,24 +191,24 @@
 //    }
 //
 //    @Test(description = "Test unsupported nested array type query parameter generation",
-//            expectedExceptions = BallerinaOpenApiException.class,
+//            expectedExceptions = BallerinaasyncAPIException.class,
 //            expectedExceptionsMessageRegExp = "Unsupported parameter type is found in the parameter : .*")
-//    public void testNestedArrayQueryParamGeneration() throws IOException, BallerinaOpenApiException {
-//        OpenAPI openAPI = getOpenAPI(RESDIR.resolve("swagger/invalid_array_query_params.yaml"));
-//        RemoteFunctionSignatureGenerator functionSignatureGenerator = new RemoteFunctionSignatureGenerator(openAPI,
-//                new BallerinaTypesGenerator(openAPI), new ArrayList<>(), false);
-//        functionSignatureGenerator.getFunctionSignatureNode(openAPI.getPaths()
+//    public void testNestedArrayQueryParamGeneration() throws IOException, BallerinaasyncAPIException {
+//        asyncAPI asyncAPI = getasyncAPI(RESDIR.resolve("swagger/invalid_array_query_params.yaml"));
+//        RemoteFunctionSignatureGenerator functionSignatureGenerator = new RemoteFunctionSignatureGenerator(asyncAPI,
+//                new BallerinaTypesGenerator(asyncAPI), new ArrayList<>(), false);
+//        functionSignatureGenerator.getFunctionSignatureNode(asyncAPI.getPaths()
 //                .get("/pets").getGet(), new ArrayList<>());
 //    }
 //
 //    @Test(description = "Test generation of array type query parameter when type of the parameter not given",
-//            expectedExceptions = BallerinaOpenApiException.class,
+//            expectedExceptions = BallerinaasyncAPIException.class,
 //            expectedExceptionsMessageRegExp = "Please define the array item type of the parameter : .*")
-//    public void testArrayQueryParamWithNoTypeGeneration() throws IOException, BallerinaOpenApiException {
-//        OpenAPI openAPI = getOpenAPI(RESDIR.resolve("swagger/invalid_array_query_params.yaml"));
-//        RemoteFunctionSignatureGenerator functionSignatureGenerator = new RemoteFunctionSignatureGenerator(openAPI,
-//                new BallerinaTypesGenerator(openAPI), new ArrayList<>(), false);
-//        functionSignatureGenerator.getFunctionSignatureNode(openAPI.getPaths()
+//    public void testArrayQueryParamWithNoTypeGeneration() throws IOException, BallerinaasyncAPIException {
+//        asyncAPI asyncAPI = getasyncAPI(RESDIR.resolve("swagger/invalid_array_query_params.yaml"));
+//        RemoteFunctionSignatureGenerator functionSignatureGenerator = new RemoteFunctionSignatureGenerator(asyncAPI,
+//                new BallerinaTypesGenerator(asyncAPI), new ArrayList<>(), false);
+//        functionSignatureGenerator.getFunctionSignatureNode(asyncAPI.getPaths()
 //                .get("/dogs").getGet(), new ArrayList<>());
 //    }
 //

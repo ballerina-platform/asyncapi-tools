@@ -93,13 +93,13 @@ public class InvalidResponseTests {
             BallerinaAsyncApiException, FormatterException, URISyntaxException {
         Path definitionPath = RES_DIR.resolve("InvalidResponse/" + yamlFile);
 //        Path expectedPath = RES_DIR.resolve(" baloutputs/InvalidResponse/" + expectedFile);
-        AsyncApi25DocumentImpl openAPI = GeneratorUtils.normalizeAsyncAPI(definitionPath);
+        AsyncApi25DocumentImpl asyncAPI = GeneratorUtils.normalizeAsyncAPI(definitionPath);
         AASClientConfig.Builder clientMetaDataBuilder = new AASClientConfig.Builder();
         AASClientConfig oasClientConfig = clientMetaDataBuilder
-                .withAsyncAPI(openAPI).build();
+                .withAsyncAPI(asyncAPI).build();
         IntermediateClientGenerator ballerinaClientGenerator = new IntermediateClientGenerator(oasClientConfig);
         ballerinaClientGenerator.generateSyntaxTree();
-//        List<Diagnostic> diagnostics = getDiagnostics(syntaxTree, openAPI, ballerinaClientGenerator);
+//        List<Diagnostic> diagnostics = getDiagnostics(syntaxTree, asyncAPI, ballerinaClientGenerator);
 //        Assert.assertTrue(diagnostics.isEmpty());
 //        compareGeneratedSyntaxTreeWithExpectedSyntaxTree(expectedPath, syntaxTree);
     }

@@ -5,16 +5,21 @@ import io.apicurio.datamodels.models.Schema;
 import io.apicurio.datamodels.models.asyncapi.AsyncApiSchema;
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25DocumentImpl;
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25SchemaImpl;
+import io.ballerina.asyncapi.core.GeneratorConstants;
 import io.ballerina.asyncapi.core.exception.BallerinaAsyncApiException;
 
 import java.util.List;
 
 import static io.ballerina.asyncapi.core.GeneratorConstants.X_DISPATCHER_KEY;
-import static io.ballerina.asyncapi.core.GeneratorConstants.X_DISPATCHER_STREAM_ID;
 import static io.ballerina.asyncapi.core.GeneratorUtils.extractReferenceType;
 
+/**
+ * Common function utils for request and response.
+ */
 public class CommonFunctionUtils {
-    private static AsyncApi25DocumentImpl asyncAPI;
+
+
+    private AsyncApi25DocumentImpl asyncAPI;
 
     public CommonFunctionUtils(AsyncApi25DocumentImpl asyncAPI) {
         this.asyncAPI = asyncAPI;
@@ -24,22 +29,21 @@ public class CommonFunctionUtils {
     /**
      * Get return data type by traversing AsyncAPI schemas.
      */
-    public static boolean checkDispatcherPresent(String schemaName, AsyncApi25SchemaImpl schema,
-                                                 String dispatcherVal, boolean isParent)
+    public boolean isDispatcherPresent(String schemaName, AsyncApi25SchemaImpl schema,
+                                              String dispatcherVal, boolean isParent)
             throws BallerinaAsyncApiException {
 
         if (schema != null) {
             if (schema.getProperties() != null) {
 //                type = getValidName(schemaName, true);
-                if(schema.getProperties().containsKey(dispatcherVal)){
-                    if(!schema.getProperties().get(dispatcherVal).getType().equals("string")){
-                        throw new BallerinaAsyncApiException(String.format(
-                                "Both dispatcherKey and dispatcherStreamId type must be string"));
+                if (schema.getProperties().containsKey(dispatcherVal)) {
+                    if (!schema.getProperties().get(dispatcherVal).getType().equals("string")) {
+                        throw new BallerinaAsyncApiException("Both dispatcherKey and " +
+                                "dispatcherStreamId type must be string");
                     }
-                    if(schema.getRequired()==null || (schema.getRequired()!=null &&
-                            !schema.getRequired().contains(dispatcherVal))){
-                        throw new BallerinaAsyncApiException(String.format("" +
-                                "Both dispatcherKey and dispatcherStreamId type must be inside required property"));
+                    if (schema.getRequired() == null || (!schema.getRequired().contains(dispatcherVal))) {
+                        throw new BallerinaAsyncApiException("" +
+                                "Both dispatcherKey and dispatcherStreamId type must be inside required property");
                     }
                     return true;
                 }
@@ -54,23 +58,24 @@ public class CommonFunctionUtils {
                         AsyncApi25SchemaImpl refSchema = (AsyncApi25SchemaImpl) asyncAPI.getComponents().
                                 getSchemas().get(
                                         refSchemaName);
-                        oneOfContainProperties = checkDispatcherPresent(refSchemaName, refSchema,dispatcherVal,
+                        oneOfContainProperties = isDispatcherPresent(refSchemaName, refSchema, dispatcherVal,
                                 false);
                     } else {
-                        oneOfContainProperties = checkDispatcherPresent("", oneOf25Schema,
-                                dispatcherVal,false);
+                        oneOfContainProperties = isDispatcherPresent("", oneOf25Schema,
+                                dispatcherVal, false);
                     }
                     if (!oneOfContainProperties && isParent) {
-                        TextNode textNode= (TextNode) asyncAPI.getExtensions().get(X_DISPATCHER_KEY);
-                        String dispatcherKey=textNode.asText();
+                        TextNode textNode = (TextNode) asyncAPI.getExtensions().get(X_DISPATCHER_KEY);
+                        String dispatcherKey = textNode.asText();
                         if (dispatcherVal.equals(dispatcherKey)) {
                             throw new BallerinaAsyncApiException(String.format(
-                                    "%s schema must be a record, and it must have properties to contain dispatcherKey " +
-                                            "as a field", schemaName));
+                                    "%s schema must be a record, and it must have properties to contain " +
+                                            "dispatcherKey as a field", schemaName));
                         }
                     }
 
                 }
+                return true;
 
 //            if(schema.getProperties()==null){
 //                throw new BallerinaAsyncApiException(String.format(
@@ -88,40 +93,43 @@ public class CommonFunctionUtils {
                         AsyncApi25SchemaImpl refSchema = (AsyncApi25SchemaImpl) asyncAPI.getComponents().
                                 getSchemas().get(
                                         schemaName);
-                        allOfContainProperties = checkDispatcherPresent(refSchemaName, refSchema, dispatcherVal,
+                        allOfContainProperties = isDispatcherPresent(refSchemaName, refSchema, dispatcherVal,
                                 false);
                     } else {
-                        allOfContainProperties = checkDispatcherPresent("", allOf25Schema,
+                        allOfContainProperties = isDispatcherPresent("", allOf25Schema,
                                 dispatcherVal, false);
                     }
-                    if (allOfContainProperties ) {
+                    if (allOfContainProperties) {
                         return true;
 
                     }
 
                 }
-                TextNode textNode= (TextNode) asyncAPI.getExtensions().get(X_DISPATCHER_KEY);
-                String dispatcherKey=textNode.asText();
-                if(dispatcherVal.equals(dispatcherKey)) {
+                TextNode textNode = (TextNode) asyncAPI.getExtensions().get(X_DISPATCHER_KEY);
+                String dispatcherKey = textNode.asText();
+                if (dispatcherVal.equals(dispatcherKey)) {
                     throw new BallerinaAsyncApiException(String.format(
                             "%s schema must be a record, and it must have properties to contain dispatcherKey " +
                                     "as a field", schemaName));
                 }
 
 
-            } else {
-                return false;
-            }
-        } else {
-            if (schema == null) {
-                throw new BallerinaAsyncApiException("Response type must be a record, invalid response schema");
-
-            } else {
+            } else if (!schema.getType().equals(GeneratorConstants.OBJECT)) {
                 throw new BallerinaAsyncApiException(String.format(
                         "Response type must be a record, invalid response type %s in %s schema, schema must contain " +
                                 "properties field to contain dispatcherKey",
                         schema.getType(), schemaName));
+            } else {
+                return false;
+
             }
+        } else {
+//            if (schema == null) {
+//                throw new BallerinaAsyncApiException("Response type must be a record, invalid response schema");
+//
+//            } else {
+            throw new BallerinaAsyncApiException("Response type must be a record, invalid response schema");
+//            }
         }
         return false;
     }

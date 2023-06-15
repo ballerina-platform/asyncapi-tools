@@ -40,13 +40,13 @@ public class SwaggerParserTests {
     private static final Path RES_DIR = Paths.get("src/test/resources/generators/schema").toAbsolutePath();
     SyntaxTree syntaxTree;
 
-    //TODO: readd expectedExceptionsMessageRegExp = "OpenAPI file has errors: .*" after checking failure
-    @Test(description = "Functionality tests for getBallerinaOpenApiType",
+    //TODO: readd expectedExceptionsMessageRegExp = "asyncAPI file has errors: .*" after checking failure
+    @Test(description = "Functionality tests for getBallerinaasyncAPIType",
             expectedExceptions = BallerinaAsyncApiException.class)
     public void generateHandleUnsupportedData() throws  IOException, BallerinaAsyncApiException {
         Path definitionPath = RES_DIR.resolve("swagger/invalid.yaml");
-        AsyncApi25DocumentImpl openAPI = GeneratorUtils.getAsyncAPIFromAsyncAPIParser(definitionPath);
-        BallerinaTypesGenerator ballerinaSchemaGenerator = new BallerinaTypesGenerator(openAPI);
+        AsyncApi25DocumentImpl asyncAPI = GeneratorUtils.getAsyncAPIFromAsyncAPIParser(definitionPath);
+        BallerinaTypesGenerator ballerinaSchemaGenerator = new BallerinaTypesGenerator(asyncAPI);
         syntaxTree = ballerinaSchemaGenerator.generateSyntaxTree();
     }
 

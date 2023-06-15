@@ -20,7 +20,6 @@ package io.ballerina.asyncapi.core.generators.client;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.TextNode;
-import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25DocumentImpl;
 import io.ballerina.asyncapi.core.GeneratorConstants;
 import io.ballerina.asyncapi.core.GeneratorUtils;
 import io.ballerina.asyncapi.core.exception.BallerinaAsyncApiException;
@@ -66,7 +65,6 @@ import static io.ballerina.asyncapi.core.GeneratorConstants.SIMPLE_PIPE;
 import static io.ballerina.asyncapi.core.GeneratorConstants.TIMEOUT;
 import static io.ballerina.asyncapi.core.GeneratorConstants.UUID;
 import static io.ballerina.asyncapi.core.GeneratorConstants.WRITE_MESSAGE_QUEUE;
-import static io.ballerina.asyncapi.core.GeneratorConstants.X_RESPONSE;
 import static io.ballerina.asyncapi.core.GeneratorConstants.X_RESPONSE_TYPE;
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createEmptyNodeList;
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createIdentifierToken;
@@ -121,17 +119,12 @@ import static io.ballerina.compiler.syntax.tree.SyntaxKind.STREAM_KEYWORD;
  */
 public class RemoteFunctionBodyGenerator {
 
-    private final AsyncApi25DocumentImpl asyncAPI;
     private final List<ImportDeclarationNode> imports;
 
 
-
-    public RemoteFunctionBodyGenerator(List<ImportDeclarationNode> imports,
-                                       AsyncApi25DocumentImpl asyncAPI) {
+    public RemoteFunctionBodyGenerator(List<ImportDeclarationNode> imports) {
 
         this.imports = imports;
-        this.asyncAPI = asyncAPI;
-//        this.utilGenerator = utilGenerator;
     }
 
     private static void createCommentStatementsForDispatcherId(List<StatementNode> statementsList,
@@ -258,7 +251,7 @@ public class RemoteFunctionBodyGenerator {
      */
     public FunctionBodyNode getFunctionBodyNode(Map<String, JsonNode> extensions, String requestType,
                                                 String dispatcherStreamId, List<MatchClauseNode> matchStatementList,
-                                                boolean isSubscribe,String responseType)
+                                                boolean isSubscribe, String responseType)
             throws BallerinaAsyncApiException {
 
         // Create statements

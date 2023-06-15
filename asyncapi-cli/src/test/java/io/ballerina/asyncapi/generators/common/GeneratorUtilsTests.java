@@ -16,13 +16,13 @@
 // * under the License.
 // */
 //
-//package io.ballerina.openapi.generators.common;
+//package io.ballerina.asyncAPI.generators.common;
 //
 //import io.ballerina.compiler.syntax.tree.SyntaxTree;
-//import io.ballerina.openapi.core.GeneratorUtils;
-//import io.ballerina.openapi.core.exception.BallerinaOpenApiException;
-//import io.ballerina.openapi.core.generators.schema.BallerinaTypesGenerator;
-//import io.swagger.v3.oas.models.OpenAPI;
+//import io.ballerina.asyncAPI.core.GeneratorUtils;
+//import io.ballerina.asyncAPI.core.exception.BallerinaasyncAPIException;
+//import io.ballerina.asyncAPI.core.generators.schema.BallerinaTypesGenerator;
+//import io.swagger.v3.oas.models.asyncAPI;
 //import org.testng.Assert;
 //import org.testng.annotations.Test;
 //
@@ -30,9 +30,9 @@
 //import java.nio.file.Path;
 //import java.nio.file.Paths;
 //
-//import static io.ballerina.openapi.core.GeneratorUtils.extractReferenceType;
-//import static io.ballerina.openapi.core.GeneratorUtils.getValidName;
-//import static io.ballerina.openapi.generators.common.TestUtils.compareGeneratedSyntaxTreeWithExpectedSyntaxTree;
+//import static io.ballerina.asyncAPI.core.GeneratorUtils.extractReferenceType;
+//import static io.ballerina.asyncAPI.core.GeneratorUtils.getValidName;
+//import static io.ballerina.asyncAPI.generators.common.TestUtils.compareGeneratedSyntaxTreeWithExpectedSyntaxTree;
 //
 ///**
 // * This util class for testing functionality for {@GeneratorUtils.java}.
@@ -40,31 +40,31 @@
 //public class GeneratorUtilsTests {
 //    private static final Path RES_DIR = Paths.get("src/test/resources/generators").toAbsolutePath();
 //
-//    //TODO: expectedExceptionsMessageRegExp = "OpenAPI file has errors: .*"
-//    @Test(description = "Functionality tests for getBallerinaOpenApiType",
-//            expectedExceptions = BallerinaOpenApiException.class)
-//    public static void getIncorrectYamlContract() throws IOException, BallerinaOpenApiException {
+//    //TODO: expectedExceptionsMessageRegExp = "asyncAPI file has errors: .*"
+//    @Test(description = "Functionality tests for getBallerinaasyncAPIType",
+//            expectedExceptions = BallerinaasyncAPIException.class)
+//    public static void getIncorrectYamlContract() throws IOException, BallerinaasyncAPIException {
 //        Path path = RES_DIR.resolve("swagger/invalid/petstore_without_info.yaml");
-//        OpenAPI ballerinaOpenApiType = GeneratorUtils.getOpenAPIFromOpenAPIV3Parser(path);
+//        asyncAPI ballerinaasyncAPIType = GeneratorUtils.getasyncAPIFromasyncAPIV3Parser(path);
 //    }
 //
-//    //TODO: expectedExceptionsMessageRegExp = "OpenAPI file has errors: .*"
+//    //TODO: expectedExceptionsMessageRegExp = "asyncAPI file has errors: .*"
 //    @Test(description = "Functionality tests for When info section null",
-//            expectedExceptions = BallerinaOpenApiException.class)
-//    public static void testForInfoNull() throws IOException, BallerinaOpenApiException {
+//            expectedExceptions = BallerinaasyncAPIException.class)
+//    public static void testForInfoNull() throws IOException, BallerinaasyncAPIException {
 //        Path path = RES_DIR.resolve("swagger/invalid/petstore_without_info.yaml");
-//        OpenAPI ballerinaOpenApiType = GeneratorUtils.getOpenAPIFromOpenAPIV3Parser(path);
+//        asyncAPI ballerinaasyncAPIType = GeneratorUtils.getasyncAPIFromasyncAPIV3Parser(path);
 //    }
 //
 //    //TODO: expectedExceptionsMessageRegExp = "Invalid reference value : .*"
 //    @Test(description = "Functionality negative tests for extractReferenceType",
-//            expectedExceptions = BallerinaOpenApiException.class)
-//    public static void testForReferenceLinkInvalid() throws BallerinaOpenApiException {
+//            expectedExceptions = BallerinaasyncAPIException.class)
+//    public static void testForReferenceLinkInvalid() throws BallerinaasyncAPIException {
 //        String recordName = extractReferenceType("/components/schemas/Error");
 //    }
 //
 //    @Test(description = "Add valid reference path for extract")
-//    public static void testForReferenceLinkValid() throws BallerinaOpenApiException {
+//    public static void testForReferenceLinkValid() throws BallerinaasyncAPIException {
 //        Assert.assertEquals(GeneratorUtils.extractReferenceType("#/components/schemas/Error"), "Error");
 //        Assert.assertEquals(GeneratorUtils.extractReferenceType("#/components/schemas/Pet.-id"), "Pet.-id");
 //        Assert.assertEquals(GeneratorUtils.extractReferenceType("#/components/schemas/Pet."), "Pet.");
@@ -82,10 +82,10 @@
 //    }
 //
 //    @Test(description = "Set record name with removing special Characters")
-//    public static void testRecordName() throws IOException, BallerinaOpenApiException {
-//        OpenAPI openAPI = GeneratorUtils.normalizeOpenAPI(RES_DIR.resolve("schema/swagger/recordName" +
+//    public static void testRecordName() throws IOException, BallerinaasyncAPIException {
+//        asyncAPI asyncAPI = GeneratorUtils.normalizeasyncAPI(RES_DIR.resolve("schema/swagger/recordName" +
 //                ".yaml"), false);
-//        BallerinaTypesGenerator ballerinaSchemaGenerator = new BallerinaTypesGenerator(openAPI);
+//        BallerinaTypesGenerator ballerinaSchemaGenerator = new BallerinaTypesGenerator(asyncAPI);
 //        SyntaxTree syntaxTree = ballerinaSchemaGenerator.generateSyntaxTree();
 //        Path expectedPath = RES_DIR.resolve("schema/ballerina/recordName.bal");
 //        compareGeneratedSyntaxTreeWithExpectedSyntaxTree(expectedPath, syntaxTree);

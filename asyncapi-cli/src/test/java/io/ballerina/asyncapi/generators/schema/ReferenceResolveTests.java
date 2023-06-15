@@ -33,7 +33,8 @@ import java.nio.file.Paths;
  * Tests for Schema Reference resolve.
  */
 public class ReferenceResolveTests {
-    private static final Path RES_DIR = Paths.get("src/test/resources/asyncapi-to-ballerina/schema").toAbsolutePath();
+    private static final Path RES_DIR = Paths.get("src/test/resources/asyncapi-to-ballerina/schema")
+            .toAbsolutePath();
     @Test(description = "Tests with object type include reference")
     public void testReferenceIncludeWithObjectType() throws IOException, BallerinaAsyncApiException {
         AsyncApi25DocumentImpl asyncAPI = GeneratorUtils.normalizeAsyncAPI(RES_DIR.resolve(
@@ -56,9 +57,9 @@ public class ReferenceResolveTests {
 
     @Test(description = "Test doc comment generation of record fields when property is refered to another schema")
     public void testDocCommentResolvingForRefferedSchemas() throws IOException, BallerinaAsyncApiException {
-        AsyncApi25DocumentImpl openAPI = GeneratorUtils.normalizeAsyncAPI(RES_DIR.resolve("Reference" +
+        AsyncApi25DocumentImpl asyncAPI = GeneratorUtils.normalizeAsyncAPI(RES_DIR.resolve("Reference" +
                 "/resolve_reference_docs.yaml"));
-        BallerinaTypesGenerator ballerinaSchemaGenerator = new BallerinaTypesGenerator(openAPI);
+        BallerinaTypesGenerator ballerinaSchemaGenerator = new BallerinaTypesGenerator(asyncAPI);
         SyntaxTree syntaxTree = ballerinaSchemaGenerator.generateSyntaxTree();
         TestUtils.compareGeneratedSyntaxTreewithExpectedSyntaxTree(
                 "schema/baloutputs/Reference/resolve_reference_docs.bal", syntaxTree);

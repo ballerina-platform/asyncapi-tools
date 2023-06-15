@@ -21,16 +21,13 @@ package io.ballerina.asyncapi.core.generators.client;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.TextNode;
-import io.apicurio.datamodels.models.Schema;
 import io.apicurio.datamodels.models.asyncapi.AsyncApiMessage;
-import io.apicurio.datamodels.models.asyncapi.AsyncApiSchema;
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25DocumentImpl;
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25SchemaImpl;
 import io.ballerina.asyncapi.core.exception.BallerinaAsyncApiException;
 
 import java.util.ArrayList;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 
 import static io.ballerina.asyncapi.core.GeneratorConstants.DEFAULT_RETURN;
@@ -79,7 +76,7 @@ public class RemoteFunctionReturnTypeGenerator {
                     for (Iterator<JsonNode> it = test.iterator(); it.hasNext(); ) {
                         JsonNode jsonNode = it.next();
                         if (jsonNode.get("$ref") != null) {
-                            handleReferenceReturn(jsonNode, messages, responseMessages,  returnTypes);
+                            handleReferenceReturn(jsonNode, messages, responseMessages, returnTypes);
 
 
                         } else if (jsonNode.get("payload") != null) {
@@ -121,10 +118,10 @@ public class RemoteFunctionReturnTypeGenerator {
     }
 
     private String handleReferenceReturn(JsonNode jsonNode, Map<String, AsyncApiMessage> messages,
-                                       ArrayList responseMessages,  ArrayList<String> returnTypes)
+                                         ArrayList responseMessages, ArrayList<String> returnTypes)
             throws BallerinaAsyncApiException {
-       TextNode textNode= (TextNode) asyncAPI.getExtensions().get(X_DISPATCHER_KEY);
-        String dispatcherKey=textNode.asText();
+        TextNode textNode = (TextNode) asyncAPI.getExtensions().get(X_DISPATCHER_KEY);
+        String dispatcherKey = textNode.asText();
         String reference = jsonNode.get("$ref").asText();
         // TODO: Consider adding getValidName here , removed because of lowercase and
         //  uppercase error
@@ -138,16 +135,15 @@ public class RemoteFunctionReturnTypeGenerator {
         if (responseMessages != null) {
             responseMessages.add(schemaName);
         }
-        if(!CommonFunctionUtils.checkDispatcherPresent(schemaName, refSchema, dispatcherKey , true)){
+        CommonFunctionUtils commonFunctionUtils = new CommonFunctionUtils(asyncAPI);
+        if (!commonFunctionUtils.isDispatcherPresent(schemaName, refSchema, dispatcherKey, true)) {
             throw new BallerinaAsyncApiException(String.format(
-                    "dispatcherKey must be inside %s schema properties",schemaName));
+                    "dispatcherKey must be inside %s schema properties", schemaName));
         }
         String type = getValidName(schemaName, true);
         returnTypes.add(type);
         return type;
     }
-
-
 
 
     /**

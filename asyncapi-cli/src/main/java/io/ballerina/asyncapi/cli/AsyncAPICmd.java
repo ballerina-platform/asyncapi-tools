@@ -212,7 +212,7 @@ public class AsyncAPICmd implements BLauncherCmd {
         }
         getTargetOutputPath();
         // Check service name it is mandatory
-        AsyncAPISpecGenerator asyncApiConverter = new AsyncAPISpecGenerator();
+        BallerinaToAsyncAPIGenerator asyncApiConverter = new BallerinaToAsyncAPIGenerator();
 
         asyncApiConverter.generateAsyncAPIDefinitionsAllService(balFilePath, targetOutputPath, service,
                 generatedFileType);
@@ -246,20 +246,20 @@ public class AsyncAPICmd implements BLauncherCmd {
      * @param fileName input resource file
      */
     private void asyncApiToBallerina(String fileName) throws IOException {
-        BallerinaCodeGenerator generator = new BallerinaCodeGenerator();
+        AsyncAPIToBallerinaGenerator generator = new AsyncAPIToBallerinaGenerator();
         generator.setLicenseHeader(this.setLicenseHeader());
 //        generator.setIncludeTestFiles(this.includeTestFiles);
-        final File openApiFile = new File(fileName);
+        final File asyncAPIFile = new File(fileName);
         String serviceName;
 //        if (generatedServiceName != null) {
 //            serviceName = generatedServiceName;
 //        } else {
-//            serviceName = openApiFile.getName().split("\\.")[0];
+//            serviceName = asyncAPIFile.getName().split("\\.")[0];
 //        }
         getTargetOutputPath();
-        Path resourcePath = Paths.get(openApiFile.getCanonicalPath());
+        Path resourcePath = Paths.get(asyncAPIFile.getCanonicalPath());
         if (nullable) {
-            outStream.println("WARNING: All the constraints in the OpenAPI contract will be ignored when generating" +
+            outStream.println("WARNING: All the constraints in the AsyncAPI contract will be ignored when generating" +
                     " the Ballerina client/service with the `--nullable` option");
         }
         generatesClientFile(generator, resourcePath);
@@ -323,7 +323,7 @@ public class AsyncAPICmd implements BLauncherCmd {
      * @param generator    generator object
      * @param resourcePath resource Path
      */
-    private void generatesClientFile(BallerinaCodeGenerator generator, Path resourcePath) {
+    private void generatesClientFile(AsyncAPIToBallerinaGenerator generator, Path resourcePath) {
         try {
             generator.generateClient(resourcePath.toString(), targetOutputPath.toString());
         } catch (IOException | FormatterException | BallerinaAsyncApiException e) {

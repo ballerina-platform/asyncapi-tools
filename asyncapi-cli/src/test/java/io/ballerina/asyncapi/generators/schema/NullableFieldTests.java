@@ -25,7 +25,6 @@ import io.ballerina.asyncapi.core.generators.schema.BallerinaTypesGenerator;
 import io.ballerina.asyncapi.generators.common.TestUtils;
 import io.ballerina.compiler.syntax.tree.SyntaxTree;
 import org.ballerinalang.formatter.core.FormatterException;
-import org.testng.Assert;
 import org.testng.annotations.Test;
 
 import java.io.IOException;
@@ -33,7 +32,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 
 /**
- * Tests for SwaggerParser.
+ * Tests for x-nullable field.
  */
 public class NullableFieldTests {
     private static final Path RES_DIR = Paths.get("src/test/resources/asyncapi-to-ballerina/schema/").toAbsolutePath();
@@ -60,9 +59,9 @@ public class NullableFieldTests {
 
     @Test(description = "Test for nullable array referenced schemas")
     public void testNullableArrayRefSchemas() throws IOException, BallerinaAsyncApiException {
-        AsyncApi25DocumentImpl openAPI = GeneratorUtils.normalizeAsyncAPI(RES_DIR.resolve("Nullable" +
+        AsyncApi25DocumentImpl asyncAPI = GeneratorUtils.normalizeAsyncAPI(RES_DIR.resolve("Nullable" +
                 "/nullable_ref_array.yaml"));
-        BallerinaTypesGenerator ballerinaSchemaGenerator = new BallerinaTypesGenerator(openAPI);
+        BallerinaTypesGenerator ballerinaSchemaGenerator = new BallerinaTypesGenerator(asyncAPI);
         SyntaxTree syntaxTree = ballerinaSchemaGenerator.generateSyntaxTree();
         TestUtils.compareGeneratedSyntaxTreewithExpectedSyntaxTree("schema/baloutputs/Nullable/nullable_ref_array.bal",
                 syntaxTree);
@@ -71,29 +70,29 @@ public class NullableFieldTests {
 
     @Test(description = "Test for union type generation for nullable anyOf schema")
     public void testNullableUnionType() throws IOException, BallerinaAsyncApiException, FormatterException {
-        AsyncApi25DocumentImpl openAPI = GeneratorUtils.normalizeAsyncAPI(RES_DIR.resolve("Nullable" +
+        AsyncApi25DocumentImpl asyncAPI = GeneratorUtils.normalizeAsyncAPI(RES_DIR.resolve("Nullable" +
                 "/nullable_anyof_schema.yaml"));
-        BallerinaTypesGenerator ballerinaSchemaGenerator = new BallerinaTypesGenerator(openAPI);
+        BallerinaTypesGenerator ballerinaSchemaGenerator = new BallerinaTypesGenerator(asyncAPI);
         SyntaxTree syntaxTree = ballerinaSchemaGenerator.generateSyntaxTree();
-        TestUtils.compareGeneratedSyntaxTreewithExpectedSyntaxTree("schema/baloutputs/Nullable/nullable_anyof_schema.bal",
-                syntaxTree);
+        TestUtils.compareGeneratedSyntaxTreewithExpectedSyntaxTree("" +
+                        "schema/baloutputs/Nullable/nullable_anyof_schema.bal", syntaxTree);
     }
 
     @Test(description = "Test for union type generation for nullable anyOf schema with array schema")
     public void testNullableArrayUnionType() throws IOException, BallerinaAsyncApiException, FormatterException {
-        AsyncApi25DocumentImpl openAPI = GeneratorUtils.normalizeAsyncAPI(RES_DIR.resolve("Nullable" +
+        AsyncApi25DocumentImpl asyncAPI = GeneratorUtils.normalizeAsyncAPI(RES_DIR.resolve("Nullable" +
                 "/nullable_anyof_array_schema.yaml"));
-        BallerinaTypesGenerator ballerinaSchemaGenerator = new BallerinaTypesGenerator(openAPI);
+        BallerinaTypesGenerator ballerinaSchemaGenerator = new BallerinaTypesGenerator(asyncAPI);
         SyntaxTree syntaxTree = ballerinaSchemaGenerator.generateSyntaxTree();
         TestUtils.compareGeneratedSyntaxTreewithExpectedSyntaxTree("schema/baloutputs/Nullable/" +
-                        "nullable_anyof_array_schema.bal", syntaxTree);
+                "nullable_anyof_array_schema.bal", syntaxTree);
     }
 
     @Test(description = "Test for type generation for object schema with no properties")
     public void testNullableEmptyObjectSchema() throws IOException, BallerinaAsyncApiException, FormatterException {
-        AsyncApi25DocumentImpl openAPI = GeneratorUtils.normalizeAsyncAPI(RES_DIR.resolve("Nullable" +
+        AsyncApi25DocumentImpl asyncAPI = GeneratorUtils.normalizeAsyncAPI(RES_DIR.resolve("Nullable" +
                 "/null_empty_record.yaml"));
-        BallerinaTypesGenerator ballerinaSchemaGenerator = new BallerinaTypesGenerator(openAPI);
+        BallerinaTypesGenerator ballerinaSchemaGenerator = new BallerinaTypesGenerator(asyncAPI);
         SyntaxTree syntaxTree = ballerinaSchemaGenerator.generateSyntaxTree();
         TestUtils.compareGeneratedSyntaxTreewithExpectedSyntaxTree("schema/baloutputs/Nullable/" +
                 "null_empty_record.bal", syntaxTree);
@@ -101,9 +100,9 @@ public class NullableFieldTests {
 
 //    @Test(description = "Test x-nullable not present")
 //    public void testXNullableNotPresent() throws IOException, BallerinaAsyncApiException {
-//        AsyncApi25DocumentImpl openAPI = GeneratorUtils.normalizeAsyncAPI(RES_DIR.resolve("Nullable" +
+//        AsyncApi25DocumentImpl asyncAPI = GeneratorUtils.normalizeAsyncAPI(RES_DIR.resolve("Nullable" +
 //                "/xnullable_not_present.yaml"));
-//        BallerinaTypesGenerator ballerinaSchemaGenerator = new BallerinaTypesGenerator(openAPI);
+//        BallerinaTypesGenerator ballerinaSchemaGenerator = new BallerinaTypesGenerator(asyncAPI);
 //        SyntaxTree syntaxTree = ballerinaSchemaGenerator.generateSyntaxTree();
 ////        TestUtils.compareGeneratedSyntaxTreewithExpectedSyntaxTree("/baloutputs/Nullable/nullable_primitive.bal",
 ////                syntaxTree);

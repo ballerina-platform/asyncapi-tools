@@ -18,7 +18,7 @@
 package io.ballerina.asyncapi.generators.client;
 
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25DocumentImpl;
-import io.ballerina.asyncapi.cli.BallerinaCodeGenerator;
+import io.ballerina.asyncapi.cli.AsyncAPIToBallerinaGenerator;
 import io.ballerina.asyncapi.core.GeneratorUtils;
 import io.ballerina.asyncapi.core.exception.BallerinaAsyncApiException;
 import io.ballerina.asyncapi.core.generators.client.IntermediateClientGenerator;
@@ -54,15 +54,15 @@ public class PathParameterTests {
         // "/v1/{version}/v2/{limit}", "/v1/${'version}/v2/${'limit}"
         // "/v1/{age}/v2/{name}", "/v1/${age}/v2/${name}"
 
-        BallerinaCodeGenerator codeGenerator = new BallerinaCodeGenerator();
+        AsyncAPIToBallerinaGenerator codeGenerator = new AsyncAPIToBallerinaGenerator();
 //        Path definitionPath = RESDIR.resolve(RESDIR + "/swagger/path_parameter_valid.yaml");
 //        Path expectedPath = RESDIR.resolve("ballerina/path_parameter_valid.bal");
 //        AsyncApi25DocumentImpl asyncAPI = GeneratorUtils.normalizeAsyncAPI(definitionPath);
-        BallerinaCodeGenerator ballerinaCodeGenerator = new BallerinaCodeGenerator();
-//        ballerinaCodeGenerator.generateClient("src/test/resources/asyncapi-to-ballerina/client/PathParam" +
+        AsyncAPIToBallerinaGenerator asyncAPIToBallerinaGenerator = new AsyncAPIToBallerinaGenerator();
+//        asyncAPIToBallerinaGenerator.generateClient("src/test/resources/asyncapi-to-ballerina/client/PathParam" +
 //                "/path_parameter_valid.yaml", "/Users/thushalya/Documents/out");
-        ballerinaCodeGenerator.generateClient(
-                "src/test/resources/asyncapi-to-ballerina/schema/Primitive/missDataType.yaml",
+        asyncAPIToBallerinaGenerator.generateClient(
+                "src/test/resources/asyncapi-to-ballerina/client/QueryParam/query_param_without_default_value.yaml",
                 "/Users/thushalya/Documents/out");
 //        AASClientConfig.Builder clientMetaDataBuilder = new AASClientConfig.Builder();
 ////        AASClientConfig oasClientConfig = clientMetaDataBuilder

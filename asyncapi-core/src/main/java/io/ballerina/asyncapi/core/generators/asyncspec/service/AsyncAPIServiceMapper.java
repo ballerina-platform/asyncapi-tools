@@ -70,7 +70,7 @@ public class AsyncAPIServiceMapper {
         this.asyncAPI = asyncAPI;
     }
 
-    private  String extractDispatcherValue(ServiceDeclarationNode service) {
+    private String extractDispatcherValue(ServiceDeclarationNode service) {
         String dispatcherValue = "";
 //        String typeName=null;
         if (service.metadata().isPresent()) {
@@ -103,7 +103,7 @@ public class AsyncAPIServiceMapper {
 
                     }
                 }
-                if(!dispatcherValue.equals("")){
+                if (!dispatcherValue.equals("")) {
                     return dispatcherValue.trim();
                 }
 

@@ -56,7 +56,7 @@ public class DocCommentsGenerator {
 //    /**
 //     * Extract extension for find the display annotation.
 //     *
-//     * @param extensions OpenAPI extension.
+//     * @param extensions AsyncAPI extension.
 //     */
 //    public static void extractDisplayAnnotation(Map<String, JsonNode> extensions,
 //                                                List<AnnotationNode> annotationNodes) {
@@ -73,7 +73,7 @@ public class DocCommentsGenerator {
     /**
      * Extract annotation and documentation related for deprecated records and schemas.
      *
-     * @param extensions      OpenAPI extensions
+     * @param extensions      AsyncAPI extensions
      * @param documentation   List of documentation nodes to be updated with documentation related to deprecation
      * @param annotationNodes List of annotation nodes to be updated with deprecated annotation
      */

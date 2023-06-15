@@ -23,7 +23,6 @@ import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25DocumentImpl;
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25SchemaImpl;
 import io.ballerina.asyncapi.core.GeneratorUtils;
 import io.ballerina.asyncapi.core.exception.BallerinaAsyncApiException;
-import io.ballerina.asyncapi.core.generators.asyncspec.model.BalAsyncApi25SchemaImpl;
 import io.ballerina.asyncapi.core.generators.schema.model.GeneratorMetaData;
 import io.ballerina.asyncapi.core.generators.schema.model.RecordMetadata;
 import io.ballerina.compiler.syntax.tree.AbstractNodeFactory;
@@ -57,7 +56,7 @@ import static io.ballerina.compiler.syntax.tree.SyntaxKind.SEMICOLON_TOKEN;
 /**
  * Generate TypeDefinitionNode and TypeDescriptorNode for allOf schemas.
  * -- ex:
- * Sample OpenAPI :
+ * Sample AsyncAPI :
  * <pre>
  *    schemas:
  *     Dog:
@@ -121,7 +120,7 @@ public class AllOfRecordTypeGenerator extends RecordTypeGenerator {
 
             //    TODO : thushalya:- check this after uncomment has constraints
             if (GeneratorUtils.hasConstraints(schema)) {
-                // use printStream for echo the error, because current openapi to ballerina implementation won't
+                // use printStream for echo the error, because current asyncapi to ballerina implementation won't
                 // handle diagnostic message.
                 OUT_STREAM.println("WARNING: constraints in the AsyncAPI contract will be ignored for the " +
                         "additionalProperties field, as constraints are not supported on Ballerina rest record " +
@@ -196,8 +195,8 @@ public class AllOfRecordTypeGenerator extends RecordTypeGenerator {
                 TypeReferenceNode recordField = NodeFactory.createTypeReferenceNode(createToken(ASTERISK_TOKEN),
                         typeRef, createToken(SEMICOLON_TOKEN));
                 // check whether given reference schema has additional fields.
-                AsyncApi25DocumentImpl openAPI = GeneratorMetaData.getInstance().getAsyncAPI();
-                AsyncApi25SchemaImpl refSchema = (AsyncApi25SchemaImpl) openAPI.getComponents()
+                AsyncApi25DocumentImpl asyncAPI = GeneratorMetaData.getInstance().getAsyncAPI();
+                AsyncApi25SchemaImpl refSchema = (AsyncApi25SchemaImpl) asyncAPI.getComponents()
                         .getSchemas().get(extractedSchemaName);
                 addAdditionalSchemas(refSchema);
 
@@ -205,7 +204,7 @@ public class AllOfRecordTypeGenerator extends RecordTypeGenerator {
             } else if (allOfSchema.getProperties() != null) {
                 Map<String, Schema> properties = allOfSchema.getProperties();
                 List<String> required = allOfSchema.getRequired();
-                List<Node> recordFields= addRecordFields(required, properties.entrySet(), typeName);
+                List<Node> recordFields = addRecordFields(required, properties.entrySet(), typeName);
                 recordFieldList.addAll(recordFields);
                 addAdditionalSchemas(allOfSchema);
             } else if ((

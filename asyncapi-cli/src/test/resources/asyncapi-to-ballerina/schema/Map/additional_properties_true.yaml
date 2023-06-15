@@ -22,16 +22,6 @@ channels:
         $ref: '#/components/messages/Subscribe'
 components:
   schemas:
-    User04:
-      description: Additional properties with type string
-      type: object
-      properties:
-        name:
-          type: string
-        id:
-          type: integer
-      additionalProperties:
-        type: string
     Subscribe:
       type: object
       properties:
@@ -85,6 +75,16 @@ components:
           type: string
         id:
           type: integer
+    User04:
+      description: Additional properties with type string
+      type: object
+      properties:
+        name:
+          type: string
+        id:
+          type: integer
+      additionalProperties:
+        type: string
     User05:
       description: Additional properties with type number
       type: object

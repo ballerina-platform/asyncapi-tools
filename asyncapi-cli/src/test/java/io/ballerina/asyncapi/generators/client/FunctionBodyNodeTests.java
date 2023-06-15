@@ -47,7 +47,7 @@
 //
 ///**
 // * All the tests related to the FunctionBodyNode generation in {
-// * {@link io.ballerina.openapi.core.generators.client.IntermediateClientGenerator}} util.
+// * {@link io.ballerina.asyncAPI.core.generators.client.IntermediateClientGenerator}} util.
 // */
 //public class FunctionBodyNodeTests {
 //    private static final Path RESDIR = Paths.get("src/test/resources/generators/client").toAbsolutePath();

@@ -41,7 +41,7 @@ import static io.ballerina.compiler.syntax.tree.SyntaxKind.QUESTION_MARK_TOKEN;
 /**
  * Generate TypeDefinitionNode and TypeDescriptorNode for anyOf and oneOf schemas.
  * -- ex:
- * Sample OpenAPI :
+ * Sample AsyncAPI :
  * <pre>
  *    schemas:
  *     Employee:

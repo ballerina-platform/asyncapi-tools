@@ -63,7 +63,7 @@ public class TestUtils {
     private static final String LINE_SEPARATOR = System.lineSeparator();
 
     // Get diagnostics
-    public static List<Diagnostic> getDiagnostics(SyntaxTree syntaxTree, AsyncApi25DocumentImpl openAPI,
+    public static List<Diagnostic> getDiagnostics(SyntaxTree syntaxTree, AsyncApi25DocumentImpl asyncAPI,
                                                   IntermediateClientGenerator intermediateClientGenerator)
             throws FormatterException, IOException, BallerinaAsyncApiException {
         List<TypeDefinitionNode> preGeneratedTypeDefinitionNodes = new LinkedList<>();
@@ -71,7 +71,7 @@ public class TestUtils {
                 getBallerinaAuthConfigGenerator().getAuthRelatedTypeDefinitionNodes());
         preGeneratedTypeDefinitionNodes.addAll(intermediateClientGenerator.getTypeDefinitionNodeList());
         BallerinaTypesGenerator ballerinaSchemaGenerator = new BallerinaTypesGenerator(
-                openAPI,  preGeneratedTypeDefinitionNodes);
+                asyncAPI,  preGeneratedTypeDefinitionNodes);
         SyntaxTree schemaSyntax = ballerinaSchemaGenerator.generateSyntaxTree();
         SyntaxTree utilSyntaxTree = intermediateClientGenerator.getBallerinaUtilGenerator().generateUtilSyntaxTree();
         writeFile(clientPath, Formatter.format(syntaxTree).toString());
@@ -139,9 +139,9 @@ public class TestUtils {
 
 //    public static AsyncApi25DocumentImpl getAsyncAPI(Path definitionPath) throws IOException,
 //    BallerinaAsyncApiException{
-//        String openAPIFileContent = Files.readString(definitionPath);
-//        SwaggerParseResult parseResult = new AsyncAPipar().readContents(openAPIFileContent);
-//        return parseResult.getOpenAPI();
+//        String asyncAPIFileContent = Files.readString(definitionPath);
+//        SwaggerParseResult parseResult = new AsyncAPipar().readContents(asyncAPIFileContent);
+//        return parseResult.getasyncAPI();
 //    }
 
     public static String getStringFromGivenBalFile(Path expectedServiceFile, String s) throws IOException {

@@ -23,5 +23,6 @@ public type Id int;
 
 public type UnSubscribe record {
     string 'type;
-    map<json> payload?;
+    record {} payload?;
+    string event;
 };

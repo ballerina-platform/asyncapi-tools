@@ -37,7 +37,7 @@ public class ErrorMessages {
 //        return String.format("Invalid path parameter data type for the parameter: '%s'", parameterName);
 //    }
 //
-//    public static String unsupportedOpenAPIVersion() {
+//    public static String unsupportedAsyncAPIVersion() {
 //        return "Provided AsyncAPI contract version is not supported in the tool. " +
 //                "Use AsyncAPI specification version 2 or higher";
 //    }

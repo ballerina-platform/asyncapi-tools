@@ -62,7 +62,7 @@ import static io.ballerina.asyncapi.core.GeneratorConstants.UTIL_FILE_NAME;
  *
  * @since 1.3.0
  */
-public class BallerinaCodeGenerator {
+public class AsyncAPIToBallerinaGenerator {
     private static final PrintStream outStream = System.err;
     private String srcPackage;
     private String licenseHeader = "";

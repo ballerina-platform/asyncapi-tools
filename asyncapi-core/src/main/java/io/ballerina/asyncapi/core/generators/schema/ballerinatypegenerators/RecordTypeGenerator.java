@@ -57,7 +57,7 @@ import static io.ballerina.compiler.syntax.tree.SyntaxKind.SEMICOLON_TOKEN;
 /**
  * Generate TypeDefinitionNode and TypeDescriptorNode for object type schema.
  * -- ex:
- * Sample OpenAPI :
+ * Sample AsyncAPI :
  * <pre>
  *      components:
  *          schemas:
@@ -169,7 +169,7 @@ public class RecordTypeGenerator extends TypeGenerator {
         if (schema.getProperties() != null) {
             Map<String, Schema> properties = schema.getProperties();
             List<String> required = schema.getRequired();
-           List<Node> generatedRecordFields= addRecordFields(required, properties.entrySet(), typeName);
+            List<Node> generatedRecordFields = addRecordFields(required, properties.entrySet(), typeName);
             recordFields.addAll(generatedRecordFields);
             NodeList<Node> fieldNodes = AbstractNodeFactory.createNodeList(recordFields);
             return NodeFactory.createRecordTypeDescriptorNode(createToken(RECORD_KEYWORD),
@@ -203,7 +203,7 @@ public class RecordTypeGenerator extends TypeGenerator {
             if (additionalProperties instanceof Schema) {
                 AsyncApi25SchemaImpl additionalPropSchema = (AsyncApi25SchemaImpl) additionalProperties;
                 if (GeneratorUtils.hasConstraints(additionalPropSchema)) {
-                    // use printStream to echo the error, because current openapi to ballerina implementation doesn't
+                    // use printStream to echo the error, because current asyncAPI to ballerina implementation doesn't
                     // handle diagnostic message.
                     isOpenRecord = false;
                     OUT_STREAM.println("WARNING: constraints in the AsyncAPI contract will be ignored for the " +
@@ -266,9 +266,9 @@ public class RecordTypeGenerator extends TypeGenerator {
             }
 
             imports.addAll(typeGenerator.getImports());
-            ImmutablePair<List<Node>, Set<String>> fieldListWithImports =TypeGeneratorUtils.
+            ImmutablePair<List<Node>, Set<String>> fieldListWithImports = TypeGeneratorUtils.
                     updateRecordFieldListWithImports(required, recordFieldList, field, fieldSchema, schemaDocNodes,
-                    fieldName, fieldTypeName);
+                            fieldName, fieldTypeName);
             recordFieldList = fieldListWithImports.getLeft();
             imports.addAll(fieldListWithImports.getRight());
         }

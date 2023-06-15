@@ -19,17 +19,11 @@
 package io.ballerina.asyncapi.generators.schema;
 
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25DocumentImpl;
-import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25SchemaImpl;
 import io.ballerina.asyncapi.core.GeneratorUtils;
 import io.ballerina.asyncapi.core.exception.BallerinaAsyncApiException;
 import io.ballerina.asyncapi.core.generators.schema.BallerinaTypesGenerator;
-import io.ballerina.asyncapi.core.generators.schema.TypeGeneratorUtils;
-import io.ballerina.asyncapi.core.generators.schema.ballerinatypegenerators.TypeGenerator;
-import io.ballerina.asyncapi.core.generators.schema.ballerinatypegenerators.UnionTypeGenerator;
-import io.ballerina.asyncapi.core.generators.schema.model.GeneratorMetaData;
 import io.ballerina.asyncapi.generators.common.TestUtils;
 import io.ballerina.compiler.syntax.tree.SyntaxTree;
-import org.testng.Assert;
 import org.testng.annotations.Test;
 
 import java.io.IOException;

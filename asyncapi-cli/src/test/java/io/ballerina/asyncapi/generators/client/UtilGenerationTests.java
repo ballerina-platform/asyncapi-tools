@@ -29,11 +29,11 @@ public class UtilGenerationTests {
         Path expectedPath = RESDIR.resolve("baloutputs/Util/default_util.bal");
         String path = expectedPath.toString();
 
-        AsyncApi25DocumentImpl openAPI = GeneratorUtils.normalizeAsyncAPI(definitionPath);
+        AsyncApi25DocumentImpl asyncAPI = GeneratorUtils.normalizeAsyncAPI(definitionPath);
         AASClientConfig.Builder clientMetaDataBuilder = new AASClientConfig.Builder();
         AASClientConfig oasClientConfig = clientMetaDataBuilder
 //                .withFilters(filter)
-                .withAsyncAPI(openAPI).build();
+                .withAsyncAPI(asyncAPI).build();
         IntermediateClientGenerator intermediateClientGenerator = new IntermediateClientGenerator(oasClientConfig);
         intermediateClientGenerator.generateSyntaxTree();
         SyntaxTree utlisSyntaxTree = intermediateClientGenerator.getBallerinaUtilGenerator().generateUtilSyntaxTree();
@@ -45,18 +45,18 @@ public class UtilGenerationTests {
     public void testUtilFileGenForQueryParams() throws IOException, BallerinaAsyncApiException,
             FormatterException {
         Path definitionPath = RESDIR.resolve("Util/query_parameter.yaml");
-        String expectedPath = "baloutputs/Util/query_parameter_utils.bal";
-        AsyncApi25DocumentImpl openAPI = GeneratorUtils.normalizeAsyncAPI(definitionPath);
+        String expectedPath = "client/baloutputs/Util/query_parameter_utils.bal";
+        AsyncApi25DocumentImpl asyncAPI = GeneratorUtils.normalizeAsyncAPI(definitionPath);
         AASClientConfig.Builder clientMetaDataBuilder = new AASClientConfig.Builder();
         AASClientConfig oasClientConfig = clientMetaDataBuilder
 
-                .withAsyncAPI(openAPI).build();
+                .withAsyncAPI(asyncAPI).build();
         IntermediateClientGenerator intermediateClientGenerator = new IntermediateClientGenerator(oasClientConfig);
         SyntaxTree clientSyntaxTree = intermediateClientGenerator.generateSyntaxTree();
 //        List<String> invalidFunctionNames = Arrays.asList(CREATE_FORM_URLENCODED_REQUEST_BODY, GET_MAP_FOR_HEADERS);
 //        Assert.assertTrue(checkUtil(invalidFunctionNames,
 //                intermediateClientGenerator.getBallerinaUtilGenerator().generateUtilSyntaxTree()));
-//        List<Diagnostic> diagnostics = getDiagnostics(clientSyntaxTree, openAPI, intermediateClientGenerator);
+//        List<Diagnostic> diagnostics = getDiagnostics(clientSyntaxTree, asyncAPI, intermediateClientGenerator);
 //        Assert.assertTrue(diagnostics.isEmpty());
         SyntaxTree utlisSyntaxTree = intermediateClientGenerator.getBallerinaUtilGenerator().generateUtilSyntaxTree();
 
@@ -69,11 +69,11 @@ public class UtilGenerationTests {
     public void testUtilFileGenForHeader() throws IOException, BallerinaAsyncApiException,
             FormatterException {
         Path definitionPath = RESDIR.resolve("Util/header_parameter.yaml");
-        String expectedPath = "baloutputs/Util/header_parameter_utils.bal";
-        AsyncApi25DocumentImpl openAPI = GeneratorUtils.normalizeAsyncAPI(definitionPath);
+        String expectedPath = "client/baloutputs/Util/header_parameter_utils.bal";
+        AsyncApi25DocumentImpl asyncAPI = GeneratorUtils.normalizeAsyncAPI(definitionPath);
         AASClientConfig.Builder clientMetaDataBuilder = new AASClientConfig.Builder();
         AASClientConfig oasClientConfig = clientMetaDataBuilder
-                .withAsyncAPI(openAPI).build();
+                .withAsyncAPI(asyncAPI).build();
         IntermediateClientGenerator intermediateClientGenerator = new IntermediateClientGenerator(oasClientConfig);
         SyntaxTree clientSyntaxTree = intermediateClientGenerator.generateSyntaxTree();
 //        List<String> invalidFunctionNames = Arrays.asList(GET_PATH_FOR_QUERY_PARAM,
@@ -83,26 +83,26 @@ public class UtilGenerationTests {
         TestUtils.compareGeneratedSyntaxTreewithExpectedSyntaxTree(expectedPath,
                 utlisSyntaxTree);
 //                intermediateClientGenerator.getBallerinaUtilGenerator().generateUtilSyntaxTree()));
-//        List<Diagnostic> diagnostics = getDiagnostics(clientSyntaxTree, openAPI, intermediateClientGenerator);
+//        List<Diagnostic> diagnostics = getDiagnostics(clientSyntaxTree, asyncAPI, intermediateClientGenerator);
 //        Assert.assertTrue(diagnostics.isEmpty());
     }
 
     //
-    @Test(description = "Validate the util functions generated for OpenAPI definition with URL encoded request body")
+    @Test(description = "Validate the util functions generated for asyncAPI definition with URL encoded request body")
     public void testUtilFileGenURLEncodedRequestBody() throws IOException, BallerinaAsyncApiException,
             FormatterException {
         Path definitionPath = RESDIR.resolve("Util/path_param_url_encoded.yaml");
-        String expectedPath = "baloutputs/Util/path_param_url_encoded.bal";
-        AsyncApi25DocumentImpl openAPI = GeneratorUtils.normalizeAsyncAPI(definitionPath);
+        String expectedPath = "client/baloutputs/Util/path_param_url_encoded.bal";
+        AsyncApi25DocumentImpl asyncAPI = GeneratorUtils.normalizeAsyncAPI(definitionPath);
         AASClientConfig.Builder clientMetaDataBuilder = new AASClientConfig.Builder();
         AASClientConfig oasClientConfig = clientMetaDataBuilder
-                .withAsyncAPI(openAPI).build();
+                .withAsyncAPI(asyncAPI).build();
         IntermediateClientGenerator intermediateClientGenerator = new IntermediateClientGenerator(oasClientConfig);
         SyntaxTree clientSyntaxTree = intermediateClientGenerator.generateSyntaxTree();
         SyntaxTree utlisSyntaxTree = intermediateClientGenerator.getBallerinaUtilGenerator().generateUtilSyntaxTree();
         TestUtils.compareGeneratedSyntaxTreewithExpectedSyntaxTree(expectedPath,
                 utlisSyntaxTree);
-//        List<Diagnostic> diagnostics = getDiagnostics(clientSyntaxTree, openAPI, intermediateClientGenerator);
+//        List<Diagnostic> diagnostics = getDiagnostics(clientSyntaxTree, asyncAPI, intermediateClientGenerator);
 //        Assert.assertTrue(diagnostics.isEmpty());
     }
 
@@ -114,13 +114,13 @@ public class UtilGenerationTests {
             FormatterException {
         Path definitionPath = RESDIR.resolve("Util/complete_util_gen.yaml");
         Path expectedPath = RESDIR.resolve("baloutputs/Util/complete_util_gen.bal");
-        AsyncApi25DocumentImpl openAPI = GeneratorUtils.normalizeAsyncAPI(definitionPath);
+        AsyncApi25DocumentImpl asyncAPI = GeneratorUtils.normalizeAsyncAPI(definitionPath);
         AASClientConfig.Builder clientMetaDataBuilder = new AASClientConfig.Builder();
         AASClientConfig oasClientConfig = clientMetaDataBuilder
-                .withAsyncAPI(openAPI).build();
+                .withAsyncAPI(asyncAPI).build();
         IntermediateClientGenerator intermediateClientGenerator = new IntermediateClientGenerator(oasClientConfig);
         SyntaxTree clientSyntaxTree = intermediateClientGenerator.generateSyntaxTree();
-//        List<Diagnostic> diagnostics = getDiagnostics(clientSyntaxTree, openAPI, intermediateClientGenerator);
+//        List<Diagnostic> diagnostics = getDiagnostics(clientSyntaxTree, asyncAPI, intermediateClientGenerator);
 //        Assert.assertTrue(diagnostics.isEmpty());
         SyntaxTree utlisSyntaxTree = intermediateClientGenerator.getBallerinaUtilGenerator().generateUtilSyntaxTree();
         TestUtils.compareGeneratedSyntaxTreewithExpectedSyntaxTree(expectedPath.toString(),
@@ -131,13 +131,13 @@ public class UtilGenerationTests {
 //    public void testApiKeyauthUtilGen() throws IOException, BallerinaAsyncApiException,
 //            FormatterException {
 //        Path definitionPath = RESDIR.resolve("swagger/apikey_with_no_query_param.yaml");
-//        AsyncApi25DocumentImpl openAPI = GeneratorUtils.normalizeAsyncAPI(definitionPath);
+//        AsyncApi25DocumentImpl asyncAPI = GeneratorUtils.normalizeAsyncAPI(definitionPath);
 //        AASClientConfig.Builder clientMetaDataBuilder = new AASClientConfig.Builder();
 //        AASClientConfig oasClientConfig = clientMetaDataBuilder
-//                .withAsyncAPI(openAPI).build();
+//                .withAsyncAPI(asyncAPI).build();
 //        IntermediateClientGenerator intermediateClientGenerator = new IntermediateClientGenerator(oasClientConfig);
 //        SyntaxTree clientSyntaxTree = intermediateClientGenerator.generateSyntaxTree();
-//        List<Diagnostic> diagnostics = getDiagnostics(clientSyntaxTree, openAPI, intermediateClientGenerator);
+//        List<Diagnostic> diagnostics = getDiagnostics(clientSyntaxTree, asyncAPI, intermediateClientGenerator);
 //        Assert.assertTrue(diagnostics.isEmpty());
 //    }
 //

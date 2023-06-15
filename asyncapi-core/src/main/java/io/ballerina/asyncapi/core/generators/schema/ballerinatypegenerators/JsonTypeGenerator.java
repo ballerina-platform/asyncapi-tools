@@ -1,7 +1,6 @@
 package io.ballerina.asyncapi.core.generators.schema.ballerinatypegenerators;
 
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25SchemaImpl;
-import io.apicurio.datamodels.models.union.BooleanUnionValueImpl;
 import io.ballerina.asyncapi.core.exception.BallerinaAsyncApiException;
 import io.ballerina.compiler.syntax.tree.TypeDescriptorNode;
 
@@ -10,8 +9,8 @@ import static io.ballerina.compiler.syntax.tree.NodeFactory.createBuiltinSimpleN
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.JSON_KEYWORD;
 
 
-/** Generate TypeDefinitionNode and TypeDescriptorNode for Json type schema.
- *
+/**
+ * Generate TypeDefinitionNode and TypeDescriptorNode for Json type schema.
  */
 public class JsonTypeGenerator extends TypeGenerator {
     public JsonTypeGenerator(AsyncApi25SchemaImpl schema, String typeName) {
@@ -30,7 +29,7 @@ public class JsonTypeGenerator extends TypeGenerator {
 //            convertAsyncAPITypeToBallerina("{}")
 
 
-            return createBuiltinSimpleNameReferenceNode(JSON_KEYWORD, createIdentifierToken("json"));
+        return createBuiltinSimpleNameReferenceNode(JSON_KEYWORD, createIdentifierToken("json"));
 //            return createMapTypeDescriptorNode(createToken(MAP_KEYWORD), createTypeParameterNode(
 //                    createToken(LT_TOKEN), createBuiltinSimpleNameReferenceNode(
 //                            null, createIdentifierToken(convertAsyncAPITypeToBallerina("{}"))),

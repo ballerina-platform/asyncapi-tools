@@ -45,16 +45,16 @@ public class ComparedGeneratedFileTests {
     private static final Path RES_DIR = Paths.get("src/test/resources/asyncapi-to-ballerina/client").toAbsolutePath();
     SyntaxTree syntaxTree;
 
-    @Test(description = "Test openAPI definition to ballerina client source code generation",
+    @Test(description = "Test asyncAPI definition to ballerina client source code generation",
             dataProvider = "fileProviderForFilesComparison")
-    public void openApiToBallerinaCodeGenTestForClient(String yamlFile, String expectedFile) throws IOException,
+    public void asyncAPIToBallerinaCodeGenTestForClient(String yamlFile, String expectedFile) throws IOException,
             BallerinaAsyncApiException, FormatterException, URISyntaxException {
         Path definitionPath = RES_DIR.resolve("Real/" + yamlFile);
         Path expectedPath = RES_DIR.resolve("baloutputs/Real/" + expectedFile);
-        AsyncApi25DocumentImpl openAPI = GeneratorUtils.normalizeAsyncAPI(definitionPath);
+        AsyncApi25DocumentImpl asyncAPI = GeneratorUtils.normalizeAsyncAPI(definitionPath);
         AASClientConfig.Builder clientMetaDataBuilder = new AASClientConfig.Builder();
         AASClientConfig oasClientConfig = clientMetaDataBuilder
-                .withAsyncAPI(openAPI).build();
+                .withAsyncAPI(asyncAPI).build();
         IntermediateClientGenerator ballerinaClientGenerator = new IntermediateClientGenerator(oasClientConfig);
         syntaxTree = ballerinaClientGenerator.generateSyntaxTree();
         compareGeneratedSyntaxTreeWithExpectedSyntaxTree(expectedPath, syntaxTree);

@@ -31,7 +31,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 
 /**
- * The tests are related to the allOF data type in the swagger.
+ * The tests are related to the allOF data type in the asyncAPI specification.
  */
 public class AllOfDataTypeTests {
     private static final Path RES_DIR = Paths.get("src/test/resources/asyncapi-to-ballerina/schema")
@@ -61,8 +61,8 @@ public class AllOfDataTypeTests {
     @Test(description = "Generate record when allOf schema has only one references schema")
     public void generateTypeForSingleAllOfSchema() throws IOException, BallerinaAsyncApiException {
         Path definitionPath = RES_DIR.resolve("AllOf/allOf_with_one_ref.yaml");
-        AsyncApi25DocumentImpl openAPI = GeneratorUtils.normalizeAsyncAPI(definitionPath);
-        BallerinaTypesGenerator ballerinaSchemaGenerator = new BallerinaTypesGenerator(openAPI);
+        AsyncApi25DocumentImpl asyncAPI = GeneratorUtils.normalizeAsyncAPI(definitionPath);
+        BallerinaTypesGenerator ballerinaSchemaGenerator = new BallerinaTypesGenerator(asyncAPI);
         syntaxTree = ballerinaSchemaGenerator.generateSyntaxTree();
         TestUtils.compareGeneratedSyntaxTreewithExpectedSyntaxTree(
                 "schema/baloutputs/AllOf/allOf_with_one_ref.bal", syntaxTree);
@@ -72,8 +72,8 @@ public class AllOfDataTypeTests {
             "schema")
     public void generateCyclicSchemaAllOfSchema() throws IOException, BallerinaAsyncApiException {
         Path definitionPath = RES_DIR.resolve("AllOf/allOf_with_cyclic.yaml");
-        AsyncApi25DocumentImpl openAPI = GeneratorUtils.normalizeAsyncAPI(definitionPath);
-        BallerinaTypesGenerator ballerinaSchemaGenerator = new BallerinaTypesGenerator(openAPI);
+        AsyncApi25DocumentImpl asyncAPI = GeneratorUtils.normalizeAsyncAPI(definitionPath);
+        BallerinaTypesGenerator ballerinaSchemaGenerator = new BallerinaTypesGenerator(asyncAPI);
         syntaxTree = ballerinaSchemaGenerator.generateSyntaxTree();
         TestUtils.compareGeneratedSyntaxTreewithExpectedSyntaxTree(
                 "schema/baloutputs/AllOf/allOf_with_cyclic.bal", syntaxTree);
@@ -82,8 +82,8 @@ public class AllOfDataTypeTests {
     @Test(description = "Generate record for allOf schema with array schema")
     public void generateAllOfWithTypeUnSpecifiedObjectSchema() throws IOException, BallerinaAsyncApiException {
         Path definitionPath = RES_DIR.resolve("AllOf/allOfWithNoType.yaml");
-        AsyncApi25DocumentImpl openAPI = GeneratorUtils.normalizeAsyncAPI(definitionPath);
-        BallerinaTypesGenerator ballerinaSchemaGenerator = new BallerinaTypesGenerator(openAPI);
+        AsyncApi25DocumentImpl asyncAPI = GeneratorUtils.normalizeAsyncAPI(definitionPath);
+        BallerinaTypesGenerator ballerinaSchemaGenerator = new BallerinaTypesGenerator(asyncAPI);
         syntaxTree = ballerinaSchemaGenerator.generateSyntaxTree();
         TestUtils.compareGeneratedSyntaxTreewithExpectedSyntaxTree(
                 "schema/baloutputs/AllOf/allOfWithNoType.bal", syntaxTree);
@@ -93,8 +93,8 @@ public class AllOfDataTypeTests {
     @Test(description = "Generate record for allOf schema with empty object schema")
     public void generateAllOfWithEmptyObjectSchema() throws IOException, BallerinaAsyncApiException {
         Path definitionPath = RES_DIR.resolve("AllOf/allOfWithEmptyObject.yaml");
-        AsyncApi25DocumentImpl openAPI = GeneratorUtils.normalizeAsyncAPI(definitionPath);
-        BallerinaTypesGenerator ballerinaSchemaGenerator = new BallerinaTypesGenerator(openAPI);
+        AsyncApi25DocumentImpl asyncAPI = GeneratorUtils.normalizeAsyncAPI(definitionPath);
+        BallerinaTypesGenerator ballerinaSchemaGenerator = new BallerinaTypesGenerator(asyncAPI);
         syntaxTree = ballerinaSchemaGenerator.generateSyntaxTree();
         TestUtils.compareGeneratedSyntaxTreewithExpectedSyntaxTree(
                 "schema/baloutputs/AllOf/allOfWithEmptyObject.bal", syntaxTree);
@@ -103,8 +103,8 @@ public class AllOfDataTypeTests {
     @Test(description = "Generate record for nested allOf schemas")
     public void generateNestedAllOfSchema() throws IOException, BallerinaAsyncApiException {
         Path definitionPath = RES_DIR.resolve("AllOf/nested_allOf_with_allOf.yaml");
-        AsyncApi25DocumentImpl openAPI = GeneratorUtils.normalizeAsyncAPI(definitionPath);
-        BallerinaTypesGenerator ballerinaSchemaGenerator = new BallerinaTypesGenerator(openAPI);
+        AsyncApi25DocumentImpl asyncAPI = GeneratorUtils.normalizeAsyncAPI(definitionPath);
+        BallerinaTypesGenerator ballerinaSchemaGenerator = new BallerinaTypesGenerator(asyncAPI);
         syntaxTree = ballerinaSchemaGenerator.generateSyntaxTree();
         TestUtils.compareGeneratedSyntaxTreewithExpectedSyntaxTree(
                 "schema/baloutputs/AllOf/nested_allOf_with_allOf.bal", syntaxTree);
@@ -116,8 +116,8 @@ public class AllOfDataTypeTests {
                     "Unsupported nested OneOf or AnyOf schema is found inside a AllOf schema.")
     public void arrayHasMaxItemsExceedLimit02() throws IOException, BallerinaAsyncApiException {
         Path definitionPath = RES_DIR.resolve("AllOf/nested_allOf_with_oneOf.yaml");
-        AsyncApi25DocumentImpl openAPI = GeneratorUtils.normalizeAsyncAPI(definitionPath);
-        BallerinaTypesGenerator ballerinaSchemaGenerator = new BallerinaTypesGenerator(openAPI);
+        AsyncApi25DocumentImpl asyncAPI = GeneratorUtils.normalizeAsyncAPI(definitionPath);
+        BallerinaTypesGenerator ballerinaSchemaGenerator = new BallerinaTypesGenerator(asyncAPI);
         syntaxTree = ballerinaSchemaGenerator.generateSyntaxTree();
     }
 }

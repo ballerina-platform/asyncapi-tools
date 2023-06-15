@@ -58,7 +58,6 @@ import io.ballerina.compiler.syntax.tree.TypeDescriptorNode;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 
 import java.io.PrintStream;
-import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -94,6 +93,7 @@ public class TypeGeneratorUtils {
                     GeneratorConstants.STRING, GeneratorConstants.BOOLEAN));
 
     private static final PrintStream OUT_STREAM = System.err;
+
     /**
      * Get SchemaType object relevant to the schema given.
      *
@@ -109,11 +109,7 @@ public class TypeGeneratorUtils {
         }
         if (schemaValue.get$ref() != null) {
             return new ReferencedTypeGenerator(schemaValue, typeName);
-            //TODO: include mapschema here see openapi code
-        } else if ((schemaValue.getType() != null && schemaValue.getType().equals(GeneratorConstants.OBJECT)) ||
-                schemaValue.getProperties() != null) {
-            return new RecordTypeGenerator(schemaValue, typeName);
-        } else if (schemaValue.getType() != null && schemaValue.getType().equals("array")) {
+        } else if (schemaValue.getType() != null && schemaValue.getType().equals(GeneratorConstants.ARRAY)) {
             return new ArrayTypeGenerator(schemaValue, typeName, parentName);
         } else if (schemaValue.getType() != null && primitiveTypeList.contains(schemaValue.getType())) {
             return new PrimitiveTypeGenerator(schemaValue, typeName);
@@ -125,6 +121,9 @@ public class TypeGeneratorUtils {
             } else {
                 return new UnionTypeGenerator(schemaValue, typeName);
             }
+        } else if ((schemaValue.getType() != null && schemaValue.getType().equals(GeneratorConstants.OBJECT)) ||
+                schemaValue.getProperties() != null) {
+            return new RecordTypeGenerator(schemaValue, typeName);
         } else if (schemaValue.getType() != null && schemaValue.getType().equals(GeneratorConstants.OBJECT) &&
                 schemaValue.getAdditionalProperties() != null &&
                 (schemaValue.getAdditionalProperties() instanceof AsyncApi25SchemaImpl ||
@@ -142,7 +141,7 @@ public class TypeGeneratorUtils {
 //            }else if (){
 //                return  null;
 //            }
-        } else if (schemaValue.getType() == null && schemaValue.getProperties()==null &&
+        } else if (schemaValue.getType() == null && schemaValue.getProperties() == null &&
                 schemaValue.getAdditionalProperties() != null) {
             return new JsonTypeGenerator(schemaValue, typeName);
 
@@ -172,7 +171,7 @@ public class TypeGeneratorUtils {
 //        boolean nullable = GeneratorMetaData.getInstance().isNullable();
         if (schema.getExtensions() != null) {
 
-            if (schema.getExtensions().get("x-nullable")!=null &&
+            if (schema.getExtensions().get("x-nullable") != null &&
                     schema.getExtensions().get("x-nullable").equals(BooleanNode.TRUE)) {
                 nillableType = createOptionalTypeDescriptorNode(originalTypeDesc, createToken(QUESTION_MARK_TOKEN));
             }
@@ -186,7 +185,7 @@ public class TypeGeneratorUtils {
         return nillableType;
     }
 
-//    public static void updateRecordFieldList(List<String> required,
+    //    public static void updateRecordFieldList(List<String> required,
 //                                             List<Node> recordFieldList,
 //                                             Map.Entry<String, Schema> field,
 //                                             AsyncApi25SchemaImpl fieldSchema,
@@ -197,40 +196,47 @@ public class TypeGeneratorUtils {
 //        updateRecordFieldList(required, recordFieldList, field, fieldSchema, schemaDocNodes, fieldName,
 //                fieldTypeName, System.err);
 //    }
-public static ImmutablePair<List<Node>, Set<String>> updateRecordFieldListWithImports(
-        List<String> required, List<Node> recordFieldList, Map.Entry<String, Schema> field,
-        AsyncApi25SchemaImpl fieldSchema, NodeList<Node> schemaDocNodes, IdentifierToken fieldName,
-        TypeDescriptorNode fieldTypeName) {
+    public static ImmutablePair<List<Node>, Set<String>> updateRecordFieldListWithImports(
+            List<String> required, List<Node> recordFieldList, Map.Entry<String, Schema> field,
+            AsyncApi25SchemaImpl fieldSchema, NodeList<Node> schemaDocNodes, IdentifierToken fieldName,
+            TypeDescriptorNode fieldTypeName) {
 
-    return updateRecordFieldListWithImports(required, recordFieldList, field, fieldSchema, schemaDocNodes,
-            fieldName,
-            fieldTypeName, System.err);
-}
+        return updateRecordFieldListWithImports(required, recordFieldList, field, fieldSchema, schemaDocNodes,
+                fieldName,
+                fieldTypeName, System.err);
+    }
 
-    public static ImmutablePair<List<Node>, Set<String>> updateRecordFieldListWithImports(List<String> required,
-                                             List<Node> recordFieldList,
-                                             Map.Entry<String, Schema> field,
-                                             AsyncApi25SchemaImpl fieldSchema,
-                                             NodeList<Node> schemaDocNodes,
-                                             IdentifierToken fieldName,
-                                             TypeDescriptorNode fieldTypeName,
-                                             PrintStream outStream) {
+    public static ImmutablePair<List<Node>, Set<String>>
+    updateRecordFieldListWithImports(List<String> required,
+                                     List<Node> recordFieldList,
+                                     Map.Entry<String, Schema> field,
+                                     AsyncApi25SchemaImpl fieldSchema,
+                                     NodeList<Node> schemaDocNodes,
+                                     IdentifierToken fieldName,
+                                     TypeDescriptorNode fieldTypeName,
+                                     PrintStream outStream) {
 
 
         MarkdownDocumentationNode documentationNode = createMarkdownDocumentationNode(schemaDocNodes);
 //        Generate constraint annotation.
         Set<String> imports = new HashSet<>();
-        AnnotationNode constraintNode = generateConstraintNode(fieldName.text(),fieldSchema);
+        AnnotationNode constraintNode = null;
+
 //        MetadataNode metadataNode;
-        boolean isConstraintSupport =
-                constraintNode != null &&
-                        fieldSchema !=null &&
-                        fieldSchema.getExtensions()!=null &&
-                                fieldSchema.getExtensions().get("x-nullable") != null ||
-                        ((((fieldSchema.getOneOf() != null || fieldSchema.getAllOf() != null ||
-                                        fieldSchema.getAnyOf() != null))) &&
-                                ( fieldSchema.getOneOf() != null ||
-                                fieldSchema.getAnyOf() != null));
+        boolean isConstraintSupport = false;
+        if (fieldSchema != null) {
+            constraintNode = generateConstraintNode(fieldName.text(), fieldSchema);
+            isConstraintSupport =
+                    constraintNode != null &&
+                            fieldSchema.getExtensions() != null &&
+                            fieldSchema.getExtensions().get("x-nullable") != null ||
+                            ((((fieldSchema.getOneOf() != null || fieldSchema.getAllOf() != null ||
+                                    fieldSchema.getAnyOf() != null))) &&
+                                    (fieldSchema.getOneOf() != null ||
+                                            fieldSchema.getAnyOf() != null));
+        }
+
+
 //        boolean nullable = GeneratorMetaData.getInstance().isNullable();
 //        if (nullable) {
 //            constraintNode = null;
@@ -240,7 +246,7 @@ public static ImmutablePair<List<Node>, Set<String>> updateRecordFieldListWithIm
 //                    fieldName.toString().trim());
 //            constraintNode = null;
 //        }
-      if (isConstraintSupport) {
+        if (isConstraintSupport) {
             outStream.printf("WARNING: constraints in the AsyncAPI contract will be ignored for the " +
                             "field `%s`, as constraints are not supported on Ballerina union types%n",
                     fieldName.toString().trim());
@@ -324,7 +330,8 @@ public static ImmutablePair<List<Node>, Set<String>> updateRecordFieldListWithIm
 
         Token defaultValueToken;
         String defaultValue = fieldSchema.getDefault().toString().trim();
-    if ((fieldSchema.getType()!=null && fieldSchema.getType().equals("string")|| fieldSchema.getType()==null)) {
+        if ((fieldSchema.getType() != null && fieldSchema.getType().equals("string") ||
+                fieldSchema.getType() == null)) {
             if (defaultValue.equals("\"")) {
                 defaultValueToken = AbstractNodeFactory.createIdentifierToken("\"" + "\\" +
                         fieldSchema.getDefault().asText() + "\"");
@@ -334,7 +341,7 @@ public static ImmutablePair<List<Node>, Set<String>> updateRecordFieldListWithIm
             }
         } else if (!defaultValue.matches("^[0-9]*$") && !defaultValue.matches("^(\\d*\\.)?\\d+$")
                 && !(defaultValue.startsWith("[") && defaultValue.endsWith("]")) &&
-                !(fieldSchema.getType()!=null && fieldSchema.getType().equals("boolean"))) {
+                !(fieldSchema.getType() != null && fieldSchema.getType().equals("boolean"))) {
             //This regex was added due to avoid adding quotes for default values which are numbers and array values.
             //Ex: default: 123
             defaultValueToken = AbstractNodeFactory.createIdentifierToken(
@@ -357,9 +364,9 @@ public static ImmutablePair<List<Node>, Set<String>> updateRecordFieldListWithIm
      *
      * @return {@link MetadataNode}
      */
-    public static AnnotationNode generateConstraintNode(String typeName,AsyncApi25SchemaImpl fieldSchema) {
+    public static AnnotationNode generateConstraintNode(String typeName, AsyncApi25SchemaImpl fieldSchema) {
 
-        if(fieldSchema.getType()!= null && isConstraintAllowed(typeName, fieldSchema)) {
+        if (fieldSchema.getType() != null && isConstraintAllowed(typeName, fieldSchema)) {
             if (fieldSchema.getType().equals("string")) {
                 AsyncApi25SchemaImpl stringSchema = fieldSchema;
                 // Attributes : maxLength, minLength
@@ -381,23 +388,21 @@ public static ImmutablePair<List<Node>, Set<String>> updateRecordFieldListWithIm
     public static boolean isConstraintAllowed(String typeName, AsyncApi25SchemaImpl schema) {
 
         boolean isConstraintNotAllowed = schema.getExtensions() != null && schema.getExtensions().get("x-nullable")
-                !=null ||
-                (schema.getOneOf()!=null && schema.getAllOf()!=null && schema.getAnyOf()!=null &&
+                != null ||
+                (schema.getOneOf() != null && schema.getAllOf() != null && schema.getAnyOf() != null &&
                         (schema.getOneOf() != null ||
-                        schema.getAnyOf() != null));
+                                schema.getAnyOf() != null));
         if (isConstraintNotAllowed) {
-            OUT_STREAM.printf("WARNING: constraints in the OpenAPI contract will be ignored for the " +
+            OUT_STREAM.printf("WARNING: constraints in the AsyncAPI contract will be ignored for the " +
                             "type `%s`, as constraints are not supported on Ballerina union types%n",
                     typeName.trim());
             return false;
         }
         return true;
     }
-    /**
-
-
 
     /**
+     * /**
      * Generate constraint for numbers : int, float, decimal.
      */
     private static AnnotationNode generateNumberConstraint(AsyncApi25SchemaImpl fieldSchema) {
@@ -466,14 +471,14 @@ public static ImmutablePair<List<Node>, Set<String>> updateRecordFieldListWithIm
             fields.add(fieldRef);
         }
         if (numberSchema.getExclusiveMinimum() != null &&
-           numberSchema.getMinimum() != null) {
+                numberSchema.getMinimum() != null) {
             String value = numberSchema.getMinimum().toString();
             String fieldRef = GeneratorConstants.EXCLUSIVE_MIN + GeneratorConstants.COLON +
                     (isInt ? numberSchema.getMinimum().intValue() : value);
             fields.add(fieldRef);
         }
         if (numberSchema.getExclusiveMaximum() != null &&
-               numberSchema.getMaximum() != null) {
+                numberSchema.getMaximum() != null) {
             String value = numberSchema.getMaximum().toString();
             String fieldRef = GeneratorConstants.EXCLUSIVE_MAX + GeneratorConstants.COLON +
                     (isInt ? numberSchema.getMaximum().intValue() : value);
@@ -563,9 +568,9 @@ public static ImmutablePair<List<Node>, Set<String>> updateRecordFieldListWithIm
         } else if (field.get$ref() != null) {
             String[] split = field.get$ref().trim().split("/");
             String componentName = GeneratorUtils.getValidName(split[split.length - 1], true);
-            AsyncApi25DocumentImpl openAPI = GeneratorMetaData.getInstance().getAsyncAPI();
-            if (openAPI.getComponents().getSchemas().get(componentName) != null) {
-                AsyncApi25SchemaImpl schema = (AsyncApi25SchemaImpl) openAPI.getComponents()
+            AsyncApi25DocumentImpl asyncAPI = GeneratorMetaData.getInstance().getAsyncAPI();
+            if (asyncAPI.getComponents().getSchemas().get(componentName) != null) {
+                AsyncApi25SchemaImpl schema = (AsyncApi25SchemaImpl) asyncAPI.getComponents()
                         .getSchemas().get(componentName);
                 if (schema.getDescription() != null) {
                     schemaDoc.addAll(DocCommentsGenerator.createAPIDescriptionDoc(
@@ -580,7 +585,7 @@ public static ImmutablePair<List<Node>, Set<String>> updateRecordFieldListWithIm
      * Creates record documentation.
      *
      * @param documentation Documentation node list
-     * @param schemaValue   OpenAPI schema
+     * @param schemaValue   AsyncAPI schema
      *                      //     * @param typeAnnotations Annotation list of the record
      */
     public static void getRecordDocs(List<Node> documentation, AsyncApi25SchemaImpl schemaValue

@@ -18,7 +18,7 @@
 package io.ballerina.asyncapi.generators.testcases;
 
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25DocumentImpl;
-import io.ballerina.asyncapi.cli.BallerinaCodeGenerator;
+import io.ballerina.asyncapi.cli.AsyncAPIToBallerinaGenerator;
 import io.ballerina.asyncapi.core.GeneratorUtils;
 import io.ballerina.asyncapi.core.exception.BallerinaAsyncApiException;
 import io.ballerina.asyncapi.core.generators.client.IntermediateClientGenerator;
@@ -68,12 +68,12 @@ public class TestGeneratorTests {
             FormatterException, BallerinaAsyncApiException, URISyntaxException {
         Files.createDirectories(Paths.get(PROJECT_DIR + ASYNCAPI_PATH_SEPARATOR + TEST_DIR));
         Path definitionPath = RES_DIR.resolve("sample_yamls/" + yamlFile);
-        BallerinaCodeGenerator codeGenerator = new BallerinaCodeGenerator();
+        AsyncAPIToBallerinaGenerator codeGenerator = new AsyncAPIToBallerinaGenerator();
         codeGenerator.setIncludeTestFiles(true);
-        AsyncApi25DocumentImpl openAPI = GeneratorUtils.normalizeAsyncAPI(definitionPath);
+        AsyncApi25DocumentImpl asyncAPI = GeneratorUtils.normalizeAsyncAPI(definitionPath);
         AASClientConfig.Builder clientMetaDataBuilder = new AASClientConfig.Builder();
         AASClientConfig oasClientConfig = clientMetaDataBuilder
-                .withAsyncAPI(openAPI).build();
+                .withAsyncAPI(asyncAPI).build();
         IntermediateClientGenerator intermediateClientGenerator = new IntermediateClientGenerator(oasClientConfig);
         SyntaxTree syntaxTreeClient = intermediateClientGenerator.generateSyntaxTree();
         List<TypeDefinitionNode> preGeneratedTypeDefinitionNodes = new LinkedList<>();
@@ -81,7 +81,7 @@ public class TestGeneratorTests {
                 getBallerinaAuthConfigGenerator().getAuthRelatedTypeDefinitionNodes());
         preGeneratedTypeDefinitionNodes.addAll(intermediateClientGenerator.getTypeDefinitionNodeList());
         BallerinaTypesGenerator schemaGenerator = new BallerinaTypesGenerator(
-                openAPI, preGeneratedTypeDefinitionNodes);
+                asyncAPI, preGeneratedTypeDefinitionNodes);
         TestGenerator testGenerator = new TestGenerator(intermediateClientGenerator);
         SyntaxTree syntaxTreeTest = testGenerator.generateSyntaxTree();
         SyntaxTree syntaxTreeSchema = schemaGenerator.generateSyntaxTree();

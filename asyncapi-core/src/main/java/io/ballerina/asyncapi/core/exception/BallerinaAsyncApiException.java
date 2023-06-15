@@ -19,7 +19,7 @@
 package io.ballerina.asyncapi.core.exception;
 
 /**
- * Exception type definition for OpenAPI to Ballerina parsing related errors.
+ * Exception type definition for asyncAPI to Ballerina parsing related errors.
  *
  * @since 1.3.0
  */

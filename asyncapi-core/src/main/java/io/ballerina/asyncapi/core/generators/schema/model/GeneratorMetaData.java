@@ -37,8 +37,8 @@ public class GeneratorMetaData {
         this.generateServiceType = generateServiceType;
     }
 
-    public static void createInstance(AsyncApi25DocumentImpl openAPI, boolean generateServiceType) {
-        generatorMetaData = new GeneratorMetaData(openAPI, generateServiceType);
+    public static void createInstance(AsyncApi25DocumentImpl asyncAPI, boolean generateServiceType) {
+        generatorMetaData = new GeneratorMetaData(asyncAPI, generateServiceType);
     }
 
     public static GeneratorMetaData getInstance() {

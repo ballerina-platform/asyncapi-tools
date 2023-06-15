@@ -53,10 +53,9 @@ import static io.ballerina.compiler.syntax.tree.SyntaxKind.TYPE_KEYWORD;
 public abstract class TypeGenerator {
 
     final List<TypeDefinitionNode> typeDefinitionNodeList = new ArrayList<>();
+    final LinkedHashSet<String> imports = new LinkedHashSet<>();
     AsyncApi25SchemaImpl schema;
     String typeName;
-
-    final LinkedHashSet<String> imports = new LinkedHashSet<>();
 
     public TypeGenerator(AsyncApi25SchemaImpl schema, String typeName) {
         this.schema = schema;
@@ -72,7 +71,7 @@ public abstract class TypeGenerator {
     }
 
     /**
-     * Create Type Definition Node for a given OpenAPI schema.
+     * Create Type Definition Node for a given AsyncAPI schema.
      *
      * @param typeName  IdentifierToken of the name of the type
      * @param schemaDoc Documentation of the type
@@ -82,12 +81,12 @@ public abstract class TypeGenerator {
      * @throws BallerinaAsyncApiException when unsupported schema type is found
      */
     public TypeDefinitionNode generateTypeDefinitionNode(IdentifierToken typeName, List<Node> schemaDoc,
-    List<AnnotationNode> typeAnnotations)
+                                                         List<AnnotationNode> typeAnnotations)
             throws BallerinaAsyncApiException {
 
         for (AnnotationNode annotation : typeAnnotations) {
             String annotationRef = annotation.annotReference().toString();
-            if (annotationRef.startsWith(CONSTRAINT) ) {
+            if (annotationRef.startsWith(CONSTRAINT)) {
                 ImportDeclarationNode constraintImport = GeneratorUtils.getImportDeclarationNode(BALLERINA, CONSTRAINT);
                 //Here we are unable to add ImportDeclarationNode since newly generated node has different hashcode.
                 imports.add(constraintImport.toSourceCode());

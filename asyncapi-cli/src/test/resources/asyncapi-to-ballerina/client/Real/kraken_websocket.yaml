@@ -173,6 +173,8 @@ components:
         event:
           type: string
           const: heartbeat
+      required:
+        - event
     pong:
       type: object
       properties:
@@ -181,6 +183,8 @@ components:
           const: pong
         reqid:
           $ref: '#/components/schemas/reqid'
+      required:
+        - event
     systemStatus:
       type: object
       properties:
@@ -194,6 +198,8 @@ components:
           $ref: '#/components/schemas/status'
         version:
           type: string
+      required:
+        - event
     status:
       type: string
       enum:

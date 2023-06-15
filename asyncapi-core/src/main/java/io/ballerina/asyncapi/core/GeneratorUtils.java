@@ -219,9 +219,9 @@ public class GeneratorUtils {
 //    }
 
     /**
-     * Method for convert openApi type to ballerina type.
+     * Method for convert asyncAPI type to ballerina type.
      *
-     * @param type OpenApi parameter types
+     * @param type AsyncAPI parameter types
      * @return ballerina type
      */
     public static String convertAsyncAPITypeToBallerina(String type) throws BallerinaAsyncApiException {
@@ -358,11 +358,11 @@ public class GeneratorUtils {
 
         ObjectMapper jsonWriter = new ObjectMapper();
         AsyncApi25DocumentImpl document;
-        try{
+        try {
             document = (AsyncApi25DocumentImpl) Library.readDocumentFromJSONString
                     (jsonWriter.writeValueAsString(obj));
 
-        }catch (ClassCastException e){
+        } catch (ClassCastException e) {
             throw new BallerinaAsyncApiException("AsyncAPI definition has errors. " +
                     "Ballerina client code can only be generate for 2.5.0 version");
 
@@ -626,10 +626,10 @@ public class GeneratorUtils {
     }
 
     /**
-     * Normalized OpenAPI specification with adding proper naming to schema.
+     * Normalized AsyncAPI specification with adding proper naming to schema.
      *
-     * @param asyncAPIPath - openAPI file path
-     * @return - openAPI specification
+     * @param asyncAPIPath - asyncAPI file path
+     * @return - asyncAPI specification
      * @throws IOException
      * @throws BallerinaAsyncApiException
      */
@@ -667,7 +667,7 @@ public class GeneratorUtils {
 //     * Check whether an operationId has been defined in each path. If given rename the operationId to accepted format.
 //     * -- ex: GetPetName -> getPetName
 //     *
-//     * @param paths List of paths given in the OpenAPI definition
+//     * @param paths List of paths given in the AsyncAPI definition
 //     * @throws BallerinaAsyncApiException When operationId is missing in any path
 //     */
 //    public static void validateOperationIds(Set<Map.Entry<String, PathItem>> paths)
@@ -687,17 +687,17 @@ public class GeneratorUtils {
 //        }
 //        if (!errorList.isEmpty()) {
 //            throw new BallerinaAsyncApiException(
-//                    "OpenAPI definition has errors: " + LINE_SEPARATOR + String.join(LINE_SEPARATOR, errorList));
+//                    "AsyncAPI definition has errors: " + LINE_SEPARATOR + String.join(LINE_SEPARATOR, errorList));
 //        }
 //    }
 
 //    /**
 //     * Validate if requestBody found in GET/DELETE/HEAD operation.
 //     *
-//     * @param paths - List of paths given in the OpenAPI definition
-//     * @throws BallerinaOpenApiException - If requestBody found in GET/DELETE/HEAD operation
+//     * @param paths - List of paths given in the AsyncAPI definition
+//     * @throws BallerinaAsyncAPIException - If requestBody found in GET/DELETE/HEAD operation
 //     */
-//    public static void validateRequestBody(Set<Map.Entry<String, PathItem>> paths) throws BallerinaOpenApiException {
+//    public static void validateRequestBody(Set<Map.Entry<String, PathItem>> paths) throws BallerinaAsyncAPIException {
 //        List<String> errorList = new ArrayList<>();
 //        for (Map.Entry<String, PathItem> entry : paths) {
 //            if (!entry.getValue().readOperationsMap().isEmpty()) {
@@ -714,11 +714,11 @@ public class GeneratorUtils {
 //        }
 //
 //        if (!errorList.isEmpty()) {
-//            StringBuilder errorMessage = new StringBuilder("OpenAPI definition has errors: " + LINE_SEPARATOR);
+//            StringBuilder errorMessage = new StringBuilder("AsyncAPI definition has errors: " + LINE_SEPARATOR);
 //            for (String message : errorList) {
 //                errorMessage.append(message).append(LINE_SEPARATOR);
 //            }
-//            throw new BallerinaOpenApiException(errorMessage.toString());
+//            throw new BallerinaAsyncAPIException(errorMessage.toString());
 //        }
 //    }
 //

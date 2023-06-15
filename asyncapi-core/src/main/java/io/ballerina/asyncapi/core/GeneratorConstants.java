@@ -161,7 +161,7 @@ public class GeneratorConstants {
     public static final String ANY_DATA = "anydata";
 
     public static final String OPTIONS = "options";
-    //OpenAPI Ballerina extensions
+    //AsyncAPI Ballerina extensions
     public static final String X_BALLERINA_INIT_DESCRIPTION = "x-ballerina-init-description";
 
     public static final String X_BALLERINA_MESSAGE_WRITE_DESCRIPTION = "x-ballerina-write-message-description";
@@ -188,7 +188,9 @@ public class GeneratorConstants {
     public static final String INTEGER = "integer";
     public static final String BOOLEAN = "boolean";
     public static final String NUMBER = "number";
+
     public static final String OBJECT = "object";
+    public static final String ARRAY = "array";
     public static final Integer MAX_ARRAY_LENGTH = 2147483637;
     public static final String LINE_SEPARATOR = System.lineSeparator();
     public static final String SPECIAL_CHARACTERS_REGEX = "[^a-zA-Z0-9]";
