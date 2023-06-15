@@ -1,21 +1,11 @@
-public type Pets Pet[];
-
-public type SimpleType int;
-
-public type TestPet Pet;
-
-public type TestDog Dog;
-
-public type ReferredSimpleType SimpleType;
-
-public type Error record {
-    int code;
-    string message;
+public type Subscribe record {
+    anydata pet_type;
+    string event;
 };
 
-public type Dog record {
-    *Pet;
-    boolean bark?;
+public type UnSubscribe record {
+    int zipCode?;
+    string event;
 };
 
 public type Pet record {
@@ -24,3 +14,18 @@ public type Pet record {
     string tag?;
     string 'type?;
 };
+
+public type Dog record {
+    *Pet;
+    boolean bark?;
+};
+
+public type Pets Pet[];
+
+public type SimpleType int;
+
+public type ReferredSimpleType SimpleType;
+
+public type TestPet Pet;
+
+public type TestDog Dog;

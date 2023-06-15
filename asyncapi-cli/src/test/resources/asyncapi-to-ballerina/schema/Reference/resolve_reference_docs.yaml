@@ -1,47 +1,47 @@
-openapi: 3.0.0
+asyncapi: 2.5.0
 info:
-  title: refComponent
-  description: refComponent
-  version: 1.0.0
+  title: PayloadV
+  version: 0.0.0
 servers:
-  - url: http://petstore.{host}.io/v1
-    description: The production API server
+  development:
+    url: "{server}:{port}/payloadV"
+    protocol: ws
+    protocolVersion: "13"
     variables:
-      host:
-        default: openapi
-        description: this value is assigned by the service provider
-  - url: https://{subdomain}.swagger.io:{port}/{basePath}
-    description: The production API server
-    variables:
-      subdomain:
-        default: petstore
-        description: this value is assigned by the service provider
+      server:
+        default: ws://localhost
       port:
-        enum:
-          - '8443'
-          - '443'
-        default: '443'
-      basePath:
-        default: v2
-paths:
-  /path01:
-    put:
-      summary: 02 Example for rb has inline requestbody.
-      operationId: updateUser
-      responses:
-        200:
-          content:
-            application/json: {}
-          description: "Response"
-      requestBody:
-        content:
-          application/json:
-            schema:
-              type: array
-              items:
-                description: "Array description"
+        default: "9090"
+channels:
+  /:
+    subscribe:
+      message:
+        $ref: '#/components/messages/UnSubscribe'
+    publish:
+      message:
+        $ref: '#/components/messages/Subscribe'
 components:
   schemas:
+    Subscribe:
+      type: object
+      properties:
+        pet_type:
+          not:
+            type: integer
+        event:
+          type: string
+      required:
+        - pet_type
+        - event
+    UnSubscribe:
+      type: object
+      required:
+        - event
+      properties:
+        zipCode:
+          type: integer
+        event:
+          type: string
     Pet:
       description: Pet details
       required:
@@ -58,12 +58,14 @@ components:
         type:
           type: string
     Dog:
+      description: Dog details
       properties:
         pet_details:
           $ref: "#/components/schemas/Pet"
         bark:
           type: boolean
     Pets:
+      description: Pets details
       type: object
       properties:
         pet_details:
@@ -71,3 +73,19 @@ components:
             $ref: "#/components/schemas/Pet"
         numer_of_pets:
           type: integer
+  messages:
+    UnSubscribe:
+      payload:
+        $ref: '#/components/schemas/UnSubscribe'
+    Subscribe:
+      payload:
+        $ref: '#/components/schemas/Subscribe'
+      x-response:
+        $ref: '#/components/messages/UnSubscribe'
+      x-response-type: simple-rpc
+x-dispatcherKey: event
+x-dispatcherStreamId: id
+
+
+
+

@@ -42,7 +42,9 @@ components:
           type: integer
         event:
           type: string
-    Pet:
+        request:
+          $ref: '#/components/schemas/Request'
+    Request:
       required:
         - id
         - name
@@ -56,30 +58,6 @@ components:
           type: string
         type:
           type: string
-    Dog:
-      allOf:
-        - $ref: "#/components/schemas/Pet"
-        - type: object
-          properties:
-            bark:
-              type: boolean
-    Pets:
-      type: array
-      items:
-        $ref: "#/components/schemas/Pet"
-
-    SimpleType:
-      type: integer
-
-    ReferredSimpleType:
-      $ref: "#/components/schemas/SimpleType"
-
-    TestPet:
-      $ref: "#/components/schemas/Pet"
-
-    TestDog:
-      $ref: "#/components/schemas/Dog"
-
   messages:
     UnSubscribe:
       payload:
@@ -92,6 +70,7 @@ components:
       x-response-type: simple-rpc
 x-dispatcherKey: event
 x-dispatcherStreamId: id
+
 
 
 

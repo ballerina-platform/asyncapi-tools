@@ -21,9 +21,10 @@ public class JsonTypeGenerator extends TypeGenerator {
     @Override
     public TypeDescriptorNode generateTypeDescriptorNode() throws BallerinaAsyncApiException {
 
-        if ((schema.getAdditionalProperties() instanceof BooleanUnionValueImpl &&
-                schema.getAdditionalProperties().asBoolean().equals(true))
-                || ((AsyncApi25SchemaImpl) schema.getAdditionalProperties()).getType() == null) {
+        //TODO: Uncomment below code with improvements
+//        if ((schema.getAdditionalProperties() instanceof BooleanUnionValueImpl &&
+//                schema.getAdditionalProperties().asBoolean().equals(true))
+//                || ((AsyncApi25SchemaImpl) schema.getAdditionalProperties()).getType() == null) {
 
 //            paramType = "map<" + convertAsyncAPITypeToBallerina("{}") + ">";
 //            convertAsyncAPITypeToBallerina("{}")
@@ -40,7 +41,7 @@ public class JsonTypeGenerator extends TypeGenerator {
 //                    createNodeList(recordFields), metadataBuilder.getRestDescriptorNode(),
 //                    metadataBuilder.isOpenRecord() ? createToken(CLOSE_BRACE_TOKEN) :
 //                            createToken(CLOSE_BRACE_PIPE_TOKEN));
-        }
+//        }
 
 //        } else if (((AsyncApi25SchemaImpl) schema.getAdditionalProperties()).getType() != null) {
 //
@@ -53,7 +54,7 @@ public class JsonTypeGenerator extends TypeGenerator {
 //
 //
 //        }
-        return null;
+//        return null;
     }
 
 

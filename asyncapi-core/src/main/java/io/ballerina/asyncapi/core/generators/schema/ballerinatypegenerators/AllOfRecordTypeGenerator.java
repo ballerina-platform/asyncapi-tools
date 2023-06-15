@@ -113,7 +113,7 @@ public class AllOfRecordTypeGenerator extends RecordTypeGenerator {
         // this will be tracked via https://github.com/ballerina-platform/openapi-tools/issues/810
         List<TypeDescriptorNode> typeDescriptorNodes = new ArrayList<>();
         for (Schema schema : schemas) {
-            TypeGenerator typeGenerator = getTypeGenerator((BalAsyncApi25SchemaImpl) schema, null,
+            TypeGenerator typeGenerator = getTypeGenerator((AsyncApi25SchemaImpl) schema, null,
                     null);
             TypeDescriptorNode typeDescriptorNode = typeGenerator.generateTypeDescriptorNode();
             typeDescriptorNodes.add(typeDescriptorNode);

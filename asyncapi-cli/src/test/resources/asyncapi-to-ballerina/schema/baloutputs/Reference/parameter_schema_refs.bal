@@ -1,1 +1,0 @@
-public type Latitude string;

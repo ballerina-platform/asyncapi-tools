@@ -52,42 +52,34 @@ public class PrimitiveDataTypeTests {
 
     @Test(description = "Generate single record")
     public void generateScenario01() throws IOException, BallerinaAsyncApiException {
-        Path definitionPath = RES_DIR.resolve("/scenario01.yaml");
-        AsyncApi25DocumentImpl openAPI = GeneratorUtils.normalizeAsyncAPI(definitionPath);
-        BallerinaTypesGenerator ballerinaSchemaGenerator = new BallerinaTypesGenerator(openAPI);
+        Path definitionPath = RES_DIR.resolve("Primitive/scenario01.yaml");
+        AsyncApi25DocumentImpl asyncAPI = GeneratorUtils.normalizeAsyncAPI(definitionPath);
+        BallerinaTypesGenerator ballerinaSchemaGenerator = new BallerinaTypesGenerator(asyncAPI);
         syntaxTree = ballerinaSchemaGenerator.generateSyntaxTree();
-        TestUtils.compareGeneratedSyntaxTreewithExpectedSyntaxTree("schema/ballerina/schema01.bal", syntaxTree);
+        TestUtils.compareGeneratedSyntaxTreewithExpectedSyntaxTree(
+                "schema/baloutputs/Primitive/schema01.bal", syntaxTree);
     }
 
     @Test(description = "Generate multiple record")
     public void generateScenario02() throws IOException, BallerinaAsyncApiException {
-        Path definitionPath = RES_DIR.resolve("swagger/scenario02.yaml");
-        AsyncApi25DocumentImpl openAPI = GeneratorUtils.normalizeAsyncAPI(definitionPath);
-        BallerinaTypesGenerator ballerinaSchemaGenerator = new BallerinaTypesGenerator(openAPI);
+        Path definitionPath = RES_DIR.resolve("Primitive/scenario02.yaml");
+        AsyncApi25DocumentImpl asyncAPI = GeneratorUtils.normalizeAsyncAPI(definitionPath);
+        BallerinaTypesGenerator ballerinaSchemaGenerator = new BallerinaTypesGenerator(asyncAPI);
         syntaxTree = ballerinaSchemaGenerator.generateSyntaxTree();
-        TestUtils.compareGeneratedSyntaxTreewithExpectedSyntaxTree("schema/ballerina/schema02.bal", syntaxTree);
+        TestUtils.compareGeneratedSyntaxTreewithExpectedSyntaxTree(
+                "schema/baloutputs/Primitive/schema02.bal", syntaxTree);
     }
 
     @Test(description = "Scenario for missing DataType")
     public void generateMissingDatatype() throws IOException, BallerinaAsyncApiException {
-        Path definitionPath = RES_DIR.resolve("swagger/missDataType.yaml");
-        AsyncApi25DocumentImpl openAPI = GeneratorUtils.normalizeAsyncAPI(definitionPath);
-        BallerinaTypesGenerator ballerinaSchemaGenerator = new BallerinaTypesGenerator(openAPI);
+        Path definitionPath = RES_DIR.resolve("Primitive/missDataType.yaml");
+        AsyncApi25DocumentImpl asyncAPI = GeneratorUtils.normalizeAsyncAPI(definitionPath);
+        BallerinaTypesGenerator ballerinaSchemaGenerator = new BallerinaTypesGenerator(asyncAPI);
         syntaxTree = ballerinaSchemaGenerator.generateSyntaxTree();
-        String expected = "public type Pet record { #this is missing dataType anydata id; string name; decimal tag?;" +
-                " string 'type?;};";
-        Assert.assertTrue(syntaxTree.toString().trim().replaceAll("\\s+", "").
-                contains(expected.trim().replaceAll("\\s+", "")));
-    }
-
-    @Test(description = "When the component schema has primitive data type instead of object schema")
-    public void generateSchemaForPrimitiveData() throws IOException, BallerinaAsyncApiException {
-        Path definitionPath = RES_DIR.resolve("swagger/schema_with_primitive.yaml");
-        AsyncApi25DocumentImpl openAPI = GeneratorUtils.normalizeAsyncAPI(definitionPath);
-        BallerinaTypesGenerator ballerinaSchemaGenerator = new BallerinaTypesGenerator(openAPI);
-        syntaxTree = ballerinaSchemaGenerator.generateSyntaxTree();
-        TestUtils.compareGeneratedSyntaxTreewithExpectedSyntaxTree("schema/ballerina/schema_with_primitive.bal",
+        TestUtils.compareGeneratedSyntaxTreewithExpectedSyntaxTree(
+                "schema/baloutputs/Primitive/missDataType.bal",
                 syntaxTree);
+
     }
 
     @AfterTest

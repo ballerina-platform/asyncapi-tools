@@ -12,12 +12,9 @@ public type UnSubscribe record {
 
 # Test description
 public type Request record {
-    # tests
-    int id;
-    # tests
+    # this is missing dataType
+    anydata id;
     string name;
-    # tests
     decimal tag?;
-    # tests
     string 'type?;
 };

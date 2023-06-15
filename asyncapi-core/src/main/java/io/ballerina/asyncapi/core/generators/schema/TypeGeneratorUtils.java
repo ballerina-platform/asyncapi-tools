@@ -109,9 +109,22 @@ public class TypeGeneratorUtils {
         }
         if (schemaValue.get$ref() != null) {
             return new ReferencedTypeGenerator(schemaValue, typeName);
-        } else if (schemaValue.getType() == null && schemaValue.getProperties()==null &&
-                schemaValue.getAdditionalProperties() != null) {
-            return new JsonTypeGenerator(schemaValue, typeName);
+            //TODO: include mapschema here see openapi code
+        } else if ((schemaValue.getType() != null && schemaValue.getType().equals(GeneratorConstants.OBJECT)) ||
+                schemaValue.getProperties() != null) {
+            return new RecordTypeGenerator(schemaValue, typeName);
+        } else if (schemaValue.getType() != null && schemaValue.getType().equals("array")) {
+            return new ArrayTypeGenerator(schemaValue, typeName, parentName);
+        } else if (schemaValue.getType() != null && primitiveTypeList.contains(schemaValue.getType())) {
+            return new PrimitiveTypeGenerator(schemaValue, typeName);
+        } else if ((
+                (schemaValue.getOneOf() != null || schemaValue.getAllOf() != null ||
+                        schemaValue.getAnyOf() != null))) {
+            if (schemaValue.getAllOf() != null) {
+                return new AllOfRecordTypeGenerator(schemaValue, typeName);
+            } else {
+                return new UnionTypeGenerator(schemaValue, typeName);
+            }
         } else if (schemaValue.getType() != null && schemaValue.getType().equals(GeneratorConstants.OBJECT) &&
                 schemaValue.getAdditionalProperties() != null &&
                 (schemaValue.getAdditionalProperties() instanceof AsyncApi25SchemaImpl ||
@@ -129,23 +142,10 @@ public class TypeGeneratorUtils {
 //            }else if (){
 //                return  null;
 //            }
+        } else if (schemaValue.getType() == null && schemaValue.getProperties()==null &&
+                schemaValue.getAdditionalProperties() != null) {
+            return new JsonTypeGenerator(schemaValue, typeName);
 
-            //TODO: include mapschema here see openapi code
-        } else if ((schemaValue.getType() != null && schemaValue.getType().equals(GeneratorConstants.OBJECT)) ||
-                schemaValue.getProperties() != null) {
-            return new RecordTypeGenerator(schemaValue, typeName);
-        } else if (schemaValue.getType() != null && schemaValue.getType().equals("array")) {
-            return new ArrayTypeGenerator(schemaValue, typeName, parentName);
-        } else if (schemaValue.getType() != null && primitiveTypeList.contains(schemaValue.getType())) {
-            return new PrimitiveTypeGenerator(schemaValue, typeName);
-        } else if ((
-                (schemaValue.getOneOf() != null || schemaValue.getAllOf() != null ||
-                        schemaValue.getAnyOf() != null))) {
-            if (schemaValue.getAllOf() != null) {
-                return new AllOfRecordTypeGenerator(schemaValue, typeName);
-            } else {
-                return new UnionTypeGenerator(schemaValue, typeName);
-            }
         } else { // when schemaValue.type == null
 
             return new AnyDataTypeGenerator(schemaValue, typeName);
@@ -172,7 +172,8 @@ public class TypeGeneratorUtils {
 //        boolean nullable = GeneratorMetaData.getInstance().isNullable();
         if (schema.getExtensions() != null) {
 
-            if (schema.getExtensions().get("x-nullable").equals(BooleanNode.TRUE)) {
+            if (schema.getExtensions().get("x-nullable")!=null &&
+                    schema.getExtensions().get("x-nullable").equals(BooleanNode.TRUE)) {
                 nillableType = createOptionalTypeDescriptorNode(originalTypeDesc, createToken(QUESTION_MARK_TOKEN));
             }
         }

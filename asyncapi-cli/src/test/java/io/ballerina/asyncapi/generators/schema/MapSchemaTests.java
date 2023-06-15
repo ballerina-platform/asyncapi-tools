@@ -38,22 +38,22 @@ public class MapSchemaTests {
 
     @Test
     public void testForAdditionalProperties() throws IOException, BallerinaAsyncApiException, FormatterException {
-        AsyncApi25DocumentImpl openAPI = GeneratorUtils.normalizeAsyncAPI(RES_DIR.resolve("swagger" +
+        AsyncApi25DocumentImpl openAPI = GeneratorUtils.normalizeAsyncAPI(RES_DIR.resolve("Map" +
                 "/additional_properties_true.yaml"));
         BallerinaTypesGenerator ballerinaSchemaGenerator = new BallerinaTypesGenerator(openAPI);
         SyntaxTree syntaxTree = ballerinaSchemaGenerator.generateSyntaxTree();
         TestUtils.compareGeneratedSyntaxTreewithExpectedSyntaxTree(
-                "schema/ballerina/additional_properties_true.bal", syntaxTree);
+                "schema/baloutputs/Map/additional_properties_true.bal", syntaxTree);
     }
 
     @Test
     public void testForAdditionalPropertiesComposedSchema()
             throws IOException, BallerinaAsyncApiException, FormatterException {
-        AsyncApi25DocumentImpl openAPI = GeneratorUtils.normalizeAsyncAPI(RES_DIR.resolve("swagger" +
+        AsyncApi25DocumentImpl openAPI = GeneratorUtils.normalizeAsyncAPI(RES_DIR.resolve("Map" +
                 "/additional_properties_composed_schema.yaml"));
         BallerinaTypesGenerator ballerinaSchemaGenerator = new BallerinaTypesGenerator(openAPI);
         SyntaxTree syntaxTree = ballerinaSchemaGenerator.generateSyntaxTree();
         TestUtils.compareGeneratedSyntaxTreewithExpectedSyntaxTree(
-                "schema/ballerina/additional_properties_composed_schema.bal", syntaxTree);
+                "schema/baloutputs/Map/additional_properties_composed_schema.bal", syntaxTree);
     }
 }

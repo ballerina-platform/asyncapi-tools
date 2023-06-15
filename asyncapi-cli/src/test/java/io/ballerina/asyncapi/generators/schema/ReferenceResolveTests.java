@@ -33,55 +33,35 @@ import java.nio.file.Paths;
  * Tests for Schema Reference resolve.
  */
 public class ReferenceResolveTests {
-    private static final Path RES_DIR = Paths.get("src/test/resources/generators/schema").toAbsolutePath();
+    private static final Path RES_DIR = Paths.get("src/test/resources/asyncapi-to-ballerina/schema").toAbsolutePath();
     @Test(description = "Tests with object type include reference")
     public void testReferenceIncludeWithObjectType() throws IOException, BallerinaAsyncApiException {
-        AsyncApi25DocumentImpl openAPI = GeneratorUtils.normalizeAsyncAPI(RES_DIR.resolve("swagger/world_bank.yaml"));
-        BallerinaTypesGenerator ballerinaSchemaGenerator = new BallerinaTypesGenerator(openAPI);
+        AsyncApi25DocumentImpl asyncAPI = GeneratorUtils.normalizeAsyncAPI(RES_DIR.resolve(
+                "Reference/multiple_references.yaml"));
+        BallerinaTypesGenerator ballerinaSchemaGenerator = new BallerinaTypesGenerator(asyncAPI);
 
         SyntaxTree syntaxTree = ballerinaSchemaGenerator.generateSyntaxTree();
-        TestUtils.compareGeneratedSyntaxTreewithExpectedSyntaxTree("schema/ballerina/world_bank.bal", syntaxTree);
+        TestUtils.compareGeneratedSyntaxTreewithExpectedSyntaxTree("schema/baloutputs/" +
+                "Reference/multiple_references.bal", syntaxTree);
     }
-
-    @Test(description = "Test for object data type when absent reference and properties fields")
-    public void testWorldBank() throws IOException, BallerinaAsyncApiException {
-        AsyncApi25DocumentImpl openAPI = GeneratorUtils.normalizeAsyncAPI(RES_DIR.resolve("swagger" +
-                "/object_without_fields_reference.yaml"));
-        BallerinaTypesGenerator ballerinaSchemaGenerator = new BallerinaTypesGenerator(openAPI);
-
-        SyntaxTree syntaxTree = ballerinaSchemaGenerator.generateSyntaxTree();
-        TestUtils.compareGeneratedSyntaxTreewithExpectedSyntaxTree(
-                "schema/ballerina/object_without_fields_reference.bal", syntaxTree);
-    }
-    @Test(description = "Test for type generation for query parameters with referenced schemas")
-    public void testParameterSchemaReferences() throws IOException, BallerinaAsyncApiException {
-        AsyncApi25DocumentImpl openAPI = GeneratorUtils.normalizeAsyncAPI(RES_DIR.resolve("swagger" +
-                "/schema_referenced_in_parameters.yaml"));
-        BallerinaTypesGenerator ballerinaSchemaGenerator = new BallerinaTypesGenerator(openAPI);
-
-        SyntaxTree syntaxTree = ballerinaSchemaGenerator.generateSyntaxTree();
-        TestUtils.compareGeneratedSyntaxTreewithExpectedSyntaxTree(
-                "schema/ballerina/parameter_schema_refs.bal", syntaxTree);
-    }
-
     @Test(description = "Test Ballerina types generation when referred by another record with no additional fields")
     public void testReferredTypesWithoutAdditionalFields() throws IOException, BallerinaAsyncApiException {
-        AsyncApi25DocumentImpl openAPI = GeneratorUtils.normalizeAsyncAPI(RES_DIR.resolve("swagger" +
+        AsyncApi25DocumentImpl asyncAPI = GeneratorUtils.normalizeAsyncAPI(RES_DIR.resolve("Reference" +
                 "/referred_inclusion.yaml"));
-        BallerinaTypesGenerator ballerinaSchemaGenerator = new BallerinaTypesGenerator(openAPI);
+        BallerinaTypesGenerator ballerinaSchemaGenerator = new BallerinaTypesGenerator(asyncAPI);
         SyntaxTree syntaxTree = ballerinaSchemaGenerator.generateSyntaxTree();
         TestUtils.compareGeneratedSyntaxTreewithExpectedSyntaxTree(
-                "schema/ballerina/referred_inclusion.bal", syntaxTree);
+                "schema/baloutputs/Reference/referred_inclusion.bal", syntaxTree);
     }
 
-    @Test(description = "Test doc comment generation of record fields when property is reffered to another schema")
+    @Test(description = "Test doc comment generation of record fields when property is refered to another schema")
     public void testDocCommentResolvingForRefferedSchemas() throws IOException, BallerinaAsyncApiException {
-        AsyncApi25DocumentImpl openAPI = GeneratorUtils.normalizeAsyncAPI(RES_DIR.resolve("swagger" +
+        AsyncApi25DocumentImpl openAPI = GeneratorUtils.normalizeAsyncAPI(RES_DIR.resolve("Reference" +
                 "/resolve_reference_docs.yaml"));
         BallerinaTypesGenerator ballerinaSchemaGenerator = new BallerinaTypesGenerator(openAPI);
         SyntaxTree syntaxTree = ballerinaSchemaGenerator.generateSyntaxTree();
         TestUtils.compareGeneratedSyntaxTreewithExpectedSyntaxTree(
-                "schema/ballerina/resolve_reference_docs.bal", syntaxTree);
+                "schema/baloutputs/Reference/resolve_reference_docs.bal", syntaxTree);
     }
 
 

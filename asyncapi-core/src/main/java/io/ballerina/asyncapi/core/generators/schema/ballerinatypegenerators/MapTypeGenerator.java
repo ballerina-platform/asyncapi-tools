@@ -57,7 +57,12 @@ public class MapTypeGenerator extends TypeGenerator {
 
 
         }
-        return null;
+        return NodeFactory.createMapTypeDescriptorNode(createToken(MAP_KEYWORD),
+                NodeFactory.createTypeParameterNode(
+                        createToken(LT_TOKEN), NodeFactory.createBuiltinSimpleNameReferenceNode(null,
+                                createIdentifierToken(convertAsyncAPITypeToBallerina(((AsyncApi25SchemaImpl) schema.
+                                        getAdditionalProperties()).getType())))
+                        , createToken(GT_TOKEN)));
     }
 
 
