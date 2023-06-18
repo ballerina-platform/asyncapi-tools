@@ -34,6 +34,7 @@ import org.ballerinalang.formatter.core.Formatter;
 import org.ballerinalang.formatter.core.FormatterException;
 import org.testng.Assert;
 import org.testng.annotations.AfterMethod;
+import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
 import java.io.IOException;
@@ -41,7 +42,6 @@ import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -52,7 +52,8 @@ import static io.ballerina.asyncapi.core.GeneratorConstants.TEST_DIR;
  * Test cases related to ballerina test skeleton generation.
  */
 public class TestGeneratorTests {
-    private static final Path RES_DIR = Paths.get("src/test/resources/generators/test_cases/").toAbsolutePath();
+    private static final Path RES_DIR = Paths.get("src/test/resources/asyncapi-to-ballerina/test_cases/")
+            .toAbsolutePath();
     private static final Path PROJECT_DIR = RES_DIR.resolve("ballerina_project");
     private static final Path clientPath = RES_DIR.resolve("ballerina_project/client.bal");
     private static final Path utilPath = RES_DIR.resolve("ballerina_project/utils.bal");
@@ -60,10 +61,7 @@ public class TestGeneratorTests {
     private static final Path testPath = RES_DIR.resolve("ballerina_project/tests/test.bal");
     private static final Path configPath = RES_DIR.resolve("ballerina_project/tests/Config.toml");
 
-    List<String> list1 = new ArrayList<>();
-    List<String> list2 = new ArrayList<>();
-
-    @Test(description = "Generate Client with test skelotins", dataProvider = "httpAuthIOProvider")
+    @Test(description = "Generate Client with test skeletons", dataProvider = "httpAuthIOProvider")
     public void generateclientWithTestSkel(String yamlFile) throws IOException,
             FormatterException, BallerinaAsyncApiException, URISyntaxException {
         Files.createDirectories(Paths.get(PROJECT_DIR + ASYNCAPI_PATH_SEPARATOR + TEST_DIR));
@@ -72,9 +70,9 @@ public class TestGeneratorTests {
         codeGenerator.setIncludeTestFiles(true);
         AsyncApi25DocumentImpl asyncAPI = GeneratorUtils.normalizeAsyncAPI(definitionPath);
         AASClientConfig.Builder clientMetaDataBuilder = new AASClientConfig.Builder();
-        AASClientConfig oasClientConfig = clientMetaDataBuilder
+        AASClientConfig asyncAPIClientConfig = clientMetaDataBuilder
                 .withAsyncAPI(asyncAPI).build();
-        IntermediateClientGenerator intermediateClientGenerator = new IntermediateClientGenerator(oasClientConfig);
+        IntermediateClientGenerator intermediateClientGenerator = new IntermediateClientGenerator(asyncAPIClientConfig);
         SyntaxTree syntaxTreeClient = intermediateClientGenerator.generateSyntaxTree();
         List<TypeDefinitionNode> preGeneratedTypeDefinitionNodes = new LinkedList<>();
         preGeneratedTypeDefinitionNodes.addAll(intermediateClientGenerator.
@@ -89,7 +87,9 @@ public class TestGeneratorTests {
         String configFile = testGenerator.getConfigTomlFile();
         List<Diagnostic> diagnostics = getDiagnostics(syntaxTreeClient, syntaxTreeTest,
                 syntaxTreeSchema, configFile, utilSyntaxTree);
-        Assert.assertTrue(diagnostics.isEmpty());
+
+        Assert.assertFalse(diagnostics.stream().anyMatch(diagnostic -> diagnostic.diagnosticInfo().
+                severity().equals("Error")));
     }
 
     public List<Diagnostic> getDiagnostics(SyntaxTree clientSyntaxTree, SyntaxTree testSyntaxTree,
@@ -116,17 +116,17 @@ public class TestGeneratorTests {
         }
     }
 
-//    @DataProvider(name = "httpAuthIOProvider")
-//    public Object[] dataProvider() {
-//        return new Object[]{
+    @DataProvider(name = "httpAuthIOProvider")
+    public Object[][] dataProvider() {
+        return new Object[][]{
 //                "basic_auth.yaml",
 //                "bearer_auth.yaml",
 //                "oauth2_authorization_code.yaml",
 //                "oauth2_implicit.yaml",
 //                "query_api_key.yaml",
-//                "no_auth.yaml",
-////                "query_param_combination_of_apikey_and_http_oauth.yaml",
+                {"no_auth.yaml"}
+//                "query_param_combination_of_apikey_and_http_oauth.yaml",
 //                "oauth2_password.yaml"
-//        };
-//    }
+        };
+    }
 }

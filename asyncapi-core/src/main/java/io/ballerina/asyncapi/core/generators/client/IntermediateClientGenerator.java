@@ -254,6 +254,7 @@ public class IntermediateClientGenerator {
     private List<TypeDefinitionNode> typeDefinitionNodeList;
     private List<String> apiKeyNameList = new ArrayList<>();
     private String serverURL;
+    private String clientName = null;
 
     public IntermediateClientGenerator(AASClientConfig asyncAPIClientConfig) {
 
@@ -291,9 +292,19 @@ public class IntermediateClientGenerator {
         return ballerinaAuthConfigGenerator;
     }
 
+    //Get remote function name list to generate testing functions
     public List<String> getRemoteFunctionNameList() {
 
         return remoteFunctionNameList;
+    }
+
+    //Get clientName to generate testings
+    public String getClientName() {
+        return this.clientName;
+    }
+
+    public void setClientName(String clientName) {
+        this.clientName = clientName;
     }
 
     /**
@@ -594,6 +605,8 @@ public class IntermediateClientGenerator {
         //Combine class name as titleName+channelName+Client
         String stringClassName = titleName + channelName + CLIENT_CLASS_NAME;
 
+
+        setClientName(stringClassName);
         IdentifierToken className = createIdentifierToken(stringClassName);
         NodeList<Token> classTypeQualifiers = createNodeList(createToken(CLIENT_KEYWORD),
                 createToken(ISOLATED_KEYWORD));

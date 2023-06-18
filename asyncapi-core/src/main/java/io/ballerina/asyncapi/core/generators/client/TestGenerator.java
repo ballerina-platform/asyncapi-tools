@@ -44,7 +44,6 @@ import io.ballerina.compiler.syntax.tree.Node;
 import io.ballerina.compiler.syntax.tree.NodeList;
 import io.ballerina.compiler.syntax.tree.ParameterNode;
 import io.ballerina.compiler.syntax.tree.ParenthesizedArgList;
-import io.ballerina.compiler.syntax.tree.PositionalArgumentNode;
 import io.ballerina.compiler.syntax.tree.SeparatedNodeList;
 import io.ballerina.compiler.syntax.tree.SimpleNameReferenceNode;
 import io.ballerina.compiler.syntax.tree.StatementNode;
@@ -63,16 +62,8 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
-import java.util.Set;
 
 import static io.ballerina.asyncapi.core.GeneratorConstants.API_KEY_CONFIG_PARAM;
-import static io.ballerina.asyncapi.core.GeneratorConstants.BASIC;
-import static io.ballerina.asyncapi.core.GeneratorConstants.BEARER;
-import static io.ballerina.asyncapi.core.GeneratorConstants.CLIENT_CRED;
-import static io.ballerina.asyncapi.core.GeneratorConstants.CONNECTION_CONFIG;
-import static io.ballerina.asyncapi.core.GeneratorConstants.HTTP_API_KEY;
-import static io.ballerina.asyncapi.core.GeneratorConstants.PASSWORD;
-import static io.ballerina.asyncapi.core.GeneratorConstants.REFRESH_TOKEN;
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createEmptyNodeList;
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createIdentifierToken;
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createNodeList;
@@ -92,20 +83,17 @@ import static io.ballerina.compiler.syntax.tree.NodeFactory.createModulePartNode
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createModuleVariableDeclarationNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createNamedArgumentNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createParenthesizedArgList;
-import static io.ballerina.compiler.syntax.tree.NodeFactory.createPositionalArgumentNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createRequiredExpressionNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createSimpleNameReferenceNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createTypedBindingPatternNode;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.CHECK_KEYWORD;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.CLOSE_BRACE_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.CLOSE_PAREN_TOKEN;
-import static io.ballerina.compiler.syntax.tree.SyntaxKind.COMMA_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.EQUAL_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.FUNCTION_DEFINITION;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.FUNCTION_KEYWORD;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.OPEN_BRACE_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.OPEN_PAREN_TOKEN;
-import static io.ballerina.compiler.syntax.tree.SyntaxKind.QUESTION_MARK_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.SEMICOLON_TOKEN;
 
 /**
@@ -116,8 +104,8 @@ import static io.ballerina.compiler.syntax.tree.SyntaxKind.SEMICOLON_TOKEN;
 public class TestGenerator {
     private final IntermediateClientGenerator intermediateClientGenerator;
     private final List<String> remoteFunctionNameList;
-    private String configFileName;
-    private boolean isHttpOrOAuth;
+    private final String configFileName;
+    private final boolean isHttpOrOAuth;
 
     public TestGenerator(IntermediateClientGenerator intermediateClientGenerator) {
 
@@ -131,7 +119,7 @@ public class TestGenerator {
      * Generate test.bal file synatx tree.
      *
      * @return {@link SyntaxTree}
-     * @throws IOException               Throws exception when syntax tree not modified
+     * @throws IOException                Throws exception when syntax tree not modified
      * @throws BallerinaAsyncApiException Throws exception if open api validation failed
      */
     public SyntaxTree generateSyntaxTree() throws IOException, BallerinaAsyncApiException {
@@ -207,101 +195,101 @@ public class TestGenerator {
      * @return {@link List<ModuleVariableDeclarationNode>} List of variable declaration nodes
      */
     private List<ModuleVariableDeclarationNode> getModuleVariableDeclarationNodes() {
-        isHttpOrOAuth = true;
-        Set<String> authTypes = intermediateClientGenerator.getAuthType();
+//        isHttpOrOAuth = true;
+//        Set<String> authTypes = intermediateClientGenerator.getAuthType();
         List<ModuleVariableDeclarationNode> moduleVariableDeclarationNodes = new ArrayList<>();
-        BuiltinSimpleNameReferenceNode typeBindingPattern;
-        if (!authTypes.isEmpty()) {
-            String authType = authTypes.iterator().next();
-            switch (authType) {
-                case BASIC:
-                    typeBindingPattern = createBuiltinSimpleNameReferenceNode(null,
-                            createIdentifierToken("http:CredentialsConfig & readonly"));
-                    moduleVariableDeclarationNodes.add(getConfigurableVariable(typeBindingPattern));
-                    moduleVariableDeclarationNodes.add(getAuthConfigAssignmentNode());
-                    moduleVariableDeclarationNodes.add(getClientInitializationNode(
-                            GeneratorConstants.CONFIG));
-                    configFileName = "basic_config.toml";
-                    break;
-                case BEARER:
-                    typeBindingPattern = createBuiltinSimpleNameReferenceNode(null,
-                            createIdentifierToken("http:BearerTokenConfig & readonly"));
-                    moduleVariableDeclarationNodes.add(getConfigurableVariable(typeBindingPattern));
-                    moduleVariableDeclarationNodes.add(getAuthConfigAssignmentNode());
-                    moduleVariableDeclarationNodes.add(getClientInitializationNode(
-                            GeneratorConstants.CONFIG));
-                    configFileName = "bearer_config.toml";
-                    break;
-                case CLIENT_CRED:
-                    typeBindingPattern = createBuiltinSimpleNameReferenceNode(null,
-                            createIdentifierToken("http:OAuth2ClientCredentialsGrantConfig & readonly"));
-                    moduleVariableDeclarationNodes.add(getConfigurableVariable(typeBindingPattern));
-                    moduleVariableDeclarationNodes.add(getAuthConfigAssignmentNode());
-                    configFileName = "client_credentials_config.toml";
-                    break;
-                case PASSWORD:
-                    typeBindingPattern = createBuiltinSimpleNameReferenceNode(null,
-                            createIdentifierToken("http:OAuth2PasswordGrantConfig & readonly"));
-                    moduleVariableDeclarationNodes.add(getConfigurableVariable(typeBindingPattern));
-                    moduleVariableDeclarationNodes.add(getAuthConfigAssignmentNode());
-                    configFileName = "password_config.toml";
-                    break;
-                case REFRESH_TOKEN:
-                    typeBindingPattern = createBuiltinSimpleNameReferenceNode(null,
-                            createIdentifierToken("http:OAuth2RefreshTokenGrantConfig & readonly"));
-                    moduleVariableDeclarationNodes.add(getConfigurableVariable(typeBindingPattern));
-                    moduleVariableDeclarationNodes.add(getAuthConfigAssignmentNode());
-                    configFileName = "refresh_token_config.toml";
-                    break;
-                case HTTP_API_KEY:
-                    isHttpOrOAuth = false;
-                    boolean combinationOfApiKeyAndHTTPOAuth = intermediateClientGenerator.
-                            getBallerinaAuthConfigGenerator()
-                            .isHttpApiKey() && intermediateClientGenerator.getBallerinaAuthConfigGenerator().
-                            isHttpOROAuth();
-                    if (combinationOfApiKeyAndHTTPOAuth) {
-                        // todo : The test file in the combination
-                    } else {
-                        typeBindingPattern = createBuiltinSimpleNameReferenceNode(null,
-                                createIdentifierToken(GeneratorConstants.API_KEYS_CONFIG + " & readonly"));
-                        moduleVariableDeclarationNodes.add(getConfigurableVariable(typeBindingPattern));
-                        moduleVariableDeclarationNodes.add(getClientInitializationNode
-                                (API_KEY_CONFIG_PARAM));
-                    }
-                    configFileName = "api_key_config.toml";
-                    break;
-                default:
-                    break;
-            }
-        } else {
-            isHttpOrOAuth = false;
-            moduleVariableDeclarationNodes.add(getClientInitForNoAuth());
-        }
+//        BuiltinSimpleNameReferenceNode typeBindingPattern;
+//        if (!authTypes.isEmpty()) {
+//            String authType = authTypes.iterator().next();
+//            switch (authType) {
+//                case BASIC:
+//                    typeBindingPattern = createBuiltinSimpleNameReferenceNode(null,
+//                            createIdentifierToken("http:CredentialsConfig & readonly"));
+//                    moduleVariableDeclarationNodes.add(getConfigurableVariable(typeBindingPattern));
+//                    moduleVariableDeclarationNodes.add(getAuthConfigAssignmentNode());
+//                    moduleVariableDeclarationNodes.add(getClientInitializationNode(
+//                            GeneratorConstants.CONFIG));
+//                    configFileName = "basic_config.toml";
+//                    break;
+//                case BEARER:
+//                    typeBindingPattern = createBuiltinSimpleNameReferenceNode(null,
+//                            createIdentifierToken("http:BearerTokenConfig & readonly"));
+//                    moduleVariableDeclarationNodes.add(getConfigurableVariable(typeBindingPattern));
+//                    moduleVariableDeclarationNodes.add(getAuthConfigAssignmentNode());
+//                    moduleVariableDeclarationNodes.add(getClientInitializationNode(
+//                            GeneratorConstants.CONFIG));
+//                    configFileName = "bearer_config.toml";
+//                    break;
+//                case CLIENT_CRED:
+//                    typeBindingPattern = createBuiltinSimpleNameReferenceNode(null,
+//                            createIdentifierToken("http:OAuth2ClientCredentialsGrantConfig & readonly"));
+//                    moduleVariableDeclarationNodes.add(getConfigurableVariable(typeBindingPattern));
+//                    moduleVariableDeclarationNodes.add(getAuthConfigAssignmentNode());
+//                    configFileName = "client_credentials_config.toml";
+//                    break;
+//                case PASSWORD:
+//                    typeBindingPattern = createBuiltinSimpleNameReferenceNode(null,
+//                            createIdentifierToken("http:OAuth2PasswordGrantConfig & readonly"));
+//                    moduleVariableDeclarationNodes.add(getConfigurableVariable(typeBindingPattern));
+//                    moduleVariableDeclarationNodes.add(getAuthConfigAssignmentNode());
+//                    configFileName = "password_config.toml";
+//                    break;
+//                case REFRESH_TOKEN:
+//                    typeBindingPattern = createBuiltinSimpleNameReferenceNode(null,
+//                            createIdentifierToken("http:OAuth2RefreshTokenGrantConfig & readonly"));
+//                    moduleVariableDeclarationNodes.add(getConfigurableVariable(typeBindingPattern));
+//                    moduleVariableDeclarationNodes.add(getAuthConfigAssignmentNode());
+//                    configFileName = "refresh_token_config.toml";
+//                    break;
+//                case HTTP_API_KEY:
+//                    isHttpOrOAuth = false;
+//                    boolean combinationOfApiKeyAndHTTPOAuth = intermediateClientGenerator.
+//                            getBallerinaAuthConfigGenerator()
+//                            .isHttpApiKey() && intermediateClientGenerator.getBallerinaAuthConfigGenerator().
+//                            isHttpOROAuth();
+//                    if (combinationOfApiKeyAndHTTPOAuth) {
+//                        // todo : The test file in the combination
+//                    } else {
+//                        typeBindingPattern = createBuiltinSimpleNameReferenceNode(null,
+//                                createIdentifierToken(GeneratorConstants.API_KEYS_CONFIG + " & readonly"));
+//                        moduleVariableDeclarationNodes.add(getConfigurableVariable(typeBindingPattern));
+//                        moduleVariableDeclarationNodes.add(getClientInitializationNode
+//                                (API_KEY_CONFIG_PARAM));
+//                    }
+//                    configFileName = "api_key_config.toml";
+//                    break;
+//                default:
+//                    break;
+//            }
+//        } else {
+//            isHttpOrOAuth = false;
+        moduleVariableDeclarationNodes.add(getClientInitForNoAuth());
+//        }
 
         return moduleVariableDeclarationNodes;
     }
 
-    /**
-     * Generate the configurable variable to get auth record from Config.toml.
-     * --ex     {@code ClientConfig clientConfig = {authConfig : authConfig};}
-     *
-     * @return {@link ModuleVariableDeclarationNode}   ClientConfig declaration node
-     */
-    private ModuleVariableDeclarationNode getAuthConfigAssignmentNode() {
-
-        MetadataNode metadataNode = createMetadataNode(null, createEmptyNodeList());
-        BuiltinSimpleNameReferenceNode typeBindingPattern = createBuiltinSimpleNameReferenceNode(null,
-                createIdentifierToken(CONNECTION_CONFIG));
-        CaptureBindingPatternNode bindingPattern = createCaptureBindingPatternNode(
-                createIdentifierToken(GeneratorConstants.CONFIG));
-        TypedBindingPatternNode typedBindingPatternNode = createTypedBindingPatternNode(typeBindingPattern,
-                bindingPattern);
-        NodeList<Token> nodeList = createEmptyNodeList();
-        ExpressionNode expressionNode = createRequiredExpressionNode(createIdentifierToken(String.format("{%s : %s}",
-                GeneratorConstants.AUTH, GeneratorConstants.AUTH_CONFIG)));
-        return createModuleVariableDeclarationNode(metadataNode, null, nodeList, typedBindingPatternNode,
-                createToken(EQUAL_TOKEN), expressionNode, createToken(SEMICOLON_TOKEN));
-    }
+//    /**
+//     * Generate the configurable variable to get auth record from Config.toml.
+//     * --ex     {@code ClientConfig clientConfig = {authConfig : authConfig};}
+//     *
+//     * @return {@link ModuleVariableDeclarationNode}   ClientConfig declaration node
+//     */
+//    private ModuleVariableDeclarationNode getAuthConfigAssignmentNode() {
+//
+//        MetadataNode metadataNode = createMetadataNode(null, createEmptyNodeList());
+//        BuiltinSimpleNameReferenceNode typeBindingPattern = createBuiltinSimpleNameReferenceNode(null,
+//                createIdentifierToken(CONNECTION_CONFIG));
+//        CaptureBindingPatternNode bindingPattern = createCaptureBindingPatternNode(
+//                createIdentifierToken(GeneratorConstants.CONFIG));
+//        TypedBindingPatternNode typedBindingPatternNode = createTypedBindingPatternNode(typeBindingPattern,
+//                bindingPattern);
+//        NodeList<Token> nodeList = createEmptyNodeList();
+//        ExpressionNode expressionNode = createRequiredExpressionNode(createIdentifierToken(String.format("{%s : %s}",
+//                GeneratorConstants.AUTH, GeneratorConstants.AUTH_CONFIG)));
+//        return createModuleVariableDeclarationNode(metadataNode, null, nodeList, typedBindingPatternNode,
+//                createToken(EQUAL_TOKEN), expressionNode, createToken(SEMICOLON_TOKEN));
+//    }
 
     /**
      * Generate the configurable variable to get auth record from Config.toml.
@@ -314,29 +302,29 @@ public class TestGenerator {
      *
      * @param typeBindingPattern Variable name
      * @return {@link ModuleVariableDeclarationNode}   Configurable variable declaration node
-     */
-    private ModuleVariableDeclarationNode getConfigurableVariable(
-            BuiltinSimpleNameReferenceNode typeBindingPattern) {
-
-        MetadataNode metadataNode = createMetadataNode(null, createEmptyNodeList());
-        Token configurableNode = createIdentifierToken("configurable");
-        NodeList<Token> nodeList = createNodeList(configurableNode);
-        CaptureBindingPatternNode bindingPattern;
-        boolean combinationOfApiKeyAndHTTPOAuth = intermediateClientGenerator.getBallerinaAuthConfigGenerator()
-                .isHttpApiKey() && intermediateClientGenerator.getBallerinaAuthConfigGenerator().isHttpOROAuth();
-        if (isHttpOrOAuth || combinationOfApiKeyAndHTTPOAuth) {
-            bindingPattern = createCaptureBindingPatternNode(
-                    createIdentifierToken(GeneratorConstants.AUTH_CONFIG));
-        } else {
-            bindingPattern = createCaptureBindingPatternNode(
-                    createIdentifierToken(API_KEY_CONFIG_PARAM));
-        }
-        TypedBindingPatternNode typedBindingPatternNode = createTypedBindingPatternNode(typeBindingPattern,
-                bindingPattern);
-        ExpressionNode expressionNode = createRequiredExpressionNode(createToken(QUESTION_MARK_TOKEN));
-        return createModuleVariableDeclarationNode(metadataNode, null, nodeList, typedBindingPatternNode,
-                createToken(EQUAL_TOKEN), expressionNode, createToken(SEMICOLON_TOKEN));
-    }
+    //     */
+//    private ModuleVariableDeclarationNode getConfigurableVariable(
+//            BuiltinSimpleNameReferenceNode typeBindingPattern) {
+//
+//        MetadataNode metadataNode = createMetadataNode(null, createEmptyNodeList());
+//        Token configurableNode = createIdentifierToken("configurable");
+//        NodeList<Token> nodeList = createNodeList(configurableNode);
+//        CaptureBindingPatternNode bindingPattern;
+//        boolean combinationOfApiKeyAndHTTPOAuth = intermediateClientGenerator.getBallerinaAuthConfigGenerator()
+//                .isHttpApiKey() && intermediateClientGenerator.getBallerinaAuthConfigGenerator().isHttpOROAuth();
+//        if (isHttpOrOAuth || combinationOfApiKeyAndHTTPOAuth) {
+//            bindingPattern = createCaptureBindingPatternNode(
+//                    createIdentifierToken(GeneratorConstants.AUTH_CONFIG));
+//        } else {
+//            bindingPattern = createCaptureBindingPatternNode(
+//                    createIdentifierToken(API_KEY_CONFIG_PARAM));
+//        }
+//        TypedBindingPatternNode typedBindingPatternNode = createTypedBindingPatternNode(typeBindingPattern,
+//                bindingPattern);
+//        ExpressionNode expressionNode = createRequiredExpressionNode(createToken(QUESTION_MARK_TOKEN));
+//        return createModuleVariableDeclarationNode(metadataNode, null, nodeList, typedBindingPatternNode,
+//                createToken(EQUAL_TOKEN), expressionNode, createToken(SEMICOLON_TOKEN));
+//    }
 
     /**
      * Generate client initialization node.
@@ -348,44 +336,44 @@ public class TestGenerator {
      * @param configRecordName Config record name
      * @return {@link ModuleVariableDeclarationNode}   Client initialization node
      */
-    private ModuleVariableDeclarationNode getClientInitializationNode(String configRecordName) {
-
-        String serverURL = intermediateClientGenerator.getServerUrl();
-        MetadataNode metadataNode = createMetadataNode(null, createEmptyNodeList());
-        BuiltinSimpleNameReferenceNode typeBindingPattern = createBuiltinSimpleNameReferenceNode(null,
-                createIdentifierToken(GeneratorConstants.CLIENT_CLASS_NAME));
-        CaptureBindingPatternNode bindingPattern = createCaptureBindingPatternNode(
-                createIdentifierToken("baseClient"));
-        TypedBindingPatternNode typedBindingPatternNode = createTypedBindingPatternNode(typeBindingPattern,
-                bindingPattern);
-        Token openParenArg = createToken(OPEN_PAREN_TOKEN);
-        Token closeParenArg = createToken(CLOSE_PAREN_TOKEN);
-        Token newKeyWord = createIdentifierToken("new");
-        List<Node> argumentsList = new ArrayList<>();
-        PositionalArgumentNode positionalArgumentNode1 = createPositionalArgumentNode(createSimpleNameReferenceNode(
-                createIdentifierToken(configRecordName)));
-        argumentsList.add(positionalArgumentNode1);
-        Token commaToken = createToken(COMMA_TOKEN);
-        argumentsList.add(commaToken);
-        ExpressionNode expressionNode = createRequiredExpressionNode(createIdentifierToken
-                ("\"" + serverURL + "\""));
-        NamedArgumentNode positionalArgumentNode2 = createNamedArgumentNode(createSimpleNameReferenceNode
-                (createIdentifierToken(GeneratorConstants.SERVICE_URL)), createToken(EQUAL_TOKEN), expressionNode);
-        argumentsList.add(positionalArgumentNode2);
-        SeparatedNodeList<FunctionArgumentNode> arguments = createSeparatedNodeList(argumentsList);
-        ParenthesizedArgList parenthesizedArgList = createParenthesizedArgList(openParenArg, arguments,
-                closeParenArg);
-        TypeDescriptorNode clientClassType = createBuiltinSimpleNameReferenceNode(null, createIdentifierToken
-                (GeneratorConstants.CLIENT_CLASS_NAME));
-
-        ExplicitNewExpressionNode explicitNewExpressionNode = createExplicitNewExpressionNode(newKeyWord,
-                clientClassType, parenthesizedArgList);
-        CheckExpressionNode initializer = createCheckExpressionNode(null, createToken(CHECK_KEYWORD),
-                explicitNewExpressionNode);
-        NodeList<Token> nodeList = createEmptyNodeList();
-        return createModuleVariableDeclarationNode(metadataNode, null, nodeList, typedBindingPatternNode,
-                createToken(EQUAL_TOKEN), initializer, createToken(SEMICOLON_TOKEN));
-    }
+//    private ModuleVariableDeclarationNode getClientInitializationNode(String configRecordName) {
+//
+//        String serverURL = intermediateClientGenerator.getServerUrl();
+//        MetadataNode metadataNode = createMetadataNode(null, createEmptyNodeList());
+//        BuiltinSimpleNameReferenceNode typeBindingPattern = createBuiltinSimpleNameReferenceNode(null,
+//                createIdentifierToken(GeneratorConstants.CLIENT_CLASS_NAME));
+//        CaptureBindingPatternNode bindingPattern = createCaptureBindingPatternNode(
+//                createIdentifierToken("baseClient"));
+//        TypedBindingPatternNode typedBindingPatternNode = createTypedBindingPatternNode(typeBindingPattern,
+//                bindingPattern);
+//        Token openParenArg = createToken(OPEN_PAREN_TOKEN);
+//        Token closeParenArg = createToken(CLOSE_PAREN_TOKEN);
+//        Token newKeyWord = createIdentifierToken("new");
+//        List<Node> argumentsList = new ArrayList<>();
+//        PositionalArgumentNode positionalArgumentNode1 = createPositionalArgumentNode(createSimpleNameReferenceNode(
+//                createIdentifierToken(configRecordName)));
+//        argumentsList.add(positionalArgumentNode1);
+//        Token commaToken = createToken(COMMA_TOKEN);
+//        argumentsList.add(commaToken);
+//        ExpressionNode expressionNode = createRequiredExpressionNode(createIdentifierToken
+//                ("\"" + serverURL + "\""));
+//        NamedArgumentNode positionalArgumentNode2 = createNamedArgumentNode(createSimpleNameReferenceNode
+//                (createIdentifierToken(GeneratorConstants.SERVICE_URL)), createToken(EQUAL_TOKEN), expressionNode);
+//        argumentsList.add(positionalArgumentNode2);
+//        SeparatedNodeList<FunctionArgumentNode> arguments = createSeparatedNodeList(argumentsList);
+//        ParenthesizedArgList parenthesizedArgList = createParenthesizedArgList(openParenArg, arguments,
+//                closeParenArg);
+//        TypeDescriptorNode clientClassType = createBuiltinSimpleNameReferenceNode(null, createIdentifierToken
+//                (GeneratorConstants.CLIENT_CLASS_NAME));
+//
+//        ExplicitNewExpressionNode explicitNewExpressionNode = createExplicitNewExpressionNode(newKeyWord,
+//                clientClassType, parenthesizedArgList);
+//        CheckExpressionNode initializer = createCheckExpressionNode(null, createToken(CHECK_KEYWORD),
+//                explicitNewExpressionNode);
+//        NodeList<Token> nodeList = createEmptyNodeList();
+//        return createModuleVariableDeclarationNode(metadataNode, null, nodeList, typedBindingPatternNode,
+//                createToken(EQUAL_TOKEN), initializer, createToken(SEMICOLON_TOKEN));
+//    }
 
     /**
      * Generate client initialization node when no auth mehanism found.
@@ -393,11 +381,11 @@ public class TestGenerator {
      * @return {@link ModuleVariableDeclarationNode}
      */
     private ModuleVariableDeclarationNode getClientInitForNoAuth() {
-
+        String clientName = intermediateClientGenerator.getClientName();
         String serverURL = intermediateClientGenerator.getServerUrl();
         MetadataNode metadataNode = createMetadataNode(null, createEmptyNodeList());
         BuiltinSimpleNameReferenceNode typeBindingPattern = createBuiltinSimpleNameReferenceNode(null,
-                createIdentifierToken(GeneratorConstants.CLIENT_CLASS_NAME));
+                createIdentifierToken(clientName));
         CaptureBindingPatternNode bindingPattern = createCaptureBindingPatternNode(
                 createIdentifierToken("baseClient"));
         TypedBindingPatternNode typedBindingPatternNode = createTypedBindingPatternNode(typeBindingPattern,
@@ -415,7 +403,7 @@ public class TestGenerator {
         ParenthesizedArgList parenthesizedArgList = createParenthesizedArgList(openParenArg, arguments,
                 closeParenArg);
         TypeDescriptorNode clientClassType = createBuiltinSimpleNameReferenceNode(null, createIdentifierToken
-                (GeneratorConstants.CLIENT_CLASS_NAME));
+                (clientName));
 
         ExplicitNewExpressionNode explicitNewExpressionNode = createExplicitNewExpressionNode(newKeyWord,
                 clientClassType, parenthesizedArgList);

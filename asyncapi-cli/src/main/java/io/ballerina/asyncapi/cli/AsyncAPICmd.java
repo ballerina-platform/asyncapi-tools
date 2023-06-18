@@ -71,14 +71,14 @@ public class AsyncAPICmd implements BLauncherCmd {
             "contract")
     private String service;
 
+    @CommandLine.Option(names = {"--with-tests"}, hidden = true, description = "Generate test files")
+    private boolean includeTestFiles;
+
     @CommandLine.Option(names = {"--service-name"}, description = "Service name for generated files")
     private String generatedServiceName;
 
     @CommandLine.Option(names = {"--json"}, description = "Generate json file")
     private boolean generatedFileType;
-
-    @CommandLine.Option(names = {"-n", "--nullable"}, description = "Generate the code by setting nullable true")
-    private boolean nullable;
 
     @CommandLine.Parameters
     private List<String> argList;
@@ -133,35 +133,6 @@ public class AsyncAPICmd implements BLauncherCmd {
 
             if (fileName.endsWith(YAML_EXTENSION) || fileName.endsWith(JSON_EXTENSION) ||
                     fileName.endsWith(YML_EXTENSION)) {
-//                List<String> tag = new ArrayList<>();
-//                List<String> operation = new ArrayList<>();
-//                if (tags != null) {
-//                    tag.addAll(Arrays.asList(tags.split(",")));
-//                }
-//                if (operations != null) {
-//                    String[] ids = operations.split(",");
-//                    List<String> normalizedOperationIds =
-//                            Arrays.stream(ids).map(operationId -> getValidName(operationId, false))
-//                                    .collect(Collectors.toList());
-//                    operation.addAll(normalizedOperationIds);
-//                }
-//                Filter filter = new Filter(tag, operation);
-
-//                if (generateClientMethods != null && !generateClientMethods.isBlank() &&
-//                        (!generateClientMethods.equals(RESOURCE) && !generateClientMethods.equals(REMOTE))) {
-//                    // Exit the code generation process
-//                    outStream.println("'--client-methods' only supports `remote` or `resource` options.");
-//                    exitError(this.exitWhenFinish);
-//                }
-                // Add the resource flag enable
-//                clientResourceMode = generateClientMethods == null || generateClientMethods.isBlank() ||
-//                        (!generateClientMethods.equals(REMOTE));
-//
-//                if (!clientResourceMode && mode != null && mode.equals(SERVICE)) {
-//                    // Exit the code generation process
-//                    outStream.println("'--client-methods' option is only available in client generation mode.");
-//                    exitError(this.exitWhenFinish);
-//                }
                 try {
                     asyncApiToBallerina(fileName);
                 } catch (IOException e) {
@@ -248,36 +219,11 @@ public class AsyncAPICmd implements BLauncherCmd {
     private void asyncApiToBallerina(String fileName) throws IOException {
         AsyncAPIToBallerinaGenerator generator = new AsyncAPIToBallerinaGenerator();
         generator.setLicenseHeader(this.setLicenseHeader());
-//        generator.setIncludeTestFiles(this.includeTestFiles);
+        generator.setIncludeTestFiles(this.includeTestFiles);
         final File asyncAPIFile = new File(fileName);
-        String serviceName;
-//        if (generatedServiceName != null) {
-//            serviceName = generatedServiceName;
-//        } else {
-//            serviceName = asyncAPIFile.getName().split("\\.")[0];
-//        }
         getTargetOutputPath();
         Path resourcePath = Paths.get(asyncAPIFile.getCanonicalPath());
-        if (nullable) {
-            outStream.println("WARNING: All the constraints in the AsyncAPI contract will be ignored when generating" +
-                    " the Ballerina client/service with the `--nullable` option");
-        }
         generatesClientFile(generator, resourcePath);
-
-//        if (mode != null) {
-//            switch (mode) {
-////                case "service":
-////                    generateServiceFile(generator, serviceName, resourcePath, filter);
-////                    break;
-//                case "client":
-//                    generatesClientFile(generator, resourcePath, filter, this.clientResourceMode);
-//                    break;
-//                default:
-//                    break;
-//            }
-//        } else {
-//            generateBothFiles(generator, serviceName, resourcePath, filter, this.clientResourceMode);
-//        }
     }
 
     /**
