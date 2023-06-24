@@ -10,6 +10,12 @@ import io.ballerina.asyncapi.core.exception.BallerinaAsyncApiException;
 
 import java.util.List;
 
+import static io.ballerina.asyncapi.core.GeneratorConstants.DISPATCHER_KEY_AND_DISPATCHER_STREAM_ID_MUST_BE_INSIDE_REQUIRED_PROPERTY;
+import static io.ballerina.asyncapi.core.GeneratorConstants.DISPATCHER_KEY_AND_DISPATCHER_STREAM_ID_MUST_BE_STRING;
+import static io.ballerina.asyncapi.core.GeneratorConstants.INVALID_RESPONSE_SCHEMA;
+import static io.ballerina.asyncapi.core.GeneratorConstants.RESPONSE_TYPE_MUST_BE_A_RECORD;
+import static io.ballerina.asyncapi.core.GeneratorConstants.SCHEMA_MUST_BE_A_RECORD;
+import static io.ballerina.asyncapi.core.GeneratorConstants.STRING;
 import static io.ballerina.asyncapi.core.GeneratorConstants.X_DISPATCHER_KEY;
 import static io.ballerina.asyncapi.core.GeneratorUtils.extractReferenceType;
 
@@ -37,13 +43,12 @@ public class CommonFunctionUtils {
             if (schema.getProperties() != null) {
 //                type = getValidName(schemaName, true);
                 if (schema.getProperties().containsKey(dispatcherVal)) {
-                    if (!schema.getProperties().get(dispatcherVal).getType().equals("string")) {
-                        throw new BallerinaAsyncApiException("Both dispatcherKey and " +
-                                "dispatcherStreamId type must be string");
+                    if (!schema.getProperties().get(dispatcherVal).getType().equals(STRING)) {
+                        throw new BallerinaAsyncApiException(DISPATCHER_KEY_AND_DISPATCHER_STREAM_ID_MUST_BE_STRING);
                     }
                     if (schema.getRequired() == null || (!schema.getRequired().contains(dispatcherVal))) {
-                        throw new BallerinaAsyncApiException("" +
-                                "Both dispatcherKey and dispatcherStreamId type must be inside required property");
+                        throw new BallerinaAsyncApiException(
+                                DISPATCHER_KEY_AND_DISPATCHER_STREAM_ID_MUST_BE_INSIDE_REQUIRED_PROPERTY);
                     }
                     return true;
                 }
@@ -69,18 +74,12 @@ public class CommonFunctionUtils {
                         String dispatcherKey = textNode.asText();
                         if (dispatcherVal.equals(dispatcherKey)) {
                             throw new BallerinaAsyncApiException(String.format(
-                                    "%s schema must be a record, and it must have properties to contain " +
-                                            "dispatcherKey as a field", schemaName));
+                                  SCHEMA_MUST_BE_A_RECORD, schemaName));
                         }
                     }
 
                 }
                 return true;
-
-//            if(schema.getProperties()==null){
-//                throw new BallerinaAsyncApiException(String.format(
-//                        "Response type must be a record, %s schema must contain properies field",schemaName));
-//            }
 
 
             } else if (schema.getAllOf() != null) {
@@ -109,15 +108,13 @@ public class CommonFunctionUtils {
                 String dispatcherKey = textNode.asText();
                 if (dispatcherVal.equals(dispatcherKey)) {
                     throw new BallerinaAsyncApiException(String.format(
-                            "%s schema must be a record, and it must have properties to contain dispatcherKey " +
-                                    "as a field", schemaName));
+                            SCHEMA_MUST_BE_A_RECORD, schemaName));
                 }
 
 
             } else if (!schema.getType().equals(GeneratorConstants.OBJECT)) {
                 throw new BallerinaAsyncApiException(String.format(
-                        "Response type must be a record, invalid response type %s in %s schema, schema must contain " +
-                                "properties field to contain dispatcherKey",
+                        RESPONSE_TYPE_MUST_BE_A_RECORD,
                         schema.getType(), schemaName));
             } else {
                 return false;
@@ -128,7 +125,7 @@ public class CommonFunctionUtils {
 //                throw new BallerinaAsyncApiException("Response type must be a record, invalid response schema");
 //
 //            } else {
-            throw new BallerinaAsyncApiException("Response type must be a record, invalid response schema");
+            throw new BallerinaAsyncApiException(INVALID_RESPONSE_SCHEMA);
 //            }
         }
         return false;

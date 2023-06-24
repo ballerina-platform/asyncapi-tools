@@ -100,7 +100,7 @@ import java.util.Set;
 
 import static io.ballerina.asyncapi.core.GeneratorConstants.API_KEY;
 import static io.ballerina.asyncapi.core.GeneratorConstants.API_KEYS_CONFIG;
-import static io.ballerina.asyncapi.core.GeneratorConstants.API_KEY_CONFIG_PARAM;
+import static io.ballerina.asyncapi.core.GeneratorConstants.API_KEY_CONFIG;
 import static io.ballerina.asyncapi.core.GeneratorConstants.AUTH;
 import static io.ballerina.asyncapi.core.GeneratorConstants.AuthConfigTypes;
 import static io.ballerina.asyncapi.core.GeneratorConstants.BASIC;
@@ -108,8 +108,8 @@ import static io.ballerina.asyncapi.core.GeneratorConstants.BEARER;
 import static io.ballerina.asyncapi.core.GeneratorConstants.BOOLEAN;
 import static io.ballerina.asyncapi.core.GeneratorConstants.CLIENT_CONFIG;
 import static io.ballerina.asyncapi.core.GeneratorConstants.CLIENT_CRED;
-import static io.ballerina.asyncapi.core.GeneratorConstants.CONFIG;
 import static io.ballerina.asyncapi.core.GeneratorConstants.CONNECTION_CONFIG;
+import static io.ballerina.asyncapi.core.GeneratorConstants.CUSTOM_HEADERS;
 import static io.ballerina.asyncapi.core.GeneratorConstants.ENSURE_TYPE;
 import static io.ballerina.asyncapi.core.GeneratorConstants.HTTP;
 import static io.ballerina.asyncapi.core.GeneratorConstants.HTTP_API_KEY;
@@ -118,11 +118,13 @@ import static io.ballerina.asyncapi.core.GeneratorConstants.PASSWORD;
 import static io.ballerina.asyncapi.core.GeneratorConstants.PING_PONG_HANDLER_FIELD;
 import static io.ballerina.asyncapi.core.GeneratorConstants.PING_PONG_SERVICE;
 import static io.ballerina.asyncapi.core.GeneratorConstants.PING_PONG_SERVICE_FIELD;
+import static io.ballerina.asyncapi.core.GeneratorConstants.QUERY_PARAMS;
 import static io.ballerina.asyncapi.core.GeneratorConstants.REFRESH_TOKEN;
 import static io.ballerina.asyncapi.core.GeneratorConstants.RETRY_CONFIG_FIELD;
 import static io.ballerina.asyncapi.core.GeneratorConstants.SECURE_SOCKET;
 import static io.ballerina.asyncapi.core.GeneratorConstants.SECURE_SOCKET_FIELD;
 import static io.ballerina.asyncapi.core.GeneratorConstants.SELF;
+import static io.ballerina.asyncapi.core.GeneratorConstants.STRING;
 import static io.ballerina.asyncapi.core.GeneratorConstants.USER_PASSWORD;
 import static io.ballerina.asyncapi.core.GeneratorConstants.VALIDATION;
 import static io.ballerina.asyncapi.core.GeneratorConstants.WEB_SOCKET_RETRY_CONFIG;
@@ -637,7 +639,7 @@ public class BallerinaAuthConfigGenerator {
             }
             TypeDescriptorNode intersectionTypeDescriptorNode = createIntersectionTypeDescriptorNode(readOnlyNode,
                     createToken(BITWISE_AND_TOKEN), apiKeyMapNode);
-            IdentifierToken fieldName = createIdentifierToken(API_KEY_CONFIG_PARAM);
+            IdentifierToken fieldName = createIdentifierToken(API_KEY_CONFIG);
             MetadataNode metadataNode = createMetadataNode(null, createEmptyNodeList());
             return createObjectFieldNode(metadataNode, null,
                     qualifierList, intersectionTypeDescriptorNode, fieldName, null, null,
@@ -674,7 +676,7 @@ public class BallerinaAuthConfigGenerator {
         if (httpOROAuth) {
             BuiltinSimpleNameReferenceNode typeName = createBuiltinSimpleNameReferenceNode(null,
                     createIdentifierToken(CONNECTION_CONFIG));
-            IdentifierToken paramName = createIdentifierToken(CONFIG);
+            IdentifierToken paramName = createIdentifierToken(CLIENT_CONFIG);
             RequiredParameterNode authConfig = createRequiredParameterNode(annotationNodes, typeName, paramName);
             parameters.add(authConfig);
             parameters.add(createToken(COMMA_TOKEN));
@@ -683,7 +685,7 @@ public class BallerinaAuthConfigGenerator {
             if (httpApiKey) {
                 BuiltinSimpleNameReferenceNode apiKeyConfigTypeName = createBuiltinSimpleNameReferenceNode(null,
                         createIdentifierToken(API_KEYS_CONFIG));
-                IdentifierToken apiKeyConfigParamName = createIdentifierToken(API_KEY_CONFIG_PARAM);
+                IdentifierToken apiKeyConfigParamName = createIdentifierToken(API_KEY_CONFIG);
                 RequiredParameterNode apiKeyConfigParamNode = createRequiredParameterNode(annotationNodes,
                         apiKeyConfigTypeName, apiKeyConfigParamName);
                 parameters.add(apiKeyConfigParamNode);
@@ -692,7 +694,7 @@ public class BallerinaAuthConfigGenerator {
 
             BuiltinSimpleNameReferenceNode websocketClientConfigTypeName = createBuiltinSimpleNameReferenceNode(
                     null, createIdentifierToken(CONNECTION_CONFIG));
-            IdentifierToken httpClientConfig = createIdentifierToken(CONFIG);
+            IdentifierToken httpClientConfig = createIdentifierToken(CLIENT_CONFIG);
             BasicLiteralNode emptyExpression = createBasicLiteralNode(null, createIdentifierToken(" {}"));
             DefaultableParameterNode defaultConnectionConfig = createDefaultableParameterNode(annotationNodes,
                     websocketClientConfigTypeName,
@@ -880,7 +882,7 @@ public class BallerinaAuthConfigGenerator {
                     BuiltinSimpleNameReferenceNode typeName = createBuiltinSimpleNameReferenceNode(null,
                             createIdentifierToken("QueryParams"));
                     RequiredParameterNode queryParamNode = createRequiredParameterNode(createNodeList(), typeName,
-                            createIdentifierToken("queryParams"));
+                            createIdentifierToken(QUERY_PARAMS));
 
                     parameterList.add(queryParamNode);
                     parameterList.add(comma);
@@ -905,7 +907,7 @@ public class BallerinaAuthConfigGenerator {
         Node serviceURLNode;
         NodeList<AnnotationNode> annotationNodes = createEmptyNodeList();
         BuiltinSimpleNameReferenceNode serviceURLType = createBuiltinSimpleNameReferenceNode(null,
-                createIdentifierToken("string"));
+                createIdentifierToken(STRING));
         IdentifierToken serviceURLVarName = createIdentifierToken(GeneratorConstants.SERVICE_URL);
 
         if (serviceUrl.equals("/")) {
@@ -934,7 +936,7 @@ public class BallerinaAuthConfigGenerator {
      */
     private IfElseStatementNode getDoBlockIfElseStatementNodes(String fieldName, String fieldType) {
         ExpressionNode expressionNode = createFieldAccessExpressionNode(
-                createRequiredExpressionNode(createIdentifierToken(CONFIG)),
+                createRequiredExpressionNode(createIdentifierToken(CLIENT_CONFIG)),
                 createToken(DOT_TOKEN), createSimpleNameReferenceNode(createIdentifierToken(fieldName)));
 
         ExpressionNode condition = createBinaryExpressionNode(null,
@@ -952,7 +954,7 @@ public class BallerinaAuthConfigGenerator {
                 createSimpleNameReferenceNode(createIdentifierToken(fieldName)));
 
         MethodCallExpressionNode methodCallExpressionNode = createMethodCallExpressionNode(
-                createFieldAccessExpressionNode(createRequiredExpressionNode(createIdentifierToken(CONFIG)),
+                createFieldAccessExpressionNode(createRequiredExpressionNode(createIdentifierToken(CLIENT_CONFIG)),
                         createToken(DOT_TOKEN),
                         createSimpleNameReferenceNode(createIdentifierToken(fieldName))),
                 createToken(DOT_TOKEN),
@@ -1095,7 +1097,7 @@ public class BallerinaAuthConfigGenerator {
 
         if (isHttpOROAuth() && !isHttpApiKey()) {
             ExpressionNode authValExp = createFieldAccessExpressionNode(
-                    createSimpleNameReferenceNode(createIdentifierToken(CONFIG)),
+                    createSimpleNameReferenceNode(createIdentifierToken(CLIENT_CONFIG)),
                     createToken(DOT_TOKEN), createSimpleNameReferenceNode(createIdentifierToken(AUTH)));
             SpecificFieldNode authField = createSpecificFieldNode(null,
                     createIdentifierToken(AUTH),
@@ -1106,7 +1108,7 @@ public class BallerinaAuthConfigGenerator {
 
         // create subProtocols field
         ExpressionNode subProtocolsValExp = createFieldAccessExpressionNode(
-                createSimpleNameReferenceNode(createIdentifierToken(CONFIG)),
+                createSimpleNameReferenceNode(createIdentifierToken(CLIENT_CONFIG)),
                 createToken(DOT_TOKEN), createSimpleNameReferenceNode(createIdentifierToken("subProtocols")));
         SpecificFieldNode subProtocolsField = createSpecificFieldNode(null,
                 createIdentifierToken("subProtocols"),
@@ -1115,17 +1117,17 @@ public class BallerinaAuthConfigGenerator {
         argumentsList.add(comma);
         // create customHeaders field
         ExpressionNode customHeadersValExp = createFieldAccessExpressionNode(
-                createSimpleNameReferenceNode(createIdentifierToken(CONFIG)),
-                createToken(DOT_TOKEN), createSimpleNameReferenceNode(createIdentifierToken("customHeaders")));
+                createSimpleNameReferenceNode(createIdentifierToken(CLIENT_CONFIG)),
+                createToken(DOT_TOKEN), createSimpleNameReferenceNode(createIdentifierToken(CUSTOM_HEADERS)));
         SpecificFieldNode customHeadersField = createSpecificFieldNode(null,
-                createIdentifierToken("customHeaders"),
+                createIdentifierToken(CUSTOM_HEADERS),
                 createToken(COLON_TOKEN), customHeadersValExp);
         argumentsList.add(customHeadersField);
         argumentsList.add(comma);
 
         // create readTimeout field
         ExpressionNode readTimeoutValExp = createFieldAccessExpressionNode(
-                createSimpleNameReferenceNode(createIdentifierToken(CONFIG)),
+                createSimpleNameReferenceNode(createIdentifierToken(CLIENT_CONFIG)),
                 createToken(DOT_TOKEN), createSimpleNameReferenceNode(createIdentifierToken("readTimeout")));
         SpecificFieldNode readTimeoutField = createSpecificFieldNode(null,
                 createIdentifierToken("readTimeout"),
@@ -1135,7 +1137,7 @@ public class BallerinaAuthConfigGenerator {
 
         // create writeTimeout field
         ExpressionNode writeTimeoutValExp = createFieldAccessExpressionNode(
-                createSimpleNameReferenceNode(createIdentifierToken(CONFIG)),
+                createSimpleNameReferenceNode(createIdentifierToken(CLIENT_CONFIG)),
                 createToken(DOT_TOKEN), createSimpleNameReferenceNode(createIdentifierToken("writeTimeout")));
         SpecificFieldNode writeTimeoutField = createSpecificFieldNode(null,
                 createIdentifierToken("writeTimeout"),
@@ -1145,7 +1147,7 @@ public class BallerinaAuthConfigGenerator {
 
         // create maxFrameSize field
         ExpressionNode maxFrameSizeValExp = createFieldAccessExpressionNode(
-                createSimpleNameReferenceNode(createIdentifierToken(CONFIG)),
+                createSimpleNameReferenceNode(createIdentifierToken(CLIENT_CONFIG)),
                 createToken(DOT_TOKEN), createSimpleNameReferenceNode(createIdentifierToken("maxFrameSize")));
         SpecificFieldNode maxFrameSizeField = createSpecificFieldNode(null,
                 createIdentifierToken("maxFrameSize"),
@@ -1155,7 +1157,7 @@ public class BallerinaAuthConfigGenerator {
 
         // create webSocketCompressionEnabled field
         ExpressionNode webSocketCompressionEnabledValExp = createFieldAccessExpressionNode(
-                createSimpleNameReferenceNode(createIdentifierToken(CONFIG)),
+                createSimpleNameReferenceNode(createIdentifierToken(CLIENT_CONFIG)),
                 createToken(DOT_TOKEN), createSimpleNameReferenceNode(createIdentifierToken(
                         "webSocketCompressionEnabled")));
         SpecificFieldNode webSocketCompressionEnabledField = createSpecificFieldNode(null,
@@ -1166,7 +1168,7 @@ public class BallerinaAuthConfigGenerator {
 
         // create handleShakeTimeout field
         ExpressionNode handleShakeTimeoutValExp = createFieldAccessExpressionNode(
-                createSimpleNameReferenceNode(createIdentifierToken(CONFIG)),
+                createSimpleNameReferenceNode(createIdentifierToken(CLIENT_CONFIG)),
                 createToken(DOT_TOKEN), createSimpleNameReferenceNode(createIdentifierToken("handleShakeTimeout")));
         SpecificFieldNode handleShakeTimeoutField = createSpecificFieldNode(null,
                 createIdentifierToken("handleShakeTimeout"),
@@ -1176,7 +1178,7 @@ public class BallerinaAuthConfigGenerator {
 
         // create validation field
         ExpressionNode validationValExp = createFieldAccessExpressionNode(
-                createSimpleNameReferenceNode(createIdentifierToken(CONFIG)),
+                createSimpleNameReferenceNode(createIdentifierToken(CLIENT_CONFIG)),
                 createToken(DOT_TOKEN), createSimpleNameReferenceNode(createIdentifierToken("validation")));
         SpecificFieldNode validationField = createSpecificFieldNode(null,
                 createIdentifierToken("validation"),
@@ -1245,9 +1247,9 @@ public class BallerinaAuthConfigGenerator {
         if (httpApiKey) {
             FieldAccessExpressionNode varRefApiKey = createFieldAccessExpressionNode(
                     createSimpleNameReferenceNode(createIdentifierToken(SELF)), createToken(DOT_TOKEN),
-                    createSimpleNameReferenceNode(createIdentifierToken(API_KEY_CONFIG_PARAM)));
+                    createSimpleNameReferenceNode(createIdentifierToken(API_KEY_CONFIG)));
             ExpressionNode fieldAccessExpressionNode = createRequiredExpressionNode(
-                    createIdentifierToken(API_KEY_CONFIG_PARAM));
+                    createIdentifierToken(API_KEY_CONFIG));
             ExpressionNode methodCallExpressionNode = createMethodCallExpressionNode(
                     fieldAccessExpressionNode, createToken(DOT_TOKEN),
                     createSimpleNameReferenceNode(createIdentifierToken("cloneReadOnly")),
@@ -1501,7 +1503,7 @@ public class BallerinaAuthConfigGenerator {
         // `self.apiKeyConfig = (<ApiKeysConfig>config.auth).cloneReadOnly();`
         FieldAccessExpressionNode apiKeyConfigRef = createFieldAccessExpressionNode(
                 createSimpleNameReferenceNode(createIdentifierToken(SELF)), createToken(DOT_TOKEN),
-                createSimpleNameReferenceNode(createIdentifierToken(API_KEY_CONFIG_PARAM)));
+                createSimpleNameReferenceNode(createIdentifierToken(API_KEY_CONFIG)));
         SimpleNameReferenceNode apiKeyConfigExpr = createSimpleNameReferenceNode(createIdentifierToken(
                 "(<ApiKeysConfig>config.auth).cloneReadOnly()"));
         AssignmentStatementNode apiKeyConfigAssignmentStatementNode = createAssignmentStatementNode(apiKeyConfigRef,
@@ -1515,11 +1517,11 @@ public class BallerinaAuthConfigGenerator {
 
         // config.auth = <http:BearerTokenConfig>config.auth;
         FieldAccessExpressionNode clientConfigAuthRef = createFieldAccessExpressionNode(
-                createSimpleNameReferenceNode(createIdentifierToken(CONFIG)), createToken(DOT_TOKEN),
+                createSimpleNameReferenceNode(createIdentifierToken(CLIENT_CONFIG)), createToken(DOT_TOKEN),
                 createSimpleNameReferenceNode(createIdentifierToken(AUTH)));
         SimpleNameReferenceNode clientConfigExpr = createSimpleNameReferenceNode(
                 createIdentifierToken("<" + getAuthFieldTypeName() +
-                        ">" + CONFIG + DOT_TOKEN.stringValue() + AUTH));
+                        ">" + CLIENT_CONFIG + DOT_TOKEN.stringValue() + AUTH));
         AssignmentStatementNode httpClientAuthConfigAssignment = createAssignmentStatementNode(clientConfigAuthRef,
                 createToken(EQUAL_TOKEN), clientConfigExpr, createToken(SEMICOLON_TOKEN));
         clientConfigAssignmentNodes.add(httpClientAuthConfigAssignment);
@@ -1527,7 +1529,7 @@ public class BallerinaAuthConfigGenerator {
         // `self.apiKeyConfig = ();`
         FieldAccessExpressionNode apiKeyConfigNilRef = createFieldAccessExpressionNode(
                 createSimpleNameReferenceNode(createIdentifierToken(SELF)), createToken(DOT_TOKEN),
-                createSimpleNameReferenceNode(createIdentifierToken(API_KEY_CONFIG_PARAM)));
+                createSimpleNameReferenceNode(createIdentifierToken(API_KEY_CONFIG)));
         SimpleNameReferenceNode apiKeyConfigNilExpr = createSimpleNameReferenceNode(
                 createIdentifierToken("()"));
         AssignmentStatementNode apiKeyConfigNilAssignment = createAssignmentStatementNode(apiKeyConfigNilRef,
@@ -1540,7 +1542,7 @@ public class BallerinaAuthConfigGenerator {
         ElseBlockNode elseBody = createElseBlockNode(createToken(ELSE_KEYWORD), elseBodyStatement);
 
         ExpressionNode condition = createBinaryExpressionNode(null,
-                createIdentifierToken(CONFIG + DOT_TOKEN.stringValue() + AUTH),
+                createIdentifierToken(CLIENT_CONFIG + DOT_TOKEN.stringValue() + AUTH),
                 createToken(IS_KEYWORD),
                 createIdentifierToken(API_KEYS_CONFIG)
         );

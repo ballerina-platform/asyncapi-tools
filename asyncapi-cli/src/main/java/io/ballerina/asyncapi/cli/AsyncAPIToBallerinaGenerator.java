@@ -210,6 +210,7 @@ public class AsyncAPIToBallerinaGenerator {
         BallerinaTypesGenerator ballerinaSchemaGenerator = new BallerinaTypesGenerator(
                 asyncAPIDef, preGeneratedTypeDefNodes);
 
+        // Generate schema generator syntax tree
         SyntaxTree schemaSyntaxTree = ballerinaSchemaGenerator.generateSyntaxTree();
         String schemaContent = Formatter.format(schemaSyntaxTree).toString();
 
@@ -219,7 +220,7 @@ public class AsyncAPIToBallerinaGenerator {
                     schemaContent));
         }
 
-        // Generate test boilerplate code for test cases //TODO: this has to be implemented
+        // Generate test boilerplate code for test cases
         if (this.includeTestFiles) {
             TestGenerator testGenerator = new TestGenerator(intermediateClientGenerator);
             String testContent = Formatter.format(testGenerator.generateSyntaxTree()).toString();

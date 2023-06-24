@@ -1,5 +1,5 @@
 import ballerina/websocket;
-import nuvindu/pipe;
+import xlibb/pipe;
 import ballerina/lang.runtime;
 import ballerina/uuid;
 
@@ -8,6 +8,9 @@ public client isolated class PayloadVv1versionv2versionnameClient {
     private final pipe:Pipe writeMessageQueue;
     private final pipe:Pipe readMessageQueue;
     private final PipesMap pipes;
+    private boolean isMessageWriting;
+    private boolean isMessageReading;
+    private boolean isPipeTriggering;
     # Gets invoked to initialize the `connector`.
     #
     # + config - The configurations to be used when initializing the `connector`
@@ -18,9 +21,12 @@ public client isolated class PayloadVv1versionv2versionnameClient {
         self.pipes = new ();
         self.writeMessageQueue = new (1000);
         self.readMessageQueue = new (1000);
-        string modifiedUrl = serviceUrl + string `/v1/${getEncodedUri(pathParams.version)}/v2/${getEncodedUri(pathParams.versionName)}`;
+        string modifiedUrl = serviceUrl + string `/v1/${getEncodedUri(pathParams.version)}/v2/${getEncodedUri(pathParams.'version\-name)}`;
         websocket:Client websocketEp = check new (modifiedUrl, clientConfig);
         self.clientEp = websocketEp;
+        self.isMessageWriting = true;
+        self.isMessageReading = true;
+        self.isPipeTriggering = true;
         self.startMessageWriting();
         self.startMessageReading();
         self.startPipeTriggering();
@@ -29,8 +35,8 @@ public client isolated class PayloadVv1versionv2versionnameClient {
     # Use to write messages to the websocket.
     #
     private isolated function startMessageWriting() {
-        worker writeMessage returns error {
-            while true {
+        worker writeMessage returns error? {
+            while self.isMessageWriting {
                 anydata requestMessage = check self.writeMessageQueue.consume(5);
                 check self.clientEp->writeMessage(requestMessage);
                 runtime:sleep(0.01);
@@ -40,10 +46,10 @@ public client isolated class PayloadVv1versionv2versionnameClient {
     # Use to read messages from the websocket.
     #
     private isolated function startMessageReading() {
-        worker readMessage returns error {
-            while true {
-                ResponseMessage responseMessage = check self.clientEp->readMessage();
-                check self.readMessageQueue.produce(responseMessage, 5);
+        worker readMessage returns error? {
+            while self.isMessageReading {
+                Message message = check self.clientEp->readMessage();
+                check self.readMessageQueue.produce(message, 5);
                 runtime:sleep(0.01);
             }
         }
@@ -51,31 +57,46 @@ public client isolated class PayloadVv1versionv2versionnameClient {
     # Use to map received message responses into relevant requests.
     #
     private isolated function startPipeTriggering() {
-        worker pipeTrigger returns error {
-            while true {
-                ResponseMessage responseMessage = check self.readMessageQueue.consume(5);
-                if responseMessage.hasKey("id") {
-                    ResponseMessageWithId responseMessagWithId = check responseMessage.cloneWithType();
-                    string id = responseMessagWithId.id;
+        worker pipeTrigger returns error? {
+            while self.isPipeTriggering {
+                Message message = check self.readMessageQueue.consume(5);
+                if message.hasKey("id") {
+                    MessageWithId messageWithId = check message.cloneWithType();
+                    string id = messageWithId.id;
                     pipe:Pipe idPipe = self.pipes.getPipe(id);
-                    check idPipe.produce(responseMessagWithId, 5);
+                    check idPipe.produce(messageWithId, 5);
                 }
             }
         }
     }
     #
     remote isolated function doSubscribe(Subscribe subscribe, decimal timeout) returns UnSubscribe|error {
+        if self.writeMessageQueue.isClosed() {
+            return error("connection closed");
+        }
         pipe:Pipe subscribePipe = new (1);
         string id;
         lock {
             id = uuid:createType1AsString();
+            subscribe.id = id;
         }
         self.pipes.addPipe(id, subscribePipe);
-        subscribe["id"] = id;
-        check self.writeMessageQueue.produce(subscribe, timeout);
+        Message message = check subscribe.cloneWithType();
+        check self.writeMessageQueue.produce(message, timeout);
         anydata responseMessage = check subscribePipe.consume(timeout);
+        check subscribePipe.gracefulClose();
         UnSubscribe unSubscribe = check responseMessage.cloneWithType();
-        check subscribePipe.immediateClose();
         return unSubscribe;
     }
+    remote isolated function connectionClose() returns error? {
+        lock {
+            self.isMessageReading = false;
+            self.isMessageWriting = false;
+            self.isPipeTriggering = false;
+            check self.writeMessageQueue.immediateClose();
+            check self.readMessageQueue.immediateClose();
+            check self.pipes.removePipes();
+            check self.clientEp->close();
+        }
+    };
 }

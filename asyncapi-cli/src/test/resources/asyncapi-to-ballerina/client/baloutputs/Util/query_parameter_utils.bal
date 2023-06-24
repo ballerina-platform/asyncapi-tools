@@ -1,10 +1,10 @@
-import nuvindu/pipe;
+import xlibb/pipe;
 import ballerina/url;
 
 type SimpleBasicType string|boolean|int|float|decimal;
 
-# Pipesmap class
-isolated class PipesMap {
+# PipesMap class to handle generated pipes
+public isolated class PipesMap {
     private final map<pipe:Pipe> pipes;
     public isolated function init() {
         self.pipes = {};
@@ -18,7 +18,22 @@ isolated class PipesMap {
 
     public isolated function getPipe(string id) returns pipe:Pipe {
         lock {
-            return self.pipes.get(id);
+            if (self.pipes.hasKey(id)) {
+                return self.pipes.get(id);
+            }
+            pipe:Pipe pipe = new (1);
+            self.addPipe(id, pipe);
+            return pipe;
+        }
+    }
+
+    public isolated function removePipes() returns error? {
+        lock {
+            foreach pipe:Pipe pipe in self.pipes {
+                check pipe.gracefulClose();
+            }
+            self.pipes.removeAll();
+
         }
     }
 }
@@ -27,7 +42,7 @@ isolated class PipesMap {
 #
 # + value - Value to be encoded
 # + return - Encoded string
-isolated function getEncodedUri(anydata value) returns string {
+public isolated function getEncodedUri(anydata value) returns string {
     string|error encoded = url:encode(value.toString(), "UTF8");
     if (encoded is string) {
         return encoded;
@@ -40,7 +55,7 @@ isolated function getEncodedUri(anydata value) returns string {
 #
 # + queryParam - Query parameter map
 # + return - Returns generated Path or error at failure of client initialization
-isolated function getPathForQueryParam(map<anydata> queryParam) returns string|error {
+public isolated function getPathForQueryParam(map<anydata> queryParam) returns string|error {
     string[] param = [];
     if (queryParam.length() > 0) {
         param.push("?");

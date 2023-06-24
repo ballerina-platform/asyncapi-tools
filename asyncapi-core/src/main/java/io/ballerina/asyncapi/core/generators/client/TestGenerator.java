@@ -63,7 +63,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
-import static io.ballerina.asyncapi.core.GeneratorConstants.API_KEY_CONFIG_PARAM;
+import static io.ballerina.asyncapi.core.GeneratorConstants.API_KEY_CONFIG;
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createEmptyNodeList;
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createIdentifierToken;
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createNodeList;
@@ -167,7 +167,7 @@ public class TestGenerator {
         ClassLoader classLoader = getClass().getClassLoader();
         if (!configFileName.isBlank()) {
             if (!isHttpOrOAuth) {
-                StringBuilder configFileContent = new StringBuilder("[" + API_KEY_CONFIG_PARAM + "]\n");
+                StringBuilder configFileContent = new StringBuilder("[" + API_KEY_CONFIG + "]\n");
 
                 for (String apiKey : intermediateClientGenerator.getApiKeyNameList()) {
                     configFileContent.append(GeneratorUtils.getValidName(apiKey, false)).

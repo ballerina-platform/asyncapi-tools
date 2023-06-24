@@ -25,6 +25,8 @@ import io.ballerina.compiler.syntax.tree.AssignmentStatementNode;
 import io.ballerina.compiler.syntax.tree.CheckExpressionNode;
 import io.ballerina.compiler.syntax.tree.ChildNodeEntry;
 import io.ballerina.compiler.syntax.tree.ClassDefinitionNode;
+import io.ballerina.compiler.syntax.tree.ExpressionStatementNode;
+import io.ballerina.compiler.syntax.tree.FieldAccessExpressionNode;
 import io.ballerina.compiler.syntax.tree.FunctionBodyNode;
 import io.ballerina.compiler.syntax.tree.FunctionDefinitionNode;
 import io.ballerina.compiler.syntax.tree.FunctionSignatureNode;
@@ -54,6 +56,7 @@ import io.ballerina.compiler.syntax.tree.SyntaxTree;
 import io.ballerina.compiler.syntax.tree.Token;
 import io.ballerina.compiler.syntax.tree.TypeDefinitionNode;
 import io.ballerina.compiler.syntax.tree.TypeDescriptorNode;
+import io.ballerina.compiler.syntax.tree.TypeReferenceNode;
 import io.ballerina.compiler.syntax.tree.VariableDeclarationNode;
 import io.ballerina.projects.DocumentId;
 import io.ballerina.projects.Package;
@@ -80,11 +83,15 @@ import java.util.Set;
 
 import static io.ballerina.asyncapi.core.GeneratorConstants.BALLERINA;
 import static io.ballerina.asyncapi.core.GeneratorConstants.CONSUME;
-import static io.ballerina.asyncapi.core.GeneratorConstants.NUVINDU;
-import static io.ballerina.asyncapi.core.GeneratorConstants.NUVINDU_PIPE;
-import static io.ballerina.asyncapi.core.GeneratorConstants.RESPONSE_MESSAGE_VAR_NAME;
+import static io.ballerina.asyncapi.core.GeneratorConstants.MESSAGE_VAR_NAME;
+import static io.ballerina.asyncapi.core.GeneratorConstants.PIPES_MAP;
+import static io.ballerina.asyncapi.core.GeneratorConstants.SELF;
 import static io.ballerina.asyncapi.core.GeneratorConstants.SIMPLE_PIPE;
+import static io.ballerina.asyncapi.core.GeneratorConstants.STREAM_GENERATORS_MAP;
+import static io.ballerina.asyncapi.core.GeneratorConstants.TYPE_INCLUSION_GENERATOR;
 import static io.ballerina.asyncapi.core.GeneratorConstants.URL;
+import static io.ballerina.asyncapi.core.GeneratorConstants.XLIBB;
+import static io.ballerina.asyncapi.core.GeneratorConstants.XLIBB_PIPE;
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createEmptyNodeList;
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createIdentifierToken;
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createNodeList;
@@ -93,6 +100,8 @@ import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createToken;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createAssignmentStatementNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createCheckExpressionNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createClassDefinitionNode;
+import static io.ballerina.compiler.syntax.tree.NodeFactory.createExpressionStatementNode;
+import static io.ballerina.compiler.syntax.tree.NodeFactory.createFieldAccessExpressionNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createFieldBindingPatternVarnameNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createFunctionBodyBlockNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createFunctionDefinitionNode;
@@ -112,8 +121,10 @@ import static io.ballerina.compiler.syntax.tree.NodeFactory.createReturnTypeDesc
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createSimpleNameReferenceNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createSingletonTypeDescriptorNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createTypeDefinitionNode;
+import static io.ballerina.compiler.syntax.tree.NodeFactory.createTypeReferenceNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createTypedBindingPatternNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createVariableDeclarationNode;
+import static io.ballerina.compiler.syntax.tree.SyntaxKind.ASTERISK_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.CHECK_KEYWORD;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.CLASS_KEYWORD;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.CLIENT_KEYWORD;
@@ -150,12 +161,11 @@ public class UtilGenerator {
     private static final String STREAM_GENERATOR = "StreamGenerator";
     private static final String GET_PATH_FOR_QUERY_PARAM = "getPathForQueryParam";
     private static final String GET_COMBINE_HEADERS = "getCombineHeaders";
+    private final ArrayList<String> streamReturns;
     //    private boolean streamFound = false;
     private boolean headersFound = false;
     private boolean queryParamsFound = false;
     private boolean pathParametersFound = false;
-
-    private final ArrayList<String> streamReturns;
 
     public UtilGenerator(ArrayList<String> streamReturns) {
         this.streamReturns = streamReturns;
@@ -206,9 +216,9 @@ public class UtilGenerator {
         List<ImportDeclarationNode> imports = new ArrayList<>();
 
 
-        functionNameList.add("PipesMap");
-        ImportDeclarationNode importForNuvinduPipe = GeneratorUtils.getImportDeclarationNode(NUVINDU, NUVINDU_PIPE);
-        imports.add(importForNuvinduPipe);
+        functionNameList.add(PIPES_MAP);
+        ImportDeclarationNode importForXLibbPipe = GeneratorUtils.getImportDeclarationNode(XLIBB, XLIBB_PIPE);
+        imports.add(importForXLibbPipe);
 
 
         if (queryParamsFound) {
@@ -228,6 +238,16 @@ public class UtilGenerator {
         List<ModuleMemberDeclarationNode> memberDeclarationNodes = new ArrayList<>();
         getUtilTypeDeclarationNodes(memberDeclarationNodes);
 
+        if (streamReturns.size() > 0) {
+            for (String returnType : streamReturns) {
+
+                memberDeclarationNodes.add(createStreamGenerator(returnType));
+            }
+            functionNameList.add(TYPE_INCLUSION_GENERATOR);
+            functionNameList.add(STREAM_GENERATORS_MAP);
+//            functionNameList.add(STREAM_GENERATOR);
+        }
+
         Path path = getResourceFilePath();
 
         Project project = ProjectLoader.loadProject(path);
@@ -238,10 +258,12 @@ public class UtilGenerator {
         ModulePartNode modulePartNode = syntaxTree.rootNode();
         NodeList<ModuleMemberDeclarationNode> members = modulePartNode.members();
         for (ModuleMemberDeclarationNode node : members) {
-            if (node.kind().equals(SyntaxKind.FUNCTION_DEFINITION) || node.kind().equals(SyntaxKind.CLASS_DEFINITION)) {
+            if (node.kind().equals(SyntaxKind.FUNCTION_DEFINITION) || node.kind().equals(SyntaxKind.CLASS_DEFINITION)
+                    || node.kind().equals(SyntaxKind.TYPE_DEFINITION)) {
                 for (ChildNodeEntry childNodeEntry : node.childEntries()) {
-                    if (childNodeEntry.name().equals("functionName") || childNodeEntry.name().equals("className")) {
-                        if (functionNameList.contains(childNodeEntry.node().get().toString())) {
+                    if (childNodeEntry.name().equals("functionName") || childNodeEntry.name().equals
+                            ("className") || childNodeEntry.name().equals("typeName")) {
+                        if (functionNameList.contains(childNodeEntry.node().get().toString().trim())) {
 
 //                                if(((ClassDefinitionNode)childNodeEntry.node().get()).className()
 //                                .equals("StreamGenerator")){
@@ -251,8 +273,11 @@ public class UtilGenerator {
 //                                changeStreamReturn(node,memberDeclarationNodes);
 //                            }else{
                             memberDeclarationNodes.add(node);
+                            break;
 
 
+                        } else {
+                            break;
                         }
                     }
                 }
@@ -263,13 +288,7 @@ public class UtilGenerator {
             ImportDeclarationNode importForUrl = GeneratorUtils.getImportDeclarationNode(BALLERINA, URL);
             imports.add(importForUrl);
         }
-        if (streamReturns.size() > 0) {
-            for (String returnType : streamReturns) {
 
-                memberDeclarationNodes.add(createStreamGenerator(returnType));
-            }
-//            functionNameList.add(STREAM_GENERATOR);
-        }
 //        if (functionNameList.contains(STREAM_GENERATOR)) {
 //            ImportDeclarationNode importForUrl = GeneratorUtils.getImportDeclarationNode(NUVINDU, NUVINDU_PIPE);
 //            imports.add(importForUrl);
@@ -327,6 +346,8 @@ public class UtilGenerator {
         // Add startInterMediator function
         memberNodeList.add(createNextFunction(returnType));
 
+        memberNodeList.add(createCloseFunction());
+
         // Add startMessageReading function
 
 
@@ -354,15 +375,61 @@ public class UtilGenerator {
 
     }
 
-    private List<ObjectFieldNode> createClassInstanceVariables() {
+//    private TypeDefinitionNode createGenObject() {
+//        MetadataNode metadataNode = getGenObjectMetadataNode();
+//        Token openBraceToken = createToken(OPEN_BRACE_TOKEN);
+//        Token semicolonToken = createToken(SEMICOLON_TOKEN);
+//        Token closeBraceToken = createToken(CLOSE_BRACE_TOKEN);
+//
+//        NodeList<Token> objectTypeQualifiers = createNodeList(
+//                createToken(ISOLATED_KEYWORD));
+//        ArrayList<Node> methodDeclarationNodes = new ArrayList<>();
+//        SimpleNameReferenceNode nextReturnTypeNode = createSimpleNameReferenceNode(createIdentifierToken(
+//                "record {|anydata value;|}|error?"));
+//        SimpleNameReferenceNode closeReturnTypeNode = createSimpleNameReferenceNode(createIdentifierToken(
+//                "error?"));
+//
+//        NodeList<Token> qualifierList = createNodeList(createToken(PUBLIC_KEYWORD),
+//                createToken(ISOLATED_KEYWORD));
+//        //returns
+//        ReturnTypeDescriptorNode returnTypeDescriptorNode = createReturnTypeDescriptorNode(
+//                createToken(RETURNS_KEYWORD), createEmptyNodeList(), nextReturnTypeNode);
+//        ReturnTypeDescriptorNode closeReturnTypeDescriptorNode = createReturnTypeDescriptorNode(
+//                createToken(RETURNS_KEYWORD), createEmptyNodeList(), closeReturnTypeNode);
+//        FunctionSignatureNode nextFunctionSignatureNode = createFunctionSignatureNode(
+//                createToken(OPEN_PAREN_TOKEN), createSeparatedNodeList(), createToken(CLOSE_PAREN_TOKEN),
+//                returnTypeDescriptorNode);
+//        FunctionSignatureNode closeFunctionSignatureNode = createFunctionSignatureNode(
+//                createToken(OPEN_PAREN_TOKEN), createSeparatedNodeList(), createToken(CLOSE_PAREN_TOKEN),
+//                closeReturnTypeDescriptorNode);
+//        MethodDeclarationNode nextMethodDeclarationNode = createMethodDeclarationNode(null, createMetadataNode(
+//                        null, createNodeList()), qualifierList, createToken(FUNCTION_KEYWORD),
+//                createIdentifierToken("next"), createEmptyNodeList(), nextFunctionSignatureNode, semicolonToken);
+//        MethodDeclarationNode closeMethodDeclarationNode = createMethodDeclarationNode(null, createMetadataNode(
+//                        null, createNodeList()), qualifierList, createToken(FUNCTION_KEYWORD),
+//                createIdentifierToken("close"), createEmptyNodeList(), closeFunctionSignatureNode, semicolonToken);
+//        methodDeclarationNodes.add(nextMethodDeclarationNode);
+//        methodDeclarationNodes.add(closeMethodDeclarationNode);
+//        return createTypeDefinitionNode(metadataNode, createToken(PUBLIC_KEYWORD), createToken(TYPE_KEYWORD),
+//        createIdentifierToken("Gen"),
+//                createObjectTypeDescriptorNode(objectTypeQualifiers, createToken(OBJECT_KEYWORD),
+//                openBraceToken, createNodeList(methodDeclarationNodes), closeBraceToken), semicolonToken);
+//    }
 
-        List<ObjectFieldNode> fieldNodeList = new ArrayList<>();
+    private List<Node> createClassInstanceVariables() {
+
+        List<Node> fieldNodeList = new ArrayList<>();
         Token privateKeywordToken = createToken(PRIVATE_KEYWORD);
         Token finalKeywordToken = createToken(FINAL_KEYWORD);
         ArrayList<Token> prefixTokens = new ArrayList<>();
         prefixTokens.add(privateKeywordToken);
         prefixTokens.add(finalKeywordToken);
         NodeList<Token> qualifierList = createNodeList(prefixTokens);
+
+        //*Generator
+        TypeReferenceNode typeReferenceNode = createTypeReferenceNode(createToken(ASTERISK_TOKEN),
+                createSimpleNameReferenceNode(createIdentifierToken(TYPE_INCLUSION_GENERATOR)),
+                createToken(SEMICOLON_TOKEN));
 
 
         //private final pipe:Pipe pipe;
@@ -376,10 +443,7 @@ public class UtilGenerator {
                 createToken(SEMICOLON_TOKEN));
 
         //private final pipe:Pipe pipe;
-//        QualifiedNameReferenceNode pipeTypeName = createQualifiedNameReferenceNode(createIdentifierToken(SIMPLE_PIPE),
-//                createToken(COLON_TOKEN), createIdentifierToken(GeneratorConstants.CAPITAL_PIPE));
         SimpleNameReferenceNode decimalType = createSimpleNameReferenceNode(createIdentifierToken("decimal"));
-//        IdentifierToken pipe = createIdentifierToken("pipe");
         IdentifierToken timeout = createIdentifierToken("timeout");
 
         MetadataNode timeoutNode = createMetadataNode(null, createEmptyNodeList());
@@ -388,7 +452,7 @@ public class UtilGenerator {
                 qualifierList, decimalType, timeout, null, null,
                 createToken(SEMICOLON_TOKEN));
 
-//        fieldNodeList.add(websocketClientField);
+        fieldNodeList.add(typeReferenceNode);
         fieldNodeList.add(pipeField);
         fieldNodeList.add(timeoutField);
 //        fieldNodeList.add(readMessageQueueClientField);
@@ -402,6 +466,8 @@ public class UtilGenerator {
 //        }
         return fieldNodeList;
     }
+
+
 
     private MetadataNode getClassMetadataNode(String returnType) {
 
@@ -426,6 +492,20 @@ public class UtilGenerator {
         IdentifierToken functionName = createIdentifierToken("next");
         return createFunctionDefinitionNode(null, getDocCommentsForNextMethod(" " +
                         "Next method to return next stream message")
+                , qualifierList,
+                createToken(FUNCTION_KEYWORD),
+                functionName, createEmptyNodeList(), functionSignatureNode, functionBodyNode);
+
+    }
+
+
+    private FunctionDefinitionNode createCloseFunction() {
+        FunctionSignatureNode functionSignatureNode = getCloseFunctionSignatureNode();
+        FunctionBodyNode functionBodyNode = getCloseFunctionBodyNode();
+        NodeList<Token> qualifierList = createNodeList(createToken(PUBLIC_KEYWORD), createToken(ISOLATED_KEYWORD));
+        IdentifierToken functionName = createIdentifierToken("close");
+        return createFunctionDefinitionNode(null, getDocCommentsForNextMethod(" " +
+                        "Close method to close used pipe")
                 , qualifierList,
                 createToken(FUNCTION_KEYWORD),
                 functionName, createEmptyNodeList(), functionSignatureNode, functionBodyNode);
@@ -466,6 +546,47 @@ public class UtilGenerator {
 
     }
 
+    private FunctionSignatureNode getCloseFunctionSignatureNode() {
+        SimpleNameReferenceNode returnTypeNode = createSimpleNameReferenceNode(createIdentifierToken(
+                "error?"));
+//        //returns
+        ReturnTypeDescriptorNode returnTypeDescriptorNode = createReturnTypeDescriptorNode(
+                createToken(RETURNS_KEYWORD), createEmptyNodeList(), returnTypeNode);
+
+        return createFunctionSignatureNode(
+                createToken(OPEN_PAREN_TOKEN), createSeparatedNodeList(), createToken(CLOSE_PAREN_TOKEN),
+                returnTypeDescriptorNode);
+
+
+    }
+
+    private FunctionBodyNode getCloseFunctionBodyNode() {
+        Token openParenToken = createToken(OPEN_PAREN_TOKEN);
+        Token closeParenToken = createToken(CLOSE_PAREN_TOKEN);
+        Token dotToken = createToken(DOT_TOKEN);
+        Token semicolonToken = createToken(SEMICOLON_TOKEN);
+
+        FieldAccessExpressionNode pipeAccessNode = createFieldAccessExpressionNode(
+                createSimpleNameReferenceNode(createIdentifierToken(SELF)), dotToken,
+                createSimpleNameReferenceNode(createIdentifierToken(XLIBB_PIPE)));
+        MethodCallExpressionNode gracefulMethodCallNode = createMethodCallExpressionNode(
+                pipeAccessNode, dotToken,
+                createSimpleNameReferenceNode(createIdentifierToken("gracefulClose")),
+                openParenToken, createSeparatedNodeList(), closeParenToken);
+        CheckExpressionNode graceFulCheckNode = createCheckExpressionNode(null,
+                createToken(CHECK_KEYWORD), gracefulMethodCallNode);
+        ExpressionStatementNode graceFulCheckExpressionNode = createExpressionStatementNode(
+                null, graceFulCheckNode, semicolonToken);
+
+        List<StatementNode> assignmentNodes = new ArrayList<>();
+        assignmentNodes.add(graceFulCheckExpressionNode);
+        NodeList<StatementNode> statementList = createNodeList(assignmentNodes);
+
+        return createFunctionBodyBlockNode(createToken(OPEN_BRACE_TOKEN),
+                null, statementList, createToken(CLOSE_BRACE_TOKEN), null);
+
+    }
+
     private FunctionBodyNode getNextFunctionBodyNode(String returnType) {
         Token openParanToken = createToken(OPEN_PAREN_TOKEN);
         Token closeParanToken = createToken(CLOSE_PAREN_TOKEN);
@@ -477,7 +598,7 @@ public class UtilGenerator {
         List<StatementNode> assignmentNodes = new ArrayList<>();
 
         SimpleNameReferenceNode responseMessageVarNode = createSimpleNameReferenceNode(
-                createIdentifierToken(RESPONSE_MESSAGE_VAR_NAME));
+                createIdentifierToken(MESSAGE_VAR_NAME));
         SimpleNameReferenceNode responseVarNode = createSimpleNameReferenceNode(
                 createIdentifierToken("response"));
         SimpleNameReferenceNode responseTypeNode = createSimpleNameReferenceNode(

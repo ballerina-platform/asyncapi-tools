@@ -1,9 +1,9 @@
-import nuvindu/pipe;
+import xlibb/pipe;
 
 type SimpleBasicType string|boolean|int|float|decimal;
 
-# Pipesmap class
-isolated class PipesMap {
+# PipesMap class to handle generated pipes
+public isolated class PipesMap {
     private final map<pipe:Pipe> pipes;
     public isolated function init() {
         self.pipes = {};
@@ -17,7 +17,22 @@ isolated class PipesMap {
 
     public isolated function getPipe(string id) returns pipe:Pipe {
         lock {
-            return self.pipes.get(id);
+            if (self.pipes.hasKey(id)) {
+                return self.pipes.get(id);
+            }
+            pipe:Pipe pipe = new (1);
+            self.addPipe(id, pipe);
+            return pipe;
+        }
+    }
+
+    public isolated function removePipes() returns error? {
+        lock {
+            foreach pipe:Pipe pipe in self.pipes {
+                check pipe.gracefulClose();
+            }
+            self.pipes.removeAll();
+
         }
     }
 }
@@ -27,7 +42,7 @@ isolated class PipesMap {
 # + customHeaders - Custom headers map
 # + paramHeaders - Headers generated using spec
 # + return - Return combine custom and spec generated headers
-isolated function getCombineHeaders(map<string> customHeaders, map<string> paramHeaders) returns map<string> {
+public isolated function getCombineHeaders(map<string> customHeaders, map<string> paramHeaders) returns map<string> {
     foreach [string, string] [k, v] in paramHeaders.entries() {
         customHeaders[k] = v;
     }

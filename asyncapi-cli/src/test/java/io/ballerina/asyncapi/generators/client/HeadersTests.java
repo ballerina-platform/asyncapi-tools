@@ -37,7 +37,7 @@ import static io.ballerina.asyncapi.generators.common.TestUtils.compareGenerated
 
 
 /**
- * All the tests related to the Header sections in the swagger file.
+ * All the tests related to the Header sections.
  */
 public class HeadersTests {
     private static final Path RES_DIR = Paths.get("src/test/resources/asyncapi-to-ballerina/client").toAbsolutePath();

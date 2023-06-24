@@ -1,5 +1,5 @@
 import ballerina/websocket;
-import nuvindu/pipe;
+import xlibb/pipe;
 import ballerina/lang.runtime;
 
 public client isolated class PayloadVlocationsClient {
@@ -7,6 +7,10 @@ public client isolated class PayloadVlocationsClient {
     private final pipe:Pipe writeMessageQueue;
     private final pipe:Pipe readMessageQueue;
     private final PipesMap pipes;
+    private boolean isMessageWriting;
+    private boolean isMessageReading;
+    private boolean isPipeTriggering;
+    private pipe:Pipe? subscribePipe;
     # Gets invoked to initialize the `connector`.
     #
     # + config - The configurations to be used when initializing the `connector`
@@ -19,6 +23,10 @@ public client isolated class PayloadVlocationsClient {
         string modifiedUrl = serviceUrl + string `/locations`;
         websocket:Client websocketEp = check new (modifiedUrl, clientConfig);
         self.clientEp = websocketEp;
+        self.subscribePipe = ();
+        self.isMessageWriting = true;
+        self.isMessageReading = true;
+        self.isPipeTriggering = true;
         self.startMessageWriting();
         self.startMessageReading();
         self.startPipeTriggering();
@@ -27,8 +35,8 @@ public client isolated class PayloadVlocationsClient {
     # Use to write messages to the websocket.
     #
     private isolated function startMessageWriting() {
-        worker writeMessage returns error {
-            while true {
+        worker writeMessage returns error? {
+            while self.isMessageWriting {
                 anydata requestMessage = check self.writeMessageQueue.consume(5);
                 check self.clientEp->writeMessage(requestMessage);
                 runtime:sleep(0.01);
@@ -38,10 +46,10 @@ public client isolated class PayloadVlocationsClient {
     # Use to read messages from the websocket.
     #
     private isolated function startMessageReading() {
-        worker readMessage returns error {
-            while true {
-                ResponseMessage responseMessage = check self.clientEp->readMessage();
-                check self.readMessageQueue.produce(responseMessage, 5);
+        worker readMessage returns error? {
+            while self.isMessageReading {
+                Message message = check self.clientEp->readMessage();
+                check self.readMessageQueue.produce(message, 5);
                 runtime:sleep(0.01);
             }
         }
@@ -49,14 +57,14 @@ public client isolated class PayloadVlocationsClient {
     # Use to map received message responses into relevant requests.
     #
     private isolated function startPipeTriggering() {
-        worker pipeTrigger returns error {
-            while true {
-                ResponseMessage responseMessage = check self.readMessageQueue.consume(5);
-                string event = responseMessage.event;
+        worker pipeTrigger returns error? {
+            while self.isPipeTriggering {
+                Message message = check self.readMessageQueue.consume(5);
+                string event = message.event;
                 match (event) {
                     "UnSubscribe" => {
                         pipe:Pipe subscribePipe = self.pipes.getPipe("subscribe");
-                        check subscribePipe.produce(responseMessage, 5);
+                        check subscribePipe.produce(message, 5);
                     }
                 }
             }
@@ -68,12 +76,37 @@ public client isolated class PayloadVlocationsClient {
     # + timeout - waiting period to keep the event in the buffer in seconds
     # + return - unsubscribe response description
     remote isolated function doSubscribe(Subscribe subscribe, decimal timeout) returns UnSubscribe|error {
-        pipe:Pipe subscribePipe = new (1);
-        self.pipes.addPipe("subscribe", subscribePipe);
-        check self.writeMessageQueue.produce(subscribe, timeout);
+        if self.writeMessageQueue.isClosed() {
+            return error("connection closed");
+        }
+        pipe:Pipe subscribePipe;
+        lock {
+            self.subscribePipe = self.pipes.getPipe("subscribe");
+        }
+        lock {
+            subscribePipe = check self.subscribePipe.ensureType();
+        }
         anydata responseMessage = check subscribePipe.consume(timeout);
         UnSubscribe unSubscribe = check responseMessage.cloneWithType();
-        check subscribePipe.immediateClose();
         return unSubscribe;
     }
+    remote isolated function closeSubscribePipe() returns error? {
+        lock {
+            if self.subscribePipe !is () {
+                pipe:Pipe subscribePipe = check self.subscribePipe.ensureType();
+                check subscribePipe.gracefulClose();
+            }
+        }
+    };
+    remote isolated function connectionClose() returns error? {
+        lock {
+            self.isMessageReading = false;
+            self.isMessageWriting = false;
+            self.isPipeTriggering = false;
+            check self.writeMessageQueue.immediateClose();
+            check self.readMessageQueue.immediateClose();
+            check self.pipes.removePipes();
+            check self.clientEp->close();
+        }
+    };
 }

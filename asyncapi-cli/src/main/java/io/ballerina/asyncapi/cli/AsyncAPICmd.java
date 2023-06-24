@@ -41,7 +41,7 @@ import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.YAML_EXT
 import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.YML_EXTENSION;
 
 /**
- * Main class to implement "asyncapi" command for ballerina. Commands for AsyncAPI spec
+ * Main class to implement "asyncapi1" command for ballerina. Commands for AsyncAPI spec
  * generation.
  */
 @CommandLine.Command(
@@ -113,7 +113,7 @@ public class AsyncAPICmd implements BLauncherCmd {
 
     @Override
     public void execute() {
-
+        //Check help flag is enabled
         if (helpFlag) {
             String commandUsageInfo = BLauncherCmd.getCommandUsageInfo(getName());
             outStream.println(commandUsageInfo);
@@ -131,6 +131,7 @@ public class AsyncAPICmd implements BLauncherCmd {
             // else it generates error message to enter correct input file
             String fileName = argList.get(0);
 
+            //When -i has a yaml or json extension
             if (fileName.endsWith(YAML_EXTENSION) || fileName.endsWith(JSON_EXTENSION) ||
                     fileName.endsWith(YML_EXTENSION)) {
                 try {
@@ -139,6 +140,7 @@ public class AsyncAPICmd implements BLauncherCmd {
                     outStream.println(e.getLocalizedMessage());
                     exitError(this.exitWhenFinish);
                 }
+                // when -i has bal extension
             } else if (fileName.endsWith(BAL_EXTENSION)) {
                 try {
 
@@ -148,6 +150,7 @@ public class AsyncAPICmd implements BLauncherCmd {
                     outStream.println(exception.getMessage());
                     exitError(this.exitWhenFinish);
                 }
+                // If -i has no extensions
             } else {
                 outStream.println(ErrorMessages.MISSING_CONTRACT_PATH);
                 exitError(this.exitWhenFinish);
@@ -184,7 +187,6 @@ public class AsyncAPICmd implements BLauncherCmd {
         getTargetOutputPath();
         // Check service name it is mandatory
         BallerinaToAsyncAPIGenerator asyncApiConverter = new BallerinaToAsyncAPIGenerator();
-
         asyncApiConverter.generateAsyncAPIDefinitionsAllService(balFilePath, targetOutputPath, service,
                 generatedFileType);
 

@@ -18,6 +18,7 @@
 
 package io.ballerina.asyncapi.core.generators.schema.ballerinatypegenerators;
 
+import com.fasterxml.jackson.databind.node.BooleanNode;
 import io.apicurio.datamodels.models.Schema;
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25SchemaImpl;
 import io.apicurio.datamodels.models.union.BooleanSchemaUnion;
@@ -31,6 +32,7 @@ import io.ballerina.compiler.syntax.tree.Node;
 import io.ballerina.compiler.syntax.tree.NodeFactory;
 import io.ballerina.compiler.syntax.tree.NodeList;
 import io.ballerina.compiler.syntax.tree.RecordRestDescriptorNode;
+import io.ballerina.compiler.syntax.tree.RecordTypeDescriptorNode;
 import io.ballerina.compiler.syntax.tree.SimpleNameReferenceNode;
 import io.ballerina.compiler.syntax.tree.TypeDefinitionNode;
 import io.ballerina.compiler.syntax.tree.TypeDescriptorNode;
@@ -46,6 +48,7 @@ import java.util.Set;
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createIdentifierToken;
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createNodeList;
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createToken;
+import static io.ballerina.compiler.syntax.tree.SyntaxKind.BITWISE_AND_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.CLOSE_BRACE_PIPE_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.CLOSE_BRACE_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.ELLIPSIS_TOKEN;
@@ -172,17 +175,39 @@ public class RecordTypeGenerator extends TypeGenerator {
             List<Node> generatedRecordFields = addRecordFields(required, properties.entrySet(), typeName);
             recordFields.addAll(generatedRecordFields);
             NodeList<Node> fieldNodes = AbstractNodeFactory.createNodeList(recordFields);
-            return NodeFactory.createRecordTypeDescriptorNode(createToken(RECORD_KEYWORD),
-                    metadataBuilder.isOpenRecord() ? createToken(OPEN_BRACE_TOKEN) : createToken(OPEN_BRACE_PIPE_TOKEN),
-                    fieldNodes, metadataBuilder.getRestDescriptorNode(),
-                    metadataBuilder.isOpenRecord() ? createToken(CLOSE_BRACE_TOKEN) :
-                            createToken(CLOSE_BRACE_PIPE_TOKEN));
+            RecordTypeDescriptorNode recordTypeDescriptorNode = NodeFactory.
+                    createRecordTypeDescriptorNode(createToken(RECORD_KEYWORD),
+                            metadataBuilder.isOpenRecord() ? createToken(OPEN_BRACE_TOKEN) :
+                                    createToken(OPEN_BRACE_PIPE_TOKEN),
+                            fieldNodes, metadataBuilder.getRestDescriptorNode(),
+                            metadataBuilder.isOpenRecord() ? createToken(CLOSE_BRACE_TOKEN) :
+                                    createToken(CLOSE_BRACE_PIPE_TOKEN));
+            if (schema.getExtensions() != null && schema.getExtensions().containsKey("readOnly")
+                    && schema.getExtensions().get("readOnly").equals(BooleanNode.TRUE)) {
+                return NodeFactory.createIntersectionTypeDescriptorNode(
+                        NodeFactory.createSimpleNameReferenceNode(
+                                createIdentifierToken("readonly")),
+                        createToken(BITWISE_AND_TOKEN), recordTypeDescriptorNode);
+            }
+
+            return recordTypeDescriptorNode;
         } else {
-            return NodeFactory.createRecordTypeDescriptorNode(createToken(RECORD_KEYWORD),
-                    metadataBuilder.isOpenRecord() ? createToken(OPEN_BRACE_TOKEN) : createToken(OPEN_BRACE_PIPE_TOKEN),
-                    createNodeList(recordFields), metadataBuilder.getRestDescriptorNode(),
-                    metadataBuilder.isOpenRecord() ? createToken(CLOSE_BRACE_TOKEN) :
-                            createToken(CLOSE_BRACE_PIPE_TOKEN));
+
+            RecordTypeDescriptorNode recordTypeDescriptorNode = NodeFactory.createRecordTypeDescriptorNode
+                    (createToken(RECORD_KEYWORD),
+                            metadataBuilder.isOpenRecord() ? createToken(OPEN_BRACE_TOKEN) :
+                                    createToken(OPEN_BRACE_PIPE_TOKEN),
+                            createNodeList(recordFields), metadataBuilder.getRestDescriptorNode(),
+                            metadataBuilder.isOpenRecord() ? createToken(CLOSE_BRACE_TOKEN) :
+                                    createToken(CLOSE_BRACE_PIPE_TOKEN));
+            if (schema.getExtensions() != null && schema.getExtensions().containsKey("readOnly")
+                    && schema.getExtensions().get("readOnly").equals(BooleanNode.TRUE)) {
+                return NodeFactory.createIntersectionTypeDescriptorNode(
+                        NodeFactory.createSimpleNameReferenceNode(
+                                createIdentifierToken("readonly")),
+                        createToken(BITWISE_AND_TOKEN), recordTypeDescriptorNode);
+            }
+            return recordTypeDescriptorNode;
         }
     }
 

@@ -5,14 +5,9 @@ public type PathParams record {|
     Id id;
 |};
 
-public type ResponseMessage record {
-    string event;
-};
+public type Message readonly & record {string event;};
 
-public type ResponseMessageWithId record {
-    string event;
-    string id;
-};
+public type MessageWithId readonly & record {string event; string id;};
 
 public type Subscribe record {
     string id;

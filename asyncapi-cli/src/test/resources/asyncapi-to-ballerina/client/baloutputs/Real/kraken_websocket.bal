@@ -1,5 +1,5 @@
 import ballerina/websocket;
-import nuvindu/pipe;
+import xlibb/pipe;
 import ballerina/lang.runtime;
 
 # WebSockets API offers real-time market data updates. WebSockets is a bidirectional protocol offering fastest real-time data, helping you build real-time applications. The public message types presented below do not require authentication. Private-data messages can be subscribed on a separate authenticated endpoint.
@@ -19,6 +19,14 @@ public client isolated class KrakenWebsocketsAPIClient {
     private final pipe:Pipe writeMessageQueue;
     private final pipe:Pipe readMessageQueue;
     private final PipesMap pipes;
+    private boolean isMessageWriting;
+    private boolean isMessageReading;
+    private boolean isPipeTriggering;
+    private pipe:Pipe? pingPipe;
+    private pipe:Pipe? subscribePipe;
+    private pipe:Pipe? unsubscribePipe;
+    private pipe:Pipe? heartbeatPipe;
+    private pipe:Pipe? systemStatusPipe;
     # Gets invoked to initialize the `connector`.
     #
     # + config - The configurations to be used when initializing the `connector`
@@ -30,6 +38,14 @@ public client isolated class KrakenWebsocketsAPIClient {
         self.readMessageQueue = new (1000);
         websocket:Client websocketEp = check new (serviceUrl, clientConfig);
         self.clientEp = websocketEp;
+        self.pingPipe = ();
+        self.subscribePipe = ();
+        self.unsubscribePipe = ();
+        self.heartbeatPipe = ();
+        self.systemStatusPipe = ();
+        self.isMessageWriting = true;
+        self.isMessageReading = true;
+        self.isPipeTriggering = true;
         self.startMessageWriting();
         self.startMessageReading();
         self.startPipeTriggering();
@@ -38,8 +54,8 @@ public client isolated class KrakenWebsocketsAPIClient {
     # Use to write messages to the websocket.
     #
     private isolated function startMessageWriting() {
-        worker writeMessage returns error {
-            while true {
+        worker writeMessage returns error? {
+            while self.isMessageWriting {
                 anydata requestMessage = check self.writeMessageQueue.consume(5);
                 check self.clientEp->writeMessage(requestMessage);
                 runtime:sleep(0.01);
@@ -49,10 +65,10 @@ public client isolated class KrakenWebsocketsAPIClient {
     # Use to read messages from the websocket.
     #
     private isolated function startMessageReading() {
-        worker readMessage returns error {
-            while true {
-                ResponseMessage responseMessage = check self.clientEp->readMessage();
-                check self.readMessageQueue.produce(responseMessage, 5);
+        worker readMessage returns error? {
+            while self.isMessageReading {
+                Message message = check self.clientEp->readMessage();
+                check self.readMessageQueue.produce(message, 5);
                 runtime:sleep(0.01);
             }
         }
@@ -60,30 +76,30 @@ public client isolated class KrakenWebsocketsAPIClient {
     # Use to map received message responses into relevant requests.
     #
     private isolated function startPipeTriggering() {
-        worker pipeTrigger returns error {
-            while true {
-                ResponseMessage responseMessage = check self.readMessageQueue.consume(5);
-                string event = responseMessage.event;
+        worker pipeTrigger returns error? {
+            while self.isPipeTriggering {
+                Message message = check self.readMessageQueue.consume(5);
+                string event = message.event;
                 match (event) {
                     "Pong" => {
                         pipe:Pipe pingPipe = self.pipes.getPipe("ping");
-                        check pingPipe.produce(responseMessage, 5);
+                        check pingPipe.produce(message, 5);
                     }
                     "SubscriptionStatus" => {
                         pipe:Pipe subscribePipe = self.pipes.getPipe("subscribe");
-                        check subscribePipe.produce(responseMessage, 5);
+                        check subscribePipe.produce(message, 5);
                     }
                     "SubscriptionStatus" => {
                         pipe:Pipe unsubscribePipe = self.pipes.getPipe("unsubscribe");
-                        check unsubscribePipe.produce(responseMessage, 5);
+                        check unsubscribePipe.produce(message, 5);
                     }
                     "Heartbeat" => {
                         pipe:Pipe heartbeatPipe = self.pipes.getPipe("heartbeat");
-                        check heartbeatPipe.produce(responseMessage, 5);
+                        check heartbeatPipe.produce(message, 5);
                     }
                     "SystemStatus" => {
                         pipe:Pipe systemStatusPipe = self.pipes.getPipe("systemStatus");
-                        check systemStatusPipe.produce(responseMessage, 5);
+                        check systemStatusPipe.produce(message, 5);
                     }
                 }
             }
@@ -92,52 +108,129 @@ public client isolated class KrakenWebsocketsAPIClient {
     # Ping server to determine whether connection is alive
     #
     remote isolated function doPing(Ping ping, decimal timeout) returns Pong|error {
-        pipe:Pipe pingPipe = new (1);
-        self.pipes.addPipe("ping", pingPipe);
-        check self.writeMessageQueue.produce(ping, timeout);
+        if self.writeMessageQueue.isClosed() {
+            return error("connection closed");
+        }
+        pipe:Pipe pingPipe;
+        lock {
+            self.pingPipe = self.pipes.getPipe("ping");
+        }
+        lock {
+            pingPipe = check self.pingPipe.ensureType();
+        }
         anydata responseMessage = check pingPipe.consume(timeout);
         Pong pong = check responseMessage.cloneWithType();
-        check pingPipe.immediateClose();
         return pong;
     }
     # Subscribe to a topic on a single or multiple currency pairs.
     #
     remote isolated function doSubscribe(Subscribe subscribe, decimal timeout) returns SubscriptionStatus|error {
-        pipe:Pipe subscribePipe = new (1);
-        self.pipes.addPipe("subscribe", subscribePipe);
-        check self.writeMessageQueue.produce(subscribe, timeout);
+        if self.writeMessageQueue.isClosed() {
+            return error("connection closed");
+        }
+        pipe:Pipe subscribePipe;
+        lock {
+            self.subscribePipe = self.pipes.getPipe("subscribe");
+        }
+        lock {
+            subscribePipe = check self.subscribePipe.ensureType();
+        }
         anydata responseMessage = check subscribePipe.consume(timeout);
         SubscriptionStatus subscriptionStatus = check responseMessage.cloneWithType();
-        check subscribePipe.immediateClose();
         return subscriptionStatus;
     }
     # Unsubscribe, can specify a channelID or multiple currency pairs.
     #
     remote isolated function doUnsubscribe(Unsubscribe unsubscribe, decimal timeout) returns SubscriptionStatus|error {
-        pipe:Pipe unsubscribePipe = new (1);
-        self.pipes.addPipe("unsubscribe", unsubscribePipe);
-        check self.writeMessageQueue.produce(unsubscribe, timeout);
+        if self.writeMessageQueue.isClosed() {
+            return error("connection closed");
+        }
+        pipe:Pipe unsubscribePipe;
+        lock {
+            self.unsubscribePipe = self.pipes.getPipe("unsubscribe");
+        }
+        lock {
+            unsubscribePipe = check self.unsubscribePipe.ensureType();
+        }
         anydata responseMessage = check unsubscribePipe.consume(timeout);
         SubscriptionStatus subscriptionStatus = check responseMessage.cloneWithType();
-        check unsubscribePipe.immediateClose();
         return subscriptionStatus;
     }
     #
     remote isolated function doHeartbeat(decimal timeout) returns Heartbeat|error {
-        pipe:Pipe heartbeatPipe = new (1);
-        self.pipes.addPipe("heartbeat", heartbeatPipe);
+        pipe:Pipe heartbeatPipe;
+        lock {
+            self.heartbeatPipe = self.pipes.getPipe("heartbeat");
+        }
+        lock {
+            heartbeatPipe = check self.heartbeatPipe.ensureType();
+        }
         anydata responseMessage = check heartbeatPipe.consume(timeout);
         Heartbeat heartbeat = check responseMessage.cloneWithType();
-        check heartbeatPipe.immediateClose();
         return heartbeat;
     }
     #
     remote isolated function doSystemStatus(decimal timeout) returns SystemStatus|error {
-        pipe:Pipe systemStatusPipe = new (1);
-        self.pipes.addPipe("systemStatus", systemStatusPipe);
+        pipe:Pipe systemStatusPipe;
+        lock {
+            self.systemStatusPipe = self.pipes.getPipe("systemStatus");
+        }
+        lock {
+            systemStatusPipe = check self.systemStatusPipe.ensureType();
+        }
         anydata responseMessage = check systemStatusPipe.consume(timeout);
         SystemStatus systemStatus = check responseMessage.cloneWithType();
-        check systemStatusPipe.immediateClose();
         return systemStatus;
     }
+    remote isolated function closePingPipe() returns error? {
+        lock {
+            if self.pingPipe !is () {
+                pipe:Pipe pingPipe = check self.pingPipe.ensureType();
+                check pingPipe.gracefulClose();
+            }
+        }
+    };
+    remote isolated function closeSubscribePipe() returns error? {
+        lock {
+            if self.subscribePipe !is () {
+                pipe:Pipe subscribePipe = check self.subscribePipe.ensureType();
+                check subscribePipe.gracefulClose();
+            }
+        }
+    };
+    remote isolated function closeUnsubscribePipe() returns error? {
+        lock {
+            if self.unsubscribePipe !is () {
+                pipe:Pipe unsubscribePipe = check self.unsubscribePipe.ensureType();
+                check unsubscribePipe.gracefulClose();
+            }
+        }
+    };
+    remote isolated function closeHeartbeatPipe() returns error? {
+        lock {
+            if self.heartbeatPipe !is () {
+                pipe:Pipe heartbeatPipe = check self.heartbeatPipe.ensureType();
+                check heartbeatPipe.gracefulClose();
+            }
+        }
+    };
+    remote isolated function closeSystemStatusPipe() returns error? {
+        lock {
+            if self.systemStatusPipe !is () {
+                pipe:Pipe systemStatusPipe = check self.systemStatusPipe.ensureType();
+                check systemStatusPipe.gracefulClose();
+            }
+        }
+    };
+    remote isolated function connectionClose() returns error? {
+        lock {
+            self.isMessageReading = false;
+            self.isMessageWriting = false;
+            self.isPipeTriggering = false;
+            check self.writeMessageQueue.immediateClose();
+            check self.readMessageQueue.immediateClose();
+            check self.pipes.removePipes();
+            check self.clientEp->close();
+        }
+    };
 }

@@ -13,9 +13,10 @@
 //}
 
 rootProject.name = 'asyncapi-tools'
-//include (':module-ballerina-asyncapi')
+include (':module-ballerina-asyncapi')
 include (':asyncapi-core')
 include (':asyncapi-cli')
 include(':config:checkstyle')
 include 'module-ballerina-asyncapi'
+include(':asyncapi-integration-tests')
 
