@@ -27,7 +27,7 @@ configurations.all {
 dependencies {
     implementation 'io.apicurio:apicurio-data-models:1.1.15'
     implementation 'org.apache.logging.log4j:log4j-core:2.14.1'
-    implementation 'com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:2.12.5'
+    implementation "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:${jacksonDataformatYamlVersion}"
     implementation 'commons-io:commons-io:2.11.0'
     implementation "org.ballerinalang:ballerina-lang:${ballerinaLangVersion}"
     implementation "org.ballerinalang:ballerina-parser:${ballerinaLangVersion}"
@@ -39,7 +39,7 @@ dependencies {
     implementation "info.picocli:picocli:4.0.1"
     testImplementation 'org.junit.jupiter:junit-jupiter-api:5.6.0'
     testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine'
-    testImplementation "org.testng:testng:7.3.0"
+    testImplementation "org.testng:testng:${testngVersion}"
 }
 
 test {
@@ -50,7 +50,7 @@ test {
 
 jar {
     enabled = false
-    dependsOn(shadowJar { classifier = null })
+    dependsOn(shadowJar { archiveClassifier = null })
 }
 
 shadowJar {

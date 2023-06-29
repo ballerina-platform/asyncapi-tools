@@ -4,7 +4,7 @@ name = "asyncapi.native.handler"
 version = "0.4.0"
 export= ["asyncapi.native.handler"]
 
-[[platform.java11.dependency]]
+[[platform.java17.dependency]]
 path = "./java-wrapper/build/libs/java-wrapper-0.9.0-beta.3-SNAPSHOT.jar"
 groupId = "io.ballerinax.asyncapi"
 artifactId = "java-wrapper"
