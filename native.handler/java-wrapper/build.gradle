@@ -5,7 +5,8 @@
  * Learn more about Gradle by exploring our samples at https://docs.gradle.org/6.7.1/samples
  */
 plugins {
-    id 'java'
+    id 'java-library'
+    id 'checkstyle'
 }
 
 description = 'Ballerina - Event API Java Utils'
@@ -13,11 +14,31 @@ description = 'Ballerina - Event API Java Utils'
 ext.ballerinaLangVersion = project.ballerinaLangVersion
 
 dependencies {
+    checkstyle project(':checkstyle')
+    checkstyle "com.puppycrawl.tools:checkstyle:${puppycrawlCheckstyleVersion}"
     implementation group: 'org.ballerinalang', name: 'ballerina-lang', version: "${ballerinaLangVersion}"
     implementation (group: 'org.ballerinalang', name: 'ballerina-runtime', version: "${ballerinaLangVersion}") {
         transitive = false
     }
 }
+
+checkstyle {
+    toolVersion '10.12.0'
+    configFile rootProject.file("config/checkstyle/build/checkstyle.xml")
+    configProperties = ["suppressionFile" : file("${rootDir}/config/checkstyle/build/suppressions.xml")]
+}
+
+def excludePattern = '**/module-info.java'
+tasks.withType(Checkstyle) {
+    exclude excludePattern
+}
+
+checkstyleMain.dependsOn(":checkstyle:downloadCheckstyleRuleFiles")
+checkstyleMain.dependsOn(":checkstyle:compileTestJava")
+checkstyleMain.dependsOn(":checkstyle:checkstyleMain")
+checkstyleMain.dependsOn(":checkstyle:checkstyleTest")
+checkstyleMain.dependsOn(":checkstyle:test")
+checkstyleMain.dependsOn(":checkstyle:processTestResources")
 
 compileJava {
     doFirst {

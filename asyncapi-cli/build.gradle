@@ -16,7 +16,8 @@
  */
 
 apply plugin: "com.github.johnrengelman.shadow"
-apply plugin: "java"
+apply plugin: "java-library"
+apply plugin: "checkstyle"
 
 description = "Ballerina - AsyncAPI Tooling - AsyncAPI to Ballerina"
 
@@ -25,6 +26,9 @@ configurations.all {
 }
 
 dependencies {
+    checkstyle project(':checkstyle')
+    checkstyle "com.puppycrawl.tools:checkstyle:${puppycrawlCheckstyleVersion}"
+
     implementation 'io.apicurio:apicurio-data-models:1.1.15'
     implementation 'org.apache.logging.log4j:log4j-core:2.14.1'
     implementation "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:${jacksonDataformatYamlVersion}"
@@ -47,6 +51,20 @@ test {
         suites "src/test/resources/testng.xml"
     }
 }
+
+checkstyle {
+    toolVersion '10.12.0'
+    configFile rootProject.file("config/checkstyle/build/checkstyle.xml")
+    configProperties = ["suppressionFile" : file("${rootDir}/config/checkstyle/build/suppressions.xml")]
+}
+
+def excludePattern = '**/module-info.java'
+tasks.withType(Checkstyle) {
+    exclude excludePattern
+}
+
+checkstyleMain.dependsOn(":checkstyle:downloadCheckstyleRuleFiles")
+checkstyleTest.dependsOn(":checkstyle:downloadCheckstyleRuleFiles")
 
 jar {
     enabled = false

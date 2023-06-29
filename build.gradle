@@ -74,17 +74,6 @@ allprojects {
             url "https://plugins.gradle.org/m2/"
         }
     }
-
-    checkstyle {
-        toolVersion '10.12.0'
-        configFile = file("$rootProject.projectDir/config/checkstyle/checkstyle.xml")
-    }
-
-    def excludePattern = '**/module-info.java'
-    tasks.withType(Checkstyle) {
-        configFile file("${rootProject.projectDir}/config/checkstyle/checkstyle.xml")
-        exclude excludePattern
-    }
 }
 
 subprojects {
@@ -252,6 +241,11 @@ directoryBuild.dependsOn ":native.handler:java-wrapper:checkstyleMain"
 directoryBuild.dependsOn ":native.handler:java-wrapper:checkstyleTest"
 directoryBuild.dependsOn ":native.handler:java-wrapper:test"
 directoryBuild.dependsOn ":native.handler:java-wrapper:processTestResources"
+directoryBuild.dependsOn ":checkstyle:compileTestJava"
+directoryBuild.dependsOn ":checkstyle:checkstyleMain"
+directoryBuild.dependsOn ":checkstyle:checkstyleTest"
+directoryBuild.dependsOn ":checkstyle:test"
+directoryBuild.dependsOn ":checkstyle:processTestResources"
 
 build.dependsOn directoryBuild
 

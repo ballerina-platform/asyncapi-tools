@@ -2,8 +2,10 @@ plugins {
     id "com.gradle.enterprise" version "3.5"
 }
 rootProject.name = 'module-ballerina-asyncapi'
+include ':checkstyle'
 include(':native.handler:java-wrapper')
 include(':asyncapi-cli')
+project(':checkstyle').projectDir = file("config${File.separator}checkstyle")
 gradleEnterprise {
     buildScan {
         termsOfServiceUrl = 'https://gradle.com/terms-of-service'
