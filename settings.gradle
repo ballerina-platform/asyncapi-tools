@@ -1,16 +1,4 @@
-//pluginManagement {
-//    repositories {
-//        maven {
-//            url = 'https://maven.pkg.github.com/ballerina-platform/plugin-gradle'
-//            credentials {
-//                username "thushalya"
-//                password "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"
-//            }
-//        }
-//        gradlePluginPortal()
-//    }
-//
-//}
+
 
 rootProject.name = 'asyncapi-tools'
 include (':module-ballerina-asyncapi')

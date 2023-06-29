@@ -35,7 +35,6 @@ import java.util.Optional;
 /**
  * This {@code AsyncAPIResult} is used to contain AsyncAPI definition in string format and error list.
  *
- * @since 2.0.0
  */
 public class AsyncAPIResult {
 
@@ -67,6 +66,7 @@ public class AsyncAPIResult {
         this.serviceName = serviceName;
     }
 
+    // Take yaml file
     public Optional<String> getYaml() {
         ObjectNode json = Library.writeDocument(this.asyncAPI);
         YAMLFactory factory = new YAMLFactory();
@@ -83,7 +83,7 @@ public class AsyncAPIResult {
         }
         return Optional.ofNullable(finalYaml);
     }
-
+    // Take json file
     public Optional<String> getJson() {
         ObjectNode json = Library.writeDocument(this.asyncAPI);
         String finalJson = JsonUtil.stringify(json);

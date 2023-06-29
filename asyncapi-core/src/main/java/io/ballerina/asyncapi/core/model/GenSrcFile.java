@@ -26,7 +26,6 @@ package io.ballerina.asyncapi.core.model;
 public class GenSrcFile {
     private String content;
     private String fileName;
-    private String pkgName;
     private GenFileType type;
 
     /**
@@ -50,7 +49,7 @@ public class GenSrcFile {
         }
     }
 
-    public GenSrcFile(GenFileType type, String pkgName, String fileName, String content) {
+    public GenSrcFile(GenFileType type, String fileName, String content) {
         this.type = type;
         this.fileName = fileName;
         this.content = content;
@@ -70,14 +69,6 @@ public class GenSrcFile {
 
     public void setFileName(String fileName) {
         this.fileName = fileName;
-    }
-
-    public String getPkgName() {
-        return pkgName;
-    }
-
-    public void setPkgName(String pkgName) {
-        this.pkgName = pkgName;
     }
 
     public GenFileType getType() {

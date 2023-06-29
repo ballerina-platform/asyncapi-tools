@@ -127,14 +127,9 @@ public class ConverterCommonUtils {
                 // map<map<int>> then those also need to be handle
                 break;
             case Constants.MAP_JSON:
-//            case Constants.MAP_STRING:
             case Constants.MAP:
-//                objectSchema.setType(AsyncAPIType.RECORD.toString());
                 schema.setType(AsyncAPIType.OBJECT.toString());
                 schema.setAdditionalProperties(new BalBooleanSchema(true));
-//                schema.setAdditionalProperties(true);
-//                schema.setAdditionalProperties(true);
-//                schema.additionalProperties(true);
                 break;
 
             case Constants.TYPE_REFERENCE:

@@ -80,7 +80,6 @@ import static io.ballerina.asyncapi.core.generators.asyncspec.utils.ConverterCom
 /**
  * This util class for processing the mapping in between ballerina record and asyncAPI object schema.
  *
- * @since 2.0.0
  */
 public class AsyncAPIComponentMapper {
     private final AsyncApi25ComponentsImpl components;
@@ -97,7 +96,7 @@ public class AsyncAPIComponentMapper {
     }
 
     /**
-     * This function for doing the mapping with ballerina type references.
+     * This function is to map ballerina type references.
      *
      * @param typeSymbol Type reference name as the TypeSymbol
      */

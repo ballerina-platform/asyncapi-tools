@@ -29,16 +29,13 @@ public class GeneratorMetaData {
 
     private static GeneratorMetaData generatorMetaData = null;
     private final AsyncApi25DocumentImpl asyncAPI;
-    private final boolean generateServiceType;
 
-    private GeneratorMetaData(AsyncApi25DocumentImpl asyncAPI, boolean generateServiceType) {
+    private GeneratorMetaData(AsyncApi25DocumentImpl asyncAPI) {
         this.asyncAPI = asyncAPI;
-
-        this.generateServiceType = generateServiceType;
     }
 
-    public static void createInstance(AsyncApi25DocumentImpl asyncAPI, boolean generateServiceType) {
-        generatorMetaData = new GeneratorMetaData(asyncAPI, generateServiceType);
+    public static void createInstance(AsyncApi25DocumentImpl asyncAPI) {
+        generatorMetaData = new GeneratorMetaData(asyncAPI);
     }
 
     public static GeneratorMetaData getInstance() {
@@ -50,7 +47,4 @@ public class GeneratorMetaData {
     }
 
 
-    public boolean isServiceTypeRequired() {
-        return generateServiceType;
-    }
 }

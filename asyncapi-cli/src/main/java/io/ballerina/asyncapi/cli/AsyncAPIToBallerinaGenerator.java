@@ -58,9 +58,8 @@ import static io.ballerina.asyncapi.core.GeneratorConstants.ASYNCAPI_PATH_SEPARA
 import static io.ballerina.asyncapi.core.GeneratorConstants.UTIL_FILE_NAME;
 
 /**
- * This class generates Ballerina Services/Clients for a provided OAS definition.
+ * This class generates Ballerina Websocket client for a provided AsyncAPI definition.
  *
- * @since 1.3.0
  */
 public class AsyncAPIToBallerinaGenerator {
     private static final PrintStream outStream = System.err;
@@ -69,14 +68,14 @@ public class AsyncAPIToBallerinaGenerator {
     private boolean includeTestFiles;
 
     /**
-     * Generates ballerina client for provided Async API Definition in {@code definitionPath}.
+     * Generates ballerina websocket client for provided Async API Definition in {@code definitionPath}.
      * Generated source will be written to a ballerina module at {@code outPath}
-     * Method can be use for generating Ballerina clients.
+     * Method can be use for generating Ballerina websocket clients.
      *
      * @param definitionPath Input Async Api Definition file path
-     * @param outPath        Destination file path to save generated client files including types.bal, utils.bal.
+     * @param outPath        Destination file path to save generated client files including types.bal, utils.bal
      *                       If not provided {@code definitionPath} will be used as the default destination path
-     * @throws IOException                when file operations fail
+     * @throws IOException   when file operations fail
      * @throws BallerinaAsyncApiException when code generator fails
      */
     public void generateClient(String definitionPath, String outPath)
@@ -86,6 +85,16 @@ public class AsyncAPIToBallerinaGenerator {
         List<GenSrcFile> genFiles = generateClientFiles(Paths.get(definitionPath));
                  writeGeneratedSources(genFiles, srcPath, implPath, GEN_CLIENT);
     }
+
+
+    /**
+     *
+     * @param sources Generated all sources as a list
+     * @param srcPath Output path provided
+     * @param implPath so
+     * @param type  check wheather the file type is service or client
+     * @throws IOException
+     */
 
     private void writeGeneratedSources(List<GenSrcFile> sources, Path srcPath, Path implPath,
                                        CmdConstants.GenType type)
@@ -168,7 +177,7 @@ public class AsyncAPIToBallerinaGenerator {
 
     /**
      * Generate code for ballerina client.
-     *
+     * @param asyncAPI path to the AsyncAPI definition
      * @return generated source files as a list of {@link GenSrcFile}
      * @throws IOException when code generation with specified templates fails
      */
@@ -192,14 +201,14 @@ public class AsyncAPIToBallerinaGenerator {
         //Generate client intermediate code
         IntermediateClientGenerator intermediateClientGenerator = new IntermediateClientGenerator(asyncAPIClientConfig);
         String mainContent = Formatter.format(intermediateClientGenerator.generateSyntaxTree()).toString();
-        sourceFiles.add(new GenSrcFile(GenSrcFile.GenFileType.GEN_SRC, srcPackage, CLIENT_FILE_NAME, mainContent));
+        sourceFiles.add(new GenSrcFile(GenSrcFile.GenFileType.GEN_SRC, CLIENT_FILE_NAME, mainContent));
 
 
         //Generate util functions for client intermediate code
         String utilContent = Formatter.format(
                 intermediateClientGenerator.getBallerinaUtilGenerator().generateUtilSyntaxTree()).toString();
         if (!utilContent.isBlank()) {
-            sourceFiles.add(new GenSrcFile(GenSrcFile.GenFileType.UTIL_SRC, srcPackage, UTIL_FILE_NAME, utilContent));
+            sourceFiles.add(new GenSrcFile(GenSrcFile.GenFileType.UTIL_SRC, UTIL_FILE_NAME, utilContent));
         }
         List<TypeDefinitionNode> preGeneratedTypeDefNodes = new ArrayList<>(
                 intermediateClientGenerator.getBallerinaAuthConfigGenerator().getAuthRelatedTypeDefinitionNodes());
@@ -216,7 +225,7 @@ public class AsyncAPIToBallerinaGenerator {
 
 
         if (!schemaContent.isBlank()) {
-            sourceFiles.add(new GenSrcFile(GenSrcFile.GenFileType.MODEL_SRC, srcPackage, TYPE_FILE_NAME,
+            sourceFiles.add(new GenSrcFile(GenSrcFile.GenFileType.MODEL_SRC,  TYPE_FILE_NAME,
                     schemaContent));
         }
 
@@ -224,11 +233,11 @@ public class AsyncAPIToBallerinaGenerator {
         if (this.includeTestFiles) {
             TestGenerator testGenerator = new TestGenerator(intermediateClientGenerator);
             String testContent = Formatter.format(testGenerator.generateSyntaxTree()).toString();
-            sourceFiles.add(new GenSrcFile(GenSrcFile.GenFileType.GEN_SRC, srcPackage, TEST_FILE_NAME, testContent));
+            sourceFiles.add(new GenSrcFile(GenSrcFile.GenFileType.GEN_SRC,  TEST_FILE_NAME, testContent));
 
             String configContent = testGenerator.getConfigTomlFile();
             if (!configContent.isBlank()) {
-                sourceFiles.add(new GenSrcFile(GenSrcFile.GenFileType.GEN_SRC, srcPackage,
+                sourceFiles.add(new GenSrcFile(GenSrcFile.GenFileType.GEN_SRC,
                         CONFIG_FILE_NAME, configContent));
             }
         }

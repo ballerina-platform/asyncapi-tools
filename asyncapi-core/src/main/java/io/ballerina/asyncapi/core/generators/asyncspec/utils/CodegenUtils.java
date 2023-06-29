@@ -34,8 +34,6 @@ import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.YAML_EXT
  * Utilities used by ballerina asyncapi code generator.
  */
 public final class CodegenUtils {
-//    private static final String LINE_SEPARATOR = System.lineSeparator();
-//
     /**
      * Resolves path to write generated implementation source files.
      *

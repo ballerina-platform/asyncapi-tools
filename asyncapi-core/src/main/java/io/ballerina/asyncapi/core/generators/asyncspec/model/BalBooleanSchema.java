@@ -4,10 +4,9 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import io.apicurio.datamodels.models.union.BooleanUnionValueImpl;
 
 /**
- * In Apicurio data model ,they are using BooleanSchemaUnion but If use this as they given then we can't get the output.
+ * In Apicurio data model ,they are using BooleanSchemaUnion but boolean: true and value: true fields need to be ignored
+ * therefore those defined as @JsonIgnore
  *
- *
- * @since 2.0.0
  */
 public class BalBooleanSchema extends BooleanUnionValueImpl {
 

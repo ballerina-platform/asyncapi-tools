@@ -29,14 +29,7 @@ import java.util.Map;
  */
 public class GeneratorConstants {
 
-    public static final String TYPE_FILE_NAME = "types.bal";
-    public static final String CLIENT_FILE_NAME = "client.bal";
     public static final String UTIL_FILE_NAME = "utils.bal";
-    public static final String BALLERINA_TOML = "Ballerina.toml";
-    public static final String BALLERINA_TOML_CONTENT = "[package]\n" +
-            "org= \"ballerina\"\n" +
-            "name= \"testasyncapi\"\n" +
-            "version= \"0.0.0\"\n";
     public static final String ASYNCAPI_PATH_SEPARATOR = "/";
     public static final String ESCAPE_PATTERN = "([\\[\\]\\\\?!<>@#&~`*\\-=^+();:\\/{}\\s|.$])";
     //ClientCode generator
@@ -140,10 +133,8 @@ public class GeneratorConstants {
     public static final String XML = "xml";
     public static final String JSON = "json";
     public static final String SERVICE_URL = "serviceUrl";
-    public static final String IDENTIFIER = "identifier";
 
     public static final String BINARY = "binary";
-    public static final String DOUBLE = "double";
     public static final String FLOAT = "float";
     public static final String HEADER_PARAM = "headerParam";
     public static final String PDF = "pdf";
@@ -163,7 +154,6 @@ public class GeneratorConstants {
     public static final String API_KEYS_CONFIG = "ApiKeysConfig";
     public static final String API_KEY_CONFIG = "apiKeyConfig";
     public static final String AUTH = "auth";
-    public static final String AUTH_CONFIG = "authConfig";
 
     public static final String PING_PONG_SERVICE = "websocket:PingPongService";
     public static final String PING_PONG_HANDLER_FIELD = "pingPongHandler";
@@ -191,7 +181,6 @@ public class GeneratorConstants {
     public static final String DEFAULT_API_KEY_DESC = "API keys for authorization";
     public static final String ANY_DATA = "anydata";
 
-    public static final String OPTIONS = "options";
     //AsyncAPI Ballerina extensions
     public static final String X_BALLERINA_INIT_DESCRIPTION = "x-ballerina-init-description";
 
@@ -230,12 +219,8 @@ public class GeneratorConstants {
 
     public static final String REMOVE_STREAM_GENERATORS = "removeStreamGenerators";
 
-
-    public static final String CONNECTION_INIT_MESSAGE_PIPE = "connectionInitMessagePipe";
     public static final String CONNECTION_CLOSE = "connectionClose";
 
-
-    public static final String PING_MESSAGE_PIPE = "pingMessagePipe";
     public static final String NUMBER = "number";
 
     public static final String OBJECT = "object";

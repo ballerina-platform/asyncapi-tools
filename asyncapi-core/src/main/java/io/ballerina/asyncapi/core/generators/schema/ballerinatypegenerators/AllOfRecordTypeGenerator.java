@@ -118,7 +118,6 @@ public class AllOfRecordTypeGenerator extends RecordTypeGenerator {
             typeDescriptorNodes.add(typeDescriptorNode);
             // error for rest field unhandled constraint support
 
-            //    TODO : thushalya:- check this after uncomment has constraints
             if (GeneratorUtils.hasConstraints(schema)) {
                 // use printStream for echo the error, because current asyncapi to ballerina implementation won't
                 // handle diagnostic message.

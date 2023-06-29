@@ -65,8 +65,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import static io.ballerina.asyncapi.core.GeneratorConstants.ARRAY;
 import static io.ballerina.asyncapi.core.GeneratorConstants.BALLERINA;
+import static io.ballerina.asyncapi.core.GeneratorConstants.BOOLEAN;
 import static io.ballerina.asyncapi.core.GeneratorConstants.CONSTRAINT;
+import static io.ballerina.asyncapi.core.GeneratorConstants.INTEGER;
+import static io.ballerina.asyncapi.core.GeneratorConstants.NUMBER;
+import static io.ballerina.asyncapi.core.GeneratorConstants.STRING;
+import static io.ballerina.asyncapi.core.GeneratorConstants.X_NULLABLE;
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createEmptyNodeList;
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createIdentifierToken;
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createNodeList;
@@ -85,7 +91,6 @@ import static io.ballerina.compiler.syntax.tree.SyntaxKind.SEMICOLON_TOKEN;
 /**
  * Contains util functions needed for schema generation.
  *
- * @since 1.3.0
  */
 public class TypeGeneratorUtils {
     private static final List<String> primitiveTypeList =
@@ -98,8 +103,9 @@ public class TypeGeneratorUtils {
      * Get SchemaType object relevant to the schema given.
      *
      * @param schemaValue Schema object
-     * @param typeName    parameter name
+     * @param typeName    Parameter name
      * @return Relevant SchemaType object
+     * @throws BallerinaAsyncApiException Exception
      */
     public static TypeGenerator getTypeGenerator(AsyncApi25SchemaImpl schemaValue, String typeName,
                                                  String parentName) throws BallerinaAsyncApiException {
@@ -129,18 +135,8 @@ public class TypeGeneratorUtils {
                 (schemaValue.getAdditionalProperties() instanceof AsyncApi25SchemaImpl ||
                         (schemaValue.getAdditionalProperties() instanceof BooleanUnionValueImpl &&
                                 schemaValue.getAdditionalProperties().asBoolean().equals(true)))) {
-
-
-//            if (((AsyncApi25SchemaImpl) schemaValue.getAdditionalProperties()).getType() == null) {
-//                return new MapTypeGenerator(schemaValue, typeName);
-
-
-//            } else if (((AsyncApi25SchemaImpl) schemaValue.getAdditionalProperties()).getType() != null) {
             return new MapTypeGenerator(schemaValue, typeName);
 
-//            }else if (){
-//                return  null;
-//            }
         } else if (schemaValue.getType() == null && schemaValue.getProperties() == null &&
                 schemaValue.getAdditionalProperties() != null) {
             return new JsonTypeGenerator(schemaValue, typeName);
@@ -165,37 +161,18 @@ public class TypeGeneratorUtils {
      * @return Final type of the field
      */
     public static TypeDescriptorNode getNullableType(AsyncApi25SchemaImpl schema,
-                                                     TypeDescriptorNode originalTypeDesc)
-            throws BallerinaAsyncApiException {
+                                                     TypeDescriptorNode originalTypeDesc) {
         TypeDescriptorNode nillableType = originalTypeDesc;
-//        boolean nullable = GeneratorMetaData.getInstance().isNullable();
         if (schema.getExtensions() != null) {
 
-            if (schema.getExtensions().get("x-nullable") != null &&
-                    schema.getExtensions().get("x-nullable").equals(BooleanNode.TRUE)) {
+            if (schema.getExtensions().get(X_NULLABLE) != null &&
+                    schema.getExtensions().get(X_NULLABLE).equals(BooleanNode.TRUE)) {
                 nillableType = createOptionalTypeDescriptorNode(originalTypeDesc, createToken(QUESTION_MARK_TOKEN));
             }
         }
-//        if(schema.getExtraProperty("nullable")!=null){
-//            throw new BallerinaAsyncApiException("Use x-nullable instead of nullable");
-//        }
-//        } else if (nullable) {
-//            nillableType = createOptionalTypeDescriptorNode(originalTypeDesc, createToken(QUESTION_MARK_TOKEN));
-//        }
         return nillableType;
     }
 
-    //    public static void updateRecordFieldList(List<String> required,
-//                                             List<Node> recordFieldList,
-//                                             Map.Entry<String, Schema> field,
-//                                             AsyncApi25SchemaImpl fieldSchema,
-//                                             NodeList<Node> schemaDocNodes,
-//                                             IdentifierToken fieldName,
-//                                             TypeDescriptorNode fieldTypeName) {
-//
-//        updateRecordFieldList(required, recordFieldList, field, fieldSchema, schemaDocNodes, fieldName,
-//                fieldTypeName, System.err);
-//    }
     public static ImmutablePair<List<Node>, Set<String>> updateRecordFieldListWithImports(
             List<String> required, List<Node> recordFieldList, Map.Entry<String, Schema> field,
             AsyncApi25SchemaImpl fieldSchema, NodeList<Node> schemaDocNodes, IdentifierToken fieldName,
@@ -229,23 +206,13 @@ public class TypeGeneratorUtils {
             isConstraintSupport =
                     constraintNode != null &&
                             fieldSchema.getExtensions() != null &&
-                            fieldSchema.getExtensions().get("x-nullable") != null ||
+                            fieldSchema.getExtensions().get(X_NULLABLE) != null ||
                             ((((fieldSchema.getOneOf() != null || fieldSchema.getAllOf() != null ||
                                     fieldSchema.getAnyOf() != null))) &&
                                     (fieldSchema.getOneOf() != null ||
                                             fieldSchema.getAnyOf() != null));
         }
 
-
-//        boolean nullable = GeneratorMetaData.getInstance().isNullable();
-//        if (nullable) {
-//            constraintNode = null;
-//        } else if (isConstraintSupport) {
-//            outStream.printf("WARNING: constraints in the AsyncAPI contract will be ignored for the " +
-//                            "field `%s`, as constraints are not supported on Ballerina union types%n",
-//                    fieldName.toString().trim());
-//            constraintNode = null;
-//        }
         if (isConstraintSupport) {
             outStream.printf("WARNING: constraints in the AsyncAPI contract will be ignored for the " +
                             "field `%s`, as constraints are not supported on Ballerina union types%n",
@@ -281,22 +248,7 @@ public class TypeGeneratorUtils {
                                           TypeDescriptorNode fieldTypeName,
                                           MetadataNode metadataNode) {
 
-//        if (!required.contains(field.getKey().trim())) {
-//            if (fieldSchema.getDefault() != null) {
-//                RecordFieldWithDefaultValueNode defaultNode =
-//                        getRecordFieldWithDefaultValueNode(fieldSchema, fieldName, fieldTypeName, metadataNode);
-//                recordFieldList.add(defaultNode);
-//            } else {
-//                RecordFieldNode recordFieldNode = NodeFactory.createRecordFieldNode(metadataNode, null,
-//                        fieldTypeName, fieldName, createToken(QUESTION_MARK_TOKEN),
-//                        createToken(SEMICOLON_TOKEN));
-//                recordFieldList.add(recordFieldNode);
-//            }
-//        } else {
-//            RecordFieldNode recordFieldNode = NodeFactory.createRecordFieldNode(metadataNode, null,
-//                    fieldTypeName, fieldName, null, createToken(SEMICOLON_TOKEN));
-//            recordFieldList.add(recordFieldNode);
-//        }
+
         if (!required.contains(field.getKey().trim())) {
             if (fieldSchema.getDefault() != null) {
                 RecordFieldWithDefaultValueNode defaultNode =
@@ -330,7 +282,7 @@ public class TypeGeneratorUtils {
 
         Token defaultValueToken;
         String defaultValue = fieldSchema.getDefault().toString().trim();
-        if ((fieldSchema.getType() != null && fieldSchema.getType().equals("string") ||
+        if ((fieldSchema.getType() != null && fieldSchema.getType().equals(STRING) ||
                 fieldSchema.getType() == null)) {
             if (defaultValue.equals("\"")) {
                 defaultValueToken = AbstractNodeFactory.createIdentifierToken("\"" + "\\" +
@@ -341,7 +293,7 @@ public class TypeGeneratorUtils {
             }
         } else if (!defaultValue.matches("^[0-9]*$") && !defaultValue.matches("^(\\d*\\.)?\\d+$")
                 && !(defaultValue.startsWith("[") && defaultValue.endsWith("]")) &&
-                !(fieldSchema.getType() != null && fieldSchema.getType().equals("boolean"))) {
+                !(fieldSchema.getType() != null && fieldSchema.getType().equals(BOOLEAN))) {
             //This regex was added due to avoid adding quotes for default values which are numbers and array values.
             //Ex: default: 123
             defaultValueToken = AbstractNodeFactory.createIdentifierToken(
@@ -367,14 +319,14 @@ public class TypeGeneratorUtils {
     public static AnnotationNode generateConstraintNode(String typeName, AsyncApi25SchemaImpl fieldSchema) {
 
         if (fieldSchema.getType() != null && isConstraintAllowed(typeName, fieldSchema)) {
-            if (fieldSchema.getType().equals("string")) {
+            if (fieldSchema.getType().equals(STRING)) {
                 AsyncApi25SchemaImpl stringSchema = fieldSchema;
                 // Attributes : maxLength, minLength
                 return generateStringConstraint(stringSchema);
-            } else if (fieldSchema.getType().equals("integer") || fieldSchema.getType().equals("number")) {
+            } else if (fieldSchema.getType().equals(INTEGER) || fieldSchema.getType().equals(NUMBER)) {
                 // Attribute : minimum, maximum, exclusiveMinimum, exclusiveMaximum
                 return generateNumberConstraint(fieldSchema);
-            } else if (fieldSchema.getType().equals("array")) {
+            } else if (fieldSchema.getType().equals(ARRAY)) {
                 AsyncApi25SchemaImpl arraySchema = fieldSchema;
                 // Attributes: maxItems, minItems
                 return generateArrayConstraint(arraySchema);
@@ -387,7 +339,7 @@ public class TypeGeneratorUtils {
 
     public static boolean isConstraintAllowed(String typeName, AsyncApi25SchemaImpl schema) {
 
-        boolean isConstraintNotAllowed = schema.getExtensions() != null && schema.getExtensions().get("x-nullable")
+        boolean isConstraintNotAllowed = schema.getExtensions() != null && schema.getExtensions().get(X_NULLABLE)
                 != null ||
                 (schema.getOneOf() != null && schema.getAllOf() != null && schema.getAnyOf() != null &&
                         (schema.getOneOf() != null ||
@@ -414,7 +366,7 @@ public class TypeGeneratorUtils {
         String annotBody = GeneratorConstants.OPEN_BRACE + String.join(GeneratorConstants.COMMA, fields) +
                 GeneratorConstants.CLOSE_BRACE;
         AnnotationNode annotationNode;
-        if (fieldSchema.getType().equals("number")) {
+        if (fieldSchema.getType().equals(NUMBER)) {
             if (fieldSchema.getFormat() != null && fieldSchema.getFormat().equals(GeneratorConstants.FLOAT)) {
                 annotationNode = createAnnotationNode(GeneratorConstants.CONSTRAINT_FLOAT, annotBody);
             } else {
@@ -457,7 +409,7 @@ public class TypeGeneratorUtils {
     private static List<String> getNumberAnnotFields(AsyncApi25SchemaImpl numberSchema) {
 
         List<String> fields = new ArrayList<>();
-        boolean isInt = numberSchema.getType().equals("integer");
+        boolean isInt = numberSchema.getType().equals(INTEGER);
         if (numberSchema.getMinimum() != null && numberSchema.getExclusiveMinimum() == null) {
             String value = numberSchema.getMinimum().toString();
             String fieldRef = GeneratorConstants.MINIMUM + GeneratorConstants.COLON +
@@ -484,12 +436,6 @@ public class TypeGeneratorUtils {
                     (isInt ? numberSchema.getMaximum().intValue() : value);
             fields.add(fieldRef);
         }
-        //TODO: This will be enable once constraint package gives this support.
-//        if (numberSchema.getMultipleOf() != null) {
-//            String value = numberSchema.getMultipleOf().toString();
-//            String fieldRef = "multipleOf:" + value;
-//            fields.add(fieldRef);
-//        }
         return fields;
     }
 
@@ -506,12 +452,6 @@ public class TypeGeneratorUtils {
             String fieldRef = GeneratorConstants.MIN_LENGTH + GeneratorConstants.COLON + value;
             fields.add(fieldRef);
         }
-        //TODO: This will be enable once constraint package gives this support.
-//        if (stringSchema.getPattern() != null) {
-//            String value = stringSchema.getPattern();
-//            String fieldRef = "pattern:" + "\"" + value + "\"";
-//            fields.add(fieldRef);
-//        }
         return fields;
     }
 
@@ -604,9 +544,5 @@ public class TypeGeneratorUtils {
                         refSchema.getDescription(), false));
             }
         }
-//        if (schemaValue.getDeprecated() != null && schemaValue.getDeprecated()) {
-//            DocCommentsGenerator.extractDeprecatedAnnotation(schemaValue.getExtensions(),
-//                    documentation, typeAnnotations);
-//        }
     }
 }
