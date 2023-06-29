@@ -246,6 +246,7 @@ directoryBuild.dependsOn ":checkstyle:checkstyleMain"
 directoryBuild.dependsOn ":checkstyle:checkstyleTest"
 directoryBuild.dependsOn ":checkstyle:test"
 directoryBuild.dependsOn ":checkstyle:processTestResources"
+directoryBuild.dependsOn ":generatePomFileForMavenJavaPublication"
 
 build.dependsOn directoryBuild
 
