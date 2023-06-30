@@ -46,8 +46,6 @@ import static io.ballerina.asyncapi.core.generators.asyncspec.utils.ConverterCom
 
 /**
  * This class for the mapping ballerina headers with AsyncApiSpec header parameter sections.
- *
- * @since 2.0.0
  */
 public class AsyncAPIHeaderMapper {
     private final Map<String, String> apiDocs;
@@ -70,16 +68,6 @@ public class AsyncAPIHeaderMapper {
             Node node = headerParam.typeName();
             BalAsyncApi25SchemaImpl headerTypeSchema =
                     ConverterCommonUtils.getAsyncApiSchema(getHeaderType(headerParam));
-            //TODO : If there "http:ServiceConfig", "treatNilableAsOptional" uncomment below codes and then implement it
-//        NodeList<AnnotationNode> annotations = getAnnotationNodesFromServiceNode(headerParam);
-//        String isOptional = Constants.TRUE;
-//        if (!annotations.isEmpty()) {
-//            Optional<String> values = ConverterCommonUtils.extractServiceAnnotationDetails(annotations,
-//                    "http:ServiceConfig", "treatNilableAsOptional");
-//            if (values.isPresent()) {
-//                isOptional = values.get();
-//            }
-//        }
             enableHeaderRequiredOption(node, headerTypeSchema);
             if (apiDocs != null && apiDocs.containsKey(headerName)) {
                 headerTypeSchema.setDescription(apiDocs.get(headerName.trim()));
@@ -110,7 +98,6 @@ public class AsyncAPIHeaderMapper {
      */
     public void setHeaderParameter(DefaultableParameterNode headerParam, BalAsyncApi25SchemaImpl bindingHeaderObject) {
         String headerName = extractHeaderName(headerParam);
-//        HeaderParameter headerParameter = new HeaderParameter();
         BalAsyncApi25SchemaImpl headerTypeSchema = ConverterCommonUtils.getAsyncApiSchema(getHeaderType(headerParam));
         String defaultValue = headerParam.expression().toString().trim();
         if (defaultValue.length() > 1 &&
@@ -171,8 +158,6 @@ public class AsyncAPIHeaderMapper {
             if (headerSchema.getDefault() != null) {
                 arraySchema.setDefault(headerSchema.getDefault());
             }
-//            ObjectMapper objectMapper = ConverterCommonUtils.callObjectMapper();
-//            ObjectNode obj = objectMapper.valueToTree(itemSchema);
             arraySchema.setItems(itemSchema);
             bindingHeaderObject.addProperty(headerName, arraySchema);
         } else {
@@ -181,15 +166,8 @@ public class AsyncAPIHeaderMapper {
     }
 
     private void enableHeaderRequiredOption(Node node, BalAsyncApi25SchemaImpl headerSchema) {
-        //TODO : After setting treatNilableAsOptional:true then change this also
         if (node.kind() == SyntaxKind.OPTIONAL_TYPE_DESC) {
             headerSchema.addExtension(X_NULLABLE, BooleanNode.TRUE);
-//            if (isOptional.equals(Constants.FALSE)) {
-//                headerParameter.setRequired(true);
-//            }
-//        } else {
-//            headerParameter.setRequired(true);
-//        }
         }
     }
 

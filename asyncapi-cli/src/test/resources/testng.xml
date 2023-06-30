@@ -66,6 +66,8 @@ under the License.
             <class name="io.ballerina.asyncapi.generators.schema.RecordDataTypeTests"/>
             <class name="io.ballerina.asyncapi.generators.schema.ReferenceResolveTests"/>
             <class name="io.ballerina.asyncapi.generators.testcases.TestGeneratorTests"/>
+            <class name="io.ballerina.asyncapi.generators.client.ExecuteTest"/>
+
 
         </classes>
     </test>

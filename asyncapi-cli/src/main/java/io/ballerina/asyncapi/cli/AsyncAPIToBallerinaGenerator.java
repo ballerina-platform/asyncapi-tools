@@ -83,7 +83,7 @@ public class AsyncAPIToBallerinaGenerator {
         Path srcPath = Paths.get(outPath);
         Path implPath = CodegenUtils.getImplPath(srcPackage, srcPath);
         List<GenSrcFile> genFiles = generateClientFiles(Paths.get(definitionPath));
-                 writeGeneratedSources(genFiles, srcPath, implPath, GEN_CLIENT);
+        writeGeneratedSources(genFiles, srcPath, implPath, GEN_CLIENT);
     }
 
 
@@ -91,7 +91,7 @@ public class AsyncAPIToBallerinaGenerator {
      *
      * @param sources Generated all sources as a list
      * @param srcPath Output path provided
-     * @param implPath so
+     * @param implPath Source path
      * @param type  check wheather the file type is service or client
      * @throws IOException
      */

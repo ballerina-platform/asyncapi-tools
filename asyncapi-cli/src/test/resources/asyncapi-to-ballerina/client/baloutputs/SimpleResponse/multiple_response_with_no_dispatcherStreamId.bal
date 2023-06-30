@@ -85,6 +85,8 @@ public client isolated class PayloadVlocationsClient {
         lock {
             self.requestPipe = self.pipes.getPipe("request");
         }
+        Message message = check request.cloneWithType();
+        check self.writeMessageQueue.produce(message, timeout);
         lock {
             requestPipe = check self.requestPipe.ensureType();
         }
@@ -101,6 +103,8 @@ public client isolated class PayloadVlocationsClient {
         lock {
             self.subscribePipe = self.pipes.getPipe("subscribe");
         }
+        Message message = check subscribe.cloneWithType();
+        check self.writeMessageQueue.produce(message, timeout);
         lock {
             subscribePipe = check self.subscribePipe.ensureType();
         }
@@ -110,7 +114,7 @@ public client isolated class PayloadVlocationsClient {
     }
     remote isolated function closeRequestPipe() returns error? {
         lock {
-            if self.requestPipe !is () {
+            if self.requestPipe !is() {
                 pipe:Pipe requestPipe = check self.requestPipe.ensureType();
                 check requestPipe.gracefulClose();
             }
@@ -118,7 +122,7 @@ public client isolated class PayloadVlocationsClient {
     };
     remote isolated function closeSubscribePipe() returns error? {
         lock {
-            if self.subscribePipe !is () {
+            if self.subscribePipe !is() {
                 pipe:Pipe subscribePipe = check self.subscribePipe.ensureType();
                 check subscribePipe.gracefulClose();
             }

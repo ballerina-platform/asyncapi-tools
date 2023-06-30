@@ -302,14 +302,12 @@ import static io.ballerina.compiler.syntax.tree.SyntaxKind.WORKER_KEYWORD;
 /**
  * This class is used to generate ballerina client file according to given yaml file.
  *
- * @since 1.3.0
  */
 public class IntermediateClientGenerator {
 
     private final AsyncApi25DocumentImpl asyncAPI;
     private final List<String> remoteFunctionNameList;
     private final BallerinaAuthConfigGenerator ballerinaAuthConfigGenerator;
-    //    private final Filter filters;
     private final List<ImportDeclarationNode> imports;
     private final BallerinaTypesGenerator ballerinaSchemaGenerator;
     private final RemoteFunctionReturnTypeGenerator functionReturnType;
@@ -412,7 +410,8 @@ public class IntermediateClientGenerator {
         imports.add(importForRunTime);
 
 
-        // Add authentication related records TODO: This has to improve
+        //TODO: This has to improve
+        // Add authentication related records
         ballerinaAuthConfigGenerator.addAuthRelatedRecords(asyncAPI);
 
         List<ModuleMemberDeclarationNode> nodes = new ArrayList<>();
@@ -434,185 +433,212 @@ public class IntermediateClientGenerator {
         return utilGenerator;
     }
 
-    public BallerinaTypesGenerator getBallerinaTypeGenerator() {
-
-        return ballerinaSchemaGenerator;
-    }
 
     /**
      * Generate Class definition Node with below code structure.
      * <pre>
-     *     public client class ChatClient {
-     *     private final websocket:Client clientEp;
-     *     private final pipe:Pipe writeMessageQueue;
-     *     private final pipe:Pipe readMessageQueue;
-     *     private final map<pipe:Pipe> pipes;
-     *     # Gets invoked to initialize the `connector`.
-     *     #
-     *     # + config - The configurations to be used when initializing the `connector`
-     *     # + serviceUrl - URL of the target service
-     *     # + return - An error if connector initialization failed
-     *     public function init(websocket:ClientConfiguration clientConfig =  {},
-     *     string serviceUrl = "ws://localhost:9090/chat") returns error? {
-     *         self.pipes = {};
-     *         self.writeMessageQueue = new (1000);
-     *         self.readMessageQueue = new (1000);
-     *         websocket:Client websocketEp = check new (serviceUrl, clientConfig);
-     *         self.clientEp = websocketEp;
-     *         self.startMessageWriting();
-     *         self.startMessageReading();
-     *         self.startPipeTriggering();
-     *         return;
-     *     }
-     *     # Gets invoked to initialize the `connector`.
-     *     #
-     *     # + config - The configurations to be used when initializing the `connector`
-     *     # + serviceUrl - URL of the target service
-     *     # + return - An error if connector initialization failed
-     *     private function startMessageWriting() {
-     *         worker writeMessage returns error {
-     *             while true {
-     *                 anydata requestMessage = check self.writeMessageQueue.consume(5);
-     *                 check self.clientEp->writeMessage(requestMessage);
-     *                 runtime:sleep(0.01);
-     *             }
-     *         }
-     *     }
-     *     # Gets invoked to initialize the `connector`.
-     *     #
-     *     # + config - The configurations to be used when initializing the `connector`
-     *     # + serviceUrl - URL of the target service
-     *     # + return - An error if connector initialization failed
-     *     private function startMessageReading() {
-     *         worker readMessage returns error {
-     *             while true {
-     *                 ResponseMessage responseMessage = check self.clientEp->readMessage();
-     *                 check self.readMessageQueue.produce(responseMessage, 5);
-     *                 runtime:sleep(0.01);
-     *             }
-     *         }
-     *     }
-     *     # Gets invoked to initialize the `connector`.
-     *     #
-     *     # + config - The configurations to be used when initializing the `connector`
-     *     # + serviceUrl - URL of the target service
-     *     # + return - An error if connector initialization failed
-     *     private function startPipeTriggering() {
-     *         worker pipeTrigger returns error {
-     *             while true {
-     *                 ResponseMessage responseMessage = check self.readMessageQueue.consume(5);
-     *                 if responseMessage.hasKey("id") {
-     *                     ResponseMessageWithId responseMessagWithId = check responseMessage.cloneWithType();
-     *                     string id = responseMessagWithId.id;
-     *                     pipe:Pipe idPipe = check self.pipes[id].ensureType();
-     *                     check idPipe.produce(responseMessagWithId, 5);
-     *                 } else {
-     *                     string 'type = responseMessage.'type;
-     *                     match ('type) {
-     *                         "pong_message" => {
-     *                             pipe:Pipe pingMessagePipe = check self.pipes["pingMessage"].ensureType();
-     *                             check pingMessagePipe.produce(responseMessage, 5);
-     *                         }
-     *                         "connection_ack_message" => {
-     *                             pipe:Pipe connectionInitMessagePipe =
-     *                             check self.pipes["connectionInitMessage"].ensureType();
-     *                             check connectionInitMessagePipe.produce(responseMessage, 5);
-     *                         }
-     *                         "error" => {
-     *                             pipe:Pipe errorPipe = check self.pipes["error"].ensureType();
-     *                             check errorPipe.produce(responseMessage, 5);
-     *                         }
-     *                     }
-     *                 }
-     *             }
-     *         }
-     *     }
-     *     #
-     *     remote isolated function doSubscribeMessage(SubscribeMessage subscribeMessage, decimal timeout)
-     *     returns stream<NextMessage|CompleteMessage|ErrorMessage,error?>|error {
-     *         pipe:Pipe subscribeMessagePipe = new (10000);
-     *         string id;
-     *         lock {
-     *             id = uuid:createType1AsString();
-     *             self.pipes[id] = subscribeMessagePipe;
-     *         }
-     *         subscribeMessage["id"] = id;
-     *         check self.writeMessageQueue.produce(subscribeMessage, timeout);
-     *         stream<NextMessage|CompleteMessage|ErrorMessage,error?> streamMessages;
-     *         lock {
-     *             StreamGenerator streamGenerator = check new (subscribeMessagePipe, timeout);
-     *             streamMessages = new (streamGenerator);
-     *         }
-     *         return streamMessages;
-     *     }
-     *     #
-     *     remote isolated function doPingMessage(PingMessage pingMessage, decimal timeout) returns PongMessage|error {
-     *         pipe:Pipe pingMessagePipe = new (1);
-     *         lock {
-     *             self.pipes["pingMessage"] = pingMessagePipe;
-     *         }
-     *         check self.writeMessageQueue.produce(pingMessage, timeout);
-     *         anydata responseMessage = check pingMessagePipe.consume(timeout);
-     *         PongMessage pongMessage = check responseMessage.cloneWithType();
-     *         check pingMessagePipe.immediateClose();
-     *         return pongMessage;
-     *     }
-     *     #
-     *     remote isolated function doConnectionInitMessage(ConnectionInitMessage connectionInitMessage,
-     *     decimal timeout) returns ConnectionAckMessage|error {
-     *         pipe:Pipe connectionInitMessagePipe = new (1);
-     *         lock {
-     *             self.pipes["connectionInitMessage"] = connectionInitMessagePipe;
-     *         }
-     *         check self.writeMessageQueue.produce(connectionInitMessage, timeout);
-     *         anydata responseMessage = check connectionInitMessagePipe.consume(timeout);
-     *         ConnectionAckMessage connectionAckMessage = check responseMessage.cloneWithType();
-     *         check connectionInitMessagePipe.immediateClose();
-     *         return connectionAckMessage;
-     *     }
-     *     #
-     *     remote isolated function doError(decimal timeout) returns Error|error {
-     *         pipe:Pipe errorPipe = new (1);
-     *         lock {
-     *             self.pipes["error"] = errorPipe;
-     *         }
-     *         anydata responseMessage = check errorPipe.consume(timeout);
-     *         Error errorMessage = check responseMessage.cloneWithType();
-     *         check errorPipe.immediateClose();
-     *         return errorMessage;
-     *     }
-     *     #
-     *     remote isolated function doPongMessage(PongMessage pongMessage, decimal timeout) returns error? {
-     *         check self.writeMessageQueue.produce(pongMessage, timeout);
-     *     }
-     *     #
-     *     remote isolated function doCompleteMessage(CompleteMessage completeMessage, decimal timeout)
-     *     returns error? {
-     *         check self.writeMessageQueue.produce(completeMessage, timeout);
-     *     }
-     * }
+     *
+        public client isolated class PayloadVClient {
+            private final websocket:Client clientEp;
+            private final pipe:Pipe writeMessageQueue;
+            private final pipe:Pipe readMessageQueue;
+            private final PipesMap pipes;
+            private final StreamGeneratorsMap streamGenerators;
+            private boolean isMessageWriting;
+            private boolean isMessageReading;
+            private boolean isPipeTriggering;
+            private pipe:Pipe? pingMessagePipe;
+            private pipe:Pipe? connectionInitMessagePipe;
+            # Gets invoked to initialize the `connector`.
+            #
+            # + config - The configurations to be used when initializing the `connector`
+            # + serviceUrl - URL of the target service
+            # + return - An error if connector initialization failed
+            public isolated function init(websocket:ClientConfiguration clientConfig =  {}, string serviceUrl = "ws://localhost:9090/payloadV") returns error? {
+                self.pipes = new ();
+                self.streamGenerators = new ();
+                self.writeMessageQueue = new (1000);
+                self.readMessageQueue = new (1000);
+                websocket:Client websocketEp = check new (serviceUrl, clientConfig);
+                self.clientEp = websocketEp;
+                self.pingMessagePipe = ();
+                self.connectionInitMessagePipe = ();
+                self.isMessageWriting = true;
+                self.isMessageReading = true;
+                self.isPipeTriggering = true;
+                self.startMessageWriting();
+                self.startMessageReading();
+                self.startPipeTriggering();
+                return;
+            }
+            # Use to write messages to the websocket.
+            #
+            private isolated function startMessageWriting() {
+                worker writeMessage returns error? {
+                    while self.isMessageWriting {
+                        anydata requestMessage = check self.writeMessageQueue.consume(5);
+                        check self.clientEp->writeMessage(requestMessage);
+                        runtime:sleep(0.01);
+                    }
+                }
+            }
+            # Use to read messages from the websocket.
+            #
+            private isolated function startMessageReading() {
+                worker readMessage returns error? {
+                    while self.isMessageReading {
+                        Message message = check self.clientEp->readMessage();
+                        check self.readMessageQueue.produce(message, 5);
+                        runtime:sleep(0.01);
+                    }
+                }
+            }
+            # Use to map received message responses into relevant requests.
+            #
+            private isolated function startPipeTriggering() {
+                worker pipeTrigger returns error? {
+                    while self.isPipeTriggering {
+                        Message message = check self.readMessageQueue.consume(5);
+                        if message.hasKey("id") {
+                            MessageWithId messageWithId = check message.cloneWithType();
+                            string id = messageWithId.id;
+                            pipe:Pipe idPipe = self.pipes.getPipe(id);
+                            check idPipe.produce(messageWithId, 5);
+                        } else {
+                            string 'type = message.'type;
+                            match ('type) {
+                                "PongMessage" => {
+                                    pipe:Pipe pingMessagePipe = self.pipes.getPipe("pingMessage");
+                                    check pingMessagePipe.produce(message, 5);
+                                }
+                                "ConnectionAckMessage" => {
+                                    pipe:Pipe connectionInitMessagePipe = self.pipes.getPipe("connectionInitMessage");
+                                    check connectionInitMessagePipe.produce(message, 5);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            #
+            remote isolated function doSubscribeMessage(SubscribeMessage subscribeMessage, decimal timeout) returns stream<NextMessage|CompleteMessage,error?>|error {
+                if self.writeMessageQueue.isClosed() {
+                    return error("connection closed");
+                }
+                pipe:Pipe subscribeMessagePipe = new (10000);
+                string id;
+                lock {
+                    id = uuid:createType1AsString();
+                    subscribeMessage.id = id;
+                }
+                self.pipes.addPipe(id, subscribeMessagePipe);
+                Message message = check subscribeMessage.cloneWithType();
+                check self.writeMessageQueue.produce(message, timeout);
+                stream<NextMessage|CompleteMessage,error?> streamMessages;
+                lock {
+                    NextMessageCompleteMessageStreamGenerator streamGenerator = check new (subscribeMessagePipe, timeout);
+                    self.streamGenerators.addStreamGenerator(streamGenerator);
+                    streamMessages = new (streamGenerator);
+                }
+                return streamMessages;
+            }
+            #
+            remote isolated function doPingMessage(PingMessage pingMessage, decimal timeout) returns PongMessage|error {
+                if self.writeMessageQueue.isClosed() {
+                    return error("connection closed");
+                }
+                pipe:Pipe pingMessagePipe;
+                lock {
+                    self.pingMessagePipe = self.pipes.getPipe("pingMessage");
+                }
+                Message message = check pingMessage.cloneWithType();
+                check self.writeMessageQueue.produce(message, timeout);
+                lock {
+                    pingMessagePipe = check self.pingMessagePipe.ensureType();
+                }
+                anydata responseMessage = check pingMessagePipe.consume(timeout);
+                PongMessage pongMessage = check responseMessage.cloneWithType();
+                return pongMessage;
+            }
+            #
+            remote isolated function doPongMessage(PongMessage pongMessage, decimal timeout) returns error? {
+                if self.writeMessageQueue.isClosed() {
+                    return error("connection closed");
+                }
+                Message message = check pongMessage.cloneWithType();
+                check self.writeMessageQueue.produce(message, timeout);
+            }
+            #
+            remote isolated function doConnectionInitMessage(ConnectionInitMessage connectionInitMessage, decimal timeout) returns ConnectionAckMessage|error {
+                if self.writeMessageQueue.isClosed() {
+                    return error("connection closed");
+                }
+                pipe:Pipe connectionInitMessagePipe;
+                lock {
+                    self.connectionInitMessagePipe = self.pipes.getPipe("connectionInitMessage");
+                }
+                Message message = check connectionInitMessage.cloneWithType();
+                check self.writeMessageQueue.produce(message, timeout);
+                lock {
+                    connectionInitMessagePipe = check self.connectionInitMessagePipe.ensureType();
+                }
+                anydata responseMessage = check connectionInitMessagePipe.consume(timeout);
+                ConnectionAckMessage connectionAckMessage = check responseMessage.cloneWithType();
+                return connectionAckMessage;
+            }
+            #
+            remote isolated function doCompleteMessage(CompleteMessage completeMessage, decimal timeout) returns error? {
+                if self.writeMessageQueue.isClosed() {
+                    return error("connection closed");
+                }
+                Message message = check completeMessage.cloneWithType();
+                check self.writeMessageQueue.produce(message, timeout);
+            }
+            remote isolated function closePingMessagePipe() returns error? {
+                lock {
+                    if self.pingMessagePipe !is() {
+                        pipe:Pipe pingMessagePipe = check self.pingMessagePipe.ensureType();
+                        check pingMessagePipe.gracefulClose();
+                    }
+                }
+            };
+            remote isolated function closeConnectionInitMessagePipe() returns error? {
+                lock {
+                    if self.connectionInitMessagePipe !is() {
+                        pipe:Pipe connectionInitMessagePipe = check self.connectionInitMessagePipe.ensureType();
+                        check connectionInitMessagePipe.gracefulClose();
+                    }
+                }
+            };
+            remote isolated function connectionClose() returns error? {
+                lock {
+                    self.isMessageReading = false;
+                    self.isMessageWriting = false;
+                    self.isPipeTriggering = false;
+                    check self.writeMessageQueue.immediateClose();
+                    check self.readMessageQueue.immediateClose();
+                    check self.pipes.removePipes();
+                    check self.streamGenerators.removeStreamGenerators();
+                    check self.clientEp->close();
+                }
+            };
+        }
      * </pre>
      */
     private ClassDefinitionNode getClassDefinitionNode() throws BallerinaAsyncApiException {
 
         //Get dispatcherKey
         Map<String, JsonNode> extensions = asyncAPI.getExtensions();
-//        if(extensions==null){
-//            throw new BallerinaAsyncApiException("x-dispatcherKey must include in the specification");
-//        }
+
         if (extensions == null || extensions.get(X_DISPATCHER_KEY) == null) {
             throw new BallerinaAsyncApiException(X_DISPATCHER_KEY_MUST_INCLUDE_IN_THE_SPECIFICATION);
         }
         TextNode dispatcherKeyNode = (TextNode) extensions.get(X_DISPATCHER_KEY);
 
-//        if()
         String dispatcherKey = dispatcherKeyNode.asText();
         if (dispatcherKey.equals("")) {
             throw new BallerinaAsyncApiException(X_DISPATCHER_KEY_CANNOT_BE_EMPTY);
         }
-//        } else if (dispatcherKey.equals("type")) {
-//            dispatcherKey="'type";
-//        }
 
         //Get dispatcherStreamId
         String dispatcherStreamId = null;
@@ -626,8 +652,6 @@ public class IntermediateClientGenerator {
             }
         }
 
-//        ballerinaSchemaGenerator.setDispatcherKey(dispatcherKey);
-//        ballerinaSchemaGenerator.setDispatcherStreamId(dispatcherStreamId);
 
         //Create a list to collect match statements when dispatcherStreamId is absent in that schema
         List<MatchClauseNode> matchStatementList = new ArrayList<>();
@@ -698,15 +722,15 @@ public class IntermediateClientGenerator {
     /**
      * Create startMessageReading function.
      * <pre>
-     *     private function startMessageReading() {
-     *         worker readMessage returns error {
-     *             while true {
-     *                 ResponseMessage responseMessage = check self.clientEp->readMessage();
-     *                 check self.readMessageQueue.produce(responseMessage, 5);
-     *                 runtime:sleep(0.01);
-     *             }
-     *         }
-     *     }
+      private isolated function startMessageReading() {
+        worker readMessage returns error? {
+            while self.isMessageReading {
+                Message message = check self.clientEp->readMessage();
+                check self.readMessageQueue.produce(message, 5);
+                runtime:sleep(0.01);
+            }
+        }
+      }
      * </pre>
      */
     private Node createStartMessageReading() {
@@ -1025,7 +1049,6 @@ public class IntermediateClientGenerator {
         responseMessageWithId.addProperty(dispatcherStreamId, stringIdSchema);
         responseMessageWithId.addExtension(READ_ONLY, BooleanNode.TRUE);
         return responseMessageWithId;
-//        schemas.put(RESPONSE_MESSAGE_WITH_ID_VAR_NAME, responseMessageWithId);
     }
 
     private AsyncApi25SchemaImpl createResponseMessage(String dispatcherKey) {
@@ -1044,7 +1067,6 @@ public class IntermediateClientGenerator {
         message.addProperty(dispatcherKey, stringEventSchema);
         message.addExtension(READ_ONLY, BooleanNode.TRUE);
         return message;
-//        schemas.put(RESPONSE_MESSAGE_WITH_ID_VAR_NAME, responseMessage);
     }
 
     private ArrayList<StatementNode> getElseStatementNodes(String dispatcherKey,
@@ -1145,8 +1167,6 @@ public class IntermediateClientGenerator {
                 openParanToken, createSeparatedNodeList(createSimpleNameReferenceNode(
                         createIdentifierToken(dispatcherStreamId))), closeParanToken);
 
-//        CheckExpressionNode selfPipeCheck = createCheckExpressionNode(null, createToken(CHECK_KEYWORD),
-//                methodCallExpressionNode);
         SimpleNameReferenceNode responseTypePipeNode = createSimpleNameReferenceNode(createIdentifierToken(
                 dispatcherStreamId + CAPITAL_PIPE));
         VariableDeclarationNode pipeTypeEnsureStatement = createVariableDeclarationNode(createEmptyNodeList(),
@@ -1312,36 +1332,7 @@ public class IntermediateClientGenerator {
         return createMetadataNode(apiDoc, createNodeList(classLevelAnnotationNodes));
     }
 
-    /**
-     * Create client class init function
-     * -- Scenario 1: init function when authentication mechanism is API key
-     * <pre>
-     *   public isolated function init(ApiKeysConfig apiKeyConfig, string serviceUrl,
-     *     ConnectionConfig config =  {}) returns error? {
-     *         http:Client httpEp = check new (serviceUrl, clientConfig);
-     *         self.clientEp = httpEp;
-     *         self.apiKeys = apiKeyConfig.apiKeys.cloneReadOnly();
-     *   }
-     * </pre>
-     * -- Scenario 2: init function when authentication mechanism is OAuth2.0
-     * <pre>
-     *   public isolated function init(ConnectionConfig clientConfig, string serviceUrl = "base-url") returns error? {
-     *         http:Client httpEp = check new (serviceUrl, clientConfig);
-     *         self.clientEp = httpEp;
-     *   }
-     * </pre>
-     * -- Scenario 3: init function when no authentication mechanism is provided
-     * <pre>
-     *   public isolated function init(ConnectionConfig config =  {},
-     *      string serviceUrl = "base-url") returns error? {
-     *         http:Client httpEp = check new (serviceUrl, clientConfig);
-     *         self.clientEp = httpEp;
-     *   }
-     * </pre>
-     *
-     * @return {@link FunctionDefinitionNode}   Class init function
-     * @throws BallerinaAsyncApiException When invalid server URL is provided
-     */
+
     private FunctionDefinitionNode createInitFunction(List<String> pipeNameMethods, boolean isStreamPresent)
             throws BallerinaAsyncApiException {
         AsyncApi25SchemaImpl headerSchema = new AsyncApi25SchemaImpl();
@@ -1373,6 +1364,7 @@ public class IntermediateClientGenerator {
         List<StatementNode> assignmentNodes = new ArrayList<>();
 
 
+        //TODO: Attempt to map auth configurations
         // If both apiKey and httpOrOAuth is supported
         // todo : After revamping
         if (ballerinaAuthConfigGenerator.isHttpApiKey() && ballerinaAuthConfigGenerator.isHttpOROAuth()) {
@@ -1476,7 +1468,6 @@ public class IntermediateClientGenerator {
         }
 
 
-        // websocket:Client websocketEp=check new(modifiedUrl,clientConfig)
         // create initialization statement of websocket:Client class instance
 
         // self.clientEp = websocketEp
@@ -1703,7 +1694,6 @@ public class IntermediateClientGenerator {
                 String pathVariable = path.substring(m.start(), m.end());
                 if (pathVariable.startsWith("{") && pathVariable.endsWith("}")) {
                     String d = pathVariable.replace("{", "").replace("}", "");
-//                    String fieldNameStr = GeneratorUtils.escapeIdentifier(field.getKey().trim());
                     String replaceVariable = "{getEncodedUri(" + "pathParams." +
                             GeneratorUtils.escapeIdentifier(d.trim()) + ")}";
                     refinedPath = refinedPath.replace(pathVariable, replaceVariable);
@@ -1816,7 +1806,6 @@ public class IntermediateClientGenerator {
     private MetadataNode getDocCommentsForWorker(String functionType, String comment) {
 
         List<Node> docs = new ArrayList<>();
-//        String clientInitDocComment = "Gets invoked to initialize the `connector`.\n";
         Map<String, JsonNode> extensions = ((AsyncApi25InfoImpl) asyncAPI.getInfo()).getExtensions();
         if (extensions != null && !extensions.isEmpty()) {
             for (Map.Entry<String, JsonNode> extension : extensions.entrySet()) {
@@ -1999,7 +1988,6 @@ public class IntermediateClientGenerator {
                                         matchStatementList, pipeIdMethods,
                                         remainingResponseMessages, false, streamReturns, pipeNameMethods);
                         functionDefinitionNodeList.add(functionDefinitionNode);
-//                                responseMessages.add(messageName);
 
                     } else {
                         FunctionDefinitionNode functionDefinitionNode =
@@ -2099,7 +2087,6 @@ public class IntermediateClientGenerator {
         lockStatements.add(removePipesNode);
 
         //TODO: conditionally check this one
-        //check self.streamGenerators.removeStreamGenerators;
         if (streamsPresent) {
             ExpressionStatementNode removeStreamGeneratorsNode = getCloseLockStatementNode(STREAM_GENERATORS,
                     REMOVE_STREAM_GENERATORS, dotToken);
@@ -2122,7 +2109,6 @@ public class IntermediateClientGenerator {
     private FunctionDefinitionNode createNamePipeCloseFunction(String pipeNameMethod) {
         // pipe:Pipe pingMessagePipe = check self.pingMessagePipe.ensureType();
         // check pingMessagePipe.gracefulClose();
-        //
         Token dotToken = createToken(DOT_TOKEN);
         Token closeParenToken = createToken(CLOSE_PAREN_TOKEN);
         Token openParenToken = createToken(OPEN_PAREN_TOKEN);
@@ -2324,7 +2310,6 @@ public class IntermediateClientGenerator {
 
             //Check if the schema has dispatcherStreamId
         } else if (specDispatcherStreamId != null) {
-//            if (properties.get(dispatcherStreamId).getType().equals("string")) {
             //If found at least one dispatcherStreamId then don't add uuid again and again
             pipeIdMethods.add(messageName);
             ImportDeclarationNode importForUUID = GeneratorUtils.
@@ -2334,10 +2319,6 @@ public class IntermediateClientGenerator {
             if (pipeIdMethods.size() == 1) {
                 imports.add(importForUUID);
             }
-//            } else {
-//                throw new BallerinaAsyncApiException("dispatcherStreamId must be a string");
-//            }
-
 
         }
         char requestTypeFirstChar = Character.toLowerCase(messageName.charAt(0)); // Lowercase the first character
@@ -2397,8 +2378,6 @@ public class IntermediateClientGenerator {
                             selectedServer.getUrl(), e);
                 }
 
-
-//                serverURL = url.toString();
                 serverURL = resolvedUrl;
             } else {
                 serverURL = selectedServer.getUrl();

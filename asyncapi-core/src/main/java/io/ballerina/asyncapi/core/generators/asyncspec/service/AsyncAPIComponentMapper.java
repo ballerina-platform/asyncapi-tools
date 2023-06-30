@@ -140,10 +140,7 @@ public class AsyncAPIComponentMapper {
                     schema.setType(OBJECT);
                     schema.set$ref(ConverterCommonUtils.unescapeIdentifier(
                             type.getName().orElseThrow().trim()));
-//                    schema.put(componentName, new ObjectSchema().$ref(ConverterCommonUtils.unescapeIdentifier(
-//                            type.getName().orElseThrow().trim())));
                     components.addSchema(componentName, schema);
-//                    components.setSchemas(schema);
                     TypeReferenceTypeSymbol referredType = (TypeReferenceTypeSymbol) type;
                     createComponentSchema(referredType, dispatcherValue);
                     break;
@@ -194,9 +191,6 @@ public class AsyncAPIComponentMapper {
                                 typeReferenceTypeSymbol.getName().orElseThrow().trim()));
                         objectSchema.setAdditionalProperties(objectSchema2);
                         components.addSchema(componentName, objectSchema);
-//                        schema.put(componentName, new ObjectSchema().additionalProperties(new ObjectSchema()
-//                                .$ref(ConverterCommonUtils.unescapeIdentifier(
-//                                        typeReferenceTypeSymbol.getName().orElseThrow().trim()))));
                         createComponentSchema(typeReferenceTypeSymbol, dispatcherValue);
                     } else {
 
@@ -205,18 +199,6 @@ public class AsyncAPIComponentMapper {
                         //TODO : have to check here asyncApiSchema.getType() == null ? true : asyncApiSchema
                         BalAsyncApi25SchemaImpl objectSchema = new BalAsyncApi25SchemaImpl();
                         objectSchema.setType(AsyncAPIType.OBJECT.toString());
-//                schema.put(componentName,
-//                        new ObjectSchema().additionalProperties(
-//                                asyncApiSchema.getType() == null ? true : asyncApiSchema)
-//                                .description(typeDoc));
-//                Map<String, Schema> schemas = components.getSchemas();
-//                if (schemas != null) {
-//                    schemas.putAll(schema);
-//                } else {
-//                    schema.setType(AsyncAPIType.OBJECT.toString());
-//                    schema.setDescription(typeDoc);
-//                    schema.setAdditionalProperties(asyncApiSchema.getType() == null ?
-//                            new BooleanUnionValueImpl(true) : asyncApiSchema);
                         objectSchema.setAdditionalProperties(asyncApiSchema.getType() == null ?
                                 new BalBooleanSchema(true) : asyncApiSchema);
                         components.addSchema(componentName, objectSchema);
@@ -376,8 +358,6 @@ public class AsyncAPIComponentMapper {
                 property.setAdditionalProperties(new BooleanUnionValueImpl(true));
 
             }
-            //TODO : Have to check && !(property.getItems() instanceof ObjectNode)
-//            String check=property.getType();
             if (property.getType() != null) {
                 if (property.getType().equals(AsyncAPIType.ARRAY.toString()) && !((property).getItems() != null &&
                         ((BalAsyncApi25SchemaImpl) (property).getItems().asSchema()).getOneOf() != null)) {
@@ -443,12 +423,6 @@ public class AsyncAPIComponentMapper {
             property.setAdditionalProperties(arraySchema);
         } else {
             BalAsyncApi25SchemaImpl asyncApiSchema = getAsyncApiSchema(typeDescKind.getName());
-            //TODO : This is not sure but for now we are using this, if there is an additionalProperties=true
-
-//            BalAsyncApi25SchemaImpl objectSchema= new BalAsyncApi25SchemaImpl();
-//            objectSchema.setType(AsyncAPIType.RECORD.toString());
-            //TODO : Have to consider about asyncApiSchema.getType() == null ? true :
-            // asyncApiSchema in addtionalProperties
             property.setAdditionalProperties(asyncApiSchema.getType() == null ?
                     new BalBooleanSchema(true) : asyncApiSchema);
         }
@@ -549,9 +523,6 @@ public class AsyncAPIComponentMapper {
      */
     private BalAsyncApi25SchemaImpl generateOneOfSchema(BalAsyncApi25SchemaImpl property,
                                                         List<BalAsyncApi25SchemaImpl> properties) {
-        //TODO:  Uncomment below line after checking if count? count field has only one reference
-        // then there no need to be oneOF
-//        boolean isTypeReference = properties.size() == 1 && properties.get(0).get$ref() == null;
         boolean isTypeReference = properties.size() == 1;
 
         if (!isTypeReference) {

@@ -108,17 +108,11 @@ public class AsyncAPIResponseMapper {
                 setResponseOfRequest(subscribeMessage, componentMessage, SIMPLE_RPC, returnDescription, objectMapper,
                         remoteReturnSchema, isOptional);
                 break;
-
-            //TODO : Edit this after figure out how to do this
-            //TODO : It may be an object in asyncapi but not sue
             case JSON_TYPE_DESC:
             case XML_TYPE_DESC:
                 BalAsyncApi25SchemaImpl jsonSchema = getAsyncApiSchema(AsyncAPIType.OBJECT.toString());
-                //TODO : Change this into true after Api-curio team change additionalProperties type into Object type
                 BalAsyncApi25SchemaImpl additionalPropertyObject = new BalAsyncApi25SchemaImpl();
                 jsonSchema.setAdditionalProperties(additionalPropertyObject);
-
-                //TODO : Set this schema into main asyncapi doc
                 setResponseOfRequest(subscribeMessage, componentMessage, SIMPLE_RPC,
                         returnDescription, objectMapper, jsonSchema, isOptional);
                 break;
@@ -166,7 +160,6 @@ public class AsyncAPIResponseMapper {
                     //TODO : I changed this kind to string
                     BalAsyncApi25SchemaImpl apiSchema = getAsyncApiSchema(mapNode.mapTypeParamsNode().
                             typeNode().kind());
-//                    BalAsyncApi25SchemaImpl booleanTrue=;
                     objectSchema.setAdditionalProperties(apiSchema.getType() == null ?
                             new BalBooleanSchema(Boolean.TRUE) : apiSchema);
                     setResponseOfRequest(subscribeMessage, componentMessage,
@@ -184,16 +177,9 @@ public class AsyncAPIResponseMapper {
                                     (UnionTypeDescriptorNode) remoteReturnStream, returnDescription, isOptional);
 
                             componentMessage.addExtension(X_RESPONSE_TYPE, new TextNode(SERVER_STREAMING));
-//                        String remoteReturnStream = ((StreamTypeParamsNode) ((StreamTypeDescriptorNode)
-//                                remoteReturnType).streamTypeParamsNode().get()).leftTypeDescNode().toString().trim();
-//                        if(remoteReturnStream.contains("|")){
-//                            String[] unionStreamTypes=remoteReturnStream.split("\\|");
-//
-//
                         } else {
                             BalAsyncApi25SchemaImpl remoteReturnStreamSchema = getAsyncApiSchema(
                                     remoteReturnStream.toString().trim());
-//                        remoteReturnStreamSchema.addExtension(X_RESPONSE_TYPE,new TextNode(SERVER_STREAMING));
                             setResponseOfRequest(subscribeMessage, componentMessage, SERVER_STREAMING,
                                     returnDescription,
                                     objectMapper, remoteReturnStreamSchema, isOptional);
@@ -205,11 +191,8 @@ public class AsyncAPIResponseMapper {
                 break;
 
             case QUALIFIED_NAME_REFERENCE:
-//                TypeSymbol qualifiedNameReferenceSymbol = (TypeSymbol) semanticModel.symbol(remoteReturnType).get();
-
                 handleQualifiedNameTypeReference(subscribeMessage, componentMessage,
                         returnDescription, remoteReturnType, isOptional);
-
                 break;
 
             default:
@@ -238,7 +221,6 @@ public class AsyncAPIResponseMapper {
                 List<TypeSymbol> memberTypes = ((IntersectionTypeSymbol) typeSymbol).memberTypeDescriptors();
                 for (TypeSymbol memberType : memberTypes) {
                     if (!(memberType instanceof ReadonlyTypeSymbol)) {
-                        //TODO : address the rest of the simple name reference types
                         typeSymbol = memberType;
                         break;
                     }
@@ -299,7 +281,6 @@ public class AsyncAPIResponseMapper {
                 setSchemaForOneOfSchema(oneOfSchema, subscribeOneOf);
 
 //                //Set x-response and x-response type as extensions to request
-//                object = oneOfSchema;
 
                 //If there are more than two responses have
             } else if (xResponses.get(X_RESPONSE).get(ONEOF) != null) {
@@ -402,30 +383,9 @@ public class AsyncAPIResponseMapper {
 
 
         } else if (returnTypeSymbol.typeKind() == TypeDescKind.TYPE_REFERENCE) {
-
-
-//            if (referredTypeSymbol.typeKind() == TypeDescKind.RECORD) {
-//                componentMapper.createComponentSchema(referredTypeSymbol, null);
             handleRecordTypeSymbol(subscribeMessage, componentMessage, returnDescription,
                     returnTypeSymbol, remoteReturnTypeName, isOptional);
 
-
-            //handle record for components
-
-
-//            } else if (referredTypeSymbol.typeKind() == TypeDescKind.ERROR) {
-//                io.swagger.v3.oas.models.media.MediaType mediaType = new io.swagger.v3.oas.models.media.MediaType();
-//                apiResponse.description(HTTP_500_DESCRIPTION);
-//                mediaType.setSchema(new StringSchema());
-//                apiResponse.content(new Content().addMediaType(MediaType.TEXT_PLAIN, mediaType));
-//                apiResponses.put(HTTP_500, apiResponse);
-//            } else if (referredTypeSymbol.typeKind() == TypeDescKind.TYPE_REFERENCE &&
-//                    generateApiResponseCode(referredTypeName).isPresent()) {
-//                Optional<String> code = generateApiResponseCode(referredTypeName);
-//                apiResponse.description(referredTypeName);
-//                setCacheHeader(headers, apiResponse, code.get());
-//                apiResponses.put(code.get(), apiResponse);
-            //TODO : Need to implement this
 
         }
 
@@ -441,12 +401,10 @@ public class AsyncAPIResponseMapper {
 
         //create Message (there is no message reference)
         ObjectMapper objMapper = ConverterCommonUtils.callObjectMapper();
-//        ObjectNode refObjNode = ConverterCommonUtils.createObjectNode();
 
         //Create schema reference
         BalAsyncApi25SchemaImpl itemSchema = new BalAsyncApi25SchemaImpl();
         itemSchema.set$ref(SCHEMA_REFERENCE + ConverterCommonUtils.unescapeIdentifier(remoteReturnTypeName));
-//        refObjNode.put(REF, SCHEMA_REFERENCE + ConverterCommonUtils.unescapeIdentifier(remoteReturnTypeName));
         BalAsyncApi25SchemaImpl arraySchema = getAsyncApiSchema(AsyncAPIType.ARRAY.toString());
         arraySchema.setItems(itemSchema);
         setResponseOfRequest(subscribeMessage, componentMessage, SIMPLE_RPC,
@@ -556,30 +514,12 @@ public class AsyncAPIResponseMapper {
             oneOfSchema.setDescription(returnDescription);
         }
         if (isOptional.equals(TRUE)) {
-//            componentMessage.addExtension(X_OPTIONAL,new TextNode(isOptional.toString()));
             oneOfSchema.addExtension(X_REQUIRED, BooleanNode.FALSE);
         }
         //Set x-response and x-response type as extensions to request
         componentMessage.addExtension(X_RESPONSE, objMapper.valueToTree(oneOfSchema));
         componentMessage.addExtension(X_RESPONSE_TYPE, new TextNode(responseType));
 
-
-//        if(componentMessage.getExtensions()!=null && componentMessage.getExtensions().get(X_RESPONSE_TYPE).
-//                equals(new TextNode(SIMPLE_RPC+"/"+ SERVER_STREAMING))){
-//            componentMessage.addExtension(X_RESPONSE_TYPE, new TextNode(SIMPLE_RPC+"/"+ SERVER_STREAMING));
-//
-//        }else {
-//            if (responseType == SERVER_STREAMING || (componentMessage.getExtensions()!=null &&
-//                    componentMessage.getExtensions().get(X_RESPONSE_TYPE).equals(new TextNode(SERVER_STREAMING)))) {
-//                componentMessage.addExtension(X_RESPONSE_TYPE, new TextNode(SIMPLE_RPC + "/" + SERVER_STREAMING));
-//            } else {
-//                componentMessage.addExtension(X_RESPONSE_TYPE, new TextNode(SIMPLE_RPC));
-//            }
-//        }
-
-//        if(isOptional){
-//            componentMessage.addExtension(X_OPTIONAL,new TextNode(isOptional.toString()));
-//        }
     }
 
     private void setSchemaForOneOfSchema(BalAsyncApi25MessageImpl oneOfSchema, BalAsyncApi25MessageImpl schema) {
@@ -675,9 +615,6 @@ public class AsyncAPIResponseMapper {
                                          String isOptional) {
 
         NodeList<Node> fields = typeNode.fields();
-
-
-//        Map<String,BalAsyncApi25SchemaImpl> properties = new HashMap<>();
         BalAsyncApi25SchemaImpl inlineSchema = new BalAsyncApi25SchemaImpl();
         inlineSchema.setType(AsyncAPIType.OBJECT.toString());
 
@@ -688,15 +625,7 @@ public class AsyncAPIResponseMapper {
         for (Node field : fields) {
 
             //TODO : Have to implement type inclusion part uncomment below code if after editing it
-//            if (field.kind() == TYPE_REFERENCE) {
-//                TypeReferenceNode typeFieldNode = (TypeReferenceNode) field;
-//                if (typeFieldNode.typeName().kind() == SIMPLE_NAME_REFERENCE) {
-//                   SimpleNameReferenceNode simpleNameReferenceNode=(SimpleNameReferenceNode) typeFieldNode.typeName();
-//                   TypeSymbol typeSymbol = (TypeSymbol) semanticModel.symbol(simpleNameReferenceNode).orElseThrow();
-//                   componentMapper.createComponentSchema(typeSymbol,null);
-////                 QualifiedNameReferenceNode identifierNode = (QualifiedNameReferenceNode) typeFieldNode.typeName();
-//                }
-//            }
+
             if (field.kind() == RECORD_FIELD) {
                 RecordFieldNode recordField = (RecordFieldNode) field;
                 Node type01 = recordField.typeName();
@@ -706,9 +635,7 @@ public class AsyncAPIResponseMapper {
                     SimpleNameReferenceNode nameRefNode = (SimpleNameReferenceNode) type01;
                     TypeSymbol typeSymbol = (TypeSymbol) semanticModel.symbol(nameRefNode).orElseThrow();
                     componentMapper.createComponentSchema(typeSymbol, null);
-////                    handleReferenceResponse(subscribeMessage,componentMessage,nameRefNode,returnDescription);
                     BalAsyncApi25SchemaImpl referenceSchema = new BalAsyncApi25SchemaImpl();
-//
                     referenceSchema.set$ref(SCHEMA_REFERENCE + ConverterCommonUtils.unescapeIdentifier(
                             recordField.typeName().toString().trim()));
                     inlineSchema.addProperty(recordField.fieldName().text(), referenceSchema);
@@ -740,20 +667,14 @@ public class AsyncAPIResponseMapper {
                     (SimpleNameReferenceNode) array.memberTypeDesc(), returnDescription, isOptional);
 
         } else if (array.memberTypeDesc().kind() == QUALIFIED_NAME_REFERENCE) {
-//            TypeSymbol qualifiedNameReferenceSymbol = (TypeSymbol) semanticModel.symbol(array.memberTypeDesc()).get();
             handleQualifiedNameTypeReference(subscribeMessage, componentMessage, returnDescription,
                     array.memberTypeDesc(), isOptional);
-//            if (optionalAPIResponses.isPresent()) {
-//                ApiResponses responses = optionalAPIResponses.get();
-//            updateResponseWithArraySchema(responses);
-////            }
         } else {
             BalAsyncApi25SchemaImpl arraySchema = getAsyncApiSchema(AsyncAPIType.ARRAY.toString());
             String type02 = array.memberTypeDesc().kind().toString().trim().split("_")[0].
                     toLowerCase(Locale.ENGLISH);
             BalAsyncApi25SchemaImpl asyncApiSchema = getAsyncApiSchema(type02);
             ObjectMapper objectMapper = ConverterCommonUtils.callObjectMapper();
-//            ObjectNode obj = objectMapper.valueToTree(asyncApiSchema);
             arraySchema.setItems(asyncApiSchema);
 
             setResponseOfRequest(subscribeMessage, componentMessage,

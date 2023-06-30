@@ -147,8 +147,11 @@ public class AsyncAPIRemoteMapper {
 
     /**
      * Remote mapper when there have multiple remote methods.
-     *
-     * @param // * @param httpMethods   Sibling methods related to operation.
+     * @param resource functionDefinitionNode which contains resource function
+     * @param classDefinitionNode
+     * @param dispatcherValue
+     * @param channelItem
+     * @return
      */
     private AsyncApi25ChannelsImpl handleRemoteFunctions(FunctionDefinitionNode resource,
                                                          ClassDefinitionNode classDefinitionNode,
@@ -228,9 +231,6 @@ public class AsyncAPIRemoteMapper {
                                             remoteRequestTypeName, type.typeKind().getName()));
                                 }
                             }
-//                            } else {
-//                                throw new NoSuchElementException(FUNCTION_SIGNATURE_ABSENT);
-//                            }
                             //TODO: Change because onError and onIdleTimeout in graphql over websocket
                         } else {
                             throw new NoSuchElementException(FUNCTION_DEFAULT_NAME_CONTAINS_ERROR);
@@ -277,11 +277,6 @@ public class AsyncAPIRemoteMapper {
     }
 
     private Boolean isRemoteFunctionNameValid(String providedFunctionName) {
-//        String[] invalidRemoteFunctionNames = {ON_IDLE_TIME_OUT,
-//                ON_MESSAGE, ON_TEXT_MESSAGE,
-//                ON_BINARY_MESSAGE, ON_CLOSE,
-//                ON_OPEN, ON_ERROR, ON_PING, ON_PONG};
-        //TODO: Remove onError and onIdleTimeOut
         String[] invalidRemoteFunctionNames = {
                 ON_MESSAGE, ON_TEXT_MESSAGE,
                 ON_BINARY_MESSAGE, ON_CLOSE,

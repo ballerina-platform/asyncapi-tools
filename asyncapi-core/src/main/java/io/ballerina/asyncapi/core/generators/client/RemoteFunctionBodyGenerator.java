@@ -209,47 +209,7 @@ public class RemoteFunctionBodyGenerator {
             statementsList.add(addPipeByIdStatement);
 
 
-            if (!isSubscribe) {
-                SimpleNameReferenceNode requestTypeNameNode =
-                        createSimpleNameReferenceNode(createIdentifierToken(requestType));
-                VariableDeclarationNode messageVariableDeclarationNode =
-                        createVariableDeclarationNode(createEmptyNodeList(),
-                                null, createTypedBindingPatternNode(
-                                        createSimpleNameReferenceNode(createIdentifierToken(
-                                                MESSAGE)),
-                                        createCaptureBindingPatternNode(createIdentifierToken(MESSAGE_VAR_NAME))),
-                                equalToken,
-                                createCheckExpressionNode(null, createToken(CHECK_KEYWORD),
-                                        createMethodCallExpressionNode(requestTypeNameNode, dotToken,
-                                                createSimpleNameReferenceNode(
-                                                        createIdentifierToken("cloneWithType")),
-                                                openParenToken, createSeparatedNodeList(), closeParenToken)),
-                                semicolonToken);
 
-                // Message message = check subscribe.cloneWithType();
-                statementsList.add(messageVariableDeclarationNode);
-
-                List<Node> argumentArrays = new ArrayList<>();
-
-                argumentArrays.add(createSimpleNameReferenceNode(createIdentifierToken(MESSAGE_VAR_NAME)));
-                argumentArrays.add(createToken(COMMA_TOKEN));
-                argumentArrays.add(responseTypeTimeOut);
-                FieldAccessExpressionNode globalQueue = createFieldAccessExpressionNode(
-                        createSimpleNameReferenceNode(createIdentifierToken(SELF)), dotToken,
-                        createSimpleNameReferenceNode(createIdentifierToken(WRITE_MESSAGE_QUEUE)));
-                CheckExpressionNode callGlobalQueueProduce = createCheckExpressionNode(null, createToken(
-                                CHECK_KEYWORD),
-                        createMethodCallExpressionNode(globalQueue, dotToken,
-                                createSimpleNameReferenceNode(createIdentifierToken(PRODUCE)), openParenToken,
-                                createSeparatedNodeList(
-                                        argumentArrays
-                                ), closeParenToken));
-                ExpressionStatementNode callGlobalQueueProduceNode = createExpressionStatementNode(null,
-                        callGlobalQueueProduce, semicolonToken);
-
-                // check self.writeMessageQueue.produce(tuple, timeout);
-                statementsList.add(callGlobalQueueProduceNode);
-            }
 
 
         } else {
@@ -283,6 +243,48 @@ public class RemoteFunctionBodyGenerator {
             //  }
             statementsList.add(lockStatementNode);
 
+        }
+
+        if (!isSubscribe) {
+            SimpleNameReferenceNode requestTypeNameNode =
+                    createSimpleNameReferenceNode(createIdentifierToken(requestType));
+            VariableDeclarationNode messageVariableDeclarationNode =
+                    createVariableDeclarationNode(createEmptyNodeList(),
+                            null, createTypedBindingPatternNode(
+                                    createSimpleNameReferenceNode(createIdentifierToken(
+                                            MESSAGE)),
+                                    createCaptureBindingPatternNode(createIdentifierToken(MESSAGE_VAR_NAME))),
+                            equalToken,
+                            createCheckExpressionNode(null, createToken(CHECK_KEYWORD),
+                                    createMethodCallExpressionNode(requestTypeNameNode, dotToken,
+                                            createSimpleNameReferenceNode(
+                                                    createIdentifierToken("cloneWithType")),
+                                            openParenToken, createSeparatedNodeList(), closeParenToken)),
+                            semicolonToken);
+
+            // Message message = check subscribe.cloneWithType();
+            statementsList.add(messageVariableDeclarationNode);
+
+            List<Node> argumentArrays = new ArrayList<>();
+
+            argumentArrays.add(createSimpleNameReferenceNode(createIdentifierToken(MESSAGE_VAR_NAME)));
+            argumentArrays.add(createToken(COMMA_TOKEN));
+            argumentArrays.add(responseTypeTimeOut);
+            FieldAccessExpressionNode globalQueue = createFieldAccessExpressionNode(
+                    createSimpleNameReferenceNode(createIdentifierToken(SELF)), dotToken,
+                    createSimpleNameReferenceNode(createIdentifierToken(WRITE_MESSAGE_QUEUE)));
+            CheckExpressionNode callGlobalQueueProduce = createCheckExpressionNode(null, createToken(
+                            CHECK_KEYWORD),
+                    createMethodCallExpressionNode(globalQueue, dotToken,
+                            createSimpleNameReferenceNode(createIdentifierToken(PRODUCE)), openParenToken,
+                            createSeparatedNodeList(
+                                    argumentArrays
+                            ), closeParenToken));
+            ExpressionStatementNode callGlobalQueueProduceNode = createExpressionStatementNode(null,
+                    callGlobalQueueProduce, semicolonToken);
+
+            // check self.writeMessageQueue.produce(tuple, timeout);
+            statementsList.add(callGlobalQueueProduceNode);
         }
     }
 

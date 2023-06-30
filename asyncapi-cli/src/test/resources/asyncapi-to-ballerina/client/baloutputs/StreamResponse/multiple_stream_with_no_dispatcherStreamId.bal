@@ -92,6 +92,8 @@ public client isolated class ChatClient {
         lock {
             self.subscribeMessagePipe = self.pipes.getPipe("subscribeMessage");
         }
+        Message message = check subscribeMessage.cloneWithType();
+        check self.writeMessageQueue.produce(message, timeout);
         lock {
             subscribeMessagePipe = check self.subscribeMessagePipe.ensureType();
         }
@@ -112,6 +114,8 @@ public client isolated class ChatClient {
         lock {
             self.pingMessagePipe = self.pipes.getPipe("pingMessage");
         }
+        Message message = check pingMessage.cloneWithType();
+        check self.writeMessageQueue.produce(message, timeout);
         lock {
             pingMessagePipe = check self.pingMessagePipe.ensureType();
         }
@@ -136,6 +140,8 @@ public client isolated class ChatClient {
         lock {
             self.connectionInitMessagePipe = self.pipes.getPipe("connectionInitMessage");
         }
+        Message message = check connectionInitMessage.cloneWithType();
+        check self.writeMessageQueue.produce(message, timeout);
         lock {
             connectionInitMessagePipe = check self.connectionInitMessagePipe.ensureType();
         }
@@ -153,7 +159,7 @@ public client isolated class ChatClient {
     }
     remote isolated function closeSubscribeMessagePipe() returns error? {
         lock {
-            if self.subscribeMessagePipe !is () {
+            if self.subscribeMessagePipe !is() {
                 pipe:Pipe subscribeMessagePipe = check self.subscribeMessagePipe.ensureType();
                 check subscribeMessagePipe.gracefulClose();
             }
@@ -161,7 +167,7 @@ public client isolated class ChatClient {
     };
     remote isolated function closePingMessagePipe() returns error? {
         lock {
-            if self.pingMessagePipe !is () {
+            if self.pingMessagePipe !is() {
                 pipe:Pipe pingMessagePipe = check self.pingMessagePipe.ensureType();
                 check pingMessagePipe.gracefulClose();
             }
@@ -169,7 +175,7 @@ public client isolated class ChatClient {
     };
     remote isolated function closeConnectionInitMessagePipe() returns error? {
         lock {
-            if self.connectionInitMessagePipe !is () {
+            if self.connectionInitMessagePipe !is() {
                 pipe:Pipe connectionInitMessagePipe = check self.connectionInitMessagePipe.ensureType();
                 check connectionInitMessagePipe.gracefulClose();
             }

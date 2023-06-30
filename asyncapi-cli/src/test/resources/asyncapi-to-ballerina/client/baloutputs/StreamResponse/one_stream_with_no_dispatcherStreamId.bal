@@ -80,6 +80,8 @@ public client isolated class ChatClient {
         lock {
             self.subscribeMessagePipe = self.pipes.getPipe("subscribeMessage");
         }
+        Message message = check subscribeMessage.cloneWithType();
+        check self.writeMessageQueue.produce(message, timeout);
         lock {
             subscribeMessagePipe = check self.subscribeMessagePipe.ensureType();
         }
@@ -93,7 +95,7 @@ public client isolated class ChatClient {
     }
     remote isolated function closeSubscribeMessagePipe() returns error? {
         lock {
-            if self.subscribeMessagePipe !is () {
+            if self.subscribeMessagePipe !is() {
                 pipe:Pipe subscribeMessagePipe = check self.subscribeMessagePipe.ensureType();
                 check subscribeMessagePipe.gracefulClose();
             }

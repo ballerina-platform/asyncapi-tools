@@ -115,6 +115,8 @@ public client isolated class KrakenWebsocketsAPIClient {
         lock {
             self.pingPipe = self.pipes.getPipe("ping");
         }
+        Message message = check ping.cloneWithType();
+        check self.writeMessageQueue.produce(message, timeout);
         lock {
             pingPipe = check self.pingPipe.ensureType();
         }
@@ -132,6 +134,8 @@ public client isolated class KrakenWebsocketsAPIClient {
         lock {
             self.subscribePipe = self.pipes.getPipe("subscribe");
         }
+        Message message = check subscribe.cloneWithType();
+        check self.writeMessageQueue.produce(message, timeout);
         lock {
             subscribePipe = check self.subscribePipe.ensureType();
         }
@@ -149,6 +153,8 @@ public client isolated class KrakenWebsocketsAPIClient {
         lock {
             self.unsubscribePipe = self.pipes.getPipe("unsubscribe");
         }
+        Message message = check unsubscribe.cloneWithType();
+        check self.writeMessageQueue.produce(message, timeout);
         lock {
             unsubscribePipe = check self.unsubscribePipe.ensureType();
         }
@@ -184,7 +190,7 @@ public client isolated class KrakenWebsocketsAPIClient {
     }
     remote isolated function closePingPipe() returns error? {
         lock {
-            if self.pingPipe !is () {
+            if self.pingPipe !is() {
                 pipe:Pipe pingPipe = check self.pingPipe.ensureType();
                 check pingPipe.gracefulClose();
             }
@@ -192,7 +198,7 @@ public client isolated class KrakenWebsocketsAPIClient {
     };
     remote isolated function closeSubscribePipe() returns error? {
         lock {
-            if self.subscribePipe !is () {
+            if self.subscribePipe !is() {
                 pipe:Pipe subscribePipe = check self.subscribePipe.ensureType();
                 check subscribePipe.gracefulClose();
             }
@@ -200,7 +206,7 @@ public client isolated class KrakenWebsocketsAPIClient {
     };
     remote isolated function closeUnsubscribePipe() returns error? {
         lock {
-            if self.unsubscribePipe !is () {
+            if self.unsubscribePipe !is() {
                 pipe:Pipe unsubscribePipe = check self.unsubscribePipe.ensureType();
                 check unsubscribePipe.gracefulClose();
             }
@@ -208,7 +214,7 @@ public client isolated class KrakenWebsocketsAPIClient {
     };
     remote isolated function closeHeartbeatPipe() returns error? {
         lock {
-            if self.heartbeatPipe !is () {
+            if self.heartbeatPipe !is() {
                 pipe:Pipe heartbeatPipe = check self.heartbeatPipe.ensureType();
                 check heartbeatPipe.gracefulClose();
             }
@@ -216,7 +222,7 @@ public client isolated class KrakenWebsocketsAPIClient {
     };
     remote isolated function closeSystemStatusPipe() returns error? {
         lock {
-            if self.systemStatusPipe !is () {
+            if self.systemStatusPipe !is() {
                 pipe:Pipe systemStatusPipe = check self.systemStatusPipe.ensureType();
                 check systemStatusPipe.gracefulClose();
             }

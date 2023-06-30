@@ -64,7 +64,6 @@ import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.SCHEMA_R
 public class AsyncAPIParameterMapper {
     private final FunctionDefinitionNode functionDefinitionNode;
     private final Map<String, String> apidocs;
-    //    private final List<AsyncAPIConverterDiagnostic> errors = new ArrayList<>();
     private final AsyncApi25ComponentsImpl components;
     private final SemanticModel semanticModel;
 
@@ -77,9 +76,6 @@ public class AsyncAPIParameterMapper {
         this.semanticModel = semanticModel;
     }
 
-//    public List<AsyncAPIConverterDiagnostic> getErrors() {
-//        return errors;
-//    }
 
     /**
      * Create {@code Parameters} model for asyncAPI operation.
@@ -128,7 +124,7 @@ public class AsyncAPIParameterMapper {
                 }
             } else if (parameterNode.kind() == SyntaxKind.DEFAULTABLE_PARAM) {
                 DefaultableParameterNode defaultableParameterNode = (DefaultableParameterNode) parameterNode;
-//                // Handle header parameter
+                // Handle header parameter
                 if (defaultableParameterNode.typeName() instanceof TypeDescriptorNode && !defaultableParameterNode
                         .annotations().isEmpty()) {
                     handleDefaultableHeaderParameters(defaultableParameterNode, bindingHeaderObject);
@@ -151,8 +147,6 @@ public class AsyncAPIParameterMapper {
             ObjectNode headerObj = objectMapper.valueToTree(bindingHeaderObject);
             asyncApi25Binding.addItem(HEADERS, headerObj);
         }
-
-
         channelBindings.setWs(asyncApi25Binding);
         return channelBindings;
 
@@ -190,8 +184,6 @@ public class AsyncAPIParameterMapper {
                     pathParameterAAS.setDescription(apidocs.get(pathParam.paramName().get().text().trim()));
                 }
                 // Set param description
-                //TODO : Do we have to set required:true?
-//                pathParameterAAS.setRequired(true);
                 parameters.addItem(parameterItemName, pathParameterAAS);
             }
         }
@@ -199,7 +191,7 @@ public class AsyncAPIParameterMapper {
     }
 
     /**
-     * This function for handle the payload and header parameters with annotation @http:Payload, @http:Header.
+     * This function is to handle header parameters with annotation @http:Header.
      */
     private void handleHeaderParameters(RequiredParameterNode requiredParameterNode,
                                         BalAsyncApi25SchemaImpl bindingHeaderObject) {
@@ -215,7 +207,7 @@ public class AsyncAPIParameterMapper {
     }
 
     /**
-     * This function for handle the payload and header parameters with annotation @http:Header.
+     * This function is to handle defaultable header parameters with annotation @http:Header.
      */
     private void handleDefaultableHeaderParameters(DefaultableParameterNode defaultableParameterNode,
                                                    BalAsyncApi25SchemaImpl bindingHeaderObject) {
