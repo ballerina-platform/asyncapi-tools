@@ -454,7 +454,8 @@ public class IntermediateClientGenerator {
             # + config - The configurations to be used when initializing the `connector`
             # + serviceUrl - URL of the target service
             # + return - An error if connector initialization failed
-            public isolated function init(websocket:ClientConfiguration clientConfig =  {}, string serviceUrl = "ws://localhost:9090/payloadV") returns error? {
+            public isolated function init(websocket:ClientConfiguration clientConfig =  {}, string serviceUrl =
+     "ws://localhost:9090/payloadV") returns error? {
                 self.pipes = new ();
                 self.streamGenerators = new ();
                 self.writeMessageQueue = new (1000);
@@ -521,7 +522,8 @@ public class IntermediateClientGenerator {
                 }
             }
             #
-            remote isolated function doSubscribeMessage(SubscribeMessage subscribeMessage, decimal timeout) returns stream<NextMessage|CompleteMessage,error?>|error {
+            remote isolated function doSubscribeMessage(SubscribeMessage subscribeMessage, decimal timeout)
+     returns stream<NextMessage|CompleteMessage,error?>|error {
                 if self.writeMessageQueue.isClosed() {
                     return error("connection closed");
                 }
@@ -536,7 +538,8 @@ public class IntermediateClientGenerator {
                 check self.writeMessageQueue.produce(message, timeout);
                 stream<NextMessage|CompleteMessage,error?> streamMessages;
                 lock {
-                    NextMessageCompleteMessageStreamGenerator streamGenerator = check new (subscribeMessagePipe, timeout);
+                    NextMessageCompleteMessageStreamGenerator streamGenerator =
+     check new (subscribeMessagePipe, timeout);
                     self.streamGenerators.addStreamGenerator(streamGenerator);
                     streamMessages = new (streamGenerator);
                 }
@@ -569,7 +572,8 @@ public class IntermediateClientGenerator {
                 check self.writeMessageQueue.produce(message, timeout);
             }
             #
-            remote isolated function doConnectionInitMessage(ConnectionInitMessage connectionInitMessage, decimal timeout) returns ConnectionAckMessage|error {
+            remote isolated function doConnectionInitMessage(ConnectionInitMessage connectionInitMessage,
+     decimal timeout) returns ConnectionAckMessage|error {
                 if self.writeMessageQueue.isClosed() {
                     return error("connection closed");
                 }
@@ -587,7 +591,7 @@ public class IntermediateClientGenerator {
                 return connectionAckMessage;
             }
             #
-            remote isolated function doCompleteMessage(CompleteMessage completeMessage, decimal timeout) returns error? {
+            remote isolated function doCompleteMessage(CompleteMessage completeMessage, decimal timeout) returns error?{
                 if self.writeMessageQueue.isClosed() {
                     return error("connection closed");
                 }
