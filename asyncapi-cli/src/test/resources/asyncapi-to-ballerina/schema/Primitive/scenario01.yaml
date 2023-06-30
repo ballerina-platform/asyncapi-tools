@@ -1,0 +1,83 @@
+asyncapi: 2.5.0
+info:
+  title: PayloadV
+  version: 0.0.0
+servers:
+  development:
+    url: "{server}:{port}/payloadV"
+    protocol: ws
+    protocolVersion: "13"
+    variables:
+      server:
+        default: ws://localhost
+      port:
+        default: "9090"
+channels:
+  /:
+    subscribe:
+      message:
+        $ref: '#/components/messages/UnSubscribe'
+    publish:
+      message:
+        $ref: '#/components/messages/Subscribe'
+components:
+  schemas:
+    Subscribe:
+      type: object
+      properties:
+        pet_type:
+          not:
+            type: integer
+        event:
+          type: string
+      required:
+        - pet_type
+        - event
+    UnSubscribe:
+      type: object
+      required:
+        - event
+      properties:
+        zipCode:
+          type: integer
+        event:
+          type: string
+        request:
+          $ref: '#/components/schemas/Request'
+    Request:
+      description: Test description
+      required:
+        - id
+        - name
+      properties:
+        id:
+          description: tests
+          type: integer
+          format: int64
+        name:
+          description: tests
+          type: string
+        tag:
+          description: tests
+          type: number
+          format: decimal
+        type:
+          description: tests
+          type: string
+  messages:
+    UnSubscribe:
+      payload:
+        $ref: '#/components/schemas/UnSubscribe'
+    Subscribe:
+      payload:
+        $ref: '#/components/schemas/Subscribe'
+      x-response:
+        $ref: '#/components/messages/UnSubscribe'
+      x-response-type: simple-rpc
+x-dispatcherKey: event
+x-dispatcherStreamId: id
+
+
+
+
+

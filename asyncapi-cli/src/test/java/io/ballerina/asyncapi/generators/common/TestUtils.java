@@ -18,8 +18,13 @@
 
 package io.ballerina.asyncapi.generators.common;
 
+import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25DocumentImpl;
+import io.ballerina.asyncapi.core.exception.BallerinaAsyncApiException;
+import io.ballerina.asyncapi.core.generators.client.IntermediateClientGenerator;
+import io.ballerina.asyncapi.core.generators.schema.BallerinaTypesGenerator;
 import io.ballerina.compiler.api.SemanticModel;
 import io.ballerina.compiler.syntax.tree.SyntaxTree;
+import io.ballerina.compiler.syntax.tree.TypeDefinitionNode;
 import io.ballerina.projects.DocumentId;
 import io.ballerina.projects.Module;
 import io.ballerina.projects.Package;
@@ -27,8 +32,12 @@ import io.ballerina.projects.Project;
 import io.ballerina.projects.ProjectException;
 import io.ballerina.projects.ProjectKind;
 import io.ballerina.projects.directory.ProjectLoader;
+import io.ballerina.tools.diagnostics.Diagnostic;
+import org.ballerinalang.formatter.core.Formatter;
+import org.ballerinalang.formatter.core.FormatterException;
 import org.testng.Assert;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.nio.charset.StandardCharsets;
@@ -36,6 +45,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -44,12 +56,36 @@ import java.util.stream.Stream;
  */
 public class TestUtils {
 
-    private static final Path RES_DIR = Paths.get("src/test/resources/generators/").toAbsolutePath();
+    private static final Path RES_DIR = Paths.get("src/test/resources/asyncapi-to-ballerina/").toAbsolutePath();
     private static final Path clientPath = RES_DIR.resolve("ballerina_project/client.bal");
     private static final Path schemaPath = RES_DIR.resolve("ballerina_project/types.bal");
     private static final Path utilPath = RES_DIR.resolve("ballerina_project/utils.bal");
     private static final String LINE_SEPARATOR = System.lineSeparator();
 
+    // Get diagnostics
+    public static List<Diagnostic> getDiagnostics(SyntaxTree syntaxTree, AsyncApi25DocumentImpl asyncAPI,
+                                                  IntermediateClientGenerator intermediateClientGenerator)
+            throws FormatterException, IOException, BallerinaAsyncApiException {
+        List<TypeDefinitionNode> preGeneratedTypeDefinitionNodes = new LinkedList<>();
+        preGeneratedTypeDefinitionNodes.addAll(intermediateClientGenerator.
+                getBallerinaAuthConfigGenerator().getAuthRelatedTypeDefinitionNodes());
+        preGeneratedTypeDefinitionNodes.addAll(intermediateClientGenerator.getTypeDefinitionNodeList());
+        BallerinaTypesGenerator ballerinaSchemaGenerator = new BallerinaTypesGenerator(
+                asyncAPI,  preGeneratedTypeDefinitionNodes);
+        SyntaxTree schemaSyntax = ballerinaSchemaGenerator.generateSyntaxTree();
+        SyntaxTree utilSyntaxTree = intermediateClientGenerator.getBallerinaUtilGenerator().generateUtilSyntaxTree();
+        writeFile(clientPath, Formatter.format(syntaxTree).toString());
+        writeFile(schemaPath, Formatter.format(schemaSyntax).toString());
+        writeFile(utilPath, Formatter.format(utilSyntaxTree).toString());
+        SemanticModel semanticModel = getSemanticModel(clientPath);
+        return semanticModel.diagnostics();
+    }
+
+    public static List<Diagnostic> getDiagnostics(SyntaxTree syntaxTree) throws FormatterException, IOException {
+        writeFile(schemaPath, Formatter.format(syntaxTree).toString());
+        SemanticModel semanticModel = getSemanticModel(schemaPath);
+        return semanticModel.diagnostics();
+    }
 
     //Get string as a content of ballerina file
     public static String getStringFromGivenBalFile(Path expectedServiceFile) throws IOException {
@@ -101,11 +137,43 @@ public class TestUtils {
         return project.currentPackage().getCompilation().getSemanticModel(docId.moduleId());
     }
 
+//    public static AsyncApi25DocumentImpl getAsyncAPI(Path definitionPath) throws IOException,
+//    BallerinaAsyncApiException{
+//        String asyncAPIFileContent = Files.readString(definitionPath);
+//        SwaggerParseResult parseResult = new AsyncAPipar().readContents(asyncAPIFileContent);
+//        return parseResult.getasyncAPI();
+//    }
 
     public static String getStringFromGivenBalFile(Path expectedServiceFile, String s) throws IOException {
         Stream<String> expectedServiceLines = Files.lines(expectedServiceFile.resolve(s));
         String expectedServiceContent = expectedServiceLines.collect(Collectors.joining(LINE_SEPARATOR));
         expectedServiceLines.close();
         return expectedServiceContent;
+    }
+
+    public static void compareGeneratedSyntaxTreewithExpectedSyntaxTree(String s, SyntaxTree syntaxTree)
+            throws IOException {
+
+        String expectedBallerinaContent = getStringFromGivenBalFile(RES_DIR.resolve(s));
+        String generatedSyntaxTree = syntaxTree.toString();
+        generatedSyntaxTree = (generatedSyntaxTree.trim()).replaceAll("\\s+", "");
+        expectedBallerinaContent = (expectedBallerinaContent.trim()).replaceAll("\\s+", "");
+        Assert.assertTrue(generatedSyntaxTree.contains(expectedBallerinaContent));
+    }
+
+    /**
+     * Delete generated ballerina files.
+     */
+    public static void deleteGeneratedFiles() throws IOException {
+        Path resourcesPath = RES_DIR.resolve("ballerina_project");
+        if (Files.exists(resourcesPath)) {
+            File[] listFiles = Objects.requireNonNull(new File(String.valueOf(resourcesPath)).listFiles());
+            for (File existsFile : listFiles) {
+                String fileName = existsFile.getName();
+                if (fileName.endsWith(".bal")) {
+                    existsFile.delete();
+                }
+            }
+        }
     }
 }

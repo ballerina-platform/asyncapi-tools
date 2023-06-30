@@ -43,6 +43,30 @@ under the License.
             <class name="io.ballerina.asyncapi.generators.asyncapi.ChannelTests"/>
             <class name="io.ballerina.asyncapi.generators.asyncapi.SecurityTests"/>
             <class name="io.ballerina.asyncapi.generators.asyncapi.OptionalTests"/>
+            <class name="io.ballerina.asyncapi.generators.client.PathParameterTests"/>
+            <class name="io.ballerina.asyncapi.generators.client.HeadersTests"/>
+            <class name="io.ballerina.asyncapi.generators.client.QueryParameterTests"/>
+            <class name="io.ballerina.asyncapi.generators.client.StreamResponseTests"/>
+            <class name="io.ballerina.asyncapi.generators.client.SimpleResponseTests"/>
+            <class name="io.ballerina.asyncapi.generators.client.RemoteFunctionTests"/>
+            <class name="io.ballerina.asyncapi.generators.client.InvalidResponseTests"/>
+            <class name="io.ballerina.asyncapi.generators.client.ComparedGeneratedFileTests"/>
+            <class name="io.ballerina.asyncapi.generators.client.UtilGenerationTests"/>
+            <class name="io.ballerina.asyncapi.generators.client.SubProtocolTests"/>
+            <class name="io.ballerina.asyncapi.generators.client.NoServerURLTest"/>
+            <class name="io.ballerina.asyncapi.generators.schema.AllOfDataTypeTests"/>
+            <class name="io.ballerina.asyncapi.generators.schema.OneOfDataTypeTests"/>
+            <class name="io.ballerina.asyncapi.generators.schema.AnyOfDataTypeTests"/>
+            <class name="io.ballerina.asyncapi.generators.schema.ArrayDataTypeTests"/>
+            <class name="io.ballerina.asyncapi.generators.schema.AsyncAPIFileParserTests"/>
+            <class name="io.ballerina.asyncapi.generators.schema.ConstraintTests"/>
+            <class name="io.ballerina.asyncapi.generators.schema.MapSchemaTests"/>
+            <class name="io.ballerina.asyncapi.generators.schema.NullableFieldTests"/>
+            <class name="io.ballerina.asyncapi.generators.schema.PrimitiveDataTypeTests"/>
+            <class name="io.ballerina.asyncapi.generators.schema.RecordDataTypeTests"/>
+            <class name="io.ballerina.asyncapi.generators.schema.ReferenceResolveTests"/>
+            <class name="io.ballerina.asyncapi.generators.testcases.TestGeneratorTests"/>
+            <class name="io.ballerina.asyncapi.generators.client.ExecuteTest"/>
 
 
         </classes>

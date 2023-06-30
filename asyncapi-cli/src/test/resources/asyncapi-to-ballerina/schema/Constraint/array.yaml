@@ -1,0 +1,97 @@
+asyncapi: 2.5.0
+info:
+  title: PayloadV
+  version: 0.0.0
+servers:
+  development:
+    url: "{server}:{port}/payloadV"
+    protocol: ws
+    protocolVersion: "13"
+    variables:
+      server:
+        default: ws://localhost
+      port:
+        default: "9090"
+channels:
+  /:
+    subscribe:
+      message:
+        $ref: '#/components/messages/UnSubscribe'
+    publish:
+      message:
+        $ref: '#/components/messages/Subscribe'
+components:
+  schemas:
+    Hobby: #scenario 01 : User define array (Annotations on a type)
+      type: array
+      items:
+        type: string
+        maxLength: 23 # scenario 02: For both array type and array items have constraints
+      maxItems: 5
+      minItems: 2
+    Subscribe:
+      type: object
+      required:
+        - event
+        - tag
+      properties:
+        person:
+          $ref: '#/components/schemas/Person'
+        event:
+          type: string
+        tag:
+          $ref: '#/components/schemas/Address'
+    UnSubscribe:
+      type: object
+      required:
+        - event
+      properties:
+        zipCode:
+          type: integer
+        event:
+          type: string
+    Person:
+      type: object
+      required:
+        - id
+      properties:
+        hobby:
+          $ref: '#/components/schemas/Hobby' # scenario 03: Reference array
+        Details:
+          type: array
+          items:
+            type: string
+            minLength: 7
+          maxItems: 5
+        id:
+          type: integer
+        fee:
+          type: array
+          items:
+            type: number     #scenario 04 : Array items have constrained with number format
+            format: float
+            maximum: 445.4
+        limit:
+          description: The maximum number of items in the response (as set in the query or by default).
+          items:
+            type: integer
+            maximum: 67   #scenario 05 : Only array items have constrained with number format
+    Address: # Use case 02 : Annotations on a type
+      type: string
+      minLength: 5
+  messages:
+    UnSubscribe:
+      payload:
+        $ref: '#/components/schemas/UnSubscribe'
+    Subscribe:
+      payload:
+        $ref: '#/components/schemas/Subscribe'
+      x-response:
+        $ref: '#/components/messages/UnSubscribe'
+      x-response-type: simple-rpc
+x-dispatcherKey: event
+x-dispatcherStreamId: id
+
+
+
+

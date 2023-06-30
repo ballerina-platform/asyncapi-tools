@@ -25,6 +25,7 @@ dependencies {
     implementation "info.picocli:picocli"
     implementation "org.ballerinalang:formatter-core"
     implementation "org.ballerinalang:ballerina-tools-api"
+    implementation "io.apicurio:apicurio-data-models"
     implementation "commons-io:commons-io"
     testImplementation "org.testng:testng"
     testImplementation 'junit:junit:4.13.1'

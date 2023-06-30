@@ -29,7 +29,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 
 /**
- * Ballerina header conversion to OpenAPI will test in this class.
+ * Ballerina header conversion to AsyncAPI will test in this class.
  */
 public class HeaderTests {
     private static final Path RES_DIR = Paths.get("src/test/resources/ballerina-to-asyncapi/headers").toAbsolutePath();

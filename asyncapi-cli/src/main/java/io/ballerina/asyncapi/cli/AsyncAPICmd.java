@@ -17,25 +17,31 @@
  */
 package io.ballerina.asyncapi.cli;
 
+import io.ballerina.asyncapi.core.exception.BallerinaAsyncApiException;
 import io.ballerina.asyncapi.core.generators.asyncspec.diagnostic.AsyncAPIConverterDiagnostic;
 import io.ballerina.asyncapi.core.generators.asyncspec.diagnostic.DiagnosticMessages;
 import io.ballerina.asyncapi.core.generators.asyncspec.diagnostic.ExceptionDiagnostic;
 import io.ballerina.asyncapi.core.generators.asyncspec.diagnostic.IncompatibleRemoteDiagnostic;
 import io.ballerina.cli.BLauncherCmd;
+import org.ballerinalang.formatter.core.FormatterException;
 import picocli.CommandLine;
 
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 
 import static io.ballerina.asyncapi.cli.CmdConstants.BAL_EXTENSION;
+import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.JSON_EXTENSION;
+import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.YAML_EXTENSION;
+import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.YML_EXTENSION;
 
 /**
- * Main class to implement "asyncapi" command for ballerina. Commands for AsyncAPI spec
+ * Main class to implement "asyncapi1" command for ballerina. Commands for AsyncAPI spec
  * generation.
  */
 @CommandLine.Command(
@@ -64,6 +70,12 @@ public class AsyncAPICmd implements BLauncherCmd {
     @CommandLine.Option(names = {"-s", "--service"}, description = "Service name that need to documented as asyncapi " +
             "contract")
     private String service;
+
+    @CommandLine.Option(names = {"--with-tests"}, hidden = true, description = "Generate test files")
+    private boolean includeTestFiles;
+
+    @CommandLine.Option(names = {"--service-name"}, description = "Service name for generated files")
+    private String generatedServiceName;
 
     @CommandLine.Option(names = {"--json"}, description = "Generate json file")
     private boolean generatedFileType;
@@ -101,7 +113,7 @@ public class AsyncAPICmd implements BLauncherCmd {
 
     @Override
     public void execute() {
-
+        //Check help flag is enabled
         if (helpFlag) {
             String commandUsageInfo = BLauncherCmd.getCommandUsageInfo(getName());
             outStream.println(commandUsageInfo);
@@ -119,7 +131,17 @@ public class AsyncAPICmd implements BLauncherCmd {
             // else it generates error message to enter correct input file
             String fileName = argList.get(0);
 
-            if (fileName.endsWith(BAL_EXTENSION)) {
+            //When -i has a yaml or json extension
+            if (fileName.endsWith(YAML_EXTENSION) || fileName.endsWith(JSON_EXTENSION) ||
+                    fileName.endsWith(YML_EXTENSION)) {
+                try {
+                    asyncApiToBallerina(fileName);
+                } catch (IOException e) {
+                    outStream.println(e.getLocalizedMessage());
+                    exitError(this.exitWhenFinish);
+                }
+                // when -i has bal extension
+            } else if (fileName.endsWith(BAL_EXTENSION)) {
                 try {
 
                     ballerinaToAsyncApi(fileName);
@@ -128,6 +150,7 @@ public class AsyncAPICmd implements BLauncherCmd {
                     outStream.println(exception.getMessage());
                     exitError(this.exitWhenFinish);
                 }
+                // If -i has no extensions
             } else {
                 outStream.println(ErrorMessages.MISSING_CONTRACT_PATH);
                 exitError(this.exitWhenFinish);
@@ -163,8 +186,7 @@ public class AsyncAPICmd implements BLauncherCmd {
         }
         getTargetOutputPath();
         // Check service name it is mandatory
-        AsyncAPISpecGenerator asyncApiConverter = new AsyncAPISpecGenerator();
-
+        BallerinaToAsyncAPIGenerator asyncApiConverter = new BallerinaToAsyncAPIGenerator();
         asyncApiConverter.generateAsyncAPIDefinitionsAllService(balFilePath, targetOutputPath, service,
                 generatedFileType);
 
@@ -190,6 +212,45 @@ public class AsyncAPICmd implements BLauncherCmd {
         }
     }
 
+
+    /**
+     * This util method for generating service and client stub using given contract file.
+     *
+     * @param fileName input resource file
+     */
+    private void asyncApiToBallerina(String fileName) throws IOException {
+        AsyncAPIToBallerinaGenerator generator = new AsyncAPIToBallerinaGenerator();
+        generator.setLicenseHeader(this.setLicenseHeader());
+        generator.setIncludeTestFiles(this.includeTestFiles);
+        final File asyncAPIFile = new File(fileName);
+        getTargetOutputPath();
+        Path resourcePath = Paths.get(asyncAPIFile.getCanonicalPath());
+        generatesClientFile(generator, resourcePath);
+    }
+
+    /**
+     * This util is to set the license header content which is to be added at the beginning of the ballerina files.
+     */
+    private String setLicenseHeader() {
+        String licenseHeader = "";
+        try {
+            if (this.licenseFilePath != null && !this.licenseFilePath.isBlank()) {
+                Path filePath = Paths.get((new File(this.licenseFilePath).getCanonicalPath()));
+                licenseHeader = Files.readString(Paths.get(filePath.toString()));
+                if (!licenseHeader.endsWith("\n")) {
+                    licenseHeader = licenseHeader + "\n\n";
+                } else if (!licenseHeader.endsWith("\n\n")) {
+                    licenseHeader = licenseHeader + "\n";
+                }
+            }
+        } catch (IOException e) {
+            outStream.println("Invalid license file path : " + this.licenseFilePath +
+                    ". " + e.getMessage() + ".");
+            exitError(this.exitWhenFinish);
+        }
+        return licenseHeader;
+    }
+
     /**
      * This util is to get the output Path.
      */
@@ -200,6 +261,26 @@ public class AsyncAPICmd implements BLauncherCmd {
                 targetOutputPath = Paths.get(outputPath);
             } else {
                 targetOutputPath = Paths.get(targetOutputPath.toString(), outputPath);
+            }
+        }
+    }
+
+    /**
+     * A Util to Client generation.
+     *
+     * @param generator    generator object
+     * @param resourcePath resource Path
+     */
+    private void generatesClientFile(AsyncAPIToBallerinaGenerator generator, Path resourcePath) {
+        try {
+            generator.generateClient(resourcePath.toString(), targetOutputPath.toString());
+        } catch (IOException | FormatterException | BallerinaAsyncApiException e) {
+            if (e.getLocalizedMessage() != null) {
+                outStream.println(e.getLocalizedMessage());
+                exitError(this.exitWhenFinish);
+            } else {
+                outStream.println(ErrorMessages.CLIENT_GENERATION_FAILED);
+                exitError(this.exitWhenFinish);
             }
         }
     }
@@ -221,4 +302,5 @@ public class AsyncAPICmd implements BLauncherCmd {
     @Override
     public void setParentCmdParser(CommandLine parentCmdParser) {
     }
+
 }

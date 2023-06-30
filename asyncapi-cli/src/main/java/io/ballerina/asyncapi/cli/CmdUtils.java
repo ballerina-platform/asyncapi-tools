@@ -18,11 +18,14 @@
 package io.ballerina.asyncapi.cli;
 
 import io.ballerina.asyncapi.core.generators.asyncspec.utils.ConverterCommonUtils;
+import io.ballerina.asyncapi.core.model.GenSrcFile;
 import io.ballerina.tools.diagnostics.DiagnosticInfo;
 import io.ballerina.tools.diagnostics.DiagnosticSeverity;
 import io.ballerina.tools.diagnostics.Location;
 
+import java.io.File;
 import java.util.Collections;
+import java.util.List;
 
 /**
  * Contains all the util functions used for asyncapi commands.
@@ -43,6 +46,27 @@ public class CmdUtils {
         }
         return new AsyncAPIDiagnostic(diagnosticInfo, location,
                 Collections.emptyList(), args);
+    }
+
+
+    /**
+     * This method for setting the file name for generated file.
+     *
+     * @param listFiles      generated files
+     * @param gFile          GenSrcFile object
+     * @param duplicateCount add the tag with duplicate number if file already exist
+     */
+    public static void setGeneratedFileName(List<File> listFiles, GenSrcFile gFile, int duplicateCount) {
+
+        for (File listFile : listFiles) {
+            String listFileName = listFile.getName();
+            if (listFileName.contains(".") && ((listFileName.split("\\.")).length >= 2) &&
+                    (listFileName.split("\\.")[0].equals(gFile.getFileName().split("\\.")[0]))) {
+                duplicateCount = 1 + duplicateCount;
+            }
+        }
+        gFile.setFileName(gFile.getFileName().split("\\.")[0] + "." + (duplicateCount) + "." +
+                gFile.getFileName().split("\\.")[1]);
     }
 
 }

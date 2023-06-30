@@ -28,6 +28,12 @@ public class AdditionalTests {
         Path ballerinaFilePath = RES_DIR.resolve("override_description_of_record.bal");
         TestUtils.compareWithGeneratedFile(ballerinaFilePath, "additional/override_description_of_record.yaml");
     }
+
+//    @Test(description = "test to check dispatcherStreamId")
+//    public void testDispatcherStreamId() throws IOException {
+//        Path ballerinaFilePath = RES_DIR.resolve("dispatcherStreamId_present.bal");
+//        TestUtils.compareWithGeneratedFile(ballerinaFilePath, "additional/dispatcherStreamId_present.yaml");
+//    }
     @AfterMethod
     public void cleanUp() {
         TestUtils.deleteDirectory(this.tempDir);

@@ -25,7 +25,6 @@ import static io.ballerina.asyncapi.core.generators.asyncspec.utils.ConverterCom
 /**
  * This {@code AsyncAPIInfo} contains details related to asyncAPI info section.
  *
- * @since 2.0.0
  */
 public class AsyncAPIInfo {
     private final String title;

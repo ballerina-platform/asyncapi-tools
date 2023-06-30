@@ -27,7 +27,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 
 /**
- * OpenAPI command cmd common class to handle temp dirs and outputs.
+ * AsyncAPI command cmd common class to handle temp dirs and outputs.
  */
 public abstract class AsyncAPICommandTest {
     protected Path tmpDir;

@@ -164,18 +164,7 @@ public class ServiceToAsyncAPIConverterUtils {
                         String updateServiceName = service;
                         //`String updateServiceName` used to track the service
                         // name for service file contains multiple service node.
-                        //example:
-                        //<pre>
-                        //    listener http:Listener ep1 = new (443, config = {host: "pets-tore.swagger.io"});
-                        //    service /hello on ep1 {
-                        //        resource function post hi(@http:Payload json payload) {
-                        //       }
-                        //    }
-                        //    service /hello on new http:Listener(9090) {
-                        //        resource function get hi() {
-                        //        }
-                        //    }
-                        //</pre>
+
                         // Using absolute path we generate file name, therefore having same name may overwrite
                         // the file, due to this suppose to use hashcode as identity factor for the file name.
                         // Generated file name for above example -> hello_asyncapi.yaml, hello_45673_asyncapi
@@ -226,7 +215,7 @@ public class ServiceToAsyncAPIConverterUtils {
             AsyncApi25DocumentImpl asyncapi = (AsyncApi25DocumentImpl) asyncApiResult.getAsyncAPI().get();
             if (asyncapi.getChannels() == null) {
                 // Take base path of service
-                AsyncAPIServiceMapper asyncAPIServiceMapper = new AsyncAPIServiceMapper(semanticModel,asyncapi);
+                AsyncAPIServiceMapper asyncAPIServiceMapper = new AsyncAPIServiceMapper(semanticModel, asyncapi);
                 // 02. Filter and set the ServerURLs according to endpoints. Complete the server section in AsyncAPISpec
                 asyncapi = AsyncAPIEndpointMapper.ENDPOINT_MAPPER.getServers(asyncapi, endpoints, serviceDefinition);
                 // 03. Filter path and component sections in AsyncAPISpec.

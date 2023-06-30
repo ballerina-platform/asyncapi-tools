@@ -17,7 +17,7 @@
  */
 package io.ballerina.asyncapi.generators.asyncapi;
 
-import io.ballerina.asyncapi.cli.AsyncAPISpecGenerator;
+import io.ballerina.asyncapi.cli.BallerinaToAsyncAPIGenerator;
 import org.testng.Assert;
 
 import java.io.File;
@@ -32,7 +32,7 @@ import java.util.stream.Stream;
 import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.ASYNC_API_SUFFIX;
 
 /**
- * This Util class for storing the common utils related to test in ballerina to openAPI command implementation.
+ * This Util class for storing the common utils related to test in ballerina to asyncapi command implementation.
  */
 public class TestUtils {
 
@@ -57,7 +57,7 @@ public class TestUtils {
         Path tempDir = Files.createTempDirectory("bal-to-asyncapi-test-out-" + System.nanoTime());
         try {
             String expectedYamlContent = getStringFromGivenBalFile(RES_DIR.resolve("yaml_outputs"), yamlFile);
-            AsyncAPISpecGenerator asyncApiConverter = new AsyncAPISpecGenerator();
+            BallerinaToAsyncAPIGenerator asyncApiConverter = new BallerinaToAsyncAPIGenerator();
             asyncApiConverter.generateAsyncAPIDefinitionsAllService(ballerinaFilePath, tempDir, null,
                     false);
             if (Files.exists(tempDir.resolve(String.format("payloadV%s.yaml", ASYNC_API_SUFFIX)))) {

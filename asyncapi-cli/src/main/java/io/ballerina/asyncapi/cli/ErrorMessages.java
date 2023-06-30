@@ -24,9 +24,10 @@ package io.ballerina.asyncapi.cli;
  * @since 1.3.0
  */
 public class ErrorMessages {
+    public static final String CLIENT_GENERATION_FAILED = "Error occurred when generating client for AsyncAPI contract";
 
     public static final String MISSING_CONTRACT_PATH = "Bal service file is required to generate the " +
-            "asyncAPI definition. \ne.g: bal asyncapi --input <Ballerina file path>";
+            "asyncapi definition. \ne.g: bal asyncapi --input <Ballerina file path>";
 
     private ErrorMessages() {
         throw new AssertionError();

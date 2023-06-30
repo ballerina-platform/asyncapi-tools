@@ -28,7 +28,6 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import io.apicurio.datamodels.Library;
 import io.apicurio.datamodels.models.Schema;
-import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25ComponentsImpl;
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25Document;
 import io.apicurio.datamodels.validation.ValidationProblem;
 import io.ballerina.asyncapi.core.generators.asyncspec.Constants;
@@ -38,7 +37,6 @@ import io.ballerina.asyncapi.core.generators.asyncspec.diagnostic.ExceptionDiagn
 import io.ballerina.asyncapi.core.generators.asyncspec.model.AsyncAPIResult;
 import io.ballerina.asyncapi.core.generators.asyncspec.model.BalAsyncApi25SchemaImpl;
 import io.ballerina.asyncapi.core.generators.asyncspec.model.BalBooleanSchema;
-import io.ballerina.asyncapi.core.generators.asyncspec.service.AsyncAPIComponentMapper;
 import io.ballerina.compiler.api.SemanticModel;
 import io.ballerina.compiler.api.symbols.ModuleSymbol;
 import io.ballerina.compiler.api.symbols.ServiceDeclarationSymbol;
@@ -129,14 +127,9 @@ public class ConverterCommonUtils {
                 // map<map<int>> then those also need to be handle
                 break;
             case Constants.MAP_JSON:
-//            case Constants.MAP_STRING:
             case Constants.MAP:
-//                objectSchema.setType(AsyncAPIType.RECORD.toString());
                 schema.setType(AsyncAPIType.OBJECT.toString());
                 schema.setAdditionalProperties(new BalBooleanSchema(true));
-//                schema.setAdditionalProperties(true);
-//                schema.setAdditionalProperties(true);
-//                schema.additionalProperties(true);
                 break;
 
             case Constants.TYPE_REFERENCE:

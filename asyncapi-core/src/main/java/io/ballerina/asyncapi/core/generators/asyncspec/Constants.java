@@ -36,9 +36,11 @@ public class Constants {
     public static final String OBJECT = "object";
     public static final String TYPE_REFERENCE = "type_reference";
 
-    public static final String FIELD_RECORD="record";
+    public static final String FIELD_RECORD = "record";
     public static final String WEBSOCKET = "websocket";
     public static final String DISPATCHER_KEY = "dispatcherKey";
+
+    public static final String DISPATCHER_STREAM_ID = "dispatcherStreamId";
     public static final String BALLERINA = "ballerina";
     public static final String TYPEREFERENCE = "typeReference";
     public static final String HTTP_HEADER = "http:Header";
@@ -58,7 +60,7 @@ public class Constants {
     public static final String X_WWW_FORM_URLENCODED = "x-www-form-urlencoded";
     public static final String BINDING_VERSION = "bindingVersion";
     public static final String QUERY = "query";
-    public static  final String HEADERS = "headers";
+    public static final String HEADERS = "headers";
     public static final String MAP_JSON = "map<json>";
     public static final String MAP_STRING = "map<string>";
     public static final String MAP = "map";
@@ -78,35 +80,8 @@ public class Constants {
     public static final String RETURN = "return";
     public static final String DESCRIPTION = "description";
     public static final String REMOTE_DESCRIPTION = "remoteDescription";
-
-
-    /**
-     * Enum to select the Ballerina Type.
-     * Ballerina service, mock and client generation is available
-     */
-    public enum AsyncAPIType {
-        INTEGER("integer"),
-        STRING("string"),
-        NUMBER("number"),
-        BOOLEAN("boolean"),
-        OBJECT("object"),
-        ARRAY("array");
-
-        private String name;
-
-        AsyncAPIType(String name) {
-            this.name = name;
-        }
-
-        @Override
-        public String toString() {
-            return this.name;
-        }
-    }
-
     public static final String SPECIAL_CHAR_REGEX = "([\\[\\]\\\\?!<>@#&~`*\\-=^+();:\\/\\_{}\\s|.$])";
     public static final String TRUE = "true";
-
     public static final String FALSE = "false";
     public static final String WS_LOCALHOST = "ws://localhost";
     public static final String LOCALHOST = "localhost";
@@ -118,19 +93,15 @@ public class Constants {
     public static final String CONTRACT = "contract";
     public static final String VERSION = "'version";
     public static final String TITLE = "title";
-
     //TODO : Use this annotation after implementing this one
     public static final String ASYNCAPI_ANNOTATION = "asyncapi:ServiceInfo";
-
     //File extensions
     public static final String YAML_EXTENSION = ".yaml";
     public static final String JSON_EXTENSION = ".json";
     public static final String YML_EXTENSION = ".yml";
     public static final String UNDERSCORE = "_";
-
     //CamelCase pattern
     public static final String CAMEL_CASE_PATTERN = "^on[A-Z][a-z0-9A-Z]*$";
-
     //Invalid remote function names
     public static final String ON_IDLE_TIME_OUT = "onIdleTimeout";
     public static final String ON_MESSAGE = "onMessage";
@@ -141,8 +112,6 @@ public class Constants {
     public static final String ON_ERROR = "onError";
     public static final String ON_PING = "onPing";
     public static final String ON_PONG = "onPong";
-
-
     //Exception Constants
     public static final String DISPATCHERKEY_NULLABLE_EXCEPTION = "ERROR: dispatcherKey '%s' cannot be " +
             "nullable in %s record";
@@ -173,11 +142,35 @@ public class Constants {
     public static final String NO_DISPATCHER_KEY = "ERROR: No dispatcherKey field is present in " +
             "@websocket:ServiceConfig annotation";
     public static final String DISPATCHER_KEY_VALUE_CANNOT_BE_EMPTY = "ERROR: dispatcherKey cannot be empty";
+
+    public static final String DISPATCHER_STREAM_ID_VALUE_CANNOT_BE_EMPTY = "ERROR: dispatcherStreamId cannot be empty";
     public static final String NO_TYPE_IN_STREAM = "ERROR: No type present in stream";
     public static final String NO_SERVICE_CLASS = "ERROR: No service class present";
-
     public static final String UNION_STREAMING_SIMPLE_RPC_ERROR = "ERROR: Response server streaming types cannot be " +
             "union with simple rpc types";
     public static final String PATH_PARAM_DASH_CONTAIN_ERROR = "ERROR: Path parameter contains an invalid" +
             " character '-'";
+    /**
+     * Enum to select the Ballerina Type.
+     * Ballerina service, mock and client generation is available
+     */
+    public enum AsyncAPIType {
+        INTEGER("integer"),
+        STRING("string"),
+        NUMBER("number"),
+        BOOLEAN("boolean"),
+        OBJECT("object"),
+        ARRAY("array");
+
+        private final String name;
+
+        AsyncAPIType(String name) {
+            this.name = name;
+        }
+
+        @Override
+        public String toString() {
+            return this.name;
+        }
+    }
 }

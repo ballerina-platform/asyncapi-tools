@@ -51,10 +51,9 @@ import static io.ballerina.asyncapi.core.generators.asyncspec.utils.CodegenUtils
 /**
  * AsyncApi related utility classes.
  *
- * @since 2.3.0
  */
 
-public class AsyncAPISpecGenerator {
+public class BallerinaToAsyncAPIGenerator {
     private SyntaxTree syntaxTree;
     private SemanticModel semanticModel;
     private Project project;
@@ -64,7 +63,7 @@ public class AsyncAPISpecGenerator {
     /**
      * Initialize constructor.
      */
-    public AsyncAPISpecGenerator() {
+    public BallerinaToAsyncAPIGenerator() {
 
     }
 

@@ -64,7 +64,7 @@ import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.WS_PREFI
 import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.WS_PROTOCOL_VERSION;
 
 /**
- * Extract AsyncApi server information from and Ballerina endpoint.
+ * Extract AsyncAPI server information from and Ballerina endpoint.
  */
 public class AsyncAPIEndpointMapper {
     public static final AsyncAPIEndpointMapper ENDPOINT_MAPPER = new AsyncAPIEndpointMapper();
@@ -75,7 +75,7 @@ public class AsyncAPIEndpointMapper {
      * @param asyncAPI  asyncapi definition to attach extracted information
      * @param endpoints all endpoints defined in ballerina source
      * @param service   service node with bound endpoints
-     * @return asyncapi definition with Server information
+     * @return AsyncApi25DocumentImpl definition with Server information
      */
     public AsyncApi25DocumentImpl getServers(AsyncApi25DocumentImpl asyncAPI, List<ListenerDeclarationNode> endpoints,
                                              ServiceDeclarationNode service) {
@@ -125,6 +125,13 @@ public class AsyncAPIEndpointMapper {
         return mainServer;
     }
 
+    /**
+     * Set server variables as Enum.
+     *
+     * @param variable     server variable object
+     * @param variables    all server variables in the asyncAPI specification
+     * @param variableName variable name to set
+     */
     private void setServerVariables(ServerVariable variable,
                                     Map<String, ServerVariable> variables,
                                     String variableName) {
@@ -228,8 +235,6 @@ public class AsyncAPIEndpointMapper {
                 serverUrlVariable.setDefault(WS_PREFIX + host);
 
             }
-//            serverUrlVariable.setDefault( host);
-
             AsyncApi25ServerVariable portVariable = server.createServerVariable();
             portVariable.setDefault(port);
             server.addVariable(SERVER, serverUrlVariable);
@@ -250,8 +255,6 @@ public class AsyncAPIEndpointMapper {
             } else {
                 serverUrlVariable.setDefault(WS_LOCALHOST);
             }
-//            serverUrlVariable.setDefault(LOCALHOST);
-
             AsyncApi25ServerVariable portVariable = server.createServerVariable();
             portVariable.setDefault(port);
             server.addVariable(SERVER, serverUrlVariable);
@@ -279,7 +282,6 @@ public class AsyncAPIEndpointMapper {
                         }
                     } else if (fieldName.trim().equals(SECURE_SOCKET)) {
                         secured = TRUE;
-
                     }
                 }
             }

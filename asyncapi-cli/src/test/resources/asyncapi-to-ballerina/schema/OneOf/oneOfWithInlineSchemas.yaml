@@ -1,0 +1,119 @@
+asyncapi: 2.5.0
+info:
+  title: PayloadV
+  version: 0.0.0
+servers:
+  development:
+    url: "{server}:{port}/payloadV"
+    protocol: ws
+    protocolVersion: "13"
+    variables:
+      server:
+        default: ws://localhost
+      port:
+        default: "9090"
+channels:
+  /:
+    subscribe:
+      message:
+        $ref: '#/components/messages/UnSubscribe'
+    publish:
+      message:
+        $ref: '#/components/messages/Subscribe'
+components:
+  schemas:
+    CountryDetails:
+      required:
+        - event
+      properties:
+        iso_code:
+          type: string
+        name:
+          type: string
+        event:
+          type: string
+    Subscribe:
+      type: object
+      required:
+        - event
+      properties:
+        zipCode:
+          type: integer
+        event:
+          type: string
+    UnSubscribe:
+      oneOf:
+        - $ref: "#/components/schemas/Time"
+        - $ref: '#/components/schemas/Activity'
+        - properties:
+            streetNo:
+              type: string
+              description: Street Number
+            houseNo:
+              type: string
+              description: House Number
+            event:
+              type: string
+          required:
+            - event
+        - properties:
+            streatName:
+              type: string
+              description: Street Name
+            event:
+              type: string
+            country:
+              type: string
+              description: Country Name
+          required:
+            - event
+        - properties:
+            zipCode:
+              type: integer
+              description: Zipcode
+            event:
+              type: string
+          required:
+            - event
+        - $ref: '#/components/schemas/CountryDetails'
+    Time:
+      required:
+        - minute
+        - event
+      properties:
+        minute:
+          type: integer
+          format: int64
+        second:
+          type: string
+        hour:
+          type: string
+        day:
+          type: string
+        event:
+          type: string
+    Activity:
+      required:
+        - event
+      properties:
+        uuid:
+          type: string
+          description: Unique identifier for the activity
+        event:
+          type: string
+  messages:
+    UnSubscribe:
+      payload:
+        $ref: '#/components/schemas/UnSubscribe'
+    Subscribe:
+      payload:
+        $ref: '#/components/schemas/Subscribe'
+      x-response:
+        $ref: '#/components/messages/UnSubscribe'
+      x-response-type: simple-rpc
+x-dispatcherKey: event
+x-dispatcherStreamId: id
+
+
+
+
