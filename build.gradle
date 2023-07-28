@@ -182,7 +182,9 @@ jar {
 }
 
 task directoryBuild {
+
     inputs.dir file(project.projectDir)
+    doNotTrackState("build needs to run every time")
     doLast {
         copy {
             from targetAsyncApiCliJar
