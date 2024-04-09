@@ -6,7 +6,7 @@
 /native.handler/build
 /asyncapi-cli/build
 /asyncapi-cli/bin
-local.properties
+local.propertie
 
 # Ignore Gradle GUI config
 gradle-app.setting
