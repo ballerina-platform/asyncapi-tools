@@ -64,7 +64,7 @@ public class PathParameterTests {
         asyncAPIToBallerinaGenerator.generateClient(
                 "src/test/resources/asyncapi-to-ballerina/client/StreamResponse/" +
                         "multiple_stream_with_dispatcherStreamId.yaml",
-                "/Users/thushalya/Documents/out");
+                "src/test/resources/out");
 //        AASClientConfig.Builder clientMetaDataBuilder = new AASClientConfig.Builder();
 ////        AASClientConfig oasClientConfig = clientMetaDataBuilder
 //////                .withFilters(filter)

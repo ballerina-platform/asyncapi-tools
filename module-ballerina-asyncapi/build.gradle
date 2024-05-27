@@ -9,13 +9,13 @@ import org.apache.tools.ant.taskdefs.condition.Os
 //        maven {
 //            url = 'https://maven.pkg.github.com/ballerina-platform/plugin-gradle'
 //            credentials {
-//                username "thushalya"
-//                password "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"
+//                username System.getenv('packageUser')
+//                password System.getenv('packagePAT')
 //            }
 //        }
 //    }
 //    dependencies {
-//        classpath "io.ballerina:plugin-gradle:1.0.0"
+//        classpath "io.ballerina:plugin-gradle:${project.ballerinaGradlePluginVersion}"
 //    }
 //}
 
@@ -199,6 +199,12 @@ task initializeVariables {
 
 ballerinaBuild {
     inputs.dir file(project.projectDir)
+    dependsOn compileJava
+    dependsOn compileTestJava
+    dependsOn jar
+    dependsOn checkstyleMain
+    dependsOn checkstyleTest
+    dependsOn processResources
     doLast {
         // Build and populate caches
 
