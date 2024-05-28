@@ -23,7 +23,6 @@ import com.fasterxml.jackson.databind.node.TextNode;
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25ChannelsImpl;
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25ComponentsImpl;
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25DocumentImpl;
-import io.ballerina.asyncapi.core.generators.asyncspec.diagnostic.AsyncAPIConverterDiagnostic;
 import io.ballerina.compiler.api.SemanticModel;
 import io.ballerina.compiler.syntax.tree.AnnotationNode;
 import io.ballerina.compiler.syntax.tree.ClassDefinitionNode;
@@ -38,7 +37,6 @@ import io.ballerina.compiler.syntax.tree.ServiceDeclarationNode;
 import io.ballerina.compiler.syntax.tree.SpecificFieldNode;
 import io.ballerina.compiler.syntax.tree.SyntaxKind;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.NoSuchElementException;
 
@@ -59,7 +57,6 @@ import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.NO_DISPA
 public class AsyncAPIServiceMapper {
     private final AsyncApi25DocumentImpl asyncAPI;
     private final SemanticModel semanticModel;
-    private final List<AsyncAPIConverterDiagnostic> errors = new ArrayList<>();
 
     /**
      * Initializes a service parser for AsyncApi.
@@ -136,10 +133,6 @@ public class AsyncAPIServiceMapper {
         return dispatcherValue;
     }
 
-    public List<AsyncAPIConverterDiagnostic> getErrors() {
-        return errors;
-    }
-
     /**
      * This method will convert ballerina @Service to asyncApi @AsyncApi object.
      *
@@ -168,7 +161,6 @@ public class AsyncAPIServiceMapper {
 //                if (generatedComponents.getSchemas() != null || generatedComponents.getMessages() != null) {
                 asyncApi.setComponents(generatedComponents);
 //                }
-                errors.addAll(resourceMapper.getErrors());
             }
         }
         return asyncApi;

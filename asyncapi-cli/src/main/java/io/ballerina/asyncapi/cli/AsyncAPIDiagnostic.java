@@ -25,6 +25,7 @@ import io.ballerina.tools.text.LinePosition;
 import io.ballerina.tools.text.LineRange;
 
 import java.text.MessageFormat;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -42,7 +43,7 @@ public class AsyncAPIDiagnostic extends Diagnostic {
                               Object[] args) {
         this.diagnosticInfo = diagnosticInfo;
         this.location = location;
-        this.properties = properties;
+        this.properties = Collections.unmodifiableList(properties);
         this.message = MessageFormat.format(diagnosticInfo.messageFormat(), args);
     }
 

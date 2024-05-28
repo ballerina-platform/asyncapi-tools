@@ -28,6 +28,8 @@ import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25Document;
 import io.apicurio.datamodels.models.util.JsonUtil;
 import io.ballerina.asyncapi.core.generators.asyncspec.diagnostic.AsyncAPIConverterDiagnostic;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
@@ -47,7 +49,8 @@ public class AsyncAPIResult {
      */
     public AsyncAPIResult(AsyncApi25Document asyncAPI, List<AsyncAPIConverterDiagnostic> diagnostics) {
         this.asyncAPI = asyncAPI;
-        this.diagnostics = diagnostics;
+        this.diagnostics = diagnostics != null ? Collections.unmodifiableList(diagnostics) :
+                Collections.unmodifiableList(new ArrayList<>());
     }
 
     public List<AsyncAPIConverterDiagnostic> getDiagnostics() {

@@ -31,9 +31,6 @@ import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.PATH_PAR
  * @since 2.5.0
  */
 public class BallerinaToAsyncAPIExceptionTests extends AsyncAPICommandTest {
-    private static final Path RES_DIR = Paths.get("src/test/resources/ballerina-to-asyncapi/exceptions").
-            toAbsolutePath();
-    private Path tempDir;
 
     @BeforeTest(description = "This will create a new ballerina project for testing below scenarios.")
     public void setupBallerinaProject() throws IOException {
@@ -45,7 +42,7 @@ public class BallerinaToAsyncAPIExceptionTests extends AsyncAPICommandTest {
         Path filePath = resourceDir.resolve(Paths.get("cmd/ballerina-to-asyncapi/exceptions" +
                 "/check_websocket_serviceConfig_annotation.bal"));
         String[] args = {"--input", filePath.toString(), "-o", this.tmpDir.toString()};
-        AsyncAPICmd cmd = new AsyncAPICmd(printStream, tmpDir, false);
+        AsyncAPICmd cmd = new AsyncAPICmd(tmpDir, false);
         new CommandLine(cmd).parseArgs(args);
 
         String output = "";
@@ -64,7 +61,7 @@ public class BallerinaToAsyncAPIExceptionTests extends AsyncAPICommandTest {
         Path filePath = resourceDir.resolve(Paths.get("cmd/ballerina-to-asyncapi/exceptions" +
                 "/dispatcherKey_field_not_present_in_record.bal"));
         String[] args = {"--input", filePath.toString(), "-o", this.tmpDir.toString()};
-        AsyncAPICmd cmd = new AsyncAPICmd(printStream, tmpDir, false);
+        AsyncAPICmd cmd = new AsyncAPICmd(tmpDir, false);
         new CommandLine(cmd).parseArgs(args);
 
         String output = "";
@@ -84,7 +81,7 @@ public class BallerinaToAsyncAPIExceptionTests extends AsyncAPICommandTest {
         Path filePath = resourceDir.resolve(Paths.get("cmd/ballerina-to-asyncapi/exceptions" +
                 "/dispatcherKey_field_string_type_check.bal"));
         String[] args = {"--input", filePath.toString(), "-o", this.tmpDir.toString()};
-        AsyncAPICmd cmd = new AsyncAPICmd(printStream, tmpDir, false);
+        AsyncAPICmd cmd = new AsyncAPICmd(tmpDir, false);
         new CommandLine(cmd).parseArgs(args);
 
         String output = "";
@@ -103,7 +100,7 @@ public class BallerinaToAsyncAPIExceptionTests extends AsyncAPICommandTest {
         Path filePath = resourceDir.resolve(Paths.get("cmd/ballerina-to-asyncapi/exceptions" +
                 "/dispatcherKey_field_not_present_in_annotation.bal"));
         String[] args = {"--input", filePath.toString(), "-o", this.tmpDir.toString()};
-        AsyncAPICmd cmd = new AsyncAPICmd(printStream, tmpDir, false);
+        AsyncAPICmd cmd = new AsyncAPICmd(tmpDir, false);
         new CommandLine(cmd).parseArgs(args);
 
         String output = "";
@@ -122,7 +119,7 @@ public class BallerinaToAsyncAPIExceptionTests extends AsyncAPICommandTest {
         Path filePath = resourceDir.resolve(Paths.get("cmd/ballerina-to-asyncapi/exceptions" +
                 "/empty_dispatcherKey_check.bal"));
         String[] args = {"--input", filePath.toString(), "-o", this.tmpDir.toString()};
-        AsyncAPICmd cmd = new AsyncAPICmd(printStream, tmpDir, false);
+        AsyncAPICmd cmd = new AsyncAPICmd(tmpDir, false);
         new CommandLine(cmd).parseArgs(args);
 
         String output = "";
@@ -141,7 +138,7 @@ public class BallerinaToAsyncAPIExceptionTests extends AsyncAPICommandTest {
         Path filePath = resourceDir.resolve(Paths.get("cmd/ballerina-to-asyncapi/exceptions" +
                 "/no_service_class_present.bal"));
         String[] args = {"--input", filePath.toString(), "-o", this.tmpDir.toString()};
-        AsyncAPICmd cmd = new AsyncAPICmd(printStream, tmpDir, false);
+        AsyncAPICmd cmd = new AsyncAPICmd(tmpDir, false);
         new CommandLine(cmd).parseArgs(args);
 
         String output = "";
@@ -332,7 +329,7 @@ public class BallerinaToAsyncAPIExceptionTests extends AsyncAPICommandTest {
         Path filePath = resourceDir.resolve(Paths.get("cmd/ballerina-to-asyncapi/exceptions" +
                 "/optional_dispatcherKey_present.bal"));
         String[] args = {"--input", filePath.toString(), "-o", this.tmpDir.toString()};
-        AsyncAPICmd cmd = new AsyncAPICmd(printStream, tmpDir, false);
+        AsyncAPICmd cmd = new AsyncAPICmd(tmpDir, false);
         new CommandLine(cmd).parseArgs(args);
 
         String output = "";
@@ -353,7 +350,7 @@ public class BallerinaToAsyncAPIExceptionTests extends AsyncAPICommandTest {
         Path filePath = resourceDir.resolve(Paths.get("cmd/ballerina-to-asyncapi/exceptions" +
                 "/nullable_dispatcherKey_present.bal"));
         String[] args = {"--input", filePath.toString(), "-o", this.tmpDir.toString()};
-        AsyncAPICmd cmd = new AsyncAPICmd(printStream, tmpDir, false);
+        AsyncAPICmd cmd = new AsyncAPICmd(tmpDir, false);
         new CommandLine(cmd).parseArgs(args);
 
         String output = "";
@@ -373,7 +370,7 @@ public class BallerinaToAsyncAPIExceptionTests extends AsyncAPICommandTest {
         Path filePath = resourceDir.resolve(Paths.get("cmd/ballerina-to-asyncapi/exceptions" +
                 "/remotefunction_camelCase_not_present.bal"));
         String[] args = {"--input", filePath.toString(), "-o", this.tmpDir.toString()};
-        AsyncAPICmd cmd = new AsyncAPICmd(printStream, tmpDir, false);
+        AsyncAPICmd cmd = new AsyncAPICmd(tmpDir, false);
         new CommandLine(cmd).parseArgs(args);
 
         String output = "";
@@ -392,7 +389,7 @@ public class BallerinaToAsyncAPIExceptionTests extends AsyncAPICommandTest {
         Path filePath = resourceDir.resolve(Paths.get("cmd/ballerina-to-asyncapi/exceptions" +
                 "/remoteFunction_name_start.bal"));
         String[] args = {"--input", filePath.toString(), "-o", this.tmpDir.toString()};
-        AsyncAPICmd cmd = new AsyncAPICmd(printStream, tmpDir, false);
+        AsyncAPICmd cmd = new AsyncAPICmd(tmpDir, false);
         new CommandLine(cmd).parseArgs(args);
 
         String output = "";
@@ -411,7 +408,7 @@ public class BallerinaToAsyncAPIExceptionTests extends AsyncAPICommandTest {
         Path filePath = resourceDir.resolve(Paths.get("cmd/ballerina-to-asyncapi/exceptions" +
                 "/request_type_record_check.bal"));
         String[] args = {"--input", filePath.toString(), "-o", this.tmpDir.toString()};
-        AsyncAPICmd cmd = new AsyncAPICmd(printStream, tmpDir, false);
+        AsyncAPICmd cmd = new AsyncAPICmd(tmpDir, false);
         new CommandLine(cmd).parseArgs(args);
 
         String output = "";
@@ -430,7 +427,7 @@ public class BallerinaToAsyncAPIExceptionTests extends AsyncAPICommandTest {
         Path filePath = resourceDir.resolve(Paths.get("cmd/ballerina-to-asyncapi/exceptions" +
                 "/path_param_dash_contain.bal"));
         String[] args = {"--input", filePath.toString(), "-o", this.tmpDir.toString()};
-        AsyncAPICmd cmd = new AsyncAPICmd(printStream, tmpDir, false);
+        AsyncAPICmd cmd = new AsyncAPICmd(tmpDir, false);
         new CommandLine(cmd).parseArgs(args);
 
         String output = "";

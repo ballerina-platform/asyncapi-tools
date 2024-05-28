@@ -23,7 +23,6 @@ import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25ChannelItemImpl;
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25ChannelsImpl;
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25ComponentsImpl;
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25OperationImpl;
-import io.ballerina.asyncapi.core.generators.asyncspec.diagnostic.AsyncAPIConverterDiagnostic;
 import io.ballerina.asyncapi.core.generators.asyncspec.model.BalAsyncApi25MessageImpl;
 import io.ballerina.asyncapi.core.generators.asyncspec.utils.ConverterCommonUtils;
 import io.ballerina.compiler.api.SemanticModel;
@@ -53,7 +52,6 @@ import io.ballerina.compiler.syntax.tree.SimpleNameReferenceNode;
 import io.ballerina.compiler.syntax.tree.SyntaxKind;
 import io.ballerina.compiler.syntax.tree.TypeDescriptorNode;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -89,7 +87,6 @@ public class AsyncAPIRemoteMapper {
     private final AsyncApi25ChannelsImpl channelObject = new AsyncApi25ChannelsImpl();
     private final AsyncApi25ComponentsImpl components = new AsyncApi25ComponentsImpl();
     private final AsyncAPIComponentMapper componentMapper = new AsyncAPIComponentMapper(components);
-    private final List<AsyncAPIConverterDiagnostic> errors;
     private final SemanticModel semanticModel;
 
     /**
@@ -97,12 +94,8 @@ public class AsyncAPIRemoteMapper {
      */
     AsyncAPIRemoteMapper(SemanticModel semanticModel) {
         this.semanticModel = semanticModel;
-        this.errors = new ArrayList<>();
     }
 
-    public List<AsyncAPIConverterDiagnostic> getErrors() {
-        return errors;
-    }
 
     public AsyncApi25ComponentsImpl getComponents() {
         return components;

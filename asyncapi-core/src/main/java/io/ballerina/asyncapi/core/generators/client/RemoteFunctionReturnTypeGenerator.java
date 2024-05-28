@@ -45,13 +45,10 @@ public class RemoteFunctionReturnTypeGenerator {
     private AsyncApi25DocumentImpl asyncAPI;
 
     public RemoteFunctionReturnTypeGenerator() {
-
     }
 
     public RemoteFunctionReturnTypeGenerator(AsyncApi25DocumentImpl asyncAPI) {
-
         this.asyncAPI = asyncAPI;
-
     }
 
     /**
@@ -110,7 +107,6 @@ public class RemoteFunctionReturnTypeGenerator {
 
 
             return finalReturnType;
-
 
         } else {
             return DEFAULT_RETURN;

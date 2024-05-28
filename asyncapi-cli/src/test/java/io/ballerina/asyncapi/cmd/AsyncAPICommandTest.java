@@ -17,7 +17,9 @@
  */
 package io.ballerina.asyncapi.cmd;
 
+import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeClass;
+import org.testng.annotations.BeforeMethod;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -31,24 +33,32 @@ import java.nio.file.Paths;
  */
 public abstract class AsyncAPICommandTest {
     protected Path tmpDir;
-    protected PrintStream printStream;
     protected final Path resourceDir = Paths.get("src/test/resources/").toAbsolutePath();
-    private ByteArrayOutputStream console;
-    
+    protected ByteArrayOutputStream console;
+    private final PrintStream originalOut = System.out;
+
     @BeforeClass
     public void setup() throws IOException {
         this.tmpDir = Files.createTempDirectory("asyncapi-cmd-test-out-" + System.nanoTime());
         this.console = new ByteArrayOutputStream();
-        this.printStream = new PrintStream(this.console);
     }
 
-    protected String readOutput(boolean slient) throws IOException {
+    @BeforeMethod
+    public void init() {
+        System.setErr(new PrintStream(this.console));
+    }
+
+    @AfterMethod
+    public void cleanup() throws IOException {
+        System.setErr(originalOut);
+    }
+
+    protected String readOutput(boolean silent) throws IOException {
         String output = "";
         output = this.console.toString();
         this.console.close();
         this.console = new ByteArrayOutputStream();
-        this.printStream = new PrintStream(this.console);
-        if (!slient) {
+        if (!silent) {
             PrintStream out = System.out;
             out.println(output);
         }

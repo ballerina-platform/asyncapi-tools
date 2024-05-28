@@ -51,6 +51,7 @@ import io.ballerina.compiler.syntax.tree.Token;
 import io.ballerina.compiler.syntax.tree.VariableDeclarationNode;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -126,10 +127,8 @@ public class RemoteFunctionBodyGenerator {
 
     private final List<ImportDeclarationNode> imports;
 
-
     public RemoteFunctionBodyGenerator(List<ImportDeclarationNode> imports) {
-
-        this.imports = imports;
+        this.imports = Collections.unmodifiableList(imports);
     }
 
     private void createCommentStatementsForDispatcherId(List<StatementNode> statementsList,
@@ -207,11 +206,6 @@ public class RemoteFunctionBodyGenerator {
 
             // self.pipes.addPipe(id, subscribePipe);
             statementsList.add(addPipeByIdStatement);
-
-
-
-
-
         } else {
 
 
@@ -220,7 +214,6 @@ public class RemoteFunctionBodyGenerator {
             FieldAccessExpressionNode remoteSelfPipes = createFieldAccessExpressionNode(
                     selfNode, dotToken,
                     createSimpleNameReferenceNode(createIdentifierToken("pipes")));
-
 
             MethodCallExpressionNode addPipeMethodCallExpressionNode = createMethodCallExpressionNode(remoteSelfPipes,
                     dotToken,
@@ -242,7 +235,6 @@ public class RemoteFunctionBodyGenerator {
             //     self.connectionInitMessagePipe = self.pipes.getPipe("connectionInitMessage");
             //  }
             statementsList.add(lockStatementNode);
-
         }
 
         if (!isSubscribe) {

@@ -293,7 +293,6 @@ public class BallerinaAuthConfigGenerator {
      * @return {@link Set<String>}
      */
     public Set<String> getAuthType() {
-
         return authTypes;
     }
 

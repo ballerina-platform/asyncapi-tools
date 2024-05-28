@@ -50,7 +50,7 @@ public class BallerinaToAsyncAPITests extends AsyncAPICommandTest {
     public void testBallerinaToAsyncAPIGeneration() {
         Path filePath = resourceDir.resolve(Paths.get("cmd/ballerina-to-asyncapi/ballerina-file.bal"));
         String[] args = {"--input", filePath.toString(), "-o", this.tmpDir.toString()};
-        AsyncAPICmd cmd = new AsyncAPICmd(printStream, tmpDir, false);
+        AsyncAPICmd cmd = new AsyncAPICmd(tmpDir, false);
         new CommandLine(cmd).parseArgs(args);
 
         String output = "";
@@ -66,7 +66,7 @@ public class BallerinaToAsyncAPITests extends AsyncAPICommandTest {
     public void asyncapiAnnotationWithOutContract() {
         Path filePath = resourceDir.resolve(Paths.get("cmd/ballerina-to-asyncapi/project_2/service.bal"));
         String[] args = {"--input", filePath.toString(), "-o", this.tmpDir.toString()};
-        AsyncAPICmd cmd = new AsyncAPICmd(printStream, tmpDir, false);
+        AsyncAPICmd cmd = new AsyncAPICmd(tmpDir, false);
         new CommandLine(cmd).parseArgs(args);
 
         String output = "";
@@ -89,7 +89,7 @@ public class BallerinaToAsyncAPITests extends AsyncAPICommandTest {
     public void asyncApiJsonGeneration() {
         Path filePath = resourceDir.resolve(Paths.get("cmd/ballerina-to-asyncapi/normal_service.bal"));
         String[] args = {"--input", filePath.toString(), "-o", this.tmpDir.toString(), "--json"};
-        AsyncAPICmd cmd = new AsyncAPICmd(printStream, tmpDir, false);
+        AsyncAPICmd cmd = new AsyncAPICmd(tmpDir, false);
         new CommandLine(cmd).parseArgs(args);
 
         String output = "";
@@ -113,7 +113,7 @@ public class BallerinaToAsyncAPITests extends AsyncAPICommandTest {
     public void asyncapiAnnotationWithContract() {
         Path filePath = resourceDir.resolve(Paths.get("cmd/ballerina-to-asyncapi/project1/service.bal"));
         String[] args = {"--input", filePath.toString(), "-o", this.tmpDir.toString()};
-        AsyncAPICmd cmd = new AsyncAPICmd(printStream, tmpDir, false);
+        AsyncAPICmd cmd = new AsyncAPICmd(tmpDir, false);
         new CommandLine(cmd).parseArgs(args);
 
         String output = "";
@@ -138,7 +138,7 @@ public class BallerinaToAsyncAPITests extends AsyncAPICommandTest {
     public void asyncapiAnnotationWithoutFields() {
         Path filePath = resourceDir.resolve(Paths.get("cmd/ballerina-to-asyncapi/project_3/service.bal"));
         String[] args = {"--input", filePath.toString(), "-o", this.tmpDir.toString()};
-        AsyncAPICmd cmd = new AsyncAPICmd(printStream, tmpDir, false);
+        AsyncAPICmd cmd = new AsyncAPICmd(tmpDir, false);
         new CommandLine(cmd).parseArgs(args);
 
         String output = "";

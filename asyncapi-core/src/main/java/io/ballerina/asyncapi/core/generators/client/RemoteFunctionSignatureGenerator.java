@@ -85,8 +85,6 @@ public class RemoteFunctionSignatureGenerator {
         this.asyncAPI = asyncAPI;
         this.ballerinaSchemaGenerator = ballerinaSchemaGenerator;
         this.typeDefinitionNodeList = typeDefinitionNodeList;
-
-
     }
 
     public List<TypeDefinitionNode> getTypeDefinitionNodeList() {
@@ -107,7 +105,6 @@ public class RemoteFunctionSignatureGenerator {
             throws BallerinaAsyncApiException {
 
         List<Node> parameterList = new ArrayList<>();
-
 
         if (payload != null) {
             String parameterType = getDataType(payload);

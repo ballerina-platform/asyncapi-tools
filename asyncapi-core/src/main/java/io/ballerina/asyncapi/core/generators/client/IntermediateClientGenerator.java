@@ -96,6 +96,7 @@ import io.ballerina.tools.text.TextDocuments;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -352,7 +353,6 @@ public class IntermediateClientGenerator {
      * Returns a list of type definition nodes.
      */
     public List<TypeDefinitionNode> getTypeDefinitionNodeList() {
-
         return typeDefinitionNodeList;
     }
 
@@ -360,13 +360,11 @@ public class IntermediateClientGenerator {
      * Returns ballerinaAuthConfigGenerator.
      */
     public BallerinaAuthConfigGenerator getBallerinaAuthConfigGenerator() {
-
         return ballerinaAuthConfigGenerator;
     }
 
     //Get remote function name list to generate testing functions
     public List<String> getRemoteFunctionNameList() {
-
         return remoteFunctionNameList;
     }
 
@@ -429,7 +427,6 @@ public class IntermediateClientGenerator {
     }
 
     public UtilGenerator getBallerinaUtilGenerator() {
-
         return utilGenerator;
     }
 
@@ -2418,6 +2415,6 @@ public class IntermediateClientGenerator {
      * @param apiKeyNameList {@link List<String>}
      */
     public void setApiKeyNameList(List<String> apiKeyNameList) {
-        this.apiKeyNameList = apiKeyNameList;
+        this.apiKeyNameList = Collections.unmodifiableList(apiKeyNameList);
     }
 }

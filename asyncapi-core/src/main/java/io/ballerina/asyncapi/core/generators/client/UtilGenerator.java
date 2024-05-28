@@ -158,7 +158,6 @@ public class UtilGenerator {
     private static final Logger LOGGER = LoggerFactory.getLogger(UtilGenerator.class);
     private static final String GET_ENCODED_URI = "getEncodedUri";
 
-    private static final String STREAM_GENERATOR = "StreamGenerator";
     private static final String GET_PATH_FOR_QUERY_PARAM = "getPathForQueryParam";
     private static final String GET_COMBINE_HEADERS = "getCombineHeaders";
     private final ArrayList<String> streamReturns;
@@ -187,7 +186,6 @@ public class UtilGenerator {
      * @param flag Function will be called only in the occasions where flag needs to be set to `true`
      */
     public void setHeadersFound(boolean flag) {
-
         this.headersFound = flag;
     }
 
@@ -238,9 +236,8 @@ public class UtilGenerator {
         List<ModuleMemberDeclarationNode> memberDeclarationNodes = new ArrayList<>();
         getUtilTypeDeclarationNodes(memberDeclarationNodes);
 
-        if (streamReturns.size() > 0) {
+        if (!streamReturns.isEmpty()) {
             for (String returnType : streamReturns) {
-
                 memberDeclarationNodes.add(createStreamGenerator(returnType));
             }
             functionNameList.add(TYPE_INCLUSION_GENERATOR);

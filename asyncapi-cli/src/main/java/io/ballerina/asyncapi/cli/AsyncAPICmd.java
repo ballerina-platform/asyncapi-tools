@@ -51,7 +51,7 @@ import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.YML_EXTE
 public class AsyncAPICmd implements BLauncherCmd {
     private static final String CMD_NAME = "asyncapi1";
 
-    private PrintStream outStream;
+    private PrintStream outStream = System.err;
     private Path executionPath = Paths.get(System.getProperty("user.dir"));
     private Path targetOutputPath;
     private boolean exitWhenFinish;
@@ -83,19 +83,11 @@ public class AsyncAPICmd implements BLauncherCmd {
     @CommandLine.Parameters
     private List<String> argList;
 
-    public AsyncAPICmd() {
-        this.outStream = System.err;
-        this.executionPath = Paths.get(System.getProperty("user.dir"));
-        this.exitWhenFinish = true;
+    public AsyncAPICmd(Path executionDir) {
+        new AsyncAPICmd(executionDir, true);
     }
 
-    public AsyncAPICmd(PrintStream outStream, Path executionDir) {
-        new AsyncAPICmd(outStream,
-                executionDir, true);
-    }
-
-    public AsyncAPICmd(PrintStream outStream, Path executionDir, boolean exitWhenFinish) {
-        this.outStream = outStream;
+    public AsyncAPICmd(Path executionDir, boolean exitWhenFinish) {
         this.executionPath = executionDir;
         this.exitWhenFinish = exitWhenFinish;
     }

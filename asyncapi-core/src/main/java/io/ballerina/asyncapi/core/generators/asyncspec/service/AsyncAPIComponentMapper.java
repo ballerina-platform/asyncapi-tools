@@ -50,6 +50,7 @@ import io.ballerina.compiler.api.symbols.TypeSymbol;
 import io.ballerina.compiler.api.symbols.UnionTypeSymbol;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -92,7 +93,7 @@ public class AsyncAPIComponentMapper {
     }
 
     public List<AsyncAPIConverterDiagnostic> getDiagnostics() {
-        return diagnostics;
+        return Collections.unmodifiableList(diagnostics);
     }
 
     /**

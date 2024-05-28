@@ -224,7 +224,7 @@ public class ServiceToAsyncAPIConverterUtils {
                         classDefinitionNodes, asyncapi);
                 List<ValidationProblem> modelProblems = Library.validate(asyncapi, null);
                 if (!(modelProblems.isEmpty())) {
-                    List<AsyncAPIConverterDiagnostic> diagnostics = asyncAPIServiceMapper.getErrors();
+                    List<AsyncAPIConverterDiagnostic> diagnostics = new ArrayList<>();
                     DiagnosticMessages error = DiagnosticMessages.AAS_CONVERTER_107;
                     ExceptionDiagnostic diagnostic = new ExceptionDiagnostic(error.getCode(),
                             error.getDescription(), null);
@@ -232,7 +232,7 @@ public class ServiceToAsyncAPIConverterUtils {
                     return new AsyncAPIResult(null, diagnostics);
 
                 } else {
-                    return new AsyncAPIResult(asyncapi, asyncAPIServiceMapper.getErrors());
+                    return new AsyncAPIResult(asyncapi, null);
                 }
             } else {
                 return new AsyncAPIResult(asyncapi, asyncApiResult.getDiagnostics());
