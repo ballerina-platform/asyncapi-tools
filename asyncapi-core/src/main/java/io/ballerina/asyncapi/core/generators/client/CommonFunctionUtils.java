@@ -43,7 +43,7 @@ public class CommonFunctionUtils {
             if (schema.getProperties() != null) {
 //                type = getValidName(schemaName, true);
                 if (schema.getProperties().containsKey(dispatcherVal)) {
-                    if (!schema.getProperties().get(dispatcherVal).getType().equals(STRING)) {
+                    if (!((AsyncApi25SchemaImpl) schema.getProperties().get(dispatcherVal)).getType().equals(STRING)) {
                         throw new BallerinaAsyncApiException(DISPATCHER_KEY_AND_DISPATCHER_STREAM_ID_MUST_BE_STRING);
                     }
                     if (schema.getRequired() == null || (!schema.getRequired().contains(dispatcherVal))) {

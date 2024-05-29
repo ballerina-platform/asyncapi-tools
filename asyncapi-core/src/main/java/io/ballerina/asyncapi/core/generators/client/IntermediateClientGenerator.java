@@ -1623,11 +1623,12 @@ public class IntermediateClientGenerator {
                     DOUBLE_QUOTE);
             Token colon = createToken(COLON_TOKEN);
             SimpleNameReferenceNode valueExpr = null;
-            if (entry.getValue().getType().equals(STRING) || mapName.equals(QUERY_PARAM)) {
+            if (((AsyncApi25SchemaImpl) entry.getValue()).getType().equals(STRING) || mapName.equals(QUERY_PARAM)) {
                 valueExpr = createSimpleNameReferenceNode(
                         createIdentifierToken(mapName + S_DOT + getValidName(entry.getKey().trim(),
                                 false)));
-            } else if (!entry.getValue().getType().equals(STRING) && mapName.equals(HEADER_PARAM)) {
+            } else if (!((AsyncApi25SchemaImpl) entry.getValue()).getType().equals(STRING) &&
+                    mapName.equals(HEADER_PARAM)) {
                 valueExpr = createSimpleNameReferenceNode(
                         createIdentifierToken(mapName + S_DOT +
                                 getValidName(entry.getKey().trim(), false) + DOT_TO_STRING));

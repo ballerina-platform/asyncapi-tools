@@ -738,7 +738,7 @@ public class BallerinaAuthConfigGenerator {
             schemaDocs.addAll(DocCommentsGenerator.createAPIDescriptionDoc(pathParamDescription, true));
             for (String parameterName : parameters.getItemNames()) {
                 AsyncApiParameter parameter = parameters.getItem(parameterName);
-                String type = parameter.getSchema().getType();
+                String type = ((AsyncApi25SchemaImpl) parameter.getSchema()).getType();
                 if (type != null && type.equals("array")) {
                     throw new BallerinaAsyncApiException("Ballerina doesn't support array type path parameters");
                 }
