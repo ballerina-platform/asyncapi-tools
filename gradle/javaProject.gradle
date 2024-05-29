@@ -52,9 +52,9 @@ dependencies {
 
 
     constraints {
-        implementation "com.fasterxml.jackson.core:jackson-databind:2.14.2"
+        implementation "com.fasterxml.jackson.core:jackson-databind:${jacksonDataBindVersion}"
         implementation "com.google.code.findbugs:jsr305:3.0.2"
-        implementation "info.picocli:picocli:4.7.1"
+        implementation "info.picocli:picocli:${picocliVersion}"
         implementation "commons-io:commons-io:${commonsIoVersion}"
         implementation "org.ballerinalang:ballerina-lang:${ballerinaLangVersion}"
         implementation "org.ballerinalang:ballerina-parser:${ballerinaLangVersion}"
@@ -74,14 +74,14 @@ dependencies {
     checkstyle "com.puppycrawl.tools:checkstyle:${puppycrawlCheckstyleVersion}"
 }
 
-sourceCompatibility = JavaVersion.VERSION_11
+sourceCompatibility = JavaVersion.VERSION_17
 
 tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8'
 }
 
 jacoco {
-    toolVersion = "0.8.6"
+    toolVersion = "${jacocoVersion}"
 }
 
 test {

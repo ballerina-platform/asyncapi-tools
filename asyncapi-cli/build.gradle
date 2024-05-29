@@ -28,7 +28,6 @@ dependencies {
     implementation "io.apicurio:apicurio-data-models"
     implementation "commons-io:commons-io"
     testImplementation "org.testng:testng"
-    testImplementation 'junit:junit:4.13.1'
     implementation "com.google.code.findbugs:jsr305"
 
     balTools ("org.ballerinalang:jballerina-tools:${ballerinaLangVersion}") {
