@@ -83,6 +83,11 @@ public class AsyncAPICmd implements BLauncherCmd {
     @CommandLine.Parameters
     private List<String> argList;
 
+    public AsyncAPICmd() {
+        this.executionPath = Paths.get(System.getProperty("user.dir"));
+        this.exitWhenFinish = true;
+    }
+
     public AsyncAPICmd(Path executionDir) {
         new AsyncAPICmd(executionDir, true);
     }
