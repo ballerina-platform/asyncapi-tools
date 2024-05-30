@@ -25,7 +25,7 @@ plugins {
     id "com.github.spotbugs" version "${githubSpotbugsVersion}"
     id "de.undercouch.download" version "${underCouchDownloadVersion}"
     id "com.github.johnrengelman.shadow" version "${githubJohnrengelmanShadowVersion}"
-    id 'org.javamodularity.moduleplugin' version '1.8.15' apply false
+    id 'org.javamodularity.moduleplugin' version "${javaModularityVersion}" apply false
 
 }
 
@@ -45,7 +45,7 @@ ext.commonsIoVersion = project.commonsIoVersion
 ext.slf4jVersion = project.slf4jVersion
 ext.stdlibWebsocketVersion = project.stdlibWebsocketVersion
 ext.jacocoVersion = project.jacocoVersion
-ext.puppycrawlCheckstyleVersion = project.puppycrawlCheckstyleVersion
+ext.checkstyleToolVersion=project.checkstyleToolVersion
 ext.apicurioAsyncApiModelVersion=project.apicurioAsyncApiModelVersion
 ext.jsonToYamlVersion=project.jsonToYamlVersion
 
@@ -111,7 +111,7 @@ allprojects {
 
     def excludePattern = '**/module-info.java'
     tasks.withType(Checkstyle).configureEach {
-        dependsOn(":config:checkstyle:downloadMultipleFiles")
+        dependsOn(":config:checkstyle:downloadCheckstyleRuleFiles")
         configFile file("${rootProject.projectDir}/config/checkstyle/checkstyle.xml")
         exclude excludePattern
     }

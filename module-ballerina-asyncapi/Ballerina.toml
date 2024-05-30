@@ -1,7 +1,7 @@
 [package]
 org= "ballerina"
 name= "asyncapi1"
-version= "@toml.version@"
+version= "1.5.0"
 #
 #[[platform.java11.dependency]]
 #path = "../build/libs/asyncapi-tools-1.4.0-SNAPSHOT.jar"
