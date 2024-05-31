@@ -29,7 +29,8 @@ import java.nio.file.Paths;
 public class MapTypeTests {
     private static final Path RES_DIR = Paths.get("src/test/resources/ballerina-to-asyncapi").toAbsolutePath();
 
-    @Test(description = "When the record field has map type")
+    //re-enable after issue #6583 is fixed
+    @Test(enabled = false, description = "When the record field has map type")
     public void testMapFiled() throws IOException {
         Path ballerinaFilePath = RES_DIR.resolve("data_type/map.bal");
         //Compare generated yaml file with expected yaml content

@@ -51,10 +51,10 @@ import static io.ballerina.asyncapi.core.generators.asyncspec.Constants.YML_EXTE
 public class AsyncAPICmd implements BLauncherCmd {
     private static final String CMD_NAME = "asyncapi1";
 
-    private PrintStream outStream = System.err;
-    private Path executionPath = Paths.get(System.getProperty("user.dir"));
+    private final PrintStream outStream = System.err;
+    private final Path executionPath;
     private Path targetOutputPath;
-    private boolean exitWhenFinish;
+    private final boolean exitWhenFinish;
 
     @CommandLine.Option(names = {"-h", "--help"}, hidden = true)
     private boolean helpFlag;
@@ -84,12 +84,11 @@ public class AsyncAPICmd implements BLauncherCmd {
     private List<String> argList;
 
     public AsyncAPICmd() {
-        this.executionPath = Paths.get(System.getProperty("user.dir"));
-        this.exitWhenFinish = true;
+        this(Paths.get(System.getProperty("user.dir")), true);
     }
 
     public AsyncAPICmd(Path executionDir) {
-        new AsyncAPICmd(executionDir, true);
+        this(executionDir, true);
     }
 
     public AsyncAPICmd(Path executionDir, boolean exitWhenFinish) {
@@ -191,7 +190,6 @@ public class AsyncAPICmd implements BLauncherCmd {
         if (!errors.isEmpty()) {
             for (AsyncAPIConverterDiagnostic error : errors) {
                 if (error instanceof ExceptionDiagnostic) {
-                    this.outStream = System.err;
                     ExceptionDiagnostic exceptionDiagnostic = (ExceptionDiagnostic) error;
                     AsyncAPIDiagnostic diagnostic = CmdUtils.constructAsyncAPIDiagnostic(exceptionDiagnostic.getCode(),
                             exceptionDiagnostic.getMessage(), exceptionDiagnostic.getDiagnosticSeverity(),

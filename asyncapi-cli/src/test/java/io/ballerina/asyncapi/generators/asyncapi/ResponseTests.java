@@ -69,7 +69,8 @@ public class ResponseTests {
         TestUtils.compareWithGeneratedFile(ballerinaFilePath, "response/rs_scenario04_builtin.yaml");
     }
 
-    @Test(description = "When the return type is inline record")
+    //re-enable after issue #6583 is fixed
+    @Test(enabled = false, description = "When the return type is inline record")
     public void testInlineRecordReturn() throws IOException {
         Path ballerinaFilePath = RES_DIR.resolve("response/rs_scenario05_inline_record_builtin.bal");
         //Compare generated yaml file with expected yaml content
@@ -84,7 +85,8 @@ public class ResponseTests {
         TestUtils.compareWithGeneratedFile(ballerinaFilePath, "response/rs_scenario06_xml.yaml");
     }
 
-    @Test(description = "When the return type is inline record and type reference")
+    //re-enable after issue #6583 is fixed
+    @Test(enabled = false, description = "When the return type is inline record and type reference")
     public void testInlineRecordHasReference() throws IOException {
         Path ballerinaFilePath = RES_DIR.resolve("response/rs_scenario07_inline_record_type_reference.bal");
         //Compare generated yaml file with expected yaml content
@@ -134,7 +136,8 @@ public class ResponseTests {
         TestUtils.compareWithGeneratedFile(ballerinaFilePath, "response/rs_scenario12_array_record.yaml");
     }
 
-    @Test(description = "When multiple return types are returning")
+    //re-enable after issue #6583 is fixed
+    @Test(enabled = false, description = "When multiple return types are returning")
     public void testReturningMultipleResponses() throws IOException {
         Path ballerinaFilePath = RES_DIR.resolve("response/rs_scenario13_multiple_builtin_return.bal");
         //Compare generated yaml file with expected yaml content

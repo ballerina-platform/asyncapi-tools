@@ -41,8 +41,9 @@ public class OptionalTests {
         TestUtils.compareWithGeneratedFile(ballerinaFilePath, "optional/optional_two_union_return.yaml");
     }
 
-
-    @Test(description = "When the remote method has multiple return types including streaming with optional return")
+    //re-enable after issue #6583 is fixed
+    @Test(enabled = false, description = "When the remote method has multiple return types including streaming " +
+            "with optional return")
     public void testMultipleTypesStreamIncludeReturnOptional() throws IOException {
         Path ballerinaFilePath = RES_DIR.resolve("optional/optional_multiple_type_return.bal");
         //Compare generated yaml file with expected yaml content

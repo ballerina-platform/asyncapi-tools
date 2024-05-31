@@ -332,7 +332,7 @@ public class AsyncAPIComponentMapper {
         componentSchema.setDescription(apiDocs.get(componentName));
         for (Map.Entry<String, RecordFieldSymbol> field : rfields.entrySet()) {
             String fieldName = ConverterCommonUtils.unescapeIdentifier(field.getKey().trim());
-            TypeDescKind fieldTypeKind = field.getValue().typeDescriptor().typeKind();
+            TypeDescKind fieldTypeKind = excludeReadonlyIfPresent(field.getValue().typeDescriptor()).typeKind();
             String fieldType = fieldTypeKind.toString().toLowerCase(Locale.ENGLISH).trim();
             BalAsyncApi25SchemaImpl property = getAsyncApiSchema(fieldType);
 
@@ -685,6 +685,9 @@ public class AsyncAPIComponentMapper {
     }
 
     public TypeSymbol excludeReadonlyIfPresent(TypeSymbol typeSymbol) {
+        if (!typeSymbol.typeKind().equals(TypeDescKind.INTERSECTION)) {
+            return typeSymbol;
+        }
         List<TypeSymbol> typeSymbols = ((IntersectionTypeSymbol) typeSymbol).memberTypeDescriptors();
         for (TypeSymbol symbol : typeSymbols) {
             if (!(symbol instanceof ReadonlyTypeSymbol)) {
