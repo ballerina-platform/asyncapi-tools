@@ -21,11 +21,7 @@ module io.ballerina.asyncapi.cli {
     requires io.ballerina.cli;
     requires io.ballerina.tools.api;
     requires io.ballerina.formatter.core;
-    requires jsr305;
-    requires org.apache.commons.io;
-    requires org.slf4j;
     requires io.ballerina.asyncapi.core;
     requires apicurio.data.models;
-
 }
 

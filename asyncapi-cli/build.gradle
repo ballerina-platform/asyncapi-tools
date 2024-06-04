@@ -1,55 +1,52 @@
-
-
-apply from: "$rootDir/gradle/javaProject.gradle"
-apply plugin: "com.github.johnrengelman.shadow"
 apply plugin: "java"
 
 description = "Ballerina - AsyncAPI Tooling - AsynAPI to Ballerina"
 
-
 group 'io.ballerina.asyncapi.cli'
 
-configurations.all {
-    resolutionStrategy.preferProjectModules()
-}
-
 configurations {
-    balTools
-}
-
-dependencies {
-    implementation project(':asyncapi-core')
-    implementation "org.ballerinalang:ballerina-lang"
-    implementation "org.ballerinalang:ballerina-parser"
-    implementation "org.ballerinalang:ballerina-cli"
-    implementation "info.picocli:picocli"
-    implementation "org.ballerinalang:formatter-core"
-    implementation "org.ballerinalang:ballerina-tools-api"
-    implementation "io.apicurio:apicurio-data-models"
-    implementation "commons-io:commons-io"
-    testImplementation "org.testng:testng"
-    implementation "com.google.code.findbugs:jsr305"
-
-    balTools ("org.ballerinalang:jballerina-tools:${ballerinaLangVersion}") {
-        transitive = false
+    dist {
+        transitive true
     }
 }
 
+dependencies {
+    implementation project(':config:checkstyle')
+    implementation project(':asyncapi-core')
+    implementation "info.picocli:picocli:${picocliVersion}"
+}
+
+clean {
+    delete "$project.projectDir/build"
+    delete "$project.rootDir/target"
+}
+
+
 tasks.register("jBallerinaPack")
 tasks.register("unpackStdLibs")
-tasks.register("copyStdlibs",Copy )
+tasks.register("copyStdlibs")
 
-def bDistribution = file("$project.buildDir/extracted-distribution/jballerina-tools-${ballerinaLangVersion}")
+def ballerinaDist = "$project.buildDir/jballerina-tools-${ballerinaLangVersion}"
+def runtimePath = "${project.rootDir}/target/ballerina-distribution"
 jBallerinaPack {
     doLast {
         configurations.balTools.resolvedConfiguration.resolvedArtifacts.each { artifact ->
             copy {
                 from project.zipTree(artifact.getFile())
-                into new File(project.buildDir, "extracted-distribution/")
+                into new File("${project.buildDir}")
+            }
+            copy {
+                from(project.zipTree(artifact.getFile())) {
+                    eachFile { fcd ->
+                        fcd.relativePath = new RelativePath(!fcd.file.isDirectory(), fcd.relativePath.segments.drop(1))
+                    }
+                    includeEmptyDirs = false
+                }
+                into runtimePath
             }
         }
     }
-    outputs.dir bDistribution
+    outputs.dir ballerinaDist
 }
 
 unpackStdLibs() {
@@ -58,7 +55,7 @@ unpackStdLibs() {
         configurations.ballerinaStdLibs.resolvedConfiguration.resolvedArtifacts.each { artifact ->
             copy {
                 from project.zipTree(artifact.getFile())
-                into new File("${project.buildDir}/extracted-distribution/" + artifact.name + "-zip")
+                into new File("${project.buildDir}/extracted-stdlibs/" + artifact.name + "-zip")
             }
         }
     }
@@ -66,41 +63,68 @@ unpackStdLibs() {
 
 copyStdlibs() {
     dependsOn(unpackStdLibs)
-    def ballerinaDist = "$project.buildDir/extracted-distribution/jballerina-tools-${ballerinaLangVersion}"
-    into ballerinaDist
-
     /* Standard Libraries */
-    configurations.ballerinaStdLibs.resolvedConfiguration.resolvedArtifacts.each { artifact ->
-        def artifactExtractedPath = "${project.buildDir}/extracted-distribution/" + artifact.name + "-zip"
-        into("repo/bala") {
-            from "${artifactExtractedPath}/bala/"
-            duplicatesStrategy= DuplicatesStrategy.EXCLUDE
+    doLast {
+        configurations.ballerinaStdLibs.resolvedConfiguration.resolvedArtifacts.each { artifact ->
+            def artifactExtractedPath = "${project.buildDir}/extracted-stdlibs/" + artifact.name + "-zip"
+            copy {
+                into ballerinaDist
+                into("repo/bala") {
+                    from "${artifactExtractedPath}/bala"
+                }
+                into("repo/cache") {
+                    from "${artifactExtractedPath}/cache"
+                }
+            }
+            copy {
+                into runtimePath
+                into("repo/bala") {
+                    from "${artifactExtractedPath}/bala"
+                }
+                into("repo/cache") {
+                    from "${artifactExtractedPath}/cache"
+                }
+            }
         }
-        into("repo/cache") {
-            from "${artifactExtractedPath}/cache"
-            duplicatesStrategy= DuplicatesStrategy.EXCLUDE
+        def asyncapiCliJar = "${project.rootDir}/asyncapi-cli/build/libs/asyncapi-cli-${project.version}.jar"
+        def asyncapiCoreJar = "${project.rootDir}/asyncapi-core/build/libs/asyncapi-core-${project.version}.jar"
+        copy {
+            into ballerinaDist
+            into("bre/lib") {
+                from "${asyncapiCliJar}"
+                from "${asyncapiCoreJar}"
+            }
+        }
+        copy {
+            into runtimePath
+            into("bre/lib") {
+                from "${asyncapiCliJar}"
+                from "${asyncapiCoreJar}"
+            }
         }
     }
-
 }
-test {
-    dependsOn {
-        copyStdlibs
-    }
-    systemProperty "ballerina.home", bDistribution
 
+test {
+    dependsOn(copyStdlibs)
+    systemProperty "ballerina.home", ballerinaDist
+    systemProperty "ballerina.offline.flag", "true"
     useTestNG() {
         suites "src/test/resources/testng.xml"
     }
-}
 
-
-compileJava {
-    doFirst {
-        options.compilerArgs = [
-                '--module-path', classpath.asPath,
-        ]
-        classpath = files()
+    testLogging.showStandardStreams = true
+    testLogging {
+        events "PASSED", "FAILED", "SKIPPED"
+        afterSuite { desc, result ->
+            if (!desc.parent) { // will match the outermost suite
+                def output = "Results: ${result.resultType} (${result.testCount} tests, ${result.successfulTestCount} successes, ${result.failedTestCount} failures, ${result.skippedTestCount} skipped)"
+                def startItem = '|  ', endItem = '  |'
+                def repeatLength = startItem.length() + output.length() + endItem.length()
+                println('\n' + ('-' * repeatLength) + '\n' + startItem + output + endItem + '\n' + ('-' * repeatLength))
+            }
+        }
     }
 }
 
+test.dependsOn ":asyncapi-core:build"

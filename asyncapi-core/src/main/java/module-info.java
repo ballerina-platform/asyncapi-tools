@@ -17,14 +17,12 @@
 module io.ballerina.asyncapi.core {
     requires com.fasterxml.jackson.core;
     requires com.fasterxml.jackson.databind;
-    requires info.picocli;
     requires io.ballerina.lang;
     requires io.ballerina.parser;
     requires io.ballerina.cli;
     requires io.ballerina.runtime;
     requires io.ballerina.tools.api;
     requires io.ballerina.formatter.core;
-    requires jsr305;
     requires org.apache.commons.io;
     requires org.slf4j;
     requires org.apache.commons.lang3;
@@ -39,7 +37,6 @@ module io.ballerina.asyncapi.core {
     exports io.ballerina.asyncapi.core.generators.client.model;
     exports io.ballerina.asyncapi.core.generators.client;
     exports io.ballerina.asyncapi.core.generators.asyncspec;
-//    exports io.ballerina.asyncapi.core.generators.schema;
     exports io.ballerina.asyncapi.core.model;
     exports io.ballerina.asyncapi.core.generators.schema;
     exports io.ballerina.asyncapi.core.generators.schema.ballerinatypegenerators;
