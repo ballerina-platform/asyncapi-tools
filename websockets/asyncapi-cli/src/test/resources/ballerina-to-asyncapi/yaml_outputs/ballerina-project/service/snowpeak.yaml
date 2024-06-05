@@ -1,0 +1,369 @@
+asyncapi: 2.5.0
+info:
+  title: PayloadV
+  version: 0.1.0
+servers:
+  development:
+    url: "{server}:{port}/payloadV"
+    protocol: ws
+    protocolVersion: "13"
+    variables:
+      server:
+        default: ws://localhost
+      port:
+        default: "80"
+channels:
+  /:
+    subscribe:
+      message:
+        oneOf:
+          - $ref: '#/components/messages/Locations'
+          - $ref: '#/components/messages/Location'
+          - $ref: '#/components/messages/ReservationCreated'
+          - $ref: '#/components/messages/ReservationConflict'
+          - $ref: '#/components/messages/PaymentCreated'
+          - $ref: '#/components/messages/PaymentFault'
+          - payload:
+              type: integer
+              format: int64
+          - payload:
+              type: string
+          - $ref: '#/components/messages/PaymentConflict'
+          - payload:
+              type: object
+              additionalProperties: {}
+          - $ref: '#/components/messages/PaymentSuccess'
+    publish:
+      message:
+        oneOf:
+          - $ref: '#/components/messages/Location'
+          - $ref: '#/components/messages/Rooms'
+          - $ref: '#/components/messages/Reservation'
+          - $ref: '#/components/messages/Payment'
+components:
+  schemas:
+    Location:
+      type: object
+      required:
+        - id
+        - event
+      properties:
+        id:
+          type: string
+          description: Unique identification
+        event:
+          type: string
+          const: Location
+      description: Represents location
+    Locations:
+      type: object
+      required:
+        - locations
+      properties:
+        locations:
+          type: array
+          items:
+            $ref: '#/components/schemas/Location'
+          description: collection of locations
+      description: Represents a collection of locations
+    Room:
+      type: object
+      required:
+        - id
+        - category
+        - capacity
+        - wifi
+        - status
+        - currency
+        - price
+        - count
+      properties:
+        id:
+          type: string
+          description: Unique identification
+        category:
+          type: string
+          enum:
+            - DELUXE
+            - KING
+            - FAMILY
+          description: Types of rooms available
+        capacity:
+          type: integer
+          description: Number of people that can be accommodate
+          format: int64
+        wifi:
+          type: boolean
+          description: Availability of wifi
+        status:
+          type: string
+          enum:
+            - AVAILABLE
+            - RESERVED
+            - BOOKED
+          description: Availability of room
+        currency:
+          type: string
+          description: Currency used in price
+        price:
+          type: number
+          description: Cost for the room
+          format: double
+        count:
+          type: integer
+          description: Number of rooms as per the status
+          format: int64
+      description: Represents resort room
+    Rooms:
+      type: object
+      required:
+        - rooms
+        - event
+      properties:
+        rooms:
+          type: array
+          items:
+            $ref: '#/components/schemas/Room'
+          description: Array of rooms
+        event:
+          type: string
+          const: Rooms
+      description: Represents a collection of resort rooms
+    ReserveRoom:
+      type: object
+      required:
+        - id
+        - count
+        - event
+      properties:
+        id:
+          type: string
+          description: Unique identification of the room
+        count:
+          type: integer
+          description: Number of rooms
+          format: int64
+        event:
+          type: string
+      description: Represents rooms be reserved
+    Reservation:
+      type: object
+      required:
+        - reserveRooms
+        - startDate
+        - endDate
+        - event
+      properties:
+        reserveRooms:
+          type: array
+          items:
+            $ref: '#/components/schemas/ReserveRoom'
+          description: Rooms to be reserved
+        startDate:
+          type: string
+          description: Start date in yyyy-mm-dd
+        endDate:
+          type: string
+          description: End date in yyyy-mm-dd
+        event:
+          type: string
+          const: Reservation
+      description: Represents a reservation of rooms
+    ReservationReceipt:
+      type: object
+      required:
+        - id
+        - expiryDate
+        - lastUpdated
+        - currency
+        - total
+        - reservation
+      properties:
+        id:
+          type: string
+          description: Unique identification
+        expiryDate:
+          type: string
+          description: Expiry date in yyyy-mm-dd
+        lastUpdated:
+          type: string
+          description: Last updated time stamp
+        currency:
+          type: string
+          description: Currency used in price
+        total:
+          type: number
+          description: Total payable
+          format: double
+        reservation:
+          $ref: '#/components/schemas/Reservation'
+          description: Reservation
+      description: Represents a receipt for the reservation
+    ReservationCreated:
+      type: object
+      required:
+        - body
+      properties:
+        body:
+          $ref: '#/components/schemas/ReservationReceipt'
+    ReservationConflict:
+      type: object
+      required:
+        - body
+      properties:
+        body:
+          type: string
+    Payment:
+      type: object
+      required:
+        - cardholderName
+        - cardNumber
+        - expiryMonth
+        - expiryYear
+        - event
+      properties:
+        cardholderName:
+          type: string
+          description: Name of the card holder
+        cardNumber:
+          type: integer
+          description: Card number
+          format: int64
+        expiryMonth:
+          type: string
+          description: Expiration month of the card in mm
+        expiryYear:
+          type: string
+          description: Expiaration year of the card in yyyy
+        event:
+          type: string
+          const: Payment
+      description: Reperesents payement for rooms
+    PaymentReceipt:
+      type: object
+      required:
+        - id
+        - currency
+        - total
+        - lastUpdated
+        - rooms
+      properties:
+        id:
+          type: string
+          description: Unique identification
+        currency:
+          type: string
+          description: Currency used in price
+        total:
+          type: number
+          description: Total amount paid
+          format: double
+        lastUpdated:
+          type: string
+          description: Last updated time stamp
+        rooms:
+          type: array
+          items:
+            $ref: '#/components/schemas/Room'
+          description: Booked rooms
+      description: Reperesents receipt for the payment
+    PaymentCreated:
+      type: object
+      required:
+        - body
+      properties:
+        body:
+          $ref: '#/components/schemas/PaymentReceipt'
+    PaymentFault:
+      type: object
+      required:
+        - body
+      properties:
+        body:
+          type: string
+    PaymentConflict:
+      type: object
+      required:
+        - body
+      properties:
+        body:
+          type: string
+    PaymentSuccess:
+      type: object
+      required:
+        - body
+      properties:
+        body:
+          type: string
+  messages:
+    Locations:
+      payload:
+        $ref: '#/components/schemas/Locations'
+    Location:
+      payload:
+        $ref: '#/components/schemas/Location'
+      description: Represents Snowpeak location resource
+      x-response:
+        $ref: '#/components/messages/Locations'
+        description: '`Location` representation'
+      x-response-type: simple-rpc
+    Rooms:
+      payload:
+        $ref: '#/components/schemas/Rooms'
+        description: Rooms identification of message
+      description: Reperesents Snowpeak room collection resource
+      x-response:
+        $ref: '#/components/messages/Location'
+        description: '`Rooms` representation'
+      x-response-type: simple-rpc
+    ReservationCreated:
+      payload:
+        $ref: '#/components/schemas/ReservationCreated'
+    ReservationConflict:
+      payload:
+        $ref: '#/components/schemas/ReservationConflict'
+    Reservation:
+      payload:
+        $ref: '#/components/schemas/Reservation'
+        description: Reservation representation
+      description: Represents Snowpeak reservation resource
+      x-response:
+        oneOf:
+          - $ref: '#/components/messages/ReservationCreated'
+          - $ref: '#/components/messages/ReservationConflict'
+        description: '`ReservationCreated` or ReservationConflict representation'
+      x-response-type: simple-rpc
+    PaymentCreated:
+      payload:
+        $ref: '#/components/schemas/PaymentCreated'
+    PaymentFault:
+      payload:
+        $ref: '#/components/schemas/PaymentFault'
+    PaymentConflict:
+      payload:
+        $ref: '#/components/schemas/PaymentConflict'
+    PaymentSuccess:
+      payload:
+        $ref: '#/components/schemas/PaymentSuccess'
+    Payment:
+      payload:
+        $ref: '#/components/schemas/Payment'
+        description: Payment representation
+      description: Represents Snowpeak payment resource
+      x-response:
+        oneOf:
+          - $ref: '#/components/messages/PaymentCreated'
+          - $ref: '#/components/messages/PaymentFault'
+          - payload:
+              type: integer
+              format: int64
+          - payload:
+              type: string
+          - $ref: '#/components/messages/PaymentConflict'
+          - payload:
+              type: object
+              additionalProperties: {}
+          - $ref: '#/components/messages/PaymentSuccess'
+        description: '`PaymentCreated` or `PaymentConflict` representation'
+      x-response-type: simple-rpc
+x-dispatcherKey: event

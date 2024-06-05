@@ -1,0 +1,10 @@
+[package]
+org= "ballerina"
+name= "asyncapi1"
+version= "1.5.0"
+#
+#[[platform.java11.dependency]]
+#path = "../build/libs/asyncapi-tools-1.4.0-SNAPSHOT.jar"
+#groupId = "ballerina"
+#artifactId = "asyncapi1"
+#version = "1.5.0-SNAPSHOT"

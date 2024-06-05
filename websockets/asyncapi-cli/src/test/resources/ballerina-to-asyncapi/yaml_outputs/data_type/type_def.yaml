@@ -1,0 +1,112 @@
+asyncapi: 2.5.0
+info:
+  title: PayloadV
+  version: 0.0.0
+servers:
+  development:
+    url: "{server}:{port}/payloadV"
+    protocol: ws
+    protocolVersion: "13"
+    variables:
+      server:
+        default: ws://localhost
+      port:
+        default: "9090"
+channels:
+  /reservation/{id}:
+    description: Represents resource function description
+    subscribe:
+      message:
+        $ref: '#/components/messages/PriceMap'
+    publish:
+      message:
+        $ref: '#/components/messages/Type'
+    parameters:
+      id:
+        description: id path param description
+        schema:
+          $ref: '#/components/schemas/PetId'
+components:
+  schemas:
+    PetId:
+      type: integer
+    Books:
+      type: object
+      additionalProperties:
+        type: string
+    Rels:
+      type: array
+      items:
+        type: string
+    Action:
+      type: string
+      description: Adding doc
+    Count:
+      type: integer
+    PriceMap:
+      type: object
+      required:
+        - price
+        - salary
+        - tuple
+      properties:
+        price:
+          type: integer
+          format: int64
+        salary:
+          type: number
+          format: double
+        tuple:
+          type: string
+    Price:
+      oneOf:
+        - type: number
+          format: float
+        - $ref: '#/components/schemas/PriceMap'
+    Salary:
+      oneOf:
+        - type: integer
+          format: int64
+        - type: number
+          format: float
+        - type: number
+          format: double
+    Type:
+      type: object
+      required:
+        - rels
+        - count
+        - price
+        - salary
+        - tuple
+      properties:
+        books:
+          $ref: '#/components/schemas/Books'
+        rels:
+          $ref: '#/components/schemas/Rels'
+        actions:
+          $ref: '#/components/schemas/Action'
+        count:
+          $ref: '#/components/schemas/Count'
+          x-nullable: true
+        price:
+          $ref: '#/components/schemas/Price'
+        salary:
+          $ref: '#/components/schemas/Salary'
+        tuple:
+          type: string
+          const: Type
+  messages:
+    PriceMap:
+      payload:
+        $ref: '#/components/schemas/PriceMap'
+    Type:
+      payload:
+        $ref: '#/components/schemas/Type'
+        description: Type message description
+      description: Remote tuple description
+      x-response:
+        $ref: '#/components/messages/PriceMap'
+        description: this is User return description
+      x-response-type: simple-rpc
+x-dispatcherKey: tuple

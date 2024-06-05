@@ -1,0 +1,99 @@
+asyncapi: 2.5.0
+info:
+  title: PayloadV
+  version: 0.0.0
+servers:
+  development:
+    url: "{server}:{port}/payloadV"
+    protocol: ws
+    protocolVersion: "13"
+    variables:
+      server:
+        default: ws://localhost
+      port:
+        default: "9090"
+channels:
+  /:
+    subscribe:
+      message:
+        $ref: '#/components/messages/UnSubscribe'
+    publish:
+      message:
+        $ref: '#/components/messages/Subscribe'
+components:
+  schemas:
+    Subscribe:
+      type: object
+      required:
+        - event
+        - tag
+      properties:
+        event:
+          type: string
+    UnSubscribe:
+      type: object
+      required:
+        - event
+      properties:
+        zipCode:
+          type: integer
+        event:
+          type: string
+        person:
+          $ref: "#/components/schemas/Person"
+    Person:
+      type: object
+      required:
+        - id
+      properties:
+        name:
+          type: string
+          maxLength: 14
+        hobby:
+          type: array
+          items:
+            type: string
+          maxItems: 5
+          minItems: 2
+        id:
+          type: integer
+          maximum: 5
+        address:
+          $ref: "#/components/schemas/Address"
+        salary:
+          type: number
+          format: float
+          maximum: 100000
+        net:
+          type: number
+          minimum: 500000
+        fav:
+          $ref: "#/components/schemas/Book"
+    Book:
+      properties:
+        name:
+          type: string
+          maxLength: 67
+        price:
+          type: number
+          format: double
+          maximum: 89.0
+    Address: # Use case 02 : Annotations on a type
+      type: string
+      minLength: 5
+  messages:
+    UnSubscribe:
+      payload:
+        $ref: '#/components/schemas/UnSubscribe'
+    Subscribe:
+      payload:
+        $ref: '#/components/schemas/Subscribe'
+      x-response:
+        $ref: '#/components/messages/UnSubscribe'
+      x-response-type: simple-rpc
+x-dispatcherKey: event
+x-dispatcherStreamId: id
+
+
+
+

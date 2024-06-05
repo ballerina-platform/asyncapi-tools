@@ -1,0 +1,95 @@
+asyncapi: 2.5.0
+info:
+  title: PayloadV
+  version: 0.0.0
+servers:
+  development:
+    url: "{server}:{port}/payloadV"
+    protocol: ws
+    protocolVersion: "13"
+    variables:
+      server:
+        default: ws://localhost
+      port:
+        default: "9090"
+channels:
+  /locations/{id}/rooms:
+    description: Reperesents Snowpeak room collection resource
+    subscribe:
+      message:
+        payload:
+          type: integer
+          format: int64
+    publish:
+      message:
+        oneOf:
+          - $ref: '#/components/messages/Reservation'
+          - $ref: '#/components/messages/ReserveRoom'
+    parameters:
+      id:
+        description: Unique identification of location
+        schema:
+          type: string
+components:
+  schemas:
+    ReserveRoom:
+      type: object
+      required:
+        - id
+        - count
+        - event
+      properties:
+        id:
+          type: string
+          description: Unique identification of the room
+        count:
+          type: integer
+          description: Number of rooms
+          format: int64
+        event:
+          type: string
+          const: ReserveRoom
+          description: Remote trigger field
+      description: Represents rooms be reserved
+    Reservation:
+      type: object
+      required:
+        - reserveRooms
+        - startDate
+        - endDate
+        - event
+      properties:
+        reserveRooms:
+          type: array
+          items:
+            $ref: '#/components/schemas/ReserveRoom'
+          description: Rooms to be reserved
+        startDate:
+          type: string
+          description: Start date in yyyy-mm-dd
+        endDate:
+          type: string
+          description: End date in yyyy-mm-dd
+        event:
+          type: string
+          const: Reservation
+          description: Remote trigger field
+      description: Represents a reservation of rooms
+  messages:
+    Reservation:
+      payload:
+        $ref: '#/components/schemas/Reservation'
+      x-response:
+        payload:
+          type: integer
+          format: int64
+      x-response-type: simple-rpc
+    ReserveRoom:
+      payload:
+        $ref: '#/components/schemas/ReserveRoom'
+      x-response:
+        payload:
+          type: integer
+          format: int64
+      x-response-type: simple-rpc
+x-dispatcherKey: event
