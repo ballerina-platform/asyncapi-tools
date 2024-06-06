@@ -18,6 +18,7 @@
 
 package io.ballerina.asyncapi.codegenerator.application;
 
+import io.apicurio.datamodels.models.asyncapi.AsyncApiSchema;
 import io.ballerina.asyncapi.codegenerator.configuration.BallerinaAsyncApiException;
 import io.ballerina.asyncapi.codegenerator.configuration.Constants;
 import io.ballerina.asyncapi.codegenerator.controller.AsyncApiSpecController;
@@ -27,7 +28,6 @@ import io.ballerina.asyncapi.codegenerator.controller.ListenerController;
 import io.ballerina.asyncapi.codegenerator.controller.SchemaController;
 import io.ballerina.asyncapi.codegenerator.controller.ServiceTypesController;
 import io.ballerina.asyncapi.codegenerator.controller.SpecController;
-import io.ballerina.asyncapi.codegenerator.entity.Schema;
 import io.ballerina.asyncapi.codegenerator.entity.ServiceType;
 import io.ballerina.asyncapi.codegenerator.repository.FileRepository;
 import io.ballerina.asyncapi.codegenerator.repository.FileRepositoryImpl;
@@ -59,7 +59,7 @@ public class CodeGenerator implements Application {
         String asyncApiSpecJson = getFileContent(fileRepository, specPath);
 
         SpecController specController = new AsyncApiSpecController(asyncApiSpecJson);
-        Map<String, Schema> schemas = specController.getSchemas();
+        Map<String, AsyncApiSchema> schemas = specController.getSchemas();
         List<ServiceType> serviceTypes = specController.getServiceTypes();
         String eventIdentifierType = specController.getEventIdentifierType();
         String eventIdentifierPath = specController.getEventIdentifierPath();

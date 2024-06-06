@@ -18,12 +18,11 @@
 
 package io.ballerina.asyncapi.codegenerator.usecase;
 
-import com.fasterxml.jackson.databind.node.TextNode;
 import io.apicurio.datamodels.Library;
-import io.apicurio.datamodels.asyncapi.models.AaiDocument;
-import io.apicurio.datamodels.asyncapi.v2.models.Aai20Document;
+import io.apicurio.datamodels.models.Referenceable;
+import io.apicurio.datamodels.models.asyncapi.AsyncApiDocument;
+import io.apicurio.datamodels.models.asyncapi.AsyncApiSchema;
 import io.ballerina.asyncapi.codegenerator.configuration.BallerinaAsyncApiException;
-import io.ballerina.asyncapi.codegenerator.entity.Schema;
 import io.ballerina.asyncapi.codegenerator.repository.FileRepository;
 import io.ballerina.asyncapi.codegenerator.repository.FileRepositoryImpl;
 import org.testng.Assert;
@@ -45,22 +44,20 @@ public class ExtractSchemasFromSpecTest {
         String asyncApiSpecStr = fileRepository
                 .getFileContentFromResources("specs/spec-single-schema.yml");
         String asyncApiSpecJson = fileRepository.convertYamlToJson(asyncApiSpecStr);
-        AaiDocument asyncApiSpec = (Aai20Document) Library.readDocumentFromJSONString(asyncApiSpecJson);
+        AsyncApiDocument asyncApiSpec = (AsyncApiDocument) Library.readDocumentFromJSONString(asyncApiSpecJson);
         Extractor extractSchemasFromSpec = new ExtractSchemasFromSpec(asyncApiSpec);
-        Map<String, Schema> schemas = extractSchemasFromSpec.extract();
+        Map<String, AsyncApiSchema> schemas = extractSchemasFromSpec.extract();
 
         Assert.assertEquals(schemas.get("GenericEventWrapper").getTitle(),
                 "Standard event wrapper for the Events API");
-        Assert.assertEquals(schemas.get("GenericEventWrapper").getSchemaProperties().get("api_app_id").getType(),
-                "string");
+        Assert.assertEquals(((AsyncApiSchema) schemas.get("GenericEventWrapper").getProperties().get("api_app_id"))
+                        .getType(), "string");
+        Assert.assertEquals(((AsyncApiSchema) schemas.get("GenericEventWrapper")
+                        .getProperties().get("event").getProperties().get("type")).getType(), "string");
+        Assert.assertEquals(((AsyncApiSchema) schemas.get("GenericEventWrapper")
+                        .getProperties().get("event").getProperties().get("type")).getType(), "string");
         Assert.assertEquals(schemas.get("GenericEventWrapper")
-                        .getSchemaProperties().get("event").getSchemaProperties().get("type").getType(),
-                "string");
-        Assert.assertEquals(schemas.get("GenericEventWrapper")
-                        .getSchemaProperties().get("event").getSchemaProperties().get("type").getType(),
-                "string");
-        Assert.assertEquals(schemas.get("GenericEventWrapper")
-                        .getSchemaProperties().get("event").getSchemaProperties().get("type").getTitle(),
+                        .getProperties().get("event").getProperties().get("type").getTitle(),
                 "The specific name of the event");
     }
 
@@ -72,18 +69,14 @@ public class ExtractSchemasFromSpecTest {
         String asyncApiSpecStr = fileRepository
                 .getFileContentFromResources("specs/spec-single-schema-with-enum.yml");
         String asyncApiSpecJson = fileRepository.convertYamlToJson(asyncApiSpecStr);
-        AaiDocument asyncApiSpec = (Aai20Document) Library.readDocumentFromJSONString(asyncApiSpecJson);
+        AsyncApiDocument asyncApiSpec = (AsyncApiDocument) Library.readDocumentFromJSONString(asyncApiSpecJson);
         Extractor extractSchemasFromSpec = new ExtractSchemasFromSpec(asyncApiSpec);
-        Map<String, Schema> schemas = extractSchemasFromSpec.extract();
+        Map<String, AsyncApiSchema> schemas = extractSchemasFromSpec.extract();
 
-        Assert.assertEquals(((TextNode) schemas.get("occupancyStatus").getEnum().get(0)).textValue(),
-                "EMPTY");
-        Assert.assertEquals(((TextNode) schemas.get("occupancyStatus").getEnum().get(1)).textValue(),
-                "MANY_SEATS_AVAILABLE");
-        Assert.assertEquals(((TextNode) schemas.get("occupancyStatus").getEnum().get(5)).textValue(),
-                "FULL");
-        Assert.assertEquals(((TextNode) schemas.get("occupancyStatus").getEnum().get(6)).textValue(),
-                "NOT_ACCEPTING_PASSENGERS");
+        Assert.assertEquals(schemas.get("occupancyStatus").getEnum().get(0).textValue(), "EMPTY");
+        Assert.assertEquals(schemas.get("occupancyStatus").getEnum().get(1).textValue(), "MANY_SEATS_AVAILABLE");
+        Assert.assertEquals(schemas.get("occupancyStatus").getEnum().get(5).textValue(), "FULL");
+        Assert.assertEquals(schemas.get("occupancyStatus").getEnum().get(6).textValue(), "NOT_ACCEPTING_PASSENGERS");
     }
 
     @Test(
@@ -94,29 +87,26 @@ public class ExtractSchemasFromSpecTest {
         String asyncApiSpecStr = fileRepository
                 .getFileContentFromResources("specs/spec-multiple-schemas.yml");
         String asyncApiSpecJson = fileRepository.convertYamlToJson(asyncApiSpecStr);
-        AaiDocument asyncApiSpec = (Aai20Document) Library.readDocumentFromJSONString(asyncApiSpecJson);
+        AsyncApiDocument asyncApiSpec = (AsyncApiDocument) Library.readDocumentFromJSONString(asyncApiSpecJson);
         Extractor extractSchemasFromSpec = new ExtractSchemasFromSpec(asyncApiSpec);
-        Map<String, Schema> serviceTypes = extractSchemasFromSpec.extract();
+        Map<String, AsyncApiSchema> serviceTypes = extractSchemasFromSpec.extract();
 
         Assert.assertEquals(serviceTypes.get("GenericEventWrapper").getTitle(),
                 "Standard event wrapper for the Events API");
-        Assert.assertEquals(serviceTypes.get("GenericEventWrapper").getSchemaProperties().get("api_app_id").getType(),
-                "string");
+        Assert.assertEquals(((AsyncApiSchema) serviceTypes.get("GenericEventWrapper").getProperties()
+                        .get("api_app_id")).getType(), "string");
+        Assert.assertEquals(((AsyncApiSchema) serviceTypes.get("GenericEventWrapper")
+                        .getProperties().get("event").getProperties().get("type")).getType(), "string");
+        Assert.assertEquals(((AsyncApiSchema) serviceTypes.get("GenericEventWrapper")
+                        .getProperties().get("event").getProperties().get("type")).getType(), "string");
         Assert.assertEquals(serviceTypes.get("GenericEventWrapper")
-                        .getSchemaProperties().get("event").getSchemaProperties().get("type").getType(),
-                "string");
-        Assert.assertEquals(serviceTypes.get("GenericEventWrapper")
-                        .getSchemaProperties().get("event").getSchemaProperties().get("type").getType(),
-                "string");
-        Assert.assertEquals(serviceTypes.get("GenericEventWrapper")
-                        .getSchemaProperties().get("event").getSchemaProperties().get("type").getTitle(),
+                        .getProperties().get("event").getProperties().get("type").getTitle(),
                 "The specific name of the event");
 
 
-        Assert.assertEquals(serviceTypes.get("CustomTestSchema")
-                .getSchemaProperties().get("test_id").getType(), "string");
-        Assert.assertEquals(serviceTypes.get("GenericEventWrapper")
-                        .getSchemaProperties().get("custom_test_schema").getRef(),
-                "#/components/schemas/CustomTestSchema");
+        Assert.assertEquals(((AsyncApiSchema) serviceTypes.get("CustomTestSchema")
+                .getProperties().get("test_id")).getType(), "string");
+        Assert.assertEquals(((Referenceable) serviceTypes.get("GenericEventWrapper").getProperties()
+                .get("custom_test_schema")).get$ref(), "#/components/schemas/CustomTestSchema");
     }
 }

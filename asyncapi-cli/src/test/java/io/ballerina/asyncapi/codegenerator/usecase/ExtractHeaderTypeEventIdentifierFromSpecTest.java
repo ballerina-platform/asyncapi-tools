@@ -1,8 +1,7 @@
 package io.ballerina.asyncapi.codegenerator.usecase;
 
 import io.apicurio.datamodels.Library;
-import io.apicurio.datamodels.asyncapi.models.AaiDocument;
-import io.apicurio.datamodels.asyncapi.v2.models.Aai20Document;
+import io.apicurio.datamodels.models.asyncapi.AsyncApiDocument;
 import io.ballerina.asyncapi.codegenerator.configuration.BallerinaAsyncApiException;
 import io.ballerina.asyncapi.codegenerator.repository.FileRepository;
 import io.ballerina.asyncapi.codegenerator.repository.FileRepositoryImpl;
@@ -24,7 +23,7 @@ public class ExtractHeaderTypeEventIdentifierFromSpecTest {
         String asyncApiSpecStr = fileRepository
                 .getFileContentFromResources("specs/spec-with-event-identifier-valid-header-type.yml");
         String asyncApiSpecJson = fileRepository.convertYamlToJson(asyncApiSpecStr);
-        AaiDocument asyncApiSpec = (Aai20Document) Library.readDocumentFromJSONString(asyncApiSpecJson);
+        AsyncApiDocument asyncApiSpec = (AsyncApiDocument) Library.readDocumentFromJSONString(asyncApiSpecJson);
         Extractor extractIdentifierPathFromSpec = new ExtractIdentifierPathFromSpec(asyncApiSpec);
         String identifierPath = extractIdentifierPathFromSpec.extract();
 
@@ -44,7 +43,7 @@ public class ExtractHeaderTypeEventIdentifierFromSpecTest {
         String asyncApiSpecStr = fileRepository
                 .getFileContentFromResources("specs/spec-with-event-identifier-missing-header-name.yml");
         String asyncApiSpecJson = fileRepository.convertYamlToJson(asyncApiSpecStr);
-        AaiDocument asyncApiSpec = (Aai20Document) Library.readDocumentFromJSONString(asyncApiSpecJson);
+        AsyncApiDocument asyncApiSpec = (AsyncApiDocument) Library.readDocumentFromJSONString(asyncApiSpecJson);
         Extractor extractIdentifierPathFromSpec = new ExtractIdentifierPathFromSpec(asyncApiSpec);
         extractIdentifierPathFromSpec.extract();
     }

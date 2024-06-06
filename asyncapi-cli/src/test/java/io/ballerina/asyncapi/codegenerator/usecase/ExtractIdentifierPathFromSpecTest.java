@@ -19,8 +19,7 @@
 package io.ballerina.asyncapi.codegenerator.usecase;
 
 import io.apicurio.datamodels.Library;
-import io.apicurio.datamodels.asyncapi.models.AaiDocument;
-import io.apicurio.datamodels.asyncapi.v2.models.Aai20Document;
+import io.apicurio.datamodels.models.asyncapi.AsyncApiDocument;
 import io.ballerina.asyncapi.codegenerator.configuration.BallerinaAsyncApiException;
 import io.ballerina.asyncapi.codegenerator.repository.FileRepository;
 import io.ballerina.asyncapi.codegenerator.repository.FileRepositoryImpl;
@@ -41,7 +40,7 @@ public class ExtractIdentifierPathFromSpecTest {
         String asyncApiSpecStr = fileRepository
                 .getFileContentFromResources("specs/spec-with-identifier-path.yml");
         String asyncApiSpecJson = fileRepository.convertYamlToJson(asyncApiSpecStr);
-        AaiDocument asyncApiSpec = (Aai20Document) Library.readDocumentFromJSONString(asyncApiSpecJson);
+        AsyncApiDocument asyncApiSpec = (AsyncApiDocument) Library.readDocumentFromJSONString(asyncApiSpecJson);
         Extractor extractIdentifierPathFromSpec = new ExtractIdentifierPathFromSpec(asyncApiSpec);
         String identifierPath = extractIdentifierPathFromSpec.extract();
 
@@ -60,7 +59,7 @@ public class ExtractIdentifierPathFromSpecTest {
         String asyncApiSpecStr = fileRepository
                 .getFileContentFromResources("specs/spec-with-identifier-path-missing-path.yml");
         String asyncApiSpecJson = fileRepository.convertYamlToJson(asyncApiSpecStr);
-        AaiDocument asyncApiSpec = (Aai20Document) Library.readDocumentFromJSONString(asyncApiSpecJson);
+        AsyncApiDocument asyncApiSpec = (AsyncApiDocument) Library.readDocumentFromJSONString(asyncApiSpecJson);
         Extractor extractIdentifierPathFromSpec = new ExtractIdentifierPathFromSpec(asyncApiSpec);
         extractIdentifierPathFromSpec.extract();
     }

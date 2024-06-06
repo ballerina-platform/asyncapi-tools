@@ -18,32 +18,40 @@
 
 package io.ballerina.asyncapi.codegenerator.usecase;
 
-import io.apicurio.datamodels.asyncapi.models.AaiDocument;
-import io.apicurio.datamodels.core.models.Extension;
+import com.fasterxml.jackson.databind.JsonNode;
+import io.apicurio.datamodels.models.asyncapi.AsyncApiDocument;
 import io.ballerina.asyncapi.codegenerator.configuration.BallerinaAsyncApiException;
 import io.ballerina.asyncapi.codegenerator.configuration.Constants;
+import io.ballerina.asyncapi.codegenerator.usecase.utils.ExtensionExtractor;
 
 import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
 
 /**
  * Extract the identifier type from the AsyncAPI specification.
  */
 public class ExtractIdentifierTypeFromSpec implements Extractor {
-    private final AaiDocument asyncApiSpec;
+    private final AsyncApiDocument asyncApiSpec;
 
-    public ExtractIdentifierTypeFromSpec(AaiDocument asyncApiSpec) {
+    public ExtractIdentifierTypeFromSpec(AsyncApiDocument asyncApiSpec) {
         this.asyncApiSpec = asyncApiSpec;
     }
 
     @Override
     public String extract() throws BallerinaAsyncApiException {
-        if (asyncApiSpec.getExtension(Constants.X_BALLERINA_EVENT_FIELD_IDENTIFIER) == null) {
+        if (!ExtensionExtractor.getExtensions(asyncApiSpec).containsKey(Constants.X_BALLERINA_EVENT_FIELD_IDENTIFIER)) {
             throw new BallerinaAsyncApiException(Constants.X_BALLERINA_EVENT_FIELD_IDENTIFIER
                     .concat(" attribute is not found in the Async API Specification"));
         }
-        Extension identifier = asyncApiSpec.getExtension(
-                Constants.X_BALLERINA_EVENT_FIELD_IDENTIFIER);
-        HashMap<String, String> valuesMap = (HashMap<String, String>) identifier.value;
+        JsonNode identifier = ExtensionExtractor.getExtensions(asyncApiSpec)
+                .get(Constants.X_BALLERINA_EVENT_FIELD_IDENTIFIER);
+        Iterator<Map.Entry<String, JsonNode>> values = identifier.fields();
+        HashMap<String, String> valuesMap = new HashMap<>();
+        while (values.hasNext()) {
+            Map.Entry<String, JsonNode> entry = values.next();
+            valuesMap.put(entry.getKey(), entry.getValue().asText());
+        }
         if (!valuesMap.containsKey(Constants.X_BALLERINA_EVENT_FIELD_IDENTIFIER_TYPE)) {
             throw new BallerinaAsyncApiException(Constants.X_BALLERINA_EVENT_FIELD_IDENTIFIER_TYPE
                     .concat(" attribute is not found within the attribute "

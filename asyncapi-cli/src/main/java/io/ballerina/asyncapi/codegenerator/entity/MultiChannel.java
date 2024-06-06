@@ -18,6 +18,8 @@
 
 package io.ballerina.asyncapi.codegenerator.entity;
 
+import io.apicurio.datamodels.models.asyncapi.AsyncApiSchema;
+
 import java.util.List;
 import java.util.Map;
 
@@ -26,9 +28,9 @@ import java.util.Map;
  */
 public class MultiChannel {
     private final List<ServiceType> serviceTypes;
-    private final Map<String, Schema> inlineSchemas;
+    private final Map<String, AsyncApiSchema> inlineSchemas;
 
-    public MultiChannel(List<ServiceType> serviceTypes, Map<String, Schema> inlineSchemas) {
+    public MultiChannel(List<ServiceType> serviceTypes, Map<String, AsyncApiSchema> inlineSchemas) {
         this.serviceTypes = serviceTypes;
         this.inlineSchemas = inlineSchemas;
     }
@@ -37,7 +39,7 @@ public class MultiChannel {
         return serviceTypes;
     }
 
-    public Map<String, Schema> getInlineSchemas() {
+    public Map<String, AsyncApiSchema> getInlineSchemas() {
         return inlineSchemas;
     }
 }

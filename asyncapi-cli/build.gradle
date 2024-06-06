@@ -29,10 +29,10 @@ dependencies {
     checkstyle project(':checkstyle')
     checkstyle "com.puppycrawl.tools:checkstyle:${puppycrawlCheckstyleVersion}"
 
-    implementation 'io.apicurio:apicurio-data-models:1.1.15'
-    implementation 'org.apache.logging.log4j:log4j-core:2.14.1'
+    implementation "io.apicurio:apicurio-data-models:${apiCurioVersion}"
+    implementation "org.apache.logging.log4j:log4j-core:${log4jVersion}"
     implementation "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:${jacksonDataformatYamlVersion}"
-    implementation 'commons-io:commons-io:2.11.0'
+    implementation "commons-io:commons-io:${commonsIoVersion}"
     implementation "org.ballerinalang:ballerina-lang:${ballerinaLangVersion}"
     implementation "org.ballerinalang:ballerina-parser:${ballerinaLangVersion}"
     implementation "org.ballerinalang:ballerina-cli:${ballerinaLangVersion}"
@@ -40,7 +40,7 @@ dependencies {
     implementation "org.ballerinalang:ballerina-tools-api:${ballerinaLangVersion}"
     implementation "io.ballerina.stdlib:http-native:${stdlibHttpVersion}"
     implementation "org.ballerinalang:language-server-commons:${ballerinaLangVersion}"
-    implementation "info.picocli:picocli:4.0.1"
+    implementation "info.picocli:picocli:${picocliVersion}"
     testImplementation 'org.junit.jupiter:junit-jupiter-api:5.6.0'
     testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine'
     testImplementation "org.testng:testng:${testngVersion}"
@@ -53,7 +53,7 @@ test {
 }
 
 checkstyle {
-    toolVersion '10.12.0'
+    toolVersion "${puppycrawlCheckstyleVersion}"
     configFile rootProject.file("config/checkstyle/build/checkstyle.xml")
     configProperties = ["suppressionFile" : file("${rootDir}/config/checkstyle/build/suppressions.xml")]
 }
@@ -74,7 +74,7 @@ jar {
 shadowJar {
     configurations = [project.configurations.runtimeClasspath]
     dependencies {
-        include(dependency('io.apicurio:apicurio-data-models:1.1.15'))
+        include(dependency("io.apicurio:apicurio-data-models:${apiCurioVersion}"))
         exclude('META-INF/*.SF')
         exclude('META-INF/*.DSA')
         exclude('META-INF/*.RSA')

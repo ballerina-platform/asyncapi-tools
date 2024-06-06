@@ -18,13 +18,16 @@
 
 package io.ballerina.asyncapi.codegenerator.usecase;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.TextNode;
-import io.apicurio.datamodels.core.models.Extension;
+import io.apicurio.datamodels.models.Referenceable;
+import io.apicurio.datamodels.models.Schema;
+import io.apicurio.datamodels.models.asyncapi.AsyncApiSchema;
 import io.ballerina.asyncapi.codegenerator.configuration.BallerinaAsyncApiException;
 import io.ballerina.asyncapi.codegenerator.configuration.Constants;
-import io.ballerina.asyncapi.codegenerator.entity.Schema;
 import io.ballerina.asyncapi.codegenerator.usecase.utils.CodegenUtils;
 import io.ballerina.asyncapi.codegenerator.usecase.utils.DocCommentsUtils;
+import io.ballerina.asyncapi.codegenerator.usecase.utils.ExtensionExtractor;
 import io.ballerina.compiler.syntax.tree.AbstractNodeFactory;
 import io.ballerina.compiler.syntax.tree.ArrayDimensionNode;
 import io.ballerina.compiler.syntax.tree.IdentifierToken;
@@ -41,6 +44,7 @@ import io.ballerina.compiler.syntax.tree.Token;
 import io.ballerina.compiler.syntax.tree.TypeDefinitionNode;
 import io.ballerina.compiler.syntax.tree.TypeDescriptorNode;
 
+import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -72,12 +76,12 @@ import static io.ballerina.compiler.syntax.tree.SyntaxKind.TYPE_KEYWORD;
  * Generate the record node for data_types.bal.
  */
 public class GenerateModuleMemberDeclarationNode implements Generator {
-    private final Map.Entry<String, Schema> recordFields;
+    private final Map.Entry<String, AsyncApiSchema> recordFields;
 
     private final CodegenUtils codegenUtils = new CodegenUtils();
     private final DocCommentsUtils commentsUtils = new DocCommentsUtils();
 
-    public GenerateModuleMemberDeclarationNode(Map.Entry<String, Schema> recordFields) {
+    public GenerateModuleMemberDeclarationNode(Map.Entry<String, AsyncApiSchema> recordFields) {
         this.recordFields = recordFields;
     }
 
@@ -108,7 +112,7 @@ public class GenerateModuleMemberDeclarationNode implements Generator {
             return createEnumDeclarationNode(metadataNode, createToken(PUBLIC_KEYWORD), createToken(ENUM_KEYWORD),
                     typeName, createToken(OPEN_BRACE_TOKEN),
                     createSeparatedNodeList(enums), createToken(CLOSE_BRACE_TOKEN), null);
-        } else if (recordFields.getValue().getSchemaProperties() == null && recordFields.getValue().getType() != null) {
+        } else if (recordFields.getValue().getProperties() == null && recordFields.getValue().getType() != null) {
             // Handle when the schema is defined directly under the name
             // (i.e. there is no properties attribute under the schema)
             TypeDescriptorNode fieldTypeName = getTypeDescriptorNode(recordFields.getValue());
@@ -118,10 +122,14 @@ public class GenerateModuleMemberDeclarationNode implements Generator {
                             fieldTypeName,
                             createToken(QUESTION_MARK_TOKEN)), createToken(SEMICOLON_TOKEN));
             return typeDefinitionNode;
-        } else if (recordFields.getValue().getSchemaProperties() != null) {
+        } else if (recordFields.getValue().getProperties() != null) {
             // Handle when the properties attribute is there inside the schema
-            for (Map.Entry<String, Schema> field : recordFields.getValue().getSchemaProperties().entrySet()) {
-                addRecordField(requiredList, recordFieldList, field);
+            for (Map.Entry<String, Schema> field : recordFields.getValue().getProperties().entrySet()) {
+                Map.Entry<String, AsyncApiSchema> castedField = new AbstractMap.SimpleEntry<>(
+                        field.getKey(),
+                        (AsyncApiSchema) field.getValue()
+                );
+                addRecordField(requiredList, recordFieldList, castedField);
             }
         } else if (recordFields.getValue().hasExtraProperties()) {
             // TODO: handle when the fields are directly under the Schema.
@@ -140,7 +148,8 @@ public class GenerateModuleMemberDeclarationNode implements Generator {
     /**
      * This method generates a record field with given schema properties.
      */
-    private void addRecordField(List<String> required, List<Node> recordFieldList, Map.Entry<String, Schema> field)
+    private void addRecordField(List<String> required, List<Node> recordFieldList, Map.Entry<String,
+            AsyncApiSchema> field)
             throws BallerinaAsyncApiException {
         // TODO: Handle allOf , oneOf, anyOf
         RecordFieldNode recordFieldNode;
@@ -175,13 +184,13 @@ public class GenerateModuleMemberDeclarationNode implements Generator {
         recordFieldList.add(recordFieldNode);
     }
 
-    private TypeDescriptorNode getTypeDescriptorNode(Schema schema)
+    private TypeDescriptorNode getTypeDescriptorNode(AsyncApiSchema schema)
             throws BallerinaAsyncApiException {
-        if (schema.getType() != null || schema.getSchemaProperties() != null) {
+        if (schema.getType() != null || schema.getProperties() != null) {
             TypeDescriptorNode originalTypeDesc = getTypeDescriptorNodeForObjects(schema);
             return addNullableType(schema, originalTypeDesc);
-        } else if (schema.getRef() != null) {
-            String type = codegenUtils.extractReferenceType(schema.getRef());
+        } else if ((schema instanceof Referenceable) &&  ((Referenceable) schema).get$ref() != null) {
+            String type = codegenUtils.extractReferenceType(((Referenceable) schema).get$ref());
             type = codegenUtils.getValidName(type, true);
             Token typeName = AbstractNodeFactory.createIdentifierToken(type);
             TypeDescriptorNode originalTypeDesc = createBuiltinSimpleNameReferenceNode(null, typeName);
@@ -195,8 +204,9 @@ public class GenerateModuleMemberDeclarationNode implements Generator {
         }
     }
 
-    private TypeDescriptorNode getTypeDescriptorNodeForObjects(Schema schema) throws BallerinaAsyncApiException {
-        if (schema.getSchemaProperties() != null) {
+    private TypeDescriptorNode getTypeDescriptorNodeForObjects(AsyncApiSchema schema)
+            throws BallerinaAsyncApiException {
+        if (schema.getProperties() != null) {
             return getRecordTypeDescriptorNode(schema);
         } else if (schema.getType() != null) {
             return getTypeDescriptorNodeFroPreDefined(schema);
@@ -206,7 +216,8 @@ public class GenerateModuleMemberDeclarationNode implements Generator {
         }
     }
 
-    private TypeDescriptorNode getTypeDescriptorNodeFroPreDefined(Schema schema) throws BallerinaAsyncApiException {
+    private TypeDescriptorNode getTypeDescriptorNodeFroPreDefined(AsyncApiSchema schema)
+            throws BallerinaAsyncApiException {
         switch (schema.getType()) {
             case Constants.INTEGER:
             case Constants.STRING:
@@ -224,9 +235,9 @@ public class GenerateModuleMemberDeclarationNode implements Generator {
             case Constants.ARRAY:
                 return getTypeDescriptorNodeForArraySchema(schema);
             case Constants.OBJECT:
-                if (schema.getRef() != null) {
+                if ((schema instanceof Referenceable) &&  ((Referenceable) schema).get$ref() != null) {
                     type = codegenUtils.getValidName(
-                            codegenUtils.extractReferenceType(schema.getRef()), true);
+                            codegenUtils.extractReferenceType(((Referenceable) schema).get$ref()), true);
                     typeName = AbstractNodeFactory.createIdentifierToken(type);
                 } else {
                     typeName = AbstractNodeFactory.createIdentifierToken(
@@ -239,15 +250,20 @@ public class GenerateModuleMemberDeclarationNode implements Generator {
         }
     }
 
-    private RecordTypeDescriptorNode getRecordTypeDescriptorNode(Schema schema) throws BallerinaAsyncApiException {
-        Map<String, Schema> properties = schema.getSchemaProperties();
+    private RecordTypeDescriptorNode getRecordTypeDescriptorNode(AsyncApiSchema schema)
+            throws BallerinaAsyncApiException {
+        Map<String, io.apicurio.datamodels.models.Schema> properties = schema.getProperties();
         Token recordKeyWord = AbstractNodeFactory.createIdentifierToken("record ");
         Token bodyStartDelimiter = AbstractNodeFactory.createIdentifierToken("{ ");
         Token bodyEndDelimiter = AbstractNodeFactory.createIdentifierToken("} ");
         List<Node> recordFList = new ArrayList<>();
         List<String> required = schema.getRequired();
         for (Map.Entry<String, Schema> property : properties.entrySet()) {
-            addRecordField(required, recordFList, property);
+            Map.Entry<String, AsyncApiSchema> castedProperty = new AbstractMap.SimpleEntry<>(
+                    property.getKey(),
+                    (AsyncApiSchema) property.getValue()
+            );
+            addRecordField(required, recordFList, castedProperty);
         }
         NodeList<Node> fieldNodes = AbstractNodeFactory.createNodeList(recordFList);
 
@@ -294,20 +310,21 @@ public class GenerateModuleMemberDeclarationNode implements Generator {
     }
 
 
-    public TypeDescriptorNode getTypeDescriptorNodeForArraySchema(Schema schema) throws BallerinaAsyncApiException {
+    public TypeDescriptorNode getTypeDescriptorNodeForArraySchema(AsyncApiSchema schema)
+            throws BallerinaAsyncApiException {
         if (schema.getItems() != null) {
             String type;
             Token typeName;
             TypeDescriptorNode memberTypeDesc;
             Token openSBracketToken = AbstractNodeFactory.createIdentifierToken("[");
             // TODO: handle this when schema.items is a List<Schema> in the below line
-            Schema schemaItem = (Schema) schema.getItems();
+            AsyncApiSchema schemaItem = (AsyncApiSchema) schema.getItems();
             Token closeSBracketToken = AbstractNodeFactory.createIdentifierToken("]");
             ArrayDimensionNode arrayDimensionNode = NodeFactory.createArrayDimensionNode(openSBracketToken,
                     null, closeSBracketToken);
-            if (schemaItem.getRef() != null) {
+            if ((schemaItem instanceof Referenceable) &&  ((Referenceable) schemaItem).get$ref() != null) {
                 type = codegenUtils.getValidName(codegenUtils.extractReferenceType(
-                        schemaItem.getRef()), true);
+                        ((Referenceable) schemaItem).get$ref()), true);
                 typeName = AbstractNodeFactory.createIdentifierToken(type);
                 memberTypeDesc = createBuiltinSimpleNameReferenceNode(null, typeName);
                 // TODO: memberTypeDesc != ArrayTypeDescriptorNode
@@ -332,10 +349,11 @@ public class GenerateModuleMemberDeclarationNode implements Generator {
         }
     }
 
-    private TypeDescriptorNode addNullableType(Schema schema, TypeDescriptorNode originalTypeDesc) {
-        if (schema.getExtension("x-nullable") != null) {
-            Extension identifier = (Extension) schema.getExtension("x-nullable");
-            if (identifier.value.equals(true)) {
+    private TypeDescriptorNode addNullableType(AsyncApiSchema schema, TypeDescriptorNode originalTypeDesc) {
+        Map<String, JsonNode> ext = ExtensionExtractor.getExtensions(schema);
+        if (ExtensionExtractor.getExtensions(schema).containsKey("x-nullable")) {
+            JsonNode identifier = ExtensionExtractor.getExtensions(schema).get("x-nullable");
+            if (identifier.asText().equals("true")) {
                 return createOptionalTypeDescriptorNode(originalTypeDesc, createToken(QUESTION_MARK_TOKEN));
             }
         }
