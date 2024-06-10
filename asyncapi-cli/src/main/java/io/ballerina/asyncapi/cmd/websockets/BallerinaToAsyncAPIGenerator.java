@@ -40,6 +40,7 @@ import io.ballerina.tools.diagnostics.DiagnosticSeverity;
 
 import java.io.IOException;
 import java.io.PrintStream;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -124,6 +125,17 @@ public class BallerinaToAsyncAPIGenerator {
         if (!asyncAPIDefinitions.isEmpty()) {
             List<String> fileNames = new ArrayList<>();
             for (AsyncAPIResult definition : asyncAPIDefinitions) {
+                if (Files.notExists(outPath)) {
+                    try {
+                        Files.createDirectories(outPath);
+                    } catch (IOException e) {
+                        DiagnosticMessages message = DiagnosticMessages.AAS_CONVERTOR_102;
+                        ExceptionDiagnostic error = new ExceptionDiagnostic(message.getCode(),
+                                message.getDescription() + e.getLocalizedMessage(),
+                                null);
+                        this.errors.add(error);
+                    }
+                }
                 try {
                     this.errors.addAll(definition.getDiagnostics());
                     if (definition.getAsyncAPI().isPresent()) {

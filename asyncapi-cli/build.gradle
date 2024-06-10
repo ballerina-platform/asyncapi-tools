@@ -226,3 +226,5 @@ compileJava {
         classpath = files()
     }
 }
+
+build.dependsOn("copyStdlibs")

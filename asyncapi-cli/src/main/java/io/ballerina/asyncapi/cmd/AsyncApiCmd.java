@@ -153,8 +153,9 @@ public class AsyncApiCmd implements BLauncherCmd {
                 return;
             }
             String fileName = argList.get(0);
-            Application codeGenerator = new CodeGenerator();
+
             if (protocol.equals("http")) {
+                Application codeGenerator = new CodeGenerator();
                 try {
                     codeGenerator.generate(fileName, (outputPath == null) ?
                             String.valueOf(executionPath) : outputPath);
@@ -162,7 +163,7 @@ public class AsyncApiCmd implements BLauncherCmd {
                     outStream.println(e.getMessage());
                     exitError(this.exitWhenFinish);
                 }
-            } else if (protocol.equals("ws")) {
+            } else if (protocol.equals("ws") || protocol.equals("wss") || protocol.equals("websocket")) {
                 if (fileName.endsWith(Constants.YAML_EXTENSION) || fileName.endsWith(Constants.JSON_EXTENSION) ||
                         fileName.endsWith(Constants.YML_EXTENSION)) {
                     try {
@@ -174,9 +175,7 @@ public class AsyncApiCmd implements BLauncherCmd {
                     // when -i has bal extension
                 } else if (fileName.endsWith(CmdConstants.BAL_EXTENSION)) {
                     try {
-
                         ballerinaToAsyncApiWs(fileName);
-
                     } catch (Exception exception) {
                         outStream.println(exception.getMessage());
                         exitError(this.exitWhenFinish);
