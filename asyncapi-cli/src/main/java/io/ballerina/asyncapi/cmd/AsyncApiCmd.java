@@ -17,20 +17,36 @@
  */
 package io.ballerina.asyncapi.cmd;
 
+import io.ballerina.asyncapi.cmd.websockets.AsyncAPIDiagnostic;
+import io.ballerina.asyncapi.cmd.websockets.AsyncAPIToBallerinaGenerator;
+import io.ballerina.asyncapi.cmd.websockets.BallerinaToAsyncAPIGenerator;
+import io.ballerina.asyncapi.cmd.websockets.CmdConstants;
+import io.ballerina.asyncapi.cmd.websockets.CmdUtils;
+import io.ballerina.asyncapi.cmd.websockets.ErrorMessages;
 import io.ballerina.asyncapi.codegenerator.application.Application;
 import io.ballerina.asyncapi.codegenerator.application.CodeGenerator;
 import io.ballerina.asyncapi.codegenerator.configuration.BallerinaAsyncApiException;
+import io.ballerina.asyncapi.websocketscore.exception.BallerinaAsyncApiExceptionWs;
+import io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants;
+import io.ballerina.asyncapi.websocketscore.generators.asyncspec.diagnostic.AsyncAPIConverterDiagnostic;
+import io.ballerina.asyncapi.websocketscore.generators.asyncspec.diagnostic.DiagnosticMessages;
+import io.ballerina.asyncapi.websocketscore.generators.asyncspec.diagnostic.ExceptionDiagnostic;
+import io.ballerina.asyncapi.websocketscore.generators.asyncspec.diagnostic.IncompatibleRemoteDiagnostic;
 import io.ballerina.cli.BLauncherCmd;
+import org.ballerinalang.formatter.core.FormatterException;
 import picocli.CommandLine;
 
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -45,6 +61,7 @@ public class AsyncApiCmd implements BLauncherCmd {
     private PrintStream outStream;
     private boolean exitWhenFinish;
     private Path executionPath = Paths.get(System.getProperty("user.dir"));
+    private Path targetOutputPath;
 
     @CommandLine.Option(names = {"-h", "--help"}, hidden = true)
     private boolean helpFlag;
@@ -56,6 +73,25 @@ public class AsyncApiCmd implements BLauncherCmd {
             description = "Directory to store the generated Ballerina service. " +
             "If this is not provided, the generated files will be stored in the the current execution directory")
     private String outputPath;
+
+    @CommandLine.Option (names = {"--protocol"}, description = "The protocol to be used for the service")
+    private String protocol = "http";
+
+    @CommandLine.Option(names = {"--license"}, description = "Location of the file which contains the license header")
+    private String licenseFilePath;
+
+    @CommandLine.Option(names = {"-s", "--service"}, description = "Service name that need to documented as asyncapi " +
+            "contract")
+    private String service;
+
+    @CommandLine.Option(names = {"--with-tests"}, hidden = true, description = "Generate test files")
+    private boolean includeTestFiles;
+
+    @CommandLine.Option(names = {"--service-name"}, description = "Service name for generated files")
+    private String generatedServiceName;
+
+    @CommandLine.Option(names = {"--json"}, description = "Generate json file")
+    private boolean generatedFileType;
 
     @CommandLine.Parameters
     private List<String> argList;
@@ -91,6 +127,18 @@ public class AsyncApiCmd implements BLauncherCmd {
         this.exitWhenFinish = exitWhenFinish;
     }
 
+    /**
+     * Constructor override, which takes output stream and execution dir and exits when finish as inputs.
+     *
+     * @param executionDir      defines the directory location of  execution of ballerina command
+     * @param exitWhenFinish    exit when finish the execution
+     */
+    public AsyncApiCmd(Path executionDir, boolean exitWhenFinish) {
+        this.outStream = System.err;
+        this.executionPath = executionDir;
+        this.exitWhenFinish = exitWhenFinish;
+    }
+
     @Override
     public void execute() {
         if (helpFlag) {
@@ -106,12 +154,40 @@ public class AsyncApiCmd implements BLauncherCmd {
             }
             String fileName = argList.get(0);
             Application codeGenerator = new CodeGenerator();
-            try {
-                codeGenerator.generate(fileName, (outputPath == null) ? String.valueOf(executionPath) : outputPath);
-            } catch (BallerinaAsyncApiException e) {
-                outStream.println(e.getMessage());
-                exitError(this.exitWhenFinish);
+            if (protocol.equals("http")) {
+                try {
+                    codeGenerator.generate(fileName, (outputPath == null) ?
+                            String.valueOf(executionPath) : outputPath);
+                } catch (BallerinaAsyncApiException e) {
+                    outStream.println(e.getMessage());
+                    exitError(this.exitWhenFinish);
+                }
+            } else if (protocol.equals("ws")) {
+                if (fileName.endsWith(Constants.YAML_EXTENSION) || fileName.endsWith(Constants.JSON_EXTENSION) ||
+                        fileName.endsWith(Constants.YML_EXTENSION)) {
+                    try {
+                        asyncApiToBallerinaWs(fileName);
+                    } catch (IOException e) {
+                        outStream.println(e.getLocalizedMessage());
+                        exitError(this.exitWhenFinish);
+                    }
+                    // when -i has bal extension
+                } else if (fileName.endsWith(CmdConstants.BAL_EXTENSION)) {
+                    try {
+
+                        ballerinaToAsyncApiWs(fileName);
+
+                    } catch (Exception exception) {
+                        outStream.println(exception.getMessage());
+                        exitError(this.exitWhenFinish);
+                    }
+                    // If -i has no extensions
+                } else {
+                    outStream.println(ErrorMessages.MISSING_CONTRACT_PATH);
+                    exitError(this.exitWhenFinish);
+                }
             }
+
         } else {
             String commandUsageInfo = BLauncherCmd.getCommandUsageInfo(getName());
             outStream.println(commandUsageInfo);
@@ -121,6 +197,112 @@ public class AsyncApiCmd implements BLauncherCmd {
 
         if (this.exitWhenFinish) {
             Runtime.getRuntime().exit(0);
+        }
+    }
+
+    private void ballerinaToAsyncApiWs(String fileName) {
+        List<AsyncAPIConverterDiagnostic> errors = new ArrayList<>();
+        final File balFile = new File(fileName);
+        Path balFilePath = null;
+        try {
+            balFilePath = Paths.get(balFile.getCanonicalPath());
+        } catch (IOException e) {
+            DiagnosticMessages message = DiagnosticMessages.AAS_CONVERTOR_102;
+            ExceptionDiagnostic error = new ExceptionDiagnostic(message.getCode(),
+                    message.getDescription(), null, e.getLocalizedMessage());
+            errors.add(error);
+        }
+        getTargetOutputPathWs();
+        // Check service name it is mandatory
+        BallerinaToAsyncAPIGenerator asyncApiConverter = new BallerinaToAsyncAPIGenerator();
+        asyncApiConverter.generateAsyncAPIDefinitionsAllService(balFilePath, targetOutputPath, service,
+                generatedFileType);
+
+        errors.addAll(asyncApiConverter.getErrors());
+        if (!errors.isEmpty()) {
+            for (AsyncAPIConverterDiagnostic error : errors) {
+                if (error instanceof ExceptionDiagnostic) {
+                    ExceptionDiagnostic exceptionDiagnostic = (ExceptionDiagnostic) error;
+                    AsyncAPIDiagnostic diagnostic = CmdUtils.constructAsyncAPIDiagnostic(exceptionDiagnostic.getCode(),
+                            exceptionDiagnostic.getMessage(), exceptionDiagnostic.getDiagnosticSeverity(),
+                            exceptionDiagnostic.getLocation().orElse(null));
+                    outStream.println(diagnostic);
+                    exitError(this.exitWhenFinish);
+                } else if (error instanceof IncompatibleRemoteDiagnostic) {
+                    IncompatibleRemoteDiagnostic incompatibleError = (IncompatibleRemoteDiagnostic) error;
+                    AsyncAPIDiagnostic diagnostic = CmdUtils.constructAsyncAPIDiagnostic(incompatibleError.getCode(),
+                            incompatibleError.getMessage(), incompatibleError.getDiagnosticSeverity(),
+                            incompatibleError.getLocation().get());
+                    outStream.println(diagnostic);
+                }
+            }
+        }
+    }
+
+    private void asyncApiToBallerinaWs(String fileName) throws IOException {
+        AsyncAPIToBallerinaGenerator generator = new AsyncAPIToBallerinaGenerator();
+        generator.setLicenseHeader(this.setLicenseHeaderWs());
+        generator.setIncludeTestFiles(this.includeTestFiles);
+        final File asyncAPIFile = new File(fileName);
+        getTargetOutputPathWs();
+        Path resourcePath = Paths.get(asyncAPIFile.getCanonicalPath());
+        generatesClientFileWs(generator, resourcePath);
+    }
+
+    /**
+     * This util is to set the license header content which is to be added at the beginning of the ballerina files.
+     */
+    private String setLicenseHeaderWs() {
+        String licenseHeader = "";
+        try {
+            if (this.licenseFilePath != null && !this.licenseFilePath.isBlank()) {
+                Path filePath = Paths.get((new File(this.licenseFilePath).getCanonicalPath()));
+                licenseHeader = Files.readString(Paths.get(filePath.toString()));
+                if (!licenseHeader.endsWith("\n")) {
+                    licenseHeader = licenseHeader + "\n\n";
+                } else if (!licenseHeader.endsWith("\n\n")) {
+                    licenseHeader = licenseHeader + "\n";
+                }
+            }
+        } catch (IOException e) {
+            outStream.println("Invalid license file path : " + this.licenseFilePath +
+                    ". " + e.getMessage() + ".");
+            exitError(this.exitWhenFinish);
+        }
+        return licenseHeader;
+    }
+
+    /**
+     * This util is to get the output Path.
+     */
+    private void getTargetOutputPathWs() {
+        targetOutputPath = executionPath;
+        if (this.outputPath != null) {
+            if (Paths.get(outputPath).isAbsolute()) {
+                targetOutputPath = Paths.get(outputPath);
+            } else {
+                targetOutputPath = Paths.get(targetOutputPath.toString(), outputPath);
+            }
+        }
+    }
+
+    /**
+     * A Util to Client generation.
+     *
+     * @param generator    generator object
+     * @param resourcePath resource Path
+     */
+    private void generatesClientFileWs(AsyncAPIToBallerinaGenerator generator, Path resourcePath) {
+        try {
+            generator.generateClient(resourcePath.toString(), targetOutputPath.toString());
+        } catch (IOException | FormatterException | BallerinaAsyncApiExceptionWs e) {
+            if (e.getLocalizedMessage() != null) {
+                outStream.println(e.getLocalizedMessage());
+                exitError(this.exitWhenFinish);
+            } else {
+                outStream.println(ErrorMessages.CLIENT_GENERATION_FAILED);
+                exitError(this.exitWhenFinish);
+            }
         }
     }
 

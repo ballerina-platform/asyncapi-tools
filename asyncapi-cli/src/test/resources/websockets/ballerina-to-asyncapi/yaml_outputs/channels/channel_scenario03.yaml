@@ -1,0 +1,15 @@
+channels:
+  /v1/{id}:
+    subscribe:
+      message:
+        payload:
+          type: integer
+          format: int64
+    publish:
+      message:
+        $ref: '#/components/messages/Subscribe'
+    parameters:
+      id:
+        schema:
+          type: integer
+          format: int64

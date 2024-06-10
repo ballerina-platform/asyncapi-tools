@@ -21,8 +21,20 @@ apply plugin: "checkstyle"
 
 description = "Ballerina - AsyncAPI Tooling - AsyncAPI to Ballerina"
 
+def ballerinaDist = "$project.buildDir/jballerina-tools-${ballerinaLangVersion}"
+def runtimePath = "${project.rootDir}/target/ballerina-distribution"
+
+tasks.register("jBallerinaPack")
+tasks.register("unpackStdLibs")
+tasks.register("copyStdlibs")
+
 configurations.all {
     resolutionStrategy.preferProjectModules()
+}
+
+configurations {
+    ballerinaStdLibs
+    balTools
 }
 
 dependencies {
@@ -31,6 +43,7 @@ dependencies {
 
     implementation "io.apicurio:apicurio-data-models:${apiCurioVersion}"
     implementation "org.apache.logging.log4j:log4j-core:${log4jVersion}"
+    implementation "org.slf4j:slf4j-api:${slf4jVersion}"
     implementation "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:${jacksonDataformatYamlVersion}"
     implementation "commons-io:commons-io:${commonsIoVersion}"
     implementation "org.ballerinalang:ballerina-lang:${ballerinaLangVersion}"
@@ -38,17 +51,141 @@ dependencies {
     implementation "org.ballerinalang:ballerina-cli:${ballerinaLangVersion}"
     implementation "org.ballerinalang:formatter-core:${ballerinaLangVersion}"
     implementation "org.ballerinalang:ballerina-tools-api:${ballerinaLangVersion}"
+    implementation "org.ballerinalang:ballerina-runtime:${ballerinaLangVersion}"
     implementation "io.ballerina.stdlib:http-native:${stdlibHttpVersion}"
     implementation "org.ballerinalang:language-server-commons:${ballerinaLangVersion}"
     implementation "info.picocli:picocli:${picocliVersion}"
     testImplementation 'org.junit.jupiter:junit-jupiter-api:5.6.0'
     testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine'
     testImplementation "org.testng:testng:${testngVersion}"
+
+    balTools ("org.ballerinalang:jballerina-tools:${ballerinaLangVersion}") {
+        transitive = false
+    }
+
+    /* Standard libraries */
+    ballerinaStdLibs "io.ballerina.stdlib:io-ballerina:${stdlibIoVersion}"
+    ballerinaStdLibs "io.ballerina.stdlib:http-ballerina:${stdlibHttpVersion}"
+    ballerinaStdLibs "io.ballerina.stdlib:log-ballerina:${stdlibLogVersion}"
+    ballerinaStdLibs "io.ballerina.stdlib:os-ballerina:${stdlibOsVersion}"
+    ballerinaStdLibs "io.ballerina.stdlib:mime-ballerina:${stdlibMimeVersion}"
+    ballerinaStdLibs "io.ballerina.stdlib:regex-ballerina:${stdlibRegexVersion}"
+    ballerinaStdLibs "io.ballerina.stdlib:crypto-ballerina:${stdlibCryptoVersion}"
+    ballerinaStdLibs "io.ballerina.stdlib:auth-ballerina:${stdlibAuthVersion}"
+    ballerinaStdLibs "io.ballerina.stdlib:time-ballerina:${stdlibTimeVersion}"
+    ballerinaStdLibs "io.ballerina.stdlib:cache-ballerina:${stdlibCacheVersion}"
+    ballerinaStdLibs "io.ballerina.stdlib:task-ballerina:${stdlibTaskVersion}"
+    ballerinaStdLibs "io.ballerina.stdlib:file-ballerina:${stdlibFileVersion}"
+    ballerinaStdLibs "io.ballerina.stdlib:jwt-ballerina:${stdlibJwtVersion}"
+    ballerinaStdLibs "io.ballerina.stdlib:oauth2-ballerina:${stdlibOAuth2Version}"
+    ballerinaStdLibs "io.ballerina.stdlib:uuid-ballerina:${stdlibUuidVersion}"
+    ballerinaStdLibs "io.ballerina.stdlib:url-ballerina:${stdlibUrlVersion}"
+    ballerinaStdLibs "io.ballerina.stdlib:xmldata-ballerina:${stdlibXmldataVersion}"
+    ballerinaStdLibs "io.ballerina.stdlib:observe-ballerina:${observeVersion}"
+    ballerinaStdLibs "io.ballerina:observe-ballerina:${observeInternalVersion}"
+    ballerinaStdLibs "io.ballerina.stdlib:kafka-ballerina:${stdlibKafkaVersion}"
+    ballerinaStdLibs "io.ballerina.stdlib:rabbitmq-ballerina:${stdlibRabbitMqVersion}"
+    ballerinaStdLibs "io.ballerina.stdlib:websocket-ballerina:${stdlibWebsocketVersion}"
+    ballerinaStdLibs "io.ballerina.stdlib:constraint-ballerina:${stdlibConstraintVersion}"
+}
+
+clean {
+    delete "$project.projectDir/build"
+    delete "$project.rootDir/target"
+}
+
+jBallerinaPack {
+    doLast {
+        configurations.balTools.resolvedConfiguration.resolvedArtifacts.each { artifact ->
+            copy {
+                from project.zipTree(artifact.getFile())
+                into new File("${project.buildDir}")
+            }
+            copy {
+                from(project.zipTree(artifact.getFile())) {
+                    eachFile { fcd ->
+                        fcd.relativePath = new RelativePath(!fcd.file.isDirectory(), fcd.relativePath.segments.drop(1))
+                    }
+                    includeEmptyDirs = false
+                }
+                into runtimePath
+            }
+        }
+    }
+    outputs.dir ballerinaDist
+}
+
+unpackStdLibs() {
+    dependsOn(jBallerinaPack)
+    doLast {
+        configurations.ballerinaStdLibs.resolvedConfiguration.resolvedArtifacts.each { artifact ->
+            copy {
+                from project.zipTree(artifact.getFile())
+                into new File("${project.buildDir}/extracted-stdlibs/" + artifact.name + "-zip")
+            }
+        }
+    }
+}
+
+copyStdlibs() {
+    dependsOn(unpackStdLibs)
+    /* Standard Libraries */
+    doLast {
+        configurations.ballerinaStdLibs.resolvedConfiguration.resolvedArtifacts.each { artifact ->
+            def artifactExtractedPath = "${project.buildDir}/extracted-stdlibs/" + artifact.name + "-zip"
+            copy {
+                into ballerinaDist
+                into("repo/bala") {
+                    from "${artifactExtractedPath}/bala"
+                }
+                into("repo/cache") {
+                    from "${artifactExtractedPath}/cache"
+                }
+            }
+            copy {
+                into runtimePath
+                into("repo/bala") {
+                    from "${artifactExtractedPath}/bala"
+                }
+                into("repo/cache") {
+                    from "${artifactExtractedPath}/cache"
+                }
+            }
+        }
+        def asyncapiCliJar = "${project.rootDir}/asyncapi-cli/build/libs/asyncapi-cli-${project.version}.jar"
+        copy {
+            into ballerinaDist
+            into("bre/lib") {
+                from "${asyncapiCliJar}"
+            }
+        }
+        copy {
+            into runtimePath
+            into("bre/lib") {
+                from "${asyncapiCliJar}"
+            }
+        }
+    }
 }
 
 test {
+    dependsOn(copyStdlibs)
+    systemProperty "ballerina.home", ballerinaDist
+    systemProperty "ballerina.offline.flag", "true"
     useTestNG() {
         suites "src/test/resources/testng.xml"
+    }
+    testLogging.showStandardStreams = true
+    testLogging {
+        events "PASSED", "FAILED", "SKIPPED"
+        afterSuite { desc, result ->
+            if (!desc.parent) { // will match the outermost suite
+                def output = "Results: ${result.resultType} (${result.testCount} tests, ${result.successfulTestCount} successes, ${result.failedTestCount} failures, ${result.skippedTestCount} skipped)"
+                def startItem = '|  ', endItem = '  |'
+                def repeatLength = startItem.length() + output.length() + endItem.length()
+                println('\n' + ('-' * repeatLength) + '\n' + startItem + output + endItem + '\n' + ('-' * repeatLength))
+            }
+        }
     }
 }
 
@@ -89,4 +226,3 @@ compileJava {
         classpath = files()
     }
 }
-

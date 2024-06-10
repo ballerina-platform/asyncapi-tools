@@ -1,0 +1,4 @@
+[package]
+org= "ballerina"
+name= "asyncAPI"
+version= "0.1.0"

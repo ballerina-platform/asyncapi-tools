@@ -1,0 +1,129 @@
+asyncapi: 2.5.0
+info:
+  title: PayloadV
+  version: 0.0.0
+servers:
+  development:
+    url: "{server}:{port}/payloadV"
+    protocol: ws
+    protocolVersion: "13"
+    variables:
+      server:
+        default: ws://petstore.swagger.io
+      port:
+        default: "443"
+channels:
+  /pathParam:
+    subscribe:
+      message:
+        payload:
+          type: integer
+          format: int64
+    publish:
+      message:
+        oneOf:
+          - $ref: '#/components/messages/Subscribe'
+          - $ref: '#/components/messages/ReservationReceipt'
+    bindings:
+      ws:
+        bindingVersion: 0.1.0
+        query:
+          type: object
+          properties:
+            queryParam:
+              $ref: '#/components/schemas/ReservationReceipt'
+components:
+  schemas:
+    Link:
+      type: object
+      properties:
+        rel:
+          type: string
+        href:
+          type: string
+        mediaTypes:
+          type: array
+          items:
+            type: string
+    Links:
+      type: object
+      properties:
+        links:
+          type: array
+          items:
+            $ref: '#/components/schemas/Link'
+        linkid:
+          type: integer
+          format: int64
+    ReservationReceipt:
+      allOf:
+        - $ref: '#/components/schemas/Links'
+        - type: object
+          required:
+            - event
+          properties:
+            id:
+              type: string
+            event:
+              type: string
+              const: ReservationReceipt
+    Depth:
+      type: integer
+      format: int64
+      x-nullable: true
+    Interval:
+      type: integer
+      format: int64
+      x-nullable: true
+    MaxRateCount:
+      type: integer
+      format: int64
+      x-nullable: true
+    Token:
+      type: string
+      x-nullable: true
+    Subscribe:
+      type: object
+      required:
+        - name
+        - event
+      properties:
+        depth:
+          $ref: '#/components/schemas/Depth'
+        interval:
+          $ref: '#/components/schemas/Interval'
+        maxratecount:
+          $ref: '#/components/schemas/MaxRateCount'
+        name:
+          type: string
+          enum:
+            - book
+            - ohlc
+            - openOrders
+            - ownTrades
+            - spread
+            - ticker
+            - trade
+        token:
+          $ref: '#/components/schemas/Token'
+        event:
+          type: string
+          const: Subscribe
+  messages:
+    Subscribe:
+      payload:
+        $ref: '#/components/schemas/Subscribe'
+      x-response:
+        payload:
+          type: integer
+          format: int64
+      x-response-type: simple-rpc
+    ReservationReceipt:
+      payload:
+        $ref: '#/components/schemas/ReservationReceipt'
+      x-response:
+        payload:
+          type: integer
+          format: int64
+      x-response-type: simple-rpc
+x-dispatcherKey: event

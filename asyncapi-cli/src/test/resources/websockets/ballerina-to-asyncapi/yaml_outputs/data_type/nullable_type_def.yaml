@@ -1,0 +1,97 @@
+asyncapi: 2.5.0
+info:
+  title: PayloadV
+  version: 0.0.0
+servers:
+  development:
+    url: "{server}:{port}/payloadV"
+    protocol: ws
+    protocolVersion: "13"
+    variables:
+      server:
+        default: ws://localhost
+      port:
+        default: "9090"
+channels:
+  /pathParam:
+    description: Resource function description
+    subscribe:
+      message:
+        $ref: '#/components/messages/Action'
+    publish:
+      message:
+        $ref: '#/components/messages/Link'
+    bindings:
+      ws:
+        bindingVersion: 0.1.0
+        query:
+          type: object
+          properties:
+            id:
+              type: integer
+              description: Query parameter id
+              format: int64
+components:
+  schemas:
+    Books:
+      type: object
+      additionalProperties:
+        type: string
+      x-nullable: true
+    Rels:
+      type: array
+      items:
+        type: string
+      x-nullable: true
+    Action:
+      type: string
+      x-nullable: true
+    Count:
+      type: number
+      format: double
+      x-nullable: true
+    Salary:
+      oneOf:
+        - type: integer
+          format: int64
+        - type: number
+          format: float
+        - type: number
+          format: double
+      x-nullable: true
+    Link:
+      type: object
+      required:
+        - books
+        - rels
+        - actions
+        - salary
+        - action
+      properties:
+        books:
+          $ref: '#/components/schemas/Books'
+        rels:
+          $ref: '#/components/schemas/Rels'
+        actions:
+          $ref: '#/components/schemas/Action'
+        count:
+          $ref: '#/components/schemas/Count'
+        salary:
+          $ref: '#/components/schemas/Salary'
+        action:
+          type: string
+          const: Link
+  messages:
+    Action:
+      payload:
+        $ref: '#/components/schemas/Action'
+    Link:
+      payload:
+        $ref: '#/components/schemas/Link'
+        description: message description
+      description: Remote link description
+      x-response:
+        $ref: '#/components/messages/Action'
+        description: this is return description
+      x-response-type: simple-rpc
+x-dispatcherKey: action

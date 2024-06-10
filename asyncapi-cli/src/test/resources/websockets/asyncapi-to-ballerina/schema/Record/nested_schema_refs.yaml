@@ -1,0 +1,128 @@
+asyncapi: 2.5.0
+info:
+  title: PayloadV
+  version: 0.0.0
+servers:
+  development:
+    url: "{server}:{port}/payloadV"
+    protocol: ws
+    protocolVersion: "13"
+    variables:
+      server:
+        default: ws://localhost
+      port:
+        default: "9090"
+channels:
+  /:
+    subscribe:
+      message:
+        $ref: '#/components/messages/UnSubscribe'
+    publish:
+      message:
+        $ref: '#/components/messages/Subscribe'
+components:
+  schemas:
+    Subscribe:
+      type: object
+      properties:
+        pet_type:
+          not:
+            type: integer
+        event:
+          type: string
+      required:
+        - pet_type
+        - event
+    UnSubscribe:
+      type: object
+      required:
+        - event
+      properties:
+        zipCode:
+          type: integer
+        event:
+          type: string
+        request:
+          $ref: "#/components/schemas/AsanaResource"
+    AsanaResource:
+      description: A generic Asana Resource, containing a globally unique identifier.
+      type: object
+      properties:
+        gid:
+          description: Globally unique identifier of the resource, as a string.
+          type: string
+          readOnly: true
+          example: '12345'
+          x-insert-after: false
+        resource_type:
+          description: The base type of this resource.
+          type: string
+          readOnly: true
+          example: task
+          x-insert-after: gid
+    UserCompact:
+      allOf:
+        - $ref: '#/components/schemas/AsanaResource'
+        - type: object
+          description: A user object represents an account in Asana that can be given
+            access to various workspaces, projects, and tasks.
+          x-docs-overrides:
+            properties.resource_type.example: user
+          properties:
+            name:
+              type: string
+              description: Read-only except when same user as requester.
+              example: Greg Sanchez
+    ProjectStatusCompact:
+      allOf:
+        - $ref: '#/components/schemas/AsanaResource'
+        - type: object
+          description: A project status is an update on the progress of a particular
+            project, and is sent out to all project followers when created.
+          properties:
+            title:
+              description: The title of the project status update.
+              type: string
+              example: Status Update - Jun 15
+    ProjectStatusRequest:
+      $ref: '#/components/schemas/ProjectStatusBase'
+    ProjectStatusBase:
+      allOf:
+        - $ref: '#/components/schemas/ProjectStatusCompact'
+        - type: object
+          required:
+            - text
+            - color
+          properties:
+            author:
+              $ref: '#/components/schemas/UserCompact'
+            modified_at:
+              description: The time at which this project status was last modified.
+            text:
+              description: The text content of the status update.
+              type: string
+              example: The project is moving forward according to plan...
+            html_text:
+              type: string
+              example: >-
+                <body>The project <strong>is</strong> moving forward according to
+                plan...</body>
+            color:
+              description: The color associated with the status update.
+              type: string
+  messages:
+    UnSubscribe:
+      payload:
+        $ref: '#/components/schemas/UnSubscribe'
+    Subscribe:
+      payload:
+        $ref: '#/components/schemas/Subscribe'
+      x-response:
+        $ref: '#/components/messages/UnSubscribe'
+      x-response-type: simple-rpc
+x-dispatcherKey: event
+x-dispatcherStreamId: id
+
+
+
+

@@ -1,0 +1,73 @@
+asyncapi: 2.5.0
+info:
+  title: PayloadV
+  version: 0.0.0
+servers:
+  development:
+    url: "{server}:{port}/payloadV"
+    protocol: ws
+    protocolVersion: "13"
+    variables:
+      server:
+        default: ws://localhost
+      port:
+        default: "9090"
+channels:
+  /reservation/{id}:
+    description: reservation channel description
+    subscribe:
+      message:
+        payload:
+          type: integer
+          format: int64
+    publish:
+      message:
+        $ref: '#/components/messages/Link'
+    parameters:
+      id:
+        description: id description
+        schema:
+          type: string
+components:
+  schemas:
+    Link:
+      type: object
+      required:
+        - rel
+        - href
+        - event
+      properties:
+        rel:
+          type: string
+        href:
+          type: string
+        mediaTypes:
+          type: array
+          items:
+            type: string
+        actions:
+          type: array
+          items:
+            type: string
+            enum:
+              - GET
+              - POST
+              - PUT
+              - DELETE
+              - PATCH
+        event:
+          type: string
+          const: Link
+  messages:
+    Link:
+      payload:
+        $ref: '#/components/schemas/Link'
+        description: link description
+      description: onlink remote function description
+      x-response:
+        payload:
+          type: integer
+          format: int64
+        description: Return int description
+      x-response-type: simple-rpc
+x-dispatcherKey: event

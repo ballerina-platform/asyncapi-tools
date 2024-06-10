@@ -1,0 +1,52 @@
+asyncapi: 2.5.0
+info:
+  title: PayloadV
+  version: 0.0.0
+servers:
+  development:
+    url: "{server}:{port}/payloadV"
+    protocol: ws
+    protocolVersion: "13"
+    variables:
+      server:
+        default: ws://localhost
+      port:
+        default: "9090"
+channels:
+  /:
+    subscribe:
+      message:
+        payload:
+          type: integer
+          format: int64
+    publish:
+      message:
+        $ref: '#/components/messages/Location'
+components:
+  schemas:
+    Location:
+      type: object
+      required:
+        - id
+        - event
+      properties:
+        id:
+          type: string
+          description: Unique identification
+        event:
+          type: string
+          const: Location
+      description: Represents location
+  messages:
+    Location:
+      payload:
+        $ref: '#/components/schemas/Location'
+      description: Represents Snowpeak location resource
+      x-response:
+        payload:
+          type: integer
+          format: int64
+        description: '`Location` representation'
+        x-required: false
+      x-response-type: simple-rpc
+x-dispatcherKey: event

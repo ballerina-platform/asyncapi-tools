@@ -1,0 +1,22 @@
+channels:
+  /ping:
+    subscribe:
+      message:
+        payload:
+          type: integer
+          format: int64
+    publish:
+      message:
+        $ref: '#/components/messages/Subscribe'
+    bindings:
+      ws:
+        bindingVersion: 0.1.0
+        headers:
+          type: object
+          properties:
+            headerValue:
+              type: string
+            x-request-client:
+              type: string
+              extensions:
+                x-nullable: true

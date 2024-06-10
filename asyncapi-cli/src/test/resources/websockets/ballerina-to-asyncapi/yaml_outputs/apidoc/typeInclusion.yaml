@@ -1,0 +1,107 @@
+asyncapi: 2.5.0
+info:
+  title: PayloadV
+  version: 0.0.0
+servers:
+  development:
+    url: "{server}:{port}/payloadV"
+    protocol: ws
+    protocolVersion: "13"
+    variables:
+      server:
+        default: ws://localhost
+      port:
+        default: "9090"
+channels:
+  /locations/{id}/rooms:
+    description: Reperesents Snowpeak room collection resource
+    subscribe:
+      message:
+        payload:
+          type: integer
+          format: int64
+    publish:
+      message:
+        oneOf:
+          - $ref: '#/components/messages/ReservationReceipt'
+          - $ref: '#/components/messages/Link'
+    parameters:
+      id:
+        description: Unique identification of location
+        schema:
+          type: string
+components:
+  schemas:
+    Link:
+      type: object
+      required:
+        - rel
+        - href
+        - event
+      properties:
+        rel:
+          type: string
+          description: link rel
+        href:
+          type: string
+          description: link href
+        mediaTypes:
+          type: array
+          items:
+            type: string
+          description: link mediatype
+        event:
+          type: string
+          const: Link
+          description: Remote trigger field
+      description: Link record
+    Links:
+      type: object
+      required:
+        - links
+        - linkid
+      properties:
+        links:
+          type: array
+          items:
+            $ref: '#/components/schemas/Link'
+          description: Array links
+        linkid:
+          type: integer
+          description: link id
+          format: int64
+      description: Links array
+    ReservationReceipt:
+      allOf:
+        - $ref: '#/components/schemas/Links'
+        - type: object
+          required:
+            - id
+            - event
+          properties:
+            id:
+              type: string
+              description: Reservation receipt id
+            event:
+              type: string
+              const: ReservationReceipt
+              description: Remote trigger field
+          description: ReservationReceipt details
+  messages:
+    ReservationReceipt:
+      payload:
+        $ref: '#/components/schemas/ReservationReceipt'
+      x-response:
+        payload:
+          type: integer
+          format: int64
+      x-response-type: simple-rpc
+    Link:
+      payload:
+        $ref: '#/components/schemas/Link'
+      x-response:
+        payload:
+          type: integer
+          format: int64
+      x-response-type: simple-rpc
+x-dispatcherKey: event
