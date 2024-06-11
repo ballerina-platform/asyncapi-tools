@@ -22,7 +22,6 @@ import io.ballerina.asyncapi.cmd.websockets.AsyncAPIToBallerinaGenerator;
 import io.ballerina.asyncapi.cmd.websockets.BallerinaToAsyncAPIGenerator;
 import io.ballerina.asyncapi.cmd.websockets.CmdConstants;
 import io.ballerina.asyncapi.cmd.websockets.CmdUtils;
-import io.ballerina.asyncapi.cmd.websockets.ErrorMessages;
 import io.ballerina.asyncapi.codegenerator.application.Application;
 import io.ballerina.asyncapi.codegenerator.application.CodeGenerator;
 import io.ballerina.asyncapi.codegenerator.configuration.BallerinaAsyncApiException;
@@ -86,9 +85,6 @@ public class AsyncApiCmd implements BLauncherCmd {
 
     @CommandLine.Option(names = {"--with-tests"}, hidden = true, description = "Generate test files")
     private boolean includeTestFiles;
-
-    @CommandLine.Option(names = {"--service-name"}, description = "Service name for generated files")
-    private String generatedServiceName;
 
     @CommandLine.Option(names = {"--json"}, description = "Generate json file")
     private boolean generatedFileType;
@@ -155,6 +151,7 @@ public class AsyncApiCmd implements BLauncherCmd {
             String fileName = argList.get(0);
 
             if (protocol.equals("http")) {
+                verifyValidInputsForHttp();
                 Application codeGenerator = new CodeGenerator();
                 try {
                     codeGenerator.generate(fileName, (outputPath == null) ?
@@ -182,7 +179,7 @@ public class AsyncApiCmd implements BLauncherCmd {
                     }
                     // If -i has no extensions
                 } else {
-                    outStream.println(ErrorMessages.MISSING_CONTRACT_PATH);
+                    outStream.println(AsyncApiMessages.MISSING_CONTRACT_PATH);
                     exitError(this.exitWhenFinish);
                 }
             }
@@ -196,6 +193,25 @@ public class AsyncApiCmd implements BLauncherCmd {
 
         if (this.exitWhenFinish) {
             Runtime.getRuntime().exit(0);
+        }
+    }
+
+    private void verifyValidInputsForHttp() {
+        if (licenseFilePath != null) {
+            outStream.println(AsyncApiMessages.MESSAGE_FOR_LICENSE_FLAG);
+            exitError(this.exitWhenFinish);
+        }
+        if (service != null) {
+            outStream.println(AsyncApiMessages.MESSAGE_FOR_SERVICE_FLAG);
+            exitError(this.exitWhenFinish);
+        }
+        if (includeTestFiles) {
+            outStream.println(AsyncApiMessages.MESSAGE_FOR_TEST_FLAG);
+            exitError(this.exitWhenFinish);
+        }
+        if (generatedFileType) {
+            outStream.println(AsyncApiMessages.MESSAGE_FOR_JSON_FLAG);
+            exitError(this.exitWhenFinish);
         }
     }
 
@@ -299,7 +315,7 @@ public class AsyncApiCmd implements BLauncherCmd {
                 outStream.println(e.getLocalizedMessage());
                 exitError(this.exitWhenFinish);
             } else {
-                outStream.println(ErrorMessages.CLIENT_GENERATION_FAILED);
+                outStream.println(AsyncApiMessages.CLIENT_GENERATION_FAILED);
                 exitError(this.exitWhenFinish);
             }
         }
