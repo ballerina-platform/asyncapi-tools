@@ -182,8 +182,10 @@ public class AsyncApiCmd implements BLauncherCmd {
                     outStream.println(AsyncApiMessages.MISSING_CONTRACT_PATH);
                     exitError(this.exitWhenFinish);
                 }
+            } else {
+                outStream.println("ERROR invalid protocol: " + protocol + ". Supported protocols are `http` and `ws`.");
+                exitError(this.exitWhenFinish);
             }
-
         } else {
             String commandUsageInfo = BLauncherCmd.getCommandUsageInfo(getName());
             outStream.println(commandUsageInfo);

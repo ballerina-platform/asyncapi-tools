@@ -55,10 +55,12 @@ public client isolated class KrakenWebsocketsAPIClient {
     #
     private isolated function startMessageWriting() {
         worker writeMessage returns error? {
-            while self.isMessageWriting {
-                anydata requestMessage = check self.writeMessageQueue.consume(5);
-                check self.clientEp->writeMessage(requestMessage);
-                runtime:sleep(0.01);
+            lock {
+                while self.isMessageWriting {
+                    anydata requestMessage = check self.writeMessageQueue.consume(5);
+                    check self.clientEp->writeMessage(requestMessage);
+                    runtime:sleep(0.01);
+                }
             }
         }
     }
@@ -66,10 +68,12 @@ public client isolated class KrakenWebsocketsAPIClient {
     #
     private isolated function startMessageReading() {
         worker readMessage returns error? {
-            while self.isMessageReading {
-                Message message = check self.clientEp->readMessage();
-                check self.readMessageQueue.produce(message, 5);
-                runtime:sleep(0.01);
+            lock {
+                while self.isMessageReading {
+                    Message message = check self.clientEp->readMessage();
+                    check self.readMessageQueue.produce(message, 5);
+                    runtime:sleep(0.01);
+                }
             }
         }
     }
@@ -77,29 +81,31 @@ public client isolated class KrakenWebsocketsAPIClient {
     #
     private isolated function startPipeTriggering() {
         worker pipeTrigger returns error? {
-            while self.isPipeTriggering {
-                Message message = check self.readMessageQueue.consume(5);
-                string event = message.event;
-                match (event) {
-                    "Pong" => {
-                        pipe:Pipe pingPipe = self.pipes.getPipe("ping");
-                        check pingPipe.produce(message, 5);
-                    }
-                    "SubscriptionStatus" => {
-                        pipe:Pipe subscribePipe = self.pipes.getPipe("subscribe");
-                        check subscribePipe.produce(message, 5);
-                    }
-                    "SubscriptionStatus" => {
-                        pipe:Pipe unsubscribePipe = self.pipes.getPipe("unsubscribe");
-                        check unsubscribePipe.produce(message, 5);
-                    }
-                    "Heartbeat" => {
-                        pipe:Pipe heartbeatPipe = self.pipes.getPipe("heartbeat");
-                        check heartbeatPipe.produce(message, 5);
-                    }
-                    "SystemStatus" => {
-                        pipe:Pipe systemStatusPipe = self.pipes.getPipe("systemStatus");
-                        check systemStatusPipe.produce(message, 5);
+            lock {
+                while self.isPipeTriggering {
+                    Message message = check self.readMessageQueue.consume(5);
+                    string event = message.event;
+                    match (event) {
+                        "Pong" => {
+                            pipe:Pipe pingPipe = self.pipes.getPipe("ping");
+                            check pingPipe.produce(message, 5);
+                        }
+                        "SubscriptionStatus" => {
+                            pipe:Pipe subscribePipe = self.pipes.getPipe("subscribe");
+                            check subscribePipe.produce(message, 5);
+                        }
+                        "SubscriptionStatus" => {
+                            pipe:Pipe unsubscribePipe = self.pipes.getPipe("unsubscribe");
+                            check unsubscribePipe.produce(message, 5);
+                        }
+                        "Heartbeat" => {
+                            pipe:Pipe heartbeatPipe = self.pipes.getPipe("heartbeat");
+                            check heartbeatPipe.produce(message, 5);
+                        }
+                        "SystemStatus" => {
+                            pipe:Pipe systemStatusPipe = self.pipes.getPipe("systemStatus");
+                            check systemStatusPipe.produce(message, 5);
+                        }
                     }
                 }
             }

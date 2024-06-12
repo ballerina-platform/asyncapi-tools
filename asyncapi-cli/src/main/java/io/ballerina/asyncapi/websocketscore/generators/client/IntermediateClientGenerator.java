@@ -637,7 +637,7 @@ public class IntermediateClientGenerator {
         TextNode dispatcherKeyNode = (TextNode) extensions.get(X_DISPATCHER_KEY);
 
         String dispatcherKey = dispatcherKeyNode.asText();
-        if (dispatcherKey.equals("")) {
+        if (dispatcherKey.isEmpty()) {
             throw new BallerinaAsyncApiExceptionWs(X_DISPATCHER_KEY_CANNOT_BE_EMPTY);
         }
 
@@ -669,17 +669,16 @@ public class IntermediateClientGenerator {
                 pipeIdMethods, pipeNameMethods);
 
 
-        if (pipeIdMethods.size() == 0 && pipeNameMethods.size() == 0) {
+        if (pipeIdMethods.isEmpty() && pipeNameMethods.isEmpty()) {
             throw new BallerinaAsyncApiExceptionWs(BALLERINA_CLIENT_CANNOT_BE_GENERATED);
         }
 
         // Collect members for class definition node
-        List<Node> memberNodeList = new ArrayList<>();
 
-        boolean isStreamPresent = streamReturns.size() > 0;
+        boolean isStreamPresent = !streamReturns.isEmpty();
 
         // Add instance variable to class definition node
-        memberNodeList.addAll(createClassInstanceVariables(pipeNameMethods, isStreamPresent));
+        List<Node> memberNodeList = new ArrayList<>(createClassInstanceVariables(pipeNameMethods, isStreamPresent));
 
         // Add init function to class definition node
         memberNodeList.add(createInitFunction(pipeNameMethods, isStreamPresent));
@@ -747,10 +746,10 @@ public class IntermediateClientGenerator {
         IdentifierToken functionName = createIdentifierToken(START_MESSAGE_READING);
 
         //Return function
-        return createFunctionDefinitionNode(null, getDocCommentsForWorker(X_BALLERINA_MESSAGE_READ_DESCRIPTION,
-                        START_MESSAGE_READING_DESCRIPTION), qualifierList,
-                createToken(FUNCTION_KEYWORD),
-                functionName, createEmptyNodeList(), functionSignatureNode, functionBodyNode);
+        return createFunctionDefinitionNode(SyntaxKind.OBJECT_METHOD_DEFINITION,
+                getDocCommentsForWorker(X_BALLERINA_MESSAGE_READ_DESCRIPTION, START_MESSAGE_READING_DESCRIPTION),
+                qualifierList, createToken(FUNCTION_KEYWORD), functionName, createEmptyNodeList(),
+                functionSignatureNode, functionBodyNode);
     }
 
     //
@@ -819,7 +818,6 @@ public class IntermediateClientGenerator {
         whileStatements.add(readMessageQueueCheck);
         whileStatements.add(runtimeSleep);
 
-
         BlockStatementNode whileBody = createBlockStatementNode(openBraceToken, createNodeList(whileStatements),
                 closeBraceToken);
         FieldAccessExpressionNode selfDotIsMessageReading = createFieldAccessExpressionNode(
@@ -827,21 +825,18 @@ public class IntermediateClientGenerator {
                 createSimpleNameReferenceNode(createIdentifierToken(GeneratorConstants.IS_MESSAGE_READING)));
         NodeList<StatementNode> workerStatements = createNodeList(createWhileStatementNode(createToken(WHILE_KEYWORD),
                 selfDotIsMessageReading, whileBody, null));
-
+        NodeList<StatementNode> lockStatements = createNodeList(createLockStatementNode(createToken(LOCK_KEYWORD),
+                createBlockStatementNode(openBraceToken, workerStatements, closeBraceToken), null));
 
         NodeList<AnnotationNode> annotations = createEmptyNodeList();
         NodeList workerDeclarationNodes = createNodeList(createNamedWorkerDeclarationNode(annotations,
                 null, createToken(WORKER_KEYWORD)
                 , createIdentifierToken(READ_MESSAGE), createReturnTypeDescriptorNode(
                         createToken(RETURNS_KEYWORD), createEmptyNodeList(), createIdentifierToken(OPTIONAL_ERROR)),
-                createBlockStatementNode(openBraceToken, workerStatements,
-                        closeBraceToken)));
-
+                createBlockStatementNode(openBraceToken, lockStatements, closeBraceToken)));
 
         return createFunctionBodyBlockNode(openBraceToken,
                 null, workerDeclarationNodes, closeBraceToken, null);
-
-
     }
 
     private FunctionSignatureNode getStartMessageReadingFunctionSignatureNode() {
@@ -871,10 +866,10 @@ public class IntermediateClientGenerator {
 
 
         //Return function
-        return createFunctionDefinitionNode(null, getDocCommentsForWorker(X_BALLERINA_PIPE_TRIGGER_DESCRIPTION,
-                        START_PIPE_TRIGGERING_DESCRIPTION), qualifierList,
-                createToken(FUNCTION_KEYWORD),
-                functionName, createEmptyNodeList(), functionSignatureNode, functionBodyNode);
+        return createFunctionDefinitionNode(SyntaxKind.OBJECT_METHOD_DEFINITION,
+                getDocCommentsForWorker(X_BALLERINA_PIPE_TRIGGER_DESCRIPTION, START_PIPE_TRIGGERING_DESCRIPTION),
+                qualifierList, createToken(FUNCTION_KEYWORD), functionName, createEmptyNodeList(),
+                functionSignatureNode, functionBodyNode);
     }
 
     private FunctionBodyNode getStartPipeTriggeringFunctionBodyNode(
@@ -928,11 +923,7 @@ public class IntermediateClientGenerator {
         GeneratorUtils.updateTypeDefNodeList(MESSAGE, responseMessageTypeDefinitionNode,
                 typeDefinitionNodeList);
 
-
-        //////////////////////////////////////////////////////////////////////////////////////////////////////////////
         whileStatements.add(responseMessageNode);
-
-        ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
         IfElseStatementNode ifElseStatementNode;
         if (matchClauseNodes.size() != 0 && idMethods.size() != 0) {
@@ -1017,13 +1008,15 @@ public class IntermediateClientGenerator {
                 createSimpleNameReferenceNode(createIdentifierToken(GeneratorConstants.IS_PIPE_TRIGGERING)));
         NodeList<StatementNode> workerStatements = createNodeList(createWhileStatementNode(createToken(WHILE_KEYWORD),
                 selfDotIsPipeTriggering, whileBody, null));
+        NodeList<StatementNode> lockStatements = createNodeList(createLockStatementNode(createToken(LOCK_KEYWORD),
+                createBlockStatementNode(openBraceToken, workerStatements, closeBraceToken), null));
 
         //Create worker
         NodeList workerDeclarationNodes = createNodeList(createNamedWorkerDeclarationNode(createEmptyNodeList(),
                 null, createToken(WORKER_KEYWORD)
                 , createIdentifierToken(PIPE_TRIGGER), createReturnTypeDescriptorNode(
                         createToken(RETURNS_KEYWORD), createEmptyNodeList(), createIdentifierToken(OPTIONAL_ERROR)),
-                createBlockStatementNode(openBraceToken, workerStatements,
+                createBlockStatementNode(openBraceToken, lockStatements,
                         closeBraceToken)));
 
         //Return worker
@@ -1213,10 +1206,10 @@ public class IntermediateClientGenerator {
         FunctionBodyNode functionBodyNode = getStartMessageWritingFunctionBodyNode();
         NodeList<Token> qualifierList = createNodeList(createToken(PRIVATE_KEYWORD), createToken(ISOLATED_KEYWORD));
         IdentifierToken functionName = createIdentifierToken(START_MESSAGE_WRITING);
-        return createFunctionDefinitionNode(null, getDocCommentsForWorker(X_BALLERINA_MESSAGE_WRITE_DESCRIPTION,
-                        START_MESSAGE_WRITING_DESCRIPTION), qualifierList,
-                createToken(FUNCTION_KEYWORD),
-                functionName, createEmptyNodeList(), functionSignatureNode, functionBodyNode);
+        return createFunctionDefinitionNode(SyntaxKind.OBJECT_METHOD_DEFINITION,
+                getDocCommentsForWorker(X_BALLERINA_MESSAGE_WRITE_DESCRIPTION, START_MESSAGE_WRITING_DESCRIPTION),
+                qualifierList, createToken(FUNCTION_KEYWORD), functionName, createEmptyNodeList(),
+                functionSignatureNode, functionBodyNode);
     }
 
     private FunctionBodyNode getStartMessageWritingFunctionBodyNode() {
@@ -1288,13 +1281,14 @@ public class IntermediateClientGenerator {
                 createSimpleNameReferenceNode(createIdentifierToken(GeneratorConstants.IS_MESSAGE_WRITING)));
         NodeList<StatementNode> workerStatements = createNodeList(createWhileStatementNode(createToken(WHILE_KEYWORD),
                 selfDotIsMessageWriting, whileBody, null));
-
+        NodeList<StatementNode> lockStatements = createNodeList(createLockStatementNode(createToken(LOCK_KEYWORD),
+                createBlockStatementNode(openBraceToken, workerStatements, closeBraceToken), null));
 
         NodeList workerDeclarationNodes = createNodeList(createNamedWorkerDeclarationNode(annotations,
                 null, createToken(WORKER_KEYWORD)
                 , createIdentifierToken(WRITE_MESSAGE), createReturnTypeDescriptorNode(
                         createToken(RETURNS_KEYWORD), createEmptyNodeList(), createIdentifierToken(OPTIONAL_ERROR)),
-                createBlockStatementNode(openBraceToken, workerStatements,
+                createBlockStatementNode(openBraceToken, lockStatements,
                         closeBraceToken)));
 
 
@@ -1346,7 +1340,7 @@ public class IntermediateClientGenerator {
                 isStreamPresent);
         NodeList<Token> qualifierList = createNodeList(createToken(PUBLIC_KEYWORD), createToken(ISOLATED_KEYWORD));
         IdentifierToken functionName = createIdentifierToken(INIT);
-        return createFunctionDefinitionNode(null, getInitDocComment(), qualifierList,
+        return createFunctionDefinitionNode(SyntaxKind.OBJECT_METHOD_DEFINITION, getInitDocComment(), qualifierList,
                 createToken(FUNCTION_KEYWORD),
                 functionName, createEmptyNodeList(), functionSignatureNode, functionBodyNode);
     }
@@ -2194,7 +2188,7 @@ public class IntermediateClientGenerator {
                         REMOTE_KEYWORD),
                 createToken(ISOLATED_KEYWORD));
         Token functionKeyWord = createToken(FUNCTION_KEYWORD);
-        return createFunctionDefinitionNode(null,
+        return createFunctionDefinitionNode(SyntaxKind.OBJECT_METHOD_DEFINITION,
                 metadataNode, qualifierList, functionKeyWord, functionName, createEmptyNodeList(),
                 functionSignatureNode, functionBodyNode);
 
@@ -2343,7 +2337,7 @@ public class IntermediateClientGenerator {
                 getValidName(messageName, true));
 
         //Create whole remote function
-        return createFunctionDefinitionNode(null,
+        return createFunctionDefinitionNode(SyntaxKind.OBJECT_METHOD_DEFINITION,
                 metadataNode, qualifierList, functionKeyWord, functionName, createEmptyNodeList(),
                 functionSignatureNode, functionBodyNode);
     }

@@ -36,10 +36,12 @@ public client isolated class ChatClient {
     #
     private isolated function startMessageWriting() {
         worker writeMessage returns error? {
-            while self.isMessageWriting {
-                anydata requestMessage = check self.writeMessageQueue.consume(5);
-                check self.clientEp->writeMessage(requestMessage);
-                runtime:sleep(0.01);
+            lock {
+                while self.isMessageWriting {
+                    anydata requestMessage = check self.writeMessageQueue.consume(5);
+                    check self.clientEp->writeMessage(requestMessage);
+                    runtime:sleep(0.01);
+                }
             }
         }
     }
@@ -47,10 +49,12 @@ public client isolated class ChatClient {
     #
     private isolated function startMessageReading() {
         worker readMessage returns error? {
-            while self.isMessageReading {
-                Message message = check self.clientEp->readMessage();
-                check self.readMessageQueue.produce(message, 5);
-                runtime:sleep(0.01);
+            lock {
+                while self.isMessageReading {
+                    Message message = check self.clientEp->readMessage();
+                    check self.readMessageQueue.produce(message, 5);
+                    runtime:sleep(0.01);
+                }
             }
         }
     }
@@ -58,13 +62,15 @@ public client isolated class ChatClient {
     #
     private isolated function startPipeTriggering() {
         worker pipeTrigger returns error? {
-            while self.isPipeTriggering {
-                Message message = check self.readMessageQueue.consume(5);
-                if message.hasKey("id") {
-                    MessageWithId messageWithId = check message.cloneWithType();
-                    string id = messageWithId.id;
-                    pipe:Pipe idPipe = self.pipes.getPipe(id);
-                    check idPipe.produce(messageWithId, 5);
+            lock {
+                while self.isPipeTriggering {
+                    Message message = check self.readMessageQueue.consume(5);
+                    if message.hasKey("id") {
+                        MessageWithId messageWithId = check message.cloneWithType();
+                        string id = messageWithId.id;
+                        pipe:Pipe idPipe = self.pipes.getPipe(id);
+                        check idPipe.produce(messageWithId, 5);
+                    }
                 }
             }
         }
