@@ -99,8 +99,7 @@ public class RemoteFunctionSignatureGenerator {
      * @throws BallerinaAsyncApiExceptionWs - throws exception when node creation fails.
      */
     public FunctionSignatureNode getFunctionSignatureNode(JsonNode payload, List<Node> remoteFunctionDoc,
-                                                          Map<String, JsonNode> extensions,
-                                                          String returnType,
+                                                          Map<String, JsonNode> extensions, String returnType,
                                                           List<String> streamReturns)
             throws BallerinaAsyncApiExceptionWs {
 

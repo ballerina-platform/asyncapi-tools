@@ -20,25 +20,21 @@ package io.ballerina.asyncapi.websocketscore.generators.client;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.TextNode;
-import io.ballerina.asyncapi.websocketscore.GeneratorConstants;
 import io.ballerina.asyncapi.websocketscore.GeneratorUtils;
-import io.ballerina.asyncapi.websocketscore.exception.BallerinaAsyncApiExceptionWs;
 import io.ballerina.compiler.syntax.tree.AssignmentStatementNode;
 import io.ballerina.compiler.syntax.tree.CheckExpressionNode;
 import io.ballerina.compiler.syntax.tree.ExpressionStatementNode;
 import io.ballerina.compiler.syntax.tree.FieldAccessExpressionNode;
 import io.ballerina.compiler.syntax.tree.FunctionArgumentNode;
 import io.ballerina.compiler.syntax.tree.FunctionBodyNode;
-import io.ballerina.compiler.syntax.tree.IfElseStatementNode;
 import io.ballerina.compiler.syntax.tree.ImplicitNewExpressionNode;
 import io.ballerina.compiler.syntax.tree.ImportDeclarationNode;
 import io.ballerina.compiler.syntax.tree.LockStatementNode;
-import io.ballerina.compiler.syntax.tree.MatchClauseNode;
 import io.ballerina.compiler.syntax.tree.MethodCallExpressionNode;
 import io.ballerina.compiler.syntax.tree.Node;
 import io.ballerina.compiler.syntax.tree.NodeList;
+import io.ballerina.compiler.syntax.tree.NodeParser;
 import io.ballerina.compiler.syntax.tree.ParenthesizedArgList;
-import io.ballerina.compiler.syntax.tree.PositionalArgumentNode;
 import io.ballerina.compiler.syntax.tree.QualifiedNameReferenceNode;
 import io.ballerina.compiler.syntax.tree.ReturnStatementNode;
 import io.ballerina.compiler.syntax.tree.SeparatedNodeList;
@@ -46,8 +42,8 @@ import io.ballerina.compiler.syntax.tree.SimpleNameReferenceNode;
 import io.ballerina.compiler.syntax.tree.StatementNode;
 import io.ballerina.compiler.syntax.tree.StreamTypeDescriptorNode;
 import io.ballerina.compiler.syntax.tree.StreamTypeParamsNode;
-import io.ballerina.compiler.syntax.tree.SyntaxKind;
 import io.ballerina.compiler.syntax.tree.Token;
+import io.ballerina.compiler.syntax.tree.TypeDescriptorNode;
 import io.ballerina.compiler.syntax.tree.VariableDeclarationNode;
 
 import java.util.ArrayList;
@@ -55,19 +51,42 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
-import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.CONNECTION_CLOSED;
+import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.ADD_PIPE;
+import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.ATTEMPT_CON_CLOSE;
+import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.CAPITAL_PIPE;
+import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.CLONE_WITH_TYPE;
+import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.CONNECTION_CLOSED_TEMPLATE;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.CONSUME;
+import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.CONSUMING;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.CREATE_TYPE1_AS_STRING;
+import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.DATABINDING_ERR_TEMPLATE;
+import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.DOT;
+import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.ERROR;
+import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.GET_PIPE;
+import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.GRACEFUL_CLOSE;
+import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.IS;
+import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.IS_ACTIVE;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.MESSAGE;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.MESSAGE_VAR_NAME;
+import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.NOT;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.PIPE;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.PIPES;
+import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.PIPE_ERR;
+import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.PIPE_ERROR;
+import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.PIPE_PRODUCE_ERR_TEMPLATE;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.PRODUCE;
+import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.PRODUCING;
+import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.RESPONSE_MESSAGE;
+import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.RETURN;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.SELF;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.SERVER_STREAMING;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.SIMPLE_PIPE;
+import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.SPACE;
+import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.STREAM_GENERATOR;
+import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.STRING;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.TIMEOUT;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.UUID;
+import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.WITHIN_PAREN_TEMPLATE;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.WRITE_MESSAGE_QUEUE;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.X_RESPONSE_TYPE;
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createEmptyNodeList;
@@ -87,8 +106,8 @@ import static io.ballerina.compiler.syntax.tree.NodeFactory.createFunctionBodyBl
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createIfElseStatementNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createImplicitNewExpressionNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createLockStatementNode;
-import static io.ballerina.compiler.syntax.tree.NodeFactory.createMatchClauseNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createMethodCallExpressionNode;
+import static io.ballerina.compiler.syntax.tree.NodeFactory.createOptionalTypeDescriptorNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createParenthesizedArgList;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createPositionalArgumentNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createQualifiedNameReferenceNode;
@@ -114,7 +133,8 @@ import static io.ballerina.compiler.syntax.tree.SyntaxKind.LT_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.NEW_KEYWORD;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.OPEN_BRACE_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.OPEN_PAREN_TOKEN;
-import static io.ballerina.compiler.syntax.tree.SyntaxKind.RIGHT_DOUBLE_ARROW_TOKEN;
+import static io.ballerina.compiler.syntax.tree.SyntaxKind.QUESTION_MARK_TOKEN;
+import static io.ballerina.compiler.syntax.tree.SyntaxKind.RETURN_KEYWORD;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.SEMICOLON_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.STREAM_KEYWORD;
 
@@ -126,30 +146,28 @@ import static io.ballerina.compiler.syntax.tree.SyntaxKind.STREAM_KEYWORD;
 public class RemoteFunctionBodyGenerator {
 
     private final List<ImportDeclarationNode> imports;
+    private final String functionName;
 
-    public RemoteFunctionBodyGenerator(List<ImportDeclarationNode> imports) {
+    private static final Token openParenToken = createToken(OPEN_PAREN_TOKEN);
+    private static final Token closeParenToken = createToken(CLOSE_PAREN_TOKEN);
+    private static final Token openBraceToken = createToken(OPEN_BRACE_TOKEN);
+    private static final Token closeBraceToken = createToken(CLOSE_BRACE_TOKEN);
+    private static final Token semicolonToken = createToken(SEMICOLON_TOKEN);
+    private static final Token equalToken = createToken(EQUAL_TOKEN);
+    private static final Token dotToken = createToken(DOT_TOKEN);
+    private static final Token colonToken = createToken(COLON_TOKEN);
+
+    public RemoteFunctionBodyGenerator(List<ImportDeclarationNode> imports, String functionName) {
         this.imports = Collections.unmodifiableList(imports);
+        this.functionName = functionName;
     }
 
-    private void createCommentStatementsForDispatcherId(List<StatementNode> statementsList,
-                                                        String requestType,
-                                                        String dispatcherStreamId,
-                                                        String requestTypePipe,
-                                                        boolean isSubscribe) {
+    private void addProduceStatementForWriteMessageQueue(List<StatementNode> statementsList, String requestType,
+                                                         String dispatcherStreamId, String requestTypePipe,
+                                                         boolean isSubscribe) {
 
         SimpleNameReferenceNode requestTypePipeNode = createSimpleNameReferenceNode(
                 createIdentifierToken(requestTypePipe));
-        Token equalToken = createToken(EQUAL_TOKEN);
-        Token semicolonToken = createToken(SEMICOLON_TOKEN);
-        Token dotToken = createToken(DOT_TOKEN);
-        Token openBraceToken = createToken(OPEN_BRACE_TOKEN);
-        Token closeBraceToken = createToken(CLOSE_BRACE_TOKEN);
-        Token openParenToken = createToken(OPEN_PAREN_TOKEN);
-        Token closeParenToken = createToken(CLOSE_PAREN_TOKEN);
-
-        PositionalArgumentNode responseTypeTimeOut = createPositionalArgumentNode(createRequiredExpressionNode(
-                createIdentifierToken(TIMEOUT)));
-
 
         ArrayList<StatementNode> lockStatements = new ArrayList<>();
 
@@ -159,10 +177,9 @@ public class RemoteFunctionBodyGenerator {
                     createIdentifierToken(dispatcherStreamId));
             VariableDeclarationNode dispatcherStreamIdDefineNode = createVariableDeclarationNode(
                     createEmptyNodeList(), null,
-                    createTypedBindingPatternNode(
-                            createSimpleNameReferenceNode(createIdentifierToken("string")),
-                            createFieldBindingPatternVarnameNode(dispatcherStreamIdNode)),
-                    null, null, semicolonToken);
+                    createTypedBindingPatternNode(createSimpleNameReferenceNode(createIdentifierToken(STRING)),
+                            createFieldBindingPatternVarnameNode(dispatcherStreamIdNode)), null, null,
+                    semicolonToken);
             // string id;
             statementsList.add(dispatcherStreamIdDefineNode);
 
@@ -185,20 +202,16 @@ public class RemoteFunctionBodyGenerator {
             lockStatements.add(idValueAssignmentStatementNode);
 
             LockStatementNode functionLockStatementNode = createLockStatementNode(createToken(LOCK_KEYWORD),
-                    createBlockStatementNode(openBraceToken, createNodeList(lockStatements), closeBraceToken),
-                    null);
-
+                    createBlockStatementNode(openBraceToken, createNodeList(lockStatements), closeBraceToken), null);
 
             statementsList.add(functionLockStatementNode);
 
-
             FieldAccessExpressionNode remoteSelfPipes = createFieldAccessExpressionNode(
                     createSimpleNameReferenceNode(createIdentifierToken(SELF)), dotToken,
-                    createSimpleNameReferenceNode(createIdentifierToken("pipes")));
+                    createSimpleNameReferenceNode(createIdentifierToken(PIPES)));
 
             MethodCallExpressionNode addPipeMethodCallExpressionNode = createMethodCallExpressionNode(remoteSelfPipes,
-                    dotToken,
-                    createSimpleNameReferenceNode(createIdentifierToken("addPipe")),
+                    dotToken, createSimpleNameReferenceNode(createIdentifierToken(ADD_PIPE)),
                     openParenToken, createSeparatedNodeList(dispatcherStreamIdNode, createToken(COMMA_TOKEN),
                             requestTypePipeNode), closeParenToken);
             ExpressionStatementNode addPipeByIdStatement = createExpressionStatementNode(null,
@@ -206,84 +219,75 @@ public class RemoteFunctionBodyGenerator {
 
             // self.pipes.addPipe(id, subscribePipe);
             statementsList.add(addPipeByIdStatement);
-        } else {
-
-
-            SimpleNameReferenceNode selfNode = createSimpleNameReferenceNode(createIdentifierToken(SELF));
-
-            FieldAccessExpressionNode remoteSelfPipes = createFieldAccessExpressionNode(
-                    selfNode, dotToken,
-                    createSimpleNameReferenceNode(createIdentifierToken("pipes")));
-
-            MethodCallExpressionNode addPipeMethodCallExpressionNode = createMethodCallExpressionNode(remoteSelfPipes,
-                    dotToken,
-                    createSimpleNameReferenceNode(createIdentifierToken("getPipe")),
-                    openParenToken, createSeparatedNodeList(createSimpleNameReferenceNode(
-                            createIdentifierToken("\"" +
-                                    requestType + "\""))), closeParenToken);
-            FieldAccessExpressionNode remoteSelfPipe = createFieldAccessExpressionNode(
-                    selfNode, dotToken,
-                    requestTypePipeNode);
-            AssignmentStatementNode assignmentStatementNode = createAssignmentStatementNode(remoteSelfPipe, equalToken,
-                    addPipeMethodCallExpressionNode, semicolonToken);
-
-            LockStatementNode lockStatementNode = createLockStatementNode(createToken(LOCK_KEYWORD),
-                    createBlockStatementNode(openBraceToken, createNodeList(assignmentStatementNode),
-                            closeBraceToken), null);
-
-            //  lock {
-            //     self.connectionInitMessagePipe = self.pipes.getPipe("connectionInitMessage");
-            //  }
-            statementsList.add(lockStatementNode);
         }
 
         if (!isSubscribe) {
             SimpleNameReferenceNode requestTypeNameNode =
                     createSimpleNameReferenceNode(createIdentifierToken(requestType));
             VariableDeclarationNode messageVariableDeclarationNode =
-                    createVariableDeclarationNode(createEmptyNodeList(),
-                            null, createTypedBindingPatternNode(
-                                    createSimpleNameReferenceNode(createIdentifierToken(
-                                            MESSAGE)),
+                    createVariableDeclarationNode(createEmptyNodeList(), null,
+                            createTypedBindingPatternNode(NodeParser.parseTypeDescriptor(MESSAGE + PIPE + ERROR),
                                     createCaptureBindingPatternNode(createIdentifierToken(MESSAGE_VAR_NAME))),
-                            equalToken,
-                            createCheckExpressionNode(null, createToken(CHECK_KEYWORD),
-                                    createMethodCallExpressionNode(requestTypeNameNode, dotToken,
-                                            createSimpleNameReferenceNode(
-                                                    createIdentifierToken("cloneWithType")),
-                                            openParenToken, createSeparatedNodeList(), closeParenToken)),
-                            semicolonToken);
+                            equalToken, createMethodCallExpressionNode(requestTypeNameNode, dotToken,
+                                    createSimpleNameReferenceNode(createIdentifierToken(CLONE_WITH_TYPE)),
+                                    openParenToken, createSeparatedNodeList(), closeParenToken), semicolonToken);
 
-            // Message message = check subscribe.cloneWithType();
+            // Message|error message = subscribe.cloneWithType();
             statementsList.add(messageVariableDeclarationNode);
-
-            List<Node> argumentArrays = new ArrayList<>();
-
-            argumentArrays.add(createSimpleNameReferenceNode(createIdentifierToken(MESSAGE_VAR_NAME)));
-            argumentArrays.add(createToken(COMMA_TOKEN));
-            argumentArrays.add(responseTypeTimeOut);
-            FieldAccessExpressionNode globalQueue = createFieldAccessExpressionNode(
-                    createSimpleNameReferenceNode(createIdentifierToken(SELF)), dotToken,
-                    createSimpleNameReferenceNode(createIdentifierToken(WRITE_MESSAGE_QUEUE)));
-            CheckExpressionNode callGlobalQueueProduce = createCheckExpressionNode(null, createToken(
-                            CHECK_KEYWORD),
-                    createMethodCallExpressionNode(globalQueue, dotToken,
-                            createSimpleNameReferenceNode(createIdentifierToken(PRODUCE)), openParenToken,
-                            createSeparatedNodeList(
-                                    argumentArrays
-                            ), closeParenToken));
-            ExpressionStatementNode callGlobalQueueProduceNode = createExpressionStatementNode(null,
-                    callGlobalQueueProduce, semicolonToken);
-
-            // check self.writeMessageQueue.produce(tuple, timeout);
-            statementsList.add(callGlobalQueueProduceNode);
+            statementsList.add(getCloningMessageError(MESSAGE_VAR_NAME));
+            statementsList.addAll(getProduceToWriteMessageQueueVar());
         }
+    }
+
+    private List<StatementNode> getProduceToWriteMessageQueueVar() {
+        // pipe:Error? pipeErr = self.writeMessageQueue.produce(message, timeout);
+        List<StatementNode> statements = new ArrayList<>();
+        List<Node> arguments = new ArrayList<>();
+        arguments.add(createSimpleNameReferenceNode(createIdentifierToken(MESSAGE_VAR_NAME)));
+        arguments.add(createToken(COMMA_TOKEN));
+        arguments.add(createPositionalArgumentNode(createRequiredExpressionNode(createIdentifierToken(TIMEOUT))));
+        FieldAccessExpressionNode globalQueue = createFieldAccessExpressionNode(
+                createSimpleNameReferenceNode(createIdentifierToken(SELF)), dotToken,
+                createSimpleNameReferenceNode(createIdentifierToken(WRITE_MESSAGE_QUEUE)));
+        MethodCallExpressionNode callGlobalQueueProduce =
+                createMethodCallExpressionNode(globalQueue, dotToken,
+                        createSimpleNameReferenceNode(createIdentifierToken(PRODUCE)), openParenToken,
+                        createSeparatedNodeList(arguments), closeParenToken);
+        statements.add(createVariableDeclarationNode(createEmptyNodeList(),
+                null, createTypedBindingPatternNode(createOptionalTypeDescriptorNode(PIPE_ERROR,
+                        createToken(QUESTION_MARK_TOKEN)), createFieldBindingPatternVarnameNode(
+                                createSimpleNameReferenceNode(createIdentifierToken(PIPE_ERR)))),
+                        equalToken, callGlobalQueueProduce, semicolonToken));
+        statements.add(getPipeError(PIPE_ERR, PRODUCING));
+        return statements;
+    }
+
+    private StatementNode getCloningMessageError(String varName) {
+        return createIfElseStatementNode(createToken(IF_KEYWORD),
+                NodeParser.parseExpression(varName + SPACE + IS + SPACE + ERROR),
+                createBlockStatementNode(openBraceToken,
+                        createNodeList(ATTEMPT_CON_CLOSE, createReturnStatementNode(
+                                        createToken(RETURN_KEYWORD), createErrorConstructorExpressionNode(
+                                                createToken(ERROR_KEYWORD), null, openParenToken,
+                                        createSeparatedNodeList(createIdentifierToken(String.format(
+                                                DATABINDING_ERR_TEMPLATE, this.functionName))), closeParenToken),
+                                        semicolonToken)), closeBraceToken), null);
+    }
+
+    private StatementNode getPipeError(String errVar, String activity) {
+        return createIfElseStatementNode(createToken(IF_KEYWORD),
+                NodeParser.parseExpression(errVar + SPACE + IS + SPACE + PIPE_ERROR),
+                createBlockStatementNode(openBraceToken,
+                        createNodeList(ATTEMPT_CON_CLOSE, createReturnStatementNode(createToken(RETURN_KEYWORD),
+                                createErrorConstructorExpressionNode(createToken(ERROR_KEYWORD), null,
+                                        openParenToken, createSeparatedNodeList(createIdentifierToken(String.format(
+                                                PIPE_PRODUCE_ERR_TEMPLATE, this.functionName, activity))),
+                                        closeParenToken), semicolonToken)), closeBraceToken), null);
     }
 
     public List<ImportDeclarationNode> getImports() {
         return imports;
     }
-
 
     /**
      * Generate function body node for the remote function.
@@ -292,12 +296,10 @@ public class RemoteFunctionBodyGenerator {
      * //     * @param operation - asyncapi operation
      *
      * @return - {@link FunctionBodyNode}
-     * @throws BallerinaAsyncApiExceptionWs - throws exception if generating FunctionBodyNode fails.
      */
     public FunctionBodyNode getFunctionBodyNode(Map<String, JsonNode> extensions, String requestType,
-                                                String specDispatcherStreamId, List<MatchClauseNode> matchStatementList,
-                                                boolean isSubscribe, String responseType, List<String> pipeNameMethods)
-            throws BallerinaAsyncApiExceptionWs {
+                                                String specDispatcherStreamId, boolean isSubscribe,
+                                                String responseType) {
 
         // Create statements
         List<StatementNode> statementsList = new ArrayList<>();
@@ -311,96 +313,49 @@ public class RemoteFunctionBodyGenerator {
             if (xResponseType != null && xResponseType.equals(new TextNode(SERVER_STREAMING))) {
                 //TODO: Include an if condition to check this only one time
 //                utilGenerator.setStreamFound(true);
-                createStreamFunctionBodyStatements(
-                        statementsList,
-                        requestType,
-                        responseType,
-                        specDispatcherStreamId
-                        , matchStatementList,
-                        isSubscribe,
-                        pipeNameMethods
-                );
-
-
+                createStreamFunctionBodyStatements(statementsList, requestType, responseType, specDispatcherStreamId,
+                        isSubscribe);
             } else {
-
                 createSimpleRPCFunctionBodyStatements(statementsList, requestType, responseType, specDispatcherStreamId,
-                        matchStatementList, isSubscribe, pipeNameMethods);
+                        isSubscribe);
             }
-
         } else {
             createNoResponseFunctionBodyStatement(statementsList, requestType);
-
         }
         //Create statements
         NodeList<StatementNode> statements = createNodeList(statementsList);
-        return createFunctionBodyBlockNode(createToken(OPEN_BRACE_TOKEN), null, statements,
-                createToken(CLOSE_BRACE_TOKEN), null);
+        return createFunctionBodyBlockNode(openBraceToken, null, statements, closeBraceToken, null);
     }
 
     private void createStreamFunctionBodyStatements(List<StatementNode> statementsList,
-                                                    String requestType, String responseType,
-
-                                                    String dispatcherStreamId,
-                                                    List<MatchClauseNode> matchStatementList, boolean isSubscribe,
-                                                    List<String> pipeNameMethods) {
+                                                    String requestType, String responseType, String dispatcherStreamId,
+                                                    boolean isSubscribe) {
 
         String requestTypePipe = requestType + "Pipe";
 
-
-        Token equalToken = createToken(EQUAL_TOKEN);
-        Token semicolonToken = createToken(SEMICOLON_TOKEN);
-        Token openBraceToken = createToken(OPEN_BRACE_TOKEN);
-        Token closeBraceToken = createToken(CLOSE_BRACE_TOKEN);
-        Token dotToken = createToken(DOT_TOKEN);
-        Token closeParenToken = createToken(CLOSE_PAREN_TOKEN);
-        Token openParenToken = createToken(OPEN_PAREN_TOKEN);
-        Token rightDoubleArrow = createToken(RIGHT_DOUBLE_ARROW_TOKEN);
-
-        SimpleNameReferenceNode requestTypePipeNode = createSimpleNameReferenceNode(createIdentifierToken(
-                requestTypePipe));
-        SimpleNameReferenceNode responseMessageNode = createSimpleNameReferenceNode(
-                createIdentifierToken(MESSAGE_VAR_NAME));
+        String requestTypePipeNode = SELF + DOT + PIPES + DOT + GET_PIPE + String.format(WITHIN_PAREN_TEMPLATE,
+                String.format("\"%s\"", requestType));
         QualifiedNameReferenceNode pipeTypeCombined = createQualifiedNameReferenceNode(
-                createIdentifierToken(SIMPLE_PIPE),
-                createToken(COLON_TOKEN), createIdentifierToken(GeneratorConstants.CAPITAL_PIPE));
+                createIdentifierToken(SIMPLE_PIPE), colonToken, createIdentifierToken(CAPITAL_PIPE));
 
-        //if (self.writeMessageQueue.isClosed()) {
-        //       return error("");
-        //}
         if (!isSubscribe) {
-            addWriteMessageClosed(statementsList);
+            statementsList.add(getConnectionActiveCheck());
         }
-
 
         //pipe:Pipe tuplePipe = new (10000);
         if (dispatcherStreamId != null) {
             List<Node> argumentsList = new ArrayList<>();
             argumentsList.add(createIdentifierToken("10000"));
             SeparatedNodeList<FunctionArgumentNode> arguments = createSeparatedNodeList(argumentsList);
-            ParenthesizedArgList parenthesizedArgList = createParenthesizedArgList(openParenToken,
-                    arguments,
+            ParenthesizedArgList parenthesizedArgList = createParenthesizedArgList(openParenToken, arguments,
                     closeParenToken);
             ImplicitNewExpressionNode expressionNode = createImplicitNewExpressionNode(createToken(NEW_KEYWORD),
                     parenthesizedArgList);
             VariableDeclarationNode remotePipeTypeEnsureStatement = createVariableDeclarationNode(createEmptyNodeList(),
-                    null,
-                    createTypedBindingPatternNode(
-                            pipeTypeCombined,
-                            createFieldBindingPatternVarnameNode(requestTypePipeNode)),
-                    equalToken, expressionNode, semicolonToken);
+                    null, createTypedBindingPatternNode(pipeTypeCombined,
+                            NodeParser.parseBindingPattern(requestTypePipeNode)), equalToken, expressionNode,
+                    semicolonToken);
             statementsList.add(remotePipeTypeEnsureStatement);
-        } else {
-            //pipe:Pipe connectionInitMessagePipe;
-            VariableDeclarationNode remotePipeTypeEnsureStatement = createVariableDeclarationNode(createEmptyNodeList(),
-                    null,
-                    createTypedBindingPatternNode(
-                            pipeTypeCombined,
-                            createFieldBindingPatternVarnameNode(requestTypePipeNode)),
-                    null, null, semicolonToken);
-            statementsList.add(remotePipeTypeEnsureStatement);
-
-
         }
 
         //lock {
@@ -412,97 +367,8 @@ public class RemoteFunctionBodyGenerator {
         //        self.pipes.addPipe(id, subscribeMessagePipe);
         //        Message message = check subscribeMessage.cloneWithType();
         //        check self.writeMessageQueue.produce(message, timeout);
-        createCommentStatementsForDispatcherId(statementsList, requestType, dispatcherStreamId,
-                requestTypePipe, isSubscribe);
-
-
-        if (dispatcherStreamId == null) {
-            pipeNameMethods.add(requestTypePipe);
-            ArrayList<StatementNode> statementNodes = new ArrayList<>();
-            QualifiedNameReferenceNode pipeTypeName = createQualifiedNameReferenceNode(
-                    createIdentifierToken(SIMPLE_PIPE),
-                    createToken(COLON_TOKEN), createIdentifierToken(GeneratorConstants.CAPITAL_PIPE));
-            FieldAccessExpressionNode selfPipes = createFieldAccessExpressionNode(
-                    createSimpleNameReferenceNode(createIdentifierToken(SELF)), createToken(DOT_TOKEN),
-                    createSimpleNameReferenceNode(createIdentifierToken(PIPES)));
-            MethodCallExpressionNode methodCallExpressionNode = createMethodCallExpressionNode(selfPipes, dotToken,
-                    createSimpleNameReferenceNode(createIdentifierToken("getPipe")),
-                    openParenToken, createSeparatedNodeList(createSimpleNameReferenceNode(
-                            createIdentifierToken("\"" + requestType + "\""))), closeParenToken);
-
-
-            VariableDeclarationNode pipeTypeEnsureStatement = createVariableDeclarationNode(
-                    createEmptyNodeList(), null,
-                    createTypedBindingPatternNode(
-                            pipeTypeName,
-                            createFieldBindingPatternVarnameNode(requestTypePipeNode)),
-                    equalToken, methodCallExpressionNode, semicolonToken);
-            statementNodes.add(pipeTypeEnsureStatement);
-
-            List<Node> nodes = new ArrayList<>();
-            nodes.add(responseMessageNode);
-            nodes.add(createToken(COMMA_TOKEN));
-            nodes.add(createIdentifierToken("5"));
-            MethodCallExpressionNode pipeProduceExpressionNode = createMethodCallExpressionNode(
-                    requestTypePipeNode, dotToken,
-                    createSimpleNameReferenceNode(createIdentifierToken(PRODUCE)),
-                    openParenToken, createSeparatedNodeList(nodes), closeParenToken);
-
-            CheckExpressionNode pipeProduceCheck = createCheckExpressionNode(null, createToken(CHECK_KEYWORD),
-                    pipeProduceExpressionNode);
-            ExpressionStatementNode pipeProduceExpression = createExpressionStatementNode(null,
-                    pipeProduceCheck, createToken(SEMICOLON_TOKEN));
-            statementNodes.add(pipeProduceExpression);
-            List<Node> responseNodeList = new ArrayList<>();
-            if (responseType.contains("|")) {
-                String[] responseArray = responseType.split("\\|");
-                for (String response : responseArray) {
-                    responseNodeList.add(createIdentifierToken("\"" + response.trim() + "\""));
-                    responseNodeList.add(createIdentifierToken("|"));
-
-                }
-                responseNodeList.remove(responseNodeList.size() - 1);
-
-            } else {
-                responseNodeList.add(createIdentifierToken("\"" + responseType + "\""));
-
-
-            }
-            MatchClauseNode matchClauseNode = createMatchClauseNode(createSeparatedNodeList(responseNodeList),
-                    null, rightDoubleArrow,
-                    createBlockStatementNode(openBraceToken, createNodeList(statementNodes), closeBraceToken));
-            matchStatementList.add(matchClauseNode);
-
-
-            ArrayList lockStatements = new ArrayList();
-            FieldAccessExpressionNode selfRequestTypePipeNodes = createFieldAccessExpressionNode(
-                    createSimpleNameReferenceNode(createIdentifierToken(SELF)), createToken(DOT_TOKEN),
-                    requestTypePipeNode);
-
-            MethodCallExpressionNode ensureTypeMethodCallExpressionNode = createMethodCallExpressionNode(
-                    selfRequestTypePipeNodes, dotToken,
-                    createSimpleNameReferenceNode(createIdentifierToken("ensureType")),
-                    openParenToken, createSeparatedNodeList(), closeParenToken);
-
-            CheckExpressionNode checkExpressionNode = createCheckExpressionNode(null, createToken(CHECK_KEYWORD),
-                    ensureTypeMethodCallExpressionNode);
-            AssignmentStatementNode ensureTypeAssignmentNode = createAssignmentStatementNode(requestTypePipeNode,
-                    equalToken, checkExpressionNode, semicolonToken);
-
-
-            // connectionInitMessagePipe = check self.connectionInitMessagePipe.ensureType();
-            lockStatements.add(ensureTypeAssignmentNode);
-
-            LockStatementNode functionLockStatementNode = createLockStatementNode(createToken(LOCK_KEYWORD),
-                    createBlockStatementNode(openBraceToken, createNodeList(lockStatements),
-                            closeBraceToken), null);
-
-            //      lock {
-            //            connectionInitMessagePipe = check self.connectionInitMessagePipe.ensureType();
-            //        }
-            statementsList.add(functionLockStatementNode);
-        }
-
+        addProduceStatementForWriteMessageQueue(statementsList, requestType, dispatcherStreamId, requestTypePipe,
+                isSubscribe);
 
         SimpleNameReferenceNode responseNameNode = createSimpleNameReferenceNode(createIdentifierToken(
                 responseType + ",error?"));
@@ -513,15 +379,12 @@ public class RemoteFunctionBodyGenerator {
 //         stream<NextMessage|CompleteMessage|ErrorMessage> streamMessages;
         StreamTypeParamsNode streamTypeParamsNode = createStreamTypeParamsNode(createToken(LT_TOKEN),
                 responseNameNode, null, null, createToken(GT_TOKEN));
-        StreamTypeDescriptorNode streamTypeDescriptorNode = createStreamTypeDescriptorNode(
-                createToken(STREAM_KEYWORD), streamTypeParamsNode);
+        StreamTypeDescriptorNode streamTypeDescriptorNode = createStreamTypeDescriptorNode(createToken(STREAM_KEYWORD),
+                streamTypeParamsNode);
 
         VariableDeclarationNode streamMessages = createVariableDeclarationNode(createEmptyNodeList(), null,
-
-                createTypedBindingPatternNode(
-                        streamTypeDescriptorNode,
-                        createFieldBindingPatternVarnameNode(streamMessageNode)),
-                //TODO: Findout [] node
+                createTypedBindingPatternNode(streamTypeDescriptorNode, createFieldBindingPatternVarnameNode(
+                        streamMessageNode)), //TODO: Findout [] node
                 null, null, semicolonToken);
 
         //
@@ -537,22 +400,19 @@ public class RemoteFunctionBodyGenerator {
         String streamGenName = GeneratorUtils.getStreamGeneratorName(responseType);
 
         ArrayList<Node> streamGeneratorArguments = new ArrayList<>();
-        streamGeneratorArguments.add(createPositionalArgumentNode(requestTypePipeNode));
+        streamGeneratorArguments.add(createPositionalArgumentNode(NodeParser.parseExpression(requestTypePipeNode)));
         streamGeneratorArguments.add(createToken(COMMA_TOKEN));
         streamGeneratorArguments.add(createPositionalArgumentNode(createSimpleNameReferenceNode(createIdentifierToken(
-                "timeout"))));
-        CheckExpressionNode checkExpressionNode = createCheckExpressionNode(null, createToken(CHECK_KEYWORD),
-                createImplicitNewExpressionNode(createToken(NEW_KEYWORD),
-                        createParenthesizedArgList(openParenToken,
-                                createSeparatedNodeList(streamGeneratorArguments), closeParenToken)));
-//       createSimpleNameReferenceNode(createIdentifierToken("graphqlOverWebsocketStreamGenerator"));
+                TIMEOUT))));
+        ImplicitNewExpressionNode newExpressionNode = createImplicitNewExpressionNode(createToken(NEW_KEYWORD),
+                        createParenthesizedArgList(openParenToken, createSeparatedNodeList(streamGeneratorArguments),
+                                closeParenToken));
         SimpleNameReferenceNode streamGeneratorNode = createSimpleNameReferenceNode(createIdentifierToken(
-                "streamGenerator"));
+                STREAM_GENERATOR));
         VariableDeclarationNode streamGenerator = createVariableDeclarationNode(createEmptyNodeList(),
                 null, createTypedBindingPatternNode(createSimpleNameReferenceNode(createIdentifierToken(
-                                streamGenName + "StreamGenerator"))
-
-                        , createFieldBindingPatternVarnameNode(streamGeneratorNode)), equalToken, checkExpressionNode,
+                                streamGenName + "StreamGenerator")),
+                        createFieldBindingPatternVarnameNode(streamGeneratorNode)), equalToken, newExpressionNode,
                 semicolonToken);
         streamStatementList.add(streamGenerator);
 
@@ -571,108 +431,62 @@ public class RemoteFunctionBodyGenerator {
         AssignmentStatementNode streamMessagesAssignmentStatementNode = createAssignmentStatementNode(streamMessageNode,
                 equalToken, createImplicitNewExpressionNode(createToken(NEW_KEYWORD),
                         createParenthesizedArgList(openParenToken, createSeparatedNodeList(
-
-
-                                createPositionalArgumentNode(streamGeneratorNode)
-                        ), closeParenToken))
-                , semicolonToken);
+                                createPositionalArgumentNode(streamGeneratorNode)), closeParenToken)), semicolonToken);
 
         streamStatementList.add(streamMessagesAssignmentStatementNode);
 
 
         LockStatementNode streamLockStatementNode = createLockStatementNode(createToken(LOCK_KEYWORD),
-                createBlockStatementNode(openBraceToken, createNodeList(streamStatementList), closeBraceToken),
-                null);
+                createBlockStatementNode(openBraceToken, createNodeList(streamStatementList), closeBraceToken), null);
 
         statementsList.add(streamLockStatementNode);
 
-
-        //    return streamMessage
-        Token returnKeyWord = createIdentifierToken("return");
-
-        ReturnStatementNode returnStatementNode = createReturnStatementNode(returnKeyWord, streamMessageNode,
-                createToken(SEMICOLON_TOKEN));
+        ReturnStatementNode returnStatementNode = createReturnStatementNode(createToken(RETURN_KEYWORD),
+                streamMessageNode, semicolonToken);
         statementsList.add(returnStatementNode);
     }
 
-    private void addWriteMessageClosed(List<StatementNode> statementsList) {
-        Token semicolonToken = createToken(SEMICOLON_TOKEN);
-        Token openBraceToken = createToken(OPEN_BRACE_TOKEN);
-        Token closeParenToken = createToken(CLOSE_PAREN_TOKEN);
-        Token openParenToken = createToken(OPEN_PAREN_TOKEN);
-        Token closeBraceToken = createToken(CLOSE_BRACE_TOKEN);
-
-        MethodCallExpressionNode isClosedMethodCall = createMethodCallExpressionNode(createFieldAccessExpressionNode(
-                        createSimpleNameReferenceNode(createIdentifierToken(SELF)),
-                        createToken(DOT_TOKEN), createSimpleNameReferenceNode(
-                                createIdentifierToken(WRITE_MESSAGE_QUEUE))),
-                createToken(DOT_TOKEN), createSimpleNameReferenceNode(createIdentifierToken("isClosed")),
-                openParenToken, createSeparatedNodeList(), closeParenToken);
-        ReturnStatementNode errorReturnStatementNode = createReturnStatementNode(
-                createToken(SyntaxKind.RETURN_KEYWORD), createErrorConstructorExpressionNode(createToken(ERROR_KEYWORD),
-                        null, openParenToken, createSeparatedNodeList(
-                                createIdentifierToken("\"" + CONNECTION_CLOSED + "\"")), closeParenToken),
-                semicolonToken);
-        IfElseStatementNode writeMessageQueueCheckNode = createIfElseStatementNode(createToken(IF_KEYWORD),
-                isClosedMethodCall, createBlockStatementNode(openBraceToken, createNodeList(errorReturnStatementNode),
-                        closeBraceToken), null);
-        statementsList.add(writeMessageQueueCheckNode);
+    private LockStatementNode getConnectionActiveCheck() {
+        //        lock {
+        //            if !self.isActive {
+        //                return error ("[functionName]ConnectionError: Connection has been closed");
+        //            }
+        //        }
+        NodeList<StatementNode> ifIsActiveNode = createNodeList(createIfElseStatementNode(createToken(IF_KEYWORD),
+                createSimpleNameReferenceNode(createIdentifierToken(NOT + SELF + DOT + IS_ACTIVE)),
+                createBlockStatementNode(openBraceToken, createNodeList(createReturnStatementNode(
+                        createToken(RETURN_KEYWORD), createErrorConstructorExpressionNode(createToken(ERROR_KEYWORD),
+                                null, openParenToken, createSeparatedNodeList(createIdentifierToken(
+                                        String.format(CONNECTION_CLOSED_TEMPLATE, this.functionName))),
+                                closeParenToken),
+                        semicolonToken)), closeBraceToken), null));
+        return createLockStatementNode(createToken(LOCK_KEYWORD),
+                createBlockStatementNode(openBraceToken, ifIsActiveNode, closeBraceToken), null);
     }
 
     private void createNoResponseFunctionBodyStatement(List<StatementNode> statementsList, String requestType) {
         // check self.writeMessageQueue.produce(tuple, timeout);
 
-        Token semicolonToken = createToken(SEMICOLON_TOKEN);
-        Token dotToken = createToken(DOT_TOKEN);
-        Token closeParenToken = createToken(CLOSE_PAREN_TOKEN);
-        Token openParenToken = createToken(OPEN_PAREN_TOKEN);
-        Token equalToken = createToken(EQUAL_TOKEN);
-
-
-        SimpleNameReferenceNode messageTypeNode = createSimpleNameReferenceNode(
-                createIdentifierToken(MESSAGE));
+        TypeDescriptorNode messageTypeNode = NodeParser.parseTypeDescriptor(MESSAGE + PIPE + ERROR);
         SimpleNameReferenceNode messageVarNode = createSimpleNameReferenceNode(
                 createIdentifierToken(MESSAGE_VAR_NAME));
         SimpleNameReferenceNode requestTypePipeNode = createSimpleNameReferenceNode(
                 createIdentifierToken(requestType));
 
-        addWriteMessageClosed(statementsList);
+        statementsList.add(getConnectionActiveCheck());
 
         MethodCallExpressionNode cloneWithTypeMethodCallExpressionNode = createMethodCallExpressionNode(
-                requestTypePipeNode, dotToken,
-                createSimpleNameReferenceNode(createIdentifierToken("cloneWithType")),
+                requestTypePipeNode, dotToken, createSimpleNameReferenceNode(createIdentifierToken(CLONE_WITH_TYPE)),
                 openParenToken, createSeparatedNodeList(), closeParenToken);
-
-        CheckExpressionNode cloneWithTypeCheck = createCheckExpressionNode(null, createToken(CHECK_KEYWORD),
-                cloneWithTypeMethodCallExpressionNode);
 
         VariableDeclarationNode responseTypeCloneStatement = createVariableDeclarationNode(createEmptyNodeList(),
                 null,
-                createTypedBindingPatternNode(
-                        messageTypeNode,
-                        createFieldBindingPatternVarnameNode(
-                                messageVarNode)),
-                equalToken, cloneWithTypeCheck, semicolonToken);
-        statementsList.add(responseTypeCloneStatement);
+                createTypedBindingPatternNode(messageTypeNode, createFieldBindingPatternVarnameNode(messageVarNode)),
+                equalToken, cloneWithTypeMethodCallExpressionNode, semicolonToken);
 
-        List<Node> argumentArrays = new ArrayList<>();
-        PositionalArgumentNode responseTypeTimeOut = createPositionalArgumentNode(
-                createRequiredExpressionNode(createIdentifierToken("timeout")));
-        argumentArrays.add(messageVarNode);
-        argumentArrays.add(createToken(COMMA_TOKEN));
-        argumentArrays.add(responseTypeTimeOut);
-        FieldAccessExpressionNode globalQueue = createFieldAccessExpressionNode(
-                createSimpleNameReferenceNode(createIdentifierToken(SELF)), dotToken,
-                createSimpleNameReferenceNode(createIdentifierToken(WRITE_MESSAGE_QUEUE)));
-        CheckExpressionNode callGlobalQueueProduce = createCheckExpressionNode(null, createToken(CHECK_KEYWORD),
-                createMethodCallExpressionNode(globalQueue, dotToken,
-                        createSimpleNameReferenceNode(createIdentifierToken(PRODUCE)),
-                        openParenToken, createSeparatedNodeList(
-                                argumentArrays
-                        ), closeParenToken));
-        ExpressionStatementNode callGlobalQueueProduceNode = createExpressionStatementNode(null,
-                callGlobalQueueProduce, semicolonToken);
-        statementsList.add(callGlobalQueueProduceNode);
+        statementsList.add(responseTypeCloneStatement);
+        statementsList.add(getCloningMessageError(MESSAGE_VAR_NAME));
+        statementsList.addAll(getProduceToWriteMessageQueueVar());
     }
 
     /**
@@ -680,46 +494,28 @@ public class RemoteFunctionBodyGenerator {
      */
     private void createSimpleRPCFunctionBodyStatements(List<StatementNode> statementsList, String requestType,
                                                        String responseType, String dispatcherStreamId,
-                                                       List<MatchClauseNode> matchStatementList, boolean isSubscribe,
-                                                       List<String> pipeNameMethods) {
+                                                       boolean isSubscribe) {
 
 
         String requestTypePipe = requestType + "Pipe";
         //responseType substring
-        String responseTypeCamelCaseName = null;
+        String responseTypeCamelCaseName;
         if (responseType.contains(PIPE)) {
             responseTypeCamelCaseName = "unionResult";
-
         } else {
             char responseTypeFirstChar = Character.toLowerCase(responseType.charAt(0)); //Lowercase the first character
             String responseRemainingString = responseType.substring(1);
             responseTypeCamelCaseName = responseTypeFirstChar + responseRemainingString;
         }
 
-        Token equalToken = createToken(EQUAL_TOKEN);
-        Token semicolonToken = createToken(SEMICOLON_TOKEN);
-        Token dotToken = createToken(DOT_TOKEN);
-        Token closeParenToken = createToken(CLOSE_PAREN_TOKEN);
-        Token openParenToken = createToken(OPEN_PAREN_TOKEN);
-        Token openBraceToken = createToken(OPEN_BRACE_TOKEN);
-        Token closeBraceToken = createToken(CLOSE_BRACE_TOKEN);
-        Token rightDoubleArrow = createToken(RIGHT_DOUBLE_ARROW_TOKEN);
-
         SimpleNameReferenceNode requestTypePipeNode = createSimpleNameReferenceNode(
                 createIdentifierToken(requestTypePipe));
-        SimpleNameReferenceNode responseMessageNode = createSimpleNameReferenceNode(
-                createIdentifierToken(MESSAGE_VAR_NAME));
         QualifiedNameReferenceNode pipeTypeCombined = createQualifiedNameReferenceNode(
-                createIdentifierToken(SIMPLE_PIPE),
-                createToken(COLON_TOKEN), createIdentifierToken(GeneratorConstants.CAPITAL_PIPE));
+                createIdentifierToken(SIMPLE_PIPE), createToken(COLON_TOKEN), createIdentifierToken(CAPITAL_PIPE));
 
-        //if (self.writeMessageQueue.isClosed()) {
-        //    return error("");
-        //}
         if (!isSubscribe) {
-            addWriteMessageClosed(statementsList);
+            statementsList.add(getConnectionActiveCheck());
         }
-
 
         if (dispatcherStreamId != null) {
             List<Node> argumentsList = new ArrayList<>();
@@ -727,245 +523,69 @@ public class RemoteFunctionBodyGenerator {
             argumentsList.add(createIdentifierToken("1"));
             SeparatedNodeList<FunctionArgumentNode> arguments = createSeparatedNodeList(argumentsList);
 
-            ParenthesizedArgList parenthesizedArgList = createParenthesizedArgList(openParenToken,
-                    arguments,
+            ParenthesizedArgList parenthesizedArgList = createParenthesizedArgList(openParenToken, arguments,
                     closeParenToken);
             ImplicitNewExpressionNode expressionNode = createImplicitNewExpressionNode(createToken(NEW_KEYWORD),
                     parenthesizedArgList);
             VariableDeclarationNode remotePipeTypeEnsureStatement = createVariableDeclarationNode(
                     createEmptyNodeList(), null,
-                    createTypedBindingPatternNode(
-                            pipeTypeCombined,
-                            createFieldBindingPatternVarnameNode(requestTypePipeNode)),
-                    equalToken, expressionNode, semicolonToken);
+                    createTypedBindingPatternNode(pipeTypeCombined, createFieldBindingPatternVarnameNode(
+                            requestTypePipeNode)), equalToken, expressionNode, semicolonToken);
             statementsList.add(remotePipeTypeEnsureStatement);
-        } else {
-
-            //pipe:Pipe tuplePipe;
-            VariableDeclarationNode remotePipeTypeEnsureStatement = createVariableDeclarationNode(createEmptyNodeList(),
-                    null,
-                    createTypedBindingPatternNode(
-                            pipeTypeCombined,
-                            createFieldBindingPatternVarnameNode(requestTypePipeNode)),
-                    null, null, semicolonToken);
-            statementsList.add(remotePipeTypeEnsureStatement);
-
         }
 
-        //lock {
-        //            id = uuid:createType1AsString();
-        //            pingMessage.id = id;
-        //        }
-        createCommentStatementsForDispatcherId(statementsList, requestType, dispatcherStreamId, requestTypePipe,
-                isSubscribe
-        );
+        addProduceStatementForWriteMessageQueue(statementsList, requestType, dispatcherStreamId, requestTypePipe,
+                isSubscribe);
 
-
-        //Create pipes using request Type names when there is no dispatcherStreamId
-        if (dispatcherStreamId == null) {
-            pipeNameMethods.add(requestTypePipe);
-            ArrayList<StatementNode> statementNodes = new ArrayList<>();
-            QualifiedNameReferenceNode pipeTypeName = createQualifiedNameReferenceNode(
-                    createIdentifierToken(SIMPLE_PIPE),
-                    createToken(COLON_TOKEN), createIdentifierToken(GeneratorConstants.CAPITAL_PIPE));
-            FieldAccessExpressionNode selfPipes = createFieldAccessExpressionNode(
-                    createSimpleNameReferenceNode(createIdentifierToken(SELF)), createToken(DOT_TOKEN),
-                    createSimpleNameReferenceNode(createIdentifierToken(PIPES)));
-            MethodCallExpressionNode methodCallExpressionNode = createMethodCallExpressionNode(selfPipes, dotToken,
-                    createSimpleNameReferenceNode(createIdentifierToken("getPipe")),
-                    openParenToken, createSeparatedNodeList(createSimpleNameReferenceNode(
-                            createIdentifierToken("\"" + requestType + "\""))), closeParenToken);
-
-
-            VariableDeclarationNode pipeTypeEnsureStatement = createVariableDeclarationNode(
-                    createEmptyNodeList(), null,
-                    createTypedBindingPatternNode(
-                            pipeTypeName,
-                            createFieldBindingPatternVarnameNode(requestTypePipeNode)),
-                    equalToken, methodCallExpressionNode, semicolonToken);
-
-
-            //pipe:Pipe pingMessagePipe = self.pipes.getPipe("pingMessage");
-            statementNodes.add(pipeTypeEnsureStatement);
-
-            List<Node> nodes = new ArrayList<>();
-            nodes.add(responseMessageNode);
-            nodes.add(createToken(COMMA_TOKEN));
-            nodes.add(createIdentifierToken("5"));
-            MethodCallExpressionNode pipeProduceExpressionNode = createMethodCallExpressionNode(
-                    requestTypePipeNode, dotToken,
-                    createSimpleNameReferenceNode(createIdentifierToken(PRODUCE)),
-                    openParenToken, createSeparatedNodeList(nodes), closeParenToken);
-
-            CheckExpressionNode pipeProduceCheck = createCheckExpressionNode(null, createToken(CHECK_KEYWORD),
-                    pipeProduceExpressionNode);
-            ExpressionStatementNode pipeProduceExpression = createExpressionStatementNode(null,
-                    pipeProduceCheck, createToken(SEMICOLON_TOKEN));
-
-
-            //check pingMessagePipe.produce(message, 5);
-            statementNodes.add(pipeProduceExpression);
-
-
-            MatchClauseNode matchClauseNode = createMatchClauseNode(createSeparatedNodeList(
-                            createIdentifierToken("\"" + responseType + "\"")), null, rightDoubleArrow,
-                    createBlockStatementNode(openBraceToken, createNodeList(statementNodes), closeBraceToken));
-
-            // "PongMessage" => {
-            //      pipe:Pipe pingMessagePipe = self.pipes.getPipe("pingMessage");
-            //      check pingMessagePipe.produce(message, 5);
-            // }
-            matchStatementList.add(matchClauseNode);
-
-
-//        if (!isSubscribe) {
-//
-//
-//            MethodCallExpressionNode cloneWithTypeMethodCallExpressionNode = createMethodCallExpressionNode(
-//                    requestTypeNode, dotToken,
-//                    createSimpleNameReferenceNode(createIdentifierToken("cloneWithType")),
-//                    openParenToken, createSeparatedNodeList(), closeParenToken);
-//
-//            CheckExpressionNode cloneWithTypeCheck = createCheckExpressionNode(null, createToken(CHECK_KEYWORD),
-//                    cloneWithTypeMethodCallExpressionNode);
-//
-//            VariableDeclarationNode responseTypeCloneStatement = createVariableDeclarationNode(createEmptyNodeList(),
-//                    null,
-//                    createTypedBindingPatternNode(
-//                            responseMessageTypeNode,
-//                            createFieldBindingPatternVarnameNode(
-//                                    responseMessageNode)),
-//                    equalToken, cloneWithTypeCheck, semicolonToken);
-//            //Message message = check pingMessage.cloneWithType();
-//            statementsList.add(responseTypeCloneStatement);
-//
-//
-//
-//            List<Node> argumentArrays = new ArrayList<>();
-//
-//            argumentArrays.add(responseMessageNode);
-//            argumentArrays.add(createToken(COMMA_TOKEN));
-//            argumentArrays.add(responseTypeTimeOut);
-//            FieldAccessExpressionNode globalQueue = createFieldAccessExpressionNode(
-//                    createSimpleNameReferenceNode(createIdentifierToken(SELF)), dotToken,
-//                    createSimpleNameReferenceNode(createIdentifierToken(WRITE_MESSAGE_QUEUE)));
-//            CheckExpressionNode callGlobalQueueProduce = createCheckExpressionNode(null,
-//                    createToken(CHECK_KEYWORD),
-//                    createMethodCallExpressionNode(globalQueue, dotToken,
-//                            createSimpleNameReferenceNode(createIdentifierToken(PRODUCE)),
-//                            openParenToken, createSeparatedNodeList(
-//                                    argumentArrays
-//                            ), closeParenToken));
-//            ExpressionStatementNode callGlobalQueueProduceNode = createExpressionStatementNode(
-//                    null, callGlobalQueueProduce, semicolonToken);
-//
-//            // check self.writeMessageQueue.produce(tuple, timeout);
-//            statementsList.add(callGlobalQueueProduceNode);
-//        }
-
-
-            ArrayList lockStatements = new ArrayList();
-            FieldAccessExpressionNode selfRequestTypePipeNodes = createFieldAccessExpressionNode(
-                    createSimpleNameReferenceNode(createIdentifierToken(SELF)), createToken(DOT_TOKEN),
-                    requestTypePipeNode);
-
-            MethodCallExpressionNode ensureTypeMethodCallExpressionNode = createMethodCallExpressionNode(
-                    selfRequestTypePipeNodes, dotToken,
-                    createSimpleNameReferenceNode(createIdentifierToken("ensureType")),
-                    openParenToken, createSeparatedNodeList(), closeParenToken);
-
-            CheckExpressionNode checkExpressionNode = createCheckExpressionNode(null, createToken(CHECK_KEYWORD),
-                    ensureTypeMethodCallExpressionNode);
-            AssignmentStatementNode ensureTypeAssignmentNode = createAssignmentStatementNode(requestTypePipeNode,
-                    equalToken, checkExpressionNode, semicolonToken);
-
-
-            // connectionInitMessagePipe = check self.connectionInitMessagePipe.ensureType();
-            lockStatements.add(ensureTypeAssignmentNode);
-
-            LockStatementNode functionLockStatementNode = createLockStatementNode(createToken(LOCK_KEYWORD),
-                    createBlockStatementNode(openBraceToken, createNodeList(lockStatements),
-                            closeBraceToken), null);
-
-            //      lock {
-            //            connectionInitMessagePipe = check self.connectionInitMessagePipe.ensureType();
-            //        }
-            statementsList.add(functionLockStatementNode);
-        }
-
-
-        SimpleNameReferenceNode responseTypeName = createSimpleNameReferenceNode(createIdentifierToken(responseType));
-        SimpleNameReferenceNode anydata = createSimpleNameReferenceNode(createIdentifierToken("anydata"));
+        TypeDescriptorNode responseTypeName = NodeParser.parseTypeDescriptor(responseType + PIPE + ERROR);
+        TypeDescriptorNode consumeResponseType = NodeParser.parseTypeDescriptor(MESSAGE + PIPE + PIPE_ERROR);
         SimpleNameReferenceNode responseMessageVarNode = createSimpleNameReferenceNode(createIdentifierToken(
-                "responseMessage"));
+                RESPONSE_MESSAGE));
         SimpleNameReferenceNode responseNameNode;
-        if (!requestType.equals("error")) {
+        if (!requestType.equals(ERROR)) {
             responseNameNode = createSimpleNameReferenceNode(createIdentifierToken(responseTypeCamelCaseName));
         } else {
             responseNameNode = createSimpleNameReferenceNode(createIdentifierToken(
-                    responseTypeCamelCaseName + "Message"));
-
+                    responseTypeCamelCaseName + MESSAGE));
         }
 
-        PositionalArgumentNode responseTypeTimeOut = createPositionalArgumentNode(
-                createRequiredExpressionNode(createIdentifierToken("timeout")));
-
-        CheckExpressionNode callRelevantPipeConsumeNode = createCheckExpressionNode(null,
-                createToken(CHECK_KEYWORD),
-                createMethodCallExpressionNode(requestTypePipeNode, dotToken,
-                        createSimpleNameReferenceNode(createIdentifierToken(CONSUME)),
-                        openParenToken, createSeparatedNodeList(
-                                responseTypeTimeOut
-                        ), closeParenToken));
-        VariableDeclarationNode callRelevantPipeProduceVar = createVariableDeclarationNode(createEmptyNodeList(),
-                null,
-                createTypedBindingPatternNode(
-                        anydata,
-                        createFieldBindingPatternVarnameNode(responseMessageVarNode)),
-                equalToken, callRelevantPipeConsumeNode, semicolonToken);
-
-        // anydata responseMessage = check tuplePipe.consume(timeout);
-        statementsList.add(callRelevantPipeProduceVar);
+        VariableDeclarationNode callRelevantPipeConsumeVar = createVariableDeclarationNode(createEmptyNodeList(),
+                null, createTypedBindingPatternNode(consumeResponseType,
+                        createFieldBindingPatternVarnameNode(responseMessageVarNode)), equalToken,
+                NodeParser.parseExpression(SELF + DOT + PIPES + DOT + GET_PIPE +
+                        String.format(WITHIN_PAREN_TEMPLATE, String.format("\"%s\"", requestType)) + DOT + CONSUME +
+                        String.format(WITHIN_PAREN_TEMPLATE, TIMEOUT)), semicolonToken);
+        // Message|pipe:Error responseMessage = tuplePipe.consume(timeout);
+        statementsList.add(callRelevantPipeConsumeVar);
+        statementsList.add(getPipeError(RESPONSE_MESSAGE, CONSUMING));
 
         if (dispatcherStreamId != null) {
             MethodCallExpressionNode gracefulMethodCallNode = createMethodCallExpressionNode(
                     requestTypePipeNode, dotToken,
-                    createSimpleNameReferenceNode(createIdentifierToken("gracefulClose")),
+                    createSimpleNameReferenceNode(createIdentifierToken(GRACEFUL_CLOSE)),
                     openParenToken, createSeparatedNodeList(), closeParenToken);
             CheckExpressionNode graceFulCheckNode = createCheckExpressionNode(null,
                     createToken(CHECK_KEYWORD), gracefulMethodCallNode);
             ExpressionStatementNode graceFulCheckExpressionNode = createExpressionStatementNode(
                     null, graceFulCheckNode, semicolonToken);
-
-
             statementsList.add(graceFulCheckExpressionNode);
         }
 
-
-        //PongMessage pongMessage = check responseMessage.cloneWithType();
+        //PongMessage pongMessage = responseMessage.cloneWithType();
         MethodCallExpressionNode cloneWithTypeMethodCallExpressionNode = createMethodCallExpressionNode(
                 responseMessageVarNode, dotToken,
-                createSimpleNameReferenceNode(createIdentifierToken("cloneWithType")),
+                createSimpleNameReferenceNode(createIdentifierToken(CLONE_WITH_TYPE)),
                 openParenToken, createSeparatedNodeList(), closeParenToken);
 
-        CheckExpressionNode cloneWithTypeCheck = createCheckExpressionNode(null, createToken(CHECK_KEYWORD),
-                cloneWithTypeMethodCallExpressionNode);
-
         VariableDeclarationNode responseTypeCloneStatement = createVariableDeclarationNode(createEmptyNodeList(),
-                null,
-                createTypedBindingPatternNode(
-                        responseTypeName,
-                        createFieldBindingPatternVarnameNode(
-                                responseNameNode)),
-                equalToken, cloneWithTypeCheck, semicolonToken);
-
+                null, createTypedBindingPatternNode(responseTypeName, createFieldBindingPatternVarnameNode(
+                        responseNameNode)), equalToken, cloneWithTypeMethodCallExpressionNode, semicolonToken);
 
         statementsList.add(responseTypeCloneStatement);
+        statementsList.add(getCloningMessageError(responseTypeCamelCaseName));
 
-        Token returnKeyWord = createIdentifierToken("return");
-
-        ReturnStatementNode returnStatementNode = createReturnStatementNode(returnKeyWord, responseNameNode,
-                createToken(SEMICOLON_TOKEN));
+        ReturnStatementNode returnStatementNode = createReturnStatementNode(createIdentifierToken(RETURN),
+                responseNameNode, semicolonToken);
         statementsList.add(returnStatementNode);
     }
 

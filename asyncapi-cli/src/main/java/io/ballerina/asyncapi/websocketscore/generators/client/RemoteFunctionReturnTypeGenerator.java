@@ -59,7 +59,7 @@ public class RemoteFunctionReturnTypeGenerator {
      * @return string with return type.
      * @throws BallerinaAsyncApiExceptionWs - throws exception if creating return type fails.
      */
-    public String getReturnType(JsonNode xResponse, JsonNode xResponseType, ArrayList responseMessages
+    public String getReturnType(JsonNode xResponse, JsonNode xResponseType, ArrayList<String> responseMessages
     ) throws BallerinaAsyncApiExceptionWs {
         //TODO: Handle multiple media-type
         ArrayList<String> returnTypes = new ArrayList<>();
@@ -114,7 +114,7 @@ public class RemoteFunctionReturnTypeGenerator {
     }
 
     private String handleReferenceReturn(JsonNode jsonNode, Map<String, AsyncApiMessage> messages,
-                                         ArrayList responseMessages, ArrayList<String> returnTypes)
+                                         ArrayList<String> responseMessages, ArrayList<String> returnTypes)
             throws BallerinaAsyncApiExceptionWs {
         TextNode textNode = (TextNode) asyncAPI.getExtensions().get(X_DISPATCHER_KEY);
         String dispatcherKey = textNode.asText();

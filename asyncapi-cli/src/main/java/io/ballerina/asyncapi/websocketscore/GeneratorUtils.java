@@ -60,9 +60,9 @@ import java.util.Map;
 import java.util.regex.Pattern;
 
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.BALLERINA;
-import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.CLOSE_CURLY_BRACE;
+import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.CLOSE_BRACE;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.LINE_SEPARATOR;
-import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.OPEN_CURLY_BRACE;
+import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.OPEN_BRACE;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.SLASH;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.SPECIAL_CHARACTERS_REGEX;
 import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.JSON_EXTENSION;
@@ -418,8 +418,8 @@ public class GeneratorUtils {
         String[] subPathSegment = path.split(SLASH);
         Pattern pattern = Pattern.compile(SPECIAL_CHARACTERS_REGEX);
         for (String subPath : subPathSegment) {
-            if (subPath.contains(OPEN_CURLY_BRACE) &&
-                    pattern.matcher(subPath.split(CLOSE_CURLY_BRACE, 2)[1]).find()) {
+            if (subPath.contains(OPEN_BRACE) &&
+                    pattern.matcher(subPath.split(CLOSE_BRACE, 2)[1]).find()) {
                 return true;
             }
         }
@@ -440,14 +440,14 @@ public class GeneratorUtils {
         Pattern pattern = Pattern.compile(SPECIAL_CHARACTERS_REGEX);
         List<StatementNode> bodyStatements = new ArrayList<>();
         for (String subPath : subPathSegment) {
-            if (subPath.contains(OPEN_CURLY_BRACE) &&
-                    pattern.matcher(subPath.split(CLOSE_CURLY_BRACE, 2)[1]).find()) {
+            if (subPath.contains(OPEN_BRACE) &&
+                    pattern.matcher(subPath.split(CLOSE_BRACE, 2)[1]).find()) {
                 String pathParam = subPath;
-                pathParam = pathParam.substring(pathParam.indexOf(OPEN_CURLY_BRACE) + 1);
-                pathParam = pathParam.substring(0, pathParam.indexOf(CLOSE_CURLY_BRACE));
+                pathParam = pathParam.substring(pathParam.indexOf(OPEN_BRACE) + 1);
+                pathParam = pathParam.substring(0, pathParam.indexOf(CLOSE_BRACE));
                 pathParam = getValidName(pathParam, false);
 
-                String[] subPathSplit = subPath.split(CLOSE_CURLY_BRACE, 2);
+                String[] subPathSplit = subPath.split(CLOSE_BRACE, 2);
                 String pathParameter = getValidName(subPath, false);
                 String restSubPath = subPathSplit[1];
                 String resSubPathLength = String.valueOf(restSubPath.length() - 1);

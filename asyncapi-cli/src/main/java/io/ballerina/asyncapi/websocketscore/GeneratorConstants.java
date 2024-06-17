@@ -18,9 +18,31 @@
 
 package io.ballerina.asyncapi.websocketscore;
 
+import io.ballerina.compiler.syntax.tree.ExpressionNode;
+import io.ballerina.compiler.syntax.tree.NodeParser;
+import io.ballerina.compiler.syntax.tree.OptionalTypeDescriptorNode;
+import io.ballerina.compiler.syntax.tree.QualifiedNameReferenceNode;
+import io.ballerina.compiler.syntax.tree.SimpleNameReferenceNode;
+import io.ballerina.compiler.syntax.tree.StatementNode;
+
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+
+import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createIdentifierToken;
+import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createSeparatedNodeList;
+import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createToken;
+import static io.ballerina.compiler.syntax.tree.NodeFactory.createExpressionStatementNode;
+import static io.ballerina.compiler.syntax.tree.NodeFactory.createFunctionCallExpressionNode;
+import static io.ballerina.compiler.syntax.tree.NodeFactory.createOptionalTypeDescriptorNode;
+import static io.ballerina.compiler.syntax.tree.NodeFactory.createQualifiedNameReferenceNode;
+import static io.ballerina.compiler.syntax.tree.NodeFactory.createSimpleNameReferenceNode;
+import static io.ballerina.compiler.syntax.tree.SyntaxKind.CLOSE_PAREN_TOKEN;
+import static io.ballerina.compiler.syntax.tree.SyntaxKind.COLON_TOKEN;
+import static io.ballerina.compiler.syntax.tree.SyntaxKind.FUNCTION_CALL;
+import static io.ballerina.compiler.syntax.tree.SyntaxKind.OPEN_PAREN_TOKEN;
+import static io.ballerina.compiler.syntax.tree.SyntaxKind.QUESTION_MARK_TOKEN;
+import static io.ballerina.compiler.syntax.tree.SyntaxKind.SEMICOLON_TOKEN;
 
 /**
  * Constants for asyncapi code generator.
@@ -38,7 +60,6 @@ public class GeneratorConstants {
 
     public static final String LANG_RUNTIME = "lang.runtime";
 
-
     public static final String SIMPLE_PIPE = "pipe";
 
     public static final String UUID = "uuid";
@@ -47,6 +68,19 @@ public class GeneratorConstants {
 
     public static final String CAPITAL_PIPE = "Pipe";
 
+    public static final String CAPITAL_ERROR = "Error";
+
+    public static final QualifiedNameReferenceNode PIPE_ERROR = createQualifiedNameReferenceNode(
+            createIdentifierToken(SIMPLE_PIPE), createToken(COLON_TOKEN), createIdentifierToken(CAPITAL_ERROR));
+
+    public static final QualifiedNameReferenceNode WS_ERROR = createQualifiedNameReferenceNode(
+            createIdentifierToken(WEBSOCKET), createToken(COLON_TOKEN), createIdentifierToken(CAPITAL_ERROR));
+
+    public static final OptionalTypeDescriptorNode WS_ERROR_OPTIONAL = createOptionalTypeDescriptorNode(
+            WS_ERROR, createToken(QUESTION_MARK_TOKEN));
+
+    public static final String TRUE = "true";
+
     public static final String URL = "url";
     public static final String MODULE_TEST = "test";
     public static final String BALLERINA = "ballerina";
@@ -54,6 +88,8 @@ public class GeneratorConstants {
     //Honour goes to Nuvindu
     public static final String XLIBB = "xlibb";
     public static final String XLIBB_PIPE = "pipe";
+
+    public static final String LOG = "log";
 
     public static final String X_DISPATCHER_KEY = "x-dispatcherKey";
 
@@ -74,6 +110,10 @@ public class GeneratorConstants {
 
     public static final String PLUS_SPACE = " + ";
 
+    public static final String NOT = "!";
+    public static final String QUESTION_MARK = "?";
+    public static final String CONNECTION_CLOSE = "connectionClose";
+
     public static final String CHECK_PATH_FOR_QUERY_PARAM = "check getPathForQueryParam(queryParam)";
 
     public static final String MAP_STRING = "map<string>";
@@ -90,27 +130,27 @@ public class GeneratorConstants {
 
     public static final String START_MESSAGE_WRITING = "startMessageWriting";
 
-    public static final String START_PIPE_TRIGGERING = "startPipeTriggering";
-
     public static final String CONSUME = "consume";
 
     public static final String PRODUCE = "produce";
 
     public static final String DEFAULT_PIPE_TIME_OUT = "5";
 
-    public static final String REQUEST_MESSAGE = "requestMessage";
-
     public static final String WRITE_MESSAGE = "writeMessage";
 
     public static final String READ_MESSAGE = "readMessage";
 
-    public static final String PIPE_TRIGGER = "pipeTrigger";
     public static final String MESSAGE = "Message";
     public static final String MESSAGE_WITH_ID = "MessageWithId";
 
     public static final String CONNECTION_CLOSED = "connection closed";
 
+    public static final String CONNECTION_CLOSED_TEMPLATE = "\"[%s]ConnectionError: Connection has been closed\"";
+    public static final String DATABINDING_ERR_TEMPLATE = "\"[%s]DataBindingError: Error in cloning message\"";
+    public static final String PIPE_PRODUCE_ERR_TEMPLATE = "\"[%s]PipeError: Error in %s message\"";
     public static final String MESSAGE_VAR_NAME = "message";
+    public static final String CONNECTION_ERR = "\"ConnectionError: \" + ";
+    public static final String ATTEMPT_TO_CLOSE_CONNECTION = "attemptToCloseConnection";
     public static final String MESSAGE_WITH_ID_VAR_NAME = "messageWithId";
     public static final String TYPE_INCLUSION_GENERATOR = "Generator";
     public static final String WORKER_SLEEP_TIME_OUT = "0.01";
@@ -124,6 +164,7 @@ public class GeneratorConstants {
     public static final String PIPES = "pipes";
 
     public static final String STREAM_GENERATORS = "streamGenerators";
+    public static final String STREAM_GENERATOR = "streamGenerator";
     public static final String EQUAL = "=";
     public static final String CLIENT_CONFIG = "clientConfig";
     public static final String PREFIX_TEST = " test";
@@ -145,6 +186,7 @@ public class GeneratorConstants {
     public static final String CUSTOM_HEADERS = "customHeaders";
     public static final String MODIFIED_URL = "modifiedUrl";
     public static final String ERROR = "error";
+    public static final String ERROR_MESSAGE = "errorMessage";
 
     public static final String ENSURE_TYPE = "ensureType";
     // auth related constants
@@ -207,9 +249,7 @@ public class GeneratorConstants {
     public static final String SIMPLE_RPC = "simple-rpc";
     public static final String INTEGER = "integer";
     public static final String BOOLEAN = "boolean";
-    public static final String IS_MESSAGE_WRITING = "isMessageWriting";
-    public static final String IS_MESSAGE_READING = "isMessageReading";
-    public static final String IS_PIPE_TRIGGERING = "isPipeTriggering";
+    public static final String IS_ACTIVE = "isActive";
 
     public static final String OPTIONAL_ERROR = "error?";
 
@@ -218,9 +258,6 @@ public class GeneratorConstants {
     public static final String REMOVE_PIPES = "removePipes";
 
     public static final String REMOVE_STREAM_GENERATORS = "removeStreamGenerators";
-
-    public static final String CONNECTION_CLOSE = "connectionClose";
-
     public static final String NUMBER = "number";
 
     public static final String OBJECT = "object";
@@ -228,8 +265,6 @@ public class GeneratorConstants {
     public static final Integer MAX_ARRAY_LENGTH = 2147483637;
     public static final String LINE_SEPARATOR = System.lineSeparator();
     public static final String SPECIAL_CHARACTERS_REGEX = "[^a-zA-Z0-9]";
-    public static final String OPEN_CURLY_BRACE = "{";
-    public static final String CLOSE_CURLY_BRACE = "}";
     public static final String SLASH = "/";
     public static final String CONSTRAINT = "constraint";
     public static final String CONSTRAINT_STRING = "constraint:String";
@@ -240,6 +275,7 @@ public class GeneratorConstants {
     public static final String OPEN_BRACE = "{";
     public static final String CLOSE_BRACE = "}";
     public static final String COLON = ":";
+    public static final String IF = "if";
 
     public static final String CLIENT_CONFIG_CUSTOM_HEADERS = "clientConfig.customHeaders";
 
@@ -278,13 +314,37 @@ public class GeneratorConstants {
 
     public static final String INVALID_RESPONSE_SCHEMA = "Response type must be a record, invalid response schema";
     public static final String REF = "$ref";
-
     public static final String GRACEFUL_CLOSE = "gracefulClose";
-
     public static final String DOT = ".";
-
+    public static final String SEMICOLON = ";";
+    public static final String REMOTE_CALL = "->";
     public static final String NOT_IS = "!is";
 
+    public static final String IS = "is";
+
+    public static final String WS_ERR = "wsErr";
+
+    public static final String PIPE_ERR = "pipeErr";
+
+    public static final String RESPONSE_MESSAGE = "responseMessage";
+
+    public static final String WITHIN_PAREN_TEMPLATE = "(%s)";
+
+    public static final String CONSUMING = "consuming";
+
+    public static final String PRODUCING = "producing";
+
+    public static final ExpressionNode OP_TIMEOUT_EXPR = NodeParser.parseExpression("\"Operation has timed out\"");
+
+    public static final SimpleNameReferenceNode LOG_PRINT_ERR =
+            createSimpleNameReferenceNode(createIdentifierToken("log:printError"));
+
+    public static final StatementNode ATTEMPT_CON_CLOSE = createExpressionStatementNode(FUNCTION_CALL,
+            createFunctionCallExpressionNode(createSimpleNameReferenceNode(createIdentifierToken(SELF + DOT +
+                            ATTEMPT_TO_CLOSE_CONNECTION)), createToken(OPEN_PAREN_TOKEN), createSeparatedNodeList(),
+                    createToken(CLOSE_PAREN_TOKEN)), createToken(SEMICOLON_TOKEN));
+
+    public static final String ERR_TEMPLATE = "\"[%s]%sError: \" + %s";
 
     public static final String WSS = "wss";
 
@@ -306,6 +366,7 @@ public class GeneratorConstants {
     public static final String READ_ONLY = "readOnly";
 
     public static final String GET_PIPE = "getPipe";
+    public static final String ADD_PIPE = "addPipe";
 
     public static final String CLONE_WITH_TYPE = "cloneWithType";
 
@@ -337,6 +398,8 @@ public class GeneratorConstants {
     public static final String DEFAULT_RETURN = "null";
 
     public static final Map<String, String> TYPE_MAP;
+
+    public static final String EVENT = "event";
 
     static {
         Map<String, String> typeMap = new HashMap<>();
