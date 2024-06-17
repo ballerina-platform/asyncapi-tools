@@ -487,7 +487,7 @@ public class UtilGenerator {
         FunctionBodyNode functionBodyNode = getNextFunctionBodyNode(returnType);
         NodeList<Token> qualifierList = createNodeList(createToken(PUBLIC_KEYWORD), createToken(ISOLATED_KEYWORD));
         IdentifierToken functionName = createIdentifierToken("next");
-        return createFunctionDefinitionNode(null, getDocCommentsForNextMethod(" " +
+        return createFunctionDefinitionNode(SyntaxKind.OBJECT_METHOD_DEFINITION, getDocCommentsForNextMethod(" " +
                         "Next method to return next stream message")
                 , qualifierList,
                 createToken(FUNCTION_KEYWORD),
@@ -501,7 +501,7 @@ public class UtilGenerator {
         FunctionBodyNode functionBodyNode = getCloseFunctionBodyNode();
         NodeList<Token> qualifierList = createNodeList(createToken(PUBLIC_KEYWORD), createToken(ISOLATED_KEYWORD));
         IdentifierToken functionName = createIdentifierToken("close");
-        return createFunctionDefinitionNode(null, getDocCommentsForNextMethod(" " +
+        return createFunctionDefinitionNode(SyntaxKind.OBJECT_METHOD_DEFINITION, getDocCommentsForNextMethod(" " +
                         "Close method to close used pipe")
                 , qualifierList,
                 createToken(FUNCTION_KEYWORD),
@@ -657,7 +657,7 @@ public class UtilGenerator {
         FunctionBodyNode functionBodyNode = getStreamInitFunctionBodyNode();
         NodeList<Token> qualifierList = createNodeList(createToken(PUBLIC_KEYWORD), createToken(ISOLATED_KEYWORD));
         IdentifierToken functionName = createIdentifierToken("init");
-        return createFunctionDefinitionNode(null, getInitDocComment(), qualifierList,
+        return createFunctionDefinitionNode(SyntaxKind.OBJECT_METHOD_DEFINITION, getInitDocComment(), qualifierList,
                 createToken(FUNCTION_KEYWORD),
                 functionName, createEmptyNodeList(), functionSignatureNode, functionBodyNode);
     }

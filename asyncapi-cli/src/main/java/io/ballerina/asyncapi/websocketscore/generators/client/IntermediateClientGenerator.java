@@ -2309,8 +2309,7 @@ public class IntermediateClientGenerator {
             //If found at least one dispatcherStreamId then don't add uuid again and again
             pipeIdMethods.add(messageName);
             ImportDeclarationNode importForUUID = GeneratorUtils.
-                    getImportDeclarationNode(GeneratorConstants.BALLERINA
-                            , UUID);
+                    getImportDeclarationNode(GeneratorConstants.BALLERINA, UUID);
 
             if (pipeIdMethods.size() == 1) {
                 imports.add(importForUUID);
