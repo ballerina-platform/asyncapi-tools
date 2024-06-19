@@ -104,7 +104,7 @@ public class TestUtils {
         generatedSyntaxTree = generatedSyntaxTree.replaceAll(LINE_SEPARATOR, "");
         generatedSyntaxTree = (generatedSyntaxTree.trim()).replaceAll("\\s+", "");
         expectedBallerinaContent = (expectedBallerinaContent.trim()).replaceAll("\\s+", "");
-        Assert.assertEquals(expectedBallerinaContent, generatedSyntaxTree);
+        Assert.assertEquals(generatedSyntaxTree, expectedBallerinaContent);
     }
 
     /*

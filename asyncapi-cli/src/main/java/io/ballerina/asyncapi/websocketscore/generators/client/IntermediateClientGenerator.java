@@ -133,7 +133,6 @@ import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.DOUBLE_QUO
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.EQUAL_SPACE;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.ERROR;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.ERR_TEMPLATE;
-import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.EVENT;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.FAIL_TO_READ_ENDPOINT_DETAILS;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.GET_COMBINE_HEADERS;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.GET_PIPE;
@@ -151,6 +150,7 @@ import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.MAP_ANY_DA
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.MAP_STRING;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.MESSAGE;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.MESSAGE_VAR_NAME;
+import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.MESSAGE_WITH_ID;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.MODIFIED_URL;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.NOT;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.OBJECT;
@@ -215,6 +215,7 @@ import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.X_DISPATCH
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.X_DISPATCHER_STREAM_ID_CANNOT_BE_EMPTY;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.X_RESPONSE;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.X_RESPONSE_TYPE;
+import static io.ballerina.asyncapi.websocketscore.GeneratorUtils.escapeIdentifier;
 import static io.ballerina.asyncapi.websocketscore.GeneratorUtils.getValidName;
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createEmptyMinutiaeList;
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createEmptyNodeList;
@@ -421,11 +422,10 @@ public class IntermediateClientGenerator {
         ImportDeclarationNode importForLog = GeneratorUtils.getImportDeclarationNode(GeneratorConstants.BALLERINA
                 , LOG);
 
+        imports.add(importForRunTime);
+        imports.add(importForLog);
         imports.add(importForWebsocket);
         imports.add(importForXlibbPipe);
-        imports.add(importForLog);
-        imports.add(importForRunTime);
-
 
         //TODO: This has to improve
         // Add authentication related records
@@ -468,7 +468,7 @@ public class IntermediateClientGenerator {
         }
 
         //Get dispatcherStreamId
-        String dispatcherStreamId;
+        String dispatcherStreamId = null;
         if (extensions.get(X_DISPATCHER_STREAM_ID) != null) {
             TextNode dispatcherStreamIdNode = (TextNode) extensions.get(X_DISPATCHER_STREAM_ID);
             if (dispatcherStreamIdNode != null) {
@@ -477,6 +477,20 @@ public class IntermediateClientGenerator {
                     throw new BallerinaAsyncApiExceptionWs(X_DISPATCHER_STREAM_ID_CANNOT_BE_EMPTY);
                 }
             }
+        }
+
+        AsyncApi25SchemaImpl responseMessageSchema = createResponseMessage(dispatcherKey);
+        TypeDefinitionNode responseMessageTypeDefinitionNode = ballerinaSchemaGenerator.getTypeDefinitionNode
+                (responseMessageSchema, MESSAGE, new ArrayList<>());
+        GeneratorUtils.updateTypeDefNodeList(MESSAGE, responseMessageTypeDefinitionNode,
+                typeDefinitionNodeList);
+
+        if (dispatcherStreamId != null) {
+            AsyncApi25SchemaImpl responseMessageWithIdSchema = createResponseMessageWithIDRecord(
+                    dispatcherKey, dispatcherStreamId);
+            TypeDefinitionNode typeDefinitionNode = ballerinaSchemaGenerator.getTypeDefinitionNode
+                    (responseMessageWithIdSchema, MESSAGE_WITH_ID, new ArrayList<>());
+            GeneratorUtils.updateTypeDefNodeList(MESSAGE_WITH_ID, typeDefinitionNode, typeDefinitionNodeList);
         }
 
         // Adding remote functions which is using id pipes
@@ -569,6 +583,8 @@ public class IntermediateClientGenerator {
     //
     private FunctionBodyNode getStartMessageReadingFunctionBodyNode() {
 
+        String dispatcherKey = asyncAPI.getExtensions().get(X_DISPATCHER_KEY).asText();
+
         // Message|websocket:Error message = self.clientEp->readMessage();
         FieldAccessExpressionNode clientEp = createFieldAccessExpressionNode(
                 createSimpleNameReferenceNode(createIdentifierToken(SELF)), dotToken,
@@ -592,7 +608,8 @@ public class IntermediateClientGenerator {
                 createSimpleNameReferenceNode(createIdentifierToken(GET_PIPE)), openParenToken,
                 createSeparatedNodeList(createFieldAccessExpressionNode(
                         createSimpleNameReferenceNode(createIdentifierToken(MESSAGE_VAR_NAME)), dotToken,
-                        createSimpleNameReferenceNode(createIdentifierToken(EVENT)))), closeParenToken);
+                        createSimpleNameReferenceNode(createIdentifierToken(escapeIdentifier(dispatcherKey))))),
+                closeParenToken);
         VariableDeclarationNode pipesVar = createVariableDeclarationNode(createEmptyNodeList(),
                 null, createTypedBindingPatternNode(
                         createSimpleNameReferenceNode(createIdentifierToken(SIMPLE_PIPE + colonToken + CAPITAL_PIPE)),
@@ -968,17 +985,12 @@ public class IntermediateClientGenerator {
                 VariableDeclarationNode pathInt = getPathStatement(path);
                 assignmentNodes.add(pathInt);
                 handleParameterSchemaInOperation(querySchema, headerSchema, assignmentNodes, false);
-
             } else {
                 handleParameterSchemaInOperation(querySchema, headerSchema, assignmentNodes, true);
-
             }
-
             assignmentNodes.add(ballerinaAuthConfigGenerator.getClientInitializationNode(MODIFIED_URL));
-
         } else {
             assignmentNodes.add(ballerinaAuthConfigGenerator.getClientInitializationNode(SERVICE_URL));
-
         }
 
 
@@ -1005,7 +1017,7 @@ public class IntermediateClientGenerator {
         workers.add(START_MESSAGE_WRITING);
         workers.add(START_MESSAGE_READING);
 
-        List workersArgumentsList = new ArrayList<>();
+        List<Node> workersArgumentsList = new ArrayList<>();
         SeparatedNodeList<FunctionArgumentNode> workersArguments = createSeparatedNodeList(workersArgumentsList);
         for (String worker : workers) {
             ExpressionStatementNode workerNode = createExpressionStatementNode(FUNCTION_CALL,
@@ -1582,7 +1594,6 @@ public class IntermediateClientGenerator {
         String specDispatcherStreamId = null;
         if (asyncAPI.getExtensions().get(X_DISPATCHER_STREAM_ID) != null) {
             specDispatcherStreamId = asyncAPI.getExtensions().get(X_DISPATCHER_STREAM_ID).asText();
-
         }
 
         Map<String, Schema> schemas = asyncAPI.getComponents().getSchemas();
@@ -1602,7 +1613,6 @@ public class IntermediateClientGenerator {
                     createToken(SyntaxKind.HASH_TOKEN), createEmptyNodeList());
             remoteFunctionDocs.add(newLine);
         }
-
 
         //Add remote function for test files
         remoteFunctionNameList.add(messageName);

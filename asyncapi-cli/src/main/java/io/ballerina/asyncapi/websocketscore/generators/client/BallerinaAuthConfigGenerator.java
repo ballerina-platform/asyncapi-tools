@@ -234,8 +234,6 @@ public class BallerinaAuthConfigGenerator {
         this.httpApiKey = isAPIKey;
         this.httpOROAuth = isHttpOROAuth;
         this.ballerinaSchemaGenerator = ballerinaSchemaGenerator;
-
-
     }
 
     public boolean isPathParam() {
@@ -265,7 +263,6 @@ public class BallerinaAuthConfigGenerator {
      * @return {@link boolean}
      */
     public boolean isHttpOROAuth() {
-
         return httpOROAuth;
     }
 

@@ -25,13 +25,11 @@ import io.ballerina.asyncapi.websocketscore.generators.client.IntermediateClient
 import io.ballerina.asyncapi.websocketscore.generators.client.model.AASClientConfig;
 import io.ballerina.asyncapi.wsgenerators.common.TestUtils;
 import io.ballerina.compiler.syntax.tree.SyntaxTree;
-import org.ballerinalang.formatter.core.FormatterException;
 import org.testng.annotations.AfterTest;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
 import java.io.IOException;
-import java.net.URISyntaxException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
@@ -49,13 +47,12 @@ public class ComparedGeneratedFileTests {
     @Test(description = "Test asyncAPI definition to ballerina client source code generation",
             dataProvider = "fileProviderForFilesComparison")
     public void asyncAPIToBallerinaCodeGenTestForClient(String yamlFile, String expectedFile) throws IOException,
-            BallerinaAsyncApiExceptionWs, FormatterException, URISyntaxException {
+            BallerinaAsyncApiExceptionWs {
         Path definitionPath = RES_DIR.resolve("Real/" + yamlFile);
         Path expectedPath = RES_DIR.resolve("baloutputs/Real/" + expectedFile);
         AsyncApi25DocumentImpl asyncAPI = GeneratorUtils.normalizeAsyncAPI(definitionPath);
         AASClientConfig.Builder clientMetaDataBuilder = new AASClientConfig.Builder();
-        AASClientConfig oasClientConfig = clientMetaDataBuilder
-                .withAsyncAPI(asyncAPI).build();
+        AASClientConfig oasClientConfig = clientMetaDataBuilder.withAsyncAPI(asyncAPI).build();
         IntermediateClientGenerator ballerinaClientGenerator = new IntermediateClientGenerator(oasClientConfig);
         syntaxTree = ballerinaClientGenerator.generateSyntaxTree();
         compareGeneratedSyntaxTreeWithExpectedSyntaxTree(expectedPath, syntaxTree);

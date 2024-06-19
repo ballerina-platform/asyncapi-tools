@@ -142,9 +142,7 @@ public class RemoteFunctionSignatureGenerator {
                 }
                 returnType = "stream<" + returnType + ",error?>";
             }
-            String finalReturnType = returnType +
-                    PIPE_TOKEN.stringValue() +
-                    ERROR;
+            String finalReturnType = returnType + PIPE_TOKEN.stringValue() + ERROR;
             TextNode responseDescription = (TextNode) xResponse.get(DESCRIPTION);
             if (xResponse.get(DESCRIPTION) != null) {
                 MarkdownParameterDocumentationLineNode returnDoc =
@@ -169,8 +167,6 @@ public class RemoteFunctionSignatureGenerator {
         TypeDescriptorNode typeName = createBuiltinSimpleNameReferenceNode(null,
                 createIdentifierToken(timeoutType));
         IdentifierToken paramNameNode = createIdentifierToken(paramName);
-
-
         return createRequiredParameterNode(createNodeList(), typeName, paramNameNode);
     }
 
@@ -210,8 +206,6 @@ public class RemoteFunctionSignatureGenerator {
      * <p>
      */
     public Node getRequestTypeParameterNode(String paramType) {
-
-
         TypeDescriptorNode typeName;
         typeName = createBuiltinSimpleNameReferenceNode(null, createIdentifierToken(
                 getValidName(paramType, true)));

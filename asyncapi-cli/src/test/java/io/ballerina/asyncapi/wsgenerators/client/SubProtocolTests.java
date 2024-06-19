@@ -36,7 +36,5 @@ public class SubProtocolTests {
         syntaxTree = intermediateClientGenerator.generateSyntaxTree();
 
         compareGeneratedSyntaxTreeWithExpectedSyntaxTree(expectedPathForClient, syntaxTree);
-//        compareGeneratedSyntaxTreeWithExpectedSyntaxTree(expectedPathForUtils, utilsSyntaxTree);
-//        compareGeneratedSyntaxTreeWithExpectedSyntaxTree(expectedPathForTypes, schemaSyntaxTree);
     }
 }

@@ -31,10 +31,10 @@ import java.util.Iterator;
 import java.util.Map;
 
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.DEFAULT_RETURN;
+import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.PIPE;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.X_DISPATCHER_KEY;
 import static io.ballerina.asyncapi.websocketscore.GeneratorUtils.extractReferenceType;
 import static io.ballerina.asyncapi.websocketscore.GeneratorUtils.getValidName;
-import static io.ballerina.compiler.syntax.tree.SyntaxKind.PIPE_TOKEN;
 
 /**
  * This util class for maintain the operation response with ballerina return type.
@@ -102,18 +102,14 @@ public class RemoteFunctionReturnTypeGenerator {
 
 
         //Add |error to the response
-        if (returnTypes.size() > 0) {
-            String finalReturnType = String.join(PIPE_TOKEN.stringValue(), returnTypes);
-
-
-            return finalReturnType;
-
+        if (!returnTypes.isEmpty()) {
+            return String.join(PIPE, returnTypes);
         } else {
             return DEFAULT_RETURN;
         }
     }
 
-    private String handleReferenceReturn(JsonNode jsonNode, Map<String, AsyncApiMessage> messages,
+    private void handleReferenceReturn(JsonNode jsonNode, Map<String, AsyncApiMessage> messages,
                                          ArrayList<String> responseMessages, ArrayList<String> returnTypes)
             throws BallerinaAsyncApiExceptionWs {
         TextNode textNode = (TextNode) asyncAPI.getExtensions().get(X_DISPATCHER_KEY);
@@ -125,9 +121,7 @@ public class RemoteFunctionReturnTypeGenerator {
         AsyncApiMessage message = messages.get(messageName);
         TextNode schemaReference = (TextNode) message.getPayload().get("$ref");
         String schemaName = extractReferenceType(schemaReference.asText());
-        AsyncApi25SchemaImpl refSchema = (AsyncApi25SchemaImpl) asyncAPI.getComponents().
-                getSchemas().get(
-                        schemaName);
+        AsyncApi25SchemaImpl refSchema = (AsyncApi25SchemaImpl) asyncAPI.getComponents().getSchemas().get(schemaName);
         if (responseMessages != null) {
             responseMessages.add(schemaName);
         }
@@ -138,7 +132,6 @@ public class RemoteFunctionReturnTypeGenerator {
         }
         String type = getValidName(schemaName, true);
         returnTypes.add(type);
-        return type;
     }
 
 

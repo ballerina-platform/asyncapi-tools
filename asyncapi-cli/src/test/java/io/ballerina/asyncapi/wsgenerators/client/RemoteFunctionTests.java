@@ -28,9 +28,7 @@ public class RemoteFunctionTests {
     @Test(description = "Test for stream request with no dispatcherStreamId")
     public void testRemoteFunctionDescription() throws IOException, BallerinaAsyncApiExceptionWs {
         Path definitionPath = RES_DIR.resolve("RemoteFunction/remote_function_description.yaml");
-//        Path expectedPathForTypes = RES_DIR.resolve("baloutputs/HeaderParam/header_parameter_types.bal");
         Path expectedPathForClient = RES_DIR.resolve("baloutputs/RemoteFunction/remote_function_description.bal");
-//        Path expectedPathForUtils = RES_DIR.resolve("baloutputs/HeaderParam/header_parameter_utils.bal");
         AsyncApi25DocumentImpl asyncAPI = GeneratorUtils.normalizeAsyncAPI(definitionPath);
         AASClientConfig.Builder clientMetaDataBuilder = new AASClientConfig.Builder();
         AASClientConfig oasClientConfig = clientMetaDataBuilder
@@ -39,8 +37,6 @@ public class RemoteFunctionTests {
         syntaxTree = intermediateClientGenerator.generateSyntaxTree();
 
         compareGeneratedSyntaxTreeWithExpectedSyntaxTree(expectedPathForClient, syntaxTree);
-//        compareGeneratedSyntaxTreeWithExpectedSyntaxTree(expectedPathForUtils, utilsSyntaxTree);
-//        compareGeneratedSyntaxTreeWithExpectedSyntaxTree(expectedPathForTypes, schemaSyntaxTree);
     }
 
     @Test(description = "Check whether the formatted function name are meeting ballerina coding conventions",
