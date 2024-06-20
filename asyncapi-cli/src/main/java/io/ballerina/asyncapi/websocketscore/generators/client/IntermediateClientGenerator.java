@@ -111,7 +111,6 @@ import java.util.regex.Pattern;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.API_KEY_CONFIG;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.ATTEMPT_CON_CLOSE;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.ATTEMPT_TO_CLOSE_CONNECTION;
-import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.BALLERINA_CLIENT_CANNOT_BE_GENERATED;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.BALLERINA_WEBSOCKET_DOESNT_SUPPORT_FOR_MULTIPLE_CHANNELS;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.CAPITAL_PIPE;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.CHECK_PATH_FOR_QUERY_PARAM;
