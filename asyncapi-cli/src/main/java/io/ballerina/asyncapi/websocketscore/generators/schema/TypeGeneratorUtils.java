@@ -15,7 +15,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package io.ballerina.asyncapi.websocketscore.generators.schema;
 
 import com.fasterxml.jackson.databind.node.BooleanNode;
@@ -111,7 +110,6 @@ public class TypeGeneratorUtils {
                                                  String parentName) throws BallerinaAsyncApiExceptionWs {
         if (schemaValue.getType() != null) {
             GeneratorUtils.convertAsyncAPITypeToBallerina(schemaValue.getType());
-
         }
         if (schemaValue.get$ref() != null) {
             return new ReferencedTypeGenerator(schemaValue, typeName);
@@ -119,9 +117,7 @@ public class TypeGeneratorUtils {
             return new ArrayTypeGenerator(schemaValue, typeName, parentName);
         } else if (schemaValue.getType() != null && primitiveTypeList.contains(schemaValue.getType())) {
             return new PrimitiveTypeGenerator(schemaValue, typeName);
-        } else if ((
-                (schemaValue.getOneOf() != null || schemaValue.getAllOf() != null ||
-                        schemaValue.getAnyOf() != null))) {
+        } else if (schemaValue.getOneOf() != null || schemaValue.getAllOf() != null || schemaValue.getAnyOf() != null) {
             if (schemaValue.getAllOf() != null) {
                 return new AllOfRecordTypeGenerator(schemaValue, typeName);
             } else {
@@ -140,9 +136,7 @@ public class TypeGeneratorUtils {
         } else if (schemaValue.getType() == null && schemaValue.getProperties() == null &&
                 schemaValue.getAdditionalProperties() != null) {
             return new JsonTypeGenerator(schemaValue, typeName);
-
         } else { // when schemaValue.type == null
-
             return new AnyDataTypeGenerator(schemaValue, typeName);
         }
     }
@@ -160,11 +154,9 @@ public class TypeGeneratorUtils {
      * @param originalTypeDesc Type name
      * @return Final type of the field
      */
-    public static TypeDescriptorNode getNullableType(AsyncApi25SchemaImpl schema,
-                                                     TypeDescriptorNode originalTypeDesc) {
+    public static TypeDescriptorNode getNullableType(AsyncApi25SchemaImpl schema, TypeDescriptorNode originalTypeDesc) {
         TypeDescriptorNode nillableType = originalTypeDesc;
         if (schema.getExtensions() != null) {
-
             if (schema.getExtensions().get(X_NULLABLE) != null &&
                     schema.getExtensions().get(X_NULLABLE).equals(BooleanNode.TRUE)) {
                 nillableType = createOptionalTypeDescriptorNode(originalTypeDesc, createToken(QUESTION_MARK_TOKEN));
@@ -177,23 +169,15 @@ public class TypeGeneratorUtils {
             List<String> required, List<Node> recordFieldList, Map.Entry<String, Schema> field,
             AsyncApi25SchemaImpl fieldSchema, NodeList<Node> schemaDocNodes, IdentifierToken fieldName,
             TypeDescriptorNode fieldTypeName) {
-
         return updateRecordFieldListWithImports(required, recordFieldList, field, fieldSchema, schemaDocNodes,
-                fieldName,
-                fieldTypeName, System.err);
+                fieldName, fieldTypeName, System.err);
     }
 
     public static ImmutablePair<List<Node>, Set<String>>
-    updateRecordFieldListWithImports(List<String> required,
-                                     List<Node> recordFieldList,
-                                     Map.Entry<String, Schema> field,
-                                     AsyncApi25SchemaImpl fieldSchema,
-                                     NodeList<Node> schemaDocNodes,
-                                     IdentifierToken fieldName,
-                                     TypeDescriptorNode fieldTypeName,
+    updateRecordFieldListWithImports(List<String> required, List<Node> recordFieldList, Map.Entry<String, Schema> field,
+                                     AsyncApi25SchemaImpl fieldSchema, NodeList<Node> schemaDocNodes,
+                                     IdentifierToken fieldName, TypeDescriptorNode fieldTypeName,
                                      PrintStream outStream) {
-
-
         MarkdownDocumentationNode documentationNode = createMarkdownDocumentationNode(schemaDocNodes);
 //        Generate constraint annotation.
         Set<String> imports = new HashSet<>();
@@ -242,12 +226,9 @@ public class TypeGeneratorUtils {
     }
 
     private static void setRequiredFields(List<String> required, List<Node> recordFieldList,
-                                          Map.Entry<String, Schema> field,
-                                          AsyncApi25SchemaImpl fieldSchema,
-                                          IdentifierToken fieldName,
-                                          TypeDescriptorNode fieldTypeName,
+                                          Map.Entry<String, Schema> field, AsyncApi25SchemaImpl fieldSchema,
+                                          IdentifierToken fieldName, TypeDescriptorNode fieldTypeName,
                                           MetadataNode metadataNode) {
-
 
         if (!required.contains(field.getKey().trim())) {
             if (fieldSchema.getDefault() != null) {
@@ -271,7 +252,6 @@ public class TypeGeneratorUtils {
                 recordFieldList.add(recordFieldNode);
 
             }
-
         }
     }
 
@@ -282,24 +262,20 @@ public class TypeGeneratorUtils {
 
         Token defaultValueToken;
         String defaultValue = fieldSchema.getDefault().toString().trim();
-        if ((fieldSchema.getType() != null && fieldSchema.getType().equals(STRING) ||
-                fieldSchema.getType() == null)) {
+        if ((fieldSchema.getType() != null && fieldSchema.getType().equals(STRING) || fieldSchema.getType() == null)) {
             if (defaultValue.equals("\"")) {
                 defaultValueToken = AbstractNodeFactory.createIdentifierToken("\"" + "\\" +
                         fieldSchema.getDefault().asText() + "\"");
             } else {
-                defaultValueToken = AbstractNodeFactory.createIdentifierToken(
-                        fieldSchema.getDefault().toString());
+                defaultValueToken = AbstractNodeFactory.createIdentifierToken(fieldSchema.getDefault().toString());
             }
         } else if (!defaultValue.matches("^[0-9]*$") && !defaultValue.matches("^(\\d*\\.)?\\d+$")
                 && !(defaultValue.startsWith("[") && defaultValue.endsWith("]")) &&
                 !(fieldSchema.getType() != null && fieldSchema.getType().equals(BOOLEAN))) {
             //This regex was added due to avoid adding quotes for default values which are numbers and array values.
             //Ex: default: 123
-            defaultValueToken = AbstractNodeFactory.createIdentifierToken(
-                    fieldSchema.getDefault().asText());
+            defaultValueToken = AbstractNodeFactory.createIdentifierToken(fieldSchema.getDefault().asText());
         } else {
-
             defaultValueToken = AbstractNodeFactory.createIdentifierToken(fieldSchema.
                     getDefault().toString().trim().replaceAll("\\\\", ""));
         }
@@ -338,7 +314,6 @@ public class TypeGeneratorUtils {
     }
 
     public static boolean isConstraintAllowed(String typeName, AsyncApi25SchemaImpl schema) {
-
         boolean isConstraintNotAllowed = schema.getExtensions() != null && schema.getExtensions().get(X_NULLABLE)
                 != null ||
                 (schema.getOneOf() != null && schema.getAllOf() != null && schema.getAnyOf() != null &&
@@ -358,7 +333,6 @@ public class TypeGeneratorUtils {
      * Generate constraint for numbers : int, float, decimal.
      */
     private static AnnotationNode generateNumberConstraint(AsyncApi25SchemaImpl fieldSchema) {
-
         List<String> fields = getNumberAnnotFields(fieldSchema);
         if (fields.isEmpty()) {
             return null;
@@ -382,7 +356,6 @@ public class TypeGeneratorUtils {
      * Generate constraint for string.
      */
     private static AnnotationNode generateStringConstraint(AsyncApi25SchemaImpl stringSchema) {
-
         List<String> fields = getStringAnnotFields(stringSchema);
         if (fields.isEmpty()) {
             return null;
@@ -396,7 +369,6 @@ public class TypeGeneratorUtils {
      * Generate constraint for array.
      */
     private static AnnotationNode generateArrayConstraint(AsyncApi25SchemaImpl arraySchema) {
-
         List<String> fields = getArrayAnnotFields(arraySchema);
         if (fields.isEmpty()) {
             return null;
@@ -407,7 +379,6 @@ public class TypeGeneratorUtils {
     }
 
     private static List<String> getNumberAnnotFields(AsyncApi25SchemaImpl numberSchema) {
-
         List<String> fields = new ArrayList<>();
         boolean isInt = numberSchema.getType().equals(INTEGER);
         if (numberSchema.getMinimum() != null && numberSchema.getExclusiveMinimum() == null) {
@@ -440,7 +411,6 @@ public class TypeGeneratorUtils {
     }
 
     private static List<String> getStringAnnotFields(AsyncApi25SchemaImpl stringSchema) {
-
         List<String> fields = new ArrayList<>();
         if (stringSchema.getMaxLength() != null && stringSchema.getMaxLength() != 0) {
             String value = stringSchema.getMaxLength().toString();
@@ -456,7 +426,6 @@ public class TypeGeneratorUtils {
     }
 
     private static List<String> getArrayAnnotFields(AsyncApi25SchemaImpl arraySchema) {
-
         List<String> fields = new ArrayList<>();
         if (arraySchema.getMaxItems() != null && arraySchema.getMaxItems() != 0) {
             String value = arraySchema.getMaxItems().toString();
@@ -479,7 +448,6 @@ public class TypeGeneratorUtils {
      * @return {@link AnnotationNode}
      */
     private static AnnotationNode createAnnotationNode(String annotationReference, String annotFields) {
-
         MappingConstructorExpressionNode annotationBody = null;
         SimpleNameReferenceNode annotReference = createSimpleNameReferenceNode(
                 createIdentifierToken(annotationReference));
@@ -487,10 +455,7 @@ public class TypeGeneratorUtils {
         if (expressionNode.kind() == MAPPING_CONSTRUCTOR) {
             annotationBody = (MappingConstructorExpressionNode) expressionNode;
         }
-        return NodeFactory.createAnnotationNode(
-                createToken(AT_TOKEN),
-                annotReference,
-                annotationBody);
+        return NodeFactory.createAnnotationNode(createToken(AT_TOKEN), annotReference, annotationBody);
     }
 
     /**
@@ -500,7 +465,6 @@ public class TypeGeneratorUtils {
      * @return Documentation node list
      */
     public static List<Node> getFieldApiDocs(AsyncApi25SchemaImpl field) {
-
         List<Node> schemaDoc = new ArrayList<>();
         if (field.getDescription() != null) {
             schemaDoc.addAll(DocCommentsGenerator.createAPIDescriptionDoc(
@@ -510,11 +474,10 @@ public class TypeGeneratorUtils {
             String componentName = GeneratorUtils.getValidName(split[split.length - 1], true);
             AsyncApi25DocumentImpl asyncAPI = GeneratorMetaData.getInstance().getAsyncAPI();
             if (asyncAPI.getComponents().getSchemas().get(componentName) != null) {
-                AsyncApi25SchemaImpl schema = (AsyncApi25SchemaImpl) asyncAPI.getComponents()
-                        .getSchemas().get(componentName);
+                AsyncApi25SchemaImpl schema = (AsyncApi25SchemaImpl) asyncAPI.getComponents().getSchemas()
+                        .get(componentName);
                 if (schema.getDescription() != null) {
-                    schemaDoc.addAll(DocCommentsGenerator.createAPIDescriptionDoc(
-                            schema.getDescription(), false));
+                    schemaDoc.addAll(DocCommentsGenerator.createAPIDescriptionDoc(schema.getDescription(), false));
                 }
             }
         }
@@ -530,7 +493,6 @@ public class TypeGeneratorUtils {
      */
     public static void getRecordDocs(List<Node> documentation, AsyncApi25SchemaImpl schemaValue
     ) throws BallerinaAsyncApiExceptionWs {
-
         if (schemaValue.getDescription() != null) {
             documentation.addAll(DocCommentsGenerator.createAPIDescriptionDoc(
                     schemaValue.getDescription(), false));

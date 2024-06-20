@@ -15,7 +15,6 @@
  *  specific language governing permissions and limitations
  *  under the License.
  */
-
 package io.ballerina.asyncapi.websocketscore.generators.asyncspec.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -57,7 +56,6 @@ import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constant
 import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.QUERY;
 import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.SCHEMA_REFERENCE;
 
-
 /**
  * AsyncAPIParameterMapper provides functionality for converting ballerina parameter to AsyncApiSpec parameter model.
  */
@@ -76,12 +74,10 @@ public class AsyncAPIParameterMapper {
         this.semanticModel = semanticModel;
     }
 
-
     /**
      * Create {@code Parameters} model for asyncAPI operation.
      */
     public void getResourceInputs(AsyncApi25ChannelItemImpl channelItem) {
-
         //Set path parameters
         NodeList<Node> pathParams = functionDefinitionNode.relativeResourcePath();
         if (!pathParams.isEmpty()) {
@@ -96,7 +92,6 @@ public class AsyncAPIParameterMapper {
         SeparatedNodeList<ParameterNode> parameterList = functionSignature.parameters();
         if (!parameterList.isEmpty()) {
             channelItem.setBindings(createQueryParameters(parameterList));
-
         }
     }
 
@@ -114,7 +109,6 @@ public class AsyncAPIParameterMapper {
                 RequiredParameterNode requiredParameterNode = (RequiredParameterNode) parameterNode;
                 if (requiredParameterNode.typeName().kind() != SyntaxKind.QUALIFIED_NAME_REFERENCE &&
                         requiredParameterNode.annotations().isEmpty()) {
-
                     queryParameterMapper.createQueryParameter(requiredParameterNode, bindingQueryObject);
                 }
                 // Handle header, payload parameter
@@ -129,7 +123,6 @@ public class AsyncAPIParameterMapper {
                         .annotations().isEmpty()) {
                     handleDefaultableHeaderParameters(defaultableParameterNode, bindingHeaderObject);
                 } else {
-
                     queryParameterMapper.createQueryParameter(defaultableParameterNode, bindingQueryObject);
                 }
             }
@@ -178,7 +171,6 @@ public class AsyncAPIParameterMapper {
                     pathParameterAAS.setSchema(ConverterCommonUtils.getAsyncApiSchema(pathParam.typeDescriptor()
                             .toString().trim()));
                 }
-
                 // Check the parameter has doc
                 if (!apidocs.isEmpty() && apidocs.containsKey(pathParam.paramName().get().text().trim())) {
                     pathParameterAAS.setDescription(apidocs.get(pathParam.paramName().get().text().trim()));
@@ -195,7 +187,6 @@ public class AsyncAPIParameterMapper {
      */
     private void handleHeaderParameters(RequiredParameterNode requiredParameterNode,
                                         BalAsyncApi25SchemaImpl bindingHeaderObject) {
-
         NodeList<AnnotationNode> annotations = requiredParameterNode.annotations();
         for (AnnotationNode annotation : annotations) {
             if ((annotation.annotReference().toString()).trim().equals(Constants.HTTP_HEADER)) {

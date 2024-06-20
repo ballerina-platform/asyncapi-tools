@@ -1,3 +1,20 @@
+/*
+ * Copyright (c) 2022, WSO2 LLC. (http://www.wso2.com). All Rights Reserved.
+ *
+ * WSO2 Inc. licenses this file to you under the Apache License,
+ * Version 2.0 (the "License"); you may not use this file except
+ * in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 package io.ballerina.asyncapi.websocketscore.generators.client;
 
 import com.fasterxml.jackson.databind.node.TextNode;
@@ -24,21 +41,17 @@ import static io.ballerina.asyncapi.websocketscore.GeneratorUtils.extractReferen
  */
 public class CommonFunctionUtils {
 
-
     private AsyncApi25DocumentImpl asyncAPI;
 
     public CommonFunctionUtils(AsyncApi25DocumentImpl asyncAPI) {
         this.asyncAPI = asyncAPI;
     }
 
-
     /**
      * Get return data type by traversing AsyncAPI schemas.
      */
-    public boolean isDispatcherPresent(String schemaName, AsyncApi25SchemaImpl schema,
-                                              String dispatcherVal, boolean isParent)
-            throws BallerinaAsyncApiExceptionWs {
-
+    public boolean isDispatcherPresent(String schemaName, AsyncApi25SchemaImpl schema, String dispatcherVal,
+                                       boolean isParent) throws BallerinaAsyncApiExceptionWs {
         if (schema != null) {
             if (schema.getProperties() != null) {
 //                type = getValidName(schemaName, true);
@@ -52,7 +65,6 @@ public class CommonFunctionUtils {
                     }
                     return true;
                 }
-
             } else if (schema.getOneOf() != null) {
                 List<AsyncApiSchema> oneOfSchemas = schema.getOneOf();
                 for (AsyncApiSchema oneOfSchema : oneOfSchemas) {
@@ -63,11 +75,9 @@ public class CommonFunctionUtils {
                         AsyncApi25SchemaImpl refSchema = (AsyncApi25SchemaImpl) asyncAPI.getComponents().
                                 getSchemas().get(
                                         refSchemaName);
-                        oneOfContainProperties = isDispatcherPresent(refSchemaName, refSchema, dispatcherVal,
-                                false);
+                        oneOfContainProperties = isDispatcherPresent(refSchemaName, refSchema, dispatcherVal, false);
                     } else {
-                        oneOfContainProperties = isDispatcherPresent("", oneOf25Schema,
-                                dispatcherVal, false);
+                        oneOfContainProperties = isDispatcherPresent("", oneOf25Schema, dispatcherVal, false);
                     }
                     if (!oneOfContainProperties && isParent) {
                         TextNode textNode = (TextNode) asyncAPI.getExtensions().get(X_DISPATCHER_KEY);
@@ -77,11 +87,8 @@ public class CommonFunctionUtils {
                                   SCHEMA_MUST_BE_A_RECORD, schemaName));
                         }
                     }
-
                 }
                 return true;
-
-
             } else if (schema.getAllOf() != null) {
                 List<Schema> allOfSchemas = schema.getAllOf();
                 boolean allOfContainProperties;
@@ -102,7 +109,6 @@ public class CommonFunctionUtils {
                         return true;
 
                     }
-
                 }
                 TextNode textNode = (TextNode) asyncAPI.getExtensions().get(X_DISPATCHER_KEY);
                 String dispatcherKey = textNode.asText();
@@ -110,23 +116,15 @@ public class CommonFunctionUtils {
                     throw new BallerinaAsyncApiExceptionWs(String.format(
                             SCHEMA_MUST_BE_A_RECORD, schemaName));
                 }
-
-
             } else if (!schema.getType().equals(GeneratorConstants.OBJECT)) {
                 throw new BallerinaAsyncApiExceptionWs(String.format(
                         RESPONSE_TYPE_MUST_BE_A_RECORD,
                         schema.getType(), schemaName));
             } else {
                 return false;
-
             }
         } else {
-//            if (schema == null) {
-//                throw new BallerinaAsyncApiException("Response type must be a record, invalid response schema");
-//
-//            } else {
             throw new BallerinaAsyncApiExceptionWs(INVALID_RESPONSE_SCHEMA);
-//            }
         }
         return false;
     }

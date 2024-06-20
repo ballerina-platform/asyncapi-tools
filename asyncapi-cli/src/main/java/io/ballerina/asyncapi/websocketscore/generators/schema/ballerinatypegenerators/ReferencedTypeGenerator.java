@@ -15,7 +15,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package io.ballerina.asyncapi.websocketscore.generators.schema.ballerinatypegenerators;
 
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25SchemaImpl;

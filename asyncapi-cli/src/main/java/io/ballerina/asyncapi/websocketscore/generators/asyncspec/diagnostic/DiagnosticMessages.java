@@ -33,12 +33,10 @@ public enum DiagnosticMessages {
             DiagnosticSeverity.ERROR),
     AAS_CONVERTOR_102("AAS_CONVERTOR_102", "Failed to generate AsyncAPI definition due to: %s",
             DiagnosticSeverity.ERROR),
-
     AAS_CONVERTOR_103("AAS_CONVERTOR_103", "AsyncAPI contract path can not be blank.",
                       DiagnosticSeverity.ERROR),
     AAS_CONVERTOR_104("AAS_CONVERTOR_104", "Unsupported file type. Provide a valid contract " +
-            "file in .yaml or .json format.",
-            DiagnosticSeverity.ERROR),
+            "file in .yaml or .json format.", DiagnosticSeverity.ERROR),
     AAS_CONVERTOR_105("AAS_CONVERTOR_105", "Provided AsyncAPI contract contains parsing error(s).",
                       DiagnosticSeverity.ERROR),
     AAS_CONVERTOR_106("AAS_CONVERTOR_106", "Generated AsyncAPI definition does not contain information "

@@ -15,7 +15,6 @@
  *  specific language governing permissions and limitations
  *  under the License.
  */
-
 package io.ballerina.asyncapi.websocketscore.generators.asyncspec.utils;
 
 import io.apicurio.datamodels.Library;
@@ -77,7 +76,6 @@ import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.utils.Co
 import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.utils.ConverterCommonUtils.getAsyncApiFileName;
 import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.utils.ConverterCommonUtils.isWebsocketService;
 
-
 /**
  * The ServiceToAsyncAPIConverterUtils provide API for convert ballerina service into asyncAPI specification.
  *
@@ -96,10 +94,8 @@ public class ServiceToAsyncAPIConverterUtils {
      * @return - {@link Map} with asyncAPI definitions for service nodes
      */
     public static List<AsyncAPIResult> generateAsyncAPISpecDefinition(SyntaxTree syntaxTree,
-                                                                      SemanticModel semanticModel,
-                                                                      String serviceName,
-                                                                      Boolean needJson,
-                                                                      Path inputPath) {
+                                                                      SemanticModel semanticModel, String serviceName,
+                                                                      Boolean needJson, Path inputPath) {
         List<ListenerDeclarationNode> endpoints = new ArrayList<>();
         Map<String, ServiceDeclarationNode> servicesToGenerate = new LinkedHashMap<>();
         List<String> availableService = new ArrayList<>();
@@ -191,7 +187,6 @@ public class ServiceToAsyncAPIConverterUtils {
         }
     }
 
-
     /**
      * Provides an instance of {@code AsyncAPIResult}, which contains the generated contract as well as
      * all the diagnostics information.
@@ -219,7 +214,7 @@ public class ServiceToAsyncAPIConverterUtils {
                 // 02. Filter and set the ServerURLs according to endpoints. Complete the server section in AsyncAPISpec
                 asyncapi = AsyncAPIEndpointMapper.ENDPOINT_MAPPER.getServers(asyncapi, endpoints, serviceDefinition);
                 // 03. Filter path and component sections in AsyncAPISpec.
-//                 Generate asyncApi string for the mentioned service name.
+                //   Generate asyncApi string for the mentioned service name.
                 asyncapi = asyncAPIServiceMapper.convertServiceToAsyncAPI(serviceDefinition,
                         classDefinitionNodes, asyncapi);
                 List<ValidationProblem> modelProblems = Library.validate(asyncapi, null);
@@ -230,7 +225,6 @@ public class ServiceToAsyncAPIConverterUtils {
                             error.getDescription(), null);
                     diagnostics.add(diagnostic);
                     return new AsyncAPIResult(null, diagnostics);
-
                 } else {
                     return new AsyncAPIResult(asyncapi, null);
                 }
@@ -304,7 +298,6 @@ public class ServiceToAsyncAPIConverterUtils {
             info.setTitle(normalizeTitle(currentServiceName));
             asyncAPI.setInfo(info);
         }
-
         return new AsyncAPIResult(asyncAPI, diagnostics);
     }
 
@@ -418,7 +411,6 @@ public class ServiceToAsyncAPIConverterUtils {
     private static AsyncAPIResult updateExistingContractAsyncAPI(List<AsyncAPIConverterDiagnostic> diagnostics,
                                                                  Location location, AsyncAPIInfo asyncAPIInfo,
                                                                  Path ballerinaFilePath) {
-
         AsyncAPIResult asyncAPIResult = resolveContractPath(diagnostics, location, asyncAPIInfo, ballerinaFilePath);
         Optional<AsyncApi25Document> contract = asyncAPIResult.getAsyncAPI();
         if (contract.isEmpty()) {

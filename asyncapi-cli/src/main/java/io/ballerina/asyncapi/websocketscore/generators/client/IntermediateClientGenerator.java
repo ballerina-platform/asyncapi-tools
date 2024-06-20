@@ -15,7 +15,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package io.ballerina.asyncapi.websocketscore.generators.client;
 
 import com.fasterxml.jackson.databind.JsonNode;

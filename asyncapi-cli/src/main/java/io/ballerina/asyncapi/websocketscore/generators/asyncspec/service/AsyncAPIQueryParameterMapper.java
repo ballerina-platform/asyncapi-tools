@@ -84,7 +84,6 @@ public class AsyncAPIQueryParameterMapper {
             BalAsyncApi25SchemaImpl asyncApiQueryParamSchema = setOptionalQueryParameter(queryParamName,
                     ((OptionalTypeDescriptorNode) queryParam.typeName()));
             bindingObject.addProperty(queryParamName, asyncApiQueryParamSchema);
-
         } else if (queryParam.typeName().kind() == SyntaxKind.ARRAY_TYPE_DESC) { //string[] //string?[]
             // Handle required array type query parameter
             ArrayTypeDescriptorNode arrayNode = (ArrayTypeDescriptorNode) queryParam.typeName();
@@ -116,7 +115,6 @@ public class AsyncAPIQueryParameterMapper {
      */
     public void createQueryParameter(DefaultableParameterNode defaultableQueryParam,
                                      BalAsyncApi25SchemaImpl bindingQueryObject) {
-
         String queryParamName = defaultableQueryParam.paramName().get().text();
         BalAsyncApi25SchemaImpl asyncApiQueryParamDefaultSchema = null;
         if (defaultableQueryParam.typeName() instanceof BuiltinSimpleNameReferenceNode) {
@@ -169,7 +167,6 @@ public class AsyncAPIQueryParameterMapper {
             itemSchema = ConverterCommonUtils.getAsyncApiSchema(
                     ((OptionalTypeDescriptorNode) itemTypeNode).typeDescriptor().toString().trim());
             itemSchema.addExtension(X_NULLABLE, BooleanNode.TRUE);
-
         } else {
             itemSchema = ConverterCommonUtils.getAsyncApiSchema(itemTypeNode.toString().trim());
         }
@@ -185,7 +182,6 @@ public class AsyncAPIQueryParameterMapper {
      */
     private BalAsyncApi25SchemaImpl setOptionalQueryParameter(String queryParamName,
                                                               OptionalTypeDescriptorNode typeNode) {
-
         Node node = typeNode.typeDescriptor();
         if (node.kind() == SyntaxKind.ARRAY_TYPE_DESC) { //int[]? offset
             BalAsyncApi25SchemaImpl arraySchema = ConverterCommonUtils.getAsyncApiSchema(AsyncAPIType.ARRAY.toString());
@@ -215,15 +211,12 @@ public class AsyncAPIQueryParameterMapper {
     }
 
     private BalAsyncApi25SchemaImpl createContentTypeForMapJson(String queryParamName, boolean nullable) {
-
         BalAsyncApi25SchemaImpl objectSchema = ConverterCommonUtils.getAsyncApiSchema(AsyncAPIType.OBJECT.toString());
         BalAsyncApi25SchemaImpl emptyObjectSchema = ConverterCommonUtils.getAsyncApiSchema(queryParamName);
         if (nullable) {
             objectSchema.addExtension(X_NULLABLE, BooleanNode.TRUE);
         }
         objectSchema.setAdditionalProperties(emptyObjectSchema);
-
         return objectSchema;
-
     }
 }

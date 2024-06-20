@@ -15,7 +15,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package io.ballerina.asyncapi.websocketscore.generators.client;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -144,7 +143,6 @@ public class RemoteFunctionBodyGenerator {
 
     private final List<ImportDeclarationNode> imports;
     private final String functionName;
-
     private static final Token openParenToken = createToken(OPEN_PAREN_TOKEN);
     private static final Token closeParenToken = createToken(CLOSE_PAREN_TOKEN);
     private static final Token openBraceToken = createToken(OPEN_BRACE_TOKEN);
@@ -161,7 +159,6 @@ public class RemoteFunctionBodyGenerator {
 
     private void addProduceStatementForWriteMessageQueue(List<StatementNode> statementsList, String requestType,
                                                          boolean isSubscribe) {
-
         if (!isSubscribe) {
             SimpleNameReferenceNode requestTypeNameNode =
                     createSimpleNameReferenceNode(createIdentifierToken(requestType));
@@ -172,7 +169,6 @@ public class RemoteFunctionBodyGenerator {
                             equalToken, createMethodCallExpressionNode(requestTypeNameNode, dotToken,
                                     createSimpleNameReferenceNode(createIdentifierToken(CLONE_WITH_TYPE)),
                                     openParenToken, createSeparatedNodeList(), closeParenToken), semicolonToken);
-
             // Message|error message = subscribe.cloneWithType();
             statementsList.add(messageVariableDeclarationNode);
             statementsList.add(getCloningMessageError(MESSAGE_VAR_NAME));
@@ -241,16 +237,12 @@ public class RemoteFunctionBodyGenerator {
     public FunctionBodyNode getFunctionBodyNode(Map<String, JsonNode> extensions, String requestType,
                                                 String specDispatcherStreamId, boolean isSubscribe,
                                                 String responseType) {
-
         // Create statements
         List<StatementNode> statementsList = new ArrayList<>();
-
         // This return type for target data type binding.
-
         if (extensions != null) {
 //            JsonNode xResponse = extensions.get(X_RESPONSE);
             JsonNode xResponseType = extensions.get(X_RESPONSE_TYPE);
-
             if (xResponseType != null && xResponseType.equals(new TextNode(SERVER_STREAMING))) {
                 //TODO: Include an if condition to check this only one time
 //                utilGenerator.setStreamFound(true);
@@ -271,7 +263,6 @@ public class RemoteFunctionBodyGenerator {
     private void createStreamFunctionBodyStatements(List<StatementNode> statementsList,
                                                     String requestType, String responseType, String dispatcherStreamId,
                                                     boolean isSubscribe) {
-
         String pipeId = String.format("\"%s\"", requestType);
 
         if (!isSubscribe) {
@@ -304,7 +295,6 @@ public class RemoteFunctionBodyGenerator {
                         streamMessageNode)), //TODO: Findout [] node
                 null, null, semicolonToken);
 
-        //
         statementsList.add(streamMessages);
 
         //  lock {
@@ -344,7 +334,6 @@ public class RemoteFunctionBodyGenerator {
 
         streamStatementList.add(streamGeneratorExpressionNode);
 
-
         AssignmentStatementNode streamMessagesAssignmentStatementNode = createAssignmentStatementNode(streamMessageNode,
                 equalToken, createImplicitNewExpressionNode(createToken(NEW_KEYWORD),
                         createParenthesizedArgList(openParenToken, createSeparatedNodeList(
@@ -352,12 +341,10 @@ public class RemoteFunctionBodyGenerator {
 
         streamStatementList.add(streamMessagesAssignmentStatementNode);
 
-
         LockStatementNode streamLockStatementNode = createLockStatementNode(createToken(LOCK_KEYWORD),
                 createBlockStatementNode(openBraceToken, createNodeList(streamStatementList), closeBraceToken), null);
 
         statementsList.add(streamLockStatementNode);
-
         ReturnStatementNode returnStatementNode = createReturnStatementNode(createToken(RETURN_KEYWORD),
                 streamMessageNode, semicolonToken);
         statementsList.add(returnStatementNode);
@@ -446,7 +433,6 @@ public class RemoteFunctionBodyGenerator {
                     responseTypeCamelCaseName + MESSAGE));
         }
 
-
         VariableDeclarationNode callRelevantPipeConsumeVar = createVariableDeclarationNode(createEmptyNodeList(),
                 null, createTypedBindingPatternNode(consumeResponseType,
                         createFieldBindingPatternVarnameNode(responseMessageVarNode)), equalToken,
@@ -492,5 +478,4 @@ public class RemoteFunctionBodyGenerator {
         return NodeParser.parseStatement(requestType + DOT + escapeIdentifier(dispatcherStreamId)
                 + EQUAL_SPACE + UUID + COLON + CREATE_TYPE1_AS_STRING + SEMICOLON);
     }
-
 }

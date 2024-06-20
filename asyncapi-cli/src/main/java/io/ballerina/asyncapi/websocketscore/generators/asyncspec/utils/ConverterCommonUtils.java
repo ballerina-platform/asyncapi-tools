@@ -15,7 +15,6 @@
  *  specific language governing permissions and limitations
  *  under the License.
  */
-
 package io.ballerina.asyncapi.websocketscore.generators.asyncspec.utils;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
@@ -131,7 +130,6 @@ public class ConverterCommonUtils {
                 schema.setType(AsyncAPIType.OBJECT.toString());
                 schema.setAdditionalProperties(new BalBooleanSchema(true));
                 break;
-
             case Constants.TYPE_REFERENCE:
             case Constants.TYPEREFERENCE:
             case Constants.XML:
@@ -151,7 +149,6 @@ public class ConverterCommonUtils {
      */
     public static BalAsyncApi25SchemaImpl getAsyncApiSchema(SyntaxKind type) {
         BalAsyncApi25SchemaImpl schema = new BalAsyncApi25SchemaImpl();
-
         switch (type) {
             case STRING_TYPE_DESC:
                 schema.setType("string");
@@ -249,7 +246,6 @@ public class ConverterCommonUtils {
         AsyncApi25Document api = yamldoc;
         return new AsyncAPIResult(api, diagnostics);
     }
-//
 
     public static String normalizeTitle(String serviceName) {
         if (serviceName == null) {
@@ -288,7 +284,6 @@ public class ConverterCommonUtils {
         if (serviceSymbol.isEmpty()) {
             return false;
         }
-
         ServiceDeclarationSymbol serviceNodeSymbol = (ServiceDeclarationSymbol) serviceSymbol.get();
         List<TypeSymbol> listenerTypes = (serviceNodeSymbol).listenerTypes();
         for (TypeSymbol listenerType : listenerTypes) {
@@ -306,7 +301,6 @@ public class ConverterCommonUtils {
                     .map(typeReferenceTypeSymbol -> (TypeReferenceTypeSymbol) typeReferenceTypeSymbol)
                     .anyMatch(typeReferenceTypeSymbol -> isWebsocketModule(typeReferenceTypeSymbol.getModule().get()));
         }
-
         if (listenerType.typeKind() == TypeDescKind.TYPE_REFERENCE) {
             return isWebsocketModule(((TypeReferenceTypeSymbol) listenerType).typeDescriptor().getModule().get());
         }
@@ -320,7 +314,6 @@ public class ConverterCommonUtils {
         } else {
             return false;
         }
-
     }
 
     /**
@@ -347,7 +340,6 @@ public class ConverterCommonUtils {
             // Replace rest of the path separators with underscore
             asyncAPIFileName = serviceName.replaceAll(SLASH, "_");
         }
-
         return getNormalizedFileName(asyncAPIFileName) + Constants.ASYNC_API_SUFFIX +
                 (isJson ? JSON_EXTENSION : YAML_EXTENSION);
     }
@@ -356,7 +348,6 @@ public class ConverterCommonUtils {
      * Remove special characters from the given file name.
      */
     public static String getNormalizedFileName(String asyncAPIFileName) {
-
         String[] splitNames = asyncAPIFileName.split("[^a-zA-Z0-9]");
         if (splitNames.length > 0) {
             return Arrays.stream(splitNames)

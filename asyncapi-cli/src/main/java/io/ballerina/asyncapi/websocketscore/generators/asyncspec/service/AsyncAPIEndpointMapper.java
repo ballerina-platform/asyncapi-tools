@@ -15,10 +15,7 @@
  *  specific language governing permissions and limitations
  *  under the License.
  */
-
-
 package io.ballerina.asyncapi.websocketscore.generators.asyncspec.service;
-
 
 import io.apicurio.datamodels.models.ServerVariable;
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25DocumentImpl;
@@ -201,7 +198,6 @@ public class AsyncAPIEndpointMapper {
         if (list.isPresent()) {
             SeparatedNodeList<FunctionArgumentNode> arg = (list.get()).arguments();
             port = arg.get(0).toString().trim().replaceAll("\"", "");
-
             if (arg.size() > 1 && (arg.get(1) instanceof NamedArgumentNode)) {
                 ExpressionNode bLangRecordLiteral = ((NamedArgumentNode) arg.get(1)).expression();
                 if (bLangRecordLiteral instanceof MappingConstructorExpressionNode) {
@@ -214,7 +210,6 @@ public class AsyncAPIEndpointMapper {
         }
         server.setProtocol(WS);
         server.setProtocolVersion(WS_PROTOCOL_VERSION);
-//        setServerProtocol(secured,server);
         setServerVariableValues(serviceBasePath, port, host, secured, server);
         return server;
     }
@@ -227,7 +222,6 @@ public class AsyncAPIEndpointMapper {
 
         String serverUrl;
         if (host != null && port != null) {
-
             AsyncApi25ServerVariable serverUrlVariable = server.createServerVariable();
             if (secured.equals(TRUE)) {
                 serverUrlVariable.setDefault(WSS_PREFIX + host);
@@ -247,7 +241,6 @@ public class AsyncAPIEndpointMapper {
             server.addVariable(SERVER, serverUrlVariable);
             serverUrl = "{server}" + serviceBasePath;
             server.setUrl(serverUrl);
-
         } else if (port != null) {
             AsyncApi25ServerVariable serverUrlVariable = server.createServerVariable();
             if (secured.equals(TRUE)) {
@@ -262,7 +255,6 @@ public class AsyncAPIEndpointMapper {
             serverUrl = "{server}:{port}" + serviceBasePath;
             server.setUrl(serverUrl);
         }
-
     }
 
     // Extract host value for creating URL.
@@ -285,14 +277,12 @@ public class AsyncAPIEndpointMapper {
                     }
                 }
             }
-
         }
         if (host != null) {
             host = host.replaceAll("\"", "");
         }
         returnValues.add(host);
         returnValues.add(secured);
-
         return returnValues;
     }
 

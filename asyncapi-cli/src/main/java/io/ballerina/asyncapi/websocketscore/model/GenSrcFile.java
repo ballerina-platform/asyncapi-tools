@@ -15,7 +15,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package io.ballerina.asyncapi.websocketscore.model;
 
 /**
@@ -44,7 +43,6 @@ public class GenSrcFile {
             if (this == GEN_SRC || this == RES || this == MODEL_SRC || this == UTIL_SRC) {
                 return true;
             }
-
             return false;
         }
     }

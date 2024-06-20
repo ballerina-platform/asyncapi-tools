@@ -15,8 +15,6 @@
  *  specific language governing permissions and limitations
  *  under the License.
  */
-
-
 package io.ballerina.asyncapi.websocketscore.generators.asyncspec.service;
 
 import com.fasterxml.jackson.databind.node.TextNode;
@@ -46,7 +44,6 @@ import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constant
 import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.DISPATCHER_STREAM_ID_VALUE_CANNOT_BE_EMPTY;
 import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.NO_ANNOTATION_PRESENT;
 import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.NO_DISPATCHER_KEY;
-
 
 /**
  * AsyncAPIServiceMapper provides functionality for reading and writing AsyncApi, either to and from ballerina service,

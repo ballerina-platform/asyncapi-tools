@@ -15,7 +15,6 @@
  *  specific language governing permissions and limitations
  *  under the License.
  */
-
 package io.ballerina.asyncapi.websocketscore.generators.asyncspec;
 
 /**
@@ -35,11 +34,9 @@ public class Constants {
     public static final String DOUBLE = "double";
     public static final String OBJECT = "object";
     public static final String TYPE_REFERENCE = "type_reference";
-
     public static final String FIELD_RECORD = "record";
     public static final String WEBSOCKET = "websocket";
     public static final String DISPATCHER_KEY = "dispatcherKey";
-
     public static final String DISPATCHER_STREAM_ID = "dispatcherStreamId";
     public static final String BALLERINA = "ballerina";
     public static final String TYPEREFERENCE = "typeReference";
@@ -71,7 +68,6 @@ public class Constants {
     public static final String MESSAGE_REFERENCE = "#/components/messages/";
     public static final String X_RESPONSE = "x-response";
     public static final String X_RESPONSE_TYPE = "x-response-type";
-
     public static final String X_REQUIRED = "x-required";
     public static final String PAYLOAD = "payload";
     public static final String SIMPLE_RPC = "simple-rpc";
@@ -95,21 +91,16 @@ public class Constants {
     public static final String TITLE = "title";
     //TODO : Use this annotation after implementing this one
     public static final String ASYNCAPI_ANNOTATION = "asyncapi:ServiceInfo";
-    //File extensions
     public static final String YAML_EXTENSION = ".yaml";
     public static final String JSON_EXTENSION = ".json";
     public static final String YML_EXTENSION = ".yml";
     public static final String UNDERSCORE = "_";
-    //CamelCase pattern
     public static final String CAMEL_CASE_PATTERN = "^on[A-Z][a-z0-9A-Z]*$";
-    //Invalid remote function names
-    public static final String ON_IDLE_TIME_OUT = "onIdleTimeout";
     public static final String ON_MESSAGE = "onMessage";
     public static final String ON_TEXT_MESSAGE = "onTextMessage";
     public static final String ON_BINARY_MESSAGE = "onBinaryMessage";
     public static final String ON_CLOSE = "onClose";
     public static final String ON_OPEN = "onOpen";
-    public static final String ON_ERROR = "onError";
     public static final String ON_PING = "onPing";
     public static final String ON_PONG = "onPong";
     //Exception Constants
@@ -142,7 +133,6 @@ public class Constants {
     public static final String NO_DISPATCHER_KEY = "ERROR: No dispatcherKey field is present in " +
             "@websocket:ServiceConfig annotation";
     public static final String DISPATCHER_KEY_VALUE_CANNOT_BE_EMPTY = "ERROR: dispatcherKey cannot be empty";
-
     public static final String DISPATCHER_STREAM_ID_VALUE_CANNOT_BE_EMPTY = "ERROR: dispatcherStreamId cannot be empty";
     public static final String NO_TYPE_IN_STREAM = "ERROR: No type present in stream";
     public static final String NO_SERVICE_CLASS = "ERROR: No service class present";

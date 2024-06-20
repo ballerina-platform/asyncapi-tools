@@ -15,7 +15,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package io.ballerina.asyncapi.cmd.websockets;
 
 import io.ballerina.asyncapi.websocketscore.generators.asyncspec.diagnostic.AsyncAPIConverterDiagnostic;
@@ -95,13 +94,11 @@ public class BallerinaToAsyncAPIGenerator {
             // Take module instance for traversing the syntax tree
             Module currentModule = packageName.getDefaultModule();
             Iterator<DocumentId> documentIterator = currentModule.documentIds().iterator();
-
             docId = documentIterator.next();
             doc = currentModule.document(docId);
         }
         Optional<Path> path = project.documentPath(docId);
         Path inputPath = path.orElse(null);
-
         syntaxTree = doc.syntaxTree();
         PackageCompilation compilation = project.currentPackage().getCompilation();
         boolean hasErrors = compilation.diagnosticResult().diagnostics().stream()

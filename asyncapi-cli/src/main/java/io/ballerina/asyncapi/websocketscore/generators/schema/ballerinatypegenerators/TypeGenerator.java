@@ -15,7 +15,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package io.ballerina.asyncapi.websocketscore.generators.schema.ballerinatypegenerators;
 
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25SchemaImpl;
@@ -83,7 +82,6 @@ public abstract class TypeGenerator {
     public TypeDefinitionNode generateTypeDefinitionNode(IdentifierToken typeName, List<Node> schemaDoc,
                                                          List<AnnotationNode> typeAnnotations)
             throws BallerinaAsyncApiExceptionWs {
-
         for (AnnotationNode annotation : typeAnnotations) {
             String annotationRef = annotation.annotReference().toString();
             if (annotationRef.startsWith(CONSTRAINT)) {

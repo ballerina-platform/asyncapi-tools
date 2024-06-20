@@ -15,7 +15,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package io.ballerina.asyncapi.websocketscore.generators.client;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -44,9 +43,6 @@ import static io.ballerina.asyncapi.websocketscore.GeneratorUtils.getValidName;
 public class RemoteFunctionReturnTypeGenerator {
     private AsyncApi25DocumentImpl asyncAPI;
 
-    public RemoteFunctionReturnTypeGenerator() {
-    }
-
     public RemoteFunctionReturnTypeGenerator(AsyncApi25DocumentImpl asyncAPI) {
         this.asyncAPI = asyncAPI;
     }
@@ -65,7 +61,6 @@ public class RemoteFunctionReturnTypeGenerator {
         ArrayList<String> returnTypes = new ArrayList<>();
         Map<String, AsyncApiMessage> messages = asyncAPI.getComponents().getMessages();
 
-
         if (xResponse.get("oneOf") != null) {  //Handle Union references
             if (xResponse.get("oneOf") instanceof ArrayNode) {
                 ArrayNode test = (ArrayNode) xResponse.get("oneOf");
@@ -74,33 +69,24 @@ public class RemoteFunctionReturnTypeGenerator {
                         JsonNode jsonNode = it.next();
                         if (jsonNode.get("$ref") != null) {
                             handleReferenceReturn(jsonNode, messages, responseMessages, returnTypes);
-
-
                         } else if (jsonNode.get("payload") != null) {
                             throw new BallerinaAsyncApiExceptionWs("Ballerina service file cannot be generate to the " +
                                     "given AsyncAPI specification, Response type must be a Record");
                         }
-
                     }
                 } else {
                     throw new BallerinaAsyncApiExceptionWs("x-response-type must be included ex:-" +
                             " x-response-type: streaming || x-response-type: simple-rpc");
                 }
             }
-
         } else if (xResponse.get("payload") != null && xResponse.get("payload")
                 .get("type") != new TextNode("object")) { //Handle payload references
             throw new BallerinaAsyncApiExceptionWs("Ballerina service file cannot be generate to the " +
                     "given AsyncAPI specification, Response type must be a Record");
-
-
         } else if (xResponse.get("$ref") != null) { //Handle reference responses
             handleReferenceReturn(xResponse, messages, responseMessages, returnTypes);
 
         }
-//        return type;
-
-
         //Add |error to the response
         if (!returnTypes.isEmpty()) {
             return String.join(PIPE, returnTypes);
@@ -133,27 +119,4 @@ public class RemoteFunctionReturnTypeGenerator {
         String type = getValidName(schemaName, true);
         returnTypes.add(type);
     }
-
-
-    /**
-     * Handle inline record by generating record with name for response in AsyncAPI type ObjectSchema.
-     */
-//    private String handleInLineRecordInResponse(String schemaName, AsyncApi25SchemaImpl objectSchema)
-//            throws BallerinaAsyncApiException {
-//
-//
-////        String ref = objectSchema.get$ref();
-////        String type = getValidName(schemaName, true) + "Response";
-//        String type = getValidName(schemaName, true);
-//
-//
-//        if (ref != null) {
-//            type = extractReferenceType(ref.trim());
-//        }
-//
-//        return type;
-//
-//
-//    }
-
 }

@@ -33,7 +33,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
-
 /**
  * This {@code AsyncAPIResult} is used to contain AsyncAPI definition in string format and error list.
  *

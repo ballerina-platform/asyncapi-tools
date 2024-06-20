@@ -15,7 +15,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package io.ballerina.asyncapi.websocketscore.generators.schema.ballerinatypegenerators;
 
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25SchemaImpl;
@@ -75,27 +74,19 @@ public class ArrayTypeGenerator extends TypeGenerator {
         this.parentType = parentType;
     }
 
-
     /**
      * Generate TypeDescriptorNode for array type schemas. If array type is not given, type will be `AnyData`
      * public type StringArray string[];
      */
     @Override
     public TypeDescriptorNode generateTypeDescriptorNode() throws BallerinaAsyncApiExceptionWs {
-
-//        assert schema instanceof ArraySchema;
-//        if(schema.getType().equals("array")){
-//            JsonNode arraySchema= schema.getItems();
-//
-//        }
         AsyncApi25SchemaImpl arraySchema = schema;
         AsyncApi25SchemaImpl items = (AsyncApi25SchemaImpl) arraySchema.getItems();
         boolean isConstraintsAvailable =
                 hasConstraints(items) && typeName != null;
         TypeGenerator typeGenerator;
         if (isConstraintsAvailable) {
-            String normalizedTypeName = typeName.replaceAll(GeneratorConstants.SPECIAL_CHARACTER_REGEX,
-                    "").trim();
+            String normalizedTypeName = typeName.replaceAll(GeneratorConstants.SPECIAL_CHARACTER_REGEX, "").trim();
             List<AnnotationNode> typeAnnotations = new ArrayList<>();
             AnnotationNode constraintNode = TypeGeneratorUtils.generateConstraintNode(typeName, items);
             if (constraintNode != null) {
@@ -104,21 +95,15 @@ public class ArrayTypeGenerator extends TypeGenerator {
             typeName = GeneratorUtils.getValidName(
                     parentType != null ?
                             parentType + "-" + normalizedTypeName + "-Items-" + items.getType() :
-                            normalizedTypeName + "-Items-" + items.getType(),
-                    true);
+                            normalizedTypeName + "-Items-" + items.getType(), true);
             typeGenerator = TypeGeneratorUtils.getTypeGenerator(items, typeName, null);
             TypeDefinitionNode arrayItemWithConstraint = typeGenerator.generateTypeDefinitionNode(
-                    createIdentifierToken(typeName),
-                    new ArrayList<>(), typeAnnotations);
-//            TypeDefinitionNode arrayItemWithConstraint = typeGenerator.generateTypeDefinitionNode(
-//                    createIdentifierToken(typeName),
-//                    new ArrayList<>());
+                    createIdentifierToken(typeName), new ArrayList<>(), typeAnnotations);
             imports.addAll(typeGenerator.getImports());
             typeDefinitionNodeList.add(arrayItemWithConstraint);
         } else {
             typeGenerator = TypeGeneratorUtils.getTypeGenerator(items, typeName, null);
         }
-
         TypeDescriptorNode typeDescriptorNode;
         typeDefinitionNodeList.addAll(typeGenerator.getTypeDefinitionNodeList());
         if ((typeGenerator instanceof PrimitiveTypeGenerator ||

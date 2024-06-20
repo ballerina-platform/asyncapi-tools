@@ -15,7 +15,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package io.ballerina.asyncapi.websocketscore.generators.asyncspec.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -86,7 +85,6 @@ public class AsyncAPIComponentMapper {
     private final AsyncApi25ComponentsImpl components;
     private final List<AsyncAPIConverterDiagnostic> diagnostics;
 
-
     public AsyncAPIComponentMapper(AsyncApi25ComponentsImpl components) {
         this.components = components;
         this.diagnostics = new ArrayList<>();
@@ -113,22 +111,18 @@ public class AsyncAPIComponentMapper {
         }
 
         if (allSchemas == null || !isComponentContains || dispatcherValue != null) {
-
-
             Map<String, String> apiDocs = getRecordFieldsAPIDocsMap((TypeReferenceTypeSymbol) typeSymbol,
                     componentName);
             String typeDoc = null;
-            if (apiDocs.size() > 0) {
+            if (!apiDocs.isEmpty()) {
                 typeDoc = apiDocs.get(typeSymbol.getName().get());
             }
             TypeReferenceTypeSymbol typeRef = (TypeReferenceTypeSymbol) typeSymbol;
             TypeSymbol type = typeRef.typeDescriptor();
             // Handle record type request body
-
             if (type.typeKind() == TypeDescKind.INTERSECTION) {
                 // Check if Read only present and then avoid it
                 type = excludeReadonlyIfPresent(type);
-
             }
             BalAsyncApi25SchemaImpl schema = new BalAsyncApi25SchemaImpl();
             switch (type.typeKind()) {
@@ -136,7 +130,6 @@ public class AsyncAPIComponentMapper {
                     // Handle typeInclusions with allOf type binding
                     handleRecordTypeSymbol((RecordTypeSymbol) type, componentName, apiDocs, dispatcherValue);
                     break;
-
                 case TYPE_REFERENCE:
                     schema.setType(OBJECT);
                     schema.set$ref(ConverterCommonUtils.unescapeIdentifier(
@@ -194,7 +187,6 @@ public class AsyncAPIComponentMapper {
                         components.addSchema(componentName, objectSchema);
                         createComponentSchema(typeReferenceTypeSymbol, dispatcherValue);
                     } else {
-
                         TypeDescKind typeDescKind = mapTypeSymbol.typeParam().typeKind();
                         BalAsyncApi25SchemaImpl asyncApiSchema = getAsyncApiSchema(typeDescKind.getName());
                         //TODO : have to check here asyncApiSchema.getType() == null ? true : asyncApiSchema
@@ -203,7 +195,6 @@ public class AsyncAPIComponentMapper {
                         objectSchema.setAdditionalProperties(asyncApiSchema.getType() == null ?
                                 new BalBooleanSchema(true) : asyncApiSchema);
                         components.addSchema(componentName, objectSchema);
-//                }
                     }
                     break;
                 default:
@@ -217,10 +208,8 @@ public class AsyncAPIComponentMapper {
         }
     }
 
-    private BalAsyncApi25SchemaImpl handleRecordTypeSymbol(RecordTypeSymbol recordTypeSymbol,
-                                                           String componentName,
-                                                           Map<String, String> apiDocs,
-                                                           String dispatcherValue) {
+    private BalAsyncApi25SchemaImpl handleRecordTypeSymbol(RecordTypeSymbol recordTypeSymbol, String componentName,
+                                                           Map<String, String> apiDocs, String dispatcherValue) {
         // Handle typeInclusions with allOf type binding
         List<TypeSymbol> typeInclusions = recordTypeSymbol.typeInclusions();
         Map<String, RecordFieldSymbol> recordFields = recordTypeSymbol.fieldDescriptors();
@@ -240,7 +229,6 @@ public class AsyncAPIComponentMapper {
      */
     private Map<String, String> getRecordFieldsAPIDocsMap(TypeReferenceTypeSymbol typeSymbol, String componentName) {
         Map<String, String> apiDocs = new LinkedHashMap<>();
-
 
         // Record field apidoc mapping
         TypeDefinitionSymbol recordTypeDefinitionSymbol = (TypeDefinitionSymbol) ((typeSymbol).definition());
@@ -294,10 +282,8 @@ public class AsyncAPIComponentMapper {
             allOfSchema.addAllOf(referenceSchema);
             if (typeInclusion.typeKind().equals(TypeDescKind.TYPE_REFERENCE)) {
                 TypeReferenceTypeSymbol typeRecord = (TypeReferenceTypeSymbol) typeInclusion;
-
                 apiDocs.putAll(getRecordFieldsAPIDocsMap(typeRecord, typeInclusionName));
-                if (typeRecord.typeDescriptor() instanceof RecordTypeSymbol) {
-                    RecordTypeSymbol typeInclusionRecord = (RecordTypeSymbol) typeRecord.typeDescriptor();
+                if (typeRecord.typeDescriptor() instanceof RecordTypeSymbol typeInclusionRecord) {
                     Map<String, RecordFieldSymbol> tInFields = typeInclusionRecord.fieldDescriptors();
                     unionKeys.addAll(tInFields.keySet());
                     unionKeys.removeAll(tInFields.keySet());
@@ -315,7 +301,6 @@ public class AsyncAPIComponentMapper {
                 apiDocs, dispatcherValue);
         allOfSchema.addAllOf(objectSchema);
         this.components.addSchema(componentName, allOfSchema);
-
     }
 
     /**
@@ -338,26 +323,20 @@ public class AsyncAPIComponentMapper {
 
             boolean fieldIsOptional = field.getValue().isOptional();
 
-
             if (fieldTypeKind == TypeDescKind.TYPE_REFERENCE) { // ex:- public type Subscribe string;  Cat
                 TypeReferenceTypeSymbol typeReference = (TypeReferenceTypeSymbol) field.getValue().typeDescriptor();
                 property = handleTypeReference(typeReference, property, isSameRecord(componentName, typeReference));
-
             } else if (fieldTypeKind == TypeDescKind.UNION) { // ex:-  Cat|Dog Schema fields inside Pet schema , string?
                 property = handleUnionType((UnionTypeSymbol) field.getValue().typeDescriptor(), property, componentName,
                         fieldName, dispatcherValue);
-
             } else if (fieldTypeKind == TypeDescKind.MAP) {  // map<json> field inside Pet schema
                 MapTypeSymbol mapTypeSymbol = (MapTypeSymbol) field.getValue().typeDescriptor();
                 property = handleMapType(componentName, property, mapTypeSymbol);
-
             } else if (fieldTypeKind == TypeDescKind.RECORD) {
                 property = handleRecordTypeSymbol((RecordTypeSymbol) field.getValue().typeDescriptor(),
                         null, new HashMap<>(), null);
-
             } else if (fieldTypeKind == TypeDescKind.JSON) {
                 property.setAdditionalProperties(new BooleanUnionValueImpl(true));
-
             }
             if (property.getType() != null) {
                 if (property.getType().equals(AsyncAPIType.ARRAY.toString()) && !((property).getItems() != null &&
@@ -384,7 +363,6 @@ public class AsyncAPIComponentMapper {
                     }
                 } else {
                     throw new NoSuchElementException(String.format(DISPATCHER_KEY_TYPE_EXCEPTION, dispatcherValue));
-
                 }
             }
             if (!fieldIsOptional) {  // Check if the field is optional or not
@@ -412,7 +390,6 @@ public class AsyncAPIComponentMapper {
 
     private BalAsyncApi25SchemaImpl handleMapType(String componentName, BalAsyncApi25SchemaImpl property,
                                                   MapTypeSymbol mapTypeSymbol) {
-
         TypeDescKind typeDescKind = mapTypeSymbol.typeParam().typeKind();
         if (typeDescKind == TypeDescKind.TYPE_REFERENCE) {
             TypeReferenceTypeSymbol typeReference = (TypeReferenceTypeSymbol) mapTypeSymbol.typeParam();
@@ -496,7 +473,6 @@ public class AsyncAPIComponentMapper {
                     properties.add(property);
                     components.addSchema(parentComponentName, property);
                 }
-
             } else {
                 property = getAsyncApiSchema(union.typeKind().getName().trim());
                 properties.add(property);
@@ -504,7 +480,6 @@ public class AsyncAPIComponentMapper {
         }
 
         property = generateOneOfSchema(property, properties);
-
         if (nullable.equals(TRUE)) {
             property.addExtension(X_NULLABLE, BooleanNode.TRUE);
         }
@@ -525,7 +500,6 @@ public class AsyncAPIComponentMapper {
     private BalAsyncApi25SchemaImpl generateOneOfSchema(BalAsyncApi25SchemaImpl property,
                                                         List<BalAsyncApi25SchemaImpl> properties) {
         boolean isTypeReference = properties.size() == 1;
-
         if (!isTypeReference) {
             BalAsyncApi25SchemaImpl oneOf = new BalAsyncApi25SchemaImpl();
             for (BalAsyncApi25SchemaImpl asyncApi25Schema : properties) {
@@ -538,7 +512,6 @@ public class AsyncAPIComponentMapper {
     }
 
     private BalAsyncApi25SchemaImpl mapEnumValues(EnumSymbol enumSymbol) {
-
 //        Schema property;
         BalAsyncApi25SchemaImpl property = new BalAsyncApi25SchemaImpl();
         property.setType(AsyncAPIType.STRING.toString());
@@ -563,8 +536,7 @@ public class AsyncAPIComponentMapper {
     /**
      * Generate arraySchema for ballerina array type.
      */
-    private BalAsyncApi25SchemaImpl mapArrayToArraySchema(TypeSymbol symbol,
-                                                          String componentName) {
+    private BalAsyncApi25SchemaImpl mapArrayToArraySchema(TypeSymbol symbol, String componentName) {
         BalAsyncApi25SchemaImpl property = new BalAsyncApi25SchemaImpl();
         property.setType(AsyncAPIType.ARRAY.toString());
         int arrayDimensions = 0;
@@ -603,7 +575,6 @@ public class AsyncAPIComponentMapper {
                 }
                 composedSchema.addOneOf(asyncApiSchema);
             }
-
             symbolProperty = composedSchema;
         }
         // Handle nested array type
@@ -650,7 +621,6 @@ public class AsyncAPIComponentMapper {
     private BalAsyncApi25SchemaImpl getSchemaForTypeReferenceSymbol(TypeSymbol arrayType,
                                                                     BalAsyncApi25SchemaImpl symbolProperty,
                                                                     String componentName) {
-
         if (((TypeReferenceTypeSymbol) arrayType).definition().kind() == SymbolKind.ENUM) {
             TypeReferenceTypeSymbol typeRefEnum = (TypeReferenceTypeSymbol) arrayType;
             EnumSymbol enumSymbol = (EnumSymbol) typeRefEnum.definition();
@@ -672,13 +642,11 @@ public class AsyncAPIComponentMapper {
     //TODO : Here needs to check objectMapper.valueToTree(property) because it may contatins entity:true
     private BalAsyncApi25SchemaImpl handleArray(int arrayDimensions, BalAsyncApi25SchemaImpl property,
                                                 BalAsyncApi25SchemaImpl arrayProperty) {
-
         if (arrayDimensions > 1) {
             BalAsyncApi25SchemaImpl nArray = new BalAsyncApi25SchemaImpl();
             nArray.setType(AsyncAPIType.ARRAY.toString());
             arrayProperty.setItems(handleArray(arrayDimensions - 1, property, nArray));
         } else if (arrayDimensions == 1) {
-
             arrayProperty.setItems(property);
         }
         return arrayProperty;
@@ -697,5 +665,4 @@ public class AsyncAPIComponentMapper {
         }
         return typeSymbol;
     }
-
 }

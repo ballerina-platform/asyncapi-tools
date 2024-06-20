@@ -48,7 +48,6 @@ public class CmdUtils {
                 Collections.emptyList(), args);
     }
 
-
     /**
      * This method for setting the file name for generated file.
      *
@@ -57,7 +56,6 @@ public class CmdUtils {
      * @param duplicateCount add the tag with duplicate number if file already exist
      */
     public static void setGeneratedFileName(List<File> listFiles, GenSrcFile gFile, int duplicateCount) {
-
         for (File listFile : listFiles) {
             String listFileName = listFile.getName();
             if (listFileName.contains(".") && ((listFileName.split("\\.")).length >= 2) &&
@@ -68,5 +66,4 @@ public class CmdUtils {
         gFile.setFileName(gFile.getFileName().split("\\.")[0] + "." + (duplicateCount) + "." +
                 gFile.getFileName().split("\\.")[1]);
     }
-
 }

@@ -15,7 +15,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package io.ballerina.asyncapi.websocketscore.generators.document;
 
 import io.ballerina.asyncapi.websocketscore.GeneratorConstants;
@@ -52,23 +51,6 @@ import static io.ballerina.compiler.syntax.tree.SyntaxKind.MARKDOWN_DOCUMENTATIO
  * @since 1.3.0
  */
 public class DocCommentsGenerator {
-
-//    /**
-//     * Extract extension for find the display annotation.
-//     *
-//     * @param extensions AsyncAPI extension.
-//     */
-//    public static void extractDisplayAnnotation(Map<String, JsonNode> extensions,
-//                                                List<AnnotationNode> annotationNodes) {
-//
-//        if (extensions != null) {
-//            for (Map.Entry<String, JsonNode> extension : extensions.entrySet()) {
-//                if (extension.getKey().trim().equals(GeneratorConstants.X_BALLERINA_DISPLAY)) {
-//                    annotationNodes.add(getAnnotationNode(extension));
-//                }
-//            }
-//        }
-//    }
 
     /**
      * Extract annotation and documentation related for deprecated records and schemas.

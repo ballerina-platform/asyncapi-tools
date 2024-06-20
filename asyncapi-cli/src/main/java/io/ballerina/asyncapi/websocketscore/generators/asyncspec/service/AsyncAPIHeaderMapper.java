@@ -43,7 +43,6 @@ import java.util.Map;
 import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.X_NULLABLE;
 import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.utils.ConverterCommonUtils.unescapeIdentifier;
 
-
 /**
  * This class for the mapping ballerina headers with AsyncApiSpec header parameter sections.
  */
@@ -52,7 +51,6 @@ public class AsyncAPIHeaderMapper {
 
     public AsyncAPIHeaderMapper(Map<String, String> apiDocs) {
         this.apiDocs = apiDocs;
-
     }
 
     /**
@@ -64,7 +62,6 @@ public class AsyncAPIHeaderMapper {
         String extractedHeaderName = extractHeaderName(headerParam);
         if (extractedHeaderName != null) {
             String headerName = unescapeIdentifier(extractedHeaderName);
-
             Node node = headerParam.typeName();
             BalAsyncApi25SchemaImpl headerTypeSchema =
                     ConverterCommonUtils.getAsyncApiSchema(getHeaderType(headerParam));

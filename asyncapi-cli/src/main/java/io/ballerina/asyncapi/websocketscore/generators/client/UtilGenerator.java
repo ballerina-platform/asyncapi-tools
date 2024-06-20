@@ -226,11 +226,9 @@ public class UtilGenerator {
     public SyntaxTree generateUtilSyntaxTree() throws IOException {
         Set<String> functionNameList = new LinkedHashSet<>();
         List<ImportDeclarationNode> imports = new ArrayList<>();
-
         functionNameList.add(PIPES_MAP);
         ImportDeclarationNode importForXLibbPipe = GeneratorUtils.getImportDeclarationNode(XLIBB, XLIBB_PIPE);
         imports.add(importForXLibbPipe);
-
         if (queryParamsFound) {
             functionNameList.addAll(Arrays.asList(GET_ENCODED_URI, GET_PATH_FOR_QUERY_PARAM));
         }
@@ -296,29 +294,21 @@ public class UtilGenerator {
         List<Node> memberNodeList = new ArrayList<>();
 
         memberNodeList.addAll(createClassInstanceVariables());
-
         memberNodeList.add(createInitFunction());
-
         memberNodeList.add(createNextFunction(returnType));
-
         memberNodeList.add(createCloseFunction());
 
         MetadataNode metadataNode = getClassMetadataNode(returnType);
-
         returnType = GeneratorUtils.getStreamGeneratorName(returnType);
-
         IdentifierToken className = createIdentifierToken(returnType + "StreamGenerator");
         NodeList<Token> classTypeQualifiers = createNodeList(createToken(CLIENT_KEYWORD),
                 createToken(ISOLATED_KEYWORD));
-
         return createClassDefinitionNode(metadataNode, createToken(PUBLIC_KEYWORD), classTypeQualifiers,
                 createToken(CLASS_KEYWORD), className, openBraceToken,
                 createNodeList(memberNodeList), closeBraceToken, null);
-
     }
 
     private List<Node> createClassInstanceVariables() {
-
         List<Node> fieldNodeList = new ArrayList<>();
         Token privateKeywordToken = createToken(PRIVATE_KEYWORD);
         Token finalKeywordToken = createToken(FINAL_KEYWORD);
@@ -330,7 +320,6 @@ public class UtilGenerator {
         //*Generator
         TypeReferenceNode typeReferenceNode = createTypeReferenceNode(createToken(ASTERISK_TOKEN),
                 createSimpleNameReferenceNode(createIdentifierToken(TYPE_INCLUSION_GENERATOR)), semicolonToken);
-
 
         //private final pipe:Pipe pipe;
         QualifiedNameReferenceNode pipeTypeName = createQualifiedNameReferenceNode(createIdentifierToken(SIMPLE_PIPE),
@@ -357,9 +346,7 @@ public class UtilGenerator {
 
 
     private MetadataNode getClassMetadataNode(String returnType) {
-
         List<AnnotationNode> classLevelAnnotationNodes = new ArrayList<>();
-
         // Generate api doc
         List<Node> documentationLines = new ArrayList<>();
         documentationLines.addAll(DocCommentsGenerator.createAPIDescriptionDoc(
@@ -387,11 +374,9 @@ public class UtilGenerator {
         return createFunctionDefinitionNode(SyntaxKind.OBJECT_METHOD_DEFINITION, getDocCommentsForNextMethod(
                         " Close method to close used pipe"), qualifierList, createToken(FUNCTION_KEYWORD),
                 functionName, createEmptyNodeList(), functionSignatureNode, functionBodyNode);
-
     }
 
     private MetadataNode getDocCommentsForNextMethod(String comment) {
-
         List<Node> docs = new ArrayList<>();
         //todo: setInitDocComment() pass the references
         docs.addAll(DocCommentsGenerator.createAPIDescriptionDoc(comment, true));
@@ -405,7 +390,6 @@ public class UtilGenerator {
         //returns
         ReturnTypeDescriptorNode returnTypeDescriptorNode = createReturnTypeDescriptorNode(
                 createToken(RETURNS_KEYWORD), createEmptyNodeList(), returnTypeNode);
-
         return createFunctionSignatureNode(openParenToken, createSeparatedNodeList(), closeParenToken,
                 returnTypeDescriptorNode);
     }
@@ -416,13 +400,11 @@ public class UtilGenerator {
         //returns
         ReturnTypeDescriptorNode returnTypeDescriptorNode = createReturnTypeDescriptorNode(
                 createToken(RETURNS_KEYWORD), createEmptyNodeList(), returnTypeNode);
-
         return createFunctionSignatureNode(openParenToken, createSeparatedNodeList(), closeParenToken,
                 returnTypeDescriptorNode);
     }
 
     private FunctionBodyNode getCloseFunctionBodyNode() {
-
         FieldAccessExpressionNode pipeAccessNode = createFieldAccessExpressionNode(
                 createSimpleNameReferenceNode(createIdentifierToken(SELF)), dotToken,
                 createSimpleNameReferenceNode(createIdentifierToken(XLIBB_PIPE)));
@@ -433,13 +415,10 @@ public class UtilGenerator {
                 createToken(CHECK_KEYWORD), gracefulMethodCallNode);
         ExpressionStatementNode graceFulCheckExpressionNode = createExpressionStatementNode(
                 null, graceFulCheckNode, semicolonToken);
-
         List<StatementNode> assignmentNodes = new ArrayList<>();
         assignmentNodes.add(graceFulCheckExpressionNode);
         NodeList<StatementNode> statementList = createNodeList(assignmentNodes);
-
         return createFunctionBodyBlockNode(openBraceToken, null, statementList, closeBraceToken, null);
-
     }
 
     private FunctionBodyNode getNextFunctionBodyNode(String returnType) {
@@ -473,15 +452,14 @@ public class UtilGenerator {
         NodeList<Token> qualifierList = createNodeList(createToken(PUBLIC_KEYWORD), createToken(ISOLATED_KEYWORD));
         IdentifierToken functionName = createIdentifierToken(INIT);
         return createFunctionDefinitionNode(SyntaxKind.OBJECT_METHOD_DEFINITION, getInitDocComment(), qualifierList,
-                createToken(FUNCTION_KEYWORD),
-                functionName, createEmptyNodeList(), functionSignatureNode, functionBodyNode);
+                createToken(FUNCTION_KEYWORD), functionName, createEmptyNodeList(), functionSignatureNode,
+                functionBodyNode);
     }
 
     private MetadataNode getInitDocComment() {
         List<Node> docs = new ArrayList<>();
 
         docs.addAll(DocCommentsGenerator.createAPIDescriptionDoc("StreamGenerator", true));
-
         // Create method description
         MarkdownParameterDocumentationLineNode pipeNodeDocs = DocCommentsGenerator.createAPIParamDoc(
                 SIMPLE_PIPE, "Pipe to hold stream messages");
@@ -505,7 +483,6 @@ public class UtilGenerator {
         parameterList.add(createToken(COMMA_TOKEN));
         parameterList.add(decimalNode);
         SeparatedNodeList<ParameterNode> parameters = createSeparatedNodeList(parameterList);
-
         return createFunctionSignatureNode(openParenToken, parameters, closeParenToken, null);
     }
 
@@ -519,10 +496,8 @@ public class UtilGenerator {
                 createSimpleNameReferenceNode(createIdentifierToken(TIMEOUT)), createToken(SEMICOLON_TOKEN));
         assignmentNodes.add(selfPipe);
         assignmentNodes.add(selfTimeout);
-
         NodeList<StatementNode> statementList = createNodeList(assignmentNodes);
         return createFunctionBodyBlockNode(openBraceToken, null, statementList, closeBraceToken, null);
-
     }
 
 
@@ -546,7 +521,6 @@ public class UtilGenerator {
      * @return
      */
     private TypeDefinitionNode getSimpleBasicTypeDefinitionNode() {
-
         TypeDescriptorNode typeDescriptorNode = createSingletonTypeDescriptorNode(
                 createSimpleNameReferenceNode(createIdentifierToken("string|boolean|int|float|decimal")));
         return createTypeDefinitionNode(null, null, createToken(TYPE_KEYWORD),

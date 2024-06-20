@@ -15,7 +15,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package io.ballerina.asyncapi.cmd.websockets;
 
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25DocumentImpl;
@@ -86,7 +85,6 @@ public class AsyncAPIToBallerinaGenerator {
         writeGeneratedSources(genFiles, srcPath, implPath, GEN_CLIENT);
     }
 
-
     /**
      *
      * @param sources Generated all sources as a list
@@ -95,10 +93,8 @@ public class AsyncAPIToBallerinaGenerator {
      * @param type  check wheather the file type is service or client
      * @throws IOException
      */
-
     private void writeGeneratedSources(List<GenSrcFile> sources, Path srcPath, Path implPath,
-                                       CmdConstants.GenType type)
-            throws IOException {
+                                       CmdConstants.GenType type) throws IOException {
         //  Remove old generated file with same name
         List<File> listFiles = new ArrayList<>();
         if (Files.notExists(srcPath)) {
@@ -136,7 +132,6 @@ public class AsyncAPIToBallerinaGenerator {
 
         for (GenSrcFile file : sources) {
             Path filePath;
-
             // We only overwrite files of overwritable type.
             // So non overwritable files will be written to disk only once.
             if (!file.getType().isOverwritable()) {
@@ -191,19 +186,15 @@ public class AsyncAPIToBallerinaGenerator {
         }
         List<GenSrcFile> sourceFiles = new ArrayList<>();
         // Normalize AsyncAPI definition
-
         AsyncApi25DocumentImpl asyncAPIDef = GeneratorUtils.normalizeAsyncAPI(asyncAPI);
         // Generate ballerina service and resources.
         AASClientConfig.Builder clientMetaDataBuilder = new AASClientConfig.Builder();
         AASClientConfig asyncAPIClientConfig = clientMetaDataBuilder.withAsyncAPI(asyncAPIDef)
                 .withLicense(licenseHeader).build();
-
-
         //Generate client intermediate code
         IntermediateClientGenerator intermediateClientGenerator = new IntermediateClientGenerator(asyncAPIClientConfig);
         String mainContent = Formatter.format(intermediateClientGenerator.generateSyntaxTree()).toString();
         sourceFiles.add(new GenSrcFile(GenSrcFile.GenFileType.GEN_SRC, CLIENT_FILE_NAME, mainContent));
-
 
         //Generate util functions for client intermediate code
         String utilContent = Formatter.format(
@@ -215,11 +206,9 @@ public class AsyncAPIToBallerinaGenerator {
                 intermediateClientGenerator.getBallerinaAuthConfigGenerator().getAuthRelatedTypeDefinitionNodes());
         preGeneratedTypeDefNodes.addAll(intermediateClientGenerator.getTypeDefinitionNodeList());
 
-
         //Generate ballerina records to represent schemas in client intermediate code
         BallerinaTypesGenerator ballerinaSchemaGenerator = new BallerinaTypesGenerator(asyncAPIDef,
                 preGeneratedTypeDefNodes);
-
         // Generate schema generator syntax tree
         SyntaxTree schemaSyntaxTree = ballerinaSchemaGenerator.generateSyntaxTree();
         String schemaContent = Formatter.format(schemaSyntaxTree).toString();

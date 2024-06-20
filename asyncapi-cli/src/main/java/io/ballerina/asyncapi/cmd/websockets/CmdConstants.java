@@ -28,9 +28,7 @@ import java.util.Map;
  */
 public class CmdConstants {
     public static final String BAL_EXTENSION = ".bal";
-
     public static final Map<String, String> TYPE_MAP;
-
 
     /**
      * Enum to select the code generation mode.
@@ -54,19 +52,10 @@ public class CmdConstants {
     }
     public static final String DEFAULT_CLIENT_PKG = "client";
     public static final String CLIENT_FILE_NAME = "client.bal";
-
-    public static final String UTIL_FILE_NAME = "utils.bal";
-
-    public static final String UNTITLED_SERVICE = "UntitledAPI";
-
     public static final String TYPE_FILE_NAME = "types.bal";
-
     public static final String TEST_DIR = "tests";
-
-
     public static final String TEST_FILE_NAME = "test.bal";
     public static final String CONFIG_FILE_NAME = "Config.toml";
-
     public static final String DEFAULT_MOCK_PKG = "mock";
 
     static {

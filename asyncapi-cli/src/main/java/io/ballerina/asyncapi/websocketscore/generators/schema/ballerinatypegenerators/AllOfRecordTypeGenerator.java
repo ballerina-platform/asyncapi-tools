@@ -15,7 +15,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package io.ballerina.asyncapi.websocketscore.generators.schema.ballerinatypegenerators;
 
 import io.apicurio.datamodels.models.Schema;
@@ -107,7 +106,6 @@ public class AllOfRecordTypeGenerator extends RecordTypeGenerator {
      * @throws BallerinaAsyncApiExceptionWs when unsupported combination of schemas found
      */
     private static TypeDescriptorNode getUnionType(List<Schema> schemas) throws BallerinaAsyncApiExceptionWs {
-
         // TODO: this has issue with generating union type with `string?|int?...
         // this will be tracked via https://github.com/ballerina-platform/openapi-tools/issues/810
         List<TypeDescriptorNode> typeDescriptorNodes = new ArrayList<>();
@@ -161,8 +159,7 @@ public class AllOfRecordTypeGenerator extends RecordTypeGenerator {
         if (allOfSchemas != null && allOfSchemas.size() == 1 && ((AsyncApi25SchemaImpl)
                 allOfSchemas.get(0)).get$ref() != null) {
             ReferencedTypeGenerator referencedTypeGenerator = new ReferencedTypeGenerator((AsyncApi25SchemaImpl)
-                    allOfSchemas.get(0),
-                    typeName);
+                    allOfSchemas.get(0), typeName);
             return referencedTypeGenerator.generateTypeDescriptorNode();
         } else {
             List<Node> recordFieldList = null;
@@ -183,7 +180,6 @@ public class AllOfRecordTypeGenerator extends RecordTypeGenerator {
     }
 
     private List<Node> generateAllOfRecordFields(List<Schema> allOfSchemas) throws BallerinaAsyncApiExceptionWs {
-
         List<Node> recordFieldList = new ArrayList<>();
         for (Schema schema : allOfSchemas) {
             AsyncApi25SchemaImpl allOfSchema = (AsyncApi25SchemaImpl) schema;
@@ -198,7 +194,6 @@ public class AllOfRecordTypeGenerator extends RecordTypeGenerator {
                 AsyncApi25SchemaImpl refSchema = (AsyncApi25SchemaImpl) asyncAPI.getComponents()
                         .getSchemas().get(extractedSchemaName);
                 addAdditionalSchemas(refSchema);
-
                 recordFieldList.add(recordField);
             } else if (allOfSchema.getProperties() != null) {
                 Map<String, Schema> properties = allOfSchema.getProperties();

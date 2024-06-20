@@ -102,7 +102,6 @@ public class UnionTypeGenerator extends TypeGenerator {
                 typeDefinitionNodeList.addAll(typeGenerator.getTypeDefinitionNodeList());
             }
         }
-
         return createUnionTypeNode(typeDescriptorNodes);
     }
 
@@ -138,7 +137,6 @@ public class UnionTypeGenerator extends TypeGenerator {
             unionTypeDescNode = createUnionTypeDescriptorNode(leftTypeDesc, createToken(PIPE_TOKEN), rightTypeDesc);
             leftTypeDesc = unionTypeDescNode;
         }
-
         return unionTypeDescNode;
     }
 }

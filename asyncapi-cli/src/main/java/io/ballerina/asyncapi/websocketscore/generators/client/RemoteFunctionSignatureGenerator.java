@@ -15,7 +15,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package io.ballerina.asyncapi.websocketscore.generators.client;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -78,7 +77,6 @@ public class RemoteFunctionSignatureGenerator {
     private final List<TypeDefinitionNode> typeDefinitionNodeList;
     private final BallerinaTypesGenerator ballerinaSchemaGenerator;
 
-
     public RemoteFunctionSignatureGenerator(AsyncApi25DocumentImpl asyncAPI,
                                             BallerinaTypesGenerator ballerinaSchemaGenerator,
                                             List<TypeDefinitionNode> typeDefinitionNodeList) {
@@ -102,9 +100,7 @@ public class RemoteFunctionSignatureGenerator {
                                                           Map<String, JsonNode> extensions, String returnType,
                                                           List<String> streamReturns)
             throws BallerinaAsyncApiExceptionWs {
-
         List<Node> parameterList = new ArrayList<>();
-
         if (payload != null) {
             String parameterType = getDataType(payload);
             Node requestTypeParamNode = getRequestTypeParameterNode(parameterType);
@@ -123,10 +119,8 @@ public class RemoteFunctionSignatureGenerator {
             }
         }
 
-
         Node timeoutNode = getTimeOutParameterNode(DECIMAL, TIMEOUT);
         parameterList.add(timeoutNode);
-
 
         SeparatedNodeList<ParameterNode> parameters = createSeparatedNodeList(parameterList);
         //Create Return type - function with response
@@ -149,7 +143,6 @@ public class RemoteFunctionSignatureGenerator {
                         DocCommentsGenerator.createAPIParamDoc("return", responseDescription.asText());
                 remoteFunctionDoc.add(returnDoc);
             }
-
             // Return Type
             returnTypeDescriptorNode = createReturnTypeDescriptorNode(createToken(RETURNS_KEYWORD),
                     createEmptyNodeList(), createBuiltinSimpleNameReferenceNode(null,
@@ -197,8 +190,6 @@ public class RemoteFunctionSignatureGenerator {
             }
         }
         return type;
-
-
     }
 
     /**
@@ -213,5 +204,4 @@ public class RemoteFunctionSignatureGenerator {
                 createIdentifierToken(getValidName(paramType, false));
         return createRequiredParameterNode(createNodeList(new ArrayList<>()), typeName, paramName);
     }
-
 }

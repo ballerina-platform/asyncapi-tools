@@ -15,7 +15,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package io.ballerina.asyncapi.websocketscore;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -30,7 +29,6 @@ import io.apicurio.datamodels.validation.ValidationProblem;
 import io.ballerina.asyncapi.websocketscore.exception.BallerinaAsyncApiExceptionWs;
 import io.ballerina.asyncapi.websocketscore.model.GenSrcFile;
 import io.ballerina.compiler.syntax.tree.AbstractNodeFactory;
-import io.ballerina.compiler.syntax.tree.CaptureBindingPatternNode;
 import io.ballerina.compiler.syntax.tree.ExpressionStatementNode;
 import io.ballerina.compiler.syntax.tree.IdentifierToken;
 import io.ballerina.compiler.syntax.tree.ImportDeclarationNode;
@@ -45,8 +43,6 @@ import io.ballerina.compiler.syntax.tree.StatementNode;
 import io.ballerina.compiler.syntax.tree.SyntaxInfo;
 import io.ballerina.compiler.syntax.tree.Token;
 import io.ballerina.compiler.syntax.tree.TypeDefinitionNode;
-import io.ballerina.compiler.syntax.tree.TypedBindingPatternNode;
-import io.ballerina.compiler.syntax.tree.VariableDeclarationNode;
 
 import java.io.File;
 import java.io.IOException;
@@ -68,15 +64,10 @@ import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.SPECIAL_CH
 import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.JSON_EXTENSION;
 import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.YAML_EXTENSION;
 import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.YML_EXTENSION;
-import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createEmptyNodeList;
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createIdentifierToken;
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createToken;
-import static io.ballerina.compiler.syntax.tree.NodeFactory.createCaptureBindingPatternNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createExpressionStatementNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createSimpleNameReferenceNode;
-import static io.ballerina.compiler.syntax.tree.NodeFactory.createTypedBindingPatternNode;
-import static io.ballerina.compiler.syntax.tree.NodeFactory.createVariableDeclarationNode;
-import static io.ballerina.compiler.syntax.tree.SyntaxKind.EQUAL_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.SEMICOLON_TOKEN;
 
 /**
@@ -115,7 +106,6 @@ public class GeneratorUtils {
      * @return ballerina type
      */
     public static String convertAsyncAPITypeToBallerina(String type) throws BallerinaAsyncApiExceptionWs {
-
         if (GeneratorConstants.TYPE_MAP.containsKey(type)) {
             return GeneratorConstants.TYPE_MAP.get(type);
         } else {
@@ -130,7 +120,6 @@ public class GeneratorUtils {
      * @return - escaped string
      */
     public static String escapeIdentifier(String identifier) {
-
         if (identifier.matches("\\b[0-9]*\\b")) {
             return "'" + identifier;
         } else if (!identifier.matches("\\b[_a-zA-Z][_a-zA-Z0-9]*\\b") || BAL_KEYWORDS.contains(identifier)) {
@@ -195,7 +184,6 @@ public class GeneratorUtils {
      * @return - boolean value
      */
     public static boolean isValidSchemaName(String recordName) {
-
         return !recordName.matches("\\b[0-9]*\\b");
     }
 
@@ -208,8 +196,6 @@ public class GeneratorUtils {
      *                                    Note : Current implementation will not support external links a references.
      */
     public static String extractReferenceType(String referenceVariable) throws BallerinaAsyncApiExceptionWs {
-
-
         if (referenceVariable.startsWith("#") && referenceVariable.contains("/")) {
             String[] refArray = referenceVariable.split("/");
             return refArray[refArray.length - 1];
@@ -220,7 +206,6 @@ public class GeneratorUtils {
     }
 
     public static boolean hasTags(List<String> tags, List<String> filterTags) {
-
         return !Collections.disjoint(filterTags, tags);
     }
 
@@ -240,8 +225,6 @@ public class GeneratorUtils {
             throw new BallerinaAsyncApiExceptionWs(ErrorMessages.invalidFileType());
         }
         //    add a parser
-
-
         String asyncAPIFileContent = Files.readString(definitionPath);
         ObjectMapper yamlReader = new ObjectMapper(new YAMLFactory());
         Object obj = yamlReader.readValue(asyncAPIFileContent, Object.class);
@@ -251,11 +234,9 @@ public class GeneratorUtils {
         try {
             document = (AsyncApi25DocumentImpl) Library.readDocumentFromJSONString
                     (jsonWriter.writeValueAsString(obj));
-
         } catch (ClassCastException e) {
             throw new BallerinaAsyncApiExceptionWs("AsyncAPI definition has errors. " +
                     "Ballerina client code can only be generate for 2.5.0 version");
-
         }
 
         List<ValidationProblem> validationProblems = Library.validate(document, null);
@@ -267,23 +248,6 @@ public class GeneratorUtils {
             throw new BallerinaAsyncApiExceptionWs(errorMessage.toString());
         }
         return document;
-
-    }
-
-
-    /*
-     * Generate variableDeclarationNode.
-     */
-    public static VariableDeclarationNode getSimpleStatement(String responseType, String variable,
-                                                             String initializer) {
-
-        SimpleNameReferenceNode resTypeBind = createSimpleNameReferenceNode(createIdentifierToken(responseType));
-        CaptureBindingPatternNode bindingPattern = createCaptureBindingPatternNode(createIdentifierToken(variable));
-        TypedBindingPatternNode typedBindingPatternNode = createTypedBindingPatternNode(resTypeBind, bindingPattern);
-        SimpleNameReferenceNode init = createSimpleNameReferenceNode(createIdentifierToken(initializer));
-
-        return createVariableDeclarationNode(createEmptyNodeList(), null, typedBindingPatternNode,
-                createToken(EQUAL_TOKEN), init, createToken(SEMICOLON_TOKEN));
     }
 
     public static String getStreamGeneratorName(String returnType) {
@@ -292,14 +256,12 @@ public class GeneratorUtils {
         }
         return returnType.substring(0, 1).toUpperCase(Locale.ENGLISH)
                 + returnType.substring(1);
-
     }
 
     /*
      * Generate expressionStatementNode.
      */
     public static ExpressionStatementNode getSimpleExpressionStatementNode(String expression) {
-
         SimpleNameReferenceNode expressionNode = createSimpleNameReferenceNode(
                 createIdentifierToken(expression));
         return createExpressionStatementNode(null, expressionNode, createToken(SEMICOLON_TOKEN));
@@ -313,7 +275,6 @@ public class GeneratorUtils {
      * @return resolved url
      */
     public static String buildUrl(String absUrl, Map<String, ServerVariable> variables) {
-
         String url = absUrl;
         if (variables != null) {
             for (Map.Entry<String, ServerVariable> entry : variables.entrySet()) {
@@ -345,7 +306,6 @@ public class GeneratorUtils {
      * @param duplicateCount add the tag with duplicate number if file already exist
      */
     public static void setGeneratedFileName(List<File> listFiles, GenSrcFile gFile, int duplicateCount) {
-
         for (File listFile : listFiles) {
             String listFileName = listFile.getName();
             if (listFileName.contains(".") && ((listFileName.split("\\.")).length >= 2) &&
@@ -357,36 +317,7 @@ public class GeneratorUtils {
                 gFile.getFileName().split("\\.")[1]);
     }
 
-//    /**
-//     * Create each item of the encoding map.
-//     *
-//     * @param filedOfMap Includes all the items in the encoding map
-//     * @param style      Defines how multiple values are delimited and explode
-//     * @param explode    Specifies whether arrays and objects should generate separate parameters
-//     * @param key        Key of the item in the map
-//     */
-//    public static void createEncodingMap(List<Node> filedOfMap, String style, Boolean explode, String key) {
-//
-//        IdentifierToken fieldName = createIdentifierToken('"' + key + '"');
-//        Token colon = createToken(COLON_TOKEN);
-//        SpecificFieldNode styleField = createSpecificFieldNode(null,
-//                createIdentifierToken(STYLE), createToken(COLON_TOKEN),
-//                createRequiredExpressionNode(createIdentifierToken(style.toUpperCase(Locale.ROOT))));
-//        SpecificFieldNode explodeField = createSpecificFieldNode(null,
-//                createIdentifierToken(EXPLODE), createToken(COLON_TOKEN),
-//                createRequiredExpressionNode(createIdentifierToken(explode.toString())));
-//        ExpressionNode expressionNode = createMappingConstructorExpressionNode(
-//                createToken(OPEN_BRACE_TOKEN), createSeparatedNodeList(styleField, createToken(COMMA_TOKEN),
-//                        explodeField),
-//                createToken(CLOSE_BRACE_TOKEN));
-//        SpecificFieldNode specificFieldNode = createSpecificFieldNode(null,
-//                fieldName, colon, expressionNode);
-//        filedOfMap.add(specificFieldNode);
-//        filedOfMap.add(createToken(COMMA_TOKEN));
-//    }
-
     public static boolean checkImportDuplicate(List<ImportDeclarationNode> imports, String module) {
-
         for (ImportDeclarationNode importModule : imports) {
             StringBuilder moduleBuilder = new StringBuilder();
             for (IdentifierToken identifierToken : importModule.moduleName()) {
@@ -401,7 +332,6 @@ public class GeneratorUtils {
     }
 
     public static void addImport(List<ImportDeclarationNode> imports, String module) {
-
         if (!checkImportDuplicate(imports, module)) {
             ImportDeclarationNode importModule = GeneratorUtils.getImportDeclarationNode(BALLERINA, module);
             imports.add(importModule);
@@ -414,7 +344,6 @@ public class GeneratorUtils {
      * TODO: address the other /{id}.json.{name}, /report.{format}
      */
     public static boolean isComplexURL(String path) {
-
         String[] subPathSegment = path.split(SLASH);
         Pattern pattern = Pattern.compile(SPECIAL_CHARACTERS_REGEX);
         for (String subPath : subPathSegment) {
@@ -435,7 +364,6 @@ public class GeneratorUtils {
      * </pre>
      */
     public static List<StatementNode> generateBodyStatementForComplexUrl(String path) {
-
         String[] subPathSegment = path.split(SLASH);
         Pattern pattern = Pattern.compile(SPECIAL_CHARACTERS_REGEX);
         List<StatementNode> bodyStatements = new ArrayList<>();
@@ -446,12 +374,10 @@ public class GeneratorUtils {
                 pathParam = pathParam.substring(pathParam.indexOf(OPEN_BRACE) + 1);
                 pathParam = pathParam.substring(0, pathParam.indexOf(CLOSE_BRACE));
                 pathParam = getValidName(pathParam, false);
-
                 String[] subPathSplit = subPath.split(CLOSE_BRACE, 2);
                 String pathParameter = getValidName(subPath, false);
                 String restSubPath = subPathSplit[1];
                 String resSubPathLength = String.valueOf(restSubPath.length() - 1);
-
                 String ifBlock = "if !" + pathParameter + ".endsWith(\"" + restSubPath + "\") { return error(\"bad " +
                         "URL\"); }";
                 StatementNode ifBlockStatement = NodeParser.parseStatement(ifBlock);
@@ -471,7 +397,6 @@ public class GeneratorUtils {
      */
     public static boolean hasConstraints(Schema schema) {
         AsyncApi25SchemaImpl value = (AsyncApi25SchemaImpl) schema;
-
         if (value.getProperties() != null) {
             boolean constraintExists = value.getProperties().values().stream()
                     .anyMatch(GeneratorUtils::hasConstraints);
@@ -494,7 +419,6 @@ public class GeneratorUtils {
             if (constraintExists) {
                 return true;
             }
-
         } else if (value.getType() != null && value.getType().equals("array")) {
             if (!isConstraintExists(value)) {
                 return isConstraintExists((AsyncApi25SchemaImpl) value.getItems());
@@ -504,7 +428,6 @@ public class GeneratorUtils {
     }
 
     private static boolean isConstraintExists(AsyncApi25SchemaImpl propertyValue) {
-
         return propertyValue.getMaximum() != null ||
                 propertyValue.getMinimum() != null ||
                 propertyValue.getMaxLength() != null ||
@@ -552,220 +475,6 @@ public class GeneratorUtils {
 //        }
         return asyncAPI;
     }
-
-//    /**
-//     * Check whether an operationId has been defined in each path. If given rename the operationId to accepted format.
-//     * -- ex: GetPetName -> getPetName
-//     *
-//     * @param paths List of paths given in the AsyncAPI definition
-//     * @throws BallerinaAsyncApiException When operationId is missing in any path
-//     */
-//    public static void validateOperationIds(Set<Map.Entry<String, PathItem>> paths)
-//    throws BallerinaAsyncApiException {
-//        List<String> errorList = new ArrayList<>();
-//        for (Map.Entry<String, PathItem> entry : paths) {
-//            for (Map.Entry<PathItem.HttpMethod, Operation> operation :
-//                    entry.getValue().readOperationsMap().entrySet()) {
-//                if (operation.getValue().getOperationId() != null) {
-//                    String operationId = getValidName(operation.getValue().getOperationId(), false);
-//                    operation.getValue().setOperationId(operationId);
-//                } else {
-//                    errorList.add(String.format("OperationId is missing in the resource path: %s(%s)", entry.getKey(),
-//                            operation.getKey()));
-//                }
-//            }
-//        }
-//        if (!errorList.isEmpty()) {
-//            throw new BallerinaAsyncApiException(
-//                    "AsyncAPI definition has errors: " + LINE_SEPARATOR + String.join(LINE_SEPARATOR, errorList));
-//        }
-//    }
-
-//    /**
-//     * Validate if requestBody found in GET/DELETE/HEAD operation.
-//     *
-//     * @param paths - List of paths given in the AsyncAPI definition
-//     * @throws BallerinaAsyncAPIException - If requestBody found in GET/DELETE/HEAD operation
-//     */
-//    public static void validateRequestBody(Set<Map.Entry<String, PathItem>> paths) throws BallerinaAsyncAPIException {
-//        List<String> errorList = new ArrayList<>();
-//        for (Map.Entry<String, PathItem> entry : paths) {
-//            if (!entry.getValue().readOperationsMap().isEmpty()) {
-//                for (Map.Entry<PathItem.HttpMethod, Operation> operation : entry.getValue().readOperationsMap()
-//                        .entrySet()) {
-//                    String method = operation.getKey().name().trim().toLowerCase(Locale.ENGLISH);
-//                    boolean isRequestBodyInvalid = method.equals(GET) || method.equals(HEAD);
-//                    if (isRequestBodyInvalid && operation.getValue().getRequestBody() != null) {
-//                        errorList.add(method.toUpperCase(Locale.ENGLISH) + " operation cannot have a requestBody. "
-//                                + "Error at operationId: " + operation.getValue().getOperationId());
-//                    }
-//                }
-//            }
-//        }
-//
-//        if (!errorList.isEmpty()) {
-//            StringBuilder errorMessage = new StringBuilder("AsyncAPI definition has errors: " + LINE_SEPARATOR);
-//            for (String message : errorList) {
-//                errorMessage.append(message).append(LINE_SEPARATOR);
-//            }
-//            throw new BallerinaAsyncAPIException(errorMessage.toString());
-//        }
-//    }
-//
-//    public static String removeUnusedEntities(SyntaxTree schemaSyntaxTree, String clientContent, String schemaContent,
-//                                              String serviceContent) throws IOException, FormatterException {
-//        Map<String, String> tempSourceFiles = new HashMap<>();
-//        tempSourceFiles.put(CLIENT_FILE_NAME, clientContent);
-//        tempSourceFiles.put(TYPE_FILE_NAME, schemaContent);
-//        if (serviceContent != null) {
-//            tempSourceFiles.put(SERVICE_FILE_NAME, schemaContent);
-//        }
-//        List<String> unusedTypeDefinitionNameList = getUnusedTypeDefinitionNameList(tempSourceFiles);
-//        while (unusedTypeDefinitionNameList.size() > 0) {
-//            ModulePartNode modulePartNode = schemaSyntaxTree.rootNode();
-//            NodeList<ModuleMemberDeclarationNode> members = modulePartNode.members();
-//            List<ModuleMemberDeclarationNode> unusedTypeDefinitionNodeList = new ArrayList<>();
-//            for (ModuleMemberDeclarationNode node : members) {
-//                if (node.kind().equals(SyntaxKind.TYPE_DEFINITION)) {
-//                    for (ChildNodeEntry childNodeEntry : node.childEntries()) {
-//                        if (childNodeEntry.name().equals(TYPE_NAME)) {
-//                            if (unusedTypeDefinitionNameList.contains(childNodeEntry.node().get().toString())) {
-//                                unusedTypeDefinitionNodeList.add(node);
-//                            }
-//                        }
-//                    }
-//                } else if (node.kind().equals(SyntaxKind.ENUM_DECLARATION)) {
-//                    for (ChildNodeEntry childNodeEntry : node.childEntries()) {
-//                        if (childNodeEntry.name().equals(IDENTIFIER)) {
-//                            if (unusedTypeDefinitionNameList.contains(childNodeEntry.node().get().toString())) {
-//                                unusedTypeDefinitionNodeList.add(node);
-//                            }
-//                        }
-//                    }
-//                }
-//            }
-//            NodeList<ModuleMemberDeclarationNode> modifiedMembers = members.removeAll
-//                    (unusedTypeDefinitionNodeList);
-//            ModulePartNode modiedModulePartNode = modulePartNode.modify(modulePartNode.imports(),
-//                    modifiedMembers, modulePartNode.eofToken());
-//            schemaSyntaxTree = schemaSyntaxTree.modifyWith(modiedModulePartNode);
-//            schemaContent = Formatter.format(schemaSyntaxTree).toString();
-//            tempSourceFiles.put(TYPE_FILE_NAME, schemaContent);
-//            unusedTypeDefinitionNameList = getUnusedTypeDefinitionNameList(tempSourceFiles);
-//        }
-//        ModulePartNode rootNode = schemaSyntaxTree.rootNode();
-//        NodeList<ImportDeclarationNode> imports = rootNode.imports();
-//        imports = removeUnusedImports(rootNode, imports);
-//
-//        ModulePartNode modiedModulePartNode = rootNode.modify(imports, rootNode.members(), rootNode.eofToken());
-//        schemaSyntaxTree = schemaSyntaxTree.modifyWith(modiedModulePartNode);
-//        schemaContent = Formatter.format(schemaSyntaxTree).toString();
-//        return schemaContent;
-//    }
-
-//    private static NodeList<ImportDeclarationNode> removeUnusedImports(ModulePartNode rootNode,
-//                                                                       NodeList<ImportDeclarationNode> imports) {
-//        //TODO: This function can be extended to check all the unused imports, for this time only handle constraint
-//        // imports
-//        boolean hasConstraint = false;
-//        NodeList<ModuleMemberDeclarationNode> members = rootNode.members();
-//        for (ModuleMemberDeclarationNode member:members) {
-//            if (member.kind().equals(SyntaxKind.TYPE_DEFINITION)) {
-//                TypeDefinitionNode typeDefNode = (TypeDefinitionNode) member;
-//                if (typeDefNode.typeDescriptor().kind().equals(SyntaxKind.RECORD_TYPE_DESC)) {
-//                    RecordTypeDescriptorNode record = (RecordTypeDescriptorNode) typeDefNode.typeDescriptor();
-//                    NodeList<Node> fields = record.fields();
-//                    //Traverse record fields to check for constraints
-//                    for (Node node: fields) {
-//                        if (node instanceof RecordFieldNode) {
-//                            RecordFieldNode recField = (RecordFieldNode) node;
-//                            if (recField.metadata().isPresent()) {
-//                                hasConstraint = traverseAnnotationNode(recField.metadata(), hasConstraint);
-//                            }
-//                        }
-//                        if (hasConstraint) {
-//                            break;
-//                        }
-//                    }
-//                }
-//
-//                if (typeDefNode.metadata().isPresent()) {
-//                    hasConstraint = traverseAnnotationNode(typeDefNode.metadata(), hasConstraint);
-//                }
-//            }
-//            if (hasConstraint) {
-//                break;
-//            }
-//        }
-//        if (!hasConstraint) {
-//            for (ImportDeclarationNode importNode: imports) {
-//                if (importNode.orgName().isPresent()) {
-//                    if (importNode.orgName().get().toString().equals("ballerina/") &&
-//                            importNode.moduleName().get(0).text().equals(CONSTRAINT)) {
-//                        imports = imports.remove(importNode);
-//                    }
-//                }
-//            }
-//        }
-//        return imports;
-//    }
-
-//    private static boolean traverseAnnotationNode(Optional<MetadataNode> recField, boolean hasConstraint) {
-//        MetadataNode metadata = recField.get();
-//        for (AnnotationNode annotation : metadata.annotations()) {
-//            String annotationRef = annotation.annotReference().toString();
-//            if (annotationRef.startsWith(CONSTRAINT)) {
-//                hasConstraint = true;
-//                break;
-//            }
-//        }
-//        return hasConstraint;
-//    }
-
-//    private static List<String> getUnusedTypeDefinitionNameList(Map<String, String> srcFiles) throws IOException {
-//        List<String> unusedTypeDefinitionNameList = new ArrayList<>();
-//        Path tmpDir = Files.createTempDirectory(".openapi-tmp" + System.nanoTime());
-//        writeFilesTemp(srcFiles, tmpDir);
-//        if (Files.exists(tmpDir.resolve(CLIENT_FILE_NAME)) && Files.exists(tmpDir.resolve(TYPE_FILE_NAME)) &&
-//                Files.exists(tmpDir.resolve(BALLERINA_TOML))) {
-//            SemanticModel semanticModel = getSemanticModel(tmpDir.resolve(CLIENT_FILE_NAME));
-//            List<Symbol> symbols = semanticModel.moduleSymbols();
-//            for (Symbol symbol : symbols) {
-//                if (symbol.kind().equals(SymbolKind.TYPE_DEFINITION) || symbol.kind().equals(SymbolKind.ENUM)) {
-//                    List<Location> references = semanticModel.references(symbol);
-//                    if (references.size() == 1) {
-//                        unusedTypeDefinitionNameList.add(symbol.getName().get());
-//                    }
-//                }
-//            }
-//        }
-//        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-//            try {
-//                FileUtils.deleteDirectory(tmpDir.toFile());
-//            } catch (IOException ex) {
-////                LOGGER.error("Unable to delete the temporary directory : " + tmpDir, ex);
-//            }
-//        }));
-//        return unusedTypeDefinitionNameList;
-//    }
-
-//    private static void writeFilesTemp(Map<String, String> srcFiles, Path tmpDir) throws IOException {
-//        srcFiles.put(BALLERINA_TOML, BALLERINA_TOML_CONTENT);
-//        PrintWriter writer = null;
-//        for (Map.Entry<String, String> entry : srcFiles.entrySet()) {
-//            String key = entry.getKey();
-//            Path filePath = tmpDir.resolve(key);
-//            try {
-//                writer = new PrintWriter(filePath.toString(), StandardCharsets.UTF_8);
-//                writer.print(entry.getValue());
-//            } finally {
-//                if (writer != null) {
-//                    writer.close();
-//                }
-//            }
-//        }
-//    }
-
 
     public static String removeNonAlphanumeric(String input) {
         return input.replaceAll("[^a-zA-Z0-9]", "");

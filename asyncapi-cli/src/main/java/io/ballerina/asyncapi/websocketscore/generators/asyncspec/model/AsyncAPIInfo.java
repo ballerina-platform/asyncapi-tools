@@ -21,7 +21,6 @@ import java.util.Optional;
 
 import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.utils.ConverterCommonUtils.normalizeTitle;
 
-
 /**
  * This {@code AsyncAPIInfo} contains details related to asyncAPI info section.
  *

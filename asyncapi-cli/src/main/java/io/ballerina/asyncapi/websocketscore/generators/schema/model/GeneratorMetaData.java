@@ -15,7 +15,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package io.ballerina.asyncapi.websocketscore.generators.schema.model;
 
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25DocumentImpl;
@@ -45,6 +44,4 @@ public class GeneratorMetaData {
     public AsyncApi25DocumentImpl getAsyncAPI() {
         return asyncAPI;
     }
-
-
 }

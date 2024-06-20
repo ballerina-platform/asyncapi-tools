@@ -15,7 +15,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package io.ballerina.asyncapi.websocketscore.generators.schema.ballerinatypegenerators;
 
 import com.fasterxml.jackson.databind.node.BooleanNode;
@@ -189,7 +188,6 @@ public class RecordTypeGenerator extends TypeGenerator {
                                 createIdentifierToken("readonly")),
                         createToken(BITWISE_AND_TOKEN), recordTypeDescriptorNode);
             }
-
             return recordTypeDescriptorNode;
         } else {
 
@@ -221,8 +219,6 @@ public class RecordTypeGenerator extends TypeGenerator {
     public RecordMetadata getRecordMetadata() throws BallerinaAsyncApiExceptionWs {
         boolean isOpenRecord = true;
         RecordRestDescriptorNode recordRestDescNode = null;
-
-
         if (schema.getAdditionalProperties() != null) {
             Object additionalProperties = schema.getAdditionalProperties();
             if (additionalProperties instanceof Schema) {

@@ -15,8 +15,6 @@
  *  specific language governing permissions and limitations
  *  under the License.
  */
-
-
 package io.ballerina.asyncapi.websocketscore.generators.asyncspec.service;
 
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25ChannelItemImpl;
@@ -77,7 +75,6 @@ import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constant
 import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.RETURN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.QUALIFIED_NAME_REFERENCE;
 
-
 /**
  * This class will do resource mapping from ballerina to asyncApi.
  *
@@ -96,7 +93,6 @@ public class AsyncAPIRemoteMapper {
         this.semanticModel = semanticModel;
     }
 
-
     public AsyncApi25ComponentsImpl getComponents() {
         return components;
     }
@@ -111,16 +107,12 @@ public class AsyncAPIRemoteMapper {
     public AsyncApi25ChannelsImpl getChannels(FunctionDefinitionNode resource,
                                               List<ClassDefinitionNode> classDefinitionNodes,
                                               String dispatcherValue) {
-
         AsyncApi25ChannelItemImpl channelItem = (AsyncApi25ChannelItemImpl) channelObject.createChannelItem();
-
         //call asyncAPIParameterMapper to map parameters
         Map<String, String> apiDocs = listAPIDocumentations(resource, channelItem);
         AsyncAPIParameterMapper asyncAPIParameterMapper = new AsyncAPIParameterMapper(resource, apiDocs, components,
                 semanticModel);
         asyncAPIParameterMapper.getResourceInputs(channelItem);
-
-
         String serviceClassName = getServiceClassName(resource);
         if (!serviceClassName.isEmpty()) {
             for (ClassDefinitionNode node : classDefinitionNodes) {
@@ -129,12 +121,9 @@ public class AsyncAPIRemoteMapper {
                     return handleRemoteFunctions(resource, node, dispatcherValue, channelItem);
                 }
             }
-
         } else {
             throw new NoSuchElementException(NO_SERVICE_CLASS);
-
         }
-
         return channelObject;
     }
 
@@ -179,13 +168,11 @@ public class AsyncAPIRemoteMapper {
                                 TypeReferenceTypeSymbol typeRef =
                                         (TypeReferenceTypeSymbol) remoteFunctionNameTypeSymbol;
                                 TypeSymbol type = typeRef.typeDescriptor();
-
                                 //check if there is a readOnly & record type also
                                 if (type.typeKind().equals(TypeDescKind.RECORD) ||
                                         (type.typeKind().equals(TypeDescKind.INTERSECTION) &&
                                                 componentMapper.excludeReadonlyIfPresent(type).typeKind().
                                                         equals(TypeDescKind.RECORD))) {
-
                                     FunctionSymbol remoteFunctionSymbol = (FunctionSymbol) semanticModel.
                                             symbol(remoteFunctionNode).get();
                                     Map<String, String> remoteDocs = getRemoteDocumentation(remoteFunctionSymbol);
@@ -194,7 +181,6 @@ public class AsyncAPIRemoteMapper {
                                     if (remoteDocs.containsKey(paramName)) {
                                         paramDescription = remoteDocs.get(paramName);
                                         remoteDocs.remove(paramName);
-
                                     }
                                     BalAsyncApi25MessageImpl componentMessage = responseMapper.
                                             extractMessageSchemaReference(publishMessage, remoteRequestTypeName,
@@ -219,7 +205,6 @@ public class AsyncAPIRemoteMapper {
                                     //Add publish message related to remote method
                                     components.addMessage(remoteRequestTypeName, componentMessage);
                                 } else {
-
                                     throw new NoSuchElementException(String.format(FUNCTION_SIGNATURE_WRONG_TYPE,
                                             remoteRequestTypeName, type.typeKind().getName()));
                                 }
@@ -228,7 +213,6 @@ public class AsyncAPIRemoteMapper {
                         } else {
                             throw new NoSuchElementException(FUNCTION_DEFAULT_NAME_CONTAINS_ERROR);
                         }
-
                     } else {
                         throw new NoSuchElementException(FUNCTION_WRONG_NAME);
                     }
@@ -236,19 +220,16 @@ public class AsyncAPIRemoteMapper {
                     throw new NoSuchElementException(FUNCTION_PARAMETERS_EXCEEDED);
                 }
             }
-
         }
         if (publishMessage.getOneOf() != null) {
             if (publishMessage.getOneOf().size() == 1) {
                 BalAsyncApi25MessageImpl publishOneMessage = new BalAsyncApi25MessageImpl();
                 publishOneMessage.set$ref(((BalAsyncApi25MessageImpl) publishMessage.getOneOf().get(0)).get$ref());
                 publishOperationItem.setMessage(publishOneMessage);
-
             } else {
                 publishOperationItem.setMessage(publishMessage);
             }
             channelItem.setPublish(publishOperationItem);
-
         }
         if (subscribeMessage.getOneOf() != null) {
             if (subscribeMessage.getOneOf().size() == 1) {
@@ -258,14 +239,12 @@ public class AsyncAPIRemoteMapper {
                     subscribeOneMessage.setPayload((subscribeMessage.getOneOf().get(0)).getPayload());
                 }
                 subscribeOperationItem.setMessage(subscribeOneMessage);
-
             } else {
                 subscribeOperationItem.setMessage(subscribeMessage);
             }
             channelItem.setSubscribe(subscribeOperationItem);
         }
         channelObject.addItem(path, channelItem);
-
         return channelObject;
     }
 
@@ -278,7 +257,6 @@ public class AsyncAPIRemoteMapper {
                 remoteFunctionName -> remoteFunctionName.equals(providedFunctionName)));
     }
 
-
     private Map<String, String> getRemoteDocumentation(FunctionSymbol remoteFunctionSymbol) {
         Map<String, String> apiDocs = new HashMap<>();
         Optional<Documentation> documentation = remoteFunctionSymbol.documentation();
@@ -287,7 +265,6 @@ public class AsyncAPIRemoteMapper {
             if (documentation.get().returnDescription().isPresent()) {
                 apiDocs.put(RETURN, documentation.get().returnDescription().get());
             }
-
             if (documentation.get().description().isPresent()) {
                 Optional<String> description = (documentation.get().description());
                 if (description.isPresent() && !description.get().trim().isEmpty()) {
@@ -303,11 +280,8 @@ public class AsyncAPIRemoteMapper {
                                                                    FunctionDefinitionNode remoteFunctionNode) {
         SeparatedNodeList<ParameterNode> remoteParameters = remoteFunctionNode.functionSignature().parameters();
         for (ParameterNode remoteParameterNode : remoteParameters) {
-
-
             if (remoteParameterNode.kind() == SyntaxKind.REQUIRED_PARAM) {
                 RequiredParameterNode requiredParameterNode = (RequiredParameterNode) remoteParameterNode;
-
                 Node parameterTypeNode = requiredParameterNode.typeName();
                 if (parameterTypeNode.kind() == SyntaxKind.SIMPLE_NAME_REFERENCE) {
                     SimpleNameReferenceNode simpleNameReferenceNode = (SimpleNameReferenceNode) parameterTypeNode;
@@ -322,10 +296,8 @@ public class AsyncAPIRemoteMapper {
                     if (identifier.equals(customTypeName)) {
                         return requiredParameterNode;
                     }
-
                 }
             }
-
         }
         return null;
     }
@@ -353,7 +325,6 @@ public class AsyncAPIRemoteMapper {
      */
     private Map<String, String> listAPIDocumentations(FunctionDefinitionNode resource,
                                                       AsyncApi25ChannelItemImpl channelItem) {
-
         Map<String, String> apiDocs = new HashMap<>();
         if (resource.metadata().isPresent()) {
             Optional<Symbol> resourceSymbol = semanticModel.symbol(resource);
@@ -381,7 +352,6 @@ public class AsyncAPIRemoteMapper {
      * @return A list of http methods.
      */
     private String generateRelativePath(FunctionDefinitionNode resource) {
-
         StringBuilder relativePath = new StringBuilder();
         relativePath.append("/");
         if (!resource.relativeResourcePath().isEmpty()) {
@@ -400,5 +370,4 @@ public class AsyncAPIRemoteMapper {
         }
         return relativePath.toString().trim();
     }
-
 }
