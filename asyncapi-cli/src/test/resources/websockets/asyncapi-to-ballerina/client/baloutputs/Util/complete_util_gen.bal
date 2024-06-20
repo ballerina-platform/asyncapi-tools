@@ -8,21 +8,29 @@ public client isolated class NextMessageCompleteMessageErrorMessageStreamGenerat
     *Generator;
     private final pipe:Pipe pipe;
     private final decimal timeout;
+
     # StreamGenerator
     #
-    # + pipe - Pipe to hold stream messages
-    # + timeout - Waiting time
-    public isolated function init(pipe:Pipe pipe, decimal timeout) returns error? {
+    # + pipe - Pipe to hold stream messages 
+    # + timeout - Waiting time 
+    public isolated function init(pipe:Pipe pipe, decimal timeout) {
         self.pipe = pipe;
         self.timeout = timeout;
     }
+
     #  Next method to return next stream message
     #
-    public isolated function next() returns record {|NextMessage|CompleteMessage|ErrorMessage value;|}|error? {
-        anydata message = check self.pipe.consume(self.timeout);
-        NextMessage|CompleteMessage|ErrorMessage response = check message.cloneWithType();
-        return {value: response};
+    public isolated function next() returns record {|NextMessage|CompleteMessage|ErrorMessage value;|}|error {
+        while true {
+            anydata|error? message = self.pipe.consume(self.timeout);
+            if message is error? {
+                continue;
+            }
+            NextMessage|CompleteMessage|ErrorMessage response = check message.cloneWithType();
+            return {value: response};
+        }
     }
+
     #  Close method to close used pipe
     #
     public isolated function close() returns error? {
@@ -33,6 +41,7 @@ public client isolated class NextMessageCompleteMessageErrorMessageStreamGenerat
 # PipesMap class to handle generated pipes
 public isolated class PipesMap {
     private final map<pipe:Pipe> pipes;
+
     public isolated function init() {
         self.pipes = {};
     }
@@ -48,7 +57,7 @@ public isolated class PipesMap {
             if (self.pipes.hasKey(id)) {
                 return self.pipes.get(id);
             }
-            pipe:Pipe pipe = new (1);
+            pipe:Pipe pipe = new (100);
             self.addPipe(id, pipe);
             return pipe;
         }
@@ -60,7 +69,6 @@ public isolated class PipesMap {
                 check pipe.gracefulClose();
             }
             self.pipes.removeAll();
-
         }
     }
 }
@@ -68,6 +76,7 @@ public isolated class PipesMap {
 # StreamGeneratorsMap class to handle generated stream generators
 public isolated class StreamGeneratorsMap {
     private final Generator[] streamGenerators;
+
     public isolated function init() {
         self.streamGenerators = [];
     }
@@ -77,6 +86,7 @@ public isolated class StreamGeneratorsMap {
             self.streamGenerators.push(streamGenerator);
         }
     }
+
     public isolated function removeStreamGenerators() returns error? {
         lock {
             foreach Generator streamGenerator in self.streamGenerators {
@@ -88,9 +98,7 @@ public isolated class StreamGeneratorsMap {
 
 # Generator object type for type inclusion
 public type Generator isolated object {
-
-    public isolated function next() returns record {|anydata value;|}|error?;
-
+    public isolated function next() returns record {|anydata value;|}|error;
     public isolated function close() returns error?;
 };
 
@@ -144,5 +152,4 @@ public isolated function getCombineHeaders(map<string> customHeaders, map<string
         customHeaders[k] = v;
     }
     return customHeaders;
-
 }

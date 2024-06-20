@@ -101,6 +101,9 @@ public class AsyncAPIToBallerinaGenerator {
             throws IOException {
         //  Remove old generated file with same name
         List<File> listFiles = new ArrayList<>();
+        if (Files.notExists(srcPath)) {
+            Files.createDirectories(srcPath);
+        }
         if (Files.exists(srcPath)) {
             File[] files = new File(String.valueOf(srcPath)).listFiles();
             if (files != null) {
@@ -192,10 +195,8 @@ public class AsyncAPIToBallerinaGenerator {
         AsyncApi25DocumentImpl asyncAPIDef = GeneratorUtils.normalizeAsyncAPI(asyncAPI);
         // Generate ballerina service and resources.
         AASClientConfig.Builder clientMetaDataBuilder = new AASClientConfig.Builder();
-        AASClientConfig asyncAPIClientConfig = clientMetaDataBuilder
-                .withAsyncAPI(asyncAPIDef)
-                .withLicense(licenseHeader)
-                .build();
+        AASClientConfig asyncAPIClientConfig = clientMetaDataBuilder.withAsyncAPI(asyncAPIDef)
+                .withLicense(licenseHeader).build();
 
 
         //Generate client intermediate code
@@ -216,13 +217,12 @@ public class AsyncAPIToBallerinaGenerator {
 
 
         //Generate ballerina records to represent schemas in client intermediate code
-        BallerinaTypesGenerator ballerinaSchemaGenerator = new BallerinaTypesGenerator(
-                asyncAPIDef, preGeneratedTypeDefNodes);
+        BallerinaTypesGenerator ballerinaSchemaGenerator = new BallerinaTypesGenerator(asyncAPIDef,
+                preGeneratedTypeDefNodes);
 
         // Generate schema generator syntax tree
         SyntaxTree schemaSyntaxTree = ballerinaSchemaGenerator.generateSyntaxTree();
         String schemaContent = Formatter.format(schemaSyntaxTree).toString();
-
 
         if (!schemaContent.isBlank()) {
             sourceFiles.add(new GenSrcFile(GenSrcFile.GenFileType.MODEL_SRC,  TYPE_FILE_NAME,
@@ -237,11 +237,9 @@ public class AsyncAPIToBallerinaGenerator {
 
             String configContent = testGenerator.getConfigTomlFile();
             if (!configContent.isBlank()) {
-                sourceFiles.add(new GenSrcFile(GenSrcFile.GenFileType.GEN_SRC,
-                        CONFIG_FILE_NAME, configContent));
+                sourceFiles.add(new GenSrcFile(GenSrcFile.GenFileType.GEN_SRC, CONFIG_FILE_NAME, configContent));
             }
         }
-
         return sourceFiles;
     }
 

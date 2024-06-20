@@ -2,7 +2,7 @@ import ballerina/url;
 import xlibb/pipe;
 
 # PipesMap class to handle generated pipes
-public isolated class PipesMap{
+public isolated class PipesMap {
     private final map<pipe:Pipe> pipes;
     public isolated function init() {
         self.pipes = {};
@@ -19,7 +19,7 @@ public isolated class PipesMap{
             if (self.pipes.hasKey(id)) {
                 return self.pipes.get(id);
             }
-            pipe:Pipe pipe = new (1);
+            pipe:Pipe pipe = new (100);
             self.addPipe(id, pipe);
             return pipe;
         }
@@ -31,13 +31,12 @@ public isolated class PipesMap{
                 check pipe.gracefulClose();
             }
             self.pipes.removeAll();
-
         }
     }
 }
 
 # StreamGeneratorsMap class to handle generated stream generators
-public isolated class StreamGeneratorsMap{
+public isolated class StreamGeneratorsMap {
     private final Generator[] streamGenerators;
     public isolated function init() {
         self.streamGenerators = [];
@@ -59,10 +58,8 @@ public isolated class StreamGeneratorsMap{
 
 
 # Generator object type for type inclusion
-public type Generator isolated object{
-
-    public isolated function next() returns record {|anydata value;|}|error?;
-
+public type Generator isolated object {
+    public isolated function next() returns record {|anydata value;|}|error;
     public isolated function close() returns error?;
 };
 
@@ -74,7 +71,7 @@ public type SimpleBasicType string|boolean|int|float|decimal;
 #
 # + value - Value to be encoded
 # + return - Encoded string
-public isolated function getEncodedUri(anydata value) returns string{
+public isolated function getEncodedUri(anydata value) returns string {
     string|error encoded = url:encode(value.toString(), "UTF8");
     if (encoded is string) {
         return encoded;
@@ -87,7 +84,7 @@ public isolated function getEncodedUri(anydata value) returns string{
 #
 # + queryParam - Query parameter map
 # + return - Returns generated Path or error at failure of client initialization
-public isolated function getPathForQueryParam(map<anydata> queryParam) returns string|error{
+public isolated function getPathForQueryParam(map<anydata> queryParam) returns string|error {
     string[] param = [];
     if (queryParam.length() > 0) {
         param.push("?");
@@ -116,12 +113,11 @@ public isolated function getPathForQueryParam(map<anydata> queryParam) returns s
 # + customHeaders - Custom headers map
 # + paramHeaders - Headers generated using spec
 # + return - Return combine custom and spec generated headers
-public isolated function getCombineHeaders(map<string> customHeaders, map<string> paramHeaders) returns map<string>{
-    foreach [string, string] [k, v] in paramHeaders.entries(){
+public isolated function getCombineHeaders(map<string> customHeaders, map<string> paramHeaders) returns map<string> {
+    foreach [string, string] [k, v] in paramHeaders.entries() {
         customHeaders[k] = v;
     }
     return customHeaders;
-
 }
 
 

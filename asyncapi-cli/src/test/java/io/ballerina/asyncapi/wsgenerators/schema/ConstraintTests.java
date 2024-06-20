@@ -53,7 +53,7 @@ public class ConstraintTests {
         BallerinaTypesGenerator ballerinaSchemaGenerator = new BallerinaTypesGenerator(asyncAPI);
 
         SyntaxTree syntaxTree = ballerinaSchemaGenerator.generateSyntaxTree();
-        TestUtils.compareGeneratedSyntaxTreewithExpectedSyntaxTree("schema/baloutputs/Constraint/record_field.bal",
+        TestUtils.compareGeneratedSyntaxTreeWithExpectedSyntaxTree("schema/baloutputs/Constraint/record_field.bal",
                 syntaxTree);
         List<Diagnostic> diagnostics = getDiagnostics(syntaxTree);
         assertTrue(diagnostics.isEmpty());
@@ -70,7 +70,7 @@ public class ConstraintTests {
                 "Constraint/array.yaml"));
         BallerinaTypesGenerator ballerinaSchemaGenerator = new BallerinaTypesGenerator(asyncAPI);
         SyntaxTree syntaxTree = ballerinaSchemaGenerator.generateSyntaxTree();
-        TestUtils.compareGeneratedSyntaxTreewithExpectedSyntaxTree("schema/baloutputs/Constraint/array.bal",
+        TestUtils.compareGeneratedSyntaxTreeWithExpectedSyntaxTree("schema/baloutputs/Constraint/array.bal",
                 syntaxTree);
         List<Diagnostic> diagnostics = getDiagnostics(syntaxTree);
         assertTrue(diagnostics.isEmpty());
@@ -86,7 +86,7 @@ public class ConstraintTests {
         );
         BallerinaTypesGenerator ballerinaSchemaGenerator = new BallerinaTypesGenerator(asyncAPI);
         SyntaxTree syntaxTree = ballerinaSchemaGenerator.generateSyntaxTree();
-        TestUtils.compareGeneratedSyntaxTreewithExpectedSyntaxTree("schema/baloutputs/Constraint/type_def_node.bal",
+        TestUtils.compareGeneratedSyntaxTreeWithExpectedSyntaxTree("schema/baloutputs/Constraint/type_def_node.bal",
                 syntaxTree);
         List<Diagnostic> diagnostics = getDiagnostics(syntaxTree);
         assertTrue(diagnostics.isEmpty());
@@ -101,7 +101,7 @@ public class ConstraintTests {
         BallerinaTypesGenerator ballerinaSchemaGenerator = new BallerinaTypesGenerator(asyncAPI);
 
         SyntaxTree syntaxTree = ballerinaSchemaGenerator.generateSyntaxTree();
-        TestUtils.compareGeneratedSyntaxTreewithExpectedSyntaxTree("schema/baloutputs/Constraint/record_field_02.bal",
+        TestUtils.compareGeneratedSyntaxTreeWithExpectedSyntaxTree("schema/baloutputs/Constraint/record_field_02.bal",
                 syntaxTree);
         List<Diagnostic> diagnostics = getDiagnostics(syntaxTree);
         assertTrue(diagnostics.isEmpty());
@@ -114,7 +114,7 @@ public class ConstraintTests {
                 "/nested_array_with_constraint.yaml"));
         BallerinaTypesGenerator ballerinaSchemaGenerator = new BallerinaTypesGenerator(asyncAPI);
         SyntaxTree syntaxTree = ballerinaSchemaGenerator.generateSyntaxTree();
-        TestUtils.compareGeneratedSyntaxTreewithExpectedSyntaxTree("schema/baloutputs/Constraint/nested_array.bal",
+        TestUtils.compareGeneratedSyntaxTreeWithExpectedSyntaxTree("schema/baloutputs/Constraint/nested_array.bal",
                 syntaxTree);
         List<Diagnostic> diagnostics = getDiagnostics(syntaxTree);
         boolean hasErrors = diagnostics.stream()
@@ -129,7 +129,7 @@ public class ConstraintTests {
                 "/additional_properties_with_constraint.yaml"));
         BallerinaTypesGenerator ballerinaSchemaGenerator = new BallerinaTypesGenerator(asyncAPI);
         SyntaxTree syntaxTree = ballerinaSchemaGenerator.generateSyntaxTree();
-        TestUtils.compareGeneratedSyntaxTreewithExpectedSyntaxTree(
+        TestUtils.compareGeneratedSyntaxTreeWithExpectedSyntaxTree(
                 "schema/baloutputs/Constraint/additional_properties_with_constraint.bal", syntaxTree);
         List<Diagnostic> diagnostics = getDiagnostics(syntaxTree);
         boolean hasErrors = diagnostics.stream()

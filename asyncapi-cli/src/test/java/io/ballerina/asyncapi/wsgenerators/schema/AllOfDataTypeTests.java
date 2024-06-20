@@ -44,7 +44,7 @@ public class AllOfDataTypeTests {
         AsyncApi25DocumentImpl asyncAPI = GeneratorUtils.normalizeAsyncAPI(definitionPath);
         BallerinaTypesGenerator ballerinaSchemaGenerator = new BallerinaTypesGenerator(asyncAPI);
         syntaxTree = ballerinaSchemaGenerator.generateSyntaxTree();
-        TestUtils.compareGeneratedSyntaxTreewithExpectedSyntaxTree(
+        TestUtils.compareGeneratedSyntaxTreeWithExpectedSyntaxTree(
                 "schema/baloutputs/AllOf/oneAllOf.bal", syntaxTree);
     }
 
@@ -54,7 +54,7 @@ public class AllOfDataTypeTests {
         AsyncApi25DocumentImpl asyncAPI = GeneratorUtils.normalizeAsyncAPI(definitionPath);
         BallerinaTypesGenerator ballerinaSchemaGenerator = new BallerinaTypesGenerator(asyncAPI);
         syntaxTree = ballerinaSchemaGenerator.generateSyntaxTree();
-        TestUtils.compareGeneratedSyntaxTreewithExpectedSyntaxTree(
+        TestUtils.compareGeneratedSyntaxTreeWithExpectedSyntaxTree(
                 "schema/baloutputs/AllOf/twoAllOf.bal", syntaxTree);
     }
 
@@ -64,7 +64,7 @@ public class AllOfDataTypeTests {
         AsyncApi25DocumentImpl asyncAPI = GeneratorUtils.normalizeAsyncAPI(definitionPath);
         BallerinaTypesGenerator ballerinaSchemaGenerator = new BallerinaTypesGenerator(asyncAPI);
         syntaxTree = ballerinaSchemaGenerator.generateSyntaxTree();
-        TestUtils.compareGeneratedSyntaxTreewithExpectedSyntaxTree(
+        TestUtils.compareGeneratedSyntaxTreeWithExpectedSyntaxTree(
                 "schema/baloutputs/AllOf/allOf_with_one_ref.bal", syntaxTree);
     }
 
@@ -75,7 +75,7 @@ public class AllOfDataTypeTests {
         AsyncApi25DocumentImpl asyncAPI = GeneratorUtils.normalizeAsyncAPI(definitionPath);
         BallerinaTypesGenerator ballerinaSchemaGenerator = new BallerinaTypesGenerator(asyncAPI);
         syntaxTree = ballerinaSchemaGenerator.generateSyntaxTree();
-        TestUtils.compareGeneratedSyntaxTreewithExpectedSyntaxTree(
+        TestUtils.compareGeneratedSyntaxTreeWithExpectedSyntaxTree(
                 "schema/baloutputs/AllOf/allOf_with_cyclic.bal", syntaxTree);
     }
 
@@ -85,7 +85,7 @@ public class AllOfDataTypeTests {
         AsyncApi25DocumentImpl asyncAPI = GeneratorUtils.normalizeAsyncAPI(definitionPath);
         BallerinaTypesGenerator ballerinaSchemaGenerator = new BallerinaTypesGenerator(asyncAPI);
         syntaxTree = ballerinaSchemaGenerator.generateSyntaxTree();
-        TestUtils.compareGeneratedSyntaxTreewithExpectedSyntaxTree(
+        TestUtils.compareGeneratedSyntaxTreeWithExpectedSyntaxTree(
                 "schema/baloutputs/AllOf/allOfWithNoType.bal", syntaxTree);
     }
 
@@ -96,7 +96,7 @@ public class AllOfDataTypeTests {
         AsyncApi25DocumentImpl asyncAPI = GeneratorUtils.normalizeAsyncAPI(definitionPath);
         BallerinaTypesGenerator ballerinaSchemaGenerator = new BallerinaTypesGenerator(asyncAPI);
         syntaxTree = ballerinaSchemaGenerator.generateSyntaxTree();
-        TestUtils.compareGeneratedSyntaxTreewithExpectedSyntaxTree(
+        TestUtils.compareGeneratedSyntaxTreeWithExpectedSyntaxTree(
                 "schema/baloutputs/AllOf/allOfWithEmptyObject.bal", syntaxTree);
     }
 
@@ -106,7 +106,7 @@ public class AllOfDataTypeTests {
         AsyncApi25DocumentImpl asyncAPI = GeneratorUtils.normalizeAsyncAPI(definitionPath);
         BallerinaTypesGenerator ballerinaSchemaGenerator = new BallerinaTypesGenerator(asyncAPI);
         syntaxTree = ballerinaSchemaGenerator.generateSyntaxTree();
-        TestUtils.compareGeneratedSyntaxTreewithExpectedSyntaxTree(
+        TestUtils.compareGeneratedSyntaxTreeWithExpectedSyntaxTree(
                 "schema/baloutputs/AllOf/nested_allOf_with_allOf.bal", syntaxTree);
     }
 

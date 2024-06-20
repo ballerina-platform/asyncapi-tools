@@ -5,6 +5,7 @@ type SimpleBasicType string|boolean|int|float|decimal;
 # PipesMap class to handle generated pipes
 public isolated class PipesMap {
     private final map<pipe:Pipe> pipes;
+
     public isolated function init() {
         self.pipes = {};
     }
@@ -20,7 +21,7 @@ public isolated class PipesMap {
             if (self.pipes.hasKey(id)) {
                 return self.pipes.get(id);
             }
-            pipe:Pipe pipe = new (1);
+            pipe:Pipe pipe = new (100);
             self.addPipe(id, pipe);
             return pipe;
         }
@@ -32,7 +33,6 @@ public isolated class PipesMap {
                 check pipe.gracefulClose();
             }
             self.pipes.removeAll();
-
         }
     }
 }
@@ -47,5 +47,4 @@ public isolated function getCombineHeaders(map<string> customHeaders, map<string
         customHeaders[k] = v;
     }
     return customHeaders;
-
 }

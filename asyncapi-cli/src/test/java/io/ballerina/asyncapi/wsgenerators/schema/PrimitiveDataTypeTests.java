@@ -56,7 +56,7 @@ public class PrimitiveDataTypeTests {
         AsyncApi25DocumentImpl asyncAPI = GeneratorUtils.normalizeAsyncAPI(definitionPath);
         BallerinaTypesGenerator ballerinaSchemaGenerator = new BallerinaTypesGenerator(asyncAPI);
         syntaxTree = ballerinaSchemaGenerator.generateSyntaxTree();
-        TestUtils.compareGeneratedSyntaxTreewithExpectedSyntaxTree(
+        TestUtils.compareGeneratedSyntaxTreeWithExpectedSyntaxTree(
                 "schema/baloutputs/Primitive/schema01.bal", syntaxTree);
     }
 
@@ -66,7 +66,7 @@ public class PrimitiveDataTypeTests {
         AsyncApi25DocumentImpl asyncAPI = GeneratorUtils.normalizeAsyncAPI(definitionPath);
         BallerinaTypesGenerator ballerinaSchemaGenerator = new BallerinaTypesGenerator(asyncAPI);
         syntaxTree = ballerinaSchemaGenerator.generateSyntaxTree();
-        TestUtils.compareGeneratedSyntaxTreewithExpectedSyntaxTree(
+        TestUtils.compareGeneratedSyntaxTreeWithExpectedSyntaxTree(
                 "schema/baloutputs/Primitive/schema02.bal", syntaxTree);
     }
 
@@ -76,7 +76,7 @@ public class PrimitiveDataTypeTests {
         AsyncApi25DocumentImpl asyncAPI = GeneratorUtils.normalizeAsyncAPI(definitionPath);
         BallerinaTypesGenerator ballerinaSchemaGenerator = new BallerinaTypesGenerator(asyncAPI);
         syntaxTree = ballerinaSchemaGenerator.generateSyntaxTree();
-        TestUtils.compareGeneratedSyntaxTreewithExpectedSyntaxTree(
+        TestUtils.compareGeneratedSyntaxTreeWithExpectedSyntaxTree(
                 "schema/baloutputs/Primitive/missDataType.bal",
                 syntaxTree);
 

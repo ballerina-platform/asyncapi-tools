@@ -30,7 +30,7 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
-import static io.ballerina.asyncapi.wsgenerators.common.TestUtils.compareGeneratedSyntaxTreewithExpectedSyntaxTree;
+import static io.ballerina.asyncapi.wsgenerators.common.TestUtils.compareGeneratedSyntaxTreeWithExpectedSyntaxTree;
 
 /**
  * Tests related to the record data structure.
@@ -46,7 +46,7 @@ public class RecordDataTypeTests {
         AsyncApi25DocumentImpl asyncAPI = GeneratorUtils.normalizeAsyncAPI(definitionPath);
         BallerinaTypesGenerator ballerinaSchemaGenerator = new BallerinaTypesGenerator(asyncAPI);
         syntaxTree = ballerinaSchemaGenerator.generateSyntaxTree();
-        TestUtils.compareGeneratedSyntaxTreewithExpectedSyntaxTree("schema/baloutputs/Record/schema05.bal", syntaxTree);
+        TestUtils.compareGeneratedSyntaxTreeWithExpectedSyntaxTree("schema/baloutputs/Record/schema05.bal", syntaxTree);
     }
 
     @Test(description = "Generate empty record when no properties are given")
@@ -55,7 +55,7 @@ public class RecordDataTypeTests {
         AsyncApi25DocumentImpl asyncAPI = GeneratorUtils.normalizeAsyncAPI(definitionPath);
         BallerinaTypesGenerator ballerinaSchemaGenerator = new BallerinaTypesGenerator(asyncAPI);
         syntaxTree = ballerinaSchemaGenerator.generateSyntaxTree();
-        TestUtils.compareGeneratedSyntaxTreewithExpectedSyntaxTree("schema/baloutputs/Record/empty_record.bal",
+        TestUtils.compareGeneratedSyntaxTreeWithExpectedSyntaxTree("schema/baloutputs/Record/empty_record.bal",
                 syntaxTree);
     }
 
@@ -65,7 +65,7 @@ public class RecordDataTypeTests {
                 "/default_optional_primitive_schema.yaml"));
         BallerinaTypesGenerator ballerinaSchemaGenerator = new BallerinaTypesGenerator(asyncAPI);
         SyntaxTree syntaxTree = ballerinaSchemaGenerator.generateSyntaxTree();
-        TestUtils.compareGeneratedSyntaxTreewithExpectedSyntaxTree("schema/baloutputs/Record/" +
+        TestUtils.compareGeneratedSyntaxTreeWithExpectedSyntaxTree("schema/baloutputs/Record/" +
                 "default_optional_primitive_schema.bal", syntaxTree);
     }
 
@@ -75,7 +75,7 @@ public class RecordDataTypeTests {
                 "/default_optional_string_schema.yaml"));
         BallerinaTypesGenerator ballerinaSchemaGenerator = new BallerinaTypesGenerator(asyncAPI);
         SyntaxTree syntaxTree = ballerinaSchemaGenerator.generateSyntaxTree();
-        TestUtils.compareGeneratedSyntaxTreewithExpectedSyntaxTree("schema/baloutputs/Record/" +
+        TestUtils.compareGeneratedSyntaxTreeWithExpectedSyntaxTree("schema/baloutputs/Record/" +
                 "default_optional_string_schema.bal", syntaxTree);
     }
 
@@ -85,7 +85,7 @@ public class RecordDataTypeTests {
                 "/default_optional_schema_with_doublequote.yaml"));
         BallerinaTypesGenerator ballerinaSchemaGenerator = new BallerinaTypesGenerator(asyncAPI);
         SyntaxTree syntaxTree = ballerinaSchemaGenerator.generateSyntaxTree();
-        TestUtils.compareGeneratedSyntaxTreewithExpectedSyntaxTree("schema/baloutputs/Record/" +
+        TestUtils.compareGeneratedSyntaxTreeWithExpectedSyntaxTree("schema/baloutputs/Record/" +
                 "default_optional_schema_with_doublequote.bal", syntaxTree);
     }
 
@@ -95,7 +95,7 @@ public class RecordDataTypeTests {
                 "/default_optional_array_schema.yaml"));
         BallerinaTypesGenerator ballerinaSchemaGenerator = new BallerinaTypesGenerator(asyncAPI);
         SyntaxTree syntaxTree = ballerinaSchemaGenerator.generateSyntaxTree();
-        TestUtils.compareGeneratedSyntaxTreewithExpectedSyntaxTree("schema/baloutputs/Record/" +
+        TestUtils.compareGeneratedSyntaxTreeWithExpectedSyntaxTree("schema/baloutputs/Record/" +
                 "default_optional_array_schema.bal", syntaxTree);
     }
 
@@ -105,7 +105,7 @@ public class RecordDataTypeTests {
                 "/default_required_field_schema.yaml"));
         BallerinaTypesGenerator ballerinaSchemaGenerator = new BallerinaTypesGenerator(asyncAPI);
         SyntaxTree syntaxTree = ballerinaSchemaGenerator.generateSyntaxTree();
-        TestUtils.compareGeneratedSyntaxTreewithExpectedSyntaxTree("schema/baloutputs/Record/" +
+        TestUtils.compareGeneratedSyntaxTreeWithExpectedSyntaxTree("schema/baloutputs/Record/" +
                 "default_required_field_schema.bal", syntaxTree);
     }
 
@@ -116,7 +116,7 @@ public class RecordDataTypeTests {
         AsyncApi25DocumentImpl asyncAPI = GeneratorUtils.normalizeAsyncAPI(definitionPath);
         BallerinaTypesGenerator ballerinaSchemaGenerator = new BallerinaTypesGenerator(asyncAPI);
         syntaxTree = ballerinaSchemaGenerator.generateSyntaxTree();
-        compareGeneratedSyntaxTreewithExpectedSyntaxTree("schema/baloutputs/Record/schema11.bal", syntaxTree);
+        compareGeneratedSyntaxTreeWithExpectedSyntaxTree("schema/baloutputs/Record/schema11.bal", syntaxTree);
     }
 
 
@@ -126,7 +126,7 @@ public class RecordDataTypeTests {
         AsyncApi25DocumentImpl asyncAPI = GeneratorUtils.normalizeAsyncAPI(definitionPath);
         BallerinaTypesGenerator ballerinaSchemaGenerator = new BallerinaTypesGenerator(asyncAPI);
         syntaxTree = ballerinaSchemaGenerator.generateSyntaxTree();
-        compareGeneratedSyntaxTreewithExpectedSyntaxTree("schema/baloutputs/Record/schema10.bal", syntaxTree);
+        compareGeneratedSyntaxTreeWithExpectedSyntaxTree("schema/baloutputs/Record/schema10.bal", syntaxTree);
     }
 
     @Test(description = "Generate records for nested referenced schemas")
@@ -135,7 +135,7 @@ public class RecordDataTypeTests {
         AsyncApi25DocumentImpl asyncAPI = GeneratorUtils.normalizeAsyncAPI(definitionPath);
         BallerinaTypesGenerator ballerinaSchemaGenerator = new BallerinaTypesGenerator(asyncAPI);
         syntaxTree = ballerinaSchemaGenerator.generateSyntaxTree();
-        TestUtils.compareGeneratedSyntaxTreewithExpectedSyntaxTree
+        TestUtils.compareGeneratedSyntaxTreeWithExpectedSyntaxTree
                 ("schema/baloutputs/Record/nested_schema_refs.bal", syntaxTree);
     }
 }

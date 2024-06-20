@@ -54,99 +54,57 @@ public class GeneratorConstants {
     public static final String UTIL_FILE_NAME = "utils.bal";
     public static final String ASYNCAPI_PATH_SEPARATOR = "/";
     public static final String ESCAPE_PATTERN = "([\\[\\]\\\\?!<>@#&~`*\\-=^+();:\\/{}\\s|.$])";
-    //ClientCode generator
     public static final String HTTP = "http";
     public static final String WEBSOCKET = "websocket";
-
     public static final String LANG_RUNTIME = "lang.runtime";
-
     public static final String SIMPLE_PIPE = "pipe";
-
     public static final String UUID = "uuid";
-
     public static final String CREATE_TYPE1_AS_STRING = "createType1AsString()";
-
     public static final String CAPITAL_PIPE = "Pipe";
-
     public static final String CAPITAL_ERROR = "Error";
-
     public static final String PIPE_ERROR = "pipe:Error";
-
     public static final QualifiedNameReferenceNode PIPE_ERROR_NODE = createQualifiedNameReferenceNode(
             createIdentifierToken(SIMPLE_PIPE), createToken(COLON_TOKEN), createIdentifierToken(CAPITAL_ERROR));
-
     public static final QualifiedNameReferenceNode WS_ERROR = createQualifiedNameReferenceNode(
             createIdentifierToken(WEBSOCKET), createToken(COLON_TOKEN), createIdentifierToken(CAPITAL_ERROR));
-
     public static final OptionalTypeDescriptorNode WS_ERROR_OPTIONAL = createOptionalTypeDescriptorNode(
             WS_ERROR, createToken(QUESTION_MARK_TOKEN));
-
     public static final String TRUE = "true";
-
     public static final String URL = "url";
     public static final String MODULE_TEST = "test";
     public static final String BALLERINA = "ballerina";
-
     //Honour goes to Nuvindu
     public static final String XLIBB = "xlibb";
     public static final String XLIBB_PIPE = "pipe";
-
     public static final String LOG = "log";
-
     public static final String X_DISPATCHER_KEY = "x-dispatcherKey";
-
     public static final String X_DISPATCHER_STREAM_ID = "x-dispatcherStreamId";
-
     public static final String CLIENT_CLASS_NAME = "Client";
     public static final String CLIENT_EP = "clientEp";
-
     public static final String WEBSOCKET_EP = "websocketEp";
-
     public static final String NULL_VALUE = "()";
-
     public static final String MAP_ANY_DATA = "map<anydata>";
-
     public static final String SPACE = " ";
-
     public static final String EQUAL_SPACE = " = ";
-
     public static final String PLUS_SPACE = " + ";
-
     public static final String NOT = "!";
     public static final String QUESTION_MARK = "?";
     public static final String CONNECTION_CLOSE = "connectionClose";
-
     public static final String CHECK_PATH_FOR_QUERY_PARAM = "check getPathForQueryParam(queryParam)";
-
     public static final String MAP_STRING = "map<string>";
-
     public static final String GET_COMBINE_HEADERS = "getCombineHeaders(clientConfig.customHeaders,headerParam)";
-
     public static final String CLOSE = "close";
-
     public static final String WRITE_MESSAGE_QUEUE = "writeMessageQueue";
-
     public static final String READ_MESSAGE_QUEUE = "readMessageQueue";
-
     public static final String START_MESSAGE_READING = "startMessageReading";
-
     public static final String START_MESSAGE_WRITING = "startMessageWriting";
-
     public static final String CONSUME = "consume";
-
     public static final String PRODUCE = "produce";
-
     public static final String DEFAULT_PIPE_TIME_OUT = "5";
-
     public static final String WRITE_MESSAGE = "writeMessage";
-
     public static final String READ_MESSAGE = "readMessage";
-
     public static final String MESSAGE = "Message";
     public static final String MESSAGE_WITH_ID = "MessageWithId";
-
-    public static final String CONNECTION_CLOSED = "connection closed";
-
     public static final String CONNECTION_CLOSED_TEMPLATE = "\"[%s]ConnectionError: Connection has been closed\"";
     public static final String DATABINDING_ERR_TEMPLATE = "\"[%s]DataBindingError: Error in cloning message\"";
     public static final String PIPE_PRODUCE_ERR_TEMPLATE = "\"[%s]PipeError: Error in %s message\"";
@@ -156,15 +114,11 @@ public class GeneratorConstants {
     public static final String MESSAGE_WITH_ID_VAR_NAME = "messageWithId";
     public static final String TYPE_INCLUSION_GENERATOR = "Generator";
     public static final String WORKER_SLEEP_TIME_OUT = "0.01";
-
     public static final String STREAM_GENERATORS_MAP = "StreamGeneratorsMap";
-
     public static final String PIPES_MAP = "PipesMap";
     public static final String SLEEP = "sleep";
     public static final String RUNTIME = "runtime";
-
     public static final String PIPES = "pipes";
-
     public static final String STREAM_GENERATORS = "streamGenerators";
     public static final String STREAM_GENERATOR = "streamGenerator";
     public static final String EQUAL = "=";
@@ -176,29 +130,23 @@ public class GeneratorConstants {
     public static final String XML = "xml";
     public static final String JSON = "json";
     public static final String SERVICE_URL = "serviceUrl";
-
     public static final String BINARY = "binary";
     public static final String FLOAT = "float";
     public static final String HEADER_PARAM = "headerParam";
     public static final String PDF = "pdf";
     public static final String QUERY_PARAM = "queryParam";
     public static final String SELF = "self";
-
     public static final String MIME = "mime";
     public static final String CUSTOM_HEADERS = "customHeaders";
     public static final String MODIFIED_URL = "modifiedUrl";
     public static final String ERROR = "error";
-    public static final String ERROR_MESSAGE = "errorMessage";
-
     public static final String ENSURE_TYPE = "ensureType";
-    // auth related constants
     public static final String HTTP_API_KEY = "httpApiKey";
     public static final String USER_PASSWORD = "userPassword";
     public static final String API_KEY = "apiKey";
     public static final String API_KEYS_CONFIG = "ApiKeysConfig";
     public static final String API_KEY_CONFIG = "apiKeyConfig";
     public static final String AUTH = "auth";
-
     public static final String PING_PONG_SERVICE = "websocket:PingPongService";
     public static final String PING_PONG_HANDLER_FIELD = "pingPongHandler";
     public static final String SECURE_SOCKET = "websocket:ClientSecureSocket";
@@ -213,55 +161,33 @@ public class GeneratorConstants {
     public static final String REMOTE_METHOD_NAME_PREFIX = "do";
     public static final String CONNECTION_CONFIG = "websocket:ClientConfiguration";
     public static final String OAUTH2 = "oauth2";
-
     public static final String CONFIG = "config";
     public static final String CONFIG_DESCRIPTION = "The configurations to be used when initializing the `connector`";
-
     public static final String RETURN = "return";
-
     public static final String RETURN_DESCRIPTION = "An error if connector initialization failed";
     public static final String RETRY_CONFIG_FIELD = "retryConfig";
     public static final String VALIDATION = "validation";
     public static final String DEFAULT_API_KEY_DESC = "API keys for authorization";
     public static final String ANY_DATA = "anydata";
-
-    //AsyncAPI Ballerina extensions
     public static final String X_BALLERINA_INIT_DESCRIPTION = "x-ballerina-init-description";
-
     public static final String X_BALLERINA_MESSAGE_WRITE_DESCRIPTION = "x-ballerina-write-message-description";
-
     public static final String X_BALLERINA_MESSAGE_READ_DESCRIPTION = "x-ballerina-read-message-description";
-
-    public static final String X_BALLERINA_PIPE_TRIGGER_DESCRIPTION = "x-ballerina-pipe-trigger-description";
     public static final String X_BALLERINA_DEPRECATED_REASON = "x-ballerina-deprecated-reason";
-    //Service related
     public static final String X_RESPONSE = "x-response";
-
     public static final String X_RESPONSE_TYPE = "x-response-type";
-
     public static final String DECIMAL = "decimal";
-
     public static final String DESCRIPTION = "description";
-
     public static final String TIMEOUT = "timeout";
-
-
     public static final String SERVER_STREAMING = "server-streaming";
-
     public static final String SIMPLE_RPC = "simple-rpc";
     public static final String INTEGER = "integer";
     public static final String BOOLEAN = "boolean";
     public static final String IS_ACTIVE = "isActive";
-
     public static final String OPTIONAL_ERROR = "error?";
-
     public static final String IMMEDIATE_CLOSE = "immediateClose";
-
     public static final String REMOVE_PIPES = "removePipes";
-
     public static final String REMOVE_STREAM_GENERATORS = "removeStreamGenerators";
     public static final String NUMBER = "number";
-
     public static final String OBJECT = "object";
     public static final String ARRAY = "array";
     public static final Integer MAX_ARRAY_LENGTH = 2147483637;
@@ -278,86 +204,55 @@ public class GeneratorConstants {
     public static final String CLOSE_BRACE = "}";
     public static final String COLON = ":";
     public static final String IF = "if";
-
     public static final String CLIENT_CONFIG_CUSTOM_HEADERS = "clientConfig.customHeaders";
-
     public static final String S_DOT = "s.";
-
     public static final String DOT_TO_STRING = ".toString()";
-
     public static final String HEADER_PARAMS = "headerParams";
-
     public static final String QUERY_PARAMS = "queryParams";
-
     public static final String PATH_PARAMS = "pathParams";
-
     public static final String PATH_PARAMETERS = "path parameters";
-
     public static final String QUERY_PARAMETERS = "query parameters";
-
     public static final String HEADER_PARAMETERS = "header parameters";
-
     public static final String FAIL_TO_READ_ENDPOINT_DETAILS = "Failed to read endpoint details of the server: ";
-
     public static final String DISPATCHER_KEY_AND_DISPATCHER_STREAM_ID_MUST_BE_STRING = "Both dispatcherKey and " +
             "dispatcherStreamId type must be string";
-
     public static final String DISPATCHER_KEY_AND_DISPATCHER_STREAM_ID_MUST_BE_INSIDE_REQUIRED_PROPERTY = "Both " +
             "dispatcherKey and dispatcherStreamId type must be inside required property";
-
     public static final String SCHEMA_MUST_BE_A_RECORD = "%s schema must be a record, and it must have" +
             " properties to contain dispatcherKey as a field";
-
     public static final String RESPONSE_TYPE_MUST_BE_A_RECORD = "Response type must be a record, " +
             "invalid response type %s in %s schema, schema must contain " +
             "properties field to contain dispatcherKey";
-
     public static final String X_NULLABLE = "x-nullable";
-
     public static final String INVALID_RESPONSE_SCHEMA = "Response type must be a record, invalid response schema";
     public static final String REF = "$ref";
     public static final String GRACEFUL_CLOSE = "gracefulClose";
     public static final String DOT = ".";
     public static final String SEMICOLON = ";";
     public static final String REMOTE_CALL = "->";
-    public static final String NOT_IS = "!is";
-
     public static final String IS = "is";
-
+    public static final String RESPONSE = "response";
     public static final String WS_ERR = "wsErr";
-
     public static final String PIPE_ERR_CAPITAL = "PipeError";
-
     public static final String PIPE_ERR = "pipeErr";
-
     public static final String RESPONSE_MESSAGE = "responseMessage";
-
     public static final String WITHIN_PAREN_TEMPLATE = "(%s)";
-
+    public static final String WITHIN_BRACE_TEMPLATE = "{%s}";
     public static final String CONSUMING = "consuming";
-
     public static final String PRODUCING = "producing";
-
     public static final ExpressionNode OP_TIMEOUT_EXPR = NodeParser.parseExpression("\"Operation has timed out\"");
-
     public static final SimpleNameReferenceNode LOG_PRINT_ERR =
             createSimpleNameReferenceNode(createIdentifierToken("log:printError"));
     public static final String LOG_PRINT_DEBUG_TEMPLATE = "log:printDebug(\"[%s]%s: %s\");";
     public static final String ERROR_PIPE_CLOSE = "Error in closing pipe.";
-
     public static final StatementNode ATTEMPT_CON_CLOSE = createExpressionStatementNode(FUNCTION_CALL,
             createFunctionCallExpressionNode(createSimpleNameReferenceNode(createIdentifierToken(SELF + DOT +
                             ATTEMPT_TO_CLOSE_CONNECTION)), createToken(OPEN_PAREN_TOKEN), createSeparatedNodeList(),
                     createToken(CLOSE_PAREN_TOKEN)), createToken(SEMICOLON_TOKEN));
-
     public static final String ERR_TEMPLATE = "\"[%s]%sError: \" + %s";
-
     public static final String WSS = "wss";
-
     public static final String DEFAULT_URL = "ws://localhost:9090/v1";
-
     public static final String SERVICE_URL_DESCRIPTION = "URL of the target service";
-
     public static final String DOUBLE_QUOTE = "\"";
     public static final String COMMA = ",";
     public static final String MAX_LENGTH = "maxLength";
@@ -368,44 +263,24 @@ public class GeneratorConstants {
     public static final String EXCLUSIVE_MIN = "minValueExclusive";
     public static final String SPECIAL_CHARACTER_REGEX = "([\\[\\]\\\\?!<>@#&~`*\\-=^+'();:\\/\\_{}\\s|.$])";
     public static final String PIPE = "|";
-
     public static final String READ_ONLY = "readOnly";
-
     public static final String GET_PIPE = "getPipe";
-
     public static final String CLONE_WITH_TYPE = "cloneWithType";
     public static final String PIPE_CLOSE_STATEMENT = "pipe:Error? %s = self.pipes.getPipe(%s).gracefulClose();";
-
     public static final String INIT = "init";
-
     public static final String QUEUE_DEFAULT_SIZE = "1000";
-
     public static final String BALLERINA_WEBSOCKET_DOESNT_SUPPORT_FOR_MULTIPLE_CHANNELS =
             "Ballerina websocket doesn't support for multiple channels";
     public static final String X_DISPATCHER_KEY_MUST_INCLUDE_IN_THE_SPECIFICATION = "x-dispatcherKey must include" +
             " in the specification";
-
     public static final String X_DISPATCHER_KEY_CANNOT_BE_EMPTY = "x-dispatcherKey cannot be empty";
-
     public static final String X_DISPATCHER_STREAM_ID_CANNOT_BE_EMPTY = "x-dispatcherStreamId cannot be empty";
-
     public static final String BALLERINA_CLIENT_CANNOT_BE_GENERATED = "Ballerina client cannot be " +
             "generated enter correct specification and adhere to tool's rules";
-
     public static final String START_MESSAGE_READING_DESCRIPTION = "Use to read messages from the websocket.";
-
-    public static final String START_PIPE_TRIGGERING_DESCRIPTION = "Use to map received message responses into " +
-            "relevant requests.\n";
-
     public static final String START_MESSAGE_WRITING_DESCRIPTION = "Use to write messages to the websocket.";
-
-    public static final String HAS_KEY = "hasKey";
-
     public static final String DEFAULT_RETURN = "null";
-
     public static final Map<String, String> TYPE_MAP;
-
-    public static final String EVENT = "event";
 
     static {
         Map<String, String> typeMap = new HashMap<>();

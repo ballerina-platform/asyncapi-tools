@@ -152,7 +152,7 @@ public class TestUtils {
         return expectedServiceContent;
     }
 
-    public static void compareGeneratedSyntaxTreewithExpectedSyntaxTree(String s, SyntaxTree syntaxTree)
+    public static void compareGeneratedSyntaxTreeWithExpectedSyntaxTree(String s, SyntaxTree syntaxTree)
             throws IOException {
 
         String expectedBallerinaContent = getStringFromGivenBalFile(RES_DIR.resolve(s));

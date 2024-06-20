@@ -44,7 +44,7 @@ public class MapSchemaTests {
                 "/additional_properties_true.yaml"));
         BallerinaTypesGenerator ballerinaSchemaGenerator = new BallerinaTypesGenerator(asyncAPI);
         SyntaxTree syntaxTree = ballerinaSchemaGenerator.generateSyntaxTree();
-        TestUtils.compareGeneratedSyntaxTreewithExpectedSyntaxTree(
+        TestUtils.compareGeneratedSyntaxTreeWithExpectedSyntaxTree(
                 "schema/baloutputs/Map/additional_properties_true.bal", syntaxTree);
     }
 
@@ -55,7 +55,7 @@ public class MapSchemaTests {
                 "/additional_properties_composed_schema.yaml"));
         BallerinaTypesGenerator ballerinaSchemaGenerator = new BallerinaTypesGenerator(asyncAPI);
         SyntaxTree syntaxTree = ballerinaSchemaGenerator.generateSyntaxTree();
-        TestUtils.compareGeneratedSyntaxTreewithExpectedSyntaxTree(
+        TestUtils.compareGeneratedSyntaxTreeWithExpectedSyntaxTree(
                 "schema/baloutputs/Map/additional_properties_composed_schema.bal", syntaxTree);
     }
 }

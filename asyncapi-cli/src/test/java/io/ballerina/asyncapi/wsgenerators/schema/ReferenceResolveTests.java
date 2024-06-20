@@ -43,7 +43,7 @@ public class ReferenceResolveTests {
         BallerinaTypesGenerator ballerinaSchemaGenerator = new BallerinaTypesGenerator(asyncAPI);
 
         SyntaxTree syntaxTree = ballerinaSchemaGenerator.generateSyntaxTree();
-        TestUtils.compareGeneratedSyntaxTreewithExpectedSyntaxTree("schema/baloutputs/" +
+        TestUtils.compareGeneratedSyntaxTreeWithExpectedSyntaxTree("schema/baloutputs/" +
                 "Reference/multiple_references.bal", syntaxTree);
     }
     @Test(description = "Test Ballerina types generation when referred by another record with no additional fields")
@@ -52,7 +52,7 @@ public class ReferenceResolveTests {
                 "/referred_inclusion.yaml"));
         BallerinaTypesGenerator ballerinaSchemaGenerator = new BallerinaTypesGenerator(asyncAPI);
         SyntaxTree syntaxTree = ballerinaSchemaGenerator.generateSyntaxTree();
-        TestUtils.compareGeneratedSyntaxTreewithExpectedSyntaxTree(
+        TestUtils.compareGeneratedSyntaxTreeWithExpectedSyntaxTree(
                 "schema/baloutputs/Reference/referred_inclusion.bal", syntaxTree);
     }
 
@@ -62,7 +62,7 @@ public class ReferenceResolveTests {
                 "/resolve_reference_docs.yaml"));
         BallerinaTypesGenerator ballerinaSchemaGenerator = new BallerinaTypesGenerator(asyncAPI);
         SyntaxTree syntaxTree = ballerinaSchemaGenerator.generateSyntaxTree();
-        TestUtils.compareGeneratedSyntaxTreewithExpectedSyntaxTree(
+        TestUtils.compareGeneratedSyntaxTreeWithExpectedSyntaxTree(
                 "schema/baloutputs/Reference/resolve_reference_docs.bal", syntaxTree);
     }
 

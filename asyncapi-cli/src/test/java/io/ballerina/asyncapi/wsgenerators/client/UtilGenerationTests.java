@@ -37,7 +37,7 @@ public class UtilGenerationTests {
         IntermediateClientGenerator intermediateClientGenerator = new IntermediateClientGenerator(oasClientConfig);
         intermediateClientGenerator.generateSyntaxTree();
         SyntaxTree utlisSyntaxTree = intermediateClientGenerator.getBallerinaUtilGenerator().generateUtilSyntaxTree();
-        TestUtils.compareGeneratedSyntaxTreewithExpectedSyntaxTree(path,
+        TestUtils.compareGeneratedSyntaxTreeWithExpectedSyntaxTree(path,
                 utlisSyntaxTree);
     }
 
@@ -60,7 +60,7 @@ public class UtilGenerationTests {
 //        Assert.assertTrue(diagnostics.isEmpty());
         SyntaxTree utlisSyntaxTree = intermediateClientGenerator.getBallerinaUtilGenerator().generateUtilSyntaxTree();
 
-        TestUtils.compareGeneratedSyntaxTreewithExpectedSyntaxTree(expectedPath,
+        TestUtils.compareGeneratedSyntaxTreeWithExpectedSyntaxTree(expectedPath,
                 utlisSyntaxTree);
     }
 
@@ -80,7 +80,7 @@ public class UtilGenerationTests {
 //                GET_ENCODED_URI,STREAM_GENERATOR);
 //        Assert.assertTrue(checkUtil(invalidFunctionNames,
         SyntaxTree utlisSyntaxTree = intermediateClientGenerator.getBallerinaUtilGenerator().generateUtilSyntaxTree();
-        TestUtils.compareGeneratedSyntaxTreewithExpectedSyntaxTree(expectedPath,
+        TestUtils.compareGeneratedSyntaxTreeWithExpectedSyntaxTree(expectedPath,
                 utlisSyntaxTree);
 //                intermediateClientGenerator.getBallerinaUtilGenerator().generateUtilSyntaxTree()));
 //        List<Diagnostic> diagnostics = getDiagnostics(clientSyntaxTree, asyncAPI, intermediateClientGenerator);
@@ -100,7 +100,7 @@ public class UtilGenerationTests {
         IntermediateClientGenerator intermediateClientGenerator = new IntermediateClientGenerator(oasClientConfig);
         SyntaxTree clientSyntaxTree = intermediateClientGenerator.generateSyntaxTree();
         SyntaxTree utlisSyntaxTree = intermediateClientGenerator.getBallerinaUtilGenerator().generateUtilSyntaxTree();
-        TestUtils.compareGeneratedSyntaxTreewithExpectedSyntaxTree(expectedPath,
+        TestUtils.compareGeneratedSyntaxTreeWithExpectedSyntaxTree(expectedPath,
                 utlisSyntaxTree);
 //        List<Diagnostic> diagnostics = getDiagnostics(clientSyntaxTree, asyncAPI, intermediateClientGenerator);
 //        Assert.assertTrue(diagnostics.isEmpty());
@@ -110,8 +110,7 @@ public class UtilGenerationTests {
 //
     @Test(description = "Validate the util functions generated for AsyncAPI definition" +
             " when all the scenarios are given")
-    public void testCompleteUtilFileGen() throws IOException, BallerinaAsyncApiExceptionWs,
-            FormatterException {
+    public void testCompleteUtilFileGen() throws IOException, BallerinaAsyncApiExceptionWs {
         Path definitionPath = RESDIR.resolve("Util/complete_util_gen.yaml");
         Path expectedPath = RESDIR.resolve("baloutputs/Util/complete_util_gen.bal");
         AsyncApi25DocumentImpl asyncAPI = GeneratorUtils.normalizeAsyncAPI(definitionPath);
@@ -123,7 +122,7 @@ public class UtilGenerationTests {
 //        List<Diagnostic> diagnostics = getDiagnostics(clientSyntaxTree, asyncAPI, intermediateClientGenerator);
 //        Assert.assertTrue(diagnostics.isEmpty());
         SyntaxTree utlisSyntaxTree = intermediateClientGenerator.getBallerinaUtilGenerator().generateUtilSyntaxTree();
-        TestUtils.compareGeneratedSyntaxTreewithExpectedSyntaxTree(expectedPath.toString(),
+        TestUtils.compareGeneratedSyntaxTreeWithExpectedSyntaxTree(expectedPath.toString(),
                 utlisSyntaxTree);
     }
 //

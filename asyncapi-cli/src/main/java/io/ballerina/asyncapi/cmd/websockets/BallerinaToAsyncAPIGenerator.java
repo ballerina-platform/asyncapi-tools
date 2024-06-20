@@ -104,8 +104,7 @@ public class BallerinaToAsyncAPIGenerator {
 
         syntaxTree = doc.syntaxTree();
         PackageCompilation compilation = project.currentPackage().getCompilation();
-        boolean hasErrors = compilation.diagnosticResult()
-                .diagnostics().stream()
+        boolean hasErrors = compilation.diagnosticResult().diagnostics().stream()
                 .anyMatch(d -> DiagnosticSeverity.ERROR.equals(d.diagnosticInfo().severity()));
 
         if (hasErrors) {
@@ -131,8 +130,7 @@ public class BallerinaToAsyncAPIGenerator {
                     } catch (IOException e) {
                         DiagnosticMessages message = DiagnosticMessages.AAS_CONVERTOR_102;
                         ExceptionDiagnostic error = new ExceptionDiagnostic(message.getCode(),
-                                message.getDescription() + e.getLocalizedMessage(),
-                                null);
+                                message.getDescription() + e.getLocalizedMessage(), null);
                         this.errors.add(error);
                     }
                 }

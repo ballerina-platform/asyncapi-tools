@@ -44,7 +44,7 @@ public class NullableFieldTests {
                 "/nullable_primitive_schema.yaml"));
         BallerinaTypesGenerator ballerinaSchemaGenerator = new BallerinaTypesGenerator(asyncAPI);
         SyntaxTree syntaxTree = ballerinaSchemaGenerator.generateSyntaxTree();
-        TestUtils.compareGeneratedSyntaxTreewithExpectedSyntaxTree("schema/baloutputs/Nullable/nullable_primitive.bal",
+        TestUtils.compareGeneratedSyntaxTreeWithExpectedSyntaxTree("schema/baloutputs/Nullable/nullable_primitive.bal",
                 syntaxTree);
     }
 
@@ -54,7 +54,7 @@ public class NullableFieldTests {
                 "/nullable_array_schema.yaml"));
         BallerinaTypesGenerator ballerinaSchemaGenerator = new BallerinaTypesGenerator(asyncAPI);
         SyntaxTree syntaxTree = ballerinaSchemaGenerator.generateSyntaxTree();
-        TestUtils.compareGeneratedSyntaxTreewithExpectedSyntaxTree("schema/baloutputs/Nullable/nullable_array.bal",
+        TestUtils.compareGeneratedSyntaxTreeWithExpectedSyntaxTree("schema/baloutputs/Nullable/nullable_array.bal",
                 syntaxTree);
     }
 
@@ -64,7 +64,7 @@ public class NullableFieldTests {
                 "/nullable_ref_array.yaml"));
         BallerinaTypesGenerator ballerinaSchemaGenerator = new BallerinaTypesGenerator(asyncAPI);
         SyntaxTree syntaxTree = ballerinaSchemaGenerator.generateSyntaxTree();
-        TestUtils.compareGeneratedSyntaxTreewithExpectedSyntaxTree("schema/baloutputs/Nullable/nullable_ref_array.bal",
+        TestUtils.compareGeneratedSyntaxTreeWithExpectedSyntaxTree("schema/baloutputs/Nullable/nullable_ref_array.bal",
                 syntaxTree);
     }
 
@@ -75,7 +75,7 @@ public class NullableFieldTests {
                 "/nullable_anyof_schema.yaml"));
         BallerinaTypesGenerator ballerinaSchemaGenerator = new BallerinaTypesGenerator(asyncAPI);
         SyntaxTree syntaxTree = ballerinaSchemaGenerator.generateSyntaxTree();
-        TestUtils.compareGeneratedSyntaxTreewithExpectedSyntaxTree("" +
+        TestUtils.compareGeneratedSyntaxTreeWithExpectedSyntaxTree("" +
                         "schema/baloutputs/Nullable/nullable_anyof_schema.bal", syntaxTree);
     }
 
@@ -85,7 +85,7 @@ public class NullableFieldTests {
                 "/nullable_anyof_array_schema.yaml"));
         BallerinaTypesGenerator ballerinaSchemaGenerator = new BallerinaTypesGenerator(asyncAPI);
         SyntaxTree syntaxTree = ballerinaSchemaGenerator.generateSyntaxTree();
-        TestUtils.compareGeneratedSyntaxTreewithExpectedSyntaxTree("schema/baloutputs/Nullable/" +
+        TestUtils.compareGeneratedSyntaxTreeWithExpectedSyntaxTree("schema/baloutputs/Nullable/" +
                 "nullable_anyof_array_schema.bal", syntaxTree);
     }
 
@@ -95,7 +95,7 @@ public class NullableFieldTests {
                 "/null_empty_record.yaml"));
         BallerinaTypesGenerator ballerinaSchemaGenerator = new BallerinaTypesGenerator(asyncAPI);
         SyntaxTree syntaxTree = ballerinaSchemaGenerator.generateSyntaxTree();
-        TestUtils.compareGeneratedSyntaxTreewithExpectedSyntaxTree("schema/baloutputs/Nullable/" +
+        TestUtils.compareGeneratedSyntaxTreeWithExpectedSyntaxTree("schema/baloutputs/Nullable/" +
                 "null_empty_record.bal", syntaxTree);
     }
 

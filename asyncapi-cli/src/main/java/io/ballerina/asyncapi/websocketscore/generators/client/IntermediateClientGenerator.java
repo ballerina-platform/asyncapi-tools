@@ -111,6 +111,7 @@ import java.util.regex.Pattern;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.API_KEY_CONFIG;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.ATTEMPT_CON_CLOSE;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.ATTEMPT_TO_CLOSE_CONNECTION;
+import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.BALLERINA_CLIENT_CANNOT_BE_GENERATED;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.BALLERINA_WEBSOCKET_DOESNT_SUPPORT_FOR_MULTIPLE_CHANNELS;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.CAPITAL_PIPE;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.CHECK_PATH_FOR_QUERY_PARAM;
@@ -500,49 +501,26 @@ public class IntermediateClientGenerator {
             GeneratorUtils.updateTypeDefNodeList(MESSAGE_WITH_ID, typeDefinitionNode, typeDefinitionNodeList);
         }
 
-        // Adding remote functions which is using id pipes
         List<String> pipeIdMethods = new ArrayList<>();
-
         ArrayList<String> streamReturns = new ArrayList<>();
-
         List<FunctionDefinitionNode> remoteFunctionNodes = createRemoteFunctions(streamReturns, pipeIdMethods);
 
 //        if (pipeIdMethods.isEmpty()) {
 //            throw new BallerinaAsyncApiExceptionWs(BALLERINA_CLIENT_CANNOT_BE_GENERATED);
 //        }
 
-        // Collect members for class definition node
-
         boolean isStreamPresent = !streamReturns.isEmpty();
 
-        // Add instance variable to class definition node
         List<Node> memberNodeList = new ArrayList<>(createClassInstanceVariables(isStreamPresent));
 
-        // Add init function to class definition node
         memberNodeList.add(createInitFunction(isStreamPresent));
-
-        // Add startInterMediator function
         memberNodeList.add(createStartMessageWriting());
-
-        // Add startMessageReading function
         memberNodeList.add(createStartMessageReading());
-
-        // Add remoteFunctionNodes
         memberNodeList.addAll(remoteFunctionNodes);
-
-        // Generate the class combining members
         MetadataNode metadataNode = getClassMetadataNode();
-
-        //Get title name from the specification
         String titleName = asyncAPI.getInfo().getTitle().trim().replaceAll("\\s", "");
-
-        //Get channel name from the specification
-        String channelName = GeneratorUtils.
-                removeNonAlphanumeric(asyncAPI.getChannels().getItemNames().get(0).trim());
-
-        //Combine class name as titleName+channelName+Client
+        String channelName = GeneratorUtils.removeNonAlphanumeric(asyncAPI.getChannels().getItemNames().get(0).trim());
         String stringClassName = titleName + channelName + CLIENT_CLASS_NAME;
-
 
         setClientName(stringClassName);
         IdentifierToken className = createIdentifierToken(stringClassName);
@@ -554,20 +532,6 @@ public class IntermediateClientGenerator {
                 createNodeList(memberNodeList), closeBraceToken, null);
     }
 
-    /**
-     * Create startMessageReading function.
-     * <pre>
-      private isolated function startMessageReading() {
-        worker readMessage returns error? {
-            while self.isMessageReading {
-                Message message = check self.clientEp->readMessage();
-                check self.readMessageQueue.produce(message, 5);
-                runtime:sleep(0.01);
-            }
-        }
-      }
-     * </pre>
-     */
     private Node createStartMessageReading() {
 
         //Create function signature node with metadata documentation
@@ -587,7 +551,6 @@ public class IntermediateClientGenerator {
                 functionSignatureNode, functionBodyNode);
     }
 
-    //
     private FunctionBodyNode getStartMessageReadingFunctionBodyNode() {
 
         List<StatementNode> whileStatements = new ArrayList<>();
@@ -728,7 +691,6 @@ public class IntermediateClientGenerator {
     }
 
     private Node createStartMessageWriting() {
-
         FunctionSignatureNode functionSignatureNode = getStartMessageWritingFunctionSignatureNode();
         FunctionBodyNode functionBodyNode = getStartMessageWritingFunctionBodyNode();
         NodeList<Token> qualifierList = createNodeList(createToken(PRIVATE_KEYWORD), createToken(ISOLATED_KEYWORD));
@@ -778,7 +740,6 @@ public class IntermediateClientGenerator {
         whileStatements.add(getIsWsError(WS_ERR, WRITE_MESSAGE));
         whileStatements.add(getRuntimeSleep());
 
-
         BlockStatementNode whileBody = createBlockStatementNode(openBraceToken, createNodeList(whileStatements),
                 closeBraceToken);
 
@@ -791,7 +752,6 @@ public class IntermediateClientGenerator {
                 createBlockStatementNode(openBraceToken, workerStatements, closeBraceToken), null));
 
         return createFunctionBodyBlockNode(openBraceToken, null, workerDeclarationNodes, closeBraceToken, null);
-
     }
 
     private static StatementNode getIsActiveCheck() {
@@ -1012,9 +972,6 @@ public class IntermediateClientGenerator {
             assignmentNodes.add(ballerinaAuthConfigGenerator.getClientInitializationNode(SERVICE_URL));
         }
 
-
-        // create initialization statement of websocket:Client class instance
-
         // self.clientEp = websocketEp
         FieldAccessExpressionNode selfClientEp = createFieldAccessExpressionNode(
                 createSimpleNameReferenceNode(createIdentifierToken(SELF)), dotToken,
@@ -1047,7 +1004,6 @@ public class IntermediateClientGenerator {
 
         }
 
-
         // Get API key assignment node if authentication mechanism type is only `apiKey`
         if (ballerinaAuthConfigGenerator.isHttpApiKey() && !ballerinaAuthConfigGenerator.isHttpOROAuth()) {
             assignmentNodes.add(ballerinaAuthConfigGenerator.getApiKeyAssignmentNode());
@@ -1076,7 +1032,6 @@ public class IntermediateClientGenerator {
         AssignmentStatementNode selfIsMessageWritingAssignmentStatementNode =
                 createAssignmentStatementNode(selfIsMessageWriting, equalToken, selfIsMessageWritingValue,
                         semicolonToken);
-
         assignmentNodes.add(selfIsMessageWritingAssignmentStatementNode);
     }
 
@@ -1218,7 +1173,6 @@ public class IntermediateClientGenerator {
             }
             path = refinedPath.replaceAll("[{]", "\\${");
             utilGenerator.setPathParametersFound(true);
-
         }
         return path;
     }
@@ -1239,7 +1193,6 @@ public class IntermediateClientGenerator {
         List<Node> parameters = new ArrayList<>();
 
         AsyncApiChannelItem channelItem = asyncAPI.getChannels().getItems().get(0);
-
 
         //set pathParams,queryParams,headerParams
         ballerinaAuthConfigGenerator.setFunctionParameters(channelItem, parameters, createToken(COMMA_TOKEN),
@@ -1391,7 +1344,6 @@ public class IntermediateClientGenerator {
         ObjectFieldNode isActiveField = getObjectFieldNode(qualifiersWithOnlyPrivate, booleanType, IS_ACTIVE);
         fieldNodeList.add(isActiveField);
 
-
         // add apiKey instance variable when API key security schema is given
         ObjectFieldNode apiKeyFieldNode = ballerinaAuthConfigGenerator.getApiKeyMapClassVariable();
         if (apiKeyFieldNode != null) {
@@ -1414,7 +1366,6 @@ public class IntermediateClientGenerator {
 
         Map<String, AsyncApiMessage> messages = asyncAPI.getComponents().getMessages();
         List<FunctionDefinitionNode> functionDefinitionNodeList = new ArrayList<>();
-
 
         // Create an array to store all request messages
         ArrayList<String> remainingResponseMessages = new ArrayList<>();
@@ -1440,7 +1391,6 @@ public class IntermediateClientGenerator {
                                 pipeIdMethods, null, false, null);
                     }
                     functionDefinitionNodeList.add(functionDefinitionNode);
-
                 }
             }
         }
@@ -1462,7 +1412,6 @@ public class IntermediateClientGenerator {
 
             }
             if (subscribeMessages != null) {
-
                 ListIterator<AsyncApiMessage> responseMessages = subscribeMessages.listIterator();
                 for (ListIterator<AsyncApiMessage> it = responseMessages; it.hasNext(); ) {
                     AsyncApi25MessageImpl message = (AsyncApi25MessageImpl) it.next();
@@ -1482,14 +1431,12 @@ public class IntermediateClientGenerator {
                         FunctionDefinitionNode functionDefinitionNode = getRemoteFunctionDefinitionNode(messageName,
                                 newMessage, extensions, pipeIdMethods, null, true, streamReturns);
                         functionDefinitionNodeList.add(functionDefinitionNode);
-
                     }
                 }
 
             }
 
         }
-
         functionDefinitionNodeList.add(createAttemptToCloseConnectionFunction());
         functionDefinitionNodeList.add(createConnectionCloseFunction(!streamReturns.isEmpty()));
         return functionDefinitionNodeList;
@@ -1553,7 +1500,6 @@ public class IntermediateClientGenerator {
             lockStatements.add(removeStreamGeneratorsNode);
         }
 
-
         ExpressionStatementNode clientCloseNode = getCloseLockStatementNode(CLIENT_EP, CLOSE, rightArrowToken);
         lockStatements.add(clientCloseNode);
 
@@ -1567,7 +1513,6 @@ public class IntermediateClientGenerator {
 
     private FunctionDefinitionNode getAdditionalFunctionDefinitionNode(IdentifierToken functionName,
                                                                        LockStatementNode lockStatementNode) {
-
         ReturnTypeDescriptorNode returnTypeDescriptorNode = createReturnTypeDescriptorNode(createToken(RETURNS_KEYWORD)
                 , createNodeList(), createSimpleNameReferenceNode(createIdentifierToken(OPTIONAL_ERROR)));
         FunctionSignatureNode functionSignatureNode = createFunctionSignatureNode(openParenToken,
@@ -1582,13 +1527,11 @@ public class IntermediateClientGenerator {
         return createFunctionDefinitionNode(SyntaxKind.OBJECT_METHOD_DEFINITION,
                 metadataNode, qualifierList, functionKeyWord, functionName, createEmptyNodeList(),
                 functionSignatureNode, functionBodyNode);
-
     }
 
     private ExpressionStatementNode getCloseLockStatementNode(String messageQueue,
 
                                                               String closeType, Token divideToken) {
-
         FieldAccessExpressionNode writeMessageQueue = createFieldAccessExpressionNode(
                 createSimpleNameReferenceNode(createIdentifierToken(SELF)), dotToken,
                 createSimpleNameReferenceNode(createIdentifierToken(messageQueue)));
@@ -1640,7 +1583,6 @@ public class IntermediateClientGenerator {
             responseType = functionReturnType.getReturnType(xResponse, xResponseType, responseMessages);
         }
 
-
         //Create remote function signature
         RemoteFunctionSignatureGenerator remoteFunctionSignatureGenerator = new
                 RemoteFunctionSignatureGenerator(asyncAPI, ballerinaSchemaGenerator, typeDefinitionNodeList);
@@ -1650,11 +1592,9 @@ public class IntermediateClientGenerator {
                         extensions, responseType, streamReturns);
         typeDefinitionNodeList = remoteFunctionSignatureGenerator.getTypeDefinitionNodeList();
 
-
         // Create metadataNode add documentation string
         MetadataNode metadataNode = createMetadataNode(createMarkdownDocumentationNode(
                 createNodeList(remoteFunctionDocs)), createNodeList());
-
 
         // Create remote Function Body
         String functionNameString = REMOTE_METHOD_NAME_PREFIX + getValidName(messageName, true);
@@ -1686,7 +1626,6 @@ public class IntermediateClientGenerator {
             if (pipeIdMethods.size() == 1) {
                 imports.add(importForUUID);
             }
-
         }
 
         String requestTypeCamelCaseName = Character.toLowerCase(messageName.charAt(0)) + messageName.substring(1);
@@ -1708,8 +1647,6 @@ public class IntermediateClientGenerator {
      * Generate serverUrl for client default value.
      */
     private String getServerURL(AsyncApi25ServersImpl servers) throws BallerinaAsyncApiExceptionWs {
-
-
         String serverURL;
         if (servers != null) {
             List<AsyncApiServer> serversList = servers.getItems();
