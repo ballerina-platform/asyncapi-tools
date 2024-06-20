@@ -75,7 +75,13 @@ public client isolated class ChatClient {
                     self.attemptToCloseConnection();
                     return;
                 }
-                pipe:Pipe pipe = self.pipes.getPipe(message.'type);
+                pipe:Pipe pipe;
+                MessageWithId|error messageWithId = message.cloneWithType(MessageWithId);
+                if messageWithId is MessageWithId {
+                    pipe = self.pipes.getPipe(messageWithId.id);
+                } else {
+                    pipe = self.pipes.getPipe(message.'type);
+                }
                 pipe:Error? pipeErr = pipe.produce(message, 5);
                 if pipeErr is pipe:Error {
                     log:printError("[readMessage]PipeError: " + pipeErr.message());
@@ -94,13 +100,7 @@ public client isolated class ChatClient {
                 return error("[doSubscribeMessage]ConnectionError: Connection has been closed");
             }
         }
-        pipe:Pipe self  INVALID[.] INVALID[pipes] INVALID[.] INVALID[getPipe] INVALID[(] INVALID["subscribeMessage"] INVALID[)]= new (10000);
-        string id;
-        lock {
-            id = uuid:createType1AsString();
-            subscribeMessage.id = id;
-        }
-        self.pipes.addPipe(id, subscribeMessagePipe);
+        subscribeMessage.id = uuid:createType1AsString();
         Message|error message = subscribeMessage.cloneWithType();
         if message is error {
             self.attemptToCloseConnection();
@@ -113,7 +113,7 @@ public client isolated class ChatClient {
         }
         stream<NextMessage|CompleteMessage|ErrorMessage,error?> streamMessages;
         lock {
-            NextMessageCompleteMessageErrorMessageStreamGenerator streamGenerator = new (self.pipes.getPipe("subscribeMessage"), timeout);
+            NextMessageCompleteMessageErrorMessageStreamGenerator streamGenerator = new (self.pipes.getPipe(subscribeMessage.id), timeout);
             self.streamGenerators.addStreamGenerator(streamGenerator);
             streamMessages = new (streamGenerator);
         }

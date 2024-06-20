@@ -70,7 +70,9 @@ public class GeneratorConstants {
 
     public static final String CAPITAL_ERROR = "Error";
 
-    public static final QualifiedNameReferenceNode PIPE_ERROR = createQualifiedNameReferenceNode(
+    public static final String PIPE_ERROR = "pipe:Error";
+
+    public static final QualifiedNameReferenceNode PIPE_ERROR_NODE = createQualifiedNameReferenceNode(
             createIdentifierToken(SIMPLE_PIPE), createToken(COLON_TOKEN), createIdentifierToken(CAPITAL_ERROR));
 
     public static final QualifiedNameReferenceNode WS_ERROR = createQualifiedNameReferenceNode(
@@ -324,6 +326,8 @@ public class GeneratorConstants {
 
     public static final String WS_ERR = "wsErr";
 
+    public static final String PIPE_ERR_CAPITAL = "PipeError";
+
     public static final String PIPE_ERR = "pipeErr";
 
     public static final String RESPONSE_MESSAGE = "responseMessage";
@@ -338,6 +342,8 @@ public class GeneratorConstants {
 
     public static final SimpleNameReferenceNode LOG_PRINT_ERR =
             createSimpleNameReferenceNode(createIdentifierToken("log:printError"));
+    public static final String LOG_PRINT_DEBUG_TEMPLATE = "log:printDebug(\"[%s]%s: %s\");";
+    public static final String ERROR_PIPE_CLOSE = "Error in closing pipe.";
 
     public static final StatementNode ATTEMPT_CON_CLOSE = createExpressionStatementNode(FUNCTION_CALL,
             createFunctionCallExpressionNode(createSimpleNameReferenceNode(createIdentifierToken(SELF + DOT +
@@ -366,9 +372,9 @@ public class GeneratorConstants {
     public static final String READ_ONLY = "readOnly";
 
     public static final String GET_PIPE = "getPipe";
-    public static final String ADD_PIPE = "addPipe";
 
     public static final String CLONE_WITH_TYPE = "cloneWithType";
+    public static final String PIPE_CLOSE_STATEMENT = "pipe:Error? %s = self.pipes.getPipe(%s).gracefulClose();";
 
     public static final String INIT = "init";
 

@@ -74,7 +74,13 @@ public client isolated class PayloadVlocationsClient {
                     self.attemptToCloseConnection();
                     return;
                 }
-                pipe:Pipe pipe = self.pipes.getPipe(message.event);
+                pipe:Pipe pipe;
+                MessageWithId|error messageWithId = message.cloneWithType(MessageWithId);
+                if messageWithId is MessageWithId {
+                    pipe = self.pipes.getPipe(messageWithId.id);
+                } else {
+                    pipe = self.pipes.getPipe(message.event);
+                }
                 pipe:Error? pipeErr = pipe.produce(message, 5);
                 if pipeErr is pipe:Error {
                     log:printError("[readMessage]PipeError: " + pipeErr.message());
@@ -93,13 +99,7 @@ public client isolated class PayloadVlocationsClient {
                 return error("[doRequest]ConnectionError: Connection has been closed");
             }
         }
-        pipe:Pipe requestPipe = new (1);
-        string id;
-        lock {
-            id = uuid:createType1AsString();
-            request.id = id;
-        }
-        self.pipes.addPipe(id, requestPipe);
+        request.id = uuid:createType1AsString();
         Message|error message = request.cloneWithType();
         if message is error {
             self.attemptToCloseConnection();
@@ -110,12 +110,15 @@ public client isolated class PayloadVlocationsClient {
             self.attemptToCloseConnection();
             return error("[doRequest]PipeError: Error in producing message");
         }
-        Message|pipe:Error responseMessage = self.pipes.getPipe("request").consume(timeout);
+        Message|pipe:Error responseMessage = self.pipes.getPipe(request.id).consume(timeout);
         if responseMessage is pipe:Error {
             self.attemptToCloseConnection();
             return error("[doRequest]PipeError: Error in consuming message");
         }
-        check requestPipe.gracefulClose();
+        pipe:Error? pipeCloseError = self.pipes.getPipe(request.id).gracefulClose();
+        if pipeCloseError is pipe:Error {
+            log:printDebug("[doRequest]PipeError: Error in closing pipe.");
+        }
         Response|error response = responseMessage.cloneWithType();
         if response is error {
             self.attemptToCloseConnection();
@@ -131,13 +134,7 @@ public client isolated class PayloadVlocationsClient {
                 return error("[doSubscribe]ConnectionError: Connection has been closed");
             }
         }
-        pipe:Pipe subscribePipe = new (1);
-        string id;
-        lock {
-            id = uuid:createType1AsString();
-            subscribe.id = id;
-        }
-        self.pipes.addPipe(id, subscribePipe);
+        subscribe.id = uuid:createType1AsString();
         Message|error message = subscribe.cloneWithType();
         if message is error {
             self.attemptToCloseConnection();
@@ -148,12 +145,15 @@ public client isolated class PayloadVlocationsClient {
             self.attemptToCloseConnection();
             return error("[doSubscribe]PipeError: Error in producing message");
         }
-        Message|pipe:Error responseMessage = self.pipes.getPipe("subscribe").consume(timeout);
+        Message|pipe:Error responseMessage = self.pipes.getPipe(subscribe.id).consume(timeout);
         if responseMessage is pipe:Error {
             self.attemptToCloseConnection();
             return error("[doSubscribe]PipeError: Error in consuming message");
         }
-        check subscribePipe.gracefulClose();
+        pipe:Error? pipeCloseError = self.pipes.getPipe(subscribe.id).gracefulClose();
+        if pipeCloseError is pipe:Error {
+            log:printDebug("[doSubscribe]PipeError: Error in closing pipe.");
+        }
         UnSubscribe|error unSubscribe = responseMessage.cloneWithType();
         if unSubscribe is error {
             self.attemptToCloseConnection();
