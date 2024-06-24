@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022, WSO2 LLC. (http://www.wso2.com). All Rights Reserved.
+ * Copyright (c) 2022, WSO2 LLC. (http://www.wso2.com).
  *
  * WSO2 Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -60,13 +60,6 @@ public class BallerinaToAsyncAPIGenerator {
     private Project project;
     private final List<AsyncAPIConverterDiagnostic> errors = new ArrayList<>();
     private final PrintStream outStream = System.out;
-
-    /**
-     * Initialize constructor.
-     */
-    public BallerinaToAsyncAPIGenerator() {
-
-    }
 
     public List<AsyncAPIConverterDiagnostic> getErrors() {
         return Collections.unmodifiableList(errors);

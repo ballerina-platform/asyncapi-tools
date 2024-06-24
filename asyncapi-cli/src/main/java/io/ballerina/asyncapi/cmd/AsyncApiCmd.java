@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2021, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ *  Copyright (c) 2021, WSO2 Inc. (http://www.wso2.org).
  *
  *  WSO2 Inc. licenses this file to you under the Apache License,
  *  Version 2.0 (the "License"); you may not use this file except
@@ -275,10 +275,10 @@ public class AsyncApiCmd implements BLauncherCmd {
             if (this.licenseFilePath != null && !this.licenseFilePath.isBlank()) {
                 Path filePath = Paths.get((new File(this.licenseFilePath).getCanonicalPath()));
                 licenseHeader = Files.readString(Paths.get(filePath.toString()));
-                if (!licenseHeader.endsWith("\n")) {
-                    licenseHeader = licenseHeader + "\n\n";
-                } else if (!licenseHeader.endsWith("\n\n")) {
-                    licenseHeader = licenseHeader + "\n";
+                if (!licenseHeader.endsWith(System.lineSeparator())) {
+                    licenseHeader = licenseHeader + System.lineSeparator() + System.lineSeparator();
+                } else if (!licenseHeader.endsWith(System.lineSeparator() + System.lineSeparator())) {
+                    licenseHeader = licenseHeader + System.lineSeparator();
                 }
             }
         } catch (IOException e) {

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022, WSO2 LLC. (http://www.wso2.com). All Rights Reserved.
+ * Copyright (c) 2022, WSO2 LLC. (http://www.wso2.com).
  *
  * WSO2 Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -360,10 +360,8 @@ public class IntermediateClientGenerator {
 
     }
 
-    private static ObjectFieldNode getObjectFieldNode(NodeList<Token> qualifiers,
-                                                      Node typeNode,
+    private static ObjectFieldNode getObjectFieldNode(NodeList<Token> qualifiers, Node typeNode,
                                                       String fieldIdentifier) {
-
         IdentifierToken fieldName = createIdentifierToken(fieldIdentifier);
         MetadataNode metadataNode = createMetadataNode(null, createEmptyNodeList());
         return createObjectFieldNode(metadataNode, null, qualifiers, typeNode, fieldName, null, null, semicolonToken);
