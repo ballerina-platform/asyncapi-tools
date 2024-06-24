@@ -214,16 +214,14 @@ public class AsyncAPIToBallerinaGenerator {
         String schemaContent = Formatter.format(schemaSyntaxTree).toString();
 
         if (!schemaContent.isBlank()) {
-            sourceFiles.add(new GenSrcFile(GenSrcFile.GenFileType.MODEL_SRC,  TYPE_FILE_NAME,
-                    schemaContent));
+            sourceFiles.add(new GenSrcFile(GenSrcFile.GenFileType.MODEL_SRC, TYPE_FILE_NAME, schemaContent));
         }
 
         // Generate test boilerplate code for test cases
         if (this.includeTestFiles) {
             TestGenerator testGenerator = new TestGenerator(intermediateClientGenerator);
             String testContent = Formatter.format(testGenerator.generateSyntaxTree()).toString();
-            sourceFiles.add(new GenSrcFile(GenSrcFile.GenFileType.GEN_SRC,  TEST_FILE_NAME, testContent));
-
+            sourceFiles.add(new GenSrcFile(GenSrcFile.GenFileType.GEN_SRC, TEST_FILE_NAME, testContent));
             String configContent = testGenerator.getConfigTomlFile();
             if (!configContent.isBlank()) {
                 sourceFiles.add(new GenSrcFile(GenSrcFile.GenFileType.GEN_SRC, CONFIG_FILE_NAME, configContent));

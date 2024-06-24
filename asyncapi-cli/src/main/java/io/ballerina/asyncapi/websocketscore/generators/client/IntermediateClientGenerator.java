@@ -574,11 +574,11 @@ public class IntermediateClientGenerator {
             ExpressionNode selfPipeMethod = NodeParser.parseExpression(SELF + DOT + PIPES + DOT + GET_PIPE +
                     String.format(WITHIN_PAREN_TEMPLATE, MESSAGE_VAR_NAME + DOT +
                             escapeIdentifier(this.dispatcherKey)));
-            VariableDeclarationNode pipesVar = createVariableDeclarationNode(createEmptyNodeList(),
-                    null, createTypedBindingPatternNode(
-                            NodeParser.parseTypeDescriptor(SIMPLE_PIPE + colonToken + CAPITAL_PIPE),
-                            createFieldBindingPatternVarnameNode(createSimpleNameReferenceNode(createIdentifierToken(
-                                    SIMPLE_PIPE)))), equalToken, selfPipeMethod, semicolonToken);
+            VariableDeclarationNode pipesVar = createVariableDeclarationNode(createEmptyNodeList(), null,
+                    createTypedBindingPatternNode(NodeParser.parseTypeDescriptor(SIMPLE_PIPE + colonToken +
+                                    CAPITAL_PIPE), createFieldBindingPatternVarnameNode(
+                                            createSimpleNameReferenceNode(createIdentifierToken(SIMPLE_PIPE)))),
+                    equalToken, selfPipeMethod, semicolonToken);
             whileStatements.add(pipesVar);
         } else {
             whileStatements.add(NodeParser.parseStatement(SIMPLE_PIPE + COLON + CAPITAL_PIPE + SPACE +

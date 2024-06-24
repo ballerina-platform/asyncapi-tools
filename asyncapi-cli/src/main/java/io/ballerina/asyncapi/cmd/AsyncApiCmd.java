@@ -150,7 +150,7 @@ public class AsyncApiCmd implements BLauncherCmd {
             }
             String fileName = argList.get(0);
 
-            if (protocol.equals("http")) {
+            if (protocol.equalsIgnoreCase("http")) {
                 verifyValidInputsForHttp();
                 Application codeGenerator = new CodeGenerator();
                 try {
@@ -160,7 +160,8 @@ public class AsyncApiCmd implements BLauncherCmd {
                     outStream.println(e.getMessage());
                     exitError(this.exitWhenFinish);
                 }
-            } else if (protocol.equals("ws") || protocol.equals("wss") || protocol.equals("websocket")) {
+            } else if (protocol.equalsIgnoreCase("ws") || protocol.equalsIgnoreCase("wss") ||
+                    protocol.equalsIgnoreCase("websocket")) {
                 if (fileName.endsWith(Constants.YAML_EXTENSION) || fileName.endsWith(Constants.JSON_EXTENSION) ||
                         fileName.endsWith(Constants.YML_EXTENSION)) {
                     try {
@@ -331,8 +332,8 @@ public class AsyncApiCmd implements BLauncherCmd {
     @Override
     public void printLongDesc(StringBuilder stringBuilder) {
         try (InputStream inputStream = ClassLoader.getSystemResourceAsStream("ballerina-asyncapi.help");
-             InputStreamReader inputStreamReader = new InputStreamReader(inputStream, StandardCharsets.UTF_8);
-             BufferedReader br = new BufferedReader(inputStreamReader)) {
+            InputStreamReader inputStreamReader = new InputStreamReader(inputStream, StandardCharsets.UTF_8);
+            BufferedReader br = new BufferedReader(inputStreamReader)) {
 
             String content;
             while ((content = br.readLine()) != null) {
