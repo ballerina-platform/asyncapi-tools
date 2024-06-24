@@ -1,19 +1,19 @@
 /*
- * Copyright (c) 2022, WSO2 LLC. (http://www.wso2.com).
+ *  Copyright (c) 2023, WSO2 LLC. (http://www.wso2.com).
  *
- * WSO2 Inc. licenses this file to you under the Apache License,
- * Version 2.0 (the "License"); you may not use this file except
- * in compliance with the License.
- * You may obtain a copy of the License at
+ *  WSO2 LLC. licenses this file to you under the Apache License,
+ *  Version 2.0 (the "License"); you may not use this file except
+ *  in compliance with the License.
+ *  You may obtain a copy of the License at
  *
  *    http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
+ *  Unless required by applicable law or agreed to in writing,
+ *  software distributed under the License is distributed on an
+ *  "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ *  KIND, either express or implied.  See the License for the
+ *  specific language governing permissions and limitations
+ *  under the License.
  */
 package io.ballerina.asyncapi.websocketscore;
 
@@ -61,7 +61,6 @@ public class GeneratorConstants {
     public static final String CREATE_TYPE1_AS_STRING = "createType1AsString()";
     public static final String CAPITAL_PIPE = "Pipe";
     public static final String CAPITAL_ERROR = "Error";
-    public static final String PIPE_ERROR = "pipe:Error";
     public static final QualifiedNameReferenceNode PIPE_ERROR_NODE = createQualifiedNameReferenceNode(
             createIdentifierToken(SIMPLE_PIPE), createToken(COLON_TOKEN), createIdentifierToken(CAPITAL_ERROR));
     public static final QualifiedNameReferenceNode WS_ERROR = createQualifiedNameReferenceNode(
@@ -81,20 +80,17 @@ public class GeneratorConstants {
     public static final String CLIENT_CLASS_NAME = "Client";
     public static final String CLIENT_EP = "clientEp";
     public static final String WEBSOCKET_EP = "websocketEp";
-    public static final String NULL_VALUE = "()";
     public static final String MAP_ANY_DATA = "map<anydata>";
     public static final String SPACE = " ";
     public static final String EQUAL_SPACE = " = ";
     public static final String PLUS_SPACE = " + ";
     public static final String NOT = "!";
-    public static final String QUESTION_MARK = "?";
     public static final String CONNECTION_CLOSE = "connectionClose";
     public static final String CHECK_PATH_FOR_QUERY_PARAM = "check getPathForQueryParam(queryParam)";
     public static final String MAP_STRING = "map<string>";
     public static final String GET_COMBINE_HEADERS = "getCombineHeaders(clientConfig.customHeaders,headerParam)";
     public static final String CLOSE = "close";
     public static final String WRITE_MESSAGE_QUEUE = "writeMessageQueue";
-    public static final String READ_MESSAGE_QUEUE = "readMessageQueue";
     public static final String START_MESSAGE_READING = "startMessageReading";
     public static final String START_MESSAGE_WRITING = "startMessageWriting";
     public static final String CONSUME = "consume";
@@ -229,7 +225,7 @@ public class GeneratorConstants {
     public static final String DOT = ".";
     public static final String SEMICOLON = ";";
     public static final String REMOTE_CALL = "->";
-    public static final String IS = "is";
+    public static final String IS = " is ";
     public static final String RESPONSE = "response";
     public static final String WS_ERR = "wsErr";
     public static final String PIPE_ERR_CAPITAL = "PipeError";
@@ -264,8 +260,9 @@ public class GeneratorConstants {
     public static final String PIPE = "|";
     public static final String READ_ONLY = "readOnly";
     public static final String GET_PIPE = "getPipe";
+    public static final String PIPE_ID = "pipeId";
     public static final String CLONE_WITH_TYPE = "cloneWithType";
-    public static final String PIPE_CLOSE_STATEMENT = "pipe:Error? %s = self.pipes.getPipe(%s).gracefulClose();";
+    public static final String PIPE_CLOSE_STATEMENT = "error? %s = self.pipes.removePipe(%s);";
     public static final String INIT = "init";
     public static final String QUEUE_DEFAULT_SIZE = "1000";
     public static final String BALLERINA_WEBSOCKET_DOESNT_SUPPORT_FOR_MULTIPLE_CHANNELS =
@@ -279,6 +276,10 @@ public class GeneratorConstants {
     public static final String START_MESSAGE_READING_DESCRIPTION = "Use to read messages from the websocket.";
     public static final String START_MESSAGE_WRITING_DESCRIPTION = "Use to write messages to the websocket.";
     public static final String DEFAULT_RETURN = "null";
+    public static final String STREAM_NEXT_CONSUME_MESSAGE = "anydata|error? message = self.pipes.getPipe" +
+            "(self.pipeId).consume(self.timeout);";
+    public static final String STREAM_NEXT_RESPONSE_CLONE = "%s response = check message.cloneWithType();";
+    public static final String CLOSE_STREAM_STATEMENT = "check self.pipes.removePipe(self.pipeId);";
     public static final Map<String, String> TYPE_MAP;
 
     static {

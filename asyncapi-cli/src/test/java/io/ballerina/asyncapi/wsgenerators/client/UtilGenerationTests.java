@@ -1,3 +1,20 @@
+/*
+ *  Copyright (c) 2023, WSO2 LLC. (http://www.wso2.com).
+ *
+ *  WSO2 LLC. licenses this file to you under the Apache License,
+ *  Version 2.0 (the "License"); you may not use this file except
+ *  in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing,
+ *  software distributed under the License is distributed on an
+ *  "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ *  KIND, either express or implied.  See the License for the
+ *  specific language governing permissions and limitations
+ *  under the License.
+ */
 package io.ballerina.asyncapi.wsgenerators.client;
 
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25DocumentImpl;
@@ -7,7 +24,6 @@ import io.ballerina.asyncapi.websocketscore.generators.client.IntermediateClient
 import io.ballerina.asyncapi.websocketscore.generators.client.model.AASClientConfig;
 import io.ballerina.asyncapi.wsgenerators.common.TestUtils;
 import io.ballerina.compiler.syntax.tree.SyntaxTree;
-import org.ballerinalang.formatter.core.FormatterException;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.Test;
 
@@ -22,92 +38,59 @@ public class UtilGenerationTests {
     private static final Path RESDIR =
             Paths.get("src/test/resources/websockets/asyncapi-to-ballerina/client").toAbsolutePath();
 
-
     @Test(description = "Test default util file generation")
     public void testDefaultUtilFileGen() throws IOException, BallerinaAsyncApiExceptionWs {
         Path definitionPath = RESDIR.resolve("Util/default_util.yaml");
         Path expectedPath = RESDIR.resolve("baloutputs/Util/default_util.bal");
         String path = expectedPath.toString();
-
         AsyncApi25DocumentImpl asyncAPI = GeneratorUtils.normalizeAsyncAPI(definitionPath);
         AASClientConfig.Builder clientMetaDataBuilder = new AASClientConfig.Builder();
-        AASClientConfig oasClientConfig = clientMetaDataBuilder
-//                .withFilters(filter)
-                .withAsyncAPI(asyncAPI).build();
+        AASClientConfig oasClientConfig = clientMetaDataBuilder.withAsyncAPI(asyncAPI).build();
         IntermediateClientGenerator intermediateClientGenerator = new IntermediateClientGenerator(oasClientConfig);
         intermediateClientGenerator.generateSyntaxTree();
         SyntaxTree utlisSyntaxTree = intermediateClientGenerator.getBallerinaUtilGenerator().generateUtilSyntaxTree();
-        TestUtils.compareGeneratedSyntaxTreeWithExpectedSyntaxTree(path,
-                utlisSyntaxTree);
+        TestUtils.compareGeneratedSyntaxTreeWithExpectedSyntaxTree(path, utlisSyntaxTree);
     }
 
     @Test(description = "Validate the util functions generated for AsyncAPI definition with query parameters")
-    public void testUtilFileGenForQueryParams() throws IOException, BallerinaAsyncApiExceptionWs,
-            FormatterException {
+    public void testUtilFileGenForQueryParams() throws IOException, BallerinaAsyncApiExceptionWs {
         Path definitionPath = RESDIR.resolve("Util/query_parameter.yaml");
         String expectedPath = "client/baloutputs/Util/query_parameter_utils.bal";
         AsyncApi25DocumentImpl asyncAPI = GeneratorUtils.normalizeAsyncAPI(definitionPath);
         AASClientConfig.Builder clientMetaDataBuilder = new AASClientConfig.Builder();
-        AASClientConfig oasClientConfig = clientMetaDataBuilder
-
-                .withAsyncAPI(asyncAPI).build();
+        AASClientConfig oasClientConfig = clientMetaDataBuilder.withAsyncAPI(asyncAPI).build();
         IntermediateClientGenerator intermediateClientGenerator = new IntermediateClientGenerator(oasClientConfig);
         SyntaxTree clientSyntaxTree = intermediateClientGenerator.generateSyntaxTree();
-//        List<String> invalidFunctionNames = Arrays.asList(CREATE_FORM_URLENCODED_REQUEST_BODY, GET_MAP_FOR_HEADERS);
-//        Assert.assertTrue(checkUtil(invalidFunctionNames,
-//                intermediateClientGenerator.getBallerinaUtilGenerator().generateUtilSyntaxTree()));
-//        List<Diagnostic> diagnostics = getDiagnostics(clientSyntaxTree, asyncAPI, intermediateClientGenerator);
-//        Assert.assertTrue(diagnostics.isEmpty());
         SyntaxTree utlisSyntaxTree = intermediateClientGenerator.getBallerinaUtilGenerator().generateUtilSyntaxTree();
-
-        TestUtils.compareGeneratedSyntaxTreeWithExpectedSyntaxTree(expectedPath,
-                utlisSyntaxTree);
+        TestUtils.compareGeneratedSyntaxTreeWithExpectedSyntaxTree(expectedPath, utlisSyntaxTree);
     }
 
-    //
     @Test(description = "Validate the util functions generated for AsyncAPI definition with headers")
-    public void testUtilFileGenForHeader() throws IOException, BallerinaAsyncApiExceptionWs,
-            FormatterException {
+    public void testUtilFileGenForHeader() throws IOException, BallerinaAsyncApiExceptionWs {
         Path definitionPath = RESDIR.resolve("Util/header_parameter.yaml");
         String expectedPath = "client/baloutputs/Util/header_parameter_utils.bal";
         AsyncApi25DocumentImpl asyncAPI = GeneratorUtils.normalizeAsyncAPI(definitionPath);
         AASClientConfig.Builder clientMetaDataBuilder = new AASClientConfig.Builder();
-        AASClientConfig oasClientConfig = clientMetaDataBuilder
-                .withAsyncAPI(asyncAPI).build();
+        AASClientConfig oasClientConfig = clientMetaDataBuilder.withAsyncAPI(asyncAPI).build();
         IntermediateClientGenerator intermediateClientGenerator = new IntermediateClientGenerator(oasClientConfig);
         SyntaxTree clientSyntaxTree = intermediateClientGenerator.generateSyntaxTree();
-//        List<String> invalidFunctionNames = Arrays.asList(GET_PATH_FOR_QUERY_PARAM,
-//                GET_ENCODED_URI,STREAM_GENERATOR);
-//        Assert.assertTrue(checkUtil(invalidFunctionNames,
         SyntaxTree utlisSyntaxTree = intermediateClientGenerator.getBallerinaUtilGenerator().generateUtilSyntaxTree();
-        TestUtils.compareGeneratedSyntaxTreeWithExpectedSyntaxTree(expectedPath,
-                utlisSyntaxTree);
-//                intermediateClientGenerator.getBallerinaUtilGenerator().generateUtilSyntaxTree()));
-//        List<Diagnostic> diagnostics = getDiagnostics(clientSyntaxTree, asyncAPI, intermediateClientGenerator);
-//        Assert.assertTrue(diagnostics.isEmpty());
+        TestUtils.compareGeneratedSyntaxTreeWithExpectedSyntaxTree(expectedPath, utlisSyntaxTree);
     }
 
-    //
     @Test(description = "Validate the util functions generated for asyncAPI definition with URL encoded request body")
-    public void testUtilFileGenURLEncodedRequestBody() throws IOException, BallerinaAsyncApiExceptionWs,
-            FormatterException {
+    public void testUtilFileGenURLEncodedRequestBody() throws IOException, BallerinaAsyncApiExceptionWs {
         Path definitionPath = RESDIR.resolve("Util/path_param_url_encoded.yaml");
         String expectedPath = "client/baloutputs/Util/path_param_url_encoded.bal";
         AsyncApi25DocumentImpl asyncAPI = GeneratorUtils.normalizeAsyncAPI(definitionPath);
         AASClientConfig.Builder clientMetaDataBuilder = new AASClientConfig.Builder();
-        AASClientConfig oasClientConfig = clientMetaDataBuilder
-                .withAsyncAPI(asyncAPI).build();
+        AASClientConfig oasClientConfig = clientMetaDataBuilder.withAsyncAPI(asyncAPI).build();
         IntermediateClientGenerator intermediateClientGenerator = new IntermediateClientGenerator(oasClientConfig);
         SyntaxTree clientSyntaxTree = intermediateClientGenerator.generateSyntaxTree();
         SyntaxTree utlisSyntaxTree = intermediateClientGenerator.getBallerinaUtilGenerator().generateUtilSyntaxTree();
-        TestUtils.compareGeneratedSyntaxTreeWithExpectedSyntaxTree(expectedPath,
-                utlisSyntaxTree);
-//        List<Diagnostic> diagnostics = getDiagnostics(clientSyntaxTree, asyncAPI, intermediateClientGenerator);
-//        Assert.assertTrue(diagnostics.isEmpty());
+        TestUtils.compareGeneratedSyntaxTreeWithExpectedSyntaxTree(expectedPath, utlisSyntaxTree);
     }
 
-    //
-//
     @Test(description = "Validate the util functions generated for AsyncAPI definition" +
             " when all the scenarios are given")
     public void testCompleteUtilFileGen() throws IOException, BallerinaAsyncApiExceptionWs {
@@ -115,15 +98,11 @@ public class UtilGenerationTests {
         Path expectedPath = RESDIR.resolve("baloutputs/Util/complete_util_gen.bal");
         AsyncApi25DocumentImpl asyncAPI = GeneratorUtils.normalizeAsyncAPI(definitionPath);
         AASClientConfig.Builder clientMetaDataBuilder = new AASClientConfig.Builder();
-        AASClientConfig oasClientConfig = clientMetaDataBuilder
-                .withAsyncAPI(asyncAPI).build();
+        AASClientConfig oasClientConfig = clientMetaDataBuilder.withAsyncAPI(asyncAPI).build();
         IntermediateClientGenerator intermediateClientGenerator = new IntermediateClientGenerator(oasClientConfig);
         SyntaxTree clientSyntaxTree = intermediateClientGenerator.generateSyntaxTree();
-//        List<Diagnostic> diagnostics = getDiagnostics(clientSyntaxTree, asyncAPI, intermediateClientGenerator);
-//        Assert.assertTrue(diagnostics.isEmpty());
         SyntaxTree utlisSyntaxTree = intermediateClientGenerator.getBallerinaUtilGenerator().generateUtilSyntaxTree();
-        TestUtils.compareGeneratedSyntaxTreeWithExpectedSyntaxTree(expectedPath.toString(),
-                utlisSyntaxTree);
+        TestUtils.compareGeneratedSyntaxTreeWithExpectedSyntaxTree(expectedPath.toString(), utlisSyntaxTree);
     }
 //
 //    @Test(description = "Test the utilsbal file generation when only in:query api-key auth given")
@@ -139,9 +118,6 @@ public class UtilGenerationTests {
 //        List<Diagnostic> diagnostics = getDiagnostics(clientSyntaxTree, asyncAPI, intermediateClientGenerator);
 //        Assert.assertTrue(diagnostics.isEmpty());
 //    }
-//
-//
-
 //
 
     @AfterClass

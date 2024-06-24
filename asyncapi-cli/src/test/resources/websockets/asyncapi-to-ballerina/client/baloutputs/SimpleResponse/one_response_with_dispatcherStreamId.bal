@@ -1,5 +1,6 @@
 import ballerina/lang.runtime;
 import ballerina/log;
+
 import ballerina/websocket;
 
 import xlibb/pipe;
@@ -114,8 +115,8 @@ public client isolated class PayloadVlocationsClient {
             self.attemptToCloseConnection();
             return error("[doSubscribe]PipeError: Error in consuming message");
         }
-        pipe:Error? pipeCloseError = self.pipes.getPipe(subscribe.id).gracefulClose();
-        if pipeCloseError is pipe:Error {
+        error? pipeCloseError = self.pipes.removePipe(subscribe.id);
+        if pipeCloseError is error {
             log:printDebug("[doSubscribe]PipeError: Error in closing pipe.");
         }
         UnSubscribe|error unSubscribe = responseMessage.cloneWithType();

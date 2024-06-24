@@ -1,19 +1,19 @@
 /*
- * Copyright (c) 2022, WSO2 LLC. (http://www.wso2.com).
+ *  Copyright (c) 2023, WSO2 LLC. (http://www.wso2.com).
  *
- * WSO2 Inc. licenses this file to you under the Apache License,
- * Version 2.0 (the "License"); you may not use this file except
- * in compliance with the License.
- * You may obtain a copy of the License at
+ *  WSO2 LLC. licenses this file to you under the Apache License,
+ *  Version 2.0 (the "License"); you may not use this file except
+ *  in compliance with the License.
+ *  You may obtain a copy of the License at
  *
  *    http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
+ *  Unless required by applicable law or agreed to in writing,
+ *  software distributed under the License is distributed on an
+ *  "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ *  KIND, either express or implied.  See the License for the
+ *  specific language governing permissions and limitations
+ *  under the License.
  */
 package io.ballerina.asyncapi.websocketscore.generators.client;
 
@@ -21,11 +21,8 @@ import io.ballerina.asyncapi.websocketscore.GeneratorUtils;
 import io.ballerina.asyncapi.websocketscore.generators.document.DocCommentsGenerator;
 import io.ballerina.compiler.syntax.tree.AnnotationNode;
 import io.ballerina.compiler.syntax.tree.AssignmentStatementNode;
-import io.ballerina.compiler.syntax.tree.CheckExpressionNode;
 import io.ballerina.compiler.syntax.tree.ChildNodeEntry;
 import io.ballerina.compiler.syntax.tree.ClassDefinitionNode;
-import io.ballerina.compiler.syntax.tree.ExpressionStatementNode;
-import io.ballerina.compiler.syntax.tree.FieldAccessExpressionNode;
 import io.ballerina.compiler.syntax.tree.FunctionBodyNode;
 import io.ballerina.compiler.syntax.tree.FunctionDefinitionNode;
 import io.ballerina.compiler.syntax.tree.FunctionSignatureNode;
@@ -34,7 +31,6 @@ import io.ballerina.compiler.syntax.tree.ImportDeclarationNode;
 import io.ballerina.compiler.syntax.tree.MarkdownDocumentationNode;
 import io.ballerina.compiler.syntax.tree.MarkdownParameterDocumentationLineNode;
 import io.ballerina.compiler.syntax.tree.MetadataNode;
-import io.ballerina.compiler.syntax.tree.MethodCallExpressionNode;
 import io.ballerina.compiler.syntax.tree.ModuleMemberDeclarationNode;
 import io.ballerina.compiler.syntax.tree.ModulePartNode;
 import io.ballerina.compiler.syntax.tree.Node;
@@ -42,7 +38,6 @@ import io.ballerina.compiler.syntax.tree.NodeList;
 import io.ballerina.compiler.syntax.tree.NodeParser;
 import io.ballerina.compiler.syntax.tree.ObjectFieldNode;
 import io.ballerina.compiler.syntax.tree.ParameterNode;
-import io.ballerina.compiler.syntax.tree.QualifiedNameReferenceNode;
 import io.ballerina.compiler.syntax.tree.RequiredParameterNode;
 import io.ballerina.compiler.syntax.tree.ReturnTypeDescriptorNode;
 import io.ballerina.compiler.syntax.tree.SeparatedNodeList;
@@ -78,36 +73,31 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
-import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.ANY_DATA;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.BALLERINA;
-import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.CAPITAL_PIPE;
-import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.CLONE_WITH_TYPE;
-import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.COLON;
-import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.CONSUME;
+import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.CLOSE_STREAM_STATEMENT;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.DECIMAL;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.DOT;
-import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.EQUAL_SPACE;
-import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.ERROR;
-import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.GRACEFUL_CLOSE;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.INIT;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.IS;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.MESSAGE_VAR_NAME;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.OPTIONAL_ERROR;
-import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.PIPE;
+import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.PIPES;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.PIPES_MAP;
-import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.QUESTION_MARK;
+import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.PIPE_ID;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.RESPONSE;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.SELF;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.SEMICOLON;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.SIMPLE_PIPE;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.SPACE;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.STREAM_GENERATORS_MAP;
+import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.STREAM_NEXT_CONSUME_MESSAGE;
+import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.STREAM_NEXT_RESPONSE_CLONE;
+import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.STRING;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.TIMEOUT;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.TRUE;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.TYPE_INCLUSION_GENERATOR;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.URL;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.WITHIN_BRACE_TEMPLATE;
-import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.WITHIN_PAREN_TEMPLATE;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.XLIBB;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.XLIBB_PIPE;
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createEmptyNodeList;
@@ -117,20 +107,15 @@ import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createSepara
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createToken;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createAssignmentStatementNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createBlockStatementNode;
-import static io.ballerina.compiler.syntax.tree.NodeFactory.createCheckExpressionNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createClassDefinitionNode;
-import static io.ballerina.compiler.syntax.tree.NodeFactory.createExpressionStatementNode;
-import static io.ballerina.compiler.syntax.tree.NodeFactory.createFieldAccessExpressionNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createFunctionBodyBlockNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createFunctionDefinitionNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createFunctionSignatureNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createIfElseStatementNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createMarkdownDocumentationNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createMetadataNode;
-import static io.ballerina.compiler.syntax.tree.NodeFactory.createMethodCallExpressionNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createModulePartNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createObjectFieldNode;
-import static io.ballerina.compiler.syntax.tree.NodeFactory.createQualifiedNameReferenceNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createRequiredParameterNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createReturnTypeDescriptorNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createSimpleNameReferenceNode;
@@ -139,12 +124,10 @@ import static io.ballerina.compiler.syntax.tree.NodeFactory.createTypeDefinition
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createTypeReferenceNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createWhileStatementNode;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.ASTERISK_TOKEN;
-import static io.ballerina.compiler.syntax.tree.SyntaxKind.CHECK_KEYWORD;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.CLASS_KEYWORD;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.CLIENT_KEYWORD;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.CLOSE_BRACE_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.CLOSE_PAREN_TOKEN;
-import static io.ballerina.compiler.syntax.tree.SyntaxKind.COLON_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.COMMA_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.CONTINUE_KEYWORD;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.DOT_TOKEN;
@@ -322,23 +305,26 @@ public class UtilGenerator {
                 createSimpleNameReferenceNode(createIdentifierToken(TYPE_INCLUSION_GENERATOR)), semicolonToken);
 
         //private final pipe:Pipe pipe;
-        QualifiedNameReferenceNode pipeTypeName = createQualifiedNameReferenceNode(createIdentifierToken(SIMPLE_PIPE),
-                createToken(COLON_TOKEN), createIdentifierToken(CAPITAL_PIPE));
-        IdentifierToken pipe = createIdentifierToken(SIMPLE_PIPE);
-        MetadataNode pipeNode = createMetadataNode(null, createEmptyNodeList());
-        ObjectFieldNode pipeField = createObjectFieldNode(pipeNode, null, qualifierList, pipeTypeName,
-                pipe, null, null, semicolonToken);
+        ObjectFieldNode pipesField = createObjectFieldNode(null, null, qualifierList,
+                NodeParser.parseTypeDescriptor(PIPES_MAP), createIdentifierToken(PIPES), null, null, semicolonToken);
 
-        //private final pipe:Pipe pipe;
+        //private final string pipeId;
+        SimpleNameReferenceNode stringType = createSimpleNameReferenceNode(createIdentifierToken(STRING));
+        IdentifierToken pipeId = createIdentifierToken(PIPE_ID);
+
+        ObjectFieldNode pipeIdField = createObjectFieldNode(null, null, qualifierList,
+                stringType, pipeId, null, null, semicolonToken);
+
+        //private final decimal timeout;
         SimpleNameReferenceNode decimalType = createSimpleNameReferenceNode(createIdentifierToken(DECIMAL));
         IdentifierToken timeout = createIdentifierToken(TIMEOUT);
 
-        MetadataNode timeoutNode = createMetadataNode(null, createEmptyNodeList());
-        ObjectFieldNode timeoutField = createObjectFieldNode(timeoutNode, null, qualifierList,
+        ObjectFieldNode timeoutField = createObjectFieldNode(null, null, qualifierList,
                 decimalType, timeout, null, null, semicolonToken);
 
         fieldNodeList.add(typeReferenceNode);
-        fieldNodeList.add(pipeField);
+        fieldNodeList.add(pipesField);
+        fieldNodeList.add(pipeIdField);
         fieldNodeList.add(timeoutField);
         return fieldNodeList;
     }
@@ -372,7 +358,7 @@ public class UtilGenerator {
         NodeList<Token> qualifierList = createNodeList(createToken(PUBLIC_KEYWORD), createToken(ISOLATED_KEYWORD));
         IdentifierToken functionName = createIdentifierToken("close");
         return createFunctionDefinitionNode(SyntaxKind.OBJECT_METHOD_DEFINITION, getDocCommentsForNextMethod(
-                        " Close method to close used pipe"), qualifierList, createToken(FUNCTION_KEYWORD),
+                        "Close method to close used pipe"), qualifierList, createToken(FUNCTION_KEYWORD),
                 functionName, createEmptyNodeList(), functionSignatureNode, functionBodyNode);
     }
 
@@ -405,18 +391,8 @@ public class UtilGenerator {
     }
 
     private FunctionBodyNode getCloseFunctionBodyNode() {
-        FieldAccessExpressionNode pipeAccessNode = createFieldAccessExpressionNode(
-                createSimpleNameReferenceNode(createIdentifierToken(SELF)), dotToken,
-                createSimpleNameReferenceNode(createIdentifierToken(XLIBB_PIPE)));
-        MethodCallExpressionNode gracefulMethodCallNode = createMethodCallExpressionNode(
-                pipeAccessNode, dotToken, createSimpleNameReferenceNode(createIdentifierToken(GRACEFUL_CLOSE)),
-                openParenToken, createSeparatedNodeList(), closeParenToken);
-        CheckExpressionNode graceFulCheckNode = createCheckExpressionNode(null,
-                createToken(CHECK_KEYWORD), gracefulMethodCallNode);
-        ExpressionStatementNode graceFulCheckExpressionNode = createExpressionStatementNode(
-                null, graceFulCheckNode, semicolonToken);
         List<StatementNode> assignmentNodes = new ArrayList<>();
-        assignmentNodes.add(graceFulCheckExpressionNode);
+        assignmentNodes.add(NodeParser.parseStatement(CLOSE_STREAM_STATEMENT));
         NodeList<StatementNode> statementList = createNodeList(assignmentNodes);
         return createFunctionBodyBlockNode(openBraceToken, null, statementList, closeBraceToken, null);
     }
@@ -424,23 +400,18 @@ public class UtilGenerator {
     private FunctionBodyNode getNextFunctionBodyNode(String returnType) {
 
         List<StatementNode> statements = new ArrayList<>();
-
-        statements.add(NodeParser.parseStatement(ANY_DATA + PIPE + OPTIONAL_ERROR + SPACE +
-                MESSAGE_VAR_NAME + EQUAL_SPACE + SELF + DOT + SIMPLE_PIPE + DOT + CONSUME +
-                String.format(WITHIN_PAREN_TEMPLATE, SELF + DOT + TIMEOUT) + SEMICOLON));
+        statements.add(NodeParser.parseStatement(STREAM_NEXT_CONSUME_MESSAGE));
         statements.add(createIfElseStatementNode(createToken(IF_KEYWORD), NodeParser.parseExpression(
-                MESSAGE_VAR_NAME + SPACE + IS + SPACE + ERROR + QUESTION_MARK), createBlockStatementNode(
-                        openBraceToken, createNodeList(NodeParser.parseStatement(CONTINUE_KEYWORD.stringValue()
-                        + SEMICOLON)), closeBraceToken), null));
-        statements.add(NodeParser.parseStatement(returnType + SPACE + RESPONSE + EQUAL_SPACE +
-                CHECK_KEYWORD.stringValue() + SPACE + MESSAGE_VAR_NAME + DOT + CLONE_WITH_TYPE +
-            String.format(WITHIN_PAREN_TEMPLATE, "") + SEMICOLON));
+                MESSAGE_VAR_NAME + IS + OPTIONAL_ERROR), createBlockStatementNode(openBraceToken,
+                createNodeList(NodeParser.parseStatement(CONTINUE_KEYWORD.stringValue() + SEMICOLON)),
+                closeBraceToken), null));
+        statements.add(NodeParser.parseStatement(String.format(STREAM_NEXT_RESPONSE_CLONE, returnType)));
         statements.add(NodeParser.parseStatement(RETURN_KEYWORD.stringValue() + SPACE +
                 String.format(WITHIN_BRACE_TEMPLATE, "value: " + RESPONSE) + SEMICOLON));
 
         WhileStatementNode whileStatementNode = createWhileStatementNode(createToken(WHILE_KEYWORD),
-                NodeParser.parseExpression(TRUE),
-                createBlockStatementNode(openBraceToken, createNodeList(statements), closeBraceToken), null);
+                NodeParser.parseExpression(TRUE), createBlockStatementNode(openBraceToken, createNodeList(statements),
+                        closeBraceToken), null);
 
         NodeList<StatementNode> statementList = createNodeList(whileStatementNode);
         return createFunctionBodyBlockNode(openBraceToken, null, statementList, closeBraceToken, null);
@@ -474,12 +445,15 @@ public class UtilGenerator {
 
     private FunctionSignatureNode getStreamInitFunctionSignatureNode() {
         RequiredParameterNode pipeNode = createRequiredParameterNode(createNodeList(),
-                createSimpleNameReferenceNode(createIdentifierToken(SIMPLE_PIPE + COLON + CAPITAL_PIPE)),
-                createIdentifierToken(SIMPLE_PIPE));
+                createSimpleNameReferenceNode(createIdentifierToken(PIPES_MAP)), createIdentifierToken(PIPES));
+        RequiredParameterNode pipeIdNode = createRequiredParameterNode(createNodeList(),
+                createSimpleNameReferenceNode(createIdentifierToken(STRING)), createIdentifierToken(PIPE_ID));
         RequiredParameterNode decimalNode = createRequiredParameterNode(createNodeList(), createSimpleNameReferenceNode(
                         createIdentifierToken(DECIMAL)), createIdentifierToken(TIMEOUT));
         List<Node> parameterList = new ArrayList<>();
         parameterList.add(pipeNode);
+        parameterList.add(createToken(COMMA_TOKEN));
+        parameterList.add(pipeIdNode);
         parameterList.add(createToken(COMMA_TOKEN));
         parameterList.add(decimalNode);
         SeparatedNodeList<ParameterNode> parameters = createSeparatedNodeList(parameterList);
@@ -488,13 +462,17 @@ public class UtilGenerator {
 
     private FunctionBodyNode getStreamInitFunctionBodyNode() {
         List<StatementNode> assignmentNodes = new ArrayList<>();
-        AssignmentStatementNode selfPipe = createAssignmentStatementNode(createIdentifierToken(
-                SELF + DOT + SIMPLE_PIPE), createToken(EQUAL_TOKEN),
-                createSimpleNameReferenceNode(createIdentifierToken(SIMPLE_PIPE)), createToken(SEMICOLON_TOKEN));
+        AssignmentStatementNode selfPipes = createAssignmentStatementNode(createIdentifierToken(
+                SELF + DOT + PIPES), createToken(EQUAL_TOKEN),
+                createSimpleNameReferenceNode(createIdentifierToken(PIPES)), createToken(SEMICOLON_TOKEN));
+        AssignmentStatementNode selfPipeId = createAssignmentStatementNode(createIdentifierToken(
+                        SELF + DOT + PIPE_ID), createToken(EQUAL_TOKEN),
+                createSimpleNameReferenceNode(createIdentifierToken(PIPE_ID)), createToken(SEMICOLON_TOKEN));
         AssignmentStatementNode selfTimeout = createAssignmentStatementNode(createIdentifierToken(SELF + DOT +
                         TIMEOUT), createToken(EQUAL_TOKEN),
                 createSimpleNameReferenceNode(createIdentifierToken(TIMEOUT)), createToken(SEMICOLON_TOKEN));
-        assignmentNodes.add(selfPipe);
+        assignmentNodes.add(selfPipes);
+        assignmentNodes.add(selfPipeId);
         assignmentNodes.add(selfTimeout);
         NodeList<StatementNode> statementList = createNodeList(assignmentNodes);
         return createFunctionBodyBlockNode(openBraceToken, null, statementList, closeBraceToken, null);

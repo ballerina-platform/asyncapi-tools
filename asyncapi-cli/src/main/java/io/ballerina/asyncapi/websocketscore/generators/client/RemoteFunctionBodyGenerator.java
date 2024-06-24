@@ -1,19 +1,19 @@
 /*
- * Copyright (c) 2022, WSO2 LLC. (http://www.wso2.com).
+ *  Copyright (c) 2023, WSO2 LLC. (http://www.wso2.com).
  *
- * WSO2 Inc. licenses this file to you under the Apache License,
- * Version 2.0 (the "License"); you may not use this file except
- * in compliance with the License.
- * You may obtain a copy of the License at
+ *  WSO2 LLC. licenses this file to you under the Apache License,
+ *  Version 2.0 (the "License"); you may not use this file except
+ *  in compliance with the License.
+ *  You may obtain a copy of the License at
  *
  *    http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
+ *  Unless required by applicable law or agreed to in writing,
+ *  software distributed under the License is distributed on an
+ *  "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ *  KIND, either express or implied.  See the License for the
+ *  specific language governing permissions and limitations
+ *  under the License.
  */
 package io.ballerina.asyncapi.websocketscore.generators.client;
 
@@ -69,7 +69,6 @@ import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.PIPE;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.PIPES;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.PIPE_CLOSE_STATEMENT;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.PIPE_ERR;
-import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.PIPE_ERROR;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.PIPE_ERROR_NODE;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.PIPE_ERR_CAPITAL;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.PIPE_PRODUCE_ERR_TEMPLATE;
@@ -80,7 +79,6 @@ import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.RETURN;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.SELF;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.SEMICOLON;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.SERVER_STREAMING;
-import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.SPACE;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.STREAM_GENERATOR;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.TIMEOUT;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.UUID;
@@ -201,7 +199,7 @@ public class RemoteFunctionBodyGenerator {
 
     private StatementNode getCloningMessageError(String varName) {
         return createIfElseStatementNode(createToken(IF_KEYWORD),
-                NodeParser.parseExpression(varName + SPACE + IS + SPACE + ERROR),
+                NodeParser.parseExpression(varName + IS + ERROR),
                 createBlockStatementNode(openBraceToken,
                         createNodeList(ATTEMPT_CON_CLOSE, createReturnStatementNode(
                                         createToken(RETURN_KEYWORD), createErrorConstructorExpressionNode(
@@ -213,7 +211,7 @@ public class RemoteFunctionBodyGenerator {
 
     private StatementNode getPipeError(String errVar, String activity) {
         return createIfElseStatementNode(createToken(IF_KEYWORD),
-                NodeParser.parseExpression(errVar + SPACE + IS + SPACE + PIPE_ERROR_NODE),
+                NodeParser.parseExpression(errVar + IS + PIPE_ERROR_NODE),
                 createBlockStatementNode(openBraceToken,
                         createNodeList(ATTEMPT_CON_CLOSE, createReturnStatementNode(createToken(RETURN_KEYWORD),
                                 createErrorConstructorExpressionNode(createToken(ERROR_KEYWORD), null,
@@ -306,8 +304,9 @@ public class RemoteFunctionBodyGenerator {
         String streamGenName = GeneratorUtils.getStreamGeneratorName(responseType);
 
         ArrayList<Node> streamGeneratorArguments = new ArrayList<>();
-        String requestTypePipeNode = SELF + DOT + PIPES + DOT + GET_PIPE + String.format(WITHIN_PAREN_TEMPLATE, pipeId);
-        streamGeneratorArguments.add(createPositionalArgumentNode(NodeParser.parseExpression(requestTypePipeNode)));
+        streamGeneratorArguments.add(createPositionalArgumentNode(NodeParser.parseExpression(SELF + DOT + PIPES)));
+        streamGeneratorArguments.add(createToken(COMMA_TOKEN));
+        streamGeneratorArguments.add(createPositionalArgumentNode(NodeParser.parseExpression(pipeId)));
         streamGeneratorArguments.add(createToken(COMMA_TOKEN));
         streamGeneratorArguments.add(createPositionalArgumentNode(createSimpleNameReferenceNode(createIdentifierToken(
                 TIMEOUT))));
@@ -444,22 +443,21 @@ public class RemoteFunctionBodyGenerator {
         statementsList.add(getPipeError(RESPONSE_MESSAGE, CONSUMING));
 
         if (!Objects.isNull(dispatcherStreamId)) {
-//            pipe:Error? pipeCloseErr = self.pipes.getPipe(chat.id).gracefulClose();
-//            if pipeCloseErr is pipe:Error {
+//            error? pipeCloseErr = self.pipes.removePipe(chat.id);
+//            if pipeCloseErr is error {
 //                log:printDebug("[doChat]PipeError: Error in closing pipe");
 //            }
             String pipeCloseErr = "pipeCloseError";
             statementsList.add(NodeParser.parseStatement(String.format(PIPE_CLOSE_STATEMENT, pipeCloseErr, pipeId)));
             statementsList.add(createIfElseStatementNode(createToken(IF_KEYWORD), NodeParser.parseExpression(
-                    pipeCloseErr + SPACE + IS + SPACE + PIPE_ERROR), createBlockStatementNode(openBraceToken,
+                    pipeCloseErr + IS + ERROR), createBlockStatementNode(openBraceToken,
                     createNodeList(NodeParser.parseStatement(String.format(LOG_PRINT_DEBUG_TEMPLATE, this.functionName,
                             PIPE_ERR_CAPITAL, ERROR_PIPE_CLOSE))), closeBraceToken), null));
         }
 
         //PongMessage pongMessage = responseMessage.cloneWithType();
         MethodCallExpressionNode cloneWithTypeMethodCallExpressionNode = createMethodCallExpressionNode(
-                responseMessageVarNode, dotToken,
-                createSimpleNameReferenceNode(createIdentifierToken(CLONE_WITH_TYPE)),
+                responseMessageVarNode, dotToken, createSimpleNameReferenceNode(createIdentifierToken(CLONE_WITH_TYPE)),
                 openParenToken, createSeparatedNodeList(), closeParenToken);
 
         VariableDeclarationNode responseTypeCloneStatement = createVariableDeclarationNode(createEmptyNodeList(),

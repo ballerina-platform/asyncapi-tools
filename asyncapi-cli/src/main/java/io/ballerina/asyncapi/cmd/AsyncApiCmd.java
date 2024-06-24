@@ -1,7 +1,7 @@
 /*
- *  Copyright (c) 2021, WSO2 Inc. (http://www.wso2.org).
+ *  Copyright (c) 2023, WSO2 LLC. (http://www.wso2.com).
  *
- *  WSO2 Inc. licenses this file to you under the Apache License,
+ *  WSO2 LLC. licenses this file to you under the Apache License,
  *  Version 2.0 (the "License"); you may not use this file except
  *  in compliance with the License.
  *  You may obtain a copy of the License at
@@ -61,6 +61,7 @@ public class AsyncApiCmd implements BLauncherCmd {
     private boolean exitWhenFinish;
     private Path executionPath = Paths.get(System.getProperty("user.dir"));
     private Path targetOutputPath;
+    private static final String LINE_SEPARATOR = System.lineSeparator();
 
     @CommandLine.Option(names = {"-h", "--help"}, hidden = true)
     private boolean helpFlag;
@@ -150,7 +151,7 @@ public class AsyncApiCmd implements BLauncherCmd {
             }
             String fileName = argList.get(0);
 
-            if (protocol.equalsIgnoreCase("http")) {
+            if (AsyncAPIConstants.VALID_HTTP_NAMES.contains(protocol.toLowerCase())) {
                 verifyValidInputsForHttp();
                 Application codeGenerator = new CodeGenerator();
                 try {
@@ -160,8 +161,7 @@ public class AsyncApiCmd implements BLauncherCmd {
                     outStream.println(e.getMessage());
                     exitError(this.exitWhenFinish);
                 }
-            } else if (protocol.equalsIgnoreCase("ws") || protocol.equalsIgnoreCase("wss") ||
-                    protocol.equalsIgnoreCase("websocket")) {
+            } else if (AsyncAPIConstants.VALID_WS_NAMES.contains(protocol.toLowerCase())) {
                 if (fileName.endsWith(Constants.YAML_EXTENSION) || fileName.endsWith(Constants.JSON_EXTENSION) ||
                         fileName.endsWith(Constants.YML_EXTENSION)) {
                     try {
@@ -184,7 +184,7 @@ public class AsyncApiCmd implements BLauncherCmd {
                     exitError(this.exitWhenFinish);
                 }
             } else {
-                outStream.println("ERROR invalid protocol: " + protocol + ". Supported protocols are `http` and `ws`.");
+                outStream.println(String.format(AsyncApiMessages.MESSAGE_INVALID_PROTOCOL, protocol));
                 exitError(this.exitWhenFinish);
             }
         } else {
@@ -276,10 +276,10 @@ public class AsyncApiCmd implements BLauncherCmd {
             if (this.licenseFilePath != null && !this.licenseFilePath.isBlank()) {
                 Path filePath = Paths.get((new File(this.licenseFilePath).getCanonicalPath()));
                 licenseHeader = Files.readString(Paths.get(filePath.toString()));
-                if (!licenseHeader.endsWith(System.lineSeparator())) {
-                    licenseHeader = licenseHeader + System.lineSeparator() + System.lineSeparator();
-                } else if (!licenseHeader.endsWith(System.lineSeparator() + System.lineSeparator())) {
-                    licenseHeader = licenseHeader + System.lineSeparator();
+                if (!licenseHeader.endsWith(LINE_SEPARATOR)) {
+                    licenseHeader = licenseHeader + LINE_SEPARATOR + LINE_SEPARATOR;
+                } else if (!licenseHeader.endsWith(LINE_SEPARATOR + LINE_SEPARATOR)) {
+                    licenseHeader = licenseHeader + LINE_SEPARATOR;
                 }
             }
         } catch (IOException e) {

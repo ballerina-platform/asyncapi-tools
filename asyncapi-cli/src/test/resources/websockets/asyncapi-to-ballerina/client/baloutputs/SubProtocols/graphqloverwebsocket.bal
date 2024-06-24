@@ -117,7 +117,7 @@ public client isolated class ChatClient {
         }
         stream<NextMessage|CompleteMessage|ErrorMessage,error?> streamMessages;
         lock {
-            NextMessageCompleteMessageErrorMessageStreamGenerator streamGenerator = new (self.pipes.getPipe(subscribeMessage.id), timeout);
+            NextMessageCompleteMessageErrorMessageStreamGenerator streamGenerator = new (self.pipes, subscribeMessage.id, timeout);
             self.streamGenerators.addStreamGenerator(streamGenerator);
             streamMessages = new (streamGenerator);
         }

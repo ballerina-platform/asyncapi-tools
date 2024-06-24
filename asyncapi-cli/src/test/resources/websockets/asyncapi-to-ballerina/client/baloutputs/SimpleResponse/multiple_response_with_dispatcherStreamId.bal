@@ -115,8 +115,8 @@ public client isolated class PayloadVlocationsClient {
             self.attemptToCloseConnection();
             return error("[doRequest]PipeError: Error in consuming message");
         }
-        pipe:Error? pipeCloseError = self.pipes.getPipe(request.id).gracefulClose();
-        if pipeCloseError is pipe:Error {
+        error? pipeCloseError = self.pipes.removePipe(request.id);
+        if pipeCloseError is error {
             log:printDebug("[doRequest]PipeError: Error in closing pipe.");
         }
         Response|error response = responseMessage.cloneWithType();
@@ -150,8 +150,8 @@ public client isolated class PayloadVlocationsClient {
             self.attemptToCloseConnection();
             return error("[doSubscribe]PipeError: Error in consuming message");
         }
-        pipe:Error? pipeCloseError = self.pipes.getPipe(subscribe.id).gracefulClose();
-        if pipeCloseError is pipe:Error {
+        error? pipeCloseError = self.pipes.removePipe(subscribe.id);
+        if pipeCloseError is error {
             log:printDebug("[doSubscribe]PipeError: Error in closing pipe.");
         }
         UnSubscribe|error unSubscribe = responseMessage.cloneWithType();

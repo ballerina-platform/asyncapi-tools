@@ -52,11 +52,6 @@ public class AsyncApiSpecController implements SpecController {
         AsyncApiDocument asyncApiSpec = (AsyncApiDocument) Library.readDocumentFromJSONString(asyncApiSpecJson);
         Dereferencer dereferencer = new Dereferencer(ReferenceResolverChain.getInstance(), false);
         asyncApiSpec = (AsyncApiDocument) dereferencer.dereference(asyncApiSpec);
-//        Set<String> unresolvedRefs = dereferencer.getUnresolvableReferences();
-//        if (!unresolvedRefs.isEmpty()) {
-//            throw new BallerinaAsyncApiException("Could not resolve some Yaml paths defined in $ref attributes: "
-//                    .concat(String.join(", ", unresolvedRefs)));
-//        }
 
         Extractor extractServiceTypes = new ExtractChannelsFromSpec(asyncApiSpec);
         Extractor extractSchemas = new ExtractSchemasFromSpec(asyncApiSpec);

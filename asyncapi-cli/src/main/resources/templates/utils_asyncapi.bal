@@ -25,6 +25,13 @@ public isolated class PipesMap {
         }
     }
 
+    public isolated function removePipe(string id) returns error? {
+        lock {
+            _ = check self.getPipe(id).gracefulClose();
+            _ = self.pipes.remove(id);
+        }
+    }
+
     public isolated function removePipes() returns error? {
         lock {
             foreach pipe:Pipe pipe in self.pipes {

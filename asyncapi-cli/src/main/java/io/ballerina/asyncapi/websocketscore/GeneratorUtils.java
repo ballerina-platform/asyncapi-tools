@@ -1,19 +1,19 @@
 /*
- * Copyright (c) 2022, WSO2 LLC. (http://www.wso2.com).
+ *  Copyright (c) 2023, WSO2 LLC. (http://www.wso2.com).
  *
- * WSO2 Inc. licenses this file to you under the Apache License,
- * Version 2.0 (the "License"); you may not use this file except
- * in compliance with the License.
- * You may obtain a copy of the License at
+ *  WSO2 LLC. licenses this file to you under the Apache License,
+ *  Version 2.0 (the "License"); you may not use this file except
+ *  in compliance with the License.
+ *  You may obtain a copy of the License at
  *
  *    http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
+ *  Unless required by applicable law or agreed to in writing,
+ *  software distributed under the License is distributed on an
+ *  "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ *  KIND, either express or implied.  See the License for the
+ *  specific language governing permissions and limitations
+ *  under the License.
  */
 package io.ballerina.asyncapi.websocketscore;
 
@@ -427,14 +427,10 @@ public class GeneratorUtils {
     }
 
     private static boolean isConstraintExists(AsyncApi25SchemaImpl propertyValue) {
-        return propertyValue.getMaximum() != null ||
-                propertyValue.getMinimum() != null ||
-                propertyValue.getMaxLength() != null ||
-                propertyValue.getMinLength() != null ||
-                propertyValue.getMaxItems() != null ||
-                propertyValue.getMinItems() != null ||
-                propertyValue.getExclusiveMinimum() != null ||
-                propertyValue.getExclusiveMaximum() != null;
+        return propertyValue.getMaximum() != null || propertyValue.getMinimum() != null ||
+                propertyValue.getMaxLength() != null || propertyValue.getMinLength() != null ||
+                propertyValue.getMaxItems() != null || propertyValue.getMinItems() != null ||
+                propertyValue.getExclusiveMinimum() != null || propertyValue.getExclusiveMaximum() != null;
     }
 
     /**
@@ -449,29 +445,6 @@ public class GeneratorUtils {
             BallerinaAsyncApiExceptionWs {
         AsyncApi25DocumentImpl asyncAPI = getAsyncAPIFromAsyncAPIParser(asyncAPIPath);
         //TODO: have to add a asyncapi validator to here
-
-        //TODO: throw this exception when creating remote functions
-//        if (asyncAPI.getComponents() != null) {
-//            AsyncApi25ComponentsImpl components = (AsyncApi25ComponentsImpl) asyncAPI.getComponents();
-//
-//            if (components.getSchemas() != null) {
-//                Map<String, Schema> componentsSchemas = components.getSchemas();
-//                //Remove unnecessary characters from the schema name
-//                for (Map.Entry<String, Schema> schemaEntry : componentsSchemas.entrySet()) {
-//                    // Remove default name
-//
-//                    components.removeSchema(schemaEntry.getKey());
-//                    // Refactor schema name with valid name
-//                    String name = getValidName(schemaEntry.getKey(), true);
-//                    components.addSchema(name, schemaEntry.getValue());
-//                }
-//                asyncAPI.setComponents(components);
-//            } else {
-//                throw new BallerinaAsyncApiException("Schemas section missing");
-//            }
-//        } else {
-//            throw new BallerinaAsyncApiException("Components section missing");
-//        }
         return asyncAPI;
     }
 
