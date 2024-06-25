@@ -26,7 +26,7 @@ import com.fasterxml.jackson.dataformat.yaml.YAMLGenerator;
 import io.apicurio.datamodels.Library;
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25Document;
 import io.apicurio.datamodels.models.util.JsonUtil;
-import io.ballerina.asyncapi.websocketscore.generators.asyncspec.diagnostic.AsyncAPIConverterDiagnostic;
+import io.ballerina.asyncapi.websocketscore.generators.asyncspec.diagnostic.AsyncApiConverterDiagnostic;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -34,25 +34,25 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * This {@code AsyncAPIResult} is used to contain AsyncAPI definition in string format and error list.
+ * This {@code AsyncAPIResult} is used to contain AsyncApi definition in string format and error list.
  *
  */
-public class AsyncAPIResult {
+public class AsyncApiResult {
 
-    private final List<AsyncAPIConverterDiagnostic> diagnostics;
+    private final List<AsyncApiConverterDiagnostic> diagnostics;
     private AsyncApi25Document asyncAPI;
     private String serviceName; // added base path for key to definition
 
     /**
      * This constructor is used to store the details that Map of {@code AsyncAPI} objects and diagnostic list.
      */
-    public AsyncAPIResult(AsyncApi25Document asyncAPI, List<AsyncAPIConverterDiagnostic> diagnostics) {
+    public AsyncApiResult(AsyncApi25Document asyncAPI, List<AsyncApiConverterDiagnostic> diagnostics) {
         this.asyncAPI = asyncAPI;
         this.diagnostics = diagnostics != null ? Collections.unmodifiableList(diagnostics) :
                 Collections.unmodifiableList(new ArrayList<>());
     }
 
-    public List<AsyncAPIConverterDiagnostic> getDiagnostics() {
+    public List<AsyncApiConverterDiagnostic> getDiagnostics() {
         return diagnostics;
     }
 

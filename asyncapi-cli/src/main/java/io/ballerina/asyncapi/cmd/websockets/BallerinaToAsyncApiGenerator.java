@@ -17,12 +17,12 @@
  */
 package io.ballerina.asyncapi.cmd.websockets;
 
-import io.ballerina.asyncapi.websocketscore.generators.asyncspec.diagnostic.AsyncAPIConverterDiagnostic;
+import io.ballerina.asyncapi.websocketscore.generators.asyncspec.diagnostic.AsyncApiConverterDiagnostic;
 import io.ballerina.asyncapi.websocketscore.generators.asyncspec.diagnostic.DiagnosticMessages;
 import io.ballerina.asyncapi.websocketscore.generators.asyncspec.diagnostic.ExceptionDiagnostic;
-import io.ballerina.asyncapi.websocketscore.generators.asyncspec.model.AsyncAPIResult;
+import io.ballerina.asyncapi.websocketscore.generators.asyncspec.model.AsyncApiResult;
 import io.ballerina.asyncapi.websocketscore.generators.asyncspec.utils.CodegenUtils;
-import io.ballerina.asyncapi.websocketscore.generators.asyncspec.utils.ServiceToAsyncAPIConverterUtils;
+import io.ballerina.asyncapi.websocketscore.generators.asyncspec.utils.ServiceToAsyncApiConverterUtils;
 import io.ballerina.compiler.api.SemanticModel;
 import io.ballerina.compiler.syntax.tree.SyntaxTree;
 import io.ballerina.projects.Document;
@@ -54,14 +54,14 @@ import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.utils.Co
  *
  */
 
-public class BallerinaToAsyncAPIGenerator {
+public class BallerinaToAsyncApiGenerator {
     private SyntaxTree syntaxTree;
     private SemanticModel semanticModel;
     private Project project;
-    private final List<AsyncAPIConverterDiagnostic> errors = new ArrayList<>();
+    private final List<AsyncApiConverterDiagnostic> errors = new ArrayList<>();
     private final PrintStream outStream = System.out;
 
-    public List<AsyncAPIConverterDiagnostic> getErrors() {
+    public List<AsyncApiConverterDiagnostic> getErrors() {
         return Collections.unmodifiableList(errors);
     }
 
@@ -108,12 +108,12 @@ public class BallerinaToAsyncAPIGenerator {
             return;
         }
         semanticModel = compilation.getSemanticModel(docId.moduleId());
-        List<AsyncAPIResult> asyncAPIDefinitions = ServiceToAsyncAPIConverterUtils.
+        List<AsyncApiResult> asyncAPIDefinitions = ServiceToAsyncApiConverterUtils.
                 generateAsyncAPISpecDefinition(syntaxTree, semanticModel, serviceName, needJson, inputPath);
 
         if (!asyncAPIDefinitions.isEmpty()) {
             List<String> fileNames = new ArrayList<>();
-            for (AsyncAPIResult definition : asyncAPIDefinitions) {
+            for (AsyncApiResult definition : asyncAPIDefinitions) {
                 if (Files.notExists(outPath)) {
                     try {
                         Files.createDirectories(outPath);

@@ -30,7 +30,6 @@ import java.util.List;
 /**
  * Contains all the util functions used for asyncapi commands.
  *
- * @since 2.0.0
  */
 public class CmdUtils {
 

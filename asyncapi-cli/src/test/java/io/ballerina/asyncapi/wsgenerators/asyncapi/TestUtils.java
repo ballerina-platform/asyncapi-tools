@@ -17,7 +17,7 @@
  */
 package io.ballerina.asyncapi.wsgenerators.asyncapi;
 
-import io.ballerina.asyncapi.cmd.websockets.BallerinaToAsyncAPIGenerator;
+import io.ballerina.asyncapi.cmd.websockets.BallerinaToAsyncApiGenerator;
 import org.testng.Assert;
 
 import java.io.File;
@@ -58,7 +58,7 @@ public class TestUtils {
         Path tempDir = Files.createTempDirectory("bal-to-asyncapi-test-out-" + System.nanoTime());
         try {
             String expectedYamlContent = getStringFromGivenBalFile(RES_DIR.resolve("yaml_outputs"), yamlFile);
-            BallerinaToAsyncAPIGenerator asyncApiConverter = new BallerinaToAsyncAPIGenerator();
+            BallerinaToAsyncApiGenerator asyncApiConverter = new BallerinaToAsyncApiGenerator();
             asyncApiConverter.generateAsyncAPIDefinitionsAllService(ballerinaFilePath, tempDir, null,
                     false);
             if (Files.exists(tempDir.resolve(String.format("payloadV%s.yaml", ASYNC_API_SUFFIX)))) {

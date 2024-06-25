@@ -22,15 +22,15 @@ import java.util.Optional;
 import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.utils.ConverterCommonUtils.normalizeTitle;
 
 /**
- * This {@code AsyncAPIInfo} contains details related to asyncAPI info section.
+ * This {@code AsyncAPIInfo} contains details related to AsyncApi info section.
  *
  */
-public class AsyncAPIInfo {
+public class AsyncApiInfo {
     private final String title;
     private final String version;
     private final String contractPath;
 
-    public AsyncAPIInfo(AsyncAPIInfoBuilder asyncAPIInfoBuilder) {
+    public AsyncApiInfo(AsyncAPIInfoBuilder asyncAPIInfoBuilder) {
         this.title = asyncAPIInfoBuilder.title;
         this.version = asyncAPIInfoBuilder.version;
         this.contractPath = asyncAPIInfoBuilder.contractPath;
@@ -49,7 +49,7 @@ public class AsyncAPIInfo {
     }
 
     /**
-     * This is the builder class for the {@link AsyncAPIInfo}.
+     * This is the builder class for the {@link AsyncApiInfo}.
      */
     public static class AsyncAPIInfoBuilder {
         private String title;
@@ -71,8 +71,8 @@ public class AsyncAPIInfo {
             return this;
         }
 
-        public AsyncAPIInfo build() {
-            AsyncAPIInfo asyncAPIInfo = new AsyncAPIInfo(this);
+        public AsyncApiInfo build() {
+            AsyncApiInfo asyncAPIInfo = new AsyncApiInfo(this);
             return asyncAPIInfo;
         }
     }

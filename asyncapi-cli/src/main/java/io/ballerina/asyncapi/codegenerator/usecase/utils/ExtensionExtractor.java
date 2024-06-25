@@ -24,6 +24,10 @@ import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * This class provides utility methods to extract extensions from a JsonNode.
+ *
+ */
 public class ExtensionExtractor {
     public static Map<String, JsonNode> getExtensions(Object object) {
         try {

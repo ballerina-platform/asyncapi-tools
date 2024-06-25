@@ -18,9 +18,8 @@
 package io.ballerina.asyncapi.websocketscore.exception;
 
 /**
- * Exception type definition for asyncAPI to Ballerina parsing related errors.
+ * Exception type definition for AsyncApi to Ballerina parsing related errors.
  *
- * @since 1.3.0
  */
 public class BallerinaAsyncApiExceptionWs extends Exception {
     public BallerinaAsyncApiExceptionWs(String message, Throwable e) {

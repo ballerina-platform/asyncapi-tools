@@ -26,7 +26,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 import io.apicurio.datamodels.models.asyncapi.AsyncApiMessage;
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25ComponentsImpl;
-import io.ballerina.asyncapi.websocketscore.generators.asyncspec.diagnostic.AsyncAPIConverterDiagnostic;
+import io.ballerina.asyncapi.websocketscore.generators.asyncspec.diagnostic.AsyncApiConverterDiagnostic;
 import io.ballerina.asyncapi.websocketscore.generators.asyncspec.diagnostic.DiagnosticMessages;
 import io.ballerina.asyncapi.websocketscore.generators.asyncspec.diagnostic.IncompatibleRemoteDiagnostic;
 import io.ballerina.asyncapi.websocketscore.generators.asyncspec.model.BalAsyncApi25MessageImpl;
@@ -82,18 +82,17 @@ import static io.ballerina.compiler.syntax.tree.SyntaxKind.RECORD_FIELD;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.SIMPLE_NAME_REFERENCE;
 
 /**
- * This class processes mapping responses between Ballerina and AsyncAPISpec.
+ * This class processes mapping responses between Ballerina and AsyncApiSpec.
  *
- * @since 2.0.0
  */
-public class AsyncAPIResponseMapper {
+public class AsyncApiResponseMapper {
     private final Location location;
     private final SemanticModel semanticModel;
     private final AsyncApi25ComponentsImpl components;
-    private final AsyncAPIComponentMapper componentMapper;
-    private final List<AsyncAPIConverterDiagnostic> errors = new ArrayList<>();
+    private final AsyncApiComponentMapper componentMapper;
+    private final List<AsyncApiConverterDiagnostic> errors = new ArrayList<>();
 
-    public AsyncAPIResponseMapper(Location location, AsyncAPIComponentMapper componentMapper,
+    public AsyncApiResponseMapper(Location location, AsyncApiComponentMapper componentMapper,
                                   SemanticModel semanticModel, AsyncApi25ComponentsImpl components) {
         this.location = location;
         this.semanticModel = semanticModel;

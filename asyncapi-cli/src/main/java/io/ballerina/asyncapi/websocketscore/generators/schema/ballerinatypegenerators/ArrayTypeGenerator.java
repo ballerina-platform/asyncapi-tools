@@ -64,7 +64,6 @@ import static io.ballerina.compiler.syntax.tree.SyntaxKind.OPEN_PAREN_TOKEN;
  *      public type Pets Pet[];
  * </pre>
  *
- * @since 1.3.0
  */
 public class ArrayTypeGenerator extends TypeGenerator {
     private String parentType = null;
@@ -82,8 +81,7 @@ public class ArrayTypeGenerator extends TypeGenerator {
     public TypeDescriptorNode generateTypeDescriptorNode() throws BallerinaAsyncApiExceptionWs {
         AsyncApi25SchemaImpl arraySchema = schema;
         AsyncApi25SchemaImpl items = (AsyncApi25SchemaImpl) arraySchema.getItems();
-        boolean isConstraintsAvailable =
-                hasConstraints(items) && typeName != null;
+        boolean isConstraintsAvailable = hasConstraints(items) && typeName != null;
         TypeGenerator typeGenerator;
         if (isConstraintsAvailable) {
             String normalizedTypeName = typeName.replaceAll(GeneratorConstants.SPECIAL_CHARACTER_REGEX, "").trim();
@@ -136,11 +134,10 @@ public class ArrayTypeGenerator extends TypeGenerator {
         }
 
         ArrayDimensionNode arrayDimension = createArrayDimensionNode(
-                createToken(OPEN_BRACKET_TOKEN), null,
-                createToken(CLOSE_BRACKET_TOKEN));
+                createToken(OPEN_BRACKET_TOKEN), null, createToken(CLOSE_BRACKET_TOKEN));
         arrayDimensions = arrayDimensions.add(arrayDimension);
-        ArrayTypeDescriptorNode arrayTypeDescriptorNode = createArrayTypeDescriptorNode(typeDescriptorNode
-                , arrayDimensions);
+        ArrayTypeDescriptorNode arrayTypeDescriptorNode = createArrayTypeDescriptorNode(typeDescriptorNode,
+                arrayDimensions);
         imports.addAll(typeGenerator.getImports());
         return getNullableType(arraySchema, arrayTypeDescriptorNode);
     }

@@ -88,7 +88,6 @@ import static io.ballerina.compiler.syntax.tree.SyntaxKind.SEMICOLON_TOKEN;
  * };
  * </pre>
  *
- * @since 1.3.0
  */
 public class RecordTypeGenerator extends TypeGenerator {
 

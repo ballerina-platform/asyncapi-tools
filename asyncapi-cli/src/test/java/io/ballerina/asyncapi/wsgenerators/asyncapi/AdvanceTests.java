@@ -17,7 +17,7 @@
  */
 package io.ballerina.asyncapi.wsgenerators.asyncapi;
 
-import io.ballerina.asyncapi.cmd.websockets.BallerinaToAsyncAPIGenerator;
+import io.ballerina.asyncapi.cmd.websockets.BallerinaToAsyncApiGenerator;
 import org.testng.Assert;
 import org.testng.annotations.AfterMethod;
 import org.testng.annotations.AfterTest;
@@ -98,7 +98,7 @@ public class AdvanceTests {
         try {
             String expectedYamlContent = getStringFromGivenBalFile(RES_DIR.resolve("yaml_outputs/service"),
                     yamlFile);
-            BallerinaToAsyncAPIGenerator asyncApiConverter = new BallerinaToAsyncAPIGenerator();
+            BallerinaToAsyncApiGenerator asyncApiConverter = new BallerinaToAsyncApiGenerator();
             asyncApiConverter.generateAsyncAPIDefinitionsAllService(ballerinaFilePath, tempDir,
                     null, false);
 

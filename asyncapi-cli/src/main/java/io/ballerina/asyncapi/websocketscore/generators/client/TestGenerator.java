@@ -100,7 +100,6 @@ import static io.ballerina.compiler.syntax.tree.SyntaxKind.SEMICOLON_TOKEN;
 /**
  * This class use for generating boilerplate codes for test cases.
  *
- * @since 1.3.0
  */
 public class TestGenerator {
     private final IntermediateClientGenerator intermediateClientGenerator;

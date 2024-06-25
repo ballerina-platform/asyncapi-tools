@@ -24,7 +24,6 @@ import java.util.Map;
 /**
  * Constants for asyncapi commands.
  *
- * @since 1.2.0
  */
 public class CmdConstants {
     public static final String BAL_EXTENSION = ".bal";

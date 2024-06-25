@@ -76,20 +76,19 @@ import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constant
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.QUALIFIED_NAME_REFERENCE;
 
 /**
- * This class will do resource mapping from ballerina to asyncApi.
+ * This class will do resource mapping from ballerina to AsyncApi.
  *
- * @since 2.0.0
  */
-public class AsyncAPIRemoteMapper {
+public class AsyncApiRemoteMapper {
     private final AsyncApi25ChannelsImpl channelObject = new AsyncApi25ChannelsImpl();
     private final AsyncApi25ComponentsImpl components = new AsyncApi25ComponentsImpl();
-    private final AsyncAPIComponentMapper componentMapper = new AsyncAPIComponentMapper(components);
+    private final AsyncApiComponentMapper componentMapper = new AsyncApiComponentMapper(components);
     private final SemanticModel semanticModel;
 
     /**
      * Initializes a resource parser for asyncApi.
      */
-    AsyncAPIRemoteMapper(SemanticModel semanticModel) {
+    AsyncApiRemoteMapper(SemanticModel semanticModel) {
         this.semanticModel = semanticModel;
     }
 
@@ -110,7 +109,7 @@ public class AsyncAPIRemoteMapper {
         AsyncApi25ChannelItemImpl channelItem = (AsyncApi25ChannelItemImpl) channelObject.createChannelItem();
         //call asyncAPIParameterMapper to map parameters
         Map<String, String> apiDocs = listAPIDocumentations(resource, channelItem);
-        AsyncAPIParameterMapper asyncAPIParameterMapper = new AsyncAPIParameterMapper(resource, apiDocs, components,
+        AsyncApiParameterMapper asyncAPIParameterMapper = new AsyncApiParameterMapper(resource, apiDocs, components,
                 semanticModel);
         asyncAPIParameterMapper.getResourceInputs(channelItem);
         String serviceClassName = getServiceClassName(resource);
@@ -145,7 +144,7 @@ public class AsyncAPIRemoteMapper {
         AsyncApi25OperationImpl subscribeOperationItem = new AsyncApi25OperationImpl();
         BalAsyncApi25MessageImpl subscribeMessage = new BalAsyncApi25MessageImpl();
         BalAsyncApi25MessageImpl publishMessage = new BalAsyncApi25MessageImpl();
-        AsyncAPIResponseMapper responseMapper = new AsyncAPIResponseMapper(resource.location(), componentMapper,
+        AsyncApiResponseMapper responseMapper = new AsyncApiResponseMapper(resource.location(), componentMapper,
                 semanticModel, components);
         for (Node node : classMethodNodes) {
             if (node.kind().equals(SyntaxKind.OBJECT_METHOD_DEFINITION)) {

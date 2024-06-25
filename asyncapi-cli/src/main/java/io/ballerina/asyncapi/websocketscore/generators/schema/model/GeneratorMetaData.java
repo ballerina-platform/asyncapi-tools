@@ -22,7 +22,6 @@ import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25DocumentImpl;
 /**
  * Stores metadata related to Ballerina types generation.
  *
- * @since 1.3.0
  */
 public class GeneratorMetaData {
 

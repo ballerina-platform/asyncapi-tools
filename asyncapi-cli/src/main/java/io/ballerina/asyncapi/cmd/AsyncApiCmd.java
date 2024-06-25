@@ -19,7 +19,7 @@ package io.ballerina.asyncapi.cmd;
 
 import io.ballerina.asyncapi.cmd.websockets.AsyncAPIDiagnostic;
 import io.ballerina.asyncapi.cmd.websockets.AsyncApiToBallerinaGenerator;
-import io.ballerina.asyncapi.cmd.websockets.BallerinaToAsyncAPIGenerator;
+import io.ballerina.asyncapi.cmd.websockets.BallerinaToAsyncApiGenerator;
 import io.ballerina.asyncapi.cmd.websockets.CmdConstants;
 import io.ballerina.asyncapi.cmd.websockets.CmdUtils;
 import io.ballerina.asyncapi.codegenerator.application.Application;
@@ -27,7 +27,7 @@ import io.ballerina.asyncapi.codegenerator.application.CodeGenerator;
 import io.ballerina.asyncapi.codegenerator.configuration.BallerinaAsyncApiException;
 import io.ballerina.asyncapi.websocketscore.exception.BallerinaAsyncApiExceptionWs;
 import io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants;
-import io.ballerina.asyncapi.websocketscore.generators.asyncspec.diagnostic.AsyncAPIConverterDiagnostic;
+import io.ballerina.asyncapi.websocketscore.generators.asyncspec.diagnostic.AsyncApiConverterDiagnostic;
 import io.ballerina.asyncapi.websocketscore.generators.asyncspec.diagnostic.DiagnosticMessages;
 import io.ballerina.asyncapi.websocketscore.generators.asyncspec.diagnostic.ExceptionDiagnostic;
 import io.ballerina.asyncapi.websocketscore.generators.asyncspec.diagnostic.IncompatibleRemoteDiagnostic;
@@ -48,13 +48,14 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 
-import static io.ballerina.asyncapi.cmd.AsyncAPIConstants.VALID_HTTP_NAMES;
-import static io.ballerina.asyncapi.cmd.AsyncAPIConstants.VALID_WS_NAMES;
+import static io.ballerina.asyncapi.cmd.AsyncApiConstants.VALID_HTTP_NAMES;
+import static io.ballerina.asyncapi.cmd.AsyncApiConstants.VALID_WS_NAMES;
 import static io.ballerina.asyncapi.cmd.AsyncApiMessages.CLIENT_GENERATION_FAILED;
 import static io.ballerina.asyncapi.cmd.AsyncApiMessages.MESSAGE_INVALID_LICENSE_STREAM;
 
 /**
- * Main class to implement "asyncapi" command for ballerina. Commands for Listener generation from AsyncAPI spec
+ * Main class to implement "asyncapi" command for ballerina. Commands for Listener generation from AsyncApi spec
+ *
  */
 @CommandLine.Command(
         name = "asyncapi",
@@ -224,7 +225,7 @@ public class AsyncApiCmd implements BLauncherCmd {
     }
 
     private void ballerinaToAsyncApiWs(String fileName) {
-        List<AsyncAPIConverterDiagnostic> errors = new ArrayList<>();
+        List<AsyncApiConverterDiagnostic> errors = new ArrayList<>();
         final File balFile = new File(fileName);
         Path balFilePath = null;
         try {
@@ -237,13 +238,13 @@ public class AsyncApiCmd implements BLauncherCmd {
         }
         getTargetOutputPathWs();
         // Check service name it is mandatory
-        BallerinaToAsyncAPIGenerator asyncApiConverter = new BallerinaToAsyncAPIGenerator();
+        BallerinaToAsyncApiGenerator asyncApiConverter = new BallerinaToAsyncApiGenerator();
         asyncApiConverter.generateAsyncAPIDefinitionsAllService(balFilePath, targetOutputPath, service,
                 generatedFileType);
 
         errors.addAll(asyncApiConverter.getErrors());
         if (!errors.isEmpty()) {
-            for (AsyncAPIConverterDiagnostic error : errors) {
+            for (AsyncApiConverterDiagnostic error : errors) {
                 if (error instanceof ExceptionDiagnostic exceptionDiagnostic) {
                     AsyncAPIDiagnostic diagnostic = CmdUtils.constructAsyncAPIDiagnostic(exceptionDiagnostic.getCode(),
                             exceptionDiagnostic.getMessage(), exceptionDiagnostic.getDiagnosticSeverity(),

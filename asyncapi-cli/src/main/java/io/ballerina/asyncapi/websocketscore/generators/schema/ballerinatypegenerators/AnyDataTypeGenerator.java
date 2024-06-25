@@ -39,7 +39,6 @@ import static io.ballerina.compiler.syntax.tree.NodeFactory.createSimpleNameRefe
  *      public type Pet anydata;
  * </pre>
  *
- * @since 1.3.0
  */
 public class AnyDataTypeGenerator extends TypeGenerator {
 

@@ -46,7 +46,6 @@ import static io.ballerina.compiler.syntax.tree.SyntaxKind.SEMICOLON_TOKEN;
 /**
  * Constants for asyncapi code generator.
  *
- * @since 1.3.0
  */
 public class GeneratorConstants {
 
@@ -167,7 +166,6 @@ public class GeneratorConstants {
     public static final String X_BALLERINA_INIT_DESCRIPTION = "x-ballerina-init-description";
     public static final String X_BALLERINA_MESSAGE_WRITE_DESCRIPTION = "x-ballerina-write-message-description";
     public static final String X_BALLERINA_MESSAGE_READ_DESCRIPTION = "x-ballerina-read-message-description";
-    public static final String X_BALLERINA_DEPRECATED_REASON = "x-ballerina-deprecated-reason";
     public static final String X_RESPONSE = "x-response";
     public static final String X_RESPONSE_TYPE = "x-response-type";
     public static final String DECIMAL = "decimal";

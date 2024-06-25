@@ -35,9 +35,8 @@ import java.util.stream.Stream;
  * This {@code BallerinaToAsyncAPITests} represents the tests for all the special scenarios in the ballerina to asyncapi
  * command.
  *
- * @since 2.0.0
  */
-public class BallerinaToAsyncAPIWsTests extends AsyncAPIWsCommandTest {
+public class BallerinaToAsyncApiWsTests extends AsyncApiWsCommandTest {
 
     @BeforeTest(description = "This will create a new ballerina project for testing below scenarios.")
     public void setupBallerinaProject() throws IOException {

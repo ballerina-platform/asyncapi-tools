@@ -23,7 +23,6 @@ import io.ballerina.compiler.syntax.tree.RecordRestDescriptorNode;
  * RecordMetadata class for containing the details to generate record node. This contains the details with whether
  * record is opened record or not, and its restField details.
  *
- * @since 1.4.0
  */
 public class RecordMetadata {
     private final boolean isOpenRecord;
@@ -42,11 +41,6 @@ public class RecordMetadata {
         return restDescriptorNode;
     }
 
-    /**
-     * Record meta data builder class for {@code RecordMetadata}.
-     *
-     * @since 1.4.0
-     */
     public static class Builder {
         private boolean isOpenRecord = false;
         private RecordRestDescriptorNode restDescriptorNode = null;

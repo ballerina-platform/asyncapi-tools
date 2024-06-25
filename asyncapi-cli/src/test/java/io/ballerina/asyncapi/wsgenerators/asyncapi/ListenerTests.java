@@ -17,8 +17,9 @@
  */
 package io.ballerina.asyncapi.wsgenerators.asyncapi;
 
-import io.ballerina.asyncapi.cmd.websockets.BallerinaToAsyncAPIGenerator;
-import io.ballerina.asyncapi.websocketscore.generators.asyncspec.diagnostic.AsyncAPIConverterDiagnostic;
+import io.ballerina.asyncapi.cmd.websockets.BallerinaToAsyncApiGenerator;
+import io.ballerina.asyncapi.websocketscore.generators.asyncspec.diagnostic.AsyncApiConverterDiagnostic;
+import io.ballerina.asyncapi.websocketscore.generators.asyncspec.service.AsyncApiEndpointMapper;
 import org.testng.Assert;
 import org.testng.annotations.AfterMethod;
 import org.testng.annotations.AfterTest;
@@ -33,7 +34,7 @@ import java.util.List;
 
 /**
  * This Test class for storing all the endpoint related tests
- * {@link io.ballerina.asyncapi.websocketscore.generators.asyncspec.service.AsyncAPIEndpointMapper}.
+ * {@link AsyncApiEndpointMapper}.
  */
 public class ListenerTests {
     private static final Path RES_DIR = Paths.get("src/test/resources/websockets" +
@@ -78,10 +79,10 @@ public class ListenerTests {
     @Test(description = "When given ballerina file contain some compilation issue.")
     public void testListeners06() {
         Path ballerinaFilePath = RES_DIR.resolve("listeners/listener_scenario06.bal");
-        BallerinaToAsyncAPIGenerator asyncApiConverter = new BallerinaToAsyncAPIGenerator();
+        BallerinaToAsyncApiGenerator asyncApiConverter = new BallerinaToAsyncApiGenerator();
         asyncApiConverter.generateAsyncAPIDefinitionsAllService(ballerinaFilePath, tempDir, null
                 , false);
-        List<AsyncAPIConverterDiagnostic> errors = asyncApiConverter.getErrors();
+        List<AsyncApiConverterDiagnostic> errors = asyncApiConverter.getErrors();
         Assert.assertTrue(errors.isEmpty());
     }
 

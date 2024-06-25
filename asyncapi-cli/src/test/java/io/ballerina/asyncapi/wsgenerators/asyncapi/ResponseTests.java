@@ -17,7 +17,7 @@
  */
 package io.ballerina.asyncapi.wsgenerators.asyncapi;
 
-import io.ballerina.asyncapi.cmd.websockets.BallerinaToAsyncAPIGenerator;
+import io.ballerina.asyncapi.cmd.websockets.BallerinaToAsyncApiGenerator;
 import org.testng.Assert;
 import org.testng.annotations.AfterMethod;
 import org.testng.annotations.AfterTest;
@@ -92,7 +92,7 @@ public class ResponseTests {
     @Test(description = "When the response has float return type")
     public void testResponseWithFloatReturnType() throws IOException {
         Path ballerinaFilePath = RES_DIR.resolve("response/rs_scenario08_float.bal");
-        BallerinaToAsyncAPIGenerator asyncAPIConverterUtils = new BallerinaToAsyncAPIGenerator();
+        BallerinaToAsyncApiGenerator asyncAPIConverterUtils = new BallerinaToAsyncApiGenerator();
         asyncAPIConverterUtils.generateAsyncAPIDefinitionsAllService(ballerinaFilePath, this.tempDir, null
                 , false);
         Assert.assertTrue(asyncAPIConverterUtils.getErrors().isEmpty());
@@ -102,7 +102,7 @@ public class ResponseTests {
     @Test(description = "When the response has decimal return type")
     public void testResponseWithDecimalReturnType() throws IOException {
         Path ballerinaFilePath = RES_DIR.resolve("response/rs_scenario09_decimal.bal");
-        BallerinaToAsyncAPIGenerator asyncAPIConverterUtils = new BallerinaToAsyncAPIGenerator();
+        BallerinaToAsyncApiGenerator asyncAPIConverterUtils = new BallerinaToAsyncApiGenerator();
         asyncAPIConverterUtils.generateAsyncAPIDefinitionsAllService(ballerinaFilePath, this.tempDir, null
                 , false);
         Assert.assertTrue(asyncAPIConverterUtils.getErrors().isEmpty());

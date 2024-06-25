@@ -130,7 +130,6 @@ import static io.ballerina.compiler.syntax.tree.SyntaxKind.CLOSE_BRACE_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.CLOSE_PAREN_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.COMMA_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.CONTINUE_KEYWORD;
-import static io.ballerina.compiler.syntax.tree.SyntaxKind.DOT_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.EOF_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.EQUAL_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.FINAL_KEYWORD;
@@ -150,7 +149,6 @@ import static io.ballerina.compiler.syntax.tree.SyntaxKind.WHILE_KEYWORD;
 /**
  * This class is used to generate util file syntax tree according to the generated client.
  *
- * @since 1.3.0
  */
 public class UtilGenerator {
     private static final Logger LOGGER = LoggerFactory.getLogger(UtilGenerator.class);
@@ -162,7 +160,6 @@ public class UtilGenerator {
     private static final Token openBraceToken = createToken(OPEN_BRACE_TOKEN);
     private static final Token closeBraceToken = createToken(CLOSE_BRACE_TOKEN);
     private static final Token semicolonToken = createToken(SEMICOLON_TOKEN);
-    private static final Token dotToken = createToken(DOT_TOKEN);
     private final ArrayList<String> streamReturns;
     private boolean headersFound = false;
     private boolean queryParamsFound = false;

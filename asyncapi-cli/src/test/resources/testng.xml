@@ -41,7 +41,7 @@
             <class name="io.ballerina.asyncapi.codegenerator.usecase.GenerateModuleMemberDeclarationNodeTest"/>
             <class name="io.ballerina.asyncapi.codegenerator.usecase.GenerateServiceTypeNodeTest"/>
             <class name="io.ballerina.asyncapi.codegenerator.usecase.GenerateUnionDescriptorNodeTest"/>
-            <class name="io.ballerina.asyncapi.cmd.BallerinaToAsyncAPIWsTests"/>
+            <class name="io.ballerina.asyncapi.cmd.BallerinaToAsyncApiWsTests"/>
             <class name="io.ballerina.asyncapi.wsgenerators.asyncapi.AsyncApiConverterUtilsTest"/>
             <class name="io.ballerina.asyncapi.wsgenerators.asyncapi.RecordTests"/>
             <class name="io.ballerina.asyncapi.wsgenerators.asyncapi.ResponseTests"/>
@@ -53,9 +53,9 @@
             <class name="io.ballerina.asyncapi.wsgenerators.asyncapi.QueryParameterTests"/>
             <class name="io.ballerina.asyncapi.wsgenerators.asyncapi.AdvanceTests"/>
             <class name="io.ballerina.asyncapi.wsgenerators.asyncapi.MapTypeTests"/>
-            <class name="io.ballerina.asyncapi.cmd.BallerinaToAsyncAPIWsTests"/>
+            <class name="io.ballerina.asyncapi.cmd.BallerinaToAsyncApiWsTests"/>
             <class name="io.ballerina.asyncapi.wsgenerators.asyncapi.DataTypeTests"/>
-            <class name="io.ballerina.asyncapi.cmd.BallerinaToAsyncAPIWsExceptionTests"/>
+            <class name="io.ballerina.asyncapi.cmd.BallerinaToAsyncApiWsExceptionTests"/>
             <class name="io.ballerina.asyncapi.wsgenerators.asyncapi.AdditionalTests"/>
             <class name="io.ballerina.asyncapi.wsgenerators.asyncapi.AliasTests"/>
             <class name="io.ballerina.asyncapi.wsgenerators.asyncapi.ChannelTests"/>

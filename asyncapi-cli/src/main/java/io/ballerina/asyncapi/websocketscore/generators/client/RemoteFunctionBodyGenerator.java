@@ -135,7 +135,6 @@ import static io.ballerina.compiler.syntax.tree.SyntaxKind.STREAM_KEYWORD;
 /**
  * This Util class uses for generating remote function body  {@link FunctionBodyNode}.
  *
- * @since 1.3.0
  */
 public class RemoteFunctionBodyGenerator {
 

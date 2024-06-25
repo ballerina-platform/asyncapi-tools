@@ -50,17 +50,17 @@ import static io.ballerina.compiler.syntax.tree.SyntaxKind.OPTIONAL_TYPE_DESC;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.STRING_LITERAL;
 
 /**
- * This class processes mapping query parameters in between Ballerina and AsyncAPISpec.
+ * This class processes mapping query parameters in between Ballerina and AsyncApiSpec.
  *
  */
-public class AsyncAPIQueryParameterMapper {
+public class AsyncApiQueryParameterMapper {
     private final AsyncApi25ComponentsImpl components;
     private final SemanticModel semanticModel;
     private final Map<String, String> apidocs;
     private final SyntaxKind[] validExpressionKind = {STRING_LITERAL, NUMERIC_LITERAL, BOOLEAN_LITERAL,
             LIST_CONSTRUCTOR, NIL_LITERAL, MAPPING_CONSTRUCTOR};
 
-    public AsyncAPIQueryParameterMapper(Map<String, String> apidocs, AsyncApi25ComponentsImpl components,
+    public AsyncApiQueryParameterMapper(Map<String, String> apidocs, AsyncApi25ComponentsImpl components,
                                         SemanticModel semanticModel) {
         this.apidocs = apidocs;
         this.components = components;
@@ -92,7 +92,7 @@ public class AsyncAPIQueryParameterMapper {
             bindingObject.addProperty(queryParamName, asyncApiQueryParamSchema);
         } else if (queryParam.typeName() instanceof SimpleNameReferenceNode) { //HeartBeat
             SimpleNameReferenceNode queryNode = (SimpleNameReferenceNode) queryParam.typeName();
-            AsyncAPIComponentMapper componentMapper = new AsyncAPIComponentMapper(components);
+            AsyncApiComponentMapper componentMapper = new AsyncApiComponentMapper(components);
             TypeSymbol typeSymbol = (TypeSymbol) semanticModel.symbol(queryNode).orElseThrow();
             componentMapper.createComponentSchema(typeSymbol, null);
             BalAsyncApi25SchemaImpl schema = new BalAsyncApi25SchemaImpl();

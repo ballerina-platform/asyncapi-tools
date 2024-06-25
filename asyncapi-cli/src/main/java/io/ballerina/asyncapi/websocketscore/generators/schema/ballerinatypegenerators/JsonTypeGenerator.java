@@ -26,6 +26,7 @@ import static io.ballerina.compiler.syntax.tree.SyntaxKind.JSON_KEYWORD;
 
 /**
  * Generate TypeDefinitionNode and TypeDescriptorNode for Json type schema.
+ *
  */
 public class JsonTypeGenerator extends TypeGenerator {
     public JsonTypeGenerator(AsyncApi25SchemaImpl schema, String typeName) {

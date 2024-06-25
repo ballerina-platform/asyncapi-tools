@@ -43,7 +43,6 @@ import static io.ballerina.compiler.syntax.tree.NodeFactory.createSimpleNameRefe
  *     public type DogName PetName;
  * </pre>
  *
- * @since 1.3.0
  */
 public class ReferencedTypeGenerator extends TypeGenerator {
 

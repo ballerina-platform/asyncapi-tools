@@ -31,6 +31,7 @@ import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constant
 
 /**
  * Utilities used by ballerina asyncapi code generator.
+ *
  */
 public final class CodegenUtils {
 

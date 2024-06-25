@@ -61,10 +61,10 @@ import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constant
 import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.WS_PROTOCOL_VERSION;
 
 /**
- * Extract AsyncAPI server information from and Ballerina endpoint.
+ * Extract AsyncApi server information from and Ballerina endpoint.
  */
-public class AsyncAPIEndpointMapper {
-    public static final AsyncAPIEndpointMapper ENDPOINT_MAPPER = new AsyncAPIEndpointMapper();
+public class AsyncApiEndpointMapper {
+    public static final AsyncApiEndpointMapper ENDPOINT_MAPPER = new AsyncApiEndpointMapper();
 
     /**
      * Convert endpoints bound to {@code service} asyncapi server information.

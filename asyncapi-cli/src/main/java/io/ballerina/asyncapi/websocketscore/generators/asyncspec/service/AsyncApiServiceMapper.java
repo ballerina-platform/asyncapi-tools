@@ -46,19 +46,18 @@ import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constant
 import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.NO_DISPATCHER_KEY;
 
 /**
- * AsyncAPIServiceMapper provides functionality for reading and writing AsyncApi, either to and from ballerina service,
- * or to, as well as related functionality for performing conversions between asyncapi and ballerina.
+ * AsyncApiServiceMapper provides functionality for reading and writing AsyncApi, either to and from ballerina service,
+ * or to, as well as related functionality for performing conversions between AsyncApi and ballerina.
  *
- * @since 2.0.0
  */
-public class AsyncAPIServiceMapper {
+public class AsyncApiServiceMapper {
     private final AsyncApi25DocumentImpl asyncAPI;
     private final SemanticModel semanticModel;
 
     /**
      * Initializes a service parser for AsyncApi.
      */
-    public AsyncAPIServiceMapper(SemanticModel semanticModel, AsyncApi25DocumentImpl asyncAPI) {
+    public AsyncApiServiceMapper(SemanticModel semanticModel, AsyncApi25DocumentImpl asyncAPI) {
         // Default object mapper is JSON mapper available in asyncApi utils.
         this.semanticModel = semanticModel;
         this.asyncAPI = asyncAPI;
@@ -148,7 +147,7 @@ public class AsyncAPIServiceMapper {
         for (Node function : functions) {
             SyntaxKind kind = function.kind();
             if (kind.equals(SyntaxKind.RESOURCE_ACCESSOR_DEFINITION)) {
-                AsyncAPIRemoteMapper resourceMapper = new AsyncAPIRemoteMapper(this.semanticModel);
+                AsyncApiRemoteMapper resourceMapper = new AsyncApiRemoteMapper(this.semanticModel);
                 AsyncApi25ChannelsImpl generatedChannels = resourceMapper.getChannels((FunctionDefinitionNode) function,
                         classDefinitionNodes, dispatcherValue);
 //                if (!generatedChannels.getItems().isEmpty()) {

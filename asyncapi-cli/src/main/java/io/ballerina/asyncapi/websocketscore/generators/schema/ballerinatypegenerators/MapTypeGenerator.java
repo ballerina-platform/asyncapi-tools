@@ -32,7 +32,8 @@ import static io.ballerina.compiler.syntax.tree.SyntaxKind.GT_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.LT_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.MAP_KEYWORD;
 
-/** Generate TypeDefinitionNode and TypeDescriptorNode for map type schema.
+/**
+ * Generate TypeDefinitionNode and TypeDescriptorNode for map type schema.
  *
  */
 public class MapTypeGenerator extends TypeGenerator {

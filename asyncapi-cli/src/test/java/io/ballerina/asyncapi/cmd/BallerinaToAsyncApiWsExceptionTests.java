@@ -44,9 +44,8 @@ import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constant
  * This {@code BallerinaToAsyncAPIExceptionTests} represents the tests for all the exceptions in the
  * ballerina to asyncapi command.
  *
- * @since 2.5.0
  */
-public class BallerinaToAsyncAPIWsExceptionTests extends AsyncAPIWsCommandTest {
+public class BallerinaToAsyncApiWsExceptionTests extends AsyncApiWsCommandTest {
 
     @BeforeTest(description = "This will create a new ballerina project for testing below scenarios.")
     public void setupBallerinaProject() throws IOException {

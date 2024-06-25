@@ -26,9 +26,8 @@ import java.util.Optional;
  * This {@code IncompatibleRemoteDiagnostic} represents the diagnostic that AsyncApiSpec not compatible with ballerina
  * implementation.
  *
- * @since 2.0.0
  */
-public class IncompatibleRemoteDiagnostic implements AsyncAPIConverterDiagnostic {
+public class IncompatibleRemoteDiagnostic implements AsyncApiConverterDiagnostic {
     private final String code;
     private final String message;
     private final Location location;

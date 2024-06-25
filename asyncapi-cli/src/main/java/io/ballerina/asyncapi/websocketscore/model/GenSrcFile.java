@@ -20,7 +20,6 @@ package io.ballerina.asyncapi.websocketscore.model;
 /**
  * Model class to hold generated source file information.
  *
- * @since 1.3.0
  */
 public class GenSrcFile {
     private String content;

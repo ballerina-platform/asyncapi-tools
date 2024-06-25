@@ -19,6 +19,7 @@ package io.ballerina.asyncapi.websocketscore.generators.asyncspec;
 
 /**
  * Ballerina To AsyncApi Service Constants.
+ *
  */
 public class Constants {
     public static final String ATTR_HOST = "host";

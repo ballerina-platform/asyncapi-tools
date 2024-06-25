@@ -31,7 +31,7 @@ import java.nio.file.Paths;
 /**
  * AsyncAPI command cmd common class to handle temp dirs and outputs.
  */
-public abstract class AsyncAPIWsCommandTest {
+public abstract class AsyncApiWsCommandTest {
     protected Path tmpDir;
     protected final Path resourceDir = Paths.get("src/test/resources/websockets").toAbsolutePath();
     protected ByteArrayOutputStream console;

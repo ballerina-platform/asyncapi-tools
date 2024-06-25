@@ -30,10 +30,10 @@ import io.apicurio.datamodels.models.Schema;
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25Document;
 import io.apicurio.datamodels.validation.ValidationProblem;
 import io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants;
-import io.ballerina.asyncapi.websocketscore.generators.asyncspec.diagnostic.AsyncAPIConverterDiagnostic;
+import io.ballerina.asyncapi.websocketscore.generators.asyncspec.diagnostic.AsyncApiConverterDiagnostic;
 import io.ballerina.asyncapi.websocketscore.generators.asyncspec.diagnostic.DiagnosticMessages;
 import io.ballerina.asyncapi.websocketscore.generators.asyncspec.diagnostic.ExceptionDiagnostic;
-import io.ballerina.asyncapi.websocketscore.generators.asyncspec.model.AsyncAPIResult;
+import io.ballerina.asyncapi.websocketscore.generators.asyncspec.model.AsyncApiResult;
 import io.ballerina.asyncapi.websocketscore.generators.asyncspec.model.BalAsyncApi25SchemaImpl;
 import io.ballerina.asyncapi.websocketscore.generators.asyncspec.model.BalBooleanSchema;
 import io.ballerina.compiler.api.SemanticModel;
@@ -78,6 +78,7 @@ import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constant
 
 /**
  * Utilities used in Ballerina  to AsyncAPI converter.
+ *
  */
 public class ConverterCommonUtils {
 
@@ -189,10 +190,10 @@ public class ConverterCommonUtils {
      * Parse and get the {@link AsyncApi25Document} for the given AsyncAPI contract.
      *
      * @param definitionURI URI for the AsyncAPI contract
-     * @return {@link AsyncAPIResult}  AsyncAPI model
+     * @return {@link AsyncApiResult}  AsyncAPI model
      */
-    public static AsyncAPIResult parseAsyncAPIFile(String definitionURI) {
-        List<AsyncAPIConverterDiagnostic> diagnostics = new ArrayList<>();
+    public static AsyncApiResult parseAsyncAPIFile(String definitionURI) {
+        List<AsyncApiConverterDiagnostic> diagnostics = new ArrayList<>();
         Path contractPath = Paths.get(definitionURI);
 
         if (!Files.exists(contractPath)) {
@@ -241,10 +242,10 @@ public class ConverterCommonUtils {
             ExceptionDiagnostic diagnostic = new ExceptionDiagnostic(error.getCode(), error.getDescription(),
                     null);
             diagnostics.add(diagnostic);
-            return new AsyncAPIResult(null, diagnostics);
+            return new AsyncApiResult(null, diagnostics);
         }
         AsyncApi25Document api = yamldoc;
-        return new AsyncAPIResult(api, diagnostics);
+        return new AsyncApiResult(api, diagnostics);
     }
 
     public static String normalizeTitle(String serviceName) {

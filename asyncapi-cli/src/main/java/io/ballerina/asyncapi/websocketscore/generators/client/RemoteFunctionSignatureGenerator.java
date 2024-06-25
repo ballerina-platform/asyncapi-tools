@@ -70,7 +70,6 @@ import static io.ballerina.compiler.syntax.tree.SyntaxKind.RETURNS_KEYWORD;
  * This util class uses for generating {@link FunctionSignatureNode} for given OAS
  * operation.
  *
- * @since 1.3.0
  */
 public class RemoteFunctionSignatureGenerator {
     private final AsyncApi25DocumentImpl asyncAPI;

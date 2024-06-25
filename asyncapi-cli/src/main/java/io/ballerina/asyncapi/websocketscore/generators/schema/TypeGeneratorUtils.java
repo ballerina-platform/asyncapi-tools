@@ -259,7 +259,6 @@ public class TypeGeneratorUtils {
                                                                                       IdentifierToken fieldName,
                                                                                       TypeDescriptorNode fieldTypeName,
                                                                                       MetadataNode metadataNode) {
-
         Token defaultValueToken;
         String defaultValue = fieldSchema.getDefault().toString().trim();
         if ((fieldSchema.getType() != null && fieldSchema.getType().equals(STRING) || fieldSchema.getType() == null)) {

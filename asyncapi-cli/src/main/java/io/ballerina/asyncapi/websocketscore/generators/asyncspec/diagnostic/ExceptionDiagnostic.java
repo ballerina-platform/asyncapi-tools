@@ -25,9 +25,8 @@ import java.util.Optional;
 /**
  * This {@code ExceptionDiagnostic} represents all the errors that happens during the code generation process.
  *
- * @since 2.0.0
  */
-public class ExceptionDiagnostic implements AsyncAPIConverterDiagnostic {
+public class ExceptionDiagnostic implements AsyncApiConverterDiagnostic {
     private final String code;
     private final String message;
     private final DiagnosticSeverity diagnosticSeverity;

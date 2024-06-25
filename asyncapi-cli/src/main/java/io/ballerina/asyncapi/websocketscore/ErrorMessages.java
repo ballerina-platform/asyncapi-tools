@@ -20,7 +20,6 @@ package io.ballerina.asyncapi.websocketscore;
 /**
  * Container for error messages of the AsyncAPI command.
  *
- * @since 1.3.0
  */
 public class ErrorMessages {
 

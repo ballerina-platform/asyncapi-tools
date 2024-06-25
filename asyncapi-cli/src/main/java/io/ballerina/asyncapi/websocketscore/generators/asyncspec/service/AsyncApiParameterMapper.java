@@ -57,15 +57,16 @@ import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constant
 import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.SCHEMA_REFERENCE;
 
 /**
- * AsyncAPIParameterMapper provides functionality for converting ballerina parameter to AsyncApiSpec parameter model.
+ * AsyncApiParameterMapper provides functionality for converting ballerina parameter to AsyncApiSpec parameter model.
+ *
  */
-public class AsyncAPIParameterMapper {
+public class AsyncApiParameterMapper {
     private final FunctionDefinitionNode functionDefinitionNode;
     private final Map<String, String> apidocs;
     private final AsyncApi25ComponentsImpl components;
     private final SemanticModel semanticModel;
 
-    public AsyncAPIParameterMapper(FunctionDefinitionNode functionDefinitionNode, Map<String, String> apidocs,
+    public AsyncApiParameterMapper(FunctionDefinitionNode functionDefinitionNode, Map<String, String> apidocs,
                                    AsyncApi25ComponentsImpl components, SemanticModel semanticModel) {
 
         this.functionDefinitionNode = functionDefinitionNode;
@@ -102,7 +103,7 @@ public class AsyncAPIParameterMapper {
         BalAsyncApi25SchemaImpl bindingHeaderObject = new BalAsyncApi25SchemaImpl();
         bindingQueryObject.setType(AsyncAPIType.OBJECT.toString());
         bindingHeaderObject.setType(AsyncAPIType.OBJECT.toString());
-        AsyncAPIQueryParameterMapper queryParameterMapper = new AsyncAPIQueryParameterMapper(apidocs, components,
+        AsyncApiQueryParameterMapper queryParameterMapper = new AsyncApiQueryParameterMapper(apidocs, components,
                 semanticModel);
         for (ParameterNode parameterNode : parameterList) {
             if (parameterNode.kind() == SyntaxKind.REQUIRED_PARAM) {
@@ -160,7 +161,7 @@ public class AsyncAPIParameterMapper {
                 }
                 if (pathParam.typeDescriptor().kind() == SyntaxKind.SIMPLE_NAME_REFERENCE) {
                     SimpleNameReferenceNode queryNode = (SimpleNameReferenceNode) pathParam.typeDescriptor();
-                    AsyncAPIComponentMapper componentMapper = new AsyncAPIComponentMapper(components);
+                    AsyncApiComponentMapper componentMapper = new AsyncApiComponentMapper(components);
                     TypeSymbol typeSymbol = (TypeSymbol) semanticModel.symbol(queryNode).orElseThrow();
                     componentMapper.createComponentSchema(typeSymbol, null);
                     BalAsyncApi25SchemaImpl schema = new BalAsyncApi25SchemaImpl();
@@ -191,7 +192,7 @@ public class AsyncAPIParameterMapper {
         for (AnnotationNode annotation : annotations) {
             if ((annotation.annotReference().toString()).trim().equals(Constants.HTTP_HEADER)) {
                 // Handle headers.
-                AsyncAPIHeaderMapper asyncAPIHeaderMapper = new AsyncAPIHeaderMapper(apidocs);
+                AsyncApiHeaderMapper asyncAPIHeaderMapper = new AsyncApiHeaderMapper(apidocs);
                 asyncAPIHeaderMapper.setHeaderParameter(requiredParameterNode, bindingHeaderObject);
             }
         }
@@ -206,7 +207,7 @@ public class AsyncAPIParameterMapper {
         for (AnnotationNode annotation : annotations) {
             if ((annotation.annotReference().toString()).trim().equals(Constants.HTTP_HEADER)) {
                 // Handle headers.
-                AsyncAPIHeaderMapper asyncAPIHeaderMapper = new AsyncAPIHeaderMapper(apidocs);
+                AsyncApiHeaderMapper asyncAPIHeaderMapper = new AsyncApiHeaderMapper(apidocs);
                 asyncAPIHeaderMapper.setHeaderParameter(defaultableParameterNode, bindingHeaderObject);
             }
         }

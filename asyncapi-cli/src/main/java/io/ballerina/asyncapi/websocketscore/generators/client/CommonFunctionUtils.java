@@ -38,6 +38,7 @@ import static io.ballerina.asyncapi.websocketscore.GeneratorUtils.extractReferen
 
 /**
  * Common function utils for request and response.
+ *
  */
 public class CommonFunctionUtils {
 

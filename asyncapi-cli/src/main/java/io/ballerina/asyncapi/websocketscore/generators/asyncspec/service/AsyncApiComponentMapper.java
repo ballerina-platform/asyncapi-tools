@@ -23,7 +23,7 @@ import com.fasterxml.jackson.databind.node.TextNode;
 import io.apicurio.datamodels.models.Schema;
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25ComponentsImpl;
 import io.apicurio.datamodels.models.union.BooleanUnionValueImpl;
-import io.ballerina.asyncapi.websocketscore.generators.asyncspec.diagnostic.AsyncAPIConverterDiagnostic;
+import io.ballerina.asyncapi.websocketscore.generators.asyncspec.diagnostic.AsyncApiConverterDiagnostic;
 import io.ballerina.asyncapi.websocketscore.generators.asyncspec.diagnostic.DiagnosticMessages;
 import io.ballerina.asyncapi.websocketscore.generators.asyncspec.diagnostic.IncompatibleRemoteDiagnostic;
 import io.ballerina.asyncapi.websocketscore.generators.asyncspec.model.BalAsyncApi25SchemaImpl;
@@ -78,19 +78,19 @@ import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.utils.Co
 
 
 /**
- * This util class for processing the mapping in between ballerina record and asyncAPI object schema.
+ * This util class for processing the mapping in between ballerina record and AsyncApi object schema.
  *
  */
-public class AsyncAPIComponentMapper {
+public class AsyncApiComponentMapper {
     private final AsyncApi25ComponentsImpl components;
-    private final List<AsyncAPIConverterDiagnostic> diagnostics;
+    private final List<AsyncApiConverterDiagnostic> diagnostics;
 
-    public AsyncAPIComponentMapper(AsyncApi25ComponentsImpl components) {
+    public AsyncApiComponentMapper(AsyncApi25ComponentsImpl components) {
         this.components = components;
         this.diagnostics = new ArrayList<>();
     }
 
-    public List<AsyncAPIConverterDiagnostic> getDiagnostics() {
+    public List<AsyncApiConverterDiagnostic> getDiagnostics() {
         return Collections.unmodifiableList(diagnostics);
     }
 

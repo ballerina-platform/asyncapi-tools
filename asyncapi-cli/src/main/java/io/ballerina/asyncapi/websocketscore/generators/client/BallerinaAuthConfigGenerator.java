@@ -209,7 +209,6 @@ import static io.ballerina.compiler.syntax.tree.SyntaxKind.TYPE_KEYWORD;
 /**
  * This class is used to generate authentication related nodes of the ballerina connector client syntax tree.
  *
- * @since 1.3.0
  */
 public class BallerinaAuthConfigGenerator {
 

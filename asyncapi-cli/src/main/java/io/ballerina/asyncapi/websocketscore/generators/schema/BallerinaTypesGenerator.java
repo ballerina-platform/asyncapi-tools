@@ -64,7 +64,6 @@ import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createNodeLi
  * This class wraps the {@link Schema} from asyncAPI models inorder to overcome complications
  * while populating syntax tree.
  *
- * @since 1.3.0
  */
 public class BallerinaTypesGenerator {
 
@@ -86,12 +85,6 @@ public class BallerinaTypesGenerator {
         this.hasConstraints = false;
     }
 
-    /**
-     * This public constructor is used to generate record and other relevant data type when the nullable flag is
-     * enabled in the asyncAPI command.
-     *
-     * @param asyncAPI AsyncAPI definition
-     */
     public BallerinaTypesGenerator(AsyncApi25DocumentImpl asyncAPI) {
         this(asyncAPI, new LinkedList<>());
     }
@@ -136,11 +129,7 @@ public class BallerinaTypesGenerator {
         return typeDefinitionNode;
     }
 
-    /**
-     * Remove duplicate of the TypeDefinitionNode.
-     */
     private void removeDuplicateNode(List<TypeDefinitionNode> newConstraintNode) {
-
         for (TypeDefinitionNode newNode : newConstraintNode) {
             boolean isExist = false;
             for (TypeDefinitionNode oldNode : typeDefinitionNodeList) {
@@ -155,9 +144,6 @@ public class BallerinaTypesGenerator {
         }
     }
 
-    /**
-     * Generate syntaxTree for component schema.
-     */
     public SyntaxTree generateSyntaxTree() throws BallerinaAsyncApiExceptionWs {
         AsyncApi25DocumentImpl asyncAPI = GeneratorMetaData.getInstance().getAsyncAPI();
         List<TypeDefinitionNode> typeDefinitionNodeListForSchema = new ArrayList<>();

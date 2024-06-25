@@ -20,9 +20,8 @@ package io.ballerina.asyncapi.websocketscore.generators.asyncspec.diagnostic;
 import io.ballerina.tools.diagnostics.DiagnosticSeverity;
 
 /**
- * This {@code DiagnosticMessages} enum class for containing the error message related to ballerina to asyncapi command.
+ * This {@code DiagnosticMessages} enum class for containing the error message related to ballerina to AsyncApi command.
  *
- * @since 2.0.0
  */
 public enum DiagnosticMessages {
 

@@ -54,7 +54,6 @@ import static io.ballerina.compiler.syntax.tree.SyntaxKind.QUESTION_MARK_TOKEN;
  *  public type Employee InternalEmployee|ExternalEmployee
  * </pre>
  *
- * @since 1.3.0
  */
 public class UnionTypeGenerator extends TypeGenerator {
 
@@ -64,8 +63,6 @@ public class UnionTypeGenerator extends TypeGenerator {
 
     @Override
     public TypeDescriptorNode generateTypeDescriptorNode() throws BallerinaAsyncApiExceptionWs {
-
-//        assert schema instanceof ComposedSchema;
         AsyncApi25SchemaImpl composedSchema = schema;
         List<AsyncApiSchema> schemas;
         if (composedSchema.getOneOf() != null) {

@@ -38,7 +38,6 @@ import static io.ballerina.asyncapi.websocketscore.GeneratorUtils.getValidName;
 /**
  * This util class for maintain the operation response with ballerina return type.
  *
- * @since 1.3.0
  */
 public class RemoteFunctionReturnTypeGenerator {
     private AsyncApi25DocumentImpl asyncAPI;

@@ -74,7 +74,6 @@ import static io.ballerina.compiler.syntax.tree.SyntaxKind.SEMICOLON_TOKEN;
  *  };
  * </pre>
  *
- * @since 1.3.0
  */
 public class AllOfRecordTypeGenerator extends RecordTypeGenerator {
     private final List<Schema> restSchemas = new LinkedList<>();

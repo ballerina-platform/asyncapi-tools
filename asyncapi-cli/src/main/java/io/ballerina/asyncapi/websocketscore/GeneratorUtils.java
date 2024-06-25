@@ -73,7 +73,6 @@ import static io.ballerina.compiler.syntax.tree.SyntaxKind.SEMICOLON_TOKEN;
 /**
  * This class util for store all the common scenarios.
  *
- * @since 1.3.0
  */
 public class GeneratorUtils {
 
@@ -83,7 +82,6 @@ public class GeneratorUtils {
 
     //Create imports;
     public static ImportDeclarationNode getImportDeclarationNode(String orgName, String moduleName) {
-
         Token importKeyword = AbstractNodeFactory.createIdentifierToken("import", SINGLE_WS_MINUTIAE,
                 SINGLE_WS_MINUTIAE);
         Token orgNameToken = AbstractNodeFactory.createIdentifierToken(orgName);
@@ -93,7 +91,6 @@ public class GeneratorUtils {
         SeparatedNodeList<IdentifierToken> moduleNodeList = AbstractNodeFactory.createSeparatedNodeList(
                 moduleNameToken);
         Token semicolon = AbstractNodeFactory.createIdentifierToken(";");
-
         return NodeFactory.createImportDeclarationNode(importKeyword, importOrgNameNode, moduleNodeList, null,
                 semicolon);
     }

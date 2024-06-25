@@ -47,7 +47,6 @@ import static io.ballerina.compiler.syntax.tree.SyntaxKind.TYPE_KEYWORD;
 /**
  * Abstract class for schema types.
  *
- * @since 1.3.0
  */
 public abstract class TypeGenerator {
 

@@ -17,9 +17,7 @@
  */
 package io.ballerina.asyncapi.websocketscore.generators.document;
 
-import io.ballerina.asyncapi.websocketscore.GeneratorConstants;
 import io.ballerina.asyncapi.websocketscore.GeneratorUtils;
-import io.ballerina.compiler.syntax.tree.AnnotationNode;
 import io.ballerina.compiler.syntax.tree.MarkdownDocumentationLineNode;
 import io.ballerina.compiler.syntax.tree.MarkdownParameterDocumentationLineNode;
 import io.ballerina.compiler.syntax.tree.Node;
@@ -28,7 +26,6 @@ import io.ballerina.compiler.syntax.tree.Token;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createEmptyMinutiaeList;
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createEmptyNodeList;
@@ -36,11 +33,8 @@ import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createIdenti
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createLiteralValueToken;
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createNodeList;
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createToken;
-import static io.ballerina.compiler.syntax.tree.NodeFactory.createAnnotationNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createMarkdownDocumentationLineNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createMarkdownParameterDocumentationLineNode;
-import static io.ballerina.compiler.syntax.tree.NodeFactory.createSimpleNameReferenceNode;
-import static io.ballerina.compiler.syntax.tree.SyntaxKind.AT_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.DOCUMENTATION_DESCRIPTION;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.HASH_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.MARKDOWN_DOCUMENTATION_LINE;
@@ -48,37 +42,8 @@ import static io.ballerina.compiler.syntax.tree.SyntaxKind.MARKDOWN_DOCUMENTATIO
 /**
  * This class util for maintain the API doc comment related functions.
  *
- * @since 1.3.0
  */
 public class DocCommentsGenerator {
-
-    /**
-     * Extract annotation and documentation related for deprecated records and schemas.
-     *
-     * @param extensions      AsyncAPI extensions
-     * @param documentation   List of documentation nodes to be updated with documentation related to deprecation
-     * @param annotationNodes List of annotation nodes to be updated with deprecated annotation
-     */
-    public static void extractDeprecatedAnnotation(Map<String, Object> extensions, List<Node> documentation,
-                                                   List<AnnotationNode> annotationNodes) {
-
-        AnnotationNode deprecatedAnnotation = createAnnotationNode(createToken(AT_TOKEN),
-                createSimpleNameReferenceNode(createIdentifierToken("deprecated")), null);
-        if (documentation.size() > 0) {
-            documentation.addAll(DocCommentsGenerator.createAPIDescriptionDoc(
-                    "\n# Deprecated", false));
-            if (extensions != null && extensions.entrySet().size() > 0) {
-                for (Map.Entry<String, Object> next : extensions.entrySet()) {
-                    if (next.getKey().equals(GeneratorConstants.X_BALLERINA_DEPRECATED_REASON)) {
-                        documentation.addAll(DocCommentsGenerator.createAPIDescriptionDoc(
-                                next.getValue().toString(), false));
-                    }
-                }
-            }
-        }
-        annotationNodes.add(deprecatedAnnotation);
-    }
-
 
     public static List<MarkdownDocumentationLineNode> createAPIDescriptionDoc(String description,
                                                                               boolean addExtraLine) {
