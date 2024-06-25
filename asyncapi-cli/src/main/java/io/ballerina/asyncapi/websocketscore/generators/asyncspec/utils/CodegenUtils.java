@@ -33,16 +33,6 @@ import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constant
  * Utilities used by ballerina asyncapi code generator.
  */
 public final class CodegenUtils {
-    /**
-     * Resolves path to write generated implementation source files.
-     *
-     * @param pkg     module
-     * @param srcPath resolved path for main source files
-     * @return path to write generated source files
-     */
-    public static Path getImplPath(String pkg, Path srcPath) {
-        return (pkg == null || pkg.isEmpty()) ? srcPath : srcPath.getParent();
-    }
 
     /**
      * Writes a file with content to specified {@code filePath}.

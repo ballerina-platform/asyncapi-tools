@@ -23,6 +23,7 @@ import org.ballerinalang.formatter.core.FormatterException;
 import org.testng.annotations.Test;
 
 import java.io.IOException;
+import java.nio.file.Paths;
 
 /**
  * This tests class is to generate ballerina client codes.
@@ -35,9 +36,8 @@ public class ExecuteTest {
         AsyncAPIToBallerinaGenerator asyncAPIToBallerinaGenerator = new AsyncAPIToBallerinaGenerator();
 
         asyncAPIToBallerinaGenerator.generateClient(
-                "src/test/resources/websockets/asyncapi-to-ballerina/client/StreamResponse/" +
-                        "multiple_stream_with_dispatcherStreamId.yaml",
-                "/Users/thushalya/Documents/out");
-
+                Paths.get("src/test/resources/websockets/asyncapi-to-ballerina/client/StreamResponse/" +
+                        "multiple_stream_with_dispatcherStreamId.yaml"),
+                Paths.get("src/test/resources/websockets/out"));
     }
 }

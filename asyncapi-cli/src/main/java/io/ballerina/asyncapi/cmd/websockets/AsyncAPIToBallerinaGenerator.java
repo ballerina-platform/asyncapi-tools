@@ -18,6 +18,7 @@
 package io.ballerina.asyncapi.cmd.websockets;
 
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25DocumentImpl;
+import io.ballerina.asyncapi.websocketscore.GeneratorConstants;
 import io.ballerina.asyncapi.websocketscore.GeneratorUtils;
 import io.ballerina.asyncapi.websocketscore.exception.BallerinaAsyncApiExceptionWs;
 import io.ballerina.asyncapi.websocketscore.generators.asyncspec.utils.CodegenUtils;
@@ -46,14 +47,12 @@ import java.util.Objects;
 
 import static io.ballerina.asyncapi.cmd.websockets.CmdConstants.CLIENT_FILE_NAME;
 import static io.ballerina.asyncapi.cmd.websockets.CmdConstants.CONFIG_FILE_NAME;
-import static io.ballerina.asyncapi.cmd.websockets.CmdConstants.DEFAULT_CLIENT_PKG;
-import static io.ballerina.asyncapi.cmd.websockets.CmdConstants.GenType.GEN_CLIENT;
-import static io.ballerina.asyncapi.cmd.websockets.CmdConstants.GenType.GEN_SERVICE;
 import static io.ballerina.asyncapi.cmd.websockets.CmdConstants.TEST_DIR;
 import static io.ballerina.asyncapi.cmd.websockets.CmdConstants.TEST_FILE_NAME;
 import static io.ballerina.asyncapi.cmd.websockets.CmdConstants.TYPE_FILE_NAME;
 import static io.ballerina.asyncapi.cmd.websockets.CmdUtils.setGeneratedFileName;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.ASYNCAPI_PATH_SEPARATOR;
+import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.GenType.GEN_CLIENT;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.UTIL_FILE_NAME;
 
 /**
@@ -62,7 +61,6 @@ import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.UTIL_FILE_
  */
 public class AsyncAPIToBallerinaGenerator {
     private static final PrintStream outStream = System.err;
-    private String srcPackage;
     private String licenseHeader = "";
     private boolean includeTestFiles;
 
@@ -77,24 +75,19 @@ public class AsyncAPIToBallerinaGenerator {
      * @throws IOException   when file operations fail
      * @throws BallerinaAsyncApiExceptionWs when code generator fails
      */
-    public void generateClient(String definitionPath, String outPath)
-            throws IOException, BallerinaAsyncApiExceptionWs, FormatterException {
-        Path srcPath = Paths.get(outPath);
-        Path implPath = CodegenUtils.getImplPath(srcPackage, srcPath);
-        List<GenSrcFile> genFiles = generateClientFiles(Paths.get(definitionPath));
-        writeGeneratedSources(genFiles, srcPath, implPath, GEN_CLIENT);
+    public void generateClient(Path definitionPath, Path outPath) throws IOException, BallerinaAsyncApiExceptionWs,
+            FormatterException {
+        writeGeneratedSources(generateClientFiles(definitionPath), outPath, GEN_CLIENT);
     }
 
     /**
      *
      * @param sources Generated all sources as a list
      * @param srcPath Output path provided
-     * @param implPath Source path
-     * @param type  check wheather the file type is service or client
      * @throws IOException
      */
-    private void writeGeneratedSources(List<GenSrcFile> sources, Path srcPath, Path implPath,
-                                       CmdConstants.GenType type) throws IOException {
+    private void writeGeneratedSources(List<GenSrcFile> sources, Path srcPath, GeneratorConstants.GenType type)
+            throws IOException {
         //  Remove old generated file with same name
         List<File> listFiles = new ArrayList<>();
         if (Files.notExists(srcPath)) {
@@ -135,7 +128,7 @@ public class AsyncAPIToBallerinaGenerator {
             // We only overwrite files of overwritable type.
             // So non overwritable files will be written to disk only once.
             if (!file.getType().isOverwritable()) {
-                filePath = implPath.resolve(file.getFileName());
+                filePath = srcPath.resolve(file.getFileName());
                 if (Files.notExists(filePath)) {
                     String fileContent = file.getFileName().endsWith(".bal") ?
                             (licenseHeader + file.getContent()) : file.getContent();
@@ -159,13 +152,7 @@ public class AsyncAPIToBallerinaGenerator {
             }
         }
 
-        //This will print the generated files to the console
-        if (type.equals(GEN_SERVICE)) {
-            outStream.println("Service generated successfully and the AsyncAPI contract is copied to path " + srcPath
-                    + ".");
-        } else if (type.equals(GEN_CLIENT)) {
-            outStream.println("Client generated successfully.");
-        }
+        outStream.println("Client generated successfully.");
         outStream.println("Following files were created.");
         Iterator<GenSrcFile> iterator = sources.iterator();
         while (iterator.hasNext()) {
@@ -181,9 +168,6 @@ public class AsyncAPIToBallerinaGenerator {
      */
     private List<GenSrcFile> generateClientFiles(Path asyncAPI)
             throws IOException, BallerinaAsyncApiExceptionWs, FormatterException {
-        if (srcPackage == null || srcPackage.isEmpty()) {
-            srcPackage = DEFAULT_CLIENT_PKG;
-        }
         List<GenSrcFile> sourceFiles = new ArrayList<>();
         // Normalize AsyncAPI definition
         AsyncApi25DocumentImpl asyncAPIDef = GeneratorUtils.normalizeAsyncAPI(asyncAPI);
