@@ -48,6 +48,11 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 
+import static io.ballerina.asyncapi.cmd.AsyncAPIConstants.VALID_HTTP_NAMES;
+import static io.ballerina.asyncapi.cmd.AsyncAPIConstants.VALID_WS_NAMES;
+import static io.ballerina.asyncapi.cmd.AsyncApiMessages.CLIENT_GENERATION_FAILED;
+import static io.ballerina.asyncapi.cmd.AsyncApiMessages.MESSAGE_INVALID_LICENSE_STREAM;
+
 /**
  * Main class to implement "asyncapi" command for ballerina. Commands for Listener generation from AsyncAPI spec
  */
@@ -151,7 +156,7 @@ public class AsyncApiCmd implements BLauncherCmd {
             }
             String fileName = argList.get(0);
 
-            if (AsyncAPIConstants.VALID_HTTP_NAMES.contains(protocol.toLowerCase())) {
+            if (VALID_HTTP_NAMES.contains(protocol.toLowerCase())) {
                 verifyValidInputsForHttp();
                 Application codeGenerator = new CodeGenerator();
                 try {
@@ -161,7 +166,7 @@ public class AsyncApiCmd implements BLauncherCmd {
                     outStream.println(e.getMessage());
                     exitError(this.exitWhenFinish);
                 }
-            } else if (AsyncAPIConstants.VALID_WS_NAMES.contains(protocol.toLowerCase())) {
+            } else if (VALID_WS_NAMES.contains(protocol.toLowerCase())) {
                 if (fileName.endsWith(Constants.YAML_EXTENSION) || fileName.endsWith(Constants.JSON_EXTENSION) ||
                         fileName.endsWith(Constants.YML_EXTENSION)) {
                     try {
@@ -281,8 +286,7 @@ public class AsyncApiCmd implements BLauncherCmd {
                 }
             }
         } catch (IOException e) {
-            outStream.println("Invalid license file path : " + this.licenseFilePath +
-                    ". " + e.getMessage() + ".");
+            outStream.println(String.format(MESSAGE_INVALID_LICENSE_STREAM, this.licenseFilePath, e.getMessage()));
             exitError(this.exitWhenFinish);
         }
         return licenseHeader;
@@ -316,7 +320,7 @@ public class AsyncApiCmd implements BLauncherCmd {
                 outStream.println(e.getLocalizedMessage());
                 exitError(this.exitWhenFinish);
             } else {
-                outStream.println(AsyncApiMessages.CLIENT_GENERATION_FAILED);
+                outStream.println(CLIENT_GENERATION_FAILED);
                 exitError(this.exitWhenFinish);
             }
         }

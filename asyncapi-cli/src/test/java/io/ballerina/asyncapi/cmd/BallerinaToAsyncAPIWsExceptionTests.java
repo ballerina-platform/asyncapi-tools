@@ -62,8 +62,7 @@ public class BallerinaToAsyncAPIWsExceptionTests extends AsyncAPIWsCommandTest {
         new CommandLine(cmd).parseArgs(args);
         try {
             cmd.execute();
-            String output = readOutput(true);
-            Assert.assertTrue(output.trim().contains(NO_ANNOTATION_PRESENT));
+            Assert.assertTrue(readOutput(true).trim().contains(NO_ANNOTATION_PRESENT));
         } catch (BLauncherException | IOException e) {
             Assert.fail(e.getMessage());
         }
@@ -76,12 +75,10 @@ public class BallerinaToAsyncAPIWsExceptionTests extends AsyncAPIWsCommandTest {
         String[] args = {"--input", filePath.toString(), "-o", this.tmpDir.toString(), "--protocol", "ws"};
         AsyncApiCmd cmd = new AsyncApiCmd(tmpDir, false);
         new CommandLine(cmd).parseArgs(args);
-
         try {
             cmd.execute();
-            String output = readOutput(true);
-            Assert.assertTrue(output.trim().contains(String.format(DISPATCHERKEY_NOT_PRESENT_IN_RECORD_FIELD,
-                    "event", "Subscribe")));
+            Assert.assertTrue(readOutput(true).trim().contains(
+                    String.format(DISPATCHERKEY_NOT_PRESENT_IN_RECORD_FIELD, "event", "Subscribe")));
         } catch (BLauncherException | IOException e) {
             Assert.fail(e.getMessage());
         }
@@ -94,11 +91,9 @@ public class BallerinaToAsyncAPIWsExceptionTests extends AsyncAPIWsCommandTest {
         String[] args = {"--input", filePath.toString(), "-o", this.tmpDir.toString(), "--protocol", "ws"};
         AsyncApiCmd cmd = new AsyncApiCmd(tmpDir, false);
         new CommandLine(cmd).parseArgs(args);
-
         try {
             cmd.execute();
-            String output = readOutput(true);
-            Assert.assertTrue(output.trim().contains(String.format(DISPATCHER_KEY_TYPE_EXCEPTION, "event")));
+            Assert.assertTrue(readOutput(true).trim().contains(String.format(DISPATCHER_KEY_TYPE_EXCEPTION, "event")));
         } catch (BLauncherException | IOException e) {
             Assert.fail(e.getMessage());
         }
@@ -111,11 +106,9 @@ public class BallerinaToAsyncAPIWsExceptionTests extends AsyncAPIWsCommandTest {
         String[] args = {"--input", filePath.toString(), "-o", this.tmpDir.toString(), "--protocol", "ws"};
         AsyncApiCmd cmd = new AsyncApiCmd(tmpDir, false);
         new CommandLine(cmd).parseArgs(args);
-
         try {
             cmd.execute();
-            String output = readOutput(true);
-            Assert.assertTrue(output.trim().contains(String.format(NO_DISPATCHER_KEY)));
+            Assert.assertTrue(readOutput(true).trim().contains(String.format(NO_DISPATCHER_KEY)));
         } catch (BLauncherException | IOException e) {
             Assert.fail(e.getMessage());
         }
@@ -128,11 +121,9 @@ public class BallerinaToAsyncAPIWsExceptionTests extends AsyncAPIWsCommandTest {
         String[] args = {"--input", filePath.toString(), "-o", this.tmpDir.toString(), "--protocol", "ws"};
         AsyncApiCmd cmd = new AsyncApiCmd(tmpDir, false);
         new CommandLine(cmd).parseArgs(args);
-
         try {
             cmd.execute();
-            String output = readOutput(true);
-            Assert.assertTrue(output.trim().contains(String.format(DISPATCHER_KEY_VALUE_CANNOT_BE_EMPTY)));
+            Assert.assertTrue(readOutput(true).trim().contains(String.format(DISPATCHER_KEY_VALUE_CANNOT_BE_EMPTY)));
         } catch (BLauncherException | IOException e) {
             Assert.fail(e.getMessage());
         }
@@ -145,15 +136,185 @@ public class BallerinaToAsyncAPIWsExceptionTests extends AsyncAPIWsCommandTest {
         String[] args = {"--input", filePath.toString(), "-o", this.tmpDir.toString(), "--protocol", "ws"};
         AsyncApiCmd cmd = new AsyncApiCmd(tmpDir, false);
         new CommandLine(cmd).parseArgs(args);
-
         try {
             cmd.execute();
-            String output = readOutput(true);
-            Assert.assertTrue(output.trim().contains(String.format(NO_SERVICE_CLASS)));
+            Assert.assertTrue(readOutput(true).trim().contains(String.format(NO_SERVICE_CLASS)));
         } catch (BLauncherException | IOException e) {
             Assert.fail(e.getMessage());
         }
     }
+//
+//    @Test(description = "Test onClose remote function is present as a remote function")
+//    public void testOnCloseRemoteFunctionNotPermitted() {
+//        Path filePath = resourceDir.resolve(Paths.get("cmd/ballerina-to-asyncapi/exceptions" +
+//                "/onClose_check.bal"));
+//        String[] args = {"--input", filePath.toString(), "-o", this.tmpDir.toString()};
+//        AsyncAPICmd cmd = new AsyncAPICmd(printStream, tmpDir, false);
+//        new CommandLine(cmd).parseArgs(args);
+//
+//        String output = "";
+//        try {
+//            cmd.execute();
+//            output = readOutput(true);
+//            Assert.assertTrue(output.trim().contains(String.format(FUNCTION_DEFAULT_NAME_CONTAINS_ERROR)));
+//        } catch (BLauncherException | IOException e) {
+//            output = e.toString();
+//            Assert.fail(output);
+//        }
+//    }
+//
+//    @Test(description = "Test onError remote function is present as a remote function")
+//    public void testOnErrorRemoteFunctionNotPermitted() {
+//        Path filePath = resourceDir.resolve(Paths.get("cmd/ballerina-to-asyncapi/exceptions" +
+//                "/onError_check.bal"));
+//        String[] args = {"--input", filePath.toString(), "-o", this.tmpDir.toString()};
+//        AsyncAPICmd cmd = new AsyncAPICmd(printStream, tmpDir, false);
+//        new CommandLine(cmd).parseArgs(args);
+//
+//        String output = "";
+//        try {
+//            cmd.execute();
+//            output = readOutput(true);
+//            Assert.assertTrue(output.trim().contains(String.format(FUNCTION_DEFAULT_NAME_CONTAINS_ERROR)));
+//        } catch (BLauncherException | IOException e) {
+//            output = e.toString();
+//            Assert.fail(output);
+//        }
+//    }
+//
+//    @Test(description = "Test onIdleTimeOut remote function is present as a remote function")
+//    public void testOnIdleTimeOutRemoteFunctionNotPermitted() {
+//        Path filePath = resourceDir.resolve(Paths.get("cmd/ballerina-to-asyncapi/exceptions" +
+//                "/onIdleTimeOut_check.bal"));
+//        String[] args = {"--input", filePath.toString(), "-o", this.tmpDir.toString()};
+//        AsyncAPICmd cmd = new AsyncAPICmd(printStream, tmpDir, false);
+//        new CommandLine(cmd).parseArgs(args);
+//
+//        String output = "";
+//        try {
+//            cmd.execute();
+//            output = readOutput(true);
+//            Assert.assertTrue(output.trim().contains(String.format(FUNCTION_DEFAULT_NAME_CONTAINS_ERROR)));
+//        } catch (BLauncherException | IOException e) {
+//            output = e.toString();
+//            Assert.fail(output);
+//        }
+//    }
+//
+//    @Test(description = "Test onTextMessage remote function is present as a remote function")
+//    public void testOnTextMessageRemoteFunctionNotPermitted() {
+//        Path filePath = resourceDir.resolve(Paths.get("cmd/ballerina-to-asyncapi/exceptions" +
+//                "/onTextMessage_check.bal"));
+//        String[] args = {"--input", filePath.toString(), "-o", this.tmpDir.toString()};
+//        AsyncAPICmd cmd = new AsyncAPICmd(printStream, tmpDir, false);
+//        new CommandLine(cmd).parseArgs(args);
+//
+//        String output = "";
+//        try {
+//            cmd.execute();
+//            output = readOutput(true);
+//            Assert.assertTrue(output.trim().contains(String.format(FUNCTION_DEFAULT_NAME_CONTAINS_ERROR)));
+//        } catch (BLauncherException | IOException e) {
+//            output = e.toString();
+//            Assert.fail(output);
+//        }
+//    }
+//
+//    @Test(description = "Test onBinaryMessage remote function is present as a remote function")
+//    public void testOnBinaryMessageRemoteFunctionNotPermitted() {
+//        Path filePath = resourceDir.resolve(Paths.get("cmd/ballerina-to-asyncapi/exceptions" +
+//                "/onBinaryMessage_check.bal"));
+//        String[] args = {"--input", filePath.toString(), "-o", this.tmpDir.toString()};
+//        AsyncAPICmd cmd = new AsyncAPICmd(printStream, tmpDir, false);
+//        new CommandLine(cmd).parseArgs(args);
+//
+//        String output = "";
+//        try {
+//            cmd.execute();
+//            output = readOutput(true);
+//            Assert.assertTrue(output.trim().contains(String.format(FUNCTION_DEFAULT_NAME_CONTAINS_ERROR)));
+//        } catch (BLauncherException | IOException e) {
+//            output = e.toString();
+//            Assert.fail(output);
+//        }
+//    }
+//
+//    @Test(description = "Test onOpen remote function is present as a remote function")
+//    public void testOnOpenRemoteFunctionNotPermitted() {
+//        Path filePath = resourceDir.resolve(Paths.get("cmd/ballerina-to-asyncapi/exceptions" +
+//                "/onOpen_check.bal"));
+//        String[] args = {"--input", filePath.toString(), "-o", this.tmpDir.toString()};
+//        AsyncAPICmd cmd = new AsyncAPICmd(printStream, tmpDir, false);
+//        new CommandLine(cmd).parseArgs(args);
+//
+//        String output = "";
+//        try {
+//            cmd.execute();
+//            output = readOutput(true);
+//            Assert.assertTrue(output.trim().contains(String.format(FUNCTION_DEFAULT_NAME_CONTAINS_ERROR)));
+//        } catch (BLauncherException | IOException e) {
+//            output = e.toString();
+//            Assert.fail(output);
+//        }
+//    }
+//
+//
+//    @Test(description = "Test onMessage remote function is present as a remote function")
+//    public void testOnMessageRemoteFunctionNotPermitted() {
+//        Path filePath = resourceDir.resolve(Paths.get("cmd/ballerina-to-asyncapi/exceptions" +
+//                "/onMessage_check.bal"));
+//        String[] args = {"--input", filePath.toString(), "-o", this.tmpDir.toString()};
+//        AsyncAPICmd cmd = new AsyncAPICmd(printStream, tmpDir, false);
+//        new CommandLine(cmd).parseArgs(args);
+//
+//        String output = "";
+//        try {
+//            cmd.execute();
+//            output = readOutput(true);
+//            Assert.assertTrue(output.trim().contains(String.format(FUNCTION_DEFAULT_NAME_CONTAINS_ERROR)));
+//        } catch (BLauncherException | IOException e) {
+//            output = e.toString();
+//            Assert.fail(output);
+//        }
+//    }
+//
+//    @Test(description = "Test onPing remote function is present as a remote function")
+//    public void testOnPingRemoteFunctionNotPermitted() {
+//        Path filePath = resourceDir.resolve(Paths.get("cmd/ballerina-to-asyncapi/exceptions" +
+//                "/onPing_check.bal"));
+//        String[] args = {"--input", filePath.toString(), "-o", this.tmpDir.toString()};
+//        AsyncAPICmd cmd = new AsyncAPICmd(printStream, tmpDir, false);
+//        new CommandLine(cmd).parseArgs(args);
+//
+//        String output = "";
+//        try {
+//            cmd.execute();
+//            output = readOutput(true);
+//            Assert.assertTrue(output.trim().contains(String.format(FUNCTION_DEFAULT_NAME_CONTAINS_ERROR)));
+//        } catch (BLauncherException | IOException e) {
+//            output = e.toString();
+//            Assert.fail(output);
+//        }
+//    }
+//
+//    @Test(description = "Test onPong remote function is present as a remote function")
+//    public void testOnPongRemoteFunctionNotPermitted() {
+//        Path filePath = resourceDir.resolve(Paths.get("cmd/ballerina-to-asyncapi/exceptions" +
+//                "/onPong_check.bal"));
+//        String[] args = {"--input", filePath.toString(), "-o", this.tmpDir.toString()};
+//        AsyncAPICmd cmd = new AsyncAPICmd(printStream, tmpDir, false);
+//        new CommandLine(cmd).parseArgs(args);
+//
+//        String output = "";
+//        try {
+//            cmd.execute();
+//            output = readOutput(true);
+//            Assert.assertTrue(output.trim().contains(String.format(FUNCTION_DEFAULT_NAME_CONTAINS_ERROR)));
+//        } catch (BLauncherException | IOException e) {
+//            output = e.toString();
+//            Assert.fail(output);
+//        }
+//    }
 
     @Test(description = "Test dispatcherKey is optional not allowed in a field")
     public void testDispatcherKeyIsOptionalNotAllowedInAField() {
@@ -162,18 +323,15 @@ public class BallerinaToAsyncAPIWsExceptionTests extends AsyncAPIWsCommandTest {
         String[] args = {"--input", filePath.toString(), "-o", this.tmpDir.toString(), "--protocol", "ws"};
         AsyncApiCmd cmd = new AsyncApiCmd(tmpDir, false);
         new CommandLine(cmd).parseArgs(args);
-
         try {
             cmd.execute();
-            String output = readOutput(true);
-            Assert.assertTrue(output.trim().contains(String.format(DISPATCHERKEY_OPTIONAL_EXCEPTION,
+            Assert.assertTrue(readOutput(true).trim().contains(String.format(DISPATCHERKEY_OPTIONAL_EXCEPTION,
                     "event", "Subscribe")));
         } catch (BLauncherException | IOException e) {
             Assert.fail(e.getMessage());
         }
     }
 
-    //
     @Test(description = "Test dispatcherKey is nullable not allowed in a field")
     public void testDispatcherKeyIsNullableNotAllowedInAField() {
         Path filePath = resourceDir.resolve(Paths.get("cmd/ballerina-to-asyncapi/exceptions" +
@@ -181,11 +339,9 @@ public class BallerinaToAsyncAPIWsExceptionTests extends AsyncAPIWsCommandTest {
         String[] args = {"--input", filePath.toString(), "-o", this.tmpDir.toString(), "--protocol", "ws"};
         AsyncApiCmd cmd = new AsyncApiCmd(tmpDir, false);
         new CommandLine(cmd).parseArgs(args);
-
         try {
             cmd.execute();
-            String output = readOutput(true);
-            Assert.assertTrue(output.trim().contains(String.format(DISPATCHERKEY_NULLABLE_EXCEPTION,
+            Assert.assertTrue(readOutput(true).trim().contains(String.format(DISPATCHERKEY_NULLABLE_EXCEPTION,
                     "event", "Subscribe")));
         } catch (BLauncherException | IOException e) {
             Assert.fail(e.getMessage());
@@ -199,11 +355,9 @@ public class BallerinaToAsyncAPIWsExceptionTests extends AsyncAPIWsCommandTest {
         String[] args = {"--input", filePath.toString(), "-o", this.tmpDir.toString(), "--protocol", "ws"};
         AsyncApiCmd cmd = new AsyncApiCmd(tmpDir, false);
         new CommandLine(cmd).parseArgs(args);
-
         try {
             cmd.execute();
-            String output = readOutput(true);
-            Assert.assertTrue(output.trim().contains(FUNCTION_WRONG_NAME));
+            Assert.assertTrue(readOutput(true).trim().contains(FUNCTION_WRONG_NAME));
         } catch (BLauncherException | IOException e) {
             Assert.fail(e.getMessage());
         }
@@ -216,11 +370,9 @@ public class BallerinaToAsyncAPIWsExceptionTests extends AsyncAPIWsCommandTest {
         String[] args = {"--input", filePath.toString(), "-o", this.tmpDir.toString(), "--protocol", "ws"};
         AsyncApiCmd cmd = new AsyncApiCmd(tmpDir, false);
         new CommandLine(cmd).parseArgs(args);
-
         try {
             cmd.execute();
-            String output = readOutput(true);
-            Assert.assertTrue(output.trim().contains(FUNCTION_WRONG_NAME));
+            Assert.assertTrue(readOutput(true).trim().contains(FUNCTION_WRONG_NAME));
         } catch (BLauncherException | IOException e) {
             Assert.fail(e.getMessage());
         }
@@ -233,11 +385,10 @@ public class BallerinaToAsyncAPIWsExceptionTests extends AsyncAPIWsCommandTest {
         String[] args = {"--input", filePath.toString(), "-o", this.tmpDir.toString(), "--protocol", "ws"};
         AsyncApiCmd cmd = new AsyncApiCmd(tmpDir, false);
         new CommandLine(cmd).parseArgs(args);
-
         try {
             cmd.execute();
-            String output = readOutput(true);
-            Assert.assertTrue(output.trim().contains(String.format(FUNCTION_SIGNATURE_WRONG_TYPE, "Subscribe", "int")));
+            Assert.assertTrue(readOutput(true).trim().contains(String.format(FUNCTION_SIGNATURE_WRONG_TYPE,
+                    "Subscribe", "int")));
         } catch (BLauncherException | IOException e) {
             Assert.fail(e.getMessage());
         }
@@ -250,13 +401,32 @@ public class BallerinaToAsyncAPIWsExceptionTests extends AsyncAPIWsCommandTest {
         String[] args = {"--input", filePath.toString(), "-o", this.tmpDir.toString(), "--protocol", "ws"};
         AsyncApiCmd cmd = new AsyncApiCmd(tmpDir, false);
         new CommandLine(cmd).parseArgs(args);
-
         try {
             cmd.execute();
-            String output = readOutput(true);
-            Assert.assertTrue(output.trim().contains(PATH_PARAM_DASH_CONTAIN_ERROR));
+            Assert.assertTrue(readOutput(true).trim().contains(PATH_PARAM_DASH_CONTAIN_ERROR));
         } catch (BLauncherException | IOException e) {
             Assert.fail(e.getMessage());
         }
     }
+
+//    @Test(description = "Test remote function returns multiple return options with stream type")
+//    public void testMultipleReturnTypesIncludingStreamTypeError() {
+//        Path filePath = resourceDir.resolve(Paths.get("cmd/ballerina-to-asyncapi/exceptions" +
+//                "/optional_multiple_type_stream_include_return.bal"));
+//        String[] args = {"--input", filePath.toString(), "-o", this.tmpDir.toString()};
+//        AsyncAPICmd cmd = new AsyncAPICmd(printStream, tmpDir, false);
+//        new CommandLine(cmd).parseArgs(args);
+//
+//        String output = "";
+//        try {
+//            cmd.execute();
+//            output = readOutput(true);
+//            Assert.assertTrue(output.trim().contains(String.format(UNION_STREAMING_SIMPLE_RPC_ERROR)));
+//        } catch (BLauncherException | IOException e) {
+//            output = e.toString();
+//            Assert.fail(output);
+//        }
+//    }
+
+
 }
