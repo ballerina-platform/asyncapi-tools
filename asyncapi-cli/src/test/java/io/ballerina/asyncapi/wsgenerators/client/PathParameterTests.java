@@ -63,9 +63,9 @@ public class PathParameterTests {
 //        asyncAPIToBallerinaGenerator.generateClient("src/test/resources/asyncapi-to-ballerina/client/PathParam" +
 //                "/path_parameter_valid.yaml", "/Users/thushalya/Documents/out");
         asyncAPIToBallerinaGenerator.generateClient(
-                "src/test/resources/websockets/asyncapi-to-ballerina/client/StreamResponse/" +
-                        "multiple_stream_with_dispatcherStreamId.yaml",
-                "src/test/resources/websockets/out");
+                Paths.get("src/test/resources/websockets/asyncapi-to-ballerina/client/StreamResponse/" +
+                        "multiple_stream_with_dispatcherStreamId.yaml"),
+                Paths.get("src/test/resources/websockets/out"));
 //        AASClientConfig.Builder clientMetaDataBuilder = new AASClientConfig.Builder();
 ////        AASClientConfig oasClientConfig = clientMetaDataBuilder
 //////                .withFilters(filter)

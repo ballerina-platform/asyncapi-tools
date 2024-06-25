@@ -35,7 +35,6 @@ import java.util.List;
 
 import static io.ballerina.asyncapi.wsgenerators.common.TestUtils.compareGeneratedSyntaxTreeWithExpectedSyntaxTree;
 
-
 /**
  * All the tests related to the Header sections.
  */

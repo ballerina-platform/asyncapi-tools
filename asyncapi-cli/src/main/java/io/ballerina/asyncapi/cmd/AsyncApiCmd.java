@@ -314,7 +314,7 @@ public class AsyncApiCmd implements BLauncherCmd {
      */
     private void generatesClientFileWs(AsyncApiToBallerinaGenerator generator, Path resourcePath) {
         try {
-            generator.generateClient(resourcePath.toString(), targetOutputPath.toString());
+            generator.generateClient(resourcePath, targetOutputPath);
         } catch (IOException | FormatterException | BallerinaAsyncApiExceptionWs e) {
             if (e.getLocalizedMessage() != null) {
                 outStream.println(e.getLocalizedMessage());
