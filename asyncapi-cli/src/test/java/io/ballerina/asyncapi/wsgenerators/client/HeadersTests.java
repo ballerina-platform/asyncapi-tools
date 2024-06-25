@@ -21,7 +21,7 @@ import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25DocumentImpl;
 import io.ballerina.asyncapi.websocketscore.GeneratorUtils;
 import io.ballerina.asyncapi.websocketscore.exception.BallerinaAsyncApiExceptionWs;
 import io.ballerina.asyncapi.websocketscore.generators.client.IntermediateClientGenerator;
-import io.ballerina.asyncapi.websocketscore.generators.client.model.AASClientConfig;
+import io.ballerina.asyncapi.websocketscore.generators.client.model.AasClientConfig;
 import io.ballerina.asyncapi.websocketscore.generators.schema.BallerinaTypesGenerator;
 import io.ballerina.compiler.syntax.tree.SyntaxTree;
 import io.ballerina.compiler.syntax.tree.TypeDefinitionNode;
@@ -49,9 +49,9 @@ public class HeadersTests {
         Path expectedPathForTypes = RES_DIR.resolve("baloutputs/HeaderParam/header_parameter_types.bal");
         Path expectedPathForClient = RES_DIR.resolve("baloutputs/HeaderParam/header_parameter_client.bal");
         AsyncApi25DocumentImpl asyncAPI = GeneratorUtils.normalizeAsyncAPI(definitionPath);
-        AASClientConfig.Builder clientMetaDataBuilder = new AASClientConfig.Builder();
-        AASClientConfig oasClientConfig = clientMetaDataBuilder
-                .withAsyncAPI(asyncAPI).build();
+        AasClientConfig.Builder clientMetaDataBuilder = new AasClientConfig.Builder();
+        AasClientConfig oasClientConfig = clientMetaDataBuilder
+                .withAsyncApi(asyncAPI).build();
         IntermediateClientGenerator intermediateClientGenerator = new IntermediateClientGenerator(oasClientConfig);
         syntaxTree = intermediateClientGenerator.generateSyntaxTree();
         List<TypeDefinitionNode> preGeneratedTypeDefNodes = new ArrayList<>(
@@ -87,9 +87,9 @@ public class HeadersTests {
         Path definitionPath = RES_DIR.resolve("HeaderParam/header_param_with_default_value.yaml");
         Path expectedPath = RES_DIR.resolve("baloutputs/HeaderParam/header_param_with_default_value.bal");
         AsyncApi25DocumentImpl asyncAPI = GeneratorUtils.normalizeAsyncAPI(definitionPath);
-        AASClientConfig.Builder clientMetaDataBuilder = new AASClientConfig.Builder();
-        AASClientConfig oasClientConfig = clientMetaDataBuilder
-                .withAsyncAPI(asyncAPI).build();
+        AasClientConfig.Builder clientMetaDataBuilder = new AasClientConfig.Builder();
+        AasClientConfig oasClientConfig = clientMetaDataBuilder
+                .withAsyncApi(asyncAPI).build();
         IntermediateClientGenerator intermediateClientGenerator = new IntermediateClientGenerator(oasClientConfig);
         syntaxTree = intermediateClientGenerator.generateSyntaxTree();
         List<TypeDefinitionNode> preGeneratedTypeDefNodes = new ArrayList<>(
@@ -110,9 +110,9 @@ public class HeadersTests {
         Path definitionPath = RES_DIR.resolve("HeaderParam/header_with_query.yaml");
         Path expectedPath = RES_DIR.resolve("baloutputs/HeaderParam/header_with_query.bal");
         AsyncApi25DocumentImpl asyncAPI = GeneratorUtils.normalizeAsyncAPI(definitionPath);
-        AASClientConfig.Builder clientMetaDataBuilder = new AASClientConfig.Builder();
-        AASClientConfig oasClientConfig = clientMetaDataBuilder
-                .withAsyncAPI(asyncAPI).build();
+        AasClientConfig.Builder clientMetaDataBuilder = new AasClientConfig.Builder();
+        AasClientConfig oasClientConfig = clientMetaDataBuilder
+                .withAsyncApi(asyncAPI).build();
         IntermediateClientGenerator intermediateClientGenerator = new IntermediateClientGenerator(oasClientConfig);
         syntaxTree = intermediateClientGenerator.generateSyntaxTree();
         compareGeneratedSyntaxTreeWithExpectedSyntaxTree(expectedPath, syntaxTree);

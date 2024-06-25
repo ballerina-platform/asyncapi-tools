@@ -67,7 +67,6 @@ public class NullableFieldTests {
                 syntaxTree);
     }
 
-
     @Test(description = "Test for union type generation for nullable anyOf schema")
     public void testNullableUnionType() throws IOException, BallerinaAsyncApiExceptionWs, FormatterException {
         AsyncApi25DocumentImpl asyncAPI = GeneratorUtils.normalizeAsyncAPI(RES_DIR.resolve("Nullable" +

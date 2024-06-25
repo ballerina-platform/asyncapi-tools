@@ -37,7 +37,7 @@ import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25ServersImpl;
 import io.ballerina.asyncapi.websocketscore.GeneratorConstants;
 import io.ballerina.asyncapi.websocketscore.GeneratorUtils;
 import io.ballerina.asyncapi.websocketscore.exception.BallerinaAsyncApiExceptionWs;
-import io.ballerina.asyncapi.websocketscore.generators.client.model.AASClientConfig;
+import io.ballerina.asyncapi.websocketscore.generators.client.model.AasClientConfig;
 import io.ballerina.asyncapi.websocketscore.generators.document.DocCommentsGenerator;
 import io.ballerina.asyncapi.websocketscore.generators.schema.BallerinaTypesGenerator;
 import io.ballerina.compiler.syntax.tree.AnnotationNode;
@@ -344,7 +344,7 @@ public class IntermediateClientGenerator {
     private static final Token colonToken = createToken(COLON_TOKEN);
     private static final Token eofToken = createToken(EOF_TOKEN);
 
-    public IntermediateClientGenerator(AASClientConfig asyncAPIClientConfig) {
+    public IntermediateClientGenerator(AasClientConfig asyncAPIClientConfig) {
 
         this.imports = new ArrayList<>();
         this.typeDefinitionNodeList = new ArrayList<>();

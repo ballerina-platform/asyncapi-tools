@@ -24,7 +24,7 @@ import io.ballerina.asyncapi.websocketscore.exception.BallerinaAsyncApiException
 import io.ballerina.asyncapi.websocketscore.generators.asyncspec.utils.CodegenUtils;
 import io.ballerina.asyncapi.websocketscore.generators.client.IntermediateClientGenerator;
 import io.ballerina.asyncapi.websocketscore.generators.client.TestGenerator;
-import io.ballerina.asyncapi.websocketscore.generators.client.model.AASClientConfig;
+import io.ballerina.asyncapi.websocketscore.generators.client.model.AasClientConfig;
 import io.ballerina.asyncapi.websocketscore.generators.schema.BallerinaTypesGenerator;
 import io.ballerina.asyncapi.websocketscore.model.GenSrcFile;
 import io.ballerina.compiler.syntax.tree.SyntaxTree;
@@ -59,7 +59,7 @@ import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.UTIL_FILE_
  * This class generates Ballerina Websocket client for a provided AsyncAPI definition.
  *
  */
-public class AsyncAPIToBallerinaGenerator {
+public class AsyncApiToBallerinaGenerator {
     private static final PrintStream outStream = System.err;
     private String licenseHeader = "";
     private boolean includeTestFiles;
@@ -162,21 +162,21 @@ public class AsyncAPIToBallerinaGenerator {
 
     /**
      * Generate code for ballerina client.
-     * @param asyncAPI path to the AsyncAPI definition
+     * @param asyncApi path to the AsyncAPI definition
      * @return generated source files as a list of {@link GenSrcFile}
      * @throws IOException when code generation with specified templates fails
      */
-    private List<GenSrcFile> generateClientFiles(Path asyncAPI)
+    private List<GenSrcFile> generateClientFiles(Path asyncApi)
             throws IOException, BallerinaAsyncApiExceptionWs, FormatterException {
         List<GenSrcFile> sourceFiles = new ArrayList<>();
         // Normalize AsyncAPI definition
-        AsyncApi25DocumentImpl asyncAPIDef = GeneratorUtils.normalizeAsyncAPI(asyncAPI);
-        // Generate ballerina service and resources.
-        AASClientConfig.Builder clientMetaDataBuilder = new AASClientConfig.Builder();
-        AASClientConfig asyncAPIClientConfig = clientMetaDataBuilder.withAsyncAPI(asyncAPIDef)
+        AsyncApi25DocumentImpl asyncApiDef = GeneratorUtils.normalizeAsyncAPI(asyncApi);
+        // Generate ballerina client.
+        AasClientConfig.Builder clientMetaDataBuilder = new AasClientConfig.Builder();
+        AasClientConfig asyncApiClientConfig = clientMetaDataBuilder.withAsyncApi(asyncApiDef)
                 .withLicense(licenseHeader).build();
         //Generate client intermediate code
-        IntermediateClientGenerator intermediateClientGenerator = new IntermediateClientGenerator(asyncAPIClientConfig);
+        IntermediateClientGenerator intermediateClientGenerator = new IntermediateClientGenerator(asyncApiClientConfig);
         String mainContent = Formatter.format(intermediateClientGenerator.generateSyntaxTree()).toString();
         sourceFiles.add(new GenSrcFile(GenSrcFile.GenFileType.GEN_SRC, CLIENT_FILE_NAME, mainContent));
 
@@ -191,7 +191,7 @@ public class AsyncAPIToBallerinaGenerator {
         preGeneratedTypeDefNodes.addAll(intermediateClientGenerator.getTypeDefinitionNodeList());
 
         //Generate ballerina records to represent schemas in client intermediate code
-        BallerinaTypesGenerator ballerinaSchemaGenerator = new BallerinaTypesGenerator(asyncAPIDef,
+        BallerinaTypesGenerator ballerinaSchemaGenerator = new BallerinaTypesGenerator(asyncApiDef,
                 preGeneratedTypeDefNodes);
         // Generate schema generator syntax tree
         SyntaxTree schemaSyntaxTree = ballerinaSchemaGenerator.generateSyntaxTree();

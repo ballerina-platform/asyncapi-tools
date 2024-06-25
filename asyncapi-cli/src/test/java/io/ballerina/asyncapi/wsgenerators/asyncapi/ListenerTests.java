@@ -101,5 +101,4 @@ public class ListenerTests {
         System.setErr(null);
         System.setOut(null);
     }
-
 }

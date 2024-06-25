@@ -80,7 +80,6 @@ public class ArrayDataTypeTests {
                 syntaxTree);
     }
 
-
     @Test(description = "Generate record for schema has array reference")
     public void generateSchemaHasArrayReference() throws IOException, BallerinaAsyncApiExceptionWs {
         Path definitionPath = RES_DIR.resolve("Array/schemaArray.yaml");
@@ -90,6 +89,7 @@ public class ArrayDataTypeTests {
         TestUtils.compareGeneratedSyntaxTreeWithExpectedSyntaxTree("schema/baloutputs/Array/schemaArray.bal",
                 syntaxTree);
     }
+
     @Test(description = "Array schema has no data type in items")
     public void arrayNoDatatype() throws IOException, BallerinaAsyncApiExceptionWs {
         Path definitionPath = RES_DIR.resolve("Array/array_no_item_type.yaml");

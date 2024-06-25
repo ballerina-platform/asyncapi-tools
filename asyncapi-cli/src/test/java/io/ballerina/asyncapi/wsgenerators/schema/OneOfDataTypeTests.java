@@ -59,7 +59,6 @@ public class OneOfDataTypeTests {
                 "schema/baloutputs/OneOf/twoOneOfWithObjectType.bal", syntaxTree);
     }
 
-
     @Test(description = "Tests full schema generations with oneOf type")
     public void generateOneOFTests() throws IOException, BallerinaAsyncApiExceptionWs {
         Path definitionPath = RES_DIR.resolve("OneOf/oneOfAsProperties.yaml");

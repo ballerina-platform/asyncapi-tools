@@ -17,7 +17,7 @@
  */
 package io.ballerina.asyncapi.wsgenerators.client;
 
-import io.ballerina.asyncapi.cmd.websockets.AsyncAPIToBallerinaGenerator;
+import io.ballerina.asyncapi.cmd.websockets.AsyncApiToBallerinaGenerator;
 import io.ballerina.asyncapi.websocketscore.exception.BallerinaAsyncApiExceptionWs;
 import org.ballerinalang.formatter.core.FormatterException;
 import org.testng.annotations.Test;
@@ -33,7 +33,7 @@ public class ExecuteTest {
     @Test(description = "Generate Client for testings", enabled = false)
     public void generatePathWithPathParameterTests() throws IOException, BallerinaAsyncApiExceptionWs,
             FormatterException {
-        AsyncAPIToBallerinaGenerator asyncAPIToBallerinaGenerator = new AsyncAPIToBallerinaGenerator();
+        AsyncApiToBallerinaGenerator asyncAPIToBallerinaGenerator = new AsyncApiToBallerinaGenerator();
 
         asyncAPIToBallerinaGenerator.generateClient(
                 Paths.get("src/test/resources/websockets/asyncapi-to-ballerina/client/StreamResponse/" +

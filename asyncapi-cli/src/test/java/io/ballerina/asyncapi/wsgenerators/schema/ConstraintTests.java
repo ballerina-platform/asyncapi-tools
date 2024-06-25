@@ -92,7 +92,6 @@ public class ConstraintTests {
         assertTrue(diagnostics.isEmpty());
     }
 
-
     @Test(description = "Tests with record field has constraint value with zero.")
     public void testRecordFiledConstraintWithZeroValue() throws IOException, BallerinaAsyncApiExceptionWs,
             FormatterException {

@@ -31,7 +31,7 @@ import static io.ballerina.asyncapi.wsgenerators.asyncapi.TestUtils.compareWithG
 /**
  * Tests for AsyncAPI info section mapping.
  */
-public class AsyncAPIInfoTests {
+public class AsyncApiInfoTests {
     private static final Path RES_DIR = Paths.get("src/test/resources/websockets" +
                     "/ballerina-to-asyncapi/asyncapi_info").
             toAbsolutePath();

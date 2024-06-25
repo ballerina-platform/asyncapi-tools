@@ -21,7 +21,7 @@ import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25DocumentImpl;
 import io.ballerina.asyncapi.websocketscore.GeneratorUtils;
 import io.ballerina.asyncapi.websocketscore.exception.BallerinaAsyncApiExceptionWs;
 import io.ballerina.asyncapi.websocketscore.generators.client.IntermediateClientGenerator;
-import io.ballerina.asyncapi.websocketscore.generators.client.model.AASClientConfig;
+import io.ballerina.asyncapi.websocketscore.generators.client.model.AasClientConfig;
 import io.ballerina.compiler.syntax.tree.SyntaxTree;
 import org.ballerinalang.formatter.core.FormatterException;
 import org.testng.annotations.DataProvider;
@@ -50,9 +50,9 @@ public class InvalidResponseTests {
 //        Path expectedPathForClient = RES_DIR.resolve("baloutputs/InvalidResponse/map_type_response.bal");
 //        Path expectedPathForUtils = RES_DIR.resolve("baloutputs/HeaderParam/header_parameter_utils.bal");
         AsyncApi25DocumentImpl asyncAPI = GeneratorUtils.normalizeAsyncAPI(definitionPath);
-        AASClientConfig.Builder clientMetaDataBuilder = new AASClientConfig.Builder();
-        AASClientConfig oasClientConfig = clientMetaDataBuilder
-                .withAsyncAPI(asyncAPI).build();
+        AasClientConfig.Builder clientMetaDataBuilder = new AasClientConfig.Builder();
+        AasClientConfig oasClientConfig = clientMetaDataBuilder
+                .withAsyncApi(asyncAPI).build();
         IntermediateClientGenerator intermediateClientGenerator = new IntermediateClientGenerator(oasClientConfig);
         intermediateClientGenerator.generateSyntaxTree();
 
@@ -68,13 +68,13 @@ public class InvalidResponseTests {
                     "to the given AsyncAPI specification, Response type must be a Record")
     public void testOneOfTypeResponse() throws IOException, BallerinaAsyncApiExceptionWs {
         Path definitionPath = RES_DIR.resolve("InvalidResponse/one_of_response.yaml");
-//        Path expectedPathForTypes = RES_DIR.resolve("baloutputs/HeaderParam/header_parameter_types.bal");
-//        Path expectedPathForClient = RES_DIR.resolve("baloutputs/InvalidResponse/map_type_response.bal");
-//        Path expectedPathForUtils = RES_DIR.resolve("baloutputs/HeaderParam/header_parameter_utils.bal");
+        Path expectedPathForTypes = RES_DIR.resolve("baloutputs/HeaderParam/header_parameter_types.bal");
+        Path expectedPathForClient = RES_DIR.resolve("baloutputs/InvalidResponse/map_type_response.bal");
+        Path expectedPathForUtils = RES_DIR.resolve("baloutputs/HeaderParam/header_parameter_utils.bal");
         AsyncApi25DocumentImpl asyncAPI = GeneratorUtils.normalizeAsyncAPI(definitionPath);
-        AASClientConfig.Builder clientMetaDataBuilder = new AASClientConfig.Builder();
-        AASClientConfig oasClientConfig = clientMetaDataBuilder
-                .withAsyncAPI(asyncAPI).build();
+        AasClientConfig.Builder clientMetaDataBuilder = new AasClientConfig.Builder();
+        AasClientConfig oasClientConfig = clientMetaDataBuilder
+                .withAsyncApi(asyncAPI).build();
         IntermediateClientGenerator intermediateClientGenerator = new IntermediateClientGenerator(oasClientConfig);
         intermediateClientGenerator.generateSyntaxTree();
 
@@ -111,9 +111,9 @@ public class InvalidResponseTests {
         Path definitionPath = RES_DIR.resolve("InvalidResponse/" + yamlFile);
 //        Path expectedPath = RES_DIR.resolve(" baloutputs/InvalidResponse/" + expectedFile);
         AsyncApi25DocumentImpl asyncAPI = GeneratorUtils.normalizeAsyncAPI(definitionPath);
-        AASClientConfig.Builder clientMetaDataBuilder = new AASClientConfig.Builder();
-        AASClientConfig oasClientConfig = clientMetaDataBuilder
-                .withAsyncAPI(asyncAPI).build();
+        AasClientConfig.Builder clientMetaDataBuilder = new AasClientConfig.Builder();
+        AasClientConfig oasClientConfig = clientMetaDataBuilder
+                .withAsyncApi(asyncAPI).build();
         IntermediateClientGenerator ballerinaClientGenerator = new IntermediateClientGenerator(oasClientConfig);
         ballerinaClientGenerator.generateSyntaxTree();
 //        List<Diagnostic> diagnostics = getDiagnostics(syntaxTree, asyncAPI, ballerinaClientGenerator);
@@ -128,7 +128,6 @@ public class InvalidResponseTests {
                 {"boolean_type_response.yaml"},
                 {"string_type_response.yaml"},
                 {"array_type_response.yaml"},
-
         };
     }
 }

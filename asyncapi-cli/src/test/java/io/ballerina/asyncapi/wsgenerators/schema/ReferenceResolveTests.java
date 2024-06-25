@@ -35,6 +35,7 @@ public class ReferenceResolveTests {
     private static final Path RES_DIR = Paths.get("src/test/resources/websockets" +
                     "/asyncapi-to-ballerina/schema")
             .toAbsolutePath();
+
     @Test(description = "Tests with object type include reference")
     public void testReferenceIncludeWithObjectType() throws IOException, BallerinaAsyncApiExceptionWs {
         AsyncApi25DocumentImpl asyncAPI = GeneratorUtils.normalizeAsyncAPI(RES_DIR.resolve(
@@ -45,6 +46,7 @@ public class ReferenceResolveTests {
         TestUtils.compareGeneratedSyntaxTreeWithExpectedSyntaxTree("schema/baloutputs/" +
                 "Reference/multiple_references.bal", syntaxTree);
     }
+
     @Test(description = "Test Ballerina types generation when referred by another record with no additional fields")
     public void testReferredTypesWithoutAdditionalFields() throws IOException, BallerinaAsyncApiExceptionWs {
         AsyncApi25DocumentImpl asyncAPI = GeneratorUtils.normalizeAsyncAPI(RES_DIR.resolve("Reference" +
@@ -64,6 +66,4 @@ public class ReferenceResolveTests {
         TestUtils.compareGeneratedSyntaxTreeWithExpectedSyntaxTree(
                 "schema/baloutputs/Reference/resolve_reference_docs.bal", syntaxTree);
     }
-
-
 }

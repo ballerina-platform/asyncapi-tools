@@ -41,21 +41,18 @@ public class OptionalTests {
     @Test(description = "When the remote method has an optional return")
     public void testIntReturnOptional() throws IOException {
         Path ballerinaFilePath = RES_DIR.resolve("optional/optional_int_return.bal");
-        //Compare generated yaml file with expected yaml content
         TestUtils.compareWithGeneratedFile(ballerinaFilePath, "optional/optional_int_return.yaml");
     }
 
     @Test(description = "When the remote method has an optional return as error")
     public void testErrorReturnOptional() throws IOException {
         Path ballerinaFilePath = RES_DIR.resolve("optional/optional_error_return.bal");
-        //Compare generated yaml file with expected yaml content
         TestUtils.compareWithGeneratedFile(ballerinaFilePath, "optional/optional_error_return.yaml");
     }
 
     @Test(description = "When the remote method has two union type returns with optional return")
     public void testTwoTypesReturnOptional() throws IOException {
         Path ballerinaFilePath = RES_DIR.resolve("optional/optional_two_union_return.bal");
-        //Compare generated yaml file with expected yaml content
         TestUtils.compareWithGeneratedFile(ballerinaFilePath, "optional/optional_two_union_return.yaml");
     }
 
@@ -64,7 +61,6 @@ public class OptionalTests {
             "with optional return")
     public void testMultipleTypesStreamIncludeReturnOptional() throws IOException {
         Path ballerinaFilePath = RES_DIR.resolve("optional/optional_multiple_type_return.bal");
-        //Compare generated yaml file with expected yaml content
         TestUtils.compareWithGeneratedFile(ballerinaFilePath, "optional/optional_multiple_type_return.yaml");
     }
 }

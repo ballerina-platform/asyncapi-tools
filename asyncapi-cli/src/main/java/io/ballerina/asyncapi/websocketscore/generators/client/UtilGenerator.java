@@ -172,11 +172,11 @@ public class UtilGenerator {
         this.streamReturns = streamReturns;
     }
 
+
     /**
-     * //     * Set `queryParamsFound` flag to `true` when at least one query parameter found.
-     * //     *
-     * //     * @param flag Function will be called only in the occasions where flag needs to be set to `true`
-     * //
+     * Set `queryParamsFound` flag to `true` when at least one query parameter found.
+     *
+     * @param flag Function will be called only in the occasions where flag needs to be set to `true`
      */
     public void setQueryParamsFound(boolean flag) {
         this.queryParamsFound = flag;
