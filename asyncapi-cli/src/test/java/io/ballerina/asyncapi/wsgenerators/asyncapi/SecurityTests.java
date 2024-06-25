@@ -55,5 +55,4 @@ public class SecurityTests {
         System.setErr(null);
         System.setOut(null);
     }
-
 }

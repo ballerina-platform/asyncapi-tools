@@ -18,7 +18,7 @@
 package io.ballerina.asyncapi.cmd;
 
 import io.ballerina.asyncapi.cmd.websockets.AsyncAPIDiagnostic;
-import io.ballerina.asyncapi.cmd.websockets.AsyncAPIToBallerinaGenerator;
+import io.ballerina.asyncapi.cmd.websockets.AsyncApiToBallerinaGenerator;
 import io.ballerina.asyncapi.cmd.websockets.BallerinaToAsyncAPIGenerator;
 import io.ballerina.asyncapi.cmd.websockets.CmdConstants;
 import io.ballerina.asyncapi.cmd.websockets.CmdUtils;
@@ -239,15 +239,13 @@ public class AsyncApiCmd implements BLauncherCmd {
         errors.addAll(asyncApiConverter.getErrors());
         if (!errors.isEmpty()) {
             for (AsyncAPIConverterDiagnostic error : errors) {
-                if (error instanceof ExceptionDiagnostic) {
-                    ExceptionDiagnostic exceptionDiagnostic = (ExceptionDiagnostic) error;
+                if (error instanceof ExceptionDiagnostic exceptionDiagnostic) {
                     AsyncAPIDiagnostic diagnostic = CmdUtils.constructAsyncAPIDiagnostic(exceptionDiagnostic.getCode(),
                             exceptionDiagnostic.getMessage(), exceptionDiagnostic.getDiagnosticSeverity(),
                             exceptionDiagnostic.getLocation().orElse(null));
                     outStream.println(diagnostic);
                     exitError(this.exitWhenFinish);
-                } else if (error instanceof IncompatibleRemoteDiagnostic) {
-                    IncompatibleRemoteDiagnostic incompatibleError = (IncompatibleRemoteDiagnostic) error;
+                } else if (error instanceof IncompatibleRemoteDiagnostic incompatibleError) {
                     AsyncAPIDiagnostic diagnostic = CmdUtils.constructAsyncAPIDiagnostic(incompatibleError.getCode(),
                             incompatibleError.getMessage(), incompatibleError.getDiagnosticSeverity(),
                             incompatibleError.getLocation().get());
@@ -258,12 +256,12 @@ public class AsyncApiCmd implements BLauncherCmd {
     }
 
     private void asyncApiToBallerinaWs(String fileName) throws IOException {
-        AsyncAPIToBallerinaGenerator generator = new AsyncAPIToBallerinaGenerator();
+        AsyncApiToBallerinaGenerator generator = new AsyncApiToBallerinaGenerator();
         generator.setLicenseHeader(this.setLicenseHeaderWs());
         generator.setIncludeTestFiles(this.includeTestFiles);
-        final File asyncAPIFile = new File(fileName);
+        final File asyncApiFile = new File(fileName);
         getTargetOutputPathWs();
-        Path resourcePath = Paths.get(asyncAPIFile.getCanonicalPath());
+        Path resourcePath = Paths.get(asyncApiFile.getCanonicalPath());
         generatesClientFileWs(generator, resourcePath);
     }
 
@@ -310,7 +308,7 @@ public class AsyncApiCmd implements BLauncherCmd {
      * @param generator    generator object
      * @param resourcePath resource Path
      */
-    private void generatesClientFileWs(AsyncAPIToBallerinaGenerator generator, Path resourcePath) {
+    private void generatesClientFileWs(AsyncApiToBallerinaGenerator generator, Path resourcePath) {
         try {
             generator.generateClient(resourcePath.toString(), targetOutputPath.toString());
         } catch (IOException | FormatterException | BallerinaAsyncApiExceptionWs e) {

@@ -35,10 +35,8 @@ import java.util.stream.Stream;
  * This {@code BallerinaToAsyncAPITests} represents the tests for all the special scenarios in the ballerina to asyncapi
  * command.
  *
- * @since 2.0.0
  */
 public class BallerinaToAsyncAPIWsTests extends AsyncAPIWsCommandTest {
-    private static final Path RES_DIR = Paths.get("src/test/resources/websockets/").toAbsolutePath();
 
     @BeforeTest(description = "This will create a new ballerina project for testing below scenarios.")
     public void setupBallerinaProject() throws IOException {
@@ -52,12 +50,10 @@ public class BallerinaToAsyncAPIWsTests extends AsyncAPIWsCommandTest {
         AsyncApiCmd cmd = new AsyncApiCmd(tmpDir, false);
         new CommandLine(cmd).parseArgs(args);
 
-        String output = "";
         try {
             cmd.execute();
         } catch (BLauncherException e) {
-            output = e.getDetailedMessages().get(0);
-            Assert.fail(output);
+            Assert.fail(e.getDetailedMessages().get(0));
         }
     }
 
@@ -68,10 +64,8 @@ public class BallerinaToAsyncAPIWsTests extends AsyncAPIWsCommandTest {
         AsyncApiCmd cmd = new AsyncApiCmd(tmpDir, false);
         new CommandLine(cmd).parseArgs(args);
 
-        String output = "";
         try {
             cmd.execute();
-            output = readOutput(true);
             Path definitionPath = resourceDir.resolve("cmd/ballerina-to-asyncapi/project_2/result.yaml");
             if (Files.exists(this.tmpDir.resolve("service_asyncapi.yaml"))) {
                 String generatedAsyncAPI = getStringFromGivenBalFile(this.tmpDir.resolve("service_asyncapi.yaml"));
@@ -79,8 +73,7 @@ public class BallerinaToAsyncAPIWsTests extends AsyncAPIWsCommandTest {
                 Assert.assertEquals(expectedYaml, generatedAsyncAPI);
             }
         } catch (BLauncherException | IOException e) {
-            output = e.toString();
-            Assert.fail(output);
+            Assert.fail(e.getMessage());
         }
     }
 
@@ -91,10 +84,8 @@ public class BallerinaToAsyncAPIWsTests extends AsyncAPIWsCommandTest {
         AsyncApiCmd cmd = new AsyncApiCmd(tmpDir, false);
         new CommandLine(cmd).parseArgs(args);
 
-        String output = "";
         try {
             cmd.execute();
-            output = readOutput(true);
             Path definitionPath = resourceDir.resolve("cmd/ballerina-to-asyncapi/normal_service.json");
             if (Files.exists(this.tmpDir.resolve("payloadV_asyncapi1.json"))) {
                 String generatedAsyncAPI = getStringFromGivenBalFile(this.tmpDir.resolve("payloadV_asyncapi1.json"));
@@ -102,8 +93,7 @@ public class BallerinaToAsyncAPIWsTests extends AsyncAPIWsCommandTest {
                 Assert.assertEquals(expectedYaml, generatedAsyncAPI);
             }
         } catch (BLauncherException | IOException e) {
-            output = e.toString();
-            Assert.fail(output);
+            Assert.fail(e.getMessage());
         }
     }
 
@@ -115,20 +105,16 @@ public class BallerinaToAsyncAPIWsTests extends AsyncAPIWsCommandTest {
         AsyncApiCmd cmd = new AsyncApiCmd(tmpDir, false);
         new CommandLine(cmd).parseArgs(args);
 
-        String output = "";
         try {
             cmd.execute();
-            output = readOutput(true);
             Path definitionPath = resourceDir.resolve("cmd/ballerina-to-asyncapi/project_1/result.yaml");
             if (Files.exists(this.tmpDir.resolve("service_asyncapi.yaml"))) {
                 String generatedAsyncAPI = getStringFromGivenBalFile(this.tmpDir.resolve("service_asyncapi.yaml"));
                 String expectedYaml = getStringFromGivenBalFile(definitionPath);
                 Assert.assertEquals(expectedYaml, generatedAsyncAPI);
-
             }
         } catch (BLauncherException | IOException e) {
-            output = e.toString();
-            Assert.fail(output);
+            Assert.fail(e.getMessage());
         }
     }
 
@@ -140,10 +126,8 @@ public class BallerinaToAsyncAPIWsTests extends AsyncAPIWsCommandTest {
         AsyncApiCmd cmd = new AsyncApiCmd(tmpDir, false);
         new CommandLine(cmd).parseArgs(args);
 
-        String output = "";
         try {
             cmd.execute();
-            output = readOutput(true);
             Path definitionPath = resourceDir.resolve("cmd/ballerina-to-asyncapi/project_3/result.yaml");
             if (Files.exists(this.tmpDir.resolve("service_asyncapi.yaml"))) {
                 String generatedAsyncAPI = getStringFromGivenBalFile(this.tmpDir.resolve("service_asyncapi.yaml"));
@@ -151,8 +135,7 @@ public class BallerinaToAsyncAPIWsTests extends AsyncAPIWsCommandTest {
                 Assert.assertEquals(expectedYaml, generatedAsyncAPI);
             }
         } catch (BLauncherException | IOException e) {
-            output = e.toString();
-            Assert.fail(output);
+            Assert.fail(e.getMessage());
         }
     }
 

@@ -41,7 +41,6 @@ public class AnyOfDataTypeTests {
                     "/asyncapi-to-ballerina/schema").
             toAbsolutePath();
 
-
     //TODO: This need to check  (this has to include in upcomming version)
     @Test(description = "Test for the schema generations", enabled = false)
     public void testAnyOfSchema() throws BallerinaAsyncApiExceptionWs, IOException, FormatterException {

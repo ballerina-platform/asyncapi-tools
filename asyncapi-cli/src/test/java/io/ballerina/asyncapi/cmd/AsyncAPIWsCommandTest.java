@@ -54,8 +54,7 @@ public abstract class AsyncAPIWsCommandTest {
     }
 
     protected String readOutput(boolean silent) throws IOException {
-        String output = "";
-        output = this.console.toString();
+        String output = this.console.toString();
         this.console.close();
         this.console = new ByteArrayOutputStream();
         if (!silent) {

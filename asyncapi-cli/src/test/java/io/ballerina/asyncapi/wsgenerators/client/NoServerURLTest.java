@@ -21,7 +21,7 @@ import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25DocumentImpl;
 import io.ballerina.asyncapi.websocketscore.GeneratorUtils;
 import io.ballerina.asyncapi.websocketscore.exception.BallerinaAsyncApiExceptionWs;
 import io.ballerina.asyncapi.websocketscore.generators.client.IntermediateClientGenerator;
-import io.ballerina.asyncapi.websocketscore.generators.client.model.AASClientConfig;
+import io.ballerina.asyncapi.websocketscore.generators.client.model.AasClientConfig;
 import io.ballerina.compiler.syntax.tree.SyntaxTree;
 import org.testng.annotations.Test;
 
@@ -50,9 +50,9 @@ public class NoServerURLTest {
         Path expectedPath = RES_DIR.resolve("baloutputs/NoServerUrl/missing_server_url.bal");
 
         AsyncApi25DocumentImpl asyncAPI = GeneratorUtils.normalizeAsyncAPI(definitionPath);
-        AASClientConfig.Builder clientMetaDataBuilder = new AASClientConfig.Builder();
-        AASClientConfig aasClientConfig = clientMetaDataBuilder
-                .withAsyncAPI(asyncAPI).build();
+        AasClientConfig.Builder clientMetaDataBuilder = new AasClientConfig.Builder();
+        AasClientConfig aasClientConfig = clientMetaDataBuilder
+                .withAsyncApi(asyncAPI).build();
         IntermediateClientGenerator intermediateClientGenerator = new IntermediateClientGenerator(aasClientConfig);
         syntaxTree = intermediateClientGenerator.generateSyntaxTree();
         compareGeneratedSyntaxTreeWithExpectedSyntaxTree(expectedPath, syntaxTree);

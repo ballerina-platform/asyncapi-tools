@@ -118,7 +118,6 @@ public class RecordDataTypeTests {
         compareGeneratedSyntaxTreeWithExpectedSyntaxTree("schema/baloutputs/Record/schema11.bal", syntaxTree);
     }
 
-
     @Test(description = "Generate record for schema has object type only")
     public void generateForSchemaHasObjectTypeOnly() throws IOException, BallerinaAsyncApiExceptionWs {
         Path definitionPath = RES_DIR.resolve("Record/scenario10.yaml");

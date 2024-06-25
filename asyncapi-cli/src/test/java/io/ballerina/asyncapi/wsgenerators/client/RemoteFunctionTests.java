@@ -21,7 +21,7 @@ import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25DocumentImpl;
 import io.ballerina.asyncapi.websocketscore.GeneratorUtils;
 import io.ballerina.asyncapi.websocketscore.exception.BallerinaAsyncApiExceptionWs;
 import io.ballerina.asyncapi.websocketscore.generators.client.IntermediateClientGenerator;
-import io.ballerina.asyncapi.websocketscore.generators.client.model.AASClientConfig;
+import io.ballerina.asyncapi.websocketscore.generators.client.model.AasClientConfig;
 import io.ballerina.compiler.syntax.tree.SyntaxTree;
 import org.testng.Assert;
 import org.testng.annotations.DataProvider;
@@ -47,9 +47,9 @@ public class RemoteFunctionTests {
         Path definitionPath = RES_DIR.resolve("RemoteFunction/remote_function_description.yaml");
         Path expectedPathForClient = RES_DIR.resolve("baloutputs/RemoteFunction/remote_function_description.bal");
         AsyncApi25DocumentImpl asyncAPI = GeneratorUtils.normalizeAsyncAPI(definitionPath);
-        AASClientConfig.Builder clientMetaDataBuilder = new AASClientConfig.Builder();
-        AASClientConfig oasClientConfig = clientMetaDataBuilder
-                .withAsyncAPI(asyncAPI).build();
+        AasClientConfig.Builder clientMetaDataBuilder = new AasClientConfig.Builder();
+        AasClientConfig oasClientConfig = clientMetaDataBuilder
+                .withAsyncApi(asyncAPI).build();
         IntermediateClientGenerator intermediateClientGenerator = new IntermediateClientGenerator(oasClientConfig);
         syntaxTree = intermediateClientGenerator.generateSyntaxTree();
 

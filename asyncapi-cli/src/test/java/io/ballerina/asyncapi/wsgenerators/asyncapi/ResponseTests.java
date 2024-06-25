@@ -42,8 +42,6 @@ public class ResponseTests {
         this.tempDir = Files.createTempDirectory("bal-to-asyncapi-test-out-" + System.nanoTime());
     }
 
-
-
     @Test(description = "Response scenario01 without return type")
     public void testResponse02() throws IOException {
         Path ballerinaFilePath = RES_DIR.resolve("response/rs_scenario01_json.bal");
@@ -66,7 +64,6 @@ public class ResponseTests {
     @Test(description = "When the return type is string")
     public void testStringReturn() throws IOException {
         Path ballerinaFilePath = RES_DIR.resolve("response/rs_scenario04_builtin.bal");
-        //Compare generated yaml file with expected yaml content
         TestUtils.compareWithGeneratedFile(ballerinaFilePath, "response/rs_scenario04_builtin.yaml");
     }
 
@@ -74,7 +71,6 @@ public class ResponseTests {
     @Test(enabled = false, description = "When the return type is inline record")
     public void testInlineRecordReturn() throws IOException {
         Path ballerinaFilePath = RES_DIR.resolve("response/rs_scenario05_inline_record_builtin.bal");
-        //Compare generated yaml file with expected yaml content
         TestUtils.compareWithGeneratedFile(ballerinaFilePath,
                 "response/rs_scenario05_inline_record_builtin.yaml");
     }
@@ -82,7 +78,6 @@ public class ResponseTests {
     @Test(description = "When the return type is xml")
     public void testReturnTypeXml() throws IOException {
         Path ballerinaFilePath = RES_DIR.resolve("response/rs_scenario06_xml.bal");
-        //Compare generated yaml file with expected yaml content
         TestUtils.compareWithGeneratedFile(ballerinaFilePath, "response/rs_scenario06_xml.yaml");
     }
 
@@ -90,7 +85,6 @@ public class ResponseTests {
     @Test(enabled = false, description = "When the return type is inline record and type reference")
     public void testInlineRecordHasReference() throws IOException {
         Path ballerinaFilePath = RES_DIR.resolve("response/rs_scenario07_inline_record_type_reference.bal");
-        //Compare generated yaml file with expected yaml content
         TestUtils.compareWithGeneratedFile(ballerinaFilePath,
                 "response/rs_scenario07_inline_record_type_reference.yaml");
     }
@@ -118,14 +112,12 @@ public class ResponseTests {
     @Test(description = "When the return type is inline record with typeInclusion fields", enabled = false)
     public void testInlineRecordHasTypeInclusionReference() throws IOException {
         Path ballerinaFilePath = RES_DIR.resolve("response/rs_scenario10_inline_record_type_inclusion.bal");
-        //Compare generated yaml file with expected yaml content
         TestUtils.compareWithGeneratedFile(ballerinaFilePath,
                 "response/rs_scenario10_inline_record_type_inclusion.yaml");
     }
     @Test(description = "When the return type is record with typeInclusion field")
     public void testTypeInclusion() throws IOException {
         Path ballerinaFilePath = RES_DIR.resolve("response/rs_scenario11_record_including_type_inclusion.bal");
-        //Compare generated yaml file with expected yaml content
         TestUtils.compareWithGeneratedFile(ballerinaFilePath,
                 "response/rs_scenario11_record_including_type_inclusion.yaml");
     }
@@ -133,7 +125,6 @@ public class ResponseTests {
     @Test(description = "When the return type is array record ")
     public void testArrayRecord() throws IOException {
         Path ballerinaFilePath = RES_DIR.resolve("response/rs_scenario12_array_record.bal");
-        //Compare generated yaml file with expected yaml content
         TestUtils.compareWithGeneratedFile(ballerinaFilePath, "response/rs_scenario12_array_record.yaml");
     }
 
@@ -141,7 +132,6 @@ public class ResponseTests {
     @Test(enabled = false, description = "When multiple return types are returning")
     public void testReturningMultipleResponses() throws IOException {
         Path ballerinaFilePath = RES_DIR.resolve("response/rs_scenario13_multiple_builtin_return.bal");
-        //Compare generated yaml file with expected yaml content
         TestUtils.compareWithGeneratedFile(ballerinaFilePath,
                 "response/rs_scenario13_multiple_builtin_return.yaml");
     }
@@ -150,7 +140,6 @@ public class ResponseTests {
     @Test(description = "When stream of strings returns")
     public void testReturningStringStream() throws IOException {
         Path ballerinaFilePath = RES_DIR.resolve("response/rs_scenario14_stream_string_return.bal");
-        //Compare generated yaml file with expected yaml content
         TestUtils.compareWithGeneratedFile(ballerinaFilePath,
                 "response/rs_scenario14_stream_string_return.yaml");
     }
@@ -158,12 +147,9 @@ public class ResponseTests {
     @Test(description = "When multiple streams return as union type")
     public void testReturningMultipleTypesOfStreams() throws IOException {
         Path ballerinaFilePath = RES_DIR.resolve("response/rs_scenario15_multiple_stream_types_return.bal");
-        //Compare generated yaml file with expected yaml content
         TestUtils.compareWithGeneratedFile(ballerinaFilePath,
                 "response/rs_scenario15_multiple_stream_types_return.yaml");
     }
-
-
 
     @AfterMethod
     public void cleanUp() {

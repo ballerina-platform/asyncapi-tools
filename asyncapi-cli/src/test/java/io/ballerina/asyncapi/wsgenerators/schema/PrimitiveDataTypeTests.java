@@ -76,9 +76,7 @@ public class PrimitiveDataTypeTests {
         BallerinaTypesGenerator ballerinaSchemaGenerator = new BallerinaTypesGenerator(asyncAPI);
         syntaxTree = ballerinaSchemaGenerator.generateSyntaxTree();
         TestUtils.compareGeneratedSyntaxTreeWithExpectedSyntaxTree(
-                "schema/baloutputs/Primitive/missDataType.bal",
-                syntaxTree);
-
+                "schema/baloutputs/Primitive/missDataType.bal", syntaxTree);
     }
 
     @AfterTest

@@ -18,12 +18,12 @@
 package io.ballerina.asyncapi.wsgenerators.testcases;
 
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25DocumentImpl;
-import io.ballerina.asyncapi.cmd.websockets.AsyncAPIToBallerinaGenerator;
+import io.ballerina.asyncapi.cmd.websockets.AsyncApiToBallerinaGenerator;
 import io.ballerina.asyncapi.websocketscore.GeneratorUtils;
 import io.ballerina.asyncapi.websocketscore.exception.BallerinaAsyncApiExceptionWs;
 import io.ballerina.asyncapi.websocketscore.generators.client.IntermediateClientGenerator;
 import io.ballerina.asyncapi.websocketscore.generators.client.TestGenerator;
-import io.ballerina.asyncapi.websocketscore.generators.client.model.AASClientConfig;
+import io.ballerina.asyncapi.websocketscore.generators.client.model.AasClientConfig;
 import io.ballerina.asyncapi.websocketscore.generators.schema.BallerinaTypesGenerator;
 import io.ballerina.asyncapi.wsgenerators.common.TestUtils;
 import io.ballerina.compiler.api.SemanticModel;
@@ -66,12 +66,12 @@ public class TestGeneratorTests {
             FormatterException, BallerinaAsyncApiExceptionWs, URISyntaxException {
         Files.createDirectories(Paths.get(PROJECT_DIR + ASYNCAPI_PATH_SEPARATOR + TEST_DIR));
         Path definitionPath = RES_DIR.resolve("sample_yamls/" + yamlFile);
-        AsyncAPIToBallerinaGenerator codeGenerator = new AsyncAPIToBallerinaGenerator();
+        AsyncApiToBallerinaGenerator codeGenerator = new AsyncApiToBallerinaGenerator();
         codeGenerator.setIncludeTestFiles(true);
         AsyncApi25DocumentImpl asyncAPI = GeneratorUtils.normalizeAsyncAPI(definitionPath);
-        AASClientConfig.Builder clientMetaDataBuilder = new AASClientConfig.Builder();
-        AASClientConfig asyncAPIClientConfig = clientMetaDataBuilder
-                .withAsyncAPI(asyncAPI).build();
+        AasClientConfig.Builder clientMetaDataBuilder = new AasClientConfig.Builder();
+        AasClientConfig asyncAPIClientConfig = clientMetaDataBuilder
+                .withAsyncApi(asyncAPI).build();
         IntermediateClientGenerator intermediateClientGenerator = new IntermediateClientGenerator(asyncAPIClientConfig);
         SyntaxTree syntaxTreeClient = intermediateClientGenerator.generateSyntaxTree();
         List<TypeDefinitionNode> preGeneratedTypeDefinitionNodes = new LinkedList<>();

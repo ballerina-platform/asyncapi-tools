@@ -87,7 +87,6 @@ public class QueryParameterTests {
         TestUtils.compareWithGeneratedFile(ballerinaFilePath, "query/query_scenario07.yaml");
     }
 
-    //TODO : Check what is the problem
     @Test(description = "Default parameter scenarios do not support with tool")
     public void testQueryscenario08() throws IOException {
         Path ballerinaFilePath = RES_DIR.resolve("query/query_scenario08.bal");

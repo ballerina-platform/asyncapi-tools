@@ -39,6 +39,7 @@ public class EnumTypeTests {
     public void setup() throws IOException {
         this.tempDir = Files.createTempDirectory("bal-to-asyncapi-test-out-" + System.nanoTime());
     }
+
     @Test(description = "When the record field has reference to enum type")
     public void testEnumType() throws IOException {
         Path ballerinaFilePath = RES_DIR.resolve("data_type/enum.bal");
