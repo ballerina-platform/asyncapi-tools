@@ -60,15 +60,11 @@ public class BallerinaToAsyncAPIWsExceptionTests extends AsyncAPIWsCommandTest {
         String[] args = {"--input", filePath.toString(), "-o", this.tmpDir.toString(), "--protocol", "ws"};
         AsyncApiCmd cmd = new AsyncApiCmd(tmpDir, false);
         new CommandLine(cmd).parseArgs(args);
-
-        String output = "";
         try {
             cmd.execute();
-            output = readOutput(true);
-            Assert.assertTrue(output.trim().contains(NO_ANNOTATION_PRESENT));
+            Assert.assertTrue(readOutput(true).trim().contains(NO_ANNOTATION_PRESENT));
         } catch (BLauncherException | IOException e) {
-            output = e.toString();
-            Assert.fail(output);
+            Assert.fail(e.getMessage());
         }
     }
 
@@ -79,16 +75,12 @@ public class BallerinaToAsyncAPIWsExceptionTests extends AsyncAPIWsCommandTest {
         String[] args = {"--input", filePath.toString(), "-o", this.tmpDir.toString(), "--protocol", "ws"};
         AsyncApiCmd cmd = new AsyncApiCmd(tmpDir, false);
         new CommandLine(cmd).parseArgs(args);
-
-        String output = "";
         try {
             cmd.execute();
-            output = readOutput(true);
-            Assert.assertTrue(output.trim().contains(String.format(DISPATCHERKEY_NOT_PRESENT_IN_RECORD_FIELD,
-                    "event", "Subscribe")));
+            Assert.assertTrue(readOutput(true).trim().contains(
+                    String.format(DISPATCHERKEY_NOT_PRESENT_IN_RECORD_FIELD, "event", "Subscribe")));
         } catch (BLauncherException | IOException e) {
-            output = e.toString();
-            Assert.fail(output);
+            Assert.fail(e.getMessage());
         }
     }
 
@@ -99,15 +91,11 @@ public class BallerinaToAsyncAPIWsExceptionTests extends AsyncAPIWsCommandTest {
         String[] args = {"--input", filePath.toString(), "-o", this.tmpDir.toString(), "--protocol", "ws"};
         AsyncApiCmd cmd = new AsyncApiCmd(tmpDir, false);
         new CommandLine(cmd).parseArgs(args);
-
-        String output = "";
         try {
             cmd.execute();
-            output = readOutput(true);
-            Assert.assertTrue(output.trim().contains(String.format(DISPATCHER_KEY_TYPE_EXCEPTION, "event")));
+            Assert.assertTrue(readOutput(true).trim().contains(String.format(DISPATCHER_KEY_TYPE_EXCEPTION, "event")));
         } catch (BLauncherException | IOException e) {
-            output = e.toString();
-            Assert.fail(output);
+            Assert.fail(e.getMessage());
         }
     }
 
@@ -118,15 +106,11 @@ public class BallerinaToAsyncAPIWsExceptionTests extends AsyncAPIWsCommandTest {
         String[] args = {"--input", filePath.toString(), "-o", this.tmpDir.toString(), "--protocol", "ws"};
         AsyncApiCmd cmd = new AsyncApiCmd(tmpDir, false);
         new CommandLine(cmd).parseArgs(args);
-
-        String output = "";
         try {
             cmd.execute();
-            output = readOutput(true);
-            Assert.assertTrue(output.trim().contains(String.format(NO_DISPATCHER_KEY)));
+            Assert.assertTrue(readOutput(true).trim().contains(String.format(NO_DISPATCHER_KEY)));
         } catch (BLauncherException | IOException e) {
-            output = e.toString();
-            Assert.fail(output);
+            Assert.fail(e.getMessage());
         }
     }
 
@@ -137,15 +121,11 @@ public class BallerinaToAsyncAPIWsExceptionTests extends AsyncAPIWsCommandTest {
         String[] args = {"--input", filePath.toString(), "-o", this.tmpDir.toString(), "--protocol", "ws"};
         AsyncApiCmd cmd = new AsyncApiCmd(tmpDir, false);
         new CommandLine(cmd).parseArgs(args);
-
-        String output = "";
         try {
             cmd.execute();
-            output = readOutput(true);
-            Assert.assertTrue(output.trim().contains(String.format(DISPATCHER_KEY_VALUE_CANNOT_BE_EMPTY)));
+            Assert.assertTrue(readOutput(true).trim().contains(String.format(DISPATCHER_KEY_VALUE_CANNOT_BE_EMPTY)));
         } catch (BLauncherException | IOException e) {
-            output = e.toString();
-            Assert.fail(output);
+            Assert.fail(e.getMessage());
         }
     }
 
@@ -156,15 +136,11 @@ public class BallerinaToAsyncAPIWsExceptionTests extends AsyncAPIWsCommandTest {
         String[] args = {"--input", filePath.toString(), "-o", this.tmpDir.toString(), "--protocol", "ws"};
         AsyncApiCmd cmd = new AsyncApiCmd(tmpDir, false);
         new CommandLine(cmd).parseArgs(args);
-
-        String output = "";
         try {
             cmd.execute();
-            output = readOutput(true);
-            Assert.assertTrue(output.trim().contains(String.format(NO_SERVICE_CLASS)));
+            Assert.assertTrue(readOutput(true).trim().contains(String.format(NO_SERVICE_CLASS)));
         } catch (BLauncherException | IOException e) {
-            output = e.toString();
-            Assert.fail(output);
+            Assert.fail(e.getMessage());
         }
     }
 //
@@ -347,20 +323,15 @@ public class BallerinaToAsyncAPIWsExceptionTests extends AsyncAPIWsCommandTest {
         String[] args = {"--input", filePath.toString(), "-o", this.tmpDir.toString(), "--protocol", "ws"};
         AsyncApiCmd cmd = new AsyncApiCmd(tmpDir, false);
         new CommandLine(cmd).parseArgs(args);
-
-        String output = "";
         try {
             cmd.execute();
-            output = readOutput(true);
-            Assert.assertTrue(output.trim().contains(String.format(DISPATCHERKEY_OPTIONAL_EXCEPTION,
+            Assert.assertTrue(readOutput(true).trim().contains(String.format(DISPATCHERKEY_OPTIONAL_EXCEPTION,
                     "event", "Subscribe")));
         } catch (BLauncherException | IOException e) {
-            output = e.toString();
-            Assert.fail(output);
+            Assert.fail(e.getMessage());
         }
     }
 
-    //
     @Test(description = "Test dispatcherKey is nullable not allowed in a field")
     public void testDispatcherKeyIsNullableNotAllowedInAField() {
         Path filePath = resourceDir.resolve(Paths.get("cmd/ballerina-to-asyncapi/exceptions" +
@@ -368,16 +339,12 @@ public class BallerinaToAsyncAPIWsExceptionTests extends AsyncAPIWsCommandTest {
         String[] args = {"--input", filePath.toString(), "-o", this.tmpDir.toString(), "--protocol", "ws"};
         AsyncApiCmd cmd = new AsyncApiCmd(tmpDir, false);
         new CommandLine(cmd).parseArgs(args);
-
-        String output = "";
         try {
             cmd.execute();
-            output = readOutput(true);
-            Assert.assertTrue(output.trim().contains(String.format(DISPATCHERKEY_NULLABLE_EXCEPTION,
+            Assert.assertTrue(readOutput(true).trim().contains(String.format(DISPATCHERKEY_NULLABLE_EXCEPTION,
                     "event", "Subscribe")));
         } catch (BLauncherException | IOException e) {
-            output = e.toString();
-            Assert.fail(output);
+            Assert.fail(e.getMessage());
         }
     }
 
@@ -388,15 +355,11 @@ public class BallerinaToAsyncAPIWsExceptionTests extends AsyncAPIWsCommandTest {
         String[] args = {"--input", filePath.toString(), "-o", this.tmpDir.toString(), "--protocol", "ws"};
         AsyncApiCmd cmd = new AsyncApiCmd(tmpDir, false);
         new CommandLine(cmd).parseArgs(args);
-
-        String output = "";
         try {
             cmd.execute();
-            output = readOutput(true);
-            Assert.assertTrue(output.trim().contains(FUNCTION_WRONG_NAME));
+            Assert.assertTrue(readOutput(true).trim().contains(FUNCTION_WRONG_NAME));
         } catch (BLauncherException | IOException e) {
-            output = e.toString();
-            Assert.fail(output);
+            Assert.fail(e.getMessage());
         }
     }
 
@@ -407,15 +370,11 @@ public class BallerinaToAsyncAPIWsExceptionTests extends AsyncAPIWsCommandTest {
         String[] args = {"--input", filePath.toString(), "-o", this.tmpDir.toString(), "--protocol", "ws"};
         AsyncApiCmd cmd = new AsyncApiCmd(tmpDir, false);
         new CommandLine(cmd).parseArgs(args);
-
-        String output = "";
         try {
             cmd.execute();
-            output = readOutput(true);
-            Assert.assertTrue(output.trim().contains(FUNCTION_WRONG_NAME));
+            Assert.assertTrue(readOutput(true).trim().contains(FUNCTION_WRONG_NAME));
         } catch (BLauncherException | IOException e) {
-            output = e.toString();
-            Assert.fail(output);
+            Assert.fail(e.getMessage());
         }
     }
 
@@ -426,15 +385,12 @@ public class BallerinaToAsyncAPIWsExceptionTests extends AsyncAPIWsCommandTest {
         String[] args = {"--input", filePath.toString(), "-o", this.tmpDir.toString(), "--protocol", "ws"};
         AsyncApiCmd cmd = new AsyncApiCmd(tmpDir, false);
         new CommandLine(cmd).parseArgs(args);
-
-        String output = "";
         try {
             cmd.execute();
-            output = readOutput(true);
-            Assert.assertTrue(output.trim().contains(String.format(FUNCTION_SIGNATURE_WRONG_TYPE, "Subscribe", "int")));
+            Assert.assertTrue(readOutput(true).trim().contains(String.format(FUNCTION_SIGNATURE_WRONG_TYPE,
+                    "Subscribe", "int")));
         } catch (BLauncherException | IOException e) {
-            output = e.toString();
-            Assert.fail(output);
+            Assert.fail(e.getMessage());
         }
     }
 
@@ -445,15 +401,11 @@ public class BallerinaToAsyncAPIWsExceptionTests extends AsyncAPIWsCommandTest {
         String[] args = {"--input", filePath.toString(), "-o", this.tmpDir.toString(), "--protocol", "ws"};
         AsyncApiCmd cmd = new AsyncApiCmd(tmpDir, false);
         new CommandLine(cmd).parseArgs(args);
-
-        String output = "";
         try {
             cmd.execute();
-            output = readOutput(true);
-            Assert.assertTrue(output.trim().contains(PATH_PARAM_DASH_CONTAIN_ERROR));
+            Assert.assertTrue(readOutput(true).trim().contains(PATH_PARAM_DASH_CONTAIN_ERROR));
         } catch (BLauncherException | IOException e) {
-            output = e.toString();
-            Assert.fail(output);
+            Assert.fail(e.getMessage());
         }
     }
 

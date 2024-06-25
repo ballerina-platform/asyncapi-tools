@@ -32,4 +32,5 @@ public class AsyncApiMessages {
     public static final String MESSAGE_FOR_JSON_FLAG = "ERROR unsupported --json flag for http protocol";
     public static final String MESSAGE_INVALID_PROTOCOL = "ERROR invalid protocol: %s. Supported protocols are" +
             " `http` and `ws`.";
+    public static final String MESSAGE_INVALID_LICENSE_STREAM = "Invalid license file path : %s. %s.";
 }
