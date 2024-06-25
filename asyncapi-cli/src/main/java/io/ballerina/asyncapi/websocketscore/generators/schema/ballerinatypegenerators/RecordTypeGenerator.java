@@ -58,35 +58,6 @@ import static io.ballerina.compiler.syntax.tree.SyntaxKind.SEMICOLON_TOKEN;
 
 /**
  * Generate TypeDefinitionNode and TypeDescriptorNode for object type schema.
- * -- ex:
- * Sample AsyncAPI :
- * <pre>
- *      components:
- *          schemas:
- *              Pet:
- *                  required:
- *                      - id
- *                      - name
- *                  properties:
- *                      id:
- *                          type: integer
- *                          format: int64
- *                      name:
- *                          type: string
- *                      tag:
- *                          type: string
- *                      type:
- *                          type: string
- *  </pre>
- * Generated Ballerina type for the schema `Pet` :
- * <pre>
- * public type Pet record {
- *      int id;
- *      string name;
- *      string tag?;
- *      string 'type?;
- * };
- * </pre>
  *
  */
 public class RecordTypeGenerator extends TypeGenerator {
@@ -111,11 +82,7 @@ public class RecordTypeGenerator extends TypeGenerator {
 
     /**
      * Generates {@code RecordRestDescriptorNode} for the additional properties in object schema.
-     * <pre>
-     *    type User record {
-     *       string...;
-     *     }
-     * </pre>
+     *
      */
     public static RecordRestDescriptorNode getRecordRestDescriptorNode(AsyncApi25SchemaImpl additionalPropSchema)
             throws BallerinaAsyncApiExceptionWs {
@@ -159,6 +126,7 @@ public class RecordTypeGenerator extends TypeGenerator {
 
     /**
      * Generate TypeDescriptorNode for object type schemas.
+     *
      */
     @Override
     public TypeDescriptorNode generateTypeDescriptorNode() throws BallerinaAsyncApiExceptionWs {
@@ -189,7 +157,6 @@ public class RecordTypeGenerator extends TypeGenerator {
             }
             return recordTypeDescriptorNode;
         } else {
-
             RecordTypeDescriptorNode recordTypeDescriptorNode = NodeFactory.createRecordTypeDescriptorNode
                     (createToken(RECORD_KEYWORD),
                             metadataBuilder.isOpenRecord() ? createToken(OPEN_BRACE_TOKEN) :
@@ -255,6 +222,7 @@ public class RecordTypeGenerator extends TypeGenerator {
 
     /**
      * This util for generating record field with given schema properties.
+     *
      */
     public List<Node> addRecordFields(List<String> required, Set<Map.Entry<String, Schema>> fields,
                                       String recordName) throws BallerinaAsyncApiExceptionWs {

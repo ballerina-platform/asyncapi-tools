@@ -247,10 +247,8 @@ public class UtilGenerator {
                             ("className") || childNodeEntry.name().equals("typeName")) {
                         if (functionNameList.contains(childNodeEntry.node().get().toString().trim())) {
                             memberDeclarationNodes.add(node);
-                            break;
-                        } else {
-                            break;
                         }
+                        break;
                     }
                 }
             }
@@ -262,8 +260,8 @@ public class UtilGenerator {
         }
 
         NodeList<ImportDeclarationNode> importsList = createNodeList(imports);
-        ModulePartNode utilModulePartNode =
-                createModulePartNode(importsList, createNodeList(memberDeclarationNodes), createToken(EOF_TOKEN));
+        ModulePartNode utilModulePartNode = createModulePartNode(importsList, createNodeList(memberDeclarationNodes),
+                createToken(EOF_TOKEN));
         TextDocument textDocument = TextDocuments.from("");
         SyntaxTree utilSyntaxTree = SyntaxTree.from(textDocument);
         return utilSyntaxTree.modifyWith(utilModulePartNode);
@@ -284,8 +282,8 @@ public class UtilGenerator {
         NodeList<Token> classTypeQualifiers = createNodeList(createToken(CLIENT_KEYWORD),
                 createToken(ISOLATED_KEYWORD));
         return createClassDefinitionNode(metadataNode, createToken(PUBLIC_KEYWORD), classTypeQualifiers,
-                createToken(CLASS_KEYWORD), className, openBraceToken,
-                createNodeList(memberNodeList), closeBraceToken, null);
+                createToken(CLASS_KEYWORD), className, openBraceToken, createNodeList(memberNodeList),
+                closeBraceToken, null);
     }
 
     private List<Node> createClassInstanceVariables() {
@@ -405,11 +403,9 @@ public class UtilGenerator {
         statements.add(NodeParser.parseStatement(String.format(STREAM_NEXT_RESPONSE_CLONE, returnType)));
         statements.add(NodeParser.parseStatement(RETURN_KEYWORD.stringValue() + SPACE +
                 String.format(WITHIN_BRACE_TEMPLATE, "value: " + RESPONSE) + SEMICOLON));
-
         WhileStatementNode whileStatementNode = createWhileStatementNode(createToken(WHILE_KEYWORD),
                 NodeParser.parseExpression(TRUE), createBlockStatementNode(openBraceToken, createNodeList(statements),
                         closeBraceToken), null);
-
         NodeList<StatementNode> statementList = createNodeList(whileStatementNode);
         return createFunctionBodyBlockNode(openBraceToken, null, statementList, closeBraceToken, null);
     }

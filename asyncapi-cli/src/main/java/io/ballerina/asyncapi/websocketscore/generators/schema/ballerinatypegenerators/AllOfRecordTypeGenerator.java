@@ -54,25 +54,6 @@ import static io.ballerina.compiler.syntax.tree.SyntaxKind.SEMICOLON_TOKEN;
 
 /**
  * Generate TypeDefinitionNode and TypeDescriptorNode for allOf schemas.
- * -- ex:
- * Sample AsyncAPI :
- * <pre>
- *    schemas:
- *     Dog:
- *       allOf:
- *       - $ref: "#/components/schemas/Pet"
- *       - type: object
- *         properties:
- *           bark:
- *             type: boolean
- *  </pre>
- * Generated Ballerina type for the allOf schema `Dog` :
- * <pre>
- *  public type Dog record {
- *      *Pet;
- *      boolean bark?;
- *  };
- * </pre>
  *
  */
 public class AllOfRecordTypeGenerator extends RecordTypeGenerator {
@@ -85,8 +66,6 @@ public class AllOfRecordTypeGenerator extends RecordTypeGenerator {
     /**
      * This util is to create the union record rest fields, when given allOf schema has multiple additional fields.
      * Note: This scenario only happens with AllOf scenarios since it maps with type inclusions.
-     * <p>
-     * ex: string|int...
      *
      * @return
      */

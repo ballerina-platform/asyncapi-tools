@@ -57,7 +57,6 @@ public class GeneratorConstants {
     public static final String LANG_RUNTIME = "lang.runtime";
     public static final String SIMPLE_PIPE = "pipe";
     public static final String UUID = "uuid";
-    public static final String CREATE_TYPE1_AS_STRING = "createType1AsString()";
     public static final String CAPITAL_PIPE = "Pipe";
     public static final String CAPITAL_ERROR = "Error";
     public static final QualifiedNameReferenceNode PIPE_ERROR_NODE = createQualifiedNameReferenceNode(
@@ -219,16 +218,15 @@ public class GeneratorConstants {
     public static final String X_NULLABLE = "x-nullable";
     public static final String INVALID_RESPONSE_SCHEMA = "Response type must be a record, invalid response schema";
     public static final String REF = "$ref";
-    public static final String GRACEFUL_CLOSE = "gracefulClose";
     public static final String DOT = ".";
     public static final String SEMICOLON = ";";
-    public static final String REMOTE_CALL = "->";
     public static final String IS = " is ";
     public static final String RESPONSE = "response";
     public static final String WS_ERR = "wsErr";
     public static final String PIPE_ERR_CAPITAL = "PipeError";
     public static final String PIPE_ERR = "pipeErr";
     public static final String RESPONSE_MESSAGE = "responseMessage";
+    public static final String PARENS = "()";
     public static final String WITHIN_PAREN_TEMPLATE = "(%s)";
     public static final String WITHIN_BRACE_TEMPLATE = "{%s}";
     public static final String CONSUMING = "consuming";
@@ -257,7 +255,6 @@ public class GeneratorConstants {
     public static final String SPECIAL_CHARACTER_REGEX = "([\\[\\]\\\\?!<>@#&~`*\\-=^+'();:\\/\\_{}\\s|.$])";
     public static final String PIPE = "|";
     public static final String READ_ONLY = "readOnly";
-    public static final String GET_PIPE = "getPipe";
     public static final String PIPE_ID = "pipeId";
     public static final String CLONE_WITH_TYPE = "cloneWithType";
     public static final String PIPE_CLOSE_STATEMENT = "error? %s = self.pipes.removePipe(%s);";
@@ -278,6 +275,13 @@ public class GeneratorConstants {
             "(self.pipeId).consume(self.timeout);";
     public static final String STREAM_NEXT_RESPONSE_CLONE = "%s response = check message.cloneWithType();";
     public static final String CLOSE_STREAM_STATEMENT = "check self.pipes.removePipe(self.pipeId);";
+    public static final String SELF_PIPES_GET_PIPE = "self.pipes.getPipe(%s)";
+    public static final String PIPE_COLON_PIPE = "pipe:Pipe";
+    public static final String MESSAGE_WITH_ID_VAR_CLONE = "MessageWithId|error messageWithId = " +
+            "message.cloneWithType(MessageWithId);";
+    public static final String PIPE_VAR = PIPE_COLON_PIPE + SPACE + SIMPLE_PIPE;
+    public static final String CONNECTION_CLOSE_STATEMENT = "error? connectionClose = self->connectionClose();";
+    public static final String CREATE_UUID_STATEMENT = "%s.%s = uuid:createType1AsString();";
     public static final Map<String, String> TYPE_MAP;
 
     static {

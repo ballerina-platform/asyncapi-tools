@@ -45,6 +45,7 @@ import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.utils.Co
 
 /**
  * This class for the mapping ballerina headers with AsyncApiSpec header parameter sections.
+ *
  */
 public class AsyncApiHeaderMapper {
     private final Map<String, String> apiDocs;

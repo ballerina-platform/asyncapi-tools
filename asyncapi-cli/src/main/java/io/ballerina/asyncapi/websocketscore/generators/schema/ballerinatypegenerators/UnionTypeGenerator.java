@@ -40,19 +40,6 @@ import static io.ballerina.compiler.syntax.tree.SyntaxKind.QUESTION_MARK_TOKEN;
 
 /**
  * Generate TypeDefinitionNode and TypeDescriptorNode for anyOf and oneOf schemas.
- * -- ex:
- * Sample AsyncAPI :
- * <pre>
- *    schemas:
- *     Employee:
- *       anyOf:
- *       - $ref: "#/components/schemas/InternalEmployee"
- *       - $ref: "#/components/schemas/ExternalEmployee"
- *  </pre>
- * Generated Ballerina type for the anyOf schema `Employee` :
- * <pre>
- *  public type Employee InternalEmployee|ExternalEmployee
- * </pre>
  *
  */
 public class UnionTypeGenerator extends TypeGenerator {

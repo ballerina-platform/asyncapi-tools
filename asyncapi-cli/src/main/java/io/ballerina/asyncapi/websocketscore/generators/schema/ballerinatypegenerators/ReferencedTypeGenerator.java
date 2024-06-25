@@ -28,20 +28,6 @@ import static io.ballerina.compiler.syntax.tree.NodeFactory.createSimpleNameRefe
 
 /**
  * Generate TypeDefinitionNode and TypeDescriptorNode for referenced schemas.
- * -- ex:
- * Sample AsyncAPI :
- * <pre>
- *      components:
- *          schemas:
- *              PetName:
- *                  type: string
- *              DogName:
- *                  $ref: "#/components/schemas/PetName"
- *  </pre>
- * Generated Ballerina type for the schema `DogName` :
- * <pre>
- *     public type DogName PetName;
- * </pre>
  *
  */
 public class ReferencedTypeGenerator extends TypeGenerator {
@@ -52,6 +38,7 @@ public class ReferencedTypeGenerator extends TypeGenerator {
 
     /**
      * Generate TypeDescriptorNode for referenced schemas.
+     *
      */
     @Override
     public TypeDescriptorNode generateTypeDescriptorNode() throws BallerinaAsyncApiExceptionWs {

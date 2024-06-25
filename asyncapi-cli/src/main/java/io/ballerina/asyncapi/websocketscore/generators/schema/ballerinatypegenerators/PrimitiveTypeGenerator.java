@@ -29,18 +29,6 @@ import static io.ballerina.compiler.syntax.tree.NodeFactory.createSimpleNameRefe
 
 /**
  * Generate TypeDefinitionNode and TypeDescriptorNode for primitive type schemas.
- * -- ex:
- * Sample AsyncAPI :
- * <pre>
- *      components:
- *          schemas:
- *              PetName:
- *                  type: string
- *  </pre>
- * Generated Ballerina type for the schema `PetName` :
- * <pre>
- *     public type PetName string;
- * </pre>
  *
  */
 public class PrimitiveTypeGenerator extends TypeGenerator {

@@ -51,18 +51,6 @@ import static io.ballerina.compiler.syntax.tree.SyntaxKind.OPEN_PAREN_TOKEN;
 
 /**
  * Generate TypeDefinitionNode and TypeDescriptorNode for array schemas.
- * -- ex:
- * Sample AsyncAPI :
- * <pre>
- *     Pets:
- *       type: array
- *       items:
- *         $ref: "#/components/schemas/Pet"
- *  </pre>
- * Generated Ballerina type for the schema `Pet` :
- * <pre>
- *      public type Pets Pet[];
- * </pre>
  *
  */
 public class ArrayTypeGenerator extends TypeGenerator {
@@ -91,8 +79,7 @@ public class ArrayTypeGenerator extends TypeGenerator {
                 typeAnnotations.add(constraintNode);
             }
             typeName = GeneratorUtils.getValidName(
-                    parentType != null ?
-                            parentType + "-" + normalizedTypeName + "-Items-" + items.getType() :
+                    parentType != null ? parentType + "-" + normalizedTypeName + "-Items-" + items.getType() :
                             normalizedTypeName + "-Items-" + items.getType(), true);
             typeGenerator = TypeGeneratorUtils.getTypeGenerator(items, typeName, null);
             TypeDefinitionNode arrayItemWithConstraint = typeGenerator.generateTypeDefinitionNode(
