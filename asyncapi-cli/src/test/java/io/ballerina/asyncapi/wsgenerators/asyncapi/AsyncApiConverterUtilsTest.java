@@ -69,9 +69,8 @@ public class AsyncApiConverterUtilsTest {
                 "/abc", false);
         Assert.assertFalse(asyncApiConverter.getErrors().isEmpty());
         Assert.assertEquals(asyncApiConverter.getErrors().get(0).getMessage(),
-                "No Ballerina META-INF.services found " + "with name '/abc' to generate " +
-                        "an AsyncAPI specification. These META-INF.services are available in "
-                        + "ballerina file. [/hello, /hello02]");
+                "No Ballerina service found with name '/abc' to generate an AsyncAPI specification. " +
+                        "These are the available services: [/hello, /hello02]");
     }
 
     @Test(description = "Test if invalid 'exampleSetFlag' attribute is coming it the generated spec")

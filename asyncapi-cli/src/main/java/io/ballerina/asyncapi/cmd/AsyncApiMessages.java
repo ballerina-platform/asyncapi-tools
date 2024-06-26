@@ -26,11 +26,10 @@ public class AsyncApiMessages {
     public static final String CLIENT_GENERATION_FAILED = "Error occurred when generating client for AsyncAPI contract";
     public static final String MISSING_CONTRACT_PATH = "Bal service file is required to generate the " +
             "asyncapi definition. \ne.g: bal asyncapi --input <Ballerina file path>";
-    public static final String MESSAGE_FOR_LICENSE_FLAG = "ERROR unsupported --license flag for http protocol";
-    public static final String MESSAGE_FOR_SERVICE_FLAG = "ERROR unsupported --service flag for http protocol";
-    public static final String MESSAGE_FOR_TEST_FLAG = "ERROR unsupported --with-tests flag for http protocol";
-    public static final String MESSAGE_FOR_JSON_FLAG = "ERROR unsupported --json flag for http protocol";
     public static final String MESSAGE_INVALID_PROTOCOL = "ERROR invalid protocol: %s. Supported protocols are" +
             " `http` and `ws`.";
+    public static final String INVALID_OPTION_ERROR_HTTP = "ERROR unsupported %s flag for http protocol";
+    public static final String INVALID_OPTION_WARNING = "WARNING the `%s` option is invalid for generating" +
+            " %s files and will be ignored.";
     public static final String MESSAGE_INVALID_LICENSE_STREAM = "Invalid license file path : %s. %s.";
 }

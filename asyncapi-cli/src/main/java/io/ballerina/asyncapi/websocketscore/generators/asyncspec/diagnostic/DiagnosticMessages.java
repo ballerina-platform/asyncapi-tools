@@ -27,9 +27,8 @@ public enum DiagnosticMessages {
 
     AAS_CONVERTOR_100("AAS_CONVERTOR_100", "Given Ballerina file contains compilation error(s).",
             DiagnosticSeverity.ERROR),
-    AAS_CONVERTOR_101("AAS_CONVERTOR_101", "No Ballerina META-INF.services found with name '%s' to" +
-            " generate an AsyncAPI specification. These META-INF.services are available in ballerina file. %s",
-            DiagnosticSeverity.ERROR),
+    AAS_CONVERTOR_101("AAS_CONVERTOR_101", "No Ballerina service found with name '%s' to" +
+            " generate an AsyncAPI specification. These are the available services: %s", DiagnosticSeverity.ERROR),
     AAS_CONVERTOR_102("AAS_CONVERTOR_102", "Failed to generate AsyncAPI definition due to: %s",
             DiagnosticSeverity.ERROR),
     AAS_CONVERTOR_103("AAS_CONVERTOR_103", "AsyncAPI contract path can not be blank.",

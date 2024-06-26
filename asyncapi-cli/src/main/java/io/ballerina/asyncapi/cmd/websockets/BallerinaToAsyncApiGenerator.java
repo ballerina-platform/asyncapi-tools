@@ -140,8 +140,7 @@ public class BallerinaToAsyncApiGenerator {
                 } catch (IOException e) {
                     DiagnosticMessages message = DiagnosticMessages.AAS_CONVERTOR_102;
                     ExceptionDiagnostic error = new ExceptionDiagnostic(message.getCode(),
-                            message.getDescription() + e.getLocalizedMessage(),
-                            null);
+                            message.getDescription() + e.getLocalizedMessage(), null);
                     this.errors.add(error);
                 }
             }

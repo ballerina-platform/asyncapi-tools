@@ -35,7 +35,6 @@ public class Constants {
     public static final String DOUBLE = "double";
     public static final String OBJECT = "object";
     public static final String TYPE_REFERENCE = "type_reference";
-    public static final String FIELD_RECORD = "record";
     public static final String WEBSOCKET = "websocket";
     public static final String DISPATCHER_KEY = "dispatcherKey";
     public static final String DISPATCHER_STREAM_ID = "dispatcherStreamId";
@@ -47,7 +46,7 @@ public class Constants {
     public static final String XML = "xml";
     public static final String JSON = "json";
     public static final String PLAIN = "plain";
-    public static final String ASYNC_API_SUFFIX = "_asyncapi1";
+    public static final String ASYNC_API_SUFFIX = "_asyncapi";
     public static final String SERVER = "server";
     public static final String SERVER_TYPE = "development";
     public static final String WS = "ws";
@@ -55,12 +54,10 @@ public class Constants {
     public static final String WS_PROTOCOL_VERSION = "13";
     public static final String BINDING_VERSION_VALUE = "0.1.0";
     public static final String PORT = "port";
-    public static final String X_WWW_FORM_URLENCODED = "x-www-form-urlencoded";
     public static final String BINDING_VERSION = "bindingVersion";
     public static final String QUERY = "query";
     public static final String HEADERS = "headers";
     public static final String MAP_JSON = "map<json>";
-    public static final String MAP_STRING = "map<string>";
     public static final String MAP = "map";
     public static final String TUPLE = "tuple";
     public static final String SCHEMA_REFERENCE = "#/components/schemas/";
@@ -81,7 +78,6 @@ public class Constants {
     public static final String TRUE = "true";
     public static final String FALSE = "false";
     public static final String WS_LOCALHOST = "ws://localhost";
-    public static final String LOCALHOST = "localhost";
     public static final String WSS_LOCALHOST = "wss://localhost";
     public static final String WS_PREFIX = "ws://";
     public static final String WSS_PREFIX = "wss://";
@@ -118,8 +114,6 @@ public class Constants {
     //record name
     public static final String DISPATCHERKEY_NOT_PRESENT_IN_RECORD_FIELD = "ERROR: dispatcherKey '%s' is not present " +
             "in %s record field, those should be equal";
-    public static final String FUNCTION_SIGNATURE_ABSENT = "ERROR: Function signature must contain function method type"
-            + " ex:- onHeartbeat(Heartbeat message)";
     //type name
     //type
     public static final String FUNCTION_SIGNATURE_WRONG_TYPE = "ERROR: %s type must be a record,%s given";

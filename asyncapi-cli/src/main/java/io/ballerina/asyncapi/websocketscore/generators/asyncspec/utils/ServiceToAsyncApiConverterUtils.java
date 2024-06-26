@@ -103,8 +103,7 @@ public class ServiceToAsyncApiConverterUtils {
         List<ClassDefinitionNode> classDefinitionNodes = new ArrayList<>();
         if (containErrors(semanticModel.diagnostics())) {
             DiagnosticMessages messages = DiagnosticMessages.AAS_CONVERTOR_100;
-            ExceptionDiagnostic error = new ExceptionDiagnostic(messages.getCode(),
-                    messages.getDescription(), null);
+            ExceptionDiagnostic error = new ExceptionDiagnostic(messages.getCode(), messages.getDescription(), null);
             diagnostics.add(error);
         } else {
             ModulePartNode modulePartNode = syntaxTree.rootNode();

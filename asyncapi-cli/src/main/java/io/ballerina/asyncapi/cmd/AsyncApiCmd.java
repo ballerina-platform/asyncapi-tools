@@ -48,9 +48,22 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 
+import static io.ballerina.asyncapi.cmd.AsyncApiConstants.CLIENT;
+import static io.ballerina.asyncapi.cmd.AsyncApiConstants.INPUT_FLAG;
+import static io.ballerina.asyncapi.cmd.AsyncApiConstants.INPUT_FLAG_ALT;
+import static io.ballerina.asyncapi.cmd.AsyncApiConstants.JSON_FLAG;
+import static io.ballerina.asyncapi.cmd.AsyncApiConstants.LICENSE_FLAG;
+import static io.ballerina.asyncapi.cmd.AsyncApiConstants.OUTPUT_FLAG;
+import static io.ballerina.asyncapi.cmd.AsyncApiConstants.OUTPUT_FLAG_ALT;
+import static io.ballerina.asyncapi.cmd.AsyncApiConstants.PROTOCOL_FLAG;
+import static io.ballerina.asyncapi.cmd.AsyncApiConstants.SERVICE_FLAG;
+import static io.ballerina.asyncapi.cmd.AsyncApiConstants.SPEC;
+import static io.ballerina.asyncapi.cmd.AsyncApiConstants.TEST_FLAG;
 import static io.ballerina.asyncapi.cmd.AsyncApiConstants.VALID_HTTP_NAMES;
 import static io.ballerina.asyncapi.cmd.AsyncApiConstants.VALID_WS_NAMES;
 import static io.ballerina.asyncapi.cmd.AsyncApiMessages.CLIENT_GENERATION_FAILED;
+import static io.ballerina.asyncapi.cmd.AsyncApiMessages.INVALID_OPTION_ERROR_HTTP;
+import static io.ballerina.asyncapi.cmd.AsyncApiMessages.INVALID_OPTION_WARNING;
 import static io.ballerina.asyncapi.cmd.AsyncApiMessages.MESSAGE_INVALID_LICENSE_STREAM;
 
 /**
@@ -72,28 +85,28 @@ public class AsyncApiCmd implements BLauncherCmd {
     @CommandLine.Option(names = {"-h", "--help"}, hidden = true)
     private boolean helpFlag;
 
-    @CommandLine.Option(names = {"-i", "--input"}, description = "File path to the AsyncAPI specification")
+    @CommandLine.Option(names = {INPUT_FLAG_ALT, INPUT_FLAG}, description = "File path to the AsyncAPI specification")
     private boolean inputPath;
 
-    @CommandLine.Option(names = {"-o", "--output"},
+    @CommandLine.Option(names = {OUTPUT_FLAG_ALT, OUTPUT_FLAG},
             description = "Directory to store the generated Ballerina service. " +
             "If this is not provided, the generated files will be stored in the the current execution directory")
     private String outputPath;
 
-    @CommandLine.Option (names = {"--protocol"}, description = "The protocol to be used for the service")
+    @CommandLine.Option (names = {PROTOCOL_FLAG}, description = "The protocol to be used for the service")
     private String protocol = "http";
 
-    @CommandLine.Option(names = {"--license"}, description = "Location of the file which contains the license header")
+    @CommandLine.Option(names = {LICENSE_FLAG}, description = "Location of the file which contains the license header")
     private String licenseFilePath;
 
-    @CommandLine.Option(names = {"-s", "--service"}, description = "Service name that need to documented as asyncapi " +
+    @CommandLine.Option(names = {SERVICE_FLAG}, description = "Service name that need to documented as asyncapi " +
             "contract")
     private String service;
 
-    @CommandLine.Option(names = {"--with-tests"}, hidden = true, description = "Generate test files")
+    @CommandLine.Option(names = {TEST_FLAG}, hidden = true, description = "Generate test files")
     private boolean includeTestFiles;
 
-    @CommandLine.Option(names = {"--json"}, description = "Generate json file")
+    @CommandLine.Option(names = {JSON_FLAG}, description = "Generate json file")
     private boolean generatedFileType;
 
     @CommandLine.Parameters
@@ -170,6 +183,7 @@ public class AsyncApiCmd implements BLauncherCmd {
             } else if (VALID_WS_NAMES.contains(protocol.toLowerCase())) {
                 if (fileName.endsWith(Constants.YAML_EXTENSION) || fileName.endsWith(Constants.JSON_EXTENSION) ||
                         fileName.endsWith(Constants.YML_EXTENSION)) {
+                    giveWarningsForInvalidClientGenOptions();
                     try {
                         asyncApiToBallerinaWs(fileName);
                     } catch (IOException e) {
@@ -178,10 +192,11 @@ public class AsyncApiCmd implements BLauncherCmd {
                     }
                     // when -i has bal extension
                 } else if (fileName.endsWith(CmdConstants.BAL_EXTENSION)) {
+                    giveWarningsForInvalidSpecGenOptions();
                     try {
                         ballerinaToAsyncApiWs(fileName);
-                    } catch (Exception exception) {
-                        outStream.println(exception.getMessage());
+                    } catch (Exception e) {
+                        outStream.println(e.getLocalizedMessage());
                         exitError(this.exitWhenFinish);
                     }
                     // If -i has no extensions
@@ -205,21 +220,39 @@ public class AsyncApiCmd implements BLauncherCmd {
         }
     }
 
+    private void giveWarningsForInvalidSpecGenOptions() {
+        if (licenseFilePath != null) {
+            outStream.println(String.format(INVALID_OPTION_WARNING, LICENSE_FLAG, SPEC));
+        }
+        if (includeTestFiles) {
+            outStream.println(String.format(INVALID_OPTION_WARNING, TEST_FLAG, SPEC));
+        }
+    }
+
+    private void giveWarningsForInvalidClientGenOptions() {
+        if (generatedFileType) {
+            outStream.println(String.format(INVALID_OPTION_WARNING, JSON_FLAG, CLIENT));
+        }
+        if (service != null) {
+            outStream.println(String.format(INVALID_OPTION_WARNING, SERVICE_FLAG, CLIENT));
+        }
+    }
+
     private void verifyValidInputsForHttp() {
         if (licenseFilePath != null) {
-            outStream.println(AsyncApiMessages.MESSAGE_FOR_LICENSE_FLAG);
+            outStream.println(String.format(INVALID_OPTION_ERROR_HTTP, LICENSE_FLAG));
             exitError(this.exitWhenFinish);
         }
         if (service != null) {
-            outStream.println(AsyncApiMessages.MESSAGE_FOR_SERVICE_FLAG);
+            outStream.println(String.format(INVALID_OPTION_ERROR_HTTP, SERVICE_FLAG));
             exitError(this.exitWhenFinish);
         }
         if (includeTestFiles) {
-            outStream.println(AsyncApiMessages.MESSAGE_FOR_TEST_FLAG);
+            outStream.println(String.format(INVALID_OPTION_ERROR_HTTP, TEST_FLAG));
             exitError(this.exitWhenFinish);
         }
         if (generatedFileType) {
-            outStream.println(AsyncApiMessages.MESSAGE_FOR_JSON_FLAG);
+            outStream.println(String.format(INVALID_OPTION_ERROR_HTTP, JSON_FLAG));
             exitError(this.exitWhenFinish);
         }
     }
