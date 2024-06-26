@@ -65,16 +65,12 @@ public class AsyncApiServiceMapper {
 
     private String extractDispatcherValue(ServiceDeclarationNode service) {
         String dispatcherValue = "";
-//        String typeName=null;
         if (service.metadata().isPresent()) {
             MetadataNode serviceMetadataNode = service.metadata().get();
             NodeList<AnnotationNode> annotationNodes = serviceMetadataNode.annotations();
             AnnotationNode annotationNode = annotationNodes.get(0);
             Node node = annotationNode.annotReference();
             if (node instanceof QualifiedNameReferenceNode) {
-//                if (qNode.modulePrefix().text().equals(WEBSOCKET)) {
-//                    typeName = qNode.modulePrefix().text() + ":" + qNode.identifier().text();
-//                    if (typeName.equals(WEBSOCKET + ":" + SERVICE_CONFIG)) {
                 SeparatedNodeList<MappingFieldNode> fields = annotationNode.annotValue().get().fields();
                 for (MappingFieldNode field : fields) {
                     if (field instanceof SpecificFieldNode) {
@@ -89,11 +85,7 @@ public class AsyncApiServiceMapper {
                                 throw new NoSuchElementException(DISPATCHER_STREAM_ID_VALUE_CANNOT_BE_EMPTY);
                             }
                             asyncAPI.addExtension("x-dispatcherStreamId", new TextNode(dispatcherStreamIdValue));
-
-//                            return dispatcherValue.trim();
                         }
-
-
                     }
                 }
                 if (!dispatcherValue.equals("")) {
@@ -103,10 +95,6 @@ public class AsyncApiServiceMapper {
                 if (dispatcherValue.isEmpty()) {
                     throw new NoSuchElementException(NO_DISPATCHER_KEY);
                 }
-//                    }else{
-//                        throw new NoSuchElementException(NO_WEBSOCKET_SERVICE_CONFIG_ANNOTATION);
-//                    }
-//                }
             }
         } else {
             throw new NoSuchElementException(NO_ANNOTATION_PRESENT);
@@ -123,8 +111,6 @@ public class AsyncApiServiceMapper {
                 throw new NoSuchElementException(DISPATCHER_KEY_VALUE_CANNOT_BE_EMPTY);
             }
             asyncAPI.addExtension("x-dispatcherKey", new TextNode(dispatcherValue));
-
-//                            return dispatcherValue.trim();
         }
         return dispatcherValue;
     }
@@ -150,13 +136,9 @@ public class AsyncApiServiceMapper {
                 AsyncApiRemoteMapper resourceMapper = new AsyncApiRemoteMapper(this.semanticModel);
                 AsyncApi25ChannelsImpl generatedChannels = resourceMapper.getChannels((FunctionDefinitionNode) function,
                         classDefinitionNodes, dispatcherValue);
-//                if (!generatedChannels.getItems().isEmpty()) {
                 asyncApi.setChannels(generatedChannels);
-//                }
                 AsyncApi25ComponentsImpl generatedComponents = resourceMapper.getComponents();
-//                if (generatedComponents.getSchemas() != null || generatedComponents.getMessages() != null) {
                 asyncApi.setComponents(generatedComponents);
-//                }
             }
         }
         return asyncApi;

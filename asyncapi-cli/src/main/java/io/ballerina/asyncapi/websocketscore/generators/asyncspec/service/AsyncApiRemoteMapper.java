@@ -153,7 +153,6 @@ public class AsyncApiRemoteMapper {
                     String functionName = remoteFunctionNode.functionName().toString().trim();
                     if (functionName.matches(CAMEL_CASE_PATTERN)) {
                         if (isRemoteFunctionNameValid(functionName)) {
-                            //TODO : have to pass this through unescape identifier
                             String remoteRequestTypeName = ConverterCommonUtils.
                                     unescapeIdentifier(functionName.substring(2));
                             RequiredParameterNode requiredParameterNode =
@@ -199,7 +198,7 @@ public class AsyncApiRemoteMapper {
                                         }
                                         //Call createResponse method to create the response
                                         responseMapper.createResponse(subscribeMessage, componentMessage,
-                                                remoteReturnType, returnDescription, FALSE);
+                                                remoteReturnType, returnDescription, FALSE, null);
                                     }
                                     //Add publish message related to remote method
                                     components.addMessage(remoteRequestTypeName, componentMessage);
@@ -248,12 +247,10 @@ public class AsyncApiRemoteMapper {
     }
 
     private Boolean isRemoteFunctionNameValid(String providedFunctionName) {
-        String[] invalidRemoteFunctionNames = {
-                ON_MESSAGE, ON_TEXT_MESSAGE,
-                ON_BINARY_MESSAGE, ON_CLOSE,
-                ON_OPEN, ON_PING, ON_PONG};
-        return !(Arrays.stream(invalidRemoteFunctionNames).anyMatch(
-                remoteFunctionName -> remoteFunctionName.equals(providedFunctionName)));
+        String[] invalidRemoteFunctionNames = {ON_MESSAGE, ON_TEXT_MESSAGE, ON_BINARY_MESSAGE, ON_CLOSE, ON_OPEN,
+                ON_PING, ON_PONG};
+        return Arrays.stream(invalidRemoteFunctionNames).noneMatch(remoteFunctionName ->
+                remoteFunctionName.equals(providedFunctionName));
     }
 
     private Map<String, String> getRemoteDocumentation(FunctionSymbol remoteFunctionSymbol) {
