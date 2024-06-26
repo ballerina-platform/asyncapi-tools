@@ -42,14 +42,10 @@ service /payloadV on ep0 {
     }
 }
 
-
 service class ChatServer{
     *websocket:Service;
 
-     remote function onDog(websocket:Caller caller, Dog message) returns Cat {
-
-         return {id:5,eat:"ate",testing:"testing"};
+    remote function onDog(websocket:Caller caller, Dog message) returns Cat {
+        return {id:5,eat:"ate",testing:"testing"};
     }
-
 }
-

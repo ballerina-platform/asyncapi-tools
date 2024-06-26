@@ -29,8 +29,6 @@ service /payloadV on helloEp {
     resource function get ping(@http:Header string headerValue, @http:Header{} string[]? x\-request\-client) returns websocket:Service|websocket:UpgradeError {
         return new ChatServer();
     }
-
-
 }
 
 service class ChatServer{
@@ -39,6 +37,4 @@ service class ChatServer{
     remote function onSubscribe(websocket:Caller caller, Subscribe message) returns int {
         return 5;
     }
-
 }
-

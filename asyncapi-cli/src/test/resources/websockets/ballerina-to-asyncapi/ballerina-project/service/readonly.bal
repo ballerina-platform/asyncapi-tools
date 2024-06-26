@@ -47,10 +47,7 @@ service class ReadOnlyChatServer{
         return;
     }
 
-
     remote function onReserveRoom(ds:ReserveRoom room) returns Subscribe[] {
-        
-       
         return [{id:"",event: ""}];
     }
 
@@ -59,6 +56,5 @@ service class ReadOnlyChatServer{
 public type Subscribe record {|
     # Unique identification of the room
     string id;
-
     string event;
 |};

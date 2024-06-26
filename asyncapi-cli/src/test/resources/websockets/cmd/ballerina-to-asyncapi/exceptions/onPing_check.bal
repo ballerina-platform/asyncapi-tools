@@ -48,13 +48,11 @@ service / on helloEp {
 service class ChatServer{
     *websocket:Service;
 
-    remote function onSubscribe(websocket:Caller caller,Subscribe message) returns Ticker{
+    remote function onSubscribe(websocket:Caller caller,Subscribe message) returns Ticker {
         return {id:1};
     }
 
-	remote function onPing(websocket:Caller caller, byte[] data) returns byte[]{
+	remote function onPing(websocket:Caller caller, byte[] data) returns byte[] {
         return [4,5];
-
 	}
 }
-

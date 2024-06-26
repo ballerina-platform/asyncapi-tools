@@ -41,9 +41,9 @@ public type Subscribe record{
     Token token?;
     string event;
 };
+
 public type Depth int?;
 public type Token string?;
-
 
 public enum Name {
     book,
@@ -54,10 +54,9 @@ public enum Name {
     ticker,
     trade
 }
+
 public type MaxRateCount int?;
 public type Interval int?;
-
-
 
 listener websocket:Listener ep0 = new(443, config = {host: "petstore.swagger.io"});
 
@@ -71,14 +70,10 @@ service /payloadV on ep0 {
 service class ChatServer{
     *websocket:Service;
 
-     remote function onSubscribe(websocket:Caller caller, Subscribe message) returns int {
-        // io:println(data);
+    remote function onSubscribe(websocket:Caller caller, Subscribe message) returns int {
         return 5;
     }
     remote function onReservationReceipt(websocket:Caller caller, ReservationReceipt message) returns int {
-        // io:println(data);
         return 5;
     }
-
-
 }

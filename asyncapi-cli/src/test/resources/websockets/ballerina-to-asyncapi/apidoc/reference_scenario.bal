@@ -32,6 +32,7 @@ type Link record {|
     # Remote trigger field
     string event;
 |};
+
 type Links record {|
     Link[] links;
 |};
@@ -80,6 +81,7 @@ type Room record {|
     # Number of rooms as per the status
     int count;
 |};
+
 # Represents a collection of resort rooms
 type Rooms record {|
     *Links;
@@ -96,6 +98,7 @@ type ReserveRoom record {|
     # Remote trigger field
     string event;
 |};
+
 # Represents a reservation of rooms
 type Reservation record {|
     # Rooms to be reserved
@@ -107,6 +110,7 @@ type Reservation record {|
     # Remote trigger field
     string event;
 |};
+
 # Represents a receipt for the reservation
 type ReservationReceipt record {|
     *Links;
@@ -121,12 +125,15 @@ type ReservationReceipt record {|
     # Remote trigger field
     string event;
 |};
+
 type ReservationUpdated record {|
     ReservationReceipt body;
 |};
+
 type ReservationCreated record {|
     ReservationReceipt body;
 |};
+
 type ReservationConflict record {|
     string body = "Error occurred while updating the reservation";
 |};
@@ -158,13 +165,14 @@ type PaymentReceipt record {|
     # Remote trigger field
     string event;
 |};
+
 type PaymentCreated record {|
     PaymentReceipt body;
 |};
+
 type PaymentConflict record {|
     string body = "Error occurred while updating the payment";
 |};
-
 
 @websocket:ServiceConfig{dispatcherKey: "event"}
 service /payloadV on new websocket:Listener(9090) {
@@ -172,7 +180,6 @@ service /payloadV on new websocket:Listener(9090) {
         return new ChatServer();
     }
 }
-
 
 service class ChatServer{
     *websocket:Service;
@@ -234,8 +241,6 @@ service class ChatServer{
         return paymentCreated;
     }
 }
-
-
 
 function getLocation() returns Location[] {
     return [
@@ -300,7 +305,6 @@ function getRooms(string startDate, string endDate) returns Rooms {
 
 function createReservation(Reservation reservation) returns ReservationCreated {
     return {
-
         body: {
             id: "re1000",
             expiryDate: "2021-07-01",
@@ -316,7 +320,6 @@ function createReservation(Reservation reservation) returns ReservationCreated {
                 startDate: "2021-08-01",
                 endDate: "2021-08-03",
                 event:""
-
             },
             links: [
                 {

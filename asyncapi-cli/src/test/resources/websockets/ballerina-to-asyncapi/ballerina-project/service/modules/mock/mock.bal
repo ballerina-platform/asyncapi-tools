@@ -20,13 +20,10 @@ public isolated function getLocations() returns rep:Locations {
     return {
         locations: [
             {
-         
                 id: "l1000",
                 event:""
-                
             },
             {
-            
                 id: "l2000",
                 event:""
             }
@@ -54,7 +51,6 @@ public isolated function getRooms(string startDate, string endDate) returns rep:
 
 public isolated function createReservation(rep:Reservation reservation) returns rep:ReservationCreated {
     return {
-
         body: {
             id: "re1000",
             expiryDate: "2021-07-01",
@@ -103,7 +99,6 @@ public isolated function updateReservation(rep:Reservation reservation) returns 
 
 public isolated function createPayment(string id, rep:Payment payment) returns rep:PaymentCreated {
     return {
-       
         body: {
             id: "p1000",
             currency: "USD",
@@ -124,4 +119,3 @@ public isolated function createPayment(string id, rep:Payment payment) returns r
         }
     };
 }
-

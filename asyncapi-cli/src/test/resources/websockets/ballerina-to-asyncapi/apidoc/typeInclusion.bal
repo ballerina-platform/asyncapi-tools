@@ -59,14 +59,9 @@ service class ChatServer{
     *websocket:Service;
 
     remote function onReservationReceipt(websocket:Caller caller, ReservationReceipt message) returns int {
-
         return 5;
     }
     remote function onLink(websocket:Caller caller, Link message) returns int {
-
         return 5;
     }
-
-
 }
-

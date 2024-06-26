@@ -51,9 +51,6 @@ service class ChatServer{
     # + link - link description
     # + return - Return int description
      remote function onLink(websocket:Caller caller, Link link) returns int {
-        // io:println(data);
         return 5;
     }
-
-
 }

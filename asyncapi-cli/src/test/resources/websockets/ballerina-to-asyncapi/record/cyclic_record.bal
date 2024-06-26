@@ -65,38 +65,38 @@ service /payloadV on ep0 {
     resource function get albums/[string id]() returns websocket:Service| websocket:UpgradeError{
         return new ChatServer();
     }
-
-
 }
+
 service class ChatServer{
     *websocket:Service;
 
     remote function onResponseError (websocket:Caller caller,ResponseError message) returns ResponseError{
         return {id:4,resError: {id: 4, event: ""},event: ""};
     }
+
     remote function onResponseError02(websocket:Caller caller,ResponseError02 message) returns ResponseError02 {
         return {id:4,resError: {id: (),event: ""},event: ""};
     }
+
     remote function onResponseError03(websocket:Caller caller,ResponseError03 message) returns ResponseError03{
         return {id:4,resError: [],event: ""};
 
     }
+
     remote function onResponseError04(websocket:Caller caller,ResponseError04 message) returns ResponseError04 {
         return  {id:4,resError: [[]],event: ""};
 
     }
+
     remote function onResponseError05(websocket:Caller caller,ResponseError05 message) returns ResponseError05 {
          return {id: (),event: ""};
     }
+
     remote function onResponseError06(websocket:Caller caller,ResponseError06 message) returns ResponseError06 {
         return {id:3,resError: (),event: ""};
     }
+
     remote function onResponseError07(websocket:Caller caller,ResponseError07 message) returns ResponseError07 {
         return {id:5,resError: (),event: ""};
     }
-
-
 }
-
-
-

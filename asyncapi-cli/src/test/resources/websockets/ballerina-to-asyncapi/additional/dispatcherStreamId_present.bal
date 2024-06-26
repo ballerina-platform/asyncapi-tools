@@ -18,7 +18,6 @@ import ballerina/websocket;
 
 @websocket:ServiceConfig {dispatcherKey: "event",dispatcherStreamId: "id"}
 service /chat on new websocket:Listener(9090) {
-
     resource function get .() returns websocket:Service {
         return new ChatService();
     }
@@ -34,7 +33,6 @@ service class ChatService {
 public type Ping record{
     string event;
     string id;
-
 };
 
 public type Pong record {

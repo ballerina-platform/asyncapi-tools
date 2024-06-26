@@ -36,6 +36,7 @@ public type Subscribe record{
     int id;
     string event;
 };
+
 public type SubscriptionStatus record {
     int id;
     string type1;

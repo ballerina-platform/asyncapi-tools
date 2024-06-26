@@ -16,7 +16,6 @@
 
 import ballerina/websocket;
 
-
 public type Subscribe record{
     int id;
     string event;
@@ -24,7 +23,6 @@ public type Subscribe record{
 
 @websocket:ServiceConfig{dispatcherKey: "event"}
 service /payloadV on new websocket:Listener(9090) {
-
     # Reperesents Snowpeak room collection resource
     #
     # + id - Unique identification of location
@@ -42,6 +40,4 @@ service class ChatServer{
         // io:println(data);
         return 5;
     }
-
-
 }

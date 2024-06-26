@@ -18,8 +18,7 @@ import ballerina/websocket;
 
 @websocket:ServiceConfig {dispatcherKey: "event"}
 service /payloadV on new websocket:Listener(9090) {
-     # Represents Snowpeak location resource
-    #
+    # Represents Snowpeak location resource
     resource function get locations() returns websocket:Service|websocket:Error {
         return new WsService();
     }
@@ -41,16 +40,11 @@ service class WsService {
             };
         ReservationCreated created = createReservation(reservation);
         return created;
-
     }
-
 }
-
-
 
 function createReservation(Reservation reservation) returns ReservationCreated {
     return {
-
         body: {
             id: "re1000",
             expiryDate: "2021-07-01",
@@ -89,14 +83,11 @@ function createReservation(Reservation reservation) returns ReservationCreated {
     };
 }
 
-
-
-
-
 public type Subscribe record{
     int id;
     string event;
 };
+
 # Link details
 type Link record {|
     # linnk rel
@@ -115,8 +106,6 @@ type Links record {|
     Link[] links;
 |};
 
-
-
 enum Action {
     GET,
     POST,
@@ -132,6 +121,7 @@ type ReserveRoom record {|
     # Number of rooms
     int count;
 |};
+
 # Represents a reservation of rooms
 type Reservation record {|
     # Rooms to be reserved
@@ -141,6 +131,7 @@ type Reservation record {|
     # End date in yyyy-mm-dd
     string endDate;
 |};
+
 # Represents a receipt for the reservation
 type ReservationReceipt record {|
     *Links;
@@ -158,6 +149,7 @@ type ReservationCreated record {|
 
     ReservationReceipt body;
 |};
+
 type ReservationConflict record {|
     string body = "Error occurred while updating the reservation";
 |};

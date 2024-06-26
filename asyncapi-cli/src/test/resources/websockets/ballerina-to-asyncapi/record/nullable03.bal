@@ -40,9 +40,6 @@ service class ChatServer{
     *websocket:Service;
 
      remote function onLink(websocket:Caller caller, Link message) returns int {
-
         return 5;
     }
-
-
 }

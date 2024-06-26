@@ -36,7 +36,6 @@ public type ReturnTypes readonly & [int, decimal];
 service /payloadV on new websocket:Listener(9090) {
     resource function get .(User payload)returns websocket:Service|websocket:UpgradeError {
           return new ChatServer();
-
     }
 }
 
@@ -49,6 +48,4 @@ service class ChatServer{
      remote function onTuple(websocket:Caller caller, Tuple message) returns User {
         return {id:5,age:45,event:"Testing"};
     }
-
-
 }

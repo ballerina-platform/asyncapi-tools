@@ -47,4 +47,3 @@ service class ChatServer{
         return {id:1};
     }
 }
-

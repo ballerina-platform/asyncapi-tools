@@ -37,6 +37,4 @@ service class ChatServer{
     remote function onSubscribe(websocket:Caller caller, Subscribe message) returns int {
         return 5;
     }
-
 }
-

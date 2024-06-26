@@ -26,11 +26,8 @@ public type Link record {
 public type Subscribe record{
     int id?;
     string event?;
-
     string fdf;
-
     string bb;
-
     string type1;
 };
 
@@ -61,7 +58,6 @@ service /payloadV on new websocket:Listener(9090) {
 service class ChatServer{
     *websocket:Service;
 
-
     #Testing remote description
     # + location - remote above link description
     # + return - remote return description
@@ -69,5 +65,4 @@ service class ChatServer{
         return Test1;
 
     }
-
 }

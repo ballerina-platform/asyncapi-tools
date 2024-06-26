@@ -31,7 +31,6 @@ service class WsService {
     }
 }
 
-
 public type Subscribe record{
     int id;
     string event;

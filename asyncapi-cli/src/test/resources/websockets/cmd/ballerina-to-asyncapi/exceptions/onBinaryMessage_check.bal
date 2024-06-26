@@ -44,6 +44,5 @@ service class ChatServer{
 
 	remote function onBinaryMessage(websocket:Caller caller, byte[] data) returns websocket:Error? {
 
-	}
+    }
 }
-

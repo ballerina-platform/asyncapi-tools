@@ -26,6 +26,7 @@ public type Subscribe record{
 public type Ticker record{
     int id;
 };
+
 @websocket:ServiceConfig{dispatcherKey: "event"}
 service / on helloEp {
     resource function get .() returns int {
@@ -33,12 +34,10 @@ service / on helloEp {
     }
 }
 
-service class ChatServer{
+service class ChatServer {
     *websocket:Service;
 
-    remote function onSubscribe(websocket:Caller caller,Subscribe message) returns Ticker{
+    remote function onSubscribe(websocket:Caller caller,Subscribe message) returns Ticker {
         return {id:1};
     }
-
 }
-

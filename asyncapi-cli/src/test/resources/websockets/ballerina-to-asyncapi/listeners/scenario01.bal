@@ -22,4 +22,3 @@ service /v1 on ep0 {
     resource function get pets(int? 'limit) returns Pets|Error {
     }
 }
-

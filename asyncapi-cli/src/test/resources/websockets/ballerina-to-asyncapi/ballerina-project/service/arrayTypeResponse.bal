@@ -17,7 +17,6 @@
 import ballerina/websocket;
 import 'service.types;
 
-
 @websocket:ServiceConfig{dispatcherKey: "event"}
 service /payloadV on new websocket:Listener(8080) {
     # List all products
@@ -26,7 +25,6 @@ service /payloadV on new websocket:Listener(8080) {
         return new ArrayChatServer();
     }
 }
-
 
 service class ArrayChatServer{
 

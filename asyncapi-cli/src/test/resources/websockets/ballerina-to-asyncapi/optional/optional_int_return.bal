@@ -16,14 +16,12 @@
 
 import ballerina/websocket;
 
-
 # A fake mountain resort
 @websocket:ServiceConfig{dispatcherKey: "event"}
 service /payloadV on new websocket:Listener(9090) {
     resource function get .()returns websocket:Service|websocket:UpgradeError {
         return new ChatServer();
     }
-
 }
 
 service class ChatServer{
@@ -36,16 +34,11 @@ service class ChatServer{
         // rep:Locations locations = mock:getLocations();
         // return 5;
     }
-
-
 }
-
 
 # Represents location
 public type Location record {|
-
     # Unique identification
     string id;
-
     string event;
 |};

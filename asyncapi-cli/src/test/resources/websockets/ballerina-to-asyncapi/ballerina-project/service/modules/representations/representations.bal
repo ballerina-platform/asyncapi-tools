@@ -19,9 +19,9 @@ public type Location record {|
 
     # Unique identification
     string id;
-     
     string event;
 |};
+
 # Represents a collection of locations
 public type Locations record {|
     # collection of locations
@@ -33,6 +33,7 @@ public enum RoomCategory {
     KING,
     FAMILY
 }
+
 public enum RoomStatus {
     AVAILABLE,
     RESERVED,
@@ -58,6 +59,7 @@ public type Room record {|
     # Number of rooms as per the status
     int count;
 |};
+
 # Represents a collection of resort rooms
 public type Rooms record {|
     # Array of rooms
@@ -71,9 +73,9 @@ public type ReserveRoom record {|
     string id;
     # Number of rooms
     int count;
-
     string event;
 |};
+
 # Represents a reservation of rooms
 public type Reservation record {|
     # Rooms to be reserved
@@ -82,12 +84,11 @@ public type Reservation record {|
     string startDate;
     # End date in yyyy-mm-dd
     string endDate;
-
     string event;
 |};
+
 # Represents a receipt for the reservation
 public type ReservationReceipt record {|
-
     # Unique identification
     string id;
     # Expiry date in yyyy-mm-dd
@@ -101,12 +102,15 @@ public type ReservationReceipt record {|
     # Reservation
     Reservation reservation;
 |};
+
 public type ReservationUpdated record {|
     ReservationReceipt body;
 |};
+
 public type ReservationCreated record {|
     ReservationReceipt body;
 |};
+
 public type ReservationConflict record {|
     string body = "Error occurred while updating the reservation";
 |};
@@ -121,7 +125,6 @@ public type Payment record {|
     string expiryMonth;
     # Expiaration year of the card in yyyy
     string expiryYear;
-
     string event;
 |};
 
@@ -138,9 +141,11 @@ public type PaymentReceipt record {|
     # Booked rooms
     Room[] rooms;
 |};
+
 public type PaymentCreated record {|
     PaymentReceipt body;
 |};
+
 public type PaymentConflict record {|
     string body = "Error occurred while updating the payment";
 |};
@@ -148,6 +153,7 @@ public type PaymentConflict record {|
 public type PaymentSuccess record {|
     string body = "Error occurred while updating the payment";
 |};
+
 public type PaymentFault record {|
     string body = "Error occurred while updating the payment";
 |};
@@ -172,4 +178,3 @@ public final readonly & table<LiftRecord> key(id) liftTable = table [
     { id: "jazz-cat", name: "Jazz Cat", status: CLOSED, capacity: 5, night: true, elevationgain: 30},
     { id: "jolly-roger", name: "Jolly Roger", status: CLOSED, capacity: 8, night: true, elevationgain: 10}
 ];
-

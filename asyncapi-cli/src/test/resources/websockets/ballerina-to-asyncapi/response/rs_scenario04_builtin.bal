@@ -29,7 +29,6 @@ service class WsService {
     remote function onSubscribe(websocket:Caller caller, Subscribe message) returns string{
         return "subscribed";
     }
-
 }
 
 public type Subscribe record{

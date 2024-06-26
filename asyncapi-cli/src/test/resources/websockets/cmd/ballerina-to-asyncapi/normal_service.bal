@@ -31,12 +31,9 @@ service class WsService {
         self.yy = 10;
         return 5;
     }
-
-
 }
 
 public type Subscribe record{
     int id;
     string event;
 };
-

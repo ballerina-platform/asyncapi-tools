@@ -27,7 +27,6 @@ public type Ticker record{
     int id;
 };
 
-
 public type Reqid int?;
 @websocket:ServiceConfig{dispatcherKey: "event"}
 service / on helloEp {
@@ -39,7 +38,7 @@ service / on helloEp {
 service class ChatServer{
     *websocket:Service;
 
-    remote function onSubscribe(websocket:Caller caller,Subscribe message) returns Ticker{
+    remote function onSubscribe(websocket:Caller caller,Subscribe message) returns Ticker {
         return {id:1};
     }
 
@@ -47,4 +46,3 @@ service class ChatServer{
 
 	}
 }
-

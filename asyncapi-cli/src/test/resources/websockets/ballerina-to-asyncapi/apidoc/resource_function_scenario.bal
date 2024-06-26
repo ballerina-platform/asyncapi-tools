@@ -16,7 +16,6 @@
 
 import ballerina/websocket;
 
-
 public type Subscribe record{
     int id;
     string event;
@@ -37,7 +36,4 @@ service class ChatServer{
         // io:println(data);
         return 5;
     }
-
-
 }
-

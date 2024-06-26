@@ -24,7 +24,6 @@ service /payloadV on new websocket:Listener(80) {
     resource function get .()returns websocket:Service|websocket:UpgradeError {
         return new SnowPeakChatServer();
     }
-
 }
 
 service class SnowPeakChatServer{
@@ -68,5 +67,4 @@ service class SnowPeakChatServer{
         rep:PaymentCreated paymentCreated = mock:createPayment(id, payment);
         return paymentCreated;
     }
-
 }

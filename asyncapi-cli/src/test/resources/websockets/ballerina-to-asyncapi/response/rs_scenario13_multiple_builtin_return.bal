@@ -22,31 +22,23 @@ service /payloadV on new websocket:Listener(9090) {
     resource function get .()returns websocket:Service|websocket:UpgradeError {
         return new FirstChatServer();
     }
-
 }
 
 service class FirstChatServer{
     *websocket:Service;
 
-      remote function onSubscribe(websocket:Caller caller,Subscribe payment)
-                    returns int|string|boolean{
-
+    remote function onSubscribe(websocket:Caller caller,Subscribe payment) returns int|string|boolean {
             return 1;
-        }
+    }
 
     # Represents Snowpeak payment resource
     #
     # + id - Unique identification of payment
     # + payment - Payment representation
     # + return - `PaymentCreated` or `PaymentConflict` representation
-    remote function onPayment(websocket:Caller caller,Payment payment)
-                returns int|string|map<json>|map<string>{
-
+    remote function onPayment(websocket:Caller caller,Payment payment) returns int|string|map<json>|map<string> {
         return "1";
     }
-
-
-
 }
 
 public type Subscribe record {|
@@ -67,4 +59,3 @@ public type Payment record {|
     # Event description
     string event;
 |};
-

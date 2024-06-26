@@ -30,6 +30,7 @@ type Link record {|
     string[] mediaTypes?;
     Action[] actions?;
 |};
+
 type Links record {|
     Link[] links;
 |};
@@ -76,6 +77,7 @@ type Room record {|
     # Number of rooms as per the status
     int count;
 |};
+
 # Represents a collection of resort rooms
 type Rooms record {|
     *Links;
@@ -90,6 +92,7 @@ type ReserveRoom record {|
     # Number of rooms
     int count;
 |};
+
 # Represents a reservation of rooms
 type Reservation record {|
     # Rooms to be reserved
@@ -99,6 +102,7 @@ type Reservation record {|
     # End date in yyyy-mm-dd
     string endDate;
 |};
+
 # Represents a receipt for the reservation
 type ReservationReceipt record {|
     *Links;
@@ -111,14 +115,17 @@ type ReservationReceipt record {|
     # Reservation
     Reservation reservation;
 |};
+
 type ReservationUpdated record {|
     *http:Ok;
     ReservationReceipt body;
 |};
+
 type ReservationCreated record {|
     *http:Created;
     ReservationReceipt body;
 |};
+
 type ReservationConflict record {|
     *http:Conflict;
     string body = "Error occurred while updating the reservation";
@@ -147,10 +154,12 @@ type PaymentReceipt record {|
     # Booked rooms
     Room[] rooms;
 |};
+
 type PaymentCreated record {|
     *http:Created;
     PaymentReceipt body;
 |};
+
 type PaymentConflict record {|
     *http:Conflict;
     string body = "Error occurred while updating the payment";

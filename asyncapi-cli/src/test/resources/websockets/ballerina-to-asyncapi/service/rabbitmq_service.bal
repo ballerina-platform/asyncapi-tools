@@ -24,7 +24,6 @@ public type Order record {
     boolean isValid;
 };
 
-
 // The consumer service listens to the "OrderQueue" queue.
 service "query" on new rabbitmq:Listener(rabbitmq:DEFAULT_HOST, rabbitmq:DEFAULT_PORT) {
 

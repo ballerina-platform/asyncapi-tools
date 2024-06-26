@@ -18,7 +18,7 @@ import ballerina/websocket;
 import ballerina/http;
 
 @websocket:ServiceConfig {dispatcherKey: "type1"}
-service /v1/abc\-hello on new websocket:Listener(9090){
+service /v1/abc\-hello on new websocket:Listener(9090) {
     # Description
     #
     # + path\-param - Path Parameter Description
@@ -26,11 +26,10 @@ service /v1/abc\-hello on new websocket:Listener(9090){
     resource function get say\-hello/[string path\-param](string q\-paramter,string ชื่\u{E2D}) returns websocket:Service|websocket:UpgradeError {
         return new FirstChatServer();
     }
-
 }
 
 @websocket:ServiceConfig{dispatcherKey: "event"}
-service /'limit on new websocket:Listener(9091){
+service /'limit on new websocket:Listener(9091) {
     # Query parameter
     #
     # + 'limit - QParameter Description
@@ -46,24 +45,22 @@ service class FirstChatServer{
      remote function onSubscribe(websocket:Caller caller, Subscribe message) returns int {
         return 5;
     }
-
 }
 
 service class SecondChatServer{
     *websocket:Service;
 
-    remote function onUnSubscribe(websocket:Caller caller, UnSubscribe message)returns string{
+    remote function onUnSubscribe(websocket:Caller caller, UnSubscribe message)returns string {
         return "testing";
     }
-
 }
 
-public type Subscribe record{
+public type Subscribe record {
     int id;
     string type1;
 };
-public type UnSubscribe record{
+
+public type UnSubscribe record {
     string id;
     string event;
-
 };

@@ -36,24 +36,15 @@ table<Album> key(id) albums = table [
 
 @websocket:ServiceConfig{dispatcherKey: "event"}
 service /payloadV on new websocket:Listener(port) {
-    resource function get albums/[string id]() returns websocket:Service| websocket:UpgradeError{
+    resource function get albums/[string id]() returns websocket:Service| websocket:UpgradeError {
         return new ChatServer();
-
     }
-
 }
 
 service class ChatServer{
     *websocket:Service;
 
-
-    remote function onAlbum(Album message, websocket:Caller caller) returns Album[]{
+    remote function onAlbum(Album message, websocket:Caller caller) returns Album[] {
         return albums.toArray();
-
     }
-
-
 }
-
-
-

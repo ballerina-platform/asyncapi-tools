@@ -28,7 +28,6 @@ service /payloadV on {
     resource function get pathParam() returns websocket:Service|websocket:UpgradeError {
         return new ChatServer();
     }
-
 }
 
 service class ChatServer{
@@ -37,6 +36,4 @@ service class ChatServer{
     remote function onSubscribe(websocket:Caller caller, Subscribe message) returns int {
         return 5;
     }
-
 }
-

@@ -36,15 +36,14 @@ service class WsService {
         self.yy = 20;
         return 5;
     }
-
 }
 
 public type Subscribe record{
     int id;
     string event;
 };
+
 public type UnSubscribe record{
     string id;
     string event;
-
 };

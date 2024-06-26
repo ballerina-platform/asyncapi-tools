@@ -22,15 +22,13 @@ listener websocket:Listener ep0 = new(80,config = { secureSocket : {
             keyFile: "../resource/path/to/private.key"
         }
     }
-} );
-
+});
 
 @websocket:ServiceConfig {dispatcherKey: "type1"}
 service /payloadV on ep0{
     resource function get v1/[int id]/v2/[string name]() returns websocket:Service|websocket:UpgradeError {
         return new FirstChatServer();
     }
-
 }
 
 service class FirstChatServer{
@@ -40,13 +38,12 @@ service class FirstChatServer{
     }
 }
 
-
 public type Subscribe record{
     int id;
     string type1;
 };
+
 public type UnSubscribe record{
     string id;
     string event;
-
 };

@@ -18,8 +18,7 @@ import ballerina/websocket;
 
 @websocket:ServiceConfig {dispatcherKey: "event"}
 service /payloadV on new websocket:Listener(9090) {
-     # Represents Snowpeak location resource
-    #
+    # Represents Snowpeak location resource
     resource function get locations() returns websocket:Service|websocket:Error {
         return new WsService();
     }
@@ -32,7 +31,6 @@ service class WsService {
         Location[] locations=getLocation();
         return locations;
     }
-
 }
 
 function getLocation() returns Location[] {
@@ -69,6 +67,7 @@ public type Subscribe record{
     int id;
     string event;
 };
+
 # Link details
 type Link record {|
     # linnk rel
@@ -95,5 +94,3 @@ type Location record {|
     # Address of the location
     string address;
 |};
-
-

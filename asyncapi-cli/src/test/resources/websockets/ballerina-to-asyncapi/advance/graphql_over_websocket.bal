@@ -21,7 +21,6 @@ import ballerina/io;
 service /payloadV on new websocket:Listener(9090) {
     resource function get .() returns websocket:Service|websocket:UpgradeError {
         return new ChatServer();
-
     }
 }
 
@@ -48,7 +47,6 @@ service class ChatServer {
 
     remote function onCompleteMessage(CompleteMessage message) {
         io:println(message);
-
     }
 
     remote function onError(websocket:Caller caller, error err) returns error? {
@@ -57,9 +55,7 @@ service class ChatServer {
 
     remote function onIdleTimeout() {
         io:println("timeout");
-
     }
-
 }
 
 isolated function genStream(int times, NextMessage payload, string id) returns NextMessage[] {
@@ -71,7 +67,6 @@ isolated function genStream(int times, NextMessage payload, string id) returns N
     }
     array.push({id, 'type: "complete", payload: ()});
     return array;
-
 }
 
 type ConnectionInitMessage record {|
@@ -98,20 +93,17 @@ public type NextMessage record {
     string id;
     string 'type = "next";
     json payload;
-
 };
 
 public type CompleteMessage record {
     string id;
     string 'type = "complete";
-
 };
 
 public type TestMessage record {
     string id;
     string 'type = "error";
     json payload;
-
 };
 
 public type SubscribeMessage record {|
@@ -124,4 +116,3 @@ public type SubscribeMessage record {|
         map<json>? extensions?;
     |} payload;
 |};
-

@@ -51,6 +51,4 @@ service class ChatServer{
      remote function onLink(websocket:Caller caller, Link message) returns Action {
         return "Testing string return";
     }
-
-
 }

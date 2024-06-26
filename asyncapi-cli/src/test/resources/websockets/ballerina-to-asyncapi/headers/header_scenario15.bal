@@ -37,9 +37,7 @@ service class ChatServer{
     remote function onSubscribe(websocket:Caller caller, Subscribe message) returns int {
         return 5;
     }
-
 }
-
 
 function getHeader() returns string {
     return "header";

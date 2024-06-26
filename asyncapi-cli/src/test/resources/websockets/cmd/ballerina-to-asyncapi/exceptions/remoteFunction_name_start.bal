@@ -38,8 +38,7 @@ service / on helloEp {
 service class ChatServer{
     *websocket:Service;
 
-    remote function Subscribe(websocket:Caller caller,Subscribe message) returns Ticker{
+    remote function Subscribe(websocket:Caller caller,Subscribe message) returns Ticker {
         return {id:1};
     }
 }
-

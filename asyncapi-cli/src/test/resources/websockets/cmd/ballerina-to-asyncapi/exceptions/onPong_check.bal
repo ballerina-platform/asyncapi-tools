@@ -18,12 +18,12 @@ import ballerina/websocket;
 
 listener websocket:Listener helloEp = new (80);
 
-public type Subscribe record{
+public type Subscribe record {
     int id;
     string event;
 };
 
-public type Ticker record{
+public type Ticker record {
     int id;
 };
 
@@ -48,7 +48,7 @@ service / on helloEp {
 service class ChatServer{
     *websocket:Service;
 
-    remote function onSubscribe(websocket:Caller caller,Subscribe message) returns Ticker{
+    remote function onSubscribe(websocket:Caller caller,Subscribe message) returns Ticker {
         return {id:1};
     }
 
@@ -56,4 +56,3 @@ service class ChatServer{
 
 	}
 }
-

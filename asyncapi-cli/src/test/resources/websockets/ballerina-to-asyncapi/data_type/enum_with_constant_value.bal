@@ -30,7 +30,6 @@ type Link record {|
     string event;
 |};
 
-
 @websocket:ServiceConfig{dispatcherKey: "event"}
 service /payloadV on new websocket:Listener(9090) {
 
@@ -53,6 +52,4 @@ service class ChatServer{
         // io:println(data);
         return 5;
     }
-
-
 }
