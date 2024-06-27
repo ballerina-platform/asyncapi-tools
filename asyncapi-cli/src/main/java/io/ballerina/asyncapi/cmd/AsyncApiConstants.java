@@ -23,4 +23,6 @@ public class AsyncApiConstants {
     public static final String SPEC = "spec";
     public static final String CLIENT = "client";
     public static final String LINE_SEPARATOR = System.lineSeparator();
+    public static final String EXPERIMENTAL_WARNING = "WARNING The support for websockets protocol is currently " +
+            "an experimental feature, and its behavior may be subject to change in future releases." + LINE_SEPARATOR;
 }

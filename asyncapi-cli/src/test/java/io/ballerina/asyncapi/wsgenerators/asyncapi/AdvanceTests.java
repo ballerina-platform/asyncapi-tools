@@ -67,14 +67,14 @@ public class AdvanceTests {
     @Test(description = "Multiple META-INF.services with same absolute path")
     public void multipleServiceWithSameAbsolute() throws IOException {
         Path ballerinaFilePath = RES_DIR.resolve("advance/multiple_services.bal");
-        executeMethod(ballerinaFilePath, "multiple_service_01.yaml", String.format("hello%s.yaml",
+        executeMethod(ballerinaFilePath, "multiple_service_empty_file.yaml", String.format("hello%s.yaml",
                 ASYNC_API_SUFFIX), "hello_");
     }
 
     @Test(description = "Multiple META-INF.services with absolute path as '/'. ")
     public void multipleServiceWithOutAbsolute() throws IOException {
         Path ballerinaFilePath = RES_DIR.resolve("advance/multiple_services_without_base_path.bal");
-        executeMethod(ballerinaFilePath, "multiple_service_02.yaml", String.format("multiple_services" +
+        executeMethod(ballerinaFilePath, "multiple_service_empty_file.yaml", String.format("multiple_services" +
                 "_without_base_path%s.yaml", ASYNC_API_SUFFIX), "multiple_services_without" +
                 "_base_path_");
     }
@@ -82,8 +82,8 @@ public class AdvanceTests {
     @Test(description = "Multiple META-INF.services with no absolute path")
     public void multipleServiceNoBasePath() throws IOException {
         Path ballerinaFilePath = RES_DIR.resolve("advance/multiple_services_no_base_path.bal");
-        executeMethod(ballerinaFilePath, "multiple_service_03.yaml", String.format("multiple_services" +
-                "_no_base_path%s.yaml", ASYNC_API_SUFFIX), "multiple_services_no_base_path_");
+        executeMethod(ballerinaFilePath, "multiple_service_empty_file.yaml", String.format(
+                "multiple_services_no_base_path%s.yaml", ASYNC_API_SUFFIX), "multiple_services_no_base_path_");
     }
 
 

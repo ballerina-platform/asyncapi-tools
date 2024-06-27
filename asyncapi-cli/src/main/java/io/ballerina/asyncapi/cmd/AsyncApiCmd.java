@@ -48,6 +48,7 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 
+import static io.ballerina.asyncapi.cmd.AsyncApiConstants.EXPERIMENTAL_WARNING;
 import static io.ballerina.asyncapi.cmd.AsyncApiConstants.INPUT_FLAG;
 import static io.ballerina.asyncapi.cmd.AsyncApiConstants.INPUT_FLAG_ALT;
 import static io.ballerina.asyncapi.cmd.AsyncApiConstants.JSON_FLAG;
@@ -182,6 +183,7 @@ public class AsyncApiCmd implements BLauncherCmd {
                     exitError(this.exitWhenFinish);
                 }
             } else if (VALID_WS_NAMES.contains(protocol.toLowerCase())) {
+                outStream.println(EXPERIMENTAL_WARNING);
                 if (fileName.endsWith(Constants.YAML_EXTENSION) || fileName.endsWith(Constants.JSON_EXTENSION) ||
                         fileName.endsWith(Constants.YML_EXTENSION)) {
                     giveWarningsForInvalidClientGenOptions();
