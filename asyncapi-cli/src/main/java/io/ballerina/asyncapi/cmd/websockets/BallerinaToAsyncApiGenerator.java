@@ -42,7 +42,6 @@ import java.io.PrintStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
@@ -53,27 +52,18 @@ import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.utils.Co
  * AsyncApi related utility classes.
  *
  */
-
 public class BallerinaToAsyncApiGenerator {
-    private SyntaxTree syntaxTree;
-    private SemanticModel semanticModel;
-    private Project project;
-    private final List<AsyncApiConverterDiagnostic> errors = new ArrayList<>();
-    private final PrintStream outStream = System.out;
 
-    public List<AsyncApiConverterDiagnostic> getErrors() {
-        return Collections.unmodifiableList(errors);
-    }
+    public static List<AsyncApiConverterDiagnostic> generateAsyncAPIDefinitionsAllService(Path servicePath,
+                                                                                          Path outPath,
+                                                                                          String serviceName,
+                                                                                          Boolean needJson,
+                                                                                          PrintStream outStream) {
+        SyntaxTree syntaxTree;
+        SemanticModel semanticModel;
+        Project project;
+        final List<AsyncApiConverterDiagnostic> errors = new ArrayList<>();
 
-    /**
-     * This util for generating AsyncAPI spec files.
-     *
-     * @param servicePath The path to a single ballerina file.
-     * @param outPath     The output directory to which the AsyncAPI specifications should be generated to.
-     * @param serviceName Filter the META-INF.services to generate AsyncAPI specification for service with this name.
-     */
-    public void generateAsyncAPIDefinitionsAllService(Path servicePath, Path outPath, String serviceName,
-                                                      Boolean needJson) {
         // Load project instance for single ballerina file
         project = ProjectLoader.loadProject(servicePath);
         Package packageName = project.currentPackage();
@@ -105,53 +95,50 @@ public class BallerinaToAsyncApiGenerator {
                     outStream.println(e.message());
                 }
             }
-            return;
-        }
-        semanticModel = compilation.getSemanticModel(docId.moduleId());
-        List<AsyncApiResult> asyncAPIDefinitions = ServiceToAsyncApiConverterUtils.
-                generateAsyncAPISpecDefinition(syntaxTree, semanticModel, serviceName, needJson, inputPath);
+        } else {
+            semanticModel = compilation.getSemanticModel(docId.moduleId());
+            List<AsyncApiResult> asyncAPIDefinitions = ServiceToAsyncApiConverterUtils.
+                    generateAsyncAPISpecDefinition(syntaxTree, semanticModel, serviceName, needJson, inputPath);
 
-        if (!asyncAPIDefinitions.isEmpty()) {
-            List<String> fileNames = new ArrayList<>();
-            for (AsyncApiResult definition : asyncAPIDefinitions) {
-                if (Files.notExists(outPath)) {
+            if (!asyncAPIDefinitions.isEmpty()) {
+                List<String> fileNames = new ArrayList<>();
+                for (AsyncApiResult definition : asyncAPIDefinitions) {
+                    if (Files.notExists(outPath)) {
+                        try {
+                            Files.createDirectories(outPath);
+                        } catch (IOException e) {
+                            DiagnosticMessages message = DiagnosticMessages.AAS_CONVERTOR_102;
+                            ExceptionDiagnostic error = new ExceptionDiagnostic(message.getCode(),
+                                    message.getDescription() + e.getLocalizedMessage(), null);
+                            errors.add(error);
+                        }
+                    }
                     try {
-                        Files.createDirectories(outPath);
+                        errors.addAll(definition.getDiagnostics());
+                        if (definition.getAsyncAPI().isPresent()) {
+                            Optional<String> content;
+                            if (needJson) {
+                                content = definition.getJson();
+                            } else {
+                                content = definition.getYaml();
+                            }
+                            String fileName = resolveContractFileName(outPath, definition.getServiceName(), needJson);
+                            CodegenUtils.writeFile(outPath.resolve(fileName), content.get());
+                            fileNames.add(fileName);
+                        }
                     } catch (IOException e) {
                         DiagnosticMessages message = DiagnosticMessages.AAS_CONVERTOR_102;
                         ExceptionDiagnostic error = new ExceptionDiagnostic(message.getCode(),
                                 message.getDescription() + e.getLocalizedMessage(), null);
-                        this.errors.add(error);
+                        errors.add(error);
                     }
                 }
-                try {
-                    this.errors.addAll(definition.getDiagnostics());
-                    if (definition.getAsyncAPI().isPresent()) {
-                        Optional<String> content;
-                        if (needJson) {
-                            content = definition.getJson();
-                        } else {
-                            content = definition.getYaml();
-                        }
-                        String fileName = resolveContractFileName(outPath, definition.getServiceName(), needJson);
-                        CodegenUtils.writeFile(outPath.resolve(fileName), content.get());
-                        fileNames.add(fileName);
-                    }
-                } catch (IOException e) {
-                    DiagnosticMessages message = DiagnosticMessages.AAS_CONVERTOR_102;
-                    ExceptionDiagnostic error = new ExceptionDiagnostic(message.getCode(),
-                            message.getDescription() + e.getLocalizedMessage(), null);
-                    this.errors.add(error);
+                outStream.println("AsyncAPI definition(s) generated successfully and copied to :");
+                for (String fileName : fileNames) {
+                    outStream.println("-- " + fileName);
                 }
-            }
-            if (fileNames.isEmpty()) {
-                return;
-            }
-            outStream.println("AsyncAPI definition(s) generated successfully and copied to :");
-            Iterator<String> iterator = fileNames.iterator();
-            while (iterator.hasNext()) {
-                outStream.println("-- " + iterator.next());
             }
         }
+        return errors;
     }
 }

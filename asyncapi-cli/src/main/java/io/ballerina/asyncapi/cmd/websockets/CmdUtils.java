@@ -24,7 +24,6 @@ import io.ballerina.tools.diagnostics.DiagnosticSeverity;
 import io.ballerina.tools.diagnostics.Location;
 
 import java.io.File;
-import java.util.Collections;
 import java.util.List;
 
 /**
@@ -44,7 +43,7 @@ public class CmdUtils {
         if (location == null) {
             location = new ConverterCommonUtils.NullLocation();
         }
-        return new AsyncAPIDiagnostic(diagnosticInfo, location, Collections.emptyList(), args);
+        return new AsyncAPIDiagnostic(diagnosticInfo, location, args);
     }
 
     /**

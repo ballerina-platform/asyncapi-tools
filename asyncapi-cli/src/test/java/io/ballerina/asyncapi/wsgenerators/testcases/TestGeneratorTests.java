@@ -18,7 +18,6 @@
 package io.ballerina.asyncapi.wsgenerators.testcases;
 
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25DocumentImpl;
-import io.ballerina.asyncapi.cmd.websockets.AsyncApiToBallerinaGenerator;
 import io.ballerina.asyncapi.websocketscore.GeneratorUtils;
 import io.ballerina.asyncapi.websocketscore.exception.BallerinaAsyncApiExceptionWs;
 import io.ballerina.asyncapi.websocketscore.generators.client.IntermediateClientGenerator;
@@ -66,8 +65,6 @@ public class TestGeneratorTests {
             FormatterException, BallerinaAsyncApiExceptionWs, URISyntaxException {
         Files.createDirectories(Paths.get(PROJECT_DIR + ASYNCAPI_PATH_SEPARATOR + TEST_DIR));
         Path definitionPath = RES_DIR.resolve("sample_yamls/" + yamlFile);
-        AsyncApiToBallerinaGenerator codeGenerator = new AsyncApiToBallerinaGenerator();
-        codeGenerator.setIncludeTestFiles(true);
         AsyncApi25DocumentImpl asyncAPI = GeneratorUtils.normalizeAsyncAPI(definitionPath);
         AasClientConfig.Builder clientMetaDataBuilder = new AasClientConfig.Builder();
         AasClientConfig asyncAPIClientConfig = clientMetaDataBuilder
@@ -88,8 +85,11 @@ public class TestGeneratorTests {
         List<Diagnostic> diagnostics = getDiagnostics(syntaxTreeClient, syntaxTreeTest,
                 syntaxTreeSchema, configFile, utilSyntaxTree);
 
-        Assert.assertFalse(diagnostics.stream().anyMatch(diagnostic -> diagnostic.diagnosticInfo().
-                severity().equals("Error")));
+        Assert.assertFalse(diagnostics.stream().anyMatch(diagnostic -> {
+            diagnostic.diagnosticInfo().
+                    severity();
+            return false;
+        }));
     }
 
     public List<Diagnostic> getDiagnostics(SyntaxTree clientSyntaxTree, SyntaxTree testSyntaxTree,

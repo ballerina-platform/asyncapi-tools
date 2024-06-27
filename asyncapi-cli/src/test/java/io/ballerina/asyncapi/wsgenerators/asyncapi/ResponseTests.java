@@ -18,6 +18,7 @@
 package io.ballerina.asyncapi.wsgenerators.asyncapi;
 
 import io.ballerina.asyncapi.cmd.websockets.BallerinaToAsyncApiGenerator;
+import io.ballerina.asyncapi.websocketscore.generators.asyncspec.diagnostic.AsyncApiConverterDiagnostic;
 import org.testng.Assert;
 import org.testng.annotations.AfterMethod;
 import org.testng.annotations.AfterTest;
@@ -25,9 +26,11 @@ import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
 import java.io.IOException;
+import java.io.PrintStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.List;
 
 /**
  * This test class for the covering the unit tests for return type scenarios.
@@ -36,6 +39,7 @@ public class ResponseTests {
     private static final Path RES_DIR = Paths.get("src/test/resources/websockets/" +
             "ballerina-to-asyncapi").toAbsolutePath();
     private Path tempDir;
+    private static final PrintStream outStream = System.out;
 
     @BeforeMethod
     public void setup() throws IOException {
@@ -92,20 +96,18 @@ public class ResponseTests {
     @Test(description = "When the response has float return type")
     public void testResponseWithFloatReturnType() throws IOException {
         Path ballerinaFilePath = RES_DIR.resolve("response/rs_scenario08_float.bal");
-        BallerinaToAsyncApiGenerator asyncAPIConverterUtils = new BallerinaToAsyncApiGenerator();
-        asyncAPIConverterUtils.generateAsyncAPIDefinitionsAllService(ballerinaFilePath, this.tempDir, null
-                , false);
-        Assert.assertTrue(asyncAPIConverterUtils.getErrors().isEmpty());
+        List<AsyncApiConverterDiagnostic> errors = BallerinaToAsyncApiGenerator
+                .generateAsyncAPIDefinitionsAllService(ballerinaFilePath, this.tempDir, null, false, outStream);
+        Assert.assertTrue(errors.isEmpty());
         TestUtils.compareWithGeneratedFile(ballerinaFilePath, "response/rs_scenario08_float.yaml");
     }
 
     @Test(description = "When the response has decimal return type")
     public void testResponseWithDecimalReturnType() throws IOException {
         Path ballerinaFilePath = RES_DIR.resolve("response/rs_scenario09_decimal.bal");
-        BallerinaToAsyncApiGenerator asyncAPIConverterUtils = new BallerinaToAsyncApiGenerator();
-        asyncAPIConverterUtils.generateAsyncAPIDefinitionsAllService(ballerinaFilePath, this.tempDir, null
-                , false);
-        Assert.assertTrue(asyncAPIConverterUtils.getErrors().isEmpty());
+        List<AsyncApiConverterDiagnostic> errors = BallerinaToAsyncApiGenerator
+                .generateAsyncAPIDefinitionsAllService(ballerinaFilePath, this.tempDir, null, false, outStream);
+        Assert.assertTrue(errors.isEmpty());
         TestUtils.compareWithGeneratedFile(ballerinaFilePath, "response/rs_scenario09_decimal.yaml");
     }
 

@@ -35,14 +35,11 @@ import java.util.List;
 public class AsyncAPIDiagnostic extends Diagnostic {
     private final DiagnosticInfo diagnosticInfo;
     private final Location location;
-    private final List<DiagnosticProperty<?>> properties;
     private final String message;
 
-    public AsyncAPIDiagnostic(DiagnosticInfo diagnosticInfo, Location location, List<DiagnosticProperty<?>> properties,
-                              Object[] args) {
+    public AsyncAPIDiagnostic(DiagnosticInfo diagnosticInfo, Location location, Object[] args) {
         this.diagnosticInfo = diagnosticInfo;
         this.location = location;
-        this.properties = Collections.unmodifiableList(properties);
         this.message = MessageFormat.format(diagnosticInfo.messageFormat(), args);
     }
 
@@ -69,7 +66,7 @@ public class AsyncAPIDiagnostic extends Diagnostic {
     }
 
     public List<DiagnosticProperty<?>> properties() {
-        return this.properties;
+        return Collections.emptyList();
     }
 
     @Override

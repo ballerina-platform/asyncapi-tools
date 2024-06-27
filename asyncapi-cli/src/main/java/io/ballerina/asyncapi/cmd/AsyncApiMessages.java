@@ -17,6 +17,13 @@
  */
 package io.ballerina.asyncapi.cmd;
 
+import static io.ballerina.asyncapi.cmd.AsyncApiConstants.CLIENT;
+import static io.ballerina.asyncapi.cmd.AsyncApiConstants.JSON_FLAG;
+import static io.ballerina.asyncapi.cmd.AsyncApiConstants.LICENSE_FLAG;
+import static io.ballerina.asyncapi.cmd.AsyncApiConstants.SERVICE_FLAG;
+import static io.ballerina.asyncapi.cmd.AsyncApiConstants.SPEC;
+import static io.ballerina.asyncapi.cmd.AsyncApiConstants.TEST_FLAG;
+
 /**
  * This class contains the messages constants required for AsyncApi tool.
  */
@@ -31,5 +38,13 @@ public class AsyncApiMessages {
     public static final String INVALID_OPTION_ERROR_HTTP = "ERROR unsupported %s flag for http protocol";
     public static final String INVALID_OPTION_WARNING = "WARNING the `%s` option is invalid for generating" +
             " %s files and will be ignored.";
+    public static final String INVALID_USE_OF_LICENSE_FLAG_WARNING = String.format(INVALID_OPTION_WARNING, LICENSE_FLAG,
+            SPEC);
+    public static final String INVALID_USE_OF_TEST_FLAG_WARNING = String.format(INVALID_OPTION_WARNING, TEST_FLAG,
+            SPEC);
+    public static final String INVALID_USE_OF_JSON_FLAG_WARNING = String.format(INVALID_OPTION_WARNING, JSON_FLAG,
+            CLIENT);
+    public static final String INVALID_USE_OF_SERVICE_FLAG_WARNING = String.format(INVALID_OPTION_WARNING, SERVICE_FLAG,
+            CLIENT);
     public static final String MESSAGE_INVALID_LICENSE_STREAM = "Invalid license file path : %s. %s.";
 }

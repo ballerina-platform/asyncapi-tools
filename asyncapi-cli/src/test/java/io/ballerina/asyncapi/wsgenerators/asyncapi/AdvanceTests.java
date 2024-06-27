@@ -26,6 +26,7 @@ import org.testng.annotations.Test;
 
 import java.io.FilenameFilter;
 import java.io.IOException;
+import java.io.PrintStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -43,6 +44,7 @@ public class AdvanceTests {
     private static final Path RES_DIR = Paths.get("src/test/resources/websockets" +
             "/ballerina-to-asyncapi").toAbsolutePath();
     private Path tempDir;
+    private static final PrintStream outStream = System.out;
 
     private static String getStringFromGivenBalFile(Path expectedServiceFile, String s) throws IOException {
         Stream<String> expectedServiceLines = Files.lines(expectedServiceFile.resolve(s));
@@ -98,9 +100,8 @@ public class AdvanceTests {
         try {
             String expectedYamlContent = getStringFromGivenBalFile(RES_DIR.resolve("yaml_outputs/service"),
                     yamlFile);
-            BallerinaToAsyncApiGenerator asyncApiConverter = new BallerinaToAsyncApiGenerator();
-            asyncApiConverter.generateAsyncAPIDefinitionsAllService(ballerinaFilePath, tempDir,
-                    null, false);
+            BallerinaToAsyncApiGenerator.generateAsyncAPIDefinitionsAllService(ballerinaFilePath, tempDir,
+                    null, false, outStream);
 
             if (Files.exists(tempDir.resolve(generatedYamlFile)) && findFile(tempDir, secondGeneratedFile) != null) {
                 String generatedYaml = getStringFromGivenBalFile(tempDir, generatedYamlFile);

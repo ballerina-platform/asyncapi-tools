@@ -27,6 +27,7 @@ import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
 import java.io.IOException;
+import java.io.PrintStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -40,6 +41,7 @@ public class ListenerTests {
     private static final Path RES_DIR = Paths.get("src/test/resources/websockets" +
             "/ballerina-to-asyncapi/").toAbsolutePath();
     private Path tempDir;
+    private static final PrintStream outStream = System.out;
 
     @BeforeMethod
     public void setup() throws IOException {
@@ -79,10 +81,8 @@ public class ListenerTests {
     @Test(description = "When given ballerina file contain some compilation issue.")
     public void testListeners06() {
         Path ballerinaFilePath = RES_DIR.resolve("listeners/listener_scenario06.bal");
-        BallerinaToAsyncApiGenerator asyncApiConverter = new BallerinaToAsyncApiGenerator();
-        asyncApiConverter.generateAsyncAPIDefinitionsAllService(ballerinaFilePath, tempDir, null
-                , false);
-        List<AsyncApiConverterDiagnostic> errors = asyncApiConverter.getErrors();
+        List<AsyncApiConverterDiagnostic> errors = BallerinaToAsyncApiGenerator
+                .generateAsyncAPIDefinitionsAllService(ballerinaFilePath, tempDir, null, false, outStream);
         Assert.assertTrue(errors.isEmpty());
     }
 

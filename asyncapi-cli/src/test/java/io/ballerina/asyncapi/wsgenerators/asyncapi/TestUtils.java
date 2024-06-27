@@ -22,6 +22,7 @@ import org.testng.Assert;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.PrintStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -38,6 +39,7 @@ public class TestUtils {
 
     private static final Path RES_DIR = Paths.get("src/test/resources/websockets" +
             "/ballerina-to-asyncapi/").toAbsolutePath();
+    private static final PrintStream outStream = System.out;
 
     private static String getStringFromGivenBalFile(Path expectedServiceFile, String s) throws IOException {
         Stream<String> expectedServiceLines = Files.lines(expectedServiceFile.resolve(s));
@@ -58,9 +60,8 @@ public class TestUtils {
         Path tempDir = Files.createTempDirectory("bal-to-asyncapi-test-out-" + System.nanoTime());
         try {
             String expectedYamlContent = getStringFromGivenBalFile(RES_DIR.resolve("yaml_outputs"), yamlFile);
-            BallerinaToAsyncApiGenerator asyncApiConverter = new BallerinaToAsyncApiGenerator();
-            asyncApiConverter.generateAsyncAPIDefinitionsAllService(ballerinaFilePath, tempDir, null,
-                    false);
+            BallerinaToAsyncApiGenerator.generateAsyncAPIDefinitionsAllService(ballerinaFilePath, tempDir, null,
+                    false, outStream);
             if (Files.exists(tempDir.resolve(String.format("payloadV%s.yaml", ASYNC_API_SUFFIX)))) {
                 String generatedYaml = getStringFromGivenBalFile(tempDir, String.format("payloadV%s.yaml",
                         ASYNC_API_SUFFIX));

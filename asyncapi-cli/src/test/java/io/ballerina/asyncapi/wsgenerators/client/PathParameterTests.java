@@ -50,30 +50,11 @@ public class PathParameterTests {
     @Test(description = "Generate Client for path parameter has parameter name as key word - unit tests for method")
     public void generatePathWithPathParameterTests() throws IOException, BallerinaAsyncApiExceptionWs,
             FormatterException {
-        // "/v1/v2"), "/v1/v2"
-        // "/v1/{version}/v2/{name}", "/v1/${'version}/v2/${name}"
-        // "/v1/{version}/v2/{limit}", "/v1/${'version}/v2/${'limit}"
-        // "/v1/{age}/v2/{name}", "/v1/${age}/v2/${name}"
-
-        AsyncApiToBallerinaGenerator codeGenerator = new AsyncApiToBallerinaGenerator();
-//        Path definitionPath = RESDIR.resolve(RESDIR + "/swagger/path_parameter_valid.yaml");
-//        Path expectedPath = RESDIR.resolve("ballerina/path_parameter_valid.bal");
-//        AsyncApi25DocumentImpl asyncAPI = GeneratorUtils.normalizeAsyncAPI(definitionPath);
-        AsyncApiToBallerinaGenerator asyncAPIToBallerinaGenerator = new AsyncApiToBallerinaGenerator();
-//        asyncAPIToBallerinaGenerator.generateClient("src/test/resources/asyncapi-to-ballerina/client/PathParam" +
-//                "/path_parameter_valid.yaml", "/Users/thushalya/Documents/out");
+        AsyncApiToBallerinaGenerator asyncAPIToBallerinaGenerator = new AsyncApiToBallerinaGenerator("", false);
         asyncAPIToBallerinaGenerator.generateClient(
                 Paths.get("src/test/resources/websockets/asyncapi-to-ballerina/client/StreamResponse/" +
                         "multiple_stream_with_dispatcherStreamId.yaml"),
                 Paths.get("src/test/resources/websockets/out"));
-//        AASClientConfig.Builder clientMetaDataBuilder = new AASClientConfig.Builder();
-////        AASClientConfig oasClientConfig = clientMetaDataBuilder
-//////                .withFilters(filter)
-////                .withAsyncAPI(asyncAPI).build();
-////                .withResourceMode(false).build();
-//        IntermediateClientGenerator intermediateClientGenerator = new IntermediateClientGenerator(oasClientConfig);
-//        syntaxTree = intermediateClientGenerator.generateSyntaxTree();
-//        compareGeneratedSyntaxTreeWithExpectedSyntaxTree(expectedPath, syntaxTree);
     }
 
     //DOne

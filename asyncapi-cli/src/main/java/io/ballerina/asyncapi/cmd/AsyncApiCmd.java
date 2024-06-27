@@ -48,22 +48,24 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 
-import static io.ballerina.asyncapi.cmd.AsyncApiConstants.CLIENT;
 import static io.ballerina.asyncapi.cmd.AsyncApiConstants.INPUT_FLAG;
 import static io.ballerina.asyncapi.cmd.AsyncApiConstants.INPUT_FLAG_ALT;
 import static io.ballerina.asyncapi.cmd.AsyncApiConstants.JSON_FLAG;
 import static io.ballerina.asyncapi.cmd.AsyncApiConstants.LICENSE_FLAG;
+import static io.ballerina.asyncapi.cmd.AsyncApiConstants.LINE_SEPARATOR;
 import static io.ballerina.asyncapi.cmd.AsyncApiConstants.OUTPUT_FLAG;
 import static io.ballerina.asyncapi.cmd.AsyncApiConstants.OUTPUT_FLAG_ALT;
 import static io.ballerina.asyncapi.cmd.AsyncApiConstants.PROTOCOL_FLAG;
 import static io.ballerina.asyncapi.cmd.AsyncApiConstants.SERVICE_FLAG;
-import static io.ballerina.asyncapi.cmd.AsyncApiConstants.SPEC;
 import static io.ballerina.asyncapi.cmd.AsyncApiConstants.TEST_FLAG;
 import static io.ballerina.asyncapi.cmd.AsyncApiConstants.VALID_HTTP_NAMES;
 import static io.ballerina.asyncapi.cmd.AsyncApiConstants.VALID_WS_NAMES;
 import static io.ballerina.asyncapi.cmd.AsyncApiMessages.CLIENT_GENERATION_FAILED;
 import static io.ballerina.asyncapi.cmd.AsyncApiMessages.INVALID_OPTION_ERROR_HTTP;
-import static io.ballerina.asyncapi.cmd.AsyncApiMessages.INVALID_OPTION_WARNING;
+import static io.ballerina.asyncapi.cmd.AsyncApiMessages.INVALID_USE_OF_JSON_FLAG_WARNING;
+import static io.ballerina.asyncapi.cmd.AsyncApiMessages.INVALID_USE_OF_LICENSE_FLAG_WARNING;
+import static io.ballerina.asyncapi.cmd.AsyncApiMessages.INVALID_USE_OF_SERVICE_FLAG_WARNING;
+import static io.ballerina.asyncapi.cmd.AsyncApiMessages.INVALID_USE_OF_TEST_FLAG_WARNING;
 import static io.ballerina.asyncapi.cmd.AsyncApiMessages.MESSAGE_INVALID_LICENSE_STREAM;
 
 /**
@@ -80,7 +82,6 @@ public class AsyncApiCmd implements BLauncherCmd {
     private boolean exitWhenFinish;
     private Path executionPath = Paths.get(System.getProperty("user.dir"));
     private Path targetOutputPath;
-    private static final String LINE_SEPARATOR = System.lineSeparator();
 
     @CommandLine.Option(names = {"-h", "--help"}, hidden = true)
     private boolean helpFlag;
@@ -222,19 +223,19 @@ public class AsyncApiCmd implements BLauncherCmd {
 
     private void giveWarningsForInvalidSpecGenOptions() {
         if (licenseFilePath != null) {
-            outStream.println(String.format(INVALID_OPTION_WARNING, LICENSE_FLAG, SPEC));
+            outStream.println(INVALID_USE_OF_LICENSE_FLAG_WARNING);
         }
         if (includeTestFiles) {
-            outStream.println(String.format(INVALID_OPTION_WARNING, TEST_FLAG, SPEC));
+            outStream.println(INVALID_USE_OF_TEST_FLAG_WARNING);
         }
     }
 
     private void giveWarningsForInvalidClientGenOptions() {
         if (generatedFileType) {
-            outStream.println(String.format(INVALID_OPTION_WARNING, JSON_FLAG, CLIENT));
+            outStream.println(INVALID_USE_OF_JSON_FLAG_WARNING);
         }
         if (service != null) {
-            outStream.println(String.format(INVALID_OPTION_WARNING, SERVICE_FLAG, CLIENT));
+            outStream.println(INVALID_USE_OF_SERVICE_FLAG_WARNING);
         }
     }
 
@@ -260,22 +261,21 @@ public class AsyncApiCmd implements BLauncherCmd {
     private void ballerinaToAsyncApiWs(String fileName) {
         List<AsyncApiConverterDiagnostic> errors = new ArrayList<>();
         final File balFile = new File(fileName);
-        Path balFilePath = null;
         try {
-            balFilePath = Paths.get(balFile.getCanonicalPath());
+            Path balFilePath = Paths.get(balFile.getCanonicalPath());
+            setOutputPathWs();
+            // Check service name it is mandatory
+            List<AsyncApiConverterDiagnostic> generationErrors =  BallerinaToAsyncApiGenerator
+                    .generateAsyncAPIDefinitionsAllService(balFilePath, targetOutputPath, service, generatedFileType,
+                            outStream);
+            errors.addAll(generationErrors);
         } catch (IOException e) {
             DiagnosticMessages message = DiagnosticMessages.AAS_CONVERTOR_102;
-            ExceptionDiagnostic error = new ExceptionDiagnostic(message.getCode(),
-                    message.getDescription(), null, e.getLocalizedMessage());
+            ExceptionDiagnostic error = new ExceptionDiagnostic(message.getCode(), message.getDescription(), null,
+                    e.getLocalizedMessage());
             errors.add(error);
         }
-        getTargetOutputPathWs();
-        // Check service name it is mandatory
-        BallerinaToAsyncApiGenerator asyncApiConverter = new BallerinaToAsyncApiGenerator();
-        asyncApiConverter.generateAsyncAPIDefinitionsAllService(balFilePath, targetOutputPath, service,
-                generatedFileType);
 
-        errors.addAll(asyncApiConverter.getErrors());
         if (!errors.isEmpty()) {
             for (AsyncApiConverterDiagnostic error : errors) {
                 if (error instanceof ExceptionDiagnostic exceptionDiagnostic) {
@@ -295,11 +295,10 @@ public class AsyncApiCmd implements BLauncherCmd {
     }
 
     private void asyncApiToBallerinaWs(String fileName) throws IOException {
-        AsyncApiToBallerinaGenerator generator = new AsyncApiToBallerinaGenerator();
-        generator.setLicenseHeader(this.setLicenseHeaderWs());
-        generator.setIncludeTestFiles(this.includeTestFiles);
+        AsyncApiToBallerinaGenerator generator = new AsyncApiToBallerinaGenerator(this.extractLicenseHeaderWs(),
+                this.includeTestFiles);
         final File asyncApiFile = new File(fileName);
-        getTargetOutputPathWs();
+        setOutputPathWs();
         Path resourcePath = Paths.get(asyncApiFile.getCanonicalPath());
         generatesClientFileWs(generator, resourcePath);
     }
@@ -307,9 +306,9 @@ public class AsyncApiCmd implements BLauncherCmd {
     /**
      * This util is to set the license header content which is to be added at the beginning of the ballerina files.
      */
-    private String setLicenseHeaderWs() {
-        String licenseHeader = "";
+    private String extractLicenseHeaderWs() {
         try {
+            String licenseHeader;
             if (this.licenseFilePath != null && !this.licenseFilePath.isBlank()) {
                 Path filePath = Paths.get((new File(this.licenseFilePath).getCanonicalPath()));
                 licenseHeader = Files.readString(Paths.get(filePath.toString()));
@@ -318,18 +317,19 @@ public class AsyncApiCmd implements BLauncherCmd {
                 } else if (!licenseHeader.endsWith(LINE_SEPARATOR + LINE_SEPARATOR)) {
                     licenseHeader = licenseHeader + LINE_SEPARATOR;
                 }
+                return licenseHeader;
             }
         } catch (IOException e) {
             outStream.println(String.format(MESSAGE_INVALID_LICENSE_STREAM, this.licenseFilePath, e.getMessage()));
             exitError(this.exitWhenFinish);
         }
-        return licenseHeader;
+        return "";
     }
 
     /**
      * This util is to get the output Path.
      */
-    private void getTargetOutputPathWs() {
+    private void setOutputPathWs() {
         targetOutputPath = executionPath;
         if (this.outputPath != null) {
             if (Paths.get(outputPath).isAbsolute()) {

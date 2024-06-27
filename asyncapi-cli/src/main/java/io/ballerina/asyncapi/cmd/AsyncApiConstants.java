@@ -22,4 +22,5 @@ public class AsyncApiConstants {
     public static final String PROTOCOL_FLAG = "--protocol";
     public static final String SPEC = "spec";
     public static final String CLIENT = "client";
+    public static final String LINE_SEPARATOR = System.lineSeparator();
 }

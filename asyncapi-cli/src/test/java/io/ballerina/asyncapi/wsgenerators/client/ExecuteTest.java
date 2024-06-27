@@ -33,7 +33,7 @@ public class ExecuteTest {
     @Test(description = "Generate Client for testings", enabled = false)
     public void generatePathWithPathParameterTests() throws IOException, BallerinaAsyncApiExceptionWs,
             FormatterException {
-        AsyncApiToBallerinaGenerator asyncAPIToBallerinaGenerator = new AsyncApiToBallerinaGenerator();
+        AsyncApiToBallerinaGenerator asyncAPIToBallerinaGenerator = new AsyncApiToBallerinaGenerator("", false);
 
         asyncAPIToBallerinaGenerator.generateClient(
                 Paths.get("src/test/resources/websockets/asyncapi-to-ballerina/client/StreamResponse/" +

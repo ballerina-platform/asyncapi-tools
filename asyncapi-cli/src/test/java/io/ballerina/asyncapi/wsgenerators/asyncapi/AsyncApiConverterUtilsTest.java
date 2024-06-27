@@ -18,6 +18,7 @@
 package io.ballerina.asyncapi.wsgenerators.asyncapi;
 
 import io.ballerina.asyncapi.cmd.websockets.BallerinaToAsyncApiGenerator;
+import io.ballerina.asyncapi.websocketscore.generators.asyncspec.diagnostic.AsyncApiConverterDiagnostic;
 import org.testng.Assert;
 import org.testng.annotations.AfterMethod;
 import org.testng.annotations.AfterTest;
@@ -25,9 +26,11 @@ import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
 import java.io.IOException;
+import java.io.PrintStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.List;
 
 import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.ASYNC_API_SUFFIX;
 import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.utils.ConverterCommonUtils.unescapeIdentifier;
@@ -44,6 +47,7 @@ public class AsyncApiConverterUtilsTest {
     private static final Path RES_DIR = Paths.get("src/test/resources/websockets" +
             "/ballerina-to-asyncapi").toAbsolutePath();
     private Path tempDir;
+    private PrintStream outStream = System.out;
 
     @BeforeMethod
     public void setup() throws IOException {
@@ -53,9 +57,8 @@ public class AsyncApiConverterUtilsTest {
     @Test(description = "Generate AsyncAPI spec")
     public void testBasicServices() {
         Path ballerinaFilePath = RES_DIR.resolve("service/basic_service.bal");
-        BallerinaToAsyncApiGenerator asyncApiConverterUtils = new BallerinaToAsyncApiGenerator();
-        asyncApiConverterUtils.generateAsyncAPIDefinitionsAllService(ballerinaFilePath,
-                this.tempDir, null, false);
+        BallerinaToAsyncApiGenerator.generateAsyncAPIDefinitionsAllService(ballerinaFilePath,
+                this.tempDir, null, false, System.out);
 
         Assert.assertTrue(Files.exists(this.tempDir.resolve(String.format("hello%s.yaml", ASYNC_API_SUFFIX))));
         Assert.assertTrue(Files.exists(this.tempDir.resolve(String.format("hello02%s.yaml", ASYNC_API_SUFFIX))));
@@ -64,11 +67,10 @@ public class AsyncApiConverterUtilsTest {
     @Test(description = "Generate AsyncAPI spec by filtering non existing service")
     public void testBasicServicesWithInvalidServiceName() {
         Path ballerinaFilePath = RES_DIR.resolve("service/basic_service.bal");
-        BallerinaToAsyncApiGenerator asyncApiConverter = new BallerinaToAsyncApiGenerator();
-        asyncApiConverter.generateAsyncAPIDefinitionsAllService(ballerinaFilePath, this.tempDir,
-                "/abc", false);
-        Assert.assertFalse(asyncApiConverter.getErrors().isEmpty());
-        Assert.assertEquals(asyncApiConverter.getErrors().get(0).getMessage(),
+        List<AsyncApiConverterDiagnostic> errors = BallerinaToAsyncApiGenerator
+                .generateAsyncAPIDefinitionsAllService(ballerinaFilePath, this.tempDir, "/abc", false, outStream);
+        Assert.assertFalse(errors.isEmpty());
+        Assert.assertEquals(errors.get(0).getMessage(),
                 "No Ballerina service found with name '/abc' to generate an AsyncAPI specification. " +
                         "These are the available services: [/hello, /hello02]");
     }
@@ -76,9 +78,8 @@ public class AsyncApiConverterUtilsTest {
     @Test(description = "Test if invalid 'exampleSetFlag' attribute is coming it the generated spec")
     public void testIfExampleSetFlagContains() throws IOException {
         Path ballerinaFilePath = RES_DIR.resolve("service/basic_service.bal");
-        BallerinaToAsyncApiGenerator asyncApiConverter = new BallerinaToAsyncApiGenerator();
-        asyncApiConverter.generateAsyncAPIDefinitionsAllService(ballerinaFilePath, this.tempDir,
-                null, false);
+        BallerinaToAsyncApiGenerator.generateAsyncAPIDefinitionsAllService(ballerinaFilePath, this.tempDir,
+                null, false, outStream);
 
         Assert.assertTrue(Files.exists(this.tempDir.resolve(String.format("hello%s.yaml", ASYNC_API_SUFFIX))));
         Assert.assertFalse(Files.readString(this.tempDir.resolve(String.format("hello%s.yaml",
@@ -88,9 +89,8 @@ public class AsyncApiConverterUtilsTest {
     @Test(description = "Generate AsyncAPI spec by filtering service name")
     public void testBasicServicesByFiltering() {
         Path ballerinaFilePath = RES_DIR.resolve("service/basic_service.bal");
-        BallerinaToAsyncApiGenerator asyncApiConverter = new BallerinaToAsyncApiGenerator();
-        asyncApiConverter.generateAsyncAPIDefinitionsAllService(ballerinaFilePath, this.tempDir,
-                "/hello02", false);
+        BallerinaToAsyncApiGenerator.generateAsyncAPIDefinitionsAllService(ballerinaFilePath, this.tempDir,
+                "/hello02", false, outStream);
 
         Assert.assertFalse(Files.exists(this.tempDir.resolve(String.format("hello%s.yaml", ASYNC_API_SUFFIX))));
         Assert.assertTrue(Files.exists(this.tempDir.resolve(String.format("hello02%s.yaml", ASYNC_API_SUFFIX))));
@@ -99,9 +99,8 @@ public class AsyncApiConverterUtilsTest {
     @Test(description = "Generate AsyncAPI spec with complex base paths")
     public void testComplexBasePathServices() {
         Path ballerinaFilePath = RES_DIR.resolve("service/complex_base_path.bal");
-        BallerinaToAsyncApiGenerator asyncApiConverter = new BallerinaToAsyncApiGenerator();
-        asyncApiConverter.generateAsyncAPIDefinitionsAllService(ballerinaFilePath, this.tempDir,
-                null, false);
+        BallerinaToAsyncApiGenerator.generateAsyncAPIDefinitionsAllService(ballerinaFilePath, this.tempDir,
+                null, false, outStream);
 
         Assert.assertTrue(Files.exists(this.tempDir.resolve(String.format("hello_foo_bar%s.yaml",
                 ASYNC_API_SUFFIX))));
@@ -112,9 +111,8 @@ public class AsyncApiConverterUtilsTest {
     @Test(description = "Generate AsyncAPI spec with no base path")
     public void testServicesWithNoBasePath() {
         Path ballerinaFilePath = RES_DIR.resolve("service/no_base_path_service.bal");
-        BallerinaToAsyncApiGenerator asyncApiConverter = new BallerinaToAsyncApiGenerator();
-        asyncApiConverter.generateAsyncAPIDefinitionsAllService(ballerinaFilePath, this.tempDir,
-                null, false);
+        BallerinaToAsyncApiGenerator.generateAsyncAPIDefinitionsAllService(ballerinaFilePath, this.tempDir,
+                null, false, outStream);
         Assert.assertTrue(Files.exists(this.tempDir.resolve(String.format("no_base_path_service%s.yaml",
                 ASYNC_API_SUFFIX))));
     }
@@ -122,9 +120,8 @@ public class AsyncApiConverterUtilsTest {
     @Test(description = "Generate AsyncAPI spec with no base path")
     public void testServicesWithNoBasePathWithFilterina() {
         Path ballerinaFilePath = RES_DIR.resolve("service/no_base_path_service.bal");
-        BallerinaToAsyncApiGenerator asyncApiConverter = new BallerinaToAsyncApiGenerator();
-        asyncApiConverter.generateAsyncAPIDefinitionsAllService(ballerinaFilePath, this.tempDir,
-                "/", false);
+        BallerinaToAsyncApiGenerator.generateAsyncAPIDefinitionsAllService(ballerinaFilePath, this.tempDir,
+                "/", false, outStream);
         Assert.assertTrue(Files.exists(this.tempDir.resolve(String.format("no_base_path_service%s.yaml",
                 ASYNC_API_SUFFIX))));
     }
@@ -132,9 +129,8 @@ public class AsyncApiConverterUtilsTest {
     @Test(description = "Generate AsyncAPI spec for build project")
     public void testRecordFieldPayLoad() {
         Path ballerinaFilePath = RES_DIR.resolve("service/project_bal/record_request_service.bal");
-        BallerinaToAsyncApiGenerator asyncApiConverter = new BallerinaToAsyncApiGenerator();
-        asyncApiConverter.generateAsyncAPIDefinitionsAllService(ballerinaFilePath, this.tempDir,
-                null, false);
+        BallerinaToAsyncApiGenerator.generateAsyncAPIDefinitionsAllService(ballerinaFilePath, this.tempDir,
+                null, false, outStream);
         Assert.assertTrue(Files.exists(this.tempDir.resolve(String.format("payloadV%s.yaml", ASYNC_API_SUFFIX))));
     }
 
@@ -147,16 +143,16 @@ public class AsyncApiConverterUtilsTest {
     @Test(description = "Test for non websocket rabbitmq service")
     public void testForNonWebsocketRabbitMqServices() {
         Path ballerinaFilePath = RES_DIR.resolve("service/rabbitmq_service.bal");
-        new BallerinaToAsyncApiGenerator().generateAsyncAPIDefinitionsAllService(ballerinaFilePath, tempDir,
-                null, false);
+        BallerinaToAsyncApiGenerator.generateAsyncAPIDefinitionsAllService(ballerinaFilePath, tempDir,
+                null, false, outStream);
         Assert.assertFalse(Files.exists(tempDir.resolve(String.format("query%s.yaml", ASYNC_API_SUFFIX))));
     }
 
     @Test(description = "Test for non websocket kafka service")
     public void testForNonWebsocketKafkaServices() {
         Path ballerinaFilePath = RES_DIR.resolve("service/kafka_service.bal");
-        new BallerinaToAsyncApiGenerator().generateAsyncAPIDefinitionsAllService(ballerinaFilePath, tempDir,
-                null, false);
+        BallerinaToAsyncApiGenerator.generateAsyncAPIDefinitionsAllService(ballerinaFilePath, tempDir,
+                null, false, outStream);
         Assert.assertFalse(Files.exists(tempDir.resolve(String.format("query%s.yaml", ASYNC_API_SUFFIX))));
     }
 
@@ -164,8 +160,8 @@ public class AsyncApiConverterUtilsTest {
     @Test(description = "Test for non websocket websubhub service")
     public void testForNonWebsocketWebSubHubServices() {
         Path ballerinaFilePath = RES_DIR.resolve("service/websubhub_service.bal");
-        new BallerinaToAsyncApiGenerator().generateAsyncAPIDefinitionsAllService(ballerinaFilePath, tempDir,
-                null, false);
+        BallerinaToAsyncApiGenerator.generateAsyncAPIDefinitionsAllService(ballerinaFilePath, tempDir,
+                null, false, outStream);
         Assert.assertFalse(Files.exists(tempDir.resolve(String.format("query%s.yaml", ASYNC_API_SUFFIX))));
     }
 
@@ -178,9 +174,8 @@ public class AsyncApiConverterUtilsTest {
         Path ballerinaFilePath = RES_DIR.resolve("service/escape_identifier.bal");
         Path tempDir = Files.createTempDirectory("bal-to-asyncapi-test-out-" + System.nanoTime());
         try {
-            BallerinaToAsyncApiGenerator asyncApiConverter = new BallerinaToAsyncApiGenerator();
-            asyncApiConverter.generateAsyncAPIDefinitionsAllService(ballerinaFilePath, tempDir, null,
-                    false);
+            BallerinaToAsyncApiGenerator.generateAsyncAPIDefinitionsAllService(ballerinaFilePath, tempDir, null,
+                    false, outStream);
             if (Files.exists(tempDir.resolve(String.format("v1_abc_hello%s.yaml", ASYNC_API_SUFFIX)))) {
                 String expectedYamlContent = getStringFromGivenBalFile(RES_DIR.resolve("yaml_outputs/service"),
                         "escape_identifier.yaml");

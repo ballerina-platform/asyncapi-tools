@@ -61,8 +61,13 @@ import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.UTIL_FILE_
  */
 public class AsyncApiToBallerinaGenerator {
     private static final PrintStream outStream = System.err;
-    private String licenseHeader = "";
-    private boolean includeTestFiles;
+    private final String licenseHeader;
+    private final boolean includeTestFiles;
+
+    public AsyncApiToBallerinaGenerator(String licenseHeader, boolean includeTestFiles) {
+        this.licenseHeader = licenseHeader;
+        this.includeTestFiles = includeTestFiles;
+    }
 
     /**
      * Generates ballerina websocket client for provided Async API Definition in {@code definitionPath}.
@@ -212,23 +217,5 @@ public class AsyncApiToBallerinaGenerator {
             }
         }
         return sourceFiles;
-    }
-
-    /**
-     * Set the content of license header.
-     *
-     * @param licenseHeader license header value received from command line.
-     */
-    public void setLicenseHeader(String licenseHeader) {
-        this.licenseHeader = licenseHeader;
-    }
-
-    /**
-     * set whether to add test files or not.
-     *
-     * @param includeTestFiles value received from command line by "--with tests"
-     */
-    public void setIncludeTestFiles(boolean includeTestFiles) {
-        this.includeTestFiles = includeTestFiles;
     }
 }
