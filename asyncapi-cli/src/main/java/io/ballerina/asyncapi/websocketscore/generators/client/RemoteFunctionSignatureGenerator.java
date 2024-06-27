@@ -42,6 +42,7 @@ import java.util.Map;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.DECIMAL;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.DESCRIPTION;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.ERROR;
+import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.OPTIONAL_ERROR;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.SERVER_STREAMING;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.TIMEOUT;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.X_DISPATCHER_KEY;
@@ -118,8 +119,7 @@ public class RemoteFunctionSignatureGenerator {
             }
         }
 
-        Node timeoutNode = getTimeOutParameterNode(DECIMAL, TIMEOUT);
-        parameterList.add(timeoutNode);
+        parameterList.add(getTimeOutParameterNode());
 
         SeparatedNodeList<ParameterNode> parameters = createSeparatedNodeList(parameterList);
         //Create Return type - function with response
@@ -128,7 +128,6 @@ public class RemoteFunctionSignatureGenerator {
         if (extensions != null) {
             JsonNode xResponse = extensions.get(X_RESPONSE);
             JsonNode xResponseType = extensions.get(X_RESPONSE_TYPE);
-//            String returnType = functionReturnType.getReturnType(xResponse, xResponseType, responseMessages);
             if (xResponseType != null && xResponseType.equals(new TextNode(SERVER_STREAMING))) {
                 if (!streamReturns.contains(returnType)) {
                     streamReturns.add(returnType);
@@ -148,17 +147,16 @@ public class RemoteFunctionSignatureGenerator {
                             createIdentifierToken(finalReturnType)));
         } else {
             returnTypeDescriptorNode = createReturnTypeDescriptorNode(createToken(RETURNS_KEYWORD),
-                    createEmptyNodeList(), createSimpleNameReferenceNode(createIdentifierToken("error?")));
-
+                    createEmptyNodeList(), createSimpleNameReferenceNode(createIdentifierToken(OPTIONAL_ERROR)));
         }
         return createFunctionSignatureNode(createToken(OPEN_PAREN_TOKEN), parameters, createToken(CLOSE_PAREN_TOKEN),
                 returnTypeDescriptorNode);
     }
 
-    private Node getTimeOutParameterNode(String timeoutType, String paramName) {
+    private Node getTimeOutParameterNode() {
         TypeDescriptorNode typeName = createBuiltinSimpleNameReferenceNode(null,
-                createIdentifierToken(timeoutType));
-        IdentifierToken paramNameNode = createIdentifierToken(paramName);
+                createIdentifierToken(DECIMAL));
+        IdentifierToken paramNameNode = createIdentifierToken(TIMEOUT);
         return createRequiredParameterNode(createNodeList(), typeName, paramNameNode);
     }
 

@@ -80,6 +80,7 @@ import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.DOT;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.INIT;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.IS;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.MESSAGE_VAR_NAME;
+import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.NEXT;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.OPTIONAL_ERROR;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.PIPES;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.PIPES_MAP;
@@ -89,6 +90,7 @@ import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.SELF;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.SEMICOLON;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.SIMPLE_PIPE;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.SPACE;
+import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.STREAM_GENERATOR;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.STREAM_GENERATORS_MAP;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.STREAM_NEXT_CONSUME_MESSAGE;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.STREAM_NEXT_RESPONSE_CLONE;
@@ -278,7 +280,7 @@ public class UtilGenerator {
 
         MetadataNode metadataNode = getClassMetadataNode(returnType);
         returnType = GeneratorUtils.getStreamGeneratorName(returnType);
-        IdentifierToken className = createIdentifierToken(returnType + "StreamGenerator");
+        IdentifierToken className = createIdentifierToken(returnType + STREAM_GENERATOR);
         NodeList<Token> classTypeQualifiers = createNodeList(createToken(CLIENT_KEYWORD),
                 createToken(ISOLATED_KEYWORD));
         return createClassDefinitionNode(metadataNode, createToken(PUBLIC_KEYWORD), classTypeQualifiers,
@@ -329,8 +331,7 @@ public class UtilGenerator {
     private MetadataNode getClassMetadataNode(String returnType) {
         List<AnnotationNode> classLevelAnnotationNodes = new ArrayList<>();
         // Generate api doc
-        List<Node> documentationLines = new ArrayList<>();
-        documentationLines.addAll(DocCommentsGenerator.createAPIDescriptionDoc(
+        List<Node> documentationLines = new ArrayList<>(DocCommentsGenerator.createAPIDescriptionDoc(
                 "Stream generator class for " + returnType + " return type", false));
         MarkdownDocumentationNode apiDoc = createMarkdownDocumentationNode(createNodeList(documentationLines));
         return createMetadataNode(apiDoc, createNodeList(classLevelAnnotationNodes));
@@ -340,10 +341,10 @@ public class UtilGenerator {
         FunctionSignatureNode functionSignatureNode = getNextFunctionSignatureNode(returnType);
         FunctionBodyNode functionBodyNode = getNextFunctionBodyNode(returnType);
         NodeList<Token> qualifierList = createNodeList(createToken(PUBLIC_KEYWORD), createToken(ISOLATED_KEYWORD));
-        IdentifierToken functionName = createIdentifierToken("next");
-        return createFunctionDefinitionNode(SyntaxKind.OBJECT_METHOD_DEFINITION, getDocCommentsForNextMethod(" " +
-                        "Next method to return next stream message"), qualifierList, createToken(FUNCTION_KEYWORD),
-                functionName, createEmptyNodeList(), functionSignatureNode, functionBodyNode);
+        IdentifierToken functionName = createIdentifierToken(NEXT);
+        return createFunctionDefinitionNode(SyntaxKind.OBJECT_METHOD_DEFINITION, null, qualifierList,
+                createToken(FUNCTION_KEYWORD), functionName, createEmptyNodeList(), functionSignatureNode,
+                functionBodyNode);
     }
 
 
@@ -352,17 +353,9 @@ public class UtilGenerator {
         FunctionBodyNode functionBodyNode = getCloseFunctionBodyNode();
         NodeList<Token> qualifierList = createNodeList(createToken(PUBLIC_KEYWORD), createToken(ISOLATED_KEYWORD));
         IdentifierToken functionName = createIdentifierToken("close");
-        return createFunctionDefinitionNode(SyntaxKind.OBJECT_METHOD_DEFINITION, getDocCommentsForNextMethod(
-                        "Close method to close used pipe"), qualifierList, createToken(FUNCTION_KEYWORD),
-                functionName, createEmptyNodeList(), functionSignatureNode, functionBodyNode);
-    }
-
-    private MetadataNode getDocCommentsForNextMethod(String comment) {
-        List<Node> docs = new ArrayList<>();
-        //todo: setInitDocComment() pass the references
-        docs.addAll(DocCommentsGenerator.createAPIDescriptionDoc(comment, true));
-        MarkdownDocumentationNode workerDoc = createMarkdownDocumentationNode(createNodeList(docs));
-        return createMetadataNode(workerDoc, createEmptyNodeList());
+        return createFunctionDefinitionNode(SyntaxKind.OBJECT_METHOD_DEFINITION, null, qualifierList,
+                createToken(FUNCTION_KEYWORD), functionName, createEmptyNodeList(), functionSignatureNode,
+                functionBodyNode);
     }
 
     private FunctionSignatureNode getNextFunctionSignatureNode(String returnType) {
@@ -485,9 +478,6 @@ public class UtilGenerator {
 
     /**
      * Generates `SimpleBasicType` type.
-     * <pre>
-     *     type SimpleBasicType string|boolean|int|float|decimal;
-     * </pre>
      *
      * @return
      */

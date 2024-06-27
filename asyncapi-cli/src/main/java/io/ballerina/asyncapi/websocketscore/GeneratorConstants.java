@@ -259,6 +259,7 @@ public class GeneratorConstants {
     public static final String CLONE_WITH_TYPE = "cloneWithType";
     public static final String PIPE_CLOSE_STATEMENT = "error? %s = self.pipes.removePipe(%s);";
     public static final String INIT = "init";
+    public static final String NEXT = "next";
     public static final String QUEUE_DEFAULT_SIZE = "1000";
     public static final String BALLERINA_WEBSOCKET_DOESNT_SUPPORT_FOR_MULTIPLE_CHANNELS =
             "Ballerina websocket doesn't support for multiple channels";
@@ -268,8 +269,8 @@ public class GeneratorConstants {
     public static final String X_DISPATCHER_STREAM_ID_CANNOT_BE_EMPTY = "x-dispatcherStreamId cannot be empty";
     public static final String BALLERINA_CLIENT_CANNOT_BE_GENERATED = "Ballerina client cannot be " +
             "generated enter correct specification and adhere to tool's rules";
-    public static final String START_MESSAGE_READING_DESCRIPTION = "Use to read messages from the websocket.";
-    public static final String START_MESSAGE_WRITING_DESCRIPTION = "Use to write messages to the websocket.";
+    public static final String START_MESSAGE_READING_DESCRIPTION = "Used to read messages from the websocket.";
+    public static final String START_MESSAGE_WRITING_DESCRIPTION = "Used to write messages to the websocket.";
     public static final String DEFAULT_RETURN = "null";
     public static final String STREAM_NEXT_CONSUME_MESSAGE = "anydata|error? message = self.pipes.getPipe" +
             "(self.pipeId).consume(self.timeout);";

@@ -52,7 +52,6 @@ import io.ballerina.compiler.syntax.tree.ExpressionStatementNode;
 import io.ballerina.compiler.syntax.tree.FieldAccessExpressionNode;
 import io.ballerina.compiler.syntax.tree.FunctionArgumentNode;
 import io.ballerina.compiler.syntax.tree.FunctionBodyNode;
-import io.ballerina.compiler.syntax.tree.FunctionCallExpressionNode;
 import io.ballerina.compiler.syntax.tree.FunctionDefinitionNode;
 import io.ballerina.compiler.syntax.tree.FunctionSignatureNode;
 import io.ballerina.compiler.syntax.tree.IdentifierToken;
@@ -141,7 +140,6 @@ import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.IMMEDIATE_
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.INIT;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.IS;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.IS_ACTIVE;
-import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.LANG_RUNTIME;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.LOG;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.LOG_PRINT_ERR;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.MAP_ANY_DATA;
@@ -178,7 +176,6 @@ import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.REMOVE_PIP
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.REMOVE_STREAM_GENERATORS;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.RETURN;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.RETURN_DESCRIPTION;
-import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.RUNTIME;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.SELF;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.SELF_PIPES_GET_PIPE;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.SEMICOLON;
@@ -186,7 +183,6 @@ import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.SERVICE_UR
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.SERVICE_URL_DESCRIPTION;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.SIMPLE_PIPE;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.SIMPLE_RPC;
-import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.SLEEP;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.SPACE;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.START_MESSAGE_READING;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.START_MESSAGE_READING_DESCRIPTION;
@@ -199,7 +195,6 @@ import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.UUID;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.WEBSOCKET;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.WEBSOCKET_EP;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.WITHIN_PAREN_TEMPLATE;
-import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.WORKER_SLEEP_TIME_OUT;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.WRITE_MESSAGE;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.WRITE_MESSAGE_QUEUE;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.WSS;
@@ -418,12 +413,9 @@ public class IntermediateClientGenerator {
                 , WEBSOCKET);
         ImportDeclarationNode importForXlibbPipe = GeneratorUtils.getImportDeclarationNode(GeneratorConstants.XLIBB
                 , XLIBB_PIPE);
-        ImportDeclarationNode importForRunTime = GeneratorUtils.getImportDeclarationNode(GeneratorConstants.BALLERINA
-                , LANG_RUNTIME);
         ImportDeclarationNode importForLog = GeneratorUtils.getImportDeclarationNode(GeneratorConstants.BALLERINA
                 , LOG);
 
-        imports.add(importForRunTime);
         imports.add(importForLog);
         imports.add(importForWebsocket);
         imports.add(importForXlibbPipe);
@@ -496,10 +488,6 @@ public class IntermediateClientGenerator {
         List<String> pipeIdMethods = new ArrayList<>();
         ArrayList<String> streamReturns = new ArrayList<>();
         List<FunctionDefinitionNode> remoteFunctionNodes = createRemoteFunctions(streamReturns, pipeIdMethods);
-
-//        if (pipeIdMethods.isEmpty()) {
-//            throw new BallerinaAsyncApiExceptionWs(BALLERINA_CLIENT_CANNOT_BE_GENERATED);
-//        }
 
         boolean isStreamPresent = !streamReturns.isEmpty();
 
@@ -606,7 +594,6 @@ public class IntermediateClientGenerator {
 
         whileStatements.add(pipeErrVar);
         whileStatements.add(getIsPipeError(PIPE_ERR, READ_MESSAGE, false));
-        whileStatements.add(getRuntimeSleep());
 
         BlockStatementNode whileBody = createBlockStatementNode(openBraceToken, createNodeList(whileStatements),
                 closeBraceToken);
@@ -620,15 +607,6 @@ public class IntermediateClientGenerator {
 
         return createFunctionBodyBlockNode(openBraceToken, null, workerDeclarationNodes, closeBraceToken,
                 null);
-    }
-
-    private static ExpressionStatementNode getRuntimeSleep() {
-        QualifiedNameReferenceNode qualifiedNameReferenceNode = createQualifiedNameReferenceNode(createIdentifierToken(
-                RUNTIME), colonToken, createIdentifierToken(SLEEP));
-        FunctionCallExpressionNode sleep = createFunctionCallExpressionNode(qualifiedNameReferenceNode, openParenToken,
-                createSeparatedNodeList(createPositionalArgumentNode(
-                        createRequiredExpressionNode(createIdentifierToken(WORKER_SLEEP_TIME_OUT)))), closeParenToken);
-        return createExpressionStatementNode(null, sleep, semicolonToken);
     }
 
     private FunctionSignatureNode getStartMessageReadingFunctionSignatureNode() {
@@ -718,7 +696,6 @@ public class IntermediateClientGenerator {
         whileStatements.add(getIsPipeError(MESSAGE_VAR_NAME, WRITE_MESSAGE, true));
         whileStatements.add(writeMessage);
         whileStatements.add(getIsWsError(WS_ERR, WRITE_MESSAGE));
-        whileStatements.add(getRuntimeSleep());
 
         BlockStatementNode whileBody = createBlockStatementNode(openBraceToken, createNodeList(whileStatements),
                 closeBraceToken);
@@ -1497,10 +1474,6 @@ public class IntermediateClientGenerator {
         } else if (messageValue.getDescription() != null && !messageValue.getDescription().isBlank()) {
             remoteFunctionDocs.addAll(DocCommentsGenerator.createAPIDescriptionDoc(
                     messageValue.getDescription(), true));
-        } else {
-            MarkdownDocumentationLineNode newLine = createMarkdownDocumentationLineNode(null,
-                    createToken(SyntaxKind.HASH_TOKEN), createEmptyNodeList());
-            remoteFunctionDocs.add(newLine);
         }
 
         //Add remote function for test files
@@ -1516,9 +1489,18 @@ public class IntermediateClientGenerator {
         RemoteFunctionSignatureGenerator remoteFunctionSignatureGenerator = new
                 RemoteFunctionSignatureGenerator(asyncApi, ballerinaSchemaGenerator, typeDefinitionNodeList);
 
+        List<Node> remoteFunctionDocParameters = new ArrayList<>();
         FunctionSignatureNode functionSignatureNode =
-                remoteFunctionSignatureGenerator.getFunctionSignatureNode(messageValue.getPayload(), remoteFunctionDocs,
-                        extensions, responseType, streamReturns);
+                remoteFunctionSignatureGenerator.getFunctionSignatureNode(messageValue.getPayload(),
+                        remoteFunctionDocParameters, extensions, responseType, streamReturns);
+        if (!remoteFunctionDocParameters.isEmpty()) {
+            if (remoteFunctionDocs.isEmpty()) {
+                MarkdownDocumentationLineNode newLine = createMarkdownDocumentationLineNode(null,
+                        createToken(SyntaxKind.HASH_TOKEN), createEmptyNodeList());
+                remoteFunctionDocs.add(newLine);
+            }
+            remoteFunctionDocs.addAll(remoteFunctionDocParameters);
+        }
         typeDefinitionNodeList = remoteFunctionSignatureGenerator.getTypeDefinitionNodeList();
 
         // Create metadataNode add documentation string
