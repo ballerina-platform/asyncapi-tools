@@ -869,7 +869,7 @@ public class IntermediateClientGenerator {
         //TODO: Attempt to map auth configurations
         // If both apiKey and httpOrOAuth is supported
         // todo : After revamping
-        if (ballerinaAuthConfigGenerator.isHttpApiKey() && ballerinaAuthConfigGenerator.isHttpOROAuth()) {
+        if (ballerinaAuthConfigGenerator.isHttpApiKey() && ballerinaAuthConfigGenerator.isHttpOrOAuth()) {
             assignmentNodes.add(ballerinaAuthConfigGenerator.handleInitForMixOfApiKeyAndHTTPOrOAuth());
         }
 
@@ -956,7 +956,7 @@ public class IntermediateClientGenerator {
         whileLoopBreakVariables.add(IS_ACTIVE);
 
         for (String whileLoopBreakVariable : whileLoopBreakVariables) {
-            addInitsOFWhileLoopBreaksNodes(whileLoopBreakVariable, assignmentNodes, TRUE_KEYWORD.stringValue());
+            addInitsOfWhileLoopBreaksNodes(whileLoopBreakVariable, assignmentNodes, TRUE_KEYWORD.stringValue());
         }
 
         ArrayList<String> workers = new ArrayList<>();
@@ -975,7 +975,7 @@ public class IntermediateClientGenerator {
         }
 
         // Get API key assignment node if authentication mechanism type is only `apiKey`
-        if (ballerinaAuthConfigGenerator.isHttpApiKey() && !ballerinaAuthConfigGenerator.isHttpOROAuth()) {
+        if (ballerinaAuthConfigGenerator.isHttpApiKey() && !ballerinaAuthConfigGenerator.isHttpOrOAuth()) {
             assignmentNodes.add(ballerinaAuthConfigGenerator.getApiKeyAssignmentNode());
         }
         if (ballerinaAuthConfigGenerator.isHttpApiKey()) {
@@ -991,7 +991,7 @@ public class IntermediateClientGenerator {
         return createFunctionBodyBlockNode(openBraceToken, null, statementList, closeBraceToken, null);
     }
 
-    private void addInitsOFWhileLoopBreaksNodes(String initName, List<StatementNode> assignmentNodes,
+    private void addInitsOfWhileLoopBreaksNodes(String initName, List<StatementNode> assignmentNodes,
                                                 String booleanValue) {
         SimpleNameReferenceNode selfIsMessageWritingValue = createSimpleNameReferenceNode(createIdentifierToken(
                 booleanValue));
@@ -1180,7 +1180,7 @@ public class IntermediateClientGenerator {
         //todo: setInitDocComment() pass the references
 
         docs.addAll(DocCommentsGenerator.createAPIDescriptionDoc(clientInitDocComment, true));
-        if (ballerinaAuthConfigGenerator.isHttpApiKey() && !ballerinaAuthConfigGenerator.isHttpOROAuth()) {
+        if (ballerinaAuthConfigGenerator.isHttpApiKey() && !ballerinaAuthConfigGenerator.isHttpOrOAuth()) {
             MarkdownParameterDocumentationLineNode apiKeyConfig = DocCommentsGenerator.createAPIParamDoc(
                     API_KEY_CONFIG, DEFAULT_API_KEY_DESC);
             docs.add(apiKeyConfig);
@@ -1414,7 +1414,7 @@ public class IntermediateClientGenerator {
 
     private FunctionDefinitionNode createConnectionCloseFunction(boolean streamsPresent) {
         ArrayList<StatementNode> lockStatements = new ArrayList<>();
-        addInitsOFWhileLoopBreaksNodes(IS_ACTIVE, lockStatements, FALSE_KEYWORD.stringValue());
+        addInitsOfWhileLoopBreaksNodes(IS_ACTIVE, lockStatements, FALSE_KEYWORD.stringValue());
 
         //check self.writeMessageQueue.immediateClose();
         ExpressionStatementNode writeMessageStatementNode = getCloseLockStatementNode(WRITE_MESSAGE_QUEUE,
