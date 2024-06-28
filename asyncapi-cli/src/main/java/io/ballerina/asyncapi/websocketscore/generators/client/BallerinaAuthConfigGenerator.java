@@ -48,7 +48,6 @@ import io.ballerina.compiler.syntax.tree.BuiltinSimpleNameReferenceNode;
 import io.ballerina.compiler.syntax.tree.CaptureBindingPatternNode;
 import io.ballerina.compiler.syntax.tree.CheckExpressionNode;
 import io.ballerina.compiler.syntax.tree.DefaultableParameterNode;
-import io.ballerina.compiler.syntax.tree.DoStatementNode;
 import io.ballerina.compiler.syntax.tree.ElseBlockNode;
 import io.ballerina.compiler.syntax.tree.ExpressionNode;
 import io.ballerina.compiler.syntax.tree.FieldAccessExpressionNode;
@@ -62,7 +61,6 @@ import io.ballerina.compiler.syntax.tree.MappingFieldNode;
 import io.ballerina.compiler.syntax.tree.MarkdownDocumentationNode;
 import io.ballerina.compiler.syntax.tree.MarkdownParameterDocumentationLineNode;
 import io.ballerina.compiler.syntax.tree.MetadataNode;
-import io.ballerina.compiler.syntax.tree.MethodCallExpressionNode;
 import io.ballerina.compiler.syntax.tree.Node;
 import io.ballerina.compiler.syntax.tree.NodeFactory;
 import io.ballerina.compiler.syntax.tree.NodeList;
@@ -109,24 +107,18 @@ import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.CLIENT_CON
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.CLIENT_CRED;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.CONNECTION_CONFIG;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.CUSTOM_HEADERS;
-import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.ENSURE_TYPE;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.HTTP;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.HTTP_API_KEY;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.OAUTH2;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.PASSWORD;
-import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.PING_PONG_HANDLER_FIELD;
-import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.PING_PONG_SERVICE;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.PING_PONG_SERVICE_FIELD;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.QUERY_PARAMS;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.REFRESH_TOKEN;
-import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.RETRY_CONFIG_FIELD;
-import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.SECURE_SOCKET;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.SECURE_SOCKET_FIELD;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.SELF;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.STRING;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.USER_PASSWORD;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.VALIDATION;
-import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.WEB_SOCKET_RETRY_CONFIG;
 import static io.ballerina.asyncapi.websocketscore.GeneratorUtils.escapeIdentifier;
 import static io.ballerina.asyncapi.websocketscore.GeneratorUtils.getValidName;
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createEmptyNodeList;
@@ -140,7 +132,6 @@ import static io.ballerina.compiler.syntax.tree.NodeFactory.createBuiltinSimpleN
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createCaptureBindingPatternNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createCheckExpressionNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createDefaultableParameterNode;
-import static io.ballerina.compiler.syntax.tree.NodeFactory.createDoStatementNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createElseBlockNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createFieldAccessExpressionNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createIfElseStatementNode;
@@ -181,7 +172,6 @@ import static io.ballerina.compiler.syntax.tree.SyntaxKind.COLON_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.COMMA_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.DECIMAL_KEYWORD;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.DOT_TOKEN;
-import static io.ballerina.compiler.syntax.tree.SyntaxKind.DO_KEYWORD;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.ELSE_KEYWORD;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.EQUAL_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.FINAL_KEYWORD;
@@ -260,7 +250,7 @@ public class BallerinaAuthConfigGenerator {
      *
      * @return {@link boolean}
      */
-    public boolean isHttpOROAuth() {
+    public boolean isHttpOrOAuth() {
         return httpOROAuth;
     }
 
@@ -915,148 +905,6 @@ public class BallerinaAuthConfigGenerator {
         return serviceURLNode;
     }
 
-    /**
-     * Generate if-else statements for the do block in client init function.
-     * <pre>
-     *     if config.http1Settings is ClientHttp1Settings {
-     *         ClientHttp1Settings settings = check config.http1Settings.ensureType(ClientHttp1Settings);
-     *         httpClientConfig.http1Settings = {...settings};
-     *     }
-     * </pre>
-     *
-     * @param fieldName name of the field
-     * @param fieldType type of the field
-     * @return
-     */
-    private IfElseStatementNode getDoBlockIfElseStatementNodes(String fieldName, String fieldType) {
-        ExpressionNode expressionNode = createFieldAccessExpressionNode(
-                createRequiredExpressionNode(createIdentifierToken(CLIENT_CONFIG)),
-                createToken(DOT_TOKEN), createSimpleNameReferenceNode(createIdentifierToken(fieldName)));
-
-        ExpressionNode condition = createBinaryExpressionNode(null,
-                expressionNode,
-                createToken(IS_KEYWORD),
-                createIdentifierToken(fieldType)
-        );
-
-        List<StatementNode> statementNodes = new ArrayList<>();
-
-        // httpClientConfig.http2Settings = check config.http2Settings.ensureType(http:ClientHttp2Settings);
-        FieldAccessExpressionNode fieldAccessExpressionNode = createFieldAccessExpressionNode(
-                createRequiredExpressionNode(createIdentifierToken(CLIENT_CONFIG)),
-                createToken(DOT_TOKEN),
-                createSimpleNameReferenceNode(createIdentifierToken(fieldName)));
-
-        MethodCallExpressionNode methodCallExpressionNode = createMethodCallExpressionNode(
-                createFieldAccessExpressionNode(createRequiredExpressionNode(createIdentifierToken(CLIENT_CONFIG)),
-                        createToken(DOT_TOKEN),
-                        createSimpleNameReferenceNode(createIdentifierToken(fieldName))),
-                createToken(DOT_TOKEN),
-                createSimpleNameReferenceNode(createIdentifierToken(ENSURE_TYPE)),
-                createToken(OPEN_PAREN_TOKEN),
-                createSeparatedNodeList(createPositionalArgumentNode(
-                        createRequiredExpressionNode(createIdentifierToken(fieldType)))),
-                createToken(CLOSE_PAREN_TOKEN));
-        CheckExpressionNode checkExpressionNode = createCheckExpressionNode(null, createToken(CHECK_KEYWORD),
-                methodCallExpressionNode);
-        AssignmentStatementNode varAssignmentNode = createAssignmentStatementNode(fieldAccessExpressionNode,
-                createToken(EQUAL_TOKEN), checkExpressionNode, createToken(SEMICOLON_TOKEN));
-        statementNodes.add(varAssignmentNode);
-
-        NodeList<StatementNode> statementList = createNodeList(statementNodes);
-        BlockStatementNode ifBody = createBlockStatementNode(createToken(OPEN_BRACE_TOKEN), statementList,
-                createToken(CLOSE_BRACE_TOKEN));
-        return createIfElseStatementNode(createToken(IF_KEYWORD), condition,
-                ifBody, null);
-    }
-
-    /**
-     * Generate do block in client init function.
-     *
-     * @return {@link DoStatementNode}
-     */
-    public DoStatementNode getClientConfigDoStatementNode() {
-        List<StatementNode> doStatementNodeList = new ArrayList<>();
-        // ClientHttp1Settings if statement
-//        {
-//            ExpressionNode expressionNode = createFieldAccessExpressionNode(
-//                    createRequiredExpressionNode(createIdentifierToken(CONFIG)),
-//                    createToken(DOT_TOKEN), createSimpleNameReferenceNode(
-//                            createIdentifierToken(CLIENT_HTTP1_SETTINGS_FIELD)));
-//
-//            ExpressionNode condition = createBinaryExpressionNode(null,
-//                    expressionNode,
-//                    createToken(IS_KEYWORD),
-//                    createIdentifierToken(CLIENT_HTTP1_SETTINGS)
-//            );
-//
-//            List<StatementNode> statementNodes = new ArrayList<>();
-//
-//            // ClientHttp1Settings settings = check config.http1Settings.ensureType(ClientHttp1Settings);
-//            SimpleNameReferenceNode typeBindingPattern = createSimpleNameReferenceNode(
-//                    createIdentifierToken(CLIENT_HTTP1_SETTINGS));
-//            CaptureBindingPatternNode bindingPattern = createCaptureBindingPatternNode(
-//                    createIdentifierToken(SETTINGS));
-//            TypedBindingPatternNode typedBindingPatternNode = createTypedBindingPatternNode(typeBindingPattern,
-//                    bindingPattern);
-//            MethodCallExpressionNode methodCallExpressionNode = createMethodCallExpressionNode(
-//                    createFieldAccessExpressionNode(createRequiredExpressionNode(createIdentifierToken(CONFIG)),
-//                            createToken(DOT_TOKEN),
-//                            createSimpleNameReferenceNode(createIdentifierToken(CLIENT_HTTP1_SETTINGS_FIELD))),
-//                    createToken(DOT_TOKEN),
-//                    createSimpleNameReferenceNode(createIdentifierToken(ENSURE_TYPE)),
-//                    createToken(OPEN_PAREN_TOKEN),
-//                    createSeparatedNodeList(createPositionalArgumentNode(
-//                            createRequiredExpressionNode(createIdentifierToken(CLIENT_HTTP1_SETTINGS)))),
-//                    createToken(CLOSE_PAREN_TOKEN));
-//            CheckExpressionNode checkExpressionNode = createCheckExpressionNode(null, createToken(CHECK_KEYWORD),
-//                    methodCallExpressionNode);
-//            AssignmentStatementNode varAssignmentNode = createAssignmentStatementNode(typedBindingPatternNode,
-//                    createToken(EQUAL_TOKEN), checkExpressionNode, createToken(SEMICOLON_TOKEN));
-//            statementNodes.add(varAssignmentNode);
-//
-//            // httpClientConfig.http1Settings = {...settings};
-//            FieldAccessExpressionNode fieldAccessExpressionNode = createFieldAccessExpressionNode(
-//                    createRequiredExpressionNode(createIdentifierToken(WEBSOCKET_CLIENT_CONFIG)),
-//                    createToken(DOT_TOKEN),
-//                    createSimpleNameReferenceNode(createIdentifierToken(CLIENT_HTTP1_SETTINGS_FIELD)));
-//            MappingConstructorExpressionNode mappingConstructorExpressionNode =
-//            createMappingConstructorExpressionNode(
-//                    createToken(OPEN_BRACE_TOKEN),
-//                    createSeparatedNodeList(
-//                            createRestArgumentNode(createToken(ELLIPSIS_TOKEN),
-//                                    createRequiredExpressionNode(createIdentifierToken(SETTINGS)))),
-//                    createToken(CLOSE_BRACE_TOKEN));
-//
-//            AssignmentStatementNode fieldAssignmentNode = createAssignmentStatementNode(fieldAccessExpressionNode,
-//                    createToken(EQUAL_TOKEN), mappingConstructorExpressionNode, createToken(SEMICOLON_TOKEN));
-//
-//            statementNodes.add(fieldAssignmentNode);
-//
-//            NodeList<StatementNode> statementList = createNodeList(statementNodes);
-//            BlockStatementNode ifBody = createBlockStatementNode(createToken(OPEN_BRACE_TOKEN), statementList,
-//                    createToken(CLOSE_BRACE_TOKEN));
-//
-//            IfElseStatementNode ifElseStatementNode = createIfElseStatementNode(createToken(IF_KEYWORD), condition,
-//                    ifBody, null);
-//            doStatementNodeList.add(ifElseStatementNode);
-//        }
-
-        doStatementNodeList.addAll(Arrays.asList(
-                getDoBlockIfElseStatementNodes(SECURE_SOCKET_FIELD, SECURE_SOCKET),
-//                getDoBlockIfElseStatementNodes(COOKIES_FIELD, HTTP2_SETTINGS),
-//                getDoBlockIfElseStatementNodes(CACHE_CONFIG_FIELD, CACHE_CONFIG),
-                getDoBlockIfElseStatementNodes(PING_PONG_HANDLER_FIELD, PING_PONG_SERVICE),
-
-                getDoBlockIfElseStatementNodes(RETRY_CONFIG_FIELD, WEB_SOCKET_RETRY_CONFIG)));
-
-        BlockStatementNode blockStatementNode = createBlockStatementNode(createToken(OPEN_BRACE_TOKEN),
-                createNodeList(doStatementNodeList), createToken(CLOSE_BRACE_TOKEN));
-
-        return createDoStatementNode(createToken(DO_KEYWORD),
-                blockStatementNode, null);
-    }
-
     //TODO: Use this if want to use this in Choreo
 
     /**
@@ -1089,7 +937,7 @@ public class BallerinaAuthConfigGenerator {
 
         List<Node> argumentsList = new ArrayList<>();
 
-        if (isHttpOROAuth() && !isHttpApiKey()) {
+        if (isHttpOrOAuth() && !isHttpApiKey()) {
             ExpressionNode authValExp = createFieldAccessExpressionNode(
                     createSimpleNameReferenceNode(createIdentifierToken(CLIENT_CONFIG)),
                     createToken(DOT_TOKEN), createSimpleNameReferenceNode(createIdentifierToken(AUTH)));
@@ -1291,7 +1139,7 @@ public class BallerinaAuthConfigGenerator {
         Token questionMarkToken = createToken(QUESTION_MARK_TOKEN);
 
         // add auth field
-        if (isHttpOROAuth() && !isHttpApiKey()) {
+        if (isHttpOrOAuth() && !isHttpApiKey()) {
             MetadataNode authMetadataNode = getMetadataNode("Configurations related to client authentication");
             IdentifierToken authFieldName = AbstractNodeFactory.createIdentifierToken(escapeIdentifier(
                     AUTH));
@@ -1300,7 +1148,7 @@ public class BallerinaAuthConfigGenerator {
             RecordFieldNode authFieldNode = NodeFactory.createRecordFieldNode(authMetadataNode, null,
                     authFieldTypeNode, authFieldName, null, semicolonToken);
             recordFieldNodes.add(authFieldNode);
-        } else if (isHttpOROAuth() && isHttpApiKey()) {
+        } else if (isHttpOrOAuth() && isHttpApiKey()) {
             MetadataNode authMetadataNode = getMetadataNode(
                     "Provides Auth configurations needed when communicating with a remote Websocket " +
                             "service endpoint.");

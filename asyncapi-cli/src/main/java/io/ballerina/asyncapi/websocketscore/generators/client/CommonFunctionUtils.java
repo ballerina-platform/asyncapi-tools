@@ -42,7 +42,7 @@ import static io.ballerina.asyncapi.websocketscore.GeneratorUtils.extractReferen
  */
 public class CommonFunctionUtils {
 
-    private AsyncApi25DocumentImpl asyncAPI;
+    private final AsyncApi25DocumentImpl asyncAPI;
 
     public CommonFunctionUtils(AsyncApi25DocumentImpl asyncAPI) {
         this.asyncAPI = asyncAPI;
