@@ -1,4 +1,4 @@
-# Specification: Ballerina AsyncAPI for Websockets
+# Specification: Ballerina AsyncAPI for WebSockets
 
 _Authors_: @thushalya @hasathcharu  
 _Reviewers_: @bhashinee @shafreenAnfar  
@@ -8,7 +8,7 @@ _Edition_: Swan Lake
 
 ## Introduction
 
-This is the specification for the AsyncApi Tools of [Ballerina language](https://ballerina.io/), which supports generation of client API from an AsyncAPI specification for Websocket protocols. This also allows the generation of an AsyncAPI specification for a given Ballerina service running on websockets.
+This is the specification for the AsyncApi Tools of [Ballerina language](https://ballerina.io/), which supports generation of client API from an AsyncAPI specification for WebSocket protocols. This also allows the generation of an AsyncAPI specification for a given Ballerina service running on WebSockets.
 
 The AsyncAPI Tools specification has evolved and may continue to evolve in the future. The released versions of the specification can be found under the relevant GitHub tag.
 
@@ -27,7 +27,7 @@ This specification elaborates on the `AsyncAPI CLI Tool` commands.
 
 ## 2. Generating the specification
 
-This tool enables the generation of an AsyncAPI specification for a given service running on websockets. It can be done by running the following command.
+This tool enables the generation of an AsyncAPI specification for a given service running on WebSockets. It can be done by running the following command.
 
 ```bash
 bal asyncapi --protocol ws -i <input_file> --o <output_directory>
@@ -42,7 +42,7 @@ bal asyncapi --protocol ws -i <input_file> --o <output_directory>
 |      --json       |          specifies whether to generate in `json` format          |    No     |        false        |
 
 
-The command generates an AsyncAPI specification for the given service running on websockets. The generated specification will be saved in the specified output directory. If the output directory is not specified, the specification will be saved in the current directory.
+The command generates an AsyncAPI specification for the given service running on WebSockets. The generated specification will be saved in the specified output directory. If the output directory is not specified, the specification will be saved in the current directory.
 
 Behaviour of the command,
 - The tool generates a specification only if the provided input file is a Ballerina file.
@@ -81,7 +81,7 @@ servers:
 ```
 
 The server name will be `development` by default, which can be changed by the user once the specification is generated. 
-The `server` URL will be `ws://localhost`, and if the `websocket:Listener` has SSL configurations, the `server` URL will be `wss://localhost`. The `port` will be derived from the port number that the `websocket:Listener` is attached to. The protocol version will be `13` by default. The `protocol` will be `ws`.
+The `server` URL will be `ws://localhost`, and if the `websocket:Listener` has SSL configurations, the `server` URL will be `wss://localhost`. The `port` will be derived from the port number that the `websocket:Listener` is attached to. The protocol will be `ws`, and the WebSocket protocol version used will be `13`.
 
 #### Channel Object
 
@@ -108,7 +108,6 @@ service / on websocketListener {
     resource function get .() returns websocket:Service|websocket:UpgradeError {
         return new WsService();
     }
-
 }
 ```
 
@@ -140,7 +139,7 @@ When there are multiple `subscribe` and `publish` payload types, the tool will a
 
 The `components` object will contain the `messages` and `schemas` objects. `messages` refer to what you can `subscribe` to and `publish` in the channel. `schemas` refer to the data types used in `messages`.
 
-`publish` messages must always be a `record` type of the name of the `remote` function without the `on` word. For example, if the `remote` function is `onHello`, the `subscribe` message type shall be `Hello`.
+`publish` messages must always be a `record` type of the name of the `remote` function without the `on` word. For example, if the `remote` function is `onHello`, the `publish` message type shall be `Hello`.
 `subscribe` messages can be of type `any`.
 
 Refer to the following Ballerina records.
@@ -213,7 +212,7 @@ The `x-dispatcherStreamId` property is added if there is a `@websocket:ServiceCo
 
 ## 3. Generating the Ballerina client
 
-This tool enables the generation of a websocket client based on a given AsyncAPI specification. It can be done by running the following command.
+This tool enables the generation of a WebSocket client based on a given AsyncAPI specification. It can be done by running the following command.
 
 ```bash
 bal asyncapi --protocol ws -i <input_file> --o <output_directory>
@@ -228,7 +227,7 @@ bal asyncapi --protocol ws -i <input_file> --o <output_directory>
 |     --license     | specifies the path for a text file containing the license header |    No     |          -          |
 
 
-The command generates an AsyncAPI specification for the given service running on websockets. The generated client will be generated in the specified output directory. If the output directory is not specified, the client will be generated in the current directory.
+The command generates an AsyncAPI specification for the given service running on WebSockets. The generated client will be generated in the specified output directory. If the output directory is not specified, the client will be generated in the current directory.
 
 Behaviour of the command,
 - The tool will only generate a client if the provided input file is a valid AsyncAPI specification.
@@ -237,7 +236,7 @@ Behaviour of the command,
 
 ### The `client.bal` file
 
-The generated client contains two workers, one to handle the write operations and the other to handle the read operations to the websocket server. 
+The generated client contains two workers, one to handle the write operations and the other to handle the read operations to the WebSocket server. 
 
 The client will also use a `writeMessageQueue` to queue the messages to be sent to the server.
 
