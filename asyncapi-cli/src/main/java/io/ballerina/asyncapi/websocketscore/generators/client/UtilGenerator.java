@@ -90,8 +90,8 @@ import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.SELF;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.SEMICOLON;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.SIMPLE_PIPE;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.SPACE;
-import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.STREAM_GENERATOR;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.STREAM_GENERATORS_MAP;
+import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.STREAM_GENERATOR_CAPITAL;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.STREAM_NEXT_CONSUME_MESSAGE;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.STREAM_NEXT_RESPONSE_CLONE;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.STRING;
@@ -280,7 +280,7 @@ public class UtilGenerator {
 
         MetadataNode metadataNode = getClassMetadataNode(returnType);
         returnType = GeneratorUtils.getStreamGeneratorName(returnType);
-        IdentifierToken className = createIdentifierToken(returnType + STREAM_GENERATOR);
+        IdentifierToken className = createIdentifierToken(returnType + STREAM_GENERATOR_CAPITAL);
         NodeList<Token> classTypeQualifiers = createNodeList(createToken(CLIENT_KEYWORD),
                 createToken(ISOLATED_KEYWORD));
         return createClassDefinitionNode(metadataNode, createToken(PUBLIC_KEYWORD), classTypeQualifiers,

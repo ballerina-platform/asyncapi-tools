@@ -48,7 +48,7 @@ import java.util.Objects;
 
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.ATTEMPT_CON_CLOSE;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.CLONE_WITH_TYPE;
-import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.CONNECTION_CLOSED_TEMPLATE;
+import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.CONNECTION_CLOSED_MESSAGE;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.CONSUME;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.CONSUMING;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.CREATE_UUID_STATEMENT;
@@ -68,7 +68,7 @@ import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.PIPE_CLOSE
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.PIPE_ERR;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.PIPE_ERROR_NODE;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.PIPE_ERR_CAPITAL;
-import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.PIPE_PRODUCE_ERR_TEMPLATE;
+import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.PIPE_ERR_TEMPLATE;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.PRODUCE;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.PRODUCING;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.RESPONSE_MESSAGE;
@@ -77,6 +77,7 @@ import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.SELF;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.SELF_PIPES_GET_PIPE;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.SERVER_STREAMING;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.STREAM_GENERATOR;
+import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.STREAM_GENERATOR_CAPITAL;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.TIMEOUT;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.WITHIN_PAREN_TEMPLATE;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.WRITE_MESSAGE_QUEUE;
@@ -198,8 +199,9 @@ public class RemoteFunctionBodyGenerator {
                                         createToken(RETURN_KEYWORD), createErrorConstructorExpressionNode(
                                                 createToken(ERROR_KEYWORD), null, openParenToken,
                                         createSeparatedNodeList(createIdentifierToken(String.format(
-                                                DATABINDING_ERR_TEMPLATE, this.functionName))), closeParenToken),
-                                        semicolonToken)), closeBraceToken), null);
+                                                DATABINDING_ERR_TEMPLATE)), createToken(COMMA_TOKEN),
+                                                createIdentifierToken(varName)),
+                                        closeParenToken), semicolonToken)), closeBraceToken), null);
     }
 
     private StatementNode getPipeError(String errVar, String activity) {
@@ -209,7 +211,8 @@ public class RemoteFunctionBodyGenerator {
                         createNodeList(ATTEMPT_CON_CLOSE, createReturnStatementNode(createToken(RETURN_KEYWORD),
                                 createErrorConstructorExpressionNode(createToken(ERROR_KEYWORD), null,
                                         openParenToken, createSeparatedNodeList(createIdentifierToken(String.format(
-                                                PIPE_PRODUCE_ERR_TEMPLATE, this.functionName, activity))),
+                                                PIPE_ERR_TEMPLATE, activity)), createToken(COMMA_TOKEN),
+                                                createIdentifierToken(errVar)),
                                         closeParenToken), semicolonToken)), closeBraceToken), null);
     }
 
@@ -232,11 +235,9 @@ public class RemoteFunctionBodyGenerator {
         List<StatementNode> statementsList = new ArrayList<>();
         // This return type for target data type binding.
         if (extensions != null) {
-//            JsonNode xResponse = extensions.get(X_RESPONSE);
             JsonNode xResponseType = extensions.get(X_RESPONSE_TYPE);
             if (xResponseType != null && xResponseType.equals(new TextNode(SERVER_STREAMING))) {
                 //TODO: Include an if condition to check this only one time
-//                utilGenerator.setStreamFound(true);
                 createStreamFunctionBodyStatements(statementsList, requestType, responseType, specDispatcherStreamId,
                         isSubscribe);
             } else {
@@ -261,7 +262,8 @@ public class RemoteFunctionBodyGenerator {
         }
 
         if (!Objects.isNull(dispatcherStreamId)) {
-            statementsList.add(getStatementToGenerateUuid(requestType, dispatcherStreamId));
+            // TODO: Add this after generated-stream-id flag implementation
+//            statementsList.add(getStatementToGenerateUuid(requestType, dispatcherStreamId));
             pipeId = requestType + DOT + escapeIdentifier(dispatcherStreamId);
         }
 
@@ -310,7 +312,7 @@ public class RemoteFunctionBodyGenerator {
                 STREAM_GENERATOR));
         VariableDeclarationNode streamGenerator = createVariableDeclarationNode(createEmptyNodeList(),
                 null, createTypedBindingPatternNode(createSimpleNameReferenceNode(createIdentifierToken(
-                                streamGenName + "StreamGenerator")),
+                                streamGenName + STREAM_GENERATOR_CAPITAL)),
                         createFieldBindingPatternVarnameNode(streamGeneratorNode)), equalToken, newExpressionNode,
                 semicolonToken);
         streamStatementList.add(streamGenerator);
@@ -345,7 +347,7 @@ public class RemoteFunctionBodyGenerator {
     private LockStatementNode getConnectionActiveCheck() {
         //        lock {
         //            if !self.isActive {
-        //                return error ("[functionName]ConnectionError: Connection has been closed");
+        //                return error ("ConnectionError: Connection has been closed");
         //            }
         //        }
         NodeList<StatementNode> ifIsActiveNode = createNodeList(createIfElseStatementNode(createToken(IF_KEYWORD),
@@ -353,7 +355,7 @@ public class RemoteFunctionBodyGenerator {
                 createBlockStatementNode(openBraceToken, createNodeList(createReturnStatementNode(
                         createToken(RETURN_KEYWORD), createErrorConstructorExpressionNode(createToken(ERROR_KEYWORD),
                                 null, openParenToken, createSeparatedNodeList(createIdentifierToken(
-                                        String.format(CONNECTION_CLOSED_TEMPLATE, this.functionName))),
+                                        CONNECTION_CLOSED_MESSAGE)),
                                 closeParenToken), semicolonToken)), closeBraceToken), null));
         return createLockStatementNode(createToken(LOCK_KEYWORD),
                 createBlockStatementNode(openBraceToken, ifIsActiveNode, closeBraceToken), null);
@@ -401,7 +403,8 @@ public class RemoteFunctionBodyGenerator {
         }
 
         if (!Objects.isNull(dispatcherStreamId)) {
-            statementsList.add(getStatementToGenerateUuid(requestType, dispatcherStreamId));
+            // TODO: Add this after generated-stream-id flag implementation
+//            statementsList.add(getStatementToGenerateUuid(requestType, dispatcherStreamId));
             pipeId = requestType + DOT + escapeIdentifier(dispatcherStreamId);
         }
 
@@ -437,8 +440,8 @@ public class RemoteFunctionBodyGenerator {
             statementsList.add(NodeParser.parseStatement(String.format(PIPE_CLOSE_STATEMENT, pipeCloseErr, pipeId)));
             statementsList.add(createIfElseStatementNode(createToken(IF_KEYWORD), NodeParser.parseExpression(
                     pipeCloseErr + IS + ERROR), createBlockStatementNode(openBraceToken,
-                    createNodeList(NodeParser.parseStatement(String.format(LOG_PRINT_DEBUG_TEMPLATE, this.functionName,
-                            PIPE_ERR_CAPITAL, ERROR_PIPE_CLOSE))), closeBraceToken), null));
+                    createNodeList(NodeParser.parseStatement(String.format(LOG_PRINT_DEBUG_TEMPLATE, PIPE_ERR_CAPITAL,
+                            ERROR_PIPE_CLOSE, pipeCloseErr))), closeBraceToken), null));
         }
 
         //PongMessage pongMessage = responseMessage.cloneWithType();

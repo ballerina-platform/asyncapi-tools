@@ -1,13 +1,12 @@
-import ballerina/lang.runtime;
 import ballerina/log;
 import ballerina/websocket;
 
 import xlibb/pipe;
 
-# WebSockets API offers real-time market data updates. WebSockets is a bidirectional protocol offering fastest real-time data, helping you build real-time applications. The public message types presented below do not require authentication. Private-data messages can be subscribed on a separate authenticated endpoint. 
-# 
+# WebSockets API offers real-time market data updates. WebSockets is a bidirectional protocol offering fastest real-time data, helping you build real-time applications. The public message types presented below do not require authentication. Private-data messages can be subscribed on a separate authenticated endpoint.
+#
 # ### General Considerations
-# 
+#
 # - TLS with SNI (Server Name Indication) is required in order to establish a Kraken WebSockets API connection. See Cloudflare's [What is SNI?](https://www.cloudflare.com/learning/ssl/what-is-sni/) guide for more details.
 # - All messages sent and received via WebSockets are encoded in JSON format
 # - All decimal fields (including timestamps) are quoted to preserve precision.
@@ -24,9 +23,9 @@ public client isolated class KrakenWebsocketsAPIClient {
 
     # Gets invoked to initialize the `connector`.
     #
-    # + config - The configurations to be used when initializing the `connector` 
-    # + serviceUrl - URL of the target service 
-    # + return - An error if connector initialization failed 
+    # + config - The configurations to be used when initializing the `connector`
+    # + serviceUrl - URL of the target service
+    # + return - An error if connector initialization failed
     public isolated function init(websocket:ClientConfiguration clientConfig =  {}, string serviceUrl = "ws.kraken.com") returns error? {
         self.pipes = new ();
         self.writeMessageQueue = new (1000);
@@ -38,7 +37,7 @@ public client isolated class KrakenWebsocketsAPIClient {
         return;
     }
 
-    # Use to write messages to the websocket.
+    # Used to write messages to the websocket.
     #
     private isolated function startMessageWriting() {
         worker writeMessage {
@@ -53,22 +52,21 @@ public client isolated class KrakenWebsocketsAPIClient {
                     if message.message() == "Operation has timed out" {
                         continue;
                     }
-                    log:printError("[writeMessage]PipeError: " + message.message());
+                    log:printError("PipeError: Failed to consume message from the pipe", message);
                     self.attemptToCloseConnection();
                     return;
                 }
                 websocket:Error? wsErr = self.clientEp->writeMessage(message);
                 if wsErr is websocket:Error {
-                    log:printError("[writeMessage]WsError: " + wsErr.message());
+                    log:printError("WsError: Failed to write message to the client", wsErr);
                     self.attemptToCloseConnection();
                     return;
                 }
-                runtime:sleep(0.01);
             }
         }
     }
 
-    # Use to read messages from the websocket.
+    # Used to read messages from the websocket.
     #
     private isolated function startMessageReading() {
         worker readMessage {
@@ -80,18 +78,17 @@ public client isolated class KrakenWebsocketsAPIClient {
                 }
                 Message|websocket:Error message = self.clientEp->readMessage(Message);
                 if message is websocket:Error {
-                    log:printError("[readMessage]WsError: " + message.message());
+                    log:printError("WsError: Failed to read message from the client", message);
                     self.attemptToCloseConnection();
                     return;
                 }
                 pipe:Pipe pipe = self.pipes.getPipe(message.event);
                 pipe:Error? pipeErr = pipe.produce(message, 5);
                 if pipeErr is pipe:Error {
-                    log:printError("[readMessage]PipeError: " + pipeErr.message());
+                    log:printError("PipeError: Failed to produce message to the pipe", pipeErr);
                     self.attemptToCloseConnection();
                     return;
                 }
-                runtime:sleep(0.01);
             }
         }
     }
@@ -101,28 +98,28 @@ public client isolated class KrakenWebsocketsAPIClient {
     remote isolated function doPing(Ping ping, decimal timeout) returns Pong|error {
         lock {
             if !self.isActive {
-                return error("[doPing]ConnectionError: Connection has been closed");
+                return error("ConnectionError: Connection has been closed");
             }
         }
         Message|error message = ping.cloneWithType();
         if message is error {
             self.attemptToCloseConnection();
-            return error("[doPing]DataBindingError: Error in cloning message");
+            return error("DataBindingError: Error in cloning message", message);
         }
         pipe:Error? pipeErr = self.writeMessageQueue.produce(message, timeout);
         if pipeErr is pipe:Error {
             self.attemptToCloseConnection();
-            return error("[doPing]PipeError: Error in producing message");
+            return error("PipeError: Error in producing message", pipeErr);
         }
         Message|pipe:Error responseMessage = self.pipes.getPipe("ping").consume(timeout);
         if responseMessage is pipe:Error {
             self.attemptToCloseConnection();
-            return error("[doPing]PipeError: Error in consuming message");
+            return error("PipeError: Error in consuming message", responseMessage);
         }
         Pong|error pong = responseMessage.cloneWithType();
         if pong is error {
             self.attemptToCloseConnection();
-            return error("[doPing]DataBindingError: Error in cloning message");
+            return error("DataBindingError: Error in cloning message", pong);
         }
         return pong;
     }
@@ -132,28 +129,28 @@ public client isolated class KrakenWebsocketsAPIClient {
     remote isolated function doSubscribe(Subscribe subscribe, decimal timeout) returns SubscriptionStatus|error {
         lock {
             if !self.isActive {
-                return error("[doSubscribe]ConnectionError: Connection has been closed");
+                return error("ConnectionError: Connection has been closed");
             }
         }
         Message|error message = subscribe.cloneWithType();
         if message is error {
             self.attemptToCloseConnection();
-            return error("[doSubscribe]DataBindingError: Error in cloning message");
+            return error("DataBindingError: Error in cloning message", message);
         }
         pipe:Error? pipeErr = self.writeMessageQueue.produce(message, timeout);
         if pipeErr is pipe:Error {
             self.attemptToCloseConnection();
-            return error("[doSubscribe]PipeError: Error in producing message");
+            return error("PipeError: Error in producing message", pipeErr);
         }
         Message|pipe:Error responseMessage = self.pipes.getPipe("subscribe").consume(timeout);
         if responseMessage is pipe:Error {
             self.attemptToCloseConnection();
-            return error("[doSubscribe]PipeError: Error in consuming message");
+            return error("PipeError: Error in consuming message", responseMessage);
         }
         SubscriptionStatus|error subscriptionStatus = responseMessage.cloneWithType();
         if subscriptionStatus is error {
             self.attemptToCloseConnection();
-            return error("[doSubscribe]DataBindingError: Error in cloning message");
+            return error("DataBindingError: Error in cloning message", subscriptionStatus);
         }
         return subscriptionStatus;
     }
@@ -163,58 +160,56 @@ public client isolated class KrakenWebsocketsAPIClient {
     remote isolated function doUnsubscribe(Unsubscribe unsubscribe, decimal timeout) returns SubscriptionStatus|error {
         lock {
             if !self.isActive {
-                return error("[doUnsubscribe]ConnectionError: Connection has been closed");
+                return error("ConnectionError: Connection has been closed");
             }
         }
         Message|error message = unsubscribe.cloneWithType();
         if message is error {
             self.attemptToCloseConnection();
-            return error("[doUnsubscribe]DataBindingError: Error in cloning message");
+            return error("DataBindingError: Error in cloning message", message);
         }
         pipe:Error? pipeErr = self.writeMessageQueue.produce(message, timeout);
         if pipeErr is pipe:Error {
             self.attemptToCloseConnection();
-            return error("[doUnsubscribe]PipeError: Error in producing message");
+            return error("PipeError: Error in producing message", pipeErr);
         }
         Message|pipe:Error responseMessage = self.pipes.getPipe("unsubscribe").consume(timeout);
         if responseMessage is pipe:Error {
             self.attemptToCloseConnection();
-            return error("[doUnsubscribe]PipeError: Error in consuming message");
+            return error("PipeError: Error in consuming message", responseMessage);
         }
         SubscriptionStatus|error subscriptionStatus = responseMessage.cloneWithType();
         if subscriptionStatus is error {
             self.attemptToCloseConnection();
-            return error("[doUnsubscribe]DataBindingError: Error in cloning message");
+            return error("DataBindingError: Error in cloning message", subscriptionStatus);
         }
         return subscriptionStatus;
     }
 
-    #
     remote isolated function doHeartbeat(decimal timeout) returns Heartbeat|error {
         Message|pipe:Error responseMessage = self.pipes.getPipe("heartbeat").consume(timeout);
         if responseMessage is pipe:Error {
             self.attemptToCloseConnection();
-            return error("[doHeartbeat]PipeError: Error in consuming message");
+            return error("PipeError: Error in consuming message", responseMessage);
         }
         Heartbeat|error heartbeat = responseMessage.cloneWithType();
         if heartbeat is error {
             self.attemptToCloseConnection();
-            return error("[doHeartbeat]DataBindingError: Error in cloning message");
+            return error("DataBindingError: Error in cloning message", heartbeat);
         }
         return heartbeat;
     }
 
-    #
     remote isolated function doSystemStatus(decimal timeout) returns SystemStatus|error {
         Message|pipe:Error responseMessage = self.pipes.getPipe("systemStatus").consume(timeout);
         if responseMessage is pipe:Error {
             self.attemptToCloseConnection();
-            return error("[doSystemStatus]PipeError: Error in consuming message");
+            return error("PipeError: Error in consuming message", responseMessage);
         }
         SystemStatus|error systemStatus = responseMessage.cloneWithType();
         if systemStatus is error {
             self.attemptToCloseConnection();
-            return error("[doSystemStatus]DataBindingError: Error in cloning message");
+            return error("DataBindingError: Error in cloning message", systemStatus);
         }
         return systemStatus;
     }
@@ -222,7 +217,7 @@ public client isolated class KrakenWebsocketsAPIClient {
     isolated function attemptToCloseConnection() {
         error? connectionClose = self->connectionClose();
         if connectionClose is error {
-            log:printError("ConnectionError: " + connectionClose.message());
+            log:printError("ConnectionError", connectionClose);
         }
     }
 

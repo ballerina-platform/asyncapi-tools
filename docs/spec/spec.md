@@ -1,10 +1,10 @@
 # Specification: Ballerina AsyncAPI for Websockets
 
-_Authors_: @HasithaAthukorala @thushalya  
-_Reviewers_: @bhashinee @shafreenAnfar
+_Authors_: @thushalya @hasathcharu  
+_Reviewers_: @bhashinee @shafreenAnfar  
 _Created_: 2024/06/27   
-_Updated_: 2024/06/28
-_Edition_: Swan Lake
+_Updated_: 2024/06/28  
+_Edition_: Swan Lake  
 
 ## Introduction
 

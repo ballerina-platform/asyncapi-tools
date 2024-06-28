@@ -21,7 +21,6 @@ import io.ballerina.compiler.syntax.tree.ExpressionNode;
 import io.ballerina.compiler.syntax.tree.NodeParser;
 import io.ballerina.compiler.syntax.tree.OptionalTypeDescriptorNode;
 import io.ballerina.compiler.syntax.tree.QualifiedNameReferenceNode;
-import io.ballerina.compiler.syntax.tree.SimpleNameReferenceNode;
 import io.ballerina.compiler.syntax.tree.StatementNode;
 
 import java.util.Collections;
@@ -54,7 +53,6 @@ public class GeneratorConstants {
     public static final String ESCAPE_PATTERN = "([\\[\\]\\\\?!<>@#&~`*\\-=^+();:\\/{}\\s|.$])";
     public static final String HTTP = "http";
     public static final String WEBSOCKET = "websocket";
-    public static final String LANG_RUNTIME = "lang.runtime";
     public static final String SIMPLE_PIPE = "pipe";
     public static final String UUID = "uuid";
     public static final String CAPITAL_PIPE = "Pipe";
@@ -98,11 +96,11 @@ public class GeneratorConstants {
     public static final String READ_MESSAGE = "readMessage";
     public static final String MESSAGE = "Message";
     public static final String MESSAGE_WITH_ID = "MessageWithId";
-    public static final String CONNECTION_CLOSED_TEMPLATE = "\"[%s]ConnectionError: Connection has been closed\"";
-    public static final String DATABINDING_ERR_TEMPLATE = "\"[%s]DataBindingError: Error in cloning message\"";
-    public static final String PIPE_PRODUCE_ERR_TEMPLATE = "\"[%s]PipeError: Error in %s message\"";
+    public static final String CONNECTION_CLOSED_MESSAGE = "\"ConnectionError: Connection has been closed\"";
+    public static final String DATABINDING_ERR_TEMPLATE = "\"DataBindingError: Error in cloning message\"";
+    public static final String PIPE_ERR_TEMPLATE = "\"PipeError: Error in %s message\"";
     public static final String MESSAGE_VAR_NAME = "message";
-    public static final String CONNECTION_ERR = "\"ConnectionError: \" + ";
+    public static final String CONNECTION_ERR = "\"ConnectionError\", connectionClose";
     public static final String ATTEMPT_TO_CLOSE_CONNECTION = "attemptToCloseConnection";
     public static final String MESSAGE_WITH_ID_VAR_NAME = "messageWithId";
     public static final String TYPE_INCLUSION_GENERATOR = "Generator";
@@ -114,6 +112,7 @@ public class GeneratorConstants {
     public static final String PIPES = "pipes";
     public static final String STREAM_GENERATORS = "streamGenerators";
     public static final String STREAM_GENERATOR = "streamGenerator";
+    public static final String STREAM_GENERATOR_CAPITAL = "StreamGenerator";
     public static final String EQUAL = "=";
     public static final String CLIENT_CONFIG = "clientConfig";
     public static final String PREFIX_TEST = " test";
@@ -226,21 +225,26 @@ public class GeneratorConstants {
     public static final String PIPE_ERR_CAPITAL = "PipeError";
     public static final String PIPE_ERR = "pipeErr";
     public static final String RESPONSE_MESSAGE = "responseMessage";
-    public static final String PARENS = "()";
     public static final String WITHIN_PAREN_TEMPLATE = "(%s)";
     public static final String WITHIN_BRACE_TEMPLATE = "{%s}";
     public static final String CONSUMING = "consuming";
     public static final String PRODUCING = "producing";
     public static final ExpressionNode OP_TIMEOUT_EXPR = NodeParser.parseExpression("\"Operation has timed out\"");
-    public static final SimpleNameReferenceNode LOG_PRINT_ERR =
-            createSimpleNameReferenceNode(createIdentifierToken("log:printError"));
-    public static final String LOG_PRINT_DEBUG_TEMPLATE = "log:printDebug(\"[%s]%s: %s\");";
+    public static final String LOG_PRINT_ERR = "log:printError(%s);";
+    public static final String LOG_PRINT_DEBUG_TEMPLATE = "log:printDebug(\"%s: %s\", %s);";
     public static final String ERROR_PIPE_CLOSE = "Error in closing pipe.";
     public static final StatementNode ATTEMPT_CON_CLOSE = createExpressionStatementNode(FUNCTION_CALL,
             createFunctionCallExpressionNode(createSimpleNameReferenceNode(createIdentifierToken(SELF + DOT +
                             ATTEMPT_TO_CLOSE_CONNECTION)), createToken(OPEN_PAREN_TOKEN), createSeparatedNodeList(),
                     createToken(CLOSE_PAREN_TOKEN)), createToken(SEMICOLON_TOKEN));
-    public static final String ERR_TEMPLATE = "\"[%s]%sError: \" + %s";
+    public static final String WRITE_MESSAGE_PIPE_CONSUME_ERROR = "\"PipeError: Failed to consume message from the " +
+            "pipe\", %s";
+    public static final String WRITE_MESSAGE_CLIENT_WRITE_ERROR = "\"WsError: Failed to write message to the client\"" +
+            ", %s";
+    public static final String READ_MESSAGE_CLIENT_READ_ERROR = "\"WsError: Failed to read message from the client\"" +
+            ", %s";
+    public static final String READ_MESSAGE_PIPE_PRODUCE_ERROR = "\"PipeError: Failed to produce message to the pipe\""
+            + ", %s";
     public static final String WSS = "wss";
     public static final String DEFAULT_URL = "ws://localhost:9090/v1";
     public static final String SERVICE_URL_DESCRIPTION = "URL of the target service";

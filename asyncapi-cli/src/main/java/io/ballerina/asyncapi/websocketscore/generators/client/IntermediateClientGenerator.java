@@ -130,7 +130,6 @@ import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.DOT_TO_STR
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.DOUBLE_QUOTE;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.EQUAL_SPACE;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.ERROR;
-import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.ERR_TEMPLATE;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.FAIL_TO_READ_ENDPOINT_DETAILS;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.GET_COMBINE_HEADERS;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.HEADER_PARAM;
@@ -154,7 +153,6 @@ import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.NOT;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.OBJECT;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.OPTIONAL_ERROR;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.OP_TIMEOUT_EXPR;
-import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.PARENS;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.PATH_PARAMETERS;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.PATH_PARAMS;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.PIPES;
@@ -169,6 +167,8 @@ import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.QUERY_PARA
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.QUERY_PARAMS;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.QUEUE_DEFAULT_SIZE;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.READ_MESSAGE;
+import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.READ_MESSAGE_CLIENT_READ_ERROR;
+import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.READ_MESSAGE_PIPE_PRODUCE_ERROR;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.READ_ONLY;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.REF;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.REMOTE_METHOD_NAME_PREFIX;
@@ -194,8 +194,9 @@ import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.S_DOT;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.UUID;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.WEBSOCKET;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.WEBSOCKET_EP;
-import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.WITHIN_PAREN_TEMPLATE;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.WRITE_MESSAGE;
+import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.WRITE_MESSAGE_CLIENT_WRITE_ERROR;
+import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.WRITE_MESSAGE_PIPE_CONSUME_ERROR;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.WRITE_MESSAGE_QUEUE;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.WSS;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.WS_ERR;
@@ -236,7 +237,6 @@ import static io.ballerina.compiler.syntax.tree.NodeFactory.createExpressionStat
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createFieldAccessExpressionNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createFieldBindingPatternVarnameNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createFunctionBodyBlockNode;
-import static io.ballerina.compiler.syntax.tree.NodeFactory.createFunctionCallExpressionNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createFunctionDefinitionNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createFunctionSignatureNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createIfElseStatementNode;
@@ -551,7 +551,7 @@ public class IntermediateClientGenerator {
                                 MESSAGE_VAR_NAME)))), equalToken, responseMessageExpressionNode, semicolonToken);
 
         whileStatements.add(responseMessage);
-        whileStatements.add(getIsWsError(MESSAGE_VAR_NAME, READ_MESSAGE));
+        whileStatements.add(getIsWsError(READ_MESSAGE_CLIENT_READ_ERROR, MESSAGE_VAR_NAME));
 
         // pipe:Pipe pipe = self.pipes.getPipe(message.event);
         String messageEventAccessor = String.format(SELF_PIPES_GET_PIPE, MESSAGE_VAR_NAME + DOT +
@@ -593,7 +593,7 @@ public class IntermediateClientGenerator {
                 equalToken, produceExpression, semicolonToken);
 
         whileStatements.add(pipeErrVar);
-        whileStatements.add(getIsPipeError(PIPE_ERR, READ_MESSAGE, false));
+        whileStatements.add(getIsPipeError(PIPE_ERR, READ_MESSAGE_PIPE_PRODUCE_ERROR, false));
 
         BlockStatementNode whileBody = createBlockStatementNode(openBraceToken, createNodeList(whileStatements),
                 closeBraceToken);
@@ -693,9 +693,9 @@ public class IntermediateClientGenerator {
         List<StatementNode> whileStatements = new ArrayList<>();
         whileStatements.add(getIsActiveCheck());
         whileStatements.add(queueData);
-        whileStatements.add(getIsPipeError(MESSAGE_VAR_NAME, WRITE_MESSAGE, true));
+        whileStatements.add(getIsPipeError(MESSAGE_VAR_NAME, WRITE_MESSAGE_PIPE_CONSUME_ERROR, true));
         whileStatements.add(writeMessage);
-        whileStatements.add(getIsWsError(WS_ERR, WRITE_MESSAGE));
+        whileStatements.add(getIsWsError(WRITE_MESSAGE_CLIENT_WRITE_ERROR, WS_ERR));
 
         BlockStatementNode whileBody = createBlockStatementNode(openBraceToken, createNodeList(whileStatements),
                 closeBraceToken);
@@ -725,7 +725,8 @@ public class IntermediateClientGenerator {
                 createBlockStatementNode(openBraceToken, ifIsActiveNode, closeBraceToken), null);
     }
 
-    private static IfElseStatementNode getIsPipeError(String errVar, String functionName, boolean checkTimeout) {
+    private static IfElseStatementNode getIsPipeError(String errVar, String errorMessageTemplate,
+                                                      boolean checkTimeout) {
         //        if requestMessage is pipe:Error {
         //            if (requestMessage.message() == "Operation has timed out") {
         //                continue;
@@ -749,10 +750,8 @@ public class IntermediateClientGenerator {
             ifStatements.add(ifTimeOutErrorNode);
         }
 
-        StatementNode logPrintError = createExpressionStatementNode(FUNCTION_CALL,
-                createFunctionCallExpressionNode(LOG_PRINT_ERR, openParenToken,
-                createSeparatedNodeList(NodeParser.parseExpression(String.format(ERR_TEMPLATE, functionName,
-                        CAPITAL_PIPE, errVar + ".message()"))), closeParenToken), semicolonToken);
+        StatementNode logPrintError = NodeParser.parseStatement(String.format(LOG_PRINT_ERR,
+                String.format(errorMessageTemplate, errVar)));
 
         ifStatements.add(logPrintError);
         ifStatements.add(ATTEMPT_CON_CLOSE);
@@ -766,7 +765,7 @@ public class IntermediateClientGenerator {
                 createBlockStatementNode(openBraceToken, createNodeList(ifStatements), closeBraceToken), null);
     }
 
-    private static IfElseStatementNode getIsWsError(String errVar, String functionName) {
+    private static IfElseStatementNode getIsWsError(String errMessageTemplate, String errVar) {
         //        if err is websocket:Error {
         //            log:printError("[writeMessage]WsError: " + err.message());
         //            self.attemptToCloseConnection();
@@ -774,10 +773,8 @@ public class IntermediateClientGenerator {
         //        }
         ArrayList<StatementNode> ifStatements = new ArrayList<>();
 
-        StatementNode logPrintError = createExpressionStatementNode(FUNCTION_CALL,
-                createFunctionCallExpressionNode(LOG_PRINT_ERR, openParenToken,
-                        createSeparatedNodeList(NodeParser.parseExpression(String.format(ERR_TEMPLATE, functionName,
-                                "Ws", errVar + ".message()"))), closeParenToken), semicolonToken);
+        StatementNode logPrintError = NodeParser.parseStatement(String.format(LOG_PRINT_ERR,
+                String.format(errMessageTemplate, errVar)));
 
         ifStatements.add(logPrintError);
 
@@ -1377,9 +1374,8 @@ public class IntermediateClientGenerator {
         statements.add(NodeParser.parseStatement(CONNECTION_CLOSE_STATEMENT));
         statements.add(createIfElseStatementNode(createToken(IF_KEYWORD),
                 createSimpleNameReferenceNode(createIdentifierToken(CONNECTION_CLOSE + IS + ERROR)),
-                createBlockStatementNode(openBraceToken, createNodeList(NodeParser.parseStatement(LOG_PRINT_ERR +
-                                String.format(WITHIN_PAREN_TEMPLATE, CONNECTION_ERR + CONNECTION_CLOSE + DOT +
-                        MESSAGE_VAR_NAME + PARENS) + SEMICOLON)), closeBraceToken), null));
+                createBlockStatementNode(openBraceToken, createNodeList(NodeParser.parseStatement(
+                        String.format(LOG_PRINT_ERR, CONNECTION_ERR))), closeBraceToken), null));
 
         return createFunctionDefinitionNode(FUNCTION_DEFINITION, null,
                 createNodeList(createToken(ISOLATED_KEYWORD)), createToken(FUNCTION_KEYWORD),
@@ -1533,7 +1529,8 @@ public class IntermediateClientGenerator {
             ImportDeclarationNode importForUUID = GeneratorUtils.
                     getImportDeclarationNode(GeneratorConstants.BALLERINA, UUID);
             if (pipeIdMethods.size() == 1) {
-                imports.add(importForUUID);
+                // TODO: Add this after generated-stream-id flag implementation
+//                imports.add(importForUUID);
             }
         }
 
