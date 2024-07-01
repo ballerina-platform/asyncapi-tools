@@ -1,0 +1,61 @@
+asyncapi: 2.5.0
+info:
+  title: /
+  version: 0.1.0
+servers:
+  development:
+    url: "{server}:{port}/"
+    protocol: ws
+    protocolVersion: "13"
+    variables:
+      server:
+        default: ws://localhost
+      port:
+        default: "9092"
+channels:
+  /:
+    description: An echo service that echoes the messages sent by the client.
+    subscribe:
+      message:
+        $ref: '#/components/messages/Response'
+    publish:
+      message:
+        $ref: '#/components/messages/Hello'
+components:
+  schemas:
+    Hello:
+      type: object
+      required:
+      - message
+      - event
+      properties:
+        message:
+          type: string
+        event:
+          type: string
+          const: Hello
+    Response:
+      type: object
+      required:
+      - event
+      - message
+      properties:
+        event:
+          type: string
+          description: dispatcher key
+        message:
+          type: string
+          description: message to be sent
+      description: Representation of a response
+  messages:
+    Response:
+      payload:
+        $ref: '#/components/schemas/Response'
+    Hello:
+      payload:
+        $ref: '#/components/schemas/Hello'
+      x-response:
+        $ref: '#/components/messages/Response'
+        x-required: false
+      x-response-type: simple-rpc
+x-dispatcherKey: event

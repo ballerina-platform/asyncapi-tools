@@ -1,0 +1,107 @@
+asyncapi: 2.5.0
+info:
+  title: User
+  version: 0.1.0
+servers:
+  development:
+    url: "{server}:{port}/user"
+    protocol: ws
+    protocolVersion: "13"
+    variables:
+      server:
+        default: ws://localhost
+      port:
+        default: "9092"
+channels:
+  /:
+    description: Allows clients to get real-time data on users and chat with them.
+    subscribe:
+      message:
+        $ref: '#/components/messages/Response'
+    publish:
+      message:
+        oneOf:
+        - $ref: '#/components/messages/Subscribe'
+        - $ref: '#/components/messages/Unsubscribe'
+        - $ref: '#/components/messages/Chat'
+components:
+  schemas:
+    Subscribe:
+      type: object
+      required:
+      - event
+      - name
+      - gender
+      properties:
+        event:
+          type: string
+          const: Subscribe
+          description: type of event
+        name:
+          type: string
+          description: name of the user
+        gender:
+          type: string
+          description: gender of the user
+      description: Representation of a subscription.
+    Response:
+      type: object
+      required:
+      - event
+      - message
+      properties:
+        event:
+          type: string
+          description: dispatcher key
+        message:
+          type: string
+          description: message to be sent
+      description: Representation of a response
+    Unsubscribe:
+      type: object
+      required:
+      - event
+      properties:
+        event:
+          type: string
+          const: Unsubscribe
+          description: dispatcher key
+      description: Representation of an unsubscribe message.
+    Chat:
+      type: object
+      required:
+      - message
+      - event
+      - toUserId
+      properties:
+        message:
+          type: string
+          description: 'message to be sent  '
+        event:
+          type: string
+          const: Chat
+          description: dispatcher key
+        toUserId:
+          type: string
+          description: user id to send the message
+      description: Repersentation of a message.
+  messages:
+    Response:
+      payload:
+        $ref: '#/components/schemas/Response'
+    Subscribe:
+      payload:
+        $ref: '#/components/schemas/Subscribe'
+      x-response:
+        $ref: '#/components/messages/Response'
+      x-response-type: server-streaming
+    Unsubscribe:
+      payload:
+        $ref: '#/components/schemas/Unsubscribe'
+    Chat:
+      payload:
+        $ref: '#/components/schemas/Chat'
+      x-response:
+        $ref: '#/components/messages/Response'
+      x-response-type: simple-rpc
+x-dispatcherKey: event
