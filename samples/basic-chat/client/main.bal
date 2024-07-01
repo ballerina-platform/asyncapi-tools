@@ -48,11 +48,9 @@ public function main() returns error? {
 
 function printSingleResponse(stream<Response,error?> subscription) {
     record {|Response value;|}|error? message = subscription.next();
-    if message !is error? {
+    if message is record {|Response value;|} {
         io:println(message.value);
     } else if message is error {
         io:println("Error occurred at worker: " + message.message());
-    } else {
-        io:println("NILL");
     }
 }
