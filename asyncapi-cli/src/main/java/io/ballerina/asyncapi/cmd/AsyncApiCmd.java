@@ -17,7 +17,7 @@
  */
 package io.ballerina.asyncapi.cmd;
 
-import io.ballerina.asyncapi.cmd.websockets.AsyncAPIDiagnostic;
+import io.ballerina.asyncapi.cmd.websockets.AsyncApiDiagnostic;
 import io.ballerina.asyncapi.cmd.websockets.AsyncApiToBallerinaGenerator;
 import io.ballerina.asyncapi.cmd.websockets.BallerinaToAsyncApiGenerator;
 import io.ballerina.asyncapi.cmd.websockets.CmdConstants;
@@ -281,13 +281,13 @@ public class AsyncApiCmd implements BLauncherCmd {
         if (!errors.isEmpty()) {
             for (AsyncApiConverterDiagnostic error : errors) {
                 if (error instanceof ExceptionDiagnostic exceptionDiagnostic) {
-                    AsyncAPIDiagnostic diagnostic = CmdUtils.constructAsyncAPIDiagnostic(exceptionDiagnostic.getCode(),
+                    AsyncApiDiagnostic diagnostic = CmdUtils.constructAsyncAPIDiagnostic(exceptionDiagnostic.getCode(),
                             exceptionDiagnostic.getMessage(), exceptionDiagnostic.getDiagnosticSeverity(),
                             exceptionDiagnostic.getLocation().orElse(null));
                     outStream.println(diagnostic);
                     exitError(this.exitWhenFinish);
                 } else if (error instanceof IncompatibleRemoteDiagnostic incompatibleError) {
-                    AsyncAPIDiagnostic diagnostic = CmdUtils.constructAsyncAPIDiagnostic(incompatibleError.getCode(),
+                    AsyncApiDiagnostic diagnostic = CmdUtils.constructAsyncAPIDiagnostic(incompatibleError.getCode(),
                             incompatibleError.getMessage(), incompatibleError.getDiagnosticSeverity(),
                             incompatibleError.getLocation().get());
                     outStream.println(diagnostic);

@@ -45,7 +45,7 @@
             <class name="io.ballerina.asyncapi.wsgenerators.asyncapi.AsyncApiConverterUtilsTest"/>
             <class name="io.ballerina.asyncapi.wsgenerators.asyncapi.RecordTests"/>
             <class name="io.ballerina.asyncapi.wsgenerators.asyncapi.ResponseTests"/>
-            <class name="io.ballerina.asyncapi.wsgenerators.asyncapi.APIDocTests"/>
+            <class name="io.ballerina.asyncapi.wsgenerators.asyncapi.ApiDocTests"/>
             <class name="io.ballerina.asyncapi.wsgenerators.asyncapi.EnumTypeTests"/>
             <class name="io.ballerina.asyncapi.wsgenerators.asyncapi.ListenerTests"/>
             <class name="io.ballerina.asyncapi.wsgenerators.asyncapi.ModuleReferenceTests"/>

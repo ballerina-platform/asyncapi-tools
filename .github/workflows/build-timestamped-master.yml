@@ -36,6 +36,6 @@ jobs:
           CLIENT_SECRET: ${{ secrets.CLIENT_SECRET }}
           REFRESH_TOKEN: ${{ secrets.REFRESH_TOKEN }}
         run: |
-          ./gradlew clean build publish --stacktrace --scan --console=plain
+          ./gradlew clean build publish codeCoverageReport --stacktrace --scan --console=plain
       - name: Generate CodeCov Report
         uses: codecov/codecov-action@v1

@@ -77,7 +77,7 @@ public class CodeGenerator implements Application {
 
         BalController dispatcherController = new DispatcherController(serviceTypes, eventIdentifierType,
                 eventIdentifierPath);
-        String dispatcherContent = "";
+        String dispatcherContent;
         if (eventIdentifierType.equals(Constants.X_BALLERINA_EVENT_TYPE_BODY)) {
             String dispatcherTemplateForEventIdentifierInBody = fileRepository
                     .getFileContentFromResources(

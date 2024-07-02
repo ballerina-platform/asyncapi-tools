@@ -59,7 +59,6 @@ import java.util.Optional;
 
 import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.CAMEL_CASE_PATTERN;
 import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.FALSE;
-import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.FUNCTION_DEFAULT_NAME_CONTAINS_ERROR;
 import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.FUNCTION_PARAMETERS_EXCEEDED;
 import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.FUNCTION_SIGNATURE_WRONG_TYPE;
 import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.FUNCTION_WRONG_NAME;
@@ -129,10 +128,10 @@ public class AsyncApiRemoteMapper {
     /**
      * Remote mapper when there have multiple remote methods.
      * @param resource functionDefinitionNode which contains resource function
-     * @param classDefinitionNode
-     * @param dispatcherValue
-     * @param channelItem
-     * @return
+     * @param classDefinitionNode classDefinitionNode which contains class definition
+     * @param dispatcherValue dispatcher key value
+     * @param channelItem AsyncAPI channel
+     * @return AsyncAPI channel object
      */
     private AsyncApi25ChannelsImpl handleRemoteFunctions(FunctionDefinitionNode resource,
                                                          ClassDefinitionNode classDefinitionNode,
@@ -208,8 +207,6 @@ public class AsyncApiRemoteMapper {
                                 }
                             }
                             //TODO: Change because onError and onIdleTimeout in graphql over websocket
-                        } else {
-                            throw new NoSuchElementException(FUNCTION_DEFAULT_NAME_CONTAINS_ERROR);
                         }
                     } else {
                         throw new NoSuchElementException(FUNCTION_WRONG_NAME);
