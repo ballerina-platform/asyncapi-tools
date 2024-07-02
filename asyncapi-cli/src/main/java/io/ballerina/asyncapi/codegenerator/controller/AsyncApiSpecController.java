@@ -19,13 +19,12 @@
 package io.ballerina.asyncapi.codegenerator.controller;
 
 import io.apicurio.datamodels.Library;
-import io.apicurio.datamodels.asyncapi.models.AaiDocument;
-import io.apicurio.datamodels.asyncapi.v2.models.Aai20Document;
-import io.apicurio.datamodels.core.util.ReferenceResolverChain;
-import io.apicurio.datamodels.openapi.visitors.dereference.Dereferencer;
+import io.apicurio.datamodels.deref.Dereferencer;
+import io.apicurio.datamodels.models.asyncapi.AsyncApiDocument;
+import io.apicurio.datamodels.models.asyncapi.AsyncApiSchema;
+import io.apicurio.datamodels.refs.ReferenceResolverChain;
 import io.ballerina.asyncapi.codegenerator.configuration.BallerinaAsyncApiException;
 import io.ballerina.asyncapi.codegenerator.entity.MultiChannel;
-import io.ballerina.asyncapi.codegenerator.entity.Schema;
 import io.ballerina.asyncapi.codegenerator.entity.ServiceType;
 import io.ballerina.asyncapi.codegenerator.usecase.ExtractChannelsFromSpec;
 import io.ballerina.asyncapi.codegenerator.usecase.ExtractIdentifierPathFromSpec;
@@ -35,14 +34,13 @@ import io.ballerina.asyncapi.codegenerator.usecase.Extractor;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 /**
  * This class contains extraction of data into entities from the AsyncAPI specification.
  */
 public class AsyncApiSpecController implements SpecController {
     private List<ServiceType> serviceTypes;
-    private Map<String, Schema> schemas;
+    private Map<String, AsyncApiSchema> schemas;
     private String eventIdentifierType;
     private String eventIdentifierPath;
 
@@ -51,14 +49,9 @@ public class AsyncApiSpecController implements SpecController {
     }
 
     private void readSpec(String asyncApiSpecJson) throws BallerinaAsyncApiException {
-        AaiDocument asyncApiSpec = (Aai20Document) Library.readDocumentFromJSONString(asyncApiSpecJson);
-        Dereferencer dereferencer = new Dereferencer(asyncApiSpec, ReferenceResolverChain.getInstance(), false);
-        asyncApiSpec = (Aai20Document) dereferencer.dereference();
-        Set<String> unresolvedRefs = dereferencer.getUnresolvableReferences();
-        if (!unresolvedRefs.isEmpty()) {
-            throw new BallerinaAsyncApiException("Could not resolve some Yaml paths defined in $ref attributes: "
-                    .concat(String.join(", ", unresolvedRefs)));
-        }
+        AsyncApiDocument asyncApiSpec = (AsyncApiDocument) Library.readDocumentFromJSONString(asyncApiSpecJson);
+        Dereferencer dereferencer = new Dereferencer(ReferenceResolverChain.getInstance(), false);
+        asyncApiSpec = (AsyncApiDocument) dereferencer.dereference(asyncApiSpec);
 
         Extractor extractServiceTypes = new ExtractChannelsFromSpec(asyncApiSpec);
         Extractor extractSchemas = new ExtractSchemasFromSpec(asyncApiSpec);
@@ -79,7 +72,7 @@ public class AsyncApiSpecController implements SpecController {
     }
 
     @Override
-    public Map<String, Schema> getSchemas() {
+    public Map<String, AsyncApiSchema> getSchemas() {
         return schemas;
     }
 

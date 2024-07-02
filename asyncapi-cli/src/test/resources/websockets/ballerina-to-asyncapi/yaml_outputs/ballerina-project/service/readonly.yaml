@@ -1,0 +1,199 @@
+asyncapi: 2.5.0
+info:
+  title: PayloadV
+  version: 0.1.0
+servers:
+  development:
+    url: "{server}:{port}/payloadV"
+    protocol: ws
+    protocolVersion: "13"
+    variables:
+      server:
+        default: ws://localhost
+      port:
+        default: "9090"
+channels:
+  /:
+    subscribe:
+      message:
+        oneOf:
+          - payload:
+              type: array
+              items:
+                $ref: '#/components/schemas/LiftRecord'
+          - $ref: '#/components/messages/LiftRecord'
+          - payload:
+              type: array
+              items:
+                $ref: '#/components/schemas/Subscribe'
+    publish:
+      message:
+        oneOf:
+          - $ref: '#/components/messages/Location'
+          - $ref: '#/components/messages/Rooms'
+          - $ref: '#/components/messages/ReserveRoom'
+components:
+  schemas:
+    Location:
+      type: object
+      required:
+        - id
+        - event
+      properties:
+        id:
+          type: string
+          description: Unique identification
+        event:
+          type: string
+          const: Location
+      description: Represents location
+    LiftRecord:
+      type: object
+      required:
+        - id
+        - name
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        status:
+          type: string
+          enum:
+            - OPEN
+            - CLOSED
+            - HOLD
+        capacity:
+          type: integer
+          format: int64
+        night:
+          type: boolean
+        elevationgain:
+          type: integer
+          format: int64
+    Room:
+      type: object
+      required:
+        - id
+        - category
+        - capacity
+        - wifi
+        - status
+        - currency
+        - price
+        - count
+      properties:
+        id:
+          type: string
+          description: Unique identification
+        category:
+          type: string
+          enum:
+            - DELUXE
+            - KING
+            - FAMILY
+          description: Types of rooms available
+        capacity:
+          type: integer
+          description: Number of people that can be accommodate
+          format: int64
+        wifi:
+          type: boolean
+          description: Availability of wifi
+        status:
+          type: string
+          enum:
+            - AVAILABLE
+            - RESERVED
+            - BOOKED
+          description: Availability of room
+        currency:
+          type: string
+          description: Currency used in price
+        price:
+          type: number
+          description: Cost for the room
+          format: double
+        count:
+          type: integer
+          description: Number of rooms as per the status
+          format: int64
+      description: Represents resort room
+    Rooms:
+      type: object
+      required:
+        - rooms
+        - event
+      properties:
+        rooms:
+          type: array
+          items:
+            $ref: '#/components/schemas/Room'
+          description: Array of rooms
+        event:
+          type: string
+          const: Rooms
+      description: Represents a collection of resort rooms
+    ReserveRoom:
+      type: object
+      required:
+        - id
+        - count
+        - event
+      properties:
+        id:
+          type: string
+          description: Unique identification of the room
+        count:
+          type: integer
+          description: Number of rooms
+          format: int64
+        event:
+          type: string
+          const: ReserveRoom
+      description: Represents rooms be reserved
+    Subscribe:
+      type: object
+      required:
+        - id
+        - event
+      properties:
+        id:
+          type: string
+          description: Unique identification of the room
+        event:
+          type: string
+  messages:
+    Location:
+      payload:
+        $ref: '#/components/schemas/Location'
+      description: A list of all `Lift`s
+      x-response:
+        payload:
+          type: array
+          items:
+            $ref: '#/components/schemas/LiftRecord'
+        description: the lifts
+      x-response-type: simple-rpc
+    LiftRecord:
+      payload:
+        $ref: '#/components/schemas/LiftRecord'
+    Rooms:
+      payload:
+        $ref: '#/components/schemas/Rooms'
+      description: "Returns a `Lift` by `id` (id: \"panorama\")"
+      x-response:
+        $ref: '#/components/messages/LiftRecord'
+        description: the lift
+        x-required: false
+      x-response-type: simple-rpc
+    ReserveRoom:
+      payload:
+        $ref: '#/components/schemas/ReserveRoom'
+      x-response:
+        payload:
+          type: array
+          items:
+            $ref: '#/components/schemas/Subscribe'
+      x-response-type: simple-rpc
+x-dispatcherKey: event

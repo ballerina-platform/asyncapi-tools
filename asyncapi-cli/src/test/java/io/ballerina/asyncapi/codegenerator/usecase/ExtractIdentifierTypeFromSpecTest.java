@@ -19,8 +19,7 @@
 package io.ballerina.asyncapi.codegenerator.usecase;
 
 import io.apicurio.datamodels.Library;
-import io.apicurio.datamodels.asyncapi.models.AaiDocument;
-import io.apicurio.datamodels.asyncapi.v2.models.Aai20Document;
+import io.apicurio.datamodels.models.asyncapi.AsyncApiDocument;
 import io.ballerina.asyncapi.codegenerator.configuration.BallerinaAsyncApiException;
 import io.ballerina.asyncapi.codegenerator.repository.FileRepository;
 import io.ballerina.asyncapi.codegenerator.repository.FileRepositoryImpl;
@@ -43,7 +42,7 @@ public class ExtractIdentifierTypeFromSpecTest {
         String asyncApiSpecStr = fileRepository
                 .getFileContentFromResources("specs/spec-without-identifier-path.yml");
         String asyncApiSpecJson = fileRepository.convertYamlToJson(asyncApiSpecStr);
-        AaiDocument asyncApiSpec = (Aai20Document) Library.readDocumentFromJSONString(asyncApiSpecJson);
+        AsyncApiDocument asyncApiSpec = (AsyncApiDocument) Library.readDocumentFromJSONString(asyncApiSpecJson);
         Extractor extractIdentifierTypeFromSpec = new ExtractIdentifierTypeFromSpec(asyncApiSpec);
         extractIdentifierTypeFromSpec.extract();
     }
@@ -60,7 +59,7 @@ public class ExtractIdentifierTypeFromSpecTest {
         String asyncApiSpecStr = fileRepository
                 .getFileContentFromResources("specs/spec-with-identifier-path-missing-type.yml");
         String asyncApiSpecJson = fileRepository.convertYamlToJson(asyncApiSpecStr);
-        AaiDocument asyncApiSpec = (Aai20Document) Library.readDocumentFromJSONString(asyncApiSpecJson);
+        AsyncApiDocument asyncApiSpec = (AsyncApiDocument) Library.readDocumentFromJSONString(asyncApiSpecJson);
         Extractor extractIdentifierTypeFromSpec = new ExtractIdentifierTypeFromSpec(asyncApiSpec);
         extractIdentifierTypeFromSpec.extract();
     }
@@ -77,7 +76,7 @@ public class ExtractIdentifierTypeFromSpecTest {
         String asyncApiSpecStr = fileRepository
                 .getFileContentFromResources("specs/spec-with-event-identifier-invalid-type.yml");
         String asyncApiSpecJson = fileRepository.convertYamlToJson(asyncApiSpecStr);
-        AaiDocument asyncApiSpec = (Aai20Document) Library.readDocumentFromJSONString(asyncApiSpecJson);
+        AsyncApiDocument asyncApiSpec = (AsyncApiDocument) Library.readDocumentFromJSONString(asyncApiSpecJson);
         Extractor extractIdentifierTypeFromSpec = new ExtractIdentifierTypeFromSpec(asyncApiSpec);
         extractIdentifierTypeFromSpec.extract();
     }

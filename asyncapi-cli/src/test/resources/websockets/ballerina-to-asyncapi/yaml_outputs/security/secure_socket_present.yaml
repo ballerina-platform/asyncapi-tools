@@ -1,0 +1,65 @@
+asyncapi: 2.5.0
+info:
+  title: PayloadV
+  version: 0.0.0
+servers:
+  development:
+    url: "{server}:{port}/payloadV"
+    protocol: ws
+    protocolVersion: "13"
+    variables:
+      server:
+        default: wss://localhost
+      port:
+        default: "80"
+channels:
+  /v1/{id}/v2/{name}:
+    subscribe:
+      message:
+        payload:
+          type: integer
+          format: int64
+    publish:
+      message:
+        $ref: '#/components/messages/Subscribe'
+    parameters:
+      id:
+        schema:
+          type: integer
+          format: int64
+      name:
+        schema:
+          type: string
+    bindings:
+      ws:
+        bindingVersion: 0.1.0
+        query:
+          type: object
+          properties:
+            tag:
+              type: integer
+              format: int64
+components:
+  schemas:
+    Subscribe:
+      type: object
+      required:
+        - id
+        - type1
+      properties:
+        id:
+          type: integer
+          format: int64
+        type1:
+          type: string
+          const: Subscribe
+  messages:
+    Subscribe:
+      payload:
+        $ref: '#/components/schemas/Subscribe'
+      x-response:
+        payload:
+          type: integer
+          format: int64
+      x-response-type: simple-rpc
+x-dispatcherKey: type1

@@ -18,9 +18,9 @@
 
 package io.ballerina.asyncapi.codegenerator.controller;
 
+import io.apicurio.datamodels.models.asyncapi.AsyncApiSchema;
 import io.ballerina.asyncapi.codegenerator.configuration.BallerinaAsyncApiException;
 import io.ballerina.asyncapi.codegenerator.configuration.Constants;
-import io.ballerina.asyncapi.codegenerator.entity.Schema;
 import io.ballerina.asyncapi.codegenerator.usecase.GenerateModuleMemberDeclarationNode;
 import io.ballerina.asyncapi.codegenerator.usecase.GenerateUnionDescriptorNode;
 import io.ballerina.asyncapi.codegenerator.usecase.Generator;
@@ -45,9 +45,9 @@ import static io.ballerina.compiler.syntax.tree.NodeFactory.createSimpleNameRefe
  * This file contains the logics and functions related to code generation of the data_types.bal.
  */
 public class SchemaController implements BalController {
-    private final Map<String, Schema> schemas;
+    private final Map<String, AsyncApiSchema> schemas;
 
-    public SchemaController(Map<String, Schema> schemas) {
+    public SchemaController(Map<String, AsyncApiSchema> schemas) {
         this.schemas = schemas;
     }
 
@@ -55,7 +55,7 @@ public class SchemaController implements BalController {
     public String generateBalCode(String balTemplate) throws BallerinaAsyncApiException {
         List<ModuleMemberDeclarationNode> recordNodes = new ArrayList<>();
         List<TypeDescriptorNode> typeDescriptorNodes = new ArrayList<>();
-        for (Map.Entry<String, Schema> fields : schemas.entrySet()) {
+        for (Map.Entry<String, AsyncApiSchema> fields : schemas.entrySet()) {
             Generator generateRecordNode = new GenerateModuleMemberDeclarationNode(fields);
             ModuleMemberDeclarationNode typeDefinitionNode = generateRecordNode.generate();
             if (typeDefinitionNode instanceof TypeDefinitionNode) {

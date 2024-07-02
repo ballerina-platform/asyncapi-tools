@@ -19,10 +19,9 @@
 package io.ballerina.asyncapi.codegenerator.usecase;
 
 import io.apicurio.datamodels.Library;
-import io.apicurio.datamodels.asyncapi.models.AaiDocument;
-import io.apicurio.datamodels.asyncapi.v2.models.Aai20Document;
+import io.apicurio.datamodels.models.asyncapi.AsyncApiDocument;
+import io.apicurio.datamodels.models.asyncapi.AsyncApiSchema;
 import io.ballerina.asyncapi.codegenerator.configuration.BallerinaAsyncApiException;
-import io.ballerina.asyncapi.codegenerator.entity.Schema;
 import io.ballerina.asyncapi.codegenerator.repository.FileRepository;
 import io.ballerina.asyncapi.codegenerator.repository.FileRepositoryImpl;
 import io.ballerina.compiler.syntax.tree.TypeDefinitionNode;
@@ -49,11 +48,11 @@ public class GenerateUnionDescriptorNodeTest {
         String asyncApiSpecStr = fileRepository
                 .getFileContentFromResources("specs/spec-single-schema.yml");
         String asyncApiSpecJson = fileRepository.convertYamlToJson(asyncApiSpecStr);
-        AaiDocument asyncApiSpec = (Aai20Document) Library.readDocumentFromJSONString(asyncApiSpecJson);
+        AsyncApiDocument asyncApiSpec = (AsyncApiDocument) Library.readDocumentFromJSONString(asyncApiSpecJson);
         Extractor extractSchemasFromSpec = new ExtractSchemasFromSpec(asyncApiSpec);
-        Map<String, Schema> schemas = extractSchemasFromSpec.extract();
+        Map<String, AsyncApiSchema> schemas = extractSchemasFromSpec.extract();
 
-        Map.Entry<String, Schema> entry = schemas.entrySet().iterator().next();
+        Map.Entry<String, AsyncApiSchema> entry = schemas.entrySet().iterator().next();
         Generator generateRecordNode = new GenerateModuleMemberDeclarationNode(entry);
         TypeDefinitionNode typeDefinitionNode = generateRecordNode.generate();
         List<TypeDescriptorNode> typeDescriptorNodes = new ArrayList<>();
@@ -75,12 +74,12 @@ public class GenerateUnionDescriptorNodeTest {
         String asyncApiSpecStr = fileRepository
                 .getFileContentFromResources("specs/spec-multiple-schemas.yml");
         String asyncApiSpecJson = fileRepository.convertYamlToJson(asyncApiSpecStr);
-        AaiDocument asyncApiSpec = (Aai20Document) Library.readDocumentFromJSONString(asyncApiSpecJson);
+        AsyncApiDocument asyncApiSpec = (AsyncApiDocument) Library.readDocumentFromJSONString(asyncApiSpecJson);
         Extractor extractSchemasFromSpec = new ExtractSchemasFromSpec(asyncApiSpec);
-        Map<String, Schema> schemas = extractSchemasFromSpec.extract();
+        Map<String, AsyncApiSchema> schemas = extractSchemasFromSpec.extract();
 
         List<TypeDescriptorNode> typeDescriptorNodes = new ArrayList<>();
-        for (Map.Entry<String, Schema> fields : schemas.entrySet()) {
+        for (Map.Entry<String, AsyncApiSchema> fields : schemas.entrySet()) {
             Generator generateRecordNode = new GenerateModuleMemberDeclarationNode(fields);
             TypeDefinitionNode typeDefinitionNode = generateRecordNode.generate();
             typeDescriptorNodes.add(
@@ -100,8 +99,7 @@ public class GenerateUnionDescriptorNodeTest {
     @Test(description = "Test the functionality of the generate function " +
             "when the nodes list is empty",
             expectedExceptions = BallerinaAsyncApiException.class,
-            expectedExceptionsMessageRegExp =
-                    "Nodes list is empty, hence can't generate the Union Node")
+            expectedExceptionsMessageRegExp = "Nodes list is empty, hence can't generate the Union Node")
     public void testGenerateWithEmptyRemoteFunctionsList() throws BallerinaAsyncApiException {
         Generator generateUnionDescriptorNode = new GenerateUnionDescriptorNode(new ArrayList<>(),
                 "GenericDataType");

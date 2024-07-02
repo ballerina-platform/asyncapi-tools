@@ -18,10 +18,9 @@
 
 package io.ballerina.asyncapi.codegenerator.usecase;
 
-import io.apicurio.datamodels.asyncapi.models.AaiDocument;
+import io.apicurio.datamodels.models.asyncapi.AsyncApiDocument;
+import io.apicurio.datamodels.models.asyncapi.AsyncApiSchema;
 import io.ballerina.asyncapi.codegenerator.configuration.BallerinaAsyncApiException;
-import io.ballerina.asyncapi.codegenerator.entity.Schema;
-import io.ballerina.asyncapi.codegenerator.entity.SchemaDecorator;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -31,18 +30,18 @@ import java.util.stream.Collectors;
  * Extract the schemas from the AsyncAPI specification.
  */
 public class ExtractSchemasFromSpec implements Extractor {
-    private final AaiDocument asyncApiSpec;
+    private final AsyncApiDocument asyncApiSpec;
 
-    public ExtractSchemasFromSpec(AaiDocument asyncApiSpec) {
+    public ExtractSchemasFromSpec(AsyncApiDocument asyncApiSpec) {
         this.asyncApiSpec = asyncApiSpec;
     }
 
     @Override
-    public Map<String, Schema> extract() throws BallerinaAsyncApiException {
-        if (asyncApiSpec.components != null && asyncApiSpec.components.schemas != null
-                && !asyncApiSpec.components.schemas.entrySet().isEmpty()) {
-            return asyncApiSpec.components.schemas.entrySet()
-                    .stream().collect(Collectors.toMap(Map.Entry::getKey, e -> new SchemaDecorator(e.getValue())));
+    public Map<String, AsyncApiSchema> extract() throws BallerinaAsyncApiException {
+        if (asyncApiSpec.getComponents() != null && asyncApiSpec.getComponents().getSchemas() != null
+                && !asyncApiSpec.getComponents().getSchemas().entrySet().isEmpty()) {
+            return asyncApiSpec.getComponents().getSchemas().entrySet().stream()
+                    .collect(Collectors.toMap(Map.Entry::getKey, entry -> (AsyncApiSchema) entry.getValue()));
         }
         return new HashMap<>();
     }

@@ -18,7 +18,7 @@
 
 package io.ballerina.asyncapi.codegenerator.controller;
 
-import io.ballerina.asyncapi.codegenerator.entity.Schema;
+import io.apicurio.datamodels.models.asyncapi.AsyncApiSchema;
 import io.ballerina.asyncapi.codegenerator.entity.ServiceType;
 
 import java.util.List;
@@ -29,7 +29,7 @@ import java.util.Map;
  */
 public interface SpecController {
     List<ServiceType> getServiceTypes();
-    Map<String, Schema> getSchemas();
+    Map<String, AsyncApiSchema> getSchemas();
     String getEventIdentifierType();
     String getEventIdentifierPath();
 }

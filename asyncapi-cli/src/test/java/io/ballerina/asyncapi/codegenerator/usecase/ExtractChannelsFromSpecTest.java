@@ -19,8 +19,7 @@
 package io.ballerina.asyncapi.codegenerator.usecase;
 
 import io.apicurio.datamodels.Library;
-import io.apicurio.datamodels.asyncapi.models.AaiDocument;
-import io.apicurio.datamodels.asyncapi.v2.models.Aai20Document;
+import io.apicurio.datamodels.models.asyncapi.AsyncApiDocument;
 import io.ballerina.asyncapi.codegenerator.configuration.BallerinaAsyncApiException;
 import io.ballerina.asyncapi.codegenerator.entity.MultiChannel;
 import io.ballerina.asyncapi.codegenerator.entity.RemoteFunction;
@@ -46,7 +45,7 @@ public class ExtractChannelsFromSpecTest {
         String asyncApiSpecStr = fileRepository
                 .getFileContentFromResources("specs/spec-single-channel.yml");
         String asyncApiSpecJson = fileRepository.convertYamlToJson(asyncApiSpecStr);
-        AaiDocument asyncApiSpec = (Aai20Document) Library.readDocumentFromJSONString(asyncApiSpecJson);
+        AsyncApiDocument asyncApiSpec = (AsyncApiDocument) Library.readDocumentFromJSONString(asyncApiSpecJson);
         Extractor extractServiceTypes = new ExtractChannelsFromSpec(asyncApiSpec);
         MultiChannel multiChannel = extractServiceTypes.extract();
         List<ServiceType> serviceTypes = multiChannel.getServiceTypes();
@@ -65,7 +64,7 @@ public class ExtractChannelsFromSpecTest {
         String asyncApiSpecStr = fileRepository
                 .getFileContentFromResources("specs/spec-single-channel-with-inline-schema.yml");
         String asyncApiSpecJson = fileRepository.convertYamlToJson(asyncApiSpecStr);
-        AaiDocument asyncApiSpec = (Aai20Document) Library.readDocumentFromJSONString(asyncApiSpecJson);
+        AsyncApiDocument asyncApiSpec = (AsyncApiDocument) Library.readDocumentFromJSONString(asyncApiSpecJson);
         Extractor extractServiceTypes = new ExtractChannelsFromSpec(asyncApiSpec);
         MultiChannel multiChannel = extractServiceTypes.extract();
         List<ServiceType> serviceTypes = multiChannel.getServiceTypes();
@@ -83,7 +82,7 @@ public class ExtractChannelsFromSpecTest {
         String asyncApiSpecStr = fileRepository
                 .getFileContentFromResources("specs/spec-multiple-channels.yml");
         String asyncApiSpecJson = fileRepository.convertYamlToJson(asyncApiSpecStr);
-        AaiDocument asyncApiSpec = (Aai20Document) Library.readDocumentFromJSONString(asyncApiSpecJson);
+        AsyncApiDocument asyncApiSpec = (AsyncApiDocument) Library.readDocumentFromJSONString(asyncApiSpecJson);
         Extractor extractServiceTypes = new ExtractChannelsFromSpec(asyncApiSpec);
         MultiChannel multiChannel = extractServiceTypes.extract();
         List<ServiceType> serviceTypes = multiChannel.getServiceTypes();
@@ -111,7 +110,7 @@ public class ExtractChannelsFromSpecTest {
         String asyncApiSpecStr = fileRepository
                 .getFileContentFromResources("specs/spec-single-channel-missing-x-service-type.yml");
         String asyncApiSpecJson = fileRepository.convertYamlToJson(asyncApiSpecStr);
-        AaiDocument asyncApiSpec = (Aai20Document) Library.readDocumentFromJSONString(asyncApiSpecJson);
+        AsyncApiDocument asyncApiSpec = (AsyncApiDocument) Library.readDocumentFromJSONString(asyncApiSpecJson);
         Extractor extractServiceTypes = new ExtractChannelsFromSpec(asyncApiSpec);
         MultiChannel multiChannel = extractServiceTypes.extract();
         List<ServiceType> serviceTypes = multiChannel.getServiceTypes();
@@ -134,7 +133,7 @@ public class ExtractChannelsFromSpecTest {
         String asyncApiSpecStr = fileRepository
                 .getFileContentFromResources("specs/spec-single-channel-missing-x-event-type-with-oneof.yml");
         String asyncApiSpecJson = fileRepository.convertYamlToJson(asyncApiSpecStr);
-        AaiDocument asyncApiSpec = (Aai20Document) Library.readDocumentFromJSONString(asyncApiSpecJson);
+        AsyncApiDocument asyncApiSpec = (AsyncApiDocument) Library.readDocumentFromJSONString(asyncApiSpecJson);
         Extractor extractServiceTypes = new ExtractChannelsFromSpec(asyncApiSpec);
         extractServiceTypes.extract();
     }
@@ -150,7 +149,7 @@ public class ExtractChannelsFromSpecTest {
         String asyncApiSpecStr = fileRepository.getFileContentFromResources(
                 "specs/spec-single-channel-missing-x-event-type-without-oneof.yml");
         String asyncApiSpecJson = fileRepository.convertYamlToJson(asyncApiSpecStr);
-        AaiDocument asyncApiSpec = (Aai20Document) Library.readDocumentFromJSONString(asyncApiSpecJson);
+        AsyncApiDocument asyncApiSpec = (AsyncApiDocument) Library.readDocumentFromJSONString(asyncApiSpecJson);
         Extractor extractServiceTypes = new ExtractChannelsFromSpec(asyncApiSpec);
         extractServiceTypes.extract();
     }
@@ -166,7 +165,7 @@ public class ExtractChannelsFromSpecTest {
         String asyncApiSpecStr = fileRepository.getFileContentFromResources(
                 "specs/spec-single-channel-missing-reference.yml");
         String asyncApiSpecJson = fileRepository.convertYamlToJson(asyncApiSpecStr);
-        AaiDocument asyncApiSpec = (Aai20Document) Library.readDocumentFromJSONString(asyncApiSpecJson);
+        AsyncApiDocument asyncApiSpec = (AsyncApiDocument) Library.readDocumentFromJSONString(asyncApiSpecJson);
         Extractor extractServiceTypes = new ExtractChannelsFromSpec(asyncApiSpec);
         extractServiceTypes.extract();
     }
@@ -182,7 +181,7 @@ public class ExtractChannelsFromSpecTest {
         String asyncApiSpecStr = fileRepository.getFileContentFromResources(
                 "specs/spec-single-channel-missing-payload.yml");
         String asyncApiSpecJson = fileRepository.convertYamlToJson(asyncApiSpecStr);
-        AaiDocument asyncApiSpec = (Aai20Document) Library.readDocumentFromJSONString(asyncApiSpecJson);
+        AsyncApiDocument asyncApiSpec = (AsyncApiDocument) Library.readDocumentFromJSONString(asyncApiSpecJson);
         Extractor extractServiceTypes = new ExtractChannelsFromSpec(asyncApiSpec);
         extractServiceTypes.extract();
     }

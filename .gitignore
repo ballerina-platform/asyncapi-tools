@@ -2,6 +2,7 @@
 .gradle
 /build/
 /native.handler/target
+target
 /native.handler/java-wrapper/build
 /native.handler/build
 /asyncapi-cli/build

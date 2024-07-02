@@ -18,29 +18,37 @@
 
 package io.ballerina.asyncapi.codegenerator.usecase;
 
-import io.apicurio.datamodels.asyncapi.models.AaiDocument;
-import io.apicurio.datamodels.core.models.Extension;
+import com.fasterxml.jackson.databind.JsonNode;
+import io.apicurio.datamodels.models.asyncapi.AsyncApiDocument;
 import io.ballerina.asyncapi.codegenerator.configuration.BallerinaAsyncApiException;
 import io.ballerina.asyncapi.codegenerator.configuration.Constants;
+import io.ballerina.asyncapi.codegenerator.usecase.utils.ExtensionExtractor;
 
 import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
 
 /**
  * Extract the identifier path from the AsyncAPI specification.
  */
 public class ExtractIdentifierPathFromSpec implements Extractor {
-    private final AaiDocument asyncApiSpec;
+    private final AsyncApiDocument asyncApiSpec;
 
-    public ExtractIdentifierPathFromSpec(AaiDocument asyncApiSpec) {
+    public ExtractIdentifierPathFromSpec(AsyncApiDocument asyncApiSpec) {
         this.asyncApiSpec = asyncApiSpec;
     }
 
     @Override
     public String extract() throws BallerinaAsyncApiException {
-        Extension identifier = asyncApiSpec.getExtension(
-                Constants.X_BALLERINA_EVENT_FIELD_IDENTIFIER);
-        HashMap<String, String> valuesMap = (HashMap<String, String>) identifier.value;
-        StringBuilder eventPathString = new StringBuilder("");
+        JsonNode identifier = ExtensionExtractor.getExtensions(asyncApiSpec)
+                .get(Constants.X_BALLERINA_EVENT_FIELD_IDENTIFIER);
+        Iterator<Map.Entry<String, JsonNode>> values = identifier.fields();
+        HashMap<String, String> valuesMap = new HashMap<>();
+        while (values.hasNext()) {
+            Map.Entry<String, JsonNode> entry = values.next();
+            valuesMap.put(entry.getKey(), entry.getValue().asText());
+        }
+        StringBuilder eventPathString = new StringBuilder();
         if (valuesMap.get(Constants.X_BALLERINA_EVENT_FIELD_IDENTIFIER_TYPE)
                 .equals(Constants.X_BALLERINA_EVENT_TYPE_HEADER)) {
             // Handle header event path

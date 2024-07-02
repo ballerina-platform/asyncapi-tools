@@ -19,10 +19,9 @@
 package io.ballerina.asyncapi.codegenerator.usecase;
 
 import io.apicurio.datamodels.Library;
-import io.apicurio.datamodels.asyncapi.models.AaiDocument;
-import io.apicurio.datamodels.asyncapi.v2.models.Aai20Document;
+import io.apicurio.datamodels.models.asyncapi.AsyncApiDocument;
+import io.apicurio.datamodels.models.asyncapi.AsyncApiSchema;
 import io.ballerina.asyncapi.codegenerator.configuration.BallerinaAsyncApiException;
-import io.ballerina.asyncapi.codegenerator.entity.Schema;
 import io.ballerina.asyncapi.codegenerator.repository.FileRepository;
 import io.ballerina.asyncapi.codegenerator.repository.FileRepositoryImpl;
 import io.ballerina.compiler.syntax.tree.EnumDeclarationNode;
@@ -47,11 +46,11 @@ public class GenerateModuleMemberDeclarationNodeTest {
         String asyncApiSpecStr = fileRepository
                 .getFileContentFromResources("specs/spec-single-schema.yml");
         String asyncApiSpecJson = fileRepository.convertYamlToJson(asyncApiSpecStr);
-        AaiDocument asyncApiSpec = (Aai20Document) Library.readDocumentFromJSONString(asyncApiSpecJson);
+        AsyncApiDocument asyncApiSpec = (AsyncApiDocument) Library.readDocumentFromJSONString(asyncApiSpecJson);
         Extractor extractSchemasFromSpec = new ExtractSchemasFromSpec(asyncApiSpec);
-        Map<String, Schema> schemas = extractSchemasFromSpec.extract();
+        Map<String, AsyncApiSchema> schemas = extractSchemasFromSpec.extract();
 
-        Map.Entry<String, Schema> entry = schemas.entrySet().iterator().next();
+        Map.Entry<String, AsyncApiSchema> entry = schemas.entrySet().iterator().next();
         Generator generateRecordNode = new GenerateModuleMemberDeclarationNode(entry);
         TypeDefinitionNode typeDefinitionNode = generateRecordNode.generate();
 
@@ -59,13 +58,12 @@ public class GenerateModuleMemberDeclarationNodeTest {
         Assert.assertTrue(typeDefinitionNode.typeDescriptor() instanceof RecordTypeDescriptorNode);
         RecordTypeDescriptorNode recordTypeDescriptorNode =
                 (RecordTypeDescriptorNode) typeDefinitionNode.typeDescriptor();
-        Assert.assertEquals(((RecordFieldNode) recordTypeDescriptorNode.fields().get(0)).fieldName().text(),
+        Assert.assertEquals(((RecordFieldNode) recordTypeDescriptorNode.fields().get(1)).fieldName().text(),
                 "authed_users");
-        Assert.assertEquals(((RecordFieldNode) recordTypeDescriptorNode.fields().get(4)).fieldName().text(),
+        Assert.assertEquals(((RecordFieldNode) recordTypeDescriptorNode.fields().get(2)).fieldName().text(),
                 "event");
-        Assert.assertEquals(((RecordFieldNode) recordTypeDescriptorNode.fields().get(4)).typeName().toSourceCode(),
-                "record { #When the event was dispatchedstringevent_ts;" +
-                        "#The specific name of the eventstring'type;} ");
+        Assert.assertEquals(((RecordFieldNode) recordTypeDescriptorNode.fields().get(2)).typeName().toSourceCode(),
+                "record { #When the event was dispatchedstringevent_ts;#The specific name of the eventstring'type;} ");
     }
 
     @Test(description = "Test the functionality of the generate function " +
@@ -74,11 +72,11 @@ public class GenerateModuleMemberDeclarationNodeTest {
         String asyncApiSpecStr = fileRepository
                 .getFileContentFromResources("specs/spec-single-schema-with-enum.yml");
         String asyncApiSpecJson = fileRepository.convertYamlToJson(asyncApiSpecStr);
-        AaiDocument asyncApiSpec = (Aai20Document) Library.readDocumentFromJSONString(asyncApiSpecJson);
+        AsyncApiDocument asyncApiSpec = (AsyncApiDocument) Library.readDocumentFromJSONString(asyncApiSpecJson);
         Extractor extractSchemasFromSpec = new ExtractSchemasFromSpec(asyncApiSpec);
-        Map<String, Schema> schemas = extractSchemasFromSpec.extract();
+        Map<String, AsyncApiSchema> schemas = extractSchemasFromSpec.extract();
 
-        Map.Entry<String, Schema> entry = schemas.entrySet().iterator().next();
+        Map.Entry<String, AsyncApiSchema> entry = schemas.entrySet().iterator().next();
         Generator generateRecordNode = new GenerateModuleMemberDeclarationNode(entry);
         EnumDeclarationNode enumDeclarationNode = generateRecordNode.generate();
 
@@ -97,17 +95,17 @@ public class GenerateModuleMemberDeclarationNodeTest {
         String asyncApiSpecStr = fileRepository
                 .getFileContentFromResources("specs/spec-multiple-schemas.yml");
         String asyncApiSpecJson = fileRepository.convertYamlToJson(asyncApiSpecStr);
-        AaiDocument asyncApiSpec = (Aai20Document) Library.readDocumentFromJSONString(asyncApiSpecJson);
+        AsyncApiDocument asyncApiSpec = (AsyncApiDocument) Library.readDocumentFromJSONString(asyncApiSpecJson);
         Extractor extractSchemasFromSpec = new ExtractSchemasFromSpec(asyncApiSpec);
-        Map<String, Schema> schemas = extractSchemasFromSpec.extract();
+        Map<String, AsyncApiSchema> schemas = extractSchemasFromSpec.extract();
 
-        Iterator<Map.Entry<String, Schema>> iterator = schemas.entrySet().iterator();
-        Map.Entry<String, Schema> firstEntry = iterator.next();
+        Iterator<Map.Entry<String, AsyncApiSchema>> iterator = schemas.entrySet().iterator();
+        Map.Entry<String, AsyncApiSchema> firstEntry = iterator.next();
         Generator generateRecordNode1 = new GenerateModuleMemberDeclarationNode(firstEntry);
         TypeDefinitionNode typeDefinitionNode1 = generateRecordNode1.generate();
         Assert.assertEquals(typeDefinitionNode1.typeName().text(), "CustomTestSchema");
 
-        Map.Entry<String, Schema> secondEntry = iterator.next();
+        Map.Entry<String, AsyncApiSchema> secondEntry = iterator.next();
         Generator generateRecordNode2 = new GenerateModuleMemberDeclarationNode(secondEntry);
         TypeDefinitionNode typeDefinitionNode2 = generateRecordNode2.generate();
 
@@ -115,26 +113,26 @@ public class GenerateModuleMemberDeclarationNodeTest {
         Assert.assertTrue(typeDefinitionNode2.typeDescriptor() instanceof RecordTypeDescriptorNode);
         RecordTypeDescriptorNode recordTypeDescriptorNode =
                 (RecordTypeDescriptorNode) typeDefinitionNode2.typeDescriptor();
-        Assert.assertEquals(((RecordFieldNode) recordTypeDescriptorNode.fields().get(0)).typeName().toSourceCode(),
+        Assert.assertEquals(((RecordFieldNode) recordTypeDescriptorNode.fields().get(2)).typeName().toSourceCode(),
                 "string[]");
-        Assert.assertEquals(((RecordFieldNode) recordTypeDescriptorNode.fields().get(5)).fieldName().toSourceCode(),
+        Assert.assertEquals(((RecordFieldNode) recordTypeDescriptorNode.fields().get(8)).fieldName().toSourceCode(),
                 "'type");
-        Assert.assertEquals(((RecordFieldNode) recordTypeDescriptorNode.fields().get(8)).typeName().toSourceCode(),
+        Assert.assertEquals(((RecordFieldNode) recordTypeDescriptorNode.fields().get(18)).typeName().toSourceCode(),
                 "record {}[]");
-        Assert.assertEquals(((RecordFieldNode) recordTypeDescriptorNode.fields().get(10)).typeName().toSourceCode(),
+        Assert.assertEquals(((RecordFieldNode) recordTypeDescriptorNode.fields().get(16)).typeName().toSourceCode(),
                 "CustomTestSchema[]");
-        Assert.assertEquals(((RecordFieldNode) recordTypeDescriptorNode.fields().get(12)).typeName().toSourceCode(),
+        Assert.assertEquals(((RecordFieldNode) recordTypeDescriptorNode.fields().get(0)).typeName().toSourceCode(),
                 "CustomTestSchema");
-        Assert.assertEquals(((RecordFieldNode) recordTypeDescriptorNode.fields().get(15)).typeName().toSourceCode(),
+        Assert.assertEquals(((RecordFieldNode) recordTypeDescriptorNode.fields().get(3)).typeName().toSourceCode(),
                 "record { #When the event was dispatchedstringevent_ts;" +
                         "#The specific name of the eventstring'type;} ");
         Assert.assertEquals(((RecordFieldNode) recordTypeDescriptorNode.fields().get(17)).typeName().toSourceCode(),
                 "string[][]");
-        Assert.assertEquals(((RecordFieldNode) recordTypeDescriptorNode.fields().get(18)).typeName().toSourceCode(),
+        Assert.assertEquals(((RecordFieldNode) recordTypeDescriptorNode.fields().get(12)).typeName().toSourceCode(),
                 "record {}");
-        Assert.assertEquals(((RecordFieldNode) recordTypeDescriptorNode.fields().get(19)).typeName().toSourceCode(),
+        Assert.assertEquals(((RecordFieldNode) recordTypeDescriptorNode.fields().get(15)).typeName().toSourceCode(),
                 "anydata");
-        Assert.assertEquals(((RecordFieldNode) recordTypeDescriptorNode.fields().get(19)).fieldName().toSourceCode(),
+        Assert.assertEquals(((RecordFieldNode) recordTypeDescriptorNode.fields().get(15)).fieldName().toSourceCode(),
                 "'anydata");
     }
 
@@ -146,11 +144,11 @@ public class GenerateModuleMemberDeclarationNodeTest {
         String asyncApiSpecStr = fileRepository
                 .getFileContentFromResources("specs/spec-single-schema-with-unrecognized-type.yml");
         String asyncApiSpecJson = fileRepository.convertYamlToJson(asyncApiSpecStr);
-        AaiDocument asyncApiSpec = (Aai20Document) Library.readDocumentFromJSONString(asyncApiSpecJson);
+        AsyncApiDocument asyncApiSpec = (AsyncApiDocument) Library.readDocumentFromJSONString(asyncApiSpecJson);
         Extractor extractSchemasFromSpec = new ExtractSchemasFromSpec(asyncApiSpec);
-        Map<String, Schema> schemas = extractSchemasFromSpec.extract();
+        Map<String, AsyncApiSchema> schemas = extractSchemasFromSpec.extract();
 
-        Map.Entry<String, Schema> entry = schemas.entrySet().iterator().next();
+        Map.Entry<String, AsyncApiSchema> entry = schemas.entrySet().iterator().next();
         Generator generateRecordNode = new GenerateModuleMemberDeclarationNode(entry);
         generateRecordNode.generate();
     }
@@ -163,11 +161,11 @@ public class GenerateModuleMemberDeclarationNodeTest {
         String asyncApiSpecStr = fileRepository
                 .getFileContentFromResources("specs/spec-single-schema-with-invalid-number-format.yml");
         String asyncApiSpecJson = fileRepository.convertYamlToJson(asyncApiSpecStr);
-        AaiDocument asyncApiSpec = (Aai20Document) Library.readDocumentFromJSONString(asyncApiSpecJson);
+        AsyncApiDocument asyncApiSpec = (AsyncApiDocument) Library.readDocumentFromJSONString(asyncApiSpecJson);
         Extractor extractSchemasFromSpec = new ExtractSchemasFromSpec(asyncApiSpec);
-        Map<String, Schema> schemas = extractSchemasFromSpec.extract();
+        Map<String, AsyncApiSchema> schemas = extractSchemasFromSpec.extract();
 
-        Map.Entry<String, Schema> entry = schemas.entrySet().iterator().next();
+        Map.Entry<String, AsyncApiSchema> entry = schemas.entrySet().iterator().next();
         Generator generateRecordNode = new GenerateModuleMemberDeclarationNode(entry);
         generateRecordNode.generate();
     }
@@ -178,27 +176,27 @@ public class GenerateModuleMemberDeclarationNodeTest {
         String asyncApiSpecStr = fileRepository
                 .getFileContentFromResources("specs/spec-single-schema-with-x-nullable.yml");
         String asyncApiSpecJson = fileRepository.convertYamlToJson(asyncApiSpecStr);
-        AaiDocument asyncApiSpec = (Aai20Document) Library.readDocumentFromJSONString(asyncApiSpecJson);
+        AsyncApiDocument asyncApiSpec = (AsyncApiDocument) Library.readDocumentFromJSONString(asyncApiSpecJson);
         Extractor extractSchemasFromSpec = new ExtractSchemasFromSpec(asyncApiSpec);
-        Map<String, Schema> schemas = extractSchemasFromSpec.extract();
+        Map<String, AsyncApiSchema> schemas = extractSchemasFromSpec.extract();
 
-        Iterator<Map.Entry<String, Schema>> iterator = schemas.entrySet().iterator();
-        Map.Entry<String, Schema> firstEntry = iterator.next();
+        Iterator<Map.Entry<String, AsyncApiSchema>> iterator = schemas.entrySet().iterator();
+        Map.Entry<String, AsyncApiSchema> firstEntry = iterator.next();
         Generator generateRecordNode1 = new GenerateModuleMemberDeclarationNode(firstEntry);
         TypeDefinitionNode typeDefinitionNode1 = generateRecordNode1.generate();
         Assert.assertEquals(typeDefinitionNode1.typeName().text(), "TotalPriceSet");
 
-        Map.Entry<String, Schema> secondEntry = iterator.next();
+        Map.Entry<String, AsyncApiSchema> secondEntry = iterator.next();
         Generator generateRecordNode2 = new GenerateModuleMemberDeclarationNode(secondEntry);
         TypeDefinitionNode typeDefinitionNode2 = generateRecordNode2.generate();
         Assert.assertEquals(typeDefinitionNode2.typeName().text(), "Price");
 
-        Map.Entry<String, Schema> thirdEntry = iterator.next();
+        Map.Entry<String, AsyncApiSchema> thirdEntry = iterator.next();
         Generator generateRecordNode3 = new GenerateModuleMemberDeclarationNode(thirdEntry);
         TypeDefinitionNode typeDefinitionNode3 = generateRecordNode3.generate();
         Assert.assertEquals(typeDefinitionNode3.typeName().text(), "OrderEvent");
 
-        Map.Entry<String, Schema> forthEntry = iterator.next();
+        Map.Entry<String, AsyncApiSchema> forthEntry = iterator.next();
         Generator generateRecordNode4 = new GenerateModuleMemberDeclarationNode(forthEntry);
         TypeDefinitionNode typeDefinitionNode4 = generateRecordNode4.generate();
         Assert.assertEquals(typeDefinitionNode4.typeName().text(), "TaxLine");
@@ -207,26 +205,26 @@ public class GenerateModuleMemberDeclarationNodeTest {
         RecordTypeDescriptorNode recordTypeDescriptorNode3 =
                 (RecordTypeDescriptorNode) typeDefinitionNode3.typeDescriptor();
         Assert.assertEquals(((RecordFieldNode) recordTypeDescriptorNode3.fields().get(0)).typeName().toSourceCode(),
-                "TotalPriceSet?");
-        Assert.assertEquals(((RecordFieldNode) recordTypeDescriptorNode3.fields().get(1)).typeName().toSourceCode(),
-                "TaxLine[]?");
-        Assert.assertEquals(((RecordFieldNode) recordTypeDescriptorNode3.fields().get(2)).typeName().toSourceCode(),
-                "decimal?");
-        Assert.assertEquals(((RecordFieldNode) recordTypeDescriptorNode3.fields().get(3)).typeName().toSourceCode(),
-                "record { Priceshop_money?;Price?presentment_money?;} ?");
-        Assert.assertEquals(((RecordFieldNode) recordTypeDescriptorNode3.fields().get(4)).typeName().toSourceCode(),
                 "int?");
-        Assert.assertEquals(((RecordFieldNode) recordTypeDescriptorNode3.fields().get(5)).typeName().toSourceCode(),
-                "boolean?");
-        Assert.assertEquals(((RecordFieldNode) recordTypeDescriptorNode3.fields().get(6)).typeName().toSourceCode(),
+        Assert.assertEquals(((RecordFieldNode) recordTypeDescriptorNode3.fields().get(1)).typeName().toSourceCode(),
                 "string?");
+        Assert.assertEquals(((RecordFieldNode) recordTypeDescriptorNode3.fields().get(2)).typeName().toSourceCode(),
+                "boolean?");
+        Assert.assertEquals(((RecordFieldNode) recordTypeDescriptorNode3.fields().get(3)).typeName().toSourceCode(),
+                "decimal?");
+        Assert.assertEquals(((RecordFieldNode) recordTypeDescriptorNode3.fields().get(4)).typeName().toSourceCode(),
+                "TaxLine[]?");
+        Assert.assertEquals(((RecordFieldNode) recordTypeDescriptorNode3.fields().get(5)).typeName().toSourceCode(),
+                "TotalPriceSet?");
+        Assert.assertEquals(((RecordFieldNode) recordTypeDescriptorNode3.fields().get(6)).typeName().toSourceCode(),
+                "record { Priceshop_money?;Price?presentment_money?;} ?");
 
         Assert.assertTrue(typeDefinitionNode4.typeDescriptor() instanceof RecordTypeDescriptorNode);
         RecordTypeDescriptorNode recordTypeDescriptorNode4 =
                 (RecordTypeDescriptorNode) typeDefinitionNode4.typeDescriptor();
-        Assert.assertEquals(((RecordFieldNode) recordTypeDescriptorNode4.fields().get(2)).typeName().toSourceCode(),
+        Assert.assertEquals(((RecordFieldNode) recordTypeDescriptorNode4.fields().get(0)).typeName().toSourceCode(),
                 "string");
-        Assert.assertEquals(((RecordFieldNode) recordTypeDescriptorNode4.fields().get(3)).typeName().toSourceCode(),
+        Assert.assertEquals(((RecordFieldNode) recordTypeDescriptorNode4.fields().get(2)).typeName().toSourceCode(),
                 "string?");
     }
 }
