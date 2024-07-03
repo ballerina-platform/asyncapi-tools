@@ -30,7 +30,7 @@ import java.nio.file.Paths;
 /**
  * This test class for the covering the unit tests for return type scenarios.
  */
-public class APIDocTests {
+public class ApiDocTests {
     private static final Path RES_DIR = Paths.get("src/test/resources/websockets" +
             "/ballerina-to-asyncapi").toAbsolutePath();
     private Path tempDir;

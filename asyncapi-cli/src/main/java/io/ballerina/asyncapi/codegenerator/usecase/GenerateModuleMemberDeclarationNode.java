@@ -209,26 +209,28 @@ public class GenerateModuleMemberDeclarationNode implements Generator {
         if (schema.getProperties() != null) {
             return getRecordTypeDescriptorNode(schema);
         } else if (schema.getType() != null) {
-            return getTypeDescriptorNodeFroPreDefined(schema);
+            return getTypeDescriptorNodeForPreDefined(schema);
         } else {
             throw new BallerinaAsyncApiException(
                     "Unsupported Async Api Spec data type `" + schema.getType() + "`");
         }
     }
 
-    private TypeDescriptorNode getTypeDescriptorNodeFroPreDefined(AsyncApiSchema schema)
+    private TypeDescriptorNode getTypeDescriptorNodeForPreDefined(AsyncApiSchema schema)
             throws BallerinaAsyncApiException {
+        String type;
+        Token typeName;
         switch (schema.getType()) {
             case Constants.INTEGER:
             case Constants.STRING:
             case Constants.BOOLEAN:
-                String type = convertAsyncAPITypeToBallerina(schema.getType().trim());
-                Token typeName = AbstractNodeFactory.createIdentifierToken(type);
+                type = convertAsyncApiTypeToBallerina(schema.getType().trim());
+                typeName = AbstractNodeFactory.createIdentifierToken(type);
                 return createBuiltinSimpleNameReferenceNode(null, typeName);
             case Constants.NUMBER:
-                type = convertAsyncAPITypeToBallerina(schema.getType().trim());
-                if (schema.getType().equals("number") && schema.getFormat() != null) {
-                    type = convertAsyncAPITypeToBallerina(schema.getFormat().trim());
+                type = convertAsyncApiTypeToBallerina(schema.getType().trim());
+                if (schema.getFormat() != null) {
+                    type = convertAsyncApiTypeToBallerina(schema.getFormat().trim());
                 }
                 typeName = AbstractNodeFactory.createIdentifierToken(type);
                 return createBuiltinSimpleNameReferenceNode(null, typeName);
@@ -241,7 +243,7 @@ public class GenerateModuleMemberDeclarationNode implements Generator {
                     typeName = AbstractNodeFactory.createIdentifierToken(type);
                 } else {
                     typeName = AbstractNodeFactory.createIdentifierToken(
-                            convertAsyncAPITypeToBallerina(schema.getType().trim()));
+                            convertAsyncApiTypeToBallerina(schema.getType().trim()));
                 }
                 return createBuiltinSimpleNameReferenceNode(null, typeName);
             default:
@@ -277,7 +279,7 @@ public class GenerateModuleMemberDeclarationNode implements Generator {
      * @param type AsyncApi parameter types
      * @return ballerina type
      */
-    public static String convertAsyncAPITypeToBallerina(String type) throws BallerinaAsyncApiException {
+    public static String convertAsyncApiTypeToBallerina(String type) throws BallerinaAsyncApiException {
         String convertedType;
         switch (type) {
             case Constants.INTEGER:
@@ -335,7 +337,7 @@ public class GenerateModuleMemberDeclarationNode implements Generator {
                 return createArrayTypeDescriptorNode(memberTypeDesc, createNodeList(arrayDimensionNode));
             } else if (schemaItem.getType() != null) {
                 type = schemaItem.getType();
-                typeName = AbstractNodeFactory.createIdentifierToken(convertAsyncAPITypeToBallerina(type));
+                typeName = AbstractNodeFactory.createIdentifierToken(convertAsyncApiTypeToBallerina(type));
                 memberTypeDesc = createBuiltinSimpleNameReferenceNode(null, typeName);
                 return createArrayTypeDescriptorNode(memberTypeDesc, createNodeList(arrayDimensionNode));
             } else {

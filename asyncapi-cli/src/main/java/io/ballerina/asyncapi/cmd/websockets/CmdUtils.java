@@ -35,7 +35,7 @@ public class CmdUtils {
     /**
      * This util method is used to generate {@code Diagnostic} for asyncapi command errors.
      */
-    public static AsyncAPIDiagnostic constructAsyncAPIDiagnostic(String code, String message,
+    public static AsyncApiDiagnostic constructAsyncAPIDiagnostic(String code, String message,
                                                                  DiagnosticSeverity severity, Location location,
                                                                  Object... args) {
 
@@ -43,7 +43,7 @@ public class CmdUtils {
         if (location == null) {
             location = new ConverterCommonUtils.NullLocation();
         }
-        return new AsyncAPIDiagnostic(diagnosticInfo, location, args);
+        return new AsyncApiDiagnostic(diagnosticInfo, location, args);
     }
 
     /**

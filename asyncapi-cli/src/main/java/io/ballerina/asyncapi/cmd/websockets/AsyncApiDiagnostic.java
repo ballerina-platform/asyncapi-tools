@@ -32,12 +32,12 @@ import java.util.List;
  * Represents a {@code Diagnostic} related to asyncapi command.
  *
  */
-public class AsyncAPIDiagnostic extends Diagnostic {
+public class AsyncApiDiagnostic extends Diagnostic {
     private final DiagnosticInfo diagnosticInfo;
     private final Location location;
     private final String message;
 
-    public AsyncAPIDiagnostic(DiagnosticInfo diagnosticInfo, Location location, Object[] args) {
+    public AsyncApiDiagnostic(DiagnosticInfo diagnosticInfo, Location location, Object[] args) {
         this.diagnosticInfo = diagnosticInfo;
         this.location = location;
         this.message = MessageFormat.format(diagnosticInfo.messageFormat(), args);
