@@ -106,7 +106,7 @@ public class AsyncApiServiceMapper {
         if (fieldName.equals(DISPATCHER_KEY)) {
             dispatcherValue = specificFieldNode.valueExpr().get().toString().trim();
             dispatcherValue = dispatcherValue.replaceAll("\"", "");
-            if (dispatcherValue.equals("")) {
+            if (dispatcherValue.isEmpty()) {
                 //TODO : Give a proper name for Exception message
                 throw new NoSuchElementException(DISPATCHER_KEY_VALUE_CANNOT_BE_EMPTY);
             }
@@ -122,7 +122,7 @@ public class AsyncApiServiceMapper {
      * @param asyncApi - AsyncApi model to populate
      * @return AsyncApi object which represent current service.
      */
-    public AsyncApi25DocumentImpl convertServiceToAsyncAPI(ServiceDeclarationNode service,
+    public AsyncApi25DocumentImpl convertServiceToAsyncApi(ServiceDeclarationNode service,
                                                            List<ClassDefinitionNode> classDefinitionNodes,
                                                            AsyncApi25DocumentImpl asyncApi) {
         //Take all resource functions
