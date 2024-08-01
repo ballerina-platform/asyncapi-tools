@@ -186,7 +186,7 @@ public class ServiceToAsyncApiConverterUtils {
     }
 
     /**
-     * Provides an instance of {@code AsyncAPIResult}, which contains the generated contract as well as
+     * Provides an instance of {@code AsyncApiResult}, which contains the generated contract as well as
      * all the diagnostics information.
      *
      * @param serviceDefinition Service Node related to ballerina service
@@ -202,18 +202,18 @@ public class ServiceToAsyncApiConverterUtils {
                                                       SemanticModel semanticModel, String asyncApiFileName,
                                                       Path ballerinaFilePath) {
         // 01.Fill the asyncAPI info section
-        AsyncApiResult asyncApiResult = fillAsyncAPIInfoSection(serviceDefinition, semanticModel,
+        AsyncApiResult asyncApiResult = fillAsyncApiInfoSection(serviceDefinition, semanticModel,
                 asyncApiFileName, ballerinaFilePath);
         if (asyncApiResult.getAsyncAPI().isPresent() && asyncApiResult.getDiagnostics().isEmpty()) {
             AsyncApi25DocumentImpl asyncapi = (AsyncApi25DocumentImpl) asyncApiResult.getAsyncAPI().get();
             if (asyncapi.getChannels() == null) {
                 // Take base path of service
-                AsyncApiServiceMapper asyncAPIServiceMapper = new AsyncApiServiceMapper(semanticModel, asyncapi);
+                AsyncApiServiceMapper asyncApiServiceMapper = new AsyncApiServiceMapper(semanticModel, asyncapi);
                 // 02. Filter and set the ServerURLs according to endpoints. Complete the server section in AsyncAPISpec
                 asyncapi = AsyncApiEndpointMapper.ENDPOINT_MAPPER.getServers(asyncapi, endpoints, serviceDefinition);
                 // 03. Filter path and component sections in AsyncAPISpec.
                 //   Generate asyncApi string for the mentioned service name.
-                asyncapi = asyncAPIServiceMapper.convertServiceToAsyncAPI(serviceDefinition,
+                asyncapi = asyncApiServiceMapper.convertServiceToAsyncApi(serviceDefinition,
                         classDefinitionNodes, asyncapi);
                 List<ValidationProblem> modelProblems = Library.validate(asyncapi, null);
                 if (!(modelProblems.isEmpty())) {
@@ -254,7 +254,7 @@ public class ServiceToAsyncApiConverterUtils {
      * @param ballerinaFilePath Ballerina file path.
      * @return {@code AsyncAPIResult}
      */
-    private static AsyncApiResult fillAsyncAPIInfoSection(ServiceDeclarationNode serviceNode,
+    private static AsyncApiResult fillAsyncApiInfoSection(ServiceDeclarationNode serviceNode,
                                                           SemanticModel semanticModel, String asyncApiFileName,
                                                           Path ballerinaFilePath) {
         Optional<MetadataNode> metadata = serviceNode.metadata();

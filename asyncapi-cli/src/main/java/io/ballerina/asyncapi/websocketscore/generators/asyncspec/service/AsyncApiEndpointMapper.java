@@ -89,17 +89,14 @@ public class AsyncApiEndpointMapper {
                 }
             }
         }
-
+        AsyncApi25ServersImpl asyncApi25Servers = new AsyncApi25ServersImpl();
         if (servers.size() > 1) {
             AsyncApi25ServerImpl mainServer = addEnumValues(servers);
-            AsyncApi25ServersImpl asyncApi25Servers = new AsyncApi25ServersImpl();
             asyncApi25Servers.addItem(SERVER_TYPE, mainServer);
-            asyncAPI.setServers(asyncApi25Servers);
         } else {
-            AsyncApi25ServersImpl asyncApi25Servers = new AsyncApi25ServersImpl();
             asyncApi25Servers.addItem(SERVER_TYPE, servers.get(0));
-            asyncAPI.setServers(asyncApi25Servers);
         }
+        asyncAPI.setServers(asyncApi25Servers);
         return asyncAPI;
     }
 
