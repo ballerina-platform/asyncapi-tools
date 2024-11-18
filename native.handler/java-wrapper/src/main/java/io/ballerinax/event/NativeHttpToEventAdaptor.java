@@ -17,10 +17,7 @@
 package io.ballerinax.event;
 
 import io.ballerina.runtime.api.Environment;
-import io.ballerina.runtime.api.Future;
-import io.ballerina.runtime.api.Module;
-import io.ballerina.runtime.api.async.Callback;
-import io.ballerina.runtime.api.async.StrandMetadata;
+import io.ballerina.runtime.api.concurrent.StrandMetadata;
 import io.ballerina.runtime.api.creators.ErrorCreator;
 import io.ballerina.runtime.api.values.BError;
 import io.ballerina.runtime.api.values.BMap;
@@ -36,24 +33,16 @@ import static io.ballerina.runtime.api.utils.StringUtils.fromString;
 public class NativeHttpToEventAdaptor {
     public static Object invokeRemoteFunction(Environment env, BObject adaptor, BMap<BString, Object> message,
                                               BString eventName, BString eventFunction, BObject serviceObj) {
-        Future balFuture = env.markAsync();
-        Module module = ModuleUtils.getModule();
-        StrandMetadata metadata = new StrandMetadata(module.getOrg(), module.getName(), module.getVersion(),
-                eventName.getValue());
         Object[] args = new Object[]{message, true};
-        env.getRuntime().invokeMethodAsync(serviceObj, eventFunction.getValue(), null, metadata, new Callback() {
-            @Override
-            public void notifySuccess(Object result) {
-                balFuture.complete(result);
+        return env.yieldAndRun(() -> {
+            try {
+                return env.getRuntime().callMethod(serviceObj, eventFunction.getValue(),
+                        new StrandMetadata(true, null), args);
+            } catch (BError error) {
+                BString errorMessage = fromString("service method invocation failed: " + error.getErrorMessage());
+                BError invocationError = ErrorCreator.createError(errorMessage, error);
+                return invocationError;
             }
-
-            @Override
-            public void notifyFailure(BError bError) {
-                BString errorMessage = fromString("service method invocation failed: " + bError.getErrorMessage());
-                BError invocationError = ErrorCreator.createError(errorMessage, bError);
-                balFuture.complete(invocationError);
-            }
-        }, args);
-        return null;
+        });
     }
 }

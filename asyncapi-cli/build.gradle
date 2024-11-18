@@ -87,6 +87,7 @@ dependencies {
     ballerinaStdLibs "io.ballerina.stdlib:rabbitmq-ballerina:${stdlibRabbitMqVersion}"
     ballerinaStdLibs "io.ballerina.stdlib:websocket-ballerina:${stdlibWebsocketVersion}"
     ballerinaStdLibs "io.ballerina.stdlib:constraint-ballerina:${stdlibConstraintVersion}"
+    ballerinaStdLibs "io.ballerina.lib:data.jsondata-ballerina:${stdlibDataJsonDataVersion}"
 }
 
 clean {
