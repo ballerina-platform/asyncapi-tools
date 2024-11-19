@@ -17,7 +17,7 @@ The `asyncapi` command in Ballerina is used for AsyncAPI to Ballerina and Baller
 
 ### Setting Up the Prerequisites
 
-1. OpenJDK 17 ([Adopt OpenJDK](https://adoptopenjdk.net/) or any other OpenJDK distribution)
+1. OpenJDK 21 ([Adopt OpenJDK](https://adoptopenjdk.net/) or any other OpenJDK distribution)
 
    >**Info:** You can also use [Oracle JDK](https://www.oracle.com/java/technologies/javase-downloads.html). Set the JAVA_HOME environment variable to the pathname of the directory into which you installed JDK.
 
