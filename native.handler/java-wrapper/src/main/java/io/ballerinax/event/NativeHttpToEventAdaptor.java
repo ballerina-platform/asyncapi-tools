@@ -17,7 +17,6 @@
 package io.ballerinax.event;
 
 import io.ballerina.runtime.api.Environment;
-import io.ballerina.runtime.api.concurrent.StrandMetadata;
 import io.ballerina.runtime.api.creators.ErrorCreator;
 import io.ballerina.runtime.api.values.BError;
 import io.ballerina.runtime.api.values.BMap;
@@ -36,8 +35,7 @@ public class NativeHttpToEventAdaptor {
         Object[] args = new Object[]{message, true};
         return env.yieldAndRun(() -> {
             try {
-                return env.getRuntime().callMethod(serviceObj, eventFunction.getValue(),
-                        new StrandMetadata(true, null), args);
+                return env.getRuntime().callMethod(serviceObj, eventFunction.getValue(), null, args);
             } catch (BError error) {
                 BString errorMessage = fromString("service method invocation failed: " + error.getErrorMessage());
                 BError invocationError = ErrorCreator.createError(errorMessage, error);
