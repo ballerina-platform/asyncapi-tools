@@ -29,7 +29,7 @@ ext.stdlibTaskVersion = project.stdlibTaskVersion
 ext.stdlibFileVersion = project.stdlibFileVersion
 ext.stdlibHttpVersion = project.stdlibHttpVersion
 ext.stdlibUrlVersion = project.stdlibUrlVersion
-ext.stdlibXmldataVersion = project.stdlibXmldataVersion
+ext.stdlibDataXmldataVersion = project.stdlibDataXmldataVersion
 ext.puppycrawlCheckstyleVersion = project.puppycrawlCheckstyleVersion
 
 def packageName = "asyncapi"
