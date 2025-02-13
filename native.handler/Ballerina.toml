@@ -1,14 +1,15 @@
 [package]
 org = "ballerinax"
 name = "asyncapi.native.handler"
-version = "0.4.0"
-export= ["asyncapi.native.handler"]
+version = "0.5.1-SNAPSHOT"
+distribution = "2201.11.0"
+readme = "Package.md"
 
-[[platform.java17.dependency]]
-path = "./java-wrapper/build/libs/java-wrapper-0.9.0-beta.3-SNAPSHOT.jar"
+[[platform.java21.dependency]]
+path = "./java-wrapper/build/libs/java-wrapper-0.10.1-SNAPSHOT.jar"
 groupId = "io.ballerinax.asyncapi"
 artifactId = "java-wrapper"
-version = "0.9.9-SNAPSHOT"
+version = "0.10.1"
 
 [build-options]
 observabilityIncluded = true
