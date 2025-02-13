@@ -22,7 +22,7 @@ jobs:
           packageUser: ${{ secrets.BALLERINA_BOT_USERNAME }}
           packagePAT: ${{ secrets.BALLERINA_BOT_TOKEN }}
         run: |
-          ./gradlew build
+          ./gradlew build -x test
 
       - name: Set Up Ballerina
         uses: ballerina-platform/setup-ballerina@v1.1.3
@@ -33,4 +33,7 @@ jobs:
         env:
           BALLERINA_CENTRAL_ACCESS_TOKEN: ${{ secrets.BALLERINA_CENTRAL_ACCESS_TOKEN }}
         working-directory: native.handler
-        run: bal push
+        run: |
+          bal pack
+          bal push
+

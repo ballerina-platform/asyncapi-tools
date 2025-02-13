@@ -3,6 +3,7 @@ org = "ballerinax"
 name = "asyncapi.native.handler"
 version = "0.5.0"
 distribution = "2201.11.0"
+readme = "Package.md"
 
 [[platform.java21.dependency]]
 path = "./java-wrapper/build/libs/java-wrapper-0.10.1-SNAPSHOT.jar"
