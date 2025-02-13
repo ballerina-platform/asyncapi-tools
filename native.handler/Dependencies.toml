@@ -18,7 +18,7 @@ modules = [
 [[package]]
 org = "ballerina"
 name = "observe"
-version = "0.9.0"
+version = "1.4.0"
 transitive = true
 dependencies = [
 	{org = "ballerina", name = "jballerina.java"}
