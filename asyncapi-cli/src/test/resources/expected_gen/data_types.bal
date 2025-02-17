@@ -1,6 +1,9 @@
+import ballerina/http;
+
 // Listener related configurations should be included here
-public type ListenerConfigs record {
-};
+public type ListenerConfiguration record {|
+    *http:ListenerConfiguration;
+|};
 
 public type CustomTestSchema record {
     string test_id?;

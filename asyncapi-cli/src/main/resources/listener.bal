@@ -7,11 +7,11 @@ public class Listener {
     private http:Listener httpListener;
     private DispatcherService dispatcherService;
 
-    public function init(int|http:Listener listenOn = 8090) returns error? {
-        if listenOn is http:Listener {
-            self.httpListener = listenOn;
+    public function init(int|http:Listener listenTo = 8090, *ListenerConfiguration configuration) returns error? {
+        if listenTo is http:Listener {
+            self.httpListener = listenTo;
         } else {
-            self.httpListener = check new (listenOn);
+            self.httpListener = check new (listenTo, configuration);
         }
         self.dispatcherService = new DispatcherService();
     }
