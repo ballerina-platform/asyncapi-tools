@@ -38,7 +38,7 @@ modules = [
 [[package]]
 org = "ballerinax"
 name = "asyncapi.native.handler"
-version = "0.5.1-SNAPSHOT"
+version = "0.5.0"
 dependencies = [
 	{org = "ballerina", name = "jballerina.java"},
 	{org = "ballerinai", name = "observe"}
