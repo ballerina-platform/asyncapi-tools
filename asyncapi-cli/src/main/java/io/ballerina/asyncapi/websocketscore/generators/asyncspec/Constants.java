@@ -135,6 +135,24 @@ public class Constants {
             "union with simple rpc types";
     public static final String PATH_PARAM_DASH_CONTAIN_ERROR = "ERROR: Path parameter contains an invalid" +
             " character '-'";
+
+    // Constants related to websocket close frame support
+    public static final String FRAME_TYPE = "frametype";
+    public static final String FRAME_TYPE_CLOSE = "close";
+    public static final String CLOSE_FRAME = "CloseFrame";
+    public static final String CLOSE_FRAME_TYPE = "type";
+    public static final String CLOSE_FRAME_STATUS = "status";
+    public static final String CLOSE_FRAME_REASON = "reason";
+    public static final String PREDEFINED_CLOSE_FRAME_TYPE = "PredefinedCloseFrameType";
+    public static final String CUSTOM_CLOSE_FRAME_TYPE = "CustomCloseFrameType";
+    public static final String X_BALLERINA_WS_CLOSE_FRAME = "x-ballerina-ws-closeframe";
+    public static final String X_BALLERINA_WS_CLOSE_FRAME_TYPE = "type";
+    public static final String X_BALLERINA_WS_CLOSE_FRAME_TYPE_BODY = "body";
+    public static final String X_BALLERINA_WS_CLOSE_FRAME_PATH = "path";
+    public static final String X_BALLERINA_WS_CLOSE_FRAME_PATH_FRAME_TYPE = "event.frametype";
+    public static final String X_BALLERINA_WS_CLOSE_FRAME_VALUE = "value";
+    public static final String X_BALLERINA_WS_CLOSE_FRAME_VALUE_CLOSE = "close";
+
     /**
      * Enum to select the Ballerina Type.
      * Ballerina service, mock and client generation is available
