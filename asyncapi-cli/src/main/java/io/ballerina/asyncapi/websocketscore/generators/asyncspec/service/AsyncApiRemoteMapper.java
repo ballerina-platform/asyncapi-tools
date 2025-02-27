@@ -17,9 +17,14 @@
  */
 package io.ballerina.asyncapi.websocketscore.generators.asyncspec.service;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.fasterxml.jackson.databind.node.TextNode;
+import io.apicurio.datamodels.models.Schema;
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25ChannelItemImpl;
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25ChannelsImpl;
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25ComponentsImpl;
+import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25DocumentImpl;
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25OperationImpl;
 import io.ballerina.asyncapi.websocketscore.generators.asyncspec.model.BalAsyncApi25MessageImpl;
 import io.ballerina.asyncapi.websocketscore.generators.asyncspec.utils.ConverterCommonUtils;
@@ -59,6 +64,8 @@ import java.util.Optional;
 
 import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.CAMEL_CASE_PATTERN;
 import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.FALSE;
+import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.FRAME_TYPE;
+import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.FRAME_TYPE_CLOSE;
 import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.FUNCTION_PARAMETERS_EXCEEDED;
 import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.FUNCTION_SIGNATURE_WRONG_TYPE;
 import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.FUNCTION_WRONG_NAME;
@@ -72,6 +79,13 @@ import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constant
 import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.ON_TEXT_MESSAGE;
 import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.REMOTE_DESCRIPTION;
 import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.RETURN;
+import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.X_BALLERINA_WS_CLOSE_FRAME;
+import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.X_BALLERINA_WS_CLOSE_FRAME_PATH;
+import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.X_BALLERINA_WS_CLOSE_FRAME_PATH_FRAME_TYPE;
+import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.X_BALLERINA_WS_CLOSE_FRAME_TYPE;
+import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.X_BALLERINA_WS_CLOSE_FRAME_TYPE_BODY;
+import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.X_BALLERINA_WS_CLOSE_FRAME_VALUE;
+import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.X_BALLERINA_WS_CLOSE_FRAME_VALUE_CLOSE;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.QUALIFIED_NAME_REFERENCE;
 
 /**
@@ -89,6 +103,30 @@ public class AsyncApiRemoteMapper {
      */
     AsyncApiRemoteMapper(SemanticModel semanticModel) {
         this.semanticModel = semanticModel;
+    }
+
+    public static boolean containsCloseFrameSchema(AsyncApi25ComponentsImpl components) {
+        if (components != null && components.getSchemas() != null) {
+            for (Schema schema : components.getSchemas().values()) {
+                if (schema != null && schema.getProperties() != null &&
+                        schema.getProperties().containsKey(FRAME_TYPE) &&
+                            schema.getProperties().get(FRAME_TYPE).getEnum() != null &&
+                            schema.getProperties().get(FRAME_TYPE).getEnum().contains(new TextNode(FRAME_TYPE_CLOSE))) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    public static AsyncApi25DocumentImpl addWsCloseFrameExtension(AsyncApi25DocumentImpl asyncApi) {
+        ObjectMapper objectMapper = new ObjectMapper();
+        ObjectNode closeFrameExtension = objectMapper.createObjectNode();
+        closeFrameExtension.put(X_BALLERINA_WS_CLOSE_FRAME_TYPE, X_BALLERINA_WS_CLOSE_FRAME_TYPE_BODY);
+        closeFrameExtension.put(X_BALLERINA_WS_CLOSE_FRAME_PATH, X_BALLERINA_WS_CLOSE_FRAME_PATH_FRAME_TYPE);
+        closeFrameExtension.put(X_BALLERINA_WS_CLOSE_FRAME_VALUE, X_BALLERINA_WS_CLOSE_FRAME_VALUE_CLOSE);
+        asyncApi.addExtension(X_BALLERINA_WS_CLOSE_FRAME, closeFrameExtension);
+        return asyncApi;
     }
 
     public AsyncApi25ComponentsImpl getComponents() {
