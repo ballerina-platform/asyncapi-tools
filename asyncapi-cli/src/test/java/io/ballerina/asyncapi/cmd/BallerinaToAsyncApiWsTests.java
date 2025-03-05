@@ -56,6 +56,82 @@ public class BallerinaToAsyncApiWsTests extends AsyncApiWsCommandTest {
         }
     }
 
+    @Test(description = "Test ballerina to asyncApi with close frame")
+    public void testBallerinaToAsyncAPIGenerationWithCloseFrame() {
+        String fileName = "close_frame";
+        String fileDirectory = "ballerina-to-asyncapi/close_frame/";
+        Path filePath = resourceDir.resolve(Paths.get(fileDirectory + fileName + ".bal"));
+        String[] args = {"--input", filePath.toString(), "-o", this.tmpDir.toString(), "--protocol", "ws"};
+        AsyncApiCmd cmd = new AsyncApiCmd(tmpDir, false);
+        new CommandLine(cmd).parseArgs(args);
+        try {
+            cmd.execute();
+            String generatedAsyncAPI = getStringFromGivenBalFile(this.tmpDir.resolve(fileName + "_asyncapi.yaml"));
+            String expectedYaml = getStringFromGivenBalFile(this.resourceDir.resolve(
+                    fileDirectory + "expected_gen/" + fileName + ".yaml"));
+            Assert.assertEquals(expectedYaml, generatedAsyncAPI);
+        } catch (BLauncherException | IOException e) {
+            Assert.fail(e.getMessage());
+        }
+    }
+
+    @Test(description = "Test ballerina to asyncApi with normal closure close frame")
+    public void testBallerinaToAsyncAPIGenerationWithNormalClosure() {
+        String fileName = "normal_closure";
+        String fileDirectory = "ballerina-to-asyncapi/close_frame/";
+        Path filePath = resourceDir.resolve(Paths.get(fileDirectory + fileName + ".bal"));
+        String[] args = {"--input", filePath.toString(), "-o", this.tmpDir.toString(), "--protocol", "ws"};
+        AsyncApiCmd cmd = new AsyncApiCmd(tmpDir, false);
+        new CommandLine(cmd).parseArgs(args);
+        try {
+            cmd.execute();
+            String generatedAsyncAPI = getStringFromGivenBalFile(this.tmpDir.resolve(fileName + "_asyncapi.yaml"));
+            String expectedYaml = getStringFromGivenBalFile(this.resourceDir.resolve(
+                    fileDirectory + "expected_gen/" + fileName + ".yaml"));
+            Assert.assertEquals(expectedYaml, generatedAsyncAPI);
+        } catch (BLauncherException | IOException e) {
+            Assert.fail(e.getMessage());
+        }
+    }
+
+    @Test(description = "Test ballerina to asyncApi with custom close frame")
+    public void testBallerinaToAsyncAPIGenerationWithCustomCloseFrame() {
+        String fileName = "custom_close_frame";
+        String fileDirectory = "ballerina-to-asyncapi/close_frame/";
+        Path filePath = resourceDir.resolve(Paths.get(fileDirectory + fileName + ".bal"));
+        String[] args = {"--input", filePath.toString(), "-o", this.tmpDir.toString(), "--protocol", "ws"};
+        AsyncApiCmd cmd = new AsyncApiCmd(tmpDir, false);
+        new CommandLine(cmd).parseArgs(args);
+        try {
+            cmd.execute();
+            String generatedAsyncAPI = getStringFromGivenBalFile(this.tmpDir.resolve(fileName + "_asyncapi.yaml"));
+            String expectedYaml = getStringFromGivenBalFile(this.resourceDir.resolve(
+                    fileDirectory + "expected_gen/" + fileName + ".yaml"));
+            Assert.assertEquals(expectedYaml, generatedAsyncAPI);
+        } catch (BLauncherException | IOException e) {
+            Assert.fail(e.getMessage());
+        }
+    }
+
+    @Test(description = "Test ballerina to asyncApi with simple name reference close frame")
+    public void testBallerinaToAsyncAPIGenerationWithSimpleNameReferenceCloseFrame() {
+        String fileName = "simple_name_reference";
+        String fileDirectory = "ballerina-to-asyncapi/close_frame/";
+        Path filePath = resourceDir.resolve(Paths.get(fileDirectory + fileName + ".bal"));
+        String[] args = {"--input", filePath.toString(), "-o", this.tmpDir.toString(), "--protocol", "ws"};
+        AsyncApiCmd cmd = new AsyncApiCmd(tmpDir, false);
+        new CommandLine(cmd).parseArgs(args);
+        try {
+            cmd.execute();
+            String generatedAsyncAPI = getStringFromGivenBalFile(this.tmpDir.resolve(fileName + "_asyncapi.yaml"));
+            String expectedYaml = getStringFromGivenBalFile(this.resourceDir.resolve(
+                    fileDirectory + "expected_gen/" + fileName + ".yaml"));
+            Assert.assertEquals(expectedYaml, generatedAsyncAPI);
+        } catch (BLauncherException | IOException e) {
+            Assert.fail(e.getMessage());
+        }
+    }
+
     @Test(description = "Without asyncapi annotation ballerina to asyncapi")
     public void asyncapiAnnotationWithOutContract() {
         Path filePath = resourceDir.resolve(Paths.get("cmd/ballerina-to-asyncapi/project_2/service.bal"));

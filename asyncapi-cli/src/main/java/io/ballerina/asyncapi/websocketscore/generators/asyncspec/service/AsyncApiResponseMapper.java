@@ -36,6 +36,8 @@ import io.ballerina.asyncapi.websocketscore.generators.asyncspec.utils.Converter
 import io.ballerina.compiler.api.SemanticModel;
 import io.ballerina.compiler.api.symbols.IntersectionTypeSymbol;
 import io.ballerina.compiler.api.symbols.ReadonlyTypeSymbol;
+import io.ballerina.compiler.api.symbols.RecordTypeSymbol;
+import io.ballerina.compiler.api.symbols.Symbol;
 import io.ballerina.compiler.api.symbols.TypeDescKind;
 import io.ballerina.compiler.api.symbols.TypeReferenceTypeSymbol;
 import io.ballerina.compiler.api.symbols.TypeSymbol;
@@ -61,17 +63,22 @@ import java.util.NoSuchElementException;
 import java.util.Objects;
 
 import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.AsyncAPIType;
+import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.CLOSE_FRAME;
+import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.CLOSE_FRAME_TYPE;
+import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.CUSTOM_CLOSE_FRAME_TYPE;
 import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.DESCRIPTION;
 import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.MESSAGE_REFERENCE;
 import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.NO_TYPE_IN_STREAM;
 import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.ONEOF;
 import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.PAYLOAD;
+import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.PREDEFINED_CLOSE_FRAME_TYPE;
 import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.REF;
 import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.SCHEMA_REFERENCE;
 import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.SERVER_STREAMING;
 import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.SIMPLE_RPC;
 import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.TRUE;
 import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.UNION_STREAMING_SIMPLE_RPC_ERROR;
+import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.WEBSOCKET;
 import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.X_REQUIRED;
 import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.X_RESPONSE;
 import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.X_RESPONSE_TYPE;
@@ -101,6 +108,34 @@ public class AsyncApiResponseMapper {
         this.components = components;
     }
 
+    public static boolean isCloseFrameRecordType(TypeSymbol typeSymbol) {
+        if (typeSymbol instanceof TypeReferenceTypeSymbol) {
+            if (typeSymbol.nameEquals(CLOSE_FRAME) &&
+                    typeSymbol.getModule().flatMap(Symbol::getName).orElse("").equals(WEBSOCKET)) {
+                return true;
+            }
+            typeSymbol = ((TypeReferenceTypeSymbol) typeSymbol).typeDescriptor();
+            return isCloseFrameRecordType(typeSymbol);
+        }
+        if (typeSymbol instanceof RecordTypeSymbol bRecordTypeSymbol) {
+            if (bRecordTypeSymbol.fieldDescriptors().containsKey(CLOSE_FRAME_TYPE)) {
+                TypeSymbol objectType = bRecordTypeSymbol.fieldDescriptors().get(CLOSE_FRAME_TYPE).typeDescriptor();
+                String moduleName = objectType.getModule().flatMap(Symbol::getName).orElse("");
+                if (!moduleName.equals(WEBSOCKET)) {
+                    return false;
+                }
+                return objectType.nameEquals(PREDEFINED_CLOSE_FRAME_TYPE) ||
+                        objectType.nameEquals(CUSTOM_CLOSE_FRAME_TYPE);
+            }
+        } else if (typeSymbol instanceof IntersectionTypeSymbol intersectionTypeSymbol) {
+            for (TypeSymbol memberType : intersectionTypeSymbol.memberTypeDescriptors()) {
+                if (isCloseFrameRecordType(memberType)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
 
     public void createResponse(BalAsyncApi25MessageImpl subscribeMessage, BalAsyncApi25MessageImpl componentMessage,
                                Node remoteReturnType, String returnDescription, String isOptional,
@@ -213,8 +248,10 @@ public class AsyncApiResponseMapper {
         TypeSymbol qualifiedNameReferenceSymbol = (TypeSymbol) semanticModel.symbol(remoteReturnType).get();
         String remoteReturnTypeName = ConverterCommonUtils.unescapeIdentifier(
                 qualifiedNameReferenceSymbol.getName().get());
-
-        if (qualifiedNameReferenceSymbol instanceof TypeReferenceTypeSymbol) {
+        if (isCloseFrameRecordType(qualifiedNameReferenceSymbol)) {
+            handleRecordTypeSymbol(subscribeMessage, componentMessage, returnDescription,
+                    qualifiedNameReferenceSymbol, qualifiedNameReferenceSymbol.getName().get(), isOptional);
+        } else if (qualifiedNameReferenceSymbol instanceof TypeReferenceTypeSymbol) {
             TypeReferenceTypeSymbol typeRef = (TypeReferenceTypeSymbol) qualifiedNameReferenceSymbol;
             TypeSymbol typeSymbol = typeRef.typeDescriptor();
             if (typeSymbol.typeKind() == TypeDescKind.INTERSECTION) {
