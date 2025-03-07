@@ -410,7 +410,7 @@ public class AsyncApiComponentMapper {
         // Set frame type
         BalAsyncApi25SchemaImpl frameType = new BalAsyncApi25SchemaImpl();
         frameType.setType(STRING);
-        frameType.setEnum(List.of(new TextNode(FRAME_TYPE_CLOSE)));
+        frameType.setConst(new TextNode(FRAME_TYPE_CLOSE));
         frameType.setDescription("WS frame type");
         required.add(FRAME_TYPE);
         componentSchema.addProperty(FRAME_TYPE, frameType);
@@ -424,7 +424,7 @@ public class AsyncApiComponentMapper {
                 RecordFieldSymbol statusField = recordTypeSymbol.fieldDescriptors().get(CLOSE_FRAME_STATUS);
                 if (statusField.typeDescriptor() instanceof SingletonTypeSymbol singletonTypeSymbol) {
                     int status = Integer.parseInt(singletonTypeSymbol.signature());
-                    statusCode.setEnum(List.of(new IntNode(status)));
+                    statusCode.setConst(new IntNode(status));
                 }
             }
         }

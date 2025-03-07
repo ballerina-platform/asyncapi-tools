@@ -41,13 +41,11 @@ components:
       properties:
         frametype:
           type: string
-          enum:
-          - close
+          const: close
           description: WS frame type
         status:
           type: integer
-          enum:
-          - 1000
+          const: 1000
           description: status code
         reason:
           type: string

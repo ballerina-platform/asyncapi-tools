@@ -26,6 +26,7 @@ import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25ChannelsImpl;
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25ComponentsImpl;
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25DocumentImpl;
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25OperationImpl;
+import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25SchemaImpl;
 import io.ballerina.asyncapi.websocketscore.generators.asyncspec.model.BalAsyncApi25MessageImpl;
 import io.ballerina.asyncapi.websocketscore.generators.asyncspec.utils.ConverterCommonUtils;
 import io.ballerina.compiler.api.SemanticModel;
@@ -108,13 +109,18 @@ public class AsyncApiRemoteMapper {
     public static boolean containsCloseFrameSchema(AsyncApi25ComponentsImpl components) {
         if (components != null && components.getSchemas() != null) {
             for (Schema schema : components.getSchemas().values()) {
-                if (schema != null && schema.getProperties() != null &&
-                        schema.getProperties().containsKey(FRAME_TYPE) &&
-                            schema.getProperties().get(FRAME_TYPE).getEnum() != null &&
-                            schema.getProperties().get(FRAME_TYPE).getEnum().contains(new TextNode(FRAME_TYPE_CLOSE))) {
+                if (schema != null && isCloseFrameSchema((AsyncApi25SchemaImpl) schema)) {
                     return true;
                 }
             }
+        }
+        return false;
+    }
+
+    public static boolean isCloseFrameSchema(AsyncApi25SchemaImpl schema) {
+        if (schema != null && schema.getProperties() != null && schema.getProperties().containsKey(FRAME_TYPE)) {
+            AsyncApi25SchemaImpl frameTypeSchema = (AsyncApi25SchemaImpl) schema.getProperties().get(FRAME_TYPE);
+            return frameTypeSchema.getConst().equals(new TextNode(FRAME_TYPE_CLOSE));
         }
         return false;
     }

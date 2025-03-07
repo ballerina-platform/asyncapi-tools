@@ -53,8 +53,7 @@ components:
       properties:
         frametype:
           type: string
-          enum:
-          - close
+          const: close
           description: WS frame type
         status:
           type: integer
