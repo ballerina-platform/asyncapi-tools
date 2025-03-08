@@ -120,7 +120,8 @@ public class AsyncApiRemoteMapper {
     public static boolean isCloseFrameSchema(AsyncApi25SchemaImpl schema) {
         if (schema != null && schema.getProperties() != null && schema.getProperties().containsKey(FRAME_TYPE)) {
             AsyncApi25SchemaImpl frameTypeSchema = (AsyncApi25SchemaImpl) schema.getProperties().get(FRAME_TYPE);
-            return frameTypeSchema.getConst().equals(new TextNode(FRAME_TYPE_CLOSE));
+            return frameTypeSchema.getConst() != null &&
+                    frameTypeSchema.getConst().equals(new TextNode(FRAME_TYPE_CLOSE));
         }
         return false;
     }
