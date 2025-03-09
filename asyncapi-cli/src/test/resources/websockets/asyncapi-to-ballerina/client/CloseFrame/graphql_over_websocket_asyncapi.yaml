@@ -17,9 +17,10 @@ channels:
     subscribe:
       message:
         oneOf:
-        - $ref: '#/components/messages/ConnectionAckMessage'
+        - $ref: '#/components/messages/ConnectionAck'
         - $ref: '#/components/messages/TooManyInitializationRequests'
-        - $ref: '#/components/messages/NextMessage'
+        - $ref: '#/components/messages/PongMessage'
+        - $ref: '#/components/messages/Next'
         - $ref: '#/components/messages/Complete'
         - $ref: '#/components/messages/Unauthorized'
         - $ref: '#/components/messages/SubscriberAlreadyExists'
@@ -27,6 +28,7 @@ channels:
       message:
         oneOf:
         - $ref: '#/components/messages/ConnectionInit'
+        - $ref: '#/components/messages/PingMessage'
         - $ref: '#/components/messages/Subscribe'
         - $ref: '#/components/messages/Complete'
 components:
@@ -42,7 +44,7 @@ components:
         payload:
           type: object
           additionalProperties: true
-    ConnectionAckMessage:
+    ConnectionAck:
       type: object
       required:
       - type
@@ -71,6 +73,27 @@ components:
           type: string
           description: Message to be sent
       description: Representation of a websocket close-frame
+    PingMessage:
+      type: object
+      required:
+      - type
+      properties:
+        type:
+          type: string
+          const: PingMessage
+        payload:
+          type: object
+          additionalProperties: true
+    PongMessage:
+      type: object
+      required:
+      - type
+      properties:
+        type:
+          type: string
+        payload:
+          type: object
+          additionalProperties: true
     Subscribe:
       type: object
       required:
@@ -97,7 +120,7 @@ components:
               x-nullable: true
             extensions:
               x-nullable: true
-    NextMessage:
+    Next:
       type: object
       required:
       - type
@@ -159,9 +182,9 @@ components:
           description: Message to be sent
       description: Representation of a websocket close-frame
   messages:
-    ConnectionAckMessage:
+    ConnectionAck:
       payload:
-        $ref: '#/components/schemas/ConnectionAckMessage'
+        $ref: '#/components/schemas/ConnectionAck'
     TooManyInitializationRequests:
       payload:
         $ref: '#/components/schemas/TooManyInitializationRequests'
@@ -170,12 +193,21 @@ components:
         $ref: '#/components/schemas/ConnectionInit'
       x-response:
         oneOf:
-        - $ref: '#/components/messages/ConnectionAckMessage'
+        - $ref: '#/components/messages/ConnectionAck'
         - $ref: '#/components/messages/TooManyInitializationRequests'
       x-response-type: simple-rpc
-    NextMessage:
+    PongMessage:
       payload:
-        $ref: '#/components/schemas/NextMessage'
+        $ref: '#/components/schemas/PongMessage'
+    PingMessage:
+      payload:
+        $ref: '#/components/schemas/PingMessage'
+      x-response:
+        $ref: '#/components/messages/PongMessage'
+      x-response-type: simple-rpc
+    Next:
+      payload:
+        $ref: '#/components/schemas/Next'
     Complete:
       payload:
         $ref: '#/components/schemas/Complete'
@@ -190,7 +222,7 @@ components:
         $ref: '#/components/schemas/Subscribe'
       x-response:
         oneOf:
-        - $ref: '#/components/messages/NextMessage'
+        - $ref: '#/components/messages/Next'
         - $ref: '#/components/messages/Complete'
         - $ref: '#/components/messages/Unauthorized'
         - $ref: '#/components/messages/SubscriberAlreadyExists'
