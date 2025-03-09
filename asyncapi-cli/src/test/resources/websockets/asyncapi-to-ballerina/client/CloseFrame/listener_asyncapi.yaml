@@ -1,0 +1,202 @@
+asyncapi: 2.5.0
+info:
+  title: /
+  version: 0.1.0
+servers:
+  development:
+    url: "{server}:{port}/"
+    protocol: ws
+    protocolVersion: "13"
+    variables:
+      server:
+        default: ws://localhost
+      port:
+        default: "9090"
+channels:
+  /:
+    subscribe:
+      message:
+        oneOf:
+        - $ref: '#/components/messages/ConnectionAckMessage'
+        - $ref: '#/components/messages/TooManyInitializationRequests'
+        - $ref: '#/components/messages/NextMessage'
+        - $ref: '#/components/messages/Complete'
+        - $ref: '#/components/messages/Unauthorized'
+        - $ref: '#/components/messages/SubscriberAlreadyExists'
+    publish:
+      message:
+        oneOf:
+        - $ref: '#/components/messages/ConnectionInit'
+        - $ref: '#/components/messages/Subscribe'
+        - $ref: '#/components/messages/Complete'
+components:
+  schemas:
+    ConnectionInit:
+      type: object
+      required:
+      - type
+      properties:
+        type:
+          type: string
+          const: ConnectionInit
+        payload:
+          type: object
+          additionalProperties: true
+    ConnectionAckMessage:
+      type: object
+      required:
+      - type
+      properties:
+        type:
+          type: string
+        payload:
+          type: object
+          additionalProperties: true
+    TooManyInitializationRequests:
+      type: object
+      required:
+      - frametype
+      - status
+      - reason
+      properties:
+        frametype:
+          type: string
+          const: close
+          description: WS frame type
+        status:
+          type: integer
+          const: 4429
+          description: status code
+        reason:
+          type: string
+          description: Message to be sent
+      description: Representation of a websocket close-frame
+    Subscribe:
+      type: object
+      required:
+      - type
+      - id
+      - payload
+      properties:
+        type:
+          type: string
+          const: Subscribe
+        id:
+          type: string
+        payload:
+          type: object
+          required:
+          - query
+          properties:
+            operationName:
+              type: string
+              x-nullable: true
+            query:
+              type: string
+            variables:
+              x-nullable: true
+            extensions:
+              x-nullable: true
+    NextMessage:
+      type: object
+      required:
+      - type
+      - id
+      - payload
+      properties:
+        type:
+          type: string
+        id:
+          type: string
+        payload:
+          additionalProperties: true
+    Complete:
+      type: object
+      required:
+      - type
+      - id
+      properties:
+        type:
+          type: string
+          const: Complete
+        id:
+          type: string
+    Unauthorized:
+      type: object
+      required:
+      - frametype
+      - status
+      - reason
+      properties:
+        frametype:
+          type: string
+          const: close
+          description: WS frame type
+        status:
+          type: integer
+          const: 4401
+          description: status code
+        reason:
+          type: string
+          description: Message to be sent
+      description: Representation of a websocket close-frame
+    SubscriberAlreadyExists:
+      type: object
+      required:
+      - frametype
+      - status
+      properties:
+        frametype:
+          type: string
+          const: close
+          description: WS frame type
+        status:
+          type: integer
+          const: 4409
+          description: status code
+        reason:
+          type: string
+          description: Message to be sent
+      description: Representation of a websocket close-frame
+  messages:
+    ConnectionAckMessage:
+      payload:
+        $ref: '#/components/schemas/ConnectionAckMessage'
+    TooManyInitializationRequests:
+      payload:
+        $ref: '#/components/schemas/TooManyInitializationRequests'
+    ConnectionInit:
+      payload:
+        $ref: '#/components/schemas/ConnectionInit'
+      x-response:
+        oneOf:
+        - $ref: '#/components/messages/ConnectionAckMessage'
+        - $ref: '#/components/messages/TooManyInitializationRequests'
+      x-response-type: simple-rpc
+    NextMessage:
+      payload:
+        $ref: '#/components/schemas/NextMessage'
+    Complete:
+      payload:
+        $ref: '#/components/schemas/Complete'
+    Unauthorized:
+      payload:
+        $ref: '#/components/schemas/Unauthorized'
+    SubscriberAlreadyExists:
+      payload:
+        $ref: '#/components/schemas/SubscriberAlreadyExists'
+    Subscribe:
+      payload:
+        $ref: '#/components/schemas/Subscribe'
+      x-response:
+        oneOf:
+        - $ref: '#/components/messages/NextMessage'
+        - $ref: '#/components/messages/Complete'
+        - $ref: '#/components/messages/Unauthorized'
+        - $ref: '#/components/messages/SubscriberAlreadyExists'
+      x-response-type: simple-rpc
+x-dispatcherKey: type
+x-ballerina-ws-closeframe:
+  type: body
+  path: event.frametype
+  value: close

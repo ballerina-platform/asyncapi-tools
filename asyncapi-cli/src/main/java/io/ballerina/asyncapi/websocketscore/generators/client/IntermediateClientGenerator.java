@@ -215,6 +215,7 @@ import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.X_RESPONSE
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.X_RESPONSE_TYPE;
 import static io.ballerina.asyncapi.websocketscore.GeneratorUtils.escapeIdentifier;
 import static io.ballerina.asyncapi.websocketscore.GeneratorUtils.getValidName;
+import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.service.AsyncApiRemoteMapper.isCloseFrameSchema;
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createEmptyMinutiaeList;
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createEmptyNodeList;
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createIdentifierToken;
@@ -1335,6 +1336,11 @@ public class IntermediateClientGenerator {
                     String reference = message.get$ref();
                     String messageName = GeneratorUtils.extractReferenceType(reference);
                     if (!remainingResponseMessages.contains(messageName)) {
+                        AsyncApi25SchemaImpl refSchema = (AsyncApi25SchemaImpl) asyncApi.getComponents()
+                                .getSchemas().get(messageName);
+                        if (isCloseFrameSchema(refSchema)) {
+                            continue; // Skip close frame schema
+                        }
                         Map<String, JsonNode> extensions = new LinkedHashMap<>();
                         AsyncApi25MessageImpl newMessage = new AsyncApi25MessageImpl();
                         ObjectNode objectNode = new ObjectNode(JsonNodeFactory.instance);

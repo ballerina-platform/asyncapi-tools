@@ -57,6 +57,7 @@ import java.util.Set;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.CONNECTION_CONFIG;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.HTTP;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.WEBSOCKET;
+import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.service.AsyncApiRemoteMapper.isCloseFrameSchema;
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createEmptyNodeList;
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createNodeList;
 
@@ -157,6 +158,9 @@ public class BallerinaTypesGenerator {
                     String schemaKey = schema.getKey().trim();
                     if (!hasConstraints) {
                         hasConstraints = GeneratorUtils.hasConstraints(schema.getValue());
+                    }
+                    if (isCloseFrameSchema((AsyncApi25SchemaImpl) schema.getValue())) {
+                        continue; // Skip the close frame schema
                     }
                     if (GeneratorUtils.isValidSchemaName(schemaKey)) {
                         List<Node> schemaDoc = new ArrayList<>();
