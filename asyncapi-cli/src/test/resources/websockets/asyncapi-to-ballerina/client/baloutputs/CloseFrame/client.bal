@@ -3,7 +3,7 @@ import ballerina/websocket;
 
 import xlibb/pipe;
 
-public client isolated class /Client {
+public client isolated class GraphqlOverWebsocketClient {
     private final websocket:Client clientEp;
     private final pipe:Pipe writeMessageQueue;
     private final PipesMap pipes;
@@ -14,7 +14,7 @@ public client isolated class /Client {
     # + config - The configurations to be used when initializing the `connector` 
     # + serviceUrl - URL of the target service 
     # + return - An error if connector initialization failed 
-    public isolated function init(websocket:ClientConfiguration clientConfig =  {}, string serviceUrl = "ws://localhost:9090/") returns error? {
+    public isolated function init(websocket:ClientConfiguration clientConfig =  {}, string serviceUrl = "ws://localhost:9090/graphql_over_websocket") returns error? {
         self.pipes = new ();
         self.writeMessageQueue = new (1000);
         websocket:Client websocketEp = check new (serviceUrl, clientConfig);

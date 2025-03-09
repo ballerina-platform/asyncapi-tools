@@ -46,7 +46,7 @@ public class CloseFrameTests {
 
     @Test(description = "Test the generation of the client with a close frame records")
     public void testGenerateClientWithCloseFrame() {
-        String fileName = "listener_asyncapi";
+        String fileName = "graphql_over_websocket_asyncapi";
         Path filePath = RES_DIR.resolve(Paths.get("CloseFrame/" + fileName + ".yaml"));
         String[] args = {"--input", filePath.toString(), "-o", this.tmpDir.toString(), "--protocol", "ws"};
         AsyncApiCmd cmd = new AsyncApiCmd(tmpDir, false);
