@@ -16,15 +16,6 @@
 
 import ballerina/websocket;
 
-public type Heartbeat record {
-    int heartbeatId;
-    string event;
-};
-
-public type HeartbeatResponse record {
-    int id;
-};
-
 listener websocket:Listener l3 = new (9093);
 
 @websocket:ServiceConfig {dispatcherKey: "event"}

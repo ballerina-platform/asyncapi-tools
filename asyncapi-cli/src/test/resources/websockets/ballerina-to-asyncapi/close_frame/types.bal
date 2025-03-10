@@ -14,22 +14,35 @@
 //  specific language governing permissions and limitations
 //  under the License.
 
-import ballerina/websocket;
+type Hello record {|
+    string message;
+    string event;
+|};
 
-listener websocket:Listener websocketListener = check new (9092);
+type HelloError record {|
+    string message;
+    string event;
+|};
 
-@websocket:ServiceConfig {dispatcherKey: "event"}
-service / on websocketListener {
+type Response record {|
+    string event = "just a message";
+    string message;
+|};
 
-    resource function get .() returns websocket:Service|websocket:UpgradeError {
-        return new WsService();
-    }
-}
+public type Heartbeat record {
+    int heartbeatId;
+    string event;
+};
 
-service class WsService {
-    *websocket:Service;
+public type HeartbeatResponse record {
+    int id;
+};
 
-    remote function onHello(Hello clientData) returns Response|websocket:CloseFrame? {
-        return {message: "You sent: " + clientData.message};
-    }
-}
+public type Subscribe record {
+    int subscribeId;
+    string event;
+};
+
+public type SubscribeResponse record {
+    int id;
+};
