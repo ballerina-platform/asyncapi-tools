@@ -56,6 +56,7 @@ import io.ballerina.compiler.syntax.tree.SimpleNameReferenceNode;
 import io.ballerina.compiler.syntax.tree.SyntaxKind;
 import io.ballerina.compiler.syntax.tree.TypeDescriptorNode;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -64,6 +65,7 @@ import java.util.NoSuchElementException;
 import java.util.Optional;
 
 import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.CAMEL_CASE_PATTERN;
+import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.ERROR;
 import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.FALSE;
 import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.FRAME_TYPE;
 import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.FRAME_TYPE_CLOSE;
@@ -73,6 +75,7 @@ import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constant
 import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.NO_SERVICE_CLASS;
 import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.ON_BINARY_MESSAGE;
 import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.ON_CLOSE;
+import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.ON_ERROR;
 import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.ON_MESSAGE;
 import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.ON_OPEN;
 import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.ON_PING;
@@ -190,6 +193,8 @@ public class AsyncApiRemoteMapper {
         BalAsyncApi25MessageImpl publishMessage = new BalAsyncApi25MessageImpl();
         AsyncApiResponseMapper responseMapper = new AsyncApiResponseMapper(resource.location(), componentMapper,
                 semanticModel, components);
+        Optional<ReturnTypeDescriptorNode> commonReturnTypes = getReturnTypesFromOnError(classMethodNodes);
+        List<String> excludedMethodsForCommonReturnTypes = getExcludedMethodsForCommonReturnTypes(classMethodNodes);
         for (Node node : classMethodNodes) {
             if (node.kind().equals(SyntaxKind.OBJECT_METHOD_DEFINITION)) {
                 FunctionDefinitionNode remoteFunctionNode = (FunctionDefinitionNode) node;
@@ -233,6 +238,11 @@ public class AsyncApiRemoteMapper {
                                     }
                                     Optional<ReturnTypeDescriptorNode> optionalRemoteReturnNode = remoteFunctionNode.
                                             functionSignature().returnTypeDesc();
+                                    if (!excludedMethodsForCommonReturnTypes.contains(functionName) &&
+                                            commonReturnTypes.isPresent()) {
+                                        responseMapper.createResponse(subscribeMessage, componentMessage,
+                                                commonReturnTypes.get().type(), null, FALSE, null);
+                                    }
                                     if (optionalRemoteReturnNode.isPresent()) {
                                         Node remoteReturnType = optionalRemoteReturnNode.get().type();
                                         String returnDescription = null;
@@ -356,6 +366,36 @@ public class AsyncApiRemoteMapper {
             }
         }
         return serviceClassName;
+    }
+
+    private Optional<ReturnTypeDescriptorNode> getReturnTypesFromOnError(NodeList<Node> classMethodNodes) {
+        for (Node node : classMethodNodes) {
+            if (node.kind().equals(SyntaxKind.OBJECT_METHOD_DEFINITION)) {
+                FunctionDefinitionNode remoteFunctionNode = (FunctionDefinitionNode) node;
+                if (remoteFunctionNode.functionName().toString().trim().equals(ON_ERROR)) {
+                    return remoteFunctionNode.functionSignature().returnTypeDesc();
+                }
+            }
+        }
+        return Optional.empty();
+    }
+
+    private List<String> getExcludedMethodsForCommonReturnTypes(NodeList<Node> classMethodNodes) {
+        List<String> allMethods = new ArrayList<>();
+        for (Node node : classMethodNodes) {
+            if (node.kind().equals(SyntaxKind.OBJECT_METHOD_DEFINITION)) {
+                FunctionDefinitionNode remoteFunctionNode = (FunctionDefinitionNode) node;
+                String functionName = remoteFunctionNode.functionName().toString().trim();
+                allMethods.add(functionName);
+            }
+        }
+        List<String> excludedMethods = new ArrayList<>();
+        for (String method : allMethods) {
+            if (method.endsWith(ERROR) || allMethods.contains(method + ERROR)) {
+                excludedMethods.add(method);
+            }
+        }
+        return excludedMethods;
     }
 
     /**

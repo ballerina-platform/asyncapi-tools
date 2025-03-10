@@ -93,6 +93,7 @@ public class Constants {
     public static final String YML_EXTENSION = ".yml";
     public static final String UNDERSCORE = "_";
     public static final String CAMEL_CASE_PATTERN = "^on[A-Z][a-z0-9A-Z]*$";
+    public static final String ERROR = "Error";
     public static final String ON_MESSAGE = "onMessage";
     public static final String ON_TEXT_MESSAGE = "onTextMessage";
     public static final String ON_BINARY_MESSAGE = "onBinaryMessage";
@@ -100,6 +101,7 @@ public class Constants {
     public static final String ON_OPEN = "onOpen";
     public static final String ON_PING = "onPing";
     public static final String ON_PONG = "onPong";
+    public static final String ON_ERROR = "onError";
     //Exception Constants
     public static final String DISPATCHERKEY_NULLABLE_EXCEPTION = "ERROR: dispatcherKey '%s' cannot be " +
             "nullable in %s record";
