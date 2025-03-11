@@ -700,10 +700,10 @@ public class IntermediateClientGenerator {
     private FunctionDefinitionNode createGetRecordNameFunction() {
         FunctionBodyNode functionBodyNode = NodeParser.parseFunctionBodyBlock("""
                     {
-                        if dispatchingValue == "ping" {
+                        if dispatchingValue.equalsIgnoreCaseAscii("ping") {
                             return "PingMessage";
                         }
-                        if dispatchingValue == "pong" {
+                        if dispatchingValue.equalsIgnoreCaseAscii("pong") {
                             return "PongMessage";
                         }
                         string[] words = regexp:split(re `[\\W_]+`, dispatchingValue);
