@@ -17,6 +17,7 @@ channels:
     subscribe:
       message:
         oneOf:
+        - $ref: '#/components/messages/InvalidMessage'
         - $ref: '#/components/messages/ConnectionAck'
         - $ref: '#/components/messages/TooManyInitializationRequests'
         - $ref: '#/components/messages/PongMessage'
@@ -44,6 +45,24 @@ components:
         payload:
           type: object
           additionalProperties: true
+    InvalidMessage:
+      type: object
+      required:
+      - frametype
+      - status
+      properties:
+        frametype:
+          type: string
+          const: close
+          description: WS frame type
+        status:
+          type: integer
+          const: 4400
+          description: status code
+        reason:
+          type: string
+          description: Message to be sent
+      description: Representation of a websocket close-frame
     ConnectionAck:
       type: object
       required:
@@ -182,6 +201,9 @@ components:
           description: Message to be sent
       description: Representation of a websocket close-frame
   messages:
+    InvalidMessage:
+      payload:
+        $ref: '#/components/schemas/InvalidMessage'
     ConnectionAck:
       payload:
         $ref: '#/components/schemas/ConnectionAck'
@@ -193,6 +215,7 @@ components:
         $ref: '#/components/schemas/ConnectionInit'
       x-response:
         oneOf:
+        - $ref: '#/components/messages/InvalidMessage'
         - $ref: '#/components/messages/ConnectionAck'
         - $ref: '#/components/messages/TooManyInitializationRequests'
       x-response-type: simple-rpc
@@ -203,7 +226,9 @@ components:
       payload:
         $ref: '#/components/schemas/PingMessage'
       x-response:
-        $ref: '#/components/messages/PongMessage'
+        oneOf:
+        - $ref: '#/components/messages/InvalidMessage'
+        - $ref: '#/components/messages/PongMessage'
       x-response-type: simple-rpc
     Next:
       payload:
@@ -211,6 +236,10 @@ components:
     Complete:
       payload:
         $ref: '#/components/schemas/Complete'
+      x-response:
+        $ref: '#/components/messages/InvalidMessage'
+        x-required: false
+      x-response-type: simple-rpc
     Unauthorized:
       payload:
         $ref: '#/components/schemas/Unauthorized'
@@ -222,6 +251,7 @@ components:
         $ref: '#/components/schemas/Subscribe'
       x-response:
         oneOf:
+        - $ref: '#/components/messages/InvalidMessage'
         - $ref: '#/components/messages/Next'
         - $ref: '#/components/messages/Complete'
         - $ref: '#/components/messages/Unauthorized'

@@ -53,11 +53,15 @@ public class CloseFrameTests {
         new CommandLine(cmd).parseArgs(args);
         try {
             cmd.execute();
+
+            String generatedUtils = getStringFromGivenBalFile(this.tmpDir.resolve("utils.bal"));
+            String expectedUtils = getStringFromGivenBalFile(RES_DIR.resolve("baloutputs/CloseFrame/utils.bal"));
+            Assert.assertEquals(generatedUtils, expectedUtils);
             String generatedClient = getStringFromGivenBalFile(this.tmpDir.resolve("client.bal"));
             String expectedClient = getStringFromGivenBalFile(RES_DIR.resolve("baloutputs/CloseFrame/client.bal"));
+            Assert.assertEquals(generatedClient, expectedClient);
             String generatedTypes = getStringFromGivenBalFile(this.tmpDir.resolve("types.bal"));
             String expectedTypes = getStringFromGivenBalFile(RES_DIR.resolve("baloutputs/CloseFrame/types.bal"));
-            Assert.assertEquals(generatedClient, expectedClient);
             Assert.assertEquals(generatedTypes, expectedTypes);
         } catch (BLauncherException | IOException e) {
             Assert.fail(e.getMessage());

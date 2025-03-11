@@ -70,6 +70,7 @@ public class GeneratorConstants {
     //Honour goes to Nuvindu
     public static final String XLIBB = "xlibb";
     public static final String XLIBB_PIPE = "pipe";
+    public static final String LANG_REGEXP = "lang.regexp";
     public static final String LOG = "log";
     public static final String X_DISPATCHER_KEY = "x-dispatcherKey";
     public static final String X_DISPATCHER_STREAM_ID = "x-dispatcherStreamId";
@@ -287,6 +288,13 @@ public class GeneratorConstants {
     public static final String PIPE_VAR = PIPE_COLON_PIPE + SPACE + SIMPLE_PIPE;
     public static final String CONNECTION_CLOSE_STATEMENT = "error? connectionClose = self->connectionClose();";
     public static final String CREATE_UUID_STATEMENT = "%s.%s = uuid:createType1AsString();";
+    public static final String DISPATCHER_MAP = "dispatcherMap";
+    // Constants related to getRequestPipeName
+    public static final String GET_REQ_PIPE_NAME = "getRequestPipeName";
+    public static final String GET_REQ_PIPE_PARAMETER = "responseType";
+    // Constants related to getRecordName
+    public static final String GET_RECORD_NAME = "getRecordName";
+    public static final String GET_RECORD_NAME_PARAMETER = "dispatchingValue";
     public static final Map<String, String> TYPE_MAP;
 
     static {

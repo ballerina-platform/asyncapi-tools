@@ -1,3 +1,4 @@
+import ballerina/lang.regexp;
 import ballerina/log;
 import ballerina/websocket;
 
@@ -8,6 +9,13 @@ public client isolated class GraphqlOverWebsocketClient {
     private final pipe:Pipe writeMessageQueue;
     private final PipesMap pipes;
     private boolean isActive;
+    private final readonly & map<string> dispatcherMap = {
+        "null": "complete",
+        "Complete": "subscribe",
+        "Next": "subscribe",
+        "PongMessage": "pingMessage",
+        "ConnectionAck": "connectionInit"
+    };
 
     # Gets invoked to initialize the `connector`.
     #
@@ -23,6 +31,28 @@ public client isolated class GraphqlOverWebsocketClient {
         self.startMessageWriting();
         self.startMessageReading();
         return;
+    }
+
+    private isolated function getRecordName(string dispatchingValue) returns string {
+        if dispatchingValue == "ping" {
+            return "PingMessage";
+        }
+        if dispatchingValue == "pong" {
+            return "PongMessage";
+        }
+        string[] words = regexp:split(re `[\W_]+`, dispatchingValue);
+        string result = "";
+        foreach string word in words {
+            result += word.substring(0, 1).toUpperAscii() + word.substring(1).toLowerAscii();
+        }
+        return result;
+    }
+    private isolated function getRequestPipeName(string responseType) returns string {
+        string responseRecordType = self.getRecordName(responseType);
+        if self.dispatcherMap.hasKey(responseRecordType) {
+            return self.dispatcherMap.get(responseRecordType);
+        }
+        return responseType;
     }
 
     # Used to write messages to the websocket.
@@ -70,7 +100,8 @@ public client isolated class GraphqlOverWebsocketClient {
                     self.attemptToCloseConnection();
                     return;
                 }
-                pipe:Pipe pipe = self.pipes.getPipe(message.'type);
+                string requestPipeName = self.getRequestPipeName(message.'type);
+                pipe:Pipe pipe = self.pipes.getPipe(requestPipeName);
                 pipe:Error? pipeErr = pipe.produce(message, 5);
                 if pipeErr is pipe:Error {
                     log:printError("PipeError: Failed to produce message to the pipe", pipeErr);
@@ -168,7 +199,7 @@ public client isolated class GraphqlOverWebsocketClient {
         return unionResult;
     }
 
-    remote isolated function doComplete(Complete complete, decimal timeout) returns error? {
+    remote isolated function doComplete(Complete complete, decimal timeout) returns null|error {
         lock {
             if !self.isActive {
                 return error("ConnectionError: Connection has been closed");
@@ -184,6 +215,17 @@ public client isolated class GraphqlOverWebsocketClient {
             self.attemptToCloseConnection();
             return error("PipeError: Error in producing message", pipeErr);
         }
+        Message|pipe:Error responseMessage = self.pipes.getPipe("complete").consume(timeout);
+        if responseMessage is pipe:Error {
+            self.attemptToCloseConnection();
+            return error("PipeError: Error in consuming message", responseMessage);
+        }
+        null|error null = responseMessage.cloneWithType();
+        if null is error {
+            self.attemptToCloseConnection();
+            return error("DataBindingError: Error in cloning message", null);
+        }
+        return null;
     }
 
     isolated function attemptToCloseConnection() {
