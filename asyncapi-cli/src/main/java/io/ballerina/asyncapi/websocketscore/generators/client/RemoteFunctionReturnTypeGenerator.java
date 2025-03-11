@@ -34,7 +34,6 @@ import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.PIPE;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.X_DISPATCHER_KEY;
 import static io.ballerina.asyncapi.websocketscore.GeneratorUtils.extractReferenceType;
 import static io.ballerina.asyncapi.websocketscore.GeneratorUtils.getValidName;
-import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.service.AsyncApiRemoteMapper.isCloseFrameSchema;
 
 /**
  * This util class for maintain the operation response with ballerina return type.
@@ -108,9 +107,6 @@ public class RemoteFunctionReturnTypeGenerator {
         TextNode schemaReference = (TextNode) message.getPayload().get("$ref");
         String schemaName = extractReferenceType(schemaReference.asText());
         AsyncApi25SchemaImpl refSchema = (AsyncApi25SchemaImpl) asyncAPI.getComponents().getSchemas().get(schemaName);
-        if (isCloseFrameSchema(refSchema)) {
-            return; // Skip the close frame schema
-        }
         if (responseMessages != null) {
             responseMessages.add(schemaName);
         }

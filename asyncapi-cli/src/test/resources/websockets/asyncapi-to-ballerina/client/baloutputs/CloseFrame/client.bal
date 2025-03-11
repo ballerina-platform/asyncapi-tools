@@ -10,7 +10,6 @@ public client isolated class GraphqlOverWebsocketClient {
     private final PipesMap pipes;
     private boolean isActive;
     private final readonly & map<string> dispatcherMap = {
-        "null": "complete",
         "Complete": "subscribe",
         "Next": "subscribe",
         "PongMessage": "pingMessage",
@@ -34,10 +33,10 @@ public client isolated class GraphqlOverWebsocketClient {
     }
 
     private isolated function getRecordName(string dispatchingValue) returns string {
-        if dispatchingValue == "ping" {
+        if dispatchingValue.equalsIgnoreCaseAscii("ping") {
             return "PingMessage";
         }
-        if dispatchingValue == "pong" {
+        if dispatchingValue.equalsIgnoreCaseAscii("pong") {
             return "PongMessage";
         }
         string[] words = regexp:split(re `[\W_]+`, dispatchingValue);
@@ -199,7 +198,7 @@ public client isolated class GraphqlOverWebsocketClient {
         return unionResult;
     }
 
-    remote isolated function doComplete(Complete complete, decimal timeout) returns null|error {
+    remote isolated function doComplete(Complete complete, decimal timeout) returns error? {
         lock {
             if !self.isActive {
                 return error("ConnectionError: Connection has been closed");
@@ -215,17 +214,6 @@ public client isolated class GraphqlOverWebsocketClient {
             self.attemptToCloseConnection();
             return error("PipeError: Error in producing message", pipeErr);
         }
-        Message|pipe:Error responseMessage = self.pipes.getPipe("complete").consume(timeout);
-        if responseMessage is pipe:Error {
-            self.attemptToCloseConnection();
-            return error("PipeError: Error in consuming message", responseMessage);
-        }
-        null|error null = responseMessage.cloneWithType();
-        if null is error {
-            self.attemptToCloseConnection();
-            return error("DataBindingError: Error in cloning message", null);
-        }
-        return null;
     }
 
     isolated function attemptToCloseConnection() {

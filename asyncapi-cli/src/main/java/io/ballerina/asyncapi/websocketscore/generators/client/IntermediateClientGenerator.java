@@ -18,6 +18,7 @@
 package io.ballerina.asyncapi.websocketscore.generators.client;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.BooleanNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -98,6 +99,7 @@ import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -224,6 +226,7 @@ import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.X_DISPATCH
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.X_RESPONSE;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.X_RESPONSE_TYPE;
 import static io.ballerina.asyncapi.websocketscore.GeneratorUtils.escapeIdentifier;
+import static io.ballerina.asyncapi.websocketscore.GeneratorUtils.extractReferenceType;
 import static io.ballerina.asyncapi.websocketscore.GeneratorUtils.getValidName;
 import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.service.AsyncApiRemoteMapper.isCloseFrameSchema;
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createEmptyMinutiaeList;
@@ -1398,6 +1401,7 @@ public class IntermediateClientGenerator {
                     String messageName = GeneratorUtils.extractReferenceType(reference);
                     AsyncApi25MessageImpl componentMessage = (AsyncApi25MessageImpl) messages.get(messageName);
                     Map<String, JsonNode> extensions = componentMessage.getExtensions();
+                    extensions = removeCloseFrameFromResponse(extensions);
                     FunctionDefinitionNode functionDefinitionNode;
                     if (extensions != null && extensions.get(X_RESPONSE) != null) {
                          functionDefinitionNode = getRemoteFunctionDefinitionNode(messageName, componentMessage,
@@ -1452,6 +1456,59 @@ public class IntermediateClientGenerator {
         functionDefinitionNodeList.add(createAttemptToCloseConnectionFunction());
         functionDefinitionNodeList.add(createConnectionCloseFunction(!streamReturns.isEmpty()));
         return functionDefinitionNodeList;
+    }
+
+    private Map<String, JsonNode> removeCloseFrameFromResponse(Map<String, JsonNode> extensions) {
+        if (extensions != null && extensions.get(X_RESPONSE) != null) {
+            JsonNode xResponse = extensions.get(X_RESPONSE);
+            JsonNode xResponseType = extensions.get(X_RESPONSE_TYPE);
+            if (xResponse.get("oneOf") != null) {
+                if (xResponse.get("oneOf") instanceof ArrayNode nodes) {
+                    if (xResponseType != null) {
+                        for (Iterator<JsonNode> it = nodes.iterator(); it.hasNext(); ) {
+                            JsonNode jsonNode = it.next();
+                            if (jsonNode.get("$ref") != null) {
+                                if (isCloseFrameRef(jsonNode.get("$ref"))) {
+                                    it.remove();
+                                }
+                            }
+                        }
+                        if (nodes.isEmpty()) {
+                            return null;
+                        }
+                        if (nodes.size() == 1) {
+                            extensions.put(X_RESPONSE, nodes.get(0));
+                        } else {
+                            extensions.put(X_RESPONSE, JsonNodeFactory.instance.objectNode().set("oneOf", nodes));
+                        }
+                    }
+                }
+            } else if (xResponse.get("$ref") != null) {
+                if (isCloseFrameRef(xResponse.get("$ref"))) {
+                    return null;
+                }
+            }
+        }
+        return extensions;
+
+    }
+
+    private boolean isCloseFrameRef(JsonNode refNode) {
+        try {
+            if (refNode != null) {
+                String reference = refNode.asText();
+                String messageName = extractReferenceType(reference);
+                AsyncApiMessage message = asyncApi.getComponents().getMessages().get(messageName);
+                TextNode schemaReference = (TextNode) message.getPayload().get("$ref");
+                String schemaName = extractReferenceType(schemaReference.asText());
+                AsyncApi25SchemaImpl refSchema = (AsyncApi25SchemaImpl)
+                        asyncApi.getComponents().getSchemas().get(schemaName);
+                return isCloseFrameSchema(refSchema);
+            }
+            return false;
+        } catch (BallerinaAsyncApiExceptionWs e) {
+            throw new RuntimeException(e);
+        }
     }
 
     private List<AsyncApiMessage> getAsyncApiMessages() {
