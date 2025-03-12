@@ -1,3 +1,4 @@
+import ballerina/lang.regexp;
 import ballerina/log;
 import ballerina/websocket;
 
@@ -9,13 +10,18 @@ public client isolated class ChatClient {
     private final PipesMap pipes;
     private final StreamGeneratorsMap streamGenerators;
     private boolean isActive;
+    private final readonly & map<string> dispatcherMap = {
+        "CompleteMessage": "subscribeMessage",
+        "NextMessage": "subscribeMessage",
+        "ErrorMessage": "subscribeMessage"
+    };
 
     # Gets invoked to initialize the `connector`.
     #
     # + config - The configurations to be used when initializing the `connector`
     # + serviceUrl - URL of the target service
     # + return - An error if connector initialization failed
-    public isolated function init(websocket:ClientConfiguration clientConfig =  {}, string serviceUrl = "ws://localhost:9090/chat") returns error? {
+    public isolated function init(websocket:ClientConfiguration clientConfig = {}, string serviceUrl = "ws://localhost:9090/chat") returns error? {
         self.pipes = new ();
         self.streamGenerators = new ();
         self.writeMessageQueue = new (1000);
@@ -25,6 +31,29 @@ public client isolated class ChatClient {
         self.startMessageWriting();
         self.startMessageReading();
         return;
+    }
+
+    private isolated function getRecordName(string dispatchingValue) returns string {
+        if dispatchingValue.equalsIgnoreCaseAscii("ping") {
+            return "PingMessage";
+        }
+        if dispatchingValue.equalsIgnoreCaseAscii("pong") {
+            return "PongMessage";
+        }
+        string[] words = regexp:split(re `[\W_]+`, dispatchingValue);
+        string result = "";
+        foreach string word in words {
+            result += word.substring(0, 1).toUpperAscii() + word.substring(1).toLowerAscii();
+        }
+        return result;
+    }
+
+    private isolated function getRequestPipeName(string responseType) returns string {
+        string responseRecordType = self.getRecordName(responseType);
+        if self.dispatcherMap.hasKey(responseRecordType) {
+            return self.dispatcherMap.get(responseRecordType);
+        }
+        return responseType;
     }
 
     # Used to write messages to the websocket.
@@ -72,12 +101,13 @@ public client isolated class ChatClient {
                     self.attemptToCloseConnection();
                     return;
                 }
+                string requestPipeName = self.getRequestPipeName(message.'type);
                 pipe:Pipe pipe;
                 MessageWithId|error messageWithId = message.cloneWithType(MessageWithId);
                 if messageWithId is MessageWithId {
                     pipe = self.pipes.getPipe(messageWithId.id);
                 } else {
-                    pipe = self.pipes.getPipe(message.'type);
+                    pipe = self.pipes.getPipe(requestPipeName);
                 }
                 pipe:Error? pipeErr = pipe.produce(message, 5);
                 if pipeErr is pipe:Error {
@@ -89,7 +119,7 @@ public client isolated class ChatClient {
         }
     }
 
-    remote isolated function doSubscribeMessage(SubscribeMessage subscribeMessage, decimal timeout) returns stream<NextMessage|CompleteMessage|ErrorMessage,error?>|error {
+    remote isolated function doSubscribeMessage(SubscribeMessage subscribeMessage, decimal timeout) returns stream<NextMessage|CompleteMessage|ErrorMessage, error?>|error {
         lock {
             if !self.isActive {
                 return error("ConnectionError: Connection has been closed");
@@ -105,7 +135,7 @@ public client isolated class ChatClient {
             self.attemptToCloseConnection();
             return error("PipeError: Error in producing message", pipeErr);
         }
-        stream<NextMessage|CompleteMessage|ErrorMessage,error?> streamMessages;
+        stream<NextMessage|CompleteMessage|ErrorMessage, error?> streamMessages;
         lock {
             NextMessageCompleteMessageErrorMessageStreamGenerator streamGenerator = new (self.pipes, subscribeMessage.id, timeout);
             self.streamGenerators.addStreamGenerator(streamGenerator);
