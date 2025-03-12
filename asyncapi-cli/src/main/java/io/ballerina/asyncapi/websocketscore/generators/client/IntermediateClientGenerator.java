@@ -435,10 +435,10 @@ public class IntermediateClientGenerator {
         ImportDeclarationNode importForRegex = GeneratorUtils.getImportDeclarationNode(GeneratorConstants.BALLERINA
                 , LANG_REGEXP);
 
+        imports.add(importForRegex);
         imports.add(importForLog);
         imports.add(importForWebsocket);
         imports.add(importForXlibbPipe);
-        imports.add(importForRegex);
 
         //TODO: This has to improve
         // Add authentication related records
