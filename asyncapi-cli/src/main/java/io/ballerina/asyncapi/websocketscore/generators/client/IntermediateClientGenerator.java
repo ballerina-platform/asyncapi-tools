@@ -228,6 +228,7 @@ import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.X_RESPONSE
 import static io.ballerina.asyncapi.websocketscore.GeneratorUtils.escapeIdentifier;
 import static io.ballerina.asyncapi.websocketscore.GeneratorUtils.extractReferenceType;
 import static io.ballerina.asyncapi.websocketscore.GeneratorUtils.getValidName;
+import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.ONEOF;
 import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.service.AsyncApiRemoteMapper.isCloseFrameSchema;
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createEmptyMinutiaeList;
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createEmptyNodeList;
@@ -1462,13 +1463,14 @@ public class IntermediateClientGenerator {
         if (extensions != null && extensions.get(X_RESPONSE) != null) {
             JsonNode xResponse = extensions.get(X_RESPONSE);
             JsonNode xResponseType = extensions.get(X_RESPONSE_TYPE);
-            if (xResponse.get("oneOf") != null) {
-                if (xResponse.get("oneOf") instanceof ArrayNode nodes) {
+            if (xResponse.get(ONEOF) != null) {
+                if (xResponse.get(ONEOF) instanceof ArrayNode nodes) {
                     if (xResponseType != null) {
+                        ObjectNode newNode = (ObjectNode) extensions.get(X_RESPONSE);
                         for (Iterator<JsonNode> it = nodes.iterator(); it.hasNext(); ) {
                             JsonNode jsonNode = it.next();
-                            if (jsonNode.get("$ref") != null) {
-                                if (isCloseFrameRef(jsonNode.get("$ref"))) {
+                            if (jsonNode.get(REF) != null) {
+                                if (isCloseFrameRef(jsonNode.get(REF))) {
                                     it.remove();
                                 }
                             }
@@ -1477,14 +1479,16 @@ public class IntermediateClientGenerator {
                             return null;
                         }
                         if (nodes.size() == 1) {
-                            extensions.put(X_RESPONSE, nodes.get(0));
+                            newNode.remove(ONEOF);
+                            newNode.set(REF, nodes.get(0).get(REF));
                         } else {
-                            extensions.put(X_RESPONSE, JsonNodeFactory.instance.objectNode().set("oneOf", nodes));
+                            newNode.set(ONEOF, nodes);
                         }
+                        extensions.put(X_RESPONSE, newNode);
                     }
                 }
-            } else if (xResponse.get("$ref") != null) {
-                if (isCloseFrameRef(xResponse.get("$ref"))) {
+            } else if (xResponse.get(REF) != null) {
+                if (isCloseFrameRef(xResponse.get(REF))) {
                     return null;
                 }
             }
@@ -1499,7 +1503,7 @@ public class IntermediateClientGenerator {
                 String reference = refNode.asText();
                 String messageName = extractReferenceType(reference);
                 AsyncApiMessage message = asyncApi.getComponents().getMessages().get(messageName);
-                TextNode schemaReference = (TextNode) message.getPayload().get("$ref");
+                TextNode schemaReference = (TextNode) message.getPayload().get(REF);
                 String schemaName = extractReferenceType(schemaReference.asText());
                 AsyncApi25SchemaImpl refSchema = (AsyncApi25SchemaImpl)
                         asyncApi.getComponents().getSchemas().get(schemaName);
