@@ -33,8 +33,8 @@ service class onErrorService {
         return {message: "You sent: " + message.message};
     }
 
-    isolated remote function onHelloError(HelloError message) returns websocket:CloseFrame {
-        return websocket:NORMAL_CLOSURE;
+    isolated remote function onHelloError(error message) returns websocket:MessageTooBig {
+        return websocket:MESSAGE_TOO_BIG;
     }
 
     isolated remote function onSubscribe(Subscribe message) returns SubscribeResponse {

@@ -17,34 +17,53 @@ channels:
     subscribe:
       message:
         oneOf:
-        - $ref: '#/components/messages/Response'
-        - $ref: '#/components/messages/CloseFrame'
-        - $ref: '#/components/messages/NormalClosure'
-        - $ref: '#/components/messages/SubscribeResponse'
+          - $ref: '#/components/messages/MessageTooBig'
+          - $ref: '#/components/messages/Response'
+          - $ref: '#/components/messages/CloseFrame'
+          - $ref: '#/components/messages/NormalClosure'
+          - $ref: '#/components/messages/SubscribeResponse'
     publish:
       message:
         oneOf:
-        - $ref: '#/components/messages/Hello'
-        - $ref: '#/components/messages/HelloError'
-        - $ref: '#/components/messages/Subscribe'
+          - $ref: '#/components/messages/Hello'
+          - $ref: '#/components/messages/Subscribe'
 components:
   schemas:
     Hello:
       type: object
       required:
-      - message
-      - event
+        - message
+        - event
       properties:
         message:
           type: string
         event:
           type: string
           const: Hello
+    MessageTooBig:
+      type: object
+      required:
+        - frametype
+        - status
+        - reason
+      properties:
+        frametype:
+          type: string
+          const: close
+          description: WS frame type
+        status:
+          type: integer
+          const: 1009
+          description: status code
+        reason:
+          type: string
+          description: Message to be sent
+      description: Representation of a websocket close-frame
     Response:
       type: object
       required:
-      - event
-      - message
+        - event
+        - message
       properties:
         event:
           type: string
@@ -53,8 +72,8 @@ components:
     CloseFrame:
       type: object
       required:
-      - frametype
-      - status
+        - frametype
+        - status
       properties:
         frametype:
           type: string
@@ -67,22 +86,11 @@ components:
           type: string
           description: Message to be sent
       description: Representation of a websocket close-frame
-    HelloError:
-      type: object
-      required:
-      - message
-      - event
-      properties:
-        message:
-          type: string
-        event:
-          type: string
-          const: HelloError
     Subscribe:
       type: object
       required:
-      - subscribeId
-      - event
+        - subscribeId
+        - event
       properties:
         subscribeId:
           type: integer
@@ -93,8 +101,8 @@ components:
     NormalClosure:
       type: object
       required:
-      - frametype
-      - status
+        - frametype
+        - status
       properties:
         frametype:
           type: string
@@ -111,12 +119,15 @@ components:
     SubscribeResponse:
       type: object
       required:
-      - id
+        - id
       properties:
         id:
           type: integer
           format: int64
   messages:
+    MessageTooBig:
+      payload:
+        $ref: '#/components/schemas/MessageTooBig'
     Response:
       payload:
         $ref: '#/components/schemas/Response'
@@ -128,14 +139,9 @@ components:
         $ref: '#/components/schemas/Hello'
       x-response:
         oneOf:
-        - $ref: '#/components/messages/Response'
-        - $ref: '#/components/messages/CloseFrame'
-      x-response-type: simple-rpc
-    HelloError:
-      payload:
-        $ref: '#/components/schemas/HelloError'
-      x-response:
-        $ref: '#/components/messages/CloseFrame'
+          - $ref: '#/components/messages/MessageTooBig'
+          - $ref: '#/components/messages/Response'
+          - $ref: '#/components/messages/CloseFrame'
       x-response-type: simple-rpc
     NormalClosure:
       payload:
@@ -148,8 +154,8 @@ components:
         $ref: '#/components/schemas/Subscribe'
       x-response:
         oneOf:
-        - $ref: '#/components/messages/NormalClosure'
-        - $ref: '#/components/messages/SubscribeResponse'
+          - $ref: '#/components/messages/NormalClosure'
+          - $ref: '#/components/messages/SubscribeResponse'
       x-response-type: simple-rpc
 x-dispatcherKey: event
 x-ballerina-ws-closeframe:
