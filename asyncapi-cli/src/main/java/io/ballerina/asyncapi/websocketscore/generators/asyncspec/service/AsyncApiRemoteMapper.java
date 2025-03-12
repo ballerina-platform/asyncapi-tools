@@ -17,10 +17,16 @@
  */
 package io.ballerina.asyncapi.websocketscore.generators.asyncspec.service;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.fasterxml.jackson.databind.node.TextNode;
+import io.apicurio.datamodels.models.Schema;
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25ChannelItemImpl;
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25ChannelsImpl;
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25ComponentsImpl;
+import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25DocumentImpl;
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25OperationImpl;
+import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25SchemaImpl;
 import io.ballerina.asyncapi.websocketscore.generators.asyncspec.model.BalAsyncApi25MessageImpl;
 import io.ballerina.asyncapi.websocketscore.generators.asyncspec.utils.ConverterCommonUtils;
 import io.ballerina.compiler.api.SemanticModel;
@@ -55,16 +61,21 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
+import java.util.Objects;
 import java.util.Optional;
 
 import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.CAMEL_CASE_PATTERN;
+import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.ERROR;
 import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.FALSE;
+import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.FRAME_TYPE;
+import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.FRAME_TYPE_CLOSE;
 import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.FUNCTION_PARAMETERS_EXCEEDED;
 import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.FUNCTION_SIGNATURE_WRONG_TYPE;
 import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.FUNCTION_WRONG_NAME;
 import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.NO_SERVICE_CLASS;
 import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.ON_BINARY_MESSAGE;
 import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.ON_CLOSE;
+import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.ON_ERROR;
 import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.ON_MESSAGE;
 import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.ON_OPEN;
 import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.ON_PING;
@@ -72,6 +83,13 @@ import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constant
 import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.ON_TEXT_MESSAGE;
 import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.REMOTE_DESCRIPTION;
 import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.RETURN;
+import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.X_BALLERINA_WS_CLOSE_FRAME;
+import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.X_BALLERINA_WS_CLOSE_FRAME_PATH;
+import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.X_BALLERINA_WS_CLOSE_FRAME_PATH_FRAME_TYPE;
+import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.X_BALLERINA_WS_CLOSE_FRAME_TYPE;
+import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.X_BALLERINA_WS_CLOSE_FRAME_TYPE_BODY;
+import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.X_BALLERINA_WS_CLOSE_FRAME_VALUE;
+import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.X_BALLERINA_WS_CLOSE_FRAME_VALUE_CLOSE;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.QUALIFIED_NAME_REFERENCE;
 
 /**
@@ -89,6 +107,36 @@ public class AsyncApiRemoteMapper {
      */
     AsyncApiRemoteMapper(SemanticModel semanticModel) {
         this.semanticModel = semanticModel;
+    }
+
+    public static boolean containsCloseFrameSchema(AsyncApi25ComponentsImpl components) {
+        if (components != null && components.getSchemas() != null) {
+            for (Schema schema : components.getSchemas().values()) {
+                if (schema != null && isCloseFrameSchema((AsyncApi25SchemaImpl) schema)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    public static boolean isCloseFrameSchema(AsyncApi25SchemaImpl schema) {
+        if (schema != null && schema.getProperties() != null && schema.getProperties().containsKey(FRAME_TYPE)) {
+            AsyncApi25SchemaImpl frameTypeSchema = (AsyncApi25SchemaImpl) schema.getProperties().get(FRAME_TYPE);
+            return frameTypeSchema.getConst() != null &&
+                    frameTypeSchema.getConst().equals(new TextNode(FRAME_TYPE_CLOSE));
+        }
+        return false;
+    }
+
+    public static AsyncApi25DocumentImpl addWsCloseFrameExtension(AsyncApi25DocumentImpl asyncApi) {
+        ObjectMapper objectMapper = new ObjectMapper();
+        ObjectNode closeFrameExtension = objectMapper.createObjectNode();
+        closeFrameExtension.put(X_BALLERINA_WS_CLOSE_FRAME_TYPE, X_BALLERINA_WS_CLOSE_FRAME_TYPE_BODY);
+        closeFrameExtension.put(X_BALLERINA_WS_CLOSE_FRAME_PATH, X_BALLERINA_WS_CLOSE_FRAME_PATH_FRAME_TYPE);
+        closeFrameExtension.put(X_BALLERINA_WS_CLOSE_FRAME_VALUE, X_BALLERINA_WS_CLOSE_FRAME_VALUE_CLOSE);
+        asyncApi.addExtension(X_BALLERINA_WS_CLOSE_FRAME, closeFrameExtension);
+        return asyncApi;
     }
 
     public AsyncApi25ComponentsImpl getComponents() {
@@ -145,6 +193,7 @@ public class AsyncApiRemoteMapper {
         BalAsyncApi25MessageImpl publishMessage = new BalAsyncApi25MessageImpl();
         AsyncApiResponseMapper responseMapper = new AsyncApiResponseMapper(resource.location(), componentMapper,
                 semanticModel, components);
+        Map<String, ReturnTypeDescriptorNode> onErrorReturnTypes = getReturnTypesFromOnError(classMethodNodes);
         for (Node node : classMethodNodes) {
             if (node.kind().equals(SyntaxKind.OBJECT_METHOD_DEFINITION)) {
                 FunctionDefinitionNode remoteFunctionNode = (FunctionDefinitionNode) node;
@@ -185,6 +234,18 @@ public class AsyncApiRemoteMapper {
                                     if (remoteDocs.containsKey(REMOTE_DESCRIPTION)) {
                                         componentMessage.setDescription(remoteDocs.get(REMOTE_DESCRIPTION));
                                         remoteDocs.remove(REMOTE_DESCRIPTION);
+                                    }
+                                    if (!functionName.endsWith(ERROR)) {
+                                        ReturnTypeDescriptorNode customErrorReturnType = null;
+                                        if (onErrorReturnTypes.containsKey(functionName + ERROR)) {
+                                            customErrorReturnType = onErrorReturnTypes.get(functionName + ERROR);
+                                        } else if (onErrorReturnTypes.containsKey(ON_ERROR)) {
+                                            customErrorReturnType = onErrorReturnTypes.get(ON_ERROR);
+                                        }
+                                        if (Objects.nonNull(customErrorReturnType)) {
+                                            responseMapper.createResponse(subscribeMessage, componentMessage,
+                                                    customErrorReturnType.type(), null, FALSE, null);
+                                        }
                                     }
                                     Optional<ReturnTypeDescriptorNode> optionalRemoteReturnNode = remoteFunctionNode.
                                             functionSignature().returnTypeDesc();
@@ -311,6 +372,23 @@ public class AsyncApiRemoteMapper {
             }
         }
         return serviceClassName;
+    }
+
+    private Map<String, ReturnTypeDescriptorNode> getReturnTypesFromOnError(
+            NodeList<Node> classMethodNodes) {
+        Map<String, ReturnTypeDescriptorNode> onErrorReturnTypes = new HashMap<>();
+        for (Node node : classMethodNodes) {
+            if (node.kind().equals(SyntaxKind.OBJECT_METHOD_DEFINITION)) {
+                FunctionDefinitionNode remoteFunctionNode = (FunctionDefinitionNode) node;
+                String functionName = remoteFunctionNode.functionName().toString().trim();
+                Optional<ReturnTypeDescriptorNode> functionSignature =
+                        remoteFunctionNode.functionSignature().returnTypeDesc();
+                if (functionName.endsWith(ERROR) && functionSignature.isPresent()) {
+                    onErrorReturnTypes.put(functionName, functionSignature.get());
+                }
+            }
+        }
+        return onErrorReturnTypes;
     }
 
     /**
