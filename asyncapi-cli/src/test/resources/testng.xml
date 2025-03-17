@@ -68,6 +68,7 @@
             <class name="io.ballerina.asyncapi.wsgenerators.client.SimpleResponseTests"/>
             <class name="io.ballerina.asyncapi.wsgenerators.client.RemoteFunctionTests"/>
             <class name="io.ballerina.asyncapi.wsgenerators.client.InvalidResponseTests"/>
+            <class name="io.ballerina.asyncapi.wsgenerators.client.CloseFrameTests"/>
             <class name="io.ballerina.asyncapi.wsgenerators.client.ComparedGeneratedFileTests"/>
             <class name="io.ballerina.asyncapi.wsgenerators.client.UtilGenerationTests"/>
             <class name="io.ballerina.asyncapi.wsgenerators.client.SubProtocolTests"/>

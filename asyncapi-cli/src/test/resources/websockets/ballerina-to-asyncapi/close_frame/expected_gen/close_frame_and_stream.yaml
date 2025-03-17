@@ -1,0 +1,77 @@
+asyncapi: 2.5.0
+info:
+  title: /
+  version: 0.1.0
+servers:
+  development:
+    url: "{server}:{port}/"
+    protocol: ws
+    protocolVersion: "13"
+    variables:
+      server:
+        default: ws://localhost
+      port:
+        default: "9092"
+channels:
+  /:
+    subscribe:
+      message:
+        oneOf:
+          - payload:
+              type: integer
+              format: int64
+          - $ref: '#/components/messages/CloseFrame'
+    publish:
+      message:
+        $ref: '#/components/messages/Hello'
+components:
+  schemas:
+    Hello:
+      type: object
+      required:
+        - message
+        - event
+      properties:
+        message:
+          type: string
+        event:
+          type: string
+          const: Hello
+    CloseFrame:
+      type: object
+      required:
+        - frametype
+        - status
+      properties:
+        frametype:
+          type: string
+          const: close
+          description: WS frame type
+        status:
+          type: integer
+          description: status code
+        reason:
+          type: string
+          description: Message to be sent
+      description: Representation of a websocket close-frame
+  messages:
+    CloseFrame:
+      payload:
+        $ref: '#/components/schemas/CloseFrame'
+    Hello:
+      payload:
+        $ref: '#/components/schemas/Hello'
+      x-response:
+        oneOf:
+          - payload:
+              type: integer
+              format: int64
+          - $ref: '#/components/messages/CloseFrame'
+        extensions:
+          x-required: false
+      x-response-type: server-streaming
+x-dispatcherKey: event
+x-ballerina-ws-closeframe:
+  type: body
+  path: event.frametype
+  value: close
