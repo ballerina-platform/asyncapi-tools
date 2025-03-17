@@ -151,6 +151,25 @@ public class BallerinaToAsyncApiWsTests extends AsyncApiWsCommandTest {
         }
     }
 
+    @Test(description = "Test ballerina to asyncApi with close frame and stream as return type")
+    public void testBallerinaToAsyncAPIGenerationWithCloseFramesAndStream() {
+        String fileName = "close_frame_and_stream";
+        String fileDirectory = "ballerina-to-asyncapi/close_frame/";
+        Path filePath = resourceDir.resolve(Paths.get(fileDirectory + fileName + ".bal"));
+        String[] args = {"--input", filePath.toString(), "-o", this.tmpDir.toString(), "--protocol", "ws"};
+        AsyncApiCmd cmd = new AsyncApiCmd(tmpDir, false);
+        new CommandLine(cmd).parseArgs(args);
+        try {
+            cmd.execute();
+            String generatedAsyncAPI = getStringFromGivenBalFile(this.tmpDir.resolve(fileName + "_asyncapi.yaml"));
+            String expectedYaml = getStringFromGivenBalFile(this.resourceDir.resolve(
+                    fileDirectory + "expected_gen/" + fileName + ".yaml"));
+            Assert.assertEquals(expectedYaml, generatedAsyncAPI);
+        } catch (BLauncherException | IOException e) {
+            Assert.fail(e.getMessage());
+        }
+    }
+
     @Test(description = "Without asyncapi annotation ballerina to asyncapi")
     public void asyncapiAnnotationWithOutContract() {
         Path filePath = resourceDir.resolve(Paths.get("cmd/ballerina-to-asyncapi/project_2/service.bal"));

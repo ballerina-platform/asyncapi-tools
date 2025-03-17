@@ -440,7 +440,8 @@ public class AsyncApiResponseMapper {
         //If there exist previous x-response for same request then start adding them to a oneOf schema
         Map<String, JsonNode> xResponses = componentMessage.getExtensions();
         if (xResponses != null && xResponses.get(X_RESPONSE) != null) {
-            if (xResponses.get(X_RESPONSE_TYPE).equals(new TextNode(SERVER_STREAMING))) {
+            if (xResponses.get(X_RESPONSE_TYPE).equals(new TextNode(SERVER_STREAMING)) &&
+                    !isCloseFrameRecordType(returnTypeSymbol)) {
                 throw new NoSuchElementException(UNION_STREAMING_SIMPLE_RPC_ERROR);
             }
             ObjectMapper objMapper = ConverterCommonUtils.callObjectMapper();
@@ -467,8 +468,10 @@ public class AsyncApiResponseMapper {
                 setSchemaForOneOfSchema(oneOfSchema, schema);
             }
             //Set the description for oneOfSchema
+            String responseType = isCloseFrameRecordType(returnTypeSymbol) ?
+                    xResponses.get(X_RESPONSE_TYPE).asText() : SIMPLE_RPC;
             setDescriptionAndXResponsesForOneOf(componentMessage, returnDescription, objMapper,
-                    oneOfSchema, SIMPLE_RPC, isOptional);
+                    oneOfSchema, responseType, isOptional);
         } else {
             setDescriptionForOneResponse(returnDescription, messageRefObject, componentMessage,
                     SIMPLE_RPC, isOptional);
