@@ -109,30 +109,22 @@ public class AsyncApiResponseMapper {
     }
 
     public static boolean isCloseFrameRecordType(TypeSymbol typeSymbol) {
-        if (typeSymbol instanceof TypeReferenceTypeSymbol) {
+        if (typeSymbol instanceof TypeReferenceTypeSymbol typeReferenceTypeSymbol) {
             if (typeSymbol.nameEquals(CLOSE_FRAME) &&
                     typeSymbol.getModule().flatMap(Symbol::getName).orElse("").equals(WEBSOCKET)) {
                 return true;
             }
-            typeSymbol = ((TypeReferenceTypeSymbol) typeSymbol).typeDescriptor();
-            return isCloseFrameRecordType(typeSymbol);
-        }
-        if (typeSymbol instanceof RecordTypeSymbol bRecordTypeSymbol) {
+            return isCloseFrameRecordType(typeReferenceTypeSymbol.typeDescriptor());
+        } else if (typeSymbol instanceof RecordTypeSymbol bRecordTypeSymbol) {
             if (bRecordTypeSymbol.fieldDescriptors().containsKey(CLOSE_FRAME_TYPE)) {
                 TypeSymbol objectType = bRecordTypeSymbol.fieldDescriptors().get(CLOSE_FRAME_TYPE).typeDescriptor();
                 String moduleName = objectType.getModule().flatMap(Symbol::getName).orElse("");
-                if (!moduleName.equals(WEBSOCKET)) {
-                    return false;
-                }
-                return objectType.nameEquals(PREDEFINED_CLOSE_FRAME_TYPE) ||
-                        objectType.nameEquals(CUSTOM_CLOSE_FRAME_TYPE);
+                return moduleName.equals(WEBSOCKET) &&
+                        (objectType.nameEquals(PREDEFINED_CLOSE_FRAME_TYPE) ||
+                                objectType.nameEquals(CUSTOM_CLOSE_FRAME_TYPE));
             }
         } else if (typeSymbol instanceof IntersectionTypeSymbol intersectionTypeSymbol) {
-            for (TypeSymbol memberType : intersectionTypeSymbol.memberTypeDescriptors()) {
-                if (isCloseFrameRecordType(memberType)) {
-                    return true;
-                }
-            }
+            return isCloseFrameRecordType(intersectionTypeSymbol.effectiveTypeDescriptor());
         }
         return false;
     }
