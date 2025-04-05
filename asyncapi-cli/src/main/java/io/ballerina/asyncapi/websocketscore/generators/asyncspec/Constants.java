@@ -138,7 +138,7 @@ public class Constants {
     public static final String PATH_PARAM_DASH_CONTAIN_ERROR = "ERROR: Path parameter contains an invalid" +
             " character '-'";
 
-    // Constants related to websocket close frame support
+    // Constants related to websocket close frame
     public static final String FRAME_TYPE = "frametype";
     public static final String FRAME_TYPE_CLOSE = "close";
     public static final String CLOSE_FRAME = "CloseFrame";

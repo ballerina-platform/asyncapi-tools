@@ -18,6 +18,7 @@
 package io.ballerina.asyncapi.wsgenerators.client;
 
 import io.ballerina.asyncapi.cmd.AsyncApiCmd;
+import io.ballerina.asyncapi.wsgenerators.common.TestUtils;
 import io.ballerina.cli.launcher.BLauncherException;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
@@ -28,8 +29,6 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-
-import static io.ballerina.asyncapi.wsgenerators.common.TestUtils.getStringFromGivenBalFile;
 
 /**
  * Test close frame support.
@@ -53,16 +52,12 @@ public class CloseFrameTests {
         new CommandLine(cmd).parseArgs(args);
         try {
             cmd.execute();
-
-            String generatedUtils = getStringFromGivenBalFile(this.tmpDir.resolve("utils.bal"));
-            String expectedUtils = getStringFromGivenBalFile(RES_DIR.resolve("baloutputs/CloseFrame/utils.bal"));
-            Assert.assertEquals(generatedUtils, expectedUtils);
-            String generatedClient = getStringFromGivenBalFile(this.tmpDir.resolve("client.bal"));
-            String expectedClient = getStringFromGivenBalFile(RES_DIR.resolve("baloutputs/CloseFrame/client.bal"));
-            Assert.assertEquals(generatedClient, expectedClient);
-            String generatedTypes = getStringFromGivenBalFile(this.tmpDir.resolve("types.bal"));
-            String expectedTypes = getStringFromGivenBalFile(RES_DIR.resolve("baloutputs/CloseFrame/types.bal"));
-            Assert.assertEquals(generatedTypes, expectedTypes);
+            TestUtils.compareGeneratedFiles(this.tmpDir.resolve("utils.bal"),
+                    RES_DIR.resolve("baloutputs/CloseFrame/utils.bal"));
+            TestUtils.compareGeneratedFiles(this.tmpDir.resolve("client.bal"),
+                    RES_DIR.resolve("baloutputs/CloseFrame/client.bal"));
+            TestUtils.compareGeneratedFiles(this.tmpDir.resolve("types.bal"),
+                    RES_DIR.resolve("baloutputs/CloseFrame/types.bal"));
         } catch (BLauncherException | IOException e) {
             Assert.fail(e.getMessage());
         }

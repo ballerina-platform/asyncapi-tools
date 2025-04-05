@@ -1,4 +1,3 @@
-import ballerina/lang.regexp;
 import ballerina/log;
 import ballerina/websocket;
 
@@ -9,19 +8,13 @@ public client isolated class GraphqlOverWebsocketClient {
     private final pipe:Pipe writeMessageQueue;
     private final PipesMap pipes;
     private boolean isActive;
-    private final readonly & map<string> dispatcherMap = {
-        "Complete": "subscribe",
-        "Next": "subscribe",
-        "PongMessage": "pingMessage",
-        "ConnectionAck": "connectionInit"
-    };
 
     # Gets invoked to initialize the `connector`.
     #
     # + config - The configurations to be used when initializing the `connector` 
     # + serviceUrl - URL of the target service 
     # + return - An error if connector initialization failed 
-    public isolated function init(websocket:ClientConfiguration clientConfig =  {}, string serviceUrl = "ws://localhost:9090/graphql_over_websocket") returns error? {
+    public isolated function init(websocket:ClientConfiguration clientConfig = {}, string serviceUrl = "ws://localhost:9090/graphql_over_websocket") returns error? {
         self.pipes = new ();
         self.writeMessageQueue = new (1000);
         websocket:Client websocketEp = check new (serviceUrl, clientConfig);
@@ -30,28 +23,6 @@ public client isolated class GraphqlOverWebsocketClient {
         self.startMessageWriting();
         self.startMessageReading();
         return;
-    }
-
-    private isolated function getRecordName(string dispatchingValue) returns string {
-        if dispatchingValue.equalsIgnoreCaseAscii("ping") {
-            return "PingMessage";
-        }
-        if dispatchingValue.equalsIgnoreCaseAscii("pong") {
-            return "PongMessage";
-        }
-        string[] words = regexp:split(re `[\W_]+`, dispatchingValue);
-        string result = "";
-        foreach string word in words {
-            result += word.substring(0, 1).toUpperAscii() + word.substring(1).toLowerAscii();
-        }
-        return result;
-    }
-    private isolated function getRequestPipeName(string responseType) returns string {
-        string responseRecordType = self.getRecordName(responseType);
-        if self.dispatcherMap.hasKey(responseRecordType) {
-            return self.dispatcherMap.get(responseRecordType);
-        }
-        return responseType;
     }
 
     # Used to write messages to the websocket.
@@ -99,8 +70,7 @@ public client isolated class GraphqlOverWebsocketClient {
                     self.attemptToCloseConnection();
                     return;
                 }
-                string requestPipeName = self.getRequestPipeName(message.'type);
-                pipe:Pipe pipe = self.pipes.getPipe(requestPipeName);
+                pipe:Pipe pipe = self.pipes.getPipe(message.'type);
                 pipe:Error? pipeErr = pipe.produce(message, 5);
                 if pipeErr is pipe:Error {
                     log:printError("PipeError: Failed to produce message to the pipe", pipeErr);

@@ -17,6 +17,7 @@
  */
 package io.ballerina.asyncapi.cmd;
 
+import io.ballerina.asyncapi.wsgenerators.common.TestUtils;
 import io.ballerina.cli.launcher.BLauncherException;
 import org.testng.Assert;
 import org.testng.annotations.AfterTest;
@@ -66,10 +67,8 @@ public class BallerinaToAsyncApiWsTests extends AsyncApiWsCommandTest {
         new CommandLine(cmd).parseArgs(args);
         try {
             cmd.execute();
-            String generatedAsyncAPI = getStringFromGivenBalFile(this.tmpDir.resolve(fileName + "_asyncapi.yaml"));
-            String expectedYaml = getStringFromGivenBalFile(this.resourceDir.resolve(
-                    fileDirectory + "expected_gen/" + fileName + ".yaml"));
-            Assert.assertEquals(expectedYaml, generatedAsyncAPI);
+            TestUtils.compareGeneratedFiles(this.tmpDir.resolve(fileName + "_asyncapi.yaml"),
+                    this.resourceDir.resolve(fileDirectory + "expected_gen/" + fileName + ".yaml"));
         } catch (BLauncherException | IOException e) {
             Assert.fail(e.getMessage());
         }
@@ -85,10 +84,8 @@ public class BallerinaToAsyncApiWsTests extends AsyncApiWsCommandTest {
         new CommandLine(cmd).parseArgs(args);
         try {
             cmd.execute();
-            String generatedAsyncAPI = getStringFromGivenBalFile(this.tmpDir.resolve(fileName + "_asyncapi.yaml"));
-            String expectedYaml = getStringFromGivenBalFile(this.resourceDir.resolve(
-                    fileDirectory + "expected_gen/" + fileName + ".yaml"));
-            Assert.assertEquals(expectedYaml, generatedAsyncAPI);
+            TestUtils.compareGeneratedFiles(this.tmpDir.resolve(fileName + "_asyncapi.yaml"),
+                    this.resourceDir.resolve(fileDirectory + "expected_gen/" + fileName + ".yaml"));
         } catch (BLauncherException | IOException e) {
             Assert.fail(e.getMessage());
         }
@@ -104,10 +101,8 @@ public class BallerinaToAsyncApiWsTests extends AsyncApiWsCommandTest {
         new CommandLine(cmd).parseArgs(args);
         try {
             cmd.execute();
-            String generatedAsyncAPI = getStringFromGivenBalFile(this.tmpDir.resolve(fileName + "_asyncapi.yaml"));
-            String expectedYaml = getStringFromGivenBalFile(this.resourceDir.resolve(
-                    fileDirectory + "expected_gen/" + fileName + ".yaml"));
-            Assert.assertEquals(expectedYaml, generatedAsyncAPI);
+            TestUtils.compareGeneratedFiles(this.tmpDir.resolve(fileName + "_asyncapi.yaml"),
+                    this.resourceDir.resolve(fileDirectory + "expected_gen/" + fileName + ".yaml"));
         } catch (BLauncherException | IOException e) {
             Assert.fail(e.getMessage());
         }
@@ -123,10 +118,8 @@ public class BallerinaToAsyncApiWsTests extends AsyncApiWsCommandTest {
         new CommandLine(cmd).parseArgs(args);
         try {
             cmd.execute();
-            String generatedAsyncAPI = getStringFromGivenBalFile(this.tmpDir.resolve(fileName + "_asyncapi.yaml"));
-            String expectedYaml = getStringFromGivenBalFile(this.resourceDir.resolve(
-                    fileDirectory + "expected_gen/" + fileName + ".yaml"));
-            Assert.assertEquals(expectedYaml, generatedAsyncAPI);
+            TestUtils.compareGeneratedFiles(this.tmpDir.resolve(fileName + "_asyncapi.yaml"),
+                    this.resourceDir.resolve(fileDirectory + "expected_gen/" + fileName + ".yaml"));
         } catch (BLauncherException | IOException e) {
             Assert.fail(e.getMessage());
         }
@@ -142,10 +135,8 @@ public class BallerinaToAsyncApiWsTests extends AsyncApiWsCommandTest {
         new CommandLine(cmd).parseArgs(args);
         try {
             cmd.execute();
-            String generatedAsyncAPI = getStringFromGivenBalFile(this.tmpDir.resolve(fileName + "_asyncapi.yaml"));
-            String expectedYaml = getStringFromGivenBalFile(this.resourceDir.resolve(
-                    fileDirectory + "expected_gen/" + fileName + ".yaml"));
-            Assert.assertEquals(expectedYaml, generatedAsyncAPI);
+            TestUtils.compareGeneratedFiles(this.tmpDir.resolve(fileName + "_asyncapi.yaml"),
+                    this.resourceDir.resolve(fileDirectory + "expected_gen/" + fileName + ".yaml"));
         } catch (BLauncherException | IOException e) {
             Assert.fail(e.getMessage());
         }
@@ -161,10 +152,8 @@ public class BallerinaToAsyncApiWsTests extends AsyncApiWsCommandTest {
         new CommandLine(cmd).parseArgs(args);
         try {
             cmd.execute();
-            String generatedAsyncAPI = getStringFromGivenBalFile(this.tmpDir.resolve(fileName + "_asyncapi.yaml"));
-            String expectedYaml = getStringFromGivenBalFile(this.resourceDir.resolve(
-                    fileDirectory + "expected_gen/" + fileName + ".yaml"));
-            Assert.assertEquals(expectedYaml, generatedAsyncAPI);
+            TestUtils.compareGeneratedFiles(this.tmpDir.resolve(fileName + "_asyncapi.yaml"),
+                    this.resourceDir.resolve(fileDirectory + "expected_gen/" + fileName + ".yaml"));
         } catch (BLauncherException | IOException e) {
             Assert.fail(e.getMessage());
         }
