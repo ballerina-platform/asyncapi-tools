@@ -1,14 +1,7 @@
 [package]
 org = "wso2"
-name = "websocket_test"
+name = "closeframe_test"
 version = "0.1.0"
-distribution = "2201.11.0"
 
 [build-options]
 observabilityIncluded = true
-
-[[dependency]]
-org="ballerina"
-name="websocket"
-version="2.13.2"
-repository="local"
