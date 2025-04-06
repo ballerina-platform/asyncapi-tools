@@ -15,7 +15,7 @@ public client isolated class ChatClient {
     # + config - The configurations to be used when initializing the `connector`
     # + serviceUrl - URL of the target service
     # + return - An error if connector initialization failed
-    public isolated function init(websocket:ClientConfiguration clientConfig = {}, string serviceUrl = "ws://localhost:9090/chat") returns error? {
+    public isolated function init(websocket:ClientConfiguration clientConfig =  {}, string serviceUrl = "ws://localhost:9090/chat") returns error? {
         self.pipes = new ();
         self.streamGenerators = new ();
         self.writeMessageQueue = new (1000);
@@ -94,7 +94,7 @@ public client isolated class ChatClient {
     # + subscribeMessage - subscribe payload description
     # + timeout - waiting period to keep the event in the buffer in seconds
     # + return - subscribe response description
-    remote isolated function doSubscribeMessage(SubscribeMessage subscribeMessage, decimal timeout) returns stream<NextMessage|CompleteMessage|ErrorMessage, error?>|error {
+    remote isolated function doSubscribeMessage(SubscribeMessage subscribeMessage, decimal timeout) returns stream<NextMessage|CompleteMessage|ErrorMessage,error?>|error {
         lock {
             if !self.isActive {
                 return error("ConnectionError: Connection has been closed");
@@ -110,7 +110,7 @@ public client isolated class ChatClient {
             self.attemptToCloseConnection();
             return error("PipeError: Error in producing message", pipeErr);
         }
-        stream<NextMessage|CompleteMessage|ErrorMessage, error?> streamMessages;
+        stream<NextMessage|CompleteMessage|ErrorMessage,error?> streamMessages;
         lock {
             NextMessageCompleteMessageErrorMessageStreamGenerator streamGenerator = new (self.pipes, subscribeMessage.id, timeout);
             self.streamGenerators.addStreamGenerator(streamGenerator);

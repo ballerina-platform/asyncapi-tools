@@ -96,7 +96,6 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
@@ -326,7 +325,6 @@ public class IntermediateClientGenerator {
     private final List<ImportDeclarationNode> imports;
     private final BallerinaTypesGenerator ballerinaSchemaGenerator;
     private final RemoteFunctionReturnTypeGenerator functionReturnType;
-    private final Map<String, String> dispatcherMap = new HashMap<>();
     private UtilGenerator utilGenerator;
     private List<TypeDefinitionNode> typeDefinitionNodeList;
     private List<String> apiKeyNameList = new ArrayList<>();
@@ -1280,7 +1278,6 @@ public class IntermediateClientGenerator {
         if (apiKeyFieldNode != null) {
             fieldNodeList.add(apiKeyFieldNode);
         }
-
         return fieldNodeList;
     }
 
@@ -1404,7 +1401,6 @@ public class IntermediateClientGenerator {
             }
         }
         return extensions;
-
     }
 
     private boolean isCloseFrameRef(JsonNode refNode) {

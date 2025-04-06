@@ -15,7 +15,7 @@ public client isolated class PayloadVv1versionv2versionnameClient {
     # + serviceUrl - URL of the target service
     # + return - An error if connector initialization failed
     # + pathParams - path parameters
-    public isolated function init(PathParams pathParams, websocket:ClientConfiguration clientConfig = {}, string serviceUrl = "ws://localhost:9090/payloadV") returns error? {
+    public isolated function init(PathParams pathParams, websocket:ClientConfiguration clientConfig =  {}, string serviceUrl = "ws://localhost:9090/payloadV") returns error? {
         self.pipes = new ();
         self.writeMessageQueue = new (1000);
         string modifiedUrl = serviceUrl + string `/v1/${getEncodedUri(pathParams.version)}/v2/${getEncodedUri(pathParams.'version\-name)}`;

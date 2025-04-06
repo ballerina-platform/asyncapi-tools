@@ -14,7 +14,7 @@ public client isolated class PayloadVlocationsClient {
     # + config - The configurations to be used when initializing the `connector`
     # + serviceUrl - URL of the target service
     # + return - An error if connector initialization failed
-    public isolated function init(websocket:ClientConfiguration clientConfig = {}, string serviceUrl = "ws://localhost:9090/payloadV") returns error? {
+    public isolated function init(websocket:ClientConfiguration clientConfig =  {}, string serviceUrl = "ws://localhost:9090/payloadV") returns error? {
         self.pipes = new ();
         self.writeMessageQueue = new (1000);
         string modifiedUrl = serviceUrl + string `/locations`;

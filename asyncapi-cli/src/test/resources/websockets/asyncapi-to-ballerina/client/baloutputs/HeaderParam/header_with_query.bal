@@ -16,14 +16,14 @@ public client isolated class PayloadVv1Client {
     # + return - An error if connector initialization failed
     # + queryParams - query parameters
     # + headerParams - header parameters
-    public isolated function init(HeaderParams headerParams, QueryParams queryParams, websocket:ClientConfiguration clientConfig = {}, string serviceUrl = "ws://localhost:9090/payloadV") returns error? {
+    public isolated function init(HeaderParams headerParams, QueryParams queryParams, websocket:ClientConfiguration clientConfig =  {}, string serviceUrl = "ws://localhost:9090/payloadV") returns error? {
         self.pipes = new ();
         self.writeMessageQueue = new (1000);
         string modifiedUrl = serviceUrl + string `/v1`;
         map<anydata> queryParam = {"offset": queryParams.offset, "lat": queryParams.lat, "lon": queryParams.lon, "exclude": queryParams.exclude, "units": queryParams.units};
         modifiedUrl = modifiedUrl + check getPathForQueryParam(queryParam);
         map<string> headerParam = {"offset": headerParams.offset.toString(), "lat": headerParams.lat, "lon": headerParams.lon, "exclude": headerParams.exclude, "units": headerParams.units.toString()};
-        map<string> customHeaders = getCombineHeaders(clientConfig.customHeaders, headerParam);
+        map<string> customHeaders = getCombineHeaders(clientConfig.customHeaders,headerParam);
         clientConfig.customHeaders = customHeaders;
         websocket:Client websocketEp = check new (modifiedUrl, clientConfig);
         self.clientEp = websocketEp;
