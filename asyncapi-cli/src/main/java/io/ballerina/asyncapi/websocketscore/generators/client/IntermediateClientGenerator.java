@@ -572,9 +572,9 @@ public class IntermediateClientGenerator {
         whileStatements.add(getIsWsError(READ_MESSAGE_CLIENT_READ_ERROR, MESSAGE_VAR_NAME));
 
         // string pipeName = self.getPipeName(message.event);
-        StatementNode mappingPipeNameStatement = NodeParser.parseStatement(String.format(GET_PIPE_NAME_STATEMENT,
+        StatementNode getPipeNameStatement = NodeParser.parseStatement(String.format(GET_PIPE_NAME_STATEMENT,
                 escapeIdentifier(dispatcherKey)));
-        whileStatements.add(mappingPipeNameStatement);
+        whileStatements.add(getPipeNameStatement);
 
         // pipe:Pipe pipe = self.pipes.getPipe(pipeName);
         String messageEventAccessor = String.format(SELF_PIPES_GET_PIPE, PIPE_NAME);
@@ -1306,8 +1306,7 @@ public class IntermediateClientGenerator {
 
         // Add response map
         if (!responseMap.isEmpty()) {
-            String jsonString = responseMap.entrySet()
-                    .stream()
+            String jsonString = responseMap.entrySet().stream()
                     .map(entry -> String.format("\"%s\": \"%s\"", entry.getKey(), entry.getValue()))
                     .collect(Collectors.joining(",\n\t\t", "{\n\t\t", "\n\t}"));
 
