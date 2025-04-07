@@ -137,8 +137,8 @@ import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.ERROR;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.FAIL_TO_READ_ENDPOINT_DETAILS;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.GET_COMBINE_HEADERS;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.GET_PIPE_NAME_STATEMENT;
-import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.GET_PIPE_NAME_TEMPLATE;
-import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.GET_RECORD_NAME_TEMPLATE;
+import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.GET_PIPE_NAME_FUNCTION_TEMPLATE;
+import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.GET_RECORD_NAME_FUNCTION_TEMPLATE;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.HEADER_PARAM;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.HEADER_PARAMETERS;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.HEADER_PARAMS;
@@ -671,11 +671,11 @@ public class IntermediateClientGenerator {
     }
 
     private Node createGetPipeNameFunction() {
-        return NodeParser.parseObjectMember(GET_PIPE_NAME_TEMPLATE);
+        return NodeParser.parseObjectMember(GET_PIPE_NAME_FUNCTION_TEMPLATE);
     }
 
     private Node createGetRecordNameFunction() {
-        return NodeParser.parseObjectMember(GET_RECORD_NAME_TEMPLATE);
+        return NodeParser.parseObjectMember(GET_RECORD_NAME_FUNCTION_TEMPLATE);
     }
 
     private Node createStartMessageWriting() {

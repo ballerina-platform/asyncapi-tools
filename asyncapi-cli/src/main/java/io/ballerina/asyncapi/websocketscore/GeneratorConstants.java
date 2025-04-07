@@ -293,7 +293,7 @@ public class GeneratorConstants {
     public static final String RESPONSE_MAP = "responseMap";
     public static final String PIPE_NAME = "pipeName";
     public static final String GET_PIPE_NAME_STATEMENT = "string pipeName = self.getPipeName(message.%s);";
-    public static final String GET_PIPE_NAME_TEMPLATE = """
+    public static final String GET_PIPE_NAME_FUNCTION_TEMPLATE = """
             private isolated function getPipeName(string responseType) returns string {
                 string responseRecordType = self.getRecordName(responseType);
                 if self.responseMap.hasKey(responseRecordType) {
@@ -301,7 +301,7 @@ public class GeneratorConstants {
                 }
                 return responseType;
             }""";
-    public static final String GET_RECORD_NAME_TEMPLATE = """
+    public static final String GET_RECORD_NAME_FUNCTION_TEMPLATE = """
             private isolated function getRecordName(string dispatchingValue) returns string {
                  string[] words = regexp:split(re `[\\W_]+`, dispatchingValue);
                  string result = "";
