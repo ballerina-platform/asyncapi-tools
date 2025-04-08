@@ -146,9 +146,9 @@ import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.LOG_PRINT_
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.MAP_ANY_DATA;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.MAP_STRING;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.MESSAGE;
-import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.MESSAGE_WITH_ID_VAR_CLONE;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.MESSAGE_VAR_NAME;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.MESSAGE_WITH_ID;
+import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.MESSAGE_WITH_ID_VAR_CLONE;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.MESSAGE_WITH_ID_VAR_NAME;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.MODIFIED_URL;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.NOT;
@@ -315,7 +315,6 @@ import static io.ballerina.compiler.syntax.tree.SyntaxKind.WORKER_KEYWORD;
 
 /**
  * This class is used to generate ballerina client file according to given yaml file.
- *
  */
 public class IntermediateClientGenerator {
 
@@ -445,7 +444,6 @@ public class IntermediateClientGenerator {
     public UtilGenerator getBallerinaUtilGenerator() {
         return utilGenerator;
     }
-
 
     /**
      * Generate Class definition Nodes.
@@ -1367,37 +1365,31 @@ public class IntermediateClientGenerator {
     }
 
     private Map<String, JsonNode> removeCloseFrameFromResponse(Map<String, JsonNode> extensions) {
-        if (extensions != null && extensions.get(X_RESPONSE) != null) {
-            JsonNode xResponse = extensions.get(X_RESPONSE);
-            JsonNode xResponseType = extensions.get(X_RESPONSE_TYPE);
-            if (xResponse.get(ONEOF) != null) {
-                if (xResponse.get(ONEOF) instanceof ArrayNode nodes) {
-                    if (xResponseType != null) {
-                        ObjectNode newNode = (ObjectNode) extensions.get(X_RESPONSE);
-                        for (Iterator<JsonNode> it = nodes.iterator(); it.hasNext(); ) {
-                            JsonNode jsonNode = it.next();
-                            if (jsonNode.get(REF) != null) {
-                                if (isCloseFrameRef(jsonNode.get(REF))) {
-                                    it.remove();
-                                }
-                            }
-                        }
-                        if (nodes.isEmpty()) {
-                            return null;
-                        }
-                        if (nodes.size() == 1) {
-                            newNode.remove(ONEOF);
-                            newNode.set(REF, nodes.get(0).get(REF));
-                        } else {
-                            newNode.set(ONEOF, nodes);
-                        }
-                        extensions.put(X_RESPONSE, newNode);
-                    }
+        if (extensions == null || extensions.get(X_RESPONSE) == null) {
+            return extensions;
+        }
+        JsonNode xResponse = extensions.get(X_RESPONSE);
+        if (xResponse.get(ONEOF) != null && xResponse.get(ONEOF) instanceof ArrayNode nodes) {
+            ObjectNode newNode = (ObjectNode) extensions.get(X_RESPONSE);
+            for (Iterator<JsonNode> it = nodes.iterator(); it.hasNext(); ) {
+                JsonNode jsonNode = it.next();
+                if (jsonNode.get(REF) != null && isCloseFrameRef(jsonNode.get(REF))) {
+                    it.remove();
                 }
-            } else if (xResponse.get(REF) != null) {
-                if (isCloseFrameRef(xResponse.get(REF))) {
-                    return null;
-                }
+            }
+            if (nodes.isEmpty()) {
+                return null;
+            }
+            if (nodes.size() == 1) {
+                newNode.remove(ONEOF);
+                newNode.set(REF, nodes.get(0).get(REF));
+            } else {
+                newNode.set(ONEOF, nodes);
+            }
+            extensions.put(X_RESPONSE, newNode);
+        } else if (xResponse.get(REF) != null) {
+            if (isCloseFrameRef(xResponse.get(REF))) {
+                return null;
             }
         }
         return extensions;
@@ -1405,17 +1397,17 @@ public class IntermediateClientGenerator {
 
     private boolean isCloseFrameRef(JsonNode refNode) {
         try {
-            if (refNode != null) {
-                String reference = refNode.asText();
-                String messageName = extractReferenceType(reference);
-                AsyncApiMessage message = asyncApi.getComponents().getMessages().get(messageName);
-                TextNode schemaReference = (TextNode) message.getPayload().get(REF);
-                String schemaName = extractReferenceType(schemaReference.asText());
-                AsyncApi25SchemaImpl refSchema = (AsyncApi25SchemaImpl)
-                        asyncApi.getComponents().getSchemas().get(schemaName);
-                return isCloseFrameSchema(refSchema);
+            if (refNode == null) {
+                return false;
             }
-            return false;
+            String reference = refNode.asText();
+            String messageName = extractReferenceType(reference);
+            AsyncApiMessage message = asyncApi.getComponents().getMessages().get(messageName);
+            TextNode schemaReference = (TextNode) message.getPayload().get(REF);
+            String schemaName = extractReferenceType(schemaReference.asText());
+            AsyncApi25SchemaImpl refSchema = (AsyncApi25SchemaImpl)
+                    asyncApi.getComponents().getSchemas().get(schemaName);
+            return isCloseFrameSchema(refSchema);
         } catch (BallerinaAsyncApiExceptionWs e) {
             throw new RuntimeException(e);
         }

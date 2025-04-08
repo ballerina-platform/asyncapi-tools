@@ -162,10 +162,8 @@ public class TestUtils {
     }
 
     public static void compareGeneratedFiles(Path generatedFile, Path expectedFile) throws IOException {
-        String generatedContent = getStringFromFile(generatedFile);
-        String expectedContent = getStringFromFile(expectedFile);
-        generatedContent = generatedContent.replaceAll("\\s+", "");
-        expectedContent = expectedContent.replaceAll("\\s+", "");
+        String generatedContent = getStringFromFile(generatedFile).replaceAll("\\s+", "");
+        String expectedContent = getStringFromFile(expectedFile).replaceAll("\\s+", "");
         Assert.assertEquals(expectedContent, generatedContent);
     }
 
