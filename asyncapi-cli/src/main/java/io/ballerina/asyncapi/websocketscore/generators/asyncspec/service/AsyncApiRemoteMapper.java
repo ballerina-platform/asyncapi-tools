@@ -94,7 +94,6 @@ import static io.ballerina.compiler.syntax.tree.SyntaxKind.QUALIFIED_NAME_REFERE
 
 /**
  * This class will do resource mapping from ballerina to AsyncApi.
- *
  */
 public class AsyncApiRemoteMapper {
     private final AsyncApi25ChannelsImpl channelObject = new AsyncApi25ChannelsImpl();
@@ -110,23 +109,29 @@ public class AsyncApiRemoteMapper {
     }
 
     public static boolean containsCloseFrameSchema(AsyncApi25ComponentsImpl components) {
-        if (components != null && components.getSchemas() != null) {
-            for (Schema schema : components.getSchemas().values()) {
-                if (schema != null && isCloseFrameSchema((AsyncApi25SchemaImpl) schema)) {
-                    return true;
-                }
+        if (components == null || components.getSchemas() == null) {
+            return false;
+        }
+        for (Schema schema : components.getSchemas().values()) {
+            if (!(schema instanceof AsyncApi25SchemaImpl asyncApi25SchemaImpl)) {
+                continue;
+            }
+            if (isCloseFrameSchema(asyncApi25SchemaImpl)) {
+                return true;
             }
         }
         return false;
     }
 
     public static boolean isCloseFrameSchema(AsyncApi25SchemaImpl schema) {
-        if (schema != null && schema.getProperties() != null && schema.getProperties().containsKey(FRAME_TYPE)) {
-            AsyncApi25SchemaImpl frameTypeSchema = (AsyncApi25SchemaImpl) schema.getProperties().get(FRAME_TYPE);
-            return frameTypeSchema.getConst() != null &&
-                    frameTypeSchema.getConst().equals(new TextNode(FRAME_TYPE_CLOSE));
+        if (schema == null || schema.getProperties() == null || !schema.getProperties().containsKey(FRAME_TYPE)) {
+            return false;
         }
-        return false;
+        if (!(schema.getProperties().get(FRAME_TYPE) instanceof AsyncApi25SchemaImpl asyncApi25SchemaImpl)) {
+            return false;
+        }
+        return asyncApi25SchemaImpl.getConst() != null &&
+                asyncApi25SchemaImpl.getConst().equals(new TextNode(FRAME_TYPE_CLOSE));
     }
 
     public static AsyncApi25DocumentImpl addWsCloseFrameExtension(AsyncApi25DocumentImpl asyncApi) {
@@ -193,7 +198,7 @@ public class AsyncApiRemoteMapper {
         BalAsyncApi25MessageImpl publishMessage = new BalAsyncApi25MessageImpl();
         AsyncApiResponseMapper responseMapper = new AsyncApiResponseMapper(resource.location(), componentMapper,
                 semanticModel, components);
-        Map<String, ReturnTypeDescriptorNode> onErrorReturnTypes = getReturnTypesFromOnError(classMethodNodes);
+        Map<String, ReturnTypeDescriptorNode> onErrorReturnTypes = getReturnTypesFromOnErrorMethods(classMethodNodes);
         for (Node node : classMethodNodes) {
             if (node.kind().equals(SyntaxKind.OBJECT_METHOD_DEFINITION)) {
                 FunctionDefinitionNode remoteFunctionNode = (FunctionDefinitionNode) node;
@@ -374,18 +379,19 @@ public class AsyncApiRemoteMapper {
         return serviceClassName;
     }
 
-    private Map<String, ReturnTypeDescriptorNode> getReturnTypesFromOnError(
+    private Map<String, ReturnTypeDescriptorNode> getReturnTypesFromOnErrorMethods(
             NodeList<Node> classMethodNodes) {
         Map<String, ReturnTypeDescriptorNode> onErrorReturnTypes = new HashMap<>();
         for (Node node : classMethodNodes) {
-            if (node.kind().equals(SyntaxKind.OBJECT_METHOD_DEFINITION)) {
-                FunctionDefinitionNode remoteFunctionNode = (FunctionDefinitionNode) node;
-                String functionName = remoteFunctionNode.functionName().toString().trim();
-                Optional<ReturnTypeDescriptorNode> functionSignature =
-                        remoteFunctionNode.functionSignature().returnTypeDesc();
-                if (functionName.endsWith(ERROR) && functionSignature.isPresent()) {
-                    onErrorReturnTypes.put(functionName, functionSignature.get());
-                }
+            if (node.kind() != SyntaxKind.OBJECT_METHOD_DEFINITION) {
+                continue;
+            }
+            FunctionDefinitionNode remoteFunctionNode = (FunctionDefinitionNode) node;
+            String functionName = remoteFunctionNode.functionName().toString().trim();
+            Optional<ReturnTypeDescriptorNode> functionSignature =
+                    remoteFunctionNode.functionSignature().returnTypeDesc();
+            if (functionName.endsWith(ERROR) && functionSignature.isPresent()) {
+                onErrorReturnTypes.put(functionName, functionSignature.get());
             }
         }
         return onErrorReturnTypes;

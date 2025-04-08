@@ -91,7 +91,6 @@ import static io.ballerina.compiler.syntax.tree.SyntaxKind.SIMPLE_NAME_REFERENCE
 
 /**
  * This class processes mapping responses between Ballerina and AsyncApiSpec.
- *
  */
 public class AsyncApiResponseMapper {
     private final Location location;
@@ -109,13 +108,14 @@ public class AsyncApiResponseMapper {
     }
 
     public static boolean isCloseFrameRecordType(TypeSymbol typeSymbol) {
-        if (typeSymbol instanceof TypeReferenceTypeSymbol typeReferenceTypeSymbol) {
+        if (typeSymbol.typeKind() == TypeDescKind.TYPE_REFERENCE) {
             if (typeSymbol.nameEquals(CLOSE_FRAME) &&
                     typeSymbol.getModule().flatMap(Symbol::getName).orElse("").equals(WEBSOCKET)) {
                 return true;
             }
-            return isCloseFrameRecordType(typeReferenceTypeSymbol.typeDescriptor());
-        } else if (typeSymbol instanceof RecordTypeSymbol bRecordTypeSymbol) {
+            return isCloseFrameRecordType(((TypeReferenceTypeSymbol) typeSymbol).typeDescriptor());
+        } else if (typeSymbol.typeKind() == TypeDescKind.RECORD) {
+            RecordTypeSymbol bRecordTypeSymbol = (RecordTypeSymbol) typeSymbol;
             if (bRecordTypeSymbol.fieldDescriptors().containsKey(CLOSE_FRAME_TYPE)) {
                 TypeSymbol objectType = bRecordTypeSymbol.fieldDescriptors().get(CLOSE_FRAME_TYPE).typeDescriptor();
                 String moduleName = objectType.getModule().flatMap(Symbol::getName).orElse("");
@@ -123,8 +123,8 @@ public class AsyncApiResponseMapper {
                         (objectType.nameEquals(PREDEFINED_CLOSE_FRAME_TYPE) ||
                                 objectType.nameEquals(CUSTOM_CLOSE_FRAME_TYPE));
             }
-        } else if (typeSymbol instanceof IntersectionTypeSymbol intersectionTypeSymbol) {
-            return isCloseFrameRecordType(intersectionTypeSymbol.effectiveTypeDescriptor());
+        } else if (typeSymbol.typeKind() == TypeDescKind.INTERSECTION) {
+            return isCloseFrameRecordType(((IntersectionTypeSymbol) typeSymbol).effectiveTypeDescriptor());
         }
         return false;
     }
