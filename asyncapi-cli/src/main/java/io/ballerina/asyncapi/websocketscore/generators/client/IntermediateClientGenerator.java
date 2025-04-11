@@ -1305,19 +1305,17 @@ public class IntermediateClientGenerator {
         }
 
         // Add response map
-        if (!responseMap.isEmpty()) {
-            String jsonString = responseMap.entrySet().stream()
-                    .map(entry -> String.format("\"%s\": \"%s\"", entry.getKey(), entry.getValue()))
-                    .collect(Collectors.joining(",\n\t\t", "{\n\t\t", "\n\t}"));
+        String jsonString = responseMap.entrySet().stream()
+                .map(entry -> String.format("\"%s\": \"%s\"", entry.getKey(), entry.getValue()))
+                .collect(Collectors.joining(",\n\t\t", "{\n\t\t", "\n\t}"));
 
-            Node typeDescriptor = NodeParser.parseTypeDescriptor(READONLY + AND_SPACE + MAP_STRING);
-            ExpressionNode expression = NodeParser.parseExpression(jsonString);
-            ObjectFieldNode responseMapField =
-                    createObjectFieldNode(null, null, qualifiersWithPrivateAndFinal, typeDescriptor,
-                            createIdentifierToken(RESPONSE_MAP), createToken(EQUAL_TOKEN), expression,
-                            semicolonToken);
-            fieldNodeList.add(responseMapField);
-        }
+        Node typeDescriptor = NodeParser.parseTypeDescriptor(READONLY + AND_SPACE + MAP_STRING);
+        ExpressionNode expression = NodeParser.parseExpression(jsonString);
+        ObjectFieldNode responseMapField =
+                createObjectFieldNode(null, null, qualifiersWithPrivateAndFinal, typeDescriptor,
+                        createIdentifierToken(RESPONSE_MAP), createToken(EQUAL_TOKEN), expression,
+                        semicolonToken);
+        fieldNodeList.add(responseMapField);
         return fieldNodeList;
     }
 
