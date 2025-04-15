@@ -574,7 +574,6 @@ public class IntermediateClientGenerator {
         // string pipeName = self.getPipeName(message.event);
         StatementNode getPipeNameStatement = NodeParser.parseStatement(String.format(GET_PIPE_NAME_STATEMENT,
                 escapeIdentifier(dispatcherKey)));
-        whileStatements.add(getPipeNameStatement);
 
         // pipe:Pipe pipe = self.pipes.getPipe(pipeName);
         String messageEventAccessor = String.format(SELF_PIPES_GET_PIPE, PIPE_NAME);
@@ -584,6 +583,7 @@ public class IntermediateClientGenerator {
                             createFieldBindingPatternVarnameNode(createSimpleNameReferenceNode(
                                     createIdentifierToken(SIMPLE_PIPE)))), equalToken,
                     NodeParser.parseExpression(messageEventAccessor), semicolonToken);
+            whileStatements.add(getPipeNameStatement);
             whileStatements.add(pipesVar);
         } else {
             whileStatements.add(NodeParser.parseStatement(PIPE_VAR + SEMICOLON));
@@ -595,7 +595,7 @@ public class IntermediateClientGenerator {
                                     MESSAGE_WITH_ID_VAR_NAME + DOT + escapeIdentifier(this.dispatcherStreamId)) +
                                     SEMICOLON)), closeBraceToken),
                     createElseBlockNode(createToken(ELSE_KEYWORD), createBlockStatementNode(openBraceToken,
-                            createNodeList(NodeParser.parseStatement(SIMPLE_PIPE + EQUAL_SPACE +
+                            createNodeList(getPipeNameStatement, NodeParser.parseStatement(SIMPLE_PIPE + EQUAL_SPACE +
                                     messageEventAccessor + SEMICOLON)), closeBraceToken)));
             whileStatements.add(pipeConditional);
         }

@@ -97,12 +97,12 @@ public client isolated class ChatClient {
                     self.attemptToCloseConnection();
                     return;
                 }
-                string pipeName = self.getPipeName(message.'type);
                 pipe:Pipe pipe;
                 MessageWithId|error messageWithId = message.cloneWithType(MessageWithId);
                 if messageWithId is MessageWithId {
                     pipe = self.pipes.getPipe(messageWithId.id);
                 } else {
+                    string pipeName = self.getPipeName(message.'type);
                     pipe = self.pipes.getPipe(pipeName);
                 }
                 pipe:Error? pipeErr = pipe.produce(message, 5);

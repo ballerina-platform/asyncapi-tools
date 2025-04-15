@@ -93,12 +93,12 @@ public client isolated class PayloadVv1versionversionnameversionnameClient {
                     self.attemptToCloseConnection();
                     return;
                 }
-                string pipeName = self.getPipeName(message.event);
                 pipe:Pipe pipe;
                 MessageWithId|error messageWithId = message.cloneWithType(MessageWithId);
                 if messageWithId is MessageWithId {
                     pipe = self.pipes.getPipe(messageWithId.id);
                 } else {
+                    string pipeName = self.getPipeName(message.event);
                     pipe = self.pipes.getPipe(pipeName);
                 }
                 pipe:Error? pipeErr = pipe.produce(message, 5);
