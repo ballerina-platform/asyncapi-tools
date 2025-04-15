@@ -22,7 +22,6 @@ import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25ChannelsImpl;
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25ComponentsImpl;
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25OperationImpl;
 import io.ballerina.asyncapi.websocketscore.generators.asyncspec.model.BalAsyncApi25MessageImpl;
-import io.ballerina.asyncapi.websocketscore.generators.asyncspec.utils.ConverterCommonUtils;
 import io.ballerina.compiler.api.SemanticModel;
 import io.ballerina.compiler.api.symbols.Documentable;
 import io.ballerina.compiler.api.symbols.Documentation;
@@ -31,12 +30,14 @@ import io.ballerina.compiler.api.symbols.Symbol;
 import io.ballerina.compiler.api.symbols.TypeDescKind;
 import io.ballerina.compiler.api.symbols.TypeReferenceTypeSymbol;
 import io.ballerina.compiler.api.symbols.TypeSymbol;
+import io.ballerina.compiler.syntax.tree.AnnotationNode;
 import io.ballerina.compiler.syntax.tree.ChildNodeList;
 import io.ballerina.compiler.syntax.tree.ClassDefinitionNode;
 import io.ballerina.compiler.syntax.tree.ExplicitNewExpressionNode;
 import io.ballerina.compiler.syntax.tree.ExpressionNode;
 import io.ballerina.compiler.syntax.tree.FunctionBodyNode;
 import io.ballerina.compiler.syntax.tree.FunctionDefinitionNode;
+import io.ballerina.compiler.syntax.tree.MappingConstructorExpressionNode;
 import io.ballerina.compiler.syntax.tree.Node;
 import io.ballerina.compiler.syntax.tree.NodeList;
 import io.ballerina.compiler.syntax.tree.ParameterNode;
@@ -47,17 +48,21 @@ import io.ballerina.compiler.syntax.tree.ReturnStatementNode;
 import io.ballerina.compiler.syntax.tree.ReturnTypeDescriptorNode;
 import io.ballerina.compiler.syntax.tree.SeparatedNodeList;
 import io.ballerina.compiler.syntax.tree.SimpleNameReferenceNode;
+import io.ballerina.compiler.syntax.tree.SpecificFieldNode;
 import io.ballerina.compiler.syntax.tree.SyntaxKind;
 import io.ballerina.compiler.syntax.tree.TypeDescriptorNode;
 
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Optional;
 
+import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.ANNOTATION_ATTR_DISPATCHER_VALUE;
 import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.CAMEL_CASE_PATTERN;
+import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.DISPATCHER_MAPPING_ANNOTATION;
 import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.FALSE;
 import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.FUNCTION_PARAMETERS_EXCEEDED;
 import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.FUNCTION_SIGNATURE_WRONG_TYPE;
@@ -72,6 +77,8 @@ import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constant
 import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.ON_TEXT_MESSAGE;
 import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.REMOTE_DESCRIPTION;
 import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.RETURN;
+import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.WEBSOCKET;
+import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.utils.ConverterCommonUtils.unescapeIdentifier;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.QUALIFIED_NAME_REFERENCE;
 
 /**
@@ -89,6 +96,17 @@ public class AsyncApiRemoteMapper {
      */
     AsyncApiRemoteMapper(SemanticModel semanticModel) {
         this.semanticModel = semanticModel;
+    }
+
+    public static String createCustomRemoteFunctionName(String dispatchingValue) {
+        StringBuilder builder = new StringBuilder();
+        String[] words = dispatchingValue.split("[\\W_]+");
+        for (String word : words) {
+            word = word.isEmpty() ? word : Character.toUpperCase(word.charAt(0)) + word.substring(1)
+                    .toLowerCase(Locale.ENGLISH);
+            builder.append(word);
+        }
+        return builder.toString();
     }
 
     public AsyncApi25ComponentsImpl getComponents() {
@@ -137,7 +155,7 @@ public class AsyncApiRemoteMapper {
                                                          ClassDefinitionNode classDefinitionNode,
                                                          String dispatcherValue,
                                                          AsyncApi25ChannelItemImpl channelItem) {
-        String path = ConverterCommonUtils.unescapeIdentifier(generateRelativePath(resource));
+        String path = unescapeIdentifier(generateRelativePath(resource));
         NodeList<Node> classMethodNodes = classDefinitionNode.members();
         AsyncApi25OperationImpl publishOperationItem = new AsyncApi25OperationImpl();
         AsyncApi25OperationImpl subscribeOperationItem = new AsyncApi25OperationImpl();
@@ -152,8 +170,8 @@ public class AsyncApiRemoteMapper {
                     String functionName = remoteFunctionNode.functionName().toString().trim();
                     if (functionName.matches(CAMEL_CASE_PATTERN)) {
                         if (isRemoteFunctionNameValid(functionName)) {
-                            String remoteRequestTypeName = ConverterCommonUtils.
-                                    unescapeIdentifier(functionName.substring(2));
+                            String remoteRequestTypeName = getDispatcherMappingAnnotatedValue(remoteFunctionNode)
+                                    .orElse(unescapeIdentifier(functionName.substring(2)));
                             RequiredParameterNode requiredParameterNode =
                                     checkParameterContainsCustomType(remoteRequestTypeName, remoteFunctionNode);
                             //TODO: uncomment after handle onError is capable to have in the server side
@@ -268,7 +286,6 @@ public class AsyncApiRemoteMapper {
         return apiDocs;
     }
 
-
     private RequiredParameterNode checkParameterContainsCustomType(String customTypeName,
                                                                    FunctionDefinitionNode remoteFunctionNode) {
         SeparatedNodeList<ParameterNode> remoteParameters = remoteFunctionNode.functionSignature().parameters();
@@ -293,6 +310,41 @@ public class AsyncApiRemoteMapper {
             }
         }
         return null;
+    }
+
+    private Optional<String> getDispatcherMappingAnnotatedValue(FunctionDefinitionNode node) {
+        if (node.metadata().isEmpty()) {
+            return Optional.empty();
+        }
+        for (AnnotationNode annotationNode : node.metadata().get().annotations()) {
+            Optional<Symbol> annotationType = this.semanticModel.symbol(annotationNode);
+            if (annotationType.isEmpty()) {
+                continue;
+            }
+            if (!annotationType.get().getModule().flatMap(Symbol::getName)
+                    .orElse("").equals(WEBSOCKET) ||
+                    !annotationType.get().getName().orElse("")
+                            .equals(DISPATCHER_MAPPING_ANNOTATION)) {
+                continue;
+            }
+            if (annotationNode.annotValue().isEmpty()) {
+                return Optional.empty();
+            }
+            MappingConstructorExpressionNode annotationValue = annotationNode.annotValue().get();
+            for (Node field : annotationValue.fields()) {
+                if (!field.kind().equals(SyntaxKind.SPECIFIC_FIELD)) {
+                    continue;
+                }
+                String fieldName = ((SpecificFieldNode) field).fieldName().toString().strip();
+                Optional<ExpressionNode> filedValue = ((SpecificFieldNode) field).valueExpr();
+                if (!fieldName.equals(ANNOTATION_ATTR_DISPATCHER_VALUE) || filedValue.isEmpty()) {
+                    continue;
+                }
+                return Optional.of(createCustomRemoteFunctionName(filedValue.get().toString()
+                        .replaceAll("\"", "").strip()));
+            }
+        }
+        return Optional.empty();
     }
 
     private String getServiceClassName(FunctionDefinitionNode resource) {

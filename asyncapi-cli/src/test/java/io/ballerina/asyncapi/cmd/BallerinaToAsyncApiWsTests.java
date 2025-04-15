@@ -96,6 +96,24 @@ public class BallerinaToAsyncApiWsTests extends AsyncApiWsCommandTest {
         }
     }
 
+    @Test(description = "Test ballerina to asyncApi with dispatcher mapping annotation")
+    public void asyncApiGenerationWithDispatcherMappingAnnotation() {
+        String fileName = "listener";
+        String fileDirectory = "ballerina-to-asyncapi/dispatcher-mapping-annotation/";
+        Path filePath = resourceDir.resolve(Paths.get(fileDirectory + fileName + ".bal"));
+        String[] args = {"--input", filePath.toString(), "-o", this.tmpDir.toString(), "--protocol", "ws"};
+        AsyncApiCmd cmd = new AsyncApiCmd(tmpDir, false);
+        new CommandLine(cmd).parseArgs(args);
+        try {
+            cmd.execute();
+            String generatedAsyncAPI = getStringFromGivenBalFile(this.tmpDir.resolve(fileName + "_asyncapi.yaml"));
+            String expectedYaml = getStringFromGivenBalFile(
+                    this.resourceDir.resolve(fileDirectory + "expected_gen/" + fileName + ".yaml"));
+            Assert.assertEquals(expectedYaml, generatedAsyncAPI);
+        } catch (BLauncherException | IOException e) {
+            Assert.fail(e.getMessage());
+        }
+    }
 
     @Test(description = "AsyncAPI Annotation with ballerina to asyncapi", enabled = false)
     public void asyncapiAnnotationWithContract() {
