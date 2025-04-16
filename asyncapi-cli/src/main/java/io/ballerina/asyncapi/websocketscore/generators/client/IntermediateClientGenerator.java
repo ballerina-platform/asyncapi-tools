@@ -1399,7 +1399,7 @@ public class IntermediateClientGenerator {
 
     private boolean isCloseFrameRef(JsonNode refNode) {
         try {
-            if (refNode == null) {
+            if (Objects.isNull(refNode)) {
                 return false;
             }
             String reference = refNode.asText();
