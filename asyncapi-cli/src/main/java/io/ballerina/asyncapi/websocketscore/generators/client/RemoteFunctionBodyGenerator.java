@@ -18,7 +18,6 @@
 package io.ballerina.asyncapi.websocketscore.generators.client;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.TextNode;
 import io.ballerina.asyncapi.websocketscore.GeneratorUtils;
 import io.ballerina.compiler.syntax.tree.AssignmentStatementNode;
 import io.ballerina.compiler.syntax.tree.ExpressionStatementNode;
@@ -75,7 +74,6 @@ import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.RESPONSE_M
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.RETURN;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.SELF;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.SELF_PIPES_GET_PIPE;
-import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.SERVER_STREAMING;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.STREAM_GENERATOR;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.STREAM_GENERATOR_CAPITAL;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.TIMEOUT;
@@ -83,6 +81,7 @@ import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.WITHIN_PAR
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.WRITE_MESSAGE_QUEUE;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.X_RESPONSE_TYPE;
 import static io.ballerina.asyncapi.websocketscore.GeneratorUtils.escapeIdentifier;
+import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.SERVER_STREAMING_TYPE;
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createEmptyNodeList;
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createIdentifierToken;
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createNodeList;
@@ -236,7 +235,7 @@ public class RemoteFunctionBodyGenerator {
         // This return type for target data type binding.
         if (extensions != null) {
             JsonNode xResponseType = extensions.get(X_RESPONSE_TYPE);
-            if (xResponseType != null && xResponseType.equals(new TextNode(SERVER_STREAMING))) {
+            if (xResponseType != null && xResponseType.equals(SERVER_STREAMING_TYPE)) {
                 //TODO: Include an if condition to check this only one time
                 createStreamFunctionBodyStatements(statementsList, requestType, responseType, specDispatcherStreamId,
                         isSubscribe);

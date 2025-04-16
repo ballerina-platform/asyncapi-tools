@@ -75,6 +75,7 @@ import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constant
 import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.REF;
 import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.SCHEMA_REFERENCE;
 import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.SERVER_STREAMING;
+import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.SERVER_STREAMING_TYPE;
 import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.SIMPLE_RPC;
 import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.TRUE;
 import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.UNION_STREAMING_SIMPLE_RPC_ERROR;
@@ -214,7 +215,7 @@ public class AsyncApiResponseMapper {
 //                            setResponseOfRequest(subscribeMessage, componentMessage, SERVER_STREAMING,
 //                                    returnDescription, objectMapper, remoteReturnStreamSchema, isOptional);
                         }
-                        componentMessage.addExtension(X_RESPONSE_TYPE, new TextNode(SERVER_STREAMING));
+                        componentMessage.addExtension(X_RESPONSE_TYPE, SERVER_STREAMING_TYPE);
                     } else {
                         throw new NoSuchElementException(NO_TYPE_IN_STREAM);
                     }
@@ -287,7 +288,7 @@ public class AsyncApiResponseMapper {
         //If there exist previous x-response for same request
         Map<String, JsonNode> xResponses = componentMessage.getExtensions();
         if (xResponses != null && xResponses.get(X_RESPONSE) != null) {
-            if (xResponses.get(X_RESPONSE_TYPE).equals(new TextNode(SERVER_STREAMING))
+            if (xResponses.get(X_RESPONSE_TYPE).equals(SERVER_STREAMING_TYPE)
                     && responseType.equals(SIMPLE_RPC) ||
                     (xResponses.get(X_RESPONSE_TYPE).equals(new TextNode(SIMPLE_RPC))
                             && responseType.equals(SERVER_STREAMING))) {
@@ -431,7 +432,7 @@ public class AsyncApiResponseMapper {
         //If there exist previous x-response for same request then start adding them to a oneOf schema
         Map<String, JsonNode> xResponses = componentMessage.getExtensions();
         if (xResponses != null && xResponses.get(X_RESPONSE) != null) {
-            if (xResponses.get(X_RESPONSE_TYPE).equals(new TextNode(SERVER_STREAMING)) &&
+            if (xResponses.get(X_RESPONSE_TYPE).equals(SERVER_STREAMING_TYPE) &&
                     !isCloseFrameRecordType(returnTypeSymbol)) {
                 throw new NoSuchElementException(UNION_STREAMING_SIMPLE_RPC_ERROR);
             }

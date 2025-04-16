@@ -17,6 +17,9 @@
  */
 package io.ballerina.asyncapi.websocketscore.generators.asyncspec;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.TextNode;
+
 /**
  * Ballerina To AsyncApi Service Constants.
  *
@@ -158,6 +161,8 @@ public class Constants {
     public static final String X_BALLERINA_WS_CLOSE_FRAME_PATH_FRAME_TYPE = "event.frametype";
     public static final String X_BALLERINA_WS_CLOSE_FRAME_VALUE = "value";
     public static final String X_BALLERINA_WS_CLOSE_FRAME_VALUE_CLOSE = "close";
+
+    public static final JsonNode SERVER_STREAMING_TYPE = new TextNode(SERVER_STREAMING);
 
     /**
      * Enum to select the Ballerina Type.
