@@ -235,7 +235,7 @@ public class RemoteFunctionBodyGenerator {
         // This return type for target data type binding.
         if (extensions != null) {
             JsonNode xResponseType = extensions.get(X_RESPONSE_TYPE);
-            if (xResponseType != null && xResponseType.equals(SERVER_STREAMING_TYPE)) {
+            if (Objects.nonNull(xResponseType) && xResponseType.equals(SERVER_STREAMING_TYPE)) {
                 //TODO: Include an if condition to check this only one time
                 createStreamFunctionBodyStatements(statementsList, requestType, responseType, specDispatcherStreamId,
                         isSubscribe);

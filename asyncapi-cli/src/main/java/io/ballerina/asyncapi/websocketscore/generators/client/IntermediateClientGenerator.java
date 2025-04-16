@@ -1367,15 +1367,15 @@ public class IntermediateClientGenerator {
     }
 
     private Map<String, JsonNode> removeCloseFrameFromResponse(Map<String, JsonNode> extensions) {
-        if (extensions == null || extensions.get(X_RESPONSE) == null) {
+        if (Objects.isNull(extensions) || Objects.isNull(extensions.get(X_RESPONSE))) {
             return extensions;
         }
         JsonNode xResponse = extensions.get(X_RESPONSE);
-        if (xResponse.get(ONEOF) != null && xResponse.get(ONEOF) instanceof ArrayNode nodes) {
+        if (Objects.nonNull(xResponse.get(ONEOF)) && xResponse.get(ONEOF) instanceof ArrayNode nodes) {
             ObjectNode newNode = (ObjectNode) extensions.get(X_RESPONSE);
             for (Iterator<JsonNode> it = nodes.iterator(); it.hasNext(); ) {
                 JsonNode jsonNode = it.next();
-                if (jsonNode.get(REF) != null && isCloseFrameRef(jsonNode.get(REF))) {
+                if (Objects.nonNull(jsonNode.get(REF)) && isCloseFrameRef(jsonNode.get(REF))) {
                     it.remove();
                 }
             }
@@ -1389,7 +1389,7 @@ public class IntermediateClientGenerator {
                 newNode.set(ONEOF, nodes);
             }
             extensions.put(X_RESPONSE, newNode);
-        } else if (xResponse.get(REF) != null) {
+        } else if (Objects.nonNull(xResponse.get(REF))) {
             if (isCloseFrameRef(xResponse.get(REF))) {
                 return null;
             }
