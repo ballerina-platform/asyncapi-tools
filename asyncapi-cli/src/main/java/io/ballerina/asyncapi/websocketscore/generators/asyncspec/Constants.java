@@ -140,11 +140,15 @@ public class Constants {
 
     // Constants related to websocket close frame
     public static final String FRAME_TYPE = "frametype";
+    public static final String FRAME_TYPE_DESCRIPTION = "WS frame type";
     public static final String FRAME_TYPE_CLOSE = "close";
     public static final String CLOSE_FRAME = "CloseFrame";
+    public static final String CLOSE_FRAME_DESCRIPTION = "Representation of a websocket close-frame";
     public static final String CLOSE_FRAME_TYPE = "type";
     public static final String CLOSE_FRAME_STATUS = "status";
+    public static final String CLOSE_FRAME_STATUS_DESCRIPTION = "status code";
     public static final String CLOSE_FRAME_REASON = "reason";
+    public static final String CLOSE_FRAME_REASON_DESCRIPTION = "Message to be sent";
     public static final String PREDEFINED_CLOSE_FRAME_TYPE = "PredefinedCloseFrameType";
     public static final String CUSTOM_CLOSE_FRAME_TYPE = "CustomCloseFrameType";
     public static final String X_BALLERINA_WS_CLOSE_FRAME = "x-ballerina-ws-closeframe";

@@ -20,13 +20,13 @@ package io.ballerina.asyncapi.websocketscore.generators.asyncspec.service;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
-import io.apicurio.datamodels.models.Schema;
+import io.apicurio.datamodels.models.asyncapi.AsyncApiSchema;
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25ChannelItemImpl;
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25ChannelsImpl;
+import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25Components;
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25ComponentsImpl;
-import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25DocumentImpl;
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25OperationImpl;
-import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25SchemaImpl;
+import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25Schema;
 import io.ballerina.asyncapi.websocketscore.generators.asyncspec.model.BalAsyncApi25MessageImpl;
 import io.ballerina.asyncapi.websocketscore.generators.asyncspec.utils.ConverterCommonUtils;
 import io.ballerina.compiler.api.SemanticModel;
@@ -63,6 +63,7 @@ import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.CAMEL_CASE_PATTERN;
 import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.ERROR;
@@ -83,7 +84,6 @@ import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constant
 import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.ON_TEXT_MESSAGE;
 import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.REMOTE_DESCRIPTION;
 import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.RETURN;
-import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.X_BALLERINA_WS_CLOSE_FRAME;
 import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.X_BALLERINA_WS_CLOSE_FRAME_PATH;
 import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.X_BALLERINA_WS_CLOSE_FRAME_PATH_FRAME_TYPE;
 import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.X_BALLERINA_WS_CLOSE_FRAME_TYPE;
@@ -108,40 +108,33 @@ public class AsyncApiRemoteMapper {
         this.semanticModel = semanticModel;
     }
 
-    public static boolean containsCloseFrameSchema(AsyncApi25ComponentsImpl components) {
-        if (components == null || components.getSchemas() == null) {
+    public static boolean containsCloseFrameSchema(AsyncApi25Components components) {
+        if (Objects.isNull(components) || Objects.isNull(components.getSchemas())) {
             return false;
         }
-        for (Schema schema : components.getSchemas().values()) {
-            if (!(schema instanceof AsyncApi25SchemaImpl asyncApi25SchemaImpl)) {
-                continue;
-            }
-            if (isCloseFrameSchema(asyncApi25SchemaImpl)) {
-                return true;
-            }
-        }
-        return false;
+        return components.getSchemas().values().stream()
+                .anyMatch(sch ->
+                        (sch instanceof AsyncApi25Schema asyncApiSchema) && isCloseFrameSchema(asyncApiSchema));
     }
 
-    public static boolean isCloseFrameSchema(AsyncApi25SchemaImpl schema) {
+    public static boolean isCloseFrameSchema(AsyncApiSchema schema) {
         if (schema == null || schema.getProperties() == null || !schema.getProperties().containsKey(FRAME_TYPE)) {
             return false;
         }
-        if (!(schema.getProperties().get(FRAME_TYPE) instanceof AsyncApi25SchemaImpl asyncApi25SchemaImpl)) {
+        if (!(schema.getProperties().get(FRAME_TYPE) instanceof AsyncApi25Schema asyncApi25Schema)) {
             return false;
         }
-        return asyncApi25SchemaImpl.getConst() != null &&
-                asyncApi25SchemaImpl.getConst().equals(new TextNode(FRAME_TYPE_CLOSE));
+        return asyncApi25Schema.getConst() != null &&
+                asyncApi25Schema.getConst().equals(new TextNode(FRAME_TYPE_CLOSE));
     }
 
-    public static AsyncApi25DocumentImpl addWsCloseFrameExtension(AsyncApi25DocumentImpl asyncApi) {
+    public static ObjectNode getWsCloseFrameExtension() {
         ObjectMapper objectMapper = new ObjectMapper();
         ObjectNode closeFrameExtension = objectMapper.createObjectNode();
         closeFrameExtension.put(X_BALLERINA_WS_CLOSE_FRAME_TYPE, X_BALLERINA_WS_CLOSE_FRAME_TYPE_BODY);
         closeFrameExtension.put(X_BALLERINA_WS_CLOSE_FRAME_PATH, X_BALLERINA_WS_CLOSE_FRAME_PATH_FRAME_TYPE);
         closeFrameExtension.put(X_BALLERINA_WS_CLOSE_FRAME_VALUE, X_BALLERINA_WS_CLOSE_FRAME_VALUE_CLOSE);
-        asyncApi.addExtension(X_BALLERINA_WS_CLOSE_FRAME, closeFrameExtension);
-        return asyncApi;
+        return closeFrameExtension;
     }
 
     public AsyncApi25ComponentsImpl getComponents() {
@@ -381,20 +374,15 @@ public class AsyncApiRemoteMapper {
 
     private Map<String, ReturnTypeDescriptorNode> getReturnTypesFromOnErrorMethods(
             NodeList<Node> classMethodNodes) {
-        Map<String, ReturnTypeDescriptorNode> onErrorReturnTypes = new HashMap<>();
-        for (Node node : classMethodNodes) {
-            if (node.kind() != SyntaxKind.OBJECT_METHOD_DEFINITION) {
-                continue;
-            }
-            FunctionDefinitionNode remoteFunctionNode = (FunctionDefinitionNode) node;
-            String functionName = remoteFunctionNode.functionName().toString().trim();
-            Optional<ReturnTypeDescriptorNode> functionSignature =
-                    remoteFunctionNode.functionSignature().returnTypeDesc();
-            if (functionName.endsWith(ERROR) && functionSignature.isPresent()) {
-                onErrorReturnTypes.put(functionName, functionSignature.get());
-            }
-        }
-        return onErrorReturnTypes;
+        return classMethodNodes.stream()
+                .filter(n -> SyntaxKind.OBJECT_METHOD_DEFINITION.equals(n.kind()))
+                .map(n -> (FunctionDefinitionNode) n)
+                .filter(n -> n.functionName().toString().trim().endsWith(ERROR))
+                .filter(n -> n.functionSignature().returnTypeDesc().isPresent())
+                .collect(Collectors.toMap(
+                        n -> n.functionName().toString().trim(),
+                        n -> n.functionSignature().returnTypeDesc().get(),
+                        (existing, replacement) -> existing));
     }
 
     /**

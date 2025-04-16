@@ -108,20 +108,19 @@ public class AsyncApiResponseMapper {
     }
 
     public static boolean isCloseFrameRecordType(TypeSymbol typeSymbol) {
+        String moduleName = typeSymbol.getModule().flatMap(Symbol::getName).orElse("");
+        if (WEBSOCKET.equals(moduleName) &&
+                (typeSymbol.nameEquals(CLOSE_FRAME) || (typeSymbol.nameEquals(PREDEFINED_CLOSE_FRAME_TYPE) ||
+                        typeSymbol.nameEquals(CUSTOM_CLOSE_FRAME_TYPE)))) {
+            return true;
+        }
         if (typeSymbol.typeKind() == TypeDescKind.TYPE_REFERENCE) {
-            if (typeSymbol.nameEquals(CLOSE_FRAME) &&
-                    typeSymbol.getModule().flatMap(Symbol::getName).orElse("").equals(WEBSOCKET)) {
-                return true;
-            }
             return isCloseFrameRecordType(((TypeReferenceTypeSymbol) typeSymbol).typeDescriptor());
         } else if (typeSymbol.typeKind() == TypeDescKind.RECORD) {
             RecordTypeSymbol bRecordTypeSymbol = (RecordTypeSymbol) typeSymbol;
             if (bRecordTypeSymbol.fieldDescriptors().containsKey(CLOSE_FRAME_TYPE)) {
                 TypeSymbol objectType = bRecordTypeSymbol.fieldDescriptors().get(CLOSE_FRAME_TYPE).typeDescriptor();
-                String moduleName = objectType.getModule().flatMap(Symbol::getName).orElse("");
-                return moduleName.equals(WEBSOCKET) &&
-                        (objectType.nameEquals(PREDEFINED_CLOSE_FRAME_TYPE) ||
-                                objectType.nameEquals(CUSTOM_CLOSE_FRAME_TYPE));
+                return isCloseFrameRecordType(objectType);
             }
         } else if (typeSymbol.typeKind() == TypeDescKind.INTERSECTION) {
             return isCloseFrameRecordType(((IntersectionTypeSymbol) typeSymbol).effectiveTypeDescriptor());

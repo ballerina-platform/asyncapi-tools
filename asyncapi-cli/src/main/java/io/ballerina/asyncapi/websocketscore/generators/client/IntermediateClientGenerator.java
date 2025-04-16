@@ -28,10 +28,12 @@ import io.apicurio.datamodels.models.ServerVariable;
 import io.apicurio.datamodels.models.asyncapi.AsyncApiChannelItem;
 import io.apicurio.datamodels.models.asyncapi.AsyncApiMessage;
 import io.apicurio.datamodels.models.asyncapi.AsyncApiOperation;
+import io.apicurio.datamodels.models.asyncapi.AsyncApiSchema;
 import io.apicurio.datamodels.models.asyncapi.AsyncApiServer;
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25DocumentImpl;
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25InfoImpl;
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25MessageImpl;
+import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25Schema;
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25SchemaImpl;
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25ServerImpl;
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25ServersImpl;
@@ -1339,7 +1341,7 @@ public class IntermediateClientGenerator {
                     String reference = message.get$ref();
                     String messageName = GeneratorUtils.extractReferenceType(reference);
                     if (!remainingResponseMessages.contains(messageName)) {
-                        AsyncApi25SchemaImpl refSchema = (AsyncApi25SchemaImpl) asyncApi.getComponents()
+                        AsyncApi25Schema refSchema = (AsyncApi25Schema) asyncApi.getComponents()
                                 .getSchemas().get(messageName);
                         if (isCloseFrameSchema(refSchema)) {
                             continue; // Skip close frame schema
@@ -1405,8 +1407,7 @@ public class IntermediateClientGenerator {
             AsyncApiMessage message = asyncApi.getComponents().getMessages().get(messageName);
             TextNode schemaReference = (TextNode) message.getPayload().get(REF);
             String schemaName = extractReferenceType(schemaReference.asText());
-            AsyncApi25SchemaImpl refSchema = (AsyncApi25SchemaImpl)
-                    asyncApi.getComponents().getSchemas().get(schemaName);
+            AsyncApiSchema refSchema = (AsyncApiSchema) asyncApi.getComponents().getSchemas().get(schemaName);
             return isCloseFrameSchema(refSchema);
         } catch (BallerinaAsyncApiExceptionWs e) {
             throw new RuntimeException(e);

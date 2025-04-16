@@ -22,7 +22,10 @@ import com.fasterxml.jackson.databind.node.BooleanNode;
 import com.fasterxml.jackson.databind.node.IntNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 import io.apicurio.datamodels.models.Schema;
+import io.apicurio.datamodels.models.asyncapi.AsyncApiSchema;
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25ComponentsImpl;
+import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25Schema;
+import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25SchemaImpl;
 import io.apicurio.datamodels.models.union.BooleanUnionValueImpl;
 import io.ballerina.asyncapi.websocketscore.generators.asyncspec.diagnostic.AsyncApiConverterDiagnostic;
 import io.ballerina.asyncapi.websocketscore.generators.asyncspec.diagnostic.DiagnosticMessages;
@@ -62,8 +65,11 @@ import java.util.NoSuchElementException;
 import java.util.Optional;
 
 import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.AsyncAPIType;
+import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.CLOSE_FRAME_DESCRIPTION;
 import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.CLOSE_FRAME_REASON;
+import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.CLOSE_FRAME_REASON_DESCRIPTION;
 import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.CLOSE_FRAME_STATUS;
+import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.CLOSE_FRAME_STATUS_DESCRIPTION;
 import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.DISPATCHERKEY_NOT_PRESENT_IN_RECORD_FIELD;
 import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.DISPATCHERKEY_NULLABLE_EXCEPTION;
 import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.DISPATCHERKEY_OPTIONAL_EXCEPTION;
@@ -73,6 +79,7 @@ import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constant
 import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.FLOAT;
 import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.FRAME_TYPE;
 import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.FRAME_TYPE_CLOSE;
+import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.FRAME_TYPE_DESCRIPTION;
 import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.INTEGER;
 import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.NUMBER;
 import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.OBJECT;
@@ -133,7 +140,7 @@ public class AsyncApiComponentMapper {
             }
             BalAsyncApi25SchemaImpl schema = new BalAsyncApi25SchemaImpl();
             if (isCloseFrameRecordType(typeSymbol)) {
-                generateCloseFrameSchema(type, componentName);
+                this.components.addSchema(componentName, getCloseFrameSchema(type));
                 return;
             }
             switch (type.typeKind()) {
@@ -400,25 +407,23 @@ public class AsyncApiComponentMapper {
     }
 
     /**
-     * This function is to map ballerina close frame record type fields to AsyncAPI objectSchema fields.
+     * This function is used to get the ballerina close frame schema.
      */
-    public void generateCloseFrameSchema(TypeSymbol typeSymbol, String componentName) {
-        BalAsyncApi25SchemaImpl componentSchema = new BalAsyncApi25SchemaImpl();
-        componentSchema.setType(AsyncAPIType.OBJECT.toString());
+    public AsyncApiSchema getCloseFrameSchema(TypeSymbol typeSymbol) {
+        AsyncApi25Schema closeFrameSchema = new AsyncApi25SchemaImpl();
+        closeFrameSchema.setType(AsyncAPIType.OBJECT.toString());
         List<String> required = new ArrayList<>();
 
-        // Set frame type
-        BalAsyncApi25SchemaImpl frameType = new BalAsyncApi25SchemaImpl();
+        AsyncApi25Schema frameType = new AsyncApi25SchemaImpl();
         frameType.setType(STRING);
         frameType.setConst(new TextNode(FRAME_TYPE_CLOSE));
-        frameType.setDescription("WS frame type");
+        frameType.setDescription(FRAME_TYPE_DESCRIPTION);
         required.add(FRAME_TYPE);
-        componentSchema.addProperty(FRAME_TYPE, frameType);
+        closeFrameSchema.addProperty(FRAME_TYPE, frameType);
 
-        // Set status code
-        BalAsyncApi25SchemaImpl statusCode = new BalAsyncApi25SchemaImpl();
+        AsyncApi25Schema statusCode = new AsyncApi25SchemaImpl();
         statusCode.setType(INTEGER);
-        statusCode.setDescription("status code");
+        statusCode.setDescription(CLOSE_FRAME_STATUS_DESCRIPTION);
         if (typeSymbol instanceof RecordTypeSymbol recordTypeSymbol) {
             if (recordTypeSymbol.fieldDescriptors().containsKey(CLOSE_FRAME_STATUS)) {
                 RecordFieldSymbol statusField = recordTypeSymbol.fieldDescriptors().get(CLOSE_FRAME_STATUS);
@@ -429,12 +434,11 @@ public class AsyncApiComponentMapper {
             }
         }
         required.add(CLOSE_FRAME_STATUS);
-        componentSchema.addProperty(CLOSE_FRAME_STATUS, statusCode);
+        closeFrameSchema.addProperty(CLOSE_FRAME_STATUS, statusCode);
 
-        // Set reason
-        BalAsyncApi25SchemaImpl reason = new BalAsyncApi25SchemaImpl();
+        AsyncApi25Schema reason = new AsyncApi25SchemaImpl();
         reason.setType(STRING);
-        reason.setDescription("Message to be sent");
+        reason.setDescription(CLOSE_FRAME_REASON_DESCRIPTION);
         if (typeSymbol instanceof RecordTypeSymbol recordTypeSymbol) {
             if (recordTypeSymbol.fieldDescriptors().containsKey(CLOSE_FRAME_REASON)) {
                 RecordFieldSymbol reasonField = recordTypeSymbol.fieldDescriptors().get(CLOSE_FRAME_REASON);
@@ -443,13 +447,11 @@ public class AsyncApiComponentMapper {
                 }
             }
         }
-        componentSchema.addProperty(CLOSE_FRAME_REASON, reason);
+        closeFrameSchema.addProperty(CLOSE_FRAME_REASON, reason);
 
-        componentSchema.setRequired(required);
-        componentSchema.setDescription("Representation of a websocket close-frame");
-        if (componentName != null) {
-            this.components.addSchema(componentName, componentSchema);
-        }
+        closeFrameSchema.setRequired(required);
+        closeFrameSchema.setDescription(CLOSE_FRAME_DESCRIPTION);
+        return closeFrameSchema;
     }
 
     private BalAsyncApi25SchemaImpl handleMapType(String componentName, BalAsyncApi25SchemaImpl property,
