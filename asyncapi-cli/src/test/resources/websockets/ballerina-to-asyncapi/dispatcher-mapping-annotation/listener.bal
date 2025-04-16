@@ -6,7 +6,7 @@ type Subscribe record {|
     string 'type;
 |};
 
-type ConnectionAck record {|
+type SubscribeResponse record {|
     string 'type;
     map<json> payload?;
 |};
@@ -24,7 +24,7 @@ service class WsService {
     @websocket:DispatcherMapping {
         value: "subscribe"
     }
-    remote function onSubscribeMessage(Subscribe message) returns string {
-        return "onSubscribeMessage";
+    remote function onSubscribeMessage(Subscribe message) returns SubscribeResponse {
+        return {'type: "subscribe"};
     }
 }

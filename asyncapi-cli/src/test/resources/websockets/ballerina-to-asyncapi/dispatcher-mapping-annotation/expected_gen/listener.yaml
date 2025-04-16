@@ -16,8 +16,7 @@ channels:
   /:
     subscribe:
       message:
-        payload:
-          type: string
+        $ref: '#/components/messages/SubscribeResponse'
     publish:
       message:
         $ref: '#/components/messages/Subscribe'
@@ -31,12 +30,24 @@ components:
         type:
           type: string
           const: Subscribe
+    SubscribeResponse:
+      type: object
+      required:
+      - type
+      properties:
+        type:
+          type: string
+        payload:
+          type: object
+          additionalProperties: true
   messages:
+    SubscribeResponse:
+      payload:
+        $ref: '#/components/schemas/SubscribeResponse'
     Subscribe:
       payload:
         $ref: '#/components/schemas/Subscribe'
       x-response:
-        payload:
-          type: string
+        $ref: '#/components/messages/SubscribeResponse'
       x-response-type: simple-rpc
 x-dispatcherKey: type
