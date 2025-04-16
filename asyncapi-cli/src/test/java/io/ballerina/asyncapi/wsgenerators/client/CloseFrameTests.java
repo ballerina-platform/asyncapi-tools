@@ -47,7 +47,9 @@ public class CloseFrameTests {
     public void testGenerateClientWithCloseFrame() {
         String fileName = "graphql_over_websocket_asyncapi";
         Path filePath = RES_DIR.resolve(Paths.get("CloseFrame/" + fileName + ".yaml"));
-        String[] args = {"--input", filePath.toString(), "-o", this.tmpDir.toString(), "--protocol", "ws"};
+        Path licenseFilePath = RES_DIR.resolve(Paths.get("CloseFrame/license.txt"));
+        String[] args = {"--input", filePath.toString(), "-o", this.tmpDir.toString(), "--protocol", "ws"
+                , "--license", licenseFilePath.toString()};
         AsyncApiCmd cmd = new AsyncApiCmd(tmpDir, false);
         new CommandLine(cmd).parseArgs(args);
         try {
