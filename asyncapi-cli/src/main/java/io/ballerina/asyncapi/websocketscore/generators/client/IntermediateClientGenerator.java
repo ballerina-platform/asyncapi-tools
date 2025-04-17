@@ -554,6 +554,7 @@ public class IntermediateClientGenerator {
         List<StatementNode> whileStatements = new ArrayList<>();
         whileStatements.add(getIsActiveCheck());
 
+        // Expected ballerina statement:
         // Message|websocket:Error message = self.clientEp->readMessage();
         FieldAccessExpressionNode clientEp = createFieldAccessExpressionNode(
                 createSimpleNameReferenceNode(createIdentifierToken(SELF)), dotToken,
@@ -571,10 +572,12 @@ public class IntermediateClientGenerator {
         whileStatements.add(responseMessage);
         whileStatements.add(getIsWsError(READ_MESSAGE_CLIENT_READ_ERROR, MESSAGE_VAR_NAME));
 
+        // Expected ballerina statement:
         // string pipeName = self.getPipeName(message.event);
         StatementNode getPipeNameStatement = NodeParser.parseStatement(String.format(GET_PIPE_NAME_STATEMENT,
                 escapeIdentifier(dispatcherKey)));
 
+        // Expected ballerina statement:
         // pipe:Pipe pipe = self.pipes.getPipe(pipeName);
         String messageEventAccessor = String.format(SELF_PIPES_GET_PIPE, PIPE_NAME);
         if (Objects.isNull(this.dispatcherStreamId)) {
@@ -600,6 +603,7 @@ public class IntermediateClientGenerator {
             whileStatements.add(pipeConditional);
         }
 
+        // Expected ballerina statement:
         // pipe:Error? pipeErr = pipe.produce(message, 5);
         MethodCallExpressionNode produceExpression = createMethodCallExpressionNode(createBasicLiteralNode(VAR_KEYWORD,
                         createIdentifierToken(SIMPLE_PIPE)), dotToken, createSimpleNameReferenceNode(
