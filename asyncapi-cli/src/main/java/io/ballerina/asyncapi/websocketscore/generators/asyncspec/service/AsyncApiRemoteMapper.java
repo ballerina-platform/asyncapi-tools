@@ -374,13 +374,13 @@ public class AsyncApiRemoteMapper {
     private Map<String, ReturnTypeDescriptorNode> getReturnTypesFromOnErrorMethods(
             NodeList<Node> classMethodNodes) {
         return classMethodNodes.stream()
-                .filter(n -> SyntaxKind.OBJECT_METHOD_DEFINITION.equals(n.kind()))
-                .map(n -> (FunctionDefinitionNode) n)
-                .filter(n -> n.functionName().toString().trim().endsWith(ERROR))
-                .filter(n -> n.functionSignature().returnTypeDesc().isPresent())
+                .filter(node -> SyntaxKind.OBJECT_METHOD_DEFINITION.equals(node.kind()))
+                .map(node -> (FunctionDefinitionNode) node)
+                .filter(functionDefNode -> functionDefNode.functionName().toString().trim().endsWith(ERROR))
+                .filter(functionDefNode -> functionDefNode.functionSignature().returnTypeDesc().isPresent())
                 .collect(Collectors.toMap(
-                        n -> n.functionName().toString().trim(),
-                        n -> n.functionSignature().returnTypeDesc().get(),
+                        functionDefNode -> functionDefNode.functionName().toString().trim(),
+                        functionDefNode -> functionDefNode.functionSignature().returnTypeDesc().get(),
                         (existing, replacement) -> existing));
     }
 
