@@ -19,7 +19,6 @@ package io.ballerina.asyncapi.websocketscore.generators.asyncspec.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.fasterxml.jackson.databind.node.TextNode;
 import io.apicurio.datamodels.models.asyncapi.AsyncApiSchema;
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25ChannelItemImpl;
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25ChannelsImpl;
@@ -69,7 +68,7 @@ import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constant
 import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.ERROR;
 import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.FALSE;
 import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.FRAME_TYPE;
-import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.FRAME_TYPE_CLOSE;
+import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.FRAME_TYPE_CLOSE_NODE;
 import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.FUNCTION_PARAMETERS_EXCEEDED;
 import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.FUNCTION_SIGNATURE_WRONG_TYPE;
 import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.FUNCTION_WRONG_NAME;
@@ -125,8 +124,7 @@ public class AsyncApiRemoteMapper {
         if (!(schema.getProperties().get(FRAME_TYPE) instanceof AsyncApi25Schema asyncApi25Schema)) {
             return false;
         }
-        return asyncApi25Schema.getConst() != null &&
-                asyncApi25Schema.getConst().equals(new TextNode(FRAME_TYPE_CLOSE));
+        return FRAME_TYPE_CLOSE_NODE.equals(asyncApi25Schema.getConst());
     }
 
     public static ObjectNode getWsCloseFrameExtension() {

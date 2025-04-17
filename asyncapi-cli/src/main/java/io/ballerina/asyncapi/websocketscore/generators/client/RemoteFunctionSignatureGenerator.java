@@ -50,7 +50,7 @@ import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.X_RESPONSE
 import static io.ballerina.asyncapi.websocketscore.GeneratorUtils.extractReferenceType;
 import static io.ballerina.asyncapi.websocketscore.GeneratorUtils.getValidName;
 import static io.ballerina.asyncapi.websocketscore.GeneratorUtils.isValidSchemaName;
-import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.SERVER_STREAMING_TYPE;
+import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.SERVER_STREAMING_TYPE_NODE;
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createEmptyNodeList;
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createIdentifierToken;
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createNodeList;
@@ -128,7 +128,7 @@ public class RemoteFunctionSignatureGenerator {
         if (extensions != null) {
             JsonNode xResponse = extensions.get(X_RESPONSE);
             JsonNode xResponseType = extensions.get(X_RESPONSE_TYPE);
-            if (xResponseType != null && xResponseType.equals(SERVER_STREAMING_TYPE)) {
+            if (SERVER_STREAMING_TYPE_NODE.equals(xResponseType)) {
                 if (!streamReturns.contains(returnType)) {
                     streamReturns.add(returnType);
                 }

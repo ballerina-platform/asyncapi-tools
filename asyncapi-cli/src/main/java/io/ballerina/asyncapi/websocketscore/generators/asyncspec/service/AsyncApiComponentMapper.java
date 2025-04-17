@@ -78,7 +78,7 @@ import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constant
 import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.FALSE;
 import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.FLOAT;
 import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.FRAME_TYPE;
-import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.FRAME_TYPE_CLOSE;
+import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.FRAME_TYPE_CLOSE_NODE;
 import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.FRAME_TYPE_DESCRIPTION;
 import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.INTEGER;
 import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.NUMBER;
@@ -416,7 +416,7 @@ public class AsyncApiComponentMapper {
 
         AsyncApi25Schema frameType = new AsyncApi25SchemaImpl();
         frameType.setType(STRING);
-        frameType.setConst(new TextNode(FRAME_TYPE_CLOSE));
+        frameType.setConst(FRAME_TYPE_CLOSE_NODE);
         frameType.setDescription(FRAME_TYPE_DESCRIPTION);
         requiredFields.add(FRAME_TYPE);
         closeFrameSchema.addProperty(FRAME_TYPE, frameType);

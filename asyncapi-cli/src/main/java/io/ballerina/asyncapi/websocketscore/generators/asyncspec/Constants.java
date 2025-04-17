@@ -162,7 +162,8 @@ public class Constants {
     public static final String X_BALLERINA_WS_CLOSE_FRAME_VALUE = "value";
     public static final String X_BALLERINA_WS_CLOSE_FRAME_VALUE_CLOSE = "close";
 
-    public static final JsonNode SERVER_STREAMING_TYPE = new TextNode(SERVER_STREAMING);
+    public static final JsonNode SERVER_STREAMING_TYPE_NODE = new TextNode(SERVER_STREAMING);
+    public static final JsonNode FRAME_TYPE_CLOSE_NODE = new TextNode(FRAME_TYPE_CLOSE);
 
     /**
      * Enum to select the Ballerina Type.

@@ -81,7 +81,7 @@ import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.WITHIN_PAR
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.WRITE_MESSAGE_QUEUE;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.X_RESPONSE_TYPE;
 import static io.ballerina.asyncapi.websocketscore.GeneratorUtils.escapeIdentifier;
-import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.SERVER_STREAMING_TYPE;
+import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.SERVER_STREAMING_TYPE_NODE;
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createEmptyNodeList;
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createIdentifierToken;
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createNodeList;
@@ -235,7 +235,7 @@ public class RemoteFunctionBodyGenerator {
         // This return type for target data type binding.
         if (extensions != null) {
             JsonNode xResponseType = extensions.get(X_RESPONSE_TYPE);
-            if (Objects.nonNull(xResponseType) && xResponseType.equals(SERVER_STREAMING_TYPE)) {
+            if (SERVER_STREAMING_TYPE_NODE.equals(xResponseType)) {
                 //TODO: Include an if condition to check this only one time
                 createStreamFunctionBodyStatements(statementsList, requestType, responseType, specDispatcherStreamId,
                         isSubscribe);
