@@ -412,13 +412,13 @@ public class AsyncApiComponentMapper {
     public AsyncApiSchema getCloseFrameSchema(TypeSymbol typeSymbol) {
         AsyncApi25Schema closeFrameSchema = new AsyncApi25SchemaImpl();
         closeFrameSchema.setType(AsyncAPIType.OBJECT.toString());
-        List<String> required = new ArrayList<>();
+        List<String> requiredFields = new ArrayList<>();
 
         AsyncApi25Schema frameType = new AsyncApi25SchemaImpl();
         frameType.setType(STRING);
         frameType.setConst(new TextNode(FRAME_TYPE_CLOSE));
         frameType.setDescription(FRAME_TYPE_DESCRIPTION);
-        required.add(FRAME_TYPE);
+        requiredFields.add(FRAME_TYPE);
         closeFrameSchema.addProperty(FRAME_TYPE, frameType);
 
         AsyncApi25Schema statusCode = new AsyncApi25SchemaImpl();
@@ -433,7 +433,7 @@ public class AsyncApiComponentMapper {
                 }
             }
         }
-        required.add(CLOSE_FRAME_STATUS);
+        requiredFields.add(CLOSE_FRAME_STATUS);
         closeFrameSchema.addProperty(CLOSE_FRAME_STATUS, statusCode);
 
         AsyncApi25Schema reason = new AsyncApi25SchemaImpl();
@@ -443,13 +443,13 @@ public class AsyncApiComponentMapper {
             if (recordTypeSymbol.fieldDescriptors().containsKey(CLOSE_FRAME_REASON)) {
                 RecordFieldSymbol reasonField = recordTypeSymbol.fieldDescriptors().get(CLOSE_FRAME_REASON);
                 if (!reasonField.isOptional()) {
-                    required.add(CLOSE_FRAME_REASON);
+                    requiredFields.add(CLOSE_FRAME_REASON);
                 }
             }
         }
         closeFrameSchema.addProperty(CLOSE_FRAME_REASON, reason);
 
-        closeFrameSchema.setRequired(required);
+        closeFrameSchema.setRequired(requiredFields);
         closeFrameSchema.setDescription(CLOSE_FRAME_DESCRIPTION);
         return closeFrameSchema;
     }
