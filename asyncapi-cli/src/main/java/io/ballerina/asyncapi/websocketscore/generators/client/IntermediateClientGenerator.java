@@ -1366,7 +1366,8 @@ public class IntermediateClientGenerator {
         return functionDefinitionNodeList;
     }
 
-    private Map<String, JsonNode> removeCloseFrameFromResponse(Map<String, JsonNode> extensions) {
+    private Map<String, JsonNode> removeCloseFrameFromResponse(Map<String, JsonNode> extensions)
+            throws BallerinaAsyncApiExceptionWs {
         if (Objects.isNull(extensions) || Objects.isNull(extensions.get(X_RESPONSE))) {
             return extensions;
         }
@@ -1397,21 +1398,17 @@ public class IntermediateClientGenerator {
         return extensions;
     }
 
-    private boolean isCloseFrameRef(JsonNode refNode) {
-        try {
-            if (Objects.isNull(refNode)) {
-                return false;
-            }
-            String reference = refNode.asText();
-            String messageName = extractReferenceType(reference);
-            AsyncApiMessage message = asyncApi.getComponents().getMessages().get(messageName);
-            TextNode schemaReference = (TextNode) message.getPayload().get(REF);
-            String schemaName = extractReferenceType(schemaReference.asText());
-            AsyncApiSchema refSchema = (AsyncApiSchema) asyncApi.getComponents().getSchemas().get(schemaName);
-            return isCloseFrameSchema(refSchema);
-        } catch (BallerinaAsyncApiExceptionWs e) {
-            throw new RuntimeException(e);
+    private boolean isCloseFrameRef(JsonNode refNode) throws BallerinaAsyncApiExceptionWs {
+        if (Objects.isNull(refNode)) {
+            return false;
         }
+        String reference = refNode.asText();
+        String messageName = extractReferenceType(reference);
+        AsyncApiMessage message = asyncApi.getComponents().getMessages().get(messageName);
+        TextNode schemaReference = (TextNode) message.getPayload().get(REF);
+        String schemaName = extractReferenceType(schemaReference.asText());
+        AsyncApiSchema refSchema = (AsyncApiSchema) asyncApi.getComponents().getSchemas().get(schemaName);
+        return isCloseFrameSchema(refSchema);
     }
 
     private List<AsyncApiMessage> getAsyncApiMessages() {
