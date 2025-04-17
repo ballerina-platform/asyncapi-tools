@@ -1381,7 +1381,7 @@ public class IntermediateClientGenerator {
                 }
             }
             if (nodes.isEmpty()) {
-                return null;
+                return Collections.emptyMap();
             }
             if (nodes.size() == 1) {
                 newNode.remove(ONEOF);
@@ -1392,7 +1392,7 @@ public class IntermediateClientGenerator {
             extensions.put(X_RESPONSE, newNode);
         } else if (Objects.nonNull(xResponse.get(REF))) {
             if (isCloseFrameRef(xResponse.get(REF))) {
-                return null;
+                return Collections.emptyMap();
             }
         }
         return extensions;
