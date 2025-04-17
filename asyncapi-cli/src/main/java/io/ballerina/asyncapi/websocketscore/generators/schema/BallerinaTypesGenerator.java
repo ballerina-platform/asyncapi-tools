@@ -18,6 +18,7 @@
 package io.ballerina.asyncapi.websocketscore.generators.schema;
 
 import io.apicurio.datamodels.models.Schema;
+import io.apicurio.datamodels.models.asyncapi.AsyncApiSchema;
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25ComponentsImpl;
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25DocumentImpl;
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25SchemaImpl;
@@ -159,7 +160,7 @@ public class BallerinaTypesGenerator {
                     if (!hasConstraints) {
                         hasConstraints = GeneratorUtils.hasConstraints(schema.getValue());
                     }
-                    if (isCloseFrameSchema((AsyncApi25SchemaImpl) schema.getValue())) {
+                    if (isCloseFrameSchema((AsyncApiSchema) schema.getValue())) {
                         continue; // Skip the close frame schema
                     }
                     if (GeneratorUtils.isValidSchemaName(schemaKey)) {
