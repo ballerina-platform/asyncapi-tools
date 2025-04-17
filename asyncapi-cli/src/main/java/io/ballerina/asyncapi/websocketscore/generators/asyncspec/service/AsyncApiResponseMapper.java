@@ -61,6 +61,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Objects;
+import java.util.Set;
 
 import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.AsyncAPIType;
 import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.CLOSE_FRAME;
@@ -99,6 +100,8 @@ public class AsyncApiResponseMapper {
     private final AsyncApi25ComponentsImpl components;
     private final AsyncApiComponentMapper componentMapper;
     private final List<AsyncApiConverterDiagnostic> errors = new ArrayList<>();
+    private static final Set<String> closeFrameTypes = Set.of(CLOSE_FRAME, PREDEFINED_CLOSE_FRAME_TYPE,
+            CUSTOM_CLOSE_FRAME_TYPE);
 
     public AsyncApiResponseMapper(Location location, AsyncApiComponentMapper componentMapper,
                                   SemanticModel semanticModel, AsyncApi25ComponentsImpl components) {
@@ -110,9 +113,7 @@ public class AsyncApiResponseMapper {
 
     public static boolean isCloseFrameRecordType(TypeSymbol typeSymbol) {
         String moduleName = typeSymbol.getModule().flatMap(Symbol::getName).orElse("");
-        if (WEBSOCKET.equals(moduleName) &&
-                (typeSymbol.nameEquals(CLOSE_FRAME) || (typeSymbol.nameEquals(PREDEFINED_CLOSE_FRAME_TYPE) ||
-                        typeSymbol.nameEquals(CUSTOM_CLOSE_FRAME_TYPE)))) {
+        if (WEBSOCKET.equals(moduleName) && closeFrameTypes.contains(typeSymbol.getName().orElse(""))) {
             return true;
         }
         if (typeSymbol.typeKind() == TypeDescKind.TYPE_REFERENCE) {
@@ -120,8 +121,8 @@ public class AsyncApiResponseMapper {
         } else if (typeSymbol.typeKind() == TypeDescKind.RECORD) {
             RecordTypeSymbol bRecordTypeSymbol = (RecordTypeSymbol) typeSymbol;
             if (bRecordTypeSymbol.fieldDescriptors().containsKey(CLOSE_FRAME_TYPE)) {
-                TypeSymbol objectType = bRecordTypeSymbol.fieldDescriptors().get(CLOSE_FRAME_TYPE).typeDescriptor();
-                return isCloseFrameRecordType(objectType);
+                return isCloseFrameRecordType(bRecordTypeSymbol.fieldDescriptors().get(CLOSE_FRAME_TYPE)
+                        .typeDescriptor());
             }
         } else if (typeSymbol.typeKind() == TypeDescKind.INTERSECTION) {
             return isCloseFrameRecordType(((IntersectionTypeSymbol) typeSymbol).effectiveTypeDescriptor());
