@@ -45,6 +45,159 @@ components:
           type: integer
           format: int64
     SimpleNameReference:
+      $ref: CloseFrame
+      type: object
+    NormalClosure:
+      type: object
+      required:
+      - frametype
+      - status
+      properties:
+        frametype:
+          type: string
+          const: close
+          description: WS frame type
+        status:
+          type: integer
+          const: 1000
+          description: status code
+        reason:
+          type: string
+          description: Message to be sent
+      description: Representation of a websocket close-frame
+    GoingAway:
+      type: object
+      required:
+      - frametype
+      - status
+      properties:
+        frametype:
+          type: string
+          const: close
+          description: WS frame type
+        status:
+          type: integer
+          const: 1001
+          description: status code
+        reason:
+          type: string
+          description: Message to be sent
+      description: Representation of a websocket close-frame
+    ProtocolError:
+      type: object
+      required:
+      - frametype
+      - status
+      - reason
+      properties:
+        frametype:
+          type: string
+          const: close
+          description: WS frame type
+        status:
+          type: integer
+          const: 1002
+          description: status code
+        reason:
+          type: string
+          description: Message to be sent
+      description: Representation of a websocket close-frame
+    UnsupportedData:
+      type: object
+      required:
+      - frametype
+      - status
+      - reason
+      properties:
+        frametype:
+          type: string
+          const: close
+          description: WS frame type
+        status:
+          type: integer
+          const: 1003
+          description: status code
+        reason:
+          type: string
+          description: Message to be sent
+      description: Representation of a websocket close-frame
+    InvalidPayload:
+      type: object
+      required:
+      - frametype
+      - status
+      - reason
+      properties:
+        frametype:
+          type: string
+          const: close
+          description: WS frame type
+        status:
+          type: integer
+          const: 1007
+          description: status code
+        reason:
+          type: string
+          description: Message to be sent
+      description: Representation of a websocket close-frame
+    PolicyViolation:
+      type: object
+      required:
+      - frametype
+      - status
+      - reason
+      properties:
+        frametype:
+          type: string
+          const: close
+          description: WS frame type
+        status:
+          type: integer
+          const: 1008
+          description: status code
+        reason:
+          type: string
+          description: Message to be sent
+      description: Representation of a websocket close-frame
+    MessageTooBig:
+      type: object
+      required:
+      - frametype
+      - status
+      - reason
+      properties:
+        frametype:
+          type: string
+          const: close
+          description: WS frame type
+        status:
+          type: integer
+          const: 1009
+          description: status code
+        reason:
+          type: string
+          description: Message to be sent
+      description: Representation of a websocket close-frame
+    InternalServerError:
+      type: object
+      required:
+      - frametype
+      - status
+      - reason
+      properties:
+        frametype:
+          type: string
+          const: close
+          description: WS frame type
+        status:
+          type: integer
+          const: 1011
+          description: status code
+        reason:
+          type: string
+          description: Message to be sent
+      description: Representation of a websocket close-frame
+    CustomCloseFrame:
       type: object
       required:
       - frametype
@@ -61,6 +214,17 @@ components:
           type: string
           description: Message to be sent
       description: Representation of a websocket close-frame
+    CloseFrame:
+      oneOf:
+      - $ref: '#/components/schemas/NormalClosure'
+      - $ref: '#/components/schemas/GoingAway'
+      - $ref: '#/components/schemas/ProtocolError'
+      - $ref: '#/components/schemas/UnsupportedData'
+      - $ref: '#/components/schemas/InvalidPayload'
+      - $ref: '#/components/schemas/PolicyViolation'
+      - $ref: '#/components/schemas/MessageTooBig'
+      - $ref: '#/components/schemas/InternalServerError'
+      - $ref: '#/components/schemas/CustomCloseFrame'
   messages:
     HeartbeatResponse:
       payload:

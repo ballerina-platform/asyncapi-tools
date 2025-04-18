@@ -95,13 +95,12 @@ import static io.ballerina.compiler.syntax.tree.SyntaxKind.SIMPLE_NAME_REFERENCE
  * This class processes mapping responses between Ballerina and AsyncApiSpec.
  */
 public class AsyncApiResponseMapper {
+    private static final Set<String> closeFrameTypes = Set.of(PREDEFINED_CLOSE_FRAME_TYPE, CUSTOM_CLOSE_FRAME_TYPE);
     private final Location location;
     private final SemanticModel semanticModel;
     private final AsyncApi25ComponentsImpl components;
     private final AsyncApiComponentMapper componentMapper;
     private final List<AsyncApiConverterDiagnostic> errors = new ArrayList<>();
-    private static final Set<String> closeFrameTypes = Set.of(CLOSE_FRAME, PREDEFINED_CLOSE_FRAME_TYPE,
-            CUSTOM_CLOSE_FRAME_TYPE);
 
     public AsyncApiResponseMapper(Location location, AsyncApiComponentMapper componentMapper,
                                   SemanticModel semanticModel, AsyncApi25ComponentsImpl components) {
@@ -131,6 +130,12 @@ public class AsyncApiResponseMapper {
             return isCloseFrameRecordType(((IntersectionTypeSymbol) typeSymbol).effectiveTypeDescriptor());
         }
         return false;
+    }
+
+    public static boolean isCloseFrameUnionType(TypeSymbol typeSymbol) {
+        String moduleName = typeSymbol.getModule().flatMap(Symbol::getName).orElse("");
+        String symbolName = typeSymbol.getName().orElse("");
+        return WEBSOCKET.equals(moduleName) && CLOSE_FRAME.equals(symbolName);
     }
 
     public void createResponse(BalAsyncApi25MessageImpl subscribeMessage, BalAsyncApi25MessageImpl componentMessage,
@@ -244,7 +249,7 @@ public class AsyncApiResponseMapper {
         TypeSymbol qualifiedNameReferenceSymbol = (TypeSymbol) semanticModel.symbol(remoteReturnType).get();
         String remoteReturnTypeName = ConverterCommonUtils.unescapeIdentifier(
                 qualifiedNameReferenceSymbol.getName().get());
-        if (isCloseFrameRecordType(qualifiedNameReferenceSymbol)) {
+        if (isCloseFrameUnionType(qualifiedNameReferenceSymbol)) {
             handleRecordTypeSymbol(subscribeMessage, componentMessage, returnDescription,
                     qualifiedNameReferenceSymbol, qualifiedNameReferenceSymbol.getName().get(), isOptional);
         } else if (qualifiedNameReferenceSymbol instanceof TypeReferenceTypeSymbol) {
@@ -437,7 +442,7 @@ public class AsyncApiResponseMapper {
         Map<String, JsonNode> xResponses = componentMessage.getExtensions();
         if (xResponses != null && xResponses.get(X_RESPONSE) != null) {
             if (SERVER_STREAMING_TYPE_NODE.equals(xResponses.get(X_RESPONSE_TYPE)) &&
-                    !isCloseFrameRecordType(returnTypeSymbol)) {
+                    !isCloseFrameRecordType(returnTypeSymbol) && !isCloseFrameUnionType(returnTypeSymbol)) {
                 throw new NoSuchElementException(UNION_STREAMING_SIMPLE_RPC_ERROR);
             }
             ObjectMapper objMapper = ConverterCommonUtils.callObjectMapper();
@@ -464,8 +469,8 @@ public class AsyncApiResponseMapper {
                 setSchemaForOneOfSchema(oneOfSchema, schema);
             }
             //Set the description for oneOfSchema
-            String responseType = isCloseFrameRecordType(returnTypeSymbol) ?
-                    xResponses.get(X_RESPONSE_TYPE).asText() : SIMPLE_RPC;
+            String responseType = (isCloseFrameRecordType(returnTypeSymbol) || isCloseFrameUnionType(returnTypeSymbol))
+                    ? xResponses.get(X_RESPONSE_TYPE).asText() : SIMPLE_RPC;
             setDescriptionAndXResponsesForOneOf(componentMessage, returnDescription, objMapper,
                     oneOfSchema, responseType, isOptional);
         } else {
