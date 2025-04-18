@@ -287,7 +287,6 @@ components:
         - $ref: '#/components/messages/UnsupportedData'
         - $ref: '#/components/messages/InvalidPayload'
         - $ref: '#/components/messages/PolicyViolation'
-        - $ref: '#/components/messages/MessageTooBig'
         - $ref: '#/components/messages/InternalServerError'
         - $ref: '#/components/messages/CustomCloseFrame'
       x-response-type: simple-rpc

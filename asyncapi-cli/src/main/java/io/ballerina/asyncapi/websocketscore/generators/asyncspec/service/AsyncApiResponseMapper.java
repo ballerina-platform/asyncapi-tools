@@ -512,7 +512,12 @@ public class AsyncApiResponseMapper {
     }
 
     private void setSchemaForOneOfSchema(BalAsyncApi25MessageImpl oneOfSchema, BalAsyncApi25MessageImpl schema) {
-        oneOfSchema.addOneOf(schema);
+        if (Objects.isNull(oneOfSchema.getOneOf()) || Objects.isNull(schema.get$ref()) ||
+                oneOfSchema.getOneOf().stream()
+                        .map(message -> (BalAsyncApi25MessageImpl) message)
+                        .noneMatch(message -> schema.get$ref().equals(message.get$ref()))) {
+            oneOfSchema.addOneOf(schema);
+        }
     }
 
 
