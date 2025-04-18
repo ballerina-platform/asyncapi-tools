@@ -17,23 +17,29 @@ channels:
     subscribe:
       message:
         oneOf:
-          - $ref: '#/components/messages/MessageTooBig'
-          - $ref: '#/components/messages/Response'
-          - $ref: '#/components/messages/CloseFrame'
-          - $ref: '#/components/messages/NormalClosure'
-          - $ref: '#/components/messages/SubscribeResponse'
+        - $ref: '#/components/messages/MessageTooBig'
+        - $ref: '#/components/messages/Response'
+        - $ref: '#/components/messages/NormalClosure'
+        - $ref: '#/components/messages/GoingAway'
+        - $ref: '#/components/messages/ProtocolError'
+        - $ref: '#/components/messages/UnsupportedData'
+        - $ref: '#/components/messages/InvalidPayload'
+        - $ref: '#/components/messages/PolicyViolation'
+        - $ref: '#/components/messages/InternalServerError'
+        - $ref: '#/components/messages/CustomCloseFrame'
+        - $ref: '#/components/messages/SubscribeResponse'
     publish:
       message:
         oneOf:
-          - $ref: '#/components/messages/Hello'
-          - $ref: '#/components/messages/Subscribe'
+        - $ref: '#/components/messages/Hello'
+        - $ref: '#/components/messages/Subscribe'
 components:
   schemas:
     Hello:
       type: object
       required:
-        - message
-        - event
+      - message
+      - event
       properties:
         message:
           type: string
@@ -43,9 +49,9 @@ components:
     MessageTooBig:
       type: object
       required:
-        - frametype
-        - status
-        - reason
+      - frametype
+      - status
+      - reason
       properties:
         frametype:
           type: string
@@ -62,8 +68,8 @@ components:
     Response:
       type: object
       required:
-        - event
-        - message
+      - event
+      - message
       properties:
         event:
           type: string
@@ -203,8 +209,8 @@ components:
     CustomCloseFrame:
       type: object
       required:
-        - frametype
-        - status
+      - frametype
+      - status
       properties:
         frametype:
           type: string
@@ -217,22 +223,11 @@ components:
           type: string
           description: Message to be sent
       description: Representation of a websocket close-frame
-    CloseFrame:
-      oneOf:
-      - $ref: '#/components/schemas/NormalClosure'
-      - $ref: '#/components/schemas/GoingAway'
-      - $ref: '#/components/schemas/ProtocolError'
-      - $ref: '#/components/schemas/UnsupportedData'
-      - $ref: '#/components/schemas/InvalidPayload'
-      - $ref: '#/components/schemas/PolicyViolation'
-      - $ref: '#/components/schemas/MessageTooBig'
-      - $ref: '#/components/schemas/InternalServerError'
-      - $ref: '#/components/schemas/CustomCloseFrame'
     Subscribe:
       type: object
       required:
-        - subscribeId
-        - event
+      - subscribeId
+      - event
       properties:
         subscribeId:
           type: integer
@@ -243,7 +238,7 @@ components:
     SubscribeResponse:
       type: object
       required:
-        - id
+      - id
       properties:
         id:
           type: integer
@@ -255,21 +250,47 @@ components:
     Response:
       payload:
         $ref: '#/components/schemas/Response'
-    CloseFrame:
+    NormalClosure:
       payload:
-        $ref: '#/components/schemas/CloseFrame'
+        $ref: '#/components/schemas/NormalClosure'
+    GoingAway:
+      payload:
+        $ref: '#/components/schemas/GoingAway'
+    ProtocolError:
+      payload:
+        $ref: '#/components/schemas/ProtocolError'
+    UnsupportedData:
+      payload:
+        $ref: '#/components/schemas/UnsupportedData'
+    InvalidPayload:
+      payload:
+        $ref: '#/components/schemas/InvalidPayload'
+    PolicyViolation:
+      payload:
+        $ref: '#/components/schemas/PolicyViolation'
+    InternalServerError:
+      payload:
+        $ref: '#/components/schemas/InternalServerError'
+    CustomCloseFrame:
+      payload:
+        $ref: '#/components/schemas/CustomCloseFrame'
     Hello:
       payload:
         $ref: '#/components/schemas/Hello'
       x-response:
         oneOf:
-          - $ref: '#/components/messages/MessageTooBig'
-          - $ref: '#/components/messages/Response'
-          - $ref: '#/components/messages/CloseFrame'
+        - $ref: '#/components/messages/MessageTooBig'
+        - $ref: '#/components/messages/Response'
+        - $ref: '#/components/messages/NormalClosure'
+        - $ref: '#/components/messages/GoingAway'
+        - $ref: '#/components/messages/ProtocolError'
+        - $ref: '#/components/messages/UnsupportedData'
+        - $ref: '#/components/messages/InvalidPayload'
+        - $ref: '#/components/messages/PolicyViolation'
+        - $ref: '#/components/messages/MessageTooBig'
+        - $ref: '#/components/messages/InternalServerError'
+        - $ref: '#/components/messages/CustomCloseFrame'
       x-response-type: simple-rpc
-    NormalClosure:
-      payload:
-        $ref: '#/components/schemas/NormalClosure'
     SubscribeResponse:
       payload:
         $ref: '#/components/schemas/SubscribeResponse'
@@ -278,8 +299,8 @@ components:
         $ref: '#/components/schemas/Subscribe'
       x-response:
         oneOf:
-          - $ref: '#/components/messages/NormalClosure'
-          - $ref: '#/components/messages/SubscribeResponse'
+        - $ref: '#/components/messages/NormalClosure'
+        - $ref: '#/components/messages/SubscribeResponse'
       x-response-type: simple-rpc
 x-dispatcherKey: event
 x-ballerina-ws-closeframe:

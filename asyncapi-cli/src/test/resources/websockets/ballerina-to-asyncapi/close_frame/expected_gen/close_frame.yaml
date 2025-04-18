@@ -18,7 +18,15 @@ channels:
       message:
         oneOf:
         - $ref: '#/components/messages/Response'
-        - $ref: '#/components/messages/CloseFrame'
+        - $ref: '#/components/messages/NormalClosure'
+        - $ref: '#/components/messages/GoingAway'
+        - $ref: '#/components/messages/ProtocolError'
+        - $ref: '#/components/messages/UnsupportedData'
+        - $ref: '#/components/messages/InvalidPayload'
+        - $ref: '#/components/messages/PolicyViolation'
+        - $ref: '#/components/messages/MessageTooBig'
+        - $ref: '#/components/messages/InternalServerError'
+        - $ref: '#/components/messages/CustomCloseFrame'
     publish:
       message:
         $ref: '#/components/messages/Hello'
@@ -212,31 +220,52 @@ components:
           type: string
           description: Message to be sent
       description: Representation of a websocket close-frame
-    CloseFrame:
-      oneOf:
-      - $ref: '#/components/schemas/NormalClosure'
-      - $ref: '#/components/schemas/GoingAway'
-      - $ref: '#/components/schemas/ProtocolError'
-      - $ref: '#/components/schemas/UnsupportedData'
-      - $ref: '#/components/schemas/InvalidPayload'
-      - $ref: '#/components/schemas/PolicyViolation'
-      - $ref: '#/components/schemas/MessageTooBig'
-      - $ref: '#/components/schemas/InternalServerError'
-      - $ref: '#/components/schemas/CustomCloseFrame'
   messages:
     Response:
       payload:
         $ref: '#/components/schemas/Response'
-    CloseFrame:
+    NormalClosure:
       payload:
-        $ref: '#/components/schemas/CloseFrame'
+        $ref: '#/components/schemas/NormalClosure'
+    GoingAway:
+      payload:
+        $ref: '#/components/schemas/GoingAway'
+    ProtocolError:
+      payload:
+        $ref: '#/components/schemas/ProtocolError'
+    UnsupportedData:
+      payload:
+        $ref: '#/components/schemas/UnsupportedData'
+    InvalidPayload:
+      payload:
+        $ref: '#/components/schemas/InvalidPayload'
+    PolicyViolation:
+      payload:
+        $ref: '#/components/schemas/PolicyViolation'
+    MessageTooBig:
+      payload:
+        $ref: '#/components/schemas/MessageTooBig'
+    InternalServerError:
+      payload:
+        $ref: '#/components/schemas/InternalServerError'
+    CustomCloseFrame:
+      payload:
+        $ref: '#/components/schemas/CustomCloseFrame'
     Hello:
       payload:
         $ref: '#/components/schemas/Hello'
       x-response:
         oneOf:
         - $ref: '#/components/messages/Response'
-        - $ref: '#/components/messages/CloseFrame'
+        - $ref: '#/components/messages/NormalClosure'
+        - $ref: '#/components/messages/GoingAway'
+        - $ref: '#/components/messages/ProtocolError'
+        - $ref: '#/components/messages/UnsupportedData'
+        - $ref: '#/components/messages/InvalidPayload'
+        - $ref: '#/components/messages/PolicyViolation'
+        - $ref: '#/components/messages/MessageTooBig'
+        - $ref: '#/components/messages/InternalServerError'
+        - $ref: '#/components/messages/CustomCloseFrame'
         extensions:
           x-required: false
       x-response-type: simple-rpc
