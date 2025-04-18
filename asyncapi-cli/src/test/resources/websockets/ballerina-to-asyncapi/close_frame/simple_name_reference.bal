@@ -25,12 +25,12 @@ service /simple/name/reference on l3 {
     }
 }
 
-type SimpleNameReference websocket:CloseFrame;
+type SimpleNameReference HeartbeatResponse|websocket:CloseFrame;
 
 service class SimpleNameReferenceServer {
     *websocket:Service;
 
-    remote function onHeartbeat(websocket:Caller caller, Heartbeat Heartbeat) returns HeartbeatResponse|SimpleNameReference {
+    remote function onHeartbeat(websocket:Caller caller, Heartbeat Heartbeat) returns SimpleNameReference {
         return websocket:NORMAL_CLOSURE;
     }
 }
