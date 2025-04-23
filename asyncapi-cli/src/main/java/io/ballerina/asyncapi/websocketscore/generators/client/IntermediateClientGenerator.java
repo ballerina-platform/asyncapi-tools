@@ -18,6 +18,7 @@
 package io.ballerina.asyncapi.websocketscore.generators.client;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.BooleanNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -27,10 +28,12 @@ import io.apicurio.datamodels.models.ServerVariable;
 import io.apicurio.datamodels.models.asyncapi.AsyncApiChannelItem;
 import io.apicurio.datamodels.models.asyncapi.AsyncApiMessage;
 import io.apicurio.datamodels.models.asyncapi.AsyncApiOperation;
+import io.apicurio.datamodels.models.asyncapi.AsyncApiSchema;
 import io.apicurio.datamodels.models.asyncapi.AsyncApiServer;
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25DocumentImpl;
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25InfoImpl;
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25MessageImpl;
+import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25Schema;
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25SchemaImpl;
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25ServerImpl;
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25ServersImpl;
@@ -95,6 +98,7 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -144,9 +148,9 @@ import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.LOG_PRINT_
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.MAP_ANY_DATA;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.MAP_STRING;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.MESSAGE;
-import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.MESSAGE_WITH_ID_VAR_CLONE;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.MESSAGE_VAR_NAME;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.MESSAGE_WITH_ID;
+import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.MESSAGE_WITH_ID_VAR_CLONE;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.MESSAGE_WITH_ID_VAR_NAME;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.MODIFIED_URL;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.NOT;
@@ -214,7 +218,10 @@ import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.X_DISPATCH
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.X_RESPONSE;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.X_RESPONSE_TYPE;
 import static io.ballerina.asyncapi.websocketscore.GeneratorUtils.escapeIdentifier;
+import static io.ballerina.asyncapi.websocketscore.GeneratorUtils.extractReferenceType;
 import static io.ballerina.asyncapi.websocketscore.GeneratorUtils.getValidName;
+import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.ONEOF;
+import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.service.AsyncApiRemoteMapper.isCloseFrameSchema;
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createEmptyMinutiaeList;
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createEmptyNodeList;
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createIdentifierToken;
@@ -310,7 +317,6 @@ import static io.ballerina.compiler.syntax.tree.SyntaxKind.WORKER_KEYWORD;
 
 /**
  * This class is used to generate ballerina client file according to given yaml file.
- *
  */
 public class IntermediateClientGenerator {
 
@@ -440,7 +446,6 @@ public class IntermediateClientGenerator {
     public UtilGenerator getBallerinaUtilGenerator() {
         return utilGenerator;
     }
-
 
     /**
      * Generate Class definition Nodes.
@@ -1304,6 +1309,7 @@ public class IntermediateClientGenerator {
                     String messageName = GeneratorUtils.extractReferenceType(reference);
                     AsyncApi25MessageImpl componentMessage = (AsyncApi25MessageImpl) messages.get(messageName);
                     Map<String, JsonNode> extensions = componentMessage.getExtensions();
+                    extensions = removeCloseFrameFromResponse(extensions);
                     FunctionDefinitionNode functionDefinitionNode;
                     if (extensions != null && extensions.get(X_RESPONSE) != null) {
                          functionDefinitionNode = getRemoteFunctionDefinitionNode(messageName, componentMessage,
@@ -1335,6 +1341,11 @@ public class IntermediateClientGenerator {
                     String reference = message.get$ref();
                     String messageName = GeneratorUtils.extractReferenceType(reference);
                     if (!remainingResponseMessages.contains(messageName)) {
+                        AsyncApi25Schema refSchema = (AsyncApi25Schema) asyncApi.getComponents()
+                                .getSchemas().get(messageName);
+                        if (isCloseFrameSchema(refSchema)) {
+                            continue; // Skip close frame schema
+                        }
                         Map<String, JsonNode> extensions = new LinkedHashMap<>();
                         AsyncApi25MessageImpl newMessage = new AsyncApi25MessageImpl();
                         ObjectNode objectNode = new ObjectNode(JsonNodeFactory.instance);
@@ -1353,6 +1364,51 @@ public class IntermediateClientGenerator {
         functionDefinitionNodeList.add(createAttemptToCloseConnectionFunction());
         functionDefinitionNodeList.add(createConnectionCloseFunction(!streamReturns.isEmpty()));
         return functionDefinitionNodeList;
+    }
+
+    private Map<String, JsonNode> removeCloseFrameFromResponse(Map<String, JsonNode> extensions)
+            throws BallerinaAsyncApiExceptionWs {
+        if (Objects.isNull(extensions) || Objects.isNull(extensions.get(X_RESPONSE))) {
+            return extensions;
+        }
+        JsonNode xResponse = extensions.get(X_RESPONSE);
+        if (Objects.nonNull(xResponse.get(ONEOF)) && xResponse.get(ONEOF) instanceof ArrayNode nodes) {
+            ObjectNode newNode = (ObjectNode) extensions.get(X_RESPONSE);
+            for (Iterator<JsonNode> it = nodes.iterator(); it.hasNext(); ) {
+                JsonNode jsonNode = it.next();
+                if (Objects.nonNull(jsonNode.get(REF)) && isCloseFrameRef(jsonNode.get(REF))) {
+                    it.remove();
+                }
+            }
+            if (nodes.isEmpty()) {
+                return Collections.emptyMap();
+            }
+            if (nodes.size() == 1) {
+                newNode.remove(ONEOF);
+                newNode.set(REF, nodes.get(0).get(REF));
+            } else {
+                newNode.set(ONEOF, nodes);
+            }
+            extensions.put(X_RESPONSE, newNode);
+        } else if (Objects.nonNull(xResponse.get(REF))) {
+            if (isCloseFrameRef(xResponse.get(REF))) {
+                return Collections.emptyMap();
+            }
+        }
+        return extensions;
+    }
+
+    private boolean isCloseFrameRef(JsonNode refNode) throws BallerinaAsyncApiExceptionWs {
+        if (Objects.isNull(refNode)) {
+            return false;
+        }
+        String reference = refNode.asText();
+        String messageName = extractReferenceType(reference);
+        AsyncApiMessage message = asyncApi.getComponents().getMessages().get(messageName);
+        TextNode schemaReference = (TextNode) message.getPayload().get(REF);
+        String schemaName = extractReferenceType(schemaReference.asText());
+        AsyncApiSchema refSchema = (AsyncApiSchema) asyncApi.getComponents().getSchemas().get(schemaName);
+        return isCloseFrameSchema(refSchema);
     }
 
     private List<AsyncApiMessage> getAsyncApiMessages() {

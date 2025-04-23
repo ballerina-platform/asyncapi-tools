@@ -1,0 +1,68 @@
+asyncapi: 2.5.0
+info:
+  title: /
+  version: 0.1.0
+servers:
+  development:
+    url: "{server}:{port}/"
+    protocol: ws
+    protocolVersion: "13"
+    variables:
+      server:
+        default: ws://localhost
+      port:
+        default: "9092"
+channels:
+  /custom_close_frame:
+    subscribe:
+      message:
+        $ref: '#/components/messages/MyCloseFrame'
+    publish:
+      message:
+        $ref: '#/components/messages/Heartbeat'
+components:
+  schemas:
+    Heartbeat:
+      type: object
+      required:
+      - heartbeatId
+      - event
+      properties:
+        heartbeatId:
+          type: integer
+          format: int64
+        event:
+          type: string
+          const: Heartbeat
+    MyCloseFrame:
+      type: object
+      required:
+      - frametype
+      - status
+      properties:
+        frametype:
+          type: string
+          const: close
+          description: WS frame type
+        status:
+          type: integer
+          description: status code
+        reason:
+          type: string
+          description: Message to be sent
+      description: Representation of a websocket close-frame
+  messages:
+    MyCloseFrame:
+      payload:
+        $ref: '#/components/schemas/MyCloseFrame'
+    Heartbeat:
+      payload:
+        $ref: '#/components/schemas/Heartbeat'
+      x-response:
+        $ref: '#/components/messages/MyCloseFrame'
+      x-response-type: simple-rpc
+x-dispatcherKey: event
+x-ballerina-ws-closeframe:
+  type: body
+  path: event.frametype
+  value: close

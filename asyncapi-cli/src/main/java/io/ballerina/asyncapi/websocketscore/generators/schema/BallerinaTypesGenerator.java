@@ -18,6 +18,7 @@
 package io.ballerina.asyncapi.websocketscore.generators.schema;
 
 import io.apicurio.datamodels.models.Schema;
+import io.apicurio.datamodels.models.asyncapi.AsyncApiSchema;
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25ComponentsImpl;
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25DocumentImpl;
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25SchemaImpl;
@@ -57,6 +58,7 @@ import java.util.Set;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.CONNECTION_CONFIG;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.HTTP;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.WEBSOCKET;
+import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.service.AsyncApiRemoteMapper.isCloseFrameSchema;
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createEmptyNodeList;
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createNodeList;
 
@@ -157,6 +159,9 @@ public class BallerinaTypesGenerator {
                     String schemaKey = schema.getKey().trim();
                     if (!hasConstraints) {
                         hasConstraints = GeneratorUtils.hasConstraints(schema.getValue());
+                    }
+                    if (isCloseFrameSchema((AsyncApiSchema) schema.getValue())) {
+                        continue; // Skip the close frame schema
                     }
                     if (GeneratorUtils.isValidSchemaName(schemaKey)) {
                         List<Node> schemaDoc = new ArrayList<>();

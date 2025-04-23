@@ -17,6 +17,7 @@
  */
 package io.ballerina.asyncapi.cmd;
 
+import io.ballerina.asyncapi.wsgenerators.common.TestUtils;
 import io.ballerina.cli.launcher.BLauncherException;
 import org.testng.Assert;
 import org.testng.annotations.AfterTest;
@@ -53,6 +54,108 @@ public class BallerinaToAsyncApiWsTests extends AsyncApiWsCommandTest {
             cmd.execute();
         } catch (BLauncherException e) {
             Assert.fail(e.getDetailedMessages().get(0));
+        }
+    }
+
+    @Test(description = "Test ballerina to asyncApi with close frame")
+    public void testBallerinaToAsyncAPIGenerationWithCloseFrame() {
+        String fileName = "close_frame";
+        String fileDirectory = "ballerina-to-asyncapi/close_frame/";
+        Path filePath = resourceDir.resolve(Paths.get(fileDirectory + fileName + ".bal"));
+        String[] args = {"--input", filePath.toString(), "-o", this.tmpDir.toString(), "--protocol", "ws"};
+        AsyncApiCmd cmd = new AsyncApiCmd(tmpDir, false);
+        new CommandLine(cmd).parseArgs(args);
+        try {
+            cmd.execute();
+            TestUtils.compareGeneratedFiles(this.tmpDir.resolve(fileName + "_asyncapi.yaml"),
+                    this.resourceDir.resolve(fileDirectory + "expected_gen/" + fileName + ".yaml"));
+        } catch (BLauncherException | IOException e) {
+            Assert.fail(e.getMessage());
+        }
+    }
+
+    @Test(description = "Test ballerina to asyncApi with normal closure close frame")
+    public void testBallerinaToAsyncAPIGenerationWithNormalClosure() {
+        String fileName = "normal_closure";
+        String fileDirectory = "ballerina-to-asyncapi/close_frame/";
+        Path filePath = resourceDir.resolve(Paths.get(fileDirectory + fileName + ".bal"));
+        String[] args = {"--input", filePath.toString(), "-o", this.tmpDir.toString(), "--protocol", "ws"};
+        AsyncApiCmd cmd = new AsyncApiCmd(tmpDir, false);
+        new CommandLine(cmd).parseArgs(args);
+        try {
+            cmd.execute();
+            TestUtils.compareGeneratedFiles(this.tmpDir.resolve(fileName + "_asyncapi.yaml"),
+                    this.resourceDir.resolve(fileDirectory + "expected_gen/" + fileName + ".yaml"));
+        } catch (BLauncherException | IOException e) {
+            Assert.fail(e.getMessage());
+        }
+    }
+
+    @Test(description = "Test ballerina to asyncApi with custom close frame")
+    public void testBallerinaToAsyncAPIGenerationWithCustomCloseFrame() {
+        String fileName = "custom_close_frame";
+        String fileDirectory = "ballerina-to-asyncapi/close_frame/";
+        Path filePath = resourceDir.resolve(Paths.get(fileDirectory + fileName + ".bal"));
+        String[] args = {"--input", filePath.toString(), "-o", this.tmpDir.toString(), "--protocol", "ws"};
+        AsyncApiCmd cmd = new AsyncApiCmd(tmpDir, false);
+        new CommandLine(cmd).parseArgs(args);
+        try {
+            cmd.execute();
+            TestUtils.compareGeneratedFiles(this.tmpDir.resolve(fileName + "_asyncapi.yaml"),
+                    this.resourceDir.resolve(fileDirectory + "expected_gen/" + fileName + ".yaml"));
+        } catch (BLauncherException | IOException e) {
+            Assert.fail(e.getMessage());
+        }
+    }
+
+    @Test(description = "Test ballerina to asyncApi with simple name reference close frame")
+    public void testBallerinaToAsyncAPIGenerationWithSimpleNameReferenceCloseFrame() {
+        String fileName = "simple_name_reference";
+        String fileDirectory = "ballerina-to-asyncapi/close_frame/";
+        Path filePath = resourceDir.resolve(Paths.get(fileDirectory + fileName + ".bal"));
+        String[] args = {"--input", filePath.toString(), "-o", this.tmpDir.toString(), "--protocol", "ws"};
+        AsyncApiCmd cmd = new AsyncApiCmd(tmpDir, false);
+        new CommandLine(cmd).parseArgs(args);
+        try {
+            cmd.execute();
+            TestUtils.compareGeneratedFiles(this.tmpDir.resolve(fileName + "_asyncapi.yaml"),
+                    this.resourceDir.resolve(fileDirectory + "expected_gen/" + fileName + ".yaml"));
+        } catch (BLauncherException | IOException e) {
+            Assert.fail(e.getMessage());
+        }
+    }
+
+    @Test(description = "Test ballerina to asyncApi with close frame on error remote method")
+    public void testBallerinaToAsyncAPIGenerationWithCloseFrameOnError() {
+        String fileName = "close_frame_on_error";
+        String fileDirectory = "ballerina-to-asyncapi/close_frame/";
+        Path filePath = resourceDir.resolve(Paths.get(fileDirectory + fileName + ".bal"));
+        String[] args = {"--input", filePath.toString(), "-o", this.tmpDir.toString(), "--protocol", "ws"};
+        AsyncApiCmd cmd = new AsyncApiCmd(tmpDir, false);
+        new CommandLine(cmd).parseArgs(args);
+        try {
+            cmd.execute();
+            TestUtils.compareGeneratedFiles(this.tmpDir.resolve(fileName + "_asyncapi.yaml"),
+                    this.resourceDir.resolve(fileDirectory + "expected_gen/" + fileName + ".yaml"));
+        } catch (BLauncherException | IOException e) {
+            Assert.fail(e.getMessage());
+        }
+    }
+
+    @Test(description = "Test ballerina to asyncApi with close frame and stream as return type")
+    public void testBallerinaToAsyncAPIGenerationWithCloseFramesAndStream() {
+        String fileName = "close_frame_and_stream";
+        String fileDirectory = "ballerina-to-asyncapi/close_frame/";
+        Path filePath = resourceDir.resolve(Paths.get(fileDirectory + fileName + ".bal"));
+        String[] args = {"--input", filePath.toString(), "-o", this.tmpDir.toString(), "--protocol", "ws"};
+        AsyncApiCmd cmd = new AsyncApiCmd(tmpDir, false);
+        new CommandLine(cmd).parseArgs(args);
+        try {
+            cmd.execute();
+            TestUtils.compareGeneratedFiles(this.tmpDir.resolve(fileName + "_asyncapi.yaml"),
+                    this.resourceDir.resolve(fileDirectory + "expected_gen/" + fileName + ".yaml"));
+        } catch (BLauncherException | IOException e) {
+            Assert.fail(e.getMessage());
         }
     }
 
