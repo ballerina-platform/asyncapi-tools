@@ -1,0 +1,276 @@
+asyncapi: 2.5.0
+info:
+  title: /
+  version: 0.1.0
+servers:
+  development:
+    url: "{server}:{port}/"
+    protocol: ws
+    protocolVersion: "13"
+    variables:
+      server:
+        default: ws://localhost
+      port:
+        default: "9092"
+channels:
+  /:
+    subscribe:
+      message:
+        oneOf:
+        - $ref: '#/components/messages/Response'
+        - $ref: '#/components/messages/NormalClosure'
+        - $ref: '#/components/messages/GoingAway'
+        - $ref: '#/components/messages/ProtocolError'
+        - $ref: '#/components/messages/UnsupportedData'
+        - $ref: '#/components/messages/InvalidPayload'
+        - $ref: '#/components/messages/PolicyViolation'
+        - $ref: '#/components/messages/MessageTooBig'
+        - $ref: '#/components/messages/InternalServerError'
+        - $ref: '#/components/messages/CustomCloseFrame'
+    publish:
+      message:
+        $ref: '#/components/messages/Hello'
+components:
+  schemas:
+    Hello:
+      type: object
+      required:
+      - message
+      - event
+      properties:
+        message:
+          type: string
+        event:
+          type: string
+          const: Hello
+    Response:
+      type: object
+      required:
+      - event
+      - message
+      properties:
+        event:
+          type: string
+        message:
+          type: string
+    NormalClosure:
+      type: object
+      required:
+      - frametype
+      - status
+      properties:
+        frametype:
+          type: string
+          const: close
+          description: WS frame type
+        status:
+          type: integer
+          const: 1000
+          description: status code
+        reason:
+          type: string
+          description: Message to be sent
+      description: Representation of a websocket close-frame
+    GoingAway:
+      type: object
+      required:
+      - frametype
+      - status
+      properties:
+        frametype:
+          type: string
+          const: close
+          description: WS frame type
+        status:
+          type: integer
+          const: 1001
+          description: status code
+        reason:
+          type: string
+          description: Message to be sent
+      description: Representation of a websocket close-frame
+    ProtocolError:
+      type: object
+      required:
+      - frametype
+      - status
+      - reason
+      properties:
+        frametype:
+          type: string
+          const: close
+          description: WS frame type
+        status:
+          type: integer
+          const: 1002
+          description: status code
+        reason:
+          type: string
+          description: Message to be sent
+      description: Representation of a websocket close-frame
+    UnsupportedData:
+      type: object
+      required:
+      - frametype
+      - status
+      - reason
+      properties:
+        frametype:
+          type: string
+          const: close
+          description: WS frame type
+        status:
+          type: integer
+          const: 1003
+          description: status code
+        reason:
+          type: string
+          description: Message to be sent
+      description: Representation of a websocket close-frame
+    InvalidPayload:
+      type: object
+      required:
+      - frametype
+      - status
+      - reason
+      properties:
+        frametype:
+          type: string
+          const: close
+          description: WS frame type
+        status:
+          type: integer
+          const: 1007
+          description: status code
+        reason:
+          type: string
+          description: Message to be sent
+      description: Representation of a websocket close-frame
+    PolicyViolation:
+      type: object
+      required:
+      - frametype
+      - status
+      - reason
+      properties:
+        frametype:
+          type: string
+          const: close
+          description: WS frame type
+        status:
+          type: integer
+          const: 1008
+          description: status code
+        reason:
+          type: string
+          description: Message to be sent
+      description: Representation of a websocket close-frame
+    MessageTooBig:
+      type: object
+      required:
+      - frametype
+      - status
+      - reason
+      properties:
+        frametype:
+          type: string
+          const: close
+          description: WS frame type
+        status:
+          type: integer
+          const: 1009
+          description: status code
+        reason:
+          type: string
+          description: Message to be sent
+      description: Representation of a websocket close-frame
+    InternalServerError:
+      type: object
+      required:
+      - frametype
+      - status
+      - reason
+      properties:
+        frametype:
+          type: string
+          const: close
+          description: WS frame type
+        status:
+          type: integer
+          const: 1011
+          description: status code
+        reason:
+          type: string
+          description: Message to be sent
+      description: Representation of a websocket close-frame
+    CustomCloseFrame:
+      type: object
+      required:
+      - frametype
+      - status
+      properties:
+        frametype:
+          type: string
+          const: close
+          description: WS frame type
+        status:
+          type: integer
+          description: status code
+        reason:
+          type: string
+          description: Message to be sent
+      description: Representation of a websocket close-frame
+  messages:
+    Response:
+      payload:
+        $ref: '#/components/schemas/Response'
+    NormalClosure:
+      payload:
+        $ref: '#/components/schemas/NormalClosure'
+    GoingAway:
+      payload:
+        $ref: '#/components/schemas/GoingAway'
+    ProtocolError:
+      payload:
+        $ref: '#/components/schemas/ProtocolError'
+    UnsupportedData:
+      payload:
+        $ref: '#/components/schemas/UnsupportedData'
+    InvalidPayload:
+      payload:
+        $ref: '#/components/schemas/InvalidPayload'
+    PolicyViolation:
+      payload:
+        $ref: '#/components/schemas/PolicyViolation'
+    MessageTooBig:
+      payload:
+        $ref: '#/components/schemas/MessageTooBig'
+    InternalServerError:
+      payload:
+        $ref: '#/components/schemas/InternalServerError'
+    CustomCloseFrame:
+      payload:
+        $ref: '#/components/schemas/CustomCloseFrame'
+    Hello:
+      payload:
+        $ref: '#/components/schemas/Hello'
+      x-response:
+        oneOf:
+        - $ref: '#/components/messages/Response'
+        - $ref: '#/components/messages/NormalClosure'
+        - $ref: '#/components/messages/GoingAway'
+        - $ref: '#/components/messages/ProtocolError'
+        - $ref: '#/components/messages/UnsupportedData'
+        - $ref: '#/components/messages/InvalidPayload'
+        - $ref: '#/components/messages/PolicyViolation'
+        - $ref: '#/components/messages/MessageTooBig'
+        - $ref: '#/components/messages/InternalServerError'
+        - $ref: '#/components/messages/CustomCloseFrame'
+        extensions:
+          x-required: false
+      x-response-type: simple-rpc
+x-dispatcherKey: event
+x-ballerina-ws-closeframe:
+  type: body
+  path: event.frametype
+  value: close

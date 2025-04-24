@@ -44,6 +44,9 @@ import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constant
 import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.DISPATCHER_STREAM_ID_VALUE_CANNOT_BE_EMPTY;
 import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.NO_ANNOTATION_PRESENT;
 import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.NO_DISPATCHER_KEY;
+import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.X_BALLERINA_WS_CLOSE_FRAME;
+import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.service.AsyncApiRemoteMapper.containsCloseFrameSchema;
+import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.service.AsyncApiRemoteMapper.getWsCloseFrameExtension;
 
 /**
  * AsyncApiServiceMapper provides functionality for reading and writing AsyncApi, either to and from ballerina service,
@@ -139,6 +142,9 @@ public class AsyncApiServiceMapper {
                 asyncApi.setChannels(generatedChannels);
                 AsyncApi25ComponentsImpl generatedComponents = resourceMapper.getComponents();
                 asyncApi.setComponents(generatedComponents);
+                if (containsCloseFrameSchema(generatedComponents)) {
+                    asyncApi.addExtension(X_BALLERINA_WS_CLOSE_FRAME, getWsCloseFrameExtension());
+                }
             }
         }
         return asyncApi;

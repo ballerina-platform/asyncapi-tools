@@ -161,6 +161,19 @@ public class TestUtils {
         Assert.assertTrue(generatedSyntaxTree.contains(expectedBallerinaContent));
     }
 
+    public static void compareGeneratedFiles(Path generatedFile, Path expectedFile) throws IOException {
+        String generatedContent = getStringFromFile(generatedFile).replaceAll("\\s+", "");
+        String expectedContent = getStringFromFile(expectedFile).replaceAll("\\s+", "");
+        Assert.assertEquals(expectedContent, generatedContent);
+    }
+
+    public static String getStringFromFile(Path path) throws IOException {
+        Stream<String> expectedLines = Files.lines(path);
+        String expectedContent = expectedLines.collect(Collectors.joining(LINE_SEPARATOR));
+        expectedLines.close();
+        return expectedContent.replaceAll(LINE_SEPARATOR, "");
+    }
+
     /**
      * Delete generated ballerina files.
      */

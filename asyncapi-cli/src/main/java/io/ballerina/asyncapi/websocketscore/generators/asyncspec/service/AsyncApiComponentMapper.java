@@ -19,9 +19,13 @@ package io.ballerina.asyncapi.websocketscore.generators.asyncspec.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.BooleanNode;
+import com.fasterxml.jackson.databind.node.IntNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 import io.apicurio.datamodels.models.Schema;
+import io.apicurio.datamodels.models.asyncapi.AsyncApiSchema;
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25ComponentsImpl;
+import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25Schema;
+import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25SchemaImpl;
 import io.apicurio.datamodels.models.union.BooleanUnionValueImpl;
 import io.ballerina.asyncapi.websocketscore.generators.asyncspec.diagnostic.AsyncApiConverterDiagnostic;
 import io.ballerina.asyncapi.websocketscore.generators.asyncspec.diagnostic.DiagnosticMessages;
@@ -39,6 +43,7 @@ import io.ballerina.compiler.api.symbols.MapTypeSymbol;
 import io.ballerina.compiler.api.symbols.ReadonlyTypeSymbol;
 import io.ballerina.compiler.api.symbols.RecordFieldSymbol;
 import io.ballerina.compiler.api.symbols.RecordTypeSymbol;
+import io.ballerina.compiler.api.symbols.SingletonTypeSymbol;
 import io.ballerina.compiler.api.symbols.Symbol;
 import io.ballerina.compiler.api.symbols.SymbolKind;
 import io.ballerina.compiler.api.symbols.TupleTypeSymbol;
@@ -60,6 +65,11 @@ import java.util.NoSuchElementException;
 import java.util.Optional;
 
 import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.AsyncAPIType;
+import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.CLOSE_FRAME_DESCRIPTION;
+import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.CLOSE_FRAME_REASON;
+import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.CLOSE_FRAME_REASON_DESCRIPTION;
+import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.CLOSE_FRAME_STATUS;
+import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.CLOSE_FRAME_STATUS_DESCRIPTION;
 import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.DISPATCHERKEY_NOT_PRESENT_IN_RECORD_FIELD;
 import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.DISPATCHERKEY_NULLABLE_EXCEPTION;
 import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.DISPATCHERKEY_OPTIONAL_EXCEPTION;
@@ -67,6 +77,9 @@ import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constant
 import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.DOUBLE;
 import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.FALSE;
 import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.FLOAT;
+import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.FRAME_TYPE;
+import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.FRAME_TYPE_CLOSE_NODE;
+import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.FRAME_TYPE_DESCRIPTION;
 import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.INTEGER;
 import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.NUMBER;
 import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.OBJECT;
@@ -74,6 +87,7 @@ import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constant
 import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.STRING;
 import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.TRUE;
 import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.X_NULLABLE;
+import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.service.AsyncApiResponseMapper.isCloseFrameRecordType;
 import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.utils.ConverterCommonUtils.getAsyncApiSchema;
 
 
@@ -125,6 +139,10 @@ public class AsyncApiComponentMapper {
                 type = excludeReadonlyIfPresent(type);
             }
             BalAsyncApi25SchemaImpl schema = new BalAsyncApi25SchemaImpl();
+            if (isCloseFrameRecordType(typeSymbol)) {
+                this.components.addSchema(componentName, getCloseFrameSchema(type));
+                return;
+            }
             switch (type.typeKind()) {
                 case RECORD:
                     // Handle typeInclusions with allOf type binding
@@ -386,6 +404,54 @@ public class AsyncApiComponentMapper {
             this.components.addSchema(componentName, componentSchema);
         }
         return componentSchema;
+    }
+
+    /**
+     * This function is used to get the ballerina close frame schema.
+     */
+    public AsyncApiSchema getCloseFrameSchema(TypeSymbol typeSymbol) {
+        AsyncApi25Schema closeFrameSchema = new AsyncApi25SchemaImpl();
+        closeFrameSchema.setType(AsyncAPIType.OBJECT.toString());
+        List<String> requiredFields = new ArrayList<>();
+
+        AsyncApi25Schema frameType = new AsyncApi25SchemaImpl();
+        frameType.setType(STRING);
+        frameType.setConst(FRAME_TYPE_CLOSE_NODE);
+        frameType.setDescription(FRAME_TYPE_DESCRIPTION);
+        requiredFields.add(FRAME_TYPE);
+        closeFrameSchema.addProperty(FRAME_TYPE, frameType);
+
+        AsyncApi25Schema statusCode = new AsyncApi25SchemaImpl();
+        statusCode.setType(INTEGER);
+        statusCode.setDescription(CLOSE_FRAME_STATUS_DESCRIPTION);
+        if (typeSymbol instanceof RecordTypeSymbol recordTypeSymbol) {
+            if (recordTypeSymbol.fieldDescriptors().containsKey(CLOSE_FRAME_STATUS)) {
+                RecordFieldSymbol statusField = recordTypeSymbol.fieldDescriptors().get(CLOSE_FRAME_STATUS);
+                if (statusField.typeDescriptor() instanceof SingletonTypeSymbol singletonTypeSymbol) {
+                    int status = Integer.parseInt(singletonTypeSymbol.signature());
+                    statusCode.setConst(new IntNode(status));
+                }
+            }
+        }
+        requiredFields.add(CLOSE_FRAME_STATUS);
+        closeFrameSchema.addProperty(CLOSE_FRAME_STATUS, statusCode);
+
+        AsyncApi25Schema reason = new AsyncApi25SchemaImpl();
+        reason.setType(STRING);
+        reason.setDescription(CLOSE_FRAME_REASON_DESCRIPTION);
+        if (typeSymbol instanceof RecordTypeSymbol recordTypeSymbol) {
+            if (recordTypeSymbol.fieldDescriptors().containsKey(CLOSE_FRAME_REASON)) {
+                RecordFieldSymbol reasonField = recordTypeSymbol.fieldDescriptors().get(CLOSE_FRAME_REASON);
+                if (!reasonField.isOptional()) {
+                    requiredFields.add(CLOSE_FRAME_REASON);
+                }
+            }
+        }
+        closeFrameSchema.addProperty(CLOSE_FRAME_REASON, reason);
+
+        closeFrameSchema.setRequired(requiredFields);
+        closeFrameSchema.setDescription(CLOSE_FRAME_DESCRIPTION);
+        return closeFrameSchema;
     }
 
     private BalAsyncApi25SchemaImpl handleMapType(String componentName, BalAsyncApi25SchemaImpl property,
