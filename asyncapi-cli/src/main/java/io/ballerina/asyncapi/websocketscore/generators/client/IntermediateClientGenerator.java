@@ -51,6 +51,7 @@ import io.ballerina.compiler.syntax.tree.BuiltinSimpleNameReferenceNode;
 import io.ballerina.compiler.syntax.tree.CaptureBindingPatternNode;
 import io.ballerina.compiler.syntax.tree.CheckExpressionNode;
 import io.ballerina.compiler.syntax.tree.ClassDefinitionNode;
+import io.ballerina.compiler.syntax.tree.ExpressionNode;
 import io.ballerina.compiler.syntax.tree.ExpressionStatementNode;
 import io.ballerina.compiler.syntax.tree.FieldAccessExpressionNode;
 import io.ballerina.compiler.syntax.tree.FunctionArgumentNode;
@@ -98,6 +99,7 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
@@ -107,7 +109,9 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
+import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.AND_SPACE;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.API_KEY_CONFIG;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.ATTEMPT_CON_CLOSE;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.ATTEMPT_TO_CLOSE_CONNECTION;
@@ -136,6 +140,9 @@ import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.EQUAL_SPAC
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.ERROR;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.FAIL_TO_READ_ENDPOINT_DETAILS;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.GET_COMBINE_HEADERS;
+import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.GET_PIPE_NAME_STATEMENT;
+import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.GET_PIPE_NAME_FUNCTION_TEMPLATE;
+import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.GET_RECORD_NAME_FUNCTION_TEMPLATE;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.HEADER_PARAM;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.HEADER_PARAMETERS;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.HEADER_PARAMS;
@@ -143,6 +150,7 @@ import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.IMMEDIATE_
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.INIT;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.IS;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.IS_ACTIVE;
+import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.LANG_REGEXP;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.LOG;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.LOG_PRINT_ERR;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.MAP_ANY_DATA;
@@ -163,6 +171,7 @@ import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.PIPES;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.PIPE_COLON_PIPE;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.PIPE_ERR;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.PIPE_ERROR_NODE;
+import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.PIPE_NAME;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.PIPE_VAR;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.PLUS_SPACE;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.PRODUCE;
@@ -170,6 +179,7 @@ import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.QUERY_PARA
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.QUERY_PARAMETERS;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.QUERY_PARAMS;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.QUEUE_DEFAULT_SIZE;
+import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.READONLY;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.READ_MESSAGE;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.READ_MESSAGE_CLIENT_READ_ERROR;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.READ_MESSAGE_PIPE_PRODUCE_ERROR;
@@ -178,6 +188,7 @@ import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.REF;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.REMOTE_METHOD_NAME_PREFIX;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.REMOVE_PIPES;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.REMOVE_STREAM_GENERATORS;
+import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.RESPONSE_MAP;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.RETURN;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.RETURN_DESCRIPTION;
 import static io.ballerina.asyncapi.websocketscore.GeneratorConstants.SELF;
@@ -326,6 +337,7 @@ public class IntermediateClientGenerator {
     private final List<ImportDeclarationNode> imports;
     private final BallerinaTypesGenerator ballerinaSchemaGenerator;
     private final RemoteFunctionReturnTypeGenerator functionReturnType;
+    private final Map<String, String> responseMap = new HashMap<>();
     private UtilGenerator utilGenerator;
     private List<TypeDefinitionNode> typeDefinitionNodeList;
     private List<String> apiKeyNameList = new ArrayList<>();
@@ -421,6 +433,10 @@ public class IntermediateClientGenerator {
                 , XLIBB_PIPE);
         ImportDeclarationNode importForLog = GeneratorUtils.getImportDeclarationNode(GeneratorConstants.BALLERINA
                 , LOG);
+        ImportDeclarationNode importForRegex = GeneratorUtils.getImportDeclarationNode(GeneratorConstants.BALLERINA
+                , LANG_REGEXP);
+
+        imports.add(importForRegex);
 
         imports.add(importForLog);
         imports.add(importForWebsocket);
@@ -499,6 +515,8 @@ public class IntermediateClientGenerator {
         List<Node> memberNodeList = new ArrayList<>(createClassInstanceVariables(isStreamPresent));
 
         memberNodeList.add(createInitFunction(isStreamPresent));
+        memberNodeList.add(createGetRecordNameFunction());
+        memberNodeList.add(createGetPipeNameFunction());
         memberNodeList.add(createStartMessageWriting());
         memberNodeList.add(createStartMessageReading());
         memberNodeList.addAll(remoteFunctionNodes);
@@ -541,6 +559,7 @@ public class IntermediateClientGenerator {
         List<StatementNode> whileStatements = new ArrayList<>();
         whileStatements.add(getIsActiveCheck());
 
+        // Expected ballerina statement:
         // Message|websocket:Error message = self.clientEp->readMessage();
         FieldAccessExpressionNode clientEp = createFieldAccessExpressionNode(
                 createSimpleNameReferenceNode(createIdentifierToken(SELF)), dotToken,
@@ -558,15 +577,21 @@ public class IntermediateClientGenerator {
         whileStatements.add(responseMessage);
         whileStatements.add(getIsWsError(READ_MESSAGE_CLIENT_READ_ERROR, MESSAGE_VAR_NAME));
 
-        // pipe:Pipe pipe = self.pipes.getPipe(message.event);
-        String messageEventAccessor = String.format(SELF_PIPES_GET_PIPE, MESSAGE_VAR_NAME + DOT +
-                escapeIdentifier(this.dispatcherKey));
+        // Expected ballerina statement:
+        // string pipeName = self.getPipeName(message.event);
+        StatementNode getPipeNameStatement = NodeParser.parseStatement(String.format(GET_PIPE_NAME_STATEMENT,
+                escapeIdentifier(dispatcherKey)));
+
+        // Expected ballerina statement:
+        // pipe:Pipe pipe = self.pipes.getPipe(pipeName);
+        String messageEventAccessor = String.format(SELF_PIPES_GET_PIPE, PIPE_NAME);
         if (Objects.isNull(this.dispatcherStreamId)) {
             VariableDeclarationNode pipesVar = createVariableDeclarationNode(createEmptyNodeList(), null,
                     createTypedBindingPatternNode(NodeParser.parseTypeDescriptor(PIPE_COLON_PIPE),
                             createFieldBindingPatternVarnameNode(createSimpleNameReferenceNode(
                                     createIdentifierToken(SIMPLE_PIPE)))), equalToken,
                     NodeParser.parseExpression(messageEventAccessor), semicolonToken);
+            whileStatements.add(getPipeNameStatement);
             whileStatements.add(pipesVar);
         } else {
             whileStatements.add(NodeParser.parseStatement(PIPE_VAR + SEMICOLON));
@@ -578,11 +603,12 @@ public class IntermediateClientGenerator {
                                     MESSAGE_WITH_ID_VAR_NAME + DOT + escapeIdentifier(this.dispatcherStreamId)) +
                                     SEMICOLON)), closeBraceToken),
                     createElseBlockNode(createToken(ELSE_KEYWORD), createBlockStatementNode(openBraceToken,
-                            createNodeList(NodeParser.parseStatement(SIMPLE_PIPE + EQUAL_SPACE +
+                            createNodeList(getPipeNameStatement, NodeParser.parseStatement(SIMPLE_PIPE + EQUAL_SPACE +
                                     messageEventAccessor + SEMICOLON)), closeBraceToken)));
             whileStatements.add(pipeConditional);
         }
 
+        // Expected ballerina statement:
         // pipe:Error? pipeErr = pipe.produce(message, 5);
         MethodCallExpressionNode produceExpression = createMethodCallExpressionNode(createBasicLiteralNode(VAR_KEYWORD,
                         createIdentifierToken(SIMPLE_PIPE)), dotToken, createSimpleNameReferenceNode(
@@ -651,6 +677,14 @@ public class IntermediateClientGenerator {
         message.addProperty(dispatcherKey, stringEventSchema);
         message.addExtension(READ_ONLY, BooleanNode.TRUE);
         return message;
+    }
+
+    private Node createGetPipeNameFunction() {
+        return NodeParser.parseObjectMember(GET_PIPE_NAME_FUNCTION_TEMPLATE);
+    }
+
+    private Node createGetRecordNameFunction() {
+        return NodeParser.parseObjectMember(GET_RECORD_NAME_FUNCTION_TEMPLATE);
     }
 
     private Node createStartMessageWriting() {
@@ -1278,6 +1312,19 @@ public class IntermediateClientGenerator {
         if (apiKeyFieldNode != null) {
             fieldNodeList.add(apiKeyFieldNode);
         }
+
+        // Add response map
+        String jsonString = responseMap.entrySet().stream()
+                .map(entry -> String.format("\"%s\": \"%s\"", entry.getKey(), entry.getValue()))
+                .collect(Collectors.joining(",\n\t\t", "{\n\t\t", "\n\t}"));
+
+        Node typeDescriptor = NodeParser.parseTypeDescriptor(READONLY + AND_SPACE + MAP_STRING);
+        ExpressionNode expression = NodeParser.parseExpression(jsonString);
+        ObjectFieldNode responseMapField =
+                createObjectFieldNode(null, null, qualifiersWithPrivateAndFinal, typeDescriptor,
+                        createIdentifierToken(RESPONSE_MAP), createToken(EQUAL_TOKEN), expression,
+                        semicolonToken);
+        fieldNodeList.add(responseMapField);
         return fieldNodeList;
     }
 
@@ -1593,6 +1640,18 @@ public class IntermediateClientGenerator {
         String requestTypeCamelCaseName = Character.toLowerCase(messageName.charAt(0)) + messageName.substring(1);
         FunctionBodyNode functionBodyNode = remoteFunctionBodyGenerator.getFunctionBodyNode(extensions,
                 requestTypeCamelCaseName, specDispatcherStreamId, isSubscribe, responseType);
+
+        // Add types to response map
+        if (Objects.nonNull(responseType)) {
+            if (responseType.contains("|")) {
+                String[] responseTypes = responseType.split("\\|");
+                for (String type : responseTypes) {
+                    this.responseMap.put(type, requestTypeCamelCaseName);
+                }
+            } else {
+                this.responseMap.put(responseType, requestTypeCamelCaseName);
+            }
+        }
 
         //Create remote function details
         NodeList<Token> qualifierList = createNodeList(createToken(REMOTE_KEYWORD), createToken(ISOLATED_KEYWORD));
