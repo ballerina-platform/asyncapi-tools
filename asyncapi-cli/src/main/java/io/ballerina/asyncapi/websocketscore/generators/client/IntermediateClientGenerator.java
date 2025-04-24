@@ -1642,7 +1642,7 @@ public class IntermediateClientGenerator {
                 requestTypeCamelCaseName, specDispatcherStreamId, isSubscribe, responseType);
 
         // Add types to response map
-        if (responseType != null) {
+        if (Objects.nonNull(responseType)) {
             if (responseType.contains("|")) {
                 String[] responseTypes = responseType.split("\\|");
                 for (String type : responseTypes) {
