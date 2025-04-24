@@ -37,7 +37,7 @@ public client isolated class GraphqlOverWebsocketClient {
     # + config - The configurations to be used when initializing the `connector` 
     # + serviceUrl - URL of the target service 
     # + return - An error if connector initialization failed 
-    public isolated function init(websocket:ClientConfiguration clientConfig =  {}, string serviceUrl = "ws://localhost:9090/graphql_over_websocket") returns error? {
+    public isolated function init(websocket:ClientConfiguration clientConfig = {}, string serviceUrl = "ws://localhost:9090/graphql_over_websocket") returns error? {
         self.pipes = new ();
         self.writeMessageQueue = new (1000);
         websocket:Client websocketEp = check new (serviceUrl, clientConfig);
