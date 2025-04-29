@@ -1,31 +1,44 @@
+//  Copyright (c) 2025, WSO2 LLC. (http://www.wso2.com).
+//
+//  WSO2 LLC. licenses this file to you under the Apache License,
+//  Version 2.0 (the "License"); you may not use this file except
+//  in compliance with the License.
+//  You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+//  Unless required by applicable law or agreed to in writing,
+//  software distributed under the License is distributed on an
+//  "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+//  KIND, either express or implied. See the License for the
+//  specific language governing permissions and limitations
+//  under the License.
+
 import ballerina/lang.regexp;
 import ballerina/log;
 import ballerina/websocket;
 
 import xlibb/pipe;
 
-public client isolated class ChatClient {
+public client isolated class GraphqlOverWebsocketClient {
     private final websocket:Client clientEp;
     private final pipe:Pipe writeMessageQueue;
     private final PipesMap pipes;
-    private final StreamGeneratorsMap streamGenerators;
     private boolean isActive;
     private final readonly & map<string> responseMap = {
-        "CompleteMessage": "subscribeMessage",
-        "ConnectionAckMessage": "connectionInitMessage",
+        "Complete": "subscribe",
+        "Next": "subscribe",
         "PongMessage": "pingMessage",
-        "NextMessage": "subscribeMessage",
-        "ErrorMessage": "subscribeMessage"
+        "ConnectionAck": "connectionInit"
     };
 
     # Gets invoked to initialize the `connector`.
     #
-    # + config - The configurations to be used when initializing the `connector`
-    # + serviceUrl - URL of the target service
-    # + return - An error if connector initialization failed
-    public isolated function init(string serviceUrl, websocket:ClientConfiguration clientConfig =  {}) returns error? {
+    # + config - The configurations to be used when initializing the `connector` 
+    # + serviceUrl - URL of the target service 
+    # + return - An error if connector initialization failed 
+    public isolated function init(websocket:ClientConfiguration clientConfig = {}, string serviceUrl = "ws://localhost:9090/graphql_over_websocket") returns error? {
         self.pipes = new ();
-        self.streamGenerators = new ();
         self.writeMessageQueue = new (1000);
         websocket:Client websocketEp = check new (serviceUrl, clientConfig);
         self.clientEp = websocketEp;
@@ -109,18 +122,13 @@ public client isolated class ChatClient {
         }
     }
 
-    # subscribemessage description
-    #
-    # + subscribeMessage - subscribe payload description
-    # + timeout - waiting period to keep the event in the buffer in seconds
-    # + return - subscribe response description
-    remote isolated function doSubscribeMessage(SubscribeMessage subscribeMessage, decimal timeout) returns stream<NextMessage|CompleteMessage|ErrorMessage,error?>|error {
+    remote isolated function doConnectionInit(ConnectionInit connectionInit, decimal timeout) returns ConnectionAck|error {
         lock {
             if !self.isActive {
                 return error("ConnectionError: Connection has been closed");
             }
         }
-        Message|error message = subscribeMessage.cloneWithType();
+        Message|error message = connectionInit.cloneWithType();
         if message is error {
             self.attemptToCloseConnection();
             return error("DataBindingError: Error in cloning message", message);
@@ -130,13 +138,17 @@ public client isolated class ChatClient {
             self.attemptToCloseConnection();
             return error("PipeError: Error in producing message", pipeErr);
         }
-        stream<NextMessage|CompleteMessage|ErrorMessage,error?> streamMessages;
-        lock {
-            NextMessageCompleteMessageErrorMessageStreamGenerator streamGenerator = new (self.pipes, "subscribeMessage", timeout);
-            self.streamGenerators.addStreamGenerator(streamGenerator);
-            streamMessages = new (streamGenerator);
+        Message|pipe:Error responseMessage = self.pipes.getPipe("connectionInit").consume(timeout);
+        if responseMessage is pipe:Error {
+            self.attemptToCloseConnection();
+            return error("PipeError: Error in consuming message", responseMessage);
         }
-        return streamMessages;
+        ConnectionAck|error connectionAck = responseMessage.cloneWithType();
+        if connectionAck is error {
+            self.attemptToCloseConnection();
+            return error("DataBindingError: Error in cloning message", connectionAck);
+        }
+        return connectionAck;
     }
 
     remote isolated function doPingMessage(PingMessage pingMessage, decimal timeout) returns PongMessage|error {
@@ -168,13 +180,13 @@ public client isolated class ChatClient {
         return pongMessage;
     }
 
-    remote isolated function doPongMessage(PongMessage pongMessage, decimal timeout) returns error? {
+    remote isolated function doSubscribe(Subscribe subscribe, decimal timeout) returns Next|Complete|error {
         lock {
             if !self.isActive {
                 return error("ConnectionError: Connection has been closed");
             }
         }
-        Message|error message = pongMessage.cloneWithType();
+        Message|error message = subscribe.cloneWithType();
         if message is error {
             self.attemptToCloseConnection();
             return error("DataBindingError: Error in cloning message", message);
@@ -184,44 +196,26 @@ public client isolated class ChatClient {
             self.attemptToCloseConnection();
             return error("PipeError: Error in producing message", pipeErr);
         }
-    }
-
-    remote isolated function doConnectionInitMessage(ConnectionInitMessage connectionInitMessage, decimal timeout) returns ConnectionAckMessage|error {
-        lock {
-            if !self.isActive {
-                return error("ConnectionError: Connection has been closed");
-            }
-        }
-        Message|error message = connectionInitMessage.cloneWithType();
-        if message is error {
-            self.attemptToCloseConnection();
-            return error("DataBindingError: Error in cloning message", message);
-        }
-        pipe:Error? pipeErr = self.writeMessageQueue.produce(message, timeout);
-        if pipeErr is pipe:Error {
-            self.attemptToCloseConnection();
-            return error("PipeError: Error in producing message", pipeErr);
-        }
-        Message|pipe:Error responseMessage = self.pipes.getPipe("connectionInitMessage").consume(timeout);
+        Message|pipe:Error responseMessage = self.pipes.getPipe("subscribe").consume(timeout);
         if responseMessage is pipe:Error {
             self.attemptToCloseConnection();
             return error("PipeError: Error in consuming message", responseMessage);
         }
-        ConnectionAckMessage|error connectionAckMessage = responseMessage.cloneWithType();
-        if connectionAckMessage is error {
+        Next|Complete|error unionResult = responseMessage.cloneWithType();
+        if unionResult is error {
             self.attemptToCloseConnection();
-            return error("DataBindingError: Error in cloning message", connectionAckMessage);
+            return error("DataBindingError: Error in cloning message", unionResult);
         }
-        return connectionAckMessage;
+        return unionResult;
     }
 
-    remote isolated function doCompleteMessage(CompleteMessage completeMessage, decimal timeout) returns error? {
+    remote isolated function doComplete(Complete complete, decimal timeout) returns error? {
         lock {
             if !self.isActive {
                 return error("ConnectionError: Connection has been closed");
             }
         }
-        Message|error message = completeMessage.cloneWithType();
+        Message|error message = complete.cloneWithType();
         if message is error {
             self.attemptToCloseConnection();
             return error("DataBindingError: Error in cloning message", message);
@@ -245,7 +239,6 @@ public client isolated class ChatClient {
             self.isActive = false;
             check self.writeMessageQueue.immediateClose();
             check self.pipes.removePipes();
-            check self.streamGenerators.removeStreamGenerators();
             check self.clientEp->close();
         }
     };

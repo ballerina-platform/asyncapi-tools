@@ -1,3 +1,4 @@
+import ballerina/lang.regexp;
 import ballerina/log;
 import ballerina/websocket;
 
@@ -8,6 +9,9 @@ public client isolated class PayloadVv1versionv2versionnameClient {
     private final pipe:Pipe writeMessageQueue;
     private final PipesMap pipes;
     private boolean isActive;
+    private final readonly & map<string> responseMap = {
+        "UnSubscribe": "subscribe"
+    };
 
     # Gets invoked to initialize the `connector`.
     #
@@ -25,6 +29,23 @@ public client isolated class PayloadVv1versionv2versionnameClient {
         self.startMessageWriting();
         self.startMessageReading();
         return;
+    }
+
+    private isolated function getRecordName(string dispatchingValue) returns string {
+        string[] words = regexp:split(re `[\W_]+`, dispatchingValue);
+        string result = "";
+        foreach string word in words {
+            result += word.substring(0, 1).toUpperAscii() + word.substring(1).toLowerAscii();
+        }
+        return result;
+    }
+
+    private isolated function getPipeName(string responseType) returns string {
+        string responseRecordType = self.getRecordName(responseType);
+        if self.responseMap.hasKey(responseRecordType) {
+            return self.responseMap.get(responseRecordType);
+        }
+        return responseType;
     }
 
     # Used to write messages to the websocket.
@@ -77,7 +98,8 @@ public client isolated class PayloadVv1versionv2versionnameClient {
                 if messageWithId is MessageWithId {
                     pipe = self.pipes.getPipe(messageWithId.id);
                 } else {
-                    pipe = self.pipes.getPipe(message.event);
+                    string pipeName = self.getPipeName(message.event);
+                    pipe = self.pipes.getPipe(pipeName);
                 }
                 pipe:Error? pipeErr = pipe.produce(message, 5);
                 if pipeErr is pipe:Error {

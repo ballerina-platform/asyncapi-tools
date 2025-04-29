@@ -71,6 +71,7 @@ public class GeneratorConstants {
     public static final String XLIBB = "xlibb";
     public static final String XLIBB_PIPE = "pipe";
     public static final String LOG = "log";
+    public static final String LANG_REGEXP = "lang.regexp";
     public static final String X_DISPATCHER_KEY = "x-dispatcherKey";
     public static final String X_DISPATCHER_STREAM_ID = "x-dispatcherStreamId";
     public static final String CLIENT_CLASS_NAME = "Client";
@@ -80,6 +81,8 @@ public class GeneratorConstants {
     public static final String SPACE = " ";
     public static final String EQUAL_SPACE = " = ";
     public static final String PLUS_SPACE = " + ";
+    public static final String AND_SPACE = " & ";
+    public static final String READONLY = "readonly";
     public static final String NOT = "!";
     public static final String CONNECTION_CLOSE = "connectionClose";
     public static final String CHECK_PATH_FOR_QUERY_PARAM = "check getPathForQueryParam(queryParam)";
@@ -287,6 +290,26 @@ public class GeneratorConstants {
     public static final String PIPE_VAR = PIPE_COLON_PIPE + SPACE + SIMPLE_PIPE;
     public static final String CONNECTION_CLOSE_STATEMENT = "error? connectionClose = self->connectionClose();";
     public static final String CREATE_UUID_STATEMENT = "%s.%s = uuid:createType1AsString();";
+    public static final String RESPONSE_MAP = "responseMap";
+    public static final String PIPE_NAME = "pipeName";
+    public static final String GET_PIPE_NAME_STATEMENT = "string pipeName = self.getPipeName(message.%s);";
+    public static final String GET_PIPE_NAME_FUNCTION_TEMPLATE = """
+            private isolated function getPipeName(string responseType) returns string {
+                string responseRecordType = self.getRecordName(responseType);
+                if self.responseMap.hasKey(responseRecordType) {
+                    return self.responseMap.get(responseRecordType);
+                }
+                return responseType;
+            }""";
+    public static final String GET_RECORD_NAME_FUNCTION_TEMPLATE = """
+            private isolated function getRecordName(string dispatchingValue) returns string {
+                 string[] words = regexp:split(re `[\\W_]+`, dispatchingValue);
+                 string result = "";
+                 foreach string word in words {
+                     result += word.substring(0, 1).toUpperAscii() + word.substring(1).toLowerAscii();
+                 }
+                 return result;
+            }""";
     public static final Map<String, String> TYPE_MAP;
 
     static {

@@ -1,0 +1,238 @@
+asyncapi: 2.5.0
+info:
+  title: Simple Name Reference
+  version: 0.1.0
+servers:
+  development:
+    url: "{server}:{port}/simple/name/reference"
+    protocol: ws
+    protocolVersion: "13"
+    variables:
+      server:
+        default: ws://localhost
+      port:
+        default: "9093"
+channels:
+  /simple_name_reference:
+    subscribe:
+      message:
+        $ref: '#/components/messages/SimpleNameReference'
+    publish:
+      message:
+        $ref: '#/components/messages/Heartbeat'
+components:
+  schemas:
+    Heartbeat:
+      type: object
+      required:
+      - heartbeatId
+      - event
+      properties:
+        heartbeatId:
+          type: integer
+          format: int64
+        event:
+          type: string
+          const: Heartbeat
+    HeartbeatResponse:
+      type: object
+      required:
+      - id
+      properties:
+        id:
+          type: integer
+          format: int64
+    NormalClosure:
+      type: object
+      required:
+      - frametype
+      - status
+      properties:
+        frametype:
+          type: string
+          const: close
+          description: WS frame type
+        status:
+          type: integer
+          const: 1000
+          description: status code
+        reason:
+          type: string
+          description: Message to be sent
+      description: Representation of a websocket close-frame
+    GoingAway:
+      type: object
+      required:
+      - frametype
+      - status
+      properties:
+        frametype:
+          type: string
+          const: close
+          description: WS frame type
+        status:
+          type: integer
+          const: 1001
+          description: status code
+        reason:
+          type: string
+          description: Message to be sent
+      description: Representation of a websocket close-frame
+    ProtocolError:
+      type: object
+      required:
+      - frametype
+      - status
+      - reason
+      properties:
+        frametype:
+          type: string
+          const: close
+          description: WS frame type
+        status:
+          type: integer
+          const: 1002
+          description: status code
+        reason:
+          type: string
+          description: Message to be sent
+      description: Representation of a websocket close-frame
+    UnsupportedData:
+      type: object
+      required:
+      - frametype
+      - status
+      - reason
+      properties:
+        frametype:
+          type: string
+          const: close
+          description: WS frame type
+        status:
+          type: integer
+          const: 1003
+          description: status code
+        reason:
+          type: string
+          description: Message to be sent
+      description: Representation of a websocket close-frame
+    InvalidPayload:
+      type: object
+      required:
+      - frametype
+      - status
+      - reason
+      properties:
+        frametype:
+          type: string
+          const: close
+          description: WS frame type
+        status:
+          type: integer
+          const: 1007
+          description: status code
+        reason:
+          type: string
+          description: Message to be sent
+      description: Representation of a websocket close-frame
+    PolicyViolation:
+      type: object
+      required:
+      - frametype
+      - status
+      - reason
+      properties:
+        frametype:
+          type: string
+          const: close
+          description: WS frame type
+        status:
+          type: integer
+          const: 1008
+          description: status code
+        reason:
+          type: string
+          description: Message to be sent
+      description: Representation of a websocket close-frame
+    MessageTooBig:
+      type: object
+      required:
+      - frametype
+      - status
+      - reason
+      properties:
+        frametype:
+          type: string
+          const: close
+          description: WS frame type
+        status:
+          type: integer
+          const: 1009
+          description: status code
+        reason:
+          type: string
+          description: Message to be sent
+      description: Representation of a websocket close-frame
+    InternalServerError:
+      type: object
+      required:
+      - frametype
+      - status
+      - reason
+      properties:
+        frametype:
+          type: string
+          const: close
+          description: WS frame type
+        status:
+          type: integer
+          const: 1011
+          description: status code
+        reason:
+          type: string
+          description: Message to be sent
+      description: Representation of a websocket close-frame
+    CustomCloseFrame:
+      type: object
+      required:
+      - frametype
+      - status
+      properties:
+        frametype:
+          type: string
+          const: close
+          description: WS frame type
+        status:
+          type: integer
+          description: status code
+        reason:
+          type: string
+          description: Message to be sent
+      description: Representation of a websocket close-frame
+    SimpleNameReference:
+      oneOf:
+      - $ref: '#/components/schemas/HeartbeatResponse'
+      - $ref: '#/components/schemas/NormalClosure'
+      - $ref: '#/components/schemas/GoingAway'
+      - $ref: '#/components/schemas/ProtocolError'
+      - $ref: '#/components/schemas/UnsupportedData'
+      - $ref: '#/components/schemas/InvalidPayload'
+      - $ref: '#/components/schemas/PolicyViolation'
+      - $ref: '#/components/schemas/MessageTooBig'
+      - $ref: '#/components/schemas/InternalServerError'
+      - $ref: '#/components/schemas/CustomCloseFrame'
+  messages:
+    SimpleNameReference:
+      payload:
+        $ref: '#/components/schemas/SimpleNameReference'
+    Heartbeat:
+      payload:
+        $ref: '#/components/schemas/Heartbeat'
+      x-response:
+        $ref: '#/components/messages/SimpleNameReference'
+      x-response-type: simple-rpc
+x-dispatcherKey: event
+x-ballerina-ws-closeframe:
+  type: body
+  path: event.frametype
+  value: close

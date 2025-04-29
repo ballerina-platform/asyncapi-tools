@@ -17,6 +17,9 @@
  */
 package io.ballerina.asyncapi.websocketscore.generators.asyncspec;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.TextNode;
+
 /**
  * Ballerina To AsyncApi Service Constants.
  *
@@ -95,6 +98,7 @@ public class Constants {
     public static final String YML_EXTENSION = ".yml";
     public static final String UNDERSCORE = "_";
     public static final String CAMEL_CASE_PATTERN = "^on[A-Z][a-z0-9A-Z]*$";
+    public static final String ERROR = "Error";
     public static final String ON_MESSAGE = "onMessage";
     public static final String ON_TEXT_MESSAGE = "onTextMessage";
     public static final String ON_BINARY_MESSAGE = "onBinaryMessage";
@@ -102,6 +106,7 @@ public class Constants {
     public static final String ON_OPEN = "onOpen";
     public static final String ON_PING = "onPing";
     public static final String ON_PONG = "onPong";
+    public static final String ON_ERROR = "onError";
     //Exception Constants
     public static final String DISPATCHERKEY_NULLABLE_EXCEPTION = "ERROR: dispatcherKey '%s' cannot be " +
             "nullable in %s record";
@@ -137,6 +142,31 @@ public class Constants {
             "union with simple rpc types";
     public static final String PATH_PARAM_DASH_CONTAIN_ERROR = "ERROR: Path parameter contains an invalid" +
             " character '-'";
+
+    // Constants related to websocket close frame
+    public static final String FRAME_TYPE = "frametype";
+    public static final String FRAME_TYPE_DESCRIPTION = "WS frame type";
+    public static final String FRAME_TYPE_CLOSE = "close";
+    public static final String CLOSE_FRAME = "CloseFrame";
+    public static final String CLOSE_FRAME_DESCRIPTION = "Representation of a websocket close-frame";
+    public static final String CLOSE_FRAME_TYPE = "type";
+    public static final String CLOSE_FRAME_STATUS = "status";
+    public static final String CLOSE_FRAME_STATUS_DESCRIPTION = "status code";
+    public static final String CLOSE_FRAME_REASON = "reason";
+    public static final String CLOSE_FRAME_REASON_DESCRIPTION = "Message to be sent";
+    public static final String PREDEFINED_CLOSE_FRAME_TYPE = "PredefinedCloseFrameType";
+    public static final String CUSTOM_CLOSE_FRAME_TYPE = "CustomCloseFrameType";
+    public static final String X_BALLERINA_WS_CLOSE_FRAME = "x-ballerina-ws-closeframe";
+    public static final String X_BALLERINA_WS_CLOSE_FRAME_TYPE = "type";
+    public static final String X_BALLERINA_WS_CLOSE_FRAME_TYPE_BODY = "body";
+    public static final String X_BALLERINA_WS_CLOSE_FRAME_PATH = "path";
+    public static final String X_BALLERINA_WS_CLOSE_FRAME_PATH_FRAME_TYPE = "event.frametype";
+    public static final String X_BALLERINA_WS_CLOSE_FRAME_VALUE = "value";
+    public static final String X_BALLERINA_WS_CLOSE_FRAME_VALUE_CLOSE = "close";
+
+    public static final JsonNode SERVER_STREAMING_TYPE_NODE = new TextNode(SERVER_STREAMING);
+    public static final JsonNode FRAME_TYPE_CLOSE_NODE = new TextNode(FRAME_TYPE_CLOSE);
+
     /**
      * Enum to select the Ballerina Type.
      * Ballerina service, mock and client generation is available

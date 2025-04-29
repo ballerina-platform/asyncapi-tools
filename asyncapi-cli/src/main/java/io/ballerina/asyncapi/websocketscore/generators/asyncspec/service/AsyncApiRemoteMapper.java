@@ -17,10 +17,15 @@
  */
 package io.ballerina.asyncapi.websocketscore.generators.asyncspec.service;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import io.apicurio.datamodels.models.asyncapi.AsyncApiSchema;
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25ChannelItemImpl;
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25ChannelsImpl;
+import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25Components;
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25ComponentsImpl;
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25OperationImpl;
+import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25Schema;
 import io.ballerina.asyncapi.websocketscore.generators.asyncspec.model.BalAsyncApi25MessageImpl;
 import io.ballerina.compiler.api.SemanticModel;
 import io.ballerina.compiler.api.symbols.Documentable;
@@ -58,18 +63,24 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.NoSuchElementException;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.ANNOTATION_ATTR_DISPATCHER_VALUE;
 import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.CAMEL_CASE_PATTERN;
 import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.DISPATCHER_MAPPING_ANNOTATION;
+import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.ERROR;
 import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.FALSE;
+import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.FRAME_TYPE;
+import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.FRAME_TYPE_CLOSE_NODE;
 import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.FUNCTION_PARAMETERS_EXCEEDED;
 import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.FUNCTION_SIGNATURE_WRONG_TYPE;
 import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.FUNCTION_WRONG_NAME;
 import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.NO_SERVICE_CLASS;
 import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.ON_BINARY_MESSAGE;
 import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.ON_CLOSE;
+import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.ON_ERROR;
 import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.ON_MESSAGE;
 import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.ON_OPEN;
 import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.ON_PING;
@@ -77,13 +88,18 @@ import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constant
 import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.ON_TEXT_MESSAGE;
 import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.REMOTE_DESCRIPTION;
 import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.RETURN;
+import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.X_BALLERINA_WS_CLOSE_FRAME_PATH;
+import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.X_BALLERINA_WS_CLOSE_FRAME_PATH_FRAME_TYPE;
+import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.X_BALLERINA_WS_CLOSE_FRAME_TYPE;
+import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.X_BALLERINA_WS_CLOSE_FRAME_TYPE_BODY;
+import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.X_BALLERINA_WS_CLOSE_FRAME_VALUE;
+import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.X_BALLERINA_WS_CLOSE_FRAME_VALUE_CLOSE;
 import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.WEBSOCKET;
 import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.utils.ConverterCommonUtils.unescapeIdentifier;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.QUALIFIED_NAME_REFERENCE;
 
 /**
  * This class will do resource mapping from ballerina to AsyncApi.
- *
  */
 public class AsyncApiRemoteMapper {
     private final AsyncApi25ChannelsImpl channelObject = new AsyncApi25ChannelsImpl();
@@ -107,6 +123,35 @@ public class AsyncApiRemoteMapper {
             builder.append(word);
         }
         return builder.toString();
+    }
+
+    public static boolean containsCloseFrameSchema(AsyncApi25Components components) {
+        if (Objects.isNull(components) || Objects.isNull(components.getSchemas())) {
+            return false;
+        }
+        return components.getSchemas().values().stream()
+                .anyMatch(sch ->
+                        (sch instanceof AsyncApi25Schema asyncApiSchema) && isCloseFrameSchema(asyncApiSchema));
+    }
+
+    public static boolean isCloseFrameSchema(AsyncApiSchema schema) {
+        if (Objects.isNull(schema) || Objects.isNull(schema.getProperties()) ||
+                !schema.getProperties().containsKey(FRAME_TYPE)) {
+            return false;
+        }
+        if (!(schema.getProperties().get(FRAME_TYPE) instanceof AsyncApi25Schema asyncApi25Schema)) {
+            return false;
+        }
+        return FRAME_TYPE_CLOSE_NODE.equals(asyncApi25Schema.getConst());
+    }
+
+    public static ObjectNode getWsCloseFrameExtension() {
+        ObjectMapper objectMapper = new ObjectMapper();
+        ObjectNode closeFrameExtension = objectMapper.createObjectNode();
+        closeFrameExtension.put(X_BALLERINA_WS_CLOSE_FRAME_TYPE, X_BALLERINA_WS_CLOSE_FRAME_TYPE_BODY);
+        closeFrameExtension.put(X_BALLERINA_WS_CLOSE_FRAME_PATH, X_BALLERINA_WS_CLOSE_FRAME_PATH_FRAME_TYPE);
+        closeFrameExtension.put(X_BALLERINA_WS_CLOSE_FRAME_VALUE, X_BALLERINA_WS_CLOSE_FRAME_VALUE_CLOSE);
+        return closeFrameExtension;
     }
 
     public AsyncApi25ComponentsImpl getComponents() {
@@ -163,6 +208,7 @@ public class AsyncApiRemoteMapper {
         BalAsyncApi25MessageImpl publishMessage = new BalAsyncApi25MessageImpl();
         AsyncApiResponseMapper responseMapper = new AsyncApiResponseMapper(resource.location(), componentMapper,
                 semanticModel, components);
+        Map<String, ReturnTypeDescriptorNode> onErrorReturnTypes = getReturnTypesFromOnErrorMethods(classMethodNodes);
         for (Node node : classMethodNodes) {
             if (node.kind().equals(SyntaxKind.OBJECT_METHOD_DEFINITION)) {
                 FunctionDefinitionNode remoteFunctionNode = (FunctionDefinitionNode) node;
@@ -203,6 +249,18 @@ public class AsyncApiRemoteMapper {
                                     if (remoteDocs.containsKey(REMOTE_DESCRIPTION)) {
                                         componentMessage.setDescription(remoteDocs.get(REMOTE_DESCRIPTION));
                                         remoteDocs.remove(REMOTE_DESCRIPTION);
+                                    }
+                                    if (!functionName.endsWith(ERROR)) {
+                                        ReturnTypeDescriptorNode customErrorReturnType = null;
+                                        if (onErrorReturnTypes.containsKey(functionName + ERROR)) {
+                                            customErrorReturnType = onErrorReturnTypes.get(functionName + ERROR);
+                                        } else if (onErrorReturnTypes.containsKey(ON_ERROR)) {
+                                            customErrorReturnType = onErrorReturnTypes.get(ON_ERROR);
+                                        }
+                                        if (Objects.nonNull(customErrorReturnType)) {
+                                            responseMapper.createResponse(subscribeMessage, componentMessage,
+                                                    customErrorReturnType.type(), null, FALSE, null);
+                                        }
                                     }
                                     Optional<ReturnTypeDescriptorNode> optionalRemoteReturnNode = remoteFunctionNode.
                                             functionSignature().returnTypeDesc();
@@ -363,6 +421,19 @@ public class AsyncApiRemoteMapper {
             }
         }
         return serviceClassName;
+    }
+
+    private Map<String, ReturnTypeDescriptorNode> getReturnTypesFromOnErrorMethods(
+            NodeList<Node> classMethodNodes) {
+        return classMethodNodes.stream()
+                .filter(node -> SyntaxKind.OBJECT_METHOD_DEFINITION.equals(node.kind()))
+                .map(node -> (FunctionDefinitionNode) node)
+                .filter(functionDefNode -> functionDefNode.functionName().toString().trim().endsWith(ERROR))
+                .filter(functionDefNode -> functionDefNode.functionSignature().returnTypeDesc().isPresent())
+                .collect(Collectors.toMap(
+                        functionDefNode -> functionDefNode.functionName().toString().trim(),
+                        functionDefNode -> functionDefNode.functionSignature().returnTypeDesc().get(),
+                        (existing, replacement) -> existing));
     }
 
     /**
