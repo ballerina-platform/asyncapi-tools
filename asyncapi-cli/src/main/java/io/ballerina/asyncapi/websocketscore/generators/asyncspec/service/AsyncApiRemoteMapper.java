@@ -88,13 +88,13 @@ import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constant
 import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.ON_TEXT_MESSAGE;
 import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.REMOTE_DESCRIPTION;
 import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.RETURN;
+import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.WEBSOCKET;
 import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.X_BALLERINA_WS_CLOSE_FRAME_PATH;
 import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.X_BALLERINA_WS_CLOSE_FRAME_PATH_FRAME_TYPE;
 import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.X_BALLERINA_WS_CLOSE_FRAME_TYPE;
 import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.X_BALLERINA_WS_CLOSE_FRAME_TYPE_BODY;
 import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.X_BALLERINA_WS_CLOSE_FRAME_VALUE;
 import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.X_BALLERINA_WS_CLOSE_FRAME_VALUE_CLOSE;
-import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.WEBSOCKET;
 import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.utils.ConverterCommonUtils.unescapeIdentifier;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.QUALIFIED_NAME_REFERENCE;
 
@@ -190,10 +190,11 @@ public class AsyncApiRemoteMapper {
 
     /**
      * Remote mapper when there have multiple remote methods.
-     * @param resource functionDefinitionNode which contains resource function
+     *
+     * @param resource            functionDefinitionNode which contains resource function
      * @param classDefinitionNode classDefinitionNode which contains class definition
-     * @param dispatcherValue dispatcher key value
-     * @param channelItem AsyncAPI channel
+     * @param dispatcherValue     dispatcher key value
+     * @param channelItem         AsyncAPI channel
      * @return AsyncAPI channel object
      */
     private AsyncApi25ChannelsImpl handleRemoteFunctions(FunctionDefinitionNode resource,
