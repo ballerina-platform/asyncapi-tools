@@ -217,7 +217,8 @@ public class AsyncApiRemoteMapper {
                     String functionName = remoteFunctionNode.functionName().toString().trim();
                     if (functionName.matches(CAMEL_CASE_PATTERN)) {
                         if (isRemoteFunctionNameValid(functionName)) {
-                            String remoteRequestTypeName = getDispatcherConfigAnnotatedValue(remoteFunctionNode)
+                            String remoteRequestTypeName =
+                                    getRequestTypeNameFromDispatcherConfigAnnotation(remoteFunctionNode)
                                     .orElse(unescapeIdentifier(functionName.substring(2)));
                             RequiredParameterNode requiredParameterNode =
                                     checkParameterContainsCustomType(remoteRequestTypeName, remoteFunctionNode);
@@ -371,7 +372,7 @@ public class AsyncApiRemoteMapper {
         return null;
     }
 
-    private Optional<String> getDispatcherConfigAnnotatedValue(FunctionDefinitionNode node) {
+    private Optional<String> getRequestTypeNameFromDispatcherConfigAnnotation(FunctionDefinitionNode node) {
         if (node.metadata().isEmpty()) {
             return Optional.empty();
         }
@@ -380,10 +381,8 @@ public class AsyncApiRemoteMapper {
             if (annotationType.isEmpty()) {
                 continue;
             }
-            if (!annotationType.get().getModule().flatMap(Symbol::getName)
-                    .orElse("").equals(WEBSOCKET) ||
-                    !annotationType.get().getName().orElse("")
-                            .equals(DISPATCHER_CONFIG_ANNOTATION)) {
+            if (!annotationType.get().getModule().flatMap(Symbol::getName) .orElse("").equals(WEBSOCKET) ||
+                    !annotationType.get().getName().orElse("").equals(DISPATCHER_CONFIG_ANNOTATION)) {
                 continue;
             }
             if (annotationNode.annotValue().isEmpty()) {
@@ -391,7 +390,7 @@ public class AsyncApiRemoteMapper {
             }
             MappingConstructorExpressionNode annotationValue = annotationNode.annotValue().get();
             for (Node field : annotationValue.fields()) {
-                if (!field.kind().equals(SyntaxKind.SPECIFIC_FIELD)) {
+                if (!SyntaxKind.SPECIFIC_FIELD.equals(field.kind())) {
                     continue;
                 }
                 String fieldName = ((SpecificFieldNode) field).fieldName().toString().strip();
