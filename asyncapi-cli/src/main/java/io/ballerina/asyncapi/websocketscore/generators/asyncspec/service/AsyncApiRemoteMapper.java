@@ -219,7 +219,7 @@ public class AsyncApiRemoteMapper {
                         if (isRemoteFunctionNameValid(functionName)) {
                             String remoteRequestTypeName =
                                     getRequestTypeNameFromDispatcherConfigAnnotation(remoteFunctionNode)
-                                    .orElse(unescapeIdentifier(functionName.substring(2)));
+                                            .orElse(unescapeIdentifier(functionName.substring(2)));
                             RequiredParameterNode requiredParameterNode =
                                     checkParameterContainsCustomType(remoteRequestTypeName, remoteFunctionNode);
                             //TODO: uncomment after handle onError is capable to have in the server side
@@ -381,7 +381,7 @@ public class AsyncApiRemoteMapper {
             if (annotationType.isEmpty()) {
                 continue;
             }
-            if (!annotationType.get().getModule().flatMap(Symbol::getName) .orElse("").equals(WEBSOCKET) ||
+            if (!annotationType.get().getModule().flatMap(Symbol::getName).orElse("").equals(WEBSOCKET) ||
                     !annotationType.get().getName().orElse("").equals(DISPATCHER_CONFIG_ANNOTATION)) {
                 continue;
             }
