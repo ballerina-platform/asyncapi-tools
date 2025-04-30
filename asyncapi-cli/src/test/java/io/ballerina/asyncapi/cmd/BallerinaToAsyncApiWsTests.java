@@ -200,7 +200,7 @@ public class BallerinaToAsyncApiWsTests extends AsyncApiWsCommandTest {
     }
 
     @Test(description = "Test ballerina to asyncApi with dispatcher mapping annotation")
-    public void asyncApiGenerationWithDispatcherMappingAnnotation() {
+    public void asyncApiGenerationWithDispatcherConfigAnnotation() {
         String fileName = "listener";
         String fileDirectory = "ballerina-to-asyncapi/dispatcher-mapping-annotation/";
         Path filePath = resourceDir.resolve(Paths.get(fileDirectory + fileName + ".bal"));

@@ -21,8 +21,8 @@ service / on websocketListener {
 service class WsService {
     *websocket:Service;
 
-    @websocket:DispatcherMapping {
-        value: "subscribe"
+    @websocket:DispatcherConfig {
+        dispatcherValue: "subscribe"
     }
     remote function onSubscribeMessage(Subscribe message) returns SubscribeResponse {
         return {'type: "subscribe"};

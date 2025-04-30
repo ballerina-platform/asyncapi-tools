@@ -69,7 +69,7 @@ import java.util.stream.Collectors;
 
 import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.ANNOTATION_ATTR_DISPATCHER_VALUE;
 import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.CAMEL_CASE_PATTERN;
-import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.DISPATCHER_MAPPING_ANNOTATION;
+import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.DISPATCHER_CONFIG_ANNOTATION;
 import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.ERROR;
 import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.FALSE;
 import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.FRAME_TYPE;
@@ -217,7 +217,7 @@ public class AsyncApiRemoteMapper {
                     String functionName = remoteFunctionNode.functionName().toString().trim();
                     if (functionName.matches(CAMEL_CASE_PATTERN)) {
                         if (isRemoteFunctionNameValid(functionName)) {
-                            String remoteRequestTypeName = getDispatcherMappingAnnotatedValue(remoteFunctionNode)
+                            String remoteRequestTypeName = getDispatcherConfigAnnotatedValue(remoteFunctionNode)
                                     .orElse(unescapeIdentifier(functionName.substring(2)));
                             RequiredParameterNode requiredParameterNode =
                                     checkParameterContainsCustomType(remoteRequestTypeName, remoteFunctionNode);
@@ -371,7 +371,7 @@ public class AsyncApiRemoteMapper {
         return null;
     }
 
-    private Optional<String> getDispatcherMappingAnnotatedValue(FunctionDefinitionNode node) {
+    private Optional<String> getDispatcherConfigAnnotatedValue(FunctionDefinitionNode node) {
         if (node.metadata().isEmpty()) {
             return Optional.empty();
         }
@@ -383,7 +383,7 @@ public class AsyncApiRemoteMapper {
             if (!annotationType.get().getModule().flatMap(Symbol::getName)
                     .orElse("").equals(WEBSOCKET) ||
                     !annotationType.get().getName().orElse("")
-                            .equals(DISPATCHER_MAPPING_ANNOTATION)) {
+                            .equals(DISPATCHER_CONFIG_ANNOTATION)) {
                 continue;
             }
             if (annotationNode.annotValue().isEmpty()) {
