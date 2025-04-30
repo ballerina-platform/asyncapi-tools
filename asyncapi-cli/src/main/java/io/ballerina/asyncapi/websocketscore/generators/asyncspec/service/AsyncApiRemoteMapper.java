@@ -43,6 +43,7 @@ import io.ballerina.compiler.syntax.tree.ExpressionNode;
 import io.ballerina.compiler.syntax.tree.FunctionBodyNode;
 import io.ballerina.compiler.syntax.tree.FunctionDefinitionNode;
 import io.ballerina.compiler.syntax.tree.MappingConstructorExpressionNode;
+import io.ballerina.compiler.syntax.tree.MetadataNode;
 import io.ballerina.compiler.syntax.tree.Node;
 import io.ballerina.compiler.syntax.tree.NodeList;
 import io.ballerina.compiler.syntax.tree.ParameterNode;
@@ -217,8 +218,11 @@ public class AsyncApiRemoteMapper {
                     String functionName = remoteFunctionNode.functionName().toString().trim();
                     if (functionName.matches(CAMEL_CASE_PATTERN)) {
                         if (isRemoteFunctionNameValid(functionName)) {
-                            String remoteRequestTypeName = getDispatcherTypeFromAnnotation(remoteFunctionNode)
-                                    .orElse(unescapeIdentifier(functionName.substring(2)));
+                            Optional<NodeList<AnnotationNode>> annotationNodes =
+                                    remoteFunctionNode.metadata().map(MetadataNode::annotations);
+                            String remoteRequestTypeName = annotationNodes
+                                    .flatMap(this::getDispatcherTypeFromAnnotation)
+                                    .orElseGet(() -> unescapeIdentifier(functionName.substring(2)));
                             RequiredParameterNode requiredParameterNode =
                                     checkParameterContainsCustomType(remoteRequestTypeName, remoteFunctionNode);
                             //TODO: uncomment after handle onError is capable to have in the server side
@@ -371,11 +375,11 @@ public class AsyncApiRemoteMapper {
         return null;
     }
 
-    private Optional<String> getDispatcherTypeFromAnnotation(FunctionDefinitionNode node) {
-        if (node.metadata().isEmpty()) {
+    private Optional<String> getDispatcherTypeFromAnnotation(NodeList<AnnotationNode> annotationNodes) {
+        if (Objects.isNull(annotationNodes) || annotationNodes.isEmpty()) {
             return Optional.empty();
         }
-        for (AnnotationNode annotationNode : node.metadata().get().annotations()) {
+        for (AnnotationNode annotationNode : annotationNodes) {
             Optional<Symbol> annotationType = this.semanticModel.symbol(annotationNode);
             if (annotationType.isEmpty()) {
                 continue;
