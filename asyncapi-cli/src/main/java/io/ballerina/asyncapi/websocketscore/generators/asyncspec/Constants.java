@@ -41,6 +41,8 @@ public class Constants {
     public static final String WEBSOCKET = "websocket";
     public static final String DISPATCHER_KEY = "dispatcherKey";
     public static final String DISPATCHER_STREAM_ID = "dispatcherStreamId";
+    public static final String DISPATCHER_CONFIG_ANNOTATION = "DispatcherConfig";
+    public static final String ANNOTATION_ATTR_DISPATCHER_VALUE = "dispatcherValue";
     public static final String BALLERINA = "ballerina";
     public static final String TYPEREFERENCE = "typeReference";
     public static final String HTTP_HEADER = "http:Header";

@@ -1,0 +1,53 @@
+asyncapi: 2.5.0
+info:
+  title: /
+  version: 0.0.0
+servers:
+  development:
+    url: "{server}:{port}/"
+    protocol: ws
+    protocolVersion: "13"
+    variables:
+      server:
+        default: ws://localhost
+      port:
+        default: "9090"
+channels:
+  /:
+    subscribe:
+      message:
+        $ref: '#/components/messages/SubscribeResponse'
+    publish:
+      message:
+        $ref: '#/components/messages/Subscribe'
+components:
+  schemas:
+    Subscribe:
+      type: object
+      required:
+      - type
+      properties:
+        type:
+          type: string
+          const: Subscribe
+    SubscribeResponse:
+      type: object
+      required:
+      - type
+      properties:
+        type:
+          type: string
+        payload:
+          type: object
+          additionalProperties: true
+  messages:
+    SubscribeResponse:
+      payload:
+        $ref: '#/components/schemas/SubscribeResponse'
+    Subscribe:
+      payload:
+        $ref: '#/components/schemas/Subscribe'
+      x-response:
+        $ref: '#/components/messages/SubscribeResponse'
+      x-response-type: simple-rpc
+x-dispatcherKey: type
