@@ -217,9 +217,8 @@ public class AsyncApiRemoteMapper {
                     String functionName = remoteFunctionNode.functionName().toString().trim();
                     if (functionName.matches(CAMEL_CASE_PATTERN)) {
                         if (isRemoteFunctionNameValid(functionName)) {
-                            String remoteRequestTypeName =
-                                    getRequestTypeNameFromDispatcherConfigAnnotation(remoteFunctionNode)
-                                            .orElse(unescapeIdentifier(functionName.substring(2)));
+                            String remoteRequestTypeName = getDispatcherTypeFromAnnotation(remoteFunctionNode)
+                                    .orElse(unescapeIdentifier(functionName.substring(2)));
                             RequiredParameterNode requiredParameterNode =
                                     checkParameterContainsCustomType(remoteRequestTypeName, remoteFunctionNode);
                             //TODO: uncomment after handle onError is capable to have in the server side
@@ -372,7 +371,7 @@ public class AsyncApiRemoteMapper {
         return null;
     }
 
-    private Optional<String> getRequestTypeNameFromDispatcherConfigAnnotation(FunctionDefinitionNode node) {
+    private Optional<String> getDispatcherTypeFromAnnotation(FunctionDefinitionNode node) {
         if (node.metadata().isEmpty()) {
             return Optional.empty();
         }
