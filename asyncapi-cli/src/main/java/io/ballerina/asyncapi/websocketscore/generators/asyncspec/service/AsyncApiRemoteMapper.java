@@ -397,11 +397,11 @@ public class AsyncApiRemoteMapper {
                     continue;
                 }
                 String fieldName = ((SpecificFieldNode) field).fieldName().toString().strip();
-                Optional<ExpressionNode> filedValue = ((SpecificFieldNode) field).valueExpr();
-                if (!fieldName.equals(ANNOTATION_ATTR_DISPATCHER_VALUE) || filedValue.isEmpty()) {
+                Optional<ExpressionNode> fieldValue = ((SpecificFieldNode) field).valueExpr();
+                if (!fieldName.equals(ANNOTATION_ATTR_DISPATCHER_VALUE) || fieldValue.isEmpty()) {
                     continue;
                 }
-                return Optional.of(createCustomRemoteFunctionName(filedValue.get().toString()
+                return Optional.of(createCustomRemoteFunctionName(fieldValue.get().toString()
                         .replaceAll("\"", "").strip()));
             }
         }
