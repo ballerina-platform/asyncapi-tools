@@ -234,6 +234,7 @@ publishing {
 }
 
 directoryBuild.dependsOn ":${packageName}-cli:build"
+directoryBuild.dependsOn ":asyncapi-tool:build"
 directoryBuild.dependsOn ":compileJava"
 directoryBuild.dependsOn ":compileTestJava"
 directoryBuild.dependsOn ":test"
