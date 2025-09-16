@@ -1,0 +1,8 @@
+[tool]
+id = "asyncapi"
+
+[[dependency]]
+path = "../native.handler/build/libs/native.handler-@project.version@.jar"
+
+[[dependency]]
+path = "../asyncapi-cli/build/libs/asyncapi-cli-@project.version@.jar"
