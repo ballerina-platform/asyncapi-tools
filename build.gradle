@@ -74,26 +74,33 @@ allprojects {
             url "https://plugins.gradle.org/m2/"
         }
     }
+    ext {
+        snapshotVersion= '-SNAPSHOT'
+        timestampedVersionRegex = '.*-\\d{8}-\\d{6}-\\w.*\$'
+    }
 }
 
 subprojects {
-    apply plugin: 'java'
-    dependencies {
-        implementation "io.apicurio:apicurio-data-models:${apiCurioVersion}"
-        implementation "org.apache.logging.log4j:log4j-core:${log4jVersion}"
-        implementation "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:${jacksonDataformatYamlVersion}"
-        implementation "commons-io:commons-io:${commonsIoVersion}"
-        implementation "org.ballerinalang:ballerina-lang:${ballerinaLangVersion}"
-        implementation "org.ballerinalang:ballerina-parser:${ballerinaLangVersion}"
-        implementation "org.ballerinalang:ballerina-cli:${ballerinaLangVersion}"
-        implementation "org.ballerinalang:formatter-core:${ballerinaLangVersion}"
-        implementation "org.ballerinalang:ballerina-tools-api:${ballerinaLangVersion}"
-        implementation "io.ballerina.stdlib:http-native:${stdlibHttpVersion}"
-        implementation "org.ballerinalang:language-server-commons:${ballerinaLangVersion}"
-        implementation "info.picocli:picocli:${picocliVersion}"
-        testImplementation "org.junit.jupiter:junit-jupiter-api:5.6.0"
-        testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine'
-        testImplementation "org.testng:testng:${testngVersion}"
+    // Only apply Java plugin to projects that need it (exclude asyncapi-tool which uses Ballerina plugin)
+    if (project.name != 'asyncapi-tool') {
+        apply plugin: 'java'
+        dependencies {
+            implementation "io.apicurio:apicurio-data-models:${apiCurioVersion}"
+            implementation "org.apache.logging.log4j:log4j-core:${log4jVersion}"
+            implementation "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:${jacksonDataformatYamlVersion}"
+            implementation "commons-io:commons-io:${commonsIoVersion}"
+            implementation "org.ballerinalang:ballerina-lang:${ballerinaLangVersion}"
+            implementation "org.ballerinalang:ballerina-parser:${ballerinaLangVersion}"
+            implementation "org.ballerinalang:ballerina-cli:${ballerinaLangVersion}"
+            implementation "org.ballerinalang:formatter-core:${ballerinaLangVersion}"
+            implementation "org.ballerinalang:ballerina-tools-api:${ballerinaLangVersion}"
+            implementation "io.ballerina.stdlib:http-native:${stdlibHttpVersion}"
+            implementation "org.ballerinalang:language-server-commons:${ballerinaLangVersion}"
+            implementation "info.picocli:picocli:${picocliVersion}"
+            testImplementation "org.junit.jupiter:junit-jupiter-api:5.6.0"
+            testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine'
+            testImplementation "org.testng:testng:${testngVersion}"
+        }
     }
 }
 
@@ -127,11 +134,11 @@ tasks.withType(JavaCompile) {
 }
 
 task codeCoverageReport(type: JacocoReport) {
-    dependsOn = subprojects.test
+    dependsOn = subprojects.findAll { it.name != 'asyncapi-tool' }.test
 
     executionData fileTree(project.rootDir.absolutePath).include("**/build/coverage-reports/*.exec")
 
-    subprojects.each {
+    subprojects.findAll { it.name != 'asyncapi-tool' }.each {
         sourceSets it.sourceSets.main
     }
     reports {
@@ -174,6 +181,7 @@ compileJava {
 def artifactCacheParent = file("$project.projectDir/build/cache_parent/")
 def artifactLibParent = file("$project.projectDir/build/lib_parent/")
 def targetAsyncApiCliJar = file("$project.rootDir/asyncapi-cli/build/libs/asyncapi-cli-${project.version}.jar")
+def targetNativeHandlerJar = file("$project.rootDir/native.handler/build/libs/native.handler-${project.version}.jar")
 
 jar {
     manifest {
@@ -189,6 +197,10 @@ task directoryBuild {
     doLast {
         copy {
             from targetAsyncApiCliJar
+            into file("$artifactLibParent/libs")
+        }
+        copy {
+            from targetNativeHandlerJar
             into file("$artifactLibParent/libs")
         }
     }
@@ -251,6 +263,10 @@ directoryBuild.dependsOn ":checkstyle:test"
 directoryBuild.dependsOn ":checkstyle:processTestResources"
 directoryBuild.dependsOn ":generatePomFileForMavenJavaPublication"
 
+directoryBuild.dependsOn ":asyncapi-tool:jBallerinaPack"
+directoryBuild.dependsOn ":asyncapi-tool:generatePomFileForMavenPublication"
+
 build.dependsOn directoryBuild
+build.dependsOn ":asyncapi-tool:build"
 
 publish.dependsOn build
