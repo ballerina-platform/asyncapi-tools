@@ -116,7 +116,7 @@ This command generates Ballerina service and listener skeletons (i.e., the four 
 1. `data_types.bal` - contains all the Ballerina data types extracted from the AsyncAPI definition
 2. `service_types.bal` - contains all the service types relevant to the event API described in the AsyncAPI definition
 3. `listener.bal` - contains the HTTP listener, which listens to the relevant third-party service
-4. `dispacther_service.bal` - contains the event dispatching logic
+4. `dispatcher_service.bal` - contains the event dispatching logic
 
 The generated Ballerina sources are written into the same directory from which the command is run. The above command can be run from anywhere on the execution path. It is not mandatory to run it from within a Ballerina package. 
 

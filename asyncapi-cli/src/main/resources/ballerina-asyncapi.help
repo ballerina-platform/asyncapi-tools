@@ -15,7 +15,7 @@ DESCRIPTION
             generated listener
         3. `listener.bal` - Contains the HTTP listener, which listens to the
             relevant third-party service
-        4. `dispacther_service.bal` - Contains the event dispatching logic
+        4. `dispatcher_service.bal` - Contains the event dispatching logic
 
        The generated Ballerina sources will be written into the provided output
        location.
