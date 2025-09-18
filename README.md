@@ -1,4 +1,5 @@
-# Ballerina - AsyncAPI Tools
+# Ballerina AsyncAPI Tools
+
 [![Build](https://github.com/ballerina-platform/asyncapi-tools/actions/workflows/build-timestamped-master.yml/badge.svg)](https://github.com/ballerina-platform/asyncapi-tools/actions/workflows/build-timestamped-master.yml)
 [![GitHub Last Commit](https://img.shields.io/github/last-commit/ballerina-platform/asyncapi-tools.svg)](https://github.com/ballerina-platform/asyncapi-tools/commits/master)
 [![GitHub issues](https://img.shields.io/github/issues/ballerina-platform/ballerina-standard-library/module/asyncpi-tools.svg?label=Open%20Issues)](https://github.com/ballerina-platform/ballerina-library/labels/module%2Fasyncapi-tools)
