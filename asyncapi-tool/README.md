@@ -1,12 +1,58 @@
-# Ballerina AsyncAPI CLI Tool
+## Overview
 
-The Ballerina AsyncAPI tool makes it easy for you to start the development of an event API documented in an AsyncAPI contract in Ballerina by generating a Ballerina service and listener skeletons.
+The AsyncAPI contract is a specification that creates an event-driven architecture based contract for APIs by detailing all of its resources and channels in a human and machine-readable format for easy development, discovery, and integration. The Ballerina AsyncAPI tool makes it easy for the users to start the development of an event API documented in an AsyncAPI contract in Ballerina by generating a Ballerina service and listener skeletons.
 
-## Prepare the AsyncAPI contract
+## Commands
 
-Before using the tool, there are some modifications that should be made by adding some custom tags to the contract.
+### `bal asyncapi` (AsyncAPI to Ballerina)
 
-This guide uses only a part of the <a href="https://github.com/ballerina-platform/asyncapi-triggers/blob/main/asyncapi/slack/asyncapi.yml" target="_blank">AsyncAPI specification of Slack</a> for the purpose of simplicity.
+Generate Ballerina client stubs from an AsyncAPI contract using WebSocket protocol.
+
+**Synopsis:**
+
+```bash
+bal asyncapi -i | --input <asyncapi-contract-file-path>
+            [-o | --output <output-directory>]
+            [--protocol <ws>]
+            [--license <license-file-path>]
+            [--with-tests]
+```
+
+**Options:**
+
+| Option           | Description                                                        | Required |
+|------------------|--------------------------------------------------------------------|---------|
+| `-i`, `--input`  | Path of the AsyncAPI contract file                                 | Yes      |
+| `-o`, `--output` | Output directory location (defaults to current directory)          | No       |
+| `--protocol`     | Protocol to be used: `ws`                   | No       |
+| `--license`      | Add copyright/license header from specified file path              | No       |
+| `--with-tests`   | Generate test files for the client (hidden option)                 | No       |
+
+### `bal asyncapi` (Ballerina to AsyncAPI)
+
+Export AsyncAPI definition from a Ballerina service using WebSocket protocol.
+
+**Synopsis:**
+
+```bash
+bal asyncapi -i | --input <ballerina-service-file-path>
+            [-o | --output <output-location>]
+            [--protocol <ws|wss|websocket>]
+            [--service <service-name>]
+            [--json]
+```
+
+**Options:**
+
+| Option            | Description                                                   | Required |
+|-------------------|---------------------------------------------------------------|---------| 
+| `-i`, `--input`   | Path of the Ballerina service file                            | Yes      |
+| `-o`, `--output`  | Output directory location (defaults to current directory)     | No       |
+| `--protocol`      | Protocol to be used: `ws`, `wss`, or `websocket`              | No       |
+| `--service`       | Name of the specific service to document                       | No       |
+| `--json`          | Generate AsyncAPI output in JSON format (defaults to YAML)    | No       |
+
+### Sample AsyncAPI contract
 
 ```yaml
 asyncapi: 2.1.0
@@ -87,29 +133,43 @@ There are custom tags in this YAML starting with `x-ballerina`. It is very impor
 
 2\. `x-ballerina-event-type` - This should be there in every event inside the channel. This is the name of the event or the value of the attribute mentioned above for a specific event.
 
-## Usage
+## Examples
 
-After modifying the AsyncAPI contract, the Ballerina sources can be generated using the commands below.
+### Generate HTTP listener from AsyncAPI contract
 
-```
-$ bal asyncapi [-i | --input] <asyncapi-contract-file-path> [-o | --output] <output-location>
-```
+```bash
+# Basic HTTP listener generation
+bal asyncapi -i slack-events.yaml
 
-The generated service can be used as a code template to start the service implementation.
-For example,
-
-```
-$ bal asyncapi -i hello.yaml
+# Generate with custom output directory
+bal asyncapi -i slack-events.yaml -o ./generated
 ```
 
-## Command options
+### Generate WebSocket client from AsyncAPI contract
 
-The below command-line arguments can be used with the command.
+```bash
+# Basic WebSocket client generation
+bal asyncapi -i websocket-api.yaml --protocol ws
 
-| Command option      | Description                                                                                                                                                                                                                                                                                                                                                                     | Mandatory/Optional |
-|----------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|--------------------|
-| `-i, --input`  | The `asyncapi-contract-path` command option specifies the path of the AsyncAPI contract file (e.g., `my-api.yaml` or `my-api.json`).                                                                                                                                                                                                                                                                                                                               | Mandatory           |
-| `-o, --output`     | The Ballerina files get generated at the same location from which the `bal asyncapi` command is executed. Optionally, you can point to another directory location by using this flag.                                                                                                                                           | Optional           |
+# Generate with custom output directory and tests
+bal asyncapi -i websocket-api.yaml --protocol ws -o ./ws-client --with-tests
+
+# Generate with license header
+bal asyncapi -i websocket-api.yaml --protocol websocket --license ./license.txt
+```
+
+### Export AsyncAPI from Ballerina WebSocket service
+
+```bash
+# Export to YAML (default format)
+bal asyncapi -i websocket-service.bal --protocol ws
+
+# Export to JSON with specific output directory
+bal asyncapi -i websocket-service.bal --protocol ws --json -o ./asyncapi-specs
+
+# Export specific service by name
+bal asyncapi -i websocket-service.bal --protocol ws --service ChatService -o ./specs
+```
 
 This command generates Ballerina service and listener skeletons (i.e., the four Ballerina files below) from the given AsyncAPI definition file.
 
@@ -118,7 +178,7 @@ This command generates Ballerina service and listener skeletons (i.e., the four 
 3. `listener.bal` - contains the HTTP listener, which listens to the relevant third-party service
 4. `dispatcher_service.bal` - contains the event dispatching logic
 
-The generated Ballerina sources are written into the same directory from which the command is run. The above command can be run from anywhere on the execution path. It is not mandatory to run it from within a Ballerina package. 
+The generated Ballerina sources are written into the same directory from which the command is run. The above command can be run from anywhere on the execution path. It is not mandatory to run it from within a Ballerina package.
 
 The above AsyncAPI to Ballerina command supports several usages in the Ballerina AsyncAPI tool as follows.
 
