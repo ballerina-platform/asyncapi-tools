@@ -266,6 +266,7 @@ directoryBuild.dependsOn ":generatePomFileForMavenJavaPublication"
 
 directoryBuild.dependsOn ":asyncapi-tool:jBallerinaPack"
 directoryBuild.dependsOn ":asyncapi-tool:generatePomFileForMavenPublication"
+directoryBuild.dependsOn ":asyncapi-tool:createArtifactZip"
 
 build.dependsOn directoryBuild
 build.dependsOn ":asyncapi-tool:build"
