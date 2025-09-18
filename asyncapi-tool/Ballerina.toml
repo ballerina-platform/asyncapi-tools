@@ -3,5 +3,5 @@ org = "ballerina"
 name = "tool.asyncapi"
 version = "0.11.1"
 authors = ["Ballerina"]
-keywords = ["asyncapi", "asyncapi tool"]
+keywords = ["asyncapi", "asyncapi tool", "event-driven", "websocket", "asyncapi generator"]
 license = ["Apache-2.0"]
