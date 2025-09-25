@@ -160,7 +160,7 @@ public class AsyncApiCmd implements BLauncherCmd {
     @Override
     public void execute() {
         if (helpFlag) {
-            String commandUsageInfo = BLauncherCmd.getCommandUsageInfo(CMD_NAME);
+            String commandUsageInfo = BLauncherCmd.getCommandUsageInfo(CMD_NAME, AsyncApiCmd.class.getClassLoader());
             outStream.println(commandUsageInfo);
             return;
         }
@@ -212,7 +212,7 @@ public class AsyncApiCmd implements BLauncherCmd {
                 exitError(this.exitWhenFinish);
             }
         } else {
-            String commandUsageInfo = BLauncherCmd.getCommandUsageInfo(getName());
+            String commandUsageInfo = BLauncherCmd.getCommandUsageInfo(getName(), AsyncApiCmd.class.getClassLoader());
             outStream.println(commandUsageInfo);
             exitError(this.exitWhenFinish);
             return;
