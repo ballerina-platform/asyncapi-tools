@@ -48,7 +48,8 @@ public class BallerinaToAsyncApiWsTests extends AsyncApiWsCommandTest {
     public void testBallerinaToAsyncAPIGeneration() {
         Path filePath = resourceDir.resolve(Paths.get("cmd/ballerina-to-asyncapi/ballerina-file.bal"));
         String[] args = {"--input", filePath.toString(), "-o", this.tmpDir.toString()};
-        AsyncApiCmd cmd = new AsyncApiCmd(tmpDir, false);
+        ExitCodeCaptor exitCaptor = new ExitCodeCaptor();
+        AsyncApiCmd cmd = new AsyncApiCmd(System.err, tmpDir, exitCaptor);
         new CommandLine(cmd).parseArgs(args);
         try {
             cmd.execute();
@@ -63,7 +64,8 @@ public class BallerinaToAsyncApiWsTests extends AsyncApiWsCommandTest {
         String fileDirectory = "ballerina-to-asyncapi/close_frame/";
         Path filePath = resourceDir.resolve(Paths.get(fileDirectory + fileName + ".bal"));
         String[] args = {"--input", filePath.toString(), "-o", this.tmpDir.toString(), "--protocol", "ws"};
-        AsyncApiCmd cmd = new AsyncApiCmd(tmpDir, false);
+        ExitCodeCaptor exitCaptor = new ExitCodeCaptor();
+        AsyncApiCmd cmd = new AsyncApiCmd(System.err, tmpDir, exitCaptor);
         new CommandLine(cmd).parseArgs(args);
         try {
             cmd.execute();
@@ -80,7 +82,8 @@ public class BallerinaToAsyncApiWsTests extends AsyncApiWsCommandTest {
         String fileDirectory = "ballerina-to-asyncapi/close_frame/";
         Path filePath = resourceDir.resolve(Paths.get(fileDirectory + fileName + ".bal"));
         String[] args = {"--input", filePath.toString(), "-o", this.tmpDir.toString(), "--protocol", "ws"};
-        AsyncApiCmd cmd = new AsyncApiCmd(tmpDir, false);
+        ExitCodeCaptor exitCaptor = new ExitCodeCaptor();
+        AsyncApiCmd cmd = new AsyncApiCmd(System.err, tmpDir, exitCaptor);
         new CommandLine(cmd).parseArgs(args);
         try {
             cmd.execute();
@@ -97,7 +100,8 @@ public class BallerinaToAsyncApiWsTests extends AsyncApiWsCommandTest {
         String fileDirectory = "ballerina-to-asyncapi/close_frame/";
         Path filePath = resourceDir.resolve(Paths.get(fileDirectory + fileName + ".bal"));
         String[] args = {"--input", filePath.toString(), "-o", this.tmpDir.toString(), "--protocol", "ws"};
-        AsyncApiCmd cmd = new AsyncApiCmd(tmpDir, false);
+        ExitCodeCaptor exitCaptor = new ExitCodeCaptor();
+        AsyncApiCmd cmd = new AsyncApiCmd(System.err, tmpDir, exitCaptor);
         new CommandLine(cmd).parseArgs(args);
         try {
             cmd.execute();
@@ -114,7 +118,8 @@ public class BallerinaToAsyncApiWsTests extends AsyncApiWsCommandTest {
         String fileDirectory = "ballerina-to-asyncapi/close_frame/";
         Path filePath = resourceDir.resolve(Paths.get(fileDirectory + fileName + ".bal"));
         String[] args = {"--input", filePath.toString(), "-o", this.tmpDir.toString(), "--protocol", "ws"};
-        AsyncApiCmd cmd = new AsyncApiCmd(tmpDir, false);
+        ExitCodeCaptor exitCaptor = new ExitCodeCaptor();
+        AsyncApiCmd cmd = new AsyncApiCmd(System.err, tmpDir, exitCaptor);
         new CommandLine(cmd).parseArgs(args);
         try {
             cmd.execute();
@@ -131,7 +136,8 @@ public class BallerinaToAsyncApiWsTests extends AsyncApiWsCommandTest {
         String fileDirectory = "ballerina-to-asyncapi/close_frame/";
         Path filePath = resourceDir.resolve(Paths.get(fileDirectory + fileName + ".bal"));
         String[] args = {"--input", filePath.toString(), "-o", this.tmpDir.toString(), "--protocol", "ws"};
-        AsyncApiCmd cmd = new AsyncApiCmd(tmpDir, false);
+        ExitCodeCaptor exitCaptor = new ExitCodeCaptor();
+        AsyncApiCmd cmd = new AsyncApiCmd(System.err, tmpDir, exitCaptor);
         new CommandLine(cmd).parseArgs(args);
         try {
             cmd.execute();
@@ -148,7 +154,8 @@ public class BallerinaToAsyncApiWsTests extends AsyncApiWsCommandTest {
         String fileDirectory = "ballerina-to-asyncapi/close_frame/";
         Path filePath = resourceDir.resolve(Paths.get(fileDirectory + fileName + ".bal"));
         String[] args = {"--input", filePath.toString(), "-o", this.tmpDir.toString(), "--protocol", "ws"};
-        AsyncApiCmd cmd = new AsyncApiCmd(tmpDir, false);
+        ExitCodeCaptor exitCaptor = new ExitCodeCaptor();
+        AsyncApiCmd cmd = new AsyncApiCmd(System.err, tmpDir, exitCaptor);
         new CommandLine(cmd).parseArgs(args);
         try {
             cmd.execute();
@@ -163,7 +170,8 @@ public class BallerinaToAsyncApiWsTests extends AsyncApiWsCommandTest {
     public void asyncapiAnnotationWithOutContract() {
         Path filePath = resourceDir.resolve(Paths.get("cmd/ballerina-to-asyncapi/project_2/service.bal"));
         String[] args = {"--input", filePath.toString(), "-o", this.tmpDir.toString()};
-        AsyncApiCmd cmd = new AsyncApiCmd(tmpDir, false);
+        ExitCodeCaptor exitCaptor = new ExitCodeCaptor();
+        AsyncApiCmd cmd = new AsyncApiCmd(System.err, tmpDir, exitCaptor);
         new CommandLine(cmd).parseArgs(args);
         try {
             cmd.execute();
@@ -183,7 +191,8 @@ public class BallerinaToAsyncApiWsTests extends AsyncApiWsCommandTest {
     public void asyncApiJsonGeneration() {
         Path filePath = resourceDir.resolve(Paths.get("cmd/ballerina-to-asyncapi/normal_service.bal"));
         String[] args = {"--input", filePath.toString(), "-o", this.tmpDir.toString(), "--json"};
-        AsyncApiCmd cmd = new AsyncApiCmd(tmpDir, false);
+        ExitCodeCaptor exitCaptor = new ExitCodeCaptor();
+        AsyncApiCmd cmd = new AsyncApiCmd(System.err, tmpDir, exitCaptor);
         new CommandLine(cmd).parseArgs(args);
         try {
             cmd.execute();
@@ -205,7 +214,8 @@ public class BallerinaToAsyncApiWsTests extends AsyncApiWsCommandTest {
         String fileDirectory = "ballerina-to-asyncapi/dispatcher-mapping-annotation/";
         Path filePath = resourceDir.resolve(Paths.get(fileDirectory + fileName + ".bal"));
         String[] args = {"--input", filePath.toString(), "-o", this.tmpDir.toString(), "--protocol", "ws"};
-        AsyncApiCmd cmd = new AsyncApiCmd(tmpDir, false);
+        ExitCodeCaptor exitCaptor = new ExitCodeCaptor();
+        AsyncApiCmd cmd = new AsyncApiCmd(System.err, tmpDir, exitCaptor);
         new CommandLine(cmd).parseArgs(args);
         try {
             cmd.execute();
@@ -222,7 +232,8 @@ public class BallerinaToAsyncApiWsTests extends AsyncApiWsCommandTest {
     public void asyncapiAnnotationWithContract() {
         Path filePath = resourceDir.resolve(Paths.get("cmd/ballerina-to-asyncapi/project1/service.bal"));
         String[] args = {"--input", filePath.toString(), "-o", this.tmpDir.toString()};
-        AsyncApiCmd cmd = new AsyncApiCmd(tmpDir, false);
+        ExitCodeCaptor exitCaptor = new ExitCodeCaptor();
+        AsyncApiCmd cmd = new AsyncApiCmd(System.err, tmpDir, exitCaptor);
         new CommandLine(cmd).parseArgs(args);
         try {
             cmd.execute();
@@ -244,7 +255,8 @@ public class BallerinaToAsyncApiWsTests extends AsyncApiWsCommandTest {
     public void asyncapiAnnotationWithoutFields() {
         Path filePath = resourceDir.resolve(Paths.get("cmd/ballerina-to-asyncapi/project_3/service.bal"));
         String[] args = {"--input", filePath.toString(), "-o", this.tmpDir.toString()};
-        AsyncApiCmd cmd = new AsyncApiCmd(tmpDir, false);
+        ExitCodeCaptor exitCaptor = new ExitCodeCaptor();
+        AsyncApiCmd cmd = new AsyncApiCmd(System.err, tmpDir, exitCaptor);
         new CommandLine(cmd).parseArgs(args);
         try {
             cmd.execute();

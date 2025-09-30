@@ -1,36 +1,14 @@
 import org.apache.tools.ant.taskdefs.condition.Os
 
 plugins {
-    id "base"
+    id "java"
     id 'maven-publish'
-    id "com.github.spotbugs" version "${githubSpotbugsVersion}"
-    id "com.github.johnrengelman.shadow" version "${githubJohnrengelmanShadowVersion}"
-    id "de.undercouch.download" version "${underCouchDownloadVersion}"
-    id "net.researchgate.release" version "${researchgateReleaseVersion}"
-    id 'org.javamodularity.moduleplugin' version "${javaModularityVersion}" apply false
+    id "com.github.spotbugs"
+    id "jacoco"
+    id "com.github.johnrengelman.shadow"
+    id "de.undercouch.download"
+    id "net.researchgate.release"
 }
-
-apply plugin: 'java'
-apply plugin: "com.github.spotbugs"
-apply plugin: 'jacoco'
-apply plugin: "org.javamodularity.moduleplugin"
-
-ext.ballerinaLangVersion = project.ballerinaLangVersion
-ext.testngVersion = project.testngVersion
-ext.slf4jVersion = project.slf4jVersion
-ext.stdlibIoVersion = project.stdlibIoVersion
-ext.stdlibLogVersion = project.stdlibLogVersion
-ext.stdlibMimeVersion = project.stdlibMimeVersion
-ext.stdlibAuthVersion = project.stdlibAuthVersion
-ext.stdlibCacheVersion = project.stdlibCacheVersion
-ext.stdlibTimeVersion = project.stdlibTimeVersion
-ext.stdlibCryptoVersion = project.stdlibCryptoVersion
-ext.stdlibTaskVersion = project.stdlibTaskVersion
-ext.stdlibFileVersion = project.stdlibFileVersion
-ext.stdlibHttpVersion = project.stdlibHttpVersion
-ext.stdlibUrlVersion = project.stdlibUrlVersion
-ext.stdlibDataXmldataVersion = project.stdlibDataXmldataVersion
-ext.puppycrawlCheckstyleVersion = project.puppycrawlCheckstyleVersion
 
 def packageName = "asyncapi"
 

@@ -18,6 +18,7 @@
 package io.ballerina.asyncapi.wsgenerators.client;
 
 import io.ballerina.asyncapi.cmd.AsyncApiCmd;
+import io.ballerina.asyncapi.cmd.ExitCodeCaptor;
 import io.ballerina.asyncapi.wsgenerators.common.TestUtils;
 import io.ballerina.cli.launcher.BLauncherException;
 import org.testng.Assert;
@@ -50,7 +51,8 @@ public class CloseFrameTests {
         Path licenseFilePath = RES_DIR.resolve(Paths.get("CloseFrame/license.txt"));
         String[] args = {"--input", filePath.toString(), "-o", this.tmpDir.toString(), "--protocol", "ws"
                 , "--license", licenseFilePath.toString()};
-        AsyncApiCmd cmd = new AsyncApiCmd(tmpDir, false);
+        ExitCodeCaptor exitCaptor = new ExitCodeCaptor();
+        AsyncApiCmd cmd = new AsyncApiCmd(System.err, tmpDir, exitCaptor);
         new CommandLine(cmd).parseArgs(args);
         try {
             cmd.execute();
