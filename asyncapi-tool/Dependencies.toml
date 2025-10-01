@@ -10,7 +10,7 @@ distribution-version = "2201.13.0-20250924-081800-3dae8c03"
 [[package]]
 org = "ballerina"
 name = "tool.asyncapi"
-version = "0.12.0"
+version = "0.12.1"
 modules = [
 	{org = "ballerina", packageName = "tool.asyncapi", moduleName = "tool.asyncapi"}
 ]
