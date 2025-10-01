@@ -43,7 +43,7 @@ plugins {
     id "com.gradle.enterprise" version "3.13.2"
 }
 
-rootProject.name = 'Ballerina AsyncAPI Tool'
+rootProject.name = 'asyncapi-tool'
 
 include ':checkstyle'
 include(':native.handler:java-wrapper')
