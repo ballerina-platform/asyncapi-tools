@@ -386,7 +386,7 @@ public class AsyncApiCmd implements BLauncherCmd {
     @Override
     public void printLongDesc(StringBuilder stringBuilder) {
         ClassLoader classLoader = AsyncApiCmd.class.getClassLoader();
-        try (InputStream inputStream = classLoader.getSystemResourceAsStream("ballerina-asyncapi.help");
+        try (InputStream inputStream = classLoader.getResourceAsStream("ballerina-asyncapi.help");
              InputStreamReader inputStreamReader = new InputStreamReader(inputStream, StandardCharsets.UTF_8);
              BufferedReader br = new BufferedReader(inputStreamReader)) {
             String content = br.readLine();
