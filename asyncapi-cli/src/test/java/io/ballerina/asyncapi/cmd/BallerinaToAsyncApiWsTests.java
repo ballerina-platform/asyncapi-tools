@@ -26,6 +26,7 @@ import org.testng.annotations.Test;
 import picocli.CommandLine;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -273,10 +274,10 @@ public class BallerinaToAsyncApiWsTests extends AsyncApiWsCommandTest {
     }
 
     private String getStringFromGivenBalFile(Path expectedServiceFile) throws IOException {
-        Stream<String> expectedServiceLines = Files.lines(expectedServiceFile);
+        Stream<String> expectedServiceLines = Files.lines(expectedServiceFile, StandardCharsets.UTF_8);
         String expectedServiceContent = expectedServiceLines.collect(Collectors.joining(System.lineSeparator()));
         expectedServiceLines.close();
-        return expectedServiceContent.trim().replaceAll("\\s+", "").replaceAll(System.lineSeparator(), "");
+        return expectedServiceContent.trim().replaceAll("\\s+", "");
     }
 
     @AfterTest
