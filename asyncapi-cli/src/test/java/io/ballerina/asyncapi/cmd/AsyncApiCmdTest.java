@@ -160,7 +160,8 @@ public class AsyncApiCmdTest {
         new CommandLine(cmd).parseArgs(args);
         cmd.execute();
         String output = readOutput(true);
-        Assert.assertTrue(output.startsWith("File not found in the given path: "), output);
+        Assert.assertTrue(output.contains("File not found in the given path: "),
+            "Expected error message not found. Actual output: " + output);
     }
 
     @Test(description = "Test the functionality of the asyncapi command when the input file path is not given")

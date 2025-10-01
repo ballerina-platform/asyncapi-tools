@@ -173,6 +173,7 @@ public class AsyncApiCmd implements BLauncherCmd {
         if (inputPath) {
             if (argList == null) {
                 outStream.println(AsyncApiMessages.MESSAGE_FOR_MISSING_INPUT);
+                outStream.flush();
                 exit(EXIT_CODE_1);
                 return;
             }
@@ -186,6 +187,7 @@ public class AsyncApiCmd implements BLauncherCmd {
                             String.valueOf(executionPath) : outputPath);
                 } catch (BallerinaAsyncApiException e) {
                     outStream.println(e.getMessage());
+                    outStream.flush();
                     exit(EXIT_CODE_1);
                     return;
                 }
@@ -198,6 +200,7 @@ public class AsyncApiCmd implements BLauncherCmd {
                         asyncApiToBallerinaWs(fileName);
                     } catch (IOException e) {
                         outStream.println(e.getLocalizedMessage());
+                        outStream.flush();
                         exit(EXIT_CODE_1);
                         return;
                     }
@@ -208,26 +211,31 @@ public class AsyncApiCmd implements BLauncherCmd {
                         ballerinaToAsyncApiWs(fileName);
                     } catch (Exception e) {
                         outStream.println(e.getLocalizedMessage());
+                        outStream.flush();
                         exit(EXIT_CODE_1);
                         return;
                     }
                     // If -i has no extensions
                 } else {
                     outStream.println(AsyncApiMessages.MISSING_CONTRACT_PATH);
+                    outStream.flush();
                     exit(EXIT_CODE_1);
                     return;
                 }
             } else {
                 outStream.println(String.format(AsyncApiMessages.MESSAGE_INVALID_PROTOCOL, protocol));
+                outStream.flush();
                 exit(EXIT_CODE_1);
                 return;
             }
         } else {
             printLongDesc(new StringBuilder());
+            outStream.flush();
             exit(EXIT_CODE_2);
             return;
         }
 
+        outStream.flush();
         exit(EXIT_CODE_0);
     }
 
