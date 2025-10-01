@@ -103,6 +103,7 @@ task jBallerinaPack {
 publishing {
     publications {
         maven(MavenPublication) {
+            artifactId = project.findProperty('artifactId') ?: 'asyncapi-tool'
             artifact source: createArtifactZip, extension: 'zip'
         }
     }
