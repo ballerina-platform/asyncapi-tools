@@ -3,5 +3,6 @@ org = "ballerina"
 name = "tool.asyncapi"
 version = "@toml.version@"
 authors = ["Ballerina"]
-keywords = ["openapi", "openapi tool", "swagger", "oas", "openapi generator"]
+keywords = ["asyncapi", "asyncapi tool", "asyncapi generator", "asyncapi spec"]
 license = ["Apache-2.0"]
+distribution = "2201.13.0"

@@ -79,10 +79,24 @@ import static io.ballerina.asyncapi.cmd.AsyncApiMessages.MESSAGE_INVALID_LICENSE
 )
 public class AsyncApiCmd implements BLauncherCmd {
     private static final String CMD_NAME = "asyncapi";
+    private static final int EXIT_CODE_0 = 0;
+    private static final int EXIT_CODE_1 = 1;
+    private static final int EXIT_CODE_2 = 2;
+    private static final ExitHandler DEFAULT_EXIT_HANDLER = code -> Runtime.getRuntime().exit(code);
+
     private PrintStream outStream;
-    private boolean exitWhenFinish;
     private Path executionPath = Paths.get(System.getProperty("user.dir"));
     private Path targetOutputPath;
+    private final ExitHandler exitHandler;
+
+    /**
+     * Functional interface for handling exit behavior.
+     * Public to allow test access from other packages.
+     */
+    @FunctionalInterface
+    public interface ExitHandler {
+        void exit(int code);
+    }
 
     @CommandLine.Option(names = {"-h", "--help"}, hidden = true)
     private boolean helpFlag;
@@ -91,11 +105,11 @@ public class AsyncApiCmd implements BLauncherCmd {
     private boolean inputPath;
 
     @CommandLine.Option(names = {OUTPUT_FLAG_ALT, OUTPUT_FLAG},
-            description = "Directory to store the generated Ballerina service. " +
-            "If this is not provided, the generated files will be stored in the the current execution directory")
+            description = "Directory to store the generated Ballerina service. If this is not provided, the generated" +
+                    " files will be stored in the current execution directory")
     private String outputPath;
 
-    @CommandLine.Option (names = {PROTOCOL_FLAG}, description = "The protocol to be used for the service")
+    @CommandLine.Option(names = {PROTOCOL_FLAG}, description = "The protocol to be used for the service")
     private String protocol = "http";
 
     @CommandLine.Option(names = {LICENSE_FLAG}, description = "Location of the file which contains the license header")
@@ -118,56 +132,49 @@ public class AsyncApiCmd implements BLauncherCmd {
      * Constructor that initialize with the default values.
      */
     public AsyncApiCmd() {
-        this.outStream = System.err;
-        this.exitWhenFinish = true;
+        this(System.err, Paths.get(System.getProperty("user.dir")), DEFAULT_EXIT_HANDLER);
     }
 
     /**
      * Constructor override, which takes output stream and execution dir as inputs.
      *
-     * @param outStream      output stream from ballerina
-     * @param executionDir   defines the directory location of  execution of ballerina command
+     * @param outStream    output stream from ballerina
+     * @param executionDir defines the directory location of  execution of ballerina command
      */
     public AsyncApiCmd(PrintStream outStream, Path executionDir) {
-        new AsyncApiCmd(outStream, executionDir, true);
+        this(outStream, executionDir, DEFAULT_EXIT_HANDLER);
     }
 
     /**
-     * Constructor override, which takes output stream and execution dir and exits when finish as inputs.
+     * Constructor for testing with custom exit handler.
+     * This is public to allow tests in other packages to use it.
      *
-     * @param outStream         output stream from ballerina
-     * @param executionDir      defines the directory location of  execution of ballerina command
-     * @param exitWhenFinish    exit when finish the execution
+     * @param outStream    output stream from ballerina
+     * @param executionDir defines the directory location of execution of ballerina command
+     * @param exitHandler  custom exit handler (for testing)
      */
-    public AsyncApiCmd(PrintStream outStream, Path executionDir, boolean exitWhenFinish) {
+    public AsyncApiCmd(PrintStream outStream, Path executionDir, ExitHandler exitHandler) {
         this.outStream = outStream;
         this.executionPath = executionDir;
-        this.exitWhenFinish = exitWhenFinish;
+        this.exitHandler = exitHandler;
     }
 
-    /**
-     * Constructor override, which takes output stream and execution dir and exits when finish as inputs.
-     *
-     * @param executionDir      defines the directory location of  execution of ballerina command
-     * @param exitWhenFinish    exit when finish the execution
-     */
-    public AsyncApiCmd(Path executionDir, boolean exitWhenFinish) {
-        this.outStream = System.err;
-        this.executionPath = executionDir;
-        this.exitWhenFinish = exitWhenFinish;
+    private void exit(int code) {
+        exitHandler.exit(code);
     }
 
     @Override
     public void execute() {
         if (helpFlag) {
-            String commandUsageInfo = BLauncherCmd.getCommandUsageInfo(CMD_NAME, AsyncApiCmd.class.getClassLoader());
-            outStream.println(commandUsageInfo);
+            printLongDesc(new StringBuilder());
+            exit(EXIT_CODE_0);
             return;
         }
         if (inputPath) {
             if (argList == null) {
                 outStream.println(AsyncApiMessages.MESSAGE_FOR_MISSING_INPUT);
-                exitError(this.exitWhenFinish);
+                outStream.flush();
+                exit(EXIT_CODE_1);
                 return;
             }
             String fileName = argList.get(0);
@@ -180,7 +187,9 @@ public class AsyncApiCmd implements BLauncherCmd {
                             String.valueOf(executionPath) : outputPath);
                 } catch (BallerinaAsyncApiException e) {
                     outStream.println(e.getMessage());
-                    exitError(this.exitWhenFinish);
+                    outStream.flush();
+                    exit(EXIT_CODE_1);
+                    return;
                 }
             } else if (VALID_WS_NAMES.contains(protocol.toLowerCase())) {
                 outStream.println(EXPERIMENTAL_WARNING);
@@ -191,7 +200,9 @@ public class AsyncApiCmd implements BLauncherCmd {
                         asyncApiToBallerinaWs(fileName);
                     } catch (IOException e) {
                         outStream.println(e.getLocalizedMessage());
-                        exitError(this.exitWhenFinish);
+                        outStream.flush();
+                        exit(EXIT_CODE_1);
+                        return;
                     }
                     // when -i has bal extension
                 } else if (fileName.endsWith(CmdConstants.BAL_EXTENSION)) {
@@ -200,27 +211,32 @@ public class AsyncApiCmd implements BLauncherCmd {
                         ballerinaToAsyncApiWs(fileName);
                     } catch (Exception e) {
                         outStream.println(e.getLocalizedMessage());
-                        exitError(this.exitWhenFinish);
+                        outStream.flush();
+                        exit(EXIT_CODE_1);
+                        return;
                     }
                     // If -i has no extensions
                 } else {
                     outStream.println(AsyncApiMessages.MISSING_CONTRACT_PATH);
-                    exitError(this.exitWhenFinish);
+                    outStream.flush();
+                    exit(EXIT_CODE_1);
+                    return;
                 }
             } else {
                 outStream.println(String.format(AsyncApiMessages.MESSAGE_INVALID_PROTOCOL, protocol));
-                exitError(this.exitWhenFinish);
+                outStream.flush();
+                exit(EXIT_CODE_1);
+                return;
             }
         } else {
-            String commandUsageInfo = BLauncherCmd.getCommandUsageInfo(getName(), AsyncApiCmd.class.getClassLoader());
-            outStream.println(commandUsageInfo);
-            exitError(this.exitWhenFinish);
+            printLongDesc(new StringBuilder());
+            outStream.flush();
+            exit(EXIT_CODE_2);
             return;
         }
 
-        if (this.exitWhenFinish) {
-            Runtime.getRuntime().exit(0);
-        }
+        outStream.flush();
+        exit(EXIT_CODE_0);
     }
 
     private void giveWarningsForInvalidSpecGenOptions() {
@@ -244,19 +260,19 @@ public class AsyncApiCmd implements BLauncherCmd {
     private void verifyValidInputsForHttp() {
         if (licenseFilePath != null) {
             outStream.println(String.format(INVALID_OPTION_ERROR_HTTP, LICENSE_FLAG));
-            exitError(this.exitWhenFinish);
+            exit(EXIT_CODE_1);
         }
         if (service != null) {
             outStream.println(String.format(INVALID_OPTION_ERROR_HTTP, SERVICE_FLAG));
-            exitError(this.exitWhenFinish);
+            exit(EXIT_CODE_1);
         }
         if (includeTestFiles) {
             outStream.println(String.format(INVALID_OPTION_ERROR_HTTP, TEST_FLAG));
-            exitError(this.exitWhenFinish);
+            exit(EXIT_CODE_1);
         }
         if (generatedFileType) {
             outStream.println(String.format(INVALID_OPTION_ERROR_HTTP, JSON_FLAG));
-            exitError(this.exitWhenFinish);
+            exit(EXIT_CODE_1);
         }
     }
 
@@ -267,7 +283,7 @@ public class AsyncApiCmd implements BLauncherCmd {
             Path balFilePath = Paths.get(balFile.getCanonicalPath());
             setOutputPathWs();
             // Check service name it is mandatory
-            List<AsyncApiConverterDiagnostic> generationErrors =  BallerinaToAsyncApiGenerator
+            List<AsyncApiConverterDiagnostic> generationErrors = BallerinaToAsyncApiGenerator
                     .generateAsyncAPIDefinitionsAllService(balFilePath, targetOutputPath, service, generatedFileType,
                             outStream);
             errors.addAll(generationErrors);
@@ -285,7 +301,7 @@ public class AsyncApiCmd implements BLauncherCmd {
                             exceptionDiagnostic.getMessage(), exceptionDiagnostic.getDiagnosticSeverity(),
                             exceptionDiagnostic.getLocation().orElse(null));
                     outStream.println(diagnostic);
-                    exitError(this.exitWhenFinish);
+                    exit(EXIT_CODE_1);
                 } else if (error instanceof IncompatibleRemoteDiagnostic incompatibleError) {
                     AsyncApiDiagnostic diagnostic = CmdUtils.constructAsyncAPIDiagnostic(incompatibleError.getCode(),
                             incompatibleError.getMessage(), incompatibleError.getDiagnosticSeverity(),
@@ -323,7 +339,7 @@ public class AsyncApiCmd implements BLauncherCmd {
             }
         } catch (IOException e) {
             outStream.println(String.format(MESSAGE_INVALID_LICENSE_STREAM, this.licenseFilePath, e.getMessage()));
-            exitError(this.exitWhenFinish);
+            exit(EXIT_CODE_1);
         }
         return "";
     }
@@ -354,10 +370,10 @@ public class AsyncApiCmd implements BLauncherCmd {
         } catch (IOException | FormatterException | BallerinaAsyncApiExceptionWs e) {
             if (e.getLocalizedMessage() != null) {
                 outStream.println(e.getLocalizedMessage());
-                exitError(this.exitWhenFinish);
+                exit(EXIT_CODE_1);
             } else {
                 outStream.println(CLIENT_GENERATION_FAILED);
-                exitError(this.exitWhenFinish);
+                exit(EXIT_CODE_1);
             }
         }
     }
@@ -369,32 +385,26 @@ public class AsyncApiCmd implements BLauncherCmd {
 
     @Override
     public void printLongDesc(StringBuilder stringBuilder) {
-        try (InputStream inputStream = ClassLoader.getSystemResourceAsStream("ballerina-asyncapi.help");
-            InputStreamReader inputStreamReader = new InputStreamReader(inputStream, StandardCharsets.UTF_8);
-            BufferedReader br = new BufferedReader(inputStreamReader)) {
-
-            String content;
+        ClassLoader classLoader = AsyncApiCmd.class.getClassLoader();
+        try (InputStream inputStream = classLoader.getResourceAsStream("ballerina-asyncapi.help");
+             InputStreamReader inputStreamReader = new InputStreamReader(inputStream, StandardCharsets.UTF_8);
+             BufferedReader br = new BufferedReader(inputStreamReader)) {
+            String content = br.readLine();
+            outStream.append(content);
             while ((content = br.readLine()) != null) {
-                stringBuilder.append(content).append('\n');
+                outStream.append('\n').append(content);
             }
+            outStream.append('\n');
         } catch (IOException ignored) {
         }
     }
 
     @Override
-    public void printUsage(StringBuilder stringBuilder) {}
+    public void printUsage(StringBuilder stringBuilder) {
+        stringBuilder.append("  ballerina " + CMD_NAME + " --input chat.proto\n");
+    }
 
     @Override
-    public void setParentCmdParser(picocli.CommandLine commandLine) {}
-
-    /**
-     * Exit with error code 1.
-     *
-     * @param exit Whether to exit or not.
-     */
-    private static void exitError(boolean exit) {
-        if (exit) {
-            Runtime.getRuntime().exit(1);
-        }
+    public void setParentCmdParser(picocli.CommandLine commandLine) {
     }
 }

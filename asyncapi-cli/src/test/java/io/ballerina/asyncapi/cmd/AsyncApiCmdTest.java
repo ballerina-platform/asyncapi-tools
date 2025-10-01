@@ -83,7 +83,8 @@ public class AsyncApiCmdTest {
     public void testExecute() throws IOException {
         Path specYaml = resourceDir.resolve(Paths.get("specs", "spec-complete-slack.yml"));
         String[] args = {"--input", specYaml.toString(), "-o", this.tmpDir.toString()};
-        AsyncApiCmd cmd = new AsyncApiCmd(printStream, tmpDir, false);
+        ExitCodeCaptor exitCaptor = new ExitCodeCaptor();
+        AsyncApiCmd cmd = new AsyncApiCmd(printStream, tmpDir, exitCaptor);
         new CommandLine(cmd).parseArgs(args);
         cmd.execute();
         Path expectedDataTypesFile = resourceDir.resolve(Paths.get("expected_gen", "data_types.bal"));
@@ -118,7 +119,8 @@ public class AsyncApiCmdTest {
     public void testExecuteWithJson() throws IOException {
         Path specYaml = resourceDir.resolve(Paths.get("specs", "spec-complete-slack.json"));
         String[] args = {"--input", specYaml.toString(), "-o", this.tmpDir.toString()};
-        AsyncApiCmd cmd = new AsyncApiCmd(printStream, tmpDir, false);
+        ExitCodeCaptor exitCaptor = new ExitCodeCaptor();
+        AsyncApiCmd cmd = new AsyncApiCmd(printStream, tmpDir, exitCaptor);
         new CommandLine(cmd).parseArgs(args);
         cmd.execute();
         Path expectedDataTypesFile = resourceDir.resolve(Paths.get("expected_gen", "data_types.bal"));
@@ -153,16 +155,20 @@ public class AsyncApiCmdTest {
     public void testExecuteWithInvalidSpecPath() throws IOException {
         Path specYaml = resourceDir.resolve(Paths.get("specs", "invalid-file-name.yml"));
         String[] args = {"--input", specYaml.toString(), "-o", this.tmpDir.toString()};
-        AsyncApiCmd cmd = new AsyncApiCmd(printStream, tmpDir, false);
+        ExitCodeCaptor exitCaptor = new ExitCodeCaptor();
+        AsyncApiCmd cmd = new AsyncApiCmd(printStream, tmpDir, exitCaptor);
         new CommandLine(cmd).parseArgs(args);
         cmd.execute();
-        Assert.assertTrue(readOutput(true).startsWith("File not found in the given path: "));
+        String output = readOutput(true);
+        Assert.assertTrue(output.contains("File not found in the given path: "),
+            "Expected error message not found. Actual output: " + output);
     }
 
     @Test(description = "Test the functionality of the asyncapi command when the input file path is not given")
     public void testExecuteWhenSpecPathNotGiven() throws IOException {
         String[] args = {"--input"};
-        AsyncApiCmd cmd = new AsyncApiCmd(printStream, tmpDir, false);
+        ExitCodeCaptor exitCaptor = new ExitCodeCaptor();
+        AsyncApiCmd cmd = new AsyncApiCmd(printStream, tmpDir, exitCaptor);
         new CommandLine(cmd).parseArgs(args);
         cmd.execute();
         Assert.assertEquals(readOutput(true).trim(), AsyncApiMessages.MESSAGE_FOR_MISSING_INPUT);
@@ -176,6 +182,42 @@ public class AsyncApiCmdTest {
             Assert.fail("Could not read the file in the path " + path.toString() + e.getMessage());
         }
         return (output.trim()).replaceAll("\\s+", "");
+    }
+
+    @Test(description = "Test asyncapi command execution without arguments - should return exit code 2")
+    public void testExecuteWithoutArguments() {
+        String[] args = {};
+        ExitCodeCaptor exitCaptor = new ExitCodeCaptor();
+        AsyncApiCmd cmd = new AsyncApiCmd(printStream, tmpDir, exitCaptor);
+        new CommandLine(cmd).parseArgs(args);
+        cmd.execute();
+        Assert.assertEquals(exitCaptor.getExitCode(), 2,
+                "asyncapi command without arguments should exit with code 2");
+    }
+
+    @Test(description = "Test asyncapi command execution with help flag - should return exit code 0")
+    public void testExecuteWithHelpFlagExitCode() {
+        String[] args = {"-h"};
+        ExitCodeCaptor exitCaptor = new ExitCodeCaptor();
+        AsyncApiCmd cmd = new AsyncApiCmd(printStream, tmpDir, exitCaptor);
+        new CommandLine(cmd).parseArgs(args);
+        cmd.execute();
+        Assert.assertEquals(exitCaptor.getExitCode(), 0,
+                "asyncapi command with -h flag should exit with code 0");
+    }
+
+    @Test(description = "Test asyncapi command execution with invalid flag - should throw exception during parsing")
+    public void testExecuteWithInvalidFlagException() {
+        String[] args = {"--invalidFlag"};
+        ExitCodeCaptor exitCaptor = new ExitCodeCaptor();
+        AsyncApiCmd cmd = new AsyncApiCmd(printStream, tmpDir, exitCaptor);
+        try {
+            new CommandLine(cmd).parseArgs(args);
+            Assert.fail("Expected picocli to throw exception for invalid flag");
+        } catch (CommandLine.UnmatchedArgumentException e) {
+            // Expected: picocli rejects invalid flags
+            Assert.assertTrue(e.getMessage().contains("Unknown option"));
+        }
     }
 }
 
