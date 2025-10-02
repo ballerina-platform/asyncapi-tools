@@ -192,25 +192,6 @@ task createArtifactZip(type: Zip) {
     from directoryBuild
 }
 
-publishing {
-    publications {
-        mavenJava(MavenPublication) {
-            artifact source: createArtifactZip, extension: 'zip'
-        }
-    }
-
-    repositories {
-        maven {
-            name = "GitHubPackages"
-            url = uri("https://maven.pkg.github.com/ballerina-platform/asyncapi-tools")
-            credentials {
-                username = System.getenv("packageUser")
-                password = System.getenv("packagePAT")
-            }
-        }
-    }
-}
-
 directoryBuild.dependsOn ":${packageName}-cli:build"
 directoryBuild.dependsOn ":asyncapi-tool:build"
 directoryBuild.dependsOn ":compileJava"
@@ -240,7 +221,6 @@ directoryBuild.dependsOn ":checkstyle:checkstyleMain"
 directoryBuild.dependsOn ":checkstyle:checkstyleTest"
 directoryBuild.dependsOn ":checkstyle:test"
 directoryBuild.dependsOn ":checkstyle:processTestResources"
-directoryBuild.dependsOn ":generatePomFileForMavenJavaPublication"
 
 directoryBuild.dependsOn ":asyncapi-tool:jBallerinaPack"
 directoryBuild.dependsOn ":asyncapi-tool:generatePomFileForMavenPublication"
