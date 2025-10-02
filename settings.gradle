@@ -45,6 +45,7 @@ plugins {
 
 rootProject.name = 'asyncapi-tools'
 
+
 include ':checkstyle'
 include(':native.handler:java-wrapper')
 include(':asyncapi-cli')
