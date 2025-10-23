@@ -20,13 +20,11 @@ package io.ballerina.asyncapi.cmd;
 import io.ballerina.asyncapi.cmd.websockets.AsyncApiDiagnostic;
 import io.ballerina.asyncapi.cmd.websockets.AsyncApiToBallerinaGenerator;
 import io.ballerina.asyncapi.cmd.websockets.BallerinaToAsyncApiGenerator;
-import io.ballerina.asyncapi.cmd.websockets.CmdConstants;
 import io.ballerina.asyncapi.cmd.websockets.CmdUtils;
 import io.ballerina.asyncapi.codegenerator.application.Application;
 import io.ballerina.asyncapi.codegenerator.application.CodeGenerator;
 import io.ballerina.asyncapi.codegenerator.configuration.BallerinaAsyncApiException;
 import io.ballerina.asyncapi.websocketscore.exception.BallerinaAsyncApiExceptionWs;
-import io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants;
 import io.ballerina.asyncapi.websocketscore.generators.asyncspec.diagnostic.AsyncApiConverterDiagnostic;
 import io.ballerina.asyncapi.websocketscore.generators.asyncspec.diagnostic.DiagnosticMessages;
 import io.ballerina.asyncapi.websocketscore.generators.asyncspec.diagnostic.ExceptionDiagnostic;
@@ -46,21 +44,12 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
+import java.util.Set;
 
-import static io.ballerina.asyncapi.cmd.AsyncApiConstants.EXPERIMENTAL_WARNING;
-import static io.ballerina.asyncapi.cmd.AsyncApiConstants.INPUT_FLAG;
-import static io.ballerina.asyncapi.cmd.AsyncApiConstants.INPUT_FLAG_ALT;
-import static io.ballerina.asyncapi.cmd.AsyncApiConstants.JSON_FLAG;
-import static io.ballerina.asyncapi.cmd.AsyncApiConstants.LICENSE_FLAG;
-import static io.ballerina.asyncapi.cmd.AsyncApiConstants.LINE_SEPARATOR;
-import static io.ballerina.asyncapi.cmd.AsyncApiConstants.OUTPUT_FLAG;
-import static io.ballerina.asyncapi.cmd.AsyncApiConstants.OUTPUT_FLAG_ALT;
-import static io.ballerina.asyncapi.cmd.AsyncApiConstants.PROTOCOL_FLAG;
-import static io.ballerina.asyncapi.cmd.AsyncApiConstants.SERVICE_FLAG;
-import static io.ballerina.asyncapi.cmd.AsyncApiConstants.TEST_FLAG;
-import static io.ballerina.asyncapi.cmd.AsyncApiConstants.VALID_HTTP_NAMES;
-import static io.ballerina.asyncapi.cmd.AsyncApiConstants.VALID_WS_NAMES;
 import static io.ballerina.asyncapi.cmd.AsyncApiMessages.CLIENT_GENERATION_FAILED;
 import static io.ballerina.asyncapi.cmd.AsyncApiMessages.INVALID_OPTION_ERROR_HTTP;
 import static io.ballerina.asyncapi.cmd.AsyncApiMessages.INVALID_USE_OF_JSON_FLAG_WARNING;
@@ -68,6 +57,8 @@ import static io.ballerina.asyncapi.cmd.AsyncApiMessages.INVALID_USE_OF_LICENSE_
 import static io.ballerina.asyncapi.cmd.AsyncApiMessages.INVALID_USE_OF_SERVICE_FLAG_WARNING;
 import static io.ballerina.asyncapi.cmd.AsyncApiMessages.INVALID_USE_OF_TEST_FLAG_WARNING;
 import static io.ballerina.asyncapi.cmd.AsyncApiMessages.MESSAGE_INVALID_LICENSE_STREAM;
+import static io.ballerina.asyncapi.cmd.Utils.isAsyncApiSpecFile;
+import static io.ballerina.asyncapi.cmd.Utils.isBallerinaFile;
 
 /**
  * Main class to implement "asyncapi" command for ballerina. Commands for Listener generation from AsyncApi spec
@@ -78,14 +69,34 @@ import static io.ballerina.asyncapi.cmd.AsyncApiMessages.MESSAGE_INVALID_LICENSE
         description = "Generate the Ballerina sources for a given AsyncAPI definition."
 )
 public class AsyncApiCmd implements BLauncherCmd {
+    public static final String LICENSE_FLAG = "--license";
+    public static final String SERVICE_FLAG = "--service";
+    public static final String TEST_FLAG = "--with-tests";
+    public static final String JSON_FLAG = "--json";
+    public static final String INPUT_FLAG = "--input";
+    public static final String OUTPUT_FLAG = "--output";
+    public static final String INPUT_FLAG_ALT = "-i";
+    public static final String OUTPUT_FLAG_ALT = "-o";
+    public static final String PROTOCOL_FLAG = "--protocol";
+    private static final String FILE_EXTENSION_SEPARATOR = ".";
+    private static final String BAL_EXTENSION = ".bal";
+
+    public static final Set<String> VALID_HTTP_NAMES = new HashSet<>(Arrays.asList("http", "https"));
+    public static final Set<String> VALID_WS_NAMES = new HashSet<>(Arrays.asList("ws", "wss", "websocket"));
+
+    public static final String LINE_SEPARATOR = System.lineSeparator();
+    public static final String EXPERIMENTAL_WARNING = "WARNING: The support for the WebSocket protocol is currently " +
+            "an experimental feature, and its behavior may be subject to change in future releases." + LINE_SEPARATOR;
+
     private static final String CMD_NAME = "asyncapi";
+
     private static final int EXIT_CODE_0 = 0;
     private static final int EXIT_CODE_1 = 1;
     private static final int EXIT_CODE_2 = 2;
     private static final ExitHandler DEFAULT_EXIT_HANDLER = code -> Runtime.getRuntime().exit(code);
 
-    private PrintStream outStream;
-    private Path executionPath = Paths.get(System.getProperty("user.dir"));
+    private final PrintStream outStream;
+    private final Path executionPath;
     private Path targetOutputPath;
     private final ExitHandler exitHandler;
 
@@ -102,7 +113,7 @@ public class AsyncApiCmd implements BLauncherCmd {
     private boolean helpFlag;
 
     @CommandLine.Option(names = {INPUT_FLAG_ALT, INPUT_FLAG}, description = "File path to the AsyncAPI specification")
-    private boolean inputPath;
+    private String inputFile;
 
     @CommandLine.Option(names = {OUTPUT_FLAG_ALT, OUTPUT_FLAG},
             description = "Directory to store the generated Ballerina service. If this is not provided, the generated" +
@@ -125,8 +136,7 @@ public class AsyncApiCmd implements BLauncherCmd {
     @CommandLine.Option(names = {JSON_FLAG}, description = "Generate json file")
     private boolean generatedFileType;
 
-    @CommandLine.Parameters
-    private List<String> argList;
+    private String extension;
 
     /**
      * Constructor that initialize with the default values.
@@ -170,71 +180,66 @@ public class AsyncApiCmd implements BLauncherCmd {
             exit(EXIT_CODE_0);
             return;
         }
-        if (inputPath) {
-            if (argList == null) {
+        if (inputFile == null || inputFile.isBlank()) {
+            printLongDesc(new StringBuilder());
+            exit(EXIT_CODE_2);
+            return;
+        }
+        String normalizedProtocol = protocol.toLowerCase(Locale.ROOT);
+        if (VALID_HTTP_NAMES.contains(normalizedProtocol)) {
+            if (!verifyValidInputsForHttp()) {
+                return;
+            }
+            if (!isAsyncApiSpecFile(this.inputFile)) {
                 outStream.println(AsyncApiMessages.MESSAGE_FOR_MISSING_INPUT);
                 outStream.flush();
                 exit(EXIT_CODE_1);
                 return;
             }
-            String fileName = argList.get(0);
-
-            if (VALID_HTTP_NAMES.contains(protocol.toLowerCase())) {
-                verifyValidInputsForHttp();
-                Application codeGenerator = new CodeGenerator();
+            Application codeGenerator = new CodeGenerator();
+            try {
+                codeGenerator.generate(this.inputFile,
+                        (outputPath == null) ? String.valueOf(executionPath) : outputPath);
+            } catch (BallerinaAsyncApiException e) {
+                outStream.println(e.getMessage());
+                outStream.flush();
+                exit(EXIT_CODE_1);
+                return;
+            }
+        } else if (VALID_WS_NAMES.contains(normalizedProtocol)) {
+            outStream.println(EXPERIMENTAL_WARNING);
+            if (isAsyncApiSpecFile(this.inputFile)) {
+                giveWarningsForInvalidClientGenOptions();
                 try {
-                    codeGenerator.generate(fileName, (outputPath == null) ?
-                            String.valueOf(executionPath) : outputPath);
-                } catch (BallerinaAsyncApiException e) {
-                    outStream.println(e.getMessage());
+                    asyncApiToBallerinaWs(this.inputFile);
+                } catch (IOException e) {
+                    outStream.println(e.getLocalizedMessage());
                     outStream.flush();
                     exit(EXIT_CODE_1);
-                    return;
                 }
-            } else if (VALID_WS_NAMES.contains(protocol.toLowerCase())) {
-                outStream.println(EXPERIMENTAL_WARNING);
-                if (fileName.endsWith(Constants.YAML_EXTENSION) || fileName.endsWith(Constants.JSON_EXTENSION) ||
-                        fileName.endsWith(Constants.YML_EXTENSION)) {
-                    giveWarningsForInvalidClientGenOptions();
-                    try {
-                        asyncApiToBallerinaWs(fileName);
-                    } catch (IOException e) {
-                        outStream.println(e.getLocalizedMessage());
-                        outStream.flush();
-                        exit(EXIT_CODE_1);
-                        return;
-                    }
-                    // when -i has bal extension
-                } else if (fileName.endsWith(CmdConstants.BAL_EXTENSION)) {
-                    giveWarningsForInvalidSpecGenOptions();
-                    try {
-                        ballerinaToAsyncApiWs(fileName);
-                    } catch (Exception e) {
-                        outStream.println(e.getLocalizedMessage());
-                        outStream.flush();
-                        exit(EXIT_CODE_1);
-                        return;
-                    }
-                    // If -i has no extensions
-                } else {
-                    outStream.println(AsyncApiMessages.MISSING_CONTRACT_PATH);
+                return;
+            } else if (isBallerinaFile(this.inputFile)) {
+                giveWarningsForInvalidSpecGenOptions();
+                try {
+                    ballerinaToAsyncApiWs(inputFile);
+                } catch (Exception e) {
+                    outStream.println(e.getLocalizedMessage());
                     outStream.flush();
                     exit(EXIT_CODE_1);
-                    return;
                 }
+                return;
             } else {
-                outStream.println(String.format(AsyncApiMessages.MESSAGE_INVALID_PROTOCOL, protocol));
+                outStream.println(AsyncApiMessages.MISSING_CONTRACT_PATH);
                 outStream.flush();
                 exit(EXIT_CODE_1);
                 return;
             }
         } else {
-            printLongDesc(new StringBuilder());
+            outStream.println(String.format(AsyncApiMessages.MESSAGE_INVALID_PROTOCOL, protocol));
             outStream.flush();
-            exit(EXIT_CODE_2);
+            exit(EXIT_CODE_1);
             return;
         }
-
         outStream.flush();
         exit(EXIT_CODE_0);
     }
@@ -257,23 +262,28 @@ public class AsyncApiCmd implements BLauncherCmd {
         }
     }
 
-    private void verifyValidInputsForHttp() {
+    private boolean verifyValidInputsForHttp() {
         if (licenseFilePath != null) {
             outStream.println(String.format(INVALID_OPTION_ERROR_HTTP, LICENSE_FLAG));
             exit(EXIT_CODE_1);
+            return false;
         }
         if (service != null) {
             outStream.println(String.format(INVALID_OPTION_ERROR_HTTP, SERVICE_FLAG));
             exit(EXIT_CODE_1);
+            return false;
         }
         if (includeTestFiles) {
             outStream.println(String.format(INVALID_OPTION_ERROR_HTTP, TEST_FLAG));
             exit(EXIT_CODE_1);
+            return false;
         }
         if (generatedFileType) {
             outStream.println(String.format(INVALID_OPTION_ERROR_HTTP, JSON_FLAG));
             exit(EXIT_CODE_1);
+            return false;
         }
+        return true;
     }
 
     private void ballerinaToAsyncApiWs(String fileName) {
@@ -302,6 +312,7 @@ public class AsyncApiCmd implements BLauncherCmd {
                             exceptionDiagnostic.getLocation().orElse(null));
                     outStream.println(diagnostic);
                     exit(EXIT_CODE_1);
+                    return;
                 } else if (error instanceof IncompatibleRemoteDiagnostic incompatibleError) {
                     AsyncApiDiagnostic diagnostic = CmdUtils.constructAsyncAPIDiagnostic(incompatibleError.getCode(),
                             incompatibleError.getMessage(), incompatibleError.getDiagnosticSeverity(),
@@ -313,7 +324,11 @@ public class AsyncApiCmd implements BLauncherCmd {
     }
 
     private void asyncApiToBallerinaWs(String fileName) throws IOException {
-        AsyncApiToBallerinaGenerator generator = new AsyncApiToBallerinaGenerator(this.extractLicenseHeaderWs(),
+        String licenseHeader = this.extractLicenseHeaderWs();
+        if (licenseHeader == null) {
+            return;
+        }
+        AsyncApiToBallerinaGenerator generator = new AsyncApiToBallerinaGenerator(licenseHeader,
                 this.includeTestFiles);
         final File asyncApiFile = new File(fileName);
         setOutputPathWs();
@@ -340,6 +355,7 @@ public class AsyncApiCmd implements BLauncherCmd {
         } catch (IOException e) {
             outStream.println(String.format(MESSAGE_INVALID_LICENSE_STREAM, this.licenseFilePath, e.getMessage()));
             exit(EXIT_CODE_1);
+            return null;
         }
         return "";
     }
@@ -370,11 +386,10 @@ public class AsyncApiCmd implements BLauncherCmd {
         } catch (IOException | FormatterException | BallerinaAsyncApiExceptionWs e) {
             if (e.getLocalizedMessage() != null) {
                 outStream.println(e.getLocalizedMessage());
-                exit(EXIT_CODE_1);
             } else {
                 outStream.println(CLIENT_GENERATION_FAILED);
-                exit(EXIT_CODE_1);
             }
+            exit(EXIT_CODE_1);
         }
     }
 
@@ -401,7 +416,6 @@ public class AsyncApiCmd implements BLauncherCmd {
 
     @Override
     public void printUsage(StringBuilder stringBuilder) {
-        stringBuilder.append("  ballerina " + CMD_NAME + " --input chat.proto\n");
     }
 
     @Override

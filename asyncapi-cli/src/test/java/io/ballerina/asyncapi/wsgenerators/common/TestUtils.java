@@ -24,12 +24,13 @@ import io.ballerina.asyncapi.websocketscore.generators.schema.BallerinaTypesGene
 import io.ballerina.compiler.api.SemanticModel;
 import io.ballerina.compiler.syntax.tree.SyntaxTree;
 import io.ballerina.compiler.syntax.tree.TypeDefinitionNode;
+import io.ballerina.projects.BuildOptions;
 import io.ballerina.projects.DocumentId;
 import io.ballerina.projects.Module;
 import io.ballerina.projects.Package;
 import io.ballerina.projects.Project;
-import io.ballerina.projects.ProjectException;
 import io.ballerina.projects.ProjectKind;
+import io.ballerina.projects.ProjectLoadResult;
 import io.ballerina.projects.directory.ProjectLoader;
 import io.ballerina.tools.diagnostics.Diagnostic;
 import org.ballerinalang.formatter.core.Formatter;
@@ -71,7 +72,7 @@ public class TestUtils {
                 getBallerinaAuthConfigGenerator().getAuthRelatedTypeDefinitionNodes());
         preGeneratedTypeDefinitionNodes.addAll(intermediateClientGenerator.getTypeDefinitionNodeList());
         BallerinaTypesGenerator ballerinaSchemaGenerator = new BallerinaTypesGenerator(
-                asyncAPI,  preGeneratedTypeDefinitionNodes);
+                asyncAPI, preGeneratedTypeDefinitionNodes);
         SyntaxTree schemaSyntax = ballerinaSchemaGenerator.generateSyntaxTree();
         SyntaxTree utilSyntaxTree = intermediateClientGenerator.getBallerinaUtilGenerator().generateUtilSyntaxTree();
         writeFile(clientPath, Formatter.format(syntaxTree).toString());
@@ -116,13 +117,9 @@ public class TestUtils {
     }
 
     public static SemanticModel getSemanticModel(Path servicePath) {
-        // Load project instance for single ballerina file
-        Project project = null;
-        try {
-            project = ProjectLoader.loadProject(servicePath);
-        } catch (ProjectException ignored) {
-        }
-
+        BuildOptions buildOptions = BuildOptions.builder().setOffline(true).build();
+        ProjectLoadResult projectLoadResult = ProjectLoader.load(servicePath, buildOptions);
+        Project project = projectLoadResult.project();
         Package packageName = project.currentPackage();
         DocumentId docId;
 
@@ -136,13 +133,6 @@ public class TestUtils {
         }
         return project.currentPackage().getCompilation().getSemanticModel(docId.moduleId());
     }
-
-//    public static AsyncApi25DocumentImpl getAsyncAPI(Path definitionPath) throws IOException,
-//    BallerinaAsyncApiExceptionWs{
-//        String asyncAPIFileContent = Files.readString(definitionPath);
-//        SwaggerParseResult parseResult = new AsyncAPipar().readContents(asyncAPIFileContent);
-//        return parseResult.getasyncAPI();
-//    }
 
     public static String getStringFromGivenBalFile(Path expectedServiceFile, String s) throws IOException {
         Stream<String> expectedServiceLines = Files.lines(expectedServiceFile.resolve(s));

@@ -1,0 +1,296 @@
+asyncapi: 2.1.0
+x-ballerina-event-identifier:
+  type : "body"
+  path : "event.type"
+components:
+  schemas:
+    CustomTestSchema:
+      properties:
+        test_id:
+          type: string
+    GenericEventWrapper:
+      additionalProperties: true
+      description: Adapted from auto-generated content
+      properties:
+        custom_test_schema:
+          $ref: '#/components/schemas/CustomTestSchema'
+        api_app_id:
+          description: ' Use this to distinguish which app the event belongs to if you use multiple apps with the same Request URL.'
+          title: The unique identifier your installed Slack application.
+          type: string
+          x-examples:
+            - A2H9RFS1A
+        authed_users:
+          items:
+            type: string
+          minItems: 1
+          title: >-
+            An array of string-based User IDs. Each member of the collection
+            represents a user that has installed your application/bot and
+            indicates the described event would be visible to those users.
+          type: array
+          uniqueItems: true
+        event:
+          additionalProperties: true
+          properties:
+            event_ts:
+              title: When the event was dispatched
+              type: string
+            type:
+              title: The specific name of the event
+              type: string
+          required:
+            - type
+            - event_ts
+          title: 'The actual event, an object, that happened'
+          type: object
+          x-examples:
+            - channel: D0PNCRP9N
+              channel_type: app_home
+              event_ts: '1525215129.000001'
+              text: How many cats did we herd yesterday?
+              ts: '1525215129.000001'
+              type: message
+              user: U061F7AUR
+        event_id:
+          title: >-
+            A unique identifier for this specific event, globally unique across
+            all workspaces.
+          type: string
+          x-examples:
+            - Ev0PV52K25
+        event_time:
+          title: >-
+            The epoch timestamp in seconds indicating when this event was
+            dispatched.
+          type: integer
+          x-examples:
+            - 1525215129
+        team_id:
+          title: The unique identifier of the workspace where the event occurred
+          type: string
+          x-examples:
+            - T1H9RESGL
+        token:
+          title: A verification token to validate the event originated from Slack
+          type: string
+        type:
+          title: >-
+            Indicates which kind of event dispatch this is, usually
+            `event_callback`
+          type: string
+          x-examples:
+            - event_callback
+        decimal_number:
+          type: number
+          format: decimal
+        float_number:
+          type: number
+          format: float
+        boolean_value:
+          type: boolean
+        plain_object:
+          type: object
+        ref_object:
+          type: object
+          $ref: '#/components/schemas/CustomTestSchema'
+        object_without_type:
+          additionalProperties: true
+          properties:
+            event_ts:
+              title: When the event was dispatched
+              type: string
+            type:
+              title: The specific name of the event
+              type: string
+        anydata:
+          title: This should be considered as anydata
+        array_with_ref:
+          items:
+            $ref: '#/components/schemas/CustomTestSchema'
+          minItems: 1
+          type: array
+          uniqueItems: true
+        array_with_inner_array:
+          items:
+            type: array
+            items:
+              type: string
+          minItems: 1
+          type: array
+          uniqueItems: true
+        array_with_inner_object:
+          items:
+            type: object
+          minItems: 1
+          type: array
+          uniqueItems: true
+        array_with_anydata:
+          items:
+            title: This should be considered as anydata
+          minItems: 1
+          type: array
+          uniqueItems: true
+      required:
+        - token
+        - team_id
+        - api_app_id
+        - event
+        - type
+        - event_id
+        - event_time
+        - authed_users
+      title: Standard event wrapper for the Events API
+      type: object
+      x-examples:
+        - api_app_id: AXXXXXXXXX
+          authed_teams: []
+          event:
+            resources:
+              - resource:
+                  grant:
+                    resource_id: DXXXXXXXX
+                    type: specific
+                  type: im
+                scopes:
+                  - 'chat:write:user'
+                  - 'im:read'
+                  - 'im:history'
+                  - commands
+            type: resources_added
+          event_id: EvXXXXXXXX
+          event_time: 1234567890
+          team_id: TXXXXXXXX
+          token: XXYYZZ
+          type: event_callback
+        - api_app_id: AXXXXXXXXX
+          authed_teams: []
+          event:
+            event_ts: '1360782804.083113'
+            item:
+              channel: C0G9QF9GZ
+              ts: '1360782400.498405'
+              type: message
+            item_user: U0G9QF9C6
+            reaction: thumbsup
+            type: reaction_added
+            user: U024BE7LH
+          event_id: EvXXXXXXXX
+          event_time: 1234567890
+          team_id: TXXXXXXXX
+          token: XXYYZZ
+          type: event_callback
+externalDocs:
+  description: Slack Events API documentation
+  url: 'https://api.slack.com/events-api'
+info:
+  contact:
+    email: developers@slack.com
+    name: Slack Platform Support
+    url: 'https://api.slack.com/support'
+  description: A webhook-based events bus using a subscription model for Slack apps
+  termsOfService: 'https://slack.com/terms-of-service/api'
+  title: Slack Events API
+  version: 1.0.0
+servers:
+  default:
+    description: >-
+      A pre-registered Request URL on servers you control where subscriptions
+      will be delivered.
+    url: '{request_url}'
+    variables:
+      request_url:
+        description: Your chosen request URL where events will be delivered.
+    protocol: https
+  server1:
+    description: >-
+      Your Slack app management console's event subscription configurator. Visit
+      in a web browser and sign in to your workspace.
+    url: 'https://api.slack.com/apps/{slack_app_id}/event-subscriptions'
+    variables:
+      slack_app_id:
+        description: >-
+          Your Slack app's unique identifier, found in the URL when editing your
+          app on api.slack.com.
+    protocol: https
+tags:
+  - description: Events less about a workspace and more about your app
+    name: app_event
+  - description: Part of workspace app's Permissions API
+    name: permissions_api
+  - description: User token based apps can subscribe to this event
+    name: allows_user_tokens
+  - description: Workspace token apps can subscribe to this event
+    name: allows_workspace_tokens
+channels:
+  slack/events/app/mention:
+    x-ballerina-service-type: "AppMentionHandlingService"
+    subscribe:
+      message:
+        oneOf:
+          -
+            x-ballerina-event-type: "app_mention_added"
+            externalDocs:
+              description: Event documentation for app_mention
+              url: 'https://api.slack.com/events/app_mention'
+            payload:
+              $ref: '#/components/schemas/GenericEventWrapper'
+            summary: Subscribe to only the message events that mention your app or bot
+            tags:
+              - name: allows_user_tokens
+              - name: app_event
+            x-scopes-required: []
+            x-tokens-allowed:
+              - user
+          -
+            x-ballerina-event-type: "app_mention_removed"
+            externalDocs:
+              description: Event documentation for app_mention
+              url: 'https://api.slack.com/events/app_mention'
+            payload:
+              $ref: '#/components/schemas/GenericEventWrapper'
+            summary: Subscribe to only the message events that mention your app or bot
+            tags:
+              - name: allows_user_tokens
+              - name: app_event
+            x-scopes-required: []
+            x-tokens-allowed:
+              - user
+  slack/events/app/rate/limited:
+    x-ballerina-service-type: "AppRateLimitedHandlingService"
+    subscribe:
+      message:
+        x-ballerina-event-type: "app_rate_limited"
+        externalDocs:
+          description: Event documentation for app_rate_limited
+          url: 'https://api.slack.com/events/app_rate_limited'
+        payload:
+          $ref: '#/components/schemas/GenericEventWrapper'
+        summary: Indicates your app's event subscriptions are being rate limited
+        tags:
+          - name: allows_user_tokens
+          - name: app_event
+          - name: allows_workspace_tokens
+        x-scopes-required: []
+        x-tokens-allowed:
+          - user
+          - workspace
+  slack/events/app/rate/limiteed:
+    x-ballerina-service-type: "AppCreatedHandlingService"
+    subscribe:
+      message:
+        x-ballerina-event-type: "app_created"
+        externalDocs:
+          description: Event documentation for app_rate_limited
+          url: 'https://api.slack.com/events/app_rate_limited'
+        payload:
+          $ref: '#/components/schemas/CustomTestSchema'
+        summary: Indicates your app's event subscriptions are being rate limited
+        tags:
+          - name: allows_user_tokens
+          - name: app_event
+          - name: allows_workspace_tokens
+        x-scopes-required: []
+        x-tokens-allowed:
+          - user
+          - workspace

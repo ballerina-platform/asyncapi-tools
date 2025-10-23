@@ -67,7 +67,6 @@ public class GeneratorConstants {
     public static final String URL = "url";
     public static final String MODULE_TEST = "test";
     public static final String BALLERINA = "ballerina";
-    //Honour goes to Nuvindu
     public static final String XLIBB = "xlibb";
     public static final String XLIBB_PIPE = "pipe";
     public static final String LOG = "log";
@@ -107,11 +106,8 @@ public class GeneratorConstants {
     public static final String ATTEMPT_TO_CLOSE_CONNECTION = "attemptToCloseConnection";
     public static final String MESSAGE_WITH_ID_VAR_NAME = "messageWithId";
     public static final String TYPE_INCLUSION_GENERATOR = "Generator";
-    public static final String WORKER_SLEEP_TIME_OUT = "0.01";
     public static final String STREAM_GENERATORS_MAP = "StreamGeneratorsMap";
     public static final String PIPES_MAP = "PipesMap";
-    public static final String SLEEP = "sleep";
-    public static final String RUNTIME = "runtime";
     public static final String PIPES = "pipes";
     public static final String STREAM_GENERATORS = "streamGenerators";
     public static final String STREAM_GENERATOR = "streamGenerator";
@@ -135,19 +131,14 @@ public class GeneratorConstants {
     public static final String CUSTOM_HEADERS = "customHeaders";
     public static final String MODIFIED_URL = "modifiedUrl";
     public static final String ERROR = "error";
-    public static final String ENSURE_TYPE = "ensureType";
     public static final String HTTP_API_KEY = "httpApiKey";
     public static final String USER_PASSWORD = "userPassword";
     public static final String API_KEY = "apiKey";
     public static final String API_KEYS_CONFIG = "ApiKeysConfig";
     public static final String API_KEY_CONFIG = "apiKeyConfig";
     public static final String AUTH = "auth";
-    public static final String PING_PONG_SERVICE = "websocket:PingPongService";
-    public static final String PING_PONG_HANDLER_FIELD = "pingPongHandler";
-    public static final String SECURE_SOCKET = "websocket:ClientSecureSocket";
     public static final String SECURE_SOCKET_FIELD = "secureSocket";
     public static final String PING_PONG_SERVICE_FIELD = "pingPongHandler";
-    public static final String WEB_SOCKET_RETRY_CONFIG = "websocket:WebSocketRetryConfig";
     public static final String BASIC = "basic";
     public static final String BEARER = "bearer";
     public static final String REFRESH_TOKEN = "refresh_token";
@@ -160,7 +151,6 @@ public class GeneratorConstants {
     public static final String CONFIG_DESCRIPTION = "The configurations to be used when initializing the `connector`";
     public static final String RETURN = "return";
     public static final String RETURN_DESCRIPTION = "An error if connector initialization failed";
-    public static final String RETRY_CONFIG_FIELD = "retryConfig";
     public static final String VALIDATION = "validation";
     public static final String DEFAULT_API_KEY_DESC = "API keys for authorization";
     public static final String ANY_DATA = "anydata";
@@ -172,7 +162,6 @@ public class GeneratorConstants {
     public static final String DECIMAL = "decimal";
     public static final String DESCRIPTION = "description";
     public static final String TIMEOUT = "timeout";
-    public static final String SERVER_STREAMING = "server-streaming";
     public static final String SIMPLE_RPC = "simple-rpc";
     public static final String INTEGER = "integer";
     public static final String BOOLEAN = "boolean";
@@ -274,8 +263,6 @@ public class GeneratorConstants {
             " in the specification";
     public static final String X_DISPATCHER_KEY_CANNOT_BE_EMPTY = "x-dispatcherKey cannot be empty";
     public static final String X_DISPATCHER_STREAM_ID_CANNOT_BE_EMPTY = "x-dispatcherStreamId cannot be empty";
-    public static final String BALLERINA_CLIENT_CANNOT_BE_GENERATED = "Ballerina client cannot be " +
-            "generated enter correct specification and adhere to tool's rules";
     public static final String START_MESSAGE_READING_DESCRIPTION = "Used to read messages from the websocket.";
     public static final String START_MESSAGE_WRITING_DESCRIPTION = "Used to write messages to the websocket.";
     public static final String DEFAULT_RETURN = "null";

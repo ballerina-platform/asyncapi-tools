@@ -78,7 +78,7 @@ public class ListenerTests {
         TestUtils.compareWithGeneratedFile(ballerinaFilePath, "listeners/listener_scenario05.yaml");
     }
 
-    @Test(description = "When given ballerina file contain some compilation issue.")
+    @Test(description = "When given ballerina file contains some compilation issues.")
     public void testListeners06() {
         Path ballerinaFilePath = RES_DIR.resolve("listeners/listener_scenario06.bal");
         List<AsyncApiConverterDiagnostic> errors = BallerinaToAsyncApiGenerator
