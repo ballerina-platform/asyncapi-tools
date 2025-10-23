@@ -36,6 +36,9 @@ import java.io.PrintStream;
 import java.util.List;
 import java.util.Map;
 
+import static io.ballerina.asyncapi.cmd.Utils.isJsonFile;
+import static io.ballerina.asyncapi.cmd.Utils.isYamlFile;
+
 /**
  *  This class controls the flow of code generation.
  *  1. read the file
@@ -110,12 +113,12 @@ public class CodeGenerator implements Application {
     }
 
     private String getFileContent(FileRepository fileRepository, String specPath) throws BallerinaAsyncApiException {
-        String asyncApiSpecYaml = fileRepository.getFileContent(specPath);
-        if (specPath.endsWith(".json")) {
-            fileRepository.validateJson(asyncApiSpecYaml);
-            return asyncApiSpecYaml;
-        } else if (specPath.endsWith("yaml") || specPath.endsWith("yml")) {
-            return fileRepository.convertYamlToJson(asyncApiSpecYaml);
+        String asyncApiSpecFile = fileRepository.getFileContent(specPath);
+        if (isJsonFile(specPath)) {
+            fileRepository.validateJson(asyncApiSpecFile);
+            return asyncApiSpecFile;
+        } else if (isYamlFile(specPath)) {
+            return fileRepository.convertYamlToJson(asyncApiSpecFile);
         } else {
             throw new BallerinaAsyncApiException("Unknown file type: ".concat(specPath));
         }

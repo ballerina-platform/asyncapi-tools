@@ -17,17 +17,18 @@
  */
 package io.ballerina.asyncapi.cmd;
 
-import static io.ballerina.asyncapi.cmd.AsyncApiConstants.CLIENT;
-import static io.ballerina.asyncapi.cmd.AsyncApiConstants.JSON_FLAG;
-import static io.ballerina.asyncapi.cmd.AsyncApiConstants.LICENSE_FLAG;
-import static io.ballerina.asyncapi.cmd.AsyncApiConstants.SERVICE_FLAG;
-import static io.ballerina.asyncapi.cmd.AsyncApiConstants.SPEC;
-import static io.ballerina.asyncapi.cmd.AsyncApiConstants.TEST_FLAG;
+import static io.ballerina.asyncapi.cmd.AsyncApiCmd.JSON_FLAG;
+import static io.ballerina.asyncapi.cmd.AsyncApiCmd.LICENSE_FLAG;
+import static io.ballerina.asyncapi.cmd.AsyncApiCmd.SERVICE_FLAG;
+import static io.ballerina.asyncapi.cmd.AsyncApiCmd.TEST_FLAG;
 
 /**
  * This class contains the messages constants required for AsyncApi tool.
  */
 public class AsyncApiMessages {
+    private static final String SPEC = "spec";
+    private static final String CLIENT = "client";
+
     public static final String MESSAGE_FOR_MISSING_INPUT = "An AsyncApi definition file is required to generate the " +
             "listener. \ne.g: bal asyncapi --input <AsyncAPIContract>";
     public static final String CLIENT_GENERATION_FAILED = "Error occurred when generating client for AsyncAPI contract";
@@ -38,6 +39,8 @@ public class AsyncApiMessages {
     public static final String INVALID_OPTION_ERROR_HTTP = "ERROR unsupported %s flag for http protocol";
     public static final String INVALID_OPTION_WARNING = "WARNING the `%s` option is invalid for generating" +
             " %s files and will be ignored.";
+    public static final String INVALID_INPUT_FILE = "The provided input file is not a valid AsyncAPI definition file." +
+            " Only .yaml, .yml, .json, and .bal files are supported.";
     public static final String INVALID_USE_OF_LICENSE_FLAG_WARNING = String.format(INVALID_OPTION_WARNING, LICENSE_FLAG,
             SPEC);
     public static final String INVALID_USE_OF_TEST_FLAG_WARNING = String.format(INVALID_OPTION_WARNING, TEST_FLAG,

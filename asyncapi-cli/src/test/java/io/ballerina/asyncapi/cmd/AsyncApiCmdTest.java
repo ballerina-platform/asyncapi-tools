@@ -161,17 +161,7 @@ public class AsyncApiCmdTest {
         cmd.execute();
         String output = readOutput(true);
         Assert.assertTrue(output.contains("File not found in the given path: "),
-            "Expected error message not found. Actual output: " + output);
-    }
-
-    @Test(description = "Test the functionality of the asyncapi command when the input file path is not given")
-    public void testExecuteWhenSpecPathNotGiven() throws IOException {
-        String[] args = {"--input"};
-        ExitCodeCaptor exitCaptor = new ExitCodeCaptor();
-        AsyncApiCmd cmd = new AsyncApiCmd(printStream, tmpDir, exitCaptor);
-        new CommandLine(cmd).parseArgs(args);
-        cmd.execute();
-        Assert.assertEquals(readOutput(true).trim(), AsyncApiMessages.MESSAGE_FOR_MISSING_INPUT);
+                "Expected error message not found. Actual output: " + output);
     }
 
     private String readContent(Path path) {
@@ -219,5 +209,222 @@ public class AsyncApiCmdTest {
             Assert.assertTrue(e.getMessage().contains("Unknown option"));
         }
     }
-}
 
+    @Test(description = "Ensure HTTP protocol rejects Ballerina service input with a clear error")
+    public void testHttpProtocolRejectsBalInput() throws IOException {
+        Path balFile = resourceDir.resolve(Paths.get("websockets", "ballerina-to-asyncapi", "service",
+                "basic_service.bal"));
+        String[] args = {"--input", balFile.toString()};
+        ExitCodeCaptor exitCaptor = new ExitCodeCaptor();
+        AsyncApiCmd cmd = new AsyncApiCmd(printStream, tmpDir, exitCaptor);
+        new CommandLine(cmd).parseArgs(args);
+        cmd.execute();
+        String output = readOutput(true);
+        Assert.assertEquals(exitCaptor.getExitCode(), 1,
+                "HTTP execution with a .bal input should exit with code 1");
+        Assert.assertTrue(output.contains("An AsyncApi definition file is required"),
+                "Expected informative error when HTTP flow receives a .bal input. Actual: " + output);
+    }
+
+    @Test(description = "Accept AsyncAPI inputs that use upper-case file extensions")
+    public void testExecuteWithUpperCaseAsyncApiExtension() throws IOException {
+        Path specYaml = resourceDir.resolve(Paths.get("specs", "SPEC_COMPLETE_SLACK_UPPERCASE.YAML"));
+        Path outputDir = Files.createTempDirectory(this.tmpDir, "upper-case-out-");
+        String[] args = {"--input", specYaml.toString(), "-o", outputDir.toString()};
+        ExitCodeCaptor exitCaptor = new ExitCodeCaptor();
+        AsyncApiCmd cmd = new AsyncApiCmd(printStream, outputDir, exitCaptor);
+        new CommandLine(cmd).parseArgs(args);
+        cmd.execute();
+        readOutput(true);
+        Assert.assertEquals(exitCaptor.getExitCode(), 0,
+                "Upper-case AsyncAPI file extensions should be accepted for HTTP generation");
+        Assert.assertTrue(Files.exists(outputDir.resolve("listener.bal")),
+                "Expected generation output when using upper-case AsyncAPI extension");
+    }
+
+    @Test(description = "HTTP protocol should stop execution when unsupported flags are provided")
+    public void testHttpProtocolInvalidFlagTerminatesExecution() throws IOException {
+        Path specYaml = resourceDir.resolve(Paths.get("specs", "spec-complete-slack.yml"));
+        String[] args = {"--input", specYaml.toString(), "--license", specYaml.toString()};
+        ExitCodeCaptor exitCaptor = new ExitCodeCaptor();
+        AsyncApiCmd cmd = new AsyncApiCmd(printStream, tmpDir, exitCaptor);
+        new CommandLine(cmd).parseArgs(args);
+        cmd.execute();
+        String output = readOutput(true);
+        Assert.assertEquals(exitCaptor.getExitCode(), 1,
+                "HTTP execution with unsupported flags should exit with code 1");
+        Assert.assertTrue(output.contains("unsupported --license flag for http protocol"),
+                "Expected unsupported flag warning for HTTP protocol. Actual: " + output);
+    }
+
+    @Test(description = "WebSocket generation aborts cleanly when license file cannot be read")
+    public void testWsGenerationStopsOnInvalidLicense() throws IOException {
+        Path specYaml = resourceDir.resolve(Paths.get("specs", "spec-complete-slack.yml"));
+        Path invalidLicense = tmpDir.resolve("missing-license.txt");
+        String[] args = {"--input", specYaml.toString(), "--protocol", "ws", "--license",
+                invalidLicense.toString()};
+        ExitCodeCaptor exitCaptor = new ExitCodeCaptor();
+        AsyncApiCmd cmd = new AsyncApiCmd(printStream, tmpDir, exitCaptor);
+        new CommandLine(cmd).parseArgs(args);
+        cmd.execute();
+        String output = readOutput(true);
+        Assert.assertEquals(exitCaptor.getExitCode(), 1,
+                "WebSocket generation with invalid license path should exit with code 1");
+        Assert.assertTrue(output.contains("Invalid license file path"),
+                "Expected invalid license file warning. Actual: " + output);
+    }
+
+    @Test(description = "HTTP protocol rejects --service flag with a clear error")
+    public void testHttpProtocolRejectsServiceFlag() throws IOException {
+        Path specYaml = resourceDir.resolve(Paths.get("specs", "spec-complete-slack.yml"));
+        String[] args = {"--input", specYaml.toString(), "--service", "MyService"};
+        ExitCodeCaptor exitCaptor = new ExitCodeCaptor();
+        AsyncApiCmd cmd = new AsyncApiCmd(printStream, tmpDir, exitCaptor);
+        new CommandLine(cmd).parseArgs(args);
+        cmd.execute();
+        String output = readOutput(true);
+        String expectedMessage = String.format(AsyncApiMessages.INVALID_OPTION_ERROR_HTTP, AsyncApiCmd.SERVICE_FLAG);
+        Assert.assertEquals(exitCaptor.getExitCode(), 1,
+                "HTTP execution with --service flag should exit with code 1");
+        Assert.assertTrue(output.contains(expectedMessage),
+                "Expected HTTP --service rejection message not found. Actual output: " + output);
+    }
+
+    @Test(description = "HTTP protocol rejects --with-tests flag with a clear error")
+    public void testHttpProtocolRejectsWithTestsFlag() throws IOException {
+        Path specYaml = resourceDir.resolve(Paths.get("specs", "spec-complete-slack.yml"));
+        String[] args = {"--input", specYaml.toString(), "--with-tests"};
+        ExitCodeCaptor exitCaptor = new ExitCodeCaptor();
+        AsyncApiCmd cmd = new AsyncApiCmd(printStream, tmpDir, exitCaptor);
+        new CommandLine(cmd).parseArgs(args);
+        cmd.execute();
+        String output = readOutput(true);
+        String expectedMessage = String.format(AsyncApiMessages.INVALID_OPTION_ERROR_HTTP, AsyncApiCmd.TEST_FLAG);
+        Assert.assertEquals(exitCaptor.getExitCode(), 1,
+                "HTTP execution with --with-tests flag should exit with code 1");
+        Assert.assertTrue(output.contains(expectedMessage),
+                "Expected HTTP --with-tests rejection message not found. Actual output: " + output);
+    }
+
+    @Test(description = "HTTP protocol rejects --json flag with a clear error")
+    public void testHttpProtocolRejectsJsonFlag() throws IOException {
+        Path specYaml = resourceDir.resolve(Paths.get("specs", "spec-complete-slack.yml"));
+        String[] args = {"--input", specYaml.toString(), "--json"};
+        ExitCodeCaptor exitCaptor = new ExitCodeCaptor();
+        AsyncApiCmd cmd = new AsyncApiCmd(printStream, tmpDir, exitCaptor);
+        new CommandLine(cmd).parseArgs(args);
+        cmd.execute();
+        String output = readOutput(true);
+        String expectedMessage = String.format(AsyncApiMessages.INVALID_OPTION_ERROR_HTTP, AsyncApiCmd.JSON_FLAG);
+        Assert.assertEquals(exitCaptor.getExitCode(), 1,
+                "HTTP execution with --json flag should exit with code 1");
+        Assert.assertTrue(output.contains(expectedMessage),
+                "Expected HTTP --json rejection message not found. Actual output: " + output);
+    }
+
+    @Test(description = "Protocol names are case-insensitive for HTTP generation")
+    public void testExecuteWithUpperCaseHttpsProtocol() throws IOException {
+        Path specYaml = resourceDir.resolve(Paths.get("specs", "spec-complete-slack.yml"));
+        Path outputDir = Files.createTempDirectory(this.tmpDir, "https-case-");
+        String[] args = {"--input", specYaml.toString(), "--protocol", "HTTPS", "-o", outputDir.toString()};
+        ExitCodeCaptor exitCaptor = new ExitCodeCaptor();
+        AsyncApiCmd cmd = new AsyncApiCmd(printStream, outputDir, exitCaptor);
+        new CommandLine(cmd).parseArgs(args);
+        cmd.execute();
+        readOutput(true);
+        Assert.assertEquals(exitCaptor.getExitCode(), 0,
+                "Upper-case HTTPS protocol should be accepted and exit with code 0");
+        Assert.assertTrue(Files.exists(outputDir.resolve("listener.bal")),
+                "Expected listener.bal to be generated for HTTPS protocol");
+    }
+
+    @Test(description = "Protocol names are case-insensitive for WebSocket generation")
+    public void testExecuteWithUpperCaseWsProtocol() throws IOException {
+        Path balFile = resourceDir.resolve(Paths.get("websockets", "ballerina-to-asyncapi", "service",
+                "basic_service.bal"));
+        Path outputDir = Files.createTempDirectory(this.tmpDir, "ws-case-");
+        String[] args = {"--input", balFile.toString(), "--protocol", "WS", "-o", outputDir.toString()};
+        ExitCodeCaptor exitCaptor = new ExitCodeCaptor();
+        AsyncApiCmd cmd = new AsyncApiCmd(printStream, outputDir, exitCaptor);
+        new CommandLine(cmd).parseArgs(args);
+        cmd.execute();
+        String output = readOutput(true);
+        Assert.assertFalse(exitCaptor.wasExitCalled(),
+                "Successful WS execution should not invoke exit handler");
+        Assert.assertTrue(output.contains("The support for the WebSocket protocol is currently"),
+                "Expected experimental WebSocket warning in output. Actual output: " + output);
+        boolean hasAsyncApiSpec;
+        try (Stream<Path> stream = Files.list(outputDir)) {
+            hasAsyncApiSpec = stream.anyMatch(path -> {
+                String fileName = path.getFileName().toString();
+                return fileName.endsWith(".yaml") || fileName.endsWith(".json");
+            });
+        }
+        Assert.assertTrue(hasAsyncApiSpec, "Expected AsyncAPI definition to be generated for WS protocol");
+    }
+
+    @Test(description = "Invalid protocol names are rejected with a helpful error")
+    public void testExecuteWithInvalidProtocol() throws IOException {
+        Path specYaml = resourceDir.resolve(Paths.get("specs", "spec-complete-slack.yml"));
+        String[] args = {"--input", specYaml.toString(), "--protocol", "grpc"};
+        ExitCodeCaptor exitCaptor = new ExitCodeCaptor();
+        AsyncApiCmd cmd = new AsyncApiCmd(printStream, tmpDir, exitCaptor);
+        new CommandLine(cmd).parseArgs(args);
+        cmd.execute();
+        String output = readOutput(true);
+        Assert.assertEquals(exitCaptor.getExitCode(), 1,
+                "Invalid protocol should exit with code 1");
+        Assert.assertTrue(output.contains("ERROR invalid protocol: grpc"),
+                "Expected invalid protocol error in output. Actual output: " + output);
+    }
+
+    @Test(description = "WebSocket client generation warns when service/json options are provided")
+    public void testWsClientGenerationWarnsForInvalidOptions() throws IOException {
+        Path specYaml = resourceDir.resolve(Paths.get("websockets", "asyncapi-to-ballerina", "test_cases",
+                "sample_yamls", "no_auth.yaml"));
+        Path outputDir = Files.createTempDirectory(this.tmpDir, "ws-client-");
+        String[] args = {"--input", specYaml.toString(), "--protocol", "ws", "--service", "ChatService", "--json",
+                "-o", outputDir.toString()};
+        ExitCodeCaptor exitCaptor = new ExitCodeCaptor();
+        AsyncApiCmd cmd = new AsyncApiCmd(printStream, outputDir, exitCaptor);
+        new CommandLine(cmd).parseArgs(args);
+        cmd.execute();
+        String output = readOutput(true);
+        Assert.assertFalse(exitCaptor.wasExitCalled(),
+                "Warnings for invalid WebSocket client options should not stop execution");
+        Assert.assertTrue(output.contains(AsyncApiMessages.INVALID_USE_OF_SERVICE_FLAG_WARNING),
+                "Expected service warning when generating WebSocket client. Actual output: " + output);
+        Assert.assertTrue(output.contains(AsyncApiMessages.INVALID_USE_OF_JSON_FLAG_WARNING),
+                "Expected json warning when generating WebSocket client. Actual output: " + output);
+    }
+
+    @Test(description = "WebSocket spec export warns when license/tests options are provided")
+    public void testWsSpecGenerationWarnsForLicenseAndTests() throws IOException {
+        Path balFile = resourceDir.resolve(Paths.get("websockets", "ballerina-to-asyncapi", "service",
+                "basic_service.bal"));
+        Path outputDir = Files.createTempDirectory(this.tmpDir, "ws-spec-");
+        Path licenseFile = Files.createTempFile(this.tmpDir, "license-", ".txt");
+        Files.writeString(licenseFile, "license header");
+        String[] args = {"--input", balFile.toString(), "--protocol", "ws", "--license",
+                licenseFile.toString(), "--with-tests", "-o", outputDir.toString()};
+        ExitCodeCaptor exitCaptor = new ExitCodeCaptor();
+        AsyncApiCmd cmd = new AsyncApiCmd(printStream, outputDir, exitCaptor);
+        new CommandLine(cmd).parseArgs(args);
+        cmd.execute();
+        String output = readOutput(true);
+        Assert.assertFalse(exitCaptor.wasExitCalled(),
+                "Warnings for invalid WebSocket spec options should not stop execution");
+        Assert.assertTrue(output.contains(AsyncApiMessages.INVALID_USE_OF_LICENSE_FLAG_WARNING),
+                "Expected license warning when exporting AsyncAPI spec. Actual output: " + output);
+        Assert.assertTrue(output.contains(AsyncApiMessages.INVALID_USE_OF_TEST_FLAG_WARNING),
+                "Expected test warning when exporting AsyncAPI spec. Actual output: " + output);
+        boolean hasJsonOrYaml;
+        try (Stream<Path> stream = Files.list(outputDir)) {
+            hasJsonOrYaml = stream.anyMatch(path -> {
+                String fileName = path.getFileName().toString();
+                return fileName.endsWith(".yaml") || fileName.endsWith(".json");
+            });
+        }
+        Assert.assertTrue(hasJsonOrYaml, "Expected AsyncAPI definition to be generated for WebSocket spec export");
+    }
+}

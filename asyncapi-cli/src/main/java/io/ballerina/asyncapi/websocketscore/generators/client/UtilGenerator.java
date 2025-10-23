@@ -50,6 +50,7 @@ import io.ballerina.compiler.syntax.tree.TypeDefinitionNode;
 import io.ballerina.compiler.syntax.tree.TypeDescriptorNode;
 import io.ballerina.compiler.syntax.tree.TypeReferenceNode;
 import io.ballerina.compiler.syntax.tree.WhileStatementNode;
+import io.ballerina.projects.BuildOptions;
 import io.ballerina.projects.DocumentId;
 import io.ballerina.projects.Package;
 import io.ballerina.projects.Project;
@@ -233,8 +234,8 @@ public class UtilGenerator {
         }
 
         Path path = getResourceFilePath();
-
-        Project project = ProjectLoader.loadProject(path);
+        BuildOptions buildOptions = BuildOptions.builder().setOffline(true).build();
+        Project project = ProjectLoader.load(path, buildOptions).project();
         Package currentPackage = project.currentPackage();
         DocumentId docId = currentPackage.getDefaultModule().documentIds().iterator().next();
         SyntaxTree syntaxTree = currentPackage.getDefaultModule().document(docId).syntaxTree();
@@ -325,7 +326,6 @@ public class UtilGenerator {
         fieldNodeList.add(timeoutField);
         return fieldNodeList;
     }
-
 
 
     private MetadataNode getClassMetadataNode(String returnType) {
@@ -435,7 +435,7 @@ public class UtilGenerator {
         RequiredParameterNode pipeIdNode = createRequiredParameterNode(createNodeList(),
                 createSimpleNameReferenceNode(createIdentifierToken(STRING)), createIdentifierToken(PIPE_ID));
         RequiredParameterNode decimalNode = createRequiredParameterNode(createNodeList(), createSimpleNameReferenceNode(
-                        createIdentifierToken(DECIMAL)), createIdentifierToken(TIMEOUT));
+                createIdentifierToken(DECIMAL)), createIdentifierToken(TIMEOUT));
         List<Node> parameterList = new ArrayList<>();
         parameterList.add(pipeNode);
         parameterList.add(createToken(COMMA_TOKEN));
@@ -449,7 +449,7 @@ public class UtilGenerator {
     private FunctionBodyNode getStreamInitFunctionBodyNode() {
         List<StatementNode> assignmentNodes = new ArrayList<>();
         AssignmentStatementNode selfPipes = createAssignmentStatementNode(createIdentifierToken(
-                SELF + DOT + PIPES), createToken(EQUAL_TOKEN),
+                        SELF + DOT + PIPES), createToken(EQUAL_TOKEN),
                 createSimpleNameReferenceNode(createIdentifierToken(PIPES)), createToken(SEMICOLON_TOKEN));
         AssignmentStatementNode selfPipeId = createAssignmentStatementNode(createIdentifierToken(
                         SELF + DOT + PIPE_ID), createToken(EQUAL_TOKEN),
