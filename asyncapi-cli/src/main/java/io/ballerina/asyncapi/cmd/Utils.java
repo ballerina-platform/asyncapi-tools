@@ -21,10 +21,6 @@ package io.ballerina.asyncapi.cmd;
 import java.io.File;
 import java.util.Locale;
 
-import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.JSON_EXTENSION;
-import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.YAML_EXTENSION;
-import static io.ballerina.asyncapi.websocketscore.generators.asyncspec.Constants.YML_EXTENSION;
-
 /**
  * Utility functions for AsyncAPI CMD.
  */
