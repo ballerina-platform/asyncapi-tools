@@ -41,7 +41,7 @@ configurations {
 
 dependencies {
     checkstyle project(':checkstyle')
-    checkstyle "com.puppycrawl.tools:checkstyle:${puppycrawlCheckstyleVersion}"
+    checkstyle "com.puppycrawl.tools:checkstyle:${checkstylePluginVersion}"
 
     implementation "io.apicurio:apicurio-data-models:${apiCurioVersion}"
     implementation "org.apache.logging.log4j:log4j-core:${log4jVersion}"
@@ -190,7 +190,7 @@ test {
 }
 
 checkstyle {
-    toolVersion "${puppycrawlCheckstyleVersion}"
+    toolVersion "${checkstylePluginVersion}"
     configFile rootProject.file("config/checkstyle/build/checkstyle.xml")
     configProperties = ["suppressionFile" : file("${rootDir}/config/checkstyle/build/suppressions.xml")]
 }
