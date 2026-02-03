@@ -1,0 +1,48 @@
+plugins {
+    id 'java'
+    id 'application'
+    id 'checkstyle'
+}
+
+application {
+    mainClass = 'io.ballerina.asyncapi.core.parser.AsyncApiParserTest'
+}
+
+group = 'io.ballerina'
+version = '0.12.1-SNAPSHOT'
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation "io.apicurio:apicurio-data-models:2.3.1"
+    implementation "com.fasterxml.jackson.core:jackson-databind:${jacksonDataformatYamlVersion}"
+
+    checkstyle project(':checkstyle')
+    checkstyle "com.puppycrawl.tools:checkstyle:${checkstylePluginVersion}"
+
+    testImplementation platform('org.junit:junit-bom:5.10.0')
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+test {
+    useJUnitPlatform()
+}
+
+checkstyle {
+    toolVersion "${checkstylePluginVersion}"
+    configFile rootProject.file("config/checkstyle/build/checkstyle.xml")
+    configProperties = ["suppressionFile" : file("${rootDir}/config/checkstyle/build/suppressions.xml")]
+}
+
+def excludePatterns = ['**/module-info.java', '**/AsyncApiParserTest.java']
+tasks.withType(Checkstyle) {
+    excludePatterns.each { pattern ->
+        exclude pattern
+    }
+}
+
+checkstyleMain.dependsOn(":checkstyle:downloadCheckstyleRuleFiles")
+checkstyleTest.dependsOn(":checkstyle:downloadCheckstyleRuleFiles")
