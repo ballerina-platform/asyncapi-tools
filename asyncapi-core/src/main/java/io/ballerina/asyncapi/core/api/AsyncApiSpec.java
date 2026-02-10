@@ -1,5 +1,11 @@
-package io.ballerina.asyncapi.core.model;
+package io.ballerina.asyncapi.core.api;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import io.ballerina.asyncapi.core.model.AsyncApiChannel;
+import io.ballerina.asyncapi.core.model.AsyncApiComponent;
+import io.ballerina.asyncapi.core.model.AsyncApiInfo;
+import io.ballerina.asyncapi.core.model.AsyncApiOperation;
+import io.ballerina.asyncapi.core.model.AsyncApiServer;
 import jakarta.ws.rs.core.MediaType;
 import org.semver4j.Semver;
 
@@ -71,7 +77,7 @@ public interface AsyncApiSpec {
     /**
      * Returns the specification extensions defined at the document level.
      *
-     * @return a map of extension names (with "x-" prefix) to their string values
+     * @return a map of extension names (with "x-" prefix) to their JSON values
      */
-    Map<String, String> getAsyncApiExtensions();
+    Map<String, JsonNode> getAsyncApiExtensions();
 }
