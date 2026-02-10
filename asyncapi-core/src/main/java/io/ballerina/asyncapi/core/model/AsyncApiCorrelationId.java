@@ -2,10 +2,9 @@ package io.ballerina.asyncapi.core.model;
 
 import java.util.Map;
 
-public record AsyncApiTag(
-        String name,
+public record AsyncApiCorrelationId(
         String description,
-        AsyncApiExternalDocs externalDocs,
+        String location,
         Map<String, String> extensions
 ) {
 }

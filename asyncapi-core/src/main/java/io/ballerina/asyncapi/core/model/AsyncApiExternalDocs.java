@@ -1,10 +1,11 @@
 package io.ballerina.asyncapi.core.model;
 
+import java.net.URI;
 import java.util.Map;
 
 public record AsyncApiExternalDocs(
         String description,
-        String url,
-        Map<String, Object> extensions
+        URI url,
+        Map<String, String> extensions
 ) {
 }

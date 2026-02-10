@@ -4,43 +4,38 @@ import java.util.List;
 import java.util.Map;
 
 public record AsyncApiOperation(
-        String name,
-        String action,
-        String channelRef,
+        Action action,
+        AsyncApiChannel channel,
         String title,
         String summary,
         String description,
-        List<String> messages,
+        List<AsyncApiMessage> messages,
         List<AsyncApiSecurityRequirement> security,
         AsyncApiOperationReply reply,
         List<AsyncApiTag> tags,
         AsyncApiExternalDocs externalDocs,
-        AsyncApiBindings bindings,
+        AsyncApiOperationBindings bindings,
         List<AsyncApiOperationTrait> traits,
-        String ref,
-        Map<String, Object> extensions
+        Map<String, String> extensions
 ) {
 
-    public record AsyncApiSecurityRequirement(
-            String name,
-            List<String> scopes
-    ) {
+    public enum Action {
+        SEND,
+        RECEIVE
     }
 
     public record AsyncApiOperationReply(
-            String channel,
+            AsyncApiChannel channel,
             AsyncApiOperationReplyAddress address,
-            List<String> messages,
-            String ref,
-            Map<String, Object> extensions
+            Map<String, AsyncApiMessage> messages,
+            Map<String, String> extensions
     ) {
     }
 
     public record AsyncApiOperationReplyAddress(
             String location,
             String description,
-            String ref,
-            Map<String, Object> extensions
+            Map<String, String> extensions
     ) {
     }
 
@@ -51,10 +46,37 @@ public record AsyncApiOperation(
             List<AsyncApiSecurityRequirement> security,
             List<AsyncApiTag> tags,
             AsyncApiExternalDocs externalDocs,
-            AsyncApiBindings bindings,
-            String ref,
-            Map<String, Object> extensions
+            AsyncApiOperationBindings bindings,
+            Map<String, String> extensions
     ) {
     }
-    
+
+    public record AsyncApiOperationBindings(
+            HttpOperationBindings httpOperationBindings,
+            WsOperationBindings wsOperationBindings
+    ) {
+    }
+
+    public record HttpOperationBindings(
+            HttpMethod method,
+            Object query,
+            String bindingVersion
+    ) {
+    }
+
+    public enum HttpMethod {
+        GET,
+        POST, 
+        PUT, 
+        PATCH, 
+        DELETE, 
+        HEAD, 
+        OPTIONS, 
+        CONNECT, 
+        TRACE
+    }
+
+    public record WsOperationBindings() {
+    }
+
 }

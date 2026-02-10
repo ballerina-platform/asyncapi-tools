@@ -4,10 +4,6 @@ plugins {
     id 'checkstyle'
 }
 
-application {
-    mainClass = 'io.ballerina.asyncapi.core.parser.AsyncApiParserTest'
-}
-
 group = 'io.ballerina'
 version = '0.12.1-SNAPSHOT'
 
@@ -18,6 +14,8 @@ repositories {
 dependencies {
     implementation "io.apicurio:apicurio-data-models:2.3.1"
     implementation "com.fasterxml.jackson.core:jackson-databind:${jacksonDataformatYamlVersion}"
+    implementation "org.semver4j:semver4j:${semver4jVersion}"
+    implementation "jakarta.ws.rs:jakarta.ws.rs-api:${jakartaWsRsVersion}"
 
     checkstyle project(':checkstyle')
     checkstyle "com.puppycrawl.tools:checkstyle:${checkstylePluginVersion}"
@@ -37,7 +35,7 @@ checkstyle {
     configProperties = ["suppressionFile" : file("${rootDir}/config/checkstyle/build/suppressions.xml")]
 }
 
-def excludePatterns = ['**/module-info.java', '**/AsyncApiParserTest.java']
+def excludePatterns = ['**/module-info.java']
 tasks.withType(Checkstyle) {
     excludePatterns.each { pattern ->
         exclude pattern

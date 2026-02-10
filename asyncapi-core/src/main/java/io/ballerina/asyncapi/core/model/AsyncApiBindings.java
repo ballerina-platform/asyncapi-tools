@@ -22,6 +22,6 @@ public record AsyncApiBindings(
         Map<String, Object> ibmmq,
         Map<String, Object> googlepubsub,
         Map<String, Object> pulsar,
-        Map<String, Object> extensions
+        Map<String, String> extensions
 ) {
 }

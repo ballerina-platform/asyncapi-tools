@@ -1,5 +1,6 @@
 package io.ballerina.asyncapi.core.model;
 
+import java.net.URI;
 import java.util.List;
 import java.util.Map;
 
@@ -7,26 +8,26 @@ public record AsyncApiInfo(
         String title,
         String version,
         String description,
-        String termsOfService,
+        URI termsOfService,
         Contact contact,
         License license,
         List<AsyncApiTag> tags,
         AsyncApiExternalDocs externalDocs,
-        Map<String, Object> extensions
+        Map<String, String> extensions
 ) {
 
     public record Contact(
             String name,
-            String url,
+            URI url,
             String email,
-            Map<String, Object> extensions
+            Map<String, String> extensions
     ) {
     }
 
     public record License(
             String name,
-            String url,
-            Map<String, Object> extensions
+            URI url,
+            Map<String, String> extensions
     ) {
     }
 }
