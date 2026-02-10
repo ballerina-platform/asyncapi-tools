@@ -18,10 +18,10 @@ public record AsyncApiComponent(
         Map<String, AsyncApiOperation.AsyncApiOperationReplyAddress> replyAddresses,
         Map<String, AsyncApiExternalDocs> externalDocs,
         Map<String, AsyncApiTag> tags,
-        Map<String, AsyncApiBindings> serverBindings,
-        Map<String, AsyncApiBindings> channelBindings,
-        Map<String, AsyncApiBindings> operationBindings,
-        Map<String, AsyncApiBindings> messageBindings,
+        Map<String, AsyncApiServer.AsyncApiServerBindings> serverBindings,
+        Map<String, AsyncApiChannel.AsyncApiChannelBindings> channelBindings,
+        Map<String, AsyncApiOperation.AsyncApiOperationBindings> operationBindings,
+        Map<String, AsyncApiMessage.AsyncApiMessageBindings> messageBindings,
         Map<String, String> extensions
 ) {
 
