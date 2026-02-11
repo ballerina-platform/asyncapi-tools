@@ -4,9 +4,6 @@ plugins {
     id 'checkstyle'
 }
 
-group = 'io.ballerina'
-version = '0.12.1-SNAPSHOT'
-
 repositories {
     mavenCentral()
 }
@@ -21,22 +18,21 @@ dependencies {
     checkstyle "com.puppycrawl.tools:checkstyle:${checkstylePluginVersion}"
 }
 
-test {
-    useJUnitPlatform()
-}
-
 checkstyle {
     toolVersion "${checkstylePluginVersion}"
     configFile rootProject.file("config/checkstyle/build/checkstyle.xml")
     configProperties = ["suppressionFile" : file("${rootDir}/config/checkstyle/build/suppressions.xml")]
 }
 
-def excludePatterns = ['**/module-info.java']
+def excludePattern = '**/module-info.java'
 tasks.withType(Checkstyle) {
-    excludePatterns.each { pattern ->
-        exclude pattern
-    }
+    exclude excludePattern
 }
 
 checkstyleMain.dependsOn(":checkstyle:downloadCheckstyleRuleFiles")
+checkstyleMain.dependsOn(":checkstyle:compileTestJava")
+checkstyleMain.dependsOn(":checkstyle:checkstyleMain")
+checkstyleMain.dependsOn(":checkstyle:checkstyleTest")
+checkstyleMain.dependsOn(":checkstyle:test")
+checkstyleMain.dependsOn(":checkstyle:processTestResources")
 checkstyleTest.dependsOn(":checkstyle:downloadCheckstyleRuleFiles")

@@ -1,4 +1,4 @@
-package io.ballerina.asyncapi.core.model;
+package io.ballerina.asyncapi.core.model.doc;
 
 import com.fasterxml.jackson.databind.JsonNode;
 

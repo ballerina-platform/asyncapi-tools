@@ -1,11 +1,11 @@
 package io.ballerina.asyncapi.core.api;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import io.ballerina.asyncapi.core.model.AsyncApiChannel;
-import io.ballerina.asyncapi.core.model.AsyncApiComponent;
-import io.ballerina.asyncapi.core.model.AsyncApiInfo;
-import io.ballerina.asyncapi.core.model.AsyncApiOperation;
-import io.ballerina.asyncapi.core.model.AsyncApiServer;
+import io.ballerina.asyncapi.core.model.channel.AsyncApiChannel;
+import io.ballerina.asyncapi.core.model.component.AsyncApiComponent;
+import io.ballerina.asyncapi.core.model.info.AsyncApiInfo;
+import io.ballerina.asyncapi.core.model.operation.AsyncApiOperation;
+import io.ballerina.asyncapi.core.model.server.AsyncApiServer;
 import jakarta.ws.rs.core.MediaType;
 import org.semver4j.Semver;
 
