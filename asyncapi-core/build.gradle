@@ -30,10 +30,13 @@ dependencies {
     implementation "io.apicurio:apicurio-data-models:2.3.1"
     implementation "com.fasterxml.jackson.core:jackson-databind:${jacksonDataformatYamlVersion}"
     implementation "org.semver4j:semver4j:${semver4jVersion}"
-    implementation "jakarta.ws.rs:jakarta.ws.rs-api:${jakartaWsRsVersion}"
 
     checkstyle project(':checkstyle')
     checkstyle "com.puppycrawl.tools:checkstyle:${checkstylePluginVersion}"
+}
+
+application {
+    mainClass = 'io.ballerina.asyncapi.core.AsyncApiParserTest'
 }
 
 checkstyle {

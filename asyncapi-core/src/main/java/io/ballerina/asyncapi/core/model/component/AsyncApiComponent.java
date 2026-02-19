@@ -86,6 +86,4 @@ public record AsyncApiComponent(
         Map<String, AsyncApiMessageBindings> messageBindings,
         Map<String, JsonNode> extensions
 ) {
-
-
 }

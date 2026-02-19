@@ -23,7 +23,6 @@ import io.ballerina.asyncapi.core.model.component.AsyncApiComponent;
 import io.ballerina.asyncapi.core.model.info.AsyncApiInfo;
 import io.ballerina.asyncapi.core.model.operation.AsyncApiOperation;
 import io.ballerina.asyncapi.core.model.server.AsyncApiServer;
-import jakarta.ws.rs.core.MediaType;
 import org.semver4j.Semver;
 
 import java.net.URI;
@@ -66,9 +65,9 @@ public interface AsyncApiSpec {
     /**
      * Returns the default content type for message payloads.
      *
-     * @return the default content type as a {@link MediaType}
+     * @return the default content type (e.g., "application/json")
      */
-    MediaType getAsyncApiContentType();
+    String getAsyncApiContentType();
 
     /**
      * Returns the channels defined in this AsyncAPI document.

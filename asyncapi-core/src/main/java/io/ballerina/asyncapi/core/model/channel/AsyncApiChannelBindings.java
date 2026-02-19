@@ -17,6 +17,10 @@
  */
 package io.ballerina.asyncapi.core.model.channel;
 
+import com.fasterxml.jackson.databind.JsonNode;
+
+import java.util.Map;
+
 /**
  * Represents protocol-specific channel binding definitions.
  * This structure is designed to be extensible to accommodate future
@@ -27,6 +31,7 @@ package io.ballerina.asyncapi.core.model.channel;
  */
 public record AsyncApiChannelBindings(
         HttpChannelBindings httpChannelBindings,
-        WsChannelBindings wsChannelBindings
+        WsChannelBindings wsChannelBindings,
+        Map<String, JsonNode> extensions
 ) {
 }

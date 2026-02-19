@@ -15,15 +15,30 @@
  *  specific language governing permissions and limitations
  *  under the License.
  */
+package io.ballerina.asyncapi.core.implementation.utils;
 
-plugins {
-    id 'java'
-}
+import java.net.URI;
 
-repositories {
-    mavenCentral()
-}
+public final class URIUtils {
 
-dependencies {
-    implementation project(':asyncapi-core')
+    private URIUtils() {
+
+    }
+
+    /**
+     * Converts a string to a {@link URI}.
+     *
+     * @param value the string to convert
+     * @return the URI or null
+     */
+    public static URI toUri(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        try {
+            return URI.create(value);
+        } catch (IllegalArgumentException e) {
+            return null;
+        }
+    }
 }
