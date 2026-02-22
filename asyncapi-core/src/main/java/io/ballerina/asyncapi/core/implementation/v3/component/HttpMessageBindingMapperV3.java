@@ -20,6 +20,7 @@ package io.ballerina.asyncapi.core.implementation.v3.component;
 import com.fasterxml.jackson.databind.JsonNode;
 import io.apicurio.datamodels.models.asyncapi.AsyncApiBinding;
 import io.ballerina.asyncapi.core.model.message.HttpMessageBindings;
+import io.ballerina.asyncapi.core.model.component.AsyncApiSchema;
 
 /**
  * Maps Apicurio AsyncAPI 3.0 HTTP message bindings to {@link HttpMessageBindings}.
@@ -44,7 +45,7 @@ final class HttpMessageBindingMapperV3 {
         Integer statusCode = getBindingItemAsInteger(binding, "statusCode");
         String bindingVersion = getBindingItemAsText(binding, "bindingVersion");
 
-        return new HttpMessageBindings(headers, statusCode, bindingVersion);
+        return new HttpMessageBindings((AsyncApiSchema) headers, statusCode, bindingVersion);
     }
 
     /**

@@ -15,7 +15,7 @@
  *  specific language governing permissions and limitations
  *  under the License.
  */
-package io.ballerina.asyncapi.core.implementation.v2.component;
+package io.ballerina.asyncapi.core.implementation.v2.message;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import io.apicurio.datamodels.models.asyncapi.AsyncApiCorrelationID;
@@ -28,7 +28,7 @@ import java.util.Map;
  * Maps Apicurio {@link AsyncApiCorrelationID} to {@link AsyncApiCorrelationId}
  * for AsyncAPI 2.x.
  */
-final class CorrelationIdMapperV2 {
+public final class CorrelationIdMapperV2 {
 
     private CorrelationIdMapperV2() {
 
@@ -41,7 +41,7 @@ final class CorrelationIdMapperV2 {
      * @param correlationId the Apicurio correlation ID object
      * @return the mapped AsyncApiCorrelationId, or null if null
      */
-    static AsyncApiCorrelationId map(AsyncApiCorrelationID correlationId) {
+    public static AsyncApiCorrelationId map(AsyncApiCorrelationID correlationId) {
         if (correlationId == null) {
             return null;
         }

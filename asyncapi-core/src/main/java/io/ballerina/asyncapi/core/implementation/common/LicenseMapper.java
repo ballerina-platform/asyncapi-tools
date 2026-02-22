@@ -15,7 +15,7 @@
  *  specific language governing permissions and limitations
  *  under the License.
  */
-package io.ballerina.asyncapi.core.implementation.v2.info;
+package io.ballerina.asyncapi.core.implementation.common;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import io.apicurio.datamodels.models.License;
@@ -26,11 +26,11 @@ import io.ballerina.asyncapi.core.implementation.utils.URIUtils;
 import java.util.Map;
 
 /**
- * Maps Apicurio {@link License} to {@link AsyncApiLicense} for AsyncAPI 2.x.
+ * Maps Apicurio {@link License} to {@link AsyncApiLicense} for AsyncAPI 3.0.
  */
-final class LicenseMapperV2 {
+public final class LicenseMapper {
 
-    private LicenseMapperV2() {
+    private LicenseMapper() {
 
     }
 
@@ -40,7 +40,7 @@ final class LicenseMapperV2 {
      * @param license the Apicurio license object
      * @return the mapped AsyncApiLicense, or null if license is null
      */
-    static AsyncApiLicense map(License license) {
+    public static AsyncApiLicense map(License license) {
         if (license == null) {
             return null;
         }
@@ -48,7 +48,6 @@ final class LicenseMapperV2 {
         if (license instanceof AsyncApiExtensible extensible) {
             extensions = extensible.getExtensions();
         }
-
         return new AsyncApiLicense(
                 license.getName(),
                 URIUtils.toUri(license.getUrl()),

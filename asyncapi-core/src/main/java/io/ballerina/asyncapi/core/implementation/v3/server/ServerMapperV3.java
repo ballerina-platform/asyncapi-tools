@@ -17,26 +17,22 @@
  */
 package io.ballerina.asyncapi.core.implementation.v3.server;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import io.apicurio.datamodels.models.ExternalDocumentation;
-import io.apicurio.datamodels.models.ServerVariable;
-import io.apicurio.datamodels.models.Tag;
+import io.apicurio.datamodels.models.asyncapi.AsyncApiComponents;
+import io.apicurio.datamodels.models.asyncapi.AsyncApiReferenceable;
 import io.apicurio.datamodels.models.asyncapi.AsyncApiServer;
-import io.apicurio.datamodels.models.asyncapi.AsyncApiServerBindings;
 import io.apicurio.datamodels.models.asyncapi.AsyncApiServers;
-import io.apicurio.datamodels.models.asyncapi.v30.AsyncApi30ExternalDocumentation;
-import io.apicurio.datamodels.models.asyncapi.v30.AsyncApi30SecurityScheme;
+import io.apicurio.datamodels.models.asyncapi.v30.AsyncApi30Components;
 import io.apicurio.datamodels.models.asyncapi.v30.AsyncApi30Server;
-import io.apicurio.datamodels.models.asyncapi.v30.AsyncApi30Tag;
-import io.ballerina.asyncapi.core.implementation.utils.URIUtils;
-import io.ballerina.asyncapi.core.model.doc.AsyncApiExternalDocs;
-import io.ballerina.asyncapi.core.model.security.AsyncApiSecurityScheme;
-import io.ballerina.asyncapi.core.model.server.AsyncApiServerVariable;
-import io.ballerina.asyncapi.core.model.server.HttpServerBindings;
-import io.ballerina.asyncapi.core.model.server.WsServerBindings;
+import io.ballerina.asyncapi.core.Constants;
+import io.ballerina.asyncapi.core.implementation.common.ServerBindingsMapper;
+import io.ballerina.asyncapi.core.implementation.common.ServerMapper;
+import io.ballerina.asyncapi.core.implementation.common.ServerVariableMapper;
+import io.ballerina.asyncapi.core.implementation.v3.doc.ExternalDocMapperV3;
+import io.ballerina.asyncapi.core.implementation.v3.tag.TagMapperV3;
 import io.ballerina.asyncapi.core.model.tag.AsyncApiTag;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -46,6 +42,8 @@ import java.util.Map;
  */
 public final class ServerMapperV3 {
 
+    private static final Logger LOG = LogManager.getLogger(ServerMapperV3.class);
+
     private ServerMapperV3() {
 
     }
@@ -54,43 +52,30 @@ public final class ServerMapperV3 {
      * Maps Apicurio {@link AsyncApiServers} to a map of server names to
      * {@link io.ballerina.asyncapi.core.model.server.AsyncApiServer}.
      *
-     * @param servers the Apicurio servers object
+     * @param servers    the Apicurio servers object
+     * @param components the Apicurio components object (for server $ref, tag, and externalDocs
+     *                   resolution)
      * @return the mapped servers map, or an empty map if servers is null
      */
     public static Map<String, io.ballerina.asyncapi.core.model.server.AsyncApiServer> map(
-            AsyncApiServers servers) {
-        if (servers == null) {
-            return Map.of();
-        }
-        List<String> serverNames = servers.getItemNames();
-        if (serverNames == null || serverNames.isEmpty()) {
-            return Map.of();
-        }
-        Map<String, io.ballerina.asyncapi.core.model.server.AsyncApiServer> result =
-                new LinkedHashMap<>();
-        for (String name : serverNames) {
-            AsyncApiServer server = servers.getItem(name);
-            if (server instanceof AsyncApi30Server typedServer) {
-                result.put(name, buildServer(typedServer));
-            }
-        }
-        return result;
+            AsyncApiServers servers, AsyncApiComponents components) {
+        return ServerMapper.map(servers, server -> mapOne(server, components));
     }
 
     /**
      * Builds an {@link io.ballerina.asyncapi.core.model.server.AsyncApiServer} from an
      * Apicurio {@link AsyncApi30Server} object.
      *
-     * @param server the Apicurio AsyncAPI 3.0 server object
+     * @param server     the Apicurio AsyncAPI 3.0 server object
+     * @param components the Apicurio components object (for tag and externalDocs $ref resolution)
      * @return the mapped AsyncApiServer
      */
     public static io.ballerina.asyncapi.core.model.server.AsyncApiServer buildServer(
-            AsyncApi30Server server) {
+            AsyncApi30Server server, AsyncApiComponents components) {
         List<AsyncApiTag> tags = null;
-        List<? extends Tag> apicurioTags = server.getTags();
-        if (apicurioTags != null) {
-            tags = apicurioTags.stream()
-                    .map(ServerMapperV3::mapTag)
+        if (server.getTags() != null) {
+            tags = server.getTags().stream()
+                    .map(tag -> TagMapperV3.map(tag, components))
                     .toList();
         }
         return new io.ballerina.asyncapi.core.model.server.AsyncApiServer(
@@ -101,134 +86,84 @@ public final class ServerMapperV3 {
                 server.getDescription(),
                 server.getTitle(),
                 server.getSummary(),
-                ServerVariableMapperV3.mapVariables(server.getVariables()),
-                mapSecurity(server.getSecurity()),
+                ServerVariableMapperV3.mapVariables(server.getVariables(), components),
+                SecuritySchemeMapperV3.mapSecurity(server.getSecurity(), components),
                 tags,
-                mapExternalDocs(server.getExternalDocs()),
-                mapBindings(server.getBindings()),
+                ExternalDocMapperV3.map(server.getExternalDocs(), components),
+                ServerBindingsMapper.mapBindings(server.getBindings(), components),
                 server.getExtensions()
         );
     }
 
     /**
-     * Maps an Apicurio {@link AsyncApi30SecurityScheme} to an {@link AsyncApiSecurityScheme}.
-     *
-     * @param scheme the Apicurio security scheme object
-     * @return the mapped AsyncApiSecurityScheme
-     */
-    public static AsyncApiSecurityScheme mapSecurityScheme(
-            AsyncApi30SecurityScheme scheme) {
-        return SecuritySchemeMapperV3.map(scheme);
-    }
-
-    /**
-     * Maps a list of Apicurio security schemes to a list of {@link AsyncApiSecurityScheme}.
-     *
-     * @param securitySchemes the Apicurio security schemes list
-     * @return the mapped security schemes list, or null if empty
-     */
-    public static List<AsyncApiSecurityScheme> mapSecurityList(
-            List<AsyncApi30SecurityScheme> securitySchemes) {
-        if (securitySchemes == null || securitySchemes.isEmpty()) {
-            return null;
-        }
-        return securitySchemes.stream()
-                .map(ServerMapperV3::mapSecurityScheme)
-                .toList();
-    }
-
-    /**
      * Maps an Apicurio {@link io.apicurio.datamodels.models.ServerVariable} to an
-     * {@link AsyncApiServerVariable}.
+     * {@link io.ballerina.asyncapi.core.model.server.AsyncApiServerVariable}.
      *
-     * @param name     the variable name
      * @param variable the Apicurio server variable object
      * @return the mapped AsyncApiServerVariable
      */
-    public static AsyncApiServerVariable mapVariable(
-            String name, ServerVariable variable) {
-        return ServerVariableMapperV3.mapVariable(name, variable);
+    public static io.ballerina.asyncapi.core.model.server.AsyncApiServerVariable mapVariable(
+            io.apicurio.datamodels.models.ServerVariable variable) {
+        return ServerVariableMapper.mapVariable(variable);
     }
 
     /**
-     * Maps Apicurio {@link AsyncApiServerBindings} to
-     * {@link io.ballerina.asyncapi.core.model.server.AsyncApiServerBindings}.
+     * Resolves a {@code $ref} to a component server by extracting the name from the reference
+     * string and looking it up in the AsyncAPI 3.0 components map.
      *
-     * @param bindings the Apicurio server bindings object
-     * @return the mapped AsyncApiServerBindings, or null if bindings is null or empty
+     * @param $ref       the reference string (e.g. {@code #/components/servers/MyServer})
+     * @param components the Apicurio components object
+     * @return the resolved server, or null if not found
      */
-    public static io.ballerina.asyncapi.core.model.server.AsyncApiServerBindings
-            mapBindings(AsyncApiServerBindings bindings) {
-        if (bindings == null) {
+    private static AsyncApiServer resolveRef(String $ref, AsyncApiComponents components) {
+        if (!$ref.startsWith(Constants.SERVERS_REF_PREFIX)) {
+            LOG.warn("Unsupported $ref format: {}. Skipping server.", $ref);
             return null;
         }
-        HttpServerBindings http = bindings.getHttp() != null
-                ? new HttpServerBindings() : null;
-        WsServerBindings ws = bindings.getWs() != null
-                ? new WsServerBindings() : null;
-        if (http == null && ws == null) {
+        String name = $ref.substring(Constants.SERVERS_REF_PREFIX.length());
+        if (components == null) {
             return null;
         }
-        return new io.ballerina.asyncapi.core.model.server.AsyncApiServerBindings(
-                http, ws);
+        // Add additional version checks here as new AsyncAPI 3.x versions are supported.
+        if (components instanceof AsyncApi30Components typed) {
+            return typed.getServers() != null ? typed.getServers().get(name) : null;
+        }
+        return null;
     }
 
     /**
-     * Maps a list of Apicurio security schemes to a list of {@link AsyncApiSecurityScheme}.
+     * Dispatches a single Apicurio server to {@link #buildServer}, resolving any
+     * {@code $ref} references before dispatch.
      *
-     * @param securitySchemes the Apicurio security schemes list
-     * @return the mapped security schemes list, or null if empty
+     * @param server     the Apicurio server object (may be a reference)
+     * @param components the Apicurio components object used for ref resolution
+     * @return the mapped AsyncApiServer, or null for unresolvable refs or unknown server types
      */
-    private static List<AsyncApiSecurityScheme> mapSecurity(
-            List<AsyncApi30SecurityScheme> securitySchemes) {
-        if (securitySchemes == null || securitySchemes.isEmpty()) {
-            return null;
-        }
-        return securitySchemes.stream()
-                .map(SecuritySchemeMapperV3::map)
-                .toList();
-    }
+    private static io.ballerina.asyncapi.core.model.server.AsyncApiServer mapOne(
+            AsyncApiServer server, AsyncApiComponents components) {
 
-    /**
-     * Maps an Apicurio {@link Tag} to an {@link AsyncApiTag}.
-     *
-     * @param tag the Apicurio tag object
-     * @return the mapped AsyncApiTag, or null if tag is null
-     */
-    private static AsyncApiTag mapTag(Tag tag) {
-        if (tag == null) {
-            return null;
+        String $ref = null;
+        if (server instanceof AsyncApiReferenceable referenceable) {
+            $ref = referenceable.get$ref();
         }
-        Map<String, JsonNode> extensions = null;
-        if (tag instanceof AsyncApi30Tag typedTag) {
-            extensions = typedTag.getExtensions();
+        if ($ref != null) {
+            AsyncApiServer resolved = resolveRef($ref, components);
+            if (resolved == null) {
+                LOG.warn("Could not resolve $ref: {}. Skipping server.", $ref);
+                return null;
+            }
+            if (resolved instanceof AsyncApiReferenceable resolvedTyped
+                    && resolvedTyped.get$ref() != null) {
+                LOG.warn("Resolved $ref points to another $ref: {}. Skipping server.",
+                        resolvedTyped.get$ref());
+                return null;
+            }
+            return mapOne(resolved, components);
         }
-        return new AsyncApiTag(
-                tag.getName(),
-                tag.getDescription(),
-                mapExternalDocs(tag.getExternalDocs()),
-                extensions
-        );
-    }
 
-    /**
-     * Maps an Apicurio {@link ExternalDocumentation} to an {@link AsyncApiExternalDocs}.
-     *
-     * @param externalDocs the Apicurio external documentation object
-     * @return the mapped AsyncApiExternalDocs, or null if externalDocs is null
-     */
-    private static AsyncApiExternalDocs mapExternalDocs(ExternalDocumentation externalDocs) {
-        if (externalDocs == null) {
-            return null;
+        if (server instanceof AsyncApi30Server typedServer) {
+            return buildServer(typedServer, components);
         }
-        Map<String, JsonNode> extensions = null;
-        if (externalDocs instanceof AsyncApi30ExternalDocumentation typedDocs) {
-            extensions = typedDocs.getExtensions();
-        }
-        return new AsyncApiExternalDocs(
-                externalDocs.getDescription(),
-                URIUtils.toUri(externalDocs.getUrl()),
-                extensions
-        );
+        return null;
     }
 }

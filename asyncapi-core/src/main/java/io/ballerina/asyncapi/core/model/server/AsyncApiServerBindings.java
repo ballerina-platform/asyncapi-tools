@@ -17,6 +17,10 @@
  */
 package io.ballerina.asyncapi.core.model.server;
 
+import com.fasterxml.jackson.databind.JsonNode;
+
+import java.util.Map;
+
 /**
  * Represents protocol-specific server binding definitions.
  * This structure is designed to be extensible to accommodate future
@@ -24,9 +28,11 @@ package io.ballerina.asyncapi.core.model.server;
  *
  * @param httpServerBindings HTTP-specific server binding properties.
  * @param wsServerBindings   WebSocket-specific server binding properties.
+ * @param extensions         specification extensions (x-* fields).
  */
 public record AsyncApiServerBindings(
         HttpServerBindings httpServerBindings,
-        WsServerBindings wsServerBindings
+        WsServerBindings wsServerBindings,
+        Map<String, JsonNode> extensions
 ) {
 }

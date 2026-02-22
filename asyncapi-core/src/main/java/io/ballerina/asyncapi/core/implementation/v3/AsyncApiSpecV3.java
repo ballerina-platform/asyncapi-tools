@@ -70,8 +70,8 @@ public class AsyncApiSpecV3 implements AsyncApiSpec {
         if (documentId != null) {
             this.id = URI.create(documentId);
         }
-        this.info = InfoMapperV3.map(asyncApiDocument);
-        this.servers = ServerMapperV3.map(asyncApiDocument.getServers());
+        this.info = InfoMapperV3.map(asyncApiDocument.getInfo(), asyncApiDocument.getComponents());
+        this.servers = ServerMapperV3.map(asyncApiDocument.getServers(), asyncApiDocument.getComponents());
 
         // Extract v3Components early for channel mapping
         AsyncApi30Components v3Components = null;

@@ -18,10 +18,11 @@
 package io.ballerina.asyncapi.core.implementation.v3.operation;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import io.apicurio.datamodels.models.asyncapi.AsyncApiComponents;
 import io.apicurio.datamodels.models.asyncapi.AsyncApiOperationTrait;
 import io.apicurio.datamodels.models.asyncapi.v30.AsyncApi30OperationTrait;
 import io.ballerina.asyncapi.core.implementation.v3.doc.ExternalDocMapperV3;
-import io.ballerina.asyncapi.core.implementation.v3.server.ServerMapperV3;
+import io.ballerina.asyncapi.core.implementation.v3.server.SecuritySchemeMapperV3;
 import io.ballerina.asyncapi.core.implementation.v3.tag.TagMapperV3;
 import io.ballerina.asyncapi.core.model.security.AsyncApiSecurityScheme;
 import io.ballerina.asyncapi.core.model.tag.AsyncApiTag;
@@ -48,12 +49,12 @@ final class OperationTraitMapperV3 {
      * @return the mapped traits list, or null if empty
      */
     static List<io.ballerina.asyncapi.core.model.operation.AsyncApiOperationTrait>
-            mapTraits(List<? extends AsyncApiOperationTrait> traits) {
+            mapTraits(List<? extends AsyncApiOperationTrait> traits, AsyncApiComponents components) {
         if (traits == null || traits.isEmpty()) {
             return null;
         }
         return traits.stream()
-                .map(OperationTraitMapperV3::map)
+                .map(trait -> map(trait, components))
                 .toList();
     }
 
@@ -65,13 +66,13 @@ final class OperationTraitMapperV3 {
      * @return the mapped AsyncApiOperationTrait
      */
     static io.ballerina.asyncapi.core.model.operation.AsyncApiOperationTrait
-            map(AsyncApiOperationTrait trait) {
+            map(AsyncApiOperationTrait trait, AsyncApiComponents components) {
         String title = null;
         List<AsyncApiSecurityScheme> security = null;
         Map<String, JsonNode> extensions = null;
         if (trait instanceof AsyncApi30OperationTrait typedTrait) {
             title = typedTrait.getTitle();
-            security = ServerMapperV3.mapSecurityList(typedTrait.getSecurity());
+            security = SecuritySchemeMapperV3.mapSecurityList(typedTrait.getSecurity(), components);
             extensions = typedTrait.getExtensions();
         }
         List<AsyncApiTag> tags = null;

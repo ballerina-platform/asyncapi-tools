@@ -20,26 +20,31 @@ package io.ballerina.asyncapi.core.implementation.v2.server;
 import com.fasterxml.jackson.databind.JsonNode;
 import io.apicurio.datamodels.models.SecurityRequirement;
 import io.apicurio.datamodels.models.SecurityScheme;
-import io.apicurio.datamodels.models.Tag;
+import io.apicurio.datamodels.models.asyncapi.AsyncApiComponents;
 import io.apicurio.datamodels.models.asyncapi.AsyncApiExtensible;
+import io.apicurio.datamodels.models.asyncapi.AsyncApiReferenceable;
 import io.apicurio.datamodels.models.asyncapi.AsyncApiServer;
-import io.apicurio.datamodels.models.asyncapi.AsyncApiServerBindings;
 import io.apicurio.datamodels.models.asyncapi.AsyncApiServers;
-import io.apicurio.datamodels.models.asyncapi.v20.AsyncApi20SecurityScheme;
 import io.apicurio.datamodels.models.asyncapi.v20.AsyncApi20Server;
 import io.apicurio.datamodels.models.asyncapi.v21.AsyncApi21Server;
 import io.apicurio.datamodels.models.asyncapi.v22.AsyncApi22Server;
+import io.apicurio.datamodels.models.asyncapi.v23.AsyncApi23Components;
 import io.apicurio.datamodels.models.asyncapi.v23.AsyncApi23Server;
+import io.apicurio.datamodels.models.asyncapi.v24.AsyncApi24Components;
 import io.apicurio.datamodels.models.asyncapi.v24.AsyncApi24Server;
+import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25Components;
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25Server;
+import io.apicurio.datamodels.models.asyncapi.v26.AsyncApi26Components;
 import io.apicurio.datamodels.models.asyncapi.v26.AsyncApi26Server;
+import io.ballerina.asyncapi.core.Constants;
+import io.ballerina.asyncapi.core.implementation.common.ServerBindingsMapper;
+import io.ballerina.asyncapi.core.implementation.common.ServerMapper;
+import io.ballerina.asyncapi.core.implementation.utils.URIUtils;
 import io.ballerina.asyncapi.core.implementation.v2.tag.TagMapperV2;
-import io.ballerina.asyncapi.core.model.security.AsyncApiSecurityScheme;
-import io.ballerina.asyncapi.core.model.server.HttpServerBindings;
-import io.ballerina.asyncapi.core.model.server.WsServerBindings;
 import io.ballerina.asyncapi.core.model.tag.AsyncApiTag;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
-import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -50,7 +55,7 @@ import java.util.Map;
  */
 public final class ServerMapperV2 {
 
-    private static final String SCHEME_SEPARATOR = "://";
+    private static final Logger LOG = LogManager.getLogger(ServerMapperV2.class);
 
     private ServerMapperV2() {
 
@@ -60,117 +65,126 @@ public final class ServerMapperV2 {
      * Maps Apicurio {@link AsyncApiServers} to a map of server names to
      * {@link io.ballerina.asyncapi.core.model.server.AsyncApiServer}.
      *
-     * @param servers         the Apicurio servers object
-     * @param securitySchemes the security scheme definitions from components
+     * @param servers     the Apicurio servers object
+     * @param components  the Apicurio components object
      * @return the mapped servers map, or an empty map if servers is null
      */
     public static Map<String, io.ballerina.asyncapi.core.model.server.AsyncApiServer> map(
             AsyncApiServers servers,
-            Map<String, ? extends SecurityScheme> securitySchemes) {
-        if (servers == null) {
-            return Map.of();
-        }
-        List<String> serverNames = servers.getItemNames();
-        if (serverNames == null || serverNames.isEmpty()) {
-            return Map.of();
-        }
-        Map<String, io.ballerina.asyncapi.core.model.server.AsyncApiServer> result =
-                new LinkedHashMap<>();
-        for (String name : serverNames) {
-            AsyncApiServer server = servers.getItem(name);
-            if (server instanceof AsyncApi20Server typedServer) {
-                result.put(name, buildServer(typedServer, typedServer.getUrl(),
-                        null, typedServer.getSecurity(), securitySchemes));
-            } else if (server instanceof AsyncApi21Server typedServer) {
-                result.put(name, buildServer(typedServer, typedServer.getUrl(),
-                        null, typedServer.getSecurity(), securitySchemes));
-            } else if (server instanceof AsyncApi22Server typedServer) {
-                result.put(name, buildServer(typedServer, typedServer.getUrl(),
-                        null, typedServer.getSecurity(), securitySchemes));
-            } else if (server instanceof AsyncApi23Server typedServer) {
-                result.put(name, buildServer(typedServer, typedServer.getUrl(),
-                        null, typedServer.getSecurity(), securitySchemes));
-            } else if (server instanceof AsyncApi24Server typedServer) {
-                result.put(name, buildServer(typedServer, typedServer.getUrl(),
-                        null, typedServer.getSecurity(), securitySchemes));
-            } else if (server instanceof AsyncApi25Server typedServer) {
-                result.put(name, buildServer(typedServer, typedServer.getUrl(),
-                        mapTags(typedServer.getTags()),
-                        typedServer.getSecurity(), securitySchemes));
-            } else if (server instanceof AsyncApi26Server typedServer) {
-                result.put(name, buildServer(typedServer, typedServer.getUrl(),
-                        mapTags(typedServer.getTags()),
-                        typedServer.getSecurity(), securitySchemes));
-            }
-        }
-        return result;
+            AsyncApiComponents components) {
+        return ServerMapper.map(servers, server -> mapOne(server, components));
     }
 
     /**
-     * Maps a single Apicurio server to {@link io.ballerina.asyncapi.core.model.server.AsyncApiServer}.
+     * Maps a raw map of Apicurio server entries (as found in AsyncAPI 2.x components)
+     * to a map of server names to {@link io.ballerina.asyncapi.core.model.server.AsyncApiServer}.
      *
-     * @param server          the Apicurio server object
-     * @param securitySchemes the security schemes map for resolution
-     * @return the mapped AsyncApiServer, or null if server is null
+     * @param rawServers  a map of server name to Apicurio server (may be null)
+     * @param components  the Apicurio components object
+     * @return the mapped servers map, or null if rawServers is null or empty
      */
-    public static io.ballerina.asyncapi.core.model.server.AsyncApiServer mapServer(
-            AsyncApiServer server,
-            Map<String, ? extends SecurityScheme> securitySchemes) {
-        if (server == null) {
+    public static Map<String, io.ballerina.asyncapi.core.model.server.AsyncApiServer> map(
+            Map<String, ? extends AsyncApiServer> rawServers,
+            AsyncApiComponents components) {
+
+        if (rawServers == null || rawServers.isEmpty()) {
             return null;
         }
+        Map<String, io.ballerina.asyncapi.core.model.server.AsyncApiServer> result = new LinkedHashMap<>();
+        rawServers.forEach((name, server) -> {
+            if (server != null) {
+                io.ballerina.asyncapi.core.model.server.AsyncApiServer mapped =
+                        mapOne(server, components);
+                if (mapped != null) {
+                    result.put(name, mapped);
+                }
+            }
+        });
+        return result.isEmpty() ? null : result;
+    }
 
-        return switch (server) {
-            case AsyncApi26Server typed -> buildServer(typed, typed.getUrl(),
-                    mapTags(typed.getTags()), typed.getSecurity(), securitySchemes);
-            case AsyncApi25Server typed -> buildServer(typed, typed.getUrl(),
-                    mapTags(typed.getTags()), typed.getSecurity(), securitySchemes);
-            case AsyncApi24Server typed -> buildServer(typed, typed.getUrl(),
-                    null, typed.getSecurity(), securitySchemes);
-            case AsyncApi23Server typed -> buildServer(typed, typed.getUrl(),
-                    null, typed.getSecurity(), securitySchemes);
-            case AsyncApi22Server typed -> buildServer(typed, typed.getUrl(),
-                    null, typed.getSecurity(), securitySchemes);
-            case AsyncApi21Server typed -> buildServer(typed, typed.getUrl(),
-                    null, typed.getSecurity(), securitySchemes);
-            case AsyncApi20Server typed -> buildServer(typed, typed.getUrl(),
-                    null, typed.getSecurity(), securitySchemes);
+    /**
+     * Resolves a {@code $ref} to a component server by extracting the name from the reference
+     * string and looking it up in the version-specific components map.
+     *
+     * @param $ref       the reference string (e.g. {@code #/components/servers/MyServer})
+     * @param components the Apicurio components object
+     * @return the resolved server, or null if not found or unsupported version
+     */
+    private static AsyncApiServer resolveRef(String $ref, AsyncApiComponents components) {
+        if (!$ref.startsWith(Constants.SERVERS_REF_PREFIX)) {
+            LOG.warn("Unsupported $ref format: {}. Skipping server.", $ref);
+            return null;
+        }
+        String name = $ref.substring(Constants.SERVERS_REF_PREFIX.length());
+        if (components == null) {
+            return null;
+        }
+        // Component servers are only available in AsyncAPI 2.3+.
+        Map<String, ? extends AsyncApiServer> serversMap = switch (components) {
+            case AsyncApi26Components typed -> typed.getServers();
+            case AsyncApi25Components typed -> typed.getServers();
+            case AsyncApi24Components typed -> typed.getServers();
+            case AsyncApi23Components typed -> typed.getServers();
             default -> null;
         };
+        return serversMap != null ? serversMap.get(name) : null;
     }
 
     /**
-     * Maps an Apicurio {@link AsyncApi20SecurityScheme} to an {@link AsyncApiSecurityScheme}.
+     * Dispatches a single Apicurio server to the version-specific {@link #buildServer} call,
+     * resolving any {@code $ref} references before dispatch.
      *
-     * @param scheme the Apicurio security scheme object
-     * @return the mapped AsyncApiSecurityScheme
+     * @param server     the Apicurio server object (may be a reference)
+     * @param components the Apicurio components object used for ref resolution and security lookup
+     * @return the mapped AsyncApiServer, or null for unresolvable refs or unknown server types
      */
-    public static AsyncApiSecurityScheme mapSecurityScheme(
-            AsyncApi20SecurityScheme scheme) {
-        return SecuritySchemeMapperV2.map(scheme);
-    }
+    private static io.ballerina.asyncapi.core.model.server.AsyncApiServer mapOne(
+            AsyncApiServer server,
+            AsyncApiComponents components) {
 
-    /**
-     * Maps Apicurio {@link AsyncApiServerBindings} to
-     * {@link io.ballerina.asyncapi.core.model.server.AsyncApiServerBindings}.
-     *
-     * @param bindings the Apicurio server bindings object
-     * @return the mapped AsyncApiServerBindings, or null if bindings is null or empty
-     */
-    public static io.ballerina.asyncapi.core.model.server.AsyncApiServerBindings
-            mapBindings(AsyncApiServerBindings bindings) {
-        if (bindings == null) {
-            return null;
+        String $ref = null;
+        if (server instanceof AsyncApiReferenceable referenceable) {
+            $ref = referenceable.get$ref();
         }
-        HttpServerBindings http = bindings.getHttp() != null
-                ? new HttpServerBindings() : null;
-        WsServerBindings ws = bindings.getWs() != null
-                ? new WsServerBindings() : null;
-        if (http == null && ws == null) {
-            return null;
+        if ($ref != null) {
+            AsyncApiServer resolved = resolveRef($ref, components);
+            if (resolved == null) {
+                LOG.warn("Could not resolve $ref: {}. Skipping server.", $ref);
+                return null;
+            }
+            if (resolved instanceof AsyncApiReferenceable resolvedTyped
+                    && resolvedTyped.get$ref() != null) {
+                LOG.warn("Resolved $ref points to another $ref: {}. Skipping server.",
+                        resolvedTyped.get$ref());
+                return null;
+            }
+            return mapOne(resolved, components);
         }
-        return new io.ballerina.asyncapi.core.model.server.AsyncApiServerBindings(
-                http, ws);
+
+        Map<String, SecurityScheme> securitySchemes =
+                components != null ? components.getSecuritySchemes() : null;
+        return switch (server) {
+            case AsyncApi20Server typed -> buildServer(typed, typed.getUrl(),
+                    null, typed.getSecurity(), securitySchemes, components);
+            case AsyncApi21Server typed -> buildServer(typed, typed.getUrl(),
+                    null, typed.getSecurity(), securitySchemes, components);
+            case AsyncApi22Server typed -> buildServer(typed, typed.getUrl(),
+                    null, typed.getSecurity(), securitySchemes, components);
+            case AsyncApi23Server typed -> buildServer(typed, typed.getUrl(),
+                    null, typed.getSecurity(), securitySchemes, components);
+            case AsyncApi24Server typed -> buildServer(typed, typed.getUrl(),
+                    null, typed.getSecurity(), securitySchemes, components);
+            case AsyncApi25Server typed -> buildServer(typed, typed.getUrl(),
+                    typed.getTags() == null ? null
+                            : typed.getTags().stream().map(TagMapperV2::map).toList(),
+                    typed.getSecurity(), securitySchemes, components);
+            case AsyncApi26Server typed -> buildServer(typed, typed.getUrl(),
+                    typed.getTags() == null ? null
+                            : typed.getTags().stream().map(TagMapperV2::map).toList(),
+                    typed.getSecurity(), securitySchemes, components);
+            default -> null;
+        };
     }
 
     /**
@@ -182,106 +196,33 @@ public final class ServerMapperV2 {
      * @param tags            the mapped tags, or null if not available for this version
      * @param requirements    the security requirements from this server
      * @param securitySchemes the security scheme definitions from components
+     * @param components      the Apicurio components object for server variable $ref resolution
      * @return the mapped AsyncApiServer
      */
     private static io.ballerina.asyncapi.core.model.server.AsyncApiServer buildServer(
             AsyncApiServer server, String url, List<AsyncApiTag> tags,
-            List<? extends SecurityRequirement> requirements,
-            Map<String, ? extends SecurityScheme> securitySchemes) {
+            List<SecurityRequirement> requirements,
+            Map<String, SecurityScheme> securitySchemes, AsyncApiComponents components) {
         Map<String, JsonNode> extensions = null;
         if (server instanceof AsyncApiExtensible extensible) {
             extensions = extensible.getExtensions();
         }
         return new io.ballerina.asyncapi.core.model.server.AsyncApiServer(
-                parseHost(url),
+                URIUtils.parseHost(url),
                 server.getProtocol(),
                 server.getProtocolVersion(),
-                parsePath(url),
+                URIUtils.parsePath(url),
                 server.getDescription(),
                 null,
                 null,
-                ServerVariableMapperV2.mapVariables(server.getVariables()),
-                mapSecurity(requirements, securitySchemes),
+                ServerVariableMapperV2.mapVariables(server.getVariables(), components),
+                SecuritySchemeMapperV2.mapSecurity(requirements, securitySchemes),
                 tags,
                 null,
-                mapBindings(server.getBindings()),
+                ServerBindingsMapper.mapBindings(server.getBindings(), components),
                 extensions
         );
     }
 
-    /**
-     * Extracts the host portion from a server URL.
-     *
-     * @param url the server URL string
-     * @return the host portion, or null if the URL is null
-     */
-    private static String parseHost(String url) {
-        if (url == null) {
-            return null;
-        }
-        int schemeEnd = url.indexOf(SCHEME_SEPARATOR);
-        String afterScheme = schemeEnd >= 0 ? url.substring(schemeEnd + 3) : url;
-        int pathStart = afterScheme.indexOf('/');
-        return pathStart >= 0 ? afterScheme.substring(0, pathStart) : afterScheme;
-    }
 
-    /**
-     * Extracts the pathname portion from a server URL.
-     *
-     * @param url the server URL string
-     * @return the pathname portion, or null if the URL is null or has no path
-     */
-    private static String parsePath(String url) {
-        if (url == null) {
-            return null;
-        }
-        int schemeEnd = url.indexOf(SCHEME_SEPARATOR);
-        String afterScheme = schemeEnd >= 0 ? url.substring(schemeEnd + 3) : url;
-        int pathStart = afterScheme.indexOf('/');
-        return pathStart >= 0 ? afterScheme.substring(pathStart) : null;
-    }
-
-    /**
-     * Maps a list of Apicurio {@link Tag} objects to a list of {@link AsyncApiTag}.
-     *
-     * @param apicurioTags the Apicurio tag list
-     * @return the mapped tag list, or null if the input is null
-     */
-    private static List<AsyncApiTag> mapTags(List<? extends Tag> apicurioTags) {
-        if (apicurioTags == null) {
-            return null;
-        }
-        return apicurioTags.stream()
-                .map(TagMapperV2::map)
-                .toList();
-    }
-
-    /**
-     * Resolves security requirements against the component security scheme definitions.
-     *
-     * @param requirements the security requirements from a server
-     * @param schemeLookup the security scheme definitions from components
-     * @return the mapped security schemes list, or null if empty
-     */
-    private static List<AsyncApiSecurityScheme> mapSecurity(
-            List<? extends SecurityRequirement> requirements,
-            Map<String, ? extends SecurityScheme> schemeLookup) {
-        if (requirements == null || requirements.isEmpty() || schemeLookup == null) {
-            return null;
-        }
-        List<AsyncApiSecurityScheme> result = new ArrayList<>();
-        for (SecurityRequirement requirement : requirements) {
-            List<String> names = requirement.getItemNames();
-            if (names == null) {
-                continue;
-            }
-            for (String name : names) {
-                SecurityScheme scheme = schemeLookup.get(name);
-                if (scheme instanceof AsyncApi20SecurityScheme typedScheme) {
-                    result.add(SecuritySchemeMapperV2.map(typedScheme));
-                }
-            }
-        }
-        return result.isEmpty() ? null : result;
-    }
 }

@@ -17,6 +17,8 @@
  */
 package io.ballerina.asyncapi.core.implementation.utils;
 
+import io.ballerina.asyncapi.core.Constants;
+
 import java.net.URI;
 
 public final class URIUtils {
@@ -40,5 +42,37 @@ public final class URIUtils {
         } catch (IllegalArgumentException e) {
             return null;
         }
+    }
+
+    /**
+     * Extracts the host portion from a server URL string.
+     *
+     * @param url the server URL string
+     * @return the host portion, or null if the URL is null
+     */
+    public static String parseHost(String url) {
+        if (url == null) {
+            return null;
+        }
+        int schemeEnd = url.indexOf(Constants.SCHEME_SEPARATOR);
+        String afterScheme = schemeEnd >= 0 ? url.substring(schemeEnd + 3) : url;
+        int pathStart = afterScheme.indexOf('/');
+        return pathStart >= 0 ? afterScheme.substring(0, pathStart) : afterScheme;
+    }
+
+    /**
+     * Extracts the pathname portion from a server URL string.
+     *
+     * @param url the server URL string
+     * @return the pathname portion, or null if the URL is null or has no path
+     */
+    public static String parsePath(String url) {
+        if (url == null) {
+            return null;
+        }
+        int schemeEnd = url.indexOf(Constants.SCHEME_SEPARATOR);
+        String afterScheme = schemeEnd >= 0 ? url.substring(schemeEnd + 3) : url;
+        int pathStart = afterScheme.indexOf('/');
+        return pathStart >= 0 ? afterScheme.substring(pathStart) : null;
     }
 }

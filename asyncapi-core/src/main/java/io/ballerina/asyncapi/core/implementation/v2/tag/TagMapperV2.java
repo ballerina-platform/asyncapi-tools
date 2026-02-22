@@ -20,6 +20,7 @@ package io.ballerina.asyncapi.core.implementation.v2.tag;
 import com.fasterxml.jackson.databind.JsonNode;
 import io.apicurio.datamodels.models.Tag;
 import io.apicurio.datamodels.models.asyncapi.AsyncApiExtensible;
+import io.apicurio.datamodels.models.asyncapi.AsyncApiExternalDocumentation;
 import io.ballerina.asyncapi.core.model.tag.AsyncApiTag;
 import io.ballerina.asyncapi.core.implementation.v2.doc.ExternalDocMapperV2;
 
@@ -52,7 +53,7 @@ public final class TagMapperV2 {
         return new AsyncApiTag(
                 tag.getName(),
                 tag.getDescription(),
-                ExternalDocMapperV2.map(tag.getExternalDocs()),
+                ExternalDocMapperV2.map((AsyncApiExternalDocumentation) tag.getExternalDocs()),
                 extensions
         );
     }

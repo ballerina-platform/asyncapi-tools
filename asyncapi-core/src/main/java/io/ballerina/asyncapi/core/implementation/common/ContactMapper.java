@@ -15,22 +15,22 @@
  *  specific language governing permissions and limitations
  *  under the License.
  */
-package io.ballerina.asyncapi.core.implementation.v3.info;
+package io.ballerina.asyncapi.core.implementation.common;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import io.apicurio.datamodels.models.Contact;
-import io.apicurio.datamodels.models.asyncapi.v30.AsyncApi30Contact;
+import io.apicurio.datamodels.models.asyncapi.AsyncApiExtensible;
 import io.ballerina.asyncapi.core.model.info.AsyncApiContact;
 import io.ballerina.asyncapi.core.implementation.utils.URIUtils;
 
 import java.util.Map;
 
 /**
- * Maps Apicurio {@link Contact} to {@link AsyncApiContact} for AsyncAPI 3.0.
+ * Maps Apicurio {@link Contact} to {@link AsyncApiContact} for AsyncAPI 2.x.
  */
-final class ContactMapperV3 {
+public final class ContactMapper {
 
-    private ContactMapperV3() {
+    private ContactMapper() {
 
     }
 
@@ -40,14 +40,16 @@ final class ContactMapperV3 {
      * @param contact the Apicurio contact object
      * @return the mapped AsyncApiContact, or null if contact is null
      */
-    static AsyncApiContact map(Contact contact) {
+    public static AsyncApiContact map(Contact contact) {
         if (contact == null) {
             return null;
         }
+
         Map<String, JsonNode> extensions = null;
-        if (contact instanceof AsyncApi30Contact typedContact) {
-            extensions = typedContact.getExtensions();
+        if (contact instanceof AsyncApiExtensible extensible) {
+            extensions = extensible.getExtensions();
         }
+
         return new AsyncApiContact(
                 contact.getName(),
                 URIUtils.toUri(contact.getUrl()),

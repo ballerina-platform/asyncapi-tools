@@ -17,6 +17,9 @@
  */
 package io.ballerina.asyncapi.core.implementation.v3.operation;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import io.apicurio.datamodels.models.asyncapi.AsyncApiExternalDocumentation;
+import io.apicurio.datamodels.models.asyncapi.AsyncApiExtensible;
 import io.apicurio.datamodels.models.asyncapi.AsyncApiMessage;
 import io.apicurio.datamodels.models.asyncapi.AsyncApiOperationBindings;
 import io.apicurio.datamodels.models.asyncapi.AsyncApiReferenceable;
@@ -32,7 +35,7 @@ import io.apicurio.datamodels.models.asyncapi.v30.AsyncApi30Reference;
 import io.ballerina.asyncapi.core.Constants;
 import io.ballerina.asyncapi.core.implementation.v3.component.MessageMapperV3;
 import io.ballerina.asyncapi.core.implementation.v3.doc.ExternalDocMapperV3;
-import io.ballerina.asyncapi.core.implementation.v3.server.ServerMapperV3;
+import io.ballerina.asyncapi.core.implementation.v3.server.SecuritySchemeMapperV3;
 import io.ballerina.asyncapi.core.implementation.v3.tag.TagMapperV3;
 import io.ballerina.asyncapi.core.model.channel.AsyncApiChannel;
 import io.ballerina.asyncapi.core.model.operation.AsyncApiOperation;
@@ -124,12 +127,12 @@ public final class OperationMapperV3 {
                 operation.getSummary(),
                 operation.getDescription(),
                 extractMessages(operation, rawChannels, components),
-                ServerMapperV3.mapSecurityList(operation.getSecurity()),
+                SecuritySchemeMapperV3.mapSecurityList(operation.getSecurity(), components),
                 OperationReplyMapperV3.mapReply(operation.getReply(), rawChannels, channelsMap, components),
                 tags,
-                ExternalDocMapperV3.map(operation.getExternalDocs(), null),
+                ExternalDocMapperV3.map((AsyncApiExternalDocumentation) operation.getExternalDocs(), null),
                 mapBindings(operation.getBindings()),
-                OperationTraitMapperV3.mapTraits(operation.getTraits()),
+                OperationTraitMapperV3.mapTraits(operation.getTraits(), components),
                 operation.getExtensions()
         );
     }
@@ -141,9 +144,9 @@ public final class OperationMapperV3 {
      * @return the mapped AsyncApiOperationTrait
      */
     public static AsyncApiOperationTrait mapTrait(
-            io.apicurio.datamodels.models.asyncapi.AsyncApiOperationTrait
-                    trait) {
-        return OperationTraitMapperV3.map(trait);
+            io.apicurio.datamodels.models.asyncapi.AsyncApiOperationTrait trait,
+            AsyncApi30Components components) {
+        return OperationTraitMapperV3.map(trait, components);
     }
 
     /**
@@ -193,11 +196,15 @@ public final class OperationMapperV3 {
         HttpOperationBindings http = HttpOperationBindingMapperV3.map(bindings.getHttp());
         WsOperationBindings ws = bindings.getWs() != null
                 ? new WsOperationBindings() : null;
-        if (http == null && ws == null) {
+        Map<String, JsonNode> extensions = null;
+        if (bindings instanceof AsyncApiExtensible extensible) {
+            extensions = extensible.getExtensions();
+        }
+        if (http == null && ws == null && extensions == null) {
             return null;
         }
         return new io.ballerina.asyncapi.core.model.operation
-                .AsyncApiOperationBindings(http, ws);
+                .AsyncApiOperationBindings(http, ws, extensions);
     }
 
     /**

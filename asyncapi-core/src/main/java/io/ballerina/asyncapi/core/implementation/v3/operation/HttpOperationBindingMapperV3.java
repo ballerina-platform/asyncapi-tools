@@ -21,6 +21,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import io.apicurio.datamodels.models.asyncapi.AsyncApiBinding;
 import io.ballerina.asyncapi.core.model.operation.HttpOperationBindings;
 import io.ballerina.asyncapi.core.model.operation.HttpOperationBindings.HttpMethod;
+import io.ballerina.asyncapi.core.model.component.AsyncApiSchema;
 
 /**
  * Maps Apicurio AsyncAPI 3.0 HTTP operation bindings to {@link HttpOperationBindings}.
@@ -45,7 +46,7 @@ final class HttpOperationBindingMapperV3 {
         Object query = binding.getItem("query");  // Schema Object - store as raw Object
         String bindingVersion = getBindingItemAsText(binding, "bindingVersion");
 
-        return new HttpOperationBindings(method, query, bindingVersion);
+        return new HttpOperationBindings(method, (AsyncApiSchema) query, bindingVersion);
     }
 
     /**

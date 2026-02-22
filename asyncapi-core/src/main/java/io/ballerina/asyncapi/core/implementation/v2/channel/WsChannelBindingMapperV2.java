@@ -19,6 +19,7 @@ package io.ballerina.asyncapi.core.implementation.v2.channel;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import io.ballerina.asyncapi.core.model.channel.WsChannelBindings;
+import io.ballerina.asyncapi.core.model.component.AsyncApiSchema;
 
 /**
  * Maps Apicurio WebSocket channel binding to {@link WsChannelBindings} for AsyncAPI 2.x.
@@ -44,7 +45,7 @@ final class WsChannelBindingMapperV2 {
         Object headers = binding.getItem("headers");
         String bindingVersion = getBindingItemAsText(binding, "bindingVersion");
 
-        return new WsChannelBindings(method, query, headers, bindingVersion);
+        return new WsChannelBindings(method, (AsyncApiSchema) query, (AsyncApiSchema) headers, bindingVersion);
     }
 
     /**

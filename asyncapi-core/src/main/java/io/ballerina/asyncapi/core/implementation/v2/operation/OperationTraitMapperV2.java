@@ -31,7 +31,7 @@ import java.util.Map;
  * Maps Apicurio {@link AsyncApiOperationTrait} to
  * {@link io.ballerina.asyncapi.core.model.operation.AsyncApiOperationTrait} for AsyncAPI 2.x.
  */
-final class OperationTraitMapperV2 {
+public final class OperationTraitMapperV2 {
 
     private OperationTraitMapperV2() {
 
@@ -60,7 +60,7 @@ final class OperationTraitMapperV2 {
      * @param trait the Apicurio operation trait object
      * @return the mapped AsyncApiOperationTrait
      */
-    static io.ballerina.asyncapi.core.model.operation.AsyncApiOperationTrait
+    public static io.ballerina.asyncapi.core.model.operation.AsyncApiOperationTrait
             map(AsyncApiOperationTrait trait) {
         Map<String, JsonNode> extensions = null;
         if (trait instanceof AsyncApiExtensible extensible) {
@@ -79,7 +79,7 @@ final class OperationTraitMapperV2 {
                 null, // security (v2 traits have none)
                 tags,
                 ExternalDocMapperV2.map(trait.getExternalDocs()),
-                OperationMapperV2.mapBindings(trait.getBindings()),
+                OperationBindingsMapperV2.map(trait.getBindings()),
                 extensions
         );
     }

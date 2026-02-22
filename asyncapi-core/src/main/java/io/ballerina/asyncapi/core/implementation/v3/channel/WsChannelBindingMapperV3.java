@@ -15,35 +15,36 @@
  *  specific language governing permissions and limitations
  *  under the License.
  */
-package io.ballerina.asyncapi.core.implementation.v2.operation;
+package io.ballerina.asyncapi.core.implementation.v3.channel;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import io.ballerina.asyncapi.core.model.operation.HttpOperationBindings;
-import io.ballerina.asyncapi.core.model.operation.HttpOperationBindings.HttpMethod;
+import io.ballerina.asyncapi.core.model.channel.WsChannelBindings;
 import io.ballerina.asyncapi.core.model.component.AsyncApiSchema;
 
 /**
- * Maps Apicurio HTTP operation binding to {@link HttpOperationBindings} for AsyncAPI 2.x.
+ * Maps Apicurio WebSocket channel bindings to {@link WsChannelBindings} for AsyncAPI 3.0.
  */
-final class HttpOperationBindingMapperV2 {
+public final class WsChannelBindingMapperV3 {
 
-    private HttpOperationBindingMapperV2() {
+    private WsChannelBindingMapperV3() {
     }
 
     /**
-     * Maps an Apicurio HTTP operation binding to {@link HttpOperationBindings}.
+     * Maps an Apicurio WebSocket channel binding to {@link WsChannelBindings}.
      *
-     * @param binding the Apicurio HTTP binding object
-     * @return the mapped HttpOperationBindings, or null if binding is null
+     * @param binding the Apicurio WebSocket binding object
+     * @return the mapped WsChannelBindings, or null if binding is null
      */
-    static HttpOperationBindings map(io.apicurio.datamodels.models.asyncapi.AsyncApiBinding binding) {
+    public static WsChannelBindings map(
+            io.apicurio.datamodels.models.asyncapi.AsyncApiBinding binding) {
         if (binding == null) {
             return null;
         }
-        HttpMethod method = parseHttpMethod(getBindingItemAsText(binding, "method"));
+        String method = getBindingItemAsText(binding, "method");
         Object query = binding.getItem("query");
+        Object headers = binding.getItem("headers");
         String bindingVersion = getBindingItemAsText(binding, "bindingVersion");
-        return new HttpOperationBindings(method, (AsyncApiSchema) query, bindingVersion);
+        return new WsChannelBindings(method, (AsyncApiSchema) query, (AsyncApiSchema) headers, bindingVersion);
     }
 
     /**
@@ -60,22 +61,5 @@ final class HttpOperationBindingMapperV2 {
             return null;
         }
         return node.isTextual() ? node.asText() : node.toString();
-    }
-
-    /**
-     * Parses an HTTP method string to {@link HttpMethod} enum.
-     *
-     * @param methodStr the method string (e.g., "GET", "POST")
-     * @return the HttpMethod enum, or null if invalid/null
-     */
-    private static HttpMethod parseHttpMethod(String methodStr) {
-        if (methodStr == null || methodStr.isBlank()) {
-            return null;
-        }
-        try {
-            return HttpMethod.valueOf(methodStr.toUpperCase());
-        } catch (IllegalArgumentException e) {
-            return null;
-        }
     }
 }

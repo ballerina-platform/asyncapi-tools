@@ -85,6 +85,7 @@ final class ChannelParameterMapperV2 {
                     defaultValue,
                     enumValues,
                     examples,
+                    param.getLocation(),
                     extensions
             ));
         }

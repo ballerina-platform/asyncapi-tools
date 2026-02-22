@@ -19,7 +19,6 @@ package io.ballerina.asyncapi.core.implementation.v2;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import io.apicurio.datamodels.models.Extensible;
-import io.apicurio.datamodels.models.SecurityScheme;
 import io.apicurio.datamodels.models.asyncapi.AsyncApiDocument;
 import io.ballerina.asyncapi.core.api.AsyncApiSpec;
 import io.ballerina.asyncapi.core.implementation.v2.info.InfoMapperV2;
@@ -65,11 +64,7 @@ public class AsyncApiSpecV2 implements AsyncApiSpec {
 
         this.info = InfoMapperV2.map(asyncApiDocument);
 
-        Map<String, ? extends SecurityScheme> securitySchemes = null;
-        if (asyncApiDocument.getComponents() != null) {
-            securitySchemes = asyncApiDocument.getComponents().getSecuritySchemes();
-        }
-        this.servers = ServerMapperV2.map(asyncApiDocument.getServers(), securitySchemes);
+        this.servers = ServerMapperV2.map(asyncApiDocument.getServers(), asyncApiDocument.getComponents());
 
         this.channels = ChannelMapperV2.map(asyncApiDocument.getChannels(),
                 asyncApiDocument.getComponents(),

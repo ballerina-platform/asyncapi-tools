@@ -18,15 +18,15 @@
 package io.ballerina.asyncapi.core.implementation.v2.doc;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import io.apicurio.datamodels.models.ExternalDocumentation;
 import io.apicurio.datamodels.models.asyncapi.AsyncApiExtensible;
+import io.apicurio.datamodels.models.asyncapi.AsyncApiExternalDocumentation;
 import io.ballerina.asyncapi.core.model.doc.AsyncApiExternalDocs;
 import io.ballerina.asyncapi.core.implementation.utils.URIUtils;
 
 import java.util.Map;
 
 /**
- * Maps Apicurio {@link ExternalDocumentation} to {@link AsyncApiExternalDocs} for AsyncAPI 2.x.
+ * Maps Apicurio {@link AsyncApiExternalDocumentation} to {@link AsyncApiExternalDocs} for AsyncAPI 2.x.
  */
 public final class ExternalDocMapperV2 {
 
@@ -35,12 +35,12 @@ public final class ExternalDocMapperV2 {
     }
 
     /**
-     * Maps an Apicurio {@link ExternalDocumentation} to an {@link AsyncApiExternalDocs}.
+     * Maps an Apicurio {@link AsyncApiExternalDocumentation} to an {@link AsyncApiExternalDocs}.
      *
      * @param externalDocs the Apicurio external documentation object
      * @return the mapped AsyncApiExternalDocs, or null if externalDocs is null
      */
-    public static AsyncApiExternalDocs map(ExternalDocumentation externalDocs) {
+    public static AsyncApiExternalDocs map(AsyncApiExternalDocumentation externalDocs) {
         if (externalDocs == null) {
             return null;
         }

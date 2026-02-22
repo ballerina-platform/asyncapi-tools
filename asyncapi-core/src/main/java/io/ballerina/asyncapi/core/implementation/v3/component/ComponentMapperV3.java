@@ -20,12 +20,18 @@ package io.ballerina.asyncapi.core.implementation.v3.component;
 import com.fasterxml.jackson.databind.JsonNode;
 import io.apicurio.datamodels.models.Extensible;
 import io.apicurio.datamodels.models.SecurityScheme;
+import io.apicurio.datamodels.models.asyncapi.AsyncApiComponents;
+import io.apicurio.datamodels.models.asyncapi.AsyncApiSchema;
 import io.apicurio.datamodels.models.asyncapi.v30.*;
 import io.apicurio.datamodels.models.union.MultiFormatSchemaSchemaUnion;
+import io.ballerina.asyncapi.core.implementation.common.SchemaMapper;
+import io.ballerina.asyncapi.core.implementation.v3.channel.ChannelBindingsMapperV3;
 import io.ballerina.asyncapi.core.implementation.v3.channel.ChannelMapperV3;
 import io.ballerina.asyncapi.core.implementation.v3.channel.ChannelParameterMapperV3;
 import io.ballerina.asyncapi.core.implementation.v3.doc.ExternalDocMapperV3;
 import io.ballerina.asyncapi.core.implementation.v3.operation.OperationMapperV3;
+import io.ballerina.asyncapi.core.implementation.v3.server.SecuritySchemeMapperV3;
+import io.ballerina.asyncapi.core.implementation.common.ServerBindingsMapper;
 import io.ballerina.asyncapi.core.implementation.v3.server.ServerMapperV3;
 import io.ballerina.asyncapi.core.implementation.v3.tag.TagMapperV3;
 import io.ballerina.asyncapi.core.model.component.AsyncApiComponent;
@@ -51,53 +57,57 @@ public final class ComponentMapperV3 {
      * @param components the Apicurio components object
      * @return the mapped AsyncApiComponent, or null if components is null
      */
-    public static AsyncApiComponent map(AsyncApi30Components components) {
+    public static AsyncApiComponent map(AsyncApiComponents components) {
         if (components == null) {
             return null;
         }
 
-        Map<String, JsonNode> extensions = null;
-        if (components instanceof Extensible extensible) {
-            extensions = extensible.getExtensions();
-        }
+        // Add additional version checks here as new AsyncAPI 3.x versions are supported.
+        if (components instanceof AsyncApi30Components typedComponents) {
+            Map<String, JsonNode> extensions = null;
+            if (typedComponents instanceof Extensible extensible) {
+                extensions = extensible.getExtensions();
+            }
 
-        return new AsyncApiComponent(
-                mapSchemas(components),
-                mapValues(components.getServers(),
-                        ServerMapperV3::buildServer),
-                mapServerVariables(components.getServerVariables()),
-                mapValues(components.getChannels(),
-                        channel -> ChannelMapperV3.buildChannel(channel, components, null)),
-                mapValues(components.getOperations(),
-                        operation -> OperationMapperV3.buildOperation(operation, null, null, components)),
-                mapValues(components.getMessages(),
-                        MessageMapperV3::map),
-                mapSecuritySchemes(components.getSecuritySchemes()),
-                ChannelParameterMapperV3.mapParameters(components.getParameters()),
-                mapValues(components.getCorrelationIds(),
-                        MessageMapperV3::mapCorrelationId),
-                mapValues(components.getOperationTraits(),
-                        OperationMapperV3::mapTrait),
-                mapValues(components.getMessageTraits(),
-                        MessageMapperV3::mapTrait),
-                mapValues(components.getReplies(),
-                        reply -> OperationMapperV3.mapReply(reply, null, null, components)),
-                mapValues(components.getReplyAddresses(),
-                        OperationMapperV3::mapReplyAddress),
-                mapValues(components.getExternalDocs(),
-                        doc -> ExternalDocMapperV3.map(doc, components)),
-                mapValues(components.getTags(),
-                        tag -> TagMapperV3.map(tag, components)),
-                mapValues(components.getServerBindings(),
-                        ServerMapperV3::mapBindings),
-                mapValues(components.getChannelBindings(),
-                        ChannelMapperV3::mapBindings),
-                mapValues(components.getOperationBindings(),
-                        OperationMapperV3::mapBindings),
-                mapValues(components.getMessageBindings(),
-                        MessageMapperV3::mapBindings),
-                extensions
-        );
+            return new AsyncApiComponent(
+                    mapSchemas(typedComponents),
+                    mapValues(typedComponents.getServers(),
+                            server -> ServerMapperV3.buildServer(server, typedComponents)),
+                    mapServerVariables(typedComponents.getServerVariables()),
+                    mapValues(typedComponents.getChannels(),
+                            channel -> ChannelMapperV3.buildChannel(channel, typedComponents, null)),
+                    mapValues(typedComponents.getOperations(),
+                            operation -> OperationMapperV3.buildOperation(operation, null, null, typedComponents)),
+                    mapValues(typedComponents.getMessages(),
+                            MessageMapperV3::map),
+                    mapSecuritySchemes(typedComponents.getSecuritySchemes()),
+                    ChannelParameterMapperV3.mapParameters(typedComponents.getParameters()),
+                    mapValues(typedComponents.getCorrelationIds(),
+                            MessageMapperV3::mapCorrelationId),
+                    mapValues(typedComponents.getOperationTraits(),
+                            trait -> OperationMapperV3.mapTrait(trait, typedComponents)),
+                    mapValues(typedComponents.getMessageTraits(),
+                            MessageMapperV3::mapTrait),
+                    mapValues(typedComponents.getReplies(),
+                            reply -> OperationMapperV3.mapReply(reply, null, null, typedComponents)),
+                    mapValues(typedComponents.getReplyAddresses(),
+                            OperationMapperV3::mapReplyAddress),
+                    mapValues(typedComponents.getExternalDocs(),
+                            doc -> ExternalDocMapperV3.map(doc, typedComponents)),
+                    mapValues(typedComponents.getTags(),
+                            tag -> TagMapperV3.map(tag, typedComponents)),
+                    mapValues(typedComponents.getServerBindings(),
+                            binding -> ServerBindingsMapper.mapBindings(binding, null)),
+                    mapValues(typedComponents.getChannelBindings(),
+                            ChannelBindingsMapperV3::map),
+                    mapValues(typedComponents.getOperationBindings(),
+                            OperationMapperV3::mapBindings),
+                    mapValues(typedComponents.getMessageBindings(),
+                            MessageMapperV3::mapBindings),
+                    extensions
+            );
+        }
+        return null;
     }
 
     /**
@@ -128,8 +138,7 @@ public final class ComponentMapperV3 {
     // ---- special-case map methods (need key or cast) ----
 
     /**
-     * Maps component server variables. Requires both key and value for
-     * {@link ServerMapperV3#mapVariable}.
+     * Maps component server variables.
      *
      * @param variables the Apicurio server variables map
      * @return the mapped variables map, or null if empty
@@ -145,8 +154,7 @@ public final class ComponentMapperV3 {
         for (Map.Entry<String, AsyncApi30ServerVariable> entry
                 : variables.entrySet()) {
             result.put(entry.getKey(),
-                    ServerMapperV3.mapVariable(
-                            entry.getKey(), entry.getValue()));
+                    ServerMapperV3.mapVariable(entry.getValue()));
         }
         return result.isEmpty() ? null : result;
     }
@@ -171,7 +179,7 @@ public final class ComponentMapperV3 {
             if (entry.getValue()
                     instanceof AsyncApi30SecurityScheme typed) {
                 result.put(entry.getKey(),
-                        ServerMapperV3.mapSecurityScheme(typed));
+                        SecuritySchemeMapperV3.map(typed, null));
             }
         }
         return result.isEmpty() ? null : result;
@@ -180,12 +188,14 @@ public final class ComponentMapperV3 {
     /**
      * Maps component schemas from AsyncAPI 3.0 components.
      * Schemas in V3 can be either MultiFormatSchema (for Avro, Protobuf, etc.)
-     * or plain Schema objects (JSON Schema).
+     * or plain JSON Schema objects. Only JSON Schema entries (those where the union
+     * holds an {@link AsyncApiSchema}) are mapped; non-JSON schema formats are skipped.
      *
      * @param components the AsyncAPI 3.0 components object
-     * @return a map of schema names to schema union objects (as Object), or null if empty
+     * @return a map of schema names to mapped schema objects, or null if empty
      */
-    private static Map<String, Object> mapSchemas(AsyncApi30Components components) {
+    private static Map<String, io.ballerina.asyncapi.core.model.component.AsyncApiSchema>
+            mapSchemas(AsyncApi30Components components) {
         if (components == null) {
             return null;
         }
@@ -195,10 +205,16 @@ public final class ComponentMapperV3 {
             return null;
         }
 
-        Map<String, Object> result = new LinkedHashMap<>();
+        Map<String, io.ballerina.asyncapi.core.model.component.AsyncApiSchema> result =
+                new LinkedHashMap<>();
         rawSchemas.forEach((key, schemaUnion) -> {
-            if (schemaUnion != null) {
-                result.put(key, schemaUnion);  // Store union as Object
+            if (schemaUnion != null && schemaUnion.isSchema()
+                    && schemaUnion.asSchema() instanceof AsyncApiSchema typedSchema) {
+                io.ballerina.asyncapi.core.model.component.AsyncApiSchema mapped =
+                        SchemaMapper.map(typedSchema);
+                if (mapped != null) {
+                    result.put(key, mapped);
+                }
             }
         });
 

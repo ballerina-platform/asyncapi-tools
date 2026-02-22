@@ -21,23 +21,19 @@ import com.fasterxml.jackson.databind.JsonNode;
 import io.apicurio.datamodels.models.Info;
 import io.apicurio.datamodels.models.Tag;
 import io.apicurio.datamodels.models.asyncapi.AsyncApiDocument;
+import io.apicurio.datamodels.models.asyncapi.AsyncApiExtensible;
 import io.apicurio.datamodels.models.asyncapi.AsyncApiExternalDocumentation;
 import io.apicurio.datamodels.models.asyncapi.v20.AsyncApi20Document;
-import io.apicurio.datamodels.models.asyncapi.v20.AsyncApi20Info;
 import io.apicurio.datamodels.models.asyncapi.v21.AsyncApi21Document;
-import io.apicurio.datamodels.models.asyncapi.v21.AsyncApi21Info;
 import io.apicurio.datamodels.models.asyncapi.v22.AsyncApi22Document;
-import io.apicurio.datamodels.models.asyncapi.v22.AsyncApi22Info;
 import io.apicurio.datamodels.models.asyncapi.v23.AsyncApi23Document;
-import io.apicurio.datamodels.models.asyncapi.v23.AsyncApi23Info;
 import io.apicurio.datamodels.models.asyncapi.v24.AsyncApi24Document;
-import io.apicurio.datamodels.models.asyncapi.v24.AsyncApi24Info;
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25Document;
-import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25Info;
 import io.apicurio.datamodels.models.asyncapi.v26.AsyncApi26Document;
-import io.apicurio.datamodels.models.asyncapi.v26.AsyncApi26Info;
 import io.ballerina.asyncapi.core.model.info.AsyncApiInfo;
 import io.ballerina.asyncapi.core.model.tag.AsyncApiTag;
+import io.ballerina.asyncapi.core.implementation.common.ContactMapper;
+import io.ballerina.asyncapi.core.implementation.common.LicenseMapper;
 import io.ballerina.asyncapi.core.implementation.utils.URIUtils;
 import io.ballerina.asyncapi.core.implementation.v2.doc.ExternalDocMapperV2;
 import io.ballerina.asyncapi.core.implementation.v2.tag.TagMapperV2;
@@ -99,16 +95,10 @@ public final class InfoMapperV2 {
             }
         }
 
-        Map<String, JsonNode> extensions = switch (info) {
-            case AsyncApi26Info typedInfo -> typedInfo.getExtensions();
-            case AsyncApi25Info typedInfo -> typedInfo.getExtensions();
-            case AsyncApi24Info typedInfo -> typedInfo.getExtensions();
-            case AsyncApi23Info typedInfo -> typedInfo.getExtensions();
-            case AsyncApi22Info typedInfo -> typedInfo.getExtensions();
-            case AsyncApi21Info typedInfo -> typedInfo.getExtensions();
-            case AsyncApi20Info typedInfo -> typedInfo.getExtensions();
-            default -> null;
-        };
+        Map<String, JsonNode> extensions = null;
+        if (info instanceof AsyncApiExtensible extensible) {
+            extensions = extensible.getExtensions();
+        }
 
         List<AsyncApiTag> tags = null;
         if (documentTags != null) {
@@ -122,8 +112,8 @@ public final class InfoMapperV2 {
                 info.getVersion(),
                 info.getDescription(),
                 URIUtils.toUri(info.getTermsOfService()),
-                ContactMapperV2.map(info.getContact()),
-                LicenseMapperV2.map(info.getLicense()),
+                ContactMapper.map(info.getContact()),
+                LicenseMapper.map(info.getLicense()),
                 tags,
                 ExternalDocMapperV2.map(documentExternalDocs),
                 extensions

@@ -15,7 +15,7 @@
  *  specific language governing permissions and limitations
  *  under the License.
  */
-package io.ballerina.asyncapi.core.implementation.v2.component;
+package io.ballerina.asyncapi.core.implementation.v2.message;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import io.apicurio.datamodels.models.Tag;
@@ -27,6 +27,7 @@ import io.apicurio.datamodels.models.asyncapi.v23.AsyncApi23MessageTrait;
 import io.apicurio.datamodels.models.asyncapi.v24.AsyncApi24MessageTrait;
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25MessageTrait;
 import io.apicurio.datamodels.models.asyncapi.v26.AsyncApi26MessageTrait;
+import io.ballerina.asyncapi.core.implementation.v2.message.CorrelationIdMapperV2;
 import io.ballerina.asyncapi.core.implementation.v2.doc.ExternalDocMapperV2;
 import io.ballerina.asyncapi.core.implementation.v2.tag.TagMapperV2;
 import io.ballerina.asyncapi.core.model.tag.AsyncApiTag;
@@ -38,7 +39,7 @@ import java.util.Map;
  * Maps Apicurio {@link AsyncApiMessageTrait} to model
  * {@link io.ballerina.asyncapi.core.model.message.AsyncApiMessageTrait} for AsyncAPI 2.x.
  */
-final class MessageTraitMapperV2 {
+public final class MessageTraitMapperV2 {
 
     private MessageTraitMapperV2() {
 
@@ -50,7 +51,7 @@ final class MessageTraitMapperV2 {
      * @param trait the Apicurio message trait object
      * @return the mapped AsyncApiMessageTrait, or null if null
      */
-    static io.ballerina.asyncapi.core.model.message.AsyncApiMessageTrait
+    public static io.ballerina.asyncapi.core.model.message.AsyncApiMessageTrait
             map(AsyncApiMessageTrait trait) {
         if (trait == null) {
             return null;

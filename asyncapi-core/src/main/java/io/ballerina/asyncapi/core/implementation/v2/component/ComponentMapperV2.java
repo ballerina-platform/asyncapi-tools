@@ -22,6 +22,7 @@ import io.apicurio.datamodels.models.Parameter;
 import io.apicurio.datamodels.models.SecurityScheme;
 import io.apicurio.datamodels.models.asyncapi.AsyncApiComponents;
 import io.apicurio.datamodels.models.asyncapi.AsyncApiExtensible;
+import io.apicurio.datamodels.models.asyncapi.AsyncApiParameter;
 import io.apicurio.datamodels.models.asyncapi.AsyncApiSchema;
 import io.apicurio.datamodels.models.asyncapi.v20.AsyncApi20Parameter;
 import io.apicurio.datamodels.models.asyncapi.v20.AsyncApi20SecurityScheme;
@@ -38,9 +39,16 @@ import io.apicurio.datamodels.models.asyncapi.v22.AsyncApi22Components;
 import io.apicurio.datamodels.models.asyncapi.v23.AsyncApi23Components;
 import io.apicurio.datamodels.models.asyncapi.v24.AsyncApi24Components;
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25Components;
+import io.ballerina.asyncapi.core.implementation.common.SchemaMapper;
 import io.ballerina.asyncapi.core.implementation.utils.JsonNodeUtils;
 import io.ballerina.asyncapi.core.implementation.v2.channel.ChannelBindingsMapperV2;
-import io.ballerina.asyncapi.core.implementation.v2.operation.OperationMapperV2;
+import io.ballerina.asyncapi.core.implementation.v2.message.CorrelationIdMapperV2;
+import io.ballerina.asyncapi.core.implementation.v2.message.MessageMapperV2;
+import io.ballerina.asyncapi.core.implementation.v2.message.MessageTraitMapperV2;
+import io.ballerina.asyncapi.core.implementation.v2.operation.OperationBindingsMapperV2;
+import io.ballerina.asyncapi.core.implementation.v2.operation.OperationTraitMapperV2;
+import io.ballerina.asyncapi.core.implementation.v2.server.SecuritySchemeMapperV2;
+import io.ballerina.asyncapi.core.implementation.common.ServerBindingsMapper;
 import io.ballerina.asyncapi.core.implementation.v2.server.ServerMapperV2;
 import io.ballerina.asyncapi.core.model.channel.AsyncApiChannelParameter;
 import io.ballerina.asyncapi.core.model.component.AsyncApiComponent;
@@ -96,7 +104,7 @@ public final class ComponentMapperV2 {
                 mapValues(components.getCorrelationIds(),
                         CorrelationIdMapperV2::map),
                 mapValues(components.getOperationTraits(),
-                        OperationMapperV2::mapTrait),
+                        OperationTraitMapperV2::map),
                 mapValues(components.getMessageTraits(),
                         MessageTraitMapperV2::map),
                 null, // replies - not in AsyncAPI 2.x
@@ -104,11 +112,11 @@ public final class ComponentMapperV2 {
                 null, // externalDocs - not in AsyncAPI 2.x components
                 null, // tags - not in AsyncAPI 2.x components
                 mapValues(components.getServerBindings(),
-                        ServerMapperV2::mapBindings),
+                        binding -> ServerBindingsMapper.mapBindings(binding, null)),
                 mapValues(components.getChannelBindings(),
                         binding -> ChannelBindingsMapperV2.map(binding, components)),
                 mapValues(components.getOperationBindings(),
-                        OperationMapperV2::mapBindings),
+                        OperationBindingsMapperV2::map),
                 mapValues(components.getMessageBindings(),
                         MessageMapperV2::mapBindings),
                 extensions
@@ -157,7 +165,7 @@ public final class ComponentMapperV2 {
         for (Map.Entry<String, ? extends SecurityScheme> entry : schemes.entrySet()) {
             if (entry.getValue() instanceof AsyncApi20SecurityScheme typed) {
                 result.put(entry.getKey(),
-                        ServerMapperV2.mapSecurityScheme(typed));
+                        SecuritySchemeMapperV2.map(typed));
             }
         }
         return result.isEmpty() ? null : result;
@@ -196,12 +204,18 @@ public final class ComponentMapperV2 {
                 examples = JsonNodeUtils.jsonNodeListToStringList(schema.getExamples());
             }
 
+            String location = null;
+            if (param instanceof AsyncApiParameter asyncParam) {
+                location = asyncParam.getLocation();
+            }
+
             result.put(entry.getKey(),
                     new AsyncApiChannelParameter(
                             param.getDescription(),
                             defaultValue,
                             enumValues,
                             examples,
+                            location,
                             extensions
                     ));
         }
@@ -233,7 +247,8 @@ public final class ComponentMapperV2 {
      * @param components the Apicurio components object
      * @return the map of schema names to schema objects, or null if no schemas
      */
-    private static Map<String, Object> mapSchemas(AsyncApiComponents components) {
+    private static Map<String, io.ballerina.asyncapi.core.model.component.AsyncApiSchema>
+            mapSchemas(AsyncApiComponents components) {
         if (components == null) {
             return null;
         }
@@ -253,10 +268,13 @@ public final class ComponentMapperV2 {
             return null;
         }
 
-        Map<String, Object> result = new LinkedHashMap<>();
+        Map<String, io.ballerina.asyncapi.core.model.component.AsyncApiSchema> result =
+                new LinkedHashMap<>();
         rawSchemas.forEach((key, schema) -> {
-            if (schema != null) {
-                result.put(key, schema);  // Store Apicurio AsyncApiSchema as Object
+            io.ballerina.asyncapi.core.model.component.AsyncApiSchema mapped =
+                    SchemaMapper.map(schema);
+            if (mapped != null) {
+                result.put(key, mapped);
             }
         });
 
@@ -287,9 +305,10 @@ public final class ComponentMapperV2 {
             default -> null;
         };
 
-        // Delegate to existing ServerVariableMapperV2
+        // Delegate to existing ServerVariableMapperV2. Component server variables are
+        // already resolved definitions, so no $ref resolution is needed (pass null).
         return io.ballerina.asyncapi.core.implementation.v2.server.ServerVariableMapperV2
-                .mapVariables(rawVariables);
+                .mapVariables(rawVariables, null);
     }
 
     /**
@@ -316,28 +335,7 @@ public final class ComponentMapperV2 {
             default -> null;
         };
 
-        if (rawServers == null || rawServers.isEmpty()) {
-            return null;
-        }
-
-        // Get security schemes for server security resolution
-        Map<String, ? extends io.apicurio.datamodels.models.SecurityScheme> securitySchemes =
-                components.getSecuritySchemes();
-
-        Map<String, io.ballerina.asyncapi.core.model.server.AsyncApiServer> result =
-                new LinkedHashMap<>();
-        rawServers.forEach((name, server) -> {
-            if (server != null) {
-                io.ballerina.asyncapi.core.model.server.AsyncApiServer mapped =
-                        io.ballerina.asyncapi.core.implementation.v2.server.ServerMapperV2
-                                .mapServer(server, securitySchemes);
-                if (mapped != null) {
-                    result.put(name, mapped);
-                }
-            }
-        });
-
-        return result.isEmpty() ? null : result;
+        return ServerMapperV2.map(rawServers, components);
     }
 
     /**

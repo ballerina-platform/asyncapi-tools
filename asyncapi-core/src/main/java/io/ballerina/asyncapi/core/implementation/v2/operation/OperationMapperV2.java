@@ -19,7 +19,12 @@ package io.ballerina.asyncapi.core.implementation.v2.operation;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import io.apicurio.datamodels.models.MappedNode;
-import io.apicurio.datamodels.models.asyncapi.*;
+import io.apicurio.datamodels.models.asyncapi.AsyncApiChannels;
+import io.apicurio.datamodels.models.asyncapi.AsyncApiChannelItem;
+import io.apicurio.datamodels.models.asyncapi.AsyncApiComponents;
+import io.apicurio.datamodels.models.asyncapi.AsyncApiExternalDocumentation;
+import io.apicurio.datamodels.models.asyncapi.AsyncApiExtensible;
+import io.apicurio.datamodels.models.asyncapi.AsyncApiReferenceable;
 import io.apicurio.datamodels.models.asyncapi.v20.AsyncApi20Operation;
 import io.apicurio.datamodels.models.asyncapi.v21.AsyncApi21Operation;
 import io.apicurio.datamodels.models.asyncapi.v22.AsyncApi22Operation;
@@ -27,13 +32,11 @@ import io.apicurio.datamodels.models.asyncapi.v23.AsyncApi23Operation;
 import io.apicurio.datamodels.models.asyncapi.v24.AsyncApi24Operation;
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25Operation;
 import io.apicurio.datamodels.models.asyncapi.v26.AsyncApi26Operation;
-import io.ballerina.asyncapi.core.implementation.v2.component.MessageRefResolverV2;
+import io.ballerina.asyncapi.core.implementation.v2.message.MessageMapperV2;
+import io.ballerina.asyncapi.core.implementation.v2.message.MessageRefResolverV2;
 import io.ballerina.asyncapi.core.implementation.v2.doc.ExternalDocMapperV2;
 import io.ballerina.asyncapi.core.implementation.v2.tag.TagMapperV2;
 import io.ballerina.asyncapi.core.model.operation.AsyncApiOperation;
-import io.ballerina.asyncapi.core.model.operation.AsyncApiOperationTrait;
-import io.ballerina.asyncapi.core.model.operation.HttpOperationBindings;
-import io.ballerina.asyncapi.core.model.operation.WsOperationBindings;
 import io.ballerina.asyncapi.core.model.tag.AsyncApiTag;
 
 import java.util.LinkedHashMap;
@@ -43,9 +46,6 @@ import java.util.Map;
 /**
  * Maps Apicurio Operation models to {@link AsyncApiOperation} for AsyncAPI 2.x.
  *
- * <p>In AsyncAPI 2.x, operations (publish/subscribe) are part of channel items,
- * not standalone top-level objects. This mapper iterates channels and extracts
- * both publish and subscribe operations into a flat map.</p>
  */
 public final class OperationMapperV2 {
 
@@ -65,7 +65,7 @@ public final class OperationMapperV2 {
      */
     public static Map<String, AsyncApiOperation> map(
             AsyncApiChannels channels,
-            io.apicurio.datamodels.models.asyncapi.AsyncApiComponents components) {
+            AsyncApiComponents components) {
         if (channels == null) {
             return null;
         }
@@ -97,38 +97,6 @@ public final class OperationMapperV2 {
     }
 
     /**
-     * Maps an Apicurio operation trait to a model {@link AsyncApiOperationTrait}.
-     *
-     * @param trait the Apicurio operation trait object
-     * @return the mapped AsyncApiOperationTrait
-     */
-    public static AsyncApiOperationTrait mapTrait(
-            io.apicurio.datamodels.models.asyncapi.AsyncApiOperationTrait trait) {
-        return OperationTraitMapperV2.map(trait);
-    }
-
-    /**
-     * Maps Apicurio {@link AsyncApiOperationBindings} to
-     * {@link io.ballerina.asyncapi.core.model.operation.AsyncApiOperationBindings}.
-     *
-     * @param bindings the Apicurio operation bindings object
-     * @return the mapped AsyncApiOperationBindings, or null if bindings is null or empty
-     */
-    public static io.ballerina.asyncapi.core.model.operation.AsyncApiOperationBindings
-    mapBindings(AsyncApiOperationBindings bindings) {
-        if (bindings == null) {
-            return null;
-        }
-        HttpOperationBindings http = HttpOperationBindingMapperV2.map(bindings.getHttp());
-        WsOperationBindings ws = WsOperationBindingMapperV2.map(bindings.getWs());
-        if (http == null && ws == null) {
-            return null;
-        }
-        return new io.ballerina.asyncapi.core.model.operation.AsyncApiOperationBindings(
-                http, ws);
-    }
-
-    /**
      * Extracts a single operation from a channel item and adds it to the result map.
      *
      * @param result      the result map to populate
@@ -141,10 +109,10 @@ public final class OperationMapperV2 {
      */
     private static void extractOperation(Map<String, AsyncApiOperation> result,
                                          String channelName,
-                                         io.apicurio.datamodels.models.asyncapi.AsyncApiChannelItem channelItem,
+                                         AsyncApiChannelItem channelItem,
                                          io.apicurio.datamodels.models.asyncapi.AsyncApiOperation operation,
                                          AsyncApiOperation.Action action, String suffix,
-                                         io.apicurio.datamodels.models.asyncapi.AsyncApiComponents components) {
+                                         AsyncApiComponents components) {
         if (operation == null) {
             return;
         }
@@ -176,7 +144,7 @@ public final class OperationMapperV2 {
     private static AsyncApiOperation buildOperation(
             io.apicurio.datamodels.models.asyncapi.AsyncApiOperation operation,
             AsyncApiOperation.Action action,
-            io.apicurio.datamodels.models.asyncapi.AsyncApiComponents components) {
+            AsyncApiComponents components) {
         Map<String, JsonNode> extensions = null;
         if (operation instanceof AsyncApiExtensible extensible) {
             extensions = extensible.getExtensions();
@@ -197,8 +165,8 @@ public final class OperationMapperV2 {
                 null, // security (v2 operations have none)
                 null, // reply (v2 has none)
                 tags,
-                ExternalDocMapperV2.map(operation.getExternalDocs()),
-                mapBindings(operation.getBindings()),
+                ExternalDocMapperV2.map((AsyncApiExternalDocumentation) operation.getExternalDocs()),
+                OperationBindingsMapperV2.map(operation.getBindings()),
                 OperationTraitMapperV2.mapTraits(operation.getTraits()),
                 extensions
         );
@@ -263,7 +231,7 @@ public final class OperationMapperV2 {
 
         // Map using MessageMapperV2
         io.ballerina.asyncapi.core.model.message.AsyncApiMessage mappedMessage =
-                io.ballerina.asyncapi.core.implementation.v2.component.MessageMapperV2.map(rawMessage);
+                MessageMapperV2.map(rawMessage);
 
         return mappedMessage != null ? List.of(mappedMessage) : null;
     }

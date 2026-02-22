@@ -17,6 +17,8 @@
  */
 package io.ballerina.asyncapi.core.model.channel;
 
+import io.ballerina.asyncapi.core.model.component.AsyncApiSchema;
+
 /**
  * WebSocket Channel Binding Object.
  *
@@ -27,8 +29,8 @@ package io.ballerina.asyncapi.core.model.channel;
  */
 public record WsChannelBindings(
         String method,
-        Object query,
-        Object headers,
+        AsyncApiSchema query,
+        AsyncApiSchema headers,
         String bindingVersion
 ) {
 }

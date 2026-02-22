@@ -96,6 +96,7 @@ public final class ChannelParameterMapperV3 {
                 param.getDefault(),
                 param.getEnum(),
                 param.getExamples(),
+                param.getLocation(),
                 param.getExtensions()
         );
     }

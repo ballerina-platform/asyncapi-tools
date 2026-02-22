@@ -22,36 +22,43 @@ import io.apicurio.datamodels.models.OAuthFlow;
 import io.apicurio.datamodels.models.asyncapi.AsyncApiExtensible;
 import io.apicurio.datamodels.models.asyncapi.AsyncApiOAuthFlows;
 import io.apicurio.datamodels.models.asyncapi.v20.AsyncApi20OAuthFlow;
-import io.apicurio.datamodels.models.asyncapi.v20.AsyncApi20SecurityScheme;
 import io.apicurio.datamodels.models.asyncapi.v21.AsyncApi21OAuthFlow;
 import io.apicurio.datamodels.models.asyncapi.v22.AsyncApi22OAuthFlow;
 import io.apicurio.datamodels.models.asyncapi.v23.AsyncApi23OAuthFlow;
 import io.apicurio.datamodels.models.asyncapi.v24.AsyncApi24OAuthFlow;
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25OAuthFlow;
 import io.apicurio.datamodels.models.asyncapi.v26.AsyncApi26OAuthFlow;
+import io.apicurio.datamodels.models.SecurityRequirement;
+import io.apicurio.datamodels.models.SecurityScheme;
 import io.ballerina.asyncapi.core.implementation.utils.URIUtils;
 import io.ballerina.asyncapi.core.model.security.AsyncApiOAuthFlow;
 import io.ballerina.asyncapi.core.model.security.AsyncApiSecurityScheme;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 /**
- * Maps Apicurio {@link AsyncApi20SecurityScheme} to {@link AsyncApiSecurityScheme}
+ * Maps Apicurio {@link AsyncApiSecurityScheme} to {@link AsyncApiSecurityScheme}
  * for AsyncAPI 2.x.
  */
-final class SecuritySchemeMapperV2 {
+public final class SecuritySchemeMapperV2 {
 
     private SecuritySchemeMapperV2() {
 
     }
 
     /**
-     * Maps an Apicurio {@link AsyncApi20SecurityScheme} to an {@link AsyncApiSecurityScheme}.
+     * Maps an Apicurio {@link io.apicurio.datamodels.models.asyncapi.AsyncApiSecurityScheme} to an {@link AsyncApiSecurityScheme}.
      *
      * @param scheme the Apicurio security scheme object
      * @return the mapped AsyncApiSecurityScheme
      */
-    static AsyncApiSecurityScheme map(AsyncApi20SecurityScheme scheme) {
+    public static AsyncApiSecurityScheme map(io.apicurio.datamodels.models.asyncapi.AsyncApiSecurityScheme scheme) {
+        Map<String, JsonNode> extensions = null;
+        if (scheme instanceof AsyncApiExtensible extensible) {
+            extensions = extensible.getExtensions();
+        }
         return new AsyncApiSecurityScheme(
                 scheme.getType(),
                 scheme.getDescription(),
@@ -62,8 +69,37 @@ final class SecuritySchemeMapperV2 {
                 mapOAuthFlows(scheme.getFlows()),
                 URIUtils.toUri(scheme.getOpenIdConnectUrl()),
                 null,
-                scheme.getExtensions()
+                extensions
         );
+    }
+
+    /**
+     * Resolves security requirements against the component security scheme definitions.
+     *
+     * @param requirements the security requirements from a server
+     * @param schemeLookup the security scheme definitions from components
+     * @return the mapped security schemes list, or null if empty
+     */
+    static List<AsyncApiSecurityScheme> mapSecurity(
+            List<SecurityRequirement> requirements,
+            Map<String, SecurityScheme> schemeLookup) {
+        if (requirements == null || requirements.isEmpty() || schemeLookup == null) {
+            return null;
+        }
+        List<AsyncApiSecurityScheme> result = new ArrayList<>();
+        for (SecurityRequirement requirement : requirements) {
+            List<String> names = requirement.getItemNames();
+            if (names == null) {
+                continue;
+            }
+            for (String name : names) {
+                SecurityScheme scheme = schemeLookup.get(name);
+                if (scheme instanceof io.apicurio.datamodels.models.asyncapi.AsyncApiSecurityScheme typedScheme) {
+                    result.add(map(typedScheme));
+                }
+            }
+        }
+        return result.isEmpty() ? null : result;
     }
 
     /**
@@ -101,39 +137,22 @@ final class SecuritySchemeMapperV2 {
         if (flow == null) {
             return null;
         }
-        Map<String, String> availableScopes = null;
+
         Map<String, JsonNode> extensions = null;
-        switch (flow) {
-            case AsyncApi26OAuthFlow typed -> {
-                availableScopes = typed.getScopes();
-                extensions = typed.getExtensions();
-            }
-            case AsyncApi25OAuthFlow typed -> {
-                availableScopes = typed.getScopes();
-                extensions = typed.getExtensions();
-            }
-            case AsyncApi24OAuthFlow typed -> {
-                availableScopes = typed.getScopes();
-                extensions = typed.getExtensions();
-            }
-            case AsyncApi23OAuthFlow typed -> {
-                availableScopes = typed.getScopes();
-                extensions = typed.getExtensions();
-            }
-            case AsyncApi22OAuthFlow typed -> {
-                availableScopes = typed.getScopes();
-                extensions = typed.getExtensions();
-            }
-            case AsyncApi21OAuthFlow typed -> {
-                availableScopes = typed.getScopes();
-                extensions = typed.getExtensions();
-            }
-            case AsyncApi20OAuthFlow typed -> {
-                availableScopes = typed.getScopes();
-                extensions = typed.getExtensions();
-            }
-            default -> { }
+        if (flow instanceof AsyncApiExtensible extensible) {
+            extensions = extensible.getExtensions();
         }
+        Map<String, String> availableScopes = switch (flow) {
+            case AsyncApi26OAuthFlow typed -> typed.getScopes();
+            case AsyncApi25OAuthFlow typed -> typed.getScopes();
+            case AsyncApi24OAuthFlow typed -> typed.getScopes();
+            case AsyncApi23OAuthFlow typed -> typed.getScopes();
+            case AsyncApi22OAuthFlow typed -> typed.getScopes();
+            case AsyncApi21OAuthFlow typed -> typed.getScopes();
+            case AsyncApi20OAuthFlow typed -> typed.getScopes();
+            default -> null;
+        };
+
         return new AsyncApiOAuthFlow(
                 URIUtils.toUri(flow.getAuthorizationUrl()),
                 URIUtils.toUri(flow.getTokenUrl()),

@@ -15,37 +15,51 @@
  *  specific language governing permissions and limitations
  *  under the License.
  */
-package io.ballerina.asyncapi.core.implementation.v2.component;
+package io.ballerina.asyncapi.core.implementation.v2.message;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import io.apicurio.datamodels.models.Tag;
+import io.apicurio.datamodels.models.asyncapi.AsyncApiChannelItem;
+import io.apicurio.datamodels.models.asyncapi.AsyncApiComponents;
+import io.apicurio.datamodels.models.asyncapi.AsyncApiExtensible;
 import io.apicurio.datamodels.models.asyncapi.AsyncApiMessage;
 import io.apicurio.datamodels.models.asyncapi.AsyncApiMessageBindings;
 import io.apicurio.datamodels.models.asyncapi.AsyncApiMessageTrait;
+import io.apicurio.datamodels.models.asyncapi.AsyncApiReferenceable;
 import io.apicurio.datamodels.models.asyncapi.v20.AsyncApi20Message;
-import io.apicurio.datamodels.models.asyncapi.v21.AsyncApi21Message;
-import io.apicurio.datamodels.models.asyncapi.v22.AsyncApi22Message;
-import io.apicurio.datamodels.models.asyncapi.v23.AsyncApi23Message;
-import io.apicurio.datamodels.models.asyncapi.v24.AsyncApi24Message;
-import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25Message;
-import io.apicurio.datamodels.models.asyncapi.v26.AsyncApi26Message;
-import io.apicurio.datamodels.models.asyncapi.v22.AsyncApi22MessageExample;
-import io.apicurio.datamodels.models.asyncapi.v23.AsyncApi23MessageExample;
-import io.apicurio.datamodels.models.asyncapi.v24.AsyncApi24MessageExample;
-import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25MessageExample;
-import io.apicurio.datamodels.models.asyncapi.v26.AsyncApi26MessageExample;
 import io.apicurio.datamodels.models.asyncapi.v20.AsyncApi20MessageTrait;
+import io.apicurio.datamodels.models.asyncapi.v20.AsyncApi20Operation;
+import io.apicurio.datamodels.models.asyncapi.v21.AsyncApi21Message;
 import io.apicurio.datamodels.models.asyncapi.v21.AsyncApi21MessageTrait;
+import io.apicurio.datamodels.models.asyncapi.v21.AsyncApi21Operation;
+import io.apicurio.datamodels.models.asyncapi.v22.AsyncApi22Message;
+import io.apicurio.datamodels.models.asyncapi.v22.AsyncApi22MessageExample;
 import io.apicurio.datamodels.models.asyncapi.v22.AsyncApi22MessageTrait;
+import io.apicurio.datamodels.models.asyncapi.v22.AsyncApi22Operation;
+import io.apicurio.datamodels.models.asyncapi.v23.AsyncApi23Message;
+import io.apicurio.datamodels.models.asyncapi.v23.AsyncApi23MessageExample;
 import io.apicurio.datamodels.models.asyncapi.v23.AsyncApi23MessageTrait;
+import io.apicurio.datamodels.models.asyncapi.v23.AsyncApi23Operation;
+import io.apicurio.datamodels.models.asyncapi.v24.AsyncApi24Message;
+import io.apicurio.datamodels.models.asyncapi.v24.AsyncApi24MessageExample;
 import io.apicurio.datamodels.models.asyncapi.v24.AsyncApi24MessageTrait;
+import io.apicurio.datamodels.models.asyncapi.v24.AsyncApi24Operation;
+import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25Message;
+import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25MessageExample;
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25MessageTrait;
+import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25Operation;
+import io.apicurio.datamodels.models.asyncapi.v26.AsyncApi26Message;
+import io.apicurio.datamodels.models.asyncapi.v26.AsyncApi26MessageExample;
 import io.apicurio.datamodels.models.asyncapi.v26.AsyncApi26MessageTrait;
+import io.apicurio.datamodels.models.asyncapi.v26.AsyncApi26Operation;
+import io.ballerina.asyncapi.core.implementation.v2.message.CorrelationIdMapperV2;
 import io.ballerina.asyncapi.core.implementation.v2.doc.ExternalDocMapperV2;
 import io.ballerina.asyncapi.core.implementation.v2.tag.TagMapperV2;
 import io.ballerina.asyncapi.core.model.message.HttpMessageBindings;
 import io.ballerina.asyncapi.core.model.message.WsMessageBindings;
 import io.ballerina.asyncapi.core.model.tag.AsyncApiTag;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -57,6 +71,8 @@ import java.util.Map;
  * {@link io.ballerina.asyncapi.core.model.message.AsyncApiMessage} for AsyncAPI 2.x.
  */
 public final class MessageMapperV2 {
+
+    private static final Logger LOG = LogManager.getLogger(MessageMapperV2.class);
 
     private MessageMapperV2() {
 
@@ -152,12 +168,97 @@ public final class MessageMapperV2 {
     }
 
     /**
+     * Extracts messages from a channel item's publish and subscribe operations.
+     *
+     * @param channelItem the Apicurio channel item object
+     * @param components  the AsyncAPI components (for $ref resolution)
+     * @return a map of message names to AsyncApiMessage objects, or null if no messages found
+     */
+    public static Map<String, io.ballerina.asyncapi.core.model.message.AsyncApiMessage>
+            extractMessages(AsyncApiChannelItem channelItem, AsyncApiComponents components) {
+        Map<String, io.ballerina.asyncapi.core.model.message.AsyncApiMessage> messages =
+                new LinkedHashMap<>();
+
+        if (channelItem.getPublish() != null) {
+            extractMessagesFromOperation(channelItem.getPublish(), messages, components);
+        }
+
+        if (channelItem.getSubscribe() != null) {
+            extractMessagesFromOperation(channelItem.getSubscribe(), messages, components);
+        }
+
+        return messages.isEmpty() ? null : messages;
+    }
+
+    /**
+     * Extracts messages from a single operation and adds them to the messages map.
+     *
+     * @param operation  the Apicurio operation object (publish or subscribe)
+     * @param messages   the map to populate with extracted messages
+     * @param components the AsyncAPI components (for $ref resolution)
+     */
+    private static void extractMessagesFromOperation(
+            io.apicurio.datamodels.models.asyncapi.AsyncApiOperation operation,
+            Map<String, io.ballerina.asyncapi.core.model.message.AsyncApiMessage> messages,
+            AsyncApiComponents components) {
+        if (operation == null) {
+            return;
+        }
+
+        io.apicurio.datamodels.models.asyncapi.AsyncApiMessage message = switch (operation) {
+            case AsyncApi26Operation typed -> typed.getMessage();
+            case AsyncApi25Operation typed -> typed.getMessage();
+            case AsyncApi24Operation typed -> typed.getMessage();
+            case AsyncApi23Operation typed -> typed.getMessage();
+            case AsyncApi22Operation typed -> typed.getMessage();
+            case AsyncApi21Operation typed -> typed.getMessage();
+            case AsyncApi20Operation typed -> typed.getMessage();
+            default -> null;
+        };
+
+        if (message != null) {
+            if (message instanceof AsyncApiReferenceable referenceable) {
+                String $ref = referenceable.get$ref();
+                if ($ref != null) {
+                    io.apicurio.datamodels.models.asyncapi.AsyncApiMessage resolved =
+                            MessageRefResolverV2.resolveMessageRef($ref, components);
+                    if (resolved == null) {
+                        LOG.warn("Could not resolve message $ref: {}. Skipping message.", $ref);
+                        return;
+                    }
+
+                    if (resolved instanceof AsyncApiReferenceable resolvedRef
+                            && resolvedRef.get$ref() != null) {
+                        LOG.warn("Resolved message $ref points to another $ref: {}. Skipping message.",
+                                resolvedRef.get$ref());
+                        return;
+                    }
+
+                    message = resolved;
+                }
+            }
+
+            io.ballerina.asyncapi.core.model.message.AsyncApiMessage mappedMessage = map(message);
+            if (mappedMessage != null) {
+                String key = message.getName();
+                if (key == null || key.isBlank()) {
+                    key = message.getTitle();
+                    if (key == null || key.isBlank()) {
+                        key = "message_" + messages.size();
+                    }
+                }
+                messages.put(key, mappedMessage);
+            }
+        }
+    }
+
+    /**
      * Maps an Apicurio {@link AsyncApiMessageBindings} to a model message bindings.
      *
      * @param bindings the Apicurio message bindings object
      * @return the mapped AsyncApiMessageBindings, or null if empty
      */
-    static io.ballerina.asyncapi.core.model.message.AsyncApiMessageBindings
+    public static io.ballerina.asyncapi.core.model.message.AsyncApiMessageBindings
             mapBindings(AsyncApiMessageBindings bindings) {
         if (bindings == null) {
             return null;
@@ -165,11 +266,15 @@ public final class MessageMapperV2 {
         HttpMessageBindings http = mapHttpMessageBinding(bindings.getHttp());
         WsMessageBindings ws = bindings.getWs() != null
                 ? new WsMessageBindings() : null;
-        if (http == null && ws == null) {
+        Map<String, JsonNode> extensions = null;
+        if (bindings instanceof AsyncApiExtensible extensible) {
+            extensions = extensible.getExtensions();
+        }
+        if (http == null && ws == null && extensions == null) {
             return null;
         }
         return new io.ballerina.asyncapi.core.model.message.AsyncApiMessageBindings(
-                http, ws);
+                http, ws, extensions);
     }
 
     /**
@@ -183,10 +288,9 @@ public final class MessageMapperV2 {
         if (binding == null) {
             return null;
         }
-        Object headers = binding.getItem("headers");
         Integer statusCode = getBindingItemAsInteger(binding, "statusCode");
         String bindingVersion = getBindingItemAsText(binding, "bindingVersion");
-        return new HttpMessageBindings(headers, statusCode, bindingVersion);
+        return new HttpMessageBindings(null, statusCode, bindingVersion);
     }
 
     /**
@@ -235,60 +339,42 @@ public final class MessageMapperV2 {
             return null;
         }
 
-        // v2.2-v2.6: getExamples() returns a single structured example object
-        // v2.0/v2.1: getExamples() returns Map<String, JsonNode> (map MIME types to example names)
         return switch (message) {
             case AsyncApi26Message typed -> {
                 AsyncApi26MessageExample ex = typed.getExamples();
                 yield ex != null ? List.of(buildMessageExample(
-                        ex.getName(),
-                        ex.getSummary(),
-                        ex.getHeaders(),
-                        ex.getPayload(),
-                        ex.getExtensions()
+                        ex.getName(), ex.getSummary(), ex.getHeaders(),
+                        ex.getPayload(), ex.getExtensions()
                 )) : null;
             }
             case AsyncApi25Message typed -> {
                 AsyncApi25MessageExample ex = typed.getExamples();
                 yield ex != null ? List.of(buildMessageExample(
-                        ex.getName(),
-                        ex.getSummary(),
-                        ex.getHeaders(),
-                        ex.getPayload(),
-                        ex.getExtensions()
+                        ex.getName(), ex.getSummary(), ex.getHeaders(),
+                        ex.getPayload(), ex.getExtensions()
                 )) : null;
             }
             case AsyncApi24Message typed -> {
                 AsyncApi24MessageExample ex = typed.getExamples();
                 yield ex != null ? List.of(buildMessageExample(
-                        ex.getName(),
-                        ex.getSummary(),
-                        ex.getHeaders(),
-                        ex.getPayload(),
-                        ex.getExtensions()
+                        ex.getName(), ex.getSummary(), ex.getHeaders(),
+                        ex.getPayload(), ex.getExtensions()
                 )) : null;
             }
             case AsyncApi23Message typed -> {
                 AsyncApi23MessageExample ex = typed.getExamples();
                 yield ex != null ? List.of(buildMessageExample(
-                        ex.getName(),
-                        ex.getSummary(),
-                        ex.getHeaders(),
-                        ex.getPayload(),
-                        ex.getExtensions()
+                        ex.getName(), ex.getSummary(), ex.getHeaders(),
+                        ex.getPayload(), ex.getExtensions()
                 )) : null;
             }
             case AsyncApi22Message typed -> {
                 AsyncApi22MessageExample ex = typed.getExamples();
                 yield ex != null ? List.of(buildMessageExample(
-                        ex.getName(),
-                        ex.getSummary(),
-                        ex.getHeaders(),
-                        ex.getPayload(),
-                        ex.getExtensions()
+                        ex.getName(), ex.getSummary(), ex.getHeaders(),
+                        ex.getPayload(), ex.getExtensions()
                 )) : null;
             }
-            // v2.0 and v2.1 have Map<String, JsonNode> format - map using MIME types as names
             case AsyncApi21Message typed -> mapExamplesFromMap(typed.getExamples());
             case AsyncApi20Message typed -> mapExamplesFromMap(typed.getExamples());
             default -> null;
@@ -311,7 +397,6 @@ public final class MessageMapperV2 {
             Map<String, JsonNode> headers,
             JsonNode payload,
             Map<String, JsonNode> extensions) {
-        // Convert headers from Map<String, JsonNode> to Map<String, Object>
         Map<String, Object> headersMap = null;
         if (headers != null && !headers.isEmpty()) {
             headersMap = new LinkedHashMap<>();
@@ -321,10 +406,10 @@ public final class MessageMapperV2 {
         }
 
         return new io.ballerina.asyncapi.core.model.message.AsyncApiMessageExample(
+                headersMap,
+                payload,
                 name,
                 summary,
-                headersMap,
-                payload,  // JsonNode is compatible with Object
                 extensions
         );
     }
@@ -347,11 +432,11 @@ public final class MessageMapperV2 {
 
         for (Map.Entry<String, JsonNode> entry : examplesMap.entrySet()) {
             examples.add(new io.ballerina.asyncapi.core.model.message.AsyncApiMessageExample(
-                    entry.getKey(),  // Use MIME type as name (e.g., "application/json")
-                    null,            // No summary available in Map format
-                    null,            // No headers available in Map format
-                    entry.getValue(), // The payload JsonNode
-                    null             // No extensions available in Map format
+                    null,
+                    entry.getValue(),
+                    entry.getKey(),
+                    null,
+                    null
             ));
         }
 
@@ -371,7 +456,6 @@ public final class MessageMapperV2 {
             return null;
         }
 
-        // All v2.x MessageTraits have Map<String, JsonNode> format
         Map<String, JsonNode> examplesMap = switch (trait) {
             case AsyncApi26MessageTrait typed -> typed.getExamples();
             case AsyncApi25MessageTrait typed -> typed.getExamples();

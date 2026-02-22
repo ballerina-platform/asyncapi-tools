@@ -31,10 +31,10 @@ import java.util.Map;
  * @param extensions Specification extensions (fields prefixed with "x-").
  */
 public record AsyncApiMessageExample(
-        String name,
-        String summary,
         Map<String, Object> headers,
         Object payload,
+        String name,
+        String summary,
         Map<String, JsonNode> extensions
 ) {
 }
