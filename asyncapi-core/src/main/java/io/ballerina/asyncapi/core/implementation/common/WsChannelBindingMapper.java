@@ -15,18 +15,19 @@
  *  specific language governing permissions and limitations
  *  under the License.
  */
-package io.ballerina.asyncapi.core.implementation.v2.channel;
+package io.ballerina.asyncapi.core.implementation.common;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import io.apicurio.datamodels.models.asyncapi.AsyncApiBinding;
 import io.ballerina.asyncapi.core.model.channel.WsChannelBindings;
-import io.ballerina.asyncapi.core.model.component.AsyncApiSchema;
 
 /**
- * Maps Apicurio WebSocket channel binding to {@link WsChannelBindings} for AsyncAPI 2.x.
+ * Maps Apicurio WebSocket channel bindings to {@link WsChannelBindings},
+ * version-independently (AsyncAPI 2.x and 3.x).
  */
-final class WsChannelBindingMapperV2 {
+public final class WsChannelBindingMapper {
 
-    private WsChannelBindingMapperV2() {
+    private WsChannelBindingMapper() {
     }
 
     /**
@@ -35,17 +36,15 @@ final class WsChannelBindingMapperV2 {
      * @param binding the Apicurio WebSocket binding object
      * @return the mapped WsChannelBindings, or null if binding is null
      */
-    static WsChannelBindings map(io.apicurio.datamodels.models.asyncapi.AsyncApiBinding binding) {
+    public static WsChannelBindings map(AsyncApiBinding binding) {
         if (binding == null) {
             return null;
         }
-
         String method = getBindingItemAsText(binding, "method");
-        Object query = binding.getItem("query");
-        Object headers = binding.getItem("headers");
+        JsonNode query = binding.getItem("query");
+        JsonNode headers = binding.getItem("headers");
         String bindingVersion = getBindingItemAsText(binding, "bindingVersion");
-
-        return new WsChannelBindings(method, (AsyncApiSchema) query, (AsyncApiSchema) headers, bindingVersion);
+        return new WsChannelBindings(method, query, headers, bindingVersion);
     }
 
     /**
@@ -55,8 +54,7 @@ final class WsChannelBindingMapperV2 {
      * @param key     the item key
      * @return the text value, or null if not found or not textual
      */
-    private static String getBindingItemAsText(
-            io.apicurio.datamodels.models.asyncapi.AsyncApiBinding binding, String key) {
+    private static String getBindingItemAsText(AsyncApiBinding binding, String key) {
         JsonNode node = binding.getItem(key);
         if (node == null) {
             return null;

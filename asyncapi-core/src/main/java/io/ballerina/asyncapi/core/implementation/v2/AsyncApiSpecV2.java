@@ -21,6 +21,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import io.apicurio.datamodels.models.Extensible;
 import io.apicurio.datamodels.models.asyncapi.AsyncApiDocument;
 import io.ballerina.asyncapi.core.api.AsyncApiSpec;
+import io.ballerina.asyncapi.core.implementation.utils.URIUtils;
 import io.ballerina.asyncapi.core.implementation.v2.info.InfoMapperV2;
 import io.ballerina.asyncapi.core.implementation.v2.channel.ChannelMapperV2;
 import io.ballerina.asyncapi.core.implementation.v2.component.ComponentMapperV2;
@@ -44,6 +45,7 @@ public class AsyncApiSpecV2 implements AsyncApiSpec {
     private URI id;
     private AsyncApiInfo info;
     private Map<String, AsyncApiServer> servers;
+    private String contentType;
     private Map<String, AsyncApiChannel> channels;
     private Map<String, AsyncApiOperation> operations;
     private AsyncApiComponent components;
@@ -59,17 +61,22 @@ public class AsyncApiSpecV2 implements AsyncApiSpec {
 
         String documentId = asyncApiDocument.getId();
         if (documentId != null) {
-            this.id = URI.create(documentId);
+            this.id = URIUtils.toUri(documentId);
         }
 
         this.info = InfoMapperV2.map(asyncApiDocument);
 
         this.servers = ServerMapperV2.map(asyncApiDocument.getServers(), asyncApiDocument.getComponents());
 
+        this.contentType = asyncApiDocument.getDefaultContentType();
+
         this.channels = ChannelMapperV2.map(asyncApiDocument.getChannels(),
                 asyncApiDocument.getComponents(),
                 this.servers);
-        this.operations = OperationMapperV2.map(asyncApiDocument.getChannels(), asyncApiDocument.getComponents());
+
+        this.operations = OperationMapperV2.map(asyncApiDocument.getChannels(),
+                asyncApiDocument.getComponents());
+
         this.components = ComponentMapperV2.map(
                 asyncApiDocument.getComponents());
 
@@ -100,7 +107,7 @@ public class AsyncApiSpecV2 implements AsyncApiSpec {
 
     @Override
     public String getAsyncApiContentType() {
-        return null;
+        return contentType;
     }
 
     @Override

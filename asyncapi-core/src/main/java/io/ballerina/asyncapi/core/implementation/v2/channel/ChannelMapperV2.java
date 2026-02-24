@@ -73,7 +73,7 @@ public final class ChannelMapperV2 {
             AsyncApiComponents components,
             Map<String, AsyncApiServer> serversMap) {
         if (channels == null) {
-            return null;
+            return Map.of();
         }
         List<String> channelNames = null;
         if (channels instanceof MappedNode<?> mappedNode) {
@@ -116,19 +116,25 @@ public final class ChannelMapperV2 {
     }
 
     /**
-     * Resolves a {@code $ref} string to an {@link AsyncApiChannelItem} from components.
+     * Resolves a {@code $ref} string to an {@link AsyncApiChannel} from components.
      * Component channels are only available in AsyncAPI 2.3+.
      *
-     * @param $ref       the $ref string (e.g. {@code #/components/channels/MyChannel})
-     * @param components the AsyncAPI components object
-     * @return the resolved channel item, or null if not found or unsupported
+     * @param name        the channel name (used as address)
+     * @param $ref        the $ref string (e.g. {@code #/components/channels/MyChannel})
+     * @param components  the AsyncAPI components object
+     * @param serversMap  the map of server names to AsyncApiServer objects (for server name resolution)
+     * @return the resolved channel model, or null if not found or unsupported
      */
-    private static AsyncApiChannelItem resolveRef(String $ref, AsyncApiComponents components) {
+    private static AsyncApiChannel resolveRef(
+            String name,
+            String $ref,
+            AsyncApiComponents components,
+            Map<String, AsyncApiServer> serversMap) {
         if (!$ref.startsWith(Constants.CHANNELS_REF_PREFIX)) {
             LOG.warn("Unsupported $ref format: {}. Skipping channel.", $ref);
             return null;
         }
-        String name = $ref.substring(Constants.CHANNELS_REF_PREFIX.length());
+        String channelName = $ref.substring(Constants.CHANNELS_REF_PREFIX.length());
         if (components == null) {
             return null;
         }
@@ -139,7 +145,15 @@ public final class ChannelMapperV2 {
             case AsyncApi23Components typed -> typed.getChannels();
             default -> null;
         };
-        return channelsMap != null ? channelsMap.get(name) : null;
+        AsyncApiChannelItem resolved = channelsMap != null ? channelsMap.get(channelName) : null;
+        if (resolved == null) {
+            return null;
+        }
+        if (resolved instanceof AsyncApiReferenceable resolvedTyped && resolvedTyped.get$ref() != null) {
+            LOG.warn("Resolved $ref points to another $ref: {}. Skipping channel.", resolvedTyped.get$ref());
+            return null;
+        }
+        return buildChannel(name, resolved, components, serversMap);
     }
 
     /**
@@ -161,18 +175,12 @@ public final class ChannelMapperV2 {
             $ref = referenceable.get$ref();
         }
         if ($ref != null) {
-            AsyncApiChannelItem resolved = resolveRef($ref, components);
+            AsyncApiChannel resolved = resolveRef(name, $ref, components, serversMap);
             if (resolved == null) {
                 LOG.warn("Could not resolve $ref: {}. Skipping channel.", $ref);
                 return null;
             }
-            if (resolved instanceof AsyncApiReferenceable resolvedTyped
-                    && resolvedTyped.get$ref() != null) {
-                LOG.warn("Resolved $ref points to another $ref: {}. Skipping channel.",
-                        resolvedTyped.get$ref());
-                return null;
-            }
-            return mapOne(name, resolved, components, serversMap);
+            return resolved;
         }
         return buildChannel(name, channelItem, components, serversMap);
     }

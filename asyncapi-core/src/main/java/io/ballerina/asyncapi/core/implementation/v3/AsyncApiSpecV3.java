@@ -19,10 +19,9 @@ package io.ballerina.asyncapi.core.implementation.v3;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import io.apicurio.datamodels.models.asyncapi.AsyncApiDocument;
-import io.apicurio.datamodels.models.asyncapi.v30.AsyncApi30Channels;
-import io.apicurio.datamodels.models.asyncapi.v30.AsyncApi30Components;
-import io.apicurio.datamodels.models.asyncapi.v30.AsyncApi30Document;
+import io.apicurio.datamodels.models.asyncapi.AsyncApiExtensible;
 import io.ballerina.asyncapi.core.api.AsyncApiSpec;
+import io.ballerina.asyncapi.core.implementation.utils.URIUtils;
 import io.ballerina.asyncapi.core.implementation.v3.channel.ChannelMapperV3;
 import io.ballerina.asyncapi.core.implementation.v3.component.ComponentMapperV3;
 import io.ballerina.asyncapi.core.implementation.v3.info.InfoMapperV3;
@@ -49,6 +48,7 @@ public class AsyncApiSpecV3 implements AsyncApiSpec {
     private URI id;
     private AsyncApiInfo info;
     private Map<String, AsyncApiServer> servers;
+    private String contentType;
     private Map<String, AsyncApiChannel> channels;
     private Map<String, AsyncApiOperation> operations;
     private AsyncApiComponent components;
@@ -66,38 +66,31 @@ public class AsyncApiSpecV3 implements AsyncApiSpec {
 
     private void extractFields() {
         this.version = new Semver(asyncApiDocument.getAsyncapi());
+
         String documentId = asyncApiDocument.getId();
         if (documentId != null) {
-            this.id = URI.create(documentId);
+            this.id = URIUtils.toUri(documentId);
         }
         this.info = InfoMapperV3.map(asyncApiDocument.getInfo(), asyncApiDocument.getComponents());
+
         this.servers = ServerMapperV3.map(asyncApiDocument.getServers(), asyncApiDocument.getComponents());
 
-        // Extract v3Components early for channel mapping
-        AsyncApi30Components v3Components = null;
-        if (asyncApiDocument.getComponents() instanceof AsyncApi30Components typed) {
-            v3Components = typed;
-        }
+        this.contentType = asyncApiDocument.getDefaultContentType();
 
         this.channels = ChannelMapperV3.map(
                 asyncApiDocument.getChannels(),
-                v3Components,
+                asyncApiDocument.getComponents(),
                 this.servers
         );
 
-        if (asyncApiDocument instanceof AsyncApi30Document v3Doc) {
-            this.operations = OperationMapperV3.map(
-                    v3Doc.getOperations(),
-                    asyncApiDocument.getChannels() instanceof AsyncApi30Channels rawChannels
-                            ? rawChannels : null,
-                    this.channels,
-                    v3Components
-            );
-            this.extensions = v3Doc.getExtensions();
+        this.operations = OperationMapperV3.map(asyncApiDocument, this.channels);
+
+        if (asyncApiDocument.getComponents() != null) {
+            this.components = ComponentMapperV3.map(asyncApiDocument.getComponents());
         }
 
-        if (v3Components != null) {
-            this.components = ComponentMapperV3.map(v3Components);
+        if (asyncApiDocument instanceof AsyncApiExtensible extensible) {
+            this.extensions = extensible.getExtensions();
         }
 
     }
@@ -124,7 +117,7 @@ public class AsyncApiSpecV3 implements AsyncApiSpec {
 
     @Override
     public String getAsyncApiContentType() {
-        return null;
+        return contentType;
     }
 
     @Override
@@ -144,6 +137,6 @@ public class AsyncApiSpecV3 implements AsyncApiSpec {
 
     @Override
     public Map<String, JsonNode> getAsyncApiExtensions() {
-        return extensions;
+        return extensions != null ? extensions : Map.of();
     }
 }

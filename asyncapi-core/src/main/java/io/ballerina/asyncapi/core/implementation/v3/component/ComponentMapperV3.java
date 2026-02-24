@@ -19,24 +19,17 @@ package io.ballerina.asyncapi.core.implementation.v3.component;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import io.apicurio.datamodels.models.Extensible;
-import io.apicurio.datamodels.models.SecurityScheme;
 import io.apicurio.datamodels.models.asyncapi.AsyncApiComponents;
-import io.apicurio.datamodels.models.asyncapi.AsyncApiSchema;
 import io.apicurio.datamodels.models.asyncapi.v30.*;
-import io.apicurio.datamodels.models.union.MultiFormatSchemaSchemaUnion;
-import io.ballerina.asyncapi.core.implementation.common.SchemaMapper;
 import io.ballerina.asyncapi.core.implementation.v3.channel.ChannelBindingsMapperV3;
-import io.ballerina.asyncapi.core.implementation.v3.channel.ChannelMapperV3;
-import io.ballerina.asyncapi.core.implementation.v3.channel.ChannelParameterMapperV3;
+import io.ballerina.asyncapi.core.implementation.v3.component.ComponentParameterMapperV3;
 import io.ballerina.asyncapi.core.implementation.v3.doc.ExternalDocMapperV3;
+import io.ballerina.asyncapi.core.implementation.v3.message.MessageMapperV3;
+import io.ballerina.asyncapi.core.implementation.v3.operation.OperationBindingsMapperV3;
 import io.ballerina.asyncapi.core.implementation.v3.operation.OperationMapperV3;
-import io.ballerina.asyncapi.core.implementation.v3.server.SecuritySchemeMapperV3;
 import io.ballerina.asyncapi.core.implementation.common.ServerBindingsMapper;
-import io.ballerina.asyncapi.core.implementation.v3.server.ServerMapperV3;
 import io.ballerina.asyncapi.core.implementation.v3.tag.TagMapperV3;
 import io.ballerina.asyncapi.core.model.component.AsyncApiComponent;
-import io.ballerina.asyncapi.core.model.security.AsyncApiSecurityScheme;
-import io.ballerina.asyncapi.core.model.server.AsyncApiServerVariable;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -70,18 +63,16 @@ public final class ComponentMapperV3 {
             }
 
             return new AsyncApiComponent(
-                    mapSchemas(typedComponents),
-                    mapValues(typedComponents.getServers(),
-                            server -> ServerMapperV3.buildServer(server, typedComponents)),
-                    mapServerVariables(typedComponents.getServerVariables()),
-                    mapValues(typedComponents.getChannels(),
-                            channel -> ChannelMapperV3.buildChannel(channel, typedComponents, null)),
+                    ComponentSchemaMapperV3.map(typedComponents),
+                    ComponentServerMapperV3.map(typedComponents),
+                    ComponentServerMapperV3.mapComponentServerVariables(typedComponents),
+                    ComponentChannelMapperV3.map(typedComponents),
                     mapValues(typedComponents.getOperations(),
                             operation -> OperationMapperV3.buildOperation(operation, null, null, typedComponents)),
                     mapValues(typedComponents.getMessages(),
                             MessageMapperV3::map),
-                    mapSecuritySchemes(typedComponents.getSecuritySchemes()),
-                    ChannelParameterMapperV3.mapParameters(typedComponents.getParameters()),
+                    ComponentSecuritySchemeMapperV3.map(typedComponents.getSecuritySchemes()),
+                    ComponentParameterMapperV3.mapParameters(typedComponents.getParameters()),
                     mapValues(typedComponents.getCorrelationIds(),
                             MessageMapperV3::mapCorrelationId),
                     mapValues(typedComponents.getOperationTraits(),
@@ -99,9 +90,9 @@ public final class ComponentMapperV3 {
                     mapValues(typedComponents.getServerBindings(),
                             binding -> ServerBindingsMapper.mapBindings(binding, null)),
                     mapValues(typedComponents.getChannelBindings(),
-                            ChannelBindingsMapperV3::map),
+                            binding -> ChannelBindingsMapperV3.map(binding, typedComponents)),
                     mapValues(typedComponents.getOperationBindings(),
-                            OperationMapperV3::mapBindings),
+                            OperationBindingsMapperV3::map),
                     mapValues(typedComponents.getMessageBindings(),
                             MessageMapperV3::mapBindings),
                     extensions
@@ -135,89 +126,4 @@ public final class ComponentMapperV3 {
         return result.isEmpty() ? null : result;
     }
 
-    // ---- special-case map methods (need key or cast) ----
-
-    /**
-     * Maps component server variables.
-     *
-     * @param variables the Apicurio server variables map
-     * @return the mapped variables map, or null if empty
-     */
-    private static Map<String, AsyncApiServerVariable>
-    mapServerVariables(
-            Map<String, AsyncApi30ServerVariable> variables) {
-        if (variables == null || variables.isEmpty()) {
-            return null;
-        }
-        Map<String, AsyncApiServerVariable> result =
-                new LinkedHashMap<>();
-        for (Map.Entry<String, AsyncApi30ServerVariable> entry
-                : variables.entrySet()) {
-            result.put(entry.getKey(),
-                    ServerMapperV3.mapVariable(entry.getValue()));
-        }
-        return result.isEmpty() ? null : result;
-    }
-
-    /**
-     * Maps component security schemes. Requires instanceof cast to
-     * {@link AsyncApi30SecurityScheme}.
-     *
-     * @param schemes the Apicurio security schemes map
-     * @return the mapped security schemes map, or null if empty
-     */
-    private static Map<String, AsyncApiSecurityScheme>
-    mapSecuritySchemes(
-            Map<String, SecurityScheme> schemes) {
-        if (schemes == null || schemes.isEmpty()) {
-            return null;
-        }
-        Map<String, AsyncApiSecurityScheme> result =
-                new LinkedHashMap<>();
-        for (Map.Entry<String, SecurityScheme> entry
-                : schemes.entrySet()) {
-            if (entry.getValue()
-                    instanceof AsyncApi30SecurityScheme typed) {
-                result.put(entry.getKey(),
-                        SecuritySchemeMapperV3.map(typed, null));
-            }
-        }
-        return result.isEmpty() ? null : result;
-    }
-
-    /**
-     * Maps component schemas from AsyncAPI 3.0 components.
-     * Schemas in V3 can be either MultiFormatSchema (for Avro, Protobuf, etc.)
-     * or plain JSON Schema objects. Only JSON Schema entries (those where the union
-     * holds an {@link AsyncApiSchema}) are mapped; non-JSON schema formats are skipped.
-     *
-     * @param components the AsyncAPI 3.0 components object
-     * @return a map of schema names to mapped schema objects, or null if empty
-     */
-    private static Map<String, io.ballerina.asyncapi.core.model.component.AsyncApiSchema>
-            mapSchemas(AsyncApi30Components components) {
-        if (components == null) {
-            return null;
-        }
-
-        Map<String, MultiFormatSchemaSchemaUnion> rawSchemas = components.getSchemas();
-        if (rawSchemas == null || rawSchemas.isEmpty()) {
-            return null;
-        }
-
-        Map<String, io.ballerina.asyncapi.core.model.component.AsyncApiSchema> result =
-                new LinkedHashMap<>();
-        rawSchemas.forEach((key, schemaUnion) -> {
-            if (schemaUnion != null && schemaUnion.isSchema()
-                    && schemaUnion.asSchema() instanceof AsyncApiSchema typedSchema) {
-                io.ballerina.asyncapi.core.model.component.AsyncApiSchema mapped =
-                        SchemaMapper.map(typedSchema);
-                if (mapped != null) {
-                    result.put(key, mapped);
-                }
-            }
-        });
-
-        return result.isEmpty() ? null : result;
-    }
 }

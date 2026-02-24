@@ -61,13 +61,13 @@ public final class OperationMapperV2 {
      *
      * @param channels   the Apicurio channels object
      * @param components the AsyncAPI components (for $ref resolution in messages and channels)
-     * @return the mapped operations map, or an empty map if channels is null
+     * @return the mapped operations map, or an empty map if channels is null or empty
      */
     public static Map<String, AsyncApiOperation> map(
             AsyncApiChannels channels,
             AsyncApiComponents components) {
         if (channels == null) {
-            return null;
+            return Map.of();
         }
 
         List<String> channelNames = null;
@@ -88,9 +88,9 @@ public final class OperationMapperV2 {
             if (channelItem == null) {
                 continue;
             }
-            extractOperation(result, channelName, channelItem, channelItem.getPublish(),
+            extractOperation(result, channelName, channelItem.getPublish(),
                     AsyncApiOperation.Action.SEND, "publish", components);
-            extractOperation(result, channelName, channelItem, channelItem.getSubscribe(),
+            extractOperation(result, channelName, channelItem.getSubscribe(),
                     AsyncApiOperation.Action.RECEIVE, "subscribe", components);
         }
         return result;
@@ -101,7 +101,6 @@ public final class OperationMapperV2 {
      *
      * @param result      the result map to populate
      * @param channelName the channel name
-     * @param channelItem the Apicurio channel item object
      * @param operation   the Apicurio operation (publish or subscribe), may be null
      * @param action      the action type (SEND or RECEIVE)
      * @param suffix      the suffix for the fallback key ("publish" or "subscribe")
@@ -109,7 +108,6 @@ public final class OperationMapperV2 {
      */
     private static void extractOperation(Map<String, AsyncApiOperation> result,
                                          String channelName,
-                                         AsyncApiChannelItem channelItem,
                                          io.apicurio.datamodels.models.asyncapi.AsyncApiOperation operation,
                                          AsyncApiOperation.Action action, String suffix,
                                          AsyncApiComponents components) {

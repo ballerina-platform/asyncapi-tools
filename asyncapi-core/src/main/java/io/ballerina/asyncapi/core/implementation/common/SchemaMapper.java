@@ -18,12 +18,11 @@
 package io.ballerina.asyncapi.core.implementation.common;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import io.apicurio.datamodels.models.ExternalDocumentation;
 import io.apicurio.datamodels.models.Schema;
 import io.apicurio.datamodels.models.asyncapi.AsyncApiExtensible;
+import io.apicurio.datamodels.models.asyncapi.AsyncApiExternalDocumentation;
 import io.apicurio.datamodels.models.asyncapi.AsyncApiSchema;
-import io.ballerina.asyncapi.core.implementation.utils.URIUtils;
-import io.ballerina.asyncapi.core.model.doc.AsyncApiExternalDocs;
+import io.ballerina.asyncapi.core.implementation.v2.doc.ExternalDocMapperV2;
 
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -110,10 +109,14 @@ public final class SchemaMapper {
         List<io.ballerina.asyncapi.core.model.component.AsyncApiSchema> allOf =
                 mapBaseSchemaList(schema.getAllOf());
 
-        // extensions via AsyncApiExtensible
         Map<String, JsonNode> extensions = null;
         if (schema instanceof AsyncApiExtensible extensible) {
             extensions = extensible.getExtensions();
+        }
+
+        AsyncApiExternalDocumentation externalDocs = null;
+        if (schema.getExternalDocs() instanceof AsyncApiExternalDocumentation typedDoc) {
+            externalDocs = typedDoc;
         }
 
         return new io.ballerina.asyncapi.core.model.component.AsyncApiSchema(
@@ -156,7 +159,7 @@ public final class SchemaMapper {
                 schema.getFormat(),
                 schema.getDefault(),
                 schema.getDiscriminator(),
-                mapExternalDocs(schema.getExternalDocs()),
+                ExternalDocMapperV2.map(externalDocs),
                 schema.isDeprecated(),
                 extensions
         );
@@ -205,26 +208,4 @@ public final class SchemaMapper {
         return result.isEmpty() ? null : result;
     }
 
-    /**
-     * Maps an Apicurio {@link ExternalDocumentation} to an
-     * {@link AsyncApiExternalDocs}.
-     *
-     * @param externalDocs the Apicurio external documentation object
-     * @return the mapped AsyncApiExternalDocs, or null if externalDocs is null
-     */
-    private static AsyncApiExternalDocs mapExternalDocs(
-            ExternalDocumentation externalDocs) {
-        if (externalDocs == null) {
-            return null;
-        }
-        Map<String, JsonNode> extensions = null;
-        if (externalDocs instanceof AsyncApiExtensible extensible) {
-            extensions = extensible.getExtensions();
-        }
-        return new AsyncApiExternalDocs(
-                externalDocs.getDescription(),
-                URIUtils.toUri(externalDocs.getUrl()),
-                extensions
-        );
-    }
 }

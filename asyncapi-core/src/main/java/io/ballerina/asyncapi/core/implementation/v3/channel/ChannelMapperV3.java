@@ -25,7 +25,7 @@ import io.apicurio.datamodels.models.asyncapi.AsyncApiReferenceable;
 import io.apicurio.datamodels.models.asyncapi.v30.AsyncApi30Channel;
 import io.apicurio.datamodels.models.asyncapi.v30.AsyncApi30Components;
 import io.ballerina.asyncapi.core.Constants;
-import io.ballerina.asyncapi.core.implementation.v3.component.MessageMapperV3;
+import io.ballerina.asyncapi.core.implementation.v3.message.MessageMapperV3;
 import io.ballerina.asyncapi.core.implementation.v3.doc.ExternalDocMapperV3;
 import io.ballerina.asyncapi.core.implementation.v3.tag.TagMapperV3;
 import io.ballerina.asyncapi.core.model.channel.AsyncApiChannel;
@@ -64,7 +64,7 @@ public final class ChannelMapperV3 {
             AsyncApiComponents components,
             Map<String, AsyncApiServer> serversMap) {
         if (channels == null) {
-            return null;
+            return Map.of();
         }
         List<String> channelNames = null;
         if (channels instanceof MappedNode<?> mappedNode) {
@@ -108,40 +108,50 @@ public final class ChannelMapperV3 {
         if (channelNode instanceof AsyncApi30Channel typedChannel) {
             String $ref = typedChannel.get$ref();
             if ($ref != null) {
-                AsyncApi30Channel resolved = resolveChannelRef($ref, components);
+                AsyncApiChannel resolved = resolveChannelRef($ref, components, serversMap);
                 if (resolved == null) {
                     LOG.warn("Could not resolve channel $ref: {}. Skipping channel '{}'.", $ref, name);
                     return null;
                 }
-                if (resolved.get$ref() != null) {
-                    LOG.warn("Resolved channel $ref '{}' points to another $ref. Skipping channel '{}'.",
-                            resolved.get$ref(), name);
-                    return null;
-                }
-                return buildChannel(resolved, components, serversMap);
+                return resolved;
             }
         }
         return buildChannel(channelNode, components, serversMap);
     }
 
     /**
-     * Resolves a {@code $ref} string to an {@link AsyncApi30Channel} from components.
-     * In AsyncAPI 3.0, component channel refs use the format {@code #/components/channels/name}.
+     * Resolves a {@code $ref} string to an {@link AsyncApiChannel} from components.
+     * In AsyncAPI 3.x, component channel refs use the format {@code #/components/channels/name}.
      *
      * @param $ref       the $ref string (e.g., {@code #/components/channels/MyChannel})
      * @param components the AsyncAPI components object
-     * @return the resolved channel, or null if the ref format is unsupported or the channel is not found
+     * @param serversMap the map of server names to AsyncApiServer objects (for server resolution)
+     * @return the resolved channel model, or null if the ref format is unsupported or the channel is not found
      */
-    private static AsyncApi30Channel resolveChannelRef(String $ref, AsyncApiComponents components) {
+    private static AsyncApiChannel resolveChannelRef(
+            String $ref,
+            AsyncApiComponents components,
+            Map<String, AsyncApiServer> serversMap) {
         if (!$ref.startsWith(Constants.CHANNELS_REF_PREFIX)) {
             LOG.warn("Unsupported channel $ref format: {}. Skipping.", $ref);
             return null;
         }
         String name = $ref.substring(Constants.CHANNELS_REF_PREFIX.length());
+        if (components == null) {
+            return null;
+        }
         // Add additional version checks here as new AsyncAPI 3.x versions are supported.
         if (components instanceof AsyncApi30Components typedComponents) {
             Map<String, AsyncApi30Channel> channelsMap = typedComponents.getChannels();
-            return channelsMap != null ? channelsMap.get(name) : null;
+            AsyncApi30Channel channel = channelsMap != null ? channelsMap.get(name) : null;
+            if (channel == null) {
+                return null;
+            }
+            if (channel.get$ref() != null) {
+                LOG.warn("Resolved channel $ref '{}' points to another $ref. Skipping.", channel.get$ref());
+                return null;
+            }
+            return buildChannel(channel, components, serversMap);
         }
         return null;
     }
@@ -178,7 +188,7 @@ public final class ChannelMapperV3 {
                             typedChannel.getParameters()),
                     tags,
                     ExternalDocMapperV3.map(typedChannel.getExternalDocs(), null),
-                    ChannelBindingsMapperV3.map(typedChannel.getBindings()),
+                    ChannelBindingsMapperV3.map(typedChannel.getBindings(), components),
                     typedChannel.getExtensions()
             );
         }

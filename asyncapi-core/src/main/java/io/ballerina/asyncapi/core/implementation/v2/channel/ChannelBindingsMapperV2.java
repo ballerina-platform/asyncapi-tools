@@ -22,11 +22,14 @@ import io.apicurio.datamodels.models.asyncapi.AsyncApiComponents;
 import io.apicurio.datamodels.models.asyncapi.AsyncApiExtensible;
 import io.apicurio.datamodels.models.asyncapi.AsyncApiReferenceable;
 import io.ballerina.asyncapi.core.Constants;
+import io.ballerina.asyncapi.core.implementation.common.HttpChannelBindingMapper;
+import io.ballerina.asyncapi.core.implementation.common.WsChannelBindingMapper;
 import io.ballerina.asyncapi.core.model.channel.AsyncApiChannelBindings;
 import io.ballerina.asyncapi.core.model.channel.HttpChannelBindings;
 import io.ballerina.asyncapi.core.model.channel.WsChannelBindings;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
-import java.io.PrintStream;
 import java.util.Map;
 
 /**
@@ -34,7 +37,7 @@ import java.util.Map;
  */
 public final class ChannelBindingsMapperV2 {
 
-    private static final PrintStream outStream = System.err;
+    private static final Logger LOG = LogManager.getLogger(ChannelBindingsMapperV2.class);
 
     private ChannelBindingsMapperV2() {
     }
@@ -65,8 +68,12 @@ public final class ChannelBindingsMapperV2 {
         }
 
         // Extract protocol-specific bindings
-        HttpChannelBindings http = HttpChannelBindingMapperV2.map(bindings.getHttp());
-        WsChannelBindings ws = WsChannelBindingMapperV2.map(bindings.getWs());
+        HttpChannelBindings http = HttpChannelBindingMapper.map(bindings.getHttp());
+        WsChannelBindings ws = WsChannelBindingMapper.map(bindings.getWs());
+
+        if (http == null && ws == null && extensions == null) {
+            return null;
+        }
 
         return new AsyncApiChannelBindings(http, ws, extensions);
     }
@@ -78,15 +85,15 @@ public final class ChannelBindingsMapperV2 {
         io.apicurio.datamodels.models.asyncapi.AsyncApiChannelBindings resolved =
                 resolveRefFromComponents($ref, components);
         if (resolved == null) {
-            outStream.println("Could not resolve $ref: " + $ref + ". Skipping channelBindings.");
+            LOG.warn("Could not resolve $ref: {}. Skipping channelBindings.", $ref);
             return null;
         }
 
         // Guard against chained $refs
         if (resolved instanceof AsyncApiReferenceable referenceable
                 && referenceable.get$ref() != null) {
-            outStream.println("Resolved $ref points to another $ref: "
-                    + referenceable.get$ref() + ". Skipping channelBindings.");
+            LOG.warn("Resolved $ref points to another $ref: {}. Skipping channelBindings.",
+                    referenceable.get$ref());
             return null;
         }
         return map(resolved, components);
@@ -102,7 +109,7 @@ public final class ChannelBindingsMapperV2 {
     private static io.apicurio.datamodels.models.asyncapi.AsyncApiChannelBindings resolveRefFromComponents(
             String $ref, AsyncApiComponents components) {
         if (!$ref.startsWith(Constants.CHANNEL_BINDINGS_REF_PREFIX)) {
-            outStream.println("Unsupported $ref format: " + $ref + ". Skipping channelBindings.");
+            LOG.warn("Unsupported $ref format: {}. Skipping channelBindings.", $ref);
             return null;
         }
 

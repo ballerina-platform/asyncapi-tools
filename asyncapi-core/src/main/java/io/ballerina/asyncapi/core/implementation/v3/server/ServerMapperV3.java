@@ -62,37 +62,35 @@ public final class ServerMapperV3 {
         return ServerMapper.map(servers, server -> mapOne(server, components));
     }
 
-    /**
-     * Builds an {@link io.ballerina.asyncapi.core.model.server.AsyncApiServer} from an
-     * Apicurio {@link AsyncApi30Server} object.
-     *
-     * @param server     the Apicurio AsyncAPI 3.0 server object
-     * @param components the Apicurio components object (for tag and externalDocs $ref resolution)
-     * @return the mapped AsyncApiServer
-     */
     public static io.ballerina.asyncapi.core.model.server.AsyncApiServer buildServer(
-            AsyncApi30Server server, AsyncApiComponents components) {
-        List<AsyncApiTag> tags = null;
-        if (server.getTags() != null) {
-            tags = server.getTags().stream()
-                    .map(tag -> TagMapperV3.map(tag, components))
-                    .toList();
+            AsyncApiServer server, AsyncApiComponents components) {
+
+        if (server instanceof AsyncApi30Server typedServer) {
+            List<AsyncApiTag> tags = null;
+            if (typedServer.getTags() != null) {
+                tags = typedServer.getTags().stream()
+                        .map(tag -> TagMapperV3.map(tag, components))
+                        .toList();
+            }
+            return new io.ballerina.asyncapi.core.model.server.AsyncApiServer(
+                    typedServer.getHost(),
+                    typedServer.getProtocol(),
+                    typedServer.getProtocolVersion(),
+                    typedServer.getPathname(),
+                    typedServer.getDescription(),
+                    typedServer.getTitle(),
+                    typedServer.getSummary(),
+                    ServerVariableMapperV3.mapVariables(typedServer.getVariables(), components),
+                    SecuritySchemeMapperV3.mapSecurity(typedServer.getSecurity(), components),
+                    tags,
+                    ExternalDocMapperV3.map(typedServer.getExternalDocs(), components),
+                    ServerBindingsMapper.mapBindings(typedServer.getBindings(), components),
+                    typedServer.getExtensions()
+            );
         }
-        return new io.ballerina.asyncapi.core.model.server.AsyncApiServer(
-                server.getHost(),
-                server.getProtocol(),
-                server.getProtocolVersion(),
-                server.getPathname(),
-                server.getDescription(),
-                server.getTitle(),
-                server.getSummary(),
-                ServerVariableMapperV3.mapVariables(server.getVariables(), components),
-                SecuritySchemeMapperV3.mapSecurity(server.getSecurity(), components),
-                tags,
-                ExternalDocMapperV3.map(server.getExternalDocs(), components),
-                ServerBindingsMapper.mapBindings(server.getBindings(), components),
-                server.getExtensions()
-        );
+        // Add additional version checks here as new AsyncAPI 3.x versions are supported.
+        // e.g. if (server instanceof AsyncApi31Server typedServer) { ... }
+        return null;
     }
 
     /**
@@ -161,9 +159,7 @@ public final class ServerMapperV3 {
             return mapOne(resolved, components);
         }
 
-        if (server instanceof AsyncApi30Server typedServer) {
-            return buildServer(typedServer, components);
-        }
-        return null;
+        return buildServer(server, components);
+
     }
 }

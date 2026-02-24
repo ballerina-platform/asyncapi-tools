@@ -24,7 +24,7 @@ import io.apicurio.datamodels.models.asyncapi.v30.AsyncApi30Message;
 import io.apicurio.datamodels.models.asyncapi.v30.AsyncApi30OperationReply;
 import io.apicurio.datamodels.models.asyncapi.v30.AsyncApi30OperationReplyAddress;
 import io.apicurio.datamodels.models.asyncapi.v30.AsyncApi30Reference;
-import io.ballerina.asyncapi.core.implementation.v3.component.MessageMapperV3;
+import io.ballerina.asyncapi.core.implementation.v3.message.MessageMapperV3;
 import io.ballerina.asyncapi.core.model.channel.AsyncApiChannel;
 import io.ballerina.asyncapi.core.model.message.AsyncApiMessage;
 import io.ballerina.asyncapi.core.model.operation.AsyncApiOperationReply;

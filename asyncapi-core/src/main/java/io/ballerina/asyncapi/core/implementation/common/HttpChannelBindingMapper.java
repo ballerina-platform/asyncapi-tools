@@ -15,31 +15,28 @@
  *  specific language governing permissions and limitations
  *  under the License.
  */
-package io.ballerina.asyncapi.core.implementation.v2.channel;
+package io.ballerina.asyncapi.core.implementation.common;
 
+import io.apicurio.datamodels.models.asyncapi.AsyncApiBinding;
 import io.ballerina.asyncapi.core.model.channel.HttpChannelBindings;
 
 /**
- * Maps Apicurio HTTP channel binding to {@link HttpChannelBindings} for AsyncAPI 2.x.
+ * Maps Apicurio HTTP channel bindings to {@link HttpChannelBindings},
+ * version-independently (AsyncAPI 2.x and 3.x).
+ * HTTP channel bindings have no specific fields in AsyncAPI 2.x/3.x.
  */
-final class HttpChannelBindingMapperV2 {
+public final class HttpChannelBindingMapper {
 
-    private HttpChannelBindingMapperV2() {
+    private HttpChannelBindingMapper() {
     }
 
     /**
      * Maps an Apicurio HTTP channel binding to {@link HttpChannelBindings}.
      *
-     * <p>Note: HTTP channel bindings in AsyncAPI 2.x don't define specific fields.
-     * This mapper returns an empty binding object if the binding exists.</p>
-     *
      * @param binding the Apicurio HTTP binding object
-     * @return the mapped HttpChannelBindings, or null if binding is null
+     * @return a new {@link HttpChannelBindings} if the binding is non-null, otherwise null
      */
-    static HttpChannelBindings map(io.apicurio.datamodels.models.asyncapi.AsyncApiBinding binding) {
-        if (binding == null) {
-            return null;
-        }
-        return new HttpChannelBindings();
+    public static HttpChannelBindings map(AsyncApiBinding binding) {
+        return binding != null ? new HttpChannelBindings() : null;
     }
 }

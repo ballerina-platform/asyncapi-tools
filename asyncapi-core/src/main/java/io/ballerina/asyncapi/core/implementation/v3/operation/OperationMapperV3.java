@@ -17,15 +17,17 @@
  */
 package io.ballerina.asyncapi.core.implementation.v3.operation;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import io.apicurio.datamodels.models.MappedNode;
+import io.apicurio.datamodels.models.asyncapi.AsyncApiComponents;
+import io.apicurio.datamodels.models.asyncapi.AsyncApiChannels;
+import io.apicurio.datamodels.models.asyncapi.AsyncApiDocument;
 import io.apicurio.datamodels.models.asyncapi.AsyncApiExternalDocumentation;
-import io.apicurio.datamodels.models.asyncapi.AsyncApiExtensible;
 import io.apicurio.datamodels.models.asyncapi.AsyncApiMessage;
-import io.apicurio.datamodels.models.asyncapi.AsyncApiOperationBindings;
 import io.apicurio.datamodels.models.asyncapi.AsyncApiReferenceable;
 import io.apicurio.datamodels.models.asyncapi.v30.AsyncApi30Channel;
 import io.apicurio.datamodels.models.asyncapi.v30.AsyncApi30Channels;
 import io.apicurio.datamodels.models.asyncapi.v30.AsyncApi30Components;
+import io.apicurio.datamodels.models.asyncapi.v30.AsyncApi30Document;
 import io.apicurio.datamodels.models.asyncapi.v30.AsyncApi30Message;
 import io.apicurio.datamodels.models.asyncapi.v30.AsyncApi30Operation;
 import io.apicurio.datamodels.models.asyncapi.v30.AsyncApi30OperationReply;
@@ -33,7 +35,7 @@ import io.apicurio.datamodels.models.asyncapi.v30.AsyncApi30OperationReplyAddres
 import io.apicurio.datamodels.models.asyncapi.v30.AsyncApi30Operations;
 import io.apicurio.datamodels.models.asyncapi.v30.AsyncApi30Reference;
 import io.ballerina.asyncapi.core.Constants;
-import io.ballerina.asyncapi.core.implementation.v3.component.MessageMapperV3;
+import io.ballerina.asyncapi.core.implementation.v3.message.MessageMapperV3;
 import io.ballerina.asyncapi.core.implementation.v3.doc.ExternalDocMapperV3;
 import io.ballerina.asyncapi.core.implementation.v3.server.SecuritySchemeMapperV3;
 import io.ballerina.asyncapi.core.implementation.v3.tag.TagMapperV3;
@@ -42,11 +44,10 @@ import io.ballerina.asyncapi.core.model.operation.AsyncApiOperation;
 import io.ballerina.asyncapi.core.model.operation.AsyncApiOperationReply;
 import io.ballerina.asyncapi.core.model.operation.AsyncApiOperationReplyAddress;
 import io.ballerina.asyncapi.core.model.operation.AsyncApiOperationTrait;
-import io.ballerina.asyncapi.core.model.operation.HttpOperationBindings;
-import io.ballerina.asyncapi.core.model.operation.WsOperationBindings;
 import io.ballerina.asyncapi.core.model.tag.AsyncApiTag;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
-import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -58,10 +59,42 @@ import java.util.Map;
  */
 public final class OperationMapperV3 {
 
-    private static final PrintStream outStream = System.err;
+    private static final Logger LOG = LogManager.getLogger(OperationMapperV3.class);
 
     private OperationMapperV3() {
 
+    }
+
+    /**
+     * Maps an {@link AsyncApiDocument} to a map of operation IDs to
+     * {@link AsyncApiOperation}, dispatching based on the concrete document type.
+     * <p>
+     * This is the main entry point for AsyncAPI v3 operation mapping, and is
+     * designed to be easily extensible for future document versions
+     * (e.g., AsyncApi31Document).
+     *
+     * @param document    the AsyncAPI document
+     * @param channelsMap the map of channel names to resolved AsyncApiChannel objects
+     * @return the mapped operations map, or an empty map if the document or its
+     * operations are null or unsupported
+     */
+    public static Map<String, AsyncApiOperation> map(
+            AsyncApiDocument document,
+            Map<String, AsyncApiChannel> channelsMap) {
+
+        if (document == null) {
+            return Map.of();
+        }
+
+        return switch (document) {
+            case AsyncApi30Document v3Doc -> {
+                AsyncApi30Operations operations = v3Doc.getOperations();
+                AsyncApiChannels rawChannels = v3Doc.getChannels();
+                AsyncApiComponents components = v3Doc.getComponents();
+                yield map(operations, rawChannels, channelsMap, components);
+            }
+            default -> Map.of();
+        };
     }
 
     /**
@@ -75,10 +108,10 @@ public final class OperationMapperV3 {
      * @return the mapped operations map, or an empty map if operations is null
      */
     public static Map<String, AsyncApiOperation> map(
-            AsyncApi30Operations operations,
-            AsyncApi30Channels rawChannels,
+            MappedNode<?> operations,
+            AsyncApiChannels rawChannels,
             Map<String, AsyncApiChannel> channelsMap,
-            AsyncApi30Components components) {
+            AsyncApiComponents components) {
         if (operations == null) {
             return Map.of();
         }
@@ -87,27 +120,52 @@ public final class OperationMapperV3 {
             return Map.of();
         }
         Map<String, AsyncApiOperation> result = new LinkedHashMap<>();
+
         for (String operationId : operationIds) {
-            AsyncApi30Operation operation =
-                    operations.getItem(operationId);
-            if (operation != null) {
-                result.put(operationId, buildOperation(operation, rawChannels, channelsMap, components));
+            Object item = operations.getItem(operationId);
+            if (item instanceof AsyncApi30Operation op && rawChannels instanceof AsyncApi30Channels typedChannels) {
+                AsyncApiOperation mapped = buildOperation(op, typedChannels, channelsMap, (AsyncApi30Components) components);
+                if (mapped != null) {
+                    result.put(operationId, mapped);
+                }
             }
+            // Add additional version branches here as new AsyncAPI 3.x versions are supported
         }
         return result;
     }
 
     /**
-     * Builds an {@link AsyncApiOperation} from an Apicurio
-     * {@link AsyncApi30Operation} object.
+     * Builds an {@link AsyncApiOperation} from an Apicurio operation object.
+     * Dispatches by concrete type (AsyncApi30Operation, future AsyncApi31Operation, etc.).
      *
-     * @param operation the Apicurio AsyncAPI 3.0 operation object
-     * @param rawChannels the raw AsyncAPI 3.0 channels object (for message $ref resolution)
+     * @param operation  the Apicurio operation object
+     * @param rawChannels the raw AsyncAPI 3.x channels object (for message $ref resolution)
      * @param channelsMap the map of channel names to resolved AsyncApiChannel objects
-     * @param components the AsyncAPI components (for $ref resolution)
-     * @return the mapped AsyncApiOperation
+     * @param components  the AsyncAPI components (for $ref resolution)
+     * @return the mapped AsyncApiOperation, or null if operation type is not supported
      */
     public static AsyncApiOperation buildOperation(
+            io.apicurio.datamodels.models.asyncapi.AsyncApiOperation operation,
+            AsyncApiChannels rawChannels,
+            Map<String, AsyncApiChannel> channelsMap,
+            AsyncApi30Components components) {
+        if (operation instanceof AsyncApi30Operation typed) {
+            return buildOperationFrom30(typed, (AsyncApi30Channels) rawChannels, channelsMap, components);
+        }
+        // Add additional version branches here as new AsyncAPI 3.x versions are supported
+        return null;
+    }
+
+    /**
+     * Builds an {@link AsyncApiOperation} from an Apicurio {@link AsyncApi30Operation}.
+     *
+     * @param operation   the Apicurio AsyncAPI 3.0 operation object
+     * @param rawChannels the raw AsyncAPI 3.0 channels object (for message $ref resolution)
+     * @param channelsMap the map of channel names to resolved AsyncApiChannel objects
+     * @param components  the AsyncAPI components (for $ref resolution)
+     * @return the mapped AsyncApiOperation
+     */
+    private static AsyncApiOperation buildOperationFrom30(
             AsyncApi30Operation operation,
             AsyncApi30Channels rawChannels,
             Map<String, AsyncApiChannel> channelsMap,
@@ -118,8 +176,7 @@ public final class OperationMapperV3 {
                     .map(tag -> TagMapperV3.map(tag, null))
                     .toList();
         }
-        AsyncApiOperation.Action action =
-                mapAction(operation.getAction());
+        AsyncApiOperation.Action action = mapAction(operation.getAction());
         return new AsyncApiOperation(
                 action,
                 extractChannel(operation, channelsMap),
@@ -131,7 +188,7 @@ public final class OperationMapperV3 {
                 OperationReplyMapperV3.mapReply(operation.getReply(), rawChannels, channelsMap, components),
                 tags,
                 ExternalDocMapperV3.map((AsyncApiExternalDocumentation) operation.getExternalDocs(), null),
-                mapBindings(operation.getBindings()),
+                OperationBindingsMapperV3.map(operation.getBindings()),
                 OperationTraitMapperV3.mapTraits(operation.getTraits(), components),
                 operation.getExtensions()
         );
@@ -180,34 +237,6 @@ public final class OperationMapperV3 {
     }
 
     /**
-     * Maps Apicurio {@link AsyncApiOperationBindings} to
-     * {@link io.ballerina.asyncapi.core.model.operation.AsyncApiOperationBindings}.
-     *
-     * @param bindings the Apicurio operation bindings object
-     * @return the mapped AsyncApiOperationBindings, or null if bindings
-     *         is null or empty
-     */
-    public static io.ballerina.asyncapi.core.model.operation
-            .AsyncApiOperationBindings mapBindings(
-            AsyncApiOperationBindings bindings) {
-        if (bindings == null) {
-            return null;
-        }
-        HttpOperationBindings http = HttpOperationBindingMapperV3.map(bindings.getHttp());
-        WsOperationBindings ws = bindings.getWs() != null
-                ? new WsOperationBindings() : null;
-        Map<String, JsonNode> extensions = null;
-        if (bindings instanceof AsyncApiExtensible extensible) {
-            extensions = extensible.getExtensions();
-        }
-        if (http == null && ws == null && extensions == null) {
-            return null;
-        }
-        return new io.ballerina.asyncapi.core.model.operation
-                .AsyncApiOperationBindings(http, ws, extensions);
-    }
-
-    /**
      * Maps action string to {@link AsyncApiOperation.Action} enum.
      *
      * @param action the action string (send or receive)
@@ -246,7 +275,7 @@ public final class OperationMapperV3 {
 
         String $ref = channelRef.get$ref();
         if ($ref == null) {
-            outStream.println("Operation channel reference has no $ref. Skipping.");
+            LOG.warn("Operation channel reference has no $ref. Skipping.");
             return null;
         }
 
@@ -265,8 +294,8 @@ public final class OperationMapperV3 {
             Map<String, AsyncApiChannel> channelsMap) {
 
         if (!$ref.startsWith(Constants.V3_CHANNELS_REF_PREFIX)) {
-            outStream.println("Unsupported channel $ref format: " + $ref + ". Expected " +
-                    Constants.V3_CHANNELS_REF_PREFIX);
+            LOG.warn("Unsupported channel $ref format: {}. Expected {}",
+                    $ref, Constants.V3_CHANNELS_REF_PREFIX);
             return null;
         }
 
@@ -277,8 +306,7 @@ public final class OperationMapperV3 {
 
         AsyncApiChannel channel = channelsMap.get(channelName);
         if (channel == null) {
-            outStream.println("Channel reference '" + channelName +
-                    "' not found in channels map. Skipping.");
+            LOG.warn("Channel reference '{}' not found in channels map. Skipping.", channelName);
         }
         return channel;
     }
@@ -313,21 +341,21 @@ public final class OperationMapperV3 {
 
             String $ref = messageRef.get$ref();
             if ($ref == null) {
-                outStream.println("Operation message reference has no $ref. Skipping.");
+                LOG.warn("Operation message reference has no $ref. Skipping.");
                 continue;
             }
 
             AsyncApi30Message resolved = resolveMessageRef($ref, rawChannels, components);
             if (resolved == null) {
-                outStream.println("Could not resolve message $ref: " + $ref + ". Skipping.");
+                LOG.warn("Could not resolve message $ref: {}. Skipping.", $ref);
                 continue;
             }
 
             // Guard against chained $refs
             if (resolved instanceof AsyncApiReferenceable resolvedRef
                     && resolvedRef.get$ref() != null) {
-                outStream.println("Resolved message $ref points to another $ref: " +
-                        resolvedRef.get$ref() + ". Skipping.");
+                LOG.warn("Resolved message $ref points to another $ref: {}. Skipping.",
+                        resolvedRef.get$ref());
                 continue;
             }
 
@@ -374,7 +402,7 @@ public final class OperationMapperV3 {
             String[] parts = remaining.split("/messages/", 2);
 
             if (parts.length != 2) {
-                outStream.println("Invalid channel message $ref format: " + $ref);
+                LOG.warn("Invalid channel message $ref format: {}", $ref);
                 return null;
             }
 
@@ -387,7 +415,7 @@ public final class OperationMapperV3 {
 
             AsyncApi30Channel channel = rawChannels.getItem(channelName);
             if (channel == null) {
-                outStream.println("Channel '" + channelName + "' not found for message $ref: " + $ref);
+                LOG.warn("Channel '{}' not found for message $ref: {}", channelName, $ref);
                 return null;
             }
 
@@ -398,13 +426,12 @@ public final class OperationMapperV3 {
 
             AsyncApi30Message message = channelMessages.get(messageName);
             if (message == null) {
-                outStream.println("Message '" + messageName + "' not found in channel '" +
-                        channelName + "'");
+                LOG.warn("Message '{}' not found in channel '{}'", messageName, channelName);
             }
             return message;
         }
 
-        outStream.println("Unsupported message $ref format: " + $ref);
+        LOG.warn("Unsupported message $ref format: {}", $ref);
         return null;
     }
 }

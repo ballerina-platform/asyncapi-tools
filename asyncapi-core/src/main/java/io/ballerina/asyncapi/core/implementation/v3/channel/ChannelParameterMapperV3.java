@@ -18,8 +18,8 @@
 package io.ballerina.asyncapi.core.implementation.v3.channel;
 
 import io.apicurio.datamodels.models.asyncapi.AsyncApiParameter;
+import io.apicurio.datamodels.models.asyncapi.AsyncApiParameters;
 import io.apicurio.datamodels.models.asyncapi.v30.AsyncApi30Parameter;
-import io.apicurio.datamodels.models.asyncapi.v30.AsyncApi30Parameters;
 import io.ballerina.asyncapi.core.model.channel.AsyncApiChannelParameter;
 
 import java.util.LinkedHashMap;
@@ -37,14 +37,14 @@ public final class ChannelParameterMapperV3 {
     }
 
     /**
-     * Maps Apicurio {@link AsyncApi30Parameters} to a map of parameter names to
+     * Maps Apicurio {@link AsyncApiParameters} to a map of parameter names to
      * {@link AsyncApiChannelParameter}.
      *
      * @param parameters the Apicurio parameters object
      * @return the mapped parameters map, or null if parameters is null or empty
      */
     public static Map<String, AsyncApiChannelParameter> mapParameters(
-            AsyncApi30Parameters parameters) {
+            AsyncApiParameters parameters) {
         if (parameters == null) {
             return null;
         }
@@ -55,49 +55,31 @@ public final class ChannelParameterMapperV3 {
         Map<String, AsyncApiChannelParameter> result = new LinkedHashMap<>();
         for (String name : names) {
             AsyncApiParameter param = parameters.getItem(name);
-            if (param instanceof AsyncApi30Parameter typedParam) {
-                result.put(name, mapParameter(typedParam));
+            AsyncApiChannelParameter mapped = mapParameter(param);
+            if (mapped != null) {
+                result.put(name, mapped);
             }
         }
         return result.isEmpty() ? null : result;
     }
 
     /**
-     * Maps a map of Apicurio {@link io.apicurio.datamodels.models.Parameter} to a map of
-     * {@link AsyncApiChannelParameter}.
-     *
-     * @param parametersMap the Apicurio parameters map
-     * @return the mapped parameters map, or null if parametersMap is null or empty
-     */
-    public static Map<String, AsyncApiChannelParameter> mapParameters(
-            Map<String, io.apicurio.datamodels.models.Parameter> parametersMap) {
-        if (parametersMap == null || parametersMap.isEmpty()) {
-            return null;
-        }
-        Map<String, AsyncApiChannelParameter> result = new LinkedHashMap<>();
-        for (Map.Entry<String, io.apicurio.datamodels.models.Parameter> entry
-                : parametersMap.entrySet()) {
-            if (entry.getValue() instanceof AsyncApi30Parameter typedParam) {
-                result.put(entry.getKey(), mapParameter(typedParam));
-            }
-        }
-        return result.isEmpty() ? null : result;
-    }
-
-    /**
-     * Maps a single Apicurio {@link AsyncApi30Parameter} to {@link AsyncApiChannelParameter}.
+     * Maps a single Apicurio {@link AsyncApiParameter} to {@link AsyncApiChannelParameter}.
      *
      * @param param the Apicurio parameter object
      * @return the mapped AsyncApiChannelParameter
      */
-    private static AsyncApiChannelParameter mapParameter(AsyncApi30Parameter param) {
-        return new AsyncApiChannelParameter(
-                param.getDescription(),
-                param.getDefault(),
-                param.getEnum(),
-                param.getExamples(),
-                param.getLocation(),
-                param.getExtensions()
-        );
+    public static AsyncApiChannelParameter mapParameter(AsyncApiParameter param) {
+        return switch (param) {
+            case AsyncApi30Parameter typed -> new AsyncApiChannelParameter(
+                    typed.getDescription(),
+                    typed.getDefault(),
+                    typed.getEnum(),
+                    typed.getExamples(),
+                    typed.getLocation(),
+                    typed.getExtensions()
+            );
+            default -> null;
+        };
     }
 }

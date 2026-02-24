@@ -15,17 +15,11 @@
  *  specific language governing permissions and limitations
  *  under the License.
  */
-package io.ballerina.asyncapi.core.implementation.v3.component;
+package io.ballerina.asyncapi.core.implementation.v3.message;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import io.apicurio.datamodels.models.Tag;
-import io.apicurio.datamodels.models.asyncapi.AsyncApiComponents;
-import io.apicurio.datamodels.models.asyncapi.AsyncApiCorrelationID;
-import io.apicurio.datamodels.models.asyncapi.AsyncApiExtensible;
-import io.apicurio.datamodels.models.asyncapi.AsyncApiMessage;
-import io.apicurio.datamodels.models.asyncapi.AsyncApiMessageBindings;
-import io.apicurio.datamodels.models.asyncapi.AsyncApiMessageTrait;
-import io.apicurio.datamodels.models.asyncapi.AsyncApiReferenceable;
+import io.apicurio.datamodels.models.asyncapi.*;
 import io.apicurio.datamodels.models.asyncapi.v30.AsyncApi30Channel;
 import io.apicurio.datamodels.models.asyncapi.v30.AsyncApi30CorrelationID;
 import io.apicurio.datamodels.models.asyncapi.v30.AsyncApi30Message;
@@ -34,6 +28,7 @@ import io.apicurio.datamodels.models.asyncapi.v30.AsyncApi30MessageTrait;
 import io.ballerina.asyncapi.core.Constants;
 import io.ballerina.asyncapi.core.implementation.v3.doc.ExternalDocMapperV3;
 import io.ballerina.asyncapi.core.implementation.v3.tag.TagMapperV3;
+import io.ballerina.asyncapi.core.model.component.AsyncApiSchema;
 import io.ballerina.asyncapi.core.model.message.AsyncApiCorrelationId;
 import io.ballerina.asyncapi.core.model.message.AsyncApiMessageExample;
 import io.ballerina.asyncapi.core.model.message.HttpMessageBindings;
@@ -259,7 +254,7 @@ public final class MessageMapperV3 {
      * @param bindings the Apicurio message bindings object
      * @return the mapped AsyncApiMessageBindings, or null if empty
      */
-    static io.ballerina.asyncapi.core.model.message.AsyncApiMessageBindings
+    public static io.ballerina.asyncapi.core.model.message.AsyncApiMessageBindings
             mapBindings(AsyncApiMessageBindings bindings) {
         if (bindings == null) {
             return null;
@@ -285,7 +280,7 @@ public final class MessageMapperV3 {
      * @param correlationId the Apicurio correlation ID object
      * @return the mapped AsyncApiCorrelationId, or null if input is null
      */
-    static AsyncApiCorrelationId mapCorrelationId(
+    public static AsyncApiCorrelationId mapCorrelationId(
             AsyncApiCorrelationID correlationId) {
         if (correlationId == null) {
             return null;
@@ -325,5 +320,62 @@ public final class MessageMapperV3 {
                 example.getSummary(),
                 example.getExtensions()
         );
+    }
+
+    /**
+     * Maps Apicurio AsyncAPI 3.0 HTTP message bindings to {@link HttpMessageBindings}.
+     */
+    static final class HttpMessageBindingMapperV3 {
+
+        private HttpMessageBindingMapperV3() {
+        }
+
+        /**
+         * Maps an Apicurio AsyncAPI binding to an HttpMessageBindings domain model.
+         *
+         * @param binding the Apicurio binding object (from AsyncApi30MessageBindings.getHttp())
+         * @return the mapped HttpMessageBindings, or null if binding is null
+         */
+        static HttpMessageBindings map(AsyncApiBinding binding) {
+            if (binding == null) {
+                return null;
+            }
+
+            Object headers = binding.getItem("headers");  // Schema Object - store as raw Object
+            Integer statusCode = getBindingItemAsInteger(binding, "statusCode");
+            String bindingVersion = getBindingItemAsText(binding, "bindingVersion");
+
+            return new HttpMessageBindings((AsyncApiSchema) headers, statusCode, bindingVersion);
+        }
+
+        /**
+         * Extracts a binding field as text.
+         *
+         * @param binding the Apicurio binding object
+         * @param key the field name
+         * @return the field value as String, or null if not present or not textual
+         */
+        private static String getBindingItemAsText(AsyncApiBinding binding, String key) {
+            JsonNode node = binding.getItem(key);
+            if (node == null) {
+                return null;
+            }
+            return node.isTextual() ? node.asText() : node.toString();
+        }
+
+        /**
+         * Extracts a binding field as integer.
+         *
+         * @param binding the Apicurio binding object
+         * @param key the field name
+         * @return the field value as Integer, or null if not present or not numeric
+         */
+        private static Integer getBindingItemAsInteger(AsyncApiBinding binding, String key) {
+            JsonNode node = binding.getItem(key);
+            if (node == null) {
+                return null;
+            }
+            return node.isNumber() ? node.asInt() : null;
+        }
     }
 }

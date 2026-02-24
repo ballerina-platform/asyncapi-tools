@@ -17,15 +17,28 @@
  */
 package io.ballerina.asyncapi.core.implementation.v3.channel;
 
-import io.apicurio.datamodels.models.asyncapi.AsyncApiChannelBindings;
+import com.fasterxml.jackson.databind.JsonNode;
+import io.apicurio.datamodels.models.asyncapi.AsyncApiComponents;
+import io.apicurio.datamodels.models.asyncapi.AsyncApiExtensible;
+import io.apicurio.datamodels.models.asyncapi.AsyncApiReferenceable;
+import io.ballerina.asyncapi.core.Constants;
+import io.ballerina.asyncapi.core.implementation.common.HttpChannelBindingMapper;
+import io.ballerina.asyncapi.core.implementation.common.WsChannelBindingMapper;
+import io.ballerina.asyncapi.core.model.channel.AsyncApiChannelBindings;
 import io.ballerina.asyncapi.core.model.channel.HttpChannelBindings;
 import io.ballerina.asyncapi.core.model.channel.WsChannelBindings;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
+import java.util.Map;
 
 /**
  * Maps Apicurio channel bindings to
  * {@link io.ballerina.asyncapi.core.model.channel.AsyncApiChannelBindings} for AsyncAPI 3.0.
  */
 public final class ChannelBindingsMapperV3 {
+
+    private static final Logger LOG = LogManager.getLogger(ChannelBindingsMapperV3.class);
 
     private ChannelBindingsMapperV3() {
     }
@@ -34,19 +47,79 @@ public final class ChannelBindingsMapperV3 {
      * Maps Apicurio {@link AsyncApiChannelBindings} to the model
      * {@link io.ballerina.asyncapi.core.model.channel.AsyncApiChannelBindings}.
      *
-     * @param bindings the Apicurio channel bindings object
+     * @param bindings   the Apicurio channel bindings object
+     * @param components the AsyncAPI components (for $ref resolution)
      * @return the mapped AsyncApiChannelBindings, or null if bindings is null or empty
      */
-    public static io.ballerina.asyncapi.core.model.channel.AsyncApiChannelBindings
-            map(AsyncApiChannelBindings bindings) {
+    public static AsyncApiChannelBindings map(
+            io.apicurio.datamodels.models.asyncapi.AsyncApiChannelBindings bindings,
+            AsyncApiComponents components) {
         if (bindings == null) {
             return null;
         }
-        HttpChannelBindings http = HttpChannelBindingMapperV3.map(bindings.getHttp());
-        WsChannelBindings ws = WsChannelBindingMapperV3.map(bindings.getWs());
-        if (http == null && ws == null) {
+
+        if (bindings instanceof AsyncApiReferenceable referenceable) {
+            String $ref = referenceable.get$ref();
+            if ($ref != null) {
+                return resolveAndMap($ref, components);
+            }
+        }
+
+        Map<String, JsonNode> extensions = null;
+        if (bindings instanceof AsyncApiExtensible extensible) {
+            extensions = extensible.getExtensions();
+        }
+
+        HttpChannelBindings http = HttpChannelBindingMapper.map(bindings.getHttp());
+        WsChannelBindings ws = WsChannelBindingMapper.map(bindings.getWs());
+
+        if (http == null && ws == null && extensions == null) {
             return null;
         }
-        return new io.ballerina.asyncapi.core.model.channel.AsyncApiChannelBindings(http, ws, null);
+        return new AsyncApiChannelBindings(http, ws, extensions);
+    }
+
+    private static AsyncApiChannelBindings resolveAndMap(
+            String $ref,
+            AsyncApiComponents components) {
+
+        io.apicurio.datamodels.models.asyncapi.AsyncApiChannelBindings resolved = resolveRefFromComponents($ref, components);
+        if (resolved == null) {
+            LOG.warn("Could not resolve $ref: {}. Skipping channelBindings.", $ref);
+            return null;
+        }
+
+        // Guard against chained $refs
+        if (resolved instanceof AsyncApiReferenceable referenceable
+                && referenceable.get$ref() != null) {
+            LOG.warn("Resolved $ref points to another $ref: {}. Skipping channelBindings.", referenceable.get$ref());
+            return null;
+        }
+        return map(resolved, components);
+    }
+
+    /**
+     * Resolves a $ref to a channel binding in components.
+     *
+     * @param $ref       the $ref string (e.g., "#/components/channelBindings/MyBinding")
+     * @param components the AsyncAPI components object
+     * @return the resolved channel bindings, or null if not found or invalid
+     */
+    private static io.apicurio.datamodels.models.asyncapi.AsyncApiChannelBindings resolveRefFromComponents(
+            String $ref,
+            AsyncApiComponents components) {
+        if (!$ref.startsWith(Constants.CHANNEL_BINDINGS_REF_PREFIX)) {
+            LOG.warn("Unsupported $ref format: {}. Skipping channelBindings.", $ref);
+            return null;
+        }
+
+        String name = $ref.substring(Constants.CHANNEL_BINDINGS_REF_PREFIX.length());
+
+        if (components == null) {
+            return null;
+        }
+
+        Map<String, io.apicurio.datamodels.models.asyncapi.AsyncApiChannelBindings> bindingsMap = components.getChannelBindings();
+        return bindingsMap != null ? bindingsMap.get(name) : null;
     }
 }

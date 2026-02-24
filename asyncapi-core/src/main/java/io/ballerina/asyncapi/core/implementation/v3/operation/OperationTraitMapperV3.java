@@ -88,7 +88,7 @@ final class OperationTraitMapperV3 {
                 security,
                 tags,
                 ExternalDocMapperV3.map(trait.getExternalDocs(), null),
-                OperationMapperV3.mapBindings(trait.getBindings()),
+                OperationBindingsMapperV3.map(trait.getBindings()),
                 extensions
         );
     }
