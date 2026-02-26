@@ -18,7 +18,6 @@
 package io.ballerina.asyncapi.core.implementation.v3.component;
 
 import io.apicurio.datamodels.models.asyncapi.v30.AsyncApi30Parameter;
-import io.ballerina.asyncapi.core.implementation.v3.channel.ChannelParameterMapperV3;
 import io.ballerina.asyncapi.core.model.channel.AsyncApiChannelParameter;
 
 import java.util.LinkedHashMap;
@@ -46,10 +45,16 @@ public final class ComponentParameterMapperV3 {
             return null;
         }
         Map<String, AsyncApiChannelParameter> result = new LinkedHashMap<>();
-        for (Map.Entry<String, io.apicurio.datamodels.models.Parameter> entry
-                : parametersMap.entrySet()) {
+        for (Map.Entry<String, io.apicurio.datamodels.models.Parameter> entry : parametersMap.entrySet()) {
             if (entry.getValue() instanceof AsyncApi30Parameter typedParam) {
-                result.put(entry.getKey(), ChannelParameterMapperV3.mapParameter(typedParam));
+                result.put(entry.getKey(), new AsyncApiChannelParameter(
+                        typedParam.getDescription(),
+                        typedParam.getDefault(),
+                        typedParam.getEnum(),
+                        typedParam.getExamples(),
+                        typedParam.getLocation(),
+                        typedParam.getExtensions()
+                ));
             }
         }
         return result.isEmpty() ? null : result;

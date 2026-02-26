@@ -44,8 +44,7 @@ final class ComponentSchemaMapperV3 {
      * @param components the AsyncAPI 3.0 components object
      * @return a map of schema names to mapped schema objects, or null if empty
      */
-    static Map<String, io.ballerina.asyncapi.core.model.component.AsyncApiSchema>
-    map(AsyncApi30Components components) {
+    static Map<String, io.ballerina.asyncapi.core.model.component.AsyncApiSchema> map(AsyncApi30Components components) {
         if (components == null) {
             return null;
         }
@@ -55,13 +54,11 @@ final class ComponentSchemaMapperV3 {
             return null;
         }
 
-        Map<String, io.ballerina.asyncapi.core.model.component.AsyncApiSchema> result =
-                new LinkedHashMap<>();
+        Map<String, io.ballerina.asyncapi.core.model.component.AsyncApiSchema> result = new LinkedHashMap<>();
         rawSchemas.forEach((key, schemaUnion) -> {
             if (schemaUnion != null && schemaUnion.isSchema()
                     && schemaUnion.asSchema() instanceof AsyncApiSchema typedSchema) {
-                io.ballerina.asyncapi.core.model.component.AsyncApiSchema mapped =
-                        SchemaMapper.map(typedSchema);
+                io.ballerina.asyncapi.core.model.component.AsyncApiSchema mapped = SchemaMapper.map(typedSchema);
                 if (mapped != null) {
                     result.put(key, mapped);
                 }

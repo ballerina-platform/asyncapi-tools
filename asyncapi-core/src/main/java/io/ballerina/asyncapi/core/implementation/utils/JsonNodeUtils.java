@@ -57,8 +57,6 @@ public final class JsonNodeUtils {
         if (nodes == null || nodes.isEmpty()) {
             return null;
         }
-        return nodes.stream()
-                .map(JsonNodeUtils::jsonNodeToString)
-                .collect(Collectors.toList());
+        return nodes.stream().map(JsonNodeUtils::jsonNodeToString).collect(Collectors.toList());
     }
 }

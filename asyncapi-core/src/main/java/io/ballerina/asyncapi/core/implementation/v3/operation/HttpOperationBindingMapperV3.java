@@ -17,11 +17,11 @@
  */
 package io.ballerina.asyncapi.core.implementation.v3.operation;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import io.apicurio.datamodels.models.asyncapi.AsyncApiBinding;
+import io.ballerina.asyncapi.core.implementation.utils.BindingUtils;
+import io.ballerina.asyncapi.core.model.component.AsyncApiSchema;
 import io.ballerina.asyncapi.core.model.operation.HttpOperationBindings;
 import io.ballerina.asyncapi.core.model.operation.HttpOperationBindings.HttpMethod;
-import io.ballerina.asyncapi.core.model.component.AsyncApiSchema;
 
 /**
  * Maps Apicurio AsyncAPI 3.0 HTTP operation bindings to {@link HttpOperationBindings}.
@@ -42,26 +42,11 @@ final class HttpOperationBindingMapperV3 {
             return null;
         }
 
-        HttpMethod method = parseHttpMethod(getBindingItemAsText(binding, "method"));
+        HttpMethod method = parseHttpMethod(BindingUtils.getItemAsText(binding, "method"));
         Object query = binding.getItem("query");  // Schema Object - store as raw Object
-        String bindingVersion = getBindingItemAsText(binding, "bindingVersion");
+        String bindingVersion = BindingUtils.getItemAsText(binding, "bindingVersion");
 
         return new HttpOperationBindings(method, (AsyncApiSchema) query, bindingVersion);
-    }
-
-    /**
-     * Extracts a binding field as text.
-     *
-     * @param binding the Apicurio binding object
-     * @param key the field name
-     * @return the field value as String, or null if not present or not textual
-     */
-    private static String getBindingItemAsText(AsyncApiBinding binding, String key) {
-        JsonNode node = binding.getItem(key);
-        if (node == null) {
-            return null;
-        }
-        return node.isTextual() ? node.asText() : node.toString();
     }
 
     /**

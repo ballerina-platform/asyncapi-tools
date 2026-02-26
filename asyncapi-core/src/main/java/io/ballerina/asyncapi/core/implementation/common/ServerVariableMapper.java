@@ -47,8 +47,7 @@ public final class ServerVariableMapper {
             extensions = extensible.getExtensions();
         }
         List<String> examples = null;
-        if (variable instanceof
-                io.apicurio.datamodels.models.asyncapi.AsyncApiServerVariable asyncVar) {
+        if (variable instanceof io.apicurio.datamodels.models.asyncapi.AsyncApiServerVariable asyncVar) {
             examples = asyncVar.getExamples();
         }
         return new AsyncApiServerVariable(

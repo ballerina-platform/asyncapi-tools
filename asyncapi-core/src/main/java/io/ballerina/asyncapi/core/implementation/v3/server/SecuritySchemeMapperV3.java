@@ -59,22 +59,19 @@ public final class SecuritySchemeMapperV3 {
      *                   (may be null)
      * @return the mapped AsyncApiSecurityScheme, or null for unresolvable refs
      */
-    public static AsyncApiSecurityScheme map(
-            io.apicurio.datamodels.models.asyncapi.AsyncApiSecurityScheme scheme,
+    public static AsyncApiSecurityScheme map(io.apicurio.datamodels.models.asyncapi.AsyncApiSecurityScheme scheme,
             AsyncApiComponents components) {
         String $ref = null;
         if (scheme instanceof AsyncApiReferenceable referenceable) {
             $ref = referenceable.get$ref();
         }
         if ($ref != null) {
-            io.apicurio.datamodels.models.asyncapi.AsyncApiSecurityScheme resolved =
-                    resolveRef($ref, components);
+            io.apicurio.datamodels.models.asyncapi.AsyncApiSecurityScheme resolved = resolveRef($ref, components);
             if (resolved == null) {
                 LOG.warn("Could not resolve $ref: {}. Skipping security scheme.", $ref);
                 return null;
             }
-            if (resolved instanceof AsyncApiReferenceable resolvedTyped
-                    && resolvedTyped.get$ref() != null) {
+            if (resolved instanceof AsyncApiReferenceable resolvedTyped && resolvedTyped.get$ref() != null) {
                 LOG.warn("Resolved $ref points to another $ref: {}. Skipping security scheme.",
                         resolvedTyped.get$ref());
                 return null;
@@ -146,8 +143,8 @@ public final class SecuritySchemeMapperV3 {
      * @param components the Apicurio components object
      * @return the resolved security scheme, or null if not found
      */
-    private static io.apicurio.datamodels.models.asyncapi.AsyncApiSecurityScheme resolveRef(
-            String $ref, AsyncApiComponents components) {
+    private static io.apicurio.datamodels.models.asyncapi.AsyncApiSecurityScheme resolveRef(String $ref,
+                                                                                            AsyncApiComponents components) {
         if (!$ref.startsWith(Constants.SECURITY_SCHEMES_REF_PREFIX)) {
             LOG.warn("Unsupported $ref format: {}. Skipping security scheme.", $ref);
             return null;
@@ -158,8 +155,7 @@ public final class SecuritySchemeMapperV3 {
         }
         // Add additional version checks here as new AsyncAPI 3.x versions are supported.
         if (components instanceof AsyncApi30Components typed) {
-            io.apicurio.datamodels.models.SecurityScheme found =
-                    typed.getSecuritySchemes() != null
+            io.apicurio.datamodels.models.SecurityScheme found = typed.getSecuritySchemes() != null
                             ? typed.getSecuritySchemes().get(name) : null;
             if (found instanceof
                     io.apicurio.datamodels.models.asyncapi.AsyncApiSecurityScheme typedScheme) {
@@ -176,8 +172,8 @@ public final class SecuritySchemeMapperV3 {
      * @param flows the Apicurio OAuth flows object
      * @return the mapped AsyncApiOAuthFlows, or null if flows is null
      */
-    private static io.ballerina.asyncapi.core.model.security.AsyncApiOAuthFlows
-            mapOAuthFlows(AsyncApiOAuthFlows flows) {
+    private static io.ballerina.asyncapi.core.model.security.AsyncApiOAuthFlows mapOAuthFlows(
+            AsyncApiOAuthFlows flows) {
         if (flows == null) {
             return null;
         }

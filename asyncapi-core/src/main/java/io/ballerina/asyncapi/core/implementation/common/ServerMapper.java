@@ -20,7 +20,8 @@ package io.ballerina.asyncapi.core.implementation.common;
 import io.apicurio.datamodels.models.asyncapi.AsyncApiServer;
 import io.apicurio.datamodels.models.asyncapi.AsyncApiServers;
 
-import java.util.LinkedHashMap;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -42,22 +43,18 @@ public final class ServerMapper {
      *                    to skip an entry)
      * @return the mapped servers map, or an empty map if servers is null or empty
      */
-    public static Map<String, io.ballerina.asyncapi.core.model.server.AsyncApiServer> map(
-            AsyncApiServers servers,
-            Function<AsyncApiServer,
-                    io.ballerina.asyncapi.core.model.server.AsyncApiServer> entryMapper) {
+    public static Map<String, io.ballerina.asyncapi.core.model.server.AsyncApiServer> map(AsyncApiServers servers,
+            Function<AsyncApiServer, io.ballerina.asyncapi.core.model.server.AsyncApiServer> entryMapper) {
         if (servers == null) {
-            return Map.of();
+            return Collections.emptyMap();
         }
         List<String> serverNames = servers.getItemNames();
         if (serverNames == null || serverNames.isEmpty()) {
-            return Map.of();
+            return Collections.emptyMap();
         }
-        Map<String, io.ballerina.asyncapi.core.model.server.AsyncApiServer> result =
-                new LinkedHashMap<>();
+        Map<String, io.ballerina.asyncapi.core.model.server.AsyncApiServer> result = new HashMap<>();
         for (String name : serverNames) {
-            io.ballerina.asyncapi.core.model.server.AsyncApiServer mapped =
-                    entryMapper.apply(servers.getItem(name));
+            io.ballerina.asyncapi.core.model.server.AsyncApiServer mapped = entryMapper.apply(servers.getItem(name));
             if (mapped != null) {
                 result.put(name, mapped);
             }

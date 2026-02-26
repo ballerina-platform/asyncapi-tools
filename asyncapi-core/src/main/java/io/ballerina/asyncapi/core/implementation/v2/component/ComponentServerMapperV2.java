@@ -48,14 +48,12 @@ final class ComponentServerMapperV2 {
      * @param components the Apicurio components object
      * @return the map of server names to server objects, or null if not available
      */
-    static Map<String, io.ballerina.asyncapi.core.model.server.AsyncApiServer>
-    map(AsyncApiComponents components) {
+    static Map<String, io.ballerina.asyncapi.core.model.server.AsyncApiServer> map(AsyncApiComponents components) {
         if (components == null) {
             return null;
         }
 
-        Map<String, ? extends AsyncApiServer> rawServers =
-                switch (components) {
+        Map<String, ? extends AsyncApiServer> rawServers = switch (components) {
                     case AsyncApi26Components typed -> typed.getServers();
                     case AsyncApi25Components typed -> typed.getServers();
                     case AsyncApi24Components typed -> typed.getServers();
@@ -76,14 +74,13 @@ final class ComponentServerMapperV2 {
      * @param components the Apicurio components object
      * @return the map of server variable names to server variable objects, or null if not available
      */
-    static Map<String, io.ballerina.asyncapi.core.model.server.AsyncApiServerVariable>
-    mapComponentServerVariables(AsyncApiComponents components) {
+    static Map<String, io.ballerina.asyncapi.core.model.server.AsyncApiServerVariable> mapComponentServerVariables(
+            AsyncApiComponents components) {
         if (components == null) {
             return null;
         }
 
-        Map<String, ? extends ServerVariable> rawVariables =
-                switch (components) {
+        Map<String, ? extends ServerVariable> rawVariables = switch (components) {
                     case AsyncApi26Components typed -> typed.getServerVariables();
                     case AsyncApi25Components typed -> typed.getServerVariables();
                     case AsyncApi24Components typed -> typed.getServerVariables();

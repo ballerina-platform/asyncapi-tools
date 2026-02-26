@@ -22,6 +22,7 @@ import io.apicurio.datamodels.models.asyncapi.AsyncApiComponents;
 import io.apicurio.datamodels.models.asyncapi.AsyncApiExtensible;
 import io.ballerina.asyncapi.core.implementation.v2.channel.ChannelBindingsMapperV2;
 import io.ballerina.asyncapi.core.implementation.v2.message.CorrelationIdMapperV2;
+import io.ballerina.asyncapi.core.implementation.v2.message.MessageBindingsMapperV2;
 import io.ballerina.asyncapi.core.implementation.v2.message.MessageMapperV2;
 import io.ballerina.asyncapi.core.implementation.v2.message.MessageTraitMapperV2;
 import io.ballerina.asyncapi.core.implementation.v2.operation.OperationBindingsMapperV2;
@@ -65,29 +66,22 @@ public final class ComponentMapperV2 {
                 ComponentServerMapperV2.mapComponentServerVariables(components),
                 ComponentChannelMapperV2.map(components),
                 null, // operations - not in AsyncAPI 2.x components
-                mapValues(components.getMessages(),
-                        MessageMapperV2::map),
-                ComponentSecuritySchemeMapperV2.map(
-                        components.getSecuritySchemes()),
+                mapValues(components.getMessages(), MessageMapperV2::map),
+                ComponentSecuritySchemeMapperV2.map(components.getSecuritySchemes()),
                 ComponentParameterMapperV2.map(components.getParameters()),
-                mapValues(components.getCorrelationIds(),
-                        CorrelationIdMapperV2::map),
-                mapValues(components.getOperationTraits(),
-                        OperationTraitMapperV2::map),
-                mapValues(components.getMessageTraits(),
-                        MessageTraitMapperV2::map),
+                mapValues(components.getCorrelationIds(), CorrelationIdMapperV2::map),
+                mapValues(components.getOperationTraits(), OperationTraitMapperV2::map),
+                mapValues(components.getMessageTraits(), MessageTraitMapperV2::map),
                 null, // replies - not in AsyncAPI 2.x
                 null, // replyAddresses - not in AsyncAPI 2.x
                 null, // externalDocs - not in AsyncAPI 2.x components
                 null, // tags - not in AsyncAPI 2.x components
-                mapValues(components.getServerBindings(),
-                        binding -> ServerBindingsMapper.mapBindings(binding, null)),
-                mapValues(components.getChannelBindings(),
-                        binding -> ChannelBindingsMapperV2.map(binding, components)),
-                mapValues(components.getOperationBindings(),
-                        OperationBindingsMapperV2::map),
-                mapValues(components.getMessageBindings(),
-                        MessageMapperV2::mapBindings),
+                mapValues(components.getServerBindings(), binding ->
+                        ServerBindingsMapper.mapBindings(binding, null)),
+                mapValues(components.getChannelBindings(), binding ->
+                        ChannelBindingsMapperV2.map(binding, components)),
+                mapValues(components.getOperationBindings(), OperationBindingsMapperV2::map),
+                mapValues(components.getMessageBindings(), MessageBindingsMapperV2::map),
                 extensions
         );
     }
@@ -102,9 +96,7 @@ public final class ComponentMapperV2 {
      * @param mapper the mapping function
      * @return the mapped result map, or null if source is null/empty
      */
-    private static <T, R> Map<String, R> mapValues(
-            Map<String, ? extends T> source,
-            Function<? super T, R> mapper) {
+    private static <T, R> Map<String, R> mapValues(Map<String, ? extends T> source, Function<? super T, R> mapper) {
         if (source == null || source.isEmpty()) {
             return null;
         }

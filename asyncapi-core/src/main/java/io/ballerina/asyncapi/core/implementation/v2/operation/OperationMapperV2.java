@@ -32,20 +32,20 @@ import io.apicurio.datamodels.models.asyncapi.v23.AsyncApi23Operation;
 import io.apicurio.datamodels.models.asyncapi.v24.AsyncApi24Operation;
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25Operation;
 import io.apicurio.datamodels.models.asyncapi.v26.AsyncApi26Operation;
+import io.ballerina.asyncapi.core.Constants;
 import io.ballerina.asyncapi.core.implementation.v2.message.MessageMapperV2;
-import io.ballerina.asyncapi.core.implementation.v2.message.MessageRefResolverV2;
 import io.ballerina.asyncapi.core.implementation.v2.doc.ExternalDocMapperV2;
 import io.ballerina.asyncapi.core.implementation.v2.tag.TagMapperV2;
 import io.ballerina.asyncapi.core.model.operation.AsyncApiOperation;
 import io.ballerina.asyncapi.core.model.tag.AsyncApiTag;
 
-import java.util.LinkedHashMap;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 /**
  * Maps Apicurio Operation models to {@link AsyncApiOperation} for AsyncAPI 2.x.
- *
  */
 public final class OperationMapperV2 {
 
@@ -63,72 +63,61 @@ public final class OperationMapperV2 {
      * @param components the AsyncAPI components (for $ref resolution in messages and channels)
      * @return the mapped operations map, or an empty map if channels is null or empty
      */
-    public static Map<String, AsyncApiOperation> map(
-            AsyncApiChannels channels,
-            AsyncApiComponents components) {
+    public static Map<String, AsyncApiOperation> map(AsyncApiChannels channels, AsyncApiComponents components) {
         if (channels == null) {
-            return Map.of();
+            return Collections.emptyMap();
         }
-
-        List<String> channelNames = null;
-        if (channels instanceof MappedNode<?> mappedNode) {
-            channelNames = mappedNode.getItemNames();
+        if (!(channels instanceof MappedNode<?> mappedNode)) {
+            return Collections.emptyMap();
         }
-
+        List<String> channelNames = mappedNode.getItemNames();
         if (channelNames == null || channelNames.isEmpty()) {
-            return Map.of();
+            return Collections.emptyMap();
         }
-
-        Map<String, AsyncApiOperation> result = new LinkedHashMap<>();
+        Map<String, AsyncApiOperation> result = new HashMap<>();
         for (String channelName : channelNames) {
-            AsyncApiChannelItem channelItem = null;
-            if (channels instanceof MappedNode<?> mappedNode) {
-                channelItem = (AsyncApiChannelItem) mappedNode.getItem(channelName);
-            }
+            AsyncApiChannelItem channelItem = (AsyncApiChannelItem) mappedNode.getItem(channelName);
             if (channelItem == null) {
                 continue;
             }
-            extractOperation(result, channelName, channelItem.getPublish(),
-                    AsyncApiOperation.Action.SEND, "publish", components);
-            extractOperation(result, channelName, channelItem.getSubscribe(),
-                    AsyncApiOperation.Action.RECEIVE, "subscribe", components);
+            io.apicurio.datamodels.models.asyncapi.AsyncApiOperation publishOp = channelItem.getPublish();
+            if (publishOp != null) {
+                String key = channelName + "_publish";
+                String operationId = switch (publishOp) {
+                    case AsyncApi26Operation typed -> typed.getOperationId();
+                    case AsyncApi25Operation typed -> typed.getOperationId();
+                    case AsyncApi24Operation typed -> typed.getOperationId();
+                    case AsyncApi23Operation typed -> typed.getOperationId();
+                    case AsyncApi22Operation typed -> typed.getOperationId();
+                    case AsyncApi21Operation typed -> typed.getOperationId();
+                    case AsyncApi20Operation typed -> typed.getOperationId();
+                    default -> null;
+                };
+                if (operationId != null) {
+                    key = operationId;
+                }
+                result.put(key, buildOperation(publishOp, AsyncApiOperation.Action.SEND, components));
+            }
+            io.apicurio.datamodels.models.asyncapi.AsyncApiOperation subscribeOp = channelItem.getSubscribe();
+            if (subscribeOp != null) {
+                String key = channelName + "_subscribe";
+                String operationId = switch (subscribeOp) {
+                    case AsyncApi26Operation typed -> typed.getOperationId();
+                    case AsyncApi25Operation typed -> typed.getOperationId();
+                    case AsyncApi24Operation typed -> typed.getOperationId();
+                    case AsyncApi23Operation typed -> typed.getOperationId();
+                    case AsyncApi22Operation typed -> typed.getOperationId();
+                    case AsyncApi21Operation typed -> typed.getOperationId();
+                    case AsyncApi20Operation typed -> typed.getOperationId();
+                    default -> null;
+                };
+                if (operationId != null) {
+                    key = operationId;
+                }
+                result.put(key, buildOperation(subscribeOp, AsyncApiOperation.Action.RECEIVE, components));
+            }
         }
         return result;
-    }
-
-    /**
-     * Extracts a single operation from a channel item and adds it to the result map.
-     *
-     * @param result      the result map to populate
-     * @param channelName the channel name
-     * @param operation   the Apicurio operation (publish or subscribe), may be null
-     * @param action      the action type (SEND or RECEIVE)
-     * @param suffix      the suffix for the fallback key ("publish" or "subscribe")
-     * @param components  the AsyncAPI components (for $ref resolution)
-     */
-    private static void extractOperation(Map<String, AsyncApiOperation> result,
-                                         String channelName,
-                                         io.apicurio.datamodels.models.asyncapi.AsyncApiOperation operation,
-                                         AsyncApiOperation.Action action, String suffix,
-                                         AsyncApiComponents components) {
-        if (operation == null) {
-            return;
-        }
-        String key = channelName + "_" + suffix;
-        String operationId = switch (operation) {
-            case AsyncApi26Operation typed -> typed.getOperationId();
-            case AsyncApi25Operation typed -> typed.getOperationId();
-            case AsyncApi24Operation typed -> typed.getOperationId();
-            case AsyncApi23Operation typed -> typed.getOperationId();
-            case AsyncApi22Operation typed -> typed.getOperationId();
-            case AsyncApi21Operation typed -> typed.getOperationId();
-            case AsyncApi20Operation typed -> typed.getOperationId();
-            default -> null;
-        };
-        if (operationId != null) {
-            key = operationId;
-        }
-        result.put(key, buildOperation(operation, action, components));
     }
 
     /**
@@ -143,52 +132,6 @@ public final class OperationMapperV2 {
             io.apicurio.datamodels.models.asyncapi.AsyncApiOperation operation,
             AsyncApiOperation.Action action,
             AsyncApiComponents components) {
-        Map<String, JsonNode> extensions = null;
-        if (operation instanceof AsyncApiExtensible extensible) {
-            extensions = extensible.getExtensions();
-        }
-        List<AsyncApiTag> tags = null;
-        if (operation.getTags() != null) {
-            tags = operation.getTags().stream()
-                    .map(TagMapperV2::map)
-                    .toList();
-        }
-        return new AsyncApiOperation(
-                action,
-                null, // channel
-                null, // title (v2 has none)
-                operation.getSummary(),
-                operation.getDescription(),
-                extractOperationMessages(operation, components),
-                null, // security (v2 operations have none)
-                null, // reply (v2 has none)
-                tags,
-                ExternalDocMapperV2.map((AsyncApiExternalDocumentation) operation.getExternalDocs()),
-                OperationBindingsMapperV2.map(operation.getBindings()),
-                OperationTraitMapperV2.mapTraits(operation.getTraits()),
-                extensions
-        );
-    }
-
-    /**
-     * Extracts messages from an AsyncAPI 2.x operation.
-     * In v2, each operation has at most one message (accessed via getMessage()).
-     * The message can be inline or a $ref to components/messages.
-     *
-     * @param operation  the Apicurio operation object
-     * @param components the AsyncAPI components (for $ref resolution)
-     * @return a list containing the mapped message, or null if no message
-     */
-    private static List<io.ballerina.asyncapi.core.model.message.AsyncApiMessage>
-    extractOperationMessages(
-            io.apicurio.datamodels.models.asyncapi.AsyncApiOperation operation,
-            io.apicurio.datamodels.models.asyncapi.AsyncApiComponents components) {
-
-        if (operation == null) {
-            return null;
-        }
-
-        // Get the single message from the operation (version-specific)
         io.apicurio.datamodels.models.asyncapi.AsyncApiMessage rawMessage = switch (operation) {
             case AsyncApi26Operation typed -> typed.getMessage();
             case AsyncApi25Operation typed -> typed.getMessage();
@@ -199,38 +142,62 @@ public final class OperationMapperV2 {
             case AsyncApi20Operation typed -> typed.getMessage();
             default -> null;
         };
-
-        if (rawMessage == null) {
-            return null;
-        }
-
-        // Handle $ref resolution (same pattern as ChannelMapperV2.extractMessagesFromOperation)
         if (rawMessage instanceof AsyncApiReferenceable referenceable) {
             String $ref = referenceable.get$ref();
             if ($ref != null) {
-                io.apicurio.datamodels.models.asyncapi.AsyncApiMessage resolved =
-                        MessageRefResolverV2.resolveMessageRef($ref, components);
-                if (resolved == null) {
-                    // Message $ref could not be resolved, return null
-                    return null;
+                if (!$ref.startsWith(Constants.MESSAGES_REF_PREFIX) || components == null) {
+                    rawMessage = null;
+                } else {
+                    String refName = $ref.substring(Constants.MESSAGES_REF_PREFIX.length());
+                    Map<String, ? extends io.apicurio.datamodels.models.asyncapi.AsyncApiMessage> refMessages =
+                            components.getMessages();
+                    io.apicurio.datamodels.models.asyncapi.AsyncApiMessage resolved =
+                            refMessages != null ? refMessages.get(refName) : null;
+                    if (resolved == null
+                            || (resolved instanceof AsyncApiReferenceable r && r.get$ref() != null)) {
+                        rawMessage = null;
+                    } else {
+                        rawMessage = resolved;
+                    }
                 }
-
-                // Guard against chained $refs
-                if (resolved instanceof AsyncApiReferenceable resolvedRef
-                        && resolvedRef.get$ref() != null) {
-                    // Chained $refs not supported
-                    return null;
-                }
-
-                // Use the resolved message
-                rawMessage = resolved;
             }
         }
-
-        // Map using MessageMapperV2
-        io.ballerina.asyncapi.core.model.message.AsyncApiMessage mappedMessage =
-                MessageMapperV2.map(rawMessage);
-
-        return mappedMessage != null ? List.of(mappedMessage) : null;
+        List<io.ballerina.asyncapi.core.model.message.AsyncApiMessage> messages = null;
+        if (rawMessage != null) {
+            io.ballerina.asyncapi.core.model.message.AsyncApiMessage mapped = MessageMapperV2.map(rawMessage);
+            if (mapped != null) {
+                messages = List.of(mapped);
+            }
+        }
+        Map<String, JsonNode> extensions = null;
+        if (operation instanceof AsyncApiExtensible extensible) {
+            extensions = extensible.getExtensions();
+        }
+        List<AsyncApiTag> tags = null;
+        if (operation.getTags() != null) {
+            tags = operation.getTags().stream()
+                    .map(TagMapperV2::map)
+                    .toList();
+        }
+        List<? extends io.apicurio.datamodels.models.asyncapi.AsyncApiOperationTrait> rawTraits =
+                operation.getTraits();
+        List<io.ballerina.asyncapi.core.model.operation.AsyncApiOperationTrait> traits =
+                (rawTraits == null || rawTraits.isEmpty()) ? null :
+                        rawTraits.stream().map(OperationTraitMapperV2::map).toList();
+        return new AsyncApiOperation(
+                action,
+                null,
+                null,
+                operation.getSummary(),
+                operation.getDescription(),
+                messages,
+                null,
+                null,
+                tags,
+                ExternalDocMapperV2.map((AsyncApiExternalDocumentation) operation.getExternalDocs()),
+                OperationBindingsMapperV2.map(operation.getBindings()),
+                traits,
+                extensions
+        );
     }
 }

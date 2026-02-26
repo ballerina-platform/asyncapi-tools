@@ -29,7 +29,7 @@ import io.ballerina.asyncapi.core.model.server.AsyncApiServerVariable;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import java.util.LinkedHashMap;
+import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -53,12 +53,12 @@ public final class ServerVariableMapperV2 {
      *                   (may be null)
      * @return the mapped variables map, or null if variables is null or empty
      */
-    public static Map<String, AsyncApiServerVariable> mapVariables(
-            Map<String, ? extends ServerVariable> variables, AsyncApiComponents components) {
+    public static Map<String, AsyncApiServerVariable> mapVariables(Map<String, ? extends ServerVariable> variables,
+                                                                   AsyncApiComponents components) {
         if (variables == null || variables.isEmpty()) {
             return null;
         }
-        Map<String, AsyncApiServerVariable> result = new LinkedHashMap<>();
+        Map<String, AsyncApiServerVariable> result = new HashMap<>();
         for (Map.Entry<String, ? extends ServerVariable> entry : variables.entrySet()) {
             AsyncApiServerVariable mapped = mapOne(entry.getValue(), components);
             if (mapped != null) {
@@ -69,15 +69,13 @@ public final class ServerVariableMapperV2 {
     }
 
     /**
-     * Maps a single Apicurio {@link ServerVariable}, resolving any {@code $ref} before
-     * delegating to {@link #mapVariable(ServerVariable)}.
+     * Maps a single Apicurio {@link ServerVariable}, resolving any {@code $ref}
      *
      * @param variable   the Apicurio server variable object (may be a reference)
      * @param components the Apicurio components object used for ref resolution
      * @return the mapped AsyncApiServerVariable, or null for unresolvable refs
      */
-    private static AsyncApiServerVariable mapOne(
-            ServerVariable variable, AsyncApiComponents components) {
+    private static AsyncApiServerVariable mapOne(ServerVariable variable, AsyncApiComponents components) {
         String $ref = null;
         if (variable instanceof AsyncApiReferenceable referenceable) {
             $ref = referenceable.get$ref();

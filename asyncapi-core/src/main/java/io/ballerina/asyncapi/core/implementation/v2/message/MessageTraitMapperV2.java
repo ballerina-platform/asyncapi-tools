@@ -27,7 +27,6 @@ import io.apicurio.datamodels.models.asyncapi.v23.AsyncApi23MessageTrait;
 import io.apicurio.datamodels.models.asyncapi.v24.AsyncApi24MessageTrait;
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25MessageTrait;
 import io.apicurio.datamodels.models.asyncapi.v26.AsyncApi26MessageTrait;
-import io.ballerina.asyncapi.core.implementation.v2.message.CorrelationIdMapperV2;
 import io.ballerina.asyncapi.core.implementation.v2.doc.ExternalDocMapperV2;
 import io.ballerina.asyncapi.core.implementation.v2.tag.TagMapperV2;
 import io.ballerina.asyncapi.core.model.tag.AsyncApiTag;
@@ -51,8 +50,7 @@ public final class MessageTraitMapperV2 {
      * @param trait the Apicurio message trait object
      * @return the mapped AsyncApiMessageTrait, or null if null
      */
-    public static io.ballerina.asyncapi.core.model.message.AsyncApiMessageTrait
-            map(AsyncApiMessageTrait trait) {
+    public static io.ballerina.asyncapi.core.model.message.AsyncApiMessageTrait map(AsyncApiMessageTrait trait) {
         if (trait == null) {
             return null;
         }
@@ -110,8 +108,8 @@ public final class MessageTraitMapperV2 {
                 CorrelationIdMapperV2.map(trait.getCorrelationId()),
                 tags,
                 ExternalDocMapperV2.map(trait.getExternalDocs()),
-                MessageMapperV2.mapBindings(trait.getBindings()),
-                MessageMapperV2.mapMessageTraitExample(trait),
+                MessageBindingsMapperV2.map(trait.getBindings()),
+                MessageExampleMapperV2.map(trait),
                 extensions
         );
     }

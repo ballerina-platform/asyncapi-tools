@@ -23,7 +23,7 @@ import io.apicurio.datamodels.models.asyncapi.v30.AsyncApi30Components;
 import io.ballerina.asyncapi.core.implementation.v3.channel.ChannelMapperV3;
 import io.ballerina.asyncapi.core.model.channel.AsyncApiChannel;
 
-import java.util.LinkedHashMap;
+import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -47,8 +47,7 @@ final class ComponentChannelMapperV3 {
         }
 
         // Add additional version cases here as new AsyncAPI 3.x versions are supported.
-        Map<String, ? extends AsyncApi30Channel> rawChannels =
-                switch (components) {
+        Map<String, ? extends AsyncApi30Channel> rawChannels = switch (components) {
                     case AsyncApi30Components typed -> typed.getChannels();
                     default -> null;
                 };
@@ -57,10 +56,10 @@ final class ComponentChannelMapperV3 {
             return null;
         }
 
-        Map<String, AsyncApiChannel> result = new LinkedHashMap<>();
+        Map<String, AsyncApiChannel> result = new HashMap<>();
         rawChannels.forEach((name, channel) -> {
             if (channel != null) {
-                AsyncApiChannel mapped = ChannelMapperV3.buildChannel(channel, (AsyncApi30Components) components, null);
+                AsyncApiChannel mapped = ChannelMapperV3.mapChannelItem(name, channel, components, null);
                 if (mapped != null) {
                     result.put(name, mapped);
                 }

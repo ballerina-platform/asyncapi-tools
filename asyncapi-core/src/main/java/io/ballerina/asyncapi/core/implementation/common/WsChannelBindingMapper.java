@@ -19,6 +19,7 @@ package io.ballerina.asyncapi.core.implementation.common;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import io.apicurio.datamodels.models.asyncapi.AsyncApiBinding;
+import io.ballerina.asyncapi.core.implementation.utils.BindingUtils;
 import io.ballerina.asyncapi.core.model.channel.WsChannelBindings;
 
 /**
@@ -40,25 +41,11 @@ public final class WsChannelBindingMapper {
         if (binding == null) {
             return null;
         }
-        String method = getBindingItemAsText(binding, "method");
+        String method = BindingUtils.getItemAsText(binding, "method");
         JsonNode query = binding.getItem("query");
         JsonNode headers = binding.getItem("headers");
-        String bindingVersion = getBindingItemAsText(binding, "bindingVersion");
+        String bindingVersion = BindingUtils.getItemAsText(binding, "bindingVersion");
         return new WsChannelBindings(method, query, headers, bindingVersion);
     }
 
-    /**
-     * Gets a binding item as text.
-     *
-     * @param binding the binding object
-     * @param key     the item key
-     * @return the text value, or null if not found or not textual
-     */
-    private static String getBindingItemAsText(AsyncApiBinding binding, String key) {
-        JsonNode node = binding.getItem(key);
-        if (node == null) {
-            return null;
-        }
-        return node.isTextual() ? node.asText() : node.toString();
-    }
 }

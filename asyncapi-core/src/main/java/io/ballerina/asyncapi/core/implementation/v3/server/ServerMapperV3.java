@@ -62,8 +62,8 @@ public final class ServerMapperV3 {
         return ServerMapper.map(servers, server -> mapOne(server, components));
     }
 
-    public static io.ballerina.asyncapi.core.model.server.AsyncApiServer buildServer(
-            AsyncApiServer server, AsyncApiComponents components) {
+    public static io.ballerina.asyncapi.core.model.server.AsyncApiServer buildServer(AsyncApiServer server,
+                                                                                     AsyncApiComponents components) {
 
         if (server instanceof AsyncApi30Server typedServer) {
             List<AsyncApiTag> tags = null;
@@ -137,8 +137,8 @@ public final class ServerMapperV3 {
      * @param components the Apicurio components object used for ref resolution
      * @return the mapped AsyncApiServer, or null for unresolvable refs or unknown server types
      */
-    private static io.ballerina.asyncapi.core.model.server.AsyncApiServer mapOne(
-            AsyncApiServer server, AsyncApiComponents components) {
+    private static io.ballerina.asyncapi.core.model.server.AsyncApiServer mapOne(AsyncApiServer server,
+                                                                                 AsyncApiComponents components) {
 
         String $ref = null;
         if (server instanceof AsyncApiReferenceable referenceable) {

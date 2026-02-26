@@ -55,7 +55,6 @@ public final class OperationBindingsMapperV3 {
         if (http == null && ws == null && extensions == null) {
             return null;
         }
-        return new io.ballerina.asyncapi.core.model.operation.AsyncApiOperationBindings(
-                http, ws, extensions);
+        return new io.ballerina.asyncapi.core.model.operation.AsyncApiOperationBindings(http, ws, extensions);
     }
 }

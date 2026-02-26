@@ -21,18 +21,11 @@ import com.fasterxml.jackson.databind.JsonNode;
 import io.apicurio.datamodels.models.Tag;
 import io.apicurio.datamodels.models.asyncapi.*;
 import io.apicurio.datamodels.models.asyncapi.v30.AsyncApi30Channel;
-import io.apicurio.datamodels.models.asyncapi.v30.AsyncApi30CorrelationID;
 import io.apicurio.datamodels.models.asyncapi.v30.AsyncApi30Message;
-import io.apicurio.datamodels.models.asyncapi.v30.AsyncApi30MessageExample;
-import io.apicurio.datamodels.models.asyncapi.v30.AsyncApi30MessageTrait;
 import io.ballerina.asyncapi.core.Constants;
 import io.ballerina.asyncapi.core.implementation.v3.doc.ExternalDocMapperV3;
 import io.ballerina.asyncapi.core.implementation.v3.tag.TagMapperV3;
-import io.ballerina.asyncapi.core.model.component.AsyncApiSchema;
-import io.ballerina.asyncapi.core.model.message.AsyncApiCorrelationId;
 import io.ballerina.asyncapi.core.model.message.AsyncApiMessageExample;
-import io.ballerina.asyncapi.core.model.message.HttpMessageBindings;
-import io.ballerina.asyncapi.core.model.message.WsMessageBindings;
 import io.ballerina.asyncapi.core.model.tag.AsyncApiTag;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -61,8 +54,8 @@ public final class MessageMapperV3 {
      * @return a map of message names to {@link io.ballerina.asyncapi.core.model.message.AsyncApiMessage},
      *         or null if no messages found
      */
-    public static Map<String, io.ballerina.asyncapi.core.model.message.AsyncApiMessage>
-            extractMessages(AsyncApi30Channel channel, AsyncApiComponents components) {
+    public static Map<String, io.ballerina.asyncapi.core.model.message.AsyncApiMessage> extractMessages(
+            AsyncApi30Channel channel, AsyncApiComponents components) {
         if (channel == null) {
             return null;
         }
@@ -80,14 +73,22 @@ public final class MessageMapperV3 {
             if (message instanceof AsyncApiReferenceable referenceable) {
                 String $ref = referenceable.get$ref();
                 if ($ref != null) {
-                    AsyncApi30Message resolved = resolveMessageRef($ref, components);
+                    if (!$ref.startsWith(Constants.MESSAGES_REF_PREFIX)) {
+                        LOG.warn("Unsupported message $ref format: {}. Skipping message.", $ref);
+                        continue;
+                    }
+                    String refName = $ref.substring(Constants.MESSAGES_REF_PREFIX.length());
+                    Map<String, ? extends AsyncApiMessage> refMessages =
+                            components != null ? components.getMessages() : null;
+                    AsyncApiMessage refMessage = refMessages != null ? refMessages.get(refName) : null;
+                    AsyncApi30Message resolved =
+                            refMessage instanceof AsyncApi30Message typedMsg ? typedMsg : null;
                     if (resolved == null) {
                         LOG.warn("Could not resolve message $ref: {} in channel message '{}'. Skipping message.",
                                 $ref, messageName);
                         continue;
                     }
-                    if (resolved instanceof AsyncApiReferenceable resolvedRef
-                            && resolvedRef.get$ref() != null) {
+                    if (resolved instanceof AsyncApiReferenceable resolvedRef && resolvedRef.get$ref() != null) {
                         LOG.warn("Resolved message $ref points to another $ref: {}. Skipping message '{}'.",
                                 resolvedRef.get$ref(), messageName);
                         continue;
@@ -104,38 +105,13 @@ public final class MessageMapperV3 {
     }
 
     /**
-     * Resolves a {@code $ref} to a message in components.
-     *
-     * @param $ref       the $ref string (e.g., {@code #/components/messages/MyMessage})
-     * @param components the AsyncAPI components object
-     * @return the resolved message, or null if not found or invalid
-     */
-    private static AsyncApi30Message resolveMessageRef(String $ref, AsyncApiComponents components) {
-        if (!$ref.startsWith(Constants.MESSAGES_REF_PREFIX)) {
-            LOG.warn("Unsupported message $ref format: {}. Skipping message.", $ref);
-            return null;
-        }
-        String name = $ref.substring(Constants.MESSAGES_REF_PREFIX.length());
-        if (components == null) {
-            return null;
-        }
-        Map<String, ? extends AsyncApiMessage> messagesMap = components.getMessages();
-        if (messagesMap == null) {
-            return null;
-        }
-        AsyncApiMessage message = messagesMap.get(name);
-        return message instanceof AsyncApi30Message typedMessage ? typedMessage : null;
-    }
-
-    /**
      * Maps an Apicurio {@link AsyncApiMessage} to a model
      * {@link io.ballerina.asyncapi.core.model.message.AsyncApiMessage}.
      *
      * @param message the Apicurio message object
      * @return the mapped AsyncApiMessage, or null if message is null
      */
-    public static io.ballerina.asyncapi.core.model.message.AsyncApiMessage
-            map(AsyncApiMessage message) {
+    public static io.ballerina.asyncapi.core.model.message.AsyncApiMessage map(AsyncApiMessage message) {
         if (message == null) {
             return null;
         }
@@ -149,13 +125,7 @@ public final class MessageMapperV3 {
             headers = typedMessage.getHeaders();
             payload = typedMessage.getPayload();
             extensions = typedMessage.getExtensions();
-            List<AsyncApi30MessageExample> apicurioExamples =
-                    typedMessage.getExamples();
-            if (apicurioExamples != null) {
-                examples = apicurioExamples.stream()
-                        .map(MessageMapperV3::mapMessageExample)
-                        .toList();
-            }
+            examples = MessageExampleMapperV3.map(typedMessage);
         }
 
         List<AsyncApiTag> tags = null;
@@ -166,20 +136,18 @@ public final class MessageMapperV3 {
                     .toList();
         }
 
-        List<io.ballerina.asyncapi.core.model.message.AsyncApiMessageTrait>
-                traits = null;
-        List<? extends AsyncApiMessageTrait> apicurioTraits =
-                message.getTraits();
+        List<io.ballerina.asyncapi.core.model.message.AsyncApiMessageTrait> traits = null;
+        List<? extends AsyncApiMessageTrait> apicurioTraits = message.getTraits();
         if (apicurioTraits != null) {
             traits = apicurioTraits.stream()
-                    .map(MessageMapperV3::mapTrait)
+                    .map(MessageTraitMapperV3::map)
                     .toList();
         }
 
         return new io.ballerina.asyncapi.core.model.message.AsyncApiMessage(
                 headers,
                 payload,
-                mapCorrelationId(message.getCorrelationId()),
+                CorrelationIdMapperV3.map(message.getCorrelationId()),
                 message.getContentType(),
                 message.getName(),
                 message.getTitle(),
@@ -187,195 +155,11 @@ public final class MessageMapperV3 {
                 message.getDescription(),
                 tags,
                 ExternalDocMapperV3.map(message.getExternalDocs(), null),
-                mapBindings(message.getBindings()),
+                MessageBindingsMapperV3.map(message.getBindings()),
                 examples,
                 traits,
                 extensions
         );
     }
 
-    /**
-     * Maps an Apicurio {@link AsyncApiMessageTrait} to a model
-     * {@link io.ballerina.asyncapi.core.model.message.AsyncApiMessageTrait}.
-     *
-     * @param trait the Apicurio message trait object
-     * @return the mapped AsyncApiMessageTrait, or null if trait is null
-     */
-    public static io.ballerina.asyncapi.core.model.message.AsyncApiMessageTrait
-            mapTrait(AsyncApiMessageTrait trait) {
-        if (trait == null) {
-            return null;
-        }
-
-        Object headers = null;
-        List<AsyncApiMessageExample> examples = null;
-        Map<String, JsonNode> extensions = null;
-
-        if (trait instanceof AsyncApi30MessageTrait typedTrait) {
-            headers = typedTrait.getHeaders();
-            extensions = typedTrait.getExtensions();
-            List<AsyncApi30MessageExample> apicurioExamples =
-                    typedTrait.getExamples();
-            if (apicurioExamples != null) {
-                examples = apicurioExamples.stream()
-                        .map(MessageMapperV3::mapMessageExample)
-                        .toList();
-            }
-        }
-
-        List<AsyncApiTag> tags = null;
-        List<? extends Tag> apicurioTags = trait.getTags();
-        if (apicurioTags != null) {
-            tags = apicurioTags.stream()
-                    .map(tag -> TagMapperV3.map(tag, null))
-                    .toList();
-        }
-
-        return new io.ballerina.asyncapi.core.model.message.AsyncApiMessageTrait(
-                trait.getName(),
-                trait.getTitle(),
-                trait.getSummary(),
-                trait.getDescription(),
-                trait.getContentType(),
-                headers,
-                mapCorrelationId(trait.getCorrelationId()),
-                tags,
-                ExternalDocMapperV3.map(trait.getExternalDocs(), null),
-                mapBindings(trait.getBindings()),
-                examples,
-                extensions
-        );
-    }
-
-    /**
-     * Maps an Apicurio {@link AsyncApiMessageBindings} to a model
-     * {@link io.ballerina.asyncapi.core.model.message.AsyncApiMessageBindings}.
-     *
-     * @param bindings the Apicurio message bindings object
-     * @return the mapped AsyncApiMessageBindings, or null if empty
-     */
-    public static io.ballerina.asyncapi.core.model.message.AsyncApiMessageBindings
-            mapBindings(AsyncApiMessageBindings bindings) {
-        if (bindings == null) {
-            return null;
-        }
-        HttpMessageBindings http = HttpMessageBindingMapperV3.map(bindings.getHttp());
-        WsMessageBindings ws = bindings.getWs() != null
-                ? new WsMessageBindings() : null;
-        Map<String, JsonNode> extensions = null;
-        if (bindings instanceof AsyncApiExtensible extensible) {
-            extensions = extensible.getExtensions();
-        }
-        if (http == null && ws == null && extensions == null) {
-            return null;
-        }
-        return new io.ballerina.asyncapi.core.model.message.AsyncApiMessageBindings(
-                http, ws, extensions);
-    }
-
-    /**
-     * Maps an Apicurio {@link AsyncApiCorrelationID} to a model
-     * {@link AsyncApiCorrelationId}.
-     *
-     * @param correlationId the Apicurio correlation ID object
-     * @return the mapped AsyncApiCorrelationId, or null if input is null
-     */
-    public static AsyncApiCorrelationId mapCorrelationId(
-            AsyncApiCorrelationID correlationId) {
-        if (correlationId == null) {
-            return null;
-        }
-        Map<String, JsonNode> extensions = null;
-        if (correlationId instanceof AsyncApi30CorrelationID typed) {
-            extensions = typed.getExtensions();
-        }
-        return new AsyncApiCorrelationId(
-                correlationId.getDescription(),
-                correlationId.getLocation(),
-                extensions
-        );
-    }
-
-    /**
-     * Maps an Apicurio {@link AsyncApi30MessageExample} to a model
-     * {@link AsyncApiMessageExample}.
-     *
-     * @param example the Apicurio message example object
-     * @return the mapped AsyncApiMessageExample, or null if input is null
-     */
-    private static AsyncApiMessageExample mapMessageExample(
-            AsyncApi30MessageExample example) {
-        if (example == null) {
-            return null;
-        }
-        Map<String, Object> headers = null;
-        Map<String, JsonNode> apicurioHeaders = example.getHeaders();
-        if (apicurioHeaders != null) {
-            headers = new LinkedHashMap<>(apicurioHeaders);
-        }
-        return new AsyncApiMessageExample(
-                headers,
-                example.getPayload(),
-                example.getName(),
-                example.getSummary(),
-                example.getExtensions()
-        );
-    }
-
-    /**
-     * Maps Apicurio AsyncAPI 3.0 HTTP message bindings to {@link HttpMessageBindings}.
-     */
-    static final class HttpMessageBindingMapperV3 {
-
-        private HttpMessageBindingMapperV3() {
-        }
-
-        /**
-         * Maps an Apicurio AsyncAPI binding to an HttpMessageBindings domain model.
-         *
-         * @param binding the Apicurio binding object (from AsyncApi30MessageBindings.getHttp())
-         * @return the mapped HttpMessageBindings, or null if binding is null
-         */
-        static HttpMessageBindings map(AsyncApiBinding binding) {
-            if (binding == null) {
-                return null;
-            }
-
-            Object headers = binding.getItem("headers");  // Schema Object - store as raw Object
-            Integer statusCode = getBindingItemAsInteger(binding, "statusCode");
-            String bindingVersion = getBindingItemAsText(binding, "bindingVersion");
-
-            return new HttpMessageBindings((AsyncApiSchema) headers, statusCode, bindingVersion);
-        }
-
-        /**
-         * Extracts a binding field as text.
-         *
-         * @param binding the Apicurio binding object
-         * @param key the field name
-         * @return the field value as String, or null if not present or not textual
-         */
-        private static String getBindingItemAsText(AsyncApiBinding binding, String key) {
-            JsonNode node = binding.getItem(key);
-            if (node == null) {
-                return null;
-            }
-            return node.isTextual() ? node.asText() : node.toString();
-        }
-
-        /**
-         * Extracts a binding field as integer.
-         *
-         * @param binding the Apicurio binding object
-         * @param key the field name
-         * @return the field value as Integer, or null if not present or not numeric
-         */
-        private static Integer getBindingItemAsInteger(AsyncApiBinding binding, String key) {
-            JsonNode node = binding.getItem(key);
-            if (node == null) {
-                return null;
-            }
-            return node.isNumber() ? node.asInt() : null;
-        }
-    }
 }

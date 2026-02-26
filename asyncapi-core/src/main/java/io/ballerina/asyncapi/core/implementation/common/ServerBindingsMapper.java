@@ -54,8 +54,8 @@ public final class ServerBindingsMapper {
      * @return the mapped AsyncApiServerBindings, or null if bindings is null, empty,
      *         or an unresolvable ref
      */
-    public static io.ballerina.asyncapi.core.model.server.AsyncApiServerBindings
-            mapBindings(AsyncApiServerBindings bindings, AsyncApiComponents components) {
+    public static io.ballerina.asyncapi.core.model.server.AsyncApiServerBindings mapBindings(
+            AsyncApiServerBindings bindings, AsyncApiComponents components) {
         if (bindings == null) {
             return null;
         }
@@ -69,18 +69,15 @@ public final class ServerBindingsMapper {
                 LOG.warn("Could not resolve $ref: {}. Skipping server bindings.", $ref);
                 return null;
             }
-            if (resolved instanceof AsyncApiReferenceable resolvedTyped
-                    && resolvedTyped.get$ref() != null) {
+            if (resolved instanceof AsyncApiReferenceable resolvedTyped && resolvedTyped.get$ref() != null) {
                 LOG.warn("Resolved $ref points to another $ref: {}. Skipping server bindings.",
                         resolvedTyped.get$ref());
                 return null;
             }
             return mapBindings(resolved, components);
         }
-        HttpServerBindings http = bindings.getHttp() != null
-                ? new HttpServerBindings() : null;
-        WsServerBindings ws = bindings.getWs() != null
-                ? new WsServerBindings() : null;
+        HttpServerBindings http = bindings.getHttp() != null ? new HttpServerBindings() : null;
+        WsServerBindings ws = bindings.getWs() != null ? new WsServerBindings() : null;
         Map<String, JsonNode> extensions = null;
         if (bindings instanceof AsyncApiExtensible extensible) {
             extensions = extensible.getExtensions();
@@ -88,8 +85,7 @@ public final class ServerBindingsMapper {
         if (http == null && ws == null && extensions == null) {
             return null;
         }
-        return new io.ballerina.asyncapi.core.model.server.AsyncApiServerBindings(
-                http, ws, extensions);
+        return new io.ballerina.asyncapi.core.model.server.AsyncApiServerBindings(http, ws, extensions);
     }
 
     /**
@@ -100,8 +96,7 @@ public final class ServerBindingsMapper {
      * @param components the Apicurio components object
      * @return the resolved server bindings, or null if not found
      */
-    private static AsyncApiServerBindings resolveRef(
-            String $ref, AsyncApiComponents components) {
+    private static AsyncApiServerBindings resolveRef(String $ref, AsyncApiComponents components) {
         if (!$ref.startsWith(Constants.SERVER_BINDINGS_REF_PREFIX)) {
             LOG.warn("Unsupported $ref format: {}. Skipping server bindings.", $ref);
             return null;
@@ -110,8 +105,7 @@ public final class ServerBindingsMapper {
         if (components == null) {
             return null;
         }
-        Map<String, ? extends AsyncApiServerBindings> bindingsMap =
-                components.getServerBindings();
+        Map<String, ? extends AsyncApiServerBindings> bindingsMap = components.getServerBindings();
         return bindingsMap != null ? bindingsMap.get(name) : null;
     }
 }

@@ -77,9 +77,7 @@ public class AsyncApiSpecV3 implements AsyncApiSpec {
 
         this.contentType = asyncApiDocument.getDefaultContentType();
 
-        this.channels = ChannelMapperV3.map(
-                asyncApiDocument.getChannels(),
-                asyncApiDocument.getComponents(),
+        this.channels = ChannelMapperV3.map(asyncApiDocument.getChannels(), asyncApiDocument.getComponents(),
                 this.servers
         );
 

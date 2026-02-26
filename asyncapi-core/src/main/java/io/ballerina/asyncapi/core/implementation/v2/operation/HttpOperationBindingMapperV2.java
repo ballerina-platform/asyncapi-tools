@@ -17,10 +17,11 @@
  */
 package io.ballerina.asyncapi.core.implementation.v2.operation;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import io.apicurio.datamodels.models.asyncapi.AsyncApiBinding;
+import io.ballerina.asyncapi.core.implementation.utils.BindingUtils;
+import io.ballerina.asyncapi.core.model.component.AsyncApiSchema;
 import io.ballerina.asyncapi.core.model.operation.HttpOperationBindings;
 import io.ballerina.asyncapi.core.model.operation.HttpOperationBindings.HttpMethod;
-import io.ballerina.asyncapi.core.model.component.AsyncApiSchema;
 
 /**
  * Maps Apicurio HTTP operation binding to {@link HttpOperationBindings} for AsyncAPI 2.x.
@@ -36,30 +37,14 @@ final class HttpOperationBindingMapperV2 {
      * @param binding the Apicurio HTTP binding object
      * @return the mapped HttpOperationBindings, or null if binding is null
      */
-    static HttpOperationBindings map(io.apicurio.datamodels.models.asyncapi.AsyncApiBinding binding) {
+    static HttpOperationBindings map(AsyncApiBinding binding) {
         if (binding == null) {
             return null;
         }
-        HttpMethod method = parseHttpMethod(getBindingItemAsText(binding, "method"));
+        HttpMethod method = parseHttpMethod(BindingUtils.getItemAsText(binding, "method"));
         Object query = binding.getItem("query");
-        String bindingVersion = getBindingItemAsText(binding, "bindingVersion");
+        String bindingVersion = BindingUtils.getItemAsText(binding, "bindingVersion");
         return new HttpOperationBindings(method, (AsyncApiSchema) query, bindingVersion);
-    }
-
-    /**
-     * Gets a binding item as text.
-     *
-     * @param binding the binding object
-     * @param key     the item key
-     * @return the text value, or null if not found or not textual
-     */
-    private static String getBindingItemAsText(
-            io.apicurio.datamodels.models.asyncapi.AsyncApiBinding binding, String key) {
-        JsonNode node = binding.getItem(key);
-        if (node == null) {
-            return null;
-        }
-        return node.isTextual() ? node.asText() : node.toString();
     }
 
     /**

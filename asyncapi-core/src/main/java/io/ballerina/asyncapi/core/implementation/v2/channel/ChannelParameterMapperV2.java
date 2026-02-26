@@ -32,7 +32,7 @@ import io.apicurio.datamodels.models.asyncapi.v26.AsyncApi26Parameter;
 import io.ballerina.asyncapi.core.implementation.utils.JsonNodeUtils;
 import io.ballerina.asyncapi.core.model.channel.AsyncApiChannelParameter;
 
-import java.util.LinkedHashMap;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -51,8 +51,7 @@ final class ChannelParameterMapperV2 {
      * @param parameters the Apicurio parameters object
      * @return the mapped parameters map, or null if parameters is null or empty
      */
-    static Map<String, AsyncApiChannelParameter> mapParameters(
-            AsyncApiParameters parameters) {
+    static Map<String, AsyncApiChannelParameter> mapParameters(AsyncApiParameters parameters) {
         if (parameters == null) {
             return null;
         }
@@ -60,7 +59,7 @@ final class ChannelParameterMapperV2 {
         if (names == null || names.isEmpty()) {
             return null;
         }
-        Map<String, AsyncApiChannelParameter> result = new LinkedHashMap<>();
+        Map<String, AsyncApiChannelParameter> result = new HashMap<>();
         for (String name : names) {
             AsyncApiParameter param = parameters.getItem(name);
 
@@ -73,7 +72,17 @@ final class ChannelParameterMapperV2 {
             List<String> enumValues = null;
             List<String> examples = null;
 
-            AsyncApiSchema schema = getSchema(param);
+            AsyncApiSchema schema = switch (param) {
+                case AsyncApi26Parameter typed -> typed.getSchema();
+                case AsyncApi25Parameter typed -> typed.getSchema();
+                case AsyncApi24Parameter typed -> typed.getSchema();
+                case AsyncApi23Parameter typed -> typed.getSchema();
+                case AsyncApi22Parameter typed -> typed.getSchema();
+                case AsyncApi21Parameter typed -> typed.getSchema();
+                case AsyncApi20Parameter typed -> typed.getSchema();
+                default -> null;
+            };
+
             if (schema != null) {
                 defaultValue = JsonNodeUtils.jsonNodeToString(schema.getDefault());
                 enumValues = JsonNodeUtils.jsonNodeListToStringList(schema.getEnum());
@@ -92,22 +101,4 @@ final class ChannelParameterMapperV2 {
         return result.isEmpty() ? null : result;
     }
 
-    /**
-     * Gets the schema from a parameter based on its version type.
-     *
-     * @param param the Apicurio parameter object
-     * @return the schema object, or null if not available
-     */
-    private static AsyncApiSchema getSchema(AsyncApiParameter param) {
-        return switch (param) {
-            case AsyncApi26Parameter typed -> typed.getSchema();
-            case AsyncApi25Parameter typed -> typed.getSchema();
-            case AsyncApi24Parameter typed -> typed.getSchema();
-            case AsyncApi23Parameter typed -> typed.getSchema();
-            case AsyncApi22Parameter typed -> typed.getSchema();
-            case AsyncApi21Parameter typed -> typed.getSchema();
-            case AsyncApi20Parameter typed -> typed.getSchema();
-            default -> null;
-        };
-    }
 }

@@ -31,7 +31,7 @@ import io.ballerina.asyncapi.core.model.operation.AsyncApiOperationReply;
 import io.ballerina.asyncapi.core.model.operation.AsyncApiOperationReplyAddress;
 
 import java.io.PrintStream;
-import java.util.LinkedHashMap;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -39,7 +39,7 @@ import java.util.Map;
  * Maps Apicurio OperationReply models to {@link AsyncApiOperationReply}
  * for AsyncAPI 3.0.
  */
-final class OperationReplyMapperV3 {
+public final class OperationReplyMapperV3 {
 
     private static final PrintStream outStream = System.err;
 
@@ -57,11 +57,8 @@ final class OperationReplyMapperV3 {
      * @param components the AsyncAPI components (for $ref resolution)
      * @return the mapped AsyncApiOperationReply, or null if reply is null
      */
-    static AsyncApiOperationReply mapReply(
-            AsyncApi30OperationReply reply,
-            AsyncApi30Channels rawChannels,
-            Map<String, AsyncApiChannel> channelsMap,
-            AsyncApi30Components components) {
+    public static AsyncApiOperationReply mapReply(AsyncApi30OperationReply reply, AsyncApi30Channels rawChannels,
+            Map<String, AsyncApiChannel> channelsMap, AsyncApi30Components components) {
         if (reply == null) {
             return null;
         }
@@ -80,8 +77,7 @@ final class OperationReplyMapperV3 {
      * @param address the Apicurio operation reply address object
      * @return the mapped AsyncApiOperationReplyAddress, or null if null
      */
-    static AsyncApiOperationReplyAddress mapReplyAddress(
-            AsyncApi30OperationReplyAddress address) {
+    public static AsyncApiOperationReplyAddress mapReplyAddress(AsyncApi30OperationReplyAddress address) {
         if (address == null) {
             return null;
         }
@@ -99,9 +95,8 @@ final class OperationReplyMapperV3 {
      * @param channelsMap the map of channel names to AsyncApiChannel objects
      * @return the resolved AsyncApiChannel, or null if not found
      */
-    private static AsyncApiChannel extractChannel(
-            AsyncApi30OperationReply reply,
-            Map<String, AsyncApiChannel> channelsMap) {
+    private static AsyncApiChannel extractChannel(AsyncApi30OperationReply reply,
+                                                  Map<String, AsyncApiChannel> channelsMap) {
 
         if (reply == null || channelsMap == null) {
             return null;
@@ -130,10 +125,9 @@ final class OperationReplyMapperV3 {
      * @param components the AsyncAPI components object
      * @return a map of message names to AsyncApiMessage objects, or null if no messages found
      */
-    private static Map<String, AsyncApiMessage> extractMessages(
-            AsyncApi30OperationReply reply,
-            AsyncApi30Channels rawChannels,
-            AsyncApi30Components components) {
+    private static Map<String, AsyncApiMessage> extractMessages(AsyncApi30OperationReply reply,
+                                                                AsyncApi30Channels rawChannels,
+                                                                AsyncApi30Components components) {
 
         if (reply == null) {
             return null;
@@ -144,7 +138,7 @@ final class OperationReplyMapperV3 {
             return null;
         }
 
-        Map<String, AsyncApiMessage> result = new LinkedHashMap<>();
+        Map<String, AsyncApiMessage> result = new HashMap<>();
         for (AsyncApi30Reference messageRef : messageRefs) {
             if (messageRef == null) {
                 continue;
@@ -159,18 +153,16 @@ final class OperationReplyMapperV3 {
             // Extract message name from $ref (last segment after last '/')
             String messageName = extractMessageNameFromRef($ref);
 
-            AsyncApi30Message resolved = OperationMapperV3.resolveMessageRef(
-                    $ref, rawChannels, components);
+            AsyncApi30Message resolved = OperationMapperV3.resolveMessageRef($ref, rawChannels, components);
             if (resolved == null) {
                 outStream.println("Could not resolve message $ref: " + $ref + ". Skipping.");
                 continue;
             }
 
             // Guard against chained $refs
-            if (resolved instanceof AsyncApiReferenceable resolvedRef
-                    && resolvedRef.get$ref() != null) {
-                outStream.println("Resolved message $ref points to another $ref: " +
-                        resolvedRef.get$ref() + ". Skipping.");
+            if (resolved instanceof AsyncApiReferenceable resolvedRef && resolvedRef.get$ref() != null) {
+                outStream.println("Resolved message $ref points to another $ref: " + resolvedRef.get$ref() +
+                        ". Skipping.");
                 continue;
             }
 

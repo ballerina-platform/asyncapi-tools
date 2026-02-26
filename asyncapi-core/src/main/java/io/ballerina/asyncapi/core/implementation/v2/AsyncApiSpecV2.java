@@ -70,15 +70,12 @@ public class AsyncApiSpecV2 implements AsyncApiSpec {
 
         this.contentType = asyncApiDocument.getDefaultContentType();
 
-        this.channels = ChannelMapperV2.map(asyncApiDocument.getChannels(),
-                asyncApiDocument.getComponents(),
+        this.channels = ChannelMapperV2.map(asyncApiDocument.getChannels(), asyncApiDocument.getComponents(),
                 this.servers);
 
-        this.operations = OperationMapperV2.map(asyncApiDocument.getChannels(),
-                asyncApiDocument.getComponents());
+        this.operations = OperationMapperV2.map(asyncApiDocument.getChannels(), asyncApiDocument.getComponents());
 
-        this.components = ComponentMapperV2.map(
-                asyncApiDocument.getComponents());
+        this.components = ComponentMapperV2.map(asyncApiDocument.getComponents());
 
         if (asyncApiDocument instanceof Extensible extensible) {
             this.extensions = extensible.getExtensions();

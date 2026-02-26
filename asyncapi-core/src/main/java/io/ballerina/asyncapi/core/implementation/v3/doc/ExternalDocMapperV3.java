@@ -57,9 +57,9 @@ public final class ExternalDocMapperV3 {
                 LOG.warn("Could not resolve $ref: {}. Skipping externalDocs.", $ref);
                 return null;
             }
-            if (resolved instanceof AsyncApiReferenceable resolvedTyped
-                    && resolvedTyped.get$ref() != null) {
-                LOG.warn("Resolved $ref points to another $ref: {}. Skipping externalDocs.", resolvedTyped.get$ref());
+            if (resolved instanceof AsyncApiReferenceable resolvedTyped && resolvedTyped.get$ref() != null) {
+                LOG.warn("Resolved $ref points to another $ref: {}. Skipping externalDocs.",
+                        resolvedTyped.get$ref());
                 return null;
             }
             return map(resolved, components);

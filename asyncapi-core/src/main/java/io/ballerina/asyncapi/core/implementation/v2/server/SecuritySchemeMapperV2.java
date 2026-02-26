@@ -80,9 +80,8 @@ public final class SecuritySchemeMapperV2 {
      * @param schemeLookup the security scheme definitions from components
      * @return the mapped security schemes list, or null if empty
      */
-    static List<AsyncApiSecurityScheme> mapSecurity(
-            List<SecurityRequirement> requirements,
-            Map<String, SecurityScheme> schemeLookup) {
+    static List<AsyncApiSecurityScheme> mapSecurity(List<SecurityRequirement> requirements,
+                                                    Map<String, SecurityScheme> schemeLookup) {
         if (requirements == null || requirements.isEmpty() || schemeLookup == null) {
             return null;
         }
@@ -109,8 +108,8 @@ public final class SecuritySchemeMapperV2 {
      * @param flows the Apicurio OAuth flows object
      * @return the mapped AsyncApiOAuthFlows, or null if flows is null
      */
-    private static io.ballerina.asyncapi.core.model.security.AsyncApiOAuthFlows
-            mapOAuthFlows(AsyncApiOAuthFlows flows) {
+    private static io.ballerina.asyncapi.core.model.security.AsyncApiOAuthFlows mapOAuthFlows(
+            AsyncApiOAuthFlows flows) {
         if (flows == null) {
             return null;
         }

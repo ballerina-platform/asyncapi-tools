@@ -22,7 +22,7 @@ import io.apicurio.datamodels.models.asyncapi.v30.AsyncApi30SecurityScheme;
 import io.ballerina.asyncapi.core.implementation.v3.server.SecuritySchemeMapperV3;
 import io.ballerina.asyncapi.core.model.security.AsyncApiSecurityScheme;
 
-import java.util.LinkedHashMap;
+import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -42,13 +42,12 @@ final class ComponentSecuritySchemeMapperV3 {
      * @param schemes the Apicurio security schemes map
      * @return the mapped security schemes map, or null if empty
      */
-    static Map<String, AsyncApiSecurityScheme> map(
-            Map<String, SecurityScheme> schemes) {
+    static Map<String, AsyncApiSecurityScheme> map(Map<String, SecurityScheme> schemes) {
         if (schemes == null || schemes.isEmpty()) {
             return null;
         }
 
-        Map<String, AsyncApiSecurityScheme> result = new LinkedHashMap<>();
+        Map<String, AsyncApiSecurityScheme> result = new HashMap<>();
         for (Map.Entry<String, SecurityScheme> entry : schemes.entrySet()) {
             if (entry.getValue() instanceof AsyncApi30SecurityScheme typed) {
                 result.put(entry.getKey(), SecuritySchemeMapperV3.map(typed, null));

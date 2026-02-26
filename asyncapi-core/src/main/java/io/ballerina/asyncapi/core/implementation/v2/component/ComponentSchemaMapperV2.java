@@ -46,8 +46,7 @@ final class ComponentSchemaMapperV2 {
      * @param components the Apicurio components object
      * @return the map of schema names to schema objects, or null if no schemas
      */
-    static Map<String, io.ballerina.asyncapi.core.model.component.AsyncApiSchema>
-    map(AsyncApiComponents components) {
+    static Map<String, io.ballerina.asyncapi.core.model.component.AsyncApiSchema> map(AsyncApiComponents components) {
         if (components == null) {
             return null;
         }
@@ -67,11 +66,9 @@ final class ComponentSchemaMapperV2 {
             return null;
         }
 
-        Map<String, io.ballerina.asyncapi.core.model.component.AsyncApiSchema> result =
-                new LinkedHashMap<>();
+        Map<String, io.ballerina.asyncapi.core.model.component.AsyncApiSchema> result = new LinkedHashMap<>();
         rawSchemas.forEach((key, schema) -> {
-            io.ballerina.asyncapi.core.model.component.AsyncApiSchema mapped =
-                    SchemaMapper.map(schema);
+            io.ballerina.asyncapi.core.model.component.AsyncApiSchema mapped = SchemaMapper.map(schema);
             if (mapped != null) {
                 result.put(key, mapped);
             }

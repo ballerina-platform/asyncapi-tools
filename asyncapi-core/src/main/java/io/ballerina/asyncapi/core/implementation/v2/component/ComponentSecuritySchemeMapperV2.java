@@ -41,16 +41,14 @@ final class ComponentSecuritySchemeMapperV2 {
      * @param schemes the Apicurio security schemes map
      * @return the mapped security schemes map, or null if empty
      */
-    static Map<String, AsyncApiSecurityScheme> map(
-            Map<String, ? extends SecurityScheme> schemes) {
+    static Map<String, AsyncApiSecurityScheme> map(Map<String, ? extends SecurityScheme> schemes) {
         if (schemes == null || schemes.isEmpty()) {
             return null;
         }
 
         Map<String, AsyncApiSecurityScheme> result = new LinkedHashMap<>();
         for (Map.Entry<String, ? extends SecurityScheme> entry : schemes.entrySet()) {
-            if (entry.getValue() instanceof
-                    io.apicurio.datamodels.models.asyncapi.AsyncApiSecurityScheme typed) {
+            if (entry.getValue() instanceof io.apicurio.datamodels.models.asyncapi.AsyncApiSecurityScheme typed) {
                 result.put(entry.getKey(), SecuritySchemeMapperV2.map(typed));
             }
         }

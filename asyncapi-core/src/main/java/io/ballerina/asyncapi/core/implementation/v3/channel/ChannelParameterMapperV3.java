@@ -22,7 +22,7 @@ import io.apicurio.datamodels.models.asyncapi.AsyncApiParameters;
 import io.apicurio.datamodels.models.asyncapi.v30.AsyncApi30Parameter;
 import io.ballerina.asyncapi.core.model.channel.AsyncApiChannelParameter;
 
-import java.util.LinkedHashMap;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -43,8 +43,7 @@ public final class ChannelParameterMapperV3 {
      * @param parameters the Apicurio parameters object
      * @return the mapped parameters map, or null if parameters is null or empty
      */
-    public static Map<String, AsyncApiChannelParameter> mapParameters(
-            AsyncApiParameters parameters) {
+    public static Map<String, AsyncApiChannelParameter> mapParameters(AsyncApiParameters parameters) {
         if (parameters == null) {
             return null;
         }
@@ -52,34 +51,21 @@ public final class ChannelParameterMapperV3 {
         if (names == null || names.isEmpty()) {
             return null;
         }
-        Map<String, AsyncApiChannelParameter> result = new LinkedHashMap<>();
+        Map<String, AsyncApiChannelParameter> result = new HashMap<>();
         for (String name : names) {
             AsyncApiParameter param = parameters.getItem(name);
-            AsyncApiChannelParameter mapped = mapParameter(param);
-            if (mapped != null) {
-                result.put(name, mapped);
+            // Add additional version checks here as new AsyncAPI 3.x versions are supported.
+            if (param instanceof AsyncApi30Parameter typed) {
+                result.put(name, new AsyncApiChannelParameter(
+                        typed.getDescription(),
+                        typed.getDefault(),
+                        typed.getEnum(),
+                        typed.getExamples(),
+                        typed.getLocation(),
+                        typed.getExtensions()
+                ));
             }
         }
         return result.isEmpty() ? null : result;
-    }
-
-    /**
-     * Maps a single Apicurio {@link AsyncApiParameter} to {@link AsyncApiChannelParameter}.
-     *
-     * @param param the Apicurio parameter object
-     * @return the mapped AsyncApiChannelParameter
-     */
-    public static AsyncApiChannelParameter mapParameter(AsyncApiParameter param) {
-        return switch (param) {
-            case AsyncApi30Parameter typed -> new AsyncApiChannelParameter(
-                    typed.getDescription(),
-                    typed.getDefault(),
-                    typed.getEnum(),
-                    typed.getExamples(),
-                    typed.getLocation(),
-                    typed.getExtensions()
-            );
-            default -> null;
-        };
     }
 }

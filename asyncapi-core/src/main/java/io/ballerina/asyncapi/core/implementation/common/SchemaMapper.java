@@ -51,8 +51,7 @@ public final class SchemaMapper {
      * @param schema the Apicurio schema object
      * @return the mapped AsyncApiSchema, or null if schema is null
      */
-    public static io.ballerina.asyncapi.core.model.component.AsyncApiSchema map(
-            AsyncApiSchema schema) {
+    public static io.ballerina.asyncapi.core.model.component.AsyncApiSchema map(AsyncApiSchema schema) {
         if (schema == null) {
             return null;
         }
@@ -63,8 +62,7 @@ public final class SchemaMapper {
             var bsu = schema.getAdditionalProperties();
             if (bsu.isBoolean()) {
                 additionalProps = bsu.asBoolean();
-            } else if (bsu.isSchema()
-                    && bsu.asSchema() instanceof AsyncApiSchema typedSchema) {
+            } else if (bsu.isSchema() && bsu.asSchema() instanceof AsyncApiSchema typedSchema) {
                 additionalProps = map(typedSchema);
             }
         }
@@ -73,15 +71,12 @@ public final class SchemaMapper {
         Object items = null;
         if (schema.getItems() != null) {
             var ssl = schema.getItems();
-            if (ssl.isSchema()
-                    && ssl.asSchema() instanceof AsyncApiSchema typedSchema) {
+            if (ssl.isSchema() && ssl.asSchema() instanceof AsyncApiSchema typedSchema) {
                 items = map(typedSchema);
             } else if (ssl.isSchemaList()) {
-                List<io.ballerina.asyncapi.core.model.component.AsyncApiSchema> list =
-                        ssl.asSchemaList().stream()
+                List<io.ballerina.asyncapi.core.model.component.AsyncApiSchema> list = ssl.asSchemaList().stream()
                                 .filter(e -> e instanceof AsyncApiSchema)
-                                .map(e -> map((AsyncApiSchema) e))
-                                .filter(Objects::nonNull)
+                                .map(e -> map((AsyncApiSchema) e)).filter(Objects::nonNull)
                                 .toList();
                 items = list.isEmpty() ? null : list;
             }
@@ -93,8 +88,7 @@ public final class SchemaMapper {
             properties = new LinkedHashMap<>();
             for (Map.Entry<String, ? extends Schema> entry : schema.getProperties().entrySet()) {
                 if (entry.getValue() instanceof AsyncApiSchema typedSchema) {
-                    io.ballerina.asyncapi.core.model.component.AsyncApiSchema mapped =
-                            map(typedSchema);
+                    io.ballerina.asyncapi.core.model.component.AsyncApiSchema mapped = map(typedSchema);
                     if (mapped != null) {
                         properties.put(entry.getKey(), mapped);
                     }
@@ -106,8 +100,7 @@ public final class SchemaMapper {
         }
 
         // allOf: List<Schema> — filter to AsyncApiSchema before mapping
-        List<io.ballerina.asyncapi.core.model.component.AsyncApiSchema> allOf =
-                mapBaseSchemaList(schema.getAllOf());
+        List<io.ballerina.asyncapi.core.model.component.AsyncApiSchema> allOf = mapBaseSchemaList(schema.getAllOf());
 
         Map<String, JsonNode> extensions = null;
         if (schema instanceof AsyncApiExtensible extensible) {
@@ -173,16 +166,13 @@ public final class SchemaMapper {
      * @param list the Apicurio schema list
      * @return the mapped list, or null if empty
      */
-    private static List<io.ballerina.asyncapi.core.model.component.AsyncApiSchema>
-            mapAsyncSchemaList(List<? extends AsyncApiSchema> list) {
+    private static List<io.ballerina.asyncapi.core.model.component.AsyncApiSchema> mapAsyncSchemaList(
+            List<? extends AsyncApiSchema> list) {
         if (list == null || list.isEmpty()) {
             return null;
         }
-        List<io.ballerina.asyncapi.core.model.component.AsyncApiSchema> result =
-                list.stream()
-                        .map(SchemaMapper::map)
-                        .filter(Objects::nonNull)
-                        .toList();
+        List<io.ballerina.asyncapi.core.model.component.AsyncApiSchema> result = list.stream()
+                        .map(SchemaMapper::map).filter(Objects::nonNull).toList();
         return result.isEmpty() ? null : result;
     }
 
@@ -194,17 +184,15 @@ public final class SchemaMapper {
      * @param list the Apicurio schema list using the base Schema type
      * @return the mapped list, or null if empty
      */
-    private static List<io.ballerina.asyncapi.core.model.component.AsyncApiSchema>
-            mapBaseSchemaList(List<? extends Schema> list) {
+    private static List<io.ballerina.asyncapi.core.model.component.AsyncApiSchema> mapBaseSchemaList(
+            List<? extends Schema> list) {
         if (list == null || list.isEmpty()) {
             return null;
         }
-        List<io.ballerina.asyncapi.core.model.component.AsyncApiSchema> result =
-                list.stream()
+        List<io.ballerina.asyncapi.core.model.component.AsyncApiSchema> result = list.stream()
                         .filter(s -> s instanceof AsyncApiSchema)
                         .map(s -> map((AsyncApiSchema) s))
-                        .filter(Objects::nonNull)
-                        .toList();
+                        .filter(Objects::nonNull).toList();
         return result.isEmpty() ? null : result;
     }
 

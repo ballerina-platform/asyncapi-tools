@@ -35,7 +35,7 @@ import java.util.Map;
  * {@link io.ballerina.asyncapi.core.model.operation.AsyncApiOperationTrait}
  * for AsyncAPI 3.0.
  */
-final class OperationTraitMapperV3 {
+public final class OperationTraitMapperV3 {
 
     private OperationTraitMapperV3() {
 
@@ -48,8 +48,8 @@ final class OperationTraitMapperV3 {
      * @param traits the Apicurio operation traits list
      * @return the mapped traits list, or null if empty
      */
-    static List<io.ballerina.asyncapi.core.model.operation.AsyncApiOperationTrait>
-            mapTraits(List<? extends AsyncApiOperationTrait> traits, AsyncApiComponents components) {
+    static List<io.ballerina.asyncapi.core.model.operation.AsyncApiOperationTrait> mapTraits(
+            List<? extends AsyncApiOperationTrait> traits, AsyncApiComponents components) {
         if (traits == null || traits.isEmpty()) {
             return null;
         }
@@ -65,8 +65,8 @@ final class OperationTraitMapperV3 {
      * @param trait the Apicurio operation trait object
      * @return the mapped AsyncApiOperationTrait
      */
-    static io.ballerina.asyncapi.core.model.operation.AsyncApiOperationTrait
-            map(AsyncApiOperationTrait trait, AsyncApiComponents components) {
+    public static io.ballerina.asyncapi.core.model.operation.AsyncApiOperationTrait map(AsyncApiOperationTrait trait,
+                                                                                        AsyncApiComponents components) {
         String title = null;
         List<AsyncApiSecurityScheme> security = null;
         Map<String, JsonNode> extensions = null;

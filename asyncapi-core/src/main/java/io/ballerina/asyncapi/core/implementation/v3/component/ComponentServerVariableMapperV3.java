@@ -39,8 +39,7 @@ final class ComponentServerVariableMapperV3 {
      * @param variables the Apicurio server variables map
      * @return the mapped variables map, or null if empty
      */
-    static Map<String, AsyncApiServerVariable> map(
-            Map<String, AsyncApi30ServerVariable> variables) {
+    static Map<String, AsyncApiServerVariable> map(Map<String, AsyncApi30ServerVariable> variables) {
         if (variables == null || variables.isEmpty()) {
             return null;
         }

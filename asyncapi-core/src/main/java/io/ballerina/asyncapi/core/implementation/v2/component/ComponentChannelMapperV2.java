@@ -29,8 +29,10 @@ import io.apicurio.datamodels.models.asyncapi.v26.AsyncApi26Components;
 import io.ballerina.asyncapi.core.implementation.v2.channel.ChannelMapperV2;
 import io.ballerina.asyncapi.core.model.channel.AsyncApiChannel;
 
-import java.util.LinkedHashMap;
+import java.util.HashMap;
 import java.util.Map;
+
+import static io.ballerina.asyncapi.core.implementation.v2.channel.ChannelMapperV2.mapChannelItem;
 
 /**
  * Maps channel definitions from AsyncAPI 2.x components.
@@ -69,11 +71,10 @@ final class ComponentChannelMapperV2 {
             return null;
         }
 
-        Map<String, AsyncApiChannel> result =
-                new LinkedHashMap<>();
+        Map<String, AsyncApiChannel> result = new HashMap<>();
         rawChannels.forEach((name, channelItem) -> {
             if (channelItem != null) {
-                AsyncApiChannel mapped = ChannelMapperV2.mapChannel(name, channelItem, components);
+                AsyncApiChannel mapped = mapChannel(name, channelItem, components);
                 if (mapped != null) {
                     result.put(name, mapped);
                 }
@@ -81,5 +82,24 @@ final class ComponentChannelMapperV2 {
         });
 
         return result.isEmpty() ? null : result;
+    }
+
+    /**
+     * Maps a single Apicurio channel item to {@link AsyncApiChannel}.
+     *
+     * @param name        the channel name (used as address in v2)
+     * @param channelItem the Apicurio channel item object
+     * @param components  the AsyncAPI components (for $ref resolution)
+     * @return the mapped AsyncApiChannel, or null if channelItem is null
+     */
+    public static AsyncApiChannel mapChannel(
+            String name,
+            AsyncApiChannelItem channelItem,
+            AsyncApiComponents components) {
+        if (channelItem == null) {
+            return null;
+        }
+        // Component channels don't have server references to resolve, pass null for serversMap
+        return ChannelMapperV2.mapChannelItem(name, channelItem, components, null);
     }
 }

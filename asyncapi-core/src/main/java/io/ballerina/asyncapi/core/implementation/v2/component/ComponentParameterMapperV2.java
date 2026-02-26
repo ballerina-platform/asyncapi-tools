@@ -51,8 +51,7 @@ final class ComponentParameterMapperV2 {
      * @param parameters the Apicurio parameters map
      * @return the mapped parameters map, or null if empty
      */
-    static Map<String, AsyncApiChannelParameter> map(
-            Map<String, ? extends Parameter> parameters) {
+    static Map<String, AsyncApiChannelParameter> map(Map<String, ? extends Parameter> parameters) {
         if (parameters == null || parameters.isEmpty()) {
             return null;
         }

@@ -38,30 +38,13 @@ public final class OperationTraitMapperV2 {
     }
 
     /**
-     * Maps a list of Apicurio operation traits to a list of model operation traits.
-     *
-     * @param traits the Apicurio operation traits list
-     * @return the mapped traits list, or null if empty
-     */
-    static List<io.ballerina.asyncapi.core.model.operation.AsyncApiOperationTrait>
-            mapTraits(List<? extends AsyncApiOperationTrait> traits) {
-        if (traits == null || traits.isEmpty()) {
-            return null;
-        }
-        return traits.stream()
-                .map(OperationTraitMapperV2::map)
-                .toList();
-    }
-
-    /**
      * Maps an Apicurio operation trait to a model operation trait.
      * In v2, traits have no title or security (those are v3-only).
      *
      * @param trait the Apicurio operation trait object
      * @return the mapped AsyncApiOperationTrait
      */
-    public static io.ballerina.asyncapi.core.model.operation.AsyncApiOperationTrait
-            map(AsyncApiOperationTrait trait) {
+    public static io.ballerina.asyncapi.core.model.operation.AsyncApiOperationTrait map(AsyncApiOperationTrait trait) {
         Map<String, JsonNode> extensions = null;
         if (trait instanceof AsyncApiExtensible extensible) {
             extensions = extensible.getExtensions();

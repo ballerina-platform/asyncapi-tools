@@ -48,8 +48,7 @@ public final class AsyncApiParser {
         List<ValidationProblem> problems = Library.validate(document, null);
 
         if (problems != null && !problems.isEmpty()) {
-            String errorMessages = problems.stream()
-                    .map(p -> "[" + p.errorCode + "] " + p.message + " (Path: " + p.nodePath + ")")
+            String errorMessages = problems.stream().map(p -> "[" + p.message + "]")
                     .collect(Collectors.joining(" | "));
 
             throw new AsyncApiParserException("AsyncAPI validation failed: " + errorMessages);
@@ -58,8 +57,7 @@ public final class AsyncApiParser {
 
     private static AsyncApiDocument getAsyncApiDocument(Document rootDocument) throws AsyncApiParserException {
         if (!(rootDocument instanceof AsyncApiDocument document)) {
-            throw new AsyncApiParserException(
-                    "The provided JSON is not a valid AsyncAPI document. Detected type: " +
+            throw new AsyncApiParserException("The provided JSON is not a valid AsyncAPI document. Detected type: " +
                             rootDocument.getClass().getSimpleName());
         }
 

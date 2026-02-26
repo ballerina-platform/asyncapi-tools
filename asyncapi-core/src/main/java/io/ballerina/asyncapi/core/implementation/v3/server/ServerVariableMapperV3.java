@@ -27,7 +27,7 @@ import io.ballerina.asyncapi.core.model.server.AsyncApiServerVariable;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import java.util.LinkedHashMap;
+import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -56,7 +56,7 @@ final class ServerVariableMapperV3 {
         if (variables == null || variables.isEmpty()) {
             return null;
         }
-        Map<String, AsyncApiServerVariable> result = new LinkedHashMap<>();
+        Map<String, AsyncApiServerVariable> result = new HashMap<>();
         for (Map.Entry<String, ? extends ServerVariable> entry : variables.entrySet()) {
             AsyncApiServerVariable mapped = mapOne(entry.getValue(), components);
             if (mapped != null) {
@@ -73,8 +73,7 @@ final class ServerVariableMapperV3 {
      * @param components the Apicurio components object used for ref resolution
      * @return the mapped AsyncApiServerVariable, or null for unresolvable refs
      */
-    private static AsyncApiServerVariable mapOne(
-            ServerVariable variable, AsyncApiComponents components) {
+    private static AsyncApiServerVariable mapOne(ServerVariable variable, AsyncApiComponents components) {
         String $ref = null;
         if (variable instanceof AsyncApiReferenceable referenceable) {
             $ref = referenceable.get$ref();
@@ -85,8 +84,7 @@ final class ServerVariableMapperV3 {
                 LOG.warn("Could not resolve $ref: {}. Skipping server variable.", $ref);
                 return null;
             }
-            if (resolved instanceof AsyncApiReferenceable resolvedTyped
-                    && resolvedTyped.get$ref() != null) {
+            if (resolved instanceof AsyncApiReferenceable resolvedTyped && resolvedTyped.get$ref() != null) {
                 LOG.warn("Resolved $ref points to another $ref: {}. Skipping server variable.",
                         resolvedTyped.get$ref());
                 return null;

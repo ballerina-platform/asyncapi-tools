@@ -42,8 +42,8 @@ public final class OperationBindingsMapperV2 {
      * @param bindings the Apicurio operation bindings object
      * @return the mapped AsyncApiOperationBindings, or null if bindings is null or empty
      */
-    public static io.ballerina.asyncapi.core.model.operation.AsyncApiOperationBindings
-    map(AsyncApiOperationBindings bindings) {
+    public static io.ballerina.asyncapi.core.model.operation.AsyncApiOperationBindings map(
+            AsyncApiOperationBindings bindings) {
         if (bindings == null) {
             return null;
         }
@@ -56,7 +56,6 @@ public final class OperationBindingsMapperV2 {
         if (http == null && ws == null && extensions == null) {
             return null;
         }
-        return new io.ballerina.asyncapi.core.model.operation.AsyncApiOperationBindings(
-                http, ws, extensions);
+        return new io.ballerina.asyncapi.core.model.operation.AsyncApiOperationBindings(http, ws, extensions);
     }
 }
