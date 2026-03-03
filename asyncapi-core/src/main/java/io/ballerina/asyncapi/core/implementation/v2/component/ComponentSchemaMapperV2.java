@@ -68,7 +68,8 @@ final class ComponentSchemaMapperV2 {
 
         Map<String, io.ballerina.asyncapi.core.model.component.AsyncApiSchema> result = new LinkedHashMap<>();
         rawSchemas.forEach((key, schema) -> {
-            io.ballerina.asyncapi.core.model.component.AsyncApiSchema mapped = SchemaMapper.map(schema);
+            io.ballerina.asyncapi.core.model.component.AsyncApiSchema mapped =
+                    SchemaMapper.map(schema, rawSchemas);
             if (mapped != null) {
                 result.put(key, mapped);
             }

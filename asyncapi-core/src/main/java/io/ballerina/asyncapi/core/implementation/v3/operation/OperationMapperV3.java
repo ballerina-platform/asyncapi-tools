@@ -41,7 +41,6 @@ import io.ballerina.asyncapi.core.model.tag.AsyncApiTag;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -87,7 +86,7 @@ public final class OperationMapperV3 {
         for (String operationId : operationIds) {
             Object item = operations.getItem(operationId);
             if (item instanceof AsyncApi30Operation op) {
-                AsyncApiOperation mapped = buildOperation(op, rawChannels, channelsMap, components);
+                AsyncApiOperation mapped = mapOperationItem(op, rawChannels, channelsMap, components);
                 if (mapped != null) {
                     result.put(operationId, mapped);
                 }
@@ -106,7 +105,7 @@ public final class OperationMapperV3 {
      * @param components  the AsyncAPI components (for $ref resolution)
      * @return the mapped AsyncApiOperation, or null if operation type is not supported
      */
-    public static AsyncApiOperation buildOperation(io.apicurio.datamodels.models.asyncapi.AsyncApiOperation operation,
+    public static AsyncApiOperation mapOperationItem(io.apicurio.datamodels.models.asyncapi.AsyncApiOperation operation,
             AsyncApiChannels rawChannels, Map<String, AsyncApiChannel> channelsMap, AsyncApi30Components components) {
         if (!(operation instanceof AsyncApi30Operation typed)) {
             // Add additional version branches here as new AsyncAPI 3.x versions are supported
@@ -135,10 +134,10 @@ public final class OperationMapperV3 {
             }
         }
 
-        List<io.ballerina.asyncapi.core.model.message.AsyncApiMessage> messages = null;
+        Map<String, io.ballerina.asyncapi.core.model.message.AsyncApiMessage> messages = null;
         List<AsyncApi30Reference> messageRefs = typed.getMessages();
         if (messageRefs != null && !messageRefs.isEmpty()) {
-            List<io.ballerina.asyncapi.core.model.message.AsyncApiMessage> msgResult = new ArrayList<>();
+            Map<String, io.ballerina.asyncapi.core.model.message.AsyncApiMessage> msgMap = new HashMap<>();
             for (AsyncApi30Reference messageRef : messageRefs) {
                 if (messageRef == null) {
                     continue;
@@ -148,6 +147,7 @@ public final class OperationMapperV3 {
                     LOG.warn("Operation message reference has no $ref. Skipping.");
                     continue;
                 }
+                String messageName = $ref.substring($ref.lastIndexOf('/') + 1);
                 AsyncApi30Message resolved = resolveMessageRef($ref, typedChannels, components);
                 if (resolved == null) {
                     LOG.warn("Could not resolve message $ref: {}. Skipping.", $ref);
@@ -158,18 +158,19 @@ public final class OperationMapperV3 {
                             resolvedRef.get$ref());
                     continue;
                 }
-                io.ballerina.asyncapi.core.model.message.AsyncApiMessage mapped = MessageMapperV3.map(resolved);
+                io.ballerina.asyncapi.core.model.message.AsyncApiMessage mapped =
+                        MessageMapperV3.mapMessageItem(resolved, components);
                 if (mapped != null) {
-                    msgResult.add(mapped);
+                    msgMap.put(messageName, mapped);
                 }
             }
-            messages = msgResult.isEmpty() ? null : msgResult;
+            messages = msgMap.isEmpty() ? null : msgMap;
         }
 
         List<AsyncApiTag> tags = null;
         if (typed.getTags() != null) {
             tags = typed.getTags().stream()
-                    .map(tag -> TagMapperV3.map(tag, null))
+                    .map(tag -> TagMapperV3.map(tag, components))
                     .toList();
         }
         return new AsyncApiOperation(
@@ -179,10 +180,10 @@ public final class OperationMapperV3 {
                 typed.getSummary(),
                 typed.getDescription(),
                 messages,
-                SecuritySchemeMapperV3.mapSecurityList(typed.getSecurity(), components),
+                SecuritySchemeMapperV3.map(typed.getSecurity(), components),
                 OperationReplyMapperV3.mapReply(typed.getReply(), typedChannels, channelsMap, components),
                 tags,
-                ExternalDocMapperV3.map((AsyncApiExternalDocumentation) typed.getExternalDocs(), null),
+                ExternalDocMapperV3.map((AsyncApiExternalDocumentation) typed.getExternalDocs(), components),
                 OperationBindingsMapperV3.map(typed.getBindings()),
                 OperationTraitMapperV3.mapTraits(typed.getTraits(), components),
                 typed.getExtensions()
@@ -261,6 +262,10 @@ public final class OperationMapperV3 {
             AsyncApi30Message message = channelMessages.get(messageName);
             if (message == null) {
                 LOG.warn("Message '{}' not found in channel '{}'", messageName, channelName);
+                return null;
+            }
+            if (message instanceof AsyncApiReferenceable refMsg && refMsg.get$ref() != null) {
+                return resolveMessageRef(refMsg.get$ref(), rawChannels, components);
             }
             return message;
         }

@@ -17,9 +17,10 @@
  */
 package io.ballerina.asyncapi.core.implementation.v2.operation;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import io.apicurio.datamodels.models.asyncapi.AsyncApiBinding;
+import io.ballerina.asyncapi.core.implementation.common.SchemaMapper;
 import io.ballerina.asyncapi.core.implementation.utils.BindingUtils;
-import io.ballerina.asyncapi.core.model.component.AsyncApiSchema;
 import io.ballerina.asyncapi.core.model.operation.HttpOperationBindings;
 import io.ballerina.asyncapi.core.model.operation.HttpOperationBindings.HttpMethod;
 
@@ -42,9 +43,9 @@ final class HttpOperationBindingMapperV2 {
             return null;
         }
         HttpMethod method = parseHttpMethod(BindingUtils.getItemAsText(binding, "method"));
-        Object query = binding.getItem("query");
+        JsonNode query = binding.getItem("query");
         String bindingVersion = BindingUtils.getItemAsText(binding, "bindingVersion");
-        return new HttpOperationBindings(method, (AsyncApiSchema) query, bindingVersion);
+        return new HttpOperationBindings(method, SchemaMapper.mapFromJsonNode(query), bindingVersion);
     }
 
     /**

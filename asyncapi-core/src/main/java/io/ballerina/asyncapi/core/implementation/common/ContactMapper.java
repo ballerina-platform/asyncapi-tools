@@ -26,12 +26,11 @@ import io.ballerina.asyncapi.core.implementation.utils.URIUtils;
 import java.util.Map;
 
 /**
- * Maps Apicurio {@link Contact} to {@link AsyncApiContact} for AsyncAPI 2.x.
+ * Maps Apicurio {@link Contact} to {@link AsyncApiContact}.
  */
 public final class ContactMapper {
 
     private ContactMapper() {
-
     }
 
     /**
@@ -45,10 +44,9 @@ public final class ContactMapper {
             return null;
         }
 
-        Map<String, JsonNode> extensions = null;
-        if (contact instanceof AsyncApiExtensible extensible) {
-            extensions = extensible.getExtensions();
-        }
+        Map<String, JsonNode> extensions = contact instanceof AsyncApiExtensible extensible
+                ? extensible.getExtensions()
+                : null;
 
         return new AsyncApiContact(
                 contact.getName(),

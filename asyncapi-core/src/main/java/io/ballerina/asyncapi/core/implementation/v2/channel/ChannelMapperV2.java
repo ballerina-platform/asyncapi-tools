@@ -45,8 +45,10 @@ import org.apache.logging.log4j.Logger;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Maps Apicurio Channel models to {@link AsyncApiChannel} for AsyncAPI 2.x.
@@ -56,12 +58,11 @@ public final class ChannelMapperV2 {
     private static final Logger LOG = LogManager.getLogger(ChannelMapperV2.class);
 
     private ChannelMapperV2() {
-
     }
 
     /**
      * Maps Apicurio {@link AsyncApiChannels} to a map of channel names to
-     * {@link AsyncApiChannel}. In v2, the channel name (map key) serves as the
+     * {@link AsyncApiChannel}. In v2, the channel id (map key) serves as the
      * channel address.
      *
      * @param channels   the Apicurio channels object
@@ -71,58 +72,36 @@ public final class ChannelMapperV2 {
      */
     public static Map<String, AsyncApiChannel> map(AsyncApiChannels channels, AsyncApiComponents components,
                                                    Map<String, AsyncApiServer> serversMap) {
-        if (channels == null) {
+        if (!(channels instanceof MappedNode<?> mappedNode) ) {
             return Collections.emptyMap();
         }
-        if (!(channels instanceof MappedNode<?> mappedNode)) {
-            return Collections.emptyMap();
-        }
-        List<String> channelNames = mappedNode.getItemNames();
-        if (channelNames == null || channelNames.isEmpty()) {
+        List<String> channelIds = mappedNode.getItemNames();
+        if (channelIds == null || channelIds.isEmpty()) {
             return Collections.emptyMap();
         }
         Map<String, AsyncApiChannel> result = new HashMap<>();
-        for (String name : channelNames) {
-            AsyncApiChannelItem channelItem = (AsyncApiChannelItem) mappedNode.getItem(name);
+        for (String id : channelIds) {
+            AsyncApiChannelItem channelItem = (AsyncApiChannelItem) mappedNode.getItem(id);
             if (channelItem != null) {
-                result.put(name, mapChannelItem(name, channelItem, components, serversMap));
+                AsyncApiChannel mapped = mapChannelItem(id, channelItem, components, serversMap);
+                if (mapped != null) {
+                    result.put(id, mapped);
+                }
             }
         }
         return result;
     }
 
-    public static AsyncApiChannel mapChannelItem(String name, AsyncApiChannelItem channelItem,
+    public static AsyncApiChannel mapChannelItem(String id, AsyncApiChannelItem channelItem,
                                                  AsyncApiComponents components,
                                                  Map<String, AsyncApiServer> serversMap) {
-        // Handle $ref
+
         if (channelItem instanceof AsyncApiReferenceable referenceable && referenceable.get$ref() != null) {
-            String $ref = referenceable.get$ref();
-            if (!$ref.startsWith(Constants.CHANNELS_REF_PREFIX)) {
-                LOG.warn("Unsupported $ref format: {}. Skipping channel.", $ref);
-                return null;
-            }
-            if (components == null) {
-                return null;
-            }
-            String channelName = $ref.substring(Constants.CHANNELS_REF_PREFIX.length());
-            Map<String, ? extends AsyncApiChannelItem> channelsMap = switch (components) {
-                case AsyncApi26Components typed -> typed.getChannels();
-                case AsyncApi25Components typed -> typed.getChannels();
-                case AsyncApi24Components typed -> typed.getChannels();
-                case AsyncApi23Components typed -> typed.getChannels();
-                default -> null;
-            };
-            AsyncApiChannelItem resolved = channelsMap != null ? channelsMap.get(channelName) : null;
+            AsyncApiChannelItem resolved = resolveChannelRef(referenceable.get$ref(), components);
             if (resolved == null) {
-                LOG.warn("Could not resolve $ref: {}. Skipping channel.", $ref);
                 return null;
             }
-            if (resolved instanceof AsyncApiReferenceable resolvedTyped && resolvedTyped.get$ref() != null) {
-                LOG.warn("Resolved $ref points to another $ref: {}. Skipping channel.",
-                        resolvedTyped.get$ref());
-                return null;
-            }
-            return mapChannelItem(name, resolved, components, serversMap);
+            return mapChannelItem(id, resolved, components, serversMap);
         }
 
         // Build channel
@@ -136,9 +115,10 @@ public final class ChannelMapperV2 {
             case AsyncApi24ChannelItem typed -> typed.getServers();
             case AsyncApi23ChannelItem typed -> typed.getServers();
             case AsyncApi22ChannelItem typed -> typed.getServers();
-            case AsyncApi21ChannelItem typed -> null;
+            case AsyncApi21ChannelItem typed -> null; // servers fields not supported in 2.0/2.1 channels
             case AsyncApi20ChannelItem typed -> null;
-            default -> null;
+            default -> throw new IllegalArgumentException("Unsupported AsyncAPI channel item version: "
+                                    + channelItem.getClass().getName());
         };
         List<AsyncApiServer> servers = null;
         if (serverNames != null && !serverNames.isEmpty() && serversMap != null) {
@@ -149,7 +129,7 @@ public final class ChannelMapperV2 {
                     servers.add(server);
                 } else {
                     LOG.warn("Server reference '{}' in channel '{}' not found in servers map. Skipping.",
-                            serverName, name);
+                            serverName, id);
                 }
             }
             if (servers.isEmpty()) {
@@ -157,17 +137,63 @@ public final class ChannelMapperV2 {
             }
         }
         return new AsyncApiChannel(
-                name,
-                MessageMapperV2.extractMessages(channelItem, components),
-                null,
-                null,
+                id,
+                MessageMapperV2.map(channelItem, components),
+                null, //there is no channel title in 2.x
+                null, //there is no channel summary in 2.x
                 channelItem.getDescription(),
                 servers,
-                ChannelParameterMapperV2.mapParameters(channelItem.getParameters()),
-                null,
-                null,
+                ChannelParameterMapperV2.map(channelItem.getParameters(), components),
+                null, //there is no channel tags in 2.x
+                null, //there is no channel external docs in 2.x
                 ChannelBindingsMapperV2.map(channelItem.getBindings(), components),
                 extensions
         );
+    }
+
+    /**
+     * Resolves a channel {@code $ref} string, following any chain of refs, to the
+     * final concrete {@link AsyncApiChannelItem}. Detects cyclic references.
+     *
+     * @param $ref       the initial $ref string (e.g., "#/components/channels/myChannel")
+     * @param components the AsyncAPI components used for lookup
+     * @return the concrete channel item, or {@code null} if resolution fails
+     */
+    private static AsyncApiChannelItem resolveChannelRef(String $ref, AsyncApiComponents components) {
+        if (components == null) {
+            LOG.warn("Cannot resolve $ref: {}. Components is null.", $ref);
+            return null;
+        }
+        Set<String> visited = new HashSet<>();
+        String current = $ref;
+        while (current != null) {
+            if (!current.startsWith(Constants.CHANNELS_REF_PREFIX)) {
+                LOG.warn("Unsupported $ref format: {}. Skipping channel.", current);
+                return null;
+            }
+            if (!visited.add(current)) {
+                LOG.warn("Cyclic $ref detected: {}. Skipping channel.", current);
+                return null;
+            }
+            String channelId = current.substring(Constants.CHANNELS_REF_PREFIX.length());
+            Map<String, ? extends AsyncApiChannelItem> channelsMap = switch (components) {
+                case AsyncApi26Components typed -> typed.getChannels();
+                case AsyncApi25Components typed -> typed.getChannels();
+                case AsyncApi24Components typed -> typed.getChannels();
+                case AsyncApi23Components typed -> typed.getChannels();
+                default -> null;
+            };
+            AsyncApiChannelItem resolved = channelsMap != null ? channelsMap.get(channelId) : null;
+            if (resolved == null) {
+                LOG.warn("Could not resolve $ref: '{}'. No matching channel found.", current);
+                return null;
+            }
+            if (resolved instanceof AsyncApiReferenceable resolvedTyped && resolvedTyped.get$ref() != null) {
+                current = resolvedTyped.get$ref();
+            } else {
+                return resolved;
+            }
+        }
+        return null;
     }
 }

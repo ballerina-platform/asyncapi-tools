@@ -30,7 +30,9 @@ import io.ballerina.asyncapi.core.model.message.AsyncApiMessage;
 import io.ballerina.asyncapi.core.model.operation.AsyncApiOperationReply;
 import io.ballerina.asyncapi.core.model.operation.AsyncApiOperationReplyAddress;
 
-import java.io.PrintStream;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -41,7 +43,7 @@ import java.util.Map;
  */
 public final class OperationReplyMapperV3 {
 
-    private static final PrintStream outStream = System.err;
+    private static final Logger LOG = LogManager.getLogger(OperationReplyMapperV3.class);
 
     private OperationReplyMapperV3() {
 
@@ -109,7 +111,7 @@ public final class OperationReplyMapperV3 {
 
         String $ref = channelRef.get$ref();
         if ($ref == null) {
-            outStream.println("Reply channel reference has no $ref. Skipping.");
+            LOG.warn("Reply channel reference has no $ref. Skipping.");
             return null;
         }
 
@@ -146,7 +148,7 @@ public final class OperationReplyMapperV3 {
 
             String $ref = messageRef.get$ref();
             if ($ref == null) {
-                outStream.println("Reply message reference has no $ref. Skipping.");
+                LOG.warn("Reply message reference has no $ref. Skipping.");
                 continue;
             }
 
@@ -155,18 +157,17 @@ public final class OperationReplyMapperV3 {
 
             AsyncApi30Message resolved = OperationMapperV3.resolveMessageRef($ref, rawChannels, components);
             if (resolved == null) {
-                outStream.println("Could not resolve message $ref: " + $ref + ". Skipping.");
+                LOG.warn("Could not resolve message $ref: {}. Skipping.", $ref);
                 continue;
             }
 
             // Guard against chained $refs
             if (resolved instanceof AsyncApiReferenceable resolvedRef && resolvedRef.get$ref() != null) {
-                outStream.println("Resolved message $ref points to another $ref: " + resolvedRef.get$ref() +
-                        ". Skipping.");
+                LOG.warn("Resolved message $ref points to another $ref: {}. Skipping.", resolvedRef.get$ref());
                 continue;
             }
 
-            AsyncApiMessage mapped = MessageMapperV3.map(resolved);
+            AsyncApiMessage mapped = MessageMapperV3.mapMessageItem(resolved, components);
             if (mapped != null) {
                 result.put(messageName, mapped);
             }

@@ -33,8 +33,14 @@ public final class Constants {
     public static final String SERVER_VARIABLES_REF_PREFIX = "#/components/serverVariables/";
     public static final String SECURITY_SCHEMES_REF_PREFIX = "#/components/securitySchemes/";
     public static final String V3_CHANNELS_REF_PREFIX = "#/channels/";
+    public static final String V3_SERVERS_REF_PREFIX = "#/servers/";
     public static final String MESSAGES_REF_PREFIX = "#/components/messages/";
+    public static final String SCHEMAS_REF_PREFIX = "#/components/schemas/";
     public static final String CHANNEL_BINDINGS_REF_PREFIX = "#/components/channelBindings/";
+    public static final String PARAMETERS_REF_PREFIX = "#/components/parameters/";
+    public static final String MESSAGE_TRAITS_REF_PREFIX = "#/components/messageTraits/";
+
+    public static final String X_BALLERINA_EVENT_TYPE = "x-ballerina-event-type";
 
     private Constants() {
     }

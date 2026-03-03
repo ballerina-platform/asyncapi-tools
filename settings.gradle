@@ -50,7 +50,6 @@ include(':native.handler:java-wrapper')
 include(':asyncapi-cli')
 include(':asyncapi-core')
 include(':asyncapi-generator')
-include(':asyncapi-cmd')
 include(':asyncapi-tool')
 project(':checkstyle').projectDir = file("config${File.separator}checkstyle")
 gradleEnterprise {

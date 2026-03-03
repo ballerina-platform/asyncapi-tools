@@ -35,7 +35,7 @@ import java.util.Map;
  * @param title       A human-friendly title for the operation.
  * @param summary     A short summary of the operation.
  * @param description A verbose description of the operation.
- * @param messages    A list of messages associated with this operation.
+ * @param messages    A map of message names to their definitions for this operation.
  * @param security    A list of security mechanisms available for this operation.
  * @param reply       The definition of the reply for this operation.
  * @param tags        A list of tags for API documentation control.
@@ -50,7 +50,7 @@ public record AsyncApiOperation(
         String title,
         String summary,
         String description,
-        List<AsyncApiMessage> messages,
+        Map<String, AsyncApiMessage> messages,
         List<AsyncApiSecurityScheme> security,
         AsyncApiOperationReply reply,
         List<AsyncApiTag> tags,

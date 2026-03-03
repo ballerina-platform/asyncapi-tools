@@ -33,7 +33,6 @@ import java.util.Map;
 public final class TagMapperV3 {
 
     private TagMapperV3() {
-
     }
 
     /**
@@ -46,14 +45,19 @@ public final class TagMapperV3 {
         if (tag == null) {
             return null;
         }
-        Map<String, JsonNode> extensions = null;
-        if (tag instanceof AsyncApiExtensible extensible) {
-            extensions = extensible.getExtensions();
-        }
+
+        Map<String, JsonNode> extensions = tag instanceof AsyncApiExtensible extensible
+                ? extensible.getExtensions()
+                : null;
+
+        AsyncApiExternalDocumentation externalDocs = tag.getExternalDocs() instanceof AsyncApiExternalDocumentation doc
+                ? doc
+                : null;
+
         return new AsyncApiTag(
                 tag.getName(),
                 tag.getDescription(),
-                ExternalDocMapperV3.map((AsyncApiExternalDocumentation) tag.getExternalDocs(), components),
+                ExternalDocMapperV3.map(externalDocs, components),
                 extensions
         );
     }

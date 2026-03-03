@@ -44,7 +44,6 @@ import java.util.Map;
 public final class InfoMapperV3 {
 
     private InfoMapperV3() {
-
     }
 
     /**
@@ -57,16 +56,15 @@ public final class InfoMapperV3 {
     public static AsyncApiInfo map(Info info, AsyncApiComponents components) {
         AsyncApiExternalDocumentation documentExternalDocs = null;
         List<? extends Tag> documentTags = null;
-        Map<String, JsonNode> extensions = null;
 
         if (info instanceof AsyncApi30Info typedInfo) {
             documentExternalDocs = typedInfo.getExternalDocs();
             documentTags = typedInfo.getTags();
+        }   else {
+            throw new IllegalArgumentException("Unsupported Info type for AsyncAPI 3.0: " + info.getClass().getName());
         }
 
-        if (info instanceof AsyncApiExtensible extensible) {
-            extensions = extensible.getExtensions();
-        }
+        Map<String, JsonNode> extensions = ((AsyncApiExtensible) info).getExtensions();
 
         List<AsyncApiTag> tags = null;
         if (documentTags != null) {

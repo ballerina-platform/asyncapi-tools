@@ -66,12 +66,12 @@ public final class ComponentMapperV2 {
                 ComponentServerMapperV2.mapComponentServerVariables(components),
                 ComponentChannelMapperV2.map(components),
                 null, // operations - not in AsyncAPI 2.x components
-                mapValues(components.getMessages(), MessageMapperV2::map),
+                mapValues(components.getMessages(), msg -> MessageMapperV2.mapMessageItem(msg, components)),
                 ComponentSecuritySchemeMapperV2.map(components.getSecuritySchemes()),
                 ComponentParameterMapperV2.map(components.getParameters()),
                 mapValues(components.getCorrelationIds(), CorrelationIdMapperV2::map),
                 mapValues(components.getOperationTraits(), OperationTraitMapperV2::map),
-                mapValues(components.getMessageTraits(), MessageTraitMapperV2::map),
+                mapValues(components.getMessageTraits(), trait -> MessageTraitMapperV2.map(trait, components)),
                 null, // replies - not in AsyncAPI 2.x
                 null, // replyAddresses - not in AsyncAPI 2.x
                 null, // externalDocs - not in AsyncAPI 2.x components

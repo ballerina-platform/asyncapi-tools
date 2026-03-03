@@ -30,13 +30,15 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Maps Apicurio {@link ServerVariable} to {@link AsyncApiServerVariable}
  * for AsyncAPI 2.x.
  */
-public final class ServerVariableMapperV2 {
+final class ServerVariableMapperV2 {
 
     private static final Logger LOG = LogManager.getLogger(ServerVariableMapperV2.class);
 
@@ -53,14 +55,14 @@ public final class ServerVariableMapperV2 {
      *                   (may be null)
      * @return the mapped variables map, or null if variables is null or empty
      */
-    public static Map<String, AsyncApiServerVariable> mapVariables(Map<String, ? extends ServerVariable> variables,
+    static Map<String, AsyncApiServerVariable> map(Map<String, ? extends ServerVariable> variables,
                                                                    AsyncApiComponents components) {
         if (variables == null || variables.isEmpty()) {
             return null;
         }
         Map<String, AsyncApiServerVariable> result = new HashMap<>();
         for (Map.Entry<String, ? extends ServerVariable> entry : variables.entrySet()) {
-            AsyncApiServerVariable mapped = mapOne(entry.getValue(), components);
+            AsyncApiServerVariable mapped = mapVariableItem(entry.getValue(), components);
             if (mapped != null) {
                 result.put(entry.getKey(), mapped);
             }
@@ -71,11 +73,11 @@ public final class ServerVariableMapperV2 {
     /**
      * Maps a single Apicurio {@link ServerVariable}, resolving any {@code $ref}
      *
-     * @param variable   the Apicurio server variable object (may be a reference)
+     * @param variable   the Apicurio server variable object (maybe a reference)
      * @param components the Apicurio components object used for ref resolution
      * @return the mapped AsyncApiServerVariable, or null for unresolvable refs
      */
-    private static AsyncApiServerVariable mapOne(ServerVariable variable, AsyncApiComponents components) {
+    private static AsyncApiServerVariable mapVariableItem(ServerVariable variable, AsyncApiComponents components) {
         String $ref = null;
         if (variable instanceof AsyncApiReferenceable referenceable) {
             $ref = referenceable.get$ref();
@@ -86,13 +88,7 @@ public final class ServerVariableMapperV2 {
                 LOG.warn("Could not resolve $ref: {}. Skipping server variable.", $ref);
                 return null;
             }
-            if (resolved instanceof AsyncApiReferenceable resolvedTyped
-                    && resolvedTyped.get$ref() != null) {
-                LOG.warn("Resolved $ref points to another $ref: {}. Skipping server variable.",
-                        resolvedTyped.get$ref());
-                return null;
-            }
-            return mapOne(resolved, components);
+            return mapVariableItem(resolved, components);
         }
         return ServerVariableMapper.mapVariable(variable);
     }
@@ -106,22 +102,41 @@ public final class ServerVariableMapperV2 {
      * @return the resolved server variable, or null if not found or unsupported version
      */
     private static ServerVariable resolveRef(String $ref, AsyncApiComponents components) {
-        if (!$ref.startsWith(Constants.SERVER_VARIABLES_REF_PREFIX)) {
-            LOG.warn("Unsupported $ref format: {}. Skipping server variable.", $ref);
-            return null;
-        }
-        String name = $ref.substring(Constants.SERVER_VARIABLES_REF_PREFIX.length());
         if (components == null) {
+            LOG.warn("Cannot resolve $ref: {}. Components is null.", $ref);
             return null;
         }
-        // Server variables in components are only available in AsyncAPI 2.4+.
-        Map<String, ? extends ServerVariable> varMap = switch (components) {
-            case AsyncApi26Components typed -> typed.getServerVariables();
-            case AsyncApi25Components typed -> typed.getServerVariables();
-            case AsyncApi24Components typed -> typed.getServerVariables();
-            default -> null;
-        };
-        return varMap != null ? varMap.get(name) : null;
+        Set<String> visited = new HashSet<>();
+        String current = $ref;
+        while (current != null) {
+            if (!current.startsWith(Constants.SERVER_VARIABLES_REF_PREFIX)) {
+                LOG.warn("Unsupported $ref format: {}. Skipping server variable.", current);
+                return null;
+            }
+            if (!visited.add(current)) {
+                LOG.warn("Cyclic $ref detected: {}. Skipping server variable.", current);
+                return null;
+            }
+            String name = current.substring(Constants.SERVER_VARIABLES_REF_PREFIX.length());
+            // Server variables in components are only available in AsyncAPI 2.4+.
+            Map<String, ? extends ServerVariable> varMap = switch (components) {
+                case AsyncApi26Components typed -> typed.getServerVariables();
+                case AsyncApi25Components typed -> typed.getServerVariables();
+                case AsyncApi24Components typed -> typed.getServerVariables();
+                default -> null;
+            };
+            ServerVariable resolved = varMap != null ? varMap.get(name) : null;
+            if (resolved == null) {
+                LOG.warn("Could not resolve $ref: '{}'. No matching server variable found.", current);
+                return null;
+            }
+            if (resolved instanceof AsyncApiReferenceable resolvedTyped && resolvedTyped.get$ref() != null) {
+                current = resolvedTyped.get$ref();
+            } else {
+                return resolved;
+            }
+        }
+        return null;
     }
 
 }

@@ -18,7 +18,7 @@
 package io.ballerina.asyncapi.core.implementation.v3.component;
 
 import io.apicurio.datamodels.models.asyncapi.v30.AsyncApi30ServerVariable;
-import io.ballerina.asyncapi.core.implementation.v3.server.ServerMapperV3;
+import io.ballerina.asyncapi.core.implementation.common.ServerVariableMapper;
 import io.ballerina.asyncapi.core.model.server.AsyncApiServerVariable;
 
 import java.util.LinkedHashMap;
@@ -46,7 +46,7 @@ final class ComponentServerVariableMapperV3 {
 
         Map<String, AsyncApiServerVariable> result = new LinkedHashMap<>();
         for (Map.Entry<String, AsyncApi30ServerVariable> entry : variables.entrySet()) {
-            result.put(entry.getKey(), ServerMapperV3.mapVariable(entry.getValue()));
+            result.put(entry.getKey(), ServerVariableMapper.mapVariable(entry.getValue()));
         }
         return result.isEmpty() ? null : result;
     }

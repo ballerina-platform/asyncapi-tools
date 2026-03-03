@@ -31,7 +31,6 @@ import java.util.Map;
 public final class ExternalDocMapperV2 {
 
     private ExternalDocMapperV2() {
-
     }
 
     /**
@@ -44,10 +43,10 @@ public final class ExternalDocMapperV2 {
         if (externalDocs == null) {
             return null;
         }
-        Map<String, JsonNode> extensions =  null;
-        if (externalDocs instanceof AsyncApiExtensible extensible) {
-            extensions = extensible.getExtensions();
-        }
+
+        Map<String, JsonNode> extensions = externalDocs instanceof AsyncApiExtensible extensible
+                ? extensible.getExtensions()
+                : null;
 
         return new AsyncApiExternalDocs(
                 externalDocs.getDescription(),

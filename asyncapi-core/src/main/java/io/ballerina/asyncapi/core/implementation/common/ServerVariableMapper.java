@@ -42,6 +42,9 @@ public final class ServerVariableMapper {
      * @return the mapped AsyncApiServerVariable
      */
     public static AsyncApiServerVariable mapVariable(ServerVariable variable) {
+        if (variable == null) {
+            return null;
+        }
         Map<String, JsonNode> extensions = null;
         if (variable instanceof AsyncApiExtensible extensible) {
             extensions = extensible.getExtensions();

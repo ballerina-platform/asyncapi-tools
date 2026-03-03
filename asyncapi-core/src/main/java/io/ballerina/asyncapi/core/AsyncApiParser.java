@@ -46,11 +46,21 @@ public final class AsyncApiParser {
 
     private static void validateDocument(Document document) throws AsyncApiParserException {
         List<ValidationProblem> problems = Library.validate(document, null);
+        if (problems == null || problems.isEmpty()) {
+            return;
+        }
 
-        if (problems != null && !problems.isEmpty()) {
-            String errorMessages = problems.stream().map(p -> "[" + p.message + "]")
+        // Filter out Apicurio false positives: oneOf message containers have no direct
+        // payload/headers — the individual oneOf items do. Also, Apicurio incorrectly
+        // enforces 'location' as required on Parameter Objects; the AsyncAPI spec makes it optional.
+        List<ValidationProblem> realProblems = problems.stream()
+                .filter(p -> !p.message.contains("payload or headers"))
+                .filter(p -> !p.message.contains("'location' property"))
+                .collect(Collectors.toList());
+
+        if (!realProblems.isEmpty()) {
+            String errorMessages = realProblems.stream().map(p -> "[" + p.message + "]")
                     .collect(Collectors.joining(" | "));
-
             throw new AsyncApiParserException("AsyncAPI validation failed: " + errorMessages);
         }
     }

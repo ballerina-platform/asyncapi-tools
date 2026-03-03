@@ -50,7 +50,7 @@ final class ComponentSecuritySchemeMapperV3 {
         Map<String, AsyncApiSecurityScheme> result = new HashMap<>();
         for (Map.Entry<String, SecurityScheme> entry : schemes.entrySet()) {
             if (entry.getValue() instanceof AsyncApi30SecurityScheme typed) {
-                result.put(entry.getKey(), SecuritySchemeMapperV3.map(typed, null));
+                result.put(entry.getKey(), SecuritySchemeMapperV3.mapSecurityItem(typed, null));
             }
         }
         return result.isEmpty() ? null : result;

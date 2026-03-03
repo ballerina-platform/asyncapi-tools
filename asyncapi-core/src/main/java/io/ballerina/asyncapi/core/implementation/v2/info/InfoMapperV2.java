@@ -47,7 +47,6 @@ import java.util.Map;
 public final class InfoMapperV2 {
 
     private InfoMapperV2() {
-
     }
 
     /**
@@ -57,6 +56,9 @@ public final class InfoMapperV2 {
      * @return the mapped AsyncApiInfo.
      */
     public static AsyncApiInfo map(AsyncApiDocument asyncApiDocument) {
+        if (asyncApiDocument == null) {
+            throw new IllegalArgumentException("AsyncApiDocument must not be null");
+        }
         Info info = asyncApiDocument.getInfo();
         AsyncApiExternalDocumentation documentExternalDocs = null;
         List<? extends Tag> documentTags = null;
@@ -90,15 +92,13 @@ public final class InfoMapperV2 {
                 documentExternalDocs = doc.getExternalDocs();
                 documentTags = doc.getTags();
             }
-            default -> {
-                return null;
-            }
+            default -> throw new IllegalArgumentException("Unsupported AsyncAPI document version: "
+                                                            + asyncApiDocument.getClass().getName());
         }
 
-        Map<String, JsonNode> extensions = null;
-        if (info instanceof AsyncApiExtensible extensible) {
-            extensions = extensible.getExtensions();
-        }
+        Map<String, JsonNode> extensions = info instanceof AsyncApiExtensible extensible
+                                            ? extensible.getExtensions()
+                                            : null;
 
         List<AsyncApiTag> tags = null;
         if (documentTags != null) {

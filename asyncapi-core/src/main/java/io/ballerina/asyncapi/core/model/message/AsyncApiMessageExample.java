@@ -24,10 +24,10 @@ import java.util.Map;
 /**
  * Represents an example of a message.
  *
- * @param name       A machine-friendly name for the example.
- * @param summary    A short summary of the example.
  * @param headers    Example of the message headers as a map.
  * @param payload    Example of the message payload.
+ * @param name       A machine-friendly name for the example.
+ * @param summary    A short summary of the example.
  * @param extensions Specification extensions (fields prefixed with "x-").
  */
 public record AsyncApiMessageExample(

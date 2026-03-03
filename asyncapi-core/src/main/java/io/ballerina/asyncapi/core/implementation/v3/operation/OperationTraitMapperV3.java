@@ -72,13 +72,13 @@ public final class OperationTraitMapperV3 {
         Map<String, JsonNode> extensions = null;
         if (trait instanceof AsyncApi30OperationTrait typedTrait) {
             title = typedTrait.getTitle();
-            security = SecuritySchemeMapperV3.mapSecurityList(typedTrait.getSecurity(), components);
+            security = SecuritySchemeMapperV3.map(typedTrait.getSecurity(), components);
             extensions = typedTrait.getExtensions();
         }
         List<AsyncApiTag> tags = null;
         if (trait.getTags() != null) {
             tags = trait.getTags().stream()
-                    .map(tag -> TagMapperV3.map(tag, null))
+                    .map(tag -> TagMapperV3.map(tag, components))
                     .toList();
         }
         return new io.ballerina.asyncapi.core.model.operation.AsyncApiOperationTrait(
@@ -87,7 +87,7 @@ public final class OperationTraitMapperV3 {
                 trait.getDescription(),
                 security,
                 tags,
-                ExternalDocMapperV3.map(trait.getExternalDocs(), null),
+                ExternalDocMapperV3.map(trait.getExternalDocs(), components),
                 OperationBindingsMapperV3.map(trait.getBindings()),
                 extensions
         );

@@ -27,9 +27,12 @@ import io.apicurio.datamodels.models.asyncapi.v23.AsyncApi23Components;
 import io.apicurio.datamodels.models.asyncapi.v24.AsyncApi24Components;
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25Components;
 import io.apicurio.datamodels.models.asyncapi.v26.AsyncApi26Components;
+import io.ballerina.asyncapi.core.implementation.common.ServerVariableMapper;
 import io.ballerina.asyncapi.core.implementation.v2.server.ServerMapperV2;
-import io.ballerina.asyncapi.core.implementation.v2.server.ServerVariableMapperV2;
+import io.ballerina.asyncapi.core.model.server.AsyncApiServerVariable;
 
+import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
@@ -64,7 +67,20 @@ final class ComponentServerMapperV2 {
                     default -> null;
                 };
 
-        return ServerMapperV2.map(rawServers, components);
+        if (rawServers == null || rawServers.isEmpty()) {
+            return null;
+        }
+        Map<String, io.ballerina.asyncapi.core.model.server.AsyncApiServer> result = new LinkedHashMap<>();
+        rawServers.forEach((name, server) -> {
+            if (server != null) {
+                io.ballerina.asyncapi.core.model.server.AsyncApiServer mapped =
+                        ServerMapperV2.mapServerItem(server, components);
+                if (mapped != null) {
+                    result.put(name, mapped);
+                }
+            }
+        });
+        return result.isEmpty() ? null : result;
     }
 
     /**
@@ -91,8 +107,17 @@ final class ComponentServerMapperV2 {
                     default -> null;
                 };
 
-        // Component server variables are already resolved definitions,
-        // so no $ref resolution is needed (pass null).
-        return ServerVariableMapperV2.mapVariables(rawVariables, null);
+        if (rawVariables == null || rawVariables.isEmpty()) {
+            return null;
+        }
+        // Component server variables are already resolved definitions — no $ref resolution needed.
+        Map<String, AsyncApiServerVariable> result = new HashMap<>();
+        for (Map.Entry<String, ? extends ServerVariable> entry : rawVariables.entrySet()) {
+            AsyncApiServerVariable mapped = ServerVariableMapper.mapVariable(entry.getValue());
+            if (mapped != null) {
+                result.put(entry.getKey(), mapped);
+            }
+        }
+        return result.isEmpty() ? null : result;
     }
 }

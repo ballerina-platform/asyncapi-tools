@@ -35,7 +35,8 @@ import java.util.Map;
  *   <li>{@code items} holds an {@link AsyncApiSchema} or a {@code List<AsyncApiSchema>}.</li>
  * </ul>
  *
- * @param title                Annotates the schema with a short title.
+ * @param title                Annotates the schema with a short title (from the JSON Schema
+ *                             {@code title} keyword).
  * @param type                 The JSON type (e.g. {@code "object"}, {@code "string"},
  *                             {@code "array"}).
  * @param required             Required property names for object schemas.
@@ -82,6 +83,10 @@ import java.util.Map;
  * @param externalDocs         Additional external documentation.
  * @param deprecated           Marks the schema as deprecated.
  * @param extensions           Specification extensions (fields prefixed with {@code "x-"}).
+ * @param name                 The component key used to identify this schema in
+ *                             {@code #/components/schemas}. Not part of JSON Schema; stamped by
+ *                             the mapper when a {@code $ref} payload is resolved so that code
+ *                             generators can use the component name as the Ballerina type name.
  */
 public record AsyncApiSchema(
         String title,
@@ -125,6 +130,47 @@ public record AsyncApiSchema(
         String discriminator,
         AsyncApiExternalDocs externalDocs,
         Boolean deprecated,
-        Map<String, JsonNode> extensions
+        Map<String, JsonNode> extensions,
+        String name
 ) {
+
+    /**
+     * Returns a copy of this schema with the given {@code title}, preserving all other fields.
+     *
+     * @param newTitle the title to set
+     * @return a new {@link AsyncApiSchema} with the given title
+     */
+    public AsyncApiSchema withTitle(String newTitle) {
+        return new AsyncApiSchema(
+                newTitle, type(), required(), multipleOf(), maximum(), exclusiveMaximum(),
+                minimum(), exclusiveMinimum(), maxLength(), minLength(), pattern(),
+                maxItems(), minItems(), uniqueItems(), maxProperties(), minProperties(),
+                _enum(), _const(), examples(), _if(), then(), _else(), readOnly(),
+                writeOnly(), properties(), patternProperties(), additionalProperties(),
+                additionalItems(), items(), propertyNames(), contains(), allOf(),
+                oneOf(), anyOf(), not(), description(), format(), _default(),
+                discriminator(), externalDocs(), deprecated(), extensions(), name()
+        );
+    }
+
+    /**
+     * Returns a copy of this schema with the given {@code name}, preserving all other fields.
+     * Used by the mapper to stamp the component key onto a resolved payload schema so that
+     * code generators can use it as the Ballerina type name.
+     *
+     * @param newName the component key name to set (e.g. {@code "GenericEventWrapper"})
+     * @return a new {@link AsyncApiSchema} with the given name
+     */
+    public AsyncApiSchema withName(String newName) {
+        return new AsyncApiSchema(
+                title(), type(), required(), multipleOf(), maximum(), exclusiveMaximum(),
+                minimum(), exclusiveMinimum(), maxLength(), minLength(), pattern(),
+                maxItems(), minItems(), uniqueItems(), maxProperties(), minProperties(),
+                _enum(), _const(), examples(), _if(), then(), _else(), readOnly(),
+                writeOnly(), properties(), patternProperties(), additionalProperties(),
+                additionalItems(), items(), propertyNames(), contains(), allOf(),
+                oneOf(), anyOf(), not(), description(), format(), _default(),
+                discriminator(), externalDocs(), deprecated(), extensions(), newName
+        );
+    }
 }

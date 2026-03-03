@@ -73,8 +73,8 @@ public final class ComponentMapperV3 {
                     ComponentServerMapperV3.mapComponentServerVariables(typedComponents),
                     ComponentChannelMapperV3.map(typedComponents),
                     mapValues(typedComponents.getOperations(), operation ->
-                            OperationMapperV3.buildOperation(operation, null, null, typedComponents)),
-                    mapValues(typedComponents.getMessages(), MessageMapperV3::map),
+                            OperationMapperV3.mapOperationItem(operation, null, null, typedComponents)),
+                    mapValues(typedComponents.getMessages(), msg -> MessageMapperV3.mapMessageItem((AsyncApi30Message) msg, typedComponents)),
                     ComponentSecuritySchemeMapperV3.map(typedComponents.getSecuritySchemes()),
                     ComponentParameterMapperV3.mapParameters(typedComponents.getParameters()),
                     mapValues(typedComponents.getCorrelationIds(), CorrelationIdMapperV3::map),
@@ -88,7 +88,7 @@ public final class ComponentMapperV3 {
                             ExternalDocMapperV3.map(doc, typedComponents)),
                     mapValues(typedComponents.getTags(), tag -> TagMapperV3.map(tag, typedComponents)),
                     mapValues(typedComponents.getServerBindings(), binding ->
-                            ServerBindingsMapper.mapBindings(binding, null)),
+                            ServerBindingsMapper.mapBindings(binding, typedComponents)),
                     mapValues(typedComponents.getChannelBindings(), binding ->
                             ChannelBindingsMapperV3.map(binding, typedComponents)),
                     mapValues(typedComponents.getOperationBindings(), OperationBindingsMapperV3::map),

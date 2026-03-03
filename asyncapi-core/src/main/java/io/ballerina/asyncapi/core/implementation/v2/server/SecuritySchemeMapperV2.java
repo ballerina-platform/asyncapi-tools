@@ -39,22 +39,51 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Maps Apicurio {@link AsyncApiSecurityScheme} to {@link AsyncApiSecurityScheme}
+ * Maps Apicurio security scheme to {@link AsyncApiSecurityScheme}
  * for AsyncAPI 2.x.
  */
 public final class SecuritySchemeMapperV2 {
 
     private SecuritySchemeMapperV2() {
-
     }
 
     /**
-     * Maps an Apicurio {@link io.apicurio.datamodels.models.asyncapi.AsyncApiSecurityScheme} to an {@link AsyncApiSecurityScheme}.
+     * Resolves security requirements against the component security scheme definitions.
+     *
+     * @param requirements the security requirements from a server
+     * @param schemeLookup the security scheme definitions from components
+     * @return the mapped security schemes list, or null if empty
+     */
+    static List<AsyncApiSecurityScheme> map(List<SecurityRequirement> requirements,
+                                            Map<String, SecurityScheme> schemeLookup) {
+        if (requirements == null || requirements.isEmpty() || schemeLookup == null) {
+            return null;
+        }
+        List<AsyncApiSecurityScheme> result = new ArrayList<>();
+        for (SecurityRequirement requirement : requirements) {
+            List<String> names = requirement.getItemNames();
+            if (names == null) {
+                continue;
+            }
+            for (String name : names) {
+                SecurityScheme scheme = schemeLookup.get(name);
+                if (scheme instanceof io.apicurio.datamodels.models.asyncapi.AsyncApiSecurityScheme typedScheme) {
+                    result.add(mapSecurityItem(typedScheme));
+                }
+            }
+        }
+        return result.isEmpty() ? null : result;
+    }
+
+    /**
+     * Maps an Apicurio {@link io.apicurio.datamodels.models.asyncapi.AsyncApiSecurityScheme}
+     * to {@link AsyncApiSecurityScheme}.
      *
      * @param scheme the Apicurio security scheme object
      * @return the mapped AsyncApiSecurityScheme
      */
-    public static AsyncApiSecurityScheme map(io.apicurio.datamodels.models.asyncapi.AsyncApiSecurityScheme scheme) {
+    public static AsyncApiSecurityScheme mapSecurityItem(
+            io.apicurio.datamodels.models.asyncapi.AsyncApiSecurityScheme scheme) {
         Map<String, JsonNode> extensions = null;
         if (scheme instanceof AsyncApiExtensible extensible) {
             extensions = extensible.getExtensions();
@@ -68,37 +97,9 @@ public final class SecuritySchemeMapperV2 {
                 scheme.getBearerFormat(),
                 mapOAuthFlows(scheme.getFlows()),
                 URIUtils.toUri(scheme.getOpenIdConnectUrl()),
-                null,
+                null, //no scopes in 2.x
                 extensions
         );
-    }
-
-    /**
-     * Resolves security requirements against the component security scheme definitions.
-     *
-     * @param requirements the security requirements from a server
-     * @param schemeLookup the security scheme definitions from components
-     * @return the mapped security schemes list, or null if empty
-     */
-    static List<AsyncApiSecurityScheme> mapSecurity(List<SecurityRequirement> requirements,
-                                                    Map<String, SecurityScheme> schemeLookup) {
-        if (requirements == null || requirements.isEmpty() || schemeLookup == null) {
-            return null;
-        }
-        List<AsyncApiSecurityScheme> result = new ArrayList<>();
-        for (SecurityRequirement requirement : requirements) {
-            List<String> names = requirement.getItemNames();
-            if (names == null) {
-                continue;
-            }
-            for (String name : names) {
-                SecurityScheme scheme = schemeLookup.get(name);
-                if (scheme instanceof io.apicurio.datamodels.models.asyncapi.AsyncApiSecurityScheme typedScheme) {
-                    result.add(map(typedScheme));
-                }
-            }
-        }
-        return result.isEmpty() ? null : result;
     }
 
     /**
@@ -149,7 +150,7 @@ public final class SecuritySchemeMapperV2 {
             case AsyncApi22OAuthFlow typed -> typed.getScopes();
             case AsyncApi21OAuthFlow typed -> typed.getScopes();
             case AsyncApi20OAuthFlow typed -> typed.getScopes();
-            default -> null;
+            default -> throw new IllegalArgumentException("Unsupported OAuthFlow type: " + flow.getClass().getName());
         };
 
         return new AsyncApiOAuthFlow(

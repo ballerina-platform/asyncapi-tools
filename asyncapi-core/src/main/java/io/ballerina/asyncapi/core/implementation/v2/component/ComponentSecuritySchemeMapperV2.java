@@ -49,7 +49,7 @@ final class ComponentSecuritySchemeMapperV2 {
         Map<String, AsyncApiSecurityScheme> result = new LinkedHashMap<>();
         for (Map.Entry<String, ? extends SecurityScheme> entry : schemes.entrySet()) {
             if (entry.getValue() instanceof io.apicurio.datamodels.models.asyncapi.AsyncApiSecurityScheme typed) {
-                result.put(entry.getKey(), SecuritySchemeMapperV2.map(typed));
+                result.put(entry.getKey(), SecuritySchemeMapperV2.mapSecurityItem(typed));
             }
         }
         return result.isEmpty() ? null : result;

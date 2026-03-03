@@ -34,7 +34,6 @@ import java.util.Map;
 public final class MessageBindingsMapperV2 {
 
     private MessageBindingsMapperV2() {
-
     }
 
     /**
@@ -43,8 +42,8 @@ public final class MessageBindingsMapperV2 {
      * @param bindings the Apicurio message bindings object
      * @return the mapped AsyncApiMessageBindings, or null if empty
      */
-    public static io.ballerina.asyncapi.core.model.message.AsyncApiMessageBindings
-    map(AsyncApiMessageBindings bindings) {
+    public static io.ballerina.asyncapi.core.model.message.AsyncApiMessageBindings map(
+                    AsyncApiMessageBindings bindings) {
         if (bindings == null) {
             return null;
         }

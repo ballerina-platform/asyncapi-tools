@@ -19,10 +19,15 @@ package io.ballerina.asyncapi.core.implementation.v3.message;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import io.apicurio.datamodels.models.Tag;
-import io.apicurio.datamodels.models.asyncapi.*;
+import io.apicurio.datamodels.models.asyncapi.AsyncApiComponents;
+import io.apicurio.datamodels.models.asyncapi.AsyncApiMessage;
+import io.apicurio.datamodels.models.asyncapi.AsyncApiMessageTrait;
+import io.apicurio.datamodels.models.asyncapi.AsyncApiReferenceable;
+import io.apicurio.datamodels.models.asyncapi.AsyncApiSchema;
 import io.apicurio.datamodels.models.asyncapi.v30.AsyncApi30Channel;
 import io.apicurio.datamodels.models.asyncapi.v30.AsyncApi30Message;
 import io.ballerina.asyncapi.core.Constants;
+import io.ballerina.asyncapi.core.implementation.common.SchemaMapper;
 import io.ballerina.asyncapi.core.implementation.v3.doc.ExternalDocMapperV3;
 import io.ballerina.asyncapi.core.implementation.v3.tag.TagMapperV3;
 import io.ballerina.asyncapi.core.model.message.AsyncApiMessageExample;
@@ -30,9 +35,11 @@ import io.ballerina.asyncapi.core.model.tag.AsyncApiTag;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Maps Apicurio Message models to {@link io.ballerina.asyncapi.core.model.message.AsyncApiMessage}
@@ -47,14 +54,13 @@ public final class MessageMapperV3 {
     }
 
     /**
-     * Extracts messages from an AsyncAPI 3.0 channel, resolving any {@code $ref} entries.
+     * Extracts all messages from an AsyncAPI 3.0 channel, resolving any {@code $ref} entries.
      *
      * @param channel    the AsyncAPI 3.0 channel object
      * @param components the AsyncAPI components (for $ref resolution)
-     * @return a map of message names to {@link io.ballerina.asyncapi.core.model.message.AsyncApiMessage},
-     *         or null if no messages found
+     * @return a map of message names to model messages, or null if no messages found
      */
-    public static Map<String, io.ballerina.asyncapi.core.model.message.AsyncApiMessage> extractMessages(
+    public static Map<String, io.ballerina.asyncapi.core.model.message.AsyncApiMessage> map(
             AsyncApi30Channel channel, AsyncApiComponents components) {
         if (channel == null) {
             return null;
@@ -70,50 +76,40 @@ public final class MessageMapperV3 {
             if (message == null) {
                 continue;
             }
-            if (message instanceof AsyncApiReferenceable referenceable) {
-                String $ref = referenceable.get$ref();
-                if ($ref != null) {
-                    if (!$ref.startsWith(Constants.MESSAGES_REF_PREFIX)) {
-                        LOG.warn("Unsupported message $ref format: {}. Skipping message.", $ref);
-                        continue;
-                    }
-                    String refName = $ref.substring(Constants.MESSAGES_REF_PREFIX.length());
-                    Map<String, ? extends AsyncApiMessage> refMessages =
-                            components != null ? components.getMessages() : null;
-                    AsyncApiMessage refMessage = refMessages != null ? refMessages.get(refName) : null;
-                    AsyncApi30Message resolved =
-                            refMessage instanceof AsyncApi30Message typedMsg ? typedMsg : null;
-                    if (resolved == null) {
-                        LOG.warn("Could not resolve message $ref: {} in channel message '{}'. Skipping message.",
-                                $ref, messageName);
-                        continue;
-                    }
-                    if (resolved instanceof AsyncApiReferenceable resolvedRef && resolvedRef.get$ref() != null) {
-                        LOG.warn("Resolved message $ref points to another $ref: {}. Skipping message '{}'.",
-                                resolvedRef.get$ref(), messageName);
-                        continue;
-                    }
-                    message = resolved;
-                }
-            }
-            io.ballerina.asyncapi.core.model.message.AsyncApiMessage mappedMessage = map(message);
-            if (mappedMessage != null) {
-                result.put(messageName, mappedMessage);
+            io.ballerina.asyncapi.core.model.message.AsyncApiMessage mapped =
+                    mapMessageItem(message, components);
+            if (mapped != null) {
+                result.put(messageName, mapped);
             }
         }
         return result.isEmpty() ? null : result;
     }
 
     /**
-     * Maps an Apicurio {@link AsyncApiMessage} to a model
-     * {@link io.ballerina.asyncapi.core.model.message.AsyncApiMessage}.
+     * Maps a single Apicurio {@link AsyncApi30Message} to a model message,
+     * resolving any {@code $ref} before building the model.
      *
-     * @param message the Apicurio message object
-     * @return the mapped AsyncApiMessage, or null if message is null
+     * @param message    the Apicurio message object (may be a reference)
+     * @param components the AsyncAPI components (for $ref resolution)
+     * @return the mapped model message, or null if message is null or unresolvable
      */
-    public static io.ballerina.asyncapi.core.model.message.AsyncApiMessage map(AsyncApiMessage message) {
+    public static io.ballerina.asyncapi.core.model.message.AsyncApiMessage mapMessageItem(
+            AsyncApi30Message message, AsyncApiComponents components) {
         if (message == null) {
             return null;
+        }
+
+        if (message instanceof AsyncApiReferenceable referenceable && referenceable.get$ref() != null) {
+            AsyncApiMessage resolved = resolveMessageRef(referenceable.get$ref(), components);
+            if (resolved == null) {
+                LOG.warn("Could not resolve $ref '{}' for message. Skipping.", referenceable.get$ref());
+                return null;
+            }
+            if (!(resolved instanceof AsyncApi30Message typedResolved)) {
+                LOG.warn("Resolved $ref '{}' is not an AsyncApi30Message. Skipping.", referenceable.get$ref());
+                return null;
+            }
+            message = typedResolved;
         }
 
         Object headers = null;
@@ -122,8 +118,10 @@ public final class MessageMapperV3 {
         Map<String, JsonNode> extensions = null;
 
         if (message instanceof AsyncApi30Message typedMessage) {
-            headers = typedMessage.getHeaders();
-            payload = typedMessage.getPayload();
+            if (typedMessage.getHeaders() instanceof AsyncApiSchema typedSchema) {
+                headers = SchemaMapper.map(typedSchema);
+            }
+            payload = MessagePayloadMapperV3.map(typedMessage.getPayload(), components);
             extensions = typedMessage.getExtensions();
             examples = MessageExampleMapperV3.map(typedMessage);
         }
@@ -132,7 +130,7 @@ public final class MessageMapperV3 {
         List<? extends Tag> apicurioTags = message.getTags();
         if (apicurioTags != null) {
             tags = apicurioTags.stream()
-                    .map(tag -> TagMapperV3.map(tag, null))
+                    .map(tag -> TagMapperV3.map(tag, components))
                     .toList();
         }
 
@@ -154,7 +152,7 @@ public final class MessageMapperV3 {
                 message.getSummary(),
                 message.getDescription(),
                 tags,
-                ExternalDocMapperV3.map(message.getExternalDocs(), null),
+                ExternalDocMapperV3.map(message.getExternalDocs(), components),
                 MessageBindingsMapperV3.map(message.getBindings()),
                 examples,
                 traits,
@@ -162,4 +160,43 @@ public final class MessageMapperV3 {
         );
     }
 
+    /**
+     * Resolves a message {@code $ref} string, following any chain of refs, to the
+     * final concrete {@link AsyncApiMessage}. Detects cyclic references.
+     *
+     * @param $ref       the initial $ref string (e.g., {@code #/components/messages/MyMessage})
+     * @param components the AsyncAPI components used for lookup
+     * @return the concrete message, or {@code null} if resolution fails
+     */
+    private static AsyncApiMessage resolveMessageRef(String $ref, AsyncApiComponents components) {
+        if (components == null) {
+            LOG.warn("Cannot resolve $ref: {}. Components is null.", $ref);
+            return null;
+        }
+        Set<String> visited = new HashSet<>();
+        String current = $ref;
+        while (current != null) {
+            if (!current.startsWith(Constants.MESSAGES_REF_PREFIX)) {
+                LOG.warn("Unsupported $ref format: {}. Skipping message.", current);
+                return null;
+            }
+            if (!visited.add(current)) {
+                LOG.warn("Cyclic $ref detected: {}. Skipping message.", current);
+                return null;
+            }
+            String msgName = current.substring(Constants.MESSAGES_REF_PREFIX.length());
+            Map<String, ? extends AsyncApiMessage> messagesMap = components.getMessages();
+            AsyncApiMessage resolved = messagesMap != null ? messagesMap.get(msgName) : null;
+            if (resolved == null) {
+                LOG.warn("Could not resolve $ref: '{}'. No matching message found.", current);
+                return null;
+            }
+            if (resolved instanceof AsyncApiReferenceable resolvedRef && resolvedRef.get$ref() != null) {
+                current = resolvedRef.get$ref();
+            } else {
+                return resolved;
+            }
+        }
+        return null;
+    }
 }

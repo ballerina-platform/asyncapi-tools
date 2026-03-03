@@ -26,12 +26,11 @@ import io.ballerina.asyncapi.core.implementation.utils.URIUtils;
 import java.util.Map;
 
 /**
- * Maps Apicurio {@link License} to {@link AsyncApiLicense} for AsyncAPI 3.0.
+ * Maps Apicurio {@link License} to {@link AsyncApiLicense}.
  */
 public final class LicenseMapper {
 
     private LicenseMapper() {
-
     }
 
     /**
@@ -44,10 +43,11 @@ public final class LicenseMapper {
         if (license == null) {
             return null;
         }
-        Map<String, JsonNode> extensions = null;
-        if (license instanceof AsyncApiExtensible extensible) {
-            extensions = extensible.getExtensions();
-        }
+
+        Map<String, JsonNode> extensions = license instanceof AsyncApiExtensible extensible
+                ? extensible.getExtensions()
+                : null;
+
         return new AsyncApiLicense(
                 license.getName(),
                 URIUtils.toUri(license.getUrl()),

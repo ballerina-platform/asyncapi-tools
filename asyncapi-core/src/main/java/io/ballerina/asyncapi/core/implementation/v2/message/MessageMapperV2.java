@@ -22,9 +22,10 @@ import io.apicurio.datamodels.models.Tag;
 import io.apicurio.datamodels.models.asyncapi.AsyncApiChannelItem;
 import io.apicurio.datamodels.models.asyncapi.AsyncApiComponents;
 import io.apicurio.datamodels.models.asyncapi.AsyncApiMessage;
-import io.apicurio.datamodels.models.asyncapi.AsyncApiOperation;
 import io.apicurio.datamodels.models.asyncapi.AsyncApiMessageTrait;
+import io.apicurio.datamodels.models.asyncapi.AsyncApiOperation;
 import io.apicurio.datamodels.models.asyncapi.AsyncApiReferenceable;
+import io.apicurio.datamodels.models.asyncapi.AsyncApiSchema;
 import io.apicurio.datamodels.models.asyncapi.v20.AsyncApi20Message;
 import io.apicurio.datamodels.models.asyncapi.v20.AsyncApi20Operation;
 import io.apicurio.datamodels.models.asyncapi.v21.AsyncApi21Message;
@@ -40,6 +41,7 @@ import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25Operation;
 import io.apicurio.datamodels.models.asyncapi.v26.AsyncApi26Message;
 import io.apicurio.datamodels.models.asyncapi.v26.AsyncApi26Operation;
 import io.ballerina.asyncapi.core.Constants;
+import io.ballerina.asyncapi.core.implementation.common.SchemaMapper;
 import io.ballerina.asyncapi.core.implementation.v2.doc.ExternalDocMapperV2;
 import io.ballerina.asyncapi.core.implementation.v2.tag.TagMapperV2;
 import io.ballerina.asyncapi.core.model.tag.AsyncApiTag;
@@ -47,9 +49,10 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.util.HashMap;
-import java.util.LinkedHashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Maps Apicurio {@link AsyncApiMessage} to model
@@ -64,14 +67,104 @@ public final class MessageMapperV2 {
     }
 
     /**
-     * Maps an Apicurio {@link AsyncApiMessage} to a model message.
+     * Extracts all messages from a channel item's publish and subscribe operations.
      *
-     * @param message the Apicurio message object
-     * @return the mapped AsyncApiMessage, or null if message is null
+     * @param channelItem the Apicurio channel item object
+     * @param components  the AsyncAPI components (for $ref resolution)
+     * @return a map of message names to model messages, or null if no messages found
      */
-    public static io.ballerina.asyncapi.core.model.message.AsyncApiMessage map(AsyncApiMessage message) {
+    public static Map<String, io.ballerina.asyncapi.core.model.message.AsyncApiMessage> map(
+            AsyncApiChannelItem channelItem, AsyncApiComponents components) {
+        Map<String, io.ballerina.asyncapi.core.model.message.AsyncApiMessage> messages = new HashMap<>();
+
+        for (AsyncApiOperation operation : new AsyncApiOperation[]{
+                channelItem.getPublish(), channelItem.getSubscribe()}) {
+            if (operation == null) {
+                continue;
+            }
+
+            AsyncApiMessage message = switch (operation) {
+                case AsyncApi26Operation typed -> typed.getMessage();
+                case AsyncApi25Operation typed -> typed.getMessage();
+                case AsyncApi24Operation typed -> typed.getMessage();
+                case AsyncApi23Operation typed -> typed.getMessage();
+                case AsyncApi22Operation typed -> typed.getMessage();
+                case AsyncApi21Operation typed -> typed.getMessage();
+                case AsyncApi20Operation typed -> typed.getMessage();
+                default -> null;
+            };
+
+            if (message == null) {
+                continue;
+            }
+
+            if (message instanceof AsyncApiReferenceable referenceable && referenceable.get$ref() != null) {
+                message = resolveMessageRef(referenceable.get$ref(), components);
+                if (message == null) {
+                    continue;
+                }
+            }
+
+            List<? extends AsyncApiMessage> oneOf = switch (message) {
+                case AsyncApi26Message typed -> typed.getOneOf();
+                case AsyncApi25Message typed -> typed.getOneOf();
+                case AsyncApi24Message typed -> typed.getOneOf();
+                case AsyncApi23Message typed -> typed.getOneOf();
+                case AsyncApi22Message typed -> typed.getOneOf();
+                case AsyncApi21Message typed -> typed.getOneOf();
+                case AsyncApi20Message typed -> typed.getOneOf();
+                default -> null;
+            };
+
+            if (oneOf != null && !oneOf.isEmpty()) {
+                for (AsyncApiMessage oneOfMsg : oneOf) {
+                    AsyncApiMessage resolvedMsg = oneOfMsg;
+                    if (oneOfMsg instanceof AsyncApiReferenceable ref && ref.get$ref() != null) {
+                        resolvedMsg = resolveMessageRef(ref.get$ref(), components);
+                        if (resolvedMsg == null) {
+                            continue;
+                        }
+                    }
+                    String key = resolveMessageKey(resolvedMsg, messages.size());
+                    io.ballerina.asyncapi.core.model.message.AsyncApiMessage mappedMessage =
+                            mapMessageItem(resolvedMsg, components);
+                    if (mappedMessage != null) {
+                        messages.put(key, mappedMessage);
+                    }
+                }
+            } else {
+                String key = resolveMessageKey(message, messages.size());
+                io.ballerina.asyncapi.core.model.message.AsyncApiMessage mappedMessage =
+                        mapMessageItem(message, components);
+                if (mappedMessage != null) {
+                    messages.put(key, mappedMessage);
+                }
+            }
+        }
+
+        return messages.isEmpty() ? null : messages;
+    }
+
+    /**
+     * Maps a single Apicurio {@link AsyncApiMessage} to a model message.
+     * If the message is a {@code $ref}, it is resolved before mapping.
+     *
+     * @param message    the Apicurio message object
+     * @param components the AsyncAPI components (for $ref resolution)
+     * @return the mapped model message, or null if message is null or unresolvable
+     */
+    public static io.ballerina.asyncapi.core.model.message.AsyncApiMessage mapMessageItem(
+                    AsyncApiMessage message, AsyncApiComponents components) {
         if (message == null) {
             return null;
+        }
+
+        if (message instanceof AsyncApiReferenceable referenceable && referenceable.get$ref() != null) {
+            AsyncApiMessage resolved = resolveMessageRef(referenceable.get$ref(), components);
+            if (resolved == null) {
+                return null;
+            }
+            return mapMessageItem(resolved, components);
         }
 
         Object headers = null;
@@ -80,38 +173,52 @@ public final class MessageMapperV2 {
 
         switch (message) {
             case AsyncApi26Message typed -> {
-                headers = typed.getHeaders();
-                payload = typed.getPayload();
+                if (typed.getHeaders() instanceof AsyncApiSchema typedSchema) {
+                    headers = SchemaMapper.map(typedSchema);
+                }
+                payload = MessagePayloadMapperV2.map(typed.getPayload(), components);
                 extensions = typed.getExtensions();
             }
             case AsyncApi25Message typed -> {
-                headers = typed.getHeaders();
-                payload = typed.getPayload();
+                if (typed.getHeaders() instanceof AsyncApiSchema typedSchema) {
+                    headers = SchemaMapper.map(typedSchema);
+                }
+                payload = MessagePayloadMapperV2.map(typed.getPayload(), components);
                 extensions = typed.getExtensions();
             }
             case AsyncApi24Message typed -> {
-                headers = typed.getHeaders();
-                payload = typed.getPayload();
+                if (typed.getHeaders() instanceof AsyncApiSchema typedSchema) {
+                    headers = SchemaMapper.map(typedSchema);
+                }
+                payload = MessagePayloadMapperV2.map(typed.getPayload(), components);
                 extensions = typed.getExtensions();
             }
             case AsyncApi23Message typed -> {
-                headers = typed.getHeaders();
-                payload = typed.getPayload();
+                if (typed.getHeaders() instanceof AsyncApiSchema typedSchema) {
+                    headers = SchemaMapper.map(typedSchema);
+                }
+                payload = MessagePayloadMapperV2.map(typed.getPayload(), components);
                 extensions = typed.getExtensions();
             }
             case AsyncApi22Message typed -> {
-                headers = typed.getHeaders();
-                payload = typed.getPayload();
+                if (typed.getHeaders() instanceof AsyncApiSchema typedSchema) {
+                    headers = SchemaMapper.map(typedSchema);
+                }
+                payload = MessagePayloadMapperV2.map(typed.getPayload(), components);
                 extensions = typed.getExtensions();
             }
             case AsyncApi21Message typed -> {
-                headers = typed.getHeaders();
-                payload = typed.getPayload();
+                if (typed.getHeaders() instanceof AsyncApiSchema typedSchema) {
+                    headers = SchemaMapper.map(typedSchema);
+                }
+                payload = MessagePayloadMapperV2.map(typed.getPayload(), components);
                 extensions = typed.getExtensions();
             }
             case AsyncApi20Message typed -> {
-                headers = typed.getHeaders();
-                payload = typed.getPayload();
+                if (typed.getHeaders() instanceof AsyncApiSchema typedSchema) {
+                    headers = SchemaMapper.map(typedSchema);
+                }
+                payload = MessagePayloadMapperV2.map(typed.getPayload(), components);
                 extensions = typed.getExtensions();
             }
             default -> { }
@@ -129,7 +236,7 @@ public final class MessageMapperV2 {
         List<? extends AsyncApiMessageTrait> apicurioTraits = message.getTraits();
         if (apicurioTraits != null) {
             traits = apicurioTraits.stream()
-                    .map(MessageTraitMapperV2::map)
+                    .map(t -> MessageTraitMapperV2.map(t, components))
                     .toList();
         }
 
@@ -152,77 +259,60 @@ public final class MessageMapperV2 {
     }
 
     /**
-     * Extracts messages from a channel item's publish and subscribe operations.
+     * Resolves a message {@code $ref} string, following any chain of refs, to the
+     * final concrete {@link AsyncApiMessage}. Detects cyclic references.
      *
-     * @param channelItem the Apicurio channel item object
-     * @param components  the AsyncAPI components (for $ref resolution)
-     * @return a map of message names to AsyncApiMessage objects, or null if no messages found
+     * @param $ref       the initial $ref string (e.g., "#/components/messages/MyMessage")
+     * @param components the AsyncAPI components used for lookup
+     * @return the concrete message, or {@code null} if resolution fails
      */
-    public static Map<String, io.ballerina.asyncapi.core.model.message.AsyncApiMessage> extractMessages(
-            AsyncApiChannelItem channelItem, AsyncApiComponents components) {
-        Map<String, io.ballerina.asyncapi.core.model.message.AsyncApiMessage> messages =
-                new HashMap<>();
-
-        for (AsyncApiOperation operation : new AsyncApiOperation[]{
-                channelItem.getPublish(), channelItem.getSubscribe()}) {
-            if (operation == null) {
-                continue;
+    private static AsyncApiMessage resolveMessageRef(String $ref, AsyncApiComponents components) {
+        if (components == null) {
+            LOG.warn("Cannot resolve $ref: {}. Components is null.", $ref);
+            return null;
+        }
+        Set<String> visited = new HashSet<>();
+        String current = $ref;
+        while (current != null) {
+            if (!current.startsWith(Constants.MESSAGES_REF_PREFIX)) {
+                LOG.warn("Unsupported $ref format: {}. Skipping message.", current);
+                return null;
             }
-
-            io.apicurio.datamodels.models.asyncapi.AsyncApiMessage message = switch (operation) {
-                case AsyncApi26Operation typed -> typed.getMessage();
-                case AsyncApi25Operation typed -> typed.getMessage();
-                case AsyncApi24Operation typed -> typed.getMessage();
-                case AsyncApi23Operation typed -> typed.getMessage();
-                case AsyncApi22Operation typed -> typed.getMessage();
-                case AsyncApi21Operation typed -> typed.getMessage();
-                case AsyncApi20Operation typed -> typed.getMessage();
-                default -> null;
-            };
-
-            if (message == null) {
-                continue;
+            if (!visited.add(current)) {
+                LOG.warn("Cyclic $ref detected: {}. Skipping message.", current);
+                return null;
             }
-
-            if (message instanceof AsyncApiReferenceable referenceable) {
-                String $ref = referenceable.get$ref();
-                if ($ref != null) {
-                    if (!$ref.startsWith(Constants.MESSAGES_REF_PREFIX) || components == null) {
-                        LOG.warn("Could not resolve message $ref: {}. Skipping message.", $ref);
-                        continue;
-                    }
-                    String refName = $ref.substring(Constants.MESSAGES_REF_PREFIX.length());
-                    Map<String, ? extends AsyncApiMessage> refMessages = components.getMessages();
-                    io.apicurio.datamodels.models.asyncapi.AsyncApiMessage resolved =
-                            refMessages != null ? refMessages.get(refName) : null;
-                    if (resolved == null) {
-                        LOG.warn("Could not resolve message $ref: {}. Skipping message.", $ref);
-                        continue;
-                    }
-                    if (resolved instanceof AsyncApiReferenceable resolvedRef
-                            && resolvedRef.get$ref() != null) {
-                        LOG.warn("Resolved message $ref points to another $ref: {}. Skipping message.",
-                                resolvedRef.get$ref());
-                        continue;
-                    }
-                    message = resolved;
-                }
+            String msgName = current.substring(Constants.MESSAGES_REF_PREFIX.length());
+            Map<String, ? extends AsyncApiMessage> messagesMap = components.getMessages();
+            AsyncApiMessage resolved = messagesMap != null ? messagesMap.get(msgName) : null;
+            if (resolved == null) {
+                LOG.warn("Could not resolve $ref: '{}'. No matching message found.", current);
+                return null;
             }
-
-            io.ballerina.asyncapi.core.model.message.AsyncApiMessage mappedMessage = map(message);
-            if (mappedMessage != null) {
-                String key = message.getName();
-                if (key == null || key.isBlank()) {
-                    key = message.getTitle();
-                    if (key == null || key.isBlank()) {
-                        key = "message_" + messages.size();
-                    }
-                }
-                messages.put(key, mappedMessage);
+            if (resolved instanceof AsyncApiReferenceable resolvedRef && resolvedRef.get$ref() != null) {
+                current = resolvedRef.get$ref();
+            } else {
+                return resolved;
             }
         }
-
-        return messages.isEmpty() ? null : messages;
+        return null;
     }
 
+    /**
+     * Determines the map key for a message, falling back to title or a generated index key.
+     *
+     * @param message     the message to derive a key from
+     * @param currentSize the current size of the messages map (used for fallback key generation)
+     * @return a non-null, non-blank key string
+     */
+    private static String resolveMessageKey(AsyncApiMessage message, int currentSize) {
+        String key = message.getName();
+        if (key == null || key.isBlank()) {
+            key = message.getTitle();
+            if (key == null || key.isBlank()) {
+                key = "message_" + currentSize;
+            }
+        }
+        return key;
+    }
 }

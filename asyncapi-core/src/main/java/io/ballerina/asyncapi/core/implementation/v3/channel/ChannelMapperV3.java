@@ -37,8 +37,10 @@ import org.apache.logging.log4j.Logger;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Maps Apicurio Channel models to {@link AsyncApiChannel} for AsyncAPI 3.0.
@@ -68,12 +70,12 @@ public final class ChannelMapperV3 {
         if (!(channels instanceof MappedNode<?> mappedNode)) {
             return Collections.emptyMap();
         }
-        List<String> channelNames = mappedNode.getItemNames();
-        if (channelNames == null || channelNames.isEmpty()) {
+        List<String> channelIds = mappedNode.getItemNames();
+        if (channelIds == null || channelIds.isEmpty()) {
             return Collections.emptyMap();
         }
         Map<String, AsyncApiChannel> result = new HashMap<>();
-        for (String name : channelNames) {
+        for (String name : channelIds) {
             Node item = (Node) mappedNode.getItem(name);
             // Add additional version checks here as new AsyncAPI 3.x versions are supported.
             if (item instanceof AsyncApi30Channel channelItem) {
@@ -101,29 +103,11 @@ public final class ChannelMapperV3 {
         // Handle $ref
         String $ref = channelItem.get$ref();
         if ($ref != null) {
-            if (!$ref.startsWith(Constants.CHANNELS_REF_PREFIX)) {
-                LOG.warn("Unsupported channel $ref format: {}. Skipping channel '{}'.", $ref, name);
+            AsyncApi30Channel resolved = resolveChannelRef($ref, components);
+            if (resolved == null) {
                 return null;
             }
-            if (components == null) {
-                return null;
-            }
-            // Add additional version checks here as new AsyncAPI 3.x versions are supported.
-            if (components instanceof AsyncApi30Components typedComponents) {
-                String channelName = $ref.substring(Constants.CHANNELS_REF_PREFIX.length());
-                Map<String, AsyncApi30Channel> channelsMap = typedComponents.getChannels();
-                AsyncApi30Channel resolved = channelsMap != null ? channelsMap.get(channelName) : null;
-                if (resolved == null) {
-                    LOG.warn("Could not resolve channel $ref: {}. Skipping channel '{}'.", $ref, name);
-                    return null;
-                }
-                if (resolved.get$ref() != null) {
-                    LOG.warn("Resolved channel $ref '{}' points to another $ref. Skipping.", resolved.get$ref());
-                    return null;
-                }
-                return mapChannelItem(name, resolved, components, serversMap);
-            }
-            return null;
+            return mapChannelItem(name, resolved, components, serversMap);
         }
 
         // Extract servers
@@ -140,11 +124,11 @@ public final class ChannelMapperV3 {
                     LOG.warn("Server reference in channel has no $ref. Skipping.");
                     continue;
                 }
-                if (!serverRefStr.startsWith(Constants.SERVERS_REF_PREFIX)) {
+                if (!serverRefStr.startsWith(Constants.V3_SERVERS_REF_PREFIX)) {
                     LOG.warn("Unsupported server $ref format: {}. Skipping server.", serverRefStr);
                     continue;
                 }
-                String serverName = serverRefStr.substring(Constants.SERVERS_REF_PREFIX.length());
+                String serverName = serverRefStr.substring(Constants.V3_SERVERS_REF_PREFIX.length());
                 AsyncApiServer server = serversMap.get(serverName);
                 if (server != null) {
                     serverList.add(server);
@@ -161,21 +145,65 @@ public final class ChannelMapperV3 {
         List<AsyncApiTag> tags = null;
         if (channelItem.getTags() != null) {
             tags = channelItem.getTags().stream()
-                    .map(tag -> TagMapperV3.map(tag, null))
+                    .map(tag -> TagMapperV3.map(tag, components))
                     .toList();
         }
         return new AsyncApiChannel(
                 channelItem.getAddress(),
-                MessageMapperV3.extractMessages(channelItem, components),
+                MessageMapperV3.map(channelItem, components),
                 channelItem.getTitle(),
                 channelItem.getSummary(),
                 channelItem.getDescription(),
                 servers,
-                ChannelParameterMapperV3.mapParameters(channelItem.getParameters()),
+                ChannelParameterMapperV3.map(channelItem.getParameters(), components),
                 tags,
-                ExternalDocMapperV3.map(channelItem.getExternalDocs(), null),
+                ExternalDocMapperV3.map(channelItem.getExternalDocs(), components),
                 ChannelBindingsMapperV3.map(channelItem.getBindings(), components),
                 channelItem.getExtensions()
         );
+    }
+
+    /**
+     * Resolves a channel {@code $ref} string, following any chain of refs, to the
+     * final concrete {@link AsyncApi30Channel}. Detects cyclic references.
+     *
+     * @param $ref       the initial $ref string (e.g., "#/channels/myChannel")
+     * @param components the AsyncAPI components used for lookup
+     * @return the concrete channel, or {@code null} if resolution fails
+     */
+    private static AsyncApi30Channel resolveChannelRef(String $ref, AsyncApiComponents components) {
+        if (components == null) {
+            return null;
+        }
+        // Add additional version checks here as new AsyncAPI 3.x versions are supported.
+        if (!(components instanceof AsyncApi30Components typedComponents)) {
+            LOG.warn("Unsupported components type for AsyncAPI 3.0: {}", components.getClass().getName());
+            return null;
+        }
+        Set<String> visited = new HashSet<>();
+        String current = $ref;
+        while (current != null) {
+            if (!current.startsWith(Constants.CHANNELS_REF_PREFIX)) {
+                LOG.warn("Unsupported channel $ref format: {}. Skipping.", current);
+                return null;
+            }
+            if (!visited.add(current)) {
+                LOG.warn("Cyclic $ref detected: {}. Skipping channel.", current);
+                return null;
+            }
+            String channelId = current.substring(Constants.CHANNELS_REF_PREFIX.length());
+            Map<String, AsyncApi30Channel> channelsMap = typedComponents.getChannels();
+            AsyncApi30Channel resolved = channelsMap != null ? channelsMap.get(channelId) : null;
+            if (resolved == null) {
+                LOG.warn("Could not resolve channel $ref: {}. Skipping.", current);
+                return null;
+            }
+            if (resolved.get$ref() != null) {
+                current = resolved.get$ref();
+            } else {
+                return resolved;
+            }
+        }
+        return null;
     }
 }
