@@ -310,7 +310,7 @@ public final class MessageMapperV2 {
         if (key == null || key.isBlank()) {
             key = message.getTitle();
             if (key == null || key.isBlank()) {
-                key = "message_" + currentSize;
+                key = String.valueOf(currentSize);
             }
         }
         return key;

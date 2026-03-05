@@ -40,6 +40,7 @@ import io.apicurio.datamodels.models.asyncapi.v24.AsyncApi24Message;
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25Message;
 import io.apicurio.datamodels.models.asyncapi.v26.AsyncApi26Message;
 import io.ballerina.asyncapi.core.Constants;
+import io.ballerina.asyncapi.core.implementation.utils.StringUtils;
 import io.ballerina.asyncapi.core.implementation.v2.message.MessageMapperV2;
 import io.ballerina.asyncapi.core.implementation.v2.doc.ExternalDocMapperV2;
 import io.ballerina.asyncapi.core.implementation.v2.tag.TagMapperV2;
@@ -95,7 +96,7 @@ public final class OperationMapperV2 {
             }
             io.apicurio.datamodels.models.asyncapi.AsyncApiOperation publishOp = channelItem.getPublish();
             if (publishOp != null) {
-                String key = channelId + "_publish";
+                String key = StringUtils.toPascalCase(channelId) + "_publish";
                 String operationId = switch (publishOp) {
                     case AsyncApi26Operation typed -> typed.getOperationId();
                     case AsyncApi25Operation typed -> typed.getOperationId();
@@ -107,15 +108,16 @@ public final class OperationMapperV2 {
                     default -> null;
                 };
                 if (operationId != null) {
-                    key = operationId;
+                    key = StringUtils.toPascalCase(operationId);
                 }
-                AsyncApiChannel publishChannel = mappedChannels != null ? mappedChannels.get(channelId) : null;
-                result.put(key, mapOperationItem(publishOp, AsyncApiOperation.Action.SEND, components,
-                        publishChannel));
+                AsyncApiChannel publishChannel = mappedChannels != null
+                        ? mappedChannels.get(StringUtils.toPascalCase(channelId)) : null;
+                result.put(key, mapOperationItem(publishOp, AsyncApiOperation.Action.SEND,
+                        StringUtils.toPascalCase(channelId), components, publishChannel));
             }
             io.apicurio.datamodels.models.asyncapi.AsyncApiOperation subscribeOp = channelItem.getSubscribe();
             if (subscribeOp != null) {
-                String key = channelId + "_subscribe";
+                String key = StringUtils.toPascalCase(channelId) + "_subscribe";
                 String operationId = switch (subscribeOp) {
                     case AsyncApi26Operation typed -> typed.getOperationId();
                     case AsyncApi25Operation typed -> typed.getOperationId();
@@ -127,11 +129,12 @@ public final class OperationMapperV2 {
                     default -> null;
                 };
                 if (operationId != null) {
-                    key = operationId;
+                    key = StringUtils.toPascalCase(operationId);
                 }
-                AsyncApiChannel subscribeChannel = mappedChannels != null ? mappedChannels.get(channelId) : null;
-                result.put(key, mapOperationItem(subscribeOp, AsyncApiOperation.Action.RECEIVE, components,
-                        subscribeChannel));
+                AsyncApiChannel subscribeChannel = mappedChannels != null
+                        ? mappedChannels.get(StringUtils.toPascalCase(channelId)) : null;
+                result.put(key, mapOperationItem(subscribeOp, AsyncApiOperation.Action.RECEIVE,
+                        StringUtils.toPascalCase(channelId), components, subscribeChannel));
             }
         }
         return result;
@@ -142,6 +145,7 @@ public final class OperationMapperV2 {
      *
      * @param operation  the Apicurio operation object
      * @param action     the action type (SEND or RECEIVE)
+     * @param channelId  the normalised (PascalCase) key of the channel this operation belongs to
      * @param components the AsyncAPI components (for $ref resolution in messages)
      * @param channel    the mapped channel this operation belongs to
      * @return the mapped AsyncApiOperation
@@ -149,6 +153,7 @@ public final class OperationMapperV2 {
     private static AsyncApiOperation mapOperationItem(
             io.apicurio.datamodels.models.asyncapi.AsyncApiOperation operation,
             AsyncApiOperation.Action action,
+            String channelId,
             AsyncApiComponents components,
             AsyncApiChannel channel) {
         io.apicurio.datamodels.models.asyncapi.AsyncApiMessage rawMessage = switch (operation) {
@@ -209,7 +214,7 @@ public final class OperationMapperV2 {
                             key = oneOfRefName;
                         }
                         if (key == null || key.isBlank()) {
-                            key = "message_" + msgMap.size();
+                            key = String.valueOf(msgMap.size());
                         }
                         msgMap.put(key, mapped);
                     }
@@ -224,7 +229,7 @@ public final class OperationMapperV2 {
                         key = rawMessage.getTitle();
                     }
                     if (key == null || key.isBlank()) {
-                        key = refName != null ? refName : "message_0";
+                        key = refName != null ? refName : "0";
                     }
                     messages = Map.of(key, mapped);
                 }
@@ -247,6 +252,7 @@ public final class OperationMapperV2 {
                         rawTraits.stream().map(OperationTraitMapperV2::map).toList();
         return new AsyncApiOperation(
                 action,
+                channelId,
                 channel,
                 null,
                 operation.getSummary(),

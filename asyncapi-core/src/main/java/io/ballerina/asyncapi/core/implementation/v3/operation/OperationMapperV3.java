@@ -124,6 +124,7 @@ public final class OperationMapperV3 {
         }
 
         AsyncApiChannel channel = null;
+        String channelId = null;
         AsyncApi30Reference channelRef = typed.getChannel();
         if (channelRef != null) {
             String $ref = channelRef.get$ref();
@@ -131,6 +132,9 @@ public final class OperationMapperV3 {
                 LOG.warn("Operation channel reference has no $ref. Skipping.");
             } else {
                 channel = resolveChannelRef($ref, channelsMap);
+                if ($ref.startsWith(Constants.V3_CHANNELS_REF_PREFIX)) {
+                    channelId = $ref.substring(Constants.V3_CHANNELS_REF_PREFIX.length());
+                }
             }
         }
 
@@ -175,6 +179,7 @@ public final class OperationMapperV3 {
         }
         return new AsyncApiOperation(
                 action,
+                channelId,
                 channel,
                 typed.getTitle(),
                 typed.getSummary(),

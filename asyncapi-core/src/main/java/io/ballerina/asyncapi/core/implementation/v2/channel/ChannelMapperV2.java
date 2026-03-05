@@ -36,6 +36,7 @@ import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25Components;
 import io.apicurio.datamodels.models.asyncapi.v26.AsyncApi26ChannelItem;
 import io.apicurio.datamodels.models.asyncapi.v26.AsyncApi26Components;
 import io.ballerina.asyncapi.core.Constants;
+import io.ballerina.asyncapi.core.implementation.utils.StringUtils;
 import io.ballerina.asyncapi.core.implementation.v2.message.MessageMapperV2;
 import io.ballerina.asyncapi.core.model.channel.AsyncApiChannel;
 import io.ballerina.asyncapi.core.model.server.AsyncApiServer;
@@ -85,7 +86,7 @@ public final class ChannelMapperV2 {
             if (channelItem != null) {
                 AsyncApiChannel mapped = mapChannelItem(id, channelItem, components, serversMap);
                 if (mapped != null) {
-                    result.put(id, mapped);
+                    result.put(StringUtils.toPascalCase(id), mapped);
                 }
             }
         }

@@ -31,6 +31,7 @@ import java.util.Map;
  * Represents an Operation Object in an AsyncAPI document.
  *
  * @param action      The action this operation performs (send or receive).
+ * @param channelId   The normalised (PascalCase) key of the channel this operation is associated with.
  * @param channel     The channel this operation is associated with.
  * @param title       A human-friendly title for the operation.
  * @param summary     A short summary of the operation.
@@ -46,6 +47,7 @@ import java.util.Map;
  */
 public record AsyncApiOperation(
         Action action,
+        String channelId,
         AsyncApiChannel channel,
         String title,
         String summary,
