@@ -25,13 +25,13 @@ import io.apicurio.datamodels.models.asyncapi.AsyncApiDocument;
 import io.apicurio.datamodels.models.asyncapi.AsyncApiExtensible;
 import io.apicurio.datamodels.models.asyncapi.AsyncApiExternalDocumentation;
 import io.apicurio.datamodels.models.asyncapi.v30.AsyncApi30Info;
-import io.ballerina.asyncapi.core.model.info.AsyncApiInfo;
-import io.ballerina.asyncapi.core.model.tag.AsyncApiTag;
 import io.ballerina.asyncapi.core.implementation.common.ContactMapper;
 import io.ballerina.asyncapi.core.implementation.common.LicenseMapper;
 import io.ballerina.asyncapi.core.implementation.utils.URIUtils;
-import io.ballerina.asyncapi.core.implementation.v3.tag.TagMapperV3;
 import io.ballerina.asyncapi.core.implementation.v3.doc.ExternalDocMapperV3;
+import io.ballerina.asyncapi.core.implementation.v3.tag.TagMapperV3;
+import io.ballerina.asyncapi.core.model.info.AsyncApiInfo;
+import io.ballerina.asyncapi.core.model.tag.AsyncApiTag;
 
 import java.util.List;
 import java.util.Map;

@@ -20,8 +20,8 @@ package io.ballerina.asyncapi.core.implementation.v2.doc;
 import com.fasterxml.jackson.databind.JsonNode;
 import io.apicurio.datamodels.models.asyncapi.AsyncApiExtensible;
 import io.apicurio.datamodels.models.asyncapi.AsyncApiExternalDocumentation;
-import io.ballerina.asyncapi.core.model.doc.AsyncApiExternalDocs;
 import io.ballerina.asyncapi.core.implementation.utils.URIUtils;
+import io.ballerina.asyncapi.core.model.doc.AsyncApiExternalDocs;
 
 import java.util.Map;
 

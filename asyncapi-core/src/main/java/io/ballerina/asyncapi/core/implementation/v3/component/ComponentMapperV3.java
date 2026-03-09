@@ -20,9 +20,10 @@ package io.ballerina.asyncapi.core.implementation.v3.component;
 import com.fasterxml.jackson.databind.JsonNode;
 import io.apicurio.datamodels.models.Extensible;
 import io.apicurio.datamodels.models.asyncapi.AsyncApiComponents;
-import io.apicurio.datamodels.models.asyncapi.v30.*;
+import io.apicurio.datamodels.models.asyncapi.v30.AsyncApi30Components;
+import io.apicurio.datamodels.models.asyncapi.v30.AsyncApi30Message;
+import io.ballerina.asyncapi.core.implementation.common.ServerBindingsMapper;
 import io.ballerina.asyncapi.core.implementation.v3.channel.ChannelBindingsMapperV3;
-import io.ballerina.asyncapi.core.implementation.v3.component.ComponentParameterMapperV3;
 import io.ballerina.asyncapi.core.implementation.v3.doc.ExternalDocMapperV3;
 import io.ballerina.asyncapi.core.implementation.v3.message.CorrelationIdMapperV3;
 import io.ballerina.asyncapi.core.implementation.v3.message.MessageBindingsMapperV3;
@@ -32,7 +33,6 @@ import io.ballerina.asyncapi.core.implementation.v3.operation.OperationBindingsM
 import io.ballerina.asyncapi.core.implementation.v3.operation.OperationMapperV3;
 import io.ballerina.asyncapi.core.implementation.v3.operation.OperationReplyMapperV3;
 import io.ballerina.asyncapi.core.implementation.v3.operation.OperationTraitMapperV3;
-import io.ballerina.asyncapi.core.implementation.common.ServerBindingsMapper;
 import io.ballerina.asyncapi.core.implementation.v3.tag.TagMapperV3;
 import io.ballerina.asyncapi.core.model.component.AsyncApiComponent;
 
@@ -74,7 +74,8 @@ public final class ComponentMapperV3 {
                     ComponentChannelMapperV3.map(typedComponents),
                     mapValues(typedComponents.getOperations(), operation ->
                             OperationMapperV3.mapOperationItem(operation, null, null, typedComponents)),
-                    mapValues(typedComponents.getMessages(), msg -> MessageMapperV3.mapMessageItem((AsyncApi30Message) msg, typedComponents)),
+                    mapValues(typedComponents.getMessages(),
+                            msg -> MessageMapperV3.mapMessageItem((AsyncApi30Message) msg, typedComponents)),
                     ComponentSecuritySchemeMapperV3.map(typedComponents.getSecuritySchemes()),
                     ComponentParameterMapperV3.mapParameters(typedComponents.getParameters()),
                     mapValues(typedComponents.getCorrelationIds(), CorrelationIdMapperV3::map),

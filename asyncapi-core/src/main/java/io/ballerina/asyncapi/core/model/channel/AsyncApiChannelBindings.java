@@ -28,6 +28,7 @@ import java.util.Map;
  *
  * @param httpChannelBindings HTTP-specific channel binding properties.
  * @param wsChannelBindings   WebSocket-specific channel binding properties.
+ * @param extensions          Specification extensions (fields prefixed with "x-").
  */
 public record AsyncApiChannelBindings(
         HttpChannelBindings httpChannelBindings,

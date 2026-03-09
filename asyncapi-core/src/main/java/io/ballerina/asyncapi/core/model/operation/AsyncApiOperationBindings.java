@@ -28,6 +28,7 @@ import java.util.Map;
  *
  * @param httpOperationBindings HTTP-specific operation binding properties.
  * @param wsOperationBindings   WebSocket-specific operation binding properties.
+ * @param extensions             Specification extensions (fields prefixed with "x-").
  */
 public record AsyncApiOperationBindings(
         HttpOperationBindings httpOperationBindings,

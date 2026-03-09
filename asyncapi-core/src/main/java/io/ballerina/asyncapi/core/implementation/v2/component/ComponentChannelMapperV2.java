@@ -32,8 +32,6 @@ import io.ballerina.asyncapi.core.model.channel.AsyncApiChannel;
 import java.util.HashMap;
 import java.util.Map;
 
-import static io.ballerina.asyncapi.core.implementation.v2.channel.ChannelMapperV2.mapChannelItem;
-
 /**
  * Maps channel definitions from AsyncAPI 2.x components.
  * Channels in components are available from AsyncAPI 2.3 onwards.

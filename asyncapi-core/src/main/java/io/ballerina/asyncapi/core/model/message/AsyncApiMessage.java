@@ -20,6 +20,7 @@ package io.ballerina.asyncapi.core.model.message;
 import com.fasterxml.jackson.databind.JsonNode;
 import io.ballerina.asyncapi.core.model.doc.AsyncApiExternalDocs;
 import io.ballerina.asyncapi.core.model.tag.AsyncApiTag;
+
 import java.util.List;
 import java.util.Map;
 

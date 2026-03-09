@@ -81,7 +81,8 @@ public final class ServerMapperV2 {
         }
         Map<String, io.ballerina.asyncapi.core.model.server.AsyncApiServer> result = new LinkedHashMap<>();
         for (String name : serverNames) {
-            io.ballerina.asyncapi.core.model.server.AsyncApiServer mapped = mapServerItem(servers.getItem(name), components);
+            io.ballerina.asyncapi.core.model.server.AsyncApiServer mapped =
+                    mapServerItem(servers.getItem(name), components);
             if (mapped != null) {
                 result.put(name, mapped);
             }
@@ -123,11 +124,31 @@ public final class ServerMapperV2 {
                 tags = typed.getTags() == null ? null : typed.getTags().stream().map(TagMapperV2::map).toList();
                 requirements = typed.getSecurity();
             }
-            case AsyncApi20Server typed -> { url = typed.getUrl(); tags = null; requirements = typed.getSecurity(); }
-            case AsyncApi21Server typed -> { url = typed.getUrl(); tags = null; requirements = typed.getSecurity(); }
-            case AsyncApi22Server typed -> { url = typed.getUrl(); tags = null; requirements = typed.getSecurity(); }
-            case AsyncApi23Server typed -> { url = typed.getUrl(); tags = null; requirements = typed.getSecurity(); }
-            case AsyncApi24Server typed -> { url = typed.getUrl(); tags = null; requirements = typed.getSecurity(); }
+            case AsyncApi20Server typed -> {
+                url = typed.getUrl();
+                tags = null;
+                requirements = typed.getSecurity();
+            }
+            case AsyncApi21Server typed -> {
+                url = typed.getUrl();
+                tags = null;
+                requirements = typed.getSecurity();
+            }
+            case AsyncApi22Server typed -> {
+                url = typed.getUrl();
+                tags = null;
+                requirements = typed.getSecurity();
+            }
+            case AsyncApi23Server typed -> {
+                url = typed.getUrl();
+                tags = null;
+                requirements = typed.getSecurity();
+            }
+            case AsyncApi24Server typed -> {
+                url = typed.getUrl();
+                tags = null;
+                requirements = typed.getSecurity();
+            }
             default -> throw new IllegalArgumentException("Unsupported AsyncAPI server version: "
                     + server.getClass().getName());
         }

@@ -129,8 +129,8 @@ public final class SecuritySchemeMapperV3 {
      * @param components the Apicurio components object
      * @return the resolved security scheme, or null if not found
      */
-    private static io.apicurio.datamodels.models.asyncapi.AsyncApiSecurityScheme resolveRef(String $ref,
-                                                                                            AsyncApiComponents components) {
+    private static io.apicurio.datamodels.models.asyncapi.AsyncApiSecurityScheme resolveRef(
+            String $ref, AsyncApiComponents components) {
         if (components == null) {
             LOG.warn("Cannot resolve $ref: {}. Components is null.", $ref);
             return null;

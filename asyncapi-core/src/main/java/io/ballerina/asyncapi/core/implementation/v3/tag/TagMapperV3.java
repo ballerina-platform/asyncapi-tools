@@ -22,8 +22,8 @@ import io.apicurio.datamodels.models.Tag;
 import io.apicurio.datamodels.models.asyncapi.AsyncApiComponents;
 import io.apicurio.datamodels.models.asyncapi.AsyncApiExtensible;
 import io.apicurio.datamodels.models.asyncapi.AsyncApiExternalDocumentation;
-import io.ballerina.asyncapi.core.model.tag.AsyncApiTag;
 import io.ballerina.asyncapi.core.implementation.v3.doc.ExternalDocMapperV3;
+import io.ballerina.asyncapi.core.model.tag.AsyncApiTag;
 
 import java.util.Map;
 

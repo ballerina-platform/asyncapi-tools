@@ -70,7 +70,8 @@ final class MessagePayloadMapperV3 {
                     MultiFormatSchemaSchemaUnion schemaUnion = schemas != null ? schemas.get(schemaName) : null;
                     if (schemaUnion != null && schemaUnion.isSchema()
                             && schemaUnion.asSchema() instanceof AsyncApiSchema typedSchema) {
-                        io.ballerina.asyncapi.core.model.component.AsyncApiSchema mapped = SchemaMapper.map(typedSchema);
+                        io.ballerina.asyncapi.core.model.component.AsyncApiSchema mapped =
+                                SchemaMapper.map(typedSchema);
                         if (mapped != null) {
                             mapped = mapped.withName(schemaName);
                         }

@@ -73,7 +73,7 @@ public final class ChannelMapperV2 {
      */
     public static Map<String, AsyncApiChannel> map(AsyncApiChannels channels, AsyncApiComponents components,
                                                    Map<String, AsyncApiServer> serversMap) {
-        if (!(channels instanceof MappedNode<?> mappedNode) ) {
+        if (!(channels instanceof MappedNode<?> mappedNode)) {
             return Collections.emptyMap();
         }
         List<String> channelIds = mappedNode.getItemNames();

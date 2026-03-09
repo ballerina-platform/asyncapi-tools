@@ -19,6 +19,8 @@ package io.ballerina.asyncapi.core.implementation.v2.server;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import io.apicurio.datamodels.models.OAuthFlow;
+import io.apicurio.datamodels.models.SecurityRequirement;
+import io.apicurio.datamodels.models.SecurityScheme;
 import io.apicurio.datamodels.models.asyncapi.AsyncApiExtensible;
 import io.apicurio.datamodels.models.asyncapi.AsyncApiOAuthFlows;
 import io.apicurio.datamodels.models.asyncapi.v20.AsyncApi20OAuthFlow;
@@ -28,8 +30,6 @@ import io.apicurio.datamodels.models.asyncapi.v23.AsyncApi23OAuthFlow;
 import io.apicurio.datamodels.models.asyncapi.v24.AsyncApi24OAuthFlow;
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25OAuthFlow;
 import io.apicurio.datamodels.models.asyncapi.v26.AsyncApi26OAuthFlow;
-import io.apicurio.datamodels.models.SecurityRequirement;
-import io.apicurio.datamodels.models.SecurityScheme;
 import io.ballerina.asyncapi.core.implementation.utils.URIUtils;
 import io.ballerina.asyncapi.core.model.security.AsyncApiOAuthFlow;
 import io.ballerina.asyncapi.core.model.security.AsyncApiSecurityScheme;

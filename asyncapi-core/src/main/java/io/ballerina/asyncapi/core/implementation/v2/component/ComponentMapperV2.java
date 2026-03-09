@@ -20,6 +20,7 @@ package io.ballerina.asyncapi.core.implementation.v2.component;
 import com.fasterxml.jackson.databind.JsonNode;
 import io.apicurio.datamodels.models.asyncapi.AsyncApiComponents;
 import io.apicurio.datamodels.models.asyncapi.AsyncApiExtensible;
+import io.ballerina.asyncapi.core.implementation.common.ServerBindingsMapper;
 import io.ballerina.asyncapi.core.implementation.v2.channel.ChannelBindingsMapperV2;
 import io.ballerina.asyncapi.core.implementation.v2.message.CorrelationIdMapperV2;
 import io.ballerina.asyncapi.core.implementation.v2.message.MessageBindingsMapperV2;
@@ -27,7 +28,6 @@ import io.ballerina.asyncapi.core.implementation.v2.message.MessageMapperV2;
 import io.ballerina.asyncapi.core.implementation.v2.message.MessageTraitMapperV2;
 import io.ballerina.asyncapi.core.implementation.v2.operation.OperationBindingsMapperV2;
 import io.ballerina.asyncapi.core.implementation.v2.operation.OperationTraitMapperV2;
-import io.ballerina.asyncapi.core.implementation.common.ServerBindingsMapper;
 import io.ballerina.asyncapi.core.model.component.AsyncApiComponent;
 
 import java.util.LinkedHashMap;

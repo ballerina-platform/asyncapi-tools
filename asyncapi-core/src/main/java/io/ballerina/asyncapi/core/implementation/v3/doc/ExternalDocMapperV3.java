@@ -23,9 +23,9 @@ import io.apicurio.datamodels.models.asyncapi.AsyncApiExternalDocumentation;
 import io.apicurio.datamodels.models.asyncapi.AsyncApiExtensible;
 import io.apicurio.datamodels.models.asyncapi.AsyncApiReferenceable;
 import io.apicurio.datamodels.models.asyncapi.v30.AsyncApi30Components;
-import io.ballerina.asyncapi.core.model.doc.AsyncApiExternalDocs;
-import io.ballerina.asyncapi.core.implementation.utils.URIUtils;
 import io.ballerina.asyncapi.core.Constants;
+import io.ballerina.asyncapi.core.implementation.utils.URIUtils;
+import io.ballerina.asyncapi.core.model.doc.AsyncApiExternalDocs;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
