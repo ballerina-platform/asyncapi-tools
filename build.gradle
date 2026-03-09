@@ -222,6 +222,13 @@ directoryBuild.dependsOn ":checkstyle:checkstyleTest"
 directoryBuild.dependsOn ":checkstyle:test"
 directoryBuild.dependsOn ":checkstyle:processTestResources"
 
+directoryBuild.dependsOn ":asyncapi-core:compileJava"
+directoryBuild.dependsOn ":asyncapi-core:compileTestJava"
+directoryBuild.dependsOn ":asyncapi-core:jar"
+directoryBuild.dependsOn ":asyncapi-core:checkstyleMain"
+directoryBuild.dependsOn ":asyncapi-core:checkstyleTest"
+directoryBuild.dependsOn ":asyncapi-core:test"
+
 directoryBuild.dependsOn ":asyncapi-tool:jBallerinaPack"
 directoryBuild.dependsOn ":asyncapi-tool:generatePomFileForMavenPublication"
 directoryBuild.dependsOn ":asyncapi-tool:createArtifactZip"

@@ -31,6 +31,7 @@ import io.apicurio.datamodels.models.asyncapi.v30.AsyncApi30Operation;
 import io.apicurio.datamodels.models.asyncapi.v30.AsyncApi30Operations;
 import io.apicurio.datamodels.models.asyncapi.v30.AsyncApi30Reference;
 import io.ballerina.asyncapi.core.Constants;
+import io.ballerina.asyncapi.core.implementation.utils.StringUtils;
 import io.ballerina.asyncapi.core.implementation.v3.message.MessageMapperV3;
 import io.ballerina.asyncapi.core.implementation.v3.doc.ExternalDocMapperV3;
 import io.ballerina.asyncapi.core.implementation.v3.server.SecuritySchemeMapperV3;
@@ -133,7 +134,7 @@ public final class OperationMapperV3 {
             } else {
                 channel = resolveChannelRef($ref, channelsMap);
                 if ($ref.startsWith(Constants.V3_CHANNELS_REF_PREFIX)) {
-                    channelId = $ref.substring(Constants.V3_CHANNELS_REF_PREFIX.length());
+                    channelId = StringUtils.toPascalCase($ref.substring(Constants.V3_CHANNELS_REF_PREFIX.length()));
                 }
             }
         }

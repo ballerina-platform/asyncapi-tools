@@ -76,6 +76,10 @@ public final class MessageMapperV3 {
             if (message == null) {
                 continue;
             }
+            if (message instanceof AsyncApiReferenceable ref && ref.get$ref() != null) {
+                String $ref = ref.get$ref();
+                messageName = $ref.substring($ref.lastIndexOf('/') + 1);
+            }
             io.ballerina.asyncapi.core.model.message.AsyncApiMessage mapped =
                     mapMessageItem(message, components);
             if (mapped != null) {

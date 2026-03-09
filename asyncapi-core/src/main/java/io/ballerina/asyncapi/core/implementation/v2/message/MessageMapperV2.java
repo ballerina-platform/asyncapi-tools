@@ -98,8 +98,11 @@ public final class MessageMapperV2 {
                 continue;
             }
 
+            String messageRefKey = null;
             if (message instanceof AsyncApiReferenceable referenceable && referenceable.get$ref() != null) {
-                message = resolveMessageRef(referenceable.get$ref(), components);
+                String $ref = referenceable.get$ref();
+                messageRefKey = $ref.substring($ref.lastIndexOf('/') + 1);
+                message = resolveMessageRef($ref, components);
                 if (message == null) {
                     continue;
                 }
@@ -119,13 +122,16 @@ public final class MessageMapperV2 {
             if (oneOf != null && !oneOf.isEmpty()) {
                 for (AsyncApiMessage oneOfMsg : oneOf) {
                     AsyncApiMessage resolvedMsg = oneOfMsg;
+                    String oneOfRefKey = null;
                     if (oneOfMsg instanceof AsyncApiReferenceable ref && ref.get$ref() != null) {
-                        resolvedMsg = resolveMessageRef(ref.get$ref(), components);
+                        String $ref = ref.get$ref();
+                        oneOfRefKey = $ref.substring($ref.lastIndexOf('/') + 1);
+                        resolvedMsg = resolveMessageRef($ref, components);
                         if (resolvedMsg == null) {
                             continue;
                         }
                     }
-                    String key = resolveMessageKey(resolvedMsg, messages.size());
+                    String key = oneOfRefKey != null ? oneOfRefKey : resolveMessageKey(resolvedMsg, messages.size());
                     io.ballerina.asyncapi.core.model.message.AsyncApiMessage mappedMessage =
                             mapMessageItem(resolvedMsg, components);
                     if (mappedMessage != null) {
@@ -133,7 +139,7 @@ public final class MessageMapperV2 {
                     }
                 }
             } else {
-                String key = resolveMessageKey(message, messages.size());
+                String key = messageRefKey != null ? messageRefKey : resolveMessageKey(message, messages.size());
                 io.ballerina.asyncapi.core.model.message.AsyncApiMessage mappedMessage =
                         mapMessageItem(message, components);
                 if (mappedMessage != null) {

@@ -58,42 +58,47 @@ public interface AsyncApiSpec {
     /**
      * Returns the servers defined in this AsyncAPI document.
      *
-     * @return a map of server names to their definitions
+     * @return an {@link Optional} containing a map of server names to their definitions,
+     *         or empty if no servers are defined
      */
-    Map<String, AsyncApiServer> getAsyncApiServers();
+    Optional<Map<String, AsyncApiServer>> getAsyncApiServers();
 
     /**
      * Returns the default content type for message payloads.
      *
-     * @return the default content type (e.g., "application/json")
+     * @return an {@link Optional} containing the default content type (e.g., "application/json"),
+     *         or empty if not specified
      */
-    String getAsyncApiContentType();
+    Optional<String> getAsyncApiContentType();
 
     /**
      * Returns the channels defined in this AsyncAPI document.
      *
-     * @return a map of channel names to their definitions
+     * @return an {@link Optional} containing a map of channel names to their definitions,
+     *         or empty if no channels are defined
      */
-    Map<String, AsyncApiChannel> getAsyncApiChannels();
+    Optional<Map<String, AsyncApiChannel>> getAsyncApiChannels();
 
     /**
      * Returns the operations defined in this AsyncAPI document.
      *
-     * @return a map of operation names to their definitions
+     * @return an {@link Optional} containing a map of operation names to their definitions,
+     *         or empty if no operations are defined
      */
-    Map<String, AsyncApiOperation> getAsyncApiOperations();
+    Optional<Map<String, AsyncApiOperation>> getAsyncApiOperations();
 
     /**
      * Returns the reusable components defined in this AsyncAPI document.
      *
-     * @return the components object containing reusable definitions
+     * @return an {@link Optional} containing the components object, or empty if no components are defined
      */
-    AsyncApiComponent getAsyncApiComponents();
+    Optional<AsyncApiComponent> getAsyncApiComponents();
 
     /**
      * Returns the specification extensions defined at the document level.
      *
-     * @return a map of extension names (with "x-" prefix) to their JSON values
+     * @return an {@link Optional} containing a map of extension names (with "x-" prefix) to their
+     *         JSON values, or empty if no extensions are defined
      */
-    Map<String, JsonNode> getAsyncApiExtensions();
+    Optional<Map<String, JsonNode>> getAsyncApiExtensions();
 }

@@ -35,10 +35,6 @@ dependencies {
     checkstyle "com.puppycrawl.tools:checkstyle:${checkstylePluginVersion}"
 }
 
-application {
-    mainClass = 'io.ballerina.asyncapi.core.AsyncApiParserTest'
-}
-
 checkstyle {
     toolVersion "${checkstylePluginVersion}"
     configFile rootProject.file("config/checkstyle/build/checkstyle.xml")
@@ -57,3 +53,9 @@ checkstyleMain.dependsOn(":checkstyle:checkstyleTest")
 checkstyleMain.dependsOn(":checkstyle:test")
 checkstyleMain.dependsOn(":checkstyle:processTestResources")
 checkstyleTest.dependsOn(":checkstyle:downloadCheckstyleRuleFiles")
+
+test {
+    useTestNG() {
+        suites "src/test/resources/testng.xml"
+    }
+}

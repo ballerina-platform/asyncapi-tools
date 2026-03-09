@@ -24,6 +24,8 @@ import io.apicurio.datamodels.models.asyncapi.AsyncApiExtensible;
 import io.apicurio.datamodels.models.asyncapi.AsyncApiExternalDocumentation;
 import io.apicurio.datamodels.models.asyncapi.AsyncApiReferenceable;
 import io.apicurio.datamodels.models.asyncapi.AsyncApiSchema;
+import io.apicurio.datamodels.models.union.BooleanSchemaUnion;
+import io.apicurio.datamodels.models.union.SchemaSchemaListUnion;
 import io.ballerina.asyncapi.core.implementation.v2.doc.ExternalDocMapperV2;
 
 import java.util.ArrayList;
@@ -76,62 +78,16 @@ public final class SchemaMapper {
             return null;
         }
 
-        // additionalProperties: BooleanSchemaUnion → Boolean or our AsyncApiSchema
-        Object additionalProps = null;
-        if (schema.getAdditionalProperties() != null) {
-            var bsu = schema.getAdditionalProperties();
-            if (bsu.isBoolean()) {
-                additionalProps = bsu.asBoolean();
-            } else if (bsu.isSchema() && bsu.asSchema() instanceof AsyncApiSchema typedSchema) {
-                additionalProps = map(typedSchema);
-            }
-        }
-
-        // items: SchemaSchemaListUnion → our AsyncApiSchema or List<our AsyncApiSchema>
-        Object items = null;
-        if (schema.getItems() != null) {
-            var ssl = schema.getItems();
-            if (ssl.isSchema() && ssl.asSchema() instanceof AsyncApiSchema typedSchema) {
-                items = map(typedSchema);
-            } else if (ssl.isSchemaList()) {
-                List<io.ballerina.asyncapi.core.model.component.AsyncApiSchema> list = ssl.asSchemaList().stream()
-                                .filter(e -> e instanceof AsyncApiSchema)
-                                .map(e -> map((AsyncApiSchema) e)).filter(Objects::nonNull)
-                                .toList();
-                items = list.isEmpty() ? null : list;
-            }
-        }
-
-        // properties: Map<String, Schema> → Map<String, our AsyncApiSchema>
-        Map<String, io.ballerina.asyncapi.core.model.component.AsyncApiSchema> properties = null;
-        if (schema.getProperties() != null && !schema.getProperties().isEmpty()) {
-            properties = new LinkedHashMap<>();
-            for (Map.Entry<String, ? extends Schema> entry : schema.getProperties().entrySet()) {
-                if (entry.getValue() instanceof AsyncApiSchema typedSchema) {
-                    io.ballerina.asyncapi.core.model.component.AsyncApiSchema mapped = map(typedSchema);
-                    if (mapped != null) {
-                        properties.put(entry.getKey(), mapped);
-                    }
-                }
-            }
-            if (properties.isEmpty()) {
-                properties = null;
-            }
-        }
-
-        // allOf: resolve $refs using rawSchemas when available
+        Object additionalProps = schema.getAdditionalProperties() != null
+                ? mapAdditionalProperties(schema.getAdditionalProperties()) : null;
+        Object items = schema.getItems() != null ? mapItems(schema.getItems()) : null;
+        Map<String, io.ballerina.asyncapi.core.model.component.AsyncApiSchema> properties =
+                (schema.getProperties() != null && !schema.getProperties().isEmpty())
+                        ? mapProperties(schema.getProperties()) : null;
         List<io.ballerina.asyncapi.core.model.component.AsyncApiSchema> allOf =
                 mapBaseSchemaList(schema.getAllOf(), rawSchemas);
-
-        Map<String, JsonNode> extensions = null;
-        if (schema instanceof AsyncApiExtensible extensible) {
-            extensions = extensible.getExtensions();
-        }
-
-        AsyncApiExternalDocumentation externalDocs = null;
-        if (schema.getExternalDocs() instanceof AsyncApiExternalDocumentation typedDoc) {
-            externalDocs = typedDoc;
-        }
+        Map<String, JsonNode> extensions = mapExtensions(schema);
+        AsyncApiExternalDocumentation externalDocs = mapExternalDocs(schema);
 
         return new io.ballerina.asyncapi.core.model.component.AsyncApiSchema(
                 schema.getTitle(),
@@ -181,12 +137,100 @@ public final class SchemaMapper {
     }
 
     /**
+     * Maps an Apicurio {@link BooleanSchemaUnion} (the {@code additionalProperties} field) to either
+     * a {@link Boolean} or a {@link io.ballerina.asyncapi.core.model.component.AsyncApiSchema}.
+     *
+     * @param additionalPropertiesUnion the union value from {@code schema.getAdditionalProperties()}
+     * @return {@link Boolean} when the union holds a boolean, a mapped schema when it holds a schema,
+     *         or {@code null} otherwise
+     */
+    private static Object mapAdditionalProperties(BooleanSchemaUnion additionalPropertiesUnion) {
+        if (additionalPropertiesUnion.isBoolean()) {
+            return additionalPropertiesUnion.asBoolean();
+        } else if (additionalPropertiesUnion.isSchema()
+                && additionalPropertiesUnion.asSchema() instanceof AsyncApiSchema typedSchema) {
+            return map(typedSchema);
+        }
+        return null;
+    }
+
+    /**
+     * Maps an Apicurio {@link SchemaSchemaListUnion} (the {@code items} field) to either a single
+     * {@link io.ballerina.asyncapi.core.model.component.AsyncApiSchema} or a {@code List} of them.
+     *
+     * @param itemsUnion the union value from {@code schema.getItems()}
+     * @return a single mapped schema, a non-empty {@code List} of mapped schemas, or {@code null}
+     */
+    private static Object mapItems(SchemaSchemaListUnion itemsUnion) {
+        if (itemsUnion.isSchema() && itemsUnion.asSchema() instanceof AsyncApiSchema typedSchema) {
+            return map(typedSchema);
+        } else if (itemsUnion.isSchemaList()) {
+            List<io.ballerina.asyncapi.core.model.component.AsyncApiSchema> list =
+                    itemsUnion.asSchemaList().stream()
+                            .filter(e -> e instanceof AsyncApiSchema)
+                            .map(e -> map((AsyncApiSchema) e))
+                            .filter(Objects::nonNull)
+                            .toList();
+            return list.isEmpty() ? null : list;
+        }
+        return null;
+    }
+
+    /**
+     * Maps an Apicurio {@code properties} map ({@code Map<String, Schema>}) to a
+     * {@code Map<String, }{@link io.ballerina.asyncapi.core.model.component.AsyncApiSchema}{@code >}.
+     *
+     * @param rawProperties the raw properties map from {@code schema.getProperties()}
+     * @return the mapped properties map, or {@code null} if no entries could be mapped
+     */
+    private static Map<String, io.ballerina.asyncapi.core.model.component.AsyncApiSchema> mapProperties(
+            Map<String, ? extends Schema> rawProperties) {
+        Map<String, io.ballerina.asyncapi.core.model.component.AsyncApiSchema> properties = new LinkedHashMap<>();
+        for (Map.Entry<String, ? extends Schema> entry : rawProperties.entrySet()) {
+            if (entry.getValue() instanceof AsyncApiSchema typedSchema) {
+                io.ballerina.asyncapi.core.model.component.AsyncApiSchema mapped = map(typedSchema);
+                if (mapped != null) {
+                    properties.put(entry.getKey(), mapped);
+                }
+            }
+        }
+        return properties.isEmpty() ? null : properties;
+    }
+
+    /**
+     * Extracts the {@code x-*} extension map from a schema that implements
+     * {@link AsyncApiExtensible}.
+     *
+     * @param schema the Apicurio schema object
+     * @return the extensions map, or {@code null} if the schema is not extensible
+     */
+    private static Map<String, JsonNode> mapExtensions(AsyncApiSchema schema) {
+        if (schema instanceof AsyncApiExtensible extensible) {
+            return extensible.getExtensions();
+        }
+        return null;
+    }
+
+    /**
+     * Extracts the {@code externalDocs} field from a schema, casting it to
+     * {@link AsyncApiExternalDocumentation} when present.
+     *
+     * @param schema the Apicurio schema object
+     * @return the typed external documentation, or {@code null} if absent or wrong type
+     */
+    private static AsyncApiExternalDocumentation mapExternalDocs(AsyncApiSchema schema) {
+        if (schema.getExternalDocs() instanceof AsyncApiExternalDocumentation typedDoc) {
+            return typedDoc;
+        }
+        return null;
+    }
+
+    /**
      * Maps a raw JSON payload {@link ObjectNode} (inline schema) to a
      * {@link io.ballerina.asyncapi.core.model.component.AsyncApiSchema}.
-     * Parses the common JSON Schema fields ({@code type}, {@code properties},
-     * {@code required}, {@code items}, {@code enum}, {@code format},
-     * {@code description}, {@code title}, and {@code x-*} extensions) directly
-     * from the Jackson node.
+     * Parses JSON Schema fields directly from the Jackson node, including type
+     * constraints, validation keywords, compositions ({@code allOf}, {@code oneOf},
+     * {@code anyOf}), conditional schemas, and {@code x-*} extensions.
      *
      * @param node the raw Jackson node representing the inline schema
      * @return the mapped schema, or {@code null} if {@code node} is not an {@link ObjectNode}
@@ -200,6 +244,40 @@ public final class SchemaMapper {
         String type = objectNode.has("type") ? objectNode.get("type").asText(null) : null;
         String format = objectNode.has("format") ? objectNode.get("format").asText(null) : null;
         String description = objectNode.has("description") ? objectNode.get("description").asText(null) : null;
+        JsonNode defaultValue = objectNode.has("default") ? objectNode.get("default") : null;
+        String pattern = objectNode.has("pattern") ? objectNode.get("pattern").asText(null) : null;
+
+        Number multipleOf = objectNode.has("multipleOf") && objectNode.get("multipleOf").isNumber()
+                ? objectNode.get("multipleOf").numberValue() : null;
+        Number maximum = objectNode.has("maximum") && objectNode.get("maximum").isNumber()
+                ? objectNode.get("maximum").numberValue() : null;
+        Number exclusiveMaximum = objectNode.has("exclusiveMaximum") && objectNode.get("exclusiveMaximum").isNumber()
+                ? objectNode.get("exclusiveMaximum").numberValue() : null;
+        Number minimum = objectNode.has("minimum") && objectNode.get("minimum").isNumber()
+                ? objectNode.get("minimum").numberValue() : null;
+        Number exclusiveMinimum = objectNode.has("exclusiveMinimum") && objectNode.get("exclusiveMinimum").isNumber()
+                ? objectNode.get("exclusiveMinimum").numberValue() : null;
+        Integer maxLength = objectNode.has("maxLength") && objectNode.get("maxLength").isInt()
+                ? objectNode.get("maxLength").intValue() : null;
+        Integer minLength = objectNode.has("minLength") && objectNode.get("minLength").isInt()
+                ? objectNode.get("minLength").intValue() : null;
+        Integer maxItems = objectNode.has("maxItems") && objectNode.get("maxItems").isInt()
+                ? objectNode.get("maxItems").intValue() : null;
+        Integer minItems = objectNode.has("minItems") && objectNode.get("minItems").isInt()
+                ? objectNode.get("minItems").intValue() : null;
+        Boolean uniqueItems = objectNode.has("uniqueItems") && objectNode.get("uniqueItems").isBoolean()
+                ? objectNode.get("uniqueItems").booleanValue() : null;
+        Integer maxProperties = objectNode.has("maxProperties") && objectNode.get("maxProperties").isInt()
+                ? objectNode.get("maxProperties").intValue() : null;
+        Integer minProperties = objectNode.has("minProperties") && objectNode.get("minProperties").isInt()
+                ? objectNode.get("minProperties").intValue() : null;
+        Boolean readOnly = objectNode.has("readOnly") && objectNode.get("readOnly").isBoolean()
+                ? objectNode.get("readOnly").booleanValue() : null;
+        Boolean writeOnly = objectNode.has("writeOnly") && objectNode.get("writeOnly").isBoolean()
+                ? objectNode.get("writeOnly").booleanValue() : null;
+        Boolean deprecated = objectNode.has("deprecated") && objectNode.get("deprecated").isBoolean()
+                ? objectNode.get("deprecated").booleanValue() : null;
+        JsonNode constValue = objectNode.has("const") ? objectNode.get("const") : null;
 
         List<String> required = null;
         if (objectNode.has("required") && objectNode.get("required").isArray()) {
@@ -214,6 +292,14 @@ public final class SchemaMapper {
             enumValues = new ArrayList<>();
             for (JsonNode val : objectNode.get("enum")) {
                 enumValues.add(val);
+            }
+        }
+
+        List<JsonNode> examples = null;
+        if (objectNode.has("examples") && objectNode.get("examples").isArray()) {
+            examples = new ArrayList<>();
+            for (JsonNode ex : objectNode.get("examples")) {
+                examples.add(ex);
             }
         }
 
@@ -238,6 +324,32 @@ public final class SchemaMapper {
             items = mapFromJsonNode(objectNode.get("items"));
         }
 
+        Object additionalProperties = null;
+        if (objectNode.has("additionalProperties")) {
+            JsonNode apNode = objectNode.get("additionalProperties");
+            if (apNode.isBoolean()) {
+                additionalProperties = apNode.booleanValue();
+            } else {
+                additionalProperties = mapFromJsonNode(apNode);
+            }
+        }
+
+        io.ballerina.asyncapi.core.model.component.AsyncApiSchema ifSchema =
+                objectNode.has("if") ? mapFromJsonNode(objectNode.get("if")) : null;
+        io.ballerina.asyncapi.core.model.component.AsyncApiSchema thenSchema =
+                objectNode.has("then") ? mapFromJsonNode(objectNode.get("then")) : null;
+        io.ballerina.asyncapi.core.model.component.AsyncApiSchema elseSchema =
+                objectNode.has("else") ? mapFromJsonNode(objectNode.get("else")) : null;
+        io.ballerina.asyncapi.core.model.component.AsyncApiSchema notSchema =
+                objectNode.has("not") ? mapFromJsonNode(objectNode.get("not")) : null;
+
+        List<io.ballerina.asyncapi.core.model.component.AsyncApiSchema> allOf =
+                mapJsonSchemaArray(objectNode.get("allOf"));
+        List<io.ballerina.asyncapi.core.model.component.AsyncApiSchema> oneOf =
+                mapJsonSchemaArray(objectNode.get("oneOf"));
+        List<io.ballerina.asyncapi.core.model.component.AsyncApiSchema> anyOf =
+                mapJsonSchemaArray(objectNode.get("anyOf"));
+
         Map<String, JsonNode> extensions = null;
         Map<String, JsonNode> ext = new LinkedHashMap<>();
         objectNode.properties().forEach(e -> {
@@ -251,14 +363,41 @@ public final class SchemaMapper {
 
         return new io.ballerina.asyncapi.core.model.component.AsyncApiSchema(
                 title, type, required,
-                null, null, null, null, null, null, null, null,
-                null, null, null, null, null,
-                enumValues, null, null, null, null, null, null, null,
-                properties, null, null, null, items, null, null,
-                null, null, null, null,
-                description, format, null, null, null, null,
+                multipleOf, maximum, exclusiveMaximum, minimum, exclusiveMinimum,
+                maxLength, minLength, pattern,
+                maxItems, minItems, uniqueItems, maxProperties, minProperties,
+                enumValues, constValue, examples, ifSchema, thenSchema, elseSchema,
+                readOnly, writeOnly,
+                properties, null, additionalProperties, null, items, null, null,
+                allOf, oneOf, anyOf, notSchema,
+                description, format, defaultValue, null, null, deprecated,
                 extensions, null
         );
+    }
+
+    /**
+     * Maps a JSON array node to a list of
+     * {@link io.ballerina.asyncapi.core.model.component.AsyncApiSchema} by recursively
+     * calling {@link #mapFromJsonNode(JsonNode)} on each element. Used for
+     * {@code allOf}, {@code oneOf}, and {@code anyOf}.
+     *
+     * @param arrayNode the JSON array node; may be {@code null}
+     * @return the mapped list, or {@code null} if the node is null, not an array, or all
+     *         elements fail to map
+     */
+    private static List<io.ballerina.asyncapi.core.model.component.AsyncApiSchema> mapJsonSchemaArray(
+            JsonNode arrayNode) {
+        if (arrayNode == null || !arrayNode.isArray()) {
+            return null;
+        }
+        List<io.ballerina.asyncapi.core.model.component.AsyncApiSchema> list = new ArrayList<>();
+        for (JsonNode element : arrayNode) {
+            io.ballerina.asyncapi.core.model.component.AsyncApiSchema mapped = mapFromJsonNode(element);
+            if (mapped != null) {
+                list.add(mapped);
+            }
+        }
+        return list.isEmpty() ? null : list;
     }
 
     /**

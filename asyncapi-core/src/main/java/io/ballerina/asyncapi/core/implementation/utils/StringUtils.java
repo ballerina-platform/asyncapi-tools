@@ -36,7 +36,7 @@ public final class StringUtils {
         if (input == null || input.isBlank()) {
             return input;
         }
-        String[] tokens = input.split("[ \\-_/]+");
+        String[] tokens = input.split("[ \\-_/.]+");
         StringBuilder result = new StringBuilder();
         for (String token : tokens) {
             if (token.isEmpty()) {

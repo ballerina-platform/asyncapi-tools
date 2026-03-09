@@ -99,32 +99,32 @@ public class AsyncApiSpecV2 implements AsyncApiSpec {
     }
 
     @Override
-    public Map<String, AsyncApiServer> getAsyncApiServers() {
-        return servers;
+    public Optional<Map<String, AsyncApiServer>> getAsyncApiServers() {
+        return Optional.ofNullable(servers);
     }
 
     @Override
-    public String getAsyncApiContentType() {
-        return contentType;
+    public Optional<String> getAsyncApiContentType() {
+        return Optional.ofNullable(contentType);
     }
 
     @Override
-    public Map<String, AsyncApiChannel> getAsyncApiChannels() {
-        return channels;
+    public Optional<Map<String, AsyncApiChannel>> getAsyncApiChannels() {
+        return Optional.ofNullable(channels);
     }
 
     @Override
-    public Map<String, AsyncApiOperation> getAsyncApiOperations() {
-        return operations;
+    public Optional<Map<String, AsyncApiOperation>> getAsyncApiOperations() {
+        return Optional.ofNullable(operations);
     }
 
     @Override
-    public AsyncApiComponent getAsyncApiComponents() {
-        return components;
+    public Optional<AsyncApiComponent> getAsyncApiComponents() {
+        return Optional.ofNullable(components);
     }
 
     @Override
-    public Map<String, JsonNode> getAsyncApiExtensions() {
-        return extensions != null ? extensions : Map.of();
+    public Optional<Map<String, JsonNode>> getAsyncApiExtensions() {
+        return Optional.ofNullable(extensions);
     }
 }
