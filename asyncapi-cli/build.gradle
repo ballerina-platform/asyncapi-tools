@@ -200,8 +200,8 @@ tasks.withType(Checkstyle) {
     exclude excludePattern
 }
 
-checkstyleMain.dependsOn(":checkstyle:downloadCheckstyleRuleFiles")
-checkstyleTest.dependsOn(":checkstyle:downloadCheckstyleRuleFiles")
+checkstyleMain.dependsOn(":checkstyle:build")
+checkstyleTest.dependsOn(":checkstyle:build")
 
 jar {
     enabled = false
