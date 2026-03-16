@@ -66,6 +66,8 @@ import java.util.Map;
  *                             object properties.
  * @param additionalItems      Validates items beyond those matched by a tuple-form
  *                             {@code items}.
+ * @param items                {@link AsyncApiSchema} or {@code List<AsyncApiSchema>}: schema(s)
+ *                             for array items.
  * @param propertyNames        Schema for validating property names of an object.
  * @param contains             Array is valid if at least one item matches this schema.
  * @param allOf                Validates against all of the given sub-schemas.
