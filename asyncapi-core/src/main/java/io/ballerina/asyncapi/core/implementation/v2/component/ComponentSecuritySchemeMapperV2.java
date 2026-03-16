@@ -30,7 +30,6 @@ import java.util.Map;
 final class ComponentSecuritySchemeMapperV2 {
 
     private ComponentSecuritySchemeMapperV2() {
-
     }
 
     /**

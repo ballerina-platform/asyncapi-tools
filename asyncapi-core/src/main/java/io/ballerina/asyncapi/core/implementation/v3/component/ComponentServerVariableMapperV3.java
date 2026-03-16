@@ -30,7 +30,6 @@ import java.util.Map;
 final class ComponentServerVariableMapperV3 {
 
     private ComponentServerVariableMapperV3() {
-
     }
 
     /**

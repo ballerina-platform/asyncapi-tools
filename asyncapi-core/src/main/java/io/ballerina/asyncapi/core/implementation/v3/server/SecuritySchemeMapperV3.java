@@ -87,14 +87,14 @@ public final class SecuritySchemeMapperV3 {
         if (scheme == null) {
             return null;
         }
-        String $ref = null;
+        String ref = null;
         if (scheme instanceof AsyncApiReferenceable referenceable) {
-            $ref = referenceable.get$ref();
+            ref = referenceable.get$ref();
         }
-        if ($ref != null) {
-            io.apicurio.datamodels.models.asyncapi.AsyncApiSecurityScheme resolved = resolveRef($ref, components);
+        if (ref != null) {
+            io.apicurio.datamodels.models.asyncapi.AsyncApiSecurityScheme resolved = resolveRef(ref, components);
             if (resolved == null) {
-                LOG.warn("Could not resolve $ref: {}. Skipping security scheme.", $ref);
+                LOG.warn("Could not resolve $ref: {}. Skipping security scheme.", ref);
                 return null;
             }
             return mapSecurityItem(resolved, components);
@@ -125,18 +125,18 @@ public final class SecuritySchemeMapperV3 {
      * Resolves a {@code $ref} to a component security scheme by extracting the name from the
      * reference string and looking it up in the AsyncAPI 3.0 components map.
      *
-     * @param $ref       the reference string (e.g. {@code #/components/securitySchemes/MyScheme})
+     * @param ref        the reference string (e.g. {@code #/components/securitySchemes/MyScheme})
      * @param components the Apicurio components object
      * @return the resolved security scheme, or null if not found
      */
     private static io.apicurio.datamodels.models.asyncapi.AsyncApiSecurityScheme resolveRef(
-            String $ref, AsyncApiComponents components) {
+            String ref, AsyncApiComponents components) {
         if (components == null) {
-            LOG.warn("Cannot resolve $ref: {}. Components is null.", $ref);
+            LOG.warn("Cannot resolve $ref: {}. Components is null.", ref);
             return null;
         }
         Set<String> visited = new HashSet<>();
-        String current = $ref;
+        String current = ref;
         while (current != null) {
             if (!current.startsWith(Constants.SECURITY_SCHEMES_REF_PREFIX)) {
                 LOG.warn("Unsupported $ref format: {}. Skipping security scheme.", current);

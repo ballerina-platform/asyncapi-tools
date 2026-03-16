@@ -19,8 +19,8 @@ package io.ballerina.asyncapi.core.implementation.v3.doc;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import io.apicurio.datamodels.models.asyncapi.AsyncApiComponents;
-import io.apicurio.datamodels.models.asyncapi.AsyncApiExternalDocumentation;
 import io.apicurio.datamodels.models.asyncapi.AsyncApiExtensible;
+import io.apicurio.datamodels.models.asyncapi.AsyncApiExternalDocumentation;
 import io.apicurio.datamodels.models.asyncapi.AsyncApiReferenceable;
 import io.apicurio.datamodels.models.asyncapi.v30.AsyncApi30Components;
 import io.ballerina.asyncapi.core.Constants;
@@ -56,12 +56,12 @@ public final class ExternalDocMapperV3 {
             return null;
         }
 
-        String $ref = externalDocs instanceof AsyncApiReferenceable referenceable
+        String ref = externalDocs instanceof AsyncApiReferenceable referenceable
                 ? referenceable.get$ref()
                 : null;
 
-        if ($ref != null) {
-            AsyncApiExternalDocumentation resolved = resolveRef($ref, components);
+        if (ref != null) {
+            AsyncApiExternalDocumentation resolved = resolveRef(ref, components);
             if (resolved == null) {
                 return null;
             }
@@ -84,17 +84,17 @@ public final class ExternalDocMapperV3 {
      * Resolves an externalDocs {@code $ref} string, following any chain of refs, to the
      * final concrete {@link AsyncApiExternalDocumentation}. Detects cyclic references.
      *
-     * @param $ref       the initial $ref string (e.g., "#/components/externalDocs/myDocs")
+     * @param ref        the initial $ref string (e.g., "#/components/externalDocs/myDocs")
      * @param components the AsyncAPI components used for lookup
      * @return the concrete externalDocs object, or {@code null} if resolution fails
      */
-    private static AsyncApiExternalDocumentation resolveRef(String $ref, AsyncApiComponents components) {
+    private static AsyncApiExternalDocumentation resolveRef(String ref, AsyncApiComponents components) {
         if (components == null) {
-            LOG.warn("Cannot resolve $ref: {}. Components is null.", $ref);
+            LOG.warn("Cannot resolve $ref: {}. Components is null.", ref);
             return null;
         }
         Set<String> visited = new HashSet<>();
-        String current = $ref;
+        String current = ref;
         while (current != null) {
             if (!current.startsWith(Constants.EXTERNAL_DOCS_REF_PREFIX)) {
                 LOG.warn("Unsupported $ref format: {}. Skipping externalDocs.", current);

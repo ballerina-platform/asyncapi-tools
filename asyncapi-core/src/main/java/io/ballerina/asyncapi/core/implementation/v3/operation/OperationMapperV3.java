@@ -56,7 +56,6 @@ public final class OperationMapperV3 {
     private static final Logger LOG = LogManager.getLogger(OperationMapperV3.class);
 
     private OperationMapperV3() {
-
     }
 
     /**
@@ -128,13 +127,13 @@ public final class OperationMapperV3 {
         String channelId = null;
         AsyncApi30Reference channelRef = typed.getChannel();
         if (channelRef != null) {
-            String $ref = channelRef.get$ref();
-            if ($ref == null) {
+            String ref = channelRef.get$ref();
+            if (ref == null) {
                 LOG.warn("Operation channel reference has no $ref. Skipping.");
             } else {
-                channel = resolveChannelRef($ref, channelsMap);
-                if ($ref.startsWith(Constants.V3_CHANNELS_REF_PREFIX)) {
-                    channelId = StringUtils.toPascalCase($ref.substring(Constants.V3_CHANNELS_REF_PREFIX.length()));
+                channel = resolveChannelRef(ref, channelsMap);
+                if (ref.startsWith(Constants.V3_CHANNELS_REF_PREFIX)) {
+                    channelId = StringUtils.toPascalCase(ref.substring(Constants.V3_CHANNELS_REF_PREFIX.length()));
                 }
             }
         }
@@ -147,15 +146,15 @@ public final class OperationMapperV3 {
                 if (messageRef == null) {
                     continue;
                 }
-                String $ref = messageRef.get$ref();
-                if ($ref == null) {
+                String ref = messageRef.get$ref();
+                if (ref == null) {
                     LOG.warn("Operation message reference has no $ref. Skipping.");
                     continue;
                 }
-                String messageName = $ref.substring($ref.lastIndexOf('/') + 1);
-                AsyncApi30Message resolved = resolveMessageRef($ref, typedChannels, components);
+                String messageName = ref.substring(ref.lastIndexOf('/') + 1);
+                AsyncApi30Message resolved = resolveMessageRef(ref, typedChannels, components);
                 if (resolved == null) {
-                    LOG.warn("Could not resolve message $ref: {}. Skipping.", $ref);
+                    LOG.warn("Could not resolve message $ref: {}. Skipping.", ref);
                     continue;
                 }
                 if (resolved instanceof AsyncApiReferenceable resolvedRef && resolvedRef.get$ref() != null) {
@@ -199,17 +198,17 @@ public final class OperationMapperV3 {
     /**
      * Resolves a $ref to a channel.
      *
-     * @param $ref the $ref string (e.g., "#/channels/channelName")
+     * @param ref the $ref string (e.g., "#/channels/channelName")
      * @param channelsMap the map of channel names to AsyncApiChannel objects
      * @return the resolved channel, or null if not found or invalid
      */
-    static AsyncApiChannel resolveChannelRef(String $ref, Map<String, AsyncApiChannel> channelsMap) {
-        if (!$ref.startsWith(Constants.V3_CHANNELS_REF_PREFIX)) {
+    static AsyncApiChannel resolveChannelRef(String ref, Map<String, AsyncApiChannel> channelsMap) {
+        if (!ref.startsWith(Constants.V3_CHANNELS_REF_PREFIX)) {
             LOG.warn("Unsupported channel $ref format: {}. Expected {}",
-                    $ref, Constants.V3_CHANNELS_REF_PREFIX);
+                    ref, Constants.V3_CHANNELS_REF_PREFIX);
             return null;
         }
-        String channelName = $ref.substring(Constants.V3_CHANNELS_REF_PREFIX.length());
+        String channelName = ref.substring(Constants.V3_CHANNELS_REF_PREFIX.length());
         if (channelsMap == null) {
             return null;
         }
@@ -223,16 +222,16 @@ public final class OperationMapperV3 {
     /**
      * Resolves a $ref to a message in either channels or components.
      *
-     * @param $ref the $ref string (e.g., "#/channels/channelName/messages/messageName"
+     * @param ref the $ref string (e.g., "#/channels/channelName/messages/messageName"
      *             or "#/components/messages/messageName")
      * @param rawChannels the raw AsyncAPI 3.0 channels object
      * @param components the AsyncAPI components object
      * @return the resolved message, or null if not found or invalid
      */
-    static AsyncApi30Message resolveMessageRef(String $ref, AsyncApi30Channels rawChannels,
+    static AsyncApi30Message resolveMessageRef(String ref, AsyncApi30Channels rawChannels,
                                                AsyncApi30Components components) {
-        if ($ref.startsWith(Constants.MESSAGES_REF_PREFIX)) {
-            String name = $ref.substring(Constants.MESSAGES_REF_PREFIX.length());
+        if (ref.startsWith(Constants.MESSAGES_REF_PREFIX)) {
+            String name = ref.substring(Constants.MESSAGES_REF_PREFIX.length());
             if (components == null) {
                 return null;
             }
@@ -244,11 +243,11 @@ public final class OperationMapperV3 {
             return message instanceof AsyncApi30Message typed ? typed : null;
         }
 
-        if ($ref.startsWith(Constants.V3_CHANNELS_REF_PREFIX)) {
-            String remaining = $ref.substring(Constants.V3_CHANNELS_REF_PREFIX.length());
+        if (ref.startsWith(Constants.V3_CHANNELS_REF_PREFIX)) {
+            String remaining = ref.substring(Constants.V3_CHANNELS_REF_PREFIX.length());
             String[] parts = remaining.split("/messages/", 2);
             if (parts.length != 2) {
-                LOG.warn("Invalid channel message $ref format: {}", $ref);
+                LOG.warn("Invalid channel message $ref format: {}", ref);
                 return null;
             }
             String channelName = parts[0];
@@ -258,7 +257,7 @@ public final class OperationMapperV3 {
             }
             AsyncApi30Channel channel = rawChannels.getItem(channelName);
             if (channel == null) {
-                LOG.warn("Channel '{}' not found for message $ref: {}", channelName, $ref);
+                LOG.warn("Channel '{}' not found for message $ref: {}", channelName, ref);
                 return null;
             }
             Map<String, AsyncApi30Message> channelMessages = channel.getMessages();
@@ -276,7 +275,7 @@ public final class OperationMapperV3 {
             return message;
         }
 
-        LOG.warn("Unsupported message $ref format: {}", $ref);
+        LOG.warn("Unsupported message $ref format: {}", ref);
         return null;
     }
 }

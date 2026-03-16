@@ -34,7 +34,6 @@ import java.util.Map;
 public final class OperationTraitMapperV2 {
 
     private OperationTraitMapperV2() {
-
     }
 
     /**

@@ -156,17 +156,17 @@ public final class ChannelMapperV2 {
      * Resolves a channel {@code $ref} string, following any chain of refs, to the
      * final concrete {@link AsyncApiChannelItem}. Detects cyclic references.
      *
-     * @param $ref       the initial $ref string (e.g., "#/components/channels/myChannel")
+     * @param ref        the initial $ref string (e.g., "#/components/channels/myChannel")
      * @param components the AsyncAPI components used for lookup
      * @return the concrete channel item, or {@code null} if resolution fails
      */
-    private static AsyncApiChannelItem resolveChannelRef(String $ref, AsyncApiComponents components) {
+    private static AsyncApiChannelItem resolveChannelRef(String ref, AsyncApiComponents components) {
         if (components == null) {
-            LOG.warn("Cannot resolve $ref: {}. Components is null.", $ref);
+            LOG.warn("Cannot resolve $ref: {}. Components is null.", ref);
             return null;
         }
         Set<String> visited = new HashSet<>();
-        String current = $ref;
+        String current = ref;
         while (current != null) {
             if (!current.startsWith(Constants.CHANNELS_REF_PREFIX)) {
                 LOG.warn("Unsupported $ref format: {}. Skipping channel.", current);

@@ -54,22 +54,22 @@ public final class WsChannelBindingMapper {
             return null;
         }
 
-        String $ref = binding instanceof AsyncApiReferenceable ? ((AsyncApiReferenceable) binding).get$ref() : null;
+        String ref = binding instanceof AsyncApiReferenceable ? ((AsyncApiReferenceable) binding).get$ref() : null;
 
-        if ($ref != null) {
-            if (!$ref.startsWith(Constants.CHANNEL_BINDINGS_REF_PREFIX)) {
-                LOG.warn("Unsupported $ref format: {}. Skipping ws binding.", $ref);
+        if (ref != null) {
+            if (!ref.startsWith(Constants.CHANNEL_BINDINGS_REF_PREFIX)) {
+                LOG.warn("Unsupported $ref format: {}. Skipping ws binding.", ref);
                 return null;
             }
             if (components == null) {
-                LOG.warn("Cannot resolve $ref: {}. Components is null.", $ref);
+                LOG.warn("Cannot resolve $ref: {}. Components is null.", ref);
                 return null;
             }
-            String name = $ref.substring(Constants.CHANNEL_BINDINGS_REF_PREFIX.length());
+            String name = ref.substring(Constants.CHANNEL_BINDINGS_REF_PREFIX.length());
             Map<String, ? extends AsyncApiChannelBindings> bindingsMap = components.getChannelBindings();
             AsyncApiChannelBindings resolved = bindingsMap != null ? bindingsMap.get(name) : null;
             if (resolved == null) {
-                LOG.warn("Could not resolve $ref: '{}'. No matching channelBindings found.", $ref);
+                LOG.warn("Could not resolve $ref: '{}'. No matching channelBindings found.", ref);
                 return null;
             }
             return map(resolved.getWs(), components);

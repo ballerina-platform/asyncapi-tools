@@ -34,8 +34,7 @@ import org.apache.logging.log4j.Logger;
 import java.util.Map;
 
 /**
- * Maps a message payload to a
- * {@link io.ballerina.asyncapi.core.model.component.AsyncApiSchema}
+ * Maps a message payload to a {@link io.ballerina.asyncapi.core.model.component.AsyncApiSchema}.
  */
 final class MessagePayloadMapperV3 {
 
@@ -62,10 +61,10 @@ final class MessagePayloadMapperV3 {
         }
         if (payloadUnion.isMultiFormatSchema()) {
             AsyncApi30MultiFormatSchema multiFormat = payloadUnion.asMultiFormatSchema();
-            String $ref = multiFormat.get$ref();
-            if ($ref != null) {
-                if ($ref.startsWith(Constants.SCHEMAS_REF_PREFIX) && components instanceof AsyncApi30Components v3) {
-                    String schemaName = $ref.substring(Constants.SCHEMAS_REF_PREFIX.length());
+            String ref = multiFormat.get$ref();
+            if (ref != null) {
+                if (ref.startsWith(Constants.SCHEMAS_REF_PREFIX) && components instanceof AsyncApi30Components v3) {
+                    String schemaName = ref.substring(Constants.SCHEMAS_REF_PREFIX.length());
                     Map<String, MultiFormatSchemaSchemaUnion> schemas = v3.getSchemas();
                     MultiFormatSchemaSchemaUnion schemaUnion = schemas != null ? schemas.get(schemaName) : null;
                     if (schemaUnion != null && schemaUnion.isSchema()
@@ -78,7 +77,7 @@ final class MessagePayloadMapperV3 {
                         return mapped;
                     }
                 }
-                LOG.warn("Could not resolve payload $ref: {}. Skipping payload.", $ref);
+                LOG.warn("Could not resolve payload $ref: {}. Skipping payload.", ref);
                 return null;
             }
             AnySchemaUnion schemaContent = multiFormat.getSchema();
@@ -93,9 +92,9 @@ final class MessagePayloadMapperV3 {
         }
         Schema rawSchema = payloadUnion.asSchema();
         if (rawSchema instanceof AsyncApiReferenceable ref && ref.get$ref() != null) {
-            String $ref = ref.get$ref();
-            if ($ref.startsWith(Constants.SCHEMAS_REF_PREFIX) && components instanceof AsyncApi30Components v3) {
-                String schemaName = $ref.substring(Constants.SCHEMAS_REF_PREFIX.length());
+            String refStr = ref.get$ref();
+            if (refStr.startsWith(Constants.SCHEMAS_REF_PREFIX) && components instanceof AsyncApi30Components v3) {
+                String schemaName = refStr.substring(Constants.SCHEMAS_REF_PREFIX.length());
                 Map<String, MultiFormatSchemaSchemaUnion> schemas = v3.getSchemas();
                 MultiFormatSchemaSchemaUnion schemaUnion = schemas != null ? schemas.get(schemaName) : null;
                 if (schemaUnion != null && schemaUnion.isSchema()
@@ -107,7 +106,7 @@ final class MessagePayloadMapperV3 {
                     return mapped;
                 }
             }
-            LOG.warn("Could not resolve payload $ref: {}. Skipping payload.", $ref);
+            LOG.warn("Could not resolve payload $ref: {}. Skipping payload.", refStr);
             return null;
         }
         if (rawSchema instanceof AsyncApiSchema typedSchema) {

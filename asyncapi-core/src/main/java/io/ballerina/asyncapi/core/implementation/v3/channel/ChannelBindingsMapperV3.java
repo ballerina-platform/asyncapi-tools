@@ -57,10 +57,10 @@ public final class ChannelBindingsMapperV3 {
 
         // Handle $ref
         if (bindings instanceof AsyncApiReferenceable referenceable && referenceable.get$ref() != null) {
-            String $ref = referenceable.get$ref();
-            io.apicurio.datamodels.models.asyncapi.AsyncApiChannelBindings resolved = resolveRef($ref, components);
+            String ref = referenceable.get$ref();
+            io.apicurio.datamodels.models.asyncapi.AsyncApiChannelBindings resolved = resolveRef(ref, components);
             if (resolved == null) {
-                LOG.warn("Could not resolve $ref: {}. Skipping channelBindings.", $ref);
+                LOG.warn("Could not resolve $ref: {}. Skipping channelBindings.", ref);
                 return null;
             }
             return map(resolved, components);
@@ -83,18 +83,18 @@ public final class ChannelBindingsMapperV3 {
      * Resolves a {@code $ref} to a component channel bindings object, following chained references
      * and detecting cycles.
      *
-     * @param $ref       the reference string (e.g. {@code #/components/channelBindings/MyBindings})
+     * @param ref        the reference string (e.g. {@code #/components/channelBindings/MyBindings})
      * @param components the Apicurio components object
      * @return the resolved channel bindings, or null if not found or unsupported
      */
     private static io.apicurio.datamodels.models.asyncapi.AsyncApiChannelBindings resolveRef(
-            String $ref, AsyncApiComponents components) {
+            String ref, AsyncApiComponents components) {
         if (components == null) {
-            LOG.warn("Cannot resolve $ref: {}. Components is null.", $ref);
+            LOG.warn("Cannot resolve $ref: {}. Components is null.", ref);
             return null;
         }
         Set<String> visited = new HashSet<>();
-        String current = $ref;
+        String current = ref;
         while (current != null) {
             if (!current.startsWith(Constants.CHANNEL_BINDINGS_REF_PREFIX)) {
                 LOG.warn("Unsupported $ref format: {}. Skipping channelBindings.", current);

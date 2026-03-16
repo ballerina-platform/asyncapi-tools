@@ -32,7 +32,6 @@ import java.util.Map;
 public final class ServerVariableMapper {
 
     private ServerVariableMapper() {
-
     }
 
     /**

@@ -46,7 +46,6 @@ import java.util.function.Function;
 public final class ComponentMapperV3 {
 
     private ComponentMapperV3() {
-
     }
 
     /**

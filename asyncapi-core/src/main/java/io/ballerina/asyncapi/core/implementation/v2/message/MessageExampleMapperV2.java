@@ -52,7 +52,6 @@ import java.util.Map;
 final class MessageExampleMapperV2 {
 
     private MessageExampleMapperV2() {
-
     }
 
     /**
@@ -102,14 +101,14 @@ final class MessageExampleMapperV2 {
                 Map<String, JsonNode> examplesMap = typed.getExamples();
                 yield (examplesMap == null || examplesMap.isEmpty()) ? null :
                         examplesMap.entrySet().stream()
-                                .map(e -> new AsyncApiMessageExample(null, e.getValue(), e.getKey(), null, null))
+                                .map(e -> new AsyncApiMessageExample(e.getValue(), e.getKey()))
                                 .toList();
             }
             case AsyncApi20Message typed -> {
                 Map<String, JsonNode> examplesMap = typed.getExamples();
                 yield (examplesMap == null || examplesMap.isEmpty()) ? null :
                         examplesMap.entrySet().stream()
-                                .map(e -> new AsyncApiMessageExample(null, e.getValue(), e.getKey(), null, null))
+                                .map(e -> new AsyncApiMessageExample(e.getValue(), e.getKey()))
                                 .toList();
             }
             default -> null;
@@ -140,7 +139,7 @@ final class MessageExampleMapperV2 {
             return null;
         }
         return examplesMap.entrySet().stream()
-                .map(e -> new AsyncApiMessageExample(null, e.getValue(), e.getKey(), null, null))
+                .map(e -> new AsyncApiMessageExample(e.getValue(), e.getKey()))
                 .toList();
     }
 

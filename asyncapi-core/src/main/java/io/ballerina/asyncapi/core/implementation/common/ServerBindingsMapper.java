@@ -40,7 +40,6 @@ public final class ServerBindingsMapper {
     private static final Logger LOG = LogManager.getLogger(ServerBindingsMapper.class);
 
     private ServerBindingsMapper() {
-
     }
 
     /**
@@ -59,14 +58,14 @@ public final class ServerBindingsMapper {
         if (bindings == null) {
             return null;
         }
-        String $ref = null;
+        String ref = null;
         if (bindings instanceof AsyncApiReferenceable referenceable) {
-            $ref = referenceable.get$ref();
+            ref = referenceable.get$ref();
         }
-        if ($ref != null) {
-            AsyncApiServerBindings resolved = resolveRef($ref, components);
+        if (ref != null) {
+            AsyncApiServerBindings resolved = resolveRef(ref, components);
             if (resolved == null) {
-                LOG.warn("Could not resolve $ref: {}. Skipping server bindings.", $ref);
+                LOG.warn("Could not resolve $ref: {}. Skipping server bindings.", ref);
                 return null;
             }
             if (resolved instanceof AsyncApiReferenceable resolvedTyped && resolvedTyped.get$ref() != null) {
@@ -92,16 +91,16 @@ public final class ServerBindingsMapper {
      * Resolves a {@code $ref} to a component server binding by extracting the name from the
      * reference string and looking it up in the components map.
      *
-     * @param $ref       the reference string (e.g. {@code #/components/serverBindings/MyBinding})
+     * @param ref        the reference string (e.g. {@code #/components/serverBindings/MyBinding})
      * @param components the Apicurio components object
      * @return the resolved server bindings, or null if not found
      */
-    private static AsyncApiServerBindings resolveRef(String $ref, AsyncApiComponents components) {
-        if (!$ref.startsWith(Constants.SERVER_BINDINGS_REF_PREFIX)) {
-            LOG.warn("Unsupported $ref format: {}. Skipping server bindings.", $ref);
+    private static AsyncApiServerBindings resolveRef(String ref, AsyncApiComponents components) {
+        if (!ref.startsWith(Constants.SERVER_BINDINGS_REF_PREFIX)) {
+            LOG.warn("Unsupported $ref format: {}. Skipping server bindings.", ref);
             return null;
         }
-        String name = $ref.substring(Constants.SERVER_BINDINGS_REF_PREFIX.length());
+        String name = ref.substring(Constants.SERVER_BINDINGS_REF_PREFIX.length());
         if (components == null) {
             return null;
         }

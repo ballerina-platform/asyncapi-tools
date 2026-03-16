@@ -52,7 +52,6 @@ public final class MessageTraitMapperV2 {
     private static final Logger LOG = LogManager.getLogger(MessageTraitMapperV2.class);
 
     private MessageTraitMapperV2() {
-
     }
 
     /**
@@ -69,11 +68,11 @@ public final class MessageTraitMapperV2 {
             return null;
         }
 
-        String $ref = trait instanceof AsyncApiReferenceable referenceable ? referenceable.get$ref() : null;
-        if ($ref != null) {
-            AsyncApiMessageTrait resolved = resolveRef($ref, components);
+        String ref = trait instanceof AsyncApiReferenceable referenceable ? referenceable.get$ref() : null;
+        if (ref != null) {
+            AsyncApiMessageTrait resolved = resolveRef(ref, components);
             if (resolved == null) {
-                LOG.warn("Could not resolve $ref: {}. Skipping message trait.", $ref);
+                LOG.warn("Could not resolve $ref: {}. Skipping message trait.", ref);
                 return null;
             }
             return map(resolved, components);
@@ -156,17 +155,17 @@ public final class MessageTraitMapperV2 {
      * Resolves a {@code $ref} to a component message trait by extracting the name from the reference
      * string and looking it up in the components message traits map.
      *
-     * @param $ref       the reference string (e.g. {@code #/components/messageTraits/myTrait})
+     * @param ref        the reference string (e.g. {@code #/components/messageTraits/myTrait})
      * @param components the Apicurio components object
      * @return the resolved message trait, or null if not found or invalid
      */
-    private static AsyncApiMessageTrait resolveRef(String $ref, AsyncApiComponents components) {
+    private static AsyncApiMessageTrait resolveRef(String ref, AsyncApiComponents components) {
         if (components == null) {
-            LOG.warn("Cannot resolve $ref: {}. Components is null.", $ref);
+            LOG.warn("Cannot resolve $ref: {}. Components is null.", ref);
             return null;
         }
         Set<String> visited = new HashSet<>();
-        String current = $ref;
+        String current = ref;
         while (current != null) {
             if (!current.startsWith(Constants.MESSAGE_TRAITS_REF_PREFIX)) {
                 LOG.warn("Unsupported $ref format: {}. Skipping message trait.", current);

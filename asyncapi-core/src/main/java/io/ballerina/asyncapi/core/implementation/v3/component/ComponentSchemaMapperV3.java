@@ -35,7 +35,6 @@ import java.util.Map;
 final class ComponentSchemaMapperV3 {
 
     private ComponentSchemaMapperV3() {
-
     }
 
     /**

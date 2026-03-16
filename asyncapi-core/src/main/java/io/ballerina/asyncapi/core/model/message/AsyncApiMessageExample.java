@@ -37,4 +37,16 @@ public record AsyncApiMessageExample(
         String summary,
         Map<String, JsonNode> extensions
 ) {
+
+    /**
+     * Creates an {@link AsyncApiMessageExample} with only {@code payload} and {@code name},
+     * defaulting {@code headers}, {@code summary}, and {@code extensions} to {@code null}.
+     * Used when examples are expressed as a simple key-value map (AsyncAPI 2.x map form).
+     *
+     * @param payload the example message payload
+     * @param name    a machine-friendly name for the example
+     */
+    public AsyncApiMessageExample(Object payload, String name) {
+        this(null, payload, name, null, null);
+    }
 }

@@ -50,7 +50,6 @@ public final class MessageMapperV3 {
     private static final Logger LOG = LogManager.getLogger(MessageMapperV3.class);
 
     private MessageMapperV3() {
-
     }
 
     /**
@@ -77,8 +76,8 @@ public final class MessageMapperV3 {
                 continue;
             }
             if (message instanceof AsyncApiReferenceable ref && ref.get$ref() != null) {
-                String $ref = ref.get$ref();
-                messageName = $ref.substring($ref.lastIndexOf('/') + 1);
+                String refStr = ref.get$ref();
+                messageName = refStr.substring(refStr.lastIndexOf('/') + 1);
             }
             io.ballerina.asyncapi.core.model.message.AsyncApiMessage mapped =
                     mapMessageItem(message, components);
@@ -168,17 +167,17 @@ public final class MessageMapperV3 {
      * Resolves a message {@code $ref} string, following any chain of refs, to the
      * final concrete {@link AsyncApiMessage}. Detects cyclic references.
      *
-     * @param $ref       the initial $ref string (e.g., {@code #/components/messages/MyMessage})
+     * @param ref        the initial $ref string (e.g., {@code #/components/messages/MyMessage})
      * @param components the AsyncAPI components used for lookup
      * @return the concrete message, or {@code null} if resolution fails
      */
-    private static AsyncApiMessage resolveMessageRef(String $ref, AsyncApiComponents components) {
+    private static AsyncApiMessage resolveMessageRef(String ref, AsyncApiComponents components) {
         if (components == null) {
-            LOG.warn("Cannot resolve $ref: {}. Components is null.", $ref);
+            LOG.warn("Cannot resolve $ref: {}. Components is null.", ref);
             return null;
         }
         Set<String> visited = new HashSet<>();
-        String current = $ref;
+        String current = ref;
         while (current != null) {
             if (!current.startsWith(Constants.MESSAGES_REF_PREFIX)) {
                 LOG.warn("Unsupported $ref format: {}. Skipping message.", current);

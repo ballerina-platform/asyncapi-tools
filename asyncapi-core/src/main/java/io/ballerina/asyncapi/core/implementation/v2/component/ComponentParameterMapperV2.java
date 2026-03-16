@@ -42,7 +42,6 @@ import java.util.Map;
 final class ComponentParameterMapperV2 {
 
     private ComponentParameterMapperV2() {
-
     }
 
     /**

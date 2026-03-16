@@ -32,7 +32,6 @@ import java.util.Map;
 public final class OperationBindingsMapperV2 {
 
     private OperationBindingsMapperV2() {
-
     }
 
     /**

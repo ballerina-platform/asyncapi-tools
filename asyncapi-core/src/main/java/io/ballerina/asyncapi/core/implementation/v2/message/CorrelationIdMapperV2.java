@@ -31,7 +31,6 @@ import java.util.Map;
 public final class CorrelationIdMapperV2 {
 
     private CorrelationIdMapperV2() {
-
     }
 
     /**

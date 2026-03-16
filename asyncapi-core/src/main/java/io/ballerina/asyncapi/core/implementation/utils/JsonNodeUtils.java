@@ -28,7 +28,6 @@ import java.util.stream.Collectors;
 public final class JsonNodeUtils {
 
     private JsonNodeUtils() {
-
     }
 
     /**

@@ -97,7 +97,6 @@ public final class SecuritySchemeMapperV2 {
                 scheme.getBearerFormat(),
                 mapOAuthFlows(scheme.getFlows()),
                 URIUtils.toUri(scheme.getOpenIdConnectUrl()),
-                null, //no scopes in 2.x
                 extensions
         );
     }

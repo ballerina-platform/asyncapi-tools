@@ -43,7 +43,6 @@ final class MessagePayloadMapperV2 {
     private static final Logger LOG = LogManager.getLogger(MessagePayloadMapperV2.class);
 
     private MessagePayloadMapperV2() {
-
     }
 
     /**
@@ -63,9 +62,9 @@ final class MessagePayloadMapperV2 {
         }
         JsonNode refNode = payloadNode.get("$ref");
         if (refNode != null) {
-            String $ref = refNode.asText();
-            if ($ref.startsWith(Constants.SCHEMAS_REF_PREFIX) && components != null) {
-                String schemaName = $ref.substring(Constants.SCHEMAS_REF_PREFIX.length());
+            String ref = refNode.asText();
+            if (ref.startsWith(Constants.SCHEMAS_REF_PREFIX) && components != null) {
+                String schemaName = ref.substring(Constants.SCHEMAS_REF_PREFIX.length());
                 Map<String, ? extends AsyncApiSchema> schemas = switch (components) {
                     case AsyncApi26Components typed -> typed.getSchemas();
                     case AsyncApi25Components typed -> typed.getSchemas();
@@ -85,7 +84,7 @@ final class MessagePayloadMapperV2 {
                     return mapped;
                 }
             }
-            LOG.warn("Could not resolve payload $ref: {}. Skipping payload.", $ref);
+            LOG.warn("Could not resolve payload $ref: {}. Skipping payload.", ref);
             return null;
         }
         return SchemaMapper.mapFromJsonNode(payloadNode);

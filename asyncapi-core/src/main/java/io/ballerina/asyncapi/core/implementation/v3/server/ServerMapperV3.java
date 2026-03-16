@@ -47,7 +47,6 @@ public final class ServerMapperV3 {
     private static final Logger LOG = LogManager.getLogger(ServerMapperV3.class);
 
     private ServerMapperV3() {
-
     }
 
     /**
@@ -90,11 +89,11 @@ public final class ServerMapperV3 {
      */
     public static io.ballerina.asyncapi.core.model.server.AsyncApiServer mapServerItem(AsyncApiServer server,
             AsyncApiComponents components) {
-        String $ref = server instanceof AsyncApiReferenceable referenceable ? referenceable.get$ref() : null;
-        if ($ref != null) {
-            AsyncApiServer resolved = resolveRef($ref, components);
+        String ref = server instanceof AsyncApiReferenceable referenceable ? referenceable.get$ref() : null;
+        if (ref != null) {
+            AsyncApiServer resolved = resolveRef(ref, components);
             if (resolved == null) {
-                LOG.warn("Could not resolve $ref: {}. Skipping server.", $ref);
+                LOG.warn("Could not resolve $ref: {}. Skipping server.", ref);
                 return null;
             }
             return mapServerItem(resolved, components);
@@ -131,17 +130,17 @@ public final class ServerMapperV3 {
      * Resolves a {@code $ref} to a component server by extracting the name from the reference
      * string and looking it up in the AsyncAPI 3.0 components map.
      *
-     * @param $ref       the reference string (e.g. {@code #/components/servers/MyServer})
+     * @param ref        the reference string (e.g. {@code #/components/servers/MyServer})
      * @param components the Apicurio components object
      * @return the resolved server, or null if not found
      */
-    private static AsyncApiServer resolveRef(String $ref, AsyncApiComponents components) {
+    private static AsyncApiServer resolveRef(String ref, AsyncApiComponents components) {
         if (components == null) {
-            LOG.warn("Cannot resolve $ref: {}. Components is null.", $ref);
+            LOG.warn("Cannot resolve $ref: {}. Components is null.", ref);
             return null;
         }
         Set<String> visited = new HashSet<>();
-        String current = $ref;
+        String current = ref;
         while (current != null) {
             if (!current.startsWith(Constants.SERVERS_REF_PREFIX)) {
                 LOG.warn("Unsupported $ref format: {}. Skipping server.", current);

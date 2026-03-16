@@ -19,26 +19,26 @@ package io.ballerina.asyncapi.core.implementation.v2.operation;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import io.apicurio.datamodels.models.MappedNode;
-import io.apicurio.datamodels.models.asyncapi.AsyncApiChannels;
 import io.apicurio.datamodels.models.asyncapi.AsyncApiChannelItem;
+import io.apicurio.datamodels.models.asyncapi.AsyncApiChannels;
 import io.apicurio.datamodels.models.asyncapi.AsyncApiComponents;
-import io.apicurio.datamodels.models.asyncapi.AsyncApiExternalDocumentation;
 import io.apicurio.datamodels.models.asyncapi.AsyncApiExtensible;
+import io.apicurio.datamodels.models.asyncapi.AsyncApiExternalDocumentation;
 import io.apicurio.datamodels.models.asyncapi.AsyncApiReferenceable;
-import io.apicurio.datamodels.models.asyncapi.v20.AsyncApi20Operation;
-import io.apicurio.datamodels.models.asyncapi.v21.AsyncApi21Operation;
-import io.apicurio.datamodels.models.asyncapi.v22.AsyncApi22Operation;
-import io.apicurio.datamodels.models.asyncapi.v23.AsyncApi23Operation;
-import io.apicurio.datamodels.models.asyncapi.v24.AsyncApi24Operation;
-import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25Operation;
-import io.apicurio.datamodels.models.asyncapi.v26.AsyncApi26Operation;
 import io.apicurio.datamodels.models.asyncapi.v20.AsyncApi20Message;
+import io.apicurio.datamodels.models.asyncapi.v20.AsyncApi20Operation;
 import io.apicurio.datamodels.models.asyncapi.v21.AsyncApi21Message;
+import io.apicurio.datamodels.models.asyncapi.v21.AsyncApi21Operation;
 import io.apicurio.datamodels.models.asyncapi.v22.AsyncApi22Message;
+import io.apicurio.datamodels.models.asyncapi.v22.AsyncApi22Operation;
 import io.apicurio.datamodels.models.asyncapi.v23.AsyncApi23Message;
+import io.apicurio.datamodels.models.asyncapi.v23.AsyncApi23Operation;
 import io.apicurio.datamodels.models.asyncapi.v24.AsyncApi24Message;
+import io.apicurio.datamodels.models.asyncapi.v24.AsyncApi24Operation;
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25Message;
+import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25Operation;
 import io.apicurio.datamodels.models.asyncapi.v26.AsyncApi26Message;
+import io.apicurio.datamodels.models.asyncapi.v26.AsyncApi26Operation;
 import io.ballerina.asyncapi.core.Constants;
 import io.ballerina.asyncapi.core.implementation.utils.StringUtils;
 import io.ballerina.asyncapi.core.implementation.v2.doc.ExternalDocMapperV2;
@@ -61,7 +61,6 @@ import java.util.Set;
 public final class OperationMapperV2 {
 
     private OperationMapperV2() {
-
     }
 
     /**
@@ -168,12 +167,12 @@ public final class OperationMapperV2 {
         };
         String refName = null;
         if (rawMessage instanceof AsyncApiReferenceable referenceable) {
-            String $ref = referenceable.get$ref();
-            if ($ref != null) {
-                if ($ref.startsWith(Constants.MESSAGES_REF_PREFIX)) {
-                    refName = $ref.substring(Constants.MESSAGES_REF_PREFIX.length());
+            String ref = referenceable.get$ref();
+            if (ref != null) {
+                if (ref.startsWith(Constants.MESSAGES_REF_PREFIX)) {
+                    refName = ref.substring(Constants.MESSAGES_REF_PREFIX.length());
                 }
-                rawMessage = resolveMessageRef($ref, components);
+                rawMessage = resolveMessageRef(ref, components);
             }
         }
         Map<String, io.ballerina.asyncapi.core.model.message.AsyncApiMessage> messages = null;
@@ -194,11 +193,11 @@ public final class OperationMapperV2 {
                     io.apicurio.datamodels.models.asyncapi.AsyncApiMessage resolvedMsg = msg;
                     String oneOfRefName = null;
                     if (msg instanceof AsyncApiReferenceable ref && ref.get$ref() != null) {
-                        String $ref = ref.get$ref();
-                        if ($ref.startsWith(Constants.MESSAGES_REF_PREFIX)) {
-                            oneOfRefName = $ref.substring(Constants.MESSAGES_REF_PREFIX.length());
+                        String refStr = ref.get$ref();
+                        if (refStr.startsWith(Constants.MESSAGES_REF_PREFIX)) {
+                            oneOfRefName = refStr.substring(Constants.MESSAGES_REF_PREFIX.length());
                         }
-                        resolvedMsg = resolveMessageRef($ref, components);
+                        resolvedMsg = resolveMessageRef(refStr, components);
                         if (resolvedMsg == null) {
                             continue;
                         }
@@ -272,17 +271,17 @@ public final class OperationMapperV2 {
      * Resolves a message $ref through the components map, handling chained references
      * with cycle detection.
      *
-     * @param $ref       the $ref string (e.g., "#/components/messages/MyMessage")
+     * @param ref        the $ref string (e.g., "#/components/messages/MyMessage")
      * @param components the AsyncAPI components object
      * @return the resolved message, or null if not found, unsupported format, or cyclic
      */
     private static io.apicurio.datamodels.models.asyncapi.AsyncApiMessage resolveMessageRef(
-            String $ref, AsyncApiComponents components) {
+            String ref, AsyncApiComponents components) {
         if (components == null) {
             return null;
         }
         Set<String> visited = new HashSet<>();
-        String current = $ref;
+        String current = ref;
         while (current != null) {
             if (!current.startsWith(Constants.MESSAGES_REF_PREFIX)) {
                 return null;

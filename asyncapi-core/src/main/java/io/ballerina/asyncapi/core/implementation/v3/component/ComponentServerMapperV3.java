@@ -32,7 +32,6 @@ import java.util.Map;
 final class ComponentServerMapperV3 {
 
     private ComponentServerMapperV3() {
-
     }
 
     /**

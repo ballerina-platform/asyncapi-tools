@@ -72,7 +72,7 @@ public final class MessageBindingsMapperV2 {
         }
         Integer statusCode = BindingUtils.getItemAsInteger(binding, "statusCode");
         String bindingVersion = BindingUtils.getItemAsText(binding, "bindingVersion");
-        return new HttpMessageBindings(null, statusCode, bindingVersion);
+        return new HttpMessageBindings(statusCode, bindingVersion);
     }
 
 

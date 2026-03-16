@@ -24,7 +24,6 @@ import java.net.URI;
 public final class URIUtils {
 
     private URIUtils() {
-
     }
 
     /**

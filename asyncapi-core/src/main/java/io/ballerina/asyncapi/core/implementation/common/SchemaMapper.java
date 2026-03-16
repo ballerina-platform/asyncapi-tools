@@ -26,6 +26,7 @@ import io.apicurio.datamodels.models.asyncapi.AsyncApiReferenceable;
 import io.apicurio.datamodels.models.asyncapi.AsyncApiSchema;
 import io.apicurio.datamodels.models.union.BooleanSchemaUnion;
 import io.apicurio.datamodels.models.union.SchemaSchemaListUnion;
+import io.ballerina.asyncapi.core.Constants;
 import io.ballerina.asyncapi.core.implementation.v2.doc.ExternalDocMapperV2;
 
 import java.util.ArrayList;
@@ -45,7 +46,6 @@ import java.util.Objects;
 public final class SchemaMapper {
 
     private SchemaMapper() {
-
     }
 
     /**
@@ -89,51 +89,50 @@ public final class SchemaMapper {
         Map<String, JsonNode> extensions = mapExtensions(schema);
         AsyncApiExternalDocumentation externalDocs = mapExternalDocs(schema);
 
-        return new io.ballerina.asyncapi.core.model.component.AsyncApiSchema(
-                schema.getTitle(),
-                schema.getType(),
-                schema.getRequired(),
-                schema.getMultipleOf(),
-                schema.getMaximum(),
-                schema.getExclusiveMaximum(),
-                schema.getMinimum(),
-                schema.getExclusiveMinimum(),
-                schema.getMaxLength(),
-                schema.getMinLength(),
-                schema.getPattern(),
-                schema.getMaxItems(),
-                schema.getMinItems(),
-                schema.isUniqueItems(),
-                schema.getMaxProperties(),
-                schema.getMinProperties(),
-                schema.getEnum(),
-                schema.getConst(),
-                schema.getExamples(),
-                map(schema.getIf()),
-                map(schema.getThen()),
-                map(schema.getElse()),
-                schema.isReadOnly(),
-                schema.isWriteOnly(),
-                properties,
-                schema.getPatternProperties(),
-                additionalProps,
-                map(schema.getAdditionalItems()),
-                items,
-                map(schema.getPropertyNames()),
-                map(schema.getContains()),
-                allOf,
-                mapAsyncSchemaList(schema.getOneOf()),
-                mapAsyncSchemaList(schema.getAnyOf()),
-                map(schema.getNot()),
-                schema.getDescription(),
-                schema.getFormat(),
-                schema.getDefault(),
-                schema.getDiscriminator(),
-                ExternalDocMapperV2.map(externalDocs),
-                schema.isDeprecated(),
-                extensions,
-                null
-        );
+        return io.ballerina.asyncapi.core.model.component.AsyncApiSchema.builder()
+                .title(schema.getTitle())
+                .type(schema.getType())
+                .required(schema.getRequired())
+                .multipleOf(schema.getMultipleOf())
+                .maximum(schema.getMaximum())
+                .exclusiveMaximum(schema.getExclusiveMaximum())
+                .minimum(schema.getMinimum())
+                .exclusiveMinimum(schema.getExclusiveMinimum())
+                .maxLength(schema.getMaxLength())
+                .minLength(schema.getMinLength())
+                .pattern(schema.getPattern())
+                .maxItems(schema.getMaxItems())
+                .minItems(schema.getMinItems())
+                .uniqueItems(schema.isUniqueItems())
+                .maxProperties(schema.getMaxProperties())
+                .minProperties(schema.getMinProperties())
+                .enumValue(schema.getEnum())
+                .constValue(schema.getConst())
+                .examples(schema.getExamples())
+                .ifBranch(map(schema.getIf()))
+                .then(map(schema.getThen()))
+                .elseBranch(map(schema.getElse()))
+                .readOnly(schema.isReadOnly())
+                .writeOnly(schema.isWriteOnly())
+                .properties(properties)
+                .patternProperties(schema.getPatternProperties())
+                .additionalProperties(additionalProps)
+                .additionalItems(map(schema.getAdditionalItems()))
+                .items(items)
+                .propertyNames(map(schema.getPropertyNames()))
+                .contains(map(schema.getContains()))
+                .allOf(allOf)
+                .oneOf(mapAsyncSchemaList(schema.getOneOf()))
+                .anyOf(mapAsyncSchemaList(schema.getAnyOf()))
+                .not(map(schema.getNot()))
+                .description(schema.getDescription())
+                .format(schema.getFormat())
+                .defaultValue(schema.getDefault())
+                .discriminator(schema.getDiscriminator())
+                .externalDocs(ExternalDocMapperV2.map(externalDocs))
+                .deprecated(schema.isDeprecated())
+                .extensions(extensions)
+                .build();
     }
 
     /**
@@ -162,8 +161,15 @@ public final class SchemaMapper {
      * @return a single mapped schema, a non-empty {@code List} of mapped schemas, or {@code null}
      */
     private static Object mapItems(SchemaSchemaListUnion itemsUnion) {
-        if (itemsUnion.isSchema() && itemsUnion.asSchema() instanceof AsyncApiSchema typedSchema) {
-            return map(typedSchema);
+        if (itemsUnion.isSchema()) {
+            Schema itemSchema = itemsUnion.asSchema();
+            if (itemSchema instanceof AsyncApiReferenceable refSchema && refSchema.get$ref() != null) {
+                String ref = refSchema.get$ref();
+                String refName = ref.substring(ref.lastIndexOf('/') + 1);
+                return io.ballerina.asyncapi.core.model.component.AsyncApiSchema.refStub(refName);
+            } else if (itemSchema instanceof AsyncApiSchema typedSchema) {
+                return map(typedSchema);
+            }
         } else if (itemsUnion.isSchemaList()) {
             List<io.ballerina.asyncapi.core.model.component.AsyncApiSchema> list =
                     itemsUnion.asSchemaList().stream()
@@ -187,7 +193,12 @@ public final class SchemaMapper {
             Map<String, ? extends Schema> rawProperties) {
         Map<String, io.ballerina.asyncapi.core.model.component.AsyncApiSchema> properties = new LinkedHashMap<>();
         for (Map.Entry<String, ? extends Schema> entry : rawProperties.entrySet()) {
-            if (entry.getValue() instanceof AsyncApiSchema typedSchema) {
+            if (entry.getValue() instanceof AsyncApiReferenceable refSchema && refSchema.get$ref() != null) {
+                String ref = refSchema.get$ref();
+                String refName = ref.substring(ref.lastIndexOf('/') + 1);
+                properties.put(entry.getKey(),
+                        io.ballerina.asyncapi.core.model.component.AsyncApiSchema.refStub(refName));
+            } else if (entry.getValue() instanceof AsyncApiSchema typedSchema) {
                 io.ballerina.asyncapi.core.model.component.AsyncApiSchema mapped = map(typedSchema);
                 if (mapped != null) {
                     properties.put(entry.getKey(), mapped);
@@ -240,78 +251,105 @@ public final class SchemaMapper {
             return null;
         }
 
-        String title = objectNode.has("title") ? objectNode.get("title").asText(null) : null;
-        String type = objectNode.has("type") ? objectNode.get("type").asText(null) : null;
-        String format = objectNode.has("format") ? objectNode.get("format").asText(null) : null;
-        String description = objectNode.has("description") ? objectNode.get("description").asText(null) : null;
-        JsonNode defaultValue = objectNode.has("default") ? objectNode.get("default") : null;
-        String pattern = objectNode.has("pattern") ? objectNode.get("pattern").asText(null) : null;
+        String title = objectNode.has(Constants.SCHEMA_TITLE) ? objectNode.get(Constants.SCHEMA_TITLE).asText(null)
+                : null;
+        String type = objectNode.has(Constants.SCHEMA_TYPE) ? objectNode.get(Constants.SCHEMA_TYPE).asText(null)
+                : null;
+        String format = objectNode.has(Constants.SCHEMA_FORMAT) ? objectNode.get(Constants.SCHEMA_FORMAT).asText(null)
+                : null;
+        String description = objectNode.has(Constants.SCHEMA_DESCRIPTION)
+                ? objectNode.get(Constants.SCHEMA_DESCRIPTION).asText(null) : null;
+        JsonNode defaultValue = objectNode.has(Constants.SCHEMA_DEFAULT) ? objectNode.get(Constants.SCHEMA_DEFAULT)
+                : null;
+        String pattern = objectNode.has(Constants.SCHEMA_PATTERN)
+                ? objectNode.get(Constants.SCHEMA_PATTERN).asText(null) : null;
 
-        Number multipleOf = objectNode.has("multipleOf") && objectNode.get("multipleOf").isNumber()
-                ? objectNode.get("multipleOf").numberValue() : null;
-        Number maximum = objectNode.has("maximum") && objectNode.get("maximum").isNumber()
-                ? objectNode.get("maximum").numberValue() : null;
-        Number exclusiveMaximum = objectNode.has("exclusiveMaximum") && objectNode.get("exclusiveMaximum").isNumber()
-                ? objectNode.get("exclusiveMaximum").numberValue() : null;
-        Number minimum = objectNode.has("minimum") && objectNode.get("minimum").isNumber()
-                ? objectNode.get("minimum").numberValue() : null;
-        Number exclusiveMinimum = objectNode.has("exclusiveMinimum") && objectNode.get("exclusiveMinimum").isNumber()
-                ? objectNode.get("exclusiveMinimum").numberValue() : null;
-        Integer maxLength = objectNode.has("maxLength") && objectNode.get("maxLength").isInt()
-                ? objectNode.get("maxLength").intValue() : null;
-        Integer minLength = objectNode.has("minLength") && objectNode.get("minLength").isInt()
-                ? objectNode.get("minLength").intValue() : null;
-        Integer maxItems = objectNode.has("maxItems") && objectNode.get("maxItems").isInt()
-                ? objectNode.get("maxItems").intValue() : null;
-        Integer minItems = objectNode.has("minItems") && objectNode.get("minItems").isInt()
-                ? objectNode.get("minItems").intValue() : null;
-        Boolean uniqueItems = objectNode.has("uniqueItems") && objectNode.get("uniqueItems").isBoolean()
-                ? objectNode.get("uniqueItems").booleanValue() : null;
-        Integer maxProperties = objectNode.has("maxProperties") && objectNode.get("maxProperties").isInt()
-                ? objectNode.get("maxProperties").intValue() : null;
-        Integer minProperties = objectNode.has("minProperties") && objectNode.get("minProperties").isInt()
-                ? objectNode.get("minProperties").intValue() : null;
-        Boolean readOnly = objectNode.has("readOnly") && objectNode.get("readOnly").isBoolean()
-                ? objectNode.get("readOnly").booleanValue() : null;
-        Boolean writeOnly = objectNode.has("writeOnly") && objectNode.get("writeOnly").isBoolean()
-                ? objectNode.get("writeOnly").booleanValue() : null;
-        Boolean deprecated = objectNode.has("deprecated") && objectNode.get("deprecated").isBoolean()
-                ? objectNode.get("deprecated").booleanValue() : null;
-        JsonNode constValue = objectNode.has("const") ? objectNode.get("const") : null;
+        Number multipleOf = objectNode.has(Constants.SCHEMA_MULTIPLE_OF)
+                && objectNode.get(Constants.SCHEMA_MULTIPLE_OF).isNumber()
+                ? objectNode.get(Constants.SCHEMA_MULTIPLE_OF).numberValue() : null;
+        Number maximum = objectNode.has(Constants.SCHEMA_MAXIMUM) && objectNode.get(Constants.SCHEMA_MAXIMUM).isNumber()
+                ? objectNode.get(Constants.SCHEMA_MAXIMUM).numberValue() : null;
+        Number exclusiveMaximum = objectNode.has(Constants.SCHEMA_EXCLUSIVE_MAXIMUM)
+                && objectNode.get(Constants.SCHEMA_EXCLUSIVE_MAXIMUM).isNumber()
+                ? objectNode.get(Constants.SCHEMA_EXCLUSIVE_MAXIMUM).numberValue() : null;
+        Number minimum = objectNode.has(Constants.SCHEMA_MINIMUM) && objectNode.get(Constants.SCHEMA_MINIMUM).isNumber()
+                ? objectNode.get(Constants.SCHEMA_MINIMUM).numberValue() : null;
+        Number exclusiveMinimum = objectNode.has(Constants.SCHEMA_EXCLUSIVE_MINIMUM)
+                && objectNode.get(Constants.SCHEMA_EXCLUSIVE_MINIMUM).isNumber()
+                ? objectNode.get(Constants.SCHEMA_EXCLUSIVE_MINIMUM).numberValue() : null;
+        Integer maxLength = objectNode.has(Constants.SCHEMA_MAX_LENGTH)
+                && objectNode.get(Constants.SCHEMA_MAX_LENGTH).isInt()
+                ? objectNode.get(Constants.SCHEMA_MAX_LENGTH).intValue() : null;
+        Integer minLength = objectNode.has(Constants.SCHEMA_MIN_LENGTH)
+                && objectNode.get(Constants.SCHEMA_MIN_LENGTH).isInt()
+                ? objectNode.get(Constants.SCHEMA_MIN_LENGTH).intValue() : null;
+        Integer maxItems = objectNode.has(Constants.SCHEMA_MAX_ITEMS)
+                && objectNode.get(Constants.SCHEMA_MAX_ITEMS).isInt()
+                ? objectNode.get(Constants.SCHEMA_MAX_ITEMS).intValue() : null;
+        Integer minItems = objectNode.has(Constants.SCHEMA_MIN_ITEMS)
+                && objectNode.get(Constants.SCHEMA_MIN_ITEMS).isInt()
+                ? objectNode.get(Constants.SCHEMA_MIN_ITEMS).intValue() : null;
+        Boolean uniqueItems = objectNode.has(Constants.SCHEMA_UNIQUE_ITEMS)
+                && objectNode.get(Constants.SCHEMA_UNIQUE_ITEMS).isBoolean()
+                ? objectNode.get(Constants.SCHEMA_UNIQUE_ITEMS).booleanValue() : null;
+        Integer maxProperties = objectNode.has(Constants.SCHEMA_MAX_PROPERTIES)
+                && objectNode.get(Constants.SCHEMA_MAX_PROPERTIES).isInt()
+                ? objectNode.get(Constants.SCHEMA_MAX_PROPERTIES).intValue() : null;
+        Integer minProperties = objectNode.has(Constants.SCHEMA_MIN_PROPERTIES)
+                && objectNode.get(Constants.SCHEMA_MIN_PROPERTIES).isInt()
+                ? objectNode.get(Constants.SCHEMA_MIN_PROPERTIES).intValue() : null;
+        Boolean readOnly = objectNode.has(Constants.SCHEMA_READ_ONLY)
+                && objectNode.get(Constants.SCHEMA_READ_ONLY).isBoolean()
+                ? objectNode.get(Constants.SCHEMA_READ_ONLY).booleanValue() : null;
+        Boolean writeOnly = objectNode.has(Constants.SCHEMA_WRITE_ONLY)
+                && objectNode.get(Constants.SCHEMA_WRITE_ONLY).isBoolean()
+                ? objectNode.get(Constants.SCHEMA_WRITE_ONLY).booleanValue() : null;
+        Boolean deprecated = objectNode.has(Constants.SCHEMA_DEPRECATED)
+                && objectNode.get(Constants.SCHEMA_DEPRECATED).isBoolean()
+                ? objectNode.get(Constants.SCHEMA_DEPRECATED).booleanValue() : null;
+        JsonNode constValue = objectNode.has(Constants.SCHEMA_CONST) ? objectNode.get(Constants.SCHEMA_CONST) : null;
 
         List<String> required = null;
-        if (objectNode.has("required") && objectNode.get("required").isArray()) {
+        if (objectNode.has(Constants.SCHEMA_REQUIRED) && objectNode.get(Constants.SCHEMA_REQUIRED).isArray()) {
             required = new ArrayList<>();
-            for (JsonNode req : objectNode.get("required")) {
+            for (JsonNode req : objectNode.get(Constants.SCHEMA_REQUIRED)) {
                 required.add(req.asText());
             }
         }
 
         List<JsonNode> enumValues = null;
-        if (objectNode.has("enum") && objectNode.get("enum").isArray()) {
+        if (objectNode.has(Constants.SCHEMA_ENUM) && objectNode.get(Constants.SCHEMA_ENUM).isArray()) {
             enumValues = new ArrayList<>();
-            for (JsonNode val : objectNode.get("enum")) {
+            for (JsonNode val : objectNode.get(Constants.SCHEMA_ENUM)) {
                 enumValues.add(val);
             }
         }
 
         List<JsonNode> examples = null;
-        if (objectNode.has("examples") && objectNode.get("examples").isArray()) {
+        if (objectNode.has(Constants.SCHEMA_EXAMPLES) && objectNode.get(Constants.SCHEMA_EXAMPLES).isArray()) {
             examples = new ArrayList<>();
-            for (JsonNode ex : objectNode.get("examples")) {
+            for (JsonNode ex : objectNode.get(Constants.SCHEMA_EXAMPLES)) {
                 examples.add(ex);
             }
         }
 
         Map<String, io.ballerina.asyncapi.core.model.component.AsyncApiSchema> properties = null;
-        if (objectNode.has("properties") && objectNode.get("properties").isObject()) {
+        if (objectNode.has(Constants.SCHEMA_PROPERTIES) && objectNode.get(Constants.SCHEMA_PROPERTIES).isObject()) {
             properties = new LinkedHashMap<>();
             final Map<String, io.ballerina.asyncapi.core.model.component.AsyncApiSchema> propsRef = properties;
-            objectNode.get("properties").properties().forEach(entry -> {
-                io.ballerina.asyncapi.core.model.component.AsyncApiSchema propSchema =
-                        mapFromJsonNode(entry.getValue());
-                if (propSchema != null) {
-                    propsRef.put(entry.getKey(), propSchema);
+            objectNode.get(Constants.SCHEMA_PROPERTIES).properties().forEach(entry -> {
+                JsonNode propNode = entry.getValue();
+                if (propNode.has(Constants.SCHEMA_REF)) {
+                    String ref = propNode.get(Constants.SCHEMA_REF).asText();
+                    String refName = ref.substring(ref.lastIndexOf('/') + 1);
+                    propsRef.put(entry.getKey(),
+                            io.ballerina.asyncapi.core.model.component.AsyncApiSchema.refStub(refName));
+                } else {
+                    io.ballerina.asyncapi.core.model.component.AsyncApiSchema propSchema =
+                            mapFromJsonNode(propNode);
+                    if (propSchema != null) {
+                        propsRef.put(entry.getKey(), propSchema);
+                    }
                 }
             });
             if (properties.isEmpty()) {
@@ -320,13 +358,20 @@ public final class SchemaMapper {
         }
 
         Object items = null;
-        if (objectNode.has("items")) {
-            items = mapFromJsonNode(objectNode.get("items"));
+        if (objectNode.has(Constants.SCHEMA_ITEMS)) {
+            JsonNode itemsNode = objectNode.get(Constants.SCHEMA_ITEMS);
+            if (itemsNode.has(Constants.SCHEMA_REF)) {
+                String ref = itemsNode.get(Constants.SCHEMA_REF).asText();
+                String refName = ref.substring(ref.lastIndexOf('/') + 1);
+                items = io.ballerina.asyncapi.core.model.component.AsyncApiSchema.refStub(refName);
+            } else {
+                items = mapFromJsonNode(itemsNode);
+            }
         }
 
         Object additionalProperties = null;
-        if (objectNode.has("additionalProperties")) {
-            JsonNode apNode = objectNode.get("additionalProperties");
+        if (objectNode.has(Constants.SCHEMA_ADDITIONAL_PROPERTIES)) {
+            JsonNode apNode = objectNode.get(Constants.SCHEMA_ADDITIONAL_PROPERTIES);
             if (apNode.isBoolean()) {
                 additionalProperties = apNode.booleanValue();
             } else {
@@ -334,26 +379,10 @@ public final class SchemaMapper {
             }
         }
 
-        io.ballerina.asyncapi.core.model.component.AsyncApiSchema ifSchema =
-                objectNode.has("if") ? mapFromJsonNode(objectNode.get("if")) : null;
-        io.ballerina.asyncapi.core.model.component.AsyncApiSchema thenSchema =
-                objectNode.has("then") ? mapFromJsonNode(objectNode.get("then")) : null;
-        io.ballerina.asyncapi.core.model.component.AsyncApiSchema elseSchema =
-                objectNode.has("else") ? mapFromJsonNode(objectNode.get("else")) : null;
-        io.ballerina.asyncapi.core.model.component.AsyncApiSchema notSchema =
-                objectNode.has("not") ? mapFromJsonNode(objectNode.get("not")) : null;
-
-        List<io.ballerina.asyncapi.core.model.component.AsyncApiSchema> allOf =
-                mapJsonSchemaArray(objectNode.get("allOf"));
-        List<io.ballerina.asyncapi.core.model.component.AsyncApiSchema> oneOf =
-                mapJsonSchemaArray(objectNode.get("oneOf"));
-        List<io.ballerina.asyncapi.core.model.component.AsyncApiSchema> anyOf =
-                mapJsonSchemaArray(objectNode.get("anyOf"));
-
         Map<String, JsonNode> extensions = null;
         Map<String, JsonNode> ext = new LinkedHashMap<>();
         objectNode.properties().forEach(e -> {
-            if (e.getKey().startsWith("x-")) {
+            if (e.getKey().startsWith(Constants.EXTENSION_PREFIX)) {
                 ext.put(e.getKey(), e.getValue());
             }
         });
@@ -361,18 +390,48 @@ public final class SchemaMapper {
             extensions = ext;
         }
 
-        return new io.ballerina.asyncapi.core.model.component.AsyncApiSchema(
-                title, type, required,
-                multipleOf, maximum, exclusiveMaximum, minimum, exclusiveMinimum,
-                maxLength, minLength, pattern,
-                maxItems, minItems, uniqueItems, maxProperties, minProperties,
-                enumValues, constValue, examples, ifSchema, thenSchema, elseSchema,
-                readOnly, writeOnly,
-                properties, null, additionalProperties, null, items, null, null,
-                allOf, oneOf, anyOf, notSchema,
-                description, format, defaultValue, null, null, deprecated,
-                extensions, null
-        );
+        return io.ballerina.asyncapi.core.model.component.AsyncApiSchema.builder()
+                .title(title)
+                .type(type)
+                .required(required)
+                .multipleOf(multipleOf)
+                .maximum(maximum)
+                .exclusiveMaximum(exclusiveMaximum)
+                .minimum(minimum)
+                .exclusiveMinimum(exclusiveMinimum)
+                .maxLength(maxLength)
+                .minLength(minLength)
+                .pattern(pattern)
+                .maxItems(maxItems)
+                .minItems(minItems)
+                .uniqueItems(uniqueItems)
+                .maxProperties(maxProperties)
+                .minProperties(minProperties)
+                .enumValue(enumValues)
+                .constValue(constValue)
+                .examples(examples)
+                .ifBranch(objectNode.has(Constants.SCHEMA_IF) ? mapFromJsonNode(objectNode.get(Constants.SCHEMA_IF))
+                        : null)
+                .then(objectNode.has(Constants.SCHEMA_THEN)
+                        ? mapFromJsonNode(objectNode.get(Constants.SCHEMA_THEN)) : null)
+                .elseBranch(objectNode.has(Constants.SCHEMA_ELSE)
+                        ? mapFromJsonNode(objectNode.get(Constants.SCHEMA_ELSE)) : null)
+                .not(objectNode.has(Constants.SCHEMA_NOT) ? mapFromJsonNode(objectNode.get(Constants.SCHEMA_NOT))
+                        : null)
+                .readOnly(readOnly)
+                .writeOnly(writeOnly)
+                .properties(properties)
+                .additionalProperties(additionalProperties)
+                .items(items)
+                .allOf(mapJsonSchemaArray(objectNode.get(Constants.SCHEMA_ALL_OF)))
+                .oneOf(mapJsonSchemaArray(objectNode.get(Constants.SCHEMA_ONE_OF)))
+                .anyOf(mapJsonSchemaArray(objectNode.get(Constants.SCHEMA_ANY_OF)))
+                .description(description)
+                .format(format)
+                .defaultValue(defaultValue)
+                .deprecated(deprecated)
+                .extensions(extensions)
+                .build();
     }
 
     /**
@@ -438,8 +497,8 @@ public final class SchemaMapper {
         List<io.ballerina.asyncapi.core.model.component.AsyncApiSchema> result = new ArrayList<>();
         for (Schema s : list) {
             if (s instanceof AsyncApiReferenceable ref && ref.get$ref() != null) {
-                String $ref = ref.get$ref();
-                String refName = $ref.substring($ref.lastIndexOf('/') + 1);
+                String refValue = ref.get$ref();
+                String refName = refValue.substring(refValue.lastIndexOf('/') + 1);
                 if (rawSchemas != null) {
                     AsyncApiSchema refSchema = rawSchemas.get(refName);
                     if (refSchema != null) {
@@ -452,16 +511,7 @@ public final class SchemaMapper {
                     }
                 }
                 // Fallback: stub with name only when rawSchemas is unavailable or ref not found
-                result.add(new io.ballerina.asyncapi.core.model.component.AsyncApiSchema(
-                        null, null, null,
-                        null, null, null, null, null, null, null, null,
-                        null, null, null, null, null,
-                        null, null, null, null, null, null, null, null,
-                        null, null, null, null, null, null, null,
-                        null, null, null, null,
-                        null, null, null, null, null, null,
-                        null, refName
-                ));
+                result.add(io.ballerina.asyncapi.core.model.component.AsyncApiSchema.refStub(refName));
             } else if (s instanceof AsyncApiSchema typedSchema) {
                 io.ballerina.asyncapi.core.model.component.AsyncApiSchema mapped = map(typedSchema);
                 if (mapped != null) {

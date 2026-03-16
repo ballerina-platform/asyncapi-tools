@@ -33,8 +33,7 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * Maps Apicurio {@link ServerVariable} to {@link AsyncApiServerVariable}
- * for AsyncAPI 3.0.
+ * Maps Apicurio {@link ServerVariable} to {@link AsyncApiServerVariable} for AsyncAPI 3.0.
  */
 final class ServerVariableMapperV3 {
 
@@ -68,21 +67,21 @@ final class ServerVariableMapperV3 {
     }
 
     /**
-     * Maps a single Apicurio {@link ServerVariable}, resolving any {@code $ref} before
+     * Maps a single Apicurio {@link ServerVariable}, resolving any {@code $ref} before.
      *
      * @param variable   the Apicurio server variable object (may be a reference)
      * @param components the Apicurio components object used for ref resolution
      * @return the mapped AsyncApiServerVariable, or null for unresolvable refs
      */
     private static AsyncApiServerVariable mapVariableItem(ServerVariable variable, AsyncApiComponents components) {
-        String $ref = null;
+        String ref = null;
         if (variable instanceof AsyncApiReferenceable referenceable) {
-            $ref = referenceable.get$ref();
+            ref = referenceable.get$ref();
         }
-        if ($ref != null) {
-            ServerVariable resolved = resolveRef($ref, components);
+        if (ref != null) {
+            ServerVariable resolved = resolveRef(ref, components);
             if (resolved == null) {
-                LOG.warn("Could not resolve $ref: {}. Skipping server variable.", $ref);
+                LOG.warn("Could not resolve $ref: {}. Skipping server variable.", ref);
                 return null;
             }
             return mapVariableItem(resolved, components);
@@ -94,17 +93,17 @@ final class ServerVariableMapperV3 {
      * Resolves a {@code $ref} to a component server variable by extracting the name from the
      * reference string and looking it up in the AsyncAPI 3.0 components map.
      *
-     * @param $ref       the reference string (e.g. {@code #/components/serverVariables/MyVar})
+     * @param ref        the reference string (e.g. {@code #/components/serverVariables/MyVar})
      * @param components the Apicurio components object
      * @return the resolved server variable, or null if not found
      */
-    private static ServerVariable resolveRef(String $ref, AsyncApiComponents components) {
+    private static ServerVariable resolveRef(String ref, AsyncApiComponents components) {
         if (components == null) {
-            LOG.warn("Cannot resolve $ref: {}. Components is null.", $ref);
+            LOG.warn("Cannot resolve $ref: {}. Components is null.", ref);
             return null;
         }
         Set<String> visited = new HashSet<>();
-        String current = $ref;
+        String current = ref;
         while (current != null) {
             if (!current.startsWith(Constants.SERVER_VARIABLES_REF_PREFIX)) {
                 LOG.warn("Unsupported $ref format: {}. Skipping server variable.", current);

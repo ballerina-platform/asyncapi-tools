@@ -41,7 +41,6 @@ import java.util.Map;
 final class ComponentServerMapperV2 {
 
     private ComponentServerMapperV2() {
-
     }
 
     /**

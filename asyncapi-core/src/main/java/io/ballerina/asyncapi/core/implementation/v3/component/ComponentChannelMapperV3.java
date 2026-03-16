@@ -32,7 +32,6 @@ import java.util.Map;
 final class ComponentChannelMapperV3 {
 
     private ComponentChannelMapperV3() {
-
     }
 
     /**

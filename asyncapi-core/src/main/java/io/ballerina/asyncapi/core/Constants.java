@@ -42,6 +42,46 @@ public final class Constants {
 
     public static final String X_BALLERINA_EVENT_TYPE = "x-ballerina-event-type";
 
+    public static final String SCHEMA_REF = "$ref";
+
+    // JSON Schema keywords
+    public static final String SCHEMA_TITLE = "title";
+    public static final String SCHEMA_TYPE = "type";
+    public static final String SCHEMA_FORMAT = "format";
+    public static final String SCHEMA_DESCRIPTION = "description";
+    public static final String SCHEMA_DEFAULT = "default";
+    public static final String SCHEMA_PATTERN = "pattern";
+    public static final String SCHEMA_MULTIPLE_OF = "multipleOf";
+    public static final String SCHEMA_MAXIMUM = "maximum";
+    public static final String SCHEMA_EXCLUSIVE_MAXIMUM = "exclusiveMaximum";
+    public static final String SCHEMA_MINIMUM = "minimum";
+    public static final String SCHEMA_EXCLUSIVE_MINIMUM = "exclusiveMinimum";
+    public static final String SCHEMA_MAX_LENGTH = "maxLength";
+    public static final String SCHEMA_MIN_LENGTH = "minLength";
+    public static final String SCHEMA_MAX_ITEMS = "maxItems";
+    public static final String SCHEMA_MIN_ITEMS = "minItems";
+    public static final String SCHEMA_UNIQUE_ITEMS = "uniqueItems";
+    public static final String SCHEMA_MAX_PROPERTIES = "maxProperties";
+    public static final String SCHEMA_MIN_PROPERTIES = "minProperties";
+    public static final String SCHEMA_READ_ONLY = "readOnly";
+    public static final String SCHEMA_WRITE_ONLY = "writeOnly";
+    public static final String SCHEMA_DEPRECATED = "deprecated";
+    public static final String SCHEMA_CONST = "const";
+    public static final String SCHEMA_REQUIRED = "required";
+    public static final String SCHEMA_ENUM = "enum";
+    public static final String SCHEMA_EXAMPLES = "examples";
+    public static final String SCHEMA_PROPERTIES = "properties";
+    public static final String SCHEMA_ITEMS = "items";
+    public static final String SCHEMA_ADDITIONAL_PROPERTIES = "additionalProperties";
+    public static final String SCHEMA_ALL_OF = "allOf";
+    public static final String SCHEMA_ONE_OF = "oneOf";
+    public static final String SCHEMA_ANY_OF = "anyOf";
+    public static final String SCHEMA_IF = "if";
+    public static final String SCHEMA_THEN = "then";
+    public static final String SCHEMA_ELSE = "else";
+    public static final String SCHEMA_NOT = "not";
+    public static final String EXTENSION_PREFIX = "x-";
+
     private Constants() {
     }
 }

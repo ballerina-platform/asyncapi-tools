@@ -45,7 +45,6 @@ public final class OperationReplyMapperV3 {
     private static final Logger LOG = LogManager.getLogger(OperationReplyMapperV3.class);
 
     private OperationReplyMapperV3() {
-
     }
 
     /**
@@ -108,13 +107,13 @@ public final class OperationReplyMapperV3 {
             return null;
         }
 
-        String $ref = channelRef.get$ref();
-        if ($ref == null) {
+        String ref = channelRef.get$ref();
+        if (ref == null) {
             LOG.warn("Reply channel reference has no $ref. Skipping.");
             return null;
         }
 
-        return OperationMapperV3.resolveChannelRef($ref, channelsMap);
+        return OperationMapperV3.resolveChannelRef(ref, channelsMap);
     }
 
     /**
@@ -145,18 +144,18 @@ public final class OperationReplyMapperV3 {
                 continue;
             }
 
-            String $ref = messageRef.get$ref();
-            if ($ref == null) {
+            String ref = messageRef.get$ref();
+            if (ref == null) {
                 LOG.warn("Reply message reference has no $ref. Skipping.");
                 continue;
             }
 
             // Extract message name from $ref (last segment after last '/')
-            String messageName = extractMessageNameFromRef($ref);
+            String messageName = extractMessageNameFromRef(ref);
 
-            AsyncApi30Message resolved = OperationMapperV3.resolveMessageRef($ref, rawChannels, components);
+            AsyncApi30Message resolved = OperationMapperV3.resolveMessageRef(ref, rawChannels, components);
             if (resolved == null) {
-                LOG.warn("Could not resolve message $ref: {}. Skipping.", $ref);
+                LOG.warn("Could not resolve message $ref: {}. Skipping.", ref);
                 continue;
             }
 
@@ -178,11 +177,11 @@ public final class OperationReplyMapperV3 {
     /**
      * Extracts the message name from a $ref string.
      *
-     * @param $ref the $ref string
+     * @param ref the $ref string
      * @return the message name (last segment after last '/')
      */
-    private static String extractMessageNameFromRef(String $ref) {
-        int lastSlash = $ref.lastIndexOf('/');
-        return lastSlash >= 0 ? $ref.substring(lastSlash + 1) : $ref;
+    private static String extractMessageNameFromRef(String ref) {
+        int lastSlash = ref.lastIndexOf('/');
+        return lastSlash >= 0 ? ref.substring(lastSlash + 1) : ref;
     }
 }

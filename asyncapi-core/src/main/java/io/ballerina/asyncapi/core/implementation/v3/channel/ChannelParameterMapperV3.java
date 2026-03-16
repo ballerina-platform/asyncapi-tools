@@ -44,7 +44,6 @@ final class ChannelParameterMapperV3 {
     private static final Logger LOG = LogManager.getLogger(ChannelParameterMapperV3.class);
 
     private ChannelParameterMapperV3() {
-
     }
 
     /**
@@ -113,22 +112,22 @@ final class ChannelParameterMapperV3 {
      * Resolves a {@code $ref} to a component parameter by extracting the name from the reference
      * string and looking it up in the components parameters map.
      *
-     * @param $ref       the reference string (e.g. {@code #/components/parameters/myParam})
+     * @param ref        the reference string (e.g. {@code #/components/parameters/myParam})
      * @param components the Apicurio components object
      * @return the resolved parameter, or null if not found or invalid
      */
-    private static AsyncApiParameter resolveRef(String $ref, AsyncApiComponents components) {
+    private static AsyncApiParameter resolveRef(String ref, AsyncApiComponents components) {
         if (components == null) {
-            LOG.warn("Cannot resolve $ref: {}. Components is null.", $ref);
+            LOG.warn("Cannot resolve $ref: {}. Components is null.", ref);
             return null;
         }
         // Add additional version checks here as new AsyncAPI 3.x versions are supported.
         if (!(components instanceof AsyncApi30Components typedComponents)) {
-            LOG.warn("Cannot resolve $ref: {}. Unsupported components version.", $ref);
+            LOG.warn("Cannot resolve $ref: {}. Unsupported components version.", ref);
             return null;
         }
         Set<String> visited = new HashSet<>();
-        String current = $ref;
+        String current = ref;
         while (current != null) {
             if (!current.startsWith(Constants.PARAMETERS_REF_PREFIX)) {
                 LOG.warn("Unsupported $ref format: {}. Skipping parameter.", current);

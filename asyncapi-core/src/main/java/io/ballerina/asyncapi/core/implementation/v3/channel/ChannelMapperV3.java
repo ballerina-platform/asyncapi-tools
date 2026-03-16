@@ -50,7 +50,6 @@ public final class ChannelMapperV3 {
     private static final Logger LOG = LogManager.getLogger(ChannelMapperV3.class);
 
     private ChannelMapperV3() {
-
     }
 
     /**
@@ -101,9 +100,9 @@ public final class ChannelMapperV3 {
     public static AsyncApiChannel mapChannelItem(String name, AsyncApi30Channel channelItem,
             AsyncApiComponents components, Map<String, AsyncApiServer> serversMap) {
         // Handle $ref
-        String $ref = channelItem.get$ref();
-        if ($ref != null) {
-            AsyncApi30Channel resolved = resolveChannelRef($ref, components);
+        String ref = channelItem.get$ref();
+        if (ref != null) {
+            AsyncApi30Channel resolved = resolveChannelRef(ref, components);
             if (resolved == null) {
                 return null;
             }
@@ -167,11 +166,11 @@ public final class ChannelMapperV3 {
      * Resolves a channel {@code $ref} string, following any chain of refs, to the
      * final concrete {@link AsyncApi30Channel}. Detects cyclic references.
      *
-     * @param $ref       the initial $ref string (e.g., "#/channels/myChannel")
+     * @param ref        the initial $ref string (e.g., "#/channels/myChannel")
      * @param components the AsyncAPI components used for lookup
      * @return the concrete channel, or {@code null} if resolution fails
      */
-    private static AsyncApi30Channel resolveChannelRef(String $ref, AsyncApiComponents components) {
+    private static AsyncApi30Channel resolveChannelRef(String ref, AsyncApiComponents components) {
         if (components == null) {
             return null;
         }
@@ -181,7 +180,7 @@ public final class ChannelMapperV3 {
             return null;
         }
         Set<String> visited = new HashSet<>();
-        String current = $ref;
+        String current = ref;
         while (current != null) {
             if (!current.startsWith(Constants.CHANNELS_REF_PREFIX)) {
                 LOG.warn("Unsupported channel $ref format: {}. Skipping.", current);

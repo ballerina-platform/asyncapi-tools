@@ -28,7 +28,7 @@ public final class StringUtils {
     }
 
     /**
-     * Converts a string to PascalCase (UpperCamelCase) using the following rules:
+     * Converts a string to PascalCase (UpperCamelCase).
      * @param input the string to convert; returned as-is if {@code null} or blank
      * @return the PascalCase representation
      */
