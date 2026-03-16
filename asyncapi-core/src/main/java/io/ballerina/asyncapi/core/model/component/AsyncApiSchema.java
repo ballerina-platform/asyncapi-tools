@@ -28,10 +28,6 @@ import java.util.Map;
  *
  *
  * <p>Union-typed fields that can hold more than one Java type are represented as {@code Object}:
- * <ul>
- *   <li>{@code additionalProperties} holds a {@code Boolean} or an {@link AsyncApiSchema}.</li>
- *   <li>{@code items} holds an {@link AsyncApiSchema} or a {@code List<AsyncApiSchema>}.</li>
- * </ul>
  *
  * @param title                Annotates the schema with a short title (from the JSON Schema
  *                             {@code title} keyword).
@@ -66,8 +62,7 @@ import java.util.Map;
  *                             object properties.
  * @param additionalItems      Validates items beyond those matched by a tuple-form
  *                             {@code items}.
- * @param items                {@link AsyncApiSchema} or {@code List<AsyncApiSchema>}: schema(s)
- *                             for array items.
+ * @param items                AsyncApiSchema or list of AsyncApiSchema for array items.
  * @param propertyNames        Schema for validating property names of an object.
  * @param contains             Array is valid if at least one item matches this schema.
  * @param allOf                Validates against all of the given sub-schemas.
