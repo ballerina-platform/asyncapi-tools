@@ -43,7 +43,7 @@ import java.util.Map;
  * Represents the Components Object in an AsyncAPI document.
  * Holds a set of reusable objects for different aspects of the AsyncAPI specification.
  *
- * @param schemas           Reusable Schema Objects.
+ * @param schemas           Reusable Schema Objects (JSON Schema).
  * @param servers           Reusable Server Objects.
  * @param serverVariables   Reusable Server Variable Objects.
  * @param channels          Reusable Channel Objects.
@@ -65,7 +65,7 @@ import java.util.Map;
  * @param extensions        Specification extensions (fields prefixed with "x-").
  */
 public record AsyncApiComponent(
-        Map<String, Object> schemas,
+        Map<String, AsyncApiSchema> schemas,
         Map<String, AsyncApiServer> servers,
         Map<String, AsyncApiServerVariable> serverVariables,
         Map<String, AsyncApiChannel> channels,
@@ -86,6 +86,4 @@ public record AsyncApiComponent(
         Map<String, AsyncApiMessageBindings> messageBindings,
         Map<String, JsonNode> extensions
 ) {
-
-
 }

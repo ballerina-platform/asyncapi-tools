@@ -17,6 +17,8 @@
  */
 package io.ballerina.asyncapi.core.model.operation;
 
+import io.ballerina.asyncapi.core.model.component.AsyncApiSchema;
+
 /**
  * HTTP Operation Binding Object.
  *
@@ -26,7 +28,7 @@ package io.ballerina.asyncapi.core.model.operation;
  */
 public record HttpOperationBindings(
         HttpMethod method,
-        Object query,
+        AsyncApiSchema query,
         String bindingVersion
 ) {
 

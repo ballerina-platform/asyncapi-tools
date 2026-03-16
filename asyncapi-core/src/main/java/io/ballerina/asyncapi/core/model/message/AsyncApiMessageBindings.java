@@ -17,6 +17,10 @@
  */
 package io.ballerina.asyncapi.core.model.message;
 
+import com.fasterxml.jackson.databind.JsonNode;
+
+import java.util.Map;
+
 /**
  * Represents protocol-specific message binding definitions.
  * This structure is designed to be extensible to accommodate future
@@ -24,9 +28,11 @@ package io.ballerina.asyncapi.core.model.message;
  *
  * @param httpMessageBindings HTTP-specific message binding properties.
  * @param wsMessageBindings   WebSocket-specific message binding properties.
+ * @param extensions          Specification extensions (fields prefixed with "x-").
  */
 public record AsyncApiMessageBindings(
         HttpMessageBindings httpMessageBindings,
-        WsMessageBindings wsMessageBindings
+        WsMessageBindings wsMessageBindings,
+        Map<String, JsonNode> extensions
 ) {
 }

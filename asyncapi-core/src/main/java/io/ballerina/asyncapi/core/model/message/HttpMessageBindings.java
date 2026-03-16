@@ -17,6 +17,8 @@
  */
 package io.ballerina.asyncapi.core.model.message;
 
+import io.ballerina.asyncapi.core.model.component.AsyncApiSchema;
+
 /**
  * HTTP Message Binding Object.
  *
@@ -25,8 +27,19 @@ package io.ballerina.asyncapi.core.model.message;
  * @param bindingVersion The version of this binding.
  */
 public record HttpMessageBindings(
-        Object headers,
+        AsyncApiSchema headers,
         Integer statusCode,
         String bindingVersion
 ) {
+
+    /**
+     * Creates an {@link HttpMessageBindings} without a {@code headers} schema,
+     * equivalent to passing {@code null} for {@code headers}.
+     *
+     * @param statusCode     the HTTP response status code
+     * @param bindingVersion the version of this binding
+     */
+    public HttpMessageBindings(Integer statusCode, String bindingVersion) {
+        this(null, statusCode, bindingVersion);
+    }
 }

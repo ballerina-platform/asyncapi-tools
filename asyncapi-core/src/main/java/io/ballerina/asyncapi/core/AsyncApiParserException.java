@@ -15,15 +15,15 @@
  *  specific language governing permissions and limitations
  *  under the License.
  */
+package io.ballerina.asyncapi.core;
 
-plugins {
-    id 'java'
-}
+public class AsyncApiParserException extends Exception {
 
-repositories {
-    mavenCentral()
-}
+    public AsyncApiParserException(String message, Throwable e) {
+        super(Constants.ERROR_PREFIX + message, e);
+    }
 
-dependencies {
-
+    public AsyncApiParserException(String message) {
+        super(Constants.ERROR_PREFIX + message);
+    }
 }

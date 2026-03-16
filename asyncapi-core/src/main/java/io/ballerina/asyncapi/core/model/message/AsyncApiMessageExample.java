@@ -24,17 +24,29 @@ import java.util.Map;
 /**
  * Represents an example of a message.
  *
- * @param name       A machine-friendly name for the example.
- * @param summary    A short summary of the example.
  * @param headers    Example of the message headers as a map.
  * @param payload    Example of the message payload.
+ * @param name       A machine-friendly name for the example.
+ * @param summary    A short summary of the example.
  * @param extensions Specification extensions (fields prefixed with "x-").
  */
 public record AsyncApiMessageExample(
-        String name,
-        String summary,
         Map<String, Object> headers,
         Object payload,
+        String name,
+        String summary,
         Map<String, JsonNode> extensions
 ) {
+
+    /**
+     * Creates an {@link AsyncApiMessageExample} with only {@code payload} and {@code name},
+     * defaulting {@code headers}, {@code summary}, and {@code extensions} to {@code null}.
+     * Used when examples are expressed as a simple key-value map (AsyncAPI 2.x map form).
+     *
+     * @param payload the example message payload
+     * @param name    a machine-friendly name for the example
+     */
+    public AsyncApiMessageExample(Object payload, String name) {
+        this(null, payload, name, null, null);
+    }
 }

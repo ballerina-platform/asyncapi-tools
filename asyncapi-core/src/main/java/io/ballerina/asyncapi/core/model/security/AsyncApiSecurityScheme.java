@@ -50,4 +50,26 @@ public record AsyncApiSecurityScheme(
         List<String> scopes,
         Map<String, JsonNode> extensions
 ) {
+
+    /**
+     * Creates an {@link AsyncApiSecurityScheme} without {@code scopes},
+     * defaulting it to {@code null}. Used for AsyncAPI 2.x where the
+     * {@code scopes} field does not exist on security scheme objects.
+     *
+     * @param type             the type of the security scheme
+     * @param description      a description for the security scheme
+     * @param name             the name of the header, query, or cookie parameter
+     * @param in               the location of the API key
+     * @param scheme           the HTTP Authorization scheme name
+     * @param bearerFormat     hint for the bearer token format
+     * @param flows            the OAuth Flows configuration
+     * @param openIdConnectUrl the URI to the OpenID Connect discovery document
+     * @param extensions       specification extensions prefixed with {@code "x-"}
+     */
+    public AsyncApiSecurityScheme(String type, String description, String name, String in,
+            String scheme, String bearerFormat, AsyncApiOAuthFlows flows,
+            URI openIdConnectUrl, Map<String, JsonNode> extensions) {
+        this(type, description, name, in, scheme, bearerFormat, flows,
+                openIdConnectUrl, null, extensions);
+    }
 }

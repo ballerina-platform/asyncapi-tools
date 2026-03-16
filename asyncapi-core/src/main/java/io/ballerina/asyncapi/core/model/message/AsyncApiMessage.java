@@ -20,7 +20,6 @@ package io.ballerina.asyncapi.core.model.message;
 import com.fasterxml.jackson.databind.JsonNode;
 import io.ballerina.asyncapi.core.model.doc.AsyncApiExternalDocs;
 import io.ballerina.asyncapi.core.model.tag.AsyncApiTag;
-import jakarta.ws.rs.core.MediaType;
 
 import java.util.List;
 import java.util.Map;
@@ -47,7 +46,7 @@ public record AsyncApiMessage(
         Object headers,
         Object payload,
         AsyncApiCorrelationId correlationId,
-        MediaType contentType,
+        String contentType,
         String name,
         String title,
         String summary,

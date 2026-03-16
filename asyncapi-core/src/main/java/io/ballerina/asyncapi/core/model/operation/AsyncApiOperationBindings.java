@@ -17,6 +17,10 @@
  */
 package io.ballerina.asyncapi.core.model.operation;
 
+import com.fasterxml.jackson.databind.JsonNode;
+
+import java.util.Map;
+
 /**
  * Represents protocol-specific operation binding definitions.
  * This structure is designed to be extensible to accommodate future
@@ -24,9 +28,11 @@ package io.ballerina.asyncapi.core.model.operation;
  *
  * @param httpOperationBindings HTTP-specific operation binding properties.
  * @param wsOperationBindings   WebSocket-specific operation binding properties.
+ * @param extensions             Specification extensions (fields prefixed with "x-").
  */
 public record AsyncApiOperationBindings(
         HttpOperationBindings httpOperationBindings,
-        WsOperationBindings wsOperationBindings
+        WsOperationBindings wsOperationBindings,
+        Map<String, JsonNode> extensions
 ) {
 }

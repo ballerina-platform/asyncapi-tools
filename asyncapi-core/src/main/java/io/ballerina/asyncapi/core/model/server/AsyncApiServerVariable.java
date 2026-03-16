@@ -25,7 +25,9 @@ import java.util.Map;
 /**
  * Represents a Server Variable Object for URL template substitution.
  *
- * @param name         The name of the variable.
+ * <p>The variable name is the map key in the containing
+ * {@code Map<String, AsyncApiServerVariable>} and is not repeated here.
+ *
  * @param description  A description of the variable.
  * @param defaultValue The default value to use for substitution.
  * @param enumValues   An enumeration of allowed string values.
@@ -33,7 +35,6 @@ import java.util.Map;
  * @param extensions   Specification extensions (fields prefixed with "x-").
  */
 public record AsyncApiServerVariable(
-        String name,
         String description,
         String defaultValue,
         List<String> enumValues,

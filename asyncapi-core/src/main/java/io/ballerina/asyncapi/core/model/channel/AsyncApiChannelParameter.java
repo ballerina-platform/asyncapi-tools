@@ -29,6 +29,7 @@ import java.util.Map;
  * @param defaultValue The default value to use for substitution.
  * @param enumValues   An enumeration of allowed string values.
  * @param examples     Example values for the parameter.
+ * @param location     A runtime expression specifying the location of the parameter value.
  * @param extensions   Specification extensions (fields prefixed with "x-").
  */
 public record AsyncApiChannelParameter(
@@ -36,6 +37,7 @@ public record AsyncApiChannelParameter(
         String defaultValue,
         List<String> enumValues,
         List<String> examples,
+        String location,
         Map<String, JsonNode> extensions
 ) {
 }
