@@ -228,6 +228,7 @@ directoryBuild.dependsOn ":asyncapi-core:jar"
 directoryBuild.dependsOn ":asyncapi-core:checkstyleMain"
 directoryBuild.dependsOn ":asyncapi-core:checkstyleTest"
 directoryBuild.dependsOn ":asyncapi-core:test"
+directoryBuild.dependsOn ":asyncapi-core:startScripts"
 
 directoryBuild.dependsOn ":asyncapi-tool:jBallerinaPack"
 directoryBuild.dependsOn ":asyncapi-tool:generatePomFileForMavenPublication"
