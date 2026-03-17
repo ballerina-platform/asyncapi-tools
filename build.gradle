@@ -223,6 +223,7 @@ directoryBuild.dependsOn ":checkstyle:test"
 directoryBuild.dependsOn ":checkstyle:processTestResources"
 
 directoryBuild.dependsOn ":asyncapi-core:build"
+directoryBuild.dependsOn ":asyncapi-generator:build"
 
 directoryBuild.dependsOn ":asyncapi-tool:jBallerinaPack"
 directoryBuild.dependsOn ":asyncapi-tool:generatePomFileForMavenPublication"
