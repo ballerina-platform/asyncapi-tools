@@ -18,7 +18,7 @@
 package io.ballerina.asyncapi.generator.http.generator;
 
 import io.ballerina.asyncapi.generator.GeneratorException;
-import io.ballerina.asyncapi.generator.http.Constants;
+import io.ballerina.asyncapi.generator.http.extractor.EventIdentifierExtractor;
 import io.ballerina.asyncapi.generator.http.model.EventIdentifierConfig;
 import io.ballerina.asyncapi.generator.http.model.HttpServiceType;
 import io.ballerina.asyncapi.generator.http.node.GenerateDispatcherServiceNode;
@@ -73,10 +73,11 @@ public class DispatcherGenerator {
         }
 
         String identifierType = identifierConfig.type();
-        if (!Constants.X_BALLERINA_EVENT_TYPE_BODY.equals(identifierType)
-                && !Constants.X_BALLERINA_EVENT_TYPE_HEADER.equals(identifierType)) {
-            throw new GeneratorException("Unsupported identifier type: " + identifierType
-                    + ". Expected \"body\" or \"header\".");
+        if (!EventIdentifierExtractor.X_BALLERINA_EVENT_TYPE_BODY.equals(identifierType)
+                && !EventIdentifierExtractor.X_BALLERINA_EVENT_TYPE_HEADER.equals(identifierType)) {
+            throw new GeneratorException(String.format(
+                    "Unsupported identifier type: %s. Expected \"body\" or \"header\".",
+                    identifierType));
         }
 
         ClassDefinitionNode classNode =

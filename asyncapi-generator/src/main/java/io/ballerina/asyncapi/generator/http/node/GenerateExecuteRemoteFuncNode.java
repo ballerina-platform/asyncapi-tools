@@ -18,7 +18,8 @@
 package io.ballerina.asyncapi.generator.http.node;
 
 import io.ballerina.asyncapi.generator.GeneratorException;
-import io.ballerina.asyncapi.generator.http.Constants;
+import io.ballerina.asyncapi.generator.http.generator.DataTypesGenerator;
+import io.ballerina.asyncapi.generator.http.generator.ServiceTypesGenerator;
 import io.ballerina.compiler.syntax.tree.FunctionBodyBlockNode;
 import io.ballerina.compiler.syntax.tree.FunctionDefinitionNode;
 import io.ballerina.compiler.syntax.tree.FunctionSignatureNode;
@@ -55,6 +56,13 @@ import static io.ballerina.compiler.syntax.tree.SyntaxKind.PRIVATE_KEYWORD;
  */
 public class GenerateExecuteRemoteFuncNode implements Generator {
 
+    public static final String EXECUTE_REMOTE_FUNC_NAME = "executeRemoteFunc";
+    private static final String EXECUTE_REMOTE_FUNC_PARAM_EVENT = "genericEvent";
+    private static final String EXECUTE_REMOTE_FUNC_PARAM_EVENT_NAME = "eventName";
+    private static final String EXECUTE_REMOTE_FUNC_PARAM_SERVICE_TYPE = "serviceTypeStr";
+    private static final String EXECUTE_REMOTE_FUNC_PARAM_EVENT_FUNC = "eventFunction";
+    private static final String EXECUTE_REMOTE_FUNC_LOCAL_SERVICE = "genericService";
+
     @Override
     public FunctionDefinitionNode generate() throws GeneratorException {
         FunctionSignatureNode signature = createFunctionSignatureNode(
@@ -62,39 +70,43 @@ public class GenerateExecuteRemoteFuncNode implements Generator {
                 createSeparatedNodeList(
                         createRequiredParameterNode(
                                 createEmptyNodeList(),
-                                createSimpleNameReferenceNode(createIdentifierToken(Constants.GENERIC_DATA_TYPE)),
-                                createIdentifierToken(Constants.EXECUTE_REMOTE_FUNC_PARAM_EVENT)),
+                                createSimpleNameReferenceNode(
+                                        createIdentifierToken(DataTypesGenerator.GENERIC_DATA_TYPE)),
+                                createIdentifierToken(EXECUTE_REMOTE_FUNC_PARAM_EVENT)),
                         createToken(COMMA_TOKEN),
                         createRequiredParameterNode(
                                 createEmptyNodeList(),
                                 createBuiltinSimpleNameReferenceNode(null, createIdentifierToken("string")),
-                                createIdentifierToken(Constants.EXECUTE_REMOTE_FUNC_PARAM_EVENT_NAME)),
+                                createIdentifierToken(EXECUTE_REMOTE_FUNC_PARAM_EVENT_NAME)),
                         createToken(COMMA_TOKEN),
                         createRequiredParameterNode(
                                 createEmptyNodeList(),
                                 createBuiltinSimpleNameReferenceNode(null, createIdentifierToken("string")),
-                                createIdentifierToken(Constants.EXECUTE_REMOTE_FUNC_PARAM_SERVICE_TYPE)),
+                                createIdentifierToken(EXECUTE_REMOTE_FUNC_PARAM_SERVICE_TYPE)),
                         createToken(COMMA_TOKEN),
                         createRequiredParameterNode(
                                 createEmptyNodeList(),
                                 createBuiltinSimpleNameReferenceNode(null, createIdentifierToken("string")),
-                                createIdentifierToken(Constants.EXECUTE_REMOTE_FUNC_PARAM_EVENT_FUNC))),
+                                createIdentifierToken(EXECUTE_REMOTE_FUNC_PARAM_EVENT_FUNC))),
                 createToken(CLOSE_PAREN_TOKEN),
                 buildErrorReturnType());
 
         List<StatementNode> statements = new ArrayList<>();
-        statements.add(NodeParser.parseStatement(
-                Constants.GENERIC_SERVICE_TYPE + "? " + Constants.EXECUTE_REMOTE_FUNC_LOCAL_SERVICE
-                + " = self." + Constants.DISPATCHER_SERVICES_FIELD
-                + "[" + Constants.EXECUTE_REMOTE_FUNC_PARAM_SERVICE_TYPE + "];"));
-        statements.add(NodeParser.parseStatement(
-                "if " + Constants.EXECUTE_REMOTE_FUNC_LOCAL_SERVICE
-                + " is " + Constants.GENERIC_SERVICE_TYPE + " { check self."
-                + Constants.DISPATCHER_NATIVE_HANDLER_FIELD + ".invokeRemoteFunction("
-                + Constants.EXECUTE_REMOTE_FUNC_PARAM_EVENT + ", "
-                + Constants.EXECUTE_REMOTE_FUNC_PARAM_EVENT_NAME + ", "
-                + Constants.EXECUTE_REMOTE_FUNC_PARAM_EVENT_FUNC + ", "
-                + Constants.EXECUTE_REMOTE_FUNC_LOCAL_SERVICE + "); }"));
+        statements.add(NodeParser.parseStatement(String.format(
+                "%s? %s = self.%s[%s];",
+                ServiceTypesGenerator.GENERIC_SERVICE_TYPE,
+                EXECUTE_REMOTE_FUNC_LOCAL_SERVICE,
+                GenerateDispatcherServiceNode.DISPATCHER_SERVICES_FIELD,
+                EXECUTE_REMOTE_FUNC_PARAM_SERVICE_TYPE)));
+        statements.add(NodeParser.parseStatement(String.format(
+                "if %s is %s { check self.%s.invokeRemoteFunction(%s, %s, %s, %s); }",
+                EXECUTE_REMOTE_FUNC_LOCAL_SERVICE,
+                ServiceTypesGenerator.GENERIC_SERVICE_TYPE,
+                GenerateDispatcherServiceNode.DISPATCHER_NATIVE_HANDLER_FIELD,
+                EXECUTE_REMOTE_FUNC_PARAM_EVENT,
+                EXECUTE_REMOTE_FUNC_PARAM_EVENT_NAME,
+                EXECUTE_REMOTE_FUNC_PARAM_EVENT_FUNC,
+                EXECUTE_REMOTE_FUNC_LOCAL_SERVICE)));
 
         FunctionBodyBlockNode body = createFunctionBodyBlockNode(
                 createToken(OPEN_BRACE_TOKEN), null, createNodeList(statements),
@@ -104,7 +116,7 @@ public class GenerateExecuteRemoteFuncNode implements Generator {
                 OBJECT_METHOD_DEFINITION, null,
                 createNodeList(createToken(PRIVATE_KEYWORD)),
                 createToken(FUNCTION_KEYWORD),
-                createIdentifierToken(Constants.EXECUTE_REMOTE_FUNC_NAME),
+                createIdentifierToken(EXECUTE_REMOTE_FUNC_NAME),
                 createEmptyNodeList(),
                 signature, body);
     }

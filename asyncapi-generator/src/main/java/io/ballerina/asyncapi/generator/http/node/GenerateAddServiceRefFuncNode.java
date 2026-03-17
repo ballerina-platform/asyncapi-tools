@@ -18,7 +18,7 @@
 package io.ballerina.asyncapi.generator.http.node;
 
 import io.ballerina.asyncapi.generator.GeneratorException;
-import io.ballerina.asyncapi.generator.http.Constants;
+import io.ballerina.asyncapi.generator.http.generator.ServiceTypesGenerator;
 import io.ballerina.compiler.syntax.tree.FunctionBodyBlockNode;
 import io.ballerina.compiler.syntax.tree.FunctionDefinitionNode;
 import io.ballerina.compiler.syntax.tree.FunctionSignatureNode;
@@ -61,6 +61,8 @@ import static io.ballerina.compiler.syntax.tree.SyntaxKind.RETURNS_KEYWORD;
  */
 public class GenerateAddServiceRefFuncNode implements Generator {
 
+    public static final String ADD_SERVICE_REF_FUNC = "addServiceRef";
+
     @Override
     public FunctionDefinitionNode generate() throws GeneratorException {
         FunctionSignatureNode signature = createFunctionSignatureNode(
@@ -73,17 +75,21 @@ public class GenerateAddServiceRefFuncNode implements Generator {
                         createToken(COMMA_TOKEN),
                         createRequiredParameterNode(
                                 createEmptyNodeList(),
-                                createSimpleNameReferenceNode(createIdentifierToken(Constants.GENERIC_SERVICE_TYPE)),
+                                createSimpleNameReferenceNode(
+                                        createIdentifierToken(ServiceTypesGenerator.GENERIC_SERVICE_TYPE)),
                                 createIdentifierToken("genericService"))),
                 createToken(CLOSE_PAREN_TOKEN),
                 buildErrorReturnType());
 
         List<StatementNode> statements = new ArrayList<>();
-        statements.add(NodeParser.parseStatement(
-                "if (self." + Constants.DISPATCHER_SERVICES_FIELD + ".hasKey(serviceType)) {"
-                + " return error(\"Service of type \" + serviceType + \" has already been attached\"); }"));
-        statements.add(NodeParser.parseStatement(
-                "self." + Constants.DISPATCHER_SERVICES_FIELD + "[serviceType] = genericService;"));
+        statements.add(NodeParser.parseStatement(String.format(
+                "if (self.%s.hasKey(serviceType)) {"
+                        + " return error(\"Service of type \" + serviceType"
+                        + " + \" has already been attached\"); }",
+                GenerateDispatcherServiceNode.DISPATCHER_SERVICES_FIELD)));
+        statements.add(NodeParser.parseStatement(String.format(
+                "self.%s[serviceType] = genericService;",
+                GenerateDispatcherServiceNode.DISPATCHER_SERVICES_FIELD)));
 
         FunctionBodyBlockNode body = createFunctionBodyBlockNode(
                 createToken(OPEN_BRACE_TOKEN), null, createNodeList(statements),
@@ -93,7 +99,7 @@ public class GenerateAddServiceRefFuncNode implements Generator {
                 OBJECT_METHOD_DEFINITION, null,
                 createNodeList(createToken(ISOLATED_KEYWORD)),
                 createToken(FUNCTION_KEYWORD),
-                createIdentifierToken(Constants.ADD_SERVICE_REF_FUNC),
+                createIdentifierToken(ADD_SERVICE_REF_FUNC),
                 createEmptyNodeList(),
                 signature, body);
     }

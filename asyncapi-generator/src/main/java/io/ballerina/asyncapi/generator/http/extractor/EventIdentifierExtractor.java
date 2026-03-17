@@ -20,8 +20,8 @@ package io.ballerina.asyncapi.generator.http.extractor;
 import com.fasterxml.jackson.databind.JsonNode;
 import io.ballerina.asyncapi.core.api.AsyncApiSpec;
 import io.ballerina.asyncapi.generator.GeneratorException;
-import io.ballerina.asyncapi.generator.http.Constants;
 import io.ballerina.asyncapi.generator.http.model.EventIdentifierConfig;
+import io.ballerina.asyncapi.generator.http.utils.CodegenUtils;
 
 import java.util.Arrays;
 import java.util.HashMap;
@@ -33,6 +33,13 @@ import java.util.stream.Collectors;
  * extension on an {@link AsyncApiSpec} document.
  */
 public final class EventIdentifierExtractor {
+
+    public static final String X_BALLERINA_EVENT_TYPE_HEADER = "header";
+    public static final String X_BALLERINA_EVENT_TYPE_BODY = "body";
+    private static final String X_BALLERINA_EVENT_FIELD_IDENTIFIER = "x-ballerina-event-identifier";
+    private static final String X_BALLERINA_EVENT_FIELD_IDENTIFIER_TYPE = "type";
+    private static final String X_BALLERINA_EVENT_FIELD_IDENTIFIER_PATH = "path";
+    private static final String X_BALLERINA_EVENT_FIELD_IDENTIFIER_NAME = "name";
 
     private final AsyncApiSpec asyncApiSpec;
 
@@ -49,39 +56,43 @@ public final class EventIdentifierExtractor {
      */
     public EventIdentifierConfig extract() throws GeneratorException {
         Map<String, JsonNode> extensions = asyncApiSpec.getAsyncApiExtensions().orElse(null);
-        if (extensions == null || !extensions.containsKey(Constants.X_BALLERINA_EVENT_FIELD_IDENTIFIER)) {
-            throw new GeneratorException(Constants.X_BALLERINA_EVENT_FIELD_IDENTIFIER
-                    + " attribute is not found in the Async API Specification");
+        if (extensions == null || !extensions.containsKey(X_BALLERINA_EVENT_FIELD_IDENTIFIER)) {
+            throw new GeneratorException(String.format(
+                    "%s attribute is not found in the Async API Specification",
+                    X_BALLERINA_EVENT_FIELD_IDENTIFIER));
         }
 
-        JsonNode identifierNode = extensions.get(Constants.X_BALLERINA_EVENT_FIELD_IDENTIFIER);
+        JsonNode identifierNode = extensions.get(X_BALLERINA_EVENT_FIELD_IDENTIFIER);
         if (identifierNode == null || !identifierNode.isObject()) {
-            throw new GeneratorException(Constants.X_BALLERINA_EVENT_FIELD_IDENTIFIER
-                    + " must be a JSON object in the Async API Specification");
+            throw new GeneratorException(String.format(
+                    "%s must be a JSON object in the Async API Specification",
+                    X_BALLERINA_EVENT_FIELD_IDENTIFIER));
         }
         Map<String, String> identifierFields = new HashMap<>();
         for (Map.Entry<String, JsonNode> entry : identifierNode.properties()) {
             identifierFields.put(entry.getKey(), entry.getValue().asText());
         }
 
-        if (!identifierFields.containsKey(Constants.X_BALLERINA_EVENT_FIELD_IDENTIFIER_TYPE)) {
-            throw new GeneratorException(Constants.X_BALLERINA_EVENT_FIELD_IDENTIFIER_TYPE
-                    + " attribute is not found within the attribute "
-                    + Constants.X_BALLERINA_EVENT_FIELD_IDENTIFIER
-                    + " in the Async API Specification");
+        if (!identifierFields.containsKey(X_BALLERINA_EVENT_FIELD_IDENTIFIER_TYPE)) {
+            throw new GeneratorException(String.format(
+                    "%s attribute is not found within the attribute %s in the Async API Specification",
+                    X_BALLERINA_EVENT_FIELD_IDENTIFIER_TYPE,
+                    X_BALLERINA_EVENT_FIELD_IDENTIFIER));
         }
 
-        String type = identifierFields.get(Constants.X_BALLERINA_EVENT_FIELD_IDENTIFIER_TYPE);
+        String type = identifierFields.get(X_BALLERINA_EVENT_FIELD_IDENTIFIER_TYPE);
 
         return switch (type) {
-            case Constants.X_BALLERINA_EVENT_TYPE_HEADER ->
+            case X_BALLERINA_EVENT_TYPE_HEADER ->
                     new EventIdentifierConfig(type, extractHeaderPath(identifierFields));
-            case Constants.X_BALLERINA_EVENT_TYPE_BODY ->
+            case X_BALLERINA_EVENT_TYPE_BODY ->
                     new EventIdentifierConfig(type, extractBodyPath(identifierFields));
-            default -> throw new GeneratorException(Constants.X_BALLERINA_EVENT_TYPE_HEADER + " or "
-                    + Constants.X_BALLERINA_EVENT_TYPE_BODY + " is not provided as the value of "
-                    + Constants.X_BALLERINA_EVENT_FIELD_IDENTIFIER_TYPE + " attribute within the attribute "
-                    + Constants.X_BALLERINA_EVENT_FIELD_IDENTIFIER + " in the Async API Specification");
+            default -> throw new GeneratorException(String.format(
+                    "%s or %s is not provided as the value of %s attribute within the attribute %s"
+                            + " in the Async API Specification",
+                    X_BALLERINA_EVENT_TYPE_HEADER, X_BALLERINA_EVENT_TYPE_BODY,
+                    X_BALLERINA_EVENT_FIELD_IDENTIFIER_TYPE,
+                    X_BALLERINA_EVENT_FIELD_IDENTIFIER));
         };
     }
 
@@ -93,15 +104,15 @@ public final class EventIdentifierExtractor {
      * @throws GeneratorException if the {@code name} field is absent
      */
     private String extractHeaderPath(Map<String, String> identifierFields) throws GeneratorException {
-        if (!identifierFields.containsKey(Constants.X_BALLERINA_EVENT_FIELD_IDENTIFIER_NAME)) {
-            throw new GeneratorException(Constants.X_BALLERINA_EVENT_FIELD_IDENTIFIER_NAME
-                    + " attribute is not found within the attribute "
-                    + Constants.X_BALLERINA_EVENT_FIELD_IDENTIFIER
-                    + " in the Async API Specification");
+        if (!identifierFields.containsKey(X_BALLERINA_EVENT_FIELD_IDENTIFIER_NAME)) {
+            throw new GeneratorException(String.format(
+                    "%s attribute is not found within the attribute %s in the Async API Specification",
+                    X_BALLERINA_EVENT_FIELD_IDENTIFIER_NAME,
+                    X_BALLERINA_EVENT_FIELD_IDENTIFIER));
         }
-        String name = identifierFields.get(Constants.X_BALLERINA_EVENT_FIELD_IDENTIFIER_NAME);
-        if (Constants.BAL_KEYWORDS.stream().anyMatch(name::equals)) {
-            return "'" + name;
+        String name = identifierFields.get(X_BALLERINA_EVENT_FIELD_IDENTIFIER_NAME);
+        if (CodegenUtils.BAL_KEYWORDS.stream().anyMatch(name::equals)) {
+            return String.format("'%s", name);
         }
         return name;
     }
@@ -115,15 +126,16 @@ public final class EventIdentifierExtractor {
      * @throws GeneratorException if the {@code path} field is absent
      */
     private String extractBodyPath(Map<String, String> identifierFields) throws GeneratorException {
-        if (!identifierFields.containsKey(Constants.X_BALLERINA_EVENT_FIELD_IDENTIFIER_PATH)) {
-            throw new GeneratorException(Constants.X_BALLERINA_EVENT_FIELD_IDENTIFIER_PATH
-                    + " attribute is not found within the attribute "
-                    + Constants.X_BALLERINA_EVENT_FIELD_IDENTIFIER
-                    + " in the Async API Specification");
+        if (!identifierFields.containsKey(X_BALLERINA_EVENT_FIELD_IDENTIFIER_PATH)) {
+            throw new GeneratorException(String.format(
+                    "%s attribute is not found within the attribute %s in the Async API Specification",
+                    X_BALLERINA_EVENT_FIELD_IDENTIFIER_PATH,
+                    X_BALLERINA_EVENT_FIELD_IDENTIFIER));
         }
-        String identifierPath = identifierFields.get(Constants.X_BALLERINA_EVENT_FIELD_IDENTIFIER_PATH);
+        String identifierPath = identifierFields.get(X_BALLERINA_EVENT_FIELD_IDENTIFIER_PATH);
         return Arrays.stream(identifierPath.split("\\."))
-                .map(part -> Constants.BAL_KEYWORDS.stream().anyMatch(part::equals) ? "'" + part : part)
+                .map(part -> CodegenUtils.BAL_KEYWORDS.stream().anyMatch(part::equals)
+                        ? String.format("'%s", part) : part)
                 .collect(Collectors.joining("."));
     }
 }

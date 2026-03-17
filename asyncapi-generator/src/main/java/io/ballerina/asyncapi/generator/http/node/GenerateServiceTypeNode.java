@@ -84,7 +84,8 @@ public class GenerateServiceTypeNode implements Generator {
     @Override
     public TypeDefinitionNode generate() throws GeneratorException {
         if (remoteFunctions.isEmpty()) {
-            throw new GeneratorException("Remote functions list is empty in the service type " + serviceTypeName);
+            throw new GeneratorException(String.format(
+                    "Remote functions list is empty in the service type %s", serviceTypeName));
         }
 
         OptionalTypeDescriptorNode returnType = createOptionalTypeDescriptorNode(

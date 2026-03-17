@@ -46,6 +46,10 @@ import java.util.Map;
 public class HttpCodeGenerator {
 
     private static final Logger LOG = LogManager.getLogger(HttpCodeGenerator.class);
+    private static final String DATA_TYPES_BAL = "types.bal";
+    private static final String SERVICE_TYPES_BAL = "service_types.bal";
+    private static final String LISTENER_BAL = "listener.bal";
+    private static final String DISPATCHER_SERVICE_BAL = "dispatcher_service.bal";
 
     private final AsyncApiSpec asyncApiSpec;
 
@@ -81,13 +85,13 @@ public class HttpCodeGenerator {
         String dispatcherContent = new DispatcherGenerator(serviceTypes, identifierConfig).generate();
 
         // Write generated files to the output directory
-        writeFile(outputPath.resolve(Constants.DATA_TYPES_BAL), dataTypesContent);
-        writeFile(outputPath.resolve(Constants.SERVICE_TYPES_BAL), serviceTypesContent);
-        writeFile(outputPath.resolve(Constants.LISTENER_BAL), listenerContent);
-        writeFile(outputPath.resolve(Constants.DISPATCHER_SERVICE_BAL), dispatcherContent);
+        writeFile(outputPath.resolve(DATA_TYPES_BAL), dataTypesContent);
+        writeFile(outputPath.resolve(SERVICE_TYPES_BAL), serviceTypesContent);
+        writeFile(outputPath.resolve(LISTENER_BAL), listenerContent);
+        writeFile(outputPath.resolve(DISPATCHER_SERVICE_BAL), dispatcherContent);
         LOG.info("Following files were created.\n-- {}\n-- {}\n-- {}\n-- {}",
-                Constants.DATA_TYPES_BAL, Constants.SERVICE_TYPES_BAL,
-                Constants.LISTENER_BAL, Constants.DISPATCHER_SERVICE_BAL);
+                DATA_TYPES_BAL, SERVICE_TYPES_BAL,
+                LISTENER_BAL, DISPATCHER_SERVICE_BAL);
     }
 
     /**
@@ -104,7 +108,7 @@ public class HttpCodeGenerator {
             }
             Files.writeString(filePath, content, StandardCharsets.UTF_8);
         } catch (IOException e) {
-            throw new GeneratorException("Could not write to file: " + filePath, e);
+            throw new GeneratorException(String.format("Could not write to file: %s", filePath), e);
         }
     }
 }

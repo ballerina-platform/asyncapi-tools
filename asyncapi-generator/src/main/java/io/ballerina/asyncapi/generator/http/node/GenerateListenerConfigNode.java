@@ -18,7 +18,6 @@
 package io.ballerina.asyncapi.generator.http.node;
 
 import io.ballerina.asyncapi.generator.GeneratorException;
-import io.ballerina.asyncapi.generator.http.Constants;
 import io.ballerina.compiler.syntax.tree.MarkdownDocumentationNode;
 import io.ballerina.compiler.syntax.tree.MetadataNode;
 import io.ballerina.compiler.syntax.tree.Node;
@@ -54,6 +53,8 @@ import static io.ballerina.compiler.syntax.tree.SyntaxKind.TYPE_KEYWORD;
  */
 public class GenerateListenerConfigNode {
 
+    public static final String LISTENER_CONFIG_TYPE = "ListenerConfiguration";
+
     /**
      * Generates the {@code ListenerConfiguration} closed-record type definition.
      *
@@ -62,9 +63,9 @@ public class GenerateListenerConfigNode {
      */
     public static TypeDefinitionNode generate() throws GeneratorException {
         QualifiedNameReferenceNode includedType = createQualifiedNameReferenceNode(
-                createIdentifierToken(Constants.HTTP_MODULE),
+                createIdentifierToken(GenerateHttpImportNode.HTTP_MODULE),
                 createToken(COLON_TOKEN),
-                createIdentifierToken(Constants.LISTENER_CONFIG_TYPE));
+                createIdentifierToken(LISTENER_CONFIG_TYPE));
 
         RecordTypeDescriptorNode recordType = createRecordTypeDescriptorNode(
                 createToken(RECORD_KEYWORD),
@@ -80,6 +81,6 @@ public class GenerateListenerConfigNode {
         MetadataNode metadataNode = createMetadataNode(documentationNode, createEmptyNodeList());
 
         return createTypeDefinitionNode(metadataNode, createToken(PUBLIC_KEYWORD), createToken(TYPE_KEYWORD),
-                createIdentifierToken(Constants.LISTENER_CONFIG_TYPE), recordType, createToken(SEMICOLON_TOKEN));
+                createIdentifierToken(LISTENER_CONFIG_TYPE), recordType, createToken(SEMICOLON_TOKEN));
     }
 }

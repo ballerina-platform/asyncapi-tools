@@ -18,8 +18,9 @@
 package io.ballerina.asyncapi.generator.http.utils;
 
 import io.ballerina.asyncapi.generator.GeneratorException;
-import io.ballerina.asyncapi.generator.http.Constants;
+import io.ballerina.compiler.syntax.tree.SyntaxInfo;
 
+import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
 
@@ -27,6 +28,11 @@ import java.util.Optional;
  * Utility methods for Ballerina identifier and name generation during HTTP code generation.
  */
 public final class CodegenUtils {
+
+    public static final String ESCAPE_PATTERN = "([\\[\\]\\\\?!<>@#&~`*\\-=^+();:\\/\\_{}\\s|.$])";
+    public static final List<String> BAL_KEYWORDS = SyntaxInfo.keywords();
+    private static final String REMOTE_FUNCTION_NAME_PREFIX = "on";
+    private static final String SERVICE_TYPE_NAME_SUFFIX = "Service";
 
     private CodegenUtils() {
     }
@@ -39,25 +45,25 @@ public final class CodegenUtils {
      */
     public static String escapeIdentifier(String identifier) {
         if (identifier.matches("\\S*\\d+\\S*")) {
-            return "'" + identifier;
+            return String.format("'%s", identifier);
         }
-        if (!identifier.matches("\\b[_a-zA-Z][_a-zA-Z0-9]*\\b") || Constants.BAL_KEYWORDS.stream()
+        if (!identifier.matches("\\b[_a-zA-Z][_a-zA-Z0-9]*\\b") || BAL_KEYWORDS.stream()
                 .anyMatch(identifier::equals)) {
-            identifier = identifier.replaceAll(Constants.ESCAPE_PATTERN, "\\\\$1");
+            identifier = identifier.replaceAll(ESCAPE_PATTERN, "\\\\$1");
             if (identifier.endsWith("?")) {
                 if (identifier.charAt(identifier.length() - 2) == '\\') {
                     StringBuilder stringBuilder = new StringBuilder(identifier);
                     stringBuilder.deleteCharAt(identifier.length() - 2);
                     identifier = stringBuilder.toString();
                 }
-                if (Constants.BAL_KEYWORDS.stream().anyMatch(Optional.of(identifier)
+                if (BAL_KEYWORDS.stream().anyMatch(Optional.of(identifier)
                         .filter(sStr -> sStr.length() != 0)
                         .map(sStr -> sStr.substring(0, sStr.length() - 1))
                         .orElse(identifier)::equals)) {
-                    identifier = "'" + identifier;
+                    identifier = String.format("'%s", identifier);
                 }
-            } else if (Constants.BAL_KEYWORDS.stream().anyMatch(identifier::equals)) {
-                identifier = "'" + identifier;
+            } else if (BAL_KEYWORDS.stream().anyMatch(identifier::equals)) {
+                identifier = String.format("'%s", identifier);
             }
         }
         return identifier;
@@ -73,7 +79,7 @@ public final class CodegenUtils {
      */
     public static String getValidName(String identifier, boolean capitalizeFirstChar) {
         if (!identifier.matches("\\b[0-9]*\\b")) {
-            String[] split = identifier.split(Constants.ESCAPE_PATTERN);
+            String[] split = identifier.split(ESCAPE_PATTERN);
             StringBuilder validName = new StringBuilder();
             for (String part : split) {
                 if (!part.isBlank()) {
@@ -106,33 +112,36 @@ public final class CodegenUtils {
             String[] refArray = referenceVariable.split("/");
             return escapeIdentifier(refArray[refArray.length - 1]);
         } else {
-            throw new GeneratorException("Invalid reference value: " + referenceVariable
-                    + "\nBallerina only supports local reference values.");
+            throw new GeneratorException(String.format(
+                    "Invalid reference value: %s%nBallerina only supports local reference values.",
+                    referenceVariable));
         }
     }
 
     /**
      * Returns the remote function name for a given event name, prefixed with
-     * {@link Constants#REMOTE_FUNCTION_NAME_PREFIX}.
+     * {@link CodegenUtils#REMOTE_FUNCTION_NAME_PREFIX}.
      *
      * @param eventName the event name as defined in the AsyncAPI document
      * @return the remote function name for the corresponding service type method
      */
     public static String getFunctionNameByEventName(String eventName) {
-        return Constants.REMOTE_FUNCTION_NAME_PREFIX + getValidName(eventName, true);
+        return String.format("%s%s", REMOTE_FUNCTION_NAME_PREFIX,
+                getValidName(eventName, true));
     }
 
     /**
      * Returns the service type name for a given channel or service name, appending
-     * {@link Constants#SERVICE_TYPE_NAME_SUFFIX} if not already present.
+     * {@link CodegenUtils#SERVICE_TYPE_NAME_SUFFIX} if not already present.
      *
      * @param serviceName the service name as specified in the AsyncAPI document
      * @return the Ballerina service type name
      */
     public static String getServiceTypeNameByServiceName(String serviceName) {
-        if (serviceName.trim().endsWith(Constants.SERVICE_TYPE_NAME_SUFFIX)) {
+        if (serviceName.trim().endsWith(SERVICE_TYPE_NAME_SUFFIX)) {
             return getValidName(serviceName.trim(), true);
         }
-        return getValidName(serviceName.trim(), true) + Constants.SERVICE_TYPE_NAME_SUFFIX;
+        return String.format("%s%s", getValidName(serviceName.trim(), true),
+                SERVICE_TYPE_NAME_SUFFIX);
     }
 }

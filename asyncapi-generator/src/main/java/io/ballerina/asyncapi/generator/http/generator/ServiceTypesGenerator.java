@@ -18,7 +18,6 @@
 package io.ballerina.asyncapi.generator.http.generator;
 
 import io.ballerina.asyncapi.generator.GeneratorException;
-import io.ballerina.asyncapi.generator.http.Constants;
 import io.ballerina.asyncapi.generator.http.model.HttpServiceType;
 import io.ballerina.asyncapi.generator.http.node.GenerateServiceTypeNode;
 import io.ballerina.asyncapi.generator.http.node.GenerateUnionDescriptorNode;
@@ -51,6 +50,8 @@ import static io.ballerina.compiler.syntax.tree.NodeFactory.createSimpleNameRefe
  */
 public class ServiceTypesGenerator {
 
+    public static final String GENERIC_SERVICE_TYPE = "GenericServiceType";
+
     private final List<HttpServiceType> serviceTypes;
 
     /**
@@ -81,7 +82,7 @@ public class ServiceTypesGenerator {
             serviceNodes.add(typeDefNode);
         }
 
-        Generator unionGen = new GenerateUnionDescriptorNode(typeDescriptors, Constants.GENERIC_SERVICE_TYPE);
+        Generator unionGen = new GenerateUnionDescriptorNode(typeDescriptors, GENERIC_SERVICE_TYPE);
         serviceNodes.add(unionGen.generate());
 
         TextDocument textDocument = TextDocuments.from("\n");

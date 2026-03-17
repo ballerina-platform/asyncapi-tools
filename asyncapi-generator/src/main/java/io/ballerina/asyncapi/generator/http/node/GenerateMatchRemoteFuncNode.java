@@ -18,7 +18,8 @@
 package io.ballerina.asyncapi.generator.http.node;
 
 import io.ballerina.asyncapi.generator.GeneratorException;
-import io.ballerina.asyncapi.generator.http.Constants;
+import io.ballerina.asyncapi.generator.http.extractor.EventIdentifierExtractor;
+import io.ballerina.asyncapi.generator.http.generator.DataTypesGenerator;
 import io.ballerina.asyncapi.generator.http.model.EventIdentifierConfig;
 import io.ballerina.asyncapi.generator.http.model.HttpServiceType;
 import io.ballerina.compiler.syntax.tree.FunctionBodyBlockNode;
@@ -62,6 +63,8 @@ import static io.ballerina.compiler.syntax.tree.SyntaxKind.PRIVATE_KEYWORD;
  */
 public class GenerateMatchRemoteFuncNode implements Generator {
 
+    public static final String DISPATCHER_MATCH_REMOTE_FUNC = "matchRemoteFunc";
+
     private final List<HttpServiceType> serviceTypes;
     private final EventIdentifierConfig identifierConfig;
     private final String eventIdentifierPath;
@@ -83,15 +86,15 @@ public class GenerateMatchRemoteFuncNode implements Generator {
 
     @Override
     public FunctionDefinitionNode generate() throws GeneratorException {
-        boolean isHeader = Constants.X_BALLERINA_EVENT_TYPE_HEADER.equals(identifierConfig.type());
+        boolean isHeader = EventIdentifierExtractor.X_BALLERINA_EVENT_TYPE_HEADER.equals(identifierConfig.type());
 
         SeparatedNodeList<ParameterNode> params;
         if (isHeader) {
             params = createSeparatedNodeList(
                     createRequiredParameterNode(
                             createEmptyNodeList(),
-                            createSimpleNameReferenceNode(createIdentifierToken(Constants.GENERIC_DATA_TYPE)),
-                            createIdentifierToken(Constants.CLONE_WITH_TYPE_VAR_NAME)),
+                            createSimpleNameReferenceNode(createIdentifierToken(DataTypesGenerator.GENERIC_DATA_TYPE)),
+                            createIdentifierToken(GenerateDispatcherServiceNode.CLONE_WITH_TYPE_VAR_NAME)),
                     createToken(COMMA_TOKEN),
                     createRequiredParameterNode(
                             createEmptyNodeList(),
@@ -101,8 +104,8 @@ public class GenerateMatchRemoteFuncNode implements Generator {
             params = createSeparatedNodeList(
                     createRequiredParameterNode(
                             createEmptyNodeList(),
-                            createSimpleNameReferenceNode(createIdentifierToken(Constants.GENERIC_DATA_TYPE)),
-                            createIdentifierToken(Constants.CLONE_WITH_TYPE_VAR_NAME)));
+                            createSimpleNameReferenceNode(createIdentifierToken(DataTypesGenerator.GENERIC_DATA_TYPE)),
+                            createIdentifierToken(GenerateDispatcherServiceNode.CLONE_WITH_TYPE_VAR_NAME)));
         }
 
         FunctionSignatureNode signature = createFunctionSignatureNode(
@@ -121,7 +124,7 @@ public class GenerateMatchRemoteFuncNode implements Generator {
                 OBJECT_METHOD_DEFINITION, null,
                 createNodeList(createToken(PRIVATE_KEYWORD)),
                 createToken(FUNCTION_KEYWORD),
-                createIdentifierToken(Constants.DISPATCHER_MATCH_REMOTE_FUNC),
+                createIdentifierToken(DISPATCHER_MATCH_REMOTE_FUNC),
                 createEmptyNodeList(),
                 signature, body);
     }

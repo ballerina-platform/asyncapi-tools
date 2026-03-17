@@ -20,7 +20,6 @@ package io.ballerina.asyncapi.generator.http.node;
 import com.fasterxml.jackson.databind.JsonNode;
 import io.ballerina.asyncapi.core.model.component.AsyncApiSchema;
 import io.ballerina.asyncapi.generator.GeneratorException;
-import io.ballerina.asyncapi.generator.http.Constants;
 import io.ballerina.asyncapi.generator.http.utils.CodegenUtils;
 import io.ballerina.compiler.syntax.tree.AbstractNodeFactory;
 import io.ballerina.compiler.syntax.tree.ArrayDimensionNode;
@@ -81,6 +80,15 @@ public class GenerateModuleMemberDeclarationNode implements Generator {
 
     private static final Logger LOG = LogManager.getLogger(GenerateModuleMemberDeclarationNode.class);
     private static final String X_NULLABLE = "x-nullable";
+    private static final String SCHEMA_TYPE_INTEGER = "integer";
+    private static final String SCHEMA_TYPE_STRING = "string";
+    private static final String SCHEMA_TYPE_BOOLEAN = "boolean";
+    private static final String SCHEMA_TYPE_NUMBER = "number";
+    private static final String SCHEMA_TYPE_DECIMAL = "decimal";
+    private static final String SCHEMA_TYPE_FLOAT = "float";
+    private static final String SCHEMA_TYPE_DOUBLE = "double";
+    private static final String SCHEMA_TYPE_ARRAY = "array";
+    private static final String SCHEMA_TYPE_OBJECT = "object";
 
     private final Map.Entry<String, AsyncApiSchema> entry;
     private final Map<String, AsyncApiSchema> allSchemas;
@@ -240,23 +248,23 @@ public class GenerateModuleMemberDeclarationNode implements Generator {
 
     private TypeDescriptorNode getTypeDescriptorForPrimitive(AsyncApiSchema schema) throws GeneratorException {
         return switch (schema.type()) {
-            case Constants.SCHEMA_TYPE_INTEGER ->
+            case SCHEMA_TYPE_INTEGER ->
                     createBuiltinSimpleNameReferenceNode(null, createIdentifierToken("int"));
-            case Constants.SCHEMA_TYPE_STRING ->
+            case SCHEMA_TYPE_STRING ->
                     createBuiltinSimpleNameReferenceNode(null, createIdentifierToken("string"));
-            case Constants.SCHEMA_TYPE_BOOLEAN ->
+            case SCHEMA_TYPE_BOOLEAN ->
                     createBuiltinSimpleNameReferenceNode(null, createIdentifierToken("boolean"));
-            case Constants.SCHEMA_TYPE_NUMBER, Constants.SCHEMA_TYPE_DECIMAL -> {
+            case SCHEMA_TYPE_NUMBER, SCHEMA_TYPE_DECIMAL -> {
                 if (schema.format() != null
                         && (schema.format().equals("float") || schema.format().equals("double"))) {
                     yield createBuiltinSimpleNameReferenceNode(null, createIdentifierToken("float"));
                 }
                 yield createBuiltinSimpleNameReferenceNode(null, createIdentifierToken("decimal"));
             }
-            case Constants.SCHEMA_TYPE_FLOAT, Constants.SCHEMA_TYPE_DOUBLE ->
+            case SCHEMA_TYPE_FLOAT, SCHEMA_TYPE_DOUBLE ->
                     createBuiltinSimpleNameReferenceNode(null, createIdentifierToken("float"));
-            case Constants.SCHEMA_TYPE_ARRAY -> getArrayTypeDescriptor(schema);
-            case Constants.SCHEMA_TYPE_OBJECT -> {
+            case SCHEMA_TYPE_ARRAY -> getArrayTypeDescriptor(schema);
+            case SCHEMA_TYPE_OBJECT -> {
                 if (schema.properties() != null && !schema.properties().isEmpty()) {
                     yield buildInlineRecord(schema);
                 }

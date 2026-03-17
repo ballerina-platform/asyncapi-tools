@@ -19,7 +19,6 @@ package io.ballerina.asyncapi.generator.http.generator;
 
 import io.ballerina.asyncapi.core.model.component.AsyncApiSchema;
 import io.ballerina.asyncapi.generator.GeneratorException;
-import io.ballerina.asyncapi.generator.http.Constants;
 import io.ballerina.asyncapi.generator.http.node.GenerateHttpImportNode;
 import io.ballerina.asyncapi.generator.http.node.GenerateListenerConfigNode;
 import io.ballerina.asyncapi.generator.http.node.GenerateModuleMemberDeclarationNode;
@@ -49,6 +48,8 @@ import static io.ballerina.compiler.syntax.tree.NodeFactory.createSimpleNameRefe
  *
  */
 public class DataTypesGenerator {
+
+    public static final String GENERIC_DATA_TYPE = "GenericDataType";
 
     private final Map<String, AsyncApiSchema> schemas;
 
@@ -82,7 +83,7 @@ public class DataTypesGenerator {
             typeNodes.add(node);
         }
 
-        Generator unionGen = new GenerateUnionDescriptorNode(typeDescriptors, Constants.GENERIC_DATA_TYPE);
+        Generator unionGen = new GenerateUnionDescriptorNode(typeDescriptors, GENERIC_DATA_TYPE);
         typeNodes.add(unionGen.generate());
 
         ImportDeclarationNode importNode = GenerateHttpImportNode.generate();

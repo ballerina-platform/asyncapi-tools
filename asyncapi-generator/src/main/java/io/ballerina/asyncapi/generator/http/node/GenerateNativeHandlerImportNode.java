@@ -18,7 +18,6 @@
 package io.ballerina.asyncapi.generator.http.node;
 
 import io.ballerina.asyncapi.generator.GeneratorException;
-import io.ballerina.asyncapi.generator.http.Constants;
 import io.ballerina.compiler.syntax.tree.ImportDeclarationNode;
 
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createIdentifierToken;
@@ -37,6 +36,9 @@ import static io.ballerina.compiler.syntax.tree.SyntaxKind.SLASH_TOKEN;
  */
 public class GenerateNativeHandlerImportNode {
 
+    public static final String NATIVE_HANDLER_MODULE_ALIAS = "handler";
+    private static final String NATIVE_HANDLER_ORG = "ballerinax";
+
     /**
      * Generates the {@code import ballerinax/asyncapi.native.handler;} import declaration node.
      *
@@ -47,13 +49,13 @@ public class GenerateNativeHandlerImportNode {
         return createImportDeclarationNode(
                 createToken(IMPORT_KEYWORD),
                 createImportOrgNameNode(
-                        createIdentifierToken(Constants.NATIVE_HANDLER_ORG), createToken(SLASH_TOKEN)),
+                        createIdentifierToken(NATIVE_HANDLER_ORG), createToken(SLASH_TOKEN)),
                 createSeparatedNodeList(
                         createIdentifierToken("asyncapi"),
                         createToken(DOT_TOKEN),
                         createIdentifierToken("native"),
                         createToken(DOT_TOKEN),
-                        createIdentifierToken(Constants.NATIVE_HANDLER_MODULE_ALIAS)),
+                        createIdentifierToken(NATIVE_HANDLER_MODULE_ALIAS)),
                 null,
                 createToken(SEMICOLON_TOKEN));
     }

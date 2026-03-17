@@ -18,7 +18,6 @@
 package io.ballerina.asyncapi.generator.http.node;
 
 import io.ballerina.asyncapi.generator.GeneratorException;
-import io.ballerina.asyncapi.generator.http.Constants;
 import io.ballerina.compiler.syntax.tree.ImportDeclarationNode;
 
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createIdentifierToken;
@@ -35,6 +34,9 @@ import static io.ballerina.compiler.syntax.tree.SyntaxKind.SLASH_TOKEN;
  */
 public class GenerateHttpImportNode {
 
+    public static final String HTTP_MODULE = "http";
+    private static final String BALLERINA_ORG = "ballerina";
+
     /**
      * Generates the {@code import ballerina/http;} import declaration node.
      *
@@ -44,8 +46,8 @@ public class GenerateHttpImportNode {
     public static ImportDeclarationNode generate() throws GeneratorException {
         return createImportDeclarationNode(
                 createToken(IMPORT_KEYWORD),
-                createImportOrgNameNode(createIdentifierToken(Constants.BALLERINA_ORG), createToken(SLASH_TOKEN)),
-                createSeparatedNodeList(createIdentifierToken(Constants.HTTP_MODULE)),
+                createImportOrgNameNode(createIdentifierToken(BALLERINA_ORG), createToken(SLASH_TOKEN)),
+                createSeparatedNodeList(createIdentifierToken(HTTP_MODULE)),
                 null, // no prefix/alias
                 createToken(SEMICOLON_TOKEN));
     }

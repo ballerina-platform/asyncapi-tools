@@ -18,7 +18,6 @@
 package io.ballerina.asyncapi.generator.http.node;
 
 import io.ballerina.asyncapi.generator.GeneratorException;
-import io.ballerina.asyncapi.generator.http.Constants;
 import io.ballerina.compiler.syntax.tree.FunctionBodyBlockNode;
 import io.ballerina.compiler.syntax.tree.FunctionDefinitionNode;
 import io.ballerina.compiler.syntax.tree.FunctionSignatureNode;
@@ -53,6 +52,8 @@ import static io.ballerina.compiler.syntax.tree.SyntaxKind.OPEN_PAREN_TOKEN;
  */
 public class GenerateRemoveServiceRefFuncNode implements Generator {
 
+    public static final String REMOVE_SERVICE_REF_FUNC = "removeServiceRef";
+
     @Override
     public FunctionDefinitionNode generate() throws GeneratorException {
         FunctionSignatureNode signature = createFunctionSignatureNode(
@@ -66,12 +67,14 @@ public class GenerateRemoveServiceRefFuncNode implements Generator {
                 buildErrorReturnType());
 
         List<StatementNode> statements = new ArrayList<>();
-        statements.add(NodeParser.parseStatement(
-                "if (!self." + Constants.DISPATCHER_SERVICES_FIELD + ".hasKey(serviceType)) {"
-                + " return error(\"Cannot detach the service of type \" + serviceType"
-                + " + \". Service has not been attached to the listener before\"); }"));
-        statements.add(NodeParser.parseStatement(
-                "_ = self." + Constants.DISPATCHER_SERVICES_FIELD + ".remove(serviceType);"));
+        statements.add(NodeParser.parseStatement(String.format(
+                "if (!self.%s.hasKey(serviceType)) {"
+                        + " return error(\"Cannot detach the service of type \" + serviceType"
+                        + " + \". Service has not been attached to the listener before\"); }",
+                GenerateDispatcherServiceNode.DISPATCHER_SERVICES_FIELD)));
+        statements.add(NodeParser.parseStatement(String.format(
+                "_ = self.%s.remove(serviceType);",
+                GenerateDispatcherServiceNode.DISPATCHER_SERVICES_FIELD)));
 
         FunctionBodyBlockNode body = createFunctionBodyBlockNode(
                 createToken(OPEN_BRACE_TOKEN), null, createNodeList(statements),
@@ -81,7 +84,7 @@ public class GenerateRemoveServiceRefFuncNode implements Generator {
                 OBJECT_METHOD_DEFINITION, null,
                 createNodeList(createToken(ISOLATED_KEYWORD)),
                 createToken(FUNCTION_KEYWORD),
-                createIdentifierToken(Constants.REMOVE_SERVICE_REF_FUNC),
+                createIdentifierToken(REMOVE_SERVICE_REF_FUNC),
                 createEmptyNodeList(),
                 signature, body);
     }

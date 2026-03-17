@@ -18,7 +18,6 @@
 package io.ballerina.asyncapi.generator.http.node;
 
 import io.ballerina.asyncapi.generator.GeneratorException;
-import io.ballerina.asyncapi.generator.http.Constants;
 import io.ballerina.asyncapi.generator.http.model.HttpRemoteFunction;
 import io.ballerina.asyncapi.generator.http.model.HttpServiceType;
 import io.ballerina.asyncapi.generator.http.utils.CodegenUtils;
@@ -99,21 +98,22 @@ public class GenerateMatchStatementNode implements Generator {
 
         SeparatedNodeList<FunctionArgumentNode> args = createSeparatedNodeList(
                 createPositionalArgumentNode(createSimpleNameReferenceNode(
-                        createIdentifierToken(Constants.CLONE_WITH_TYPE_VAR_NAME))),
+                        createIdentifierToken(GenerateDispatcherServiceNode.CLONE_WITH_TYPE_VAR_NAME))),
                 createToken(SyntaxKind.COMMA_TOKEN),
                 createPositionalArgumentNode(createSimpleNameReferenceNode(
-                        createIdentifierToken("\"" + eventName + "\""))),
+                        createIdentifierToken(String.format("\"%s\"", eventName)))),
                 createToken(SyntaxKind.COMMA_TOKEN),
                 createPositionalArgumentNode(createSimpleNameReferenceNode(
-                        createIdentifierToken("\"" + resolvedServiceTypeName + "\""))),
+                        createIdentifierToken(String.format("\"%s\"", resolvedServiceTypeName)))),
                 createToken(SyntaxKind.COMMA_TOKEN),
                 createPositionalArgumentNode(createSimpleNameReferenceNode(
-                        createIdentifierToken("\"" + funcName + "\""))));
+                        createIdentifierToken(String.format("\"%s\"", funcName)))));
 
         MethodCallExpressionNode methodCall = createMethodCallExpressionNode(
                 createSimpleNameReferenceNode(createIdentifierToken("self")),
                 createToken(SyntaxKind.DOT_TOKEN),
-                createSimpleNameReferenceNode(createIdentifierToken(Constants.EXECUTE_REMOTE_FUNC_NAME)),
+                createSimpleNameReferenceNode(
+                        createIdentifierToken(GenerateExecuteRemoteFuncNode.EXECUTE_REMOTE_FUNC_NAME)),
                 createToken(SyntaxKind.OPEN_PAREN_TOKEN), args,
                 createToken(SyntaxKind.CLOSE_PAREN_TOKEN));
 
@@ -128,7 +128,8 @@ public class GenerateMatchStatementNode implements Generator {
 
         return createMatchClauseNode(
                 createSeparatedNodeList(createBasicLiteralNode(SyntaxKind.STRING_LITERAL,
-                        createLiteralValueToken(SyntaxKind.STRING_LITERAL_TOKEN, "\"" + eventName + "\"",
+                        createLiteralValueToken(SyntaxKind.STRING_LITERAL_TOKEN,
+                                String.format("\"%s\"", eventName),
                                 createEmptyMinutiaeList(), createEmptyMinutiaeList()))),
                 null,
                 createLiteralValueToken(SyntaxKind.RIGHT_DOUBLE_ARROW_TOKEN, "=>",

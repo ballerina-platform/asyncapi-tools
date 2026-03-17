@@ -24,12 +24,12 @@ import io.ballerina.asyncapi.core.model.component.AsyncApiSchema;
 import io.ballerina.asyncapi.core.model.message.AsyncApiMessage;
 import io.ballerina.asyncapi.core.model.operation.AsyncApiOperation;
 import io.ballerina.asyncapi.generator.GeneratorException;
-import io.ballerina.asyncapi.generator.http.Constants;
 import io.ballerina.asyncapi.generator.http.model.HttpRemoteFunction;
 import io.ballerina.asyncapi.generator.http.model.HttpServiceType;
 import io.ballerina.asyncapi.generator.http.utils.CodegenUtils;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -39,6 +39,9 @@ import java.util.Map;
  *
  */
 public final class ServiceTypeExtractor {
+
+    public static final String X_BALLERINA_EVENT_TYPE = "x-ballerina-event-type";
+    private static final String X_BALLERINA_SERVICE_TYPE = "x-ballerina-service-type";
 
     private final AsyncApiSpec asyncApiSpec;
     private final Map<String, AsyncApiSchema> inlineSchemas = new HashMap<>();
@@ -66,7 +69,7 @@ public final class ServiceTypeExtractor {
     public List<HttpServiceType> extract() throws GeneratorException {
         Map<String, AsyncApiOperation> operations = asyncApiSpec.getAsyncApiOperations().orElse(null);
         if (operations == null) {
-            return new ArrayList<>();
+            return Collections.emptyList();
         }
 
         Map<String, HttpServiceType> serviceTypeMap = new HashMap<>();
@@ -85,8 +88,8 @@ public final class ServiceTypeExtractor {
                 serviceTypeName = channelId;
             } else {
                 Map<String, JsonNode> channelExtensions = operationChannel.extensions();
-                if (channelExtensions != null && channelExtensions.containsKey(Constants.X_BALLERINA_SERVICE_TYPE)) {
-                    serviceTypeName = channelExtensions.get(Constants.X_BALLERINA_SERVICE_TYPE).asText();
+                if (channelExtensions != null && channelExtensions.containsKey(X_BALLERINA_SERVICE_TYPE)) {
+                    serviceTypeName = channelExtensions.get(X_BALLERINA_SERVICE_TYPE).asText();
                 } else {
                     serviceTypeName = CodegenUtils.getValidName(operationChannel.address(), true);
                 }
@@ -103,7 +106,7 @@ public final class ServiceTypeExtractor {
                 String messageId = msgEntry.getKey();
                 AsyncApiMessage message = msgEntry.getValue();
                 validateMessage(message, messageId, operationChannel.address());
-                String eventType = message.extensions().get(Constants.X_BALLERINA_EVENT_TYPE).asText();
+                String eventType = message.extensions().get(X_BALLERINA_EVENT_TYPE).asText();
                 Object payload = message.payload();
                 String payloadTypeName = eventType;
                 if (payload instanceof AsyncApiSchema schema) {
@@ -125,19 +128,22 @@ public final class ServiceTypeExtractor {
     private void validateMessage(AsyncApiMessage message, String messageId, String channelAddress)
             throws GeneratorException {
         Map<String, JsonNode> extensions = message.extensions();
-        if (extensions == null || !extensions.containsKey(Constants.X_BALLERINA_EVENT_TYPE)) {
-            throw new GeneratorException("Could not find the " + Constants.X_BALLERINA_EVENT_TYPE
-                    + " attribute in the message '" + messageId + "' of the channel " + channelAddress);
+        if (extensions == null || !extensions.containsKey(X_BALLERINA_EVENT_TYPE)) {
+            throw new GeneratorException(String.format(
+                    "Could not find the %s attribute in the message '%s' of the channel %s",
+                    X_BALLERINA_EVENT_TYPE, messageId, channelAddress));
         }
-        String eventType = extensions.get(Constants.X_BALLERINA_EVENT_TYPE).asText();
+        String eventType = extensions.get(X_BALLERINA_EVENT_TYPE).asText();
         if (eventType.isBlank()) {
-            throw new GeneratorException("Resolved event type is blank for message '" + messageId
-                    + "' in channel " + channelAddress);
+            throw new GeneratorException(String.format(
+                    "Resolved event type is blank for message '%s' in channel %s",
+                    messageId, channelAddress));
         }
 
         if (message.payload() == null) {
-            throw new GeneratorException("Could not find the payload reference in the message of the channel "
-                    + channelAddress);
+            throw new GeneratorException(String.format(
+                    "Could not find the payload reference in the message of the channel %s",
+                    channelAddress));
         }
     }
 }

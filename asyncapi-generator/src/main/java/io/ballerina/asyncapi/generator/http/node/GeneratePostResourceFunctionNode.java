@@ -18,7 +18,8 @@
 package io.ballerina.asyncapi.generator.http.node;
 
 import io.ballerina.asyncapi.generator.GeneratorException;
-import io.ballerina.asyncapi.generator.http.Constants;
+import io.ballerina.asyncapi.generator.http.extractor.EventIdentifierExtractor;
+import io.ballerina.asyncapi.generator.http.generator.DataTypesGenerator;
 import io.ballerina.asyncapi.generator.http.model.EventIdentifierConfig;
 import io.ballerina.compiler.syntax.tree.FunctionBodyBlockNode;
 import io.ballerina.compiler.syntax.tree.FunctionDefinitionNode;
@@ -80,7 +81,7 @@ public class GeneratePostResourceFunctionNode implements Generator {
                         createRequiredParameterNode(
                                 createEmptyNodeList(),
                                 createQualifiedNameReferenceNode(
-                                        createIdentifierToken(Constants.HTTP_MODULE),
+                                        createIdentifierToken(GenerateHttpImportNode.HTTP_MODULE),
                                         createToken(COLON_TOKEN),
                                         createIdentifierToken("Caller")),
                                 createIdentifierToken("caller")),
@@ -88,32 +89,36 @@ public class GeneratePostResourceFunctionNode implements Generator {
                         createRequiredParameterNode(
                                 createEmptyNodeList(),
                                 createQualifiedNameReferenceNode(
-                                        createIdentifierToken(Constants.HTTP_MODULE),
+                                        createIdentifierToken(GenerateHttpImportNode.HTTP_MODULE),
                                         createToken(COLON_TOKEN),
                                         createIdentifierToken("Request")),
                                 createIdentifierToken("request"))),
                 createToken(CLOSE_PAREN_TOKEN),
                 buildErrorReturnType());
 
-        boolean isHeader = Constants.X_BALLERINA_EVENT_TYPE_HEADER.equals(identifierConfig.type());
+        boolean isHeader = EventIdentifierExtractor.X_BALLERINA_EVENT_TYPE_HEADER.equals(identifierConfig.type());
 
         List<StatementNode> statements = new ArrayList<>();
         statements.add(NodeParser.parseStatement("json payload = check request.getJsonPayload();"));
         if (isHeader) {
-            statements.add(NodeParser.parseStatement(
-                    "string eventIdentifier = check request.getHeader(\"" + identifierConfig.path() + "\");"));
+            statements.add(NodeParser.parseStatement(String.format(
+                    "string eventIdentifier = check request.getHeader(\"%s\");",
+                    identifierConfig.path())));
         }
-        statements.add(NodeParser.parseStatement(
-                Constants.GENERIC_DATA_TYPE + " " + Constants.CLONE_WITH_TYPE_VAR_NAME
-                + " = check payload.cloneWithType(" + Constants.GENERIC_DATA_TYPE + ");"));
+        statements.add(NodeParser.parseStatement(String.format(
+                "%s %s = check payload.cloneWithType(%s);",
+                DataTypesGenerator.GENERIC_DATA_TYPE, GenerateDispatcherServiceNode.CLONE_WITH_TYPE_VAR_NAME,
+                DataTypesGenerator.GENERIC_DATA_TYPE)));
         if (isHeader) {
-            statements.add(NodeParser.parseStatement(
-                    "check self." + Constants.DISPATCHER_MATCH_REMOTE_FUNC
-                    + "(" + Constants.CLONE_WITH_TYPE_VAR_NAME + ", eventIdentifier);"));
+            statements.add(NodeParser.parseStatement(String.format(
+                    "check self.%s(%s, eventIdentifier);",
+                    GenerateMatchRemoteFuncNode.DISPATCHER_MATCH_REMOTE_FUNC,
+                    GenerateDispatcherServiceNode.CLONE_WITH_TYPE_VAR_NAME)));
         } else {
-            statements.add(NodeParser.parseStatement(
-                    "check self." + Constants.DISPATCHER_MATCH_REMOTE_FUNC
-                    + "(" + Constants.CLONE_WITH_TYPE_VAR_NAME + ");"));
+            statements.add(NodeParser.parseStatement(String.format(
+                    "check self.%s(%s);",
+                    GenerateMatchRemoteFuncNode.DISPATCHER_MATCH_REMOTE_FUNC,
+                    GenerateDispatcherServiceNode.CLONE_WITH_TYPE_VAR_NAME)));
         }
         statements.add(NodeParser.parseStatement("check caller->respond(http:STATUS_OK);"));
 

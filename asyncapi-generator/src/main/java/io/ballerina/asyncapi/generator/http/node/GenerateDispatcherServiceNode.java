@@ -18,7 +18,8 @@
 package io.ballerina.asyncapi.generator.http.node;
 
 import io.ballerina.asyncapi.generator.GeneratorException;
-import io.ballerina.asyncapi.generator.http.Constants;
+import io.ballerina.asyncapi.generator.http.extractor.EventIdentifierExtractor;
+import io.ballerina.asyncapi.generator.http.generator.ServiceTypesGenerator;
 import io.ballerina.asyncapi.generator.http.model.EventIdentifierConfig;
 import io.ballerina.asyncapi.generator.http.model.HttpServiceType;
 import io.ballerina.compiler.syntax.tree.ClassDefinitionNode;
@@ -69,6 +70,12 @@ import static io.ballerina.compiler.syntax.tree.SyntaxKind.SERVICE_KEYWORD;
  */
 public class GenerateDispatcherServiceNode implements Generator {
 
+    public static final String DISPATCHER_SERVICE_CLASS_NAME = "DispatcherService";
+    public static final String DISPATCHER_SERVICES_FIELD = "services";
+    public static final String DISPATCHER_NATIVE_HANDLER_FIELD = "nativeHandler";
+    public static final String CLONE_WITH_TYPE_VAR_NAME = "genericDataType";
+    private static final String NATIVE_HANDLER_TYPE = "NativeHandler";
+
     private final List<HttpServiceType> serviceTypes;
     private final EventIdentifierConfig identifierConfig;
 
@@ -86,8 +93,9 @@ public class GenerateDispatcherServiceNode implements Generator {
     @Override
     public ClassDefinitionNode generate() throws GeneratorException {
         String eventIdentifierPath;
-        if (Constants.X_BALLERINA_EVENT_TYPE_BODY.equals(identifierConfig.type())) {
-            eventIdentifierPath = Constants.CLONE_WITH_TYPE_VAR_NAME + "." + identifierConfig.path();
+        if (EventIdentifierExtractor.X_BALLERINA_EVENT_TYPE_BODY.equals(identifierConfig.type())) {
+            eventIdentifierPath = String.format("%s.%s",
+                    CLONE_WITH_TYPE_VAR_NAME, identifierConfig.path());
         } else {
             eventIdentifierPath = "eventIdentifier";
         }
@@ -108,7 +116,7 @@ public class GenerateDispatcherServiceNode implements Generator {
                 null,
                 createNodeList(createToken(SERVICE_KEYWORD)),
                 createToken(CLASS_KEYWORD),
-                createIdentifierToken(Constants.DISPATCHER_SERVICE_CLASS_NAME),
+                createIdentifierToken(DISPATCHER_SERVICE_CLASS_NAME),
                 createToken(OPEN_BRACE_TOKEN),
                 createNodeList(members),
                 createToken(CLOSE_BRACE_TOKEN),
@@ -119,7 +127,7 @@ public class GenerateDispatcherServiceNode implements Generator {
         return createTypeReferenceNode(
                 createToken(ASTERISK_TOKEN),
                 createQualifiedNameReferenceNode(
-                        createIdentifierToken(Constants.HTTP_MODULE),
+                        createIdentifierToken(GenerateHttpImportNode.HTTP_MODULE),
                         createToken(COLON_TOKEN),
                         createIdentifierToken("Service")),
                 createToken(SEMICOLON_TOKEN));
@@ -135,9 +143,9 @@ public class GenerateDispatcherServiceNode implements Generator {
                         createTypeParameterNode(
                                 createToken(LT_TOKEN),
                                 createSimpleNameReferenceNode(
-                                        createIdentifierToken(Constants.GENERIC_SERVICE_TYPE)),
+                                        createIdentifierToken(ServiceTypesGenerator.GENERIC_SERVICE_TYPE)),
                                 createToken(GT_TOKEN))),
-                createIdentifierToken(Constants.DISPATCHER_SERVICES_FIELD),
+                createIdentifierToken(DISPATCHER_SERVICES_FIELD),
                 createToken(EQUAL_TOKEN),
                 createMappingConstructorExpressionNode(
                         createToken(OPEN_BRACE_TOKEN),
@@ -152,10 +160,10 @@ public class GenerateDispatcherServiceNode implements Generator {
                 createToken(PRIVATE_KEYWORD),
                 createEmptyNodeList(),
                 createQualifiedNameReferenceNode(
-                        createIdentifierToken(Constants.NATIVE_HANDLER_MODULE_ALIAS),
+                        createIdentifierToken(GenerateNativeHandlerImportNode.NATIVE_HANDLER_MODULE_ALIAS),
                         createToken(COLON_TOKEN),
-                        createIdentifierToken(Constants.NATIVE_HANDLER_TYPE)),
-                createIdentifierToken(Constants.DISPATCHER_NATIVE_HANDLER_FIELD),
+                        createIdentifierToken(NATIVE_HANDLER_TYPE)),
+                createIdentifierToken(DISPATCHER_NATIVE_HANDLER_FIELD),
                 createToken(EQUAL_TOKEN),
                 createImplicitNewExpressionNode(
                         createToken(NEW_KEYWORD),

@@ -18,7 +18,7 @@
 package io.ballerina.asyncapi.generator.http.node;
 
 import io.ballerina.asyncapi.generator.GeneratorException;
-import io.ballerina.asyncapi.generator.http.Constants;
+import io.ballerina.asyncapi.generator.http.generator.ServiceTypesGenerator;
 import io.ballerina.asyncapi.generator.http.model.HttpServiceType;
 import io.ballerina.compiler.syntax.tree.AnnotationNode;
 import io.ballerina.compiler.syntax.tree.ClassDefinitionNode;
@@ -99,6 +99,11 @@ import static io.ballerina.compiler.syntax.tree.SyntaxKind.STRING_LITERAL_TOKEN;
  */
 public class GenerateListenerClassNode implements Generator {
 
+    private static final String LISTENER_CLASS_NAME = "Listener";
+    private static final String LISTENER_HTTP_LISTENER_FIELD = "httpListener";
+    private static final String LISTENER_DISPATCHER_SERVICE_FIELD = "dispatcherService";
+    private static final String LISTENER_GET_SERVICE_TYPE_FUNC = "getServiceTypeStr";
+
     private final List<HttpServiceType> serviceTypes;
 
     /**
@@ -128,7 +133,7 @@ public class GenerateListenerClassNode implements Generator {
                 createToken(PUBLIC_KEYWORD),
                 createEmptyNodeList(),
                 createToken(CLASS_KEYWORD),
-                createIdentifierToken(Constants.LISTENER_CLASS_NAME),
+                createIdentifierToken(LISTENER_CLASS_NAME),
                 createToken(OPEN_BRACE_TOKEN),
                 createNodeList(members),
                 createToken(CLOSE_BRACE_TOKEN),
@@ -159,10 +164,10 @@ public class GenerateListenerClassNode implements Generator {
                 createToken(PRIVATE_KEYWORD),
                 createEmptyNodeList(),
                 createQualifiedNameReferenceNode(
-                        createIdentifierToken(Constants.HTTP_MODULE),
+                        createIdentifierToken(GenerateHttpImportNode.HTTP_MODULE),
                         createToken(COLON_TOKEN),
-                        createIdentifierToken(Constants.LISTENER_CLASS_NAME)),
-                createIdentifierToken(Constants.LISTENER_HTTP_LISTENER_FIELD),
+                        createIdentifierToken(LISTENER_CLASS_NAME)),
+                createIdentifierToken(LISTENER_HTTP_LISTENER_FIELD),
                 null,
                 null,
                 createToken(SEMICOLON_TOKEN));
@@ -174,8 +179,8 @@ public class GenerateListenerClassNode implements Generator {
                 createToken(PRIVATE_KEYWORD),
                 createEmptyNodeList(),
                 createSimpleNameReferenceNode(
-                        createIdentifierToken(Constants.DISPATCHER_SERVICE_CLASS_NAME)),
-                createIdentifierToken(Constants.LISTENER_DISPATCHER_SERVICE_FIELD),
+                        createIdentifierToken(GenerateDispatcherServiceNode.DISPATCHER_SERVICE_CLASS_NAME)),
+                createIdentifierToken(LISTENER_DISPATCHER_SERVICE_FIELD),
                 null,
                 null,
                 createToken(SEMICOLON_TOKEN));
@@ -194,9 +199,9 @@ public class GenerateListenerClassNode implements Generator {
                                                 createIdentifierToken("int")),
                                         createToken(PIPE_TOKEN),
                                         createQualifiedNameReferenceNode(
-                                                createIdentifierToken(Constants.HTTP_MODULE),
+                                                createIdentifierToken(GenerateHttpImportNode.HTTP_MODULE),
                                                 createToken(COLON_TOKEN),
-                                                createIdentifierToken(Constants.LISTENER_CLASS_NAME))),
+                                                createIdentifierToken(LISTENER_CLASS_NAME))),
                                 createIdentifierToken("listenTo"),
                                 createToken(EQUAL_TOKEN),
                                 NodeParser.parseExpression("8090")),
@@ -205,20 +210,21 @@ public class GenerateListenerClassNode implements Generator {
                                 createEmptyNodeList(),
                                 createToken(ASTERISK_TOKEN),
                                 createSimpleNameReferenceNode(
-                                        createIdentifierToken(Constants.LISTENER_CONFIG_TYPE)),
+                                        createIdentifierToken(GenerateListenerConfigNode.LISTENER_CONFIG_TYPE)),
                                 createIdentifierToken("configuration"))),
                 createToken(CLOSE_PAREN_TOKEN),
                 buildErrorReturnType());
 
         List<StatementNode> statements = new ArrayList<>();
-        statements.add(NodeParser.parseStatement(
-                "if listenTo is http:Listener { self."
-                + Constants.LISTENER_HTTP_LISTENER_FIELD + " = listenTo; } else { self."
-                + Constants.LISTENER_HTTP_LISTENER_FIELD
-                + " = check new (listenTo, configuration); }"));
-        statements.add(NodeParser.parseStatement(
-                "self." + Constants.LISTENER_DISPATCHER_SERVICE_FIELD + " = new "
-                + Constants.DISPATCHER_SERVICE_CLASS_NAME + "();"));
+        statements.add(NodeParser.parseStatement(String.format(
+                "if listenTo is http:Listener { self.%s = listenTo; } else { self.%s"
+                        + " = check new (listenTo, configuration); }",
+                LISTENER_HTTP_LISTENER_FIELD,
+                LISTENER_HTTP_LISTENER_FIELD)));
+        statements.add(NodeParser.parseStatement(String.format(
+                "self.%s = new %s();",
+                LISTENER_DISPATCHER_SERVICE_FIELD,
+                GenerateDispatcherServiceNode.DISPATCHER_SERVICE_CLASS_NAME)));
 
         return createFunctionDefinitionNode(
                 OBJECT_METHOD_DEFINITION, null,
@@ -238,7 +244,7 @@ public class GenerateListenerClassNode implements Generator {
                         createRequiredParameterNode(
                                 createEmptyNodeList(),
                                 createSimpleNameReferenceNode(
-                                        createIdentifierToken(Constants.GENERIC_SERVICE_TYPE)),
+                                        createIdentifierToken(ServiceTypesGenerator.GENERIC_SERVICE_TYPE)),
                                 createIdentifierToken("serviceRef")),
                         createToken(COMMA_TOKEN),
                         createRequiredParameterNode(
@@ -250,12 +256,13 @@ public class GenerateListenerClassNode implements Generator {
                 buildTaintedErrorReturnType());
 
         List<StatementNode> statements = new ArrayList<>();
-        statements.add(NodeParser.parseStatement(
-                "string serviceTypeStr = self." + Constants.LISTENER_GET_SERVICE_TYPE_FUNC
-                + "(serviceRef);"));
-        statements.add(NodeParser.parseStatement(
-                "check self." + Constants.LISTENER_DISPATCHER_SERVICE_FIELD + "."
-                + Constants.ADD_SERVICE_REF_FUNC + "(serviceTypeStr, serviceRef);"));
+        statements.add(NodeParser.parseStatement(String.format(
+                "string serviceTypeStr = self.%s(serviceRef);",
+                LISTENER_GET_SERVICE_TYPE_FUNC)));
+        statements.add(NodeParser.parseStatement(String.format(
+                "check self.%s.%s(serviceTypeStr, serviceRef);",
+                LISTENER_DISPATCHER_SERVICE_FIELD,
+                GenerateAddServiceRefFuncNode.ADD_SERVICE_REF_FUNC)));
 
         return createFunctionDefinitionNode(
                 OBJECT_METHOD_DEFINITION, null,
@@ -274,18 +281,19 @@ public class GenerateListenerClassNode implements Generator {
                         createRequiredParameterNode(
                                 createEmptyNodeList(),
                                 createSimpleNameReferenceNode(
-                                        createIdentifierToken(Constants.GENERIC_SERVICE_TYPE)),
+                                        createIdentifierToken(ServiceTypesGenerator.GENERIC_SERVICE_TYPE)),
                                 createIdentifierToken("serviceRef"))),
                 createToken(CLOSE_PAREN_TOKEN),
                 buildErrorReturnType());
 
         List<StatementNode> statements = new ArrayList<>();
-        statements.add(NodeParser.parseStatement(
-                "string serviceTypeStr = self." + Constants.LISTENER_GET_SERVICE_TYPE_FUNC
-                + "(serviceRef);"));
-        statements.add(NodeParser.parseStatement(
-                "check self." + Constants.LISTENER_DISPATCHER_SERVICE_FIELD + "."
-                + Constants.REMOVE_SERVICE_REF_FUNC + "(serviceTypeStr);"));
+        statements.add(NodeParser.parseStatement(String.format(
+                "string serviceTypeStr = self.%s(serviceRef);",
+                LISTENER_GET_SERVICE_TYPE_FUNC)));
+        statements.add(NodeParser.parseStatement(String.format(
+                "check self.%s.%s(serviceTypeStr);",
+                LISTENER_DISPATCHER_SERVICE_FIELD,
+                GenerateRemoveServiceRefFuncNode.REMOVE_SERVICE_REF_FUNC)));
 
         return createFunctionDefinitionNode(
                 OBJECT_METHOD_DEFINITION, null,
@@ -305,11 +313,13 @@ public class GenerateListenerClassNode implements Generator {
                 buildErrorReturnType());
 
         List<StatementNode> statements = new ArrayList<>();
-        statements.add(NodeParser.parseStatement(
-                "check self." + Constants.LISTENER_HTTP_LISTENER_FIELD
-                + ".attach(self." + Constants.LISTENER_DISPATCHER_SERVICE_FIELD + ", ());"));
-        statements.add(NodeParser.parseStatement(
-                "return self." + Constants.LISTENER_HTTP_LISTENER_FIELD + ".'start();"));
+        statements.add(NodeParser.parseStatement(String.format(
+                "check self.%s.attach(self.%s, ());",
+                LISTENER_HTTP_LISTENER_FIELD,
+                LISTENER_DISPATCHER_SERVICE_FIELD)));
+        statements.add(NodeParser.parseStatement(String.format(
+                "return self.%s.'start();",
+                LISTENER_HTTP_LISTENER_FIELD)));
 
         return createFunctionDefinitionNode(
                 OBJECT_METHOD_DEFINITION, null,
@@ -329,8 +339,9 @@ public class GenerateListenerClassNode implements Generator {
                 buildTaintedErrorReturnType());
 
         List<StatementNode> statements = new ArrayList<>();
-        statements.add(NodeParser.parseStatement(
-                "return self." + Constants.LISTENER_HTTP_LISTENER_FIELD + ".gracefulStop();"));
+        statements.add(NodeParser.parseStatement(String.format(
+                "return self.%s.gracefulStop();",
+                LISTENER_HTTP_LISTENER_FIELD)));
 
         return createFunctionDefinitionNode(
                 OBJECT_METHOD_DEFINITION, null,
@@ -350,8 +361,9 @@ public class GenerateListenerClassNode implements Generator {
                 buildErrorReturnType());
 
         List<StatementNode> statements = new ArrayList<>();
-        statements.add(NodeParser.parseStatement(
-                "return self." + Constants.LISTENER_HTTP_LISTENER_FIELD + ".immediateStop();"));
+        statements.add(NodeParser.parseStatement(String.format(
+                "return self.%s.immediateStop();",
+                LISTENER_HTTP_LISTENER_FIELD)));
 
         return createFunctionDefinitionNode(
                 OBJECT_METHOD_DEFINITION, null,
@@ -370,7 +382,7 @@ public class GenerateListenerClassNode implements Generator {
                         createRequiredParameterNode(
                                 createEmptyNodeList(),
                                 createSimpleNameReferenceNode(
-                                        createIdentifierToken(Constants.GENERIC_SERVICE_TYPE)),
+                                        createIdentifierToken(ServiceTypesGenerator.GENERIC_SERVICE_TYPE)),
                                 createIdentifierToken("serviceRef"))),
                 createToken(CLOSE_PAREN_TOKEN),
                 createReturnTypeDescriptorNode(
@@ -387,7 +399,7 @@ public class GenerateListenerClassNode implements Generator {
                 OBJECT_METHOD_DEFINITION, null,
                 createNodeList(createToken(PRIVATE_KEYWORD), createToken(ISOLATED_KEYWORD)),
                 createToken(FUNCTION_KEYWORD),
-                createIdentifierToken(Constants.LISTENER_GET_SERVICE_TYPE_FUNC),
+                createIdentifierToken(LISTENER_GET_SERVICE_TYPE_FUNC),
                 createEmptyNodeList(),
                 signature, buildBody(List.of(body)));
     }
