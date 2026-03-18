@@ -41,7 +41,7 @@ public class HttpCodeGeneratorIntegrationTest {
         Path spec = specPath("github.json");
         Path outDir = Files.createTempDirectory("github-gen");
         try {
-            AsyncApiSpec asyncApiSpec = AsyncApiParser.parseFromFile(spec);
+            AsyncApiSpec asyncApiSpec = AsyncApiParser.parseFromJsonString(Files.readString(spec));
             new HttpCodeGenerator(asyncApiSpec).generate(outDir);
 
             String serviceTypes = readFile(outDir, "service_types.bal");
@@ -88,7 +88,7 @@ public class HttpCodeGeneratorIntegrationTest {
         Path spec = specPath("stripe.json");
         Path outDir = Files.createTempDirectory("stripe-gen");
         try {
-            AsyncApiSpec asyncApiSpec = AsyncApiParser.parseFromFile(spec);
+            AsyncApiSpec asyncApiSpec = AsyncApiParser.parseFromJsonString(Files.readString(spec));
             new HttpCodeGenerator(asyncApiSpec).generate(outDir);
 
             String serviceTypes = readFile(outDir, "service_types.bal");
@@ -124,7 +124,7 @@ public class HttpCodeGeneratorIntegrationTest {
         Path spec = specPath("sendgrid_minimal.json");
         Path outDir = Files.createTempDirectory("sendgrid-gen");
         try {
-            AsyncApiSpec asyncApiSpec = AsyncApiParser.parseFromFile(spec);
+            AsyncApiSpec asyncApiSpec = AsyncApiParser.parseFromJsonString(Files.readString(spec));
             new HttpCodeGenerator(asyncApiSpec).generate(outDir);
 
             String serviceTypes = readFile(outDir, "service_types.bal");
@@ -152,7 +152,7 @@ public class HttpCodeGeneratorIntegrationTest {
     @Test
     void testGenerateWithNullOutputPath() throws Exception {
         Path spec = specPath("sendgrid_minimal.json");
-        AsyncApiSpec asyncApiSpec = AsyncApiParser.parseFromFile(spec);
+        AsyncApiSpec asyncApiSpec = AsyncApiParser.parseFromJsonString(Files.readString(spec));
         try {
             new HttpCodeGenerator(asyncApiSpec).generate(null);
         } finally {
@@ -165,7 +165,7 @@ public class HttpCodeGeneratorIntegrationTest {
     @Test
     void testGenerateMissingEventIdentifierThrows() throws Exception {
         Path spec = specPath("missing_event_identifier.json");
-        AsyncApiSpec asyncApiSpec = AsyncApiParser.parseFromFile(spec);
+        AsyncApiSpec asyncApiSpec = AsyncApiParser.parseFromJsonString(Files.readString(spec));
         Path outDir = Files.createTempDirectory("missing-id-gen");
         try {
             new HttpCodeGenerator(asyncApiSpec).generate(outDir);
