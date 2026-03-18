@@ -1,0 +1,25 @@
+{
+  "asyncapi": "2.0.0",
+  "info": {
+    "title": "Publish Only API",
+    "version": "1.0.0",
+    "description": "A spec with only publish (SEND) operations — no subscribe channels. ServiceTypeExtractor should return an empty list."
+  },
+  "channels": {
+    "notifications": {
+      "description": "Outbound notification events (publish only).",
+      "publish": {
+        "message": {
+          "payload": {
+            "type": "object",
+            "properties": {
+              "id": { "type": "string" },
+              "message": { "type": "string" }
+            },
+            "required": ["id", "message"]
+          }
+        }
+      }
+    }
+  }
+}

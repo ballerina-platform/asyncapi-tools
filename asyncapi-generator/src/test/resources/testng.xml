@@ -1,0 +1,15 @@
+<!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
+<suite name="asyncapi-generator-test-suite">
+    <test name="asyncapi-generator-tests">
+        <classes>
+            <class name="io.ballerina.asyncapi.generator.http.HttpCodeGeneratorIntegrationTest"/>
+            <class name="io.ballerina.asyncapi.generator.http.extractor.EventIdentifierExtractorTest"/>
+            <class name="io.ballerina.asyncapi.generator.http.extractor.ServiceTypeExtractorTest"/>
+            <class name="io.ballerina.asyncapi.generator.http.extractor.SchemaExtractorTest"/>
+            <class name="io.ballerina.asyncapi.generator.http.generator.ListenerGeneratorTest"/>
+            <class name="io.ballerina.asyncapi.generator.http.generator.DispatcherGeneratorTest"/>
+            <class name="io.ballerina.asyncapi.generator.http.generator.ServiceTypesGeneratorTest"/>
+            <class name="io.ballerina.asyncapi.generator.http.utils.CodegenUtilsTest"/>
+        </classes>
+    </test>
+</suite>

@@ -1,0 +1,119 @@
+{
+  "asyncapi": "2.1.0",
+  "info": {
+    "title": "GitHub Webhook Events API",
+    "version": "1.0.0",
+    "description": "Webhook API for receiving GitHub repository, issue, and deployment events"
+  },
+  "x-ballerina-event-identifier": {
+    "type": "body",
+    "path": "event.type"
+  },
+  "servers": {
+    "production": {
+      "url": "{webhook_url}",
+      "protocol": "https",
+      "description": "Your registered webhook endpoint where GitHub delivers events.",
+      "variables": {
+        "webhook_url": {
+          "description": "The HTTPS URL of your server where GitHub sends webhook payloads."
+        }
+      }
+    }
+  },
+  "channels": {
+    "repository": {
+      "description": "Repository lifecycle events.",
+      "subscribe": {
+        "message": {
+          "oneOf": [
+            {
+              "x-ballerina-event-type": "push",
+              "summary": "One or more commits were pushed to a repository branch or tag.",
+              "payload": { "$ref": "#/components/schemas/PushEvent" }
+            },
+            {
+              "x-ballerina-event-type": "create",
+              "summary": "A Git branch or tag was created.",
+              "payload": { "$ref": "#/components/schemas/GenericEvent" }
+            }
+          ]
+        }
+      }
+    },
+    "issue": {
+      "description": "Issue lifecycle events.",
+      "subscribe": {
+        "message": {
+          "oneOf": [
+            {
+              "x-ballerina-event-type": "issues.opened",
+              "summary": "An issue was opened.",
+              "payload": { "$ref": "#/components/schemas/IssueEvent" }
+            },
+            {
+              "x-ballerina-event-type": "issues.closed",
+              "summary": "An issue was closed.",
+              "payload": { "$ref": "#/components/schemas/IssueEvent" }
+            }
+          ]
+        }
+      }
+    },
+    "deployment": {
+      "description": "Deployment lifecycle events.",
+      "subscribe": {
+        "message": {
+          "oneOf": [
+            {
+              "x-ballerina-event-type": "deployment",
+              "summary": "A deployment was created.",
+              "payload": { "$ref": "#/components/schemas/DeploymentEvent" }
+            },
+            {
+              "x-ballerina-event-type": "deployment_status",
+              "summary": "A deployment status was updated.",
+              "payload": { "$ref": "#/components/schemas/DeploymentEvent" }
+            }
+          ]
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "PushEvent": {
+        "type": "object",
+        "properties": {
+          "ref": { "type": "string" },
+          "before": { "type": "string" },
+          "after": { "type": "string" }
+        },
+        "required": ["ref", "before", "after"]
+      },
+      "GenericEvent": {
+        "type": "object",
+        "properties": {
+          "action": { "type": "string" }
+        },
+        "required": ["action"]
+      },
+      "IssueEvent": {
+        "type": "object",
+        "properties": {
+          "action": { "type": "string" },
+          "number": { "type": "integer" }
+        },
+        "required": ["action", "number"]
+      },
+      "DeploymentEvent": {
+        "type": "object",
+        "properties": {
+          "action": { "type": "string" },
+          "environment": { "type": "string" }
+        },
+        "required": ["action"]
+      }
+    }
+  }
+}

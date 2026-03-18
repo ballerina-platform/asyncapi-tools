@@ -18,11 +18,8 @@
 
 plugins {
     id 'java'
-    id 'application'
     id 'checkstyle'
 }
-
-description = "Ballerina - AsyncAPI Generator"
 
 dependencies {
     checkstyle project(':checkstyle')
@@ -37,10 +34,6 @@ dependencies {
     runtimeOnly "org.apache.logging.log4j:log4j-slf4j-impl:${log4jVersion}"
 }
 
-application {
-    mainClass = 'io.ballerina.asyncapi.generator.Main'
-}
-
 checkstyle {
     toolVersion "${checkstylePluginVersion}"
     configFile rootProject.file("config/checkstyle/build/checkstyle.xml")
@@ -52,4 +45,11 @@ tasks.withType(Checkstyle) {
     exclude excludePattern
 }
 
+test {
+    useTestNG() {
+        suites "src/test/resources/testng.xml"
+    }
+}
+
 checkstyleMain.dependsOn(":checkstyle:build")
+checkstyleTest.dependsOn(":checkstyle:build")
