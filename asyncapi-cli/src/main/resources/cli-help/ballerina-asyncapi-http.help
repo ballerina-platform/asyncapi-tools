@@ -1,0 +1,43 @@
+NAME
+       bal asyncapi http - Generate Ballerina files from an AsyncAPI
+                           definition for HTTP/Webhook protocols
+
+SYNOPSIS
+       bal asyncapi http -i <asyncapi-definition-file-path>
+                         [-o <output-directory>]
+                         [--license <license-file-path>]
+
+DESCRIPTION
+       Generates Ballerina source files from an AsyncAPI definition
+       file for HTTP and Webhook protocol integrations.
+
+       The --input flag is mandatory. All other flags are optional.
+
+OPTIONS
+        -i, --input <asyncapi-definition-file-path>
+                This is a mandatory input. The path to the AsyncAPI
+                definition file (.yaml, .yml, or .json).
+
+        -o, --output <output-directory>
+                This is an optional input. The path to the target
+                output directory for the generated Ballerina files.
+                The default is the current working directory.
+
+        --license <license-file-path>
+                This is an optional input. The path to a file
+                containing the license header to be added to all
+                generated Ballerina files.
+
+        -h, --help
+                Display help for the http subcommand.
+
+EXAMPLES
+       Generate Ballerina files from an AsyncAPI definition in the
+       current directory.
+           $ bal asyncapi http -i definition.yaml
+
+       Generate Ballerina files into a specific output directory
+       with a license header.
+           $ bal asyncapi http -i definition.yaml \
+                               -o ./generated \
+                               --license license.txt

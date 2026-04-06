@@ -1,0 +1,25 @@
+NAME
+       bal asyncapi - Manage AsyncAPI integrations with Ballerina
+
+SYNOPSIS
+       bal asyncapi <http|ws> [flags]
+
+DESCRIPTION
+       The Ballerina AsyncAPI tool provides two subcommands for
+       working with AsyncAPI specifications.
+
+       Use the http subcommand for HTTP/Webhook protocol generation.
+       Use the ws subcommand for WebSocket protocol generation and
+       for generating an AsyncAPI specification from a Ballerina
+       service file.
+
+OPTIONS
+        -h, --help
+                Display help for the parent command or a subcommand.
+
+EXAMPLES
+       Display help for the http subcommand.
+           $ bal asyncapi http --help
+
+       Display help for the ws subcommand.
+           $ bal asyncapi ws --help
