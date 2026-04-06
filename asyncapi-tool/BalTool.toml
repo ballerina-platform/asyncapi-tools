@@ -2,7 +2,7 @@
 id = "asyncapi"
 
 [[dependency]]
-path = "../native.handler/build/libs/native.handler-0.12.1-SNAPSHOT.jar"
+path = "../native.handler/java-wrapper/build/libs/java-wrapper-0.12.1-SNAPSHOT.jar"
 
 [[dependency]]
 path = "../asyncapi-core/build/libs/asyncapi-core-0.12.1-SNAPSHOT.jar"
