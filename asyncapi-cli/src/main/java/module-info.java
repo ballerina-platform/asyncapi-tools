@@ -17,6 +17,7 @@
  */
 
 module io.ballerina.asyncapi {
+    requires io.ballerina.asyncapi.generator;
     requires info.picocli;
     requires io.ballerina.cli;
     requires io.ballerina.tools.api;

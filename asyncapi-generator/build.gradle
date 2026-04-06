@@ -68,6 +68,9 @@ jar {
 }
 
 shadowJar {
+    manifest {
+        attributes('Automatic-Module-Name': 'io.ballerina.asyncapi.generator')
+    }
     configurations = [project.configurations.runtimeClasspath]
     dependencies {
         include(dependency("commons-io:commons-io:${commonsIoVersion}"))
