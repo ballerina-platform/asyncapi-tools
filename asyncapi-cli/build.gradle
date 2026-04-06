@@ -51,6 +51,7 @@ dependencies {
     implementation "org.ballerinalang:ballerina-lang:${ballerinaLangVersion}"
     implementation "org.ballerinalang:ballerina-cli:${ballerinaLangVersion}"
     implementation "org.ballerinalang:ballerina-tools-api:${ballerinaLangVersion}"
+    implementation "org.ballerinalang:ballerina-runtime:${ballerinaLangVersion}"
     implementation "info.picocli:picocli:${picocliVersion}"
     implementation project(':asyncapi-generator')
     testImplementation project(':asyncapi-generator')
@@ -211,19 +212,11 @@ shadowJar {
         exclude(dependency("org.ballerinalang:ballerina-lang:${ballerinaLangVersion}"))
         exclude(dependency("org.ballerinalang:ballerina-cli:${ballerinaLangVersion}"))
         exclude(dependency("org.ballerinalang:ballerina-tools-api:${ballerinaLangVersion}"))
+        exclude(dependency("org.ballerinalang:ballerina-runtime:${ballerinaLangVersion}"))
         exclude(dependency("org.testng:testng:${testngVersion}"))
         exclude('META-INF/*.SF')
         exclude('META-INF/*.DSA')
         exclude('META-INF/*.RSA')
-    }
-}
-
-compileJava {
-    doFirst {
-        options.compilerArgs = [
-                '--module-path', classpath.asPath,
-        ]
-        classpath = files()
     }
 }
 
