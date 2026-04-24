@@ -10,6 +10,37 @@
             <class name="io.ballerina.asyncapi.generator.http.generator.DispatcherGeneratorTest"/>
             <class name="io.ballerina.asyncapi.generator.http.generator.ServiceTypesGeneratorTest"/>
             <class name="io.ballerina.asyncapi.generator.http.utils.CodegenUtilsTest"/>
+            <class name="io.ballerina.asyncapi.generator.ws.client.WsClientCodeGeneratorIntegrationTest"/>
+            <class name="io.ballerina.asyncapi.generator.ws.client.extractor.DispatcherKeyExtractorTest"/>
+            <class name="io.ballerina.asyncapi.generator.ws.client.extractor.DispatcherStreamIdExtractorTest"/>
+            <class name="io.ballerina.asyncapi.generator.ws.client.extractor.ChannelExtractorTest"/>
+            <class name="io.ballerina.asyncapi.generator.ws.client.extractor.SchemaExtractorTest"/>
+            <class name="io.ballerina.asyncapi.generator.ws.client.utils.CodegenUtilsTest"/>
+            <class name="io.ballerina.asyncapi.generator.ws.client.utils.CommonFunctionUtilsTest"/>
+            <class name="io.ballerina.asyncapi.generator.ws.client.node.schema.ReferencedTypeGeneratorTest"/>
+            <class name="io.ballerina.asyncapi.generator.ws.client.node.schema.PrimitiveTypeGeneratorTest"/>
+            <class name="io.ballerina.asyncapi.generator.ws.client.node.schema.ArrayTypeGeneratorTest"/>
+            <class name="io.ballerina.asyncapi.generator.ws.client.node.schema.MapTypeGeneratorTest"/>
+            <class name="io.ballerina.asyncapi.generator.ws.client.node.schema.UnionTypeGeneratorTest"/>
+            <class name="io.ballerina.asyncapi.generator.ws.client.node.schema.AllOfRecordTypeGeneratorTest"/>
+            <class name="io.ballerina.asyncapi.generator.ws.client.node.schema.RecordTypeGeneratorTest"/>
+            <class name="io.ballerina.asyncapi.generator.ws.client.node.schema.AnyDataTypeGeneratorTest"/>
+            <class name="io.ballerina.asyncapi.generator.ws.client.node.schema.JsonTypeGeneratorTest"/>
+            <class name="io.ballerina.asyncapi.generator.ws.client.node.schema.TypeGeneratorFactoryTest"/>
+            <class name="io.ballerina.asyncapi.generator.ws.client.generator.RemoteFunctionSignatureGeneratorTest"/>
+            <class name="io.ballerina.asyncapi.generator.ws.client.generator.RemoteFunctionReturnTypeGeneratorTest"/>
+            <class name="io.ballerina.asyncapi.generator.ws.client.generator.RemoteFunctionBodyGeneratorTest"/>
+            <class name="io.ballerina.asyncapi.generator.ws.client.generator.DocCommentsGeneratorTest"/>
+            <class name="io.ballerina.asyncapi.generator.ws.client.node.client.ClientFieldGeneratorTest"/>
+            <class name="io.ballerina.asyncapi.generator.ws.client.node.client.ClientInitGeneratorTest"/>
+            <class name="io.ballerina.asyncapi.generator.ws.client.node.client.ClientWorkerGeneratorTest"/>
+            <class name="io.ballerina.asyncapi.generator.ws.client.node.client.ClientHelperGeneratorTest"/>
+            <class name="io.ballerina.asyncapi.generator.ws.client.node.client.ClientRemoteFunctionGeneratorTest"/>
+            <class name="io.ballerina.asyncapi.generator.ws.client.generator.ClientGeneratorTest"/>
+            <class name="io.ballerina.asyncapi.generator.ws.client.generator.DataTypesGeneratorTest"/>
+            <class name="io.ballerina.asyncapi.generator.ws.client.generator.UtilGeneratorTest"/>
+            <class name="io.ballerina.asyncapi.generator.ws.client.generator.BallerinaAuthConfigGeneratorTest"/>
+            <class name="io.ballerina.asyncapi.generator.ws.client.generator.TestGeneratorTest"/>
         </classes>
     </test>
 </suite>

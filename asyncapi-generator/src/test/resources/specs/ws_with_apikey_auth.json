@@ -1,0 +1,47 @@
+{
+  "asyncapi": "2.0.0",
+  "info": {
+    "title": "Chat",
+    "version": "1.0.0"
+  },
+  "x-dispatcherKey": "event",
+  "channels": {
+    "chat": {
+      "publish": {
+        "operationId": "sendChatMessage",
+        "message": {
+          "$ref": "#/components/messages/ChatMessage"
+        }
+      }
+    }
+  },
+  "components": {
+    "messages": {
+      "ChatMessage": {
+        "payload": {
+          "$ref": "#/components/schemas/ChatMessage"
+        },
+        "x-response": {
+          "$ref": "#/components/messages/ChatMessage"
+        }
+      }
+    },
+    "schemas": {
+      "ChatMessage": {
+        "type": "object",
+        "required": ["event"],
+        "properties": {
+          "event": {"type": "string"},
+          "message": {"type": "string"}
+        }
+      }
+    },
+    "securitySchemes": {
+      "apiKey": {
+        "type": "httpApiKey",
+        "name": "X-Api-Key",
+        "in": "header"
+      }
+    }
+  }
+}
