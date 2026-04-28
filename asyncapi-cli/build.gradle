@@ -44,19 +44,17 @@ dependencies {
     checkstyle "com.puppycrawl.tools:checkstyle:${checkstylePluginVersion}"
 
     implementation "io.apicurio:apicurio-data-models:${apiCurioVersion}"
-    implementation "org.apache.logging.log4j:log4j-core:${log4jVersion}"
-    implementation "org.slf4j:slf4j-api:${slf4jVersion}"
     implementation "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:${jacksonDataformatYamlVersion}"
     implementation "commons-io:commons-io:${commonsIoVersion}"
     implementation "org.ballerinalang:ballerina-lang:${ballerinaLangVersion}"
-    implementation "org.ballerinalang:ballerina-parser:${ballerinaLangVersion}"
     implementation "org.ballerinalang:ballerina-cli:${ballerinaLangVersion}"
-    implementation "org.ballerinalang:formatter-core:${ballerinaLangVersion}"
     implementation "org.ballerinalang:ballerina-tools-api:${ballerinaLangVersion}"
     implementation "org.ballerinalang:ballerina-runtime:${ballerinaLangVersion}"
-    implementation "io.ballerina.stdlib:http-native:${stdlibHttpVersion}"
-    implementation "org.ballerinalang:language-server-commons:${ballerinaLangVersion}"
+    implementation "org.ballerinalang:toml-parser:${ballerinaLangVersion}"
+    implementation "org.ballerinalang:ballerina-parser:${ballerinaLangVersion}"
     implementation "info.picocli:picocli:${picocliVersion}"
+    implementation project(':asyncapi-generator')
+    testImplementation project(':asyncapi-generator')
     testImplementation "org.testng:testng:${testngVersion}"
 
     balTools ("org.ballerinalang:jballerina-tools:${ballerinaLangVersion}") {
@@ -211,21 +209,18 @@ jar {
 shadowJar {
     configurations = [project.configurations.runtimeClasspath]
     dependencies {
-        include(dependency("io.apicurio:apicurio-data-models:${apiCurioVersion}"))
-        include(dependency("org.ballerinalang:ballerina-cli:${ballerinaLangVersion}"))
+        exclude(dependency("org.ballerinalang:ballerina-lang:${ballerinaLangVersion}"))
+        exclude(dependency("org.ballerinalang:ballerina-cli:${ballerinaLangVersion}"))
+        exclude(dependency("org.ballerinalang:ballerina-tools-api:${ballerinaLangVersion}"))
+        exclude(dependency("org.ballerinalang:ballerina-runtime:${ballerinaLangVersion}"))
+        exclude(dependency("org.ballerinalang:toml-parser:${ballerinaLangVersion}"))
+        exclude(dependency("org.ballerinalang:ballerina-parser:${ballerinaLangVersion}"))
+        exclude(dependency("org.testng:testng:${testngVersion}"))
         exclude('META-INF/*.SF')
         exclude('META-INF/*.DSA')
         exclude('META-INF/*.RSA')
     }
-}
-
-compileJava {
-    doFirst {
-        options.compilerArgs = [
-                '--module-path', classpath.asPath,
-        ]
-        classpath = files()
-    }
+    exclude 'org/slf4j/**'
 }
 
 build.dependsOn("copyStdlibs")
