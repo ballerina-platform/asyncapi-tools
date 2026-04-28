@@ -24,17 +24,6 @@ plugins {
 
 description = "Ballerina - AsyncAPI Generator"
 
-def ballerinaDist = "$project.buildDir/jballerina-tools-${ballerinaLangVersion}"
-
-tasks.register("jBallerinaPack")
-tasks.register("unpackStdLibs")
-tasks.register("copyStdlibs")
-
-configurations {
-    balTools
-    ballerinaStdLibs
-}
-
 dependencies {
     checkstyle project(':checkstyle')
     checkstyle "com.puppycrawl.tools:checkstyle:${checkstylePluginVersion}"
@@ -138,6 +127,7 @@ test {
     useTestNG() {
         suites "src/test/resources/testng.xml"
     }
+    jvmArgs '-Dlog4j2.level=INFO'
 }
 
 checkstyleMain.dependsOn(":checkstyle:build")
