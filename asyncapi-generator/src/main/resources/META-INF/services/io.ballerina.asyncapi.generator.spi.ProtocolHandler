@@ -1,0 +1,2 @@
+io.ballerina.asyncapi.generator.handler.HttpProtocolHandler
+io.ballerina.asyncapi.generator.handler.WsProtocolHandler

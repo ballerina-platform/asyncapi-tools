@@ -2,6 +2,18 @@
 <suite name="asyncapi-generator-test-suite">
     <test name="asyncapi-generator-tests">
         <classes>
+            <class name="io.ballerina.asyncapi.generator.ws.asyncspec.mapper.AsyncApiComponentMapperTest"/>
+            <class name="io.ballerina.asyncapi.generator.ws.asyncspec.utils.ConverterCommonUtilsTest"/>
+            <class name="io.ballerina.asyncapi.generator.ws.asyncspec.utils.ConverterCommonUtilsParseTest"/>
+            <class name="io.ballerina.asyncapi.generator.ws.asyncspec.utils.CodegenUtilsTest"/>
+            <class name="io.ballerina.asyncapi.generator.ws.asyncspec.diagnostic.DiagnosticMessagesTest"/>
+            <class name="io.ballerina.asyncapi.generator.ws.asyncspec.diagnostic.ExceptionDiagnosticTest"/>
+            <class name="io.ballerina.asyncapi.generator.ws.asyncspec.diagnostic.IncompatibleRemoteDiagnosticTest"/>
+            <class name="io.ballerina.asyncapi.generator.ws.asyncspec.model.AsyncApiResultTest"/>
+            <class name="io.ballerina.asyncapi.generator.ws.asyncspec.model.BalAsyncApi30SchemaImplTest"/>
+            <class name="io.ballerina.asyncapi.generator.ws.asyncspec.model.BalAsyncApi30MessageImplTest"/>
+            <class name="io.ballerina.asyncapi.generator.ws.asyncspec.model.BalBooleanSchemaTest"/>
+            <class name="io.ballerina.asyncapi.generator.ws.asyncspec.BallerinaToAsyncApiGeneratorTest"/>
             <class name="io.ballerina.asyncapi.generator.http.HttpCodeGeneratorIntegrationTest"/>
             <class name="io.ballerina.asyncapi.generator.http.extractor.EventIdentifierExtractorTest"/>
             <class name="io.ballerina.asyncapi.generator.http.extractor.ServiceTypeExtractorTest"/>
