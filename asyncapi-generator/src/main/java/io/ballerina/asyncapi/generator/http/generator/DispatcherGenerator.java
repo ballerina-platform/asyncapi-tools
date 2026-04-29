@@ -47,7 +47,7 @@ import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createNodeLi
  *
  * <p>Builds the entire {@code DispatcherService} class from Ballerina Compiler API AST factory
  * methods via {@link GenerateDispatcherServiceNode}, then formats the result using the Ballerina
- * Formatter. Supports both {@code "body"} and {@code "header"} identifier types.
+ * Formatter. Supports {@code "body"}, {@code "header"}, and {@code "composite"} identifier types.
  */
 public class DispatcherGenerator {
 
@@ -83,9 +83,10 @@ public class DispatcherGenerator {
 
         String identifierType = identifierConfig.type();
         if (!EventIdentifierExtractor.X_BALLERINA_EVENT_TYPE_BODY.equals(identifierType)
-                && !EventIdentifierExtractor.X_BALLERINA_EVENT_TYPE_HEADER.equals(identifierType)) {
+                && !EventIdentifierExtractor.X_BALLERINA_EVENT_TYPE_HEADER.equals(identifierType)
+                && !EventIdentifierExtractor.X_BALLERINA_EVENT_TYPE_COMPOSITE.equals(identifierType)) {
             throw new GeneratorException(String.format(
-                    "Unsupported identifier type: %s. Expected \"body\" or \"header\".",
+                    "Unsupported identifier type: %s. Expected \"body\", \"header\" or \"composite\".",
                     identifierType));
         }
 

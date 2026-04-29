@@ -23,4 +23,7 @@ module io.ballerina.asyncapi {
     requires io.ballerina.tools.api;
     requires io.ballerina.lang;
     requires io.ballerina.toml;
+
+    exports io.ballerina.asyncapi.cmd;
+    opens io.ballerina.asyncapi.cmd;
 }

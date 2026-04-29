@@ -30,7 +30,7 @@ import java.util.Optional;
 
 /**
  * Unit tests for {@link DispatcherGenerator} verifying generated {@code dispatcher_service.bal}
- * content for body and header identifier types, and error handling for invalid inputs.
+ * content for body, header, and composite identifier types, and error handling for invalid inputs.
  */
 public class DispatcherGeneratorTest {
 
@@ -67,6 +67,22 @@ public class DispatcherGeneratorTest {
                 "Generated source should contain the DispatcherService class");
         Assert.assertTrue(source.contains("matchRemoteFunc"),
                 "Generated source should contain the matchRemoteFunc method");
+    }
+
+    @Test
+    void testGenerateWithCompositeIdentifier() throws GeneratorException {
+        EventIdentifierConfig config = new EventIdentifierConfig("composite", "X-GitHub-Event", "action");
+        String source = new DispatcherGenerator(SINGLE_SERVICE, config, Optional.<WebhookAuthConfig>empty()).generate();
+
+        Assert.assertFalse(source.isBlank(), "Generated dispatcher source should not be blank");
+        Assert.assertTrue(source.contains("DispatcherService"),
+                "Generated source should contain the DispatcherService class");
+        Assert.assertTrue(source.contains("matchRemoteFunc"),
+                "Generated source should contain the matchRemoteFunc method");
+        Assert.assertTrue(source.contains("X-GitHub-Event"),
+                "Generated source should reference the composite header name");
+        Assert.assertTrue(source.contains("eventIdentifier"),
+                "Generated source should contain eventIdentifier for composite type");
     }
 
     @Test

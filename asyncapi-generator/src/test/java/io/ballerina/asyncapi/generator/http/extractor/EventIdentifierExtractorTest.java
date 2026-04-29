@@ -27,7 +27,7 @@ import org.testng.annotations.Test;
 
 /**
  * Unit tests for {@link EventIdentifierExtractor} covering all branches of
- * {@code x-ballerina-event-identifier} extraction including body, header, error paths,
+ * {@code x-ballerina-event-identifier} extraction including body, header, composite, error paths,
  * and Ballerina keyword escaping.
  */
 public class EventIdentifierExtractorTest {
@@ -96,6 +96,21 @@ public class EventIdentifierExtractorTest {
     }
 
     @Test
+    void testExtractCompositeType() throws AsyncApiParserException, GeneratorException {
+        String json = ASYNCAPI_PREFIX
+                + ",\"x-ballerina-event-identifier\":{\"type\":\"composite\","
+                + "\"name\":\"X-GitHub-Event\",\"path\":\"action\"}}";
+        AsyncApiSpec spec = AsyncApiParser.parseFromJsonString(json);
+        EventIdentifierConfig config = new EventIdentifierExtractor(spec).extract();
+
+        Assert.assertEquals(config.type(), "composite");
+        Assert.assertEquals(config.name(), "X-GitHub-Event",
+                "Header name should be extracted for composite type");
+        Assert.assertEquals(config.path(), "action",
+                "Body path should be extracted for composite type");
+    }
+
+    @Test
     void testInvalidTypeThrows() throws AsyncApiParserException {
         String json = ASYNCAPI_PREFIX
                 + ",\"x-ballerina-event-identifier\":{\"type\":\"unknown\",\"path\":\"event\"}}";
@@ -104,8 +119,10 @@ public class EventIdentifierExtractorTest {
             new EventIdentifierExtractor(spec).extract();
             Assert.fail("Expected GeneratorException for unsupported identifier type");
         } catch (GeneratorException e) {
-            Assert.assertTrue(e.getMessage().contains("header") || e.getMessage().contains("body"),
-                    "Exception should mention valid types 'header' and 'body'");
+            Assert.assertTrue(
+                    e.getMessage().contains("header") && e.getMessage().contains("body")
+                            && e.getMessage().contains("composite"),
+                    "Exception should mention all three valid types: 'header', 'body', 'composite'");
         }
     }
 

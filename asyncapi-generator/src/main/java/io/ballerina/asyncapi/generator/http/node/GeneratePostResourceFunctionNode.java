@@ -58,11 +58,12 @@ import static io.ballerina.compiler.syntax.tree.SyntaxKind.RESOURCE_KEYWORD;
  * Generates the {@code resource function post .(http:Caller caller, http:Request request) returns error?}
  * method node for the {@code DispatcherService} class in {@code dispatcher_service.bal}.
  *
- * <p>For the {@code "header"} identifier type, {@code eventType} (the raw header value) and
- * {@code eventIdentifier} (optionally extended with a body action field) are extracted and
- * forwarded as the second and third arguments of the {@code matchRemoteFunc} call.
- * For the {@code "body"} identifier type, {@code eventType} is extracted from the payload
- * at the configured path and forwarded as the second argument.
+ * <p>For {@code "header"}, {@code eventType} comes from the named request header and is forwarded
+ * as the second argument of {@code matchRemoteFunc}. For {@code "body"}, {@code eventType} is
+ * extracted from the payload at the configured dot-notation path and forwarded as the second
+ * argument. For {@code "composite"}, {@code eventType} comes from the header and {@code action}
+ * from the body path; these are combined into a compound {@code eventIdentifier} and forwarded
+ * as the second and third arguments of {@code matchRemoteFunc}.
  */
 public class GeneratePostResourceFunctionNode implements Generator {
 
@@ -104,7 +105,7 @@ public class GeneratePostResourceFunctionNode implements Generator {
                 createToken(CLOSE_PAREN_TOKEN),
                 buildErrorReturnType());
 
-        boolean isHeader = EventIdentifierExtractor.X_BALLERINA_EVENT_TYPE_HEADER.equals(identifierConfig.type());
+        String type = identifierConfig.type();
 
         List<StatementNode> statements = new ArrayList<>();
         if (webhookAuthConfig.isPresent()) {
@@ -118,30 +119,22 @@ public class GeneratePostResourceFunctionNode implements Generator {
                             + " check caller->respond(r); return; }"));
         }
         statements.add(NodeParser.parseStatement("json payload = check request.getJsonPayload();"));
-        if (isHeader) {
-            if (identifierConfig.path() == null) {
-                statements.add(NodeParser.parseStatement(String.format(
-                        "string eventIdentifier = check request.getHeader(\"%s\");",
-                        identifierConfig.name())));
-                statements.add(NodeParser.parseStatement("string eventType = eventIdentifier;"));
-            } else {
-                statements.add(NodeParser.parseStatement(String.format(
-                        "string eventType = check request.getHeader(\"%s\");",
-                        identifierConfig.name())));
-                statements.add(NodeParser.parseStatement("string eventIdentifier = eventType;"));
-                statements.add(NodeParser.parseStatement(String.format(
-                        "json|error actionField = payload.%s;",
-                        identifierConfig.path())));
-                statements.add(NodeParser.parseStatement(
-                        "if actionField is json && actionField != () {"
-                        + " eventIdentifier = eventType + \"_\" + actionField.toString(); }"));
-            }
-        } else {
+        if (EventIdentifierExtractor.X_BALLERINA_EVENT_TYPE_HEADER.equals(type)) {
+            statements.add(NodeParser.parseStatement(String.format(
+                    "string eventType = check request.getHeader(\"%s\");",
+                    identifierConfig.name())));
+        } else if (EventIdentifierExtractor.X_BALLERINA_EVENT_TYPE_BODY.equals(type)) {
             statements.add(NodeParser.parseStatement(String.format(
                     "string eventType = (check payload.%s).toString();",
                     identifierConfig.path())));
+        } else {
+            statements.add(NodeParser.parseStatement(String.format(
+                    "string eventType = check request.getHeader(\"%s\");",
+                    identifierConfig.name())));
+            statements.add(NodeParser.parseStatement(String.format(
+                    "json|error actionField = payload.%s;",
+                    identifierConfig.path())));
             statements.add(NodeParser.parseStatement("string eventIdentifier = eventType;"));
-            statements.add(NodeParser.parseStatement("json|error actionField = payload.action;"));
             statements.add(NodeParser.parseStatement(
                     "if actionField is json && actionField != () {"
                     + " eventIdentifier = eventType + \"_\" + actionField.toString(); }"));
@@ -150,14 +143,14 @@ public class GeneratePostResourceFunctionNode implements Generator {
                 "%s %s = check payload.cloneWithType(%s);",
                 DataTypesGenerator.GENERIC_DATA_TYPE, GenerateDispatcherServiceNode.CLONE_WITH_TYPE_VAR_NAME,
                 DataTypesGenerator.GENERIC_DATA_TYPE)));
-        if (isHeader) {
+        if (EventIdentifierExtractor.X_BALLERINA_EVENT_TYPE_COMPOSITE.equals(type)) {
             statements.add(NodeParser.parseStatement(String.format(
                     "check self.%s(%s, eventIdentifier, eventType);",
                     GenerateMatchRemoteFuncNode.DISPATCHER_MATCH_REMOTE_FUNC,
                     GenerateDispatcherServiceNode.CLONE_WITH_TYPE_VAR_NAME)));
         } else {
             statements.add(NodeParser.parseStatement(String.format(
-                    "check self.%s(%s, eventIdentifier, eventType);",
+                    "check self.%s(%s, eventType);",
                     GenerateMatchRemoteFuncNode.DISPATCHER_MATCH_REMOTE_FUNC,
                     GenerateDispatcherServiceNode.CLONE_WITH_TYPE_VAR_NAME)));
         }

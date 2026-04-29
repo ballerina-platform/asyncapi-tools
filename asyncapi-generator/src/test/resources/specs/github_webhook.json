@@ -3,10 +3,10 @@
   "info": {
     "title": "GitHub Webhook Events API",
     "version": "1.0.0",
-    "description": "Test fixture for header sub-case B two-level dispatch. Event type is delivered via X-GitHub-Event header; action is delivered as payload.action. Compound events (pull_request, issues) have name != x-ballerina-event-type. Simple events (push, create) have name == x-ballerina-event-type."
+    "description": "Test fixture for composite-type dispatch. Event type is delivered via X-GitHub-Event header; sub-action is delivered as payload.action. Compound events (pull_request, issues) discriminate by header+action. Simple events (push, create) have no action field."
   },
   "x-ballerina-event-identifier": {
-    "type": "header",
+    "type": "composite",
     "name": "X-GitHub-Event",
     "path": "action"
   },

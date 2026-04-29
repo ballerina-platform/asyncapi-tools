@@ -85,11 +85,11 @@ import static io.ballerina.compiler.syntax.tree.SyntaxKind.STRING_LITERAL_TOKEN;
  * Generates the {@code private function matchRemoteFunc(...) returns error?} method node
  * for the {@code DispatcherService} class in {@code dispatcher_service.bal}.
  *
- * <p>For {@code "header"} identifier type, an additional {@code string eventIdentifier} parameter
- * is included and passed through to the chunk functions. Generates a {@code match eventType}
- * statement that dispatches each channel name to its corresponding
- * {@link GenerateMatchChunkFuncNode} function, regardless of whether there is one service type
- * or many.
+ * <p>For {@code "composite"}, the signature includes both {@code string eventIdentifier} (the
+ * compound header+body value) and {@code string eventType} (the header value used for dispatch).
+ * For {@code "header"} and {@code "body"}, the signature includes only {@code string eventType}.
+ * Generates a {@code match eventType} statement that dispatches each channel name to its
+ * corresponding {@link GenerateMatchChunkFuncNode} function.
  */
 public class GenerateMatchRemoteFuncNode implements Generator {
 
@@ -126,23 +126,39 @@ public class GenerateMatchRemoteFuncNode implements Generator {
 
     @Override
     public FunctionDefinitionNode generate() throws GeneratorException {
-        boolean isHeader = EventIdentifierExtractor.X_BALLERINA_EVENT_TYPE_HEADER.equals(identifierConfig.type());
+        String type = identifierConfig.type();
+        boolean isBody = EventIdentifierExtractor.X_BALLERINA_EVENT_TYPE_BODY.equals(type);
+        boolean isComposite = EventIdentifierExtractor.X_BALLERINA_EVENT_TYPE_COMPOSITE.equals(type);
 
-        SeparatedNodeList<ParameterNode> params = createSeparatedNodeList(
-                createRequiredParameterNode(
-                        createEmptyNodeList(),
-                        createSimpleNameReferenceNode(createIdentifierToken(DataTypesGenerator.GENERIC_DATA_TYPE)),
-                        createIdentifierToken(GenerateDispatcherServiceNode.CLONE_WITH_TYPE_VAR_NAME)),
-                createToken(COMMA_TOKEN),
-                createRequiredParameterNode(
-                        createEmptyNodeList(),
-                        createBuiltinSimpleNameReferenceNode(null, createIdentifierToken("string")),
-                        createIdentifierToken("eventIdentifier")),
-                createToken(COMMA_TOKEN),
-                createRequiredParameterNode(
-                        createEmptyNodeList(),
-                        createBuiltinSimpleNameReferenceNode(null, createIdentifierToken("string")),
-                        createIdentifierToken("eventType")));
+        SeparatedNodeList<ParameterNode> params;
+        if (isComposite) {
+            params = createSeparatedNodeList(
+                    createRequiredParameterNode(
+                            createEmptyNodeList(),
+                            createSimpleNameReferenceNode(createIdentifierToken(DataTypesGenerator.GENERIC_DATA_TYPE)),
+                            createIdentifierToken(GenerateDispatcherServiceNode.CLONE_WITH_TYPE_VAR_NAME)),
+                    createToken(COMMA_TOKEN),
+                    createRequiredParameterNode(
+                            createEmptyNodeList(),
+                            createBuiltinSimpleNameReferenceNode(null, createIdentifierToken("string")),
+                            createIdentifierToken("eventIdentifier")),
+                    createToken(COMMA_TOKEN),
+                    createRequiredParameterNode(
+                            createEmptyNodeList(),
+                            createBuiltinSimpleNameReferenceNode(null, createIdentifierToken("string")),
+                            createIdentifierToken("eventType")));
+        } else {
+            params = createSeparatedNodeList(
+                    createRequiredParameterNode(
+                            createEmptyNodeList(),
+                            createSimpleNameReferenceNode(createIdentifierToken(DataTypesGenerator.GENERIC_DATA_TYPE)),
+                            createIdentifierToken(GenerateDispatcherServiceNode.CLONE_WITH_TYPE_VAR_NAME)),
+                    createToken(COMMA_TOKEN),
+                    createRequiredParameterNode(
+                            createEmptyNodeList(),
+                            createBuiltinSimpleNameReferenceNode(null, createIdentifierToken("string")),
+                            createIdentifierToken("eventType")));
+        }
 
         FunctionSignatureNode signature = createFunctionSignatureNode(
                 createToken(OPEN_PAREN_TOKEN), params,
@@ -152,11 +168,11 @@ public class GenerateMatchRemoteFuncNode implements Generator {
         List<MatchClauseNode> clauses = new ArrayList<>();
         for (HttpServiceType serviceType : serviceTypes) {
             GenerateMatchChunkFuncNode chunkGen =
-                    new GenerateMatchChunkFuncNode(serviceType, eventIdentifierPath, isHeader);
+                    new GenerateMatchChunkFuncNode(serviceType, eventIdentifierPath, !isBody);
             chunkGenerators.add(chunkGen);
 
             SeparatedNodeList<FunctionArgumentNode> chunkArgs;
-            if (isHeader) {
+            if (isComposite) {
                 chunkArgs = createSeparatedNodeList(
                         createPositionalArgumentNode(
                                 createSimpleNameReferenceNode(createIdentifierToken(
@@ -164,6 +180,14 @@ public class GenerateMatchRemoteFuncNode implements Generator {
                         createToken(COMMA_TOKEN),
                         createPositionalArgumentNode(
                                 createSimpleNameReferenceNode(createIdentifierToken("eventIdentifier"))));
+            } else if (!isBody) {
+                chunkArgs = createSeparatedNodeList(
+                        createPositionalArgumentNode(
+                                createSimpleNameReferenceNode(createIdentifierToken(
+                                        GenerateDispatcherServiceNode.CLONE_WITH_TYPE_VAR_NAME))),
+                        createToken(COMMA_TOKEN),
+                        createPositionalArgumentNode(
+                                createSimpleNameReferenceNode(createIdentifierToken("eventType"))));
             } else {
                 chunkArgs = createSeparatedNodeList(
                         createPositionalArgumentNode(
