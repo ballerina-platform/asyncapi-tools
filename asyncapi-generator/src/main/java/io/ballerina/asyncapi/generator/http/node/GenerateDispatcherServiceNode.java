@@ -22,26 +22,37 @@ import io.ballerina.asyncapi.generator.http.extractor.EventIdentifierExtractor;
 import io.ballerina.asyncapi.generator.http.generator.ServiceTypesGenerator;
 import io.ballerina.asyncapi.generator.http.model.EventIdentifierConfig;
 import io.ballerina.asyncapi.generator.http.model.HttpServiceType;
+import io.ballerina.asyncapi.generator.http.model.WebhookAuthConfig;
 import io.ballerina.compiler.syntax.tree.ClassDefinitionNode;
+import io.ballerina.compiler.syntax.tree.FunctionBodyBlockNode;
 import io.ballerina.compiler.syntax.tree.FunctionDefinitionNode;
+import io.ballerina.compiler.syntax.tree.FunctionSignatureNode;
 import io.ballerina.compiler.syntax.tree.Node;
+import io.ballerina.compiler.syntax.tree.NodeParser;
 import io.ballerina.compiler.syntax.tree.ObjectFieldNode;
+import io.ballerina.compiler.syntax.tree.StatementNode;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createEmptyNodeList;
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createIdentifierToken;
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createNodeList;
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createSeparatedNodeList;
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createToken;
+import static io.ballerina.compiler.syntax.tree.NodeFactory.createBuiltinSimpleNameReferenceNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createClassDefinitionNode;
+import static io.ballerina.compiler.syntax.tree.NodeFactory.createFunctionBodyBlockNode;
+import static io.ballerina.compiler.syntax.tree.NodeFactory.createFunctionDefinitionNode;
+import static io.ballerina.compiler.syntax.tree.NodeFactory.createFunctionSignatureNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createImplicitNewExpressionNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createMapTypeDescriptorNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createMappingConstructorExpressionNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createObjectFieldNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createParenthesizedArgList;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createQualifiedNameReferenceNode;
+import static io.ballerina.compiler.syntax.tree.NodeFactory.createRequiredParameterNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createSimpleNameReferenceNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createTypeParameterNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createTypeReferenceNode;
@@ -51,10 +62,12 @@ import static io.ballerina.compiler.syntax.tree.SyntaxKind.CLOSE_BRACE_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.CLOSE_PAREN_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.COLON_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.EQUAL_TOKEN;
+import static io.ballerina.compiler.syntax.tree.SyntaxKind.FUNCTION_KEYWORD;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.GT_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.LT_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.MAP_KEYWORD;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.NEW_KEYWORD;
+import static io.ballerina.compiler.syntax.tree.SyntaxKind.OBJECT_METHOD_DEFINITION;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.OPEN_BRACE_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.OPEN_PAREN_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.PRIVATE_KEYWORD;
@@ -75,19 +88,24 @@ public class GenerateDispatcherServiceNode implements Generator {
     public static final String DISPATCHER_NATIVE_HANDLER_FIELD = "nativeHandler";
     public static final String CLONE_WITH_TYPE_VAR_NAME = "genericDataType";
     private static final String NATIVE_HANDLER_TYPE = "NativeHandler";
+    public static final String WEBHOOK_SECRET_FIELD = "webhookSecret";
 
     private final List<HttpServiceType> serviceTypes;
     private final EventIdentifierConfig identifierConfig;
+    private final Optional<WebhookAuthConfig> webhookAuthConfig;
 
     /**
      * Creates a generator for the {@code DispatcherService} class.
      *
-     * @param serviceTypes     the list of HTTP service type definitions
-     * @param identifierConfig the resolved event identifier type and path
+     * @param serviceTypes      the list of HTTP service type definitions
+     * @param identifierConfig  the resolved event identifier type and path
+     * @param webhookAuthConfig the optional webhook authentication configuration
      */
-    public GenerateDispatcherServiceNode(List<HttpServiceType> serviceTypes, EventIdentifierConfig identifierConfig) {
+    public GenerateDispatcherServiceNode(List<HttpServiceType> serviceTypes, EventIdentifierConfig identifierConfig,
+            Optional<WebhookAuthConfig> webhookAuthConfig) {
         this.serviceTypes = serviceTypes;
         this.identifierConfig = identifierConfig;
+        this.webhookAuthConfig = webhookAuthConfig;
     }
 
     @Override
@@ -104,11 +122,25 @@ public class GenerateDispatcherServiceNode implements Generator {
         members.add(buildHttpServiceTypeRef());
         members.add(buildServicesField());
         members.add(buildNativeHandlerField());
+        if (webhookAuthConfig.isPresent()) {
+            members.add(buildWebhookSecretField());
+            members.add(buildInitFunction());
+        }
         members.add(buildFunc(new GenerateAddServiceRefFuncNode()));
         members.add(buildFunc(new GenerateRemoveServiceRefFuncNode()));
-        members.add(buildFunc(new GeneratePostResourceFunctionNode(identifierConfig)));
-        members.add(buildFunc(
-                new GenerateMatchRemoteFuncNode(serviceTypes, identifierConfig, eventIdentifierPath)));
+        members.add(buildFunc(new GeneratePostResourceFunctionNode(identifierConfig, webhookAuthConfig)));
+        if (webhookAuthConfig.isPresent()) {
+            members.add(buildFunc(new GenerateVerifyWebhookSignatureFuncNode(webhookAuthConfig.get().headerName())));
+        }
+        GenerateMatchRemoteFuncNode matchRemoteFuncGen =
+                new GenerateMatchRemoteFuncNode(serviceTypes, identifierConfig, eventIdentifierPath);
+        members.add(buildFunc(matchRemoteFuncGen));
+
+        // Add one chunk function per channel group if chunking was triggered
+        for (GenerateMatchChunkFuncNode chunkGen : matchRemoteFuncGen.getChunkGenerators()) {
+            members.add(buildFunc(chunkGen));
+        }
+
         members.add(buildFunc(new GenerateExecuteRemoteFuncNode()));
 
         return createClassDefinitionNode(
@@ -172,6 +204,46 @@ public class GenerateDispatcherServiceNode implements Generator {
                                 createSeparatedNodeList(),
                                 createToken(CLOSE_PAREN_TOKEN))),
                 createToken(SEMICOLON_TOKEN));
+    }
+
+    private ObjectFieldNode buildWebhookSecretField() {
+        return createObjectFieldNode(
+                null,
+                createToken(PRIVATE_KEYWORD),
+                createEmptyNodeList(),
+                createBuiltinSimpleNameReferenceNode(null, createIdentifierToken("string")),
+                createIdentifierToken(WEBHOOK_SECRET_FIELD),
+                null,
+                null,
+                createToken(SEMICOLON_TOKEN));
+    }
+
+    private FunctionDefinitionNode buildInitFunction() {
+        FunctionSignatureNode signature = createFunctionSignatureNode(
+                createToken(OPEN_PAREN_TOKEN),
+                createSeparatedNodeList(
+                        createRequiredParameterNode(
+                                createEmptyNodeList(),
+                                createBuiltinSimpleNameReferenceNode(null, createIdentifierToken("string")),
+                                createIdentifierToken(WEBHOOK_SECRET_FIELD))),
+                createToken(CLOSE_PAREN_TOKEN),
+                null);
+
+        StatementNode assignStatement = NodeParser.parseStatement(
+                "self." + WEBHOOK_SECRET_FIELD + " = " + WEBHOOK_SECRET_FIELD + ";");
+
+        FunctionBodyBlockNode body = createFunctionBodyBlockNode(
+                createToken(OPEN_BRACE_TOKEN), null,
+                createNodeList(assignStatement),
+                createToken(CLOSE_BRACE_TOKEN), null);
+
+        return createFunctionDefinitionNode(
+                OBJECT_METHOD_DEFINITION, null,
+                createEmptyNodeList(),
+                createToken(FUNCTION_KEYWORD),
+                createIdentifierToken("init"),
+                createEmptyNodeList(),
+                signature, body);
     }
 
     private FunctionDefinitionNode buildFunc(Generator gen) throws GeneratorException {

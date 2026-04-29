@@ -23,15 +23,18 @@ import io.ballerina.asyncapi.generator.GeneratorException;
 import io.ballerina.asyncapi.generator.http.extractor.EventIdentifierExtractor;
 import io.ballerina.asyncapi.generator.http.extractor.SchemaExtractor;
 import io.ballerina.asyncapi.generator.http.extractor.ServiceTypeExtractor;
+import io.ballerina.asyncapi.generator.http.extractor.WebhookAuthExtractor;
 import io.ballerina.asyncapi.generator.http.generator.DataTypesGenerator;
 import io.ballerina.asyncapi.generator.http.generator.DispatcherGenerator;
 import io.ballerina.asyncapi.generator.http.generator.ListenerGenerator;
 import io.ballerina.asyncapi.generator.http.generator.ServiceTypesGenerator;
 import io.ballerina.asyncapi.generator.http.model.EventIdentifierConfig;
 import io.ballerina.asyncapi.generator.http.model.HttpServiceType;
+import io.ballerina.asyncapi.generator.http.model.WebhookAuthConfig;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import java.io.Console;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -39,6 +42,7 @@ import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 /**
  * Controls the flow of Ballerina code generation from a parsed AsyncAPI specification.
@@ -77,21 +81,23 @@ public class HttpCodeGenerator {
         Map<String, AsyncApiSchema> schemas = new HashMap<>(new SchemaExtractor(asyncApiSpec).extract());
         schemas.putAll(serviceTypeExtractor.getInlineSchemas());
         EventIdentifierConfig identifierConfig = new EventIdentifierExtractor(asyncApiSpec).extract();
+        Optional<WebhookAuthConfig> webhookAuthConfig = new WebhookAuthExtractor(asyncApiSpec).extract();
 
         // Generate Ballerina source content
         String dataTypesContent = new DataTypesGenerator(schemas).generate();
         String serviceTypesContent = new ServiceTypesGenerator(serviceTypes).generate();
-        String listenerContent = new ListenerGenerator(serviceTypes).generate();
-        String dispatcherContent = new DispatcherGenerator(serviceTypes, identifierConfig).generate();
+        String listenerContent = new ListenerGenerator(serviceTypes, webhookAuthConfig).generate();
+        String dispatcherContent = new DispatcherGenerator(serviceTypes, identifierConfig, webhookAuthConfig)
+                .generate();
 
         // Write generated files to the output directory
-        writeFile(outputPath.resolve(DATA_TYPES_BAL), dataTypesContent);
-        writeFile(outputPath.resolve(SERVICE_TYPES_BAL), serviceTypesContent);
-        writeFile(outputPath.resolve(LISTENER_BAL), listenerContent);
-        writeFile(outputPath.resolve(DISPATCHER_SERVICE_BAL), dispatcherContent);
+        Path writtenDataTypes = writeFile(outputPath.resolve(DATA_TYPES_BAL), dataTypesContent);
+        Path writtenServiceTypes = writeFile(outputPath.resolve(SERVICE_TYPES_BAL), serviceTypesContent);
+        Path writtenListener = writeFile(outputPath.resolve(LISTENER_BAL), listenerContent);
+        Path writtenDispatcher = writeFile(outputPath.resolve(DISPATCHER_SERVICE_BAL), dispatcherContent);
         LOG.info("Following files were created.\n-- {}\n-- {}\n-- {}\n-- {}",
-                DATA_TYPES_BAL, SERVICE_TYPES_BAL,
-                LISTENER_BAL, DISPATCHER_SERVICE_BAL);
+                writtenDataTypes.getFileName(), writtenServiceTypes.getFileName(),
+                writtenListener.getFileName(), writtenDispatcher.getFileName());
     }
 
     /**
@@ -101,14 +107,53 @@ public class HttpCodeGenerator {
      * @param content  the Ballerina source content
      * @throws GeneratorException if the file cannot be written
      */
-    private void writeFile(Path filePath, String content) throws GeneratorException {
+    private Path writeFile(Path filePath, String content) throws GeneratorException {
         try {
             if (filePath.getParent() != null) {
                 Files.createDirectories(filePath.getParent());
             }
-            Files.writeString(filePath, content, StandardCharsets.UTF_8);
+            Path targetPath = filePath;
+            if (Files.exists(filePath)) {
+                Console console = System.console();
+                if (console != null) {
+                    while (true) {
+                        String answer = console.readLine(
+                                "'%s' already exists. Overwrite? [y/n]: ",
+                                filePath.getFileName());
+                        if ("y".equalsIgnoreCase(answer)) {
+                            break;
+                        } else if ("n".equalsIgnoreCase(answer)) {
+                            targetPath = resolveUniqueFile(filePath);
+                            break;
+                        }
+                    }
+                }
+            }
+            Files.writeString(targetPath, content, StandardCharsets.UTF_8);
+            return targetPath;
         } catch (IOException e) {
             throw new GeneratorException(String.format("Could not write to file: %s", filePath), e);
         }
+    }
+
+    /**
+     * Returns a path with a numeric suffix that does not yet exist on disk.
+     * For example, {@code foo.bal} becomes {@code foo.1.bal}, then {@code foo.2.bal}, etc.
+     *
+     * @param filePath the original file path that already exists
+     * @return a non-existing sibling path with a numeric suffix inserted before the extension
+     */
+    private static Path resolveUniqueFile(Path filePath) {
+        String name = filePath.getFileName().toString();
+        int dot = name.lastIndexOf('.');
+        String base = dot >= 0 ? name.substring(0, dot) : name;
+        String ext = dot >= 0 ? name.substring(dot) : "";
+        int counter = 1;
+        Path candidate;
+        do {
+            candidate = filePath.resolveSibling(base + "." + counter + ext);
+            counter++;
+        } while (Files.exists(candidate));
+        return candidate;
     }
 }

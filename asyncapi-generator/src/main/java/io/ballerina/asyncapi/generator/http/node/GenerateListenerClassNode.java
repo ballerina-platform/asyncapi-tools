@@ -20,6 +20,7 @@ package io.ballerina.asyncapi.generator.http.node;
 import io.ballerina.asyncapi.generator.GeneratorException;
 import io.ballerina.asyncapi.generator.http.generator.ServiceTypesGenerator;
 import io.ballerina.asyncapi.generator.http.model.HttpServiceType;
+import io.ballerina.asyncapi.generator.http.model.WebhookAuthConfig;
 import io.ballerina.compiler.syntax.tree.AnnotationNode;
 import io.ballerina.compiler.syntax.tree.ClassDefinitionNode;
 import io.ballerina.compiler.syntax.tree.FunctionBodyBlockNode;
@@ -35,6 +36,7 @@ import io.ballerina.compiler.syntax.tree.StatementNode;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 import static io.ballerina.asyncapi.generator.http.node.GenerateAddServiceRefFuncNode.buildErrorReturnType;
@@ -105,14 +107,18 @@ public class GenerateListenerClassNode implements Generator {
     private static final String LISTENER_GET_SERVICE_TYPE_FUNC = "getServiceTypeStr";
 
     private final List<HttpServiceType> serviceTypes;
+    private final Optional<WebhookAuthConfig> webhookAuthConfig;
 
     /**
      * Creates a generator for the {@code Listener} class.
      *
-     * @param serviceTypes the list of HTTP service type definitions
+     * @param serviceTypes      the list of HTTP service type definitions
+     * @param webhookAuthConfig the optional webhook authentication configuration
      */
-    public GenerateListenerClassNode(List<HttpServiceType> serviceTypes) {
+    public GenerateListenerClassNode(List<HttpServiceType> serviceTypes,
+            Optional<WebhookAuthConfig> webhookAuthConfig) {
         this.serviceTypes = serviceTypes;
+        this.webhookAuthConfig = webhookAuthConfig;
     }
 
     @Override
@@ -217,14 +223,27 @@ public class GenerateListenerClassNode implements Generator {
 
         List<StatementNode> statements = new ArrayList<>();
         statements.add(NodeParser.parseStatement(String.format(
-                "if listenTo is http:Listener { self.%s = listenTo; } else { self.%s"
-                        + " = check new (listenTo, configuration); }",
+                "if listenTo is http:Listener { self.%s = listenTo; } else {"
+                        + " json configJson = configuration.toJson();"
+                        + " map<json> configMap = check configJson.cloneWithType();"
+                        + " _ = configMap.remove(\"%s\");"
+                        + " http:ListenerConfiguration httpConfig = check configMap.cloneWithType();"
+                        + " self.%s = check new (listenTo, httpConfig); }",
                 LISTENER_HTTP_LISTENER_FIELD,
+                GenerateListenerConfigNode.WEBHOOK_SECRET_FIELD,
                 LISTENER_HTTP_LISTENER_FIELD)));
-        statements.add(NodeParser.parseStatement(String.format(
-                "self.%s = new %s();",
-                LISTENER_DISPATCHER_SERVICE_FIELD,
-                GenerateDispatcherServiceNode.DISPATCHER_SERVICE_CLASS_NAME)));
+        if (webhookAuthConfig.isPresent()) {
+            statements.add(NodeParser.parseStatement(String.format(
+                    "self.%s = new %s(configuration.%s);",
+                    LISTENER_DISPATCHER_SERVICE_FIELD,
+                    GenerateDispatcherServiceNode.DISPATCHER_SERVICE_CLASS_NAME,
+                    GenerateListenerConfigNode.WEBHOOK_SECRET_FIELD)));
+        } else {
+            statements.add(NodeParser.parseStatement(String.format(
+                    "self.%s = new %s();",
+                    LISTENER_DISPATCHER_SERVICE_FIELD,
+                    GenerateDispatcherServiceNode.DISPATCHER_SERVICE_CLASS_NAME)));
+        }
 
         return createFunctionDefinitionNode(
                 OBJECT_METHOD_DEFINITION, null,

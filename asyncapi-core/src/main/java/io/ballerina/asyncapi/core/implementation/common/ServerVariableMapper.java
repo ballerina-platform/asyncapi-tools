@@ -53,9 +53,9 @@ public final class ServerVariableMapper {
             examples = asyncVar.getExamples();
         }
         return new AsyncApiServerVariable(
-                variable.getDescription(),
-                variable.getDefault(),
                 variable.getEnum(),
+                variable.getDefault(),
+                variable.getDescription(),
                 examples,
                 extensions
         );

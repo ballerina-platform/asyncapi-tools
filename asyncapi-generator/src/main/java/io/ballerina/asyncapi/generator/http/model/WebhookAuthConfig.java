@@ -18,16 +18,12 @@
 package io.ballerina.asyncapi.generator.http.model;
 
 /**
- * Holds the resolved event identifier configuration from the {@code x-ballerina-event-identifier}
+ * Holds the resolved webhook authentication configuration from the {@code x-ballerina-auth}
  * extension on an AsyncAPI document.
  *
- * @param type the location of the event identifier: {@code "header"} or {@code "body"}
- * @param name the header name (when type is {@code "header"}); {@code null} for body type
- * @param path the dot-notation JSON path (when type is {@code "body"}); {@code null} for header type
+ * @param headerName the HTTP header name used to carry the authentication token
  */
-public record EventIdentifierConfig(
-        String type,
-        String name,
-        String path
+public record WebhookAuthConfig(
+        String headerName
 ) {
 }

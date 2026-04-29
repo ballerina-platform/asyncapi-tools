@@ -84,9 +84,10 @@ public final class EventIdentifierExtractor {
 
         return switch (type) {
             case X_BALLERINA_EVENT_TYPE_HEADER ->
-                    new EventIdentifierConfig(type, extractHeaderPath(identifierFields));
+                    new EventIdentifierConfig(type, extractHeaderPath(identifierFields),
+                            identifierFields.getOrDefault(X_BALLERINA_EVENT_FIELD_IDENTIFIER_PATH, null));
             case X_BALLERINA_EVENT_TYPE_BODY ->
-                    new EventIdentifierConfig(type, extractBodyPath(identifierFields));
+                    new EventIdentifierConfig(type, null, extractBodyPath(identifierFields));
             default -> throw new GeneratorException(String.format(
                     "%s or %s is not provided as the value of %s attribute within the attribute %s"
                             + " in the Async API Specification",

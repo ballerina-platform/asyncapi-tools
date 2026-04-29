@@ -21,10 +21,12 @@ import io.ballerina.asyncapi.generator.GeneratorException;
 import io.ballerina.asyncapi.generator.http.model.EventIdentifierConfig;
 import io.ballerina.asyncapi.generator.http.model.HttpRemoteFunction;
 import io.ballerina.asyncapi.generator.http.model.HttpServiceType;
+import io.ballerina.asyncapi.generator.http.model.WebhookAuthConfig;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
 import java.util.List;
+import java.util.Optional;
 
 /**
  * Unit tests for {@link DispatcherGenerator} verifying generated {@code dispatcher_service.bal}
@@ -41,8 +43,8 @@ public class DispatcherGeneratorTest {
 
     @Test
     void testGenerateWithBodyIdentifier() throws GeneratorException {
-        EventIdentifierConfig config = new EventIdentifierConfig("body", "event.type");
-        String source = new DispatcherGenerator(SINGLE_SERVICE, config).generate();
+        EventIdentifierConfig config = new EventIdentifierConfig("body", null, "event.type");
+        String source = new DispatcherGenerator(SINGLE_SERVICE, config, Optional.<WebhookAuthConfig>empty()).generate();
 
         Assert.assertFalse(source.isBlank(), "Generated dispatcher source should not be blank");
         Assert.assertTrue(source.contains("DispatcherService"),
@@ -57,8 +59,8 @@ public class DispatcherGeneratorTest {
 
     @Test
     void testGenerateWithHeaderIdentifier() throws GeneratorException {
-        EventIdentifierConfig config = new EventIdentifierConfig("header", "X-Event-Type");
-        String source = new DispatcherGenerator(SINGLE_SERVICE, config).generate();
+        EventIdentifierConfig config = new EventIdentifierConfig("header", "X-Event-Type", null);
+        String source = new DispatcherGenerator(SINGLE_SERVICE, config, Optional.<WebhookAuthConfig>empty()).generate();
 
         Assert.assertFalse(source.isBlank(), "Generated dispatcher source should not be blank");
         Assert.assertTrue(source.contains("DispatcherService"),
@@ -69,9 +71,9 @@ public class DispatcherGeneratorTest {
 
     @Test
     void testEmptyServiceTypesThrows() {
-        EventIdentifierConfig config = new EventIdentifierConfig("body", "event.type");
+        EventIdentifierConfig config = new EventIdentifierConfig("body", null, "event.type");
         try {
-            new DispatcherGenerator(List.of(), config).generate();
+            new DispatcherGenerator(List.of(), config, Optional.<WebhookAuthConfig>empty()).generate();
             Assert.fail("Expected GeneratorException for empty service types list");
         } catch (GeneratorException e) {
             Assert.assertNotNull(e.getMessage(), "Exception message should not be null");
@@ -80,9 +82,9 @@ public class DispatcherGeneratorTest {
 
     @Test
     void testNullServiceTypesThrows() {
-        EventIdentifierConfig config = new EventIdentifierConfig("body", "event.type");
+        EventIdentifierConfig config = new EventIdentifierConfig("body", null, "event.type");
         try {
-            new DispatcherGenerator(null, config).generate();
+            new DispatcherGenerator(null, config, Optional.<WebhookAuthConfig>empty()).generate();
             Assert.fail("Expected GeneratorException for null service types");
         } catch (GeneratorException e) {
             Assert.assertNotNull(e.getMessage(), "Exception message should not be null");
@@ -91,9 +93,9 @@ public class DispatcherGeneratorTest {
 
     @Test
     void testInvalidIdentifierTypeThrows() {
-        EventIdentifierConfig config = new EventIdentifierConfig("unknown", "event.type");
+        EventIdentifierConfig config = new EventIdentifierConfig("unknown", null, "event.type");
         try {
-            new DispatcherGenerator(SINGLE_SERVICE, config).generate();
+            new DispatcherGenerator(SINGLE_SERVICE, config, Optional.<WebhookAuthConfig>empty()).generate();
             Assert.fail("Expected GeneratorException for unsupported identifier type");
         } catch (GeneratorException e) {
             Assert.assertTrue(e.getMessage().contains("unknown") || e.getMessage().contains("Unsupported"),

@@ -139,6 +139,7 @@ shadowJar {
         include(dependency('com.github.jknack:handlebars'))
         include(dependency('org.antlr:antlr4:4.5'))
         include(dependency("io.apicurio:apicurio-data-models:${apiCurioVersion}"))
+        include(dependency("org.semver4j:semver4j:${semver4jVersion}"))
         include(dependency('com.atlassian.commonmark:commonmark'))
         include(dependency('com.atlassian.commonmark:commonmark-ext-gfm-tables'))
         exclude('META-INF/*.SF')

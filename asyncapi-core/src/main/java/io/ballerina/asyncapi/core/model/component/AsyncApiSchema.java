@@ -169,6 +169,27 @@ public record AsyncApiSchema(
     }
 
     /**
+     * Returns a copy of this schema with the given {@code description}, preserving all other fields.
+     * Used to attach a sibling {@code description} from a {@code $ref} property node onto the
+     * resolved stub schema so that code generators can emit doc comments for the field.
+     *
+     * @param newDescription the description text to set
+     * @return a new {@link AsyncApiSchema} with the given description
+     */
+    public AsyncApiSchema withDescription(String newDescription) {
+        return new AsyncApiSchema(
+                title(), type(), required(), multipleOf(), maximum(), exclusiveMaximum(),
+                minimum(), exclusiveMinimum(), maxLength(), minLength(), pattern(),
+                maxItems(), minItems(), uniqueItems(), maxProperties(), minProperties(),
+                enumValue(), constValue(), examples(), ifBranch(), then(), elseBranch(), readOnly(),
+                writeOnly(), properties(), patternProperties(), additionalProperties(),
+                additionalItems(), items(), propertyNames(), contains(), allOf(),
+                oneOf(), anyOf(), not(), newDescription, format(), defaultValue(),
+                discriminator(), externalDocs(), deprecated(), extensions(), name()
+        );
+    }
+
+    /**
      * Returns a copy of this schema with the given {@code name}, preserving all other fields.
      * Used by the mapper to stamp the component key onto a resolved payload schema so that
      * code generators can use it as the Ballerina type name.

@@ -28,16 +28,16 @@ import java.util.Map;
  * <p>The variable name is the map key in the containing
  * {@code Map<String, AsyncApiServerVariable>} and is not repeated here.
  *
- * @param description  A description of the variable.
- * @param defaultValue The default value to use for substitution.
  * @param enumValues   An enumeration of allowed string values.
+ * @param defaultValue The default value to use for substitution.
+ * @param description  A description of the variable.
  * @param examples     Example values for the variable.
  * @param extensions   Specification extensions (fields prefixed with "x-").
  */
 public record AsyncApiServerVariable(
-        String description,
-        String defaultValue,
         List<String> enumValues,
+        String defaultValue,
+        String description,
         List<String> examples,
         Map<String, JsonNode> extensions
 ) {

@@ -40,13 +40,10 @@ import static io.ballerina.compiler.syntax.tree.NodeFactory.createSimpleNameRefe
 
 /**
  * Generates the content for {@code service_types.bal} from a list of HTTP service type definitions.
- *
- * <p>Uses the Ballerina Compiler API to produce:
- * <ol>
- *   <li>One {@code public type ... service object { ... };} block per {@link HttpServiceType},
- *       each containing remote function declarations.</li>
- *   <li>A {@code GenericServiceType} union type listing all generated service type names.</li>
- * </ol>
+ * Uses the Ballerina Compiler API to produce:
+ * One {@code public type ... service object { ... };} block per {@link HttpServiceType},
+ *       each containing remote function declarations.
+ * A {@code GenericServiceType} union type listing all generated service type names.
  */
 public class ServiceTypesGenerator {
 

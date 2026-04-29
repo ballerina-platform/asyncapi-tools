@@ -20,10 +20,12 @@ package io.ballerina.asyncapi.generator.http.generator;
 import io.ballerina.asyncapi.generator.GeneratorException;
 import io.ballerina.asyncapi.generator.http.model.HttpRemoteFunction;
 import io.ballerina.asyncapi.generator.http.model.HttpServiceType;
+import io.ballerina.asyncapi.generator.http.model.WebhookAuthConfig;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
 import java.util.List;
+import java.util.Optional;
 
 /**
  * Unit tests for {@link ListenerGenerator} verifying generated {@code listener.bal} content
@@ -41,7 +43,7 @@ public class ListenerGeneratorTest {
                         new HttpRemoteFunction("issues.opened", "IssueEvent")
                 ))
         );
-        String source = new ListenerGenerator(serviceTypes).generate();
+        String source = new ListenerGenerator(serviceTypes, Optional.<WebhookAuthConfig>empty()).generate();
 
         Assert.assertFalse(source.isBlank(), "Generated listener source should not be blank");
         Assert.assertTrue(source.contains("Listener"),
@@ -59,7 +61,7 @@ public class ListenerGeneratorTest {
     @Test
     void testEmptyServiceTypesThrows() {
         try {
-            new ListenerGenerator(List.of()).generate();
+            new ListenerGenerator(List.of(), Optional.<WebhookAuthConfig>empty()).generate();
             Assert.fail("Expected GeneratorException for empty service types list");
         } catch (GeneratorException e) {
             Assert.assertNotNull(e.getMessage(), "Exception message should not be null");
@@ -69,7 +71,7 @@ public class ListenerGeneratorTest {
     @Test
     void testNullServiceTypesThrows() {
         try {
-            new ListenerGenerator(null).generate();
+            new ListenerGenerator(null, Optional.<WebhookAuthConfig>empty()).generate();
             Assert.fail("Expected GeneratorException for null service types");
         } catch (GeneratorException e) {
             Assert.assertNotNull(e.getMessage(), "Exception message should not be null");

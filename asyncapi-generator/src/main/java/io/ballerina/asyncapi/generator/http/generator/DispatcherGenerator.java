@@ -21,8 +21,11 @@ import io.ballerina.asyncapi.generator.GeneratorException;
 import io.ballerina.asyncapi.generator.http.extractor.EventIdentifierExtractor;
 import io.ballerina.asyncapi.generator.http.model.EventIdentifierConfig;
 import io.ballerina.asyncapi.generator.http.model.HttpServiceType;
+import io.ballerina.asyncapi.generator.http.model.WebhookAuthConfig;
+import io.ballerina.asyncapi.generator.http.node.GenerateCryptoImportNode;
 import io.ballerina.asyncapi.generator.http.node.GenerateDispatcherServiceNode;
 import io.ballerina.asyncapi.generator.http.node.GenerateHttpImportNode;
+import io.ballerina.asyncapi.generator.http.node.GenerateLangRegexpImportNode;
 import io.ballerina.asyncapi.generator.http.node.GenerateNativeHandlerImportNode;
 import io.ballerina.compiler.syntax.tree.ClassDefinitionNode;
 import io.ballerina.compiler.syntax.tree.ImportDeclarationNode;
@@ -34,6 +37,7 @@ import org.ballerinalang.formatter.core.Formatter;
 import org.ballerinalang.formatter.core.FormatterException;
 
 import java.util.List;
+import java.util.Optional;
 
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createNodeList;
 
@@ -49,16 +53,21 @@ public class DispatcherGenerator {
 
     private final List<HttpServiceType> serviceTypes;
     private final EventIdentifierConfig identifierConfig;
+    private final Optional<WebhookAuthConfig> webhookAuthConfig;
 
     /**
-     * Creates a generator for the given service types and event identifier configuration.
+     * Creates a generator for the given service types, event identifier configuration, and optional
+     * webhook auth configuration.
      *
-     * @param serviceTypes     the list of HTTP service type definitions
-     * @param identifierConfig the resolved event identifier type and path
+     * @param serviceTypes      the list of HTTP service type definitions
+     * @param identifierConfig  the resolved event identifier type and path
+     * @param webhookAuthConfig the optional webhook authentication configuration
      */
-    public DispatcherGenerator(List<HttpServiceType> serviceTypes, EventIdentifierConfig identifierConfig) {
+    public DispatcherGenerator(List<HttpServiceType> serviceTypes, EventIdentifierConfig identifierConfig,
+            Optional<WebhookAuthConfig> webhookAuthConfig) {
         this.serviceTypes = serviceTypes;
         this.identifierConfig = identifierConfig;
+        this.webhookAuthConfig = webhookAuthConfig;
     }
 
     /**
@@ -81,7 +90,7 @@ public class DispatcherGenerator {
         }
 
         ClassDefinitionNode classNode =
-                new GenerateDispatcherServiceNode(serviceTypes, identifierConfig).generate();
+                new GenerateDispatcherServiceNode(serviceTypes, identifierConfig, webhookAuthConfig).generate();
 
         ImportDeclarationNode httpImport = GenerateHttpImportNode.generate();
         ImportDeclarationNode handlerImport = GenerateNativeHandlerImportNode.generate();
@@ -90,7 +99,10 @@ public class DispatcherGenerator {
         SyntaxTree syntaxTree = SyntaxTree.from(textDocument);
         ModulePartNode oldRoot = syntaxTree.rootNode();
         ModulePartNode newRoot = oldRoot.modify()
-                .withImports(createNodeList(httpImport, handlerImport))
+                .withImports(webhookAuthConfig.isPresent()
+                        ? createNodeList(httpImport, handlerImport,
+                                GenerateCryptoImportNode.generate(), GenerateLangRegexpImportNode.generate())
+                        : createNodeList(httpImport, handlerImport))
                 .withMembers(createNodeList(classNode))
                 .apply();
         SyntaxTree modifiedTree = syntaxTree.replaceNode(oldRoot, newRoot);

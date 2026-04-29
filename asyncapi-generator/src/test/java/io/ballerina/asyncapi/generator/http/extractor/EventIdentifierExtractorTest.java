@@ -55,7 +55,7 @@ public class EventIdentifierExtractorTest {
         EventIdentifierConfig config = new EventIdentifierExtractor(spec).extract();
 
         Assert.assertEquals(config.type(), "header");
-        Assert.assertEquals(config.path(), "X-Event-Type");
+        Assert.assertEquals(config.name(), "X-Event-Type");
     }
 
     @Test
@@ -66,7 +66,7 @@ public class EventIdentifierExtractorTest {
         EventIdentifierConfig config = new EventIdentifierExtractor(spec).extract();
 
         Assert.assertEquals(config.type(), "header");
-        Assert.assertEquals(config.path(), "'type",
+        Assert.assertEquals(config.name(), "'type",
                 "Ballerina keyword 'type' must be escaped with a leading apostrophe");
     }
 
