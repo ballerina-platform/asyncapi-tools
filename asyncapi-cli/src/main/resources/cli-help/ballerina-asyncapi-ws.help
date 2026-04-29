@@ -1,0 +1,123 @@
+NAME
+        bal asyncapi ws - Generate Ballerina source files from an AsyncAPI
+                         definition for WebSocket protocol, or
+                         generate an AsyncAPI definition from a
+                         Ballerina service file
+
+SYNOPSIS
+        bal asyncapi ws -i <input-file-path>
+                        [-o <output-directory>]
+                        [--module <module-name>]
+                        [--license <license-file-path>]
+                        [--json]
+                        [--service <service-name>]
+                        [--with-tests]
+
+DESCRIPTION
+        The flow direction is determined automatically from the file
+        extension of the --input argument:
+
+        - .yaml, .yml, or .json  →  spec-to-code: generates Ballerina
+          source files from an AsyncAPI definition for WebSocket
+          protocol integrations.
+
+        - .bal  →  code-to-spec: generates an AsyncAPI definition from
+          a Ballerina service file. Use --service to target a specific 
+          named service when the file contains multiple services. 
+          Use --json to write the output definition in JSON format 
+          instead of the default YAML.
+
+        SPEC-TO-CODE OUTPUT:
+        The output directory must be a Ballerina package. If a --module flag is provided, the
+        generated files are written into the modules/<module-name>/
+        directory of that package. If no --module flag is
+        given, the generated files are written directly into the root of
+        the package.
+
+        CODE-TO-SPEC OUTPUT:
+        The --output flag in code-to-spec mode specifies where the
+        generated AsyncAPI spec file is written.
+
+OPTIONS
+        -i, --input <input-file-path>
+                This is a mandatory input. The path to the AsyncAPI
+                definition file (.yaml, .yml, or .json) for
+                spec-to-code generation, or the path to the
+                Ballerina service file (.bal) for code-to-spec
+                generation.
+
+        -o, --output <output-directory>
+                This is an optional input. The path to the target
+                output directory for the generated files.
+                If not given, defaults to the current working directory.
+
+        --module <module-name>
+                This is an optional input. The name of the Ballerina
+                module to generate code into. Only valid in spec-to-code
+
+        --license <license-file-path>
+                This is an optional input. The path to a file
+                containing the license header to be added to all
+                generated Ballerina files. Applicable only in
+                spec-to-code mode.
+
+        --json
+                This is an optional input. If set, the generated
+                AsyncAPI definition is written in JSON format
+                instead of the default YAML format. Applicable
+                only in code-to-spec mode.
+
+        --service <service-name>
+                This is an optional input. The name of a specific
+                service in the Ballerina source file for which an
+                AsyncAPI definition should be generated. Applicable
+                only in code-to-spec mode (when a .bal file is
+                given as input).
+
+        --with-tests
+                This is an optional input. If set, test files are
+                generated alongside the service files. Applicable
+                only in spec-to-code mode.
+
+        -h, --help
+                Display help for the ws subcommand.
+
+EXAMPLES
+        Generate Ballerina WebSocket files from an AsyncAPI definition
+        in the current directory.
+
+            $ bal asyncapi ws -i definition.yaml
+
+        Generate Ballerina WebSocket files into a specific Ballerina
+        package.
+
+            $ bal asyncapi ws -i definition.yaml \
+                              -o ./myproject
+
+        Generate Ballerina WebSocket files into a specific module
+        inside a Ballerina package.
+
+            $ bal asyncapi ws -i definition.yaml \
+                              --module payments
+
+        Generate Ballerina WebSocket files and also generate test files.
+
+            $ bal asyncapi ws -i definition.yaml \
+                              -o ./myproject \
+                              --with-tests
+
+        Generate AsyncAPI definitions for all services in a Ballerina
+        file.
+
+            $ bal asyncapi ws -i service.bal
+
+        Generate an AsyncAPI definition for a specific service in a
+        Ballerina file.
+
+            $ bal asyncapi ws -i service.bal \
+                              --service ChatService
+
+        Generate an AsyncAPI definition in JSON format.
+
+            $ bal asyncapi ws -i service.bal \
+                              --json

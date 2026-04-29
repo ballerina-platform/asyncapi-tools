@@ -1,0 +1,24 @@
+NAME
+        bal asyncapi - Generate a Ballerina listener from an AsyncAPI contract,
+                       or generate an AsyncAPI specification from a Ballerina service file.
+
+SYNOPSIS
+        bal asyncapi <http|ws> [flags]
+
+DESCRIPTION
+        Generate a Ballerina source from the given AsyncAPI definition file, or generate
+        an AsyncAPI specification from a Ballerina service file.
+
+        The generated Ballerina sources and AsyncAPI specification will be written into
+        the provided output location.
+
+OPTIONS
+        -h, --help
+                Display help for the parent command or a subcommand.
+
+EXAMPLES
+        Display help for the http subcommand.
+            $ bal asyncapi http --help
+
+        Display help for the ws subcommand.
+            $ bal asyncapi ws --help

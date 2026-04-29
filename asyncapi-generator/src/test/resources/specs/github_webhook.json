@@ -1,0 +1,169 @@
+{
+  "asyncapi": "2.1.0",
+  "info": {
+    "title": "GitHub Webhook Events API",
+    "version": "1.0.0",
+    "description": "Test fixture for header sub-case B two-level dispatch. Event type is delivered via X-GitHub-Event header; action is delivered as payload.action. Compound events (pull_request, issues) have name != x-ballerina-event-type. Simple events (push, create) have name == x-ballerina-event-type."
+  },
+  "x-ballerina-event-identifier": {
+    "type": "header",
+    "name": "X-GitHub-Event",
+    "path": "action"
+  },
+  "servers": {
+    "production": {
+      "url": "{webhook_url}",
+      "protocol": "https",
+      "description": "Webhook endpoint where GitHub delivers events.",
+      "variables": {
+        "webhook_url": {
+          "description": "The HTTPS URL of your server where GitHub sends webhook payloads."
+        }
+      }
+    }
+  },
+  "channels": {
+    "pull_request": {
+      "description": "Pull request lifecycle events. X-GitHub-Event header value is 'pull_request'; action discriminates the specific event.",
+      "subscribe": {
+        "message": {
+          "oneOf": [
+            {
+              "name": "pull_request",
+              "x-ballerina-event-type": "pull_request_opened",
+              "summary": "A pull request was opened.",
+              "payload": { "$ref": "#/components/schemas/PullRequestPayload" }
+            },
+            {
+              "name": "pull_request",
+              "x-ballerina-event-type": "pull_request_closed",
+              "summary": "A pull request was closed.",
+              "payload": { "$ref": "#/components/schemas/PullRequestPayload" }
+            }
+          ]
+        }
+      }
+    },
+    "issues": {
+      "description": "Issue lifecycle events. X-GitHub-Event header value is 'issues'; action discriminates the specific event.",
+      "subscribe": {
+        "message": {
+          "oneOf": [
+            {
+              "name": "issues",
+              "x-ballerina-event-type": "issues_opened",
+              "summary": "An issue was opened.",
+              "payload": { "$ref": "#/components/schemas/IssuePayload" }
+            },
+            {
+              "name": "issues",
+              "x-ballerina-event-type": "issues_closed",
+              "summary": "An issue was closed.",
+              "payload": { "$ref": "#/components/schemas/IssuePayload" }
+            }
+          ]
+        }
+      }
+    },
+    "repository": {
+      "description": "Repository push and ref creation events. Each message is a simple event: name == x-ballerina-event-type, no action field in payload.",
+      "subscribe": {
+        "message": {
+          "oneOf": [
+            {
+              "name": "push",
+              "x-ballerina-event-type": "push",
+              "summary": "One or more commits were pushed to a repository branch or tag.",
+              "payload": { "$ref": "#/components/schemas/PushPayload" }
+            },
+            {
+              "name": "create",
+              "x-ballerina-event-type": "create",
+              "summary": "A Git branch or tag was created.",
+              "payload": { "$ref": "#/components/schemas/CreatePayload" }
+            }
+          ]
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "PullRequestPayload": {
+        "type": "object",
+        "description": "Payload for pull_request events. The action field discriminates opened vs closed.",
+        "properties": {
+          "action": {
+            "type": "string",
+            "description": "The action that was performed.",
+            "enum": ["opened", "closed"]
+          },
+          "number": {
+            "type": "integer",
+            "description": "The pull request number."
+          },
+          "pull_request": {
+            "type": "object",
+            "description": "The pull request object."
+          }
+        },
+        "required": ["action", "number", "pull_request"]
+      },
+      "IssuePayload": {
+        "type": "object",
+        "description": "Payload for issues events. The action field discriminates opened vs closed.",
+        "properties": {
+          "action": {
+            "type": "string",
+            "description": "The action that was performed.",
+            "enum": ["opened", "closed"]
+          },
+          "number": {
+            "type": "integer",
+            "description": "The issue number."
+          },
+          "issue": {
+            "type": "object",
+            "description": "The issue object."
+          }
+        },
+        "required": ["action", "number", "issue"]
+      },
+      "PushPayload": {
+        "type": "object",
+        "description": "Payload for push events. No action field — this is a simple event.",
+        "properties": {
+          "ref": {
+            "type": "string",
+            "description": "The full Git ref that was pushed."
+          },
+          "before": {
+            "type": "string",
+            "description": "The SHA of the most recent commit on the ref before the push."
+          },
+          "after": {
+            "type": "string",
+            "description": "The SHA of the most recent commit on the ref after the push."
+          }
+        },
+        "required": ["ref", "before", "after"]
+      },
+      "CreatePayload": {
+        "type": "object",
+        "description": "Payload for create events. No action field — this is a simple event.",
+        "properties": {
+          "ref": {
+            "type": "string",
+            "description": "The Git ref that was created."
+          },
+          "ref_type": {
+            "type": "string",
+            "description": "The type of Git ref object created: branch or tag.",
+            "enum": ["branch", "tag"]
+          }
+        },
+        "required": ["ref", "ref_type"]
+      }
+    }
+  }
+}
