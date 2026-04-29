@@ -22,18 +22,15 @@ DESCRIPTION
           protocol integrations.
 
         - .bal  →  code-to-spec: generates an AsyncAPI definition from
-          a Ballerina service file. The .bal file is compiled and
-          validated before generation. If the file contains compilation
-          errors, the errors are printed and generation stops.
-          Use --service to target a specific named service when the
-          file contains multiple services. Use --json to write the
-          output definition in JSON format instead of the default YAML.
+          a Ballerina service file. Use --service to target a specific 
+          named service when the file contains multiple services. 
+          Use --json to write the output definition in JSON format 
+          instead of the default YAML.
 
         SPEC-TO-CODE OUTPUT:
         The output directory must be a Ballerina package. If a --module flag is provided, the
         generated files are written into the modules/<module-name>/
-        directory of that package, making them a proper Ballerina module
-        that compiles as part of the package. If no --module flag is
+        directory of that package. If no --module flag is
         given, the generated files are written directly into the root of
         the package.
 
@@ -57,9 +54,6 @@ OPTIONS
         --module <module-name>
                 This is an optional input. The name of the Ballerina
                 module to generate code into. Only valid in spec-to-code
-                mode.
-                The module name must be a valid Ballerina identifier and
-                must not exceed 256 characters.
 
         --license <license-file-path>
                 This is an optional input. The path to a file
@@ -71,16 +65,14 @@ OPTIONS
                 This is an optional input. If set, the generated
                 AsyncAPI definition is written in JSON format
                 instead of the default YAML format. Applicable
-                only in code-to-spec mode (when a .bal file is
-                given as input).
+                only in code-to-spec mode.
 
         --service <service-name>
                 This is an optional input. The name of a specific
                 service in the Ballerina source file for which an
                 AsyncAPI definition should be generated. Applicable
                 only in code-to-spec mode (when a .bal file is
-                given as input). If omitted, definitions are
-                generated for all services in the file.
+                given as input).
 
         --with-tests
                 This is an optional input. If set, test files are

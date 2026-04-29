@@ -9,16 +9,8 @@ DESCRIPTION
         Generate a Ballerina source from the given AsyncAPI definition file, or generate
         an AsyncAPI specification from a Ballerina service file.
 
-        The Ballerina AsyncAPI tool provides two subcommands for
-        working with AsyncAPI specifications.
-
-        Use the http subcommand for HTTP/Webhook source code generation.
-        Use the ws subcommand for WebSocket source code generation and
-        for generating an AsyncAPI specification from a Ballerina
-        service file.
-
-        The generated Ballerina sources will be written into the provided output location.
-        The generated AsyncAPI specification will be written into the provided output location.
+        The generated Ballerina sources and AsyncAPI specification will be written into
+        the provided output location.
 
 OPTIONS
         -h, --help

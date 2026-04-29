@@ -12,14 +12,12 @@ DESCRIPTION
         Generates Ballerina source files from an AsyncAPI definition
         file for HTTP Webhook protocol integrations.
 
-        The --input flag is mandatory. All other flags are optional.
-
-        The output directory must be a Ballerina package. If a --module flag is provided, the
-        generated files are written into the modules/<module-name>/
-        directory of that package, making them a proper Ballerina module
-        that compiles as part of the package. If no --module flag is
-        given, the generated files are written directly into the root of
-        the package.
+        The output directory must be a Ballerina package. If a --module
+        flag is provided, the generated files are written into the 
+        modules/<module-name>/ directory of that package, making them a 
+        proper Ballerina module that compiles as part of the package. 
+        If no --module flag is given, the generated files are written 
+        directly into the root of the package.
 
 OPTIONS
         -i, --input <asyncapi-definition-file-path>
@@ -29,14 +27,10 @@ OPTIONS
         -o, --output <output-directory>
                 This is an optional input. The path to the target
                 output directory for the generated Ballerina files.
-                If not given, defaults to the current working directory.
-                It should be a ballerina package.
 
         --module <module-name>
                 This is an optional input. The name of the Ballerina
-                module to generate code into. The module name must
-                be a valid Ballerina identifier and must not exceed 256
-                characters.
+                module to generate code into.
 
         --license <license-file-path>
                 This is an optional input. The path to a file
