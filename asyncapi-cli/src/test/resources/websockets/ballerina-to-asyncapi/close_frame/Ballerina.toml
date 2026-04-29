@@ -1,7 +1,0 @@
-[package]
-org = "wso2"
-name = "closeframe_test"
-version = "0.1.0"
-
-[build-options]
-observabilityIncluded = true

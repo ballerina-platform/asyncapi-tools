@@ -75,11 +75,11 @@ public class HttpCmdUnitTest extends CmdTestBase {
 
     @Test(description = "--with-tests flag on http prints "
             + "unsupported warning but does not error")
-    public void testWithTestsWarning() {
+    public void testWithTestsWarning() throws IOException {
+        Path specFile = Files.createTempFile(tmpDir, "spec-", ".yml");
         Http cmd = new Http(outStream, errStream, false);
         new CommandLine(cmd).parseArgs(
-            "--input", specsDir.resolve(
-                "spec-complete-slack.yml").toString(),
+            "--input", specFile.toString(),
             "--with-tests");
         // We only check the warning is emitted — generation
         // may succeed or fail depending on environment.

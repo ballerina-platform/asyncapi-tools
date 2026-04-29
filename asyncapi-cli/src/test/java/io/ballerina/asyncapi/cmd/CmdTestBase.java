@@ -26,7 +26,6 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Comparator;
 
 /**
@@ -40,11 +39,6 @@ public abstract class CmdTestBase {
     protected ByteArrayOutputStream errContent;
     protected PrintStream outStream;
     protected PrintStream errStream;
-
-    protected final Path resourceDir =
-        Paths.get("src/test/resources").toAbsolutePath();
-    protected final Path specsDir =
-        resourceDir.resolve("specs");
 
     @BeforeMethod
     public void setUpStreams() throws IOException {
