@@ -91,6 +91,13 @@ public class HttpCodeGenerator {
                 .generate();
 
         // Write generated files to the output directory
+        List<Path> filePathsToWrite = List.of(
+                outputPath.resolve(DATA_TYPES_BAL),
+                outputPath.resolve(SERVICE_TYPES_BAL),
+                outputPath.resolve(LISTENER_BAL),
+                outputPath.resolve(DISPATCHER_SERVICE_BAL));
+        validateOverwriteDecisions(filePathsToWrite);
+
         Path writtenDataTypes = writeFile(outputPath.resolve(DATA_TYPES_BAL), dataTypesContent);
         Path writtenServiceTypes = writeFile(outputPath.resolve(SERVICE_TYPES_BAL), serviceTypesContent);
         Path writtenListener = writeFile(outputPath.resolve(LISTENER_BAL), listenerContent);
@@ -112,48 +119,33 @@ public class HttpCodeGenerator {
             if (filePath.getParent() != null) {
                 Files.createDirectories(filePath.getParent());
             }
-            Path targetPath = filePath;
-            if (Files.exists(filePath)) {
-                Console console = System.console();
-                if (console != null) {
-                    while (true) {
-                        String answer = console.readLine(
-                                "'%s' already exists. Overwrite? [y/n]: ",
-                                filePath.getFileName());
-                        if ("y".equalsIgnoreCase(answer)) {
-                            break;
-                        } else if ("n".equalsIgnoreCase(answer)) {
-                            targetPath = resolveUniqueFile(filePath);
-                            break;
-                        }
-                    }
-                }
-            }
-            Files.writeString(targetPath, content, StandardCharsets.UTF_8);
-            return targetPath;
+            Files.writeString(filePath, content, StandardCharsets.UTF_8);
+            return filePath;
         } catch (IOException e) {
             throw new GeneratorException(String.format("Could not write to file: %s", filePath), e);
         }
     }
 
-    /**
-     * Returns a path with a numeric suffix that does not yet exist on disk.
-     * For example, {@code foo.bal} becomes {@code foo.1.bal}, then {@code foo.2.bal}, etc.
-     *
-     * @param filePath the original file path that already exists
-     * @return a non-existing sibling path with a numeric suffix inserted before the extension
-     */
-    private static Path resolveUniqueFile(Path filePath) {
-        String name = filePath.getFileName().toString();
-        int dot = name.lastIndexOf('.');
-        String base = dot >= 0 ? name.substring(0, dot) : name;
-        String ext = dot >= 0 ? name.substring(dot) : "";
-        int counter = 1;
-        Path candidate;
-        do {
-            candidate = filePath.resolveSibling(base + "." + counter + ext);
-            counter++;
-        } while (Files.exists(candidate));
-        return candidate;
+    private void validateOverwriteDecisions(List<Path> filePaths) throws GeneratorException {
+        Console console = System.console();
+        if (console == null) {
+            return;
+        }
+        for (Path filePath : filePaths) {
+            if (!Files.exists(filePath)) {
+                continue;
+            }
+            while (true) {
+                String answer = console.readLine(
+                        "'%s' already exists. Overwrite? [y/n]: ",
+                        filePath.getFileName());
+                if ("y".equalsIgnoreCase(answer)) {
+                    break;
+                } else if ("n".equalsIgnoreCase(answer)) {
+                    throw new GeneratorException(
+                            String.format("Generation cancelled by user: '%s' already exists.", filePath));
+                }
+            }
+        }
     }
 }

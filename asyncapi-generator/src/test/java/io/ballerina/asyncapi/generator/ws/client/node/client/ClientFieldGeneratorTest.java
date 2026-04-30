@@ -93,4 +93,14 @@ public class ClientFieldGeneratorTest {
         Assert.assertTrue(src.contains("chatMessagePipe"),
                 "buildFields responseMap field should embed the pipe name value 'chatMessagePipe'");
     }
+
+    @Test
+    void testBuildFields_responseMapEmptyGeneratesEmptyMapLiteral() throws GeneratorException {
+        BallerinaAuthConfigGenerator authGen = new BallerinaAuthConfigGenerator();
+        ClientFieldGenerator gen = new ClientFieldGenerator(false, authGen, Map.of());
+        List<ObjectFieldNode> fields = gen.buildFields();
+        String src = fields.stream().map(ObjectFieldNode::toString).collect(Collectors.joining("\n"));
+        Assert.assertTrue(src.contains("responseMap = {}"),
+                "buildFields should initialize responseMap with an empty map literal when no entries exist");
+    }
 }

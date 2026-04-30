@@ -97,6 +97,10 @@ public class ClientFieldGenerator {
      * @return the object field node
      */
     private ObjectFieldNode buildResponseMapField() {
+        if (responseMap.isEmpty()) {
+            return (ObjectFieldNode) NodeParser.parseObjectMember(
+                    String.format("private final readonly & map<string> %s = {};", RESPONSE_MAP));
+        }
         StringBuilder mapExpr = new StringBuilder("{\n");
         Iterator<Map.Entry<String, String>> it = responseMap.entrySet().iterator();
         while (it.hasNext()) {

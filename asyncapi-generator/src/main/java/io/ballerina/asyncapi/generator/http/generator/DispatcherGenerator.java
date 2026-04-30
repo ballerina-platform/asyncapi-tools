@@ -25,7 +25,6 @@ import io.ballerina.asyncapi.generator.http.model.WebhookAuthConfig;
 import io.ballerina.asyncapi.generator.http.node.GenerateCryptoImportNode;
 import io.ballerina.asyncapi.generator.http.node.GenerateDispatcherServiceNode;
 import io.ballerina.asyncapi.generator.http.node.GenerateHttpImportNode;
-import io.ballerina.asyncapi.generator.http.node.GenerateLangRegexpImportNode;
 import io.ballerina.asyncapi.generator.http.node.GenerateNativeHandlerImportNode;
 import io.ballerina.compiler.syntax.tree.ClassDefinitionNode;
 import io.ballerina.compiler.syntax.tree.ImportDeclarationNode;
@@ -102,7 +101,7 @@ public class DispatcherGenerator {
         ModulePartNode newRoot = oldRoot.modify()
                 .withImports(webhookAuthConfig.isPresent()
                         ? createNodeList(httpImport, handlerImport,
-                                GenerateCryptoImportNode.generate(), GenerateLangRegexpImportNode.generate())
+                                GenerateCryptoImportNode.generate())
                         : createNodeList(httpImport, handlerImport))
                 .withMembers(createNodeList(classNode))
                 .apply();

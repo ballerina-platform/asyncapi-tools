@@ -61,7 +61,12 @@ public enum AsyncApiCmdToolDiagnostic {
     ASYNC_CLI_008("ASYNC_CLI_008", "Could not find package name in Ballerina.toml."),
 
     /** The supplied .bal file has compilation errors; {@code %s} is the newline-separated list. */
-    ASYNC_CLI_009("ASYNC_CLI_009", "The .bal file has compilation errors:%s");
+    ASYNC_CLI_009("ASYNC_CLI_009", "The .bal file has compilation errors:%s"),
+
+    /** Output path is inside project but not root or modules/<name>; {@code %s} is the path. */
+    ASYNC_CLI_010("ASYNC_CLI_010",
+            "Unrecognized module location: %s. "
+            + "Use the project root, modules/<module>, or pass --module to target a specific module.");
 
     private final String code;
     private final String message;

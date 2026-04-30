@@ -102,14 +102,17 @@ public class AsyncApiProjectUtilsTest extends CmdTestBase {
     }
 
     @Test
-    void testResolveOutputPathUnrecognizedSubdirWarns() throws IOException {
+    void testResolveOutputPathUnrecognizedSubdirThrows() throws IOException {
         writeBallerinaToml(tmpDir, PKG_TOML);
-        // subDir does not exist yet — walk-up finds tmpDir as root, warns about non-standard location
+        // subDir does not exist yet — walk-up finds tmpDir as root, then rejects non-standard location
         Path subDir = tmpDir.resolve("src");
-        Path result = AsyncApiProjectUtils.resolveOutputPath(subDir, null, errStream);
-        Assert.assertEquals(result.toAbsolutePath().normalize(), subDir.toAbsolutePath().normalize());
-        Assert.assertTrue(getErr().contains("warning:"),
-                "Expected warning for unrecognized subdir. Err: " + getErr());
+        AsyncApiCmdToolException ex = Assert.expectThrows(
+                AsyncApiCmdToolException.class,
+                () -> AsyncApiProjectUtils.resolveOutputPath(subDir, null, errStream));
+        Assert.assertEquals(ex.getDiagnosticCode(), "ASYNC_CLI_010");
+        Assert.assertTrue(ex.getDiagnosticMessage().contains(subDir.toString()),
+                "Expected unrecognized location message to include the given path. Got: "
+                        + ex.getDiagnosticMessage());
     }
 
     @Test

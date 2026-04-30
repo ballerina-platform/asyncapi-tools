@@ -125,10 +125,8 @@ public final class AsyncApiProjectUtils {
             if (rel.getNameCount() >= 2 && rel.getName(0).toString().equals("modules")) {
                 return effectivePath;
             }
-            warningStream.println("warning: '" + effectivePath + "' is not a recognized module location. "
-                    + "Generated files will be written there anyway. "
-                    + "Use --module to target a specific module instead.");
-            return effectivePath;
+            throw new AsyncApiCmdToolException(
+                    AsyncApiCmdToolDiagnostic.ASYNC_CLI_010, effectivePath.toString());
         }
         if (packageName.equals(module)) {
             return rootPath;
