@@ -5,7 +5,7 @@ plugins {
     id 'maven-publish'
     id "com.github.spotbugs"
     id "jacoco"
-    id "com.github.johnrengelman.shadow"
+    id "com.gradleup.shadow"
     id "de.undercouch.download"
     id "net.researchgate.release"
 }
@@ -59,6 +59,13 @@ allprojects {
 }
 
 subprojects {
+    plugins.withId('java') {
+        java {
+            toolchain {
+                languageVersion = JavaLanguageVersion.of(25)
+            }
+        }
+    }
     // Only apply Java plugin to projects that need it (exclude asyncapi-tool which uses Ballerina plugin)
     if (project.name != 'asyncapi-tool') {
         apply plugin: 'java'
@@ -111,6 +118,14 @@ tasks.withType(JavaCompile) {
     options.encoding = 'UTF-8'
 }
 
+spotbugs {
+    excludeFilter = file("${rootDir}/spotbugs-exclude.xml")
+}
+
+jacoco {
+    toolVersion = "${jacocoVersion}"
+}
+
 task codeCoverageReport(type: JacocoReport) {
     dependsOn = subprojects.findAll { it.name != 'asyncapi-tool' }.test
 
@@ -123,9 +138,9 @@ task codeCoverageReport(type: JacocoReport) {
         xml.required = true
         html.required = true
         csv.required = true
-        xml.destination(new File("${buildDir}/reports/jacoco/report.xml"))
-        html.destination(new File("${buildDir}/reports/jacoco/report.html"))
-        csv.destination(new File("${buildDir}/reports/jacoco/report.csv"))
+        xml.outputLocation = layout.buildDirectory.file("reports/jacoco/report.xml")
+        html.outputLocation = layout.buildDirectory.dir("reports/jacoco/report.html")
+        csv.outputLocation = layout.buildDirectory.file("reports/jacoco/report.csv")
     }
 
     onlyIf = {
@@ -188,7 +203,7 @@ task directoryBuild {
 }
 
 task createArtifactZip(type: Zip) {
-    destinationDirectory = file("${buildDir}/distributions")
+    destinationDirectory = layout.buildDirectory.dir("distributions")
     from directoryBuild
 }
 

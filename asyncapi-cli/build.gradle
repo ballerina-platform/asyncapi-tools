@@ -16,14 +16,14 @@
  */
 
 plugins {
-    id "com.github.johnrengelman.shadow"
+    id "com.gradleup.shadow"
     id "java-library"
     id "checkstyle"
 }
 
 description = "Ballerina - AsyncAPI Tooling - AsyncAPI to Ballerina"
 
-def ballerinaDist = "$project.buildDir/jballerina-tools-${ballerinaLangVersion}"
+def ballerinaDist = project.layout.buildDirectory.dir("jballerina-tools-${ballerinaLangVersion}").get().asFile.absolutePath
 def runtimePath = "${project.rootDir}/target/ballerina-distribution"
 
 tasks.register("jBallerinaPack")
@@ -99,7 +99,7 @@ jBallerinaPack {
         configurations.balTools.resolvedConfiguration.resolvedArtifacts.each { artifact ->
             copy {
                 from project.zipTree(artifact.getFile())
-                into new File("${project.buildDir}")
+                into project.layout.buildDirectory.get().asFile
             }
             copy {
                 from(project.zipTree(artifact.getFile())) {
@@ -121,7 +121,7 @@ unpackStdLibs() {
         configurations.ballerinaStdLibs.resolvedConfiguration.resolvedArtifacts.each { artifact ->
             copy {
                 from project.zipTree(artifact.getFile())
-                into new File("${project.buildDir}/extracted-stdlibs/" + artifact.name + "-zip")
+                into project.layout.buildDirectory.dir("extracted-stdlibs/" + artifact.name + "-zip").get().asFile
             }
         }
     }
@@ -132,7 +132,7 @@ copyStdlibs() {
     /* Standard Libraries */
     doLast {
         configurations.ballerinaStdLibs.resolvedConfiguration.resolvedArtifacts.each { artifact ->
-            def artifactExtractedPath = "${project.buildDir}/extracted-stdlibs/" + artifact.name + "-zip"
+            def artifactExtractedPath = project.layout.buildDirectory.dir("extracted-stdlibs/" + artifact.name + "-zip").get().asFile.absolutePath
             copy {
                 into ballerinaDist
                 into("repo/bala") {

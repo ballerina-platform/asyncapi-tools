@@ -19,7 +19,7 @@
 pluginManagement {
     plugins {
         id 'com.github.spotbugs' version "${spotbugsPluginVersion}"
-        id 'com.github.johnrengelman.shadow' version "${shadowJarPluginVersion}"
+        id 'com.gradleup.shadow' version "${shadowJarPluginVersion}"
         id 'de.undercouch.download' version "${downloadPluginVersion}"
         id 'net.researchgate.release' version "${releasePluginVersion}"
         id 'org.sonarqube' version "${sonarqubePluginVersion}"
@@ -27,6 +27,7 @@ pluginManagement {
     }
 
     repositories {
+        mavenLocal()
         gradlePluginPortal()
         maven {
             url = 'https://maven.pkg.github.com/ballerina-platform/*'
@@ -39,7 +40,7 @@ pluginManagement {
 }
 
 plugins {
-    id "com.gradle.enterprise" version "3.13.2"
+    id "com.gradle.develocity" version "3.19.2"
 }
 
 rootProject.name = 'asyncapi-tools'
@@ -50,9 +51,9 @@ include(':native.handler:java-wrapper')
 include(':asyncapi-cli')
 include(':asyncapi-tool')
 project(':checkstyle').projectDir = file("config${File.separator}checkstyle")
-gradleEnterprise {
+develocity {
     buildScan {
-        termsOfServiceUrl = 'https://gradle.com/terms-of-service'
-        termsOfServiceAgree = 'yes'
+        termsOfUseUrl = 'https://gradle.com/terms-of-service'
+        termsOfUseAgree = 'yes'
     }
 }
