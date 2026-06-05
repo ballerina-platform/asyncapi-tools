@@ -17,10 +17,10 @@ channels:
     description: Resource function description
     subscribe:
       message:
-        $ref: '#/components/messages/Action'
+        $ref: "#/components/messages/Action"
     publish:
       message:
-        $ref: '#/components/messages/Link'
+        $ref: "#/components/messages/Link"
     bindings:
       ws:
         bindingVersion: 0.1.0
@@ -69,29 +69,29 @@ components:
         - action
       properties:
         books:
-          $ref: '#/components/schemas/Books'
+          $ref: "#/components/schemas/Books"
         rels:
-          $ref: '#/components/schemas/Rels'
+          $ref: "#/components/schemas/Rels"
         actions:
-          $ref: '#/components/schemas/Action'
+          $ref: "#/components/schemas/Action"
         count:
-          $ref: '#/components/schemas/Count'
+          $ref: "#/components/schemas/Count"
         salary:
-          $ref: '#/components/schemas/Salary'
+          $ref: "#/components/schemas/Salary"
         action:
           type: string
           const: Link
   messages:
     Action:
       payload:
-        $ref: '#/components/schemas/Action'
+        $ref: "#/components/schemas/Action"
     Link:
       payload:
-        $ref: '#/components/schemas/Link'
+        $ref: "#/components/schemas/Link"
         description: message description
       description: Remote link description
       x-response:
-        $ref: '#/components/messages/Action'
+        $ref: "#/components/messages/Action"
         description: this is return description
       x-response-type: simple-rpc
 x-dispatcherKey: action

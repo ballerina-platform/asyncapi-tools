@@ -6,7 +6,7 @@ channels:
           type: string
     publish:
       message:
-        $ref: '#/components/messages/Subscribe'
+        $ref: "#/components/messages/Subscribe"
     bindings:
       ws:
         bindingVersion: 0.1.0

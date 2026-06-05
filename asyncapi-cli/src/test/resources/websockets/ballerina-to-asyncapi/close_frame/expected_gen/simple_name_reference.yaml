@@ -16,10 +16,10 @@ channels:
   /simple_name_reference:
     subscribe:
       message:
-        $ref: '#/components/messages/SimpleNameReference'
+        $ref: "#/components/messages/SimpleNameReference"
     publish:
       message:
-        $ref: '#/components/messages/Heartbeat'
+        $ref: "#/components/messages/Heartbeat"
 components:
   schemas:
     Heartbeat:
@@ -211,25 +211,25 @@ components:
       description: Representation of a websocket close-frame
     SimpleNameReference:
       oneOf:
-      - $ref: '#/components/schemas/HeartbeatResponse'
-      - $ref: '#/components/schemas/NormalClosure'
-      - $ref: '#/components/schemas/GoingAway'
-      - $ref: '#/components/schemas/ProtocolError'
-      - $ref: '#/components/schemas/UnsupportedData'
-      - $ref: '#/components/schemas/InvalidPayload'
-      - $ref: '#/components/schemas/PolicyViolation'
-      - $ref: '#/components/schemas/MessageTooBig'
-      - $ref: '#/components/schemas/InternalServerError'
-      - $ref: '#/components/schemas/CustomCloseFrame'
+      - $ref: "#/components/schemas/HeartbeatResponse"
+      - $ref: "#/components/schemas/NormalClosure"
+      - $ref: "#/components/schemas/GoingAway"
+      - $ref: "#/components/schemas/ProtocolError"
+      - $ref: "#/components/schemas/UnsupportedData"
+      - $ref: "#/components/schemas/InvalidPayload"
+      - $ref: "#/components/schemas/PolicyViolation"
+      - $ref: "#/components/schemas/MessageTooBig"
+      - $ref: "#/components/schemas/InternalServerError"
+      - $ref: "#/components/schemas/CustomCloseFrame"
   messages:
     SimpleNameReference:
       payload:
-        $ref: '#/components/schemas/SimpleNameReference'
+        $ref: "#/components/schemas/SimpleNameReference"
     Heartbeat:
       payload:
-        $ref: '#/components/schemas/Heartbeat'
+        $ref: "#/components/schemas/Heartbeat"
       x-response:
-        $ref: '#/components/messages/SimpleNameReference'
+        $ref: "#/components/messages/SimpleNameReference"
       x-response-type: simple-rpc
 x-dispatcherKey: event
 x-ballerina-ws-closeframe:

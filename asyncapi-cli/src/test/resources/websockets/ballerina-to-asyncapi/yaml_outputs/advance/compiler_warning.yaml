@@ -22,8 +22,8 @@ channels:
     publish:
       message:
         oneOf:
-          - $ref: '#/components/messages/Subscribe'
-          - $ref: '#/components/messages/UnSubscribe'
+          - $ref: "#/components/messages/Subscribe"
+          - $ref: "#/components/messages/UnSubscribe"
 components:
   schemas:
     Subscribe:
@@ -52,7 +52,7 @@ components:
   messages:
     Subscribe:
       payload:
-        $ref: '#/components/schemas/Subscribe'
+        $ref: "#/components/schemas/Subscribe"
       x-response:
         payload:
           type: integer
@@ -60,7 +60,7 @@ components:
       x-response-type: simple-rpc
     UnSubscribe:
       payload:
-        $ref: '#/components/schemas/UnSubscribe'
+        $ref: "#/components/schemas/UnSubscribe"
       x-response:
         payload:
           type: integer

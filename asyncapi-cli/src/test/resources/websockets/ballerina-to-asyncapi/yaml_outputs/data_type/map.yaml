@@ -22,7 +22,7 @@ channels:
             type: string
     publish:
       message:
-        $ref: '#/components/messages/Location'
+        $ref: "#/components/messages/Location"
     parameters:
       id:
         schema:
@@ -59,7 +59,7 @@ components:
         types:
           type: array
           items:
-            $ref: '#/components/schemas/Subscribe'
+            $ref: "#/components/schemas/Subscribe"
         methods:
           type: array
           items:
@@ -76,7 +76,7 @@ components:
         _links:
           type: object
           additionalProperties:
-            $ref: '#/components/schemas/Link'
+            $ref: "#/components/schemas/Link"
         name:
           type: object
           additionalProperties:
@@ -117,7 +117,7 @@ components:
   messages:
     Location:
       payload:
-        $ref: '#/components/schemas/Location'
+        $ref: "#/components/schemas/Location"
         description: remote above link description
       description: Testing remote description
       x-response:

@@ -23,10 +23,10 @@ channels:
               type: integer
               format: int64
             body:
-              $ref: '#/components/schemas/Test'
+              $ref: "#/components/schemas/Test"
     publish:
       message:
-        $ref: '#/components/messages/Subscribe'
+        $ref: "#/components/messages/Subscribe"
 components:
   schemas:
     Subscribe:
@@ -55,7 +55,7 @@ components:
   messages:
     Subscribe:
       payload:
-        $ref: '#/components/schemas/Subscribe'
+        $ref: "#/components/schemas/Subscribe"
       x-response:
         payload:
           type: object
@@ -64,6 +64,6 @@ components:
               type: integer
               format: int64
             body:
-              $ref: '#/components/schemas/Test'
+              $ref: "#/components/schemas/Test"
       x-response-type: simple-rpc
 x-dispatcherKey: event

@@ -32,7 +32,7 @@
 #          content:
 #            application/json:
 #              schema:
-#                $ref: '#/components/schemas/Pet-Task'
+#                $ref: "#/components/schemas/Pet-Task"
 #  /v2/say-hello:
 #    post:
 #      summary: Description
@@ -48,7 +48,7 @@
 #        content:
 #          application/json:
 #            schema:
-#              $ref: '#/components/schemas/Pet-Task'
+#              $ref: "#/components/schemas/Pet-Task"
 #      responses:
 #        "202":
 #          description: Accepted
@@ -69,7 +69,7 @@
 #          items:
 #            type: string
 #        store:
-#          $ref: '#/components/schemas/Pet-Store'
+#          $ref: "#/components/schemas/Pet-Store"
 #      description: Description
 #    Pet-Store:
 #      required:

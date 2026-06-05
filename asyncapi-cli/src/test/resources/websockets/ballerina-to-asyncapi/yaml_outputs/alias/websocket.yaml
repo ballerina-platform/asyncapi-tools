@@ -21,7 +21,7 @@ channels:
           format: int64
     publish:
       message:
-        $ref: '#/components/messages/Subscribe'
+        $ref: "#/components/messages/Subscribe"
     bindings:
       ws:
         bindingVersion: 0.1.0
@@ -47,7 +47,7 @@ components:
   messages:
     Subscribe:
       payload:
-        $ref: '#/components/schemas/Subscribe'
+        $ref: "#/components/schemas/Subscribe"
       x-response:
         payload:
           type: integer

@@ -23,8 +23,8 @@ channels:
     publish:
       message:
         oneOf:
-          - $ref: '#/components/messages/ReservationReceipt'
-          - $ref: '#/components/messages/Link'
+          - $ref: "#/components/messages/ReservationReceipt"
+          - $ref: "#/components/messages/Link"
     parameters:
       id:
         description: Unique identification of location
@@ -64,7 +64,7 @@ components:
         links:
           type: array
           items:
-            $ref: '#/components/schemas/Link'
+            $ref: "#/components/schemas/Link"
           description: Array links
         linkid:
           type: integer
@@ -73,7 +73,7 @@ components:
       description: Links array
     ReservationReceipt:
       allOf:
-        - $ref: '#/components/schemas/Links'
+        - $ref: "#/components/schemas/Links"
         - type: object
           required:
             - id
@@ -90,7 +90,7 @@ components:
   messages:
     ReservationReceipt:
       payload:
-        $ref: '#/components/schemas/ReservationReceipt'
+        $ref: "#/components/schemas/ReservationReceipt"
       x-response:
         payload:
           type: integer
@@ -98,7 +98,7 @@ components:
       x-response-type: simple-rpc
     Link:
       payload:
-        $ref: '#/components/schemas/Link'
+        $ref: "#/components/schemas/Link"
       x-response:
         payload:
           type: integer

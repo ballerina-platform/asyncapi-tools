@@ -22,7 +22,7 @@ channels:
           format: int64
     publish:
       message:
-        $ref: '#/components/messages/Link'
+        $ref: "#/components/messages/Link"
     parameters:
       id:
         description: id description
@@ -52,7 +52,7 @@ components:
   messages:
     Link:
       payload:
-        $ref: '#/components/schemas/Link'
+        $ref: "#/components/schemas/Link"
         description: link description
       description: onlink remote function description
       x-response:

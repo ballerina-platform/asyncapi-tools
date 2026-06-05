@@ -212,7 +212,6 @@ shadowJar {
     configurations = [project.configurations.runtimeClasspath]
     dependencies {
         include(dependency("io.apicurio:apicurio-data-models:${apiCurioVersion}"))
-        include(dependency("org.ballerinalang:ballerina-cli:${ballerinaLangVersion}"))
         exclude('META-INF/*.SF')
         exclude('META-INF/*.DSA')
         exclude('META-INF/*.RSA')

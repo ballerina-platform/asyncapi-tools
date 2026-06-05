@@ -22,7 +22,7 @@ channels:
           format: int64
     publish:
       message:
-        $ref: '#/components/messages/Subscribe'
+        $ref: "#/components/messages/Subscribe"
     parameters:
       id:
         description: Unique identification of location
@@ -57,7 +57,7 @@ components:
   messages:
     Subscribe:
       payload:
-        $ref: '#/components/schemas/Subscribe'
+        $ref: "#/components/schemas/Subscribe"
       x-response:
         payload:
           type: integer

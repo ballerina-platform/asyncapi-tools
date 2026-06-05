@@ -7,7 +7,7 @@ channels:
           format: int64
     publish:
       message:
-        $ref: '#/components/messages/Subscribe'
+        $ref: "#/components/messages/Subscribe"
     parameters:
       id:
         schema:

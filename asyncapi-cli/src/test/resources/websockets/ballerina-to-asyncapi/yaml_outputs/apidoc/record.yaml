@@ -23,8 +23,8 @@ channels:
     publish:
       message:
         oneOf:
-          - $ref: '#/components/messages/Reservation'
-          - $ref: '#/components/messages/ReserveRoom'
+          - $ref: "#/components/messages/Reservation"
+          - $ref: "#/components/messages/ReserveRoom"
     parameters:
       id:
         description: Unique identification of location
@@ -62,7 +62,7 @@ components:
         reserveRooms:
           type: array
           items:
-            $ref: '#/components/schemas/ReserveRoom'
+            $ref: "#/components/schemas/ReserveRoom"
           description: Rooms to be reserved
         startDate:
           type: string
@@ -78,7 +78,7 @@ components:
   messages:
     Reservation:
       payload:
-        $ref: '#/components/schemas/Reservation'
+        $ref: "#/components/schemas/Reservation"
       x-response:
         payload:
           type: integer
@@ -86,7 +86,7 @@ components:
       x-response-type: simple-rpc
     ReserveRoom:
       payload:
-        $ref: '#/components/schemas/ReserveRoom'
+        $ref: "#/components/schemas/ReserveRoom"
       x-response:
         payload:
           type: integer
