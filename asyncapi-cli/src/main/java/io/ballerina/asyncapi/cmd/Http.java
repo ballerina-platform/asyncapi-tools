@@ -34,6 +34,10 @@ import java.nio.file.Path;
  */
 @CommandLine.Command(name = "http", description = "Generate Ballerina code from an HTTP AsyncAPI definition.")
 public class Http extends SubCmdBase {
+    private static final String TYPES_BAL = "types.bal";
+    private static final String SERVICE_TYPES_BAL = "service_types.bal";
+    private static final String LISTENER_BAL = "listener.bal";
+    private static final String DISPATCHER_SERVICE_BAL = "dispatcher_service.bal";
 
     /**
      * Constructs an {@code Http} sub-command with default streams and the current working directory.
@@ -99,6 +103,11 @@ public class Http extends SubCmdBase {
             CodeGenOrchestrator.specToCode(
                     Protocol.HTTP, inputPath, outputPath, options);
             printInfo(ErrorMessages.SUCCESS_MESSAGE);
+            printInfo("Following files were created.");
+            printInfo("-- " + TYPES_BAL);
+            printInfo("-- " + SERVICE_TYPES_BAL);
+            printInfo("-- " + LISTENER_BAL);
+            printInfo("-- " + DISPATCHER_SERVICE_BAL);
 
         } catch (GeneratorException e) {
             errStream.println("ERROR: " + e.getMessage());

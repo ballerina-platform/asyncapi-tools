@@ -79,6 +79,25 @@ subprojects {
             testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine'
             testImplementation "org.testng:testng:${testngVersion}"
         }
+
+        tasks.withType(Test).configureEach {
+            testLogging.showStandardStreams = true
+            testLogging {
+                events "PASSED", "FAILED", "SKIPPED"
+                afterSuite { desc, result ->
+                    if (!desc.parent) {
+                        def output = "Results: ${result.resultType} (${result.testCount} tests, " +
+                                "${result.successfulTestCount} successes, ${result.failedTestCount} failures, " +
+                                "${result.skippedTestCount} skipped)"
+                        def startItem = '|  '
+                        def endItem = '  |'
+                        def repeatLength = startItem.length() + output.length() + endItem.length()
+                        println('\n' + ('-' * repeatLength) + '\n' + startItem + output + endItem +
+                                '\n' + ('-' * repeatLength))
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -139,6 +158,7 @@ shadowJar {
         include(dependency('com.github.jknack:handlebars'))
         include(dependency('org.antlr:antlr4:4.5'))
         include(dependency("io.apicurio:apicurio-data-models:${apiCurioVersion}"))
+        include(dependency("org.semver4j:semver4j:${semver4jVersion}"))
         include(dependency('com.atlassian.commonmark:commonmark'))
         include(dependency('com.atlassian.commonmark:commonmark-ext-gfm-tables'))
         exclude('META-INF/*.SF')

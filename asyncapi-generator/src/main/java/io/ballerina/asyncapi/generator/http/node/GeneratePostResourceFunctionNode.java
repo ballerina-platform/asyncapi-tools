@@ -21,6 +21,7 @@ import io.ballerina.asyncapi.generator.GeneratorException;
 import io.ballerina.asyncapi.generator.http.extractor.EventIdentifierExtractor;
 import io.ballerina.asyncapi.generator.http.generator.DataTypesGenerator;
 import io.ballerina.asyncapi.generator.http.model.EventIdentifierConfig;
+import io.ballerina.asyncapi.generator.http.model.WebhookAuthConfig;
 import io.ballerina.compiler.syntax.tree.FunctionBodyBlockNode;
 import io.ballerina.compiler.syntax.tree.FunctionDefinitionNode;
 import io.ballerina.compiler.syntax.tree.FunctionSignatureNode;
@@ -29,6 +30,7 @@ import io.ballerina.compiler.syntax.tree.StatementNode;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 import static io.ballerina.asyncapi.generator.http.node.GenerateAddServiceRefFuncNode.buildErrorReturnType;
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createEmptyNodeList;
@@ -56,21 +58,28 @@ import static io.ballerina.compiler.syntax.tree.SyntaxKind.RESOURCE_KEYWORD;
  * Generates the {@code resource function post .(http:Caller caller, http:Request request) returns error?}
  * method node for the {@code DispatcherService} class in {@code dispatcher_service.bal}.
  *
- * <p>When the identifier type is {@code "header"}, an additional
- * {@code string eventIdentifier = check request.getHeader(...);} statement is injected and
- * the {@code matchRemoteFunc} call passes {@code eventIdentifier} as a second argument.
+ * <p>For {@code "header"}, {@code eventType} comes from the named request header and is forwarded
+ * as the second argument of {@code matchRemoteFunc}. For {@code "body"}, {@code eventType} is
+ * extracted from the payload at the configured dot-notation path and forwarded as the second
+ * argument. For {@code "composite"}, {@code eventType} comes from the header and {@code action}
+ * from the body path; these are combined into a compound {@code eventIdentifier} and forwarded
+ * as the second and third arguments of {@code matchRemoteFunc}.
  */
 public class GeneratePostResourceFunctionNode implements Generator {
 
     private final EventIdentifierConfig identifierConfig;
+    private final Optional<WebhookAuthConfig> webhookAuthConfig;
 
     /**
      * Creates a generator for the post resource function.
      *
-     * @param identifierConfig the resolved event identifier type and path
+     * @param identifierConfig  the resolved event identifier type and path
+     * @param webhookAuthConfig the optional webhook authentication configuration
      */
-    public GeneratePostResourceFunctionNode(EventIdentifierConfig identifierConfig) {
+    public GeneratePostResourceFunctionNode(EventIdentifierConfig identifierConfig,
+            Optional<WebhookAuthConfig> webhookAuthConfig) {
         this.identifierConfig = identifierConfig;
+        this.webhookAuthConfig = webhookAuthConfig;
     }
 
     @Override
@@ -96,27 +105,52 @@ public class GeneratePostResourceFunctionNode implements Generator {
                 createToken(CLOSE_PAREN_TOKEN),
                 buildErrorReturnType());
 
-        boolean isHeader = EventIdentifierExtractor.X_BALLERINA_EVENT_TYPE_HEADER.equals(identifierConfig.type());
+        String type = identifierConfig.type();
 
         List<StatementNode> statements = new ArrayList<>();
-        statements.add(NodeParser.parseStatement("json payload = check request.getJsonPayload();"));
-        if (isHeader) {
+        if (webhookAuthConfig.isPresent()) {
             statements.add(NodeParser.parseStatement(String.format(
-                    "string eventIdentifier = check request.getHeader(\"%s\");",
+                    "error? verifyResult = self.%s(request, self.%s);",
+                    GenerateVerifyWebhookSignatureFuncNode.VERIFY_WEBHOOK_SIGNATURE_FUNC,
+                    GenerateDispatcherServiceNode.WEBHOOK_SECRET_FIELD)));
+            statements.add(NodeParser.parseStatement(
+                    "if verifyResult is error {"
+                            + " http:Response r = new; r.statusCode = http:STATUS_UNAUTHORIZED;"
+                            + " check caller->respond(r); return; }"));
+        }
+        statements.add(NodeParser.parseStatement("json payload = check request.getJsonPayload();"));
+        if (EventIdentifierExtractor.X_BALLERINA_EVENT_TYPE_HEADER.equals(type)) {
+            statements.add(NodeParser.parseStatement(String.format(
+                    "string eventType = check request.getHeader(\"%s\");",
+                    identifierConfig.name())));
+        } else if (EventIdentifierExtractor.X_BALLERINA_EVENT_TYPE_BODY.equals(type)) {
+            statements.add(NodeParser.parseStatement(String.format(
+                    "string eventType = (check payload.%s).toString();",
                     identifierConfig.path())));
+        } else {
+            statements.add(NodeParser.parseStatement(String.format(
+                    "string eventType = check request.getHeader(\"%s\");",
+                    identifierConfig.name())));
+            statements.add(NodeParser.parseStatement(String.format(
+                    "json|error actionField = payload.%s;",
+                    identifierConfig.path())));
+            statements.add(NodeParser.parseStatement("string eventIdentifier = eventType;"));
+            statements.add(NodeParser.parseStatement(
+                    "if actionField is json && actionField != () {"
+                    + " eventIdentifier = eventType + \"_\" + actionField.toString(); }"));
         }
         statements.add(NodeParser.parseStatement(String.format(
                 "%s %s = check payload.cloneWithType(%s);",
                 DataTypesGenerator.GENERIC_DATA_TYPE, GenerateDispatcherServiceNode.CLONE_WITH_TYPE_VAR_NAME,
                 DataTypesGenerator.GENERIC_DATA_TYPE)));
-        if (isHeader) {
+        if (EventIdentifierExtractor.X_BALLERINA_EVENT_TYPE_COMPOSITE.equals(type)) {
             statements.add(NodeParser.parseStatement(String.format(
-                    "check self.%s(%s, eventIdentifier);",
+                    "check self.%s(%s, eventIdentifier, eventType);",
                     GenerateMatchRemoteFuncNode.DISPATCHER_MATCH_REMOTE_FUNC,
                     GenerateDispatcherServiceNode.CLONE_WITH_TYPE_VAR_NAME)));
         } else {
             statements.add(NodeParser.parseStatement(String.format(
-                    "check self.%s(%s);",
+                    "check self.%s(%s, eventType);",
                     GenerateMatchRemoteFuncNode.DISPATCHER_MATCH_REMOTE_FUNC,
                     GenerateDispatcherServiceNode.CLONE_WITH_TYPE_VAR_NAME)));
         }

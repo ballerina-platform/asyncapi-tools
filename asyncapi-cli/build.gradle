@@ -23,6 +23,17 @@ plugins {
 
 description = "Ballerina - AsyncAPI Tooling - AsyncAPI to Ballerina"
 
+java {
+    modularity.inferModulePath = true
+}
+
+compileJava {
+    doFirst {
+        options.compilerArgs += ['--module-path', classpath.asPath]
+        classpath = files()
+    }
+}
+
 def ballerinaDist = "$project.buildDir/jballerina-tools-${ballerinaLangVersion}"
 def runtimePath = "${project.rootDir}/target/ballerina-distribution"
 

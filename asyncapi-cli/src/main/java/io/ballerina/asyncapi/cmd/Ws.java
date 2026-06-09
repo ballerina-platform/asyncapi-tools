@@ -35,6 +35,11 @@ import java.nio.file.Path;
  */
 @CommandLine.Command(name = "ws", description = "Generate Ballerina code from a WebSocket AsyncAPI definition.")
 public class Ws extends SubCmdBase {
+    private static final String CLIENT_BAL = "client.bal";
+    private static final String TYPES_BAL = "types.bal";
+    private static final String UTILS_BAL = "utils.bal";
+    private static final String TESTS_TEST_BAL = "tests/test.bal";
+    private static final String TESTS_CONFIG_TOML = "tests/Config.toml";
 
     /**
      * Constructs a {@code Ws} sub-command with default streams and the current working directory.
@@ -116,6 +121,14 @@ public class Ws extends SubCmdBase {
                 CodeGenOrchestrator.specToCode(
                         Protocol.WS, inputPath, outputPath, options);
                 printInfo(ErrorMessages.SUCCESS_MESSAGE);
+                printInfo("Following files were created.");
+                printInfo("-- " + CLIENT_BAL);
+                printInfo("-- " + TYPES_BAL);
+                printInfo("-- " + UTILS_BAL);
+                if (opts.isWithTests()) {
+                    printInfo("-- " + TESTS_TEST_BAL);
+                    printInfo("-- " + TESTS_CONFIG_TOML);
+                }
             }
 
         } catch (GeneratorException e) {

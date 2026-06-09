@@ -18,8 +18,18 @@
 
 plugins {
     id 'java'
-    id 'application'
     id 'checkstyle'
+}
+
+java {
+    modularity.inferModulePath = true
+}
+
+compileJava {
+    doFirst {
+        options.compilerArgs += ['--module-path', classpath.asPath]
+        classpath = files()
+    }
 }
 
 repositories {
@@ -29,7 +39,10 @@ repositories {
 dependencies {
     implementation "io.apicurio:apicurio-data-models:2.3.1"
     implementation "com.fasterxml.jackson.core:jackson-databind:${jacksonDataformatYamlVersion}"
+    implementation "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:${jacksonDataformatYamlVersion}"
     implementation "org.semver4j:semver4j:${semver4jVersion}"
+    implementation "org.apache.commons:commons-lang3:${commonsLang3Version}"
+    implementation "org.apache.logging.log4j:log4j-api:${log4jVersion}"
 
     checkstyle project(':checkstyle')
     checkstyle "com.puppycrawl.tools:checkstyle:${checkstylePluginVersion}"
@@ -46,13 +59,16 @@ tasks.withType(Checkstyle) {
     exclude excludePattern
 }
 
-checkstyleMain.dependsOn(":checkstyle:downloadCheckstyleRuleFiles")
-checkstyleMain.dependsOn(":checkstyle:compileTestJava")
-checkstyleMain.dependsOn(":checkstyle:checkstyleMain")
-checkstyleMain.dependsOn(":checkstyle:checkstyleTest")
-checkstyleMain.dependsOn(":checkstyle:test")
-checkstyleMain.dependsOn(":checkstyle:processTestResources")
-checkstyleTest.dependsOn(":checkstyle:downloadCheckstyleRuleFiles")
+tasks.withType(Checkstyle).configureEach {
+    dependsOn(":checkstyle:downloadCheckstyleRuleFiles")
+    mustRunAfter(
+            ":checkstyle:compileTestJava",
+            ":checkstyle:checkstyleMain",
+            ":checkstyle:checkstyleTest",
+            ":checkstyle:test",
+            ":checkstyle:processTestResources"
+    )
+}
 
 test {
     useTestNG() {

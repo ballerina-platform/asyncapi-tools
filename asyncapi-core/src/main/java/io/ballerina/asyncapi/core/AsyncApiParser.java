@@ -23,6 +23,13 @@ public final class AsyncApiParser {
 
     }
 
+    /**
+     * Parses an AsyncAPI specification from a JSON string.
+     *
+     * @param jsonString the AsyncAPI JSON content
+     * @return the parsed {@link AsyncApiSpec}
+     * @throws AsyncApiParserException if the JSON is blank, invalid, or fails validation
+     */
     public static AsyncApiSpec parseFromJsonString(String jsonString) throws AsyncApiParserException {
         if (StringUtils.isBlank(jsonString)) {
             throw new AsyncApiParserException("AsyncAPI specification JSON cannot be null or empty.");

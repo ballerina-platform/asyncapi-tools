@@ -22,6 +22,7 @@ import io.ballerina.asyncapi.core.model.component.AsyncApiSchema;
 import io.ballerina.asyncapi.generator.GeneratorException;
 import io.ballerina.asyncapi.generator.http.utils.CodegenUtils;
 import io.ballerina.compiler.syntax.tree.AbstractNodeFactory;
+import io.ballerina.compiler.syntax.tree.AnnotationNode;
 import io.ballerina.compiler.syntax.tree.ArrayDimensionNode;
 import io.ballerina.compiler.syntax.tree.IdentifierToken;
 import io.ballerina.compiler.syntax.tree.MetadataNode;
@@ -29,6 +30,7 @@ import io.ballerina.compiler.syntax.tree.ModuleMemberDeclarationNode;
 import io.ballerina.compiler.syntax.tree.Node;
 import io.ballerina.compiler.syntax.tree.NodeFactory;
 import io.ballerina.compiler.syntax.tree.NodeList;
+import io.ballerina.compiler.syntax.tree.NodeParser;
 import io.ballerina.compiler.syntax.tree.RecordFieldNode;
 import io.ballerina.compiler.syntax.tree.RecordTypeDescriptorNode;
 import io.ballerina.compiler.syntax.tree.SyntaxKind;
@@ -68,7 +70,6 @@ import static io.ballerina.compiler.syntax.tree.SyntaxKind.OPEN_BRACE_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.OPEN_BRACKET_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.PUBLIC_KEYWORD;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.QUESTION_MARK_TOKEN;
-import static io.ballerina.compiler.syntax.tree.SyntaxKind.RECORD_KEYWORD;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.SEMICOLON_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.TYPE_KEYWORD;
 
@@ -205,10 +206,21 @@ public class GenerateModuleMemberDeclarationNode implements Generator {
             throws GeneratorException {
         List<Node> fields = new ArrayList<>();
         for (Map.Entry<String, AsyncApiSchema> field : properties.entrySet()) {
-            String fieldName = CodegenUtils.escapeIdentifier(field.getKey().trim());
+            String rawKey = field.getKey().trim();
+            String fieldName;
+            NodeList<AnnotationNode> annotations;
+            if (CodegenUtils.requiresHeaderAnnotation(rawKey)) {
+                fieldName = CodegenUtils.toCamelCase(rawKey);
+                AnnotationNode headerAnnotation = NodeParser.parseAnnotation(
+                        String.format("@http:Header { name: \"%s\" }", rawKey));
+                annotations = createNodeList(headerAnnotation);
+            } else {
+                fieldName = CodegenUtils.escapeIdentifier(rawKey);
+                annotations = createEmptyNodeList();
+            }
             IdentifierToken fieldNameToken = AbstractNodeFactory.createIdentifierToken(fieldName);
             TypeDescriptorNode fieldType = getTypeDescriptorNode(field.getValue());
-            boolean isOptional = !required.contains(field.getKey().trim());
+            boolean isOptional = !required.contains(rawKey);
             Token questionMark = isOptional ? createToken(QUESTION_MARK_TOKEN) : null;
             Token semicolon = createToken(SEMICOLON_TOKEN);
             List<Node> fieldDoc = new ArrayList<>();
@@ -221,7 +233,7 @@ public class GenerateModuleMemberDeclarationNode implements Generator {
                 }
             }
             MetadataNode fieldMetadata = createMetadataNode(
-                    createMarkdownDocumentationNode(createNodeList(fieldDoc)), createEmptyNodeList());
+                    createMarkdownDocumentationNode(createNodeList(fieldDoc)), annotations);
             RecordFieldNode recordField = createRecordFieldNode(fieldMetadata,
                     null, // no readonly keyword
                     fieldType, fieldNameToken, questionMark, semicolon);
@@ -268,8 +280,11 @@ public class GenerateModuleMemberDeclarationNode implements Generator {
                 if (schema.properties() != null && !schema.properties().isEmpty()) {
                     yield buildInlineRecord(schema);
                 }
-                yield createRecordTypeDescriptorNode(createToken(RECORD_KEYWORD), createToken(OPEN_BRACE_TOKEN),
-                        createEmptyNodeList(), null, createToken(CLOSE_BRACE_TOKEN));
+                yield createRecordTypeDescriptorNode(
+                        AbstractNodeFactory.createIdentifierToken("record"),
+                        AbstractNodeFactory.createIdentifierToken("{"),
+                        createEmptyNodeList(), null,
+                        AbstractNodeFactory.createIdentifierToken("}"));
             }
             default -> createBuiltinSimpleNameReferenceNode(null, createIdentifierToken("anydata"));
         };
@@ -294,8 +309,11 @@ public class GenerateModuleMemberDeclarationNode implements Generator {
     private RecordTypeDescriptorNode buildInlineRecord(AsyncApiSchema schema) throws GeneratorException {
         List<String> required = schema.required() != null ? schema.required() : List.of();
         NodeList<Node> fieldNodes = createNodeList(buildRecordFields(schema.properties(), required));
-        return createRecordTypeDescriptorNode(createToken(RECORD_KEYWORD), createToken(OPEN_BRACE_TOKEN),
-                fieldNodes, null, createToken(CLOSE_BRACE_TOKEN));
+        return createRecordTypeDescriptorNode(
+                AbstractNodeFactory.createIdentifierToken("record"),
+                AbstractNodeFactory.createIdentifierToken("{ "),
+                fieldNodes, null,
+                AbstractNodeFactory.createIdentifierToken("} "));
     }
 
     private TypeDescriptorNode applyNullable(AsyncApiSchema schema, TypeDescriptorNode typeDesc) {

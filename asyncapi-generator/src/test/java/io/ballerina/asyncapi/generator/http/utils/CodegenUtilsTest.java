@@ -147,4 +147,29 @@ public class CodegenUtilsTest {
         Assert.assertEquals(result, "PaymentService",
                 "Single-word service name should become PascalCase with Service suffix");
     }
+
+    @Test
+    void testToSnakeCase_pullRequest() {
+        Assert.assertEquals(CodegenUtils.toSnakeCase("PullRequest"), "pull_request");
+    }
+
+    @Test
+    void testToSnakeCase_deployKey() {
+        Assert.assertEquals(CodegenUtils.toSnakeCase("DeployKey"), "deploy_key");
+    }
+
+    @Test
+    void testToSnakeCase_repositoryService() {
+        Assert.assertEquals(CodegenUtils.toSnakeCase("RepositoryService"), "repository_service");
+    }
+
+    @Test
+    void testToSnakeCase_singleWord() {
+        Assert.assertEquals(CodegenUtils.toSnakeCase("Repository"), "repository");
+    }
+
+    @Test
+    void testToSnakeCase_empty() {
+        Assert.assertEquals(CodegenUtils.toSnakeCase(""), "");
+    }
 }

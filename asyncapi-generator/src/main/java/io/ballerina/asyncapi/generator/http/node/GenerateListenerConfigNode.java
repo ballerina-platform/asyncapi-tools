@@ -28,32 +28,41 @@ import io.ballerina.compiler.syntax.tree.TypeDefinitionNode;
 import java.util.ArrayList;
 import java.util.List;
 
+import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createEmptyMinutiaeList;
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createEmptyNodeList;
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createIdentifierToken;
+import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createLiteralValueToken;
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createNodeList;
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createToken;
+import static io.ballerina.compiler.syntax.tree.NodeFactory.createBasicLiteralNode;
+import static io.ballerina.compiler.syntax.tree.NodeFactory.createBuiltinSimpleNameReferenceNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createMarkdownDocumentationNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createMetadataNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createQualifiedNameReferenceNode;
+import static io.ballerina.compiler.syntax.tree.NodeFactory.createRecordFieldWithDefaultValueNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createRecordTypeDescriptorNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createTypeDefinitionNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createTypeReferenceNode;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.ASTERISK_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.CLOSE_BRACE_PIPE_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.COLON_TOKEN;
+import static io.ballerina.compiler.syntax.tree.SyntaxKind.EQUAL_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.OPEN_BRACE_PIPE_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.PUBLIC_KEYWORD;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.RECORD_KEYWORD;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.SEMICOLON_TOKEN;
+import static io.ballerina.compiler.syntax.tree.SyntaxKind.STRING_LITERAL;
+import static io.ballerina.compiler.syntax.tree.SyntaxKind.STRING_LITERAL_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.TYPE_KEYWORD;
 
 /**
- * Generates the {@code public type ListenerConfiguration record {| *http:ListenerConfiguration; |};} type definition
- * node for {@code data_types.bal}.
+ * Generates the {@code public type ListenerConfiguration record {| *http:ListenerConfiguration;
+ * string webhookSecret = ""; |};} type definition node for {@code data_types.bal}.
  */
 public class GenerateListenerConfigNode {
 
     public static final String LISTENER_CONFIG_TYPE = "ListenerConfiguration";
+    public static final String WEBHOOK_SECRET_FIELD = "webhookSecret";
 
     /**
      * Generates the {@code ListenerConfiguration} closed-record type definition.
@@ -67,12 +76,25 @@ public class GenerateListenerConfigNode {
                 createToken(COLON_TOKEN),
                 createIdentifierToken(LISTENER_CONFIG_TYPE));
 
+        List<Node> recordFields = new ArrayList<>();
+        recordFields.add(createTypeReferenceNode(
+                createToken(ASTERISK_TOKEN), includedType, createToken(SEMICOLON_TOKEN)));
+        recordFields.add(createRecordFieldWithDefaultValueNode(
+                null,
+                null,
+                createBuiltinSimpleNameReferenceNode(null, createIdentifierToken("string")),
+                createIdentifierToken(WEBHOOK_SECRET_FIELD),
+                createToken(EQUAL_TOKEN),
+                createBasicLiteralNode(STRING_LITERAL,
+                        createLiteralValueToken(STRING_LITERAL_TOKEN, "\"\"",
+                                createEmptyMinutiaeList(), createEmptyMinutiaeList())),
+                createToken(SEMICOLON_TOKEN)));
+
         RecordTypeDescriptorNode recordType = createRecordTypeDescriptorNode(
                 createToken(RECORD_KEYWORD),
                 createToken(OPEN_BRACE_PIPE_TOKEN),
-                createNodeList(createTypeReferenceNode(
-                        createToken(ASTERISK_TOKEN), includedType, createToken(SEMICOLON_TOKEN))),
-                null, // no rest descriptor — this is a closed record
+                createNodeList(recordFields),
+                null,
                 createToken(CLOSE_BRACE_PIPE_TOKEN));
 
         List<Node> schemaDoc = new ArrayList<>();

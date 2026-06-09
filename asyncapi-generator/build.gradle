@@ -19,10 +19,20 @@
 plugins {
     id 'java'
     id 'checkstyle'
-    id 'com.github.johnrengelman.shadow'
 }
 
 description = "Ballerina - AsyncAPI Generator"
+
+java {
+    modularity.inferModulePath = true
+}
+
+compileJava {
+    doFirst {
+        options.compilerArgs += ['--module-path', classpath.asPath]
+        classpath = files()
+    }
+}
 
 def ballerinaDist = "$project.buildDir/jballerina-tools-${ballerinaLangVersion}"
 
@@ -44,6 +54,7 @@ dependencies {
     implementation "com.fasterxml.jackson.core:jackson-databind:${jacksonDataformatYamlVersion}"
     implementation "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:${jacksonDataformatYamlVersion}"
     implementation "commons-io:commons-io:${commonsIoVersion}"
+    compileOnly "org.ballerinalang:ballerina-lang:${ballerinaLangVersion}"
     compileOnly "org.ballerinalang:ballerina-parser:${ballerinaLangVersion}"
     compileOnly "org.ballerinalang:formatter-core:${ballerinaLangVersion}"
     compileOnly "org.ballerinalang:ballerina-tools-api:${ballerinaLangVersion}"
@@ -144,19 +155,4 @@ test {
 checkstyleMain.dependsOn(":checkstyle:build")
 checkstyleTest.dependsOn(":checkstyle:build")
 
-jar {
-    enabled = false
-    dependsOn(shadowJar { archiveClassifier = null })
-}
-
-shadowJar {
-    configurations = [project.configurations.runtimeClasspath]
-    dependencies {
-        include(dependency("commons-io:commons-io:${commonsIoVersion}"))
-        include(dependency("org.apache.logging.log4j:log4j-api:${log4jVersion}"))
-        exclude('META-INF/*.SF')
-        exclude('META-INF/*.DSA')
-        exclude('META-INF/*.RSA')
-    }
-}
 

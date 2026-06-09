@@ -36,6 +36,7 @@ public final class EventIdentifierExtractor {
 
     public static final String X_BALLERINA_EVENT_TYPE_HEADER = "header";
     public static final String X_BALLERINA_EVENT_TYPE_BODY = "body";
+    public static final String X_BALLERINA_EVENT_TYPE_COMPOSITE = "composite";
     private static final String X_BALLERINA_EVENT_FIELD_IDENTIFIER = "x-ballerina-event-identifier";
     private static final String X_BALLERINA_EVENT_FIELD_IDENTIFIER_TYPE = "type";
     private static final String X_BALLERINA_EVENT_FIELD_IDENTIFIER_PATH = "path";
@@ -84,26 +85,30 @@ public final class EventIdentifierExtractor {
 
         return switch (type) {
             case X_BALLERINA_EVENT_TYPE_HEADER ->
-                    new EventIdentifierConfig(type, extractHeaderPath(identifierFields));
+                    new EventIdentifierConfig(type, extractHeaderName(identifierFields), null);
             case X_BALLERINA_EVENT_TYPE_BODY ->
-                    new EventIdentifierConfig(type, extractBodyPath(identifierFields));
+                    new EventIdentifierConfig(type, null, extractBodyPath(identifierFields));
+            case X_BALLERINA_EVENT_TYPE_COMPOSITE ->
+                    new EventIdentifierConfig(type, extractHeaderName(identifierFields),
+                            extractBodyPath(identifierFields));
             default -> throw new GeneratorException(String.format(
-                    "%s or %s is not provided as the value of %s attribute within the attribute %s"
+                    "%s, %s or %s is not provided as the value of %s attribute within the attribute %s"
                             + " in the Async API Specification",
                     X_BALLERINA_EVENT_TYPE_HEADER, X_BALLERINA_EVENT_TYPE_BODY,
+                    X_BALLERINA_EVENT_TYPE_COMPOSITE,
                     X_BALLERINA_EVENT_FIELD_IDENTIFIER_TYPE,
                     X_BALLERINA_EVENT_FIELD_IDENTIFIER));
         };
     }
 
     /**
-     * Extracts and escapes the header name for a {@code type=header} identifier.
+     * Extracts and escapes the header name for a {@code type=header} or {@code type=composite} identifier.
      *
      * @param identifierFields the fields parsed from the extension node
      * @return the (possibly keyword-escaped) header name
      * @throws GeneratorException if the {@code name} field is absent
      */
-    private String extractHeaderPath(Map<String, String> identifierFields) throws GeneratorException {
+    private String extractHeaderName(Map<String, String> identifierFields) throws GeneratorException {
         if (!identifierFields.containsKey(X_BALLERINA_EVENT_FIELD_IDENTIFIER_NAME)) {
             throw new GeneratorException(String.format(
                     "%s attribute is not found within the attribute %s in the Async API Specification",

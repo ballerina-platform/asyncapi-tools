@@ -86,7 +86,8 @@ public final class ChannelMapperV2 {
             if (channelItem != null) {
                 AsyncApiChannel mapped = mapChannelItem(id, channelItem, components, serversMap);
                 if (mapped != null) {
-                    result.put(StringUtils.toPascalCase(id), mapped);
+                    String mapKey = "/".equals(id) ? "Root" : StringUtils.toPascalCase(id);
+                    result.put(mapKey, mapped);
                 }
             }
         }

@@ -23,6 +23,7 @@ import io.ballerina.compiler.syntax.tree.SyntaxInfo;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
+import java.util.Set;
 
 /**
  * Utility methods for Ballerina identifier and name generation during HTTP code generation.
@@ -31,6 +32,11 @@ public final class CodegenUtils {
 
     public static final String ESCAPE_PATTERN = "([\\[\\]\\\\?!<>@#&~`*\\-=^+();:\\/\\_{}\\s|.$])";
     public static final List<String> BAL_KEYWORDS = SyntaxInfo.keywords();
+    private static final Set<String> ADDITIONAL_ESCAPE_IDENTIFIERS = Set.of(
+            "default", "abort", "aborted", "all", "catch", "channel", "committed",
+            "finally", "module", "onretry", "retries", "throw", "try", "version",
+            "with", "base16", "base64"
+    );
     private static final String REMOTE_FUNCTION_NAME_PREFIX = "on";
     private static final String SERVICE_TYPE_NAME_SUFFIX = "Service";
 
@@ -48,7 +54,7 @@ public final class CodegenUtils {
             return String.format("'%s", identifier);
         }
         if (!identifier.matches("\\b[_a-zA-Z][_a-zA-Z0-9]*\\b") || BAL_KEYWORDS.stream()
-                .anyMatch(identifier::equals)) {
+                .anyMatch(identifier::equals) || ADDITIONAL_ESCAPE_IDENTIFIERS.contains(identifier)) {
             identifier = identifier.replaceAll(ESCAPE_PATTERN, "\\\\$1");
             if (identifier.endsWith("?")) {
                 if (identifier.charAt(identifier.length() - 2) == '\\') {
@@ -62,7 +68,8 @@ public final class CodegenUtils {
                         .orElse(identifier)::equals)) {
                     identifier = String.format("'%s", identifier);
                 }
-            } else if (BAL_KEYWORDS.stream().anyMatch(identifier::equals)) {
+            } else if (BAL_KEYWORDS.stream().anyMatch(identifier::equals)
+                    || ADDITIONAL_ESCAPE_IDENTIFIERS.contains(identifier)) {
                 identifier = String.format("'%s", identifier);
             }
         }
@@ -97,6 +104,67 @@ public final class CodegenUtils {
         } else {
             return identifier.substring(0, 1).toLowerCase(Locale.ENGLISH) + identifier.substring(1);
         }
+    }
+
+    /**
+     * Returns {@code true} if the identifier contains a hyphen ({@code -}), indicating that a
+     * {@code @http:Header} annotation is required for the corresponding record field.
+     *
+     * @param identifier the field name to check
+     * @return {@code true} if the identifier contains a hyphen, {@code false} otherwise
+     */
+    public static boolean requiresHeaderAnnotation(String identifier) {
+        return identifier.contains("-");
+    }
+
+    /**
+     * Converts a hyphen- or underscore-separated identifier (e.g. {@code X-GitHub-Event}) into
+     * camelCase (e.g. {@code xGitHubEvent}).
+     *
+     * <p>Rules:
+     * <ul>
+     *   <li>Split on hyphens and underscores.</li>
+     *   <li>Lowercase the first segment entirely.</li>
+     *   <li>Capitalize only the first letter of every subsequent segment (rest unchanged).</li>
+     *   <li>Join all segments with no separator.</li>
+     * </ul>
+     *
+     * @param identifier the raw identifier string to convert
+     * @return the camelCase representation of the identifier
+     */
+    public static String toCamelCase(String identifier) {
+        String[] parts = identifier.split("[-_]");
+        StringBuilder result = new StringBuilder(parts[0].toLowerCase(Locale.ENGLISH));
+        for (int i = 1; i < parts.length; i++) {
+            if (!parts[i].isEmpty()) {
+                result.append(parts[i].substring(0, 1).toUpperCase(Locale.ENGLISH))
+                        .append(parts[i].substring(1));
+            }
+        }
+        return result.toString();
+    }
+
+    /**
+     * Converts a PascalCase identifier to snake_case by inserting an underscore before
+     * each uppercase letter (except the first) and lowercasing the result.
+     * Example: {@code "PullRequest"} → {@code "pull_request"}.
+     *
+     * @param pascalCase the PascalCase string to convert
+     * @return the snake_case representation
+     */
+    public static String toSnakeCase(String pascalCase) {
+        if (pascalCase == null || pascalCase.isEmpty()) {
+            return pascalCase;
+        }
+        StringBuilder result = new StringBuilder();
+        for (int i = 0; i < pascalCase.length(); i++) {
+            char c = pascalCase.charAt(i);
+            if (Character.isUpperCase(c) && i > 0) {
+                result.append('_');
+            }
+            result.append(Character.toLowerCase(c));
+        }
+        return result.toString();
     }
 
     /**

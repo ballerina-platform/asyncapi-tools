@@ -196,8 +196,13 @@ public final class SchemaMapper {
             if (entry.getValue() instanceof AsyncApiReferenceable refSchema && refSchema.get$ref() != null) {
                 String ref = refSchema.get$ref();
                 String refName = ref.substring(ref.lastIndexOf('/') + 1);
-                properties.put(entry.getKey(),
-                        io.ballerina.asyncapi.core.model.component.AsyncApiSchema.refStub(refName));
+                io.ballerina.asyncapi.core.model.component.AsyncApiSchema stub =
+                        io.ballerina.asyncapi.core.model.component.AsyncApiSchema.refStub(refName);
+                if (entry.getValue() instanceof AsyncApiSchema typedSchema
+                        && typedSchema.getDescription() != null) {
+                    stub = stub.withDescription(typedSchema.getDescription());
+                }
+                properties.put(entry.getKey(), stub);
             } else if (entry.getValue() instanceof AsyncApiSchema typedSchema) {
                 io.ballerina.asyncapi.core.model.component.AsyncApiSchema mapped = map(typedSchema);
                 if (mapped != null) {
@@ -342,8 +347,15 @@ public final class SchemaMapper {
                 if (propNode.has(Constants.SCHEMA_REF)) {
                     String ref = propNode.get(Constants.SCHEMA_REF).asText();
                     String refName = ref.substring(ref.lastIndexOf('/') + 1);
-                    propsRef.put(entry.getKey(),
-                            io.ballerina.asyncapi.core.model.component.AsyncApiSchema.refStub(refName));
+                    io.ballerina.asyncapi.core.model.component.AsyncApiSchema stub =
+                            io.ballerina.asyncapi.core.model.component.AsyncApiSchema.refStub(refName);
+                    if (propNode.has(Constants.SCHEMA_DESCRIPTION)) {
+                        String siblingDescription = propNode.get(Constants.SCHEMA_DESCRIPTION).asText(null);
+                        if (siblingDescription != null) {
+                            stub = stub.withDescription(siblingDescription);
+                        }
+                    }
+                    propsRef.put(entry.getKey(), stub);
                 } else {
                     io.ballerina.asyncapi.core.model.component.AsyncApiSchema propSchema =
                             mapFromJsonNode(propNode);
