@@ -1,19 +1,19 @@
 /*
- *  Copyright (c) 2026, WSO2 LLC. (http://www.wso2.com)
+ * Copyright (c) 2026, WSO2 LLC. (http://www.wso2.com)
  *
- *  WSO2 LLC. licenses this file to you under the Apache License,
- *  Version 2.0 (the "License"); you may not use this file except
- *  in compliance with the License.
- *  You may obtain a copy of the License at
+ * WSO2 LLC. licenses this file to you under the Apache License,
+ * Version 2.0 (the "License"); you may not use this file except
+ * in compliance with the License.
+ * You may obtain a copy of the License at
  *
- *    http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
- *  Unless required by applicable law or agreed to in writing,
- *  software distributed under the License is distributed on an
- *  "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- *  KIND, either express or implied.  See the License for the
- *  specific language governing permissions and limitations
- *  under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package io.ballerina.asyncapi.generator.http.utils;
 
@@ -80,7 +80,7 @@ public final class CodegenUtils {
      * Generates a valid Ballerina name by removing special characters from a function name,
      * record name, or operation ID.
      *
-     * @param identifier         the input name to sanitize
+     * @param identifier          the input name to sanitize
      * @param capitalizeFirstChar whether to capitalize the first character
      * @return the sanitized name
      */
@@ -92,7 +92,7 @@ public final class CodegenUtils {
                 if (!part.isBlank()) {
                     if (split.length > 1) {
                         part = part.substring(0, 1).toUpperCase(Locale.ENGLISH)
-                                + part.substring(1).toLowerCase(Locale.ENGLISH);
+                                + part.substring(1);
                     }
                     validName.append(part);
                 }
@@ -123,10 +123,10 @@ public final class CodegenUtils {
      *
      * <p>Rules:
      * <ul>
-     *   <li>Split on hyphens and underscores.</li>
-     *   <li>Lowercase the first segment entirely.</li>
-     *   <li>Capitalize only the first letter of every subsequent segment (rest unchanged).</li>
-     *   <li>Join all segments with no separator.</li>
+     * <li>Split on hyphens and underscores.</li>
+     * <li>Lowercase the first segment entirely.</li>
+     * <li>Capitalize only the first letter of every subsequent segment (rest unchanged).</li>
+     * <li>Join all segments with no separator.</li>
      * </ul>
      *
      * @param identifier the raw identifier string to convert
@@ -134,7 +134,13 @@ public final class CodegenUtils {
      */
     public static String toCamelCase(String identifier) {
         String[] parts = identifier.split("[-_]");
-        StringBuilder result = new StringBuilder(parts[0].toLowerCase(Locale.ENGLISH));
+        String firstPart = parts[0];
+        String initial = "";
+        if (!firstPart.isEmpty()) {
+            initial = firstPart.substring(0, 1).toLowerCase(Locale.ENGLISH)
+                    + firstPart.substring(1);
+        }
+        StringBuilder result = new StringBuilder(initial);
         for (int i = 1; i < parts.length; i++) {
             if (!parts[i].isEmpty()) {
                 result.append(parts[i].substring(0, 1).toUpperCase(Locale.ENGLISH))
@@ -194,8 +200,7 @@ public final class CodegenUtils {
      * @return the remote function name for the corresponding service type method
      */
     public static String getFunctionNameByEventName(String eventName) {
-        return String.format("%s%s", REMOTE_FUNCTION_NAME_PREFIX,
-                getValidName(eventName, true));
+        return REMOTE_FUNCTION_NAME_PREFIX + getValidName(eventName, true);
     }
 
     /**
