@@ -91,7 +91,6 @@ public final class CodegenUtils {
             for (String part : split) {
                 if (!part.isBlank()) {
                     if (split.length > 1) {
-                        // FIXED: Removed the .toLowerCase() that was destroying camelCase!
                         part = part.substring(0, 1).toUpperCase(Locale.ENGLISH)
                                 + part.substring(1);
                     }
