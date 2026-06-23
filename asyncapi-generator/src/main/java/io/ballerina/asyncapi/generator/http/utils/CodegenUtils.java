@@ -137,7 +137,6 @@ public final class CodegenUtils {
         String firstPart = parts[0];
         String initial = "";
         if (!firstPart.isEmpty()) {
-            // FIXED: Only lowercasing the first letter, not the whole word
             initial = firstPart.substring(0, 1).toLowerCase(Locale.ENGLISH)
                     + firstPart.substring(1);
         }
