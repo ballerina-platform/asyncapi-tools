@@ -201,7 +201,6 @@ public final class CodegenUtils {
      * @return the remote function name for the corresponding service type method
      */
     public static String getFunctionNameByEventName(String eventName) {
-        // FIXED: Replaced the runtime exception trap with the correct implementation
         return REMOTE_FUNCTION_NAME_PREFIX + getValidName(eventName, true);
     }
 
