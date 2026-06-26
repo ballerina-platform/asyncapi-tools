@@ -163,7 +163,7 @@ publishing {
 
 task patchBallerinaScripts(type: PatchBallerinaScriptsTask) {
     dependsOn 'jBallerinaPack'
-    outputs.upToDateWhen { !tasks.named('unpackJballerinaTools').get().didWork }
+    outputs.upToDateWhen { !tasks.named('jBallerinaPack').get().didWork }
     jballerinaToolsBinPath = layout.buildDirectory.dir("jballerina-tools-${project.ballerinaLangVersion}/bin").get().asFile.absolutePath
     ballerinaRuntimeBinPath = "${rootProject.projectDir.absolutePath}/target/ballerina-runtime/bin"
 }
