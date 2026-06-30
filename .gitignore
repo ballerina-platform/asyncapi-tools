@@ -92,3 +92,8 @@ Temporary Items
 
 build
 target
+
+.vscode/
+**/bin/
+**/build/
+hubspot_test/
