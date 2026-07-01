@@ -17,15 +17,15 @@ channels:
     description: Represents resource function description
     subscribe:
       message:
-        $ref: '#/components/messages/PriceMap'
+        $ref: "#/components/messages/PriceMap"
     publish:
       message:
-        $ref: '#/components/messages/Type'
+        $ref: "#/components/messages/Type"
     parameters:
       id:
         description: id path param description
         schema:
-          $ref: '#/components/schemas/PetId'
+          $ref: "#/components/schemas/PetId"
 components:
   schemas:
     PetId:
@@ -62,7 +62,7 @@ components:
       oneOf:
         - type: number
           format: float
-        - $ref: '#/components/schemas/PriceMap'
+        - $ref: "#/components/schemas/PriceMap"
     Salary:
       oneOf:
         - type: integer
@@ -81,32 +81,32 @@ components:
         - tuple
       properties:
         books:
-          $ref: '#/components/schemas/Books'
+          $ref: "#/components/schemas/Books"
         rels:
-          $ref: '#/components/schemas/Rels'
+          $ref: "#/components/schemas/Rels"
         actions:
-          $ref: '#/components/schemas/Action'
+          $ref: "#/components/schemas/Action"
         count:
-          $ref: '#/components/schemas/Count'
+          $ref: "#/components/schemas/Count"
           x-nullable: true
         price:
-          $ref: '#/components/schemas/Price'
+          $ref: "#/components/schemas/Price"
         salary:
-          $ref: '#/components/schemas/Salary'
+          $ref: "#/components/schemas/Salary"
         tuple:
           type: string
           const: Type
   messages:
     PriceMap:
       payload:
-        $ref: '#/components/schemas/PriceMap'
+        $ref: "#/components/schemas/PriceMap"
     Type:
       payload:
-        $ref: '#/components/schemas/Type'
+        $ref: "#/components/schemas/Type"
         description: Type message description
       description: Remote tuple description
       x-response:
-        $ref: '#/components/messages/PriceMap'
+        $ref: "#/components/messages/PriceMap"
         description: this is User return description
       x-response-type: simple-rpc
 x-dispatcherKey: tuple

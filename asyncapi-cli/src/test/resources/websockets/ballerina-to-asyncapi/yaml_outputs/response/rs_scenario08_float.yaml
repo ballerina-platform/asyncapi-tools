@@ -21,7 +21,7 @@ channels:
           format: float
     publish:
       message:
-        $ref: '#/components/messages/Subscribe'
+        $ref: "#/components/messages/Subscribe"
 components:
   schemas:
     Subscribe:
@@ -39,7 +39,7 @@ components:
   messages:
     Subscribe:
       payload:
-        $ref: '#/components/schemas/Subscribe'
+        $ref: "#/components/schemas/Subscribe"
       x-response:
         payload:
           type: number

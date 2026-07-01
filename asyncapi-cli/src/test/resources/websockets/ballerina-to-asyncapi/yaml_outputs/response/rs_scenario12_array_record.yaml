@@ -20,10 +20,10 @@ channels:
         payload:
           type: array
           items:
-            $ref: '#/components/schemas/Location'
+            $ref: "#/components/schemas/Location"
     publish:
       message:
-        $ref: '#/components/messages/Subscribe'
+        $ref: "#/components/messages/Subscribe"
 components:
   schemas:
     Subscribe:
@@ -64,12 +64,12 @@ components:
         links:
           type: array
           items:
-            $ref: '#/components/schemas/Link'
+            $ref: "#/components/schemas/Link"
           description: Array links
       description: Link details
     Location:
       allOf:
-        - $ref: '#/components/schemas/Links'
+        - $ref: "#/components/schemas/Links"
         - type: object
           required:
             - name
@@ -89,11 +89,11 @@ components:
   messages:
     Subscribe:
       payload:
-        $ref: '#/components/schemas/Subscribe'
+        $ref: "#/components/schemas/Subscribe"
       x-response:
         payload:
           type: array
           items:
-            $ref: '#/components/schemas/Location'
+            $ref: "#/components/schemas/Location"
       x-response-type: simple-rpc
 x-dispatcherKey: event

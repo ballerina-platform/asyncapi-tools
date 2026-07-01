@@ -17,22 +17,22 @@ channels:
     subscribe:
       message:
         oneOf:
-        - $ref: '#/components/messages/MessageTooBig'
-        - $ref: '#/components/messages/Response'
-        - $ref: '#/components/messages/NormalClosure'
-        - $ref: '#/components/messages/GoingAway'
-        - $ref: '#/components/messages/ProtocolError'
-        - $ref: '#/components/messages/UnsupportedData'
-        - $ref: '#/components/messages/InvalidPayload'
-        - $ref: '#/components/messages/PolicyViolation'
-        - $ref: '#/components/messages/InternalServerError'
-        - $ref: '#/components/messages/CustomCloseFrame'
-        - $ref: '#/components/messages/SubscribeResponse'
+        - $ref: "#/components/messages/MessageTooBig"
+        - $ref: "#/components/messages/Response"
+        - $ref: "#/components/messages/NormalClosure"
+        - $ref: "#/components/messages/GoingAway"
+        - $ref: "#/components/messages/ProtocolError"
+        - $ref: "#/components/messages/UnsupportedData"
+        - $ref: "#/components/messages/InvalidPayload"
+        - $ref: "#/components/messages/PolicyViolation"
+        - $ref: "#/components/messages/InternalServerError"
+        - $ref: "#/components/messages/CustomCloseFrame"
+        - $ref: "#/components/messages/SubscribeResponse"
     publish:
       message:
         oneOf:
-        - $ref: '#/components/messages/Hello'
-        - $ref: '#/components/messages/Subscribe'
+        - $ref: "#/components/messages/Hello"
+        - $ref: "#/components/messages/Subscribe"
 components:
   schemas:
     Hello:
@@ -246,60 +246,60 @@ components:
   messages:
     MessageTooBig:
       payload:
-        $ref: '#/components/schemas/MessageTooBig'
+        $ref: "#/components/schemas/MessageTooBig"
     Response:
       payload:
-        $ref: '#/components/schemas/Response'
+        $ref: "#/components/schemas/Response"
     NormalClosure:
       payload:
-        $ref: '#/components/schemas/NormalClosure'
+        $ref: "#/components/schemas/NormalClosure"
     GoingAway:
       payload:
-        $ref: '#/components/schemas/GoingAway'
+        $ref: "#/components/schemas/GoingAway"
     ProtocolError:
       payload:
-        $ref: '#/components/schemas/ProtocolError'
+        $ref: "#/components/schemas/ProtocolError"
     UnsupportedData:
       payload:
-        $ref: '#/components/schemas/UnsupportedData'
+        $ref: "#/components/schemas/UnsupportedData"
     InvalidPayload:
       payload:
-        $ref: '#/components/schemas/InvalidPayload'
+        $ref: "#/components/schemas/InvalidPayload"
     PolicyViolation:
       payload:
-        $ref: '#/components/schemas/PolicyViolation'
+        $ref: "#/components/schemas/PolicyViolation"
     InternalServerError:
       payload:
-        $ref: '#/components/schemas/InternalServerError'
+        $ref: "#/components/schemas/InternalServerError"
     CustomCloseFrame:
       payload:
-        $ref: '#/components/schemas/CustomCloseFrame'
+        $ref: "#/components/schemas/CustomCloseFrame"
     Hello:
       payload:
-        $ref: '#/components/schemas/Hello'
+        $ref: "#/components/schemas/Hello"
       x-response:
         oneOf:
-        - $ref: '#/components/messages/MessageTooBig'
-        - $ref: '#/components/messages/Response'
-        - $ref: '#/components/messages/NormalClosure'
-        - $ref: '#/components/messages/GoingAway'
-        - $ref: '#/components/messages/ProtocolError'
-        - $ref: '#/components/messages/UnsupportedData'
-        - $ref: '#/components/messages/InvalidPayload'
-        - $ref: '#/components/messages/PolicyViolation'
-        - $ref: '#/components/messages/InternalServerError'
-        - $ref: '#/components/messages/CustomCloseFrame'
+        - $ref: "#/components/messages/MessageTooBig"
+        - $ref: "#/components/messages/Response"
+        - $ref: "#/components/messages/NormalClosure"
+        - $ref: "#/components/messages/GoingAway"
+        - $ref: "#/components/messages/ProtocolError"
+        - $ref: "#/components/messages/UnsupportedData"
+        - $ref: "#/components/messages/InvalidPayload"
+        - $ref: "#/components/messages/PolicyViolation"
+        - $ref: "#/components/messages/InternalServerError"
+        - $ref: "#/components/messages/CustomCloseFrame"
       x-response-type: simple-rpc
     SubscribeResponse:
       payload:
-        $ref: '#/components/schemas/SubscribeResponse'
+        $ref: "#/components/schemas/SubscribeResponse"
     Subscribe:
       payload:
-        $ref: '#/components/schemas/Subscribe'
+        $ref: "#/components/schemas/Subscribe"
       x-response:
         oneOf:
-        - $ref: '#/components/messages/NormalClosure'
-        - $ref: '#/components/messages/SubscribeResponse'
+        - $ref: "#/components/messages/NormalClosure"
+        - $ref: "#/components/messages/SubscribeResponse"
       x-response-type: simple-rpc
 x-dispatcherKey: event
 x-ballerina-ws-closeframe:

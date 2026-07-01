@@ -16,7 +16,7 @@ channels:
   /:
     publish:
       message:
-        $ref: '#/components/messages/Location'
+        $ref: "#/components/messages/Location"
 components:
   schemas:
     Location:
@@ -35,6 +35,6 @@ components:
   messages:
     Location:
       payload:
-        $ref: '#/components/schemas/Location'
+        $ref: "#/components/schemas/Location"
       description: Represents Snowpeak location resource
 x-dispatcherKey: event

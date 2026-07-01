@@ -16,10 +16,10 @@ channels:
   /:
     subscribe:
       message:
-        $ref: '#/components/messages/SubscriptionStatus'
+        $ref: "#/components/messages/SubscriptionStatus"
     publish:
       message:
-        $ref: '#/components/messages/Subscribe'
+        $ref: "#/components/messages/Subscribe"
 components:
   schemas:
     Subscribe:
@@ -48,11 +48,11 @@ components:
   messages:
     SubscriptionStatus:
       payload:
-        $ref: '#/components/schemas/SubscriptionStatus'
+        $ref: "#/components/schemas/SubscriptionStatus"
     Subscribe:
       payload:
-        $ref: '#/components/schemas/Subscribe'
+        $ref: "#/components/schemas/Subscribe"
       x-response:
-        $ref: '#/components/messages/SubscriptionStatus'
+        $ref: "#/components/messages/SubscriptionStatus"
       x-response-type: simple-rpc
 x-dispatcherKey: event

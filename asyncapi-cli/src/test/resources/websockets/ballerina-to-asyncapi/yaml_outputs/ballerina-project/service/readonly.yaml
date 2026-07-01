@@ -20,18 +20,18 @@ channels:
           - payload:
               type: array
               items:
-                $ref: '#/components/schemas/LiftRecord'
-          - $ref: '#/components/messages/LiftRecord'
+                $ref: "#/components/schemas/LiftRecord"
+          - $ref: "#/components/messages/LiftRecord"
           - payload:
               type: array
               items:
-                $ref: '#/components/schemas/Subscribe'
+                $ref: "#/components/schemas/Subscribe"
     publish:
       message:
         oneOf:
-          - $ref: '#/components/messages/Location'
-          - $ref: '#/components/messages/Rooms'
-          - $ref: '#/components/messages/ReserveRoom'
+          - $ref: "#/components/messages/Location"
+          - $ref: "#/components/messages/Rooms"
+          - $ref: "#/components/messages/ReserveRoom"
 components:
   schemas:
     Location:
@@ -128,7 +128,7 @@ components:
         rooms:
           type: array
           items:
-            $ref: '#/components/schemas/Room'
+            $ref: "#/components/schemas/Room"
           description: Array of rooms
         event:
           type: string
@@ -166,34 +166,34 @@ components:
   messages:
     Location:
       payload:
-        $ref: '#/components/schemas/Location'
+        $ref: "#/components/schemas/Location"
       description: A list of all `Lift`s
       x-response:
         payload:
           type: array
           items:
-            $ref: '#/components/schemas/LiftRecord'
+            $ref: "#/components/schemas/LiftRecord"
         description: the lifts
       x-response-type: simple-rpc
     LiftRecord:
       payload:
-        $ref: '#/components/schemas/LiftRecord'
+        $ref: "#/components/schemas/LiftRecord"
     Rooms:
       payload:
-        $ref: '#/components/schemas/Rooms'
+        $ref: "#/components/schemas/Rooms"
       description: "Returns a `Lift` by `id` (id: \"panorama\")"
       x-response:
-        $ref: '#/components/messages/LiftRecord'
+        $ref: "#/components/messages/LiftRecord"
         description: the lift
         x-required: false
       x-response-type: simple-rpc
     ReserveRoom:
       payload:
-        $ref: '#/components/schemas/ReserveRoom'
+        $ref: "#/components/schemas/ReserveRoom"
       x-response:
         payload:
           type: array
           items:
-            $ref: '#/components/schemas/Subscribe'
+            $ref: "#/components/schemas/Subscribe"
       x-response-type: simple-rpc
 x-dispatcherKey: event

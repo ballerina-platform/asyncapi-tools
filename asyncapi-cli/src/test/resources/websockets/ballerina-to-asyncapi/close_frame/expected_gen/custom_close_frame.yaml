@@ -16,10 +16,10 @@ channels:
   /custom_close_frame:
     subscribe:
       message:
-        $ref: '#/components/messages/MyCloseFrame'
+        $ref: "#/components/messages/MyCloseFrame"
     publish:
       message:
-        $ref: '#/components/messages/Heartbeat'
+        $ref: "#/components/messages/Heartbeat"
 components:
   schemas:
     Heartbeat:
@@ -54,12 +54,12 @@ components:
   messages:
     MyCloseFrame:
       payload:
-        $ref: '#/components/schemas/MyCloseFrame'
+        $ref: "#/components/schemas/MyCloseFrame"
     Heartbeat:
       payload:
-        $ref: '#/components/schemas/Heartbeat'
+        $ref: "#/components/schemas/Heartbeat"
       x-response:
-        $ref: '#/components/messages/MyCloseFrame'
+        $ref: "#/components/messages/MyCloseFrame"
       x-response-type: simple-rpc
 x-dispatcherKey: event
 x-ballerina-ws-closeframe:

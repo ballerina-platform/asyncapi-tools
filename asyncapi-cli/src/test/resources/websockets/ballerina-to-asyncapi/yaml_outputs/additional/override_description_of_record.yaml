@@ -16,10 +16,10 @@ channels:
   /:
     subscribe:
       message:
-        $ref: '#/components/messages/Ticker'
+        $ref: "#/components/messages/Ticker"
     publish:
       message:
-        $ref: '#/components/messages/Subscribe'
+        $ref: "#/components/messages/Subscribe"
 components:
   schemas:
     Subscribe:
@@ -48,11 +48,11 @@ components:
   messages:
     Ticker:
       payload:
-        $ref: '#/components/schemas/Ticker'
+        $ref: "#/components/schemas/Ticker"
     Subscribe:
       payload:
-        $ref: '#/components/schemas/Subscribe'
+        $ref: "#/components/schemas/Subscribe"
       x-response:
-        $ref: '#/components/messages/Ticker'
+        $ref: "#/components/messages/Ticker"
       x-response-type: simple-rpc
 x-dispatcherKey: event

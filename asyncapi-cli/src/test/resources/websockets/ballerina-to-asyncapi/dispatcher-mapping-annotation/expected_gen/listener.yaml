@@ -16,10 +16,10 @@ channels:
   /:
     subscribe:
       message:
-        $ref: '#/components/messages/SubscribeResponse'
+        $ref: "#/components/messages/SubscribeResponse"
     publish:
       message:
-        $ref: '#/components/messages/Subscribe'
+        $ref: "#/components/messages/Subscribe"
 components:
   schemas:
     Subscribe:
@@ -43,11 +43,11 @@ components:
   messages:
     SubscribeResponse:
       payload:
-        $ref: '#/components/schemas/SubscribeResponse'
+        $ref: "#/components/schemas/SubscribeResponse"
     Subscribe:
       payload:
-        $ref: '#/components/schemas/Subscribe'
+        $ref: "#/components/schemas/Subscribe"
       x-response:
-        $ref: '#/components/messages/SubscribeResponse'
+        $ref: "#/components/messages/SubscribeResponse"
       x-response-type: simple-rpc
 x-dispatcherKey: type

@@ -20,10 +20,10 @@ channels:
         payload:
           type: array
           items:
-            $ref: '#/components/schemas/Product'
+            $ref: "#/components/schemas/Product"
     publish:
       message:
-        $ref: '#/components/messages/Price'
+        $ref: "#/components/messages/Price"
 components:
   schemas:
     Price:
@@ -62,17 +62,17 @@ components:
           type: string
           description: Product description
         price:
-          $ref: '#/components/schemas/Price'
+          $ref: "#/components/schemas/Price"
           description: Product price
       description: Represents a product
   messages:
     Price:
       payload:
-        $ref: '#/components/schemas/Price'
+        $ref: "#/components/schemas/Price"
       x-response:
         payload:
           type: array
           items:
-            $ref: '#/components/schemas/Product'
+            $ref: "#/components/schemas/Product"
       x-response-type: simple-rpc
 x-dispatcherKey: event
