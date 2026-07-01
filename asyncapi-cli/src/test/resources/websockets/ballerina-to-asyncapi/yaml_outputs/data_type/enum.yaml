@@ -18,15 +18,15 @@ channels:
     subscribe:
       message:
         oneOf:
-          - $ref: '#/components/messages/Test'
+          - $ref: "#/components/messages/Test"
           - payload:
               type: integer
               format: int64
     publish:
       message:
         oneOf:
-          - $ref: '#/components/messages/Link'
-          - $ref: '#/components/messages/Order'
+          - $ref: "#/components/messages/Link"
+          - $ref: "#/components/messages/Order"
     parameters:
       id:
         description: test id description
@@ -95,19 +95,19 @@ components:
   messages:
     Test:
       payload:
-        $ref: '#/components/schemas/Test'
+        $ref: "#/components/schemas/Test"
     Link:
       payload:
-        $ref: '#/components/schemas/Link'
+        $ref: "#/components/schemas/Link"
         description: remote above link description
       description: Testing remote description
       x-response:
-        $ref: '#/components/messages/Test'
+        $ref: "#/components/messages/Test"
         description: remote return description
       x-response-type: simple-rpc
     Order:
       payload:
-        $ref: '#/components/schemas/Order'
+        $ref: "#/components/schemas/Order"
         description: order above link description
       description: Order remote description
       x-response:

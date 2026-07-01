@@ -16,10 +16,10 @@ channels:
   /:
     subscribe:
       message:
-        $ref: '#/components/messages/NormalClosure'
+        $ref: "#/components/messages/NormalClosure"
     publish:
       message:
-        $ref: '#/components/messages/Hello'
+        $ref: "#/components/messages/Hello"
 components:
   schemas:
     Hello:
@@ -54,12 +54,12 @@ components:
   messages:
     NormalClosure:
       payload:
-        $ref: '#/components/schemas/NormalClosure'
+        $ref: "#/components/schemas/NormalClosure"
     Hello:
       payload:
-        $ref: '#/components/schemas/Hello'
+        $ref: "#/components/schemas/Hello"
       x-response:
-        $ref: '#/components/messages/NormalClosure'
+        $ref: "#/components/messages/NormalClosure"
       x-response-type: simple-rpc
 x-dispatcherKey: event
 x-ballerina-ws-closeframe:

@@ -19,10 +19,10 @@ channels:
         payload:
           type: array
           items:
-            $ref: '#/components/schemas/Album'
+            $ref: "#/components/schemas/Album"
     publish:
       message:
-        $ref: '#/components/messages/Album'
+        $ref: "#/components/messages/Album"
     parameters:
       id:
         schema:
@@ -53,11 +53,11 @@ components:
   messages:
     Album:
       payload:
-        $ref: '#/components/schemas/Album'
+        $ref: "#/components/schemas/Album"
       x-response:
         payload:
           type: array
           items:
-            $ref: '#/components/schemas/Album'
+            $ref: "#/components/schemas/Album"
       x-response-type: simple-rpc
 x-dispatcherKey: event

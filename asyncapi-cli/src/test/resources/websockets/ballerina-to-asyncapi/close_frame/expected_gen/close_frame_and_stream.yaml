@@ -20,18 +20,18 @@ channels:
         - payload:
             type: integer
             format: int64
-        - $ref: '#/components/messages/NormalClosure'
-        - $ref: '#/components/messages/GoingAway'
-        - $ref: '#/components/messages/ProtocolError'
-        - $ref: '#/components/messages/UnsupportedData'
-        - $ref: '#/components/messages/InvalidPayload'
-        - $ref: '#/components/messages/PolicyViolation'
-        - $ref: '#/components/messages/MessageTooBig'
-        - $ref: '#/components/messages/InternalServerError'
-        - $ref: '#/components/messages/CustomCloseFrame'
+        - $ref: "#/components/messages/NormalClosure"
+        - $ref: "#/components/messages/GoingAway"
+        - $ref: "#/components/messages/ProtocolError"
+        - $ref: "#/components/messages/UnsupportedData"
+        - $ref: "#/components/messages/InvalidPayload"
+        - $ref: "#/components/messages/PolicyViolation"
+        - $ref: "#/components/messages/MessageTooBig"
+        - $ref: "#/components/messages/InternalServerError"
+        - $ref: "#/components/messages/CustomCloseFrame"
     publish:
       message:
-        $ref: '#/components/messages/Hello'
+        $ref: "#/components/messages/Hello"
 components:
   schemas:
     Hello:
@@ -215,48 +215,48 @@ components:
   messages:
     NormalClosure:
       payload:
-        $ref: '#/components/schemas/NormalClosure'
+        $ref: "#/components/schemas/NormalClosure"
     GoingAway:
       payload:
-        $ref: '#/components/schemas/GoingAway'
+        $ref: "#/components/schemas/GoingAway"
     ProtocolError:
       payload:
-        $ref: '#/components/schemas/ProtocolError'
+        $ref: "#/components/schemas/ProtocolError"
     UnsupportedData:
       payload:
-        $ref: '#/components/schemas/UnsupportedData'
+        $ref: "#/components/schemas/UnsupportedData"
     InvalidPayload:
       payload:
-        $ref: '#/components/schemas/InvalidPayload'
+        $ref: "#/components/schemas/InvalidPayload"
     PolicyViolation:
       payload:
-        $ref: '#/components/schemas/PolicyViolation'
+        $ref: "#/components/schemas/PolicyViolation"
     MessageTooBig:
       payload:
-        $ref: '#/components/schemas/MessageTooBig'
+        $ref: "#/components/schemas/MessageTooBig"
     InternalServerError:
       payload:
-        $ref: '#/components/schemas/InternalServerError'
+        $ref: "#/components/schemas/InternalServerError"
     CustomCloseFrame:
       payload:
-        $ref: '#/components/schemas/CustomCloseFrame'
+        $ref: "#/components/schemas/CustomCloseFrame"
     Hello:
       payload:
-        $ref: '#/components/schemas/Hello'
+        $ref: "#/components/schemas/Hello"
       x-response:
         oneOf:
         - payload:
             type: integer
             format: int64
-        - $ref: '#/components/messages/NormalClosure'
-        - $ref: '#/components/messages/GoingAway'
-        - $ref: '#/components/messages/ProtocolError'
-        - $ref: '#/components/messages/UnsupportedData'
-        - $ref: '#/components/messages/InvalidPayload'
-        - $ref: '#/components/messages/PolicyViolation'
-        - $ref: '#/components/messages/MessageTooBig'
-        - $ref: '#/components/messages/InternalServerError'
-        - $ref: '#/components/messages/CustomCloseFrame'
+        - $ref: "#/components/messages/NormalClosure"
+        - $ref: "#/components/messages/GoingAway"
+        - $ref: "#/components/messages/ProtocolError"
+        - $ref: "#/components/messages/UnsupportedData"
+        - $ref: "#/components/messages/InvalidPayload"
+        - $ref: "#/components/messages/PolicyViolation"
+        - $ref: "#/components/messages/MessageTooBig"
+        - $ref: "#/components/messages/InternalServerError"
+        - $ref: "#/components/messages/CustomCloseFrame"
         extensions:
           x-required: false
       x-response-type: server-streaming

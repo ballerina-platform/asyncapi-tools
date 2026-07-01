@@ -16,10 +16,10 @@ channels:
   /pet:
     subscribe:
       message:
-        $ref: '#/components/messages/Cat'
+        $ref: "#/components/messages/Cat"
     publish:
       message:
-        $ref: '#/components/messages/Dog'
+        $ref: "#/components/messages/Dog"
     bindings:
       ws:
         bindingVersion: 0.1.0
@@ -27,7 +27,7 @@ channels:
           type: object
           properties:
             payload:
-              $ref: '#/components/schemas/Link'
+              $ref: "#/components/schemas/Link"
 components:
   schemas:
     Dog:
@@ -68,17 +68,17 @@ components:
           type: string
         pet:
           oneOf:
-            - $ref: '#/components/schemas/Dog'
-            - $ref: '#/components/schemas/Cat'
+            - $ref: "#/components/schemas/Dog"
+            - $ref: "#/components/schemas/Cat"
           x-nullable: true
   messages:
     Cat:
       payload:
-        $ref: '#/components/schemas/Cat'
+        $ref: "#/components/schemas/Cat"
     Dog:
       payload:
-        $ref: '#/components/schemas/Dog'
+        $ref: "#/components/schemas/Dog"
       x-response:
-        $ref: '#/components/messages/Cat'
+        $ref: "#/components/messages/Cat"
       x-response-type: simple-rpc
 x-dispatcherKey:  testing

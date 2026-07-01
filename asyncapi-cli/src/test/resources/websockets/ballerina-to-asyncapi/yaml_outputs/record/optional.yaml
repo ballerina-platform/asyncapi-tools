@@ -21,7 +21,7 @@ channels:
           format: int64
     publish:
       message:
-        $ref: '#/components/messages/Link'
+        $ref: "#/components/messages/Link"
     bindings:
       ws:
         bindingVersion: 0.1.0
@@ -29,7 +29,7 @@ channels:
           type: object
           properties:
             queryParam:
-              $ref: '#/components/schemas/Pet'
+              $ref: "#/components/schemas/Pet"
 components:
   schemas:
     Pet:
@@ -57,14 +57,14 @@ components:
           items:
             type: string
         pet:
-          $ref: '#/components/schemas/Pet'
+          $ref: "#/components/schemas/Pet"
         test:
           type: string
           const: Link
   messages:
     Link:
       payload:
-        $ref: '#/components/schemas/Link'
+        $ref: "#/components/schemas/Link"
       x-response:
         payload:
           type: integer

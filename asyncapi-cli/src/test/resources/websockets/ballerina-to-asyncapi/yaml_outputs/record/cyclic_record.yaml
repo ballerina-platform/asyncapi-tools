@@ -17,23 +17,23 @@ channels:
     subscribe:
       message:
         oneOf:
-          - $ref: '#/components/messages/ResponseError'
-          - $ref: '#/components/messages/ResponseError02'
-          - $ref: '#/components/messages/ResponseError03'
-          - $ref: '#/components/messages/ResponseError04'
-          - $ref: '#/components/messages/ResponseError05'
-          - $ref: '#/components/messages/ResponseError06'
-          - $ref: '#/components/messages/ResponseError07'
+          - $ref: "#/components/messages/ResponseError"
+          - $ref: "#/components/messages/ResponseError02"
+          - $ref: "#/components/messages/ResponseError03"
+          - $ref: "#/components/messages/ResponseError04"
+          - $ref: "#/components/messages/ResponseError05"
+          - $ref: "#/components/messages/ResponseError06"
+          - $ref: "#/components/messages/ResponseError07"
     publish:
       message:
         oneOf:
-          - $ref: '#/components/messages/ResponseError'
-          - $ref: '#/components/messages/ResponseError02'
-          - $ref: '#/components/messages/ResponseError03'
-          - $ref: '#/components/messages/ResponseError04'
-          - $ref: '#/components/messages/ResponseError05'
-          - $ref: '#/components/messages/ResponseError06'
-          - $ref: '#/components/messages/ResponseError07'
+          - $ref: "#/components/messages/ResponseError"
+          - $ref: "#/components/messages/ResponseError02"
+          - $ref: "#/components/messages/ResponseError03"
+          - $ref: "#/components/messages/ResponseError04"
+          - $ref: "#/components/messages/ResponseError05"
+          - $ref: "#/components/messages/ResponseError06"
+          - $ref: "#/components/messages/ResponseError07"
     parameters:
       id:
         schema:
@@ -51,7 +51,7 @@ components:
           format: int64
           x-nullable: true
         resError:
-          $ref: '#/components/schemas/ResponseError'
+          $ref: "#/components/schemas/ResponseError"
         event:
           type: string
           const: ResponseError
@@ -67,7 +67,7 @@ components:
           x-nullable: true
         resError:
           oneOf:
-            - $ref: '#/components/schemas/ResponseError02'
+            - $ref: "#/components/schemas/ResponseError02"
             - type: string
         event:
           type: string
@@ -85,7 +85,7 @@ components:
         resError:
           type: array
           items:
-            $ref: '#/components/schemas/ResponseError03'
+            $ref: "#/components/schemas/ResponseError03"
         event:
           type: string
           const: ResponseError03
@@ -104,7 +104,7 @@ components:
           items:
             type: array
             items:
-              $ref: '#/components/schemas/ResponseError04'
+              $ref: "#/components/schemas/ResponseError04"
         event:
           type: string
           const: ResponseError04
@@ -119,7 +119,7 @@ components:
           format: int64
           x-nullable: true
         resError:
-          $ref: '#/components/schemas/ResponseError05'
+          $ref: "#/components/schemas/ResponseError05"
           x-nullable: true
         event:
           type: string
@@ -137,7 +137,7 @@ components:
         resError:
           type: array
           items:
-            $ref: '#/components/schemas/ResponseError06'
+            $ref: "#/components/schemas/ResponseError06"
           x-nullable: true
         event:
           type: string
@@ -156,7 +156,7 @@ components:
         resError:
           type: array
           items:
-            $ref: '#/components/schemas/ResponseError07'
+            $ref: "#/components/schemas/ResponseError07"
           x-nullable: true
         event:
           type: string
@@ -164,44 +164,44 @@ components:
   messages:
     ResponseError:
       payload:
-        $ref: '#/components/schemas/ResponseError'
+        $ref: "#/components/schemas/ResponseError"
       x-response:
-        $ref: '#/components/messages/ResponseError'
+        $ref: "#/components/messages/ResponseError"
       x-response-type: simple-rpc
     ResponseError02:
       payload:
-        $ref: '#/components/schemas/ResponseError02'
+        $ref: "#/components/schemas/ResponseError02"
       x-response:
-        $ref: '#/components/messages/ResponseError02'
+        $ref: "#/components/messages/ResponseError02"
       x-response-type: simple-rpc
     ResponseError03:
       payload:
-        $ref: '#/components/schemas/ResponseError03'
+        $ref: "#/components/schemas/ResponseError03"
       x-response:
-        $ref: '#/components/messages/ResponseError03'
+        $ref: "#/components/messages/ResponseError03"
       x-response-type: simple-rpc
     ResponseError04:
       payload:
-        $ref: '#/components/schemas/ResponseError04'
+        $ref: "#/components/schemas/ResponseError04"
       x-response:
-        $ref: '#/components/messages/ResponseError04'
+        $ref: "#/components/messages/ResponseError04"
       x-response-type: simple-rpc
     ResponseError05:
       payload:
-        $ref: '#/components/schemas/ResponseError05'
+        $ref: "#/components/schemas/ResponseError05"
       x-response:
-        $ref: '#/components/messages/ResponseError05'
+        $ref: "#/components/messages/ResponseError05"
       x-response-type: simple-rpc
     ResponseError06:
       payload:
-        $ref: '#/components/schemas/ResponseError06'
+        $ref: "#/components/schemas/ResponseError06"
       x-response:
-        $ref: '#/components/messages/ResponseError06'
+        $ref: "#/components/messages/ResponseError06"
       x-response-type: simple-rpc
     ResponseError07:
       payload:
-        $ref: '#/components/schemas/ResponseError07'
+        $ref: "#/components/schemas/ResponseError07"
       x-response:
-        $ref: '#/components/messages/ResponseError07'
+        $ref: "#/components/messages/ResponseError07"
       x-response-type: simple-rpc
 x-dispatcherKey: event

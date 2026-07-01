@@ -16,10 +16,10 @@ channels:
   /:
     subscribe:
       message:
-        $ref: '#/components/messages/User'
+        $ref: "#/components/messages/User"
     publish:
       message:
-        $ref: '#/components/messages/Tuple'
+        $ref: "#/components/messages/Tuple"
     bindings:
       ws:
         bindingVersion: 0.1.0
@@ -27,7 +27,7 @@ channels:
           type: object
           properties:
             payload:
-              $ref: '#/components/schemas/User'
+              $ref: "#/components/schemas/User"
 components:
   schemas:
     User:
@@ -73,7 +73,7 @@ components:
                 format: double
               - type: number
                 format: float
-              - $ref: '#/components/schemas/User'
+              - $ref: "#/components/schemas/User"
         id:
           type: integer
           format: int64
@@ -86,7 +86,7 @@ components:
                 format: double
           x-nullable: true
         tuples:
-          $ref: '#/components/schemas/ReturnTypes'
+          $ref: "#/components/schemas/ReturnTypes"
           x-nullable: true
         event:
           type: string
@@ -94,14 +94,14 @@ components:
   messages:
     User:
       payload:
-        $ref: '#/components/schemas/User'
+        $ref: "#/components/schemas/User"
     Tuple:
       payload:
-        $ref: '#/components/schemas/Tuple'
+        $ref: "#/components/schemas/Tuple"
         description: Tuple message description
       description: Remote tuple description
       x-response:
-        $ref: '#/components/messages/User'
+        $ref: "#/components/messages/User"
         description: this is User return description
       x-response-type: simple-rpc
 x-dispatcherKey: event

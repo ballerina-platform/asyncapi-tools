@@ -34,8 +34,8 @@ channels:
     publish:
       message:
         oneOf:
-          - $ref: '#/components/messages/Subscribe'
-          - $ref: '#/components/messages/Payment'
+          - $ref: "#/components/messages/Subscribe"
+          - $ref: "#/components/messages/Payment"
 components:
   schemas:
     Subscribe:
@@ -79,7 +79,7 @@ components:
   messages:
     Subscribe:
       payload:
-        $ref: '#/components/schemas/Subscribe'
+        $ref: "#/components/schemas/Subscribe"
       x-response:
         oneOf:
           - payload:
@@ -92,7 +92,7 @@ components:
       x-response-type: simple-rpc
     Payment:
       payload:
-        $ref: '#/components/schemas/Payment'
+        $ref: "#/components/schemas/Payment"
         description: Payment representation
       description: Represents Snowpeak payment resource
       x-response:

@@ -17,29 +17,29 @@ channels:
     subscribe:
       message:
         oneOf:
-          - $ref: '#/components/messages/Locations'
-          - $ref: '#/components/messages/Location'
-          - $ref: '#/components/messages/ReservationCreated'
-          - $ref: '#/components/messages/ReservationConflict'
-          - $ref: '#/components/messages/PaymentCreated'
-          - $ref: '#/components/messages/PaymentFault'
+          - $ref: "#/components/messages/Locations"
+          - $ref: "#/components/messages/Location"
+          - $ref: "#/components/messages/ReservationCreated"
+          - $ref: "#/components/messages/ReservationConflict"
+          - $ref: "#/components/messages/PaymentCreated"
+          - $ref: "#/components/messages/PaymentFault"
           - payload:
               type: integer
               format: int64
           - payload:
               type: string
-          - $ref: '#/components/messages/PaymentConflict'
+          - $ref: "#/components/messages/PaymentConflict"
           - payload:
               type: object
               additionalProperties: {}
-          - $ref: '#/components/messages/PaymentSuccess'
+          - $ref: "#/components/messages/PaymentSuccess"
     publish:
       message:
         oneOf:
-          - $ref: '#/components/messages/Location'
-          - $ref: '#/components/messages/Rooms'
-          - $ref: '#/components/messages/Reservation'
-          - $ref: '#/components/messages/Payment'
+          - $ref: "#/components/messages/Location"
+          - $ref: "#/components/messages/Rooms"
+          - $ref: "#/components/messages/Reservation"
+          - $ref: "#/components/messages/Payment"
 components:
   schemas:
     Location:
@@ -63,7 +63,7 @@ components:
         locations:
           type: array
           items:
-            $ref: '#/components/schemas/Location'
+            $ref: "#/components/schemas/Location"
           description: collection of locations
       description: Represents a collection of locations
     Room:
@@ -123,7 +123,7 @@ components:
         rooms:
           type: array
           items:
-            $ref: '#/components/schemas/Room'
+            $ref: "#/components/schemas/Room"
           description: Array of rooms
         event:
           type: string
@@ -157,7 +157,7 @@ components:
         reserveRooms:
           type: array
           items:
-            $ref: '#/components/schemas/ReserveRoom'
+            $ref: "#/components/schemas/ReserveRoom"
           description: Rooms to be reserved
         startDate:
           type: string
@@ -196,7 +196,7 @@ components:
           description: Total payable
           format: double
         reservation:
-          $ref: '#/components/schemas/Reservation'
+          $ref: "#/components/schemas/Reservation"
           description: Reservation
       description: Represents a receipt for the reservation
     ReservationCreated:
@@ -205,7 +205,7 @@ components:
         - body
       properties:
         body:
-          $ref: '#/components/schemas/ReservationReceipt'
+          $ref: "#/components/schemas/ReservationReceipt"
     ReservationConflict:
       type: object
       required:
@@ -264,7 +264,7 @@ components:
         rooms:
           type: array
           items:
-            $ref: '#/components/schemas/Room'
+            $ref: "#/components/schemas/Room"
           description: Booked rooms
       description: Reperesents receipt for the payment
     PaymentCreated:
@@ -273,7 +273,7 @@ components:
         - body
       properties:
         body:
-          $ref: '#/components/schemas/PaymentReceipt'
+          $ref: "#/components/schemas/PaymentReceipt"
     PaymentFault:
       type: object
       required:
@@ -298,72 +298,72 @@ components:
   messages:
     Locations:
       payload:
-        $ref: '#/components/schemas/Locations'
+        $ref: "#/components/schemas/Locations"
     Location:
       payload:
-        $ref: '#/components/schemas/Location'
+        $ref: "#/components/schemas/Location"
       description: Represents Snowpeak location resource
       x-response:
-        $ref: '#/components/messages/Locations'
+        $ref: "#/components/messages/Locations"
         description: '`Location` representation'
       x-response-type: simple-rpc
     Rooms:
       payload:
-        $ref: '#/components/schemas/Rooms'
+        $ref: "#/components/schemas/Rooms"
         description: Rooms identification of message
       description: Reperesents Snowpeak room collection resource
       x-response:
-        $ref: '#/components/messages/Location'
+        $ref: "#/components/messages/Location"
         description: '`Rooms` representation'
       x-response-type: simple-rpc
     ReservationCreated:
       payload:
-        $ref: '#/components/schemas/ReservationCreated'
+        $ref: "#/components/schemas/ReservationCreated"
     ReservationConflict:
       payload:
-        $ref: '#/components/schemas/ReservationConflict'
+        $ref: "#/components/schemas/ReservationConflict"
     Reservation:
       payload:
-        $ref: '#/components/schemas/Reservation'
+        $ref: "#/components/schemas/Reservation"
         description: Reservation representation
       description: Represents Snowpeak reservation resource
       x-response:
         oneOf:
-          - $ref: '#/components/messages/ReservationCreated'
-          - $ref: '#/components/messages/ReservationConflict'
+          - $ref: "#/components/messages/ReservationCreated"
+          - $ref: "#/components/messages/ReservationConflict"
         description: '`ReservationCreated` or ReservationConflict representation'
       x-response-type: simple-rpc
     PaymentCreated:
       payload:
-        $ref: '#/components/schemas/PaymentCreated'
+        $ref: "#/components/schemas/PaymentCreated"
     PaymentFault:
       payload:
-        $ref: '#/components/schemas/PaymentFault'
+        $ref: "#/components/schemas/PaymentFault"
     PaymentConflict:
       payload:
-        $ref: '#/components/schemas/PaymentConflict'
+        $ref: "#/components/schemas/PaymentConflict"
     PaymentSuccess:
       payload:
-        $ref: '#/components/schemas/PaymentSuccess'
+        $ref: "#/components/schemas/PaymentSuccess"
     Payment:
       payload:
-        $ref: '#/components/schemas/Payment'
+        $ref: "#/components/schemas/Payment"
         description: Payment representation
       description: Represents Snowpeak payment resource
       x-response:
         oneOf:
-          - $ref: '#/components/messages/PaymentCreated'
-          - $ref: '#/components/messages/PaymentFault'
+          - $ref: "#/components/messages/PaymentCreated"
+          - $ref: "#/components/messages/PaymentFault"
           - payload:
               type: integer
               format: int64
           - payload:
               type: string
-          - $ref: '#/components/messages/PaymentConflict'
+          - $ref: "#/components/messages/PaymentConflict"
           - payload:
               type: object
               additionalProperties: {}
-          - $ref: '#/components/messages/PaymentSuccess'
+          - $ref: "#/components/messages/PaymentSuccess"
         description: '`PaymentCreated` or `PaymentConflict` representation'
       x-response-type: simple-rpc
 x-dispatcherKey: event
