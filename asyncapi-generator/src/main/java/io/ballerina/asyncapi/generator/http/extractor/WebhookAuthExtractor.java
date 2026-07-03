@@ -82,8 +82,10 @@ public final class WebhookAuthExtractor {
             return Optional.of(new WebhookAuthConfig(header, algorithm, encoding, headerFormat, input));
         }
 
-        // Fallback for simple/legacy configs that only define a header
-        return Optional.of(new WebhookAuthConfig(header, null, null, null, null));
+        // Fallback for simple/legacy configs that only define a header.
+        // Per the DSL backwards-compatibility guarantee, default to GitHub's
+        // HMAC-SHA256 configuration so existing pipelines keep working unchanged.
+        return Optional.of(new WebhookAuthConfig(header, "sha256", "hex", "{signature}", "$body"));
     }
 
     private String extractTextNode(JsonNode parentNode, String fieldName) {
