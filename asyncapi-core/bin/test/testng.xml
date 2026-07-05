@@ -1,8 +1,0 @@
-<!DOCTYPE suite SYSTEM "http://testng.org/testng-1.0.dtd">
-<suite name="AsyncApiCore-Tests" parallel="false">
-    <test name="AsyncApiParserIntegrationTests">
-        <classes>
-            <class name="io.ballerina.asyncapi.core.AsyncApiParserIntegrationTest"/>
-        </classes>
-    </test>
-</suite>
