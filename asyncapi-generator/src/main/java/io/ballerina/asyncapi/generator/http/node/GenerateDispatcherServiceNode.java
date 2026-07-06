@@ -131,7 +131,6 @@ public class GenerateDispatcherServiceNode implements Generator {
         members.add(buildFunc(new GeneratePostResourceFunctionNode(identifierConfig, webhookAuthConfig)));
         
         if (webhookAuthConfig.isPresent()) {
-            // FIXED: Passing the entire WebhookAuthConfig object instead of just the headerName
             members.add(buildFunc(new GenerateVerifyWebhookSignatureFuncNode(webhookAuthConfig.get())));
         }
         
