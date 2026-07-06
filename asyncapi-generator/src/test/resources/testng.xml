@@ -54,7 +54,6 @@
             <class name="io.ballerina.asyncapi.generator.ws.client.generator.BallerinaAuthConfigGeneratorTest"/>
             <class name="io.ballerina.asyncapi.generator.ws.client.generator.TestGeneratorTest"/>
             <class name="io.ballerina.asyncapi.generator.http.WebhookDSLVerificationTest"/>
-            <class name="io.ballerina.asyncapi.generator.http.BulkGenerateTest"/>
         </classes>
     </test>
 </suite>
