@@ -94,6 +94,14 @@ build
 target
 
 .vscode/
-**/bin/
+/asyncapi-core/bin
+/asyncapi-generator/bin
+/native.handler/java-wrapper/bin
 **/build/
 hubspot_test/
+github_test/
+gitlab_test/
+shopify_test/
+slack_test/
+stripe_test/
+verify-all.ps1

@@ -19,6 +19,7 @@ package io.ballerina.asyncapi.generator.http.extractor;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import io.ballerina.asyncapi.core.api.AsyncApiSpec;
+import io.ballerina.asyncapi.generator.GeneratorException;
 import io.ballerina.asyncapi.generator.http.model.WebhookAuthConfig;
 
 import java.util.Map;
@@ -52,8 +53,9 @@ public final class WebhookAuthExtractor {
      * @return an {@link Optional} containing the {@link WebhookAuthConfig} if the
      * {@code x-ballerina-auth} extension is present and has a {@code header} field;
      * {@link Optional#empty()} otherwise
+     * @throws GeneratorException if {@code signature} is present but is not an object
      */
-    public Optional<WebhookAuthConfig> extract() {
+    public Optional<WebhookAuthConfig> extract() throws GeneratorException {
         Map<String, JsonNode> extensions = asyncApiSpec.getAsyncApiExtensions().orElse(null);
         if (extensions == null || !extensions.containsKey(X_BALLERINA_AUTH)) {
             return Optional.empty();
@@ -73,7 +75,12 @@ public final class WebhookAuthExtractor {
 
         // Extract the new nested signature properties
         JsonNode signatureNode = authNode.get(X_BALLERINA_AUTH_SIGNATURE);
-        if (signatureNode != null && signatureNode.isObject()) {
+        if (signatureNode != null) {
+            if (!signatureNode.isObject()) {
+                throw new GeneratorException(
+                        "Invalid x-ballerina-auth: 'signature' must be an object when present.");
+            }
+
             String algorithm = extractTextNode(signatureNode, SIGNATURE_ALGORITHM);
             String encoding = extractTextNode(signatureNode, SIGNATURE_ENCODING);
             String headerFormat = extractTextNode(signatureNode, SIGNATURE_HEADER_FORMAT);

@@ -1,21 +1,21 @@
-﻿asyncapi: 3.0.0
+asyncapi: 3.0.0
 x-ballerina-event-identifier:
   type: "header"
-  name: "X-GitHub-Event"
+  name: "X-Invalid-Event"
 x-ballerina-auth:
-  header: "X-Hub-Signature-256"
+  header: "X-Invalid-Signature"
   signature:
     algorithm: "sha256"
     encoding: "hex"
-    headerFormat: "sha256=$signature"
-    input: "$body"
+    headerFormat: "t=$timestamp,v1=$signature"
+    input: "$unknown . '.' . $body"
 info:
-  title: GitHub Test
+  title: Invalid Payload Token
   version: 1.0.0
 channels:
   events:
     subscribe:
       message:
-        x-ballerina-event-type: "github_event"
+        x-ballerina-event-type: invalid_event
         payload:
           type: object

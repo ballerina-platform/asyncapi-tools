@@ -70,6 +70,7 @@ public class GenerateMatchChunkFuncNode implements Generator {
     private final HttpServiceType serviceType;
     private final String eventIdentifierPath;
     private final boolean isHeader;
+    private final String serviceName;
 
     /**
      * Creates a generator for one channel-group match function.
@@ -78,13 +79,17 @@ public class GenerateMatchChunkFuncNode implements Generator {
      *                            remote functions go into this function
      * @param eventIdentifierPath the expression matched against
      * @param isHeader            whether the identifier type is "header"
+     * @param serviceName         a label identifying the generated package, embedded into the
+     *                            {@code MATCH_LEVEL_2_*} diagnostic trace log message
      */
     public GenerateMatchChunkFuncNode(HttpServiceType serviceType,
                                       String eventIdentifierPath,
-                                      boolean isHeader) {
+                                      boolean isHeader,
+                                      String serviceName) {
         this.serviceType = serviceType;
         this.eventIdentifierPath = eventIdentifierPath;
         this.isHeader = isHeader;
+        this.serviceName = serviceName;
     }
 
     /**
@@ -134,7 +139,7 @@ public class GenerateMatchChunkFuncNode implements Generator {
         List<MatchClauseNode> clauses = new ArrayList<>();
         GenerateMatchStatementNode matchGen =
             new GenerateMatchStatementNode(
-                List.of(serviceType), eventIdentifierPath);
+                List.of(serviceType), eventIdentifierPath, serviceName);
         matchGen.generate().matchClauses().forEach(clauses::add);
 
         MatchStatementNode matchStatement = createMatchStatementNode(

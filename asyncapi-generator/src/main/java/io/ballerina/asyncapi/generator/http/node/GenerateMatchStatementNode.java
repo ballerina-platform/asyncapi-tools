@@ -27,7 +27,9 @@ import io.ballerina.compiler.syntax.tree.FunctionArgumentNode;
 import io.ballerina.compiler.syntax.tree.MatchClauseNode;
 import io.ballerina.compiler.syntax.tree.MatchStatementNode;
 import io.ballerina.compiler.syntax.tree.MethodCallExpressionNode;
+import io.ballerina.compiler.syntax.tree.NodeParser;
 import io.ballerina.compiler.syntax.tree.SeparatedNodeList;
+import io.ballerina.compiler.syntax.tree.StatementNode;
 import io.ballerina.compiler.syntax.tree.SyntaxKind;
 
 import java.util.ArrayList;
@@ -57,16 +59,21 @@ public class GenerateMatchStatementNode implements Generator {
 
     private final List<HttpServiceType> serviceTypes;
     private final String eventIdentifierPath;
+    private final String serviceName;
 
     /**
      * Creates a generator for the match statement.
      *
      * @param serviceTypes        the list of HTTP service type definitions
      * @param eventIdentifierPath the expression to match against (e.g. {@code genericDataType.event.'type})
+     * @param serviceName         a label identifying the generated package, embedded into the
+     *                            {@code MATCH_LEVEL_2_*} diagnostic trace log message
      */
-    public GenerateMatchStatementNode(List<HttpServiceType> serviceTypes, String eventIdentifierPath) {
+    public GenerateMatchStatementNode(List<HttpServiceType> serviceTypes, String eventIdentifierPath,
+            String serviceName) {
         this.serviceTypes = serviceTypes;
         this.eventIdentifierPath = eventIdentifierPath;
+        this.serviceName = serviceName;
     }
 
     @Override
@@ -120,9 +127,12 @@ public class GenerateMatchStatementNode implements Generator {
         CheckExpressionNode checkExpr = createCheckExpressionNode(SyntaxKind.CHECK_EXPRESSION,
                 createToken(SyntaxKind.CHECK_KEYWORD), methodCall);
 
+        StatementNode logStmt = NodeParser.parseStatement(String.format(
+                "log:printInfo(\"MATCH_LEVEL_2_%s\", matchedEvent = \"%s\");", serviceName, eventName));
+
         BlockStatementNode block = createBlockStatementNode(
                 createToken(SyntaxKind.OPEN_BRACE_TOKEN),
-                createNodeList(createExpressionStatementNode(SyntaxKind.CALL_STATEMENT,
+                createNodeList(logStmt, createExpressionStatementNode(SyntaxKind.CALL_STATEMENT,
                         checkExpr, createToken(SyntaxKind.SEMICOLON_TOKEN))),
                 createToken(SyntaxKind.CLOSE_BRACE_TOKEN));
 
