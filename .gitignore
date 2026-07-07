@@ -105,3 +105,5 @@ shopify_test/
 slack_test/
 stripe_test/
 verify-all.ps1
+testing-artifacts/*/harness/target/
+testing-artifacts/*/harness/*.log

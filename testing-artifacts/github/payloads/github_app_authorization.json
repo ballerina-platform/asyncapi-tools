@@ -1,0 +1,18 @@
+{
+  "action" : "revoked",
+  "sender" : {
+    "login" : "sample-login",
+    "id" : 1,
+    "node_id" : "sample-node_id",
+    "avatar_url" : "sample-avatar_url",
+    "gravatar_id" : "sample-gravatar_id",
+    "url" : "sample-url",
+    "html_url" : "sample-html_url",
+    "type" : "User",
+    "site_admin" : false
+  },
+  "installation" : {
+    "id" : 1,
+    "node_id" : "sample-node_id"
+  }
+}
