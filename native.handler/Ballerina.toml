@@ -2,7 +2,7 @@
 org = "ballerinax"
 name = "asyncapi.native.handler"
 version = "0.5.1-SNAPSHOT"
-distribution = "2201.14.0-20260527-050400-74f7e6bf"
+distribution = "2201.14.0"
 readme = "Package.md"
 
 [[platform.java25.dependency]]
