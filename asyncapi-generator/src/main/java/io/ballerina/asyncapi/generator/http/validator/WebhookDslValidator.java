@@ -19,10 +19,12 @@ package io.ballerina.asyncapi.generator.http.validator;
 
 import io.ballerina.asyncapi.generator.GeneratorException;
 import io.ballerina.asyncapi.generator.http.model.WebhookAuthConfig;
+import io.ballerina.asyncapi.generator.http.utils.HeaderTemplateParser;
+import io.ballerina.asyncapi.generator.http.utils.HeaderTemplateParser.HeaderTemplate;
 
-import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -32,8 +34,9 @@ import java.util.regex.Pattern;
  */
 public final class WebhookDslValidator {
 
-    private static final Pattern TEMPLATE_VAR_PATTERN = Pattern.compile(
-            "\\$\\{([A-Za-z_][A-Za-z0-9_]*)\\}|\\$([A-Za-z_][A-Za-z0-9_]*)|\\{([A-Za-z_][A-Za-z0-9_]*)\\}");
+    private static final Set<String> SUPPORTED_ALGORITHMS = Set.of("sha1", "sha256", "sha384", "sha512");
+    private static final Set<String> SUPPORTED_ENCODINGS = Set.of("hex", "base64");
+
     private static final Pattern HEADER_FUNC_PATTERN = Pattern.compile("\\$header\\('([^']+)'\\)");
     private static final Pattern DOLLAR_TOKEN_PATTERN = Pattern.compile("\\$[A-Za-z_][A-Za-z0-9_]*");
     private static final Pattern BRACED_TOKEN_PATTERN =
@@ -59,43 +62,12 @@ public final class WebhookDslValidator {
                 ? "$signature"
                 : config.headerFormat();
 
-        HeaderTemplate template = parseHeaderTemplate(headerFormat);
+        HeaderTemplate template = HeaderTemplateParser.parse(headerFormat);
 
         validateNoAdjacentPlaceholders(headerFormat, template);
         validateSignaturePresence(config.algorithm(), template.variables());
+        validateAlgorithmAndEncoding(config.algorithm(), config.encoding());
         validatePayloadInput(config.input(), template.variables());
-    }
-
-    private static HeaderTemplate parseHeaderTemplate(String headerFormat) {
-        Matcher matcher = TEMPLATE_VAR_PATTERN.matcher(headerFormat);
-
-        List<String> literals = new ArrayList<>();
-        List<String> variables = new ArrayList<>();
-        List<int[]> spans = new ArrayList<>();
-        int currentIndex = 0;
-
-        while (matcher.find()) {
-            literals.add(headerFormat.substring(currentIndex, matcher.start()));
-            String variable = matcher.group(1);
-            if (variable == null) {
-                variable = matcher.group(2);
-            }
-            if (variable == null) {
-                variable = matcher.group(3);
-            }
-            variables.add(variable);
-            spans.add(new int[]{matcher.start(), matcher.end()});
-            currentIndex = matcher.end();
-        }
-        literals.add(headerFormat.substring(currentIndex));
-
-        if (variables.isEmpty()) {
-            literals = List.of("", "");
-            variables = List.of("signature");
-            spans = List.of(new int[]{0, 0});
-        }
-
-        return new HeaderTemplate(literals, variables, spans);
     }
 
     private static void validateNoAdjacentPlaceholders(String headerFormat, HeaderTemplate template)
@@ -120,6 +92,43 @@ public final class WebhookDslValidator {
         if (!extractedVariables.contains("signature")) {
             throw new GeneratorException("Invalid headerFormat: when algorithm is configured, "
                     + "headerFormat must include $signature/{signature}.");
+        }
+    }
+
+    /**
+     * Validates that {@code algorithm} and {@code encoding} are values the generator actually
+     * supports. {@link io.ballerina.asyncapi.generator.http.node.GenerateVerifyWebhookSignatureFuncNode}
+     * silently falls back to {@code hmacSha256}/hex for any unrecognized value, so a typo here
+     * (e.g. {@code "sha-256"}) would otherwise compile fine but produce a verifier that never
+     * matches the real provider's signature, with no diagnostic pointing at the misconfiguration.
+     *
+     * @param algorithm the configured signature algorithm, or {@code null}/blank for static-token
+     *                   verification (not validated in that case)
+     * @param encoding   the configured signature encoding, or {@code null}/blank to default to hex
+     * @throws GeneratorException when either value is set but not one of the supported values
+     */
+    private static void validateAlgorithmAndEncoding(String algorithm, String encoding)
+            throws GeneratorException {
+        if (algorithm == null || algorithm.isBlank()) {
+            return;
+        }
+
+        String normalizedAlgorithm = algorithm.toLowerCase(Locale.ROOT);
+        if (!SUPPORTED_ALGORITHMS.contains(normalizedAlgorithm)) {
+            throw new GeneratorException(String.format(
+                    "Unsupported x-ballerina-auth signature algorithm: '%s'. Supported values: %s.",
+                    algorithm, String.join(", ", SUPPORTED_ALGORITHMS)));
+        }
+
+        if (encoding == null || encoding.isBlank()) {
+            return;
+        }
+
+        String normalizedEncoding = encoding.toLowerCase(Locale.ROOT);
+        if (!SUPPORTED_ENCODINGS.contains(normalizedEncoding)) {
+            throw new GeneratorException(String.format(
+                    "Unsupported x-ballerina-auth signature encoding: '%s'. Supported values: %s.",
+                    encoding, String.join(", ", SUPPORTED_ENCODINGS)));
         }
     }
 
@@ -155,8 +164,5 @@ public final class WebhookDslValidator {
             }
             throw new GeneratorException("Invalid input token in webhook DSL: {" + token + "}");
         }
-    }
-
-    private record HeaderTemplate(List<String> literals, List<String> variables, List<int[]> spans) {
     }
 }

@@ -19,6 +19,7 @@ package io.ballerina.asyncapi.generator.http.extractor;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import io.ballerina.asyncapi.core.api.AsyncApiSpec;
+import io.ballerina.asyncapi.generator.GeneratorException;
 import io.ballerina.asyncapi.generator.http.model.WebhookAuthConfig;
 
 import java.util.Map;
@@ -52,8 +53,9 @@ public final class WebhookAuthExtractor {
      * @return an {@link Optional} containing the {@link WebhookAuthConfig} if the
      * {@code x-ballerina-auth} extension is present and has a {@code header} field;
      * {@link Optional#empty()} otherwise
+     * @throws GeneratorException if a {@code signature} block is present but is not a JSON object
      */
-    public Optional<WebhookAuthConfig> extract() {
+    public Optional<WebhookAuthConfig> extract() throws GeneratorException {
         Map<String, JsonNode> extensions = asyncApiSpec.getAsyncApiExtensions().orElse(null);
         if (extensions == null || !extensions.containsKey(X_BALLERINA_AUTH)) {
             return Optional.empty();
@@ -73,7 +75,13 @@ public final class WebhookAuthExtractor {
 
         // Extract the new nested signature properties
         JsonNode signatureNode = authNode.get(X_BALLERINA_AUTH_SIGNATURE);
-        if (signatureNode != null && signatureNode.isObject()) {
+        if (signatureNode != null) {
+            if (!signatureNode.isObject()) {
+                throw new GeneratorException(String.format(
+                        "Invalid %s.%s: expected an object with algorithm/encoding/headerFormat/input "
+                                + "fields, but found a %s",
+                        X_BALLERINA_AUTH, X_BALLERINA_AUTH_SIGNATURE, signatureNode.getNodeType()));
+            }
             String algorithm = extractTextNode(signatureNode, SIGNATURE_ALGORITHM);
             String encoding = extractTextNode(signatureNode, SIGNATURE_ENCODING);
             String headerFormat = extractTextNode(signatureNode, SIGNATURE_HEADER_FORMAT);
@@ -82,9 +90,10 @@ public final class WebhookAuthExtractor {
             return Optional.of(new WebhookAuthConfig(header, algorithm, encoding, headerFormat, input));
         }
 
-        // Fallback for simple/legacy configs that only define a header.
-        // Per the DSL backwards-compatibility guarantee, default to GitHub's
-        // HMAC-SHA256 configuration so existing pipelines keep working unchanged.
+        // No signature block at all (as opposed to a malformed one, handled above): fallback for
+        // simple/legacy configs that only define a header. Per the DSL backwards-compatibility
+        // guarantee, default to GitHub's HMAC-SHA256 configuration so existing pipelines keep
+        // working unchanged.
         return Optional.of(new WebhookAuthConfig(header, "sha256", "hex", "{signature}", "$body"));
     }
 

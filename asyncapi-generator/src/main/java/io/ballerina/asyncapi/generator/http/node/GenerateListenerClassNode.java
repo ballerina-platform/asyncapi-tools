@@ -30,8 +30,6 @@ import io.ballerina.compiler.syntax.tree.MetadataNode;
 import io.ballerina.compiler.syntax.tree.Node;
 import io.ballerina.compiler.syntax.tree.NodeParser;
 import io.ballerina.compiler.syntax.tree.ObjectFieldNode;
-import io.ballerina.compiler.syntax.tree.OptionalTypeDescriptorNode;
-import io.ballerina.compiler.syntax.tree.ReturnTypeDescriptorNode;
 import io.ballerina.compiler.syntax.tree.StatementNode;
 
 import java.util.ArrayList;
@@ -48,7 +46,6 @@ import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createNodeLi
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createSeparatedNodeList;
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createToken;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createAnnotationNode;
-import static io.ballerina.compiler.syntax.tree.NodeFactory.createMemberTypeDescriptorNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createBasicLiteralNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createBuiltinSimpleNameReferenceNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createClassDefinitionNode;
@@ -61,7 +58,6 @@ import static io.ballerina.compiler.syntax.tree.NodeFactory.createMappingConstru
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createMetadataNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createNilTypeDescriptorNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createObjectFieldNode;
-import static io.ballerina.compiler.syntax.tree.NodeFactory.createOptionalTypeDescriptorNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createQualifiedNameReferenceNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createRequiredParameterNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createReturnTypeDescriptorNode;
@@ -76,7 +72,6 @@ import static io.ballerina.compiler.syntax.tree.SyntaxKind.CLOSE_PAREN_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.COLON_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.COMMA_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.EQUAL_TOKEN;
-import static io.ballerina.compiler.syntax.tree.SyntaxKind.ERROR_KEYWORD;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.FUNCTION_KEYWORD;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.ISOLATED_KEYWORD;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.OBJECT_METHOD_DEFINITION;
@@ -85,7 +80,6 @@ import static io.ballerina.compiler.syntax.tree.SyntaxKind.OPEN_PAREN_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.PIPE_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.PRIVATE_KEYWORD;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.PUBLIC_KEYWORD;
-import static io.ballerina.compiler.syntax.tree.SyntaxKind.QUESTION_MARK_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.RETURNS_KEYWORD;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.SEMICOLON_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.STRING_LITERAL;
@@ -255,8 +249,7 @@ public class GenerateListenerClassNode implements Generator {
     }
 
     private FunctionDefinitionNode buildAttachFunc() {
-        // public isolated function attach(GenericServiceType serviceRef, () attachPoint)
-        //         returns @tainted error?
+        // public isolated function attach(GenericServiceType serviceRef, () attachPoint) returns error?
         FunctionSignatureNode signature = createFunctionSignatureNode(
                 createToken(OPEN_PAREN_TOKEN),
                 createSeparatedNodeList(
@@ -272,7 +265,7 @@ public class GenerateListenerClassNode implements Generator {
                                         createToken(OPEN_PAREN_TOKEN), createToken(CLOSE_PAREN_TOKEN)),
                                 createIdentifierToken("attachPoint"))),
                 createToken(CLOSE_PAREN_TOKEN),
-                buildTaintedErrorReturnType());
+                buildErrorReturnType());
 
         List<StatementNode> statements = new ArrayList<>();
         statements.add(NodeParser.parseStatement(String.format(
@@ -350,12 +343,12 @@ public class GenerateListenerClassNode implements Generator {
     }
 
     private FunctionDefinitionNode buildGracefulStopFunc() {
-        // public isolated function gracefulStop() returns @tainted error?
+        // public isolated function gracefulStop() returns error?
         FunctionSignatureNode signature = createFunctionSignatureNode(
                 createToken(OPEN_PAREN_TOKEN),
                 createSeparatedNodeList(),
                 createToken(CLOSE_PAREN_TOKEN),
-                buildTaintedErrorReturnType());
+                buildErrorReturnType());
 
         List<StatementNode> statements = new ArrayList<>();
         statements.add(NodeParser.parseStatement(String.format(
@@ -421,20 +414,6 @@ public class GenerateListenerClassNode implements Generator {
                 createIdentifierToken(LISTENER_GET_SERVICE_TYPE_FUNC),
                 createEmptyNodeList(),
                 signature, buildBody(List.of(body)));
-    }
-
-    private ReturnTypeDescriptorNode buildTaintedErrorReturnType() {
-        OptionalTypeDescriptorNode optionalError = createOptionalTypeDescriptorNode(
-                createToken(ERROR_KEYWORD), createToken(QUESTION_MARK_TOKEN));
-        AnnotationNode taintedAnnotation = createAnnotationNode(
-                createToken(AT_TOKEN),
-                createSimpleNameReferenceNode(createIdentifierToken("tainted")),
-                null);
-        return createReturnTypeDescriptorNode(
-                createToken(RETURNS_KEYWORD),
-                createEmptyNodeList(),
-                createMemberTypeDescriptorNode(
-                        createNodeList(taintedAnnotation), optionalError));
     }
 
     private FunctionBodyBlockNode buildBody(List<StatementNode> statements) {

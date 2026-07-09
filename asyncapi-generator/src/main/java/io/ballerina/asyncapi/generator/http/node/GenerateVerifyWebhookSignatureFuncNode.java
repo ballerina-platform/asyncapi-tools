@@ -19,6 +19,8 @@ package io.ballerina.asyncapi.generator.http.node;
 
 import io.ballerina.asyncapi.generator.GeneratorException;
 import io.ballerina.asyncapi.generator.http.model.WebhookAuthConfig;
+import io.ballerina.asyncapi.generator.http.utils.HeaderTemplateParser;
+import io.ballerina.asyncapi.generator.http.utils.HeaderTemplateParser.HeaderTemplate;
 import io.ballerina.compiler.syntax.tree.FunctionBodyBlockNode;
 import io.ballerina.compiler.syntax.tree.FunctionDefinitionNode;
 import io.ballerina.compiler.syntax.tree.FunctionSignatureNode;
@@ -70,8 +72,6 @@ public class GenerateVerifyWebhookSignatureFuncNode implements Generator {
     public static final String VERIFY_WEBHOOK_SIGNATURE_FUNC = "verifyWebhookSignature";
     private static final Pattern HEADER_FUNC_PATTERN = Pattern.compile("\\$header\\('([^']+)'\\)");
     private static final Pattern CUSTOM_VAR_PATTERN = Pattern.compile("\\$([A-Za-z_][A-Za-z0-9_]*)");
-    private static final Pattern TEMPLATE_VAR_PATTERN = Pattern.compile(
-            "\\$\\{([A-Za-z_][A-Za-z0-9_]*)\\}|\\$([A-Za-z_][A-Za-z0-9_]*)|\\{([A-Za-z_][A-Za-z0-9_]*)\\}");
     private static final Pattern BRACED_VAR_PATTERN =
             Pattern.compile("(?<!\\$)\\{([A-Za-z_][A-Za-z0-9_]*)\\}");
 
@@ -118,7 +118,7 @@ public class GenerateVerifyWebhookSignatureFuncNode implements Generator {
             receivedHeaderExpr)));
 
         String headerFormat = authConfig.headerFormat() != null ? authConfig.headerFormat() : "$signature";
-        HeaderTemplate headerTemplate = parseHeaderTemplate(headerFormat);
+        HeaderTemplate headerTemplate = HeaderTemplateParser.parse(headerFormat);
         addHeaderTemplateExtractionStatements(statements, headerTemplate);
 
         String signatureVariable = resolveSignatureVariableName(headerTemplate);
@@ -242,36 +242,6 @@ public class GenerateVerifyWebhookSignatureFuncNode implements Generator {
         }
         customVarMatcher.appendTail(customReplaced);
         return customReplaced.toString();
-    }
-
-    private HeaderTemplate parseHeaderTemplate(String headerFormat) {
-        String template = headerFormat == null || headerFormat.isBlank() ? "$signature" : headerFormat;
-        Matcher matcher = TEMPLATE_VAR_PATTERN.matcher(template);
-
-        List<String> literals = new ArrayList<>();
-        List<String> variables = new ArrayList<>();
-        int currentIndex = 0;
-
-        while (matcher.find()) {
-            literals.add(template.substring(currentIndex, matcher.start()));
-            String variable = matcher.group(1);
-            if (variable == null) {
-                variable = matcher.group(2);
-            }
-            if (variable == null) {
-                variable = matcher.group(3);
-            }
-            variables.add(variable);
-            currentIndex = matcher.end();
-        }
-        literals.add(template.substring(currentIndex));
-
-        if (variables.isEmpty()) {
-            literals = List.of("", "");
-            variables = List.of("signature");
-        }
-
-        return new HeaderTemplate(literals, variables);
     }
 
     private void addHeaderTemplateExtractionStatements(List<StatementNode> statements, HeaderTemplate template) {
@@ -459,8 +429,5 @@ public class GenerateVerifyWebhookSignatureFuncNode implements Generator {
             return "${" + token.substring(1) + "}";
         }
         return token;
-    }
-
-    private record HeaderTemplate(List<String> literals, List<String> variables) {
     }
 }
