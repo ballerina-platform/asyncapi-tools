@@ -23,6 +23,7 @@ import io.ballerina.asyncapi.generator.http.model.WebhookAuthConfig;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -38,6 +39,8 @@ public final class WebhookDslValidator {
     private static final Pattern DOLLAR_TOKEN_PATTERN = Pattern.compile("\\$[A-Za-z_][A-Za-z0-9_]*");
     private static final Pattern BRACED_TOKEN_PATTERN =
             Pattern.compile("(?<!\\$)\\{([A-Za-z_][A-Za-z0-9_]*)\\}");
+    private static final Pattern DOLLAR_BRACED_TOKEN_PATTERN =
+            Pattern.compile("\\$\\{([A-Za-z_][A-Za-z0-9_]*)\\}");
 
     private static final Set<String> BUILTIN_INPUT_TOKENS = Set.of("body", "method", "uri");
 
@@ -63,6 +66,7 @@ public final class WebhookDslValidator {
 
         validateNoAdjacentPlaceholders(headerFormat, template);
         validateSignaturePresence(config.algorithm(), template.variables());
+        validateEncoding(config.algorithm(), config.encoding());
         validatePayloadInput(config.input(), template.variables());
     }
 
@@ -123,6 +127,19 @@ public final class WebhookDslValidator {
         }
     }
 
+    private static void validateEncoding(String algorithm, String encoding) throws GeneratorException {
+        if (algorithm == null || algorithm.isBlank() || encoding == null || encoding.isBlank()) {
+            return;
+        }
+
+        String normalized = encoding.toLowerCase(Locale.ROOT);
+        if (!normalized.equals("hex") && !normalized.equals("base64")) {
+            throw new GeneratorException(String.format(
+                    "Unsupported x-ballerina-auth signature encoding: '%s'. Supported values: hex, base64.",
+                    encoding));
+        }
+    }
+
     private static void validatePayloadInput(String input, List<String> extractedVariables)
             throws GeneratorException {
         if (input == null || input.isBlank()) {
@@ -150,10 +167,25 @@ public final class WebhookDslValidator {
         Matcher bracedTokenMatcher = BRACED_TOKEN_PATTERN.matcher(withoutHeaderFuncs);
         while (bracedTokenMatcher.find()) {
             String token = bracedTokenMatcher.group(1);
+            if (BUILTIN_INPUT_TOKENS.contains(token)) {
+                continue;
+            }
             if (allowedCustomVariables.contains(token)) {
                 continue;
             }
             throw new GeneratorException("Invalid input token in webhook DSL: {" + token + "}");
+        }
+
+        Matcher dollarBracedTokenMatcher = DOLLAR_BRACED_TOKEN_PATTERN.matcher(withoutHeaderFuncs);
+        while (dollarBracedTokenMatcher.find()) {
+            String token = dollarBracedTokenMatcher.group(1);
+            if (BUILTIN_INPUT_TOKENS.contains(token)) {
+                continue;
+            }
+            if (allowedCustomVariables.contains(token)) {
+                continue;
+            }
+            throw new GeneratorException("Invalid input token in webhook DSL: ${" + token + "}");
         }
     }
 

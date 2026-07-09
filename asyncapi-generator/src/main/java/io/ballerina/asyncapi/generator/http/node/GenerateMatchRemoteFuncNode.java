@@ -215,7 +215,7 @@ public class GenerateMatchRemoteFuncNode implements Generator {
                     createToken(SEMICOLON_TOKEN));
 
             StatementNode logStmt = NodeParser.parseStatement(String.format(
-                    "log:printInfo(\"MATCH_LEVEL_1_%s\", eventType = eventType);", serviceName));
+                    "log:printDebug(\"MATCH_LEVEL_1_%s\", eventType = eventType);", serviceName));
 
             statements.add(logStmt);
             statements.add(stmt);

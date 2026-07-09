@@ -15,7 +15,7 @@ public class Listener {
             http:ListenerConfiguration httpConfig = check configMap.cloneWithType();
             self.httpListener = check new (listenTo, httpConfig);
         }
-        self.dispatcherService = new DispatcherService();
+        self.dispatcherService = new DispatcherService(configuration.webhookSecret);
     }
 
     public isolated function attach(GenericServiceType serviceRef, () attachPoint) returns @tainted error? {
@@ -54,8 +54,10 @@ public class Listener {
             return "ConversationService";
         } else if serviceRef is DealService {
             return "DealService";
-        } else {
+        } else if serviceRef is ContactService {
             return "ContactService";
+        } else {
+            panic error("Unrecognized service type attached to the listener");
         }
     }
 }
