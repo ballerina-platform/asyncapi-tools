@@ -77,11 +77,11 @@ public class HttpCodeGenerator {
         }
 
         // Extract data from the parsed spec
-        ServiceTypeExtractor serviceTypeExtractor = new ServiceTypeExtractor(asyncApiSpec);
+        EventIdentifierConfig identifierConfig = new EventIdentifierExtractor(asyncApiSpec).extract();
+        ServiceTypeExtractor serviceTypeExtractor = new ServiceTypeExtractor(asyncApiSpec, identifierConfig);
         List<HttpServiceType> serviceTypes = serviceTypeExtractor.extract();
         Map<String, AsyncApiSchema> schemas = new HashMap<>(new SchemaExtractor(asyncApiSpec).extract());
         schemas.putAll(serviceTypeExtractor.getInlineSchemas());
-        EventIdentifierConfig identifierConfig = new EventIdentifierExtractor(asyncApiSpec).extract();
         Optional<WebhookAuthConfig> webhookAuthConfig = new WebhookAuthExtractor(asyncApiSpec).extract();
         validateWebhookDsl(webhookAuthConfig);
 
