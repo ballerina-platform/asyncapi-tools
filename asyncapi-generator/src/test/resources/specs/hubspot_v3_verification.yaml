@@ -1,0 +1,24 @@
+asyncapi: 2.6.0
+x-ballerina-event-identifier:
+  type: "header"
+  name: "X-HubSpot-Event"
+x-ballerina-auth:
+  header: X-HubSpot-Signature-v3
+  signature:
+    algorithm: sha256
+    encoding: base64
+    headerFormat: $signature
+    input: "$method . $config('callbackUrl') . $body . $header('X-HubSpot-Request-Timestamp')"
+  freshness:
+    header: X-HubSpot-Request-Timestamp
+    toleranceMillis: 300000
+info:
+  title: HubSpot v3 Test
+  version: 1.0.0
+channels:
+  events:
+    subscribe:
+      message:
+        x-ballerina-event-type: hubspot_event
+        payload:
+          type: object

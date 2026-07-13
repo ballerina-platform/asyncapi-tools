@@ -25,7 +25,9 @@ import io.ballerina.asyncapi.generator.http.model.WebhookAuthConfig;
 import io.ballerina.asyncapi.generator.http.node.GenerateCryptoImportNode;
 import io.ballerina.asyncapi.generator.http.node.GenerateDispatcherServiceNode;
 import io.ballerina.asyncapi.generator.http.node.GenerateHttpImportNode;
+import io.ballerina.asyncapi.generator.http.node.GenerateLogImportNode;
 import io.ballerina.asyncapi.generator.http.node.GenerateNativeHandlerImportNode;
+import io.ballerina.asyncapi.generator.http.node.GenerateTimeImportNode;
 import io.ballerina.compiler.syntax.tree.ClassDefinitionNode;
 import io.ballerina.compiler.syntax.tree.ImportDeclarationNode;
 import io.ballerina.compiler.syntax.tree.ModulePartNode;
@@ -35,6 +37,7 @@ import io.ballerina.tools.text.TextDocuments;
 import org.ballerinalang.formatter.core.Formatter;
 import org.ballerinalang.formatter.core.FormatterException;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -92,17 +95,22 @@ public class DispatcherGenerator {
         ClassDefinitionNode classNode =
                 new GenerateDispatcherServiceNode(serviceTypes, identifierConfig, webhookAuthConfig).generate();
 
-        ImportDeclarationNode httpImport = GenerateHttpImportNode.generate();
-        ImportDeclarationNode handlerImport = GenerateNativeHandlerImportNode.generate();
+        List<ImportDeclarationNode> imports = new ArrayList<>();
+        imports.add(GenerateHttpImportNode.generate());
+        imports.add(GenerateNativeHandlerImportNode.generate());
+        if (webhookAuthConfig.isPresent()) {
+            imports.add(GenerateCryptoImportNode.generate());
+            imports.add(GenerateLogImportNode.generate());
+            if (webhookAuthConfig.get().freshnessHeader() != null) {
+                imports.add(GenerateTimeImportNode.generate());
+            }
+        }
 
         TextDocument textDocument = TextDocuments.from("");
         SyntaxTree syntaxTree = SyntaxTree.from(textDocument);
         ModulePartNode oldRoot = syntaxTree.rootNode();
         ModulePartNode newRoot = oldRoot.modify()
-                .withImports(webhookAuthConfig.isPresent()
-                        ? createNodeList(httpImport, handlerImport,
-                                GenerateCryptoImportNode.generate())
-                        : createNodeList(httpImport, handlerImport))
+                .withImports(createNodeList(imports))
                 .withMembers(createNodeList(classNode))
                 .apply();
         SyntaxTree modifiedTree = syntaxTree.replaceNode(oldRoot, newRoot);

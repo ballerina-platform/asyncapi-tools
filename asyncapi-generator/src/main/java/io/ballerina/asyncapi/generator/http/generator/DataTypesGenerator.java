@@ -19,6 +19,7 @@ package io.ballerina.asyncapi.generator.http.generator;
 
 import io.ballerina.asyncapi.core.model.component.AsyncApiSchema;
 import io.ballerina.asyncapi.generator.GeneratorException;
+import io.ballerina.asyncapi.generator.http.model.WebhookAuthConfig;
 import io.ballerina.asyncapi.generator.http.node.GenerateHttpImportNode;
 import io.ballerina.asyncapi.generator.http.node.GenerateListenerConfigNode;
 import io.ballerina.asyncapi.generator.http.node.GenerateModuleMemberDeclarationNode;
@@ -38,6 +39,7 @@ import org.ballerinalang.formatter.core.FormatterException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createIdentifierToken;
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createNodeList;
@@ -52,14 +54,18 @@ public class DataTypesGenerator {
     public static final String GENERIC_DATA_TYPE = "GenericDataType";
 
     private final Map<String, AsyncApiSchema> schemas;
+    private final Optional<WebhookAuthConfig> webhookAuthConfig;
 
     /**
      * Creates a generator for the given schema map.
      *
-     * @param schemas map of schema name to schema object from the AsyncAPI components
+     * @param schemas           map of schema name to schema object from the AsyncAPI components
+     * @param webhookAuthConfig the optional webhook authentication configuration, whose
+     *                          {@code $config('name')} references become extra listener config fields
      */
-    public DataTypesGenerator(Map<String, AsyncApiSchema> schemas) {
+    public DataTypesGenerator(Map<String, AsyncApiSchema> schemas, Optional<WebhookAuthConfig> webhookAuthConfig) {
         this.schemas = schemas;
+        this.webhookAuthConfig = webhookAuthConfig;
     }
 
     /**
@@ -69,8 +75,11 @@ public class DataTypesGenerator {
      * @throws GeneratorException if a schema entry cannot be converted to a valid AST node
      */
     public String generate() throws GeneratorException {
+        List<String> extraConfigFields = webhookAuthConfig
+                .map(WebhookAuthConfig::configFields)
+                .orElseGet(List::of);
         List<ModuleMemberDeclarationNode> typeNodes = new ArrayList<>();
-        typeNodes.add(GenerateListenerConfigNode.generate());
+        typeNodes.add(GenerateListenerConfigNode.generate(extraConfigFields));
         List<TypeDescriptorNode> typeDescriptors = new ArrayList<>();
 
         for (Map.Entry<String, AsyncApiSchema> entry : schemas.entrySet()) {

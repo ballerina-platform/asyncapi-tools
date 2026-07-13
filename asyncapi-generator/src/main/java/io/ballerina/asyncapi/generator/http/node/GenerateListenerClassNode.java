@@ -215,23 +215,35 @@ public class GenerateListenerClassNode implements Generator {
                 createToken(CLOSE_PAREN_TOKEN),
                 buildErrorReturnType());
 
+        List<String> configFieldNames = new ArrayList<>();
+        configFieldNames.add(GenerateListenerConfigNode.WEBHOOK_SECRET_FIELD);
+        webhookAuthConfig.ifPresent(config -> configFieldNames.addAll(config.configFields()));
+
+        StringBuilder removeCalls = new StringBuilder();
+        for (String fieldName : configFieldNames) {
+            removeCalls.append(String.format(" _ = configMap.remove(\"%s\");", fieldName));
+        }
+
         List<StatementNode> statements = new ArrayList<>();
         statements.add(NodeParser.parseStatement(String.format(
                 "if listenTo is http:Listener { self.%s = listenTo; } else {"
                         + " json configJson = configuration.toJson();"
                         + " map<json> configMap = check configJson.cloneWithType();"
-                        + " _ = configMap.remove(\"%s\");"
+                        + "%s"
                         + " http:ListenerConfiguration httpConfig = check configMap.cloneWithType();"
                         + " self.%s = check new (listenTo, httpConfig); }",
                 LISTENER_HTTP_LISTENER_FIELD,
-                GenerateListenerConfigNode.WEBHOOK_SECRET_FIELD,
+                removeCalls,
                 LISTENER_HTTP_LISTENER_FIELD)));
         if (webhookAuthConfig.isPresent()) {
+            String constructorArgs = configFieldNames.stream()
+                    .map(fieldName -> "configuration." + fieldName)
+                    .collect(Collectors.joining(", "));
             statements.add(NodeParser.parseStatement(String.format(
-                    "self.%s = new %s(configuration.%s);",
+                    "self.%s = new %s(%s);",
                     LISTENER_DISPATCHER_SERVICE_FIELD,
                     GenerateDispatcherServiceNode.DISPATCHER_SERVICE_CLASS_NAME,
-                    GenerateListenerConfigNode.WEBHOOK_SECRET_FIELD)));
+                    constructorArgs)));
         } else {
             statements.add(NodeParser.parseStatement(String.format(
                     "self.%s = new %s();",

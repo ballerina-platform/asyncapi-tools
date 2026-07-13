@@ -65,12 +65,15 @@ public class GenerateListenerConfigNode {
     public static final String WEBHOOK_SECRET_FIELD = "webhookSecret";
 
     /**
-     * Generates the {@code ListenerConfiguration} closed-record type definition.
+     * Generates the {@code ListenerConfiguration} closed-record type definition, with the webhook
+     * secret field plus one additional {@code string} field (default {@code ""}) per name in
+     * {@code extraConfigFields} (populated from {@code $config('name')} references in the DSL).
      *
+     * @param extraConfigFields additional configurable field names beyond {@code webhookSecret}
      * @return the generated {@link TypeDefinitionNode}
      * @throws GeneratorException never thrown; declared for consistency with other node generators
      */
-    public static TypeDefinitionNode generate() throws GeneratorException {
+    public static TypeDefinitionNode generate(List<String> extraConfigFields) throws GeneratorException {
         QualifiedNameReferenceNode includedType = createQualifiedNameReferenceNode(
                 createIdentifierToken(GenerateHttpImportNode.HTTP_MODULE),
                 createToken(COLON_TOKEN),
@@ -79,16 +82,22 @@ public class GenerateListenerConfigNode {
         List<Node> recordFields = new ArrayList<>();
         recordFields.add(createTypeReferenceNode(
                 createToken(ASTERISK_TOKEN), includedType, createToken(SEMICOLON_TOKEN)));
-        recordFields.add(createRecordFieldWithDefaultValueNode(
-                null,
-                null,
-                createBuiltinSimpleNameReferenceNode(null, createIdentifierToken("string")),
-                createIdentifierToken(WEBHOOK_SECRET_FIELD),
-                createToken(EQUAL_TOKEN),
-                createBasicLiteralNode(STRING_LITERAL,
-                        createLiteralValueToken(STRING_LITERAL_TOKEN, "\"\"",
-                                createEmptyMinutiaeList(), createEmptyMinutiaeList())),
-                createToken(SEMICOLON_TOKEN)));
+
+        List<String> fieldNames = new ArrayList<>();
+        fieldNames.add(WEBHOOK_SECRET_FIELD);
+        fieldNames.addAll(extraConfigFields);
+        for (String fieldName : fieldNames) {
+            recordFields.add(createRecordFieldWithDefaultValueNode(
+                    null,
+                    null,
+                    createBuiltinSimpleNameReferenceNode(null, createIdentifierToken("string")),
+                    createIdentifierToken(fieldName),
+                    createToken(EQUAL_TOKEN),
+                    createBasicLiteralNode(STRING_LITERAL,
+                            createLiteralValueToken(STRING_LITERAL_TOKEN, "\"\"",
+                                    createEmptyMinutiaeList(), createEmptyMinutiaeList())),
+                    createToken(SEMICOLON_TOKEN)));
+        }
 
         RecordTypeDescriptorNode recordType = createRecordTypeDescriptorNode(
                 createToken(RECORD_KEYWORD),
