@@ -27,7 +27,9 @@ import io.ballerina.compiler.syntax.tree.FunctionArgumentNode;
 import io.ballerina.compiler.syntax.tree.MatchClauseNode;
 import io.ballerina.compiler.syntax.tree.MatchStatementNode;
 import io.ballerina.compiler.syntax.tree.MethodCallExpressionNode;
+import io.ballerina.compiler.syntax.tree.NodeParser;
 import io.ballerina.compiler.syntax.tree.SeparatedNodeList;
+import io.ballerina.compiler.syntax.tree.StatementNode;
 import io.ballerina.compiler.syntax.tree.SyntaxKind;
 
 import java.util.ArrayList;
@@ -50,27 +52,47 @@ import static io.ballerina.compiler.syntax.tree.NodeFactory.createPositionalArgu
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createSimpleNameReferenceNode;
 
 /**
- * Generates the {@code match} statement body for {@code matchRemoteFunc} in
+ * Generates the {@code match} statement(s) body for {@code matchRemoteFunc} in
  * {@code dispatcher_service.bal}.
+ *
+ * <p>Most events match on the composite {@code eventIdentifierPath} (e.g. {@code eventIdentifier},
+ * holding {@code "meta_deleted"}). Events whose action field has no enumerable set of possible
+ * values ({@link HttpRemoteFunction#matchOnEventType()}) can never have a safe composite literal
+ * baked in at generation time, so they are matched on the bare {@code eventTypePath} instead (e.g.
+ * {@code eventType}, holding {@code "repository_dispatch"}). When both kinds of events are present
+ * in the same service type, two separate match statements are generated -- one per subject
+ * expression -- since a single Ballerina {@code match} can only test one subject.
  */
 public class GenerateMatchStatementNode implements Generator {
 
     private final List<HttpServiceType> serviceTypes;
     private final String eventIdentifierPath;
+    private final String eventTypePath;
+    private final String serviceName;
 
     /**
-     * Creates a generator for the match statement.
+     * Creates a generator for the match statement(s).
      *
      * @param serviceTypes        the list of HTTP service type definitions
-     * @param eventIdentifierPath the expression to match against (e.g. {@code genericDataType.event.'type})
+     * @param eventIdentifierPath the expression to match against for events with an enumerable
+     *                            action field (e.g. {@code genericDataType.event.'type})
+     * @param eventTypePath       the expression to match against for events whose action field has
+     *                            no enumerable set of values, or {@code null} if the identifier
+     *                            type never distinguishes the two (in which case every remote
+     *                            function is matched against {@code eventIdentifierPath})
+     * @param serviceName         a label identifying the generated package, embedded into the
+     *                            {@code MATCH_LEVEL_2_*} diagnostic trace log message
      */
-    public GenerateMatchStatementNode(List<HttpServiceType> serviceTypes, String eventIdentifierPath) {
+    public GenerateMatchStatementNode(List<HttpServiceType> serviceTypes, String eventIdentifierPath,
+            String eventTypePath, String serviceName) {
         this.serviceTypes = serviceTypes;
         this.eventIdentifierPath = eventIdentifierPath;
+        this.eventTypePath = eventTypePath;
+        this.serviceName = serviceName;
     }
 
     @Override
-    public MatchStatementNode generate() throws GeneratorException {
+    public List<StatementNode> generate() throws GeneratorException {
         if (eventIdentifierPath.isEmpty()) {
             throw new GeneratorException("Event identifier path is empty");
         }
@@ -78,15 +100,33 @@ public class GenerateMatchStatementNode implements Generator {
             throw new GeneratorException(
                     "No service types found, probably there are no channels defined in the async api spec");
         }
-        List<MatchClauseNode> clauses = new ArrayList<>();
+        List<MatchClauseNode> identifierClauses = new ArrayList<>();
+        List<MatchClauseNode> eventTypeClauses = new ArrayList<>();
         for (HttpServiceType service : serviceTypes) {
             for (HttpRemoteFunction fn : service.remoteFunctions()) {
-                clauses.add(generateMatchClause(service.serviceTypeName(), fn.functionName()));
+                MatchClauseNode clause = generateMatchClause(service.serviceTypeName(), fn.functionName());
+                if (eventTypePath != null && fn.matchOnEventType()) {
+                    eventTypeClauses.add(clause);
+                } else {
+                    identifierClauses.add(clause);
+                }
             }
         }
+
+        List<StatementNode> statements = new ArrayList<>();
+        if (!identifierClauses.isEmpty()) {
+            statements.add(buildMatchStatement(eventIdentifierPath, identifierClauses));
+        }
+        if (!eventTypeClauses.isEmpty()) {
+            statements.add(buildMatchStatement(eventTypePath, eventTypeClauses));
+        }
+        return statements;
+    }
+
+    private MatchStatementNode buildMatchStatement(String subjectPath, List<MatchClauseNode> clauses) {
         return createMatchStatementNode(
                 createToken(SyntaxKind.MATCH_KEYWORD),
-                createSimpleNameReferenceNode(createIdentifierToken(eventIdentifierPath)),
+                createSimpleNameReferenceNode(createIdentifierToken(subjectPath)),
                 createToken(SyntaxKind.OPEN_BRACE_TOKEN),
                 createNodeList(clauses),
                 createToken(SyntaxKind.CLOSE_BRACE_TOKEN), null);
@@ -120,9 +160,12 @@ public class GenerateMatchStatementNode implements Generator {
         CheckExpressionNode checkExpr = createCheckExpressionNode(SyntaxKind.CHECK_EXPRESSION,
                 createToken(SyntaxKind.CHECK_KEYWORD), methodCall);
 
+        StatementNode logStmt = NodeParser.parseStatement(String.format(
+                "log:printInfo(\"MATCH_LEVEL_2_%s\", matchedEvent = \"%s\");", serviceName, eventName));
+
         BlockStatementNode block = createBlockStatementNode(
                 createToken(SyntaxKind.OPEN_BRACE_TOKEN),
-                createNodeList(createExpressionStatementNode(SyntaxKind.CALL_STATEMENT,
+                createNodeList(logStmt, createExpressionStatementNode(SyntaxKind.CALL_STATEMENT,
                         checkExpr, createToken(SyntaxKind.SEMICOLON_TOKEN))),
                 createToken(SyntaxKind.CLOSE_BRACE_TOKEN));
 

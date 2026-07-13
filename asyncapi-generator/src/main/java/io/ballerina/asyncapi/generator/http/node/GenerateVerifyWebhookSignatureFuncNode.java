@@ -1,23 +1,24 @@
 /*
- *  Copyright (c) 2026, WSO2 LLC. (http://www.wso2.com)
+ * Copyright (c) 2026, WSO2 LLC. (http://www.wso2.com)
  *
- *  WSO2 LLC. licenses this file to you under the Apache License,
- *  Version 2.0 (the "License"); you may not use this file except
- *  in compliance with the License.
- *  You may obtain a copy of the License at
+ * WSO2 LLC. licenses this file to you under the Apache License,
+ * Version 2.0 (the "License"); you may not use this file except
+ * in compliance with the License.
+ * You may obtain a copy of the License at
  *
- *    http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
- *  Unless required by applicable law or agreed to in writing,
- *  software distributed under the License is distributed on an
- *  "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- *  KIND, either express or implied.  See the License for the
- *  specific language governing permissions and limitations
- *  under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package io.ballerina.asyncapi.generator.http.node;
 
 import io.ballerina.asyncapi.generator.GeneratorException;
+import io.ballerina.asyncapi.generator.http.model.WebhookAuthConfig;
 import io.ballerina.compiler.syntax.tree.FunctionBodyBlockNode;
 import io.ballerina.compiler.syntax.tree.FunctionDefinitionNode;
 import io.ballerina.compiler.syntax.tree.FunctionSignatureNode;
@@ -27,6 +28,8 @@ import io.ballerina.compiler.syntax.tree.StatementNode;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createEmptyNodeList;
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createIdentifierToken;
@@ -59,24 +62,28 @@ import static io.ballerina.compiler.syntax.tree.SyntaxKind.RETURNS_KEYWORD;
  * returns http:Response|error} method node for the {@code DispatcherService} class in
  * {@code dispatcher_service.bal}.
  *
- * <p>Validates the HMAC signature carried in the configured auth header, supporting
- * {@code sha256}, {@code sha1}, {@code sha384}, and {@code sha512} algorithms.
- * Returns an HTTP 401 response if the header is absent, malformed, uses an unsupported algorithm,
- * or the computed HMAC does not match the supplied signature.
+ * <p>Validates the HMAC signature carried in the configured auth header, supporting dynamic
+ * payload extraction and formatting based on the AsyncAPI x-ballerina-auth DSL.
  */
 public class GenerateVerifyWebhookSignatureFuncNode implements Generator {
 
     public static final String VERIFY_WEBHOOK_SIGNATURE_FUNC = "verifyWebhookSignature";
+    private static final Pattern HEADER_FUNC_PATTERN = Pattern.compile("\\$header\\('([^']+)'\\)");
+    private static final Pattern CUSTOM_VAR_PATTERN = Pattern.compile("\\$([A-Za-z_][A-Za-z0-9_]*)");
+    private static final Pattern TEMPLATE_VAR_PATTERN = Pattern.compile(
+            "\\$\\{([A-Za-z_][A-Za-z0-9_]*)\\}|\\$([A-Za-z_][A-Za-z0-9_]*)|\\{([A-Za-z_][A-Za-z0-9_]*)\\}");
+    private static final Pattern BRACED_VAR_PATTERN =
+            Pattern.compile("(?<!\\$)\\{([A-Za-z_][A-Za-z0-9_]*)\\}");
 
-    private final String headerName;
+    private final WebhookAuthConfig authConfig;
 
     /**
      * Creates a generator for the {@code verifyWebhookSignature} function.
      *
-     * @param headerName the HTTP header name carrying the HMAC signature (from {@code x-ballerina-auth})
+     * @param authConfig the webhook authentication configuration extracted from the DSL
      */
-    public GenerateVerifyWebhookSignatureFuncNode(String headerName) {
-        this.headerName = headerName;
+    public GenerateVerifyWebhookSignatureFuncNode(WebhookAuthConfig authConfig) {
+        this.authConfig = authConfig;
     }
 
     @Override
@@ -100,41 +107,85 @@ public class GenerateVerifyWebhookSignatureFuncNode implements Generator {
                 buildOptionalErrorReturnType());
 
         List<StatementNode> statements = new ArrayList<>();
+        String headerName = authConfig.headerName();
+        
         statements.add(NodeParser.parseStatement(String.format(
-                "if !request.hasHeader(\"%s\") { return error(\"Unauthorized\"); }",
+                "if !request.hasHeader(\"%s\") { return error(\"Unauthorized: Missing Signature Header\"); }",
                 headerName)));
+        String receivedHeaderExpr = getSafeHeaderExtraction(headerName);
         statements.add(NodeParser.parseStatement(String.format(
-                "string signature = check request.getHeader(\"%s\");",
-                headerName)));
-        statements.add(NodeParser.parseStatement(
-                "byte[] binaryPay = check request.getBinaryPayload();"));
-        statements.add(NodeParser.parseStatement(
-                "string[] parts = re `=`.split(signature);"));
-        statements.add(NodeParser.parseStatement(
-                "if parts.length() < 2 { return error(\"Unauthorized\"); }"));
-        statements.add(NodeParser.parseStatement(
-                "string algorithm = parts[0];"));
-        statements.add(NodeParser.parseStatement(
-                "byte[] computedHmac;"));
-        statements.add(NodeParser.parseStatement(
-                "string expected;"));
-        statements.add(NodeParser.parseStatement(
-                "if algorithm == \"sha256\" {"
-                        + " computedHmac = check crypto:hmacSha256(binaryPay, webhookSecret.toBytes());"
-                        + " expected = \"sha256=\" + computedHmac.toBase16(); }"
-                        + " else if algorithm == \"sha1\" {"
-                        + " computedHmac = check crypto:hmacSha1(binaryPay, webhookSecret.toBytes());"
-                        + " expected = \"sha1=\" + computedHmac.toBase16(); }"
-                        + " else if algorithm == \"sha384\" {"
-                        + " computedHmac = check crypto:hmacSha384(binaryPay, webhookSecret.toBytes());"
-                        + " expected = \"sha384=\" + computedHmac.toBase16(); }"
-                        + " else if algorithm == \"sha512\" {"
-                        + " computedHmac = check crypto:hmacSha512(binaryPay, webhookSecret.toBytes());"
-                        + " expected = \"sha512=\" + computedHmac.toBase16(); }"
-                        + " else { return error(\"Unauthorized\"); }"));
-        statements.add(NodeParser.parseStatement(
-                "if !crypto:equalConstantTime(signature.toBytes(), expected.toBytes()) {"
-                        + " return error(\"Unauthorized\"); }"));
+            "string receivedHeader = %s;",
+            receivedHeaderExpr)));
+
+        String headerFormat = authConfig.headerFormat() != null ? authConfig.headerFormat() : "$signature";
+        HeaderTemplate headerTemplate = parseHeaderTemplate(headerFormat);
+        addHeaderTemplateExtractionStatements(statements, headerTemplate);
+
+        String signatureVariable = resolveSignatureVariableName(headerTemplate);
+        statements.add(NodeParser.parseStatement(String.format(
+            "if !extractedHeaderValues.hasKey(\"%s\") {"
+                + " return error(\"Unauthorized: Missing Signature Value\"); }",
+            signatureVariable)));
+        String extractedSignatureExpr = getSafeMapExtraction("extractedHeaderValues", signatureVariable, "");
+        statements.add(NodeParser.parseStatement(String.format(
+            "string extractedSignature = %s;",
+            extractedSignatureExpr)));
+
+        // If algorithm is present, use HMAC verification. Otherwise do static token verification.
+        if (hasAlgorithmConfigured(authConfig.algorithm())) {
+
+            // 1. Translate the DSL input string to Ballerina string interpolation
+            String inputDsl = authConfig.input() != null ? authConfig.input() : "$body";
+            String balTemplate = buildPayloadTemplate(escapeBacktickTemplate(inputDsl));
+                    
+            statements.add(NodeParser.parseStatement(
+                    "string payloadToHash = string `" + balTemplate + "`;"));
+
+            // 2. Map the algorithm to the correct Ballerina crypto module function
+            String algo = authConfig.algorithm().toLowerCase();
+            String cryptoFunc = switch (algo) {
+                case "sha1" -> "hmacSha1";
+                case "sha384" -> "hmacSha384";
+                case "sha512" -> "hmacSha512";
+                default -> "hmacSha256";
+            };
+
+            statements.add(NodeParser.parseStatement(
+                    String.format(
+                            "byte[] computedHmac = check crypto:%s(payloadToHash.toBytes(), webhookSecret.toBytes());",
+                            cryptoFunc)));
+
+            // 3. Apply the requested encoding (hex or base64)
+            String encoding = authConfig.encoding() != null ? authConfig.encoding().toLowerCase() : "hex";
+            String encodeFunc = encoding.equals("base64") ? "toBase64()" : "toBase16()";
+            
+            // Note: Shopify/QuickBooks use base64, Slack/GitHub use hex.
+            statements.add(NodeParser.parseStatement(
+                    String.format(
+                            "string computedSignature = computedHmac.%s;",
+                            encodeFunc)));
+
+            // 4. Construct the final expected header string using the DSL format
+            String expectedHeaderTemplate = escapeBacktickTemplate(headerFormat)
+                    .replace("${signature}", "${computedSignature}")
+                    .replace("{signature}", "${computedSignature}")
+                    .replace("$signature", "${computedSignature}");
+                expectedHeaderTemplate = normalizeCustomVariables(expectedHeaderTemplate);
+            
+            statements.add(NodeParser.parseStatement(
+                    "string expectedHeader = string `" + expectedHeaderTemplate + "`;"));
+
+            statements.add(NodeParser.parseStatement(
+                    "if !crypto:equalConstantTime(receivedHeader.toBytes(), expectedHeader.toBytes()) {"
+                            + " return error(\"Unauthorized: Signature Mismatch\"); }"));
+
+        } else {
+            statements.add(NodeParser.parseStatement(
+                    "if !crypto:equalConstantTime(extractedSignature.toBytes(), webhookSecret.toBytes()) {"
+                            + " return error(\"Unauthorized: Signature Mismatch\"); }"));
+        }
+        
+        statements.add(NodeParser.parseStatement("log:printInfo(\"SIGNATURE_VERIFIED\");"));
         statements.add(NodeParser.parseStatement("return;"));
 
         FunctionBodyBlockNode body = createFunctionBodyBlockNode(
@@ -157,5 +208,263 @@ public class GenerateVerifyWebhookSignatureFuncNode implements Generator {
                 createOptionalTypeDescriptorNode(
                         createToken(ERROR_KEYWORD),
                         createToken(QUESTION_MARK_TOKEN)));
+    }
+
+    private String buildPayloadTemplate(String inputDsl) {
+        String normalizedDsl = convertBracedVariables(inputDsl)
+                .replace("${body}", "$body")
+                .replace("${uri}", "$uri")
+                .replace("${method}", "$method")
+                .replaceAll("\\$\\{header\\('([^']+)'\\)\\}", "\\$header('$1')");
+
+        if (normalizedDsl.contains(" . ")) {
+            return buildTemplateFromDotExpression(normalizedDsl);
+        }
+
+        String template = normalizedDsl
+                .replace("$body", "${check request.getTextPayload()}")
+                .replace("$uri", "${request.rawPath}")
+                .replace("$method", "${request.method}");
+
+        Matcher headerMatcher = HEADER_FUNC_PATTERN.matcher(template);
+        StringBuffer headerReplaced = new StringBuffer();
+        while (headerMatcher.find()) {
+            String replacement = "${" + getSafeHeaderExtraction(headerMatcher.group(1)) + "}";
+            headerMatcher.appendReplacement(headerReplaced, Matcher.quoteReplacement(replacement));
+        }
+        headerMatcher.appendTail(headerReplaced);
+
+        Matcher customVarMatcher = CUSTOM_VAR_PATTERN.matcher(headerReplaced.toString());
+        StringBuffer customReplaced = new StringBuffer();
+        while (customVarMatcher.find()) {
+            String replacement = "${" + customVarMatcher.group(1) + "}";
+            customVarMatcher.appendReplacement(customReplaced, Matcher.quoteReplacement(replacement));
+        }
+        customVarMatcher.appendTail(customReplaced);
+        return customReplaced.toString();
+    }
+
+    private HeaderTemplate parseHeaderTemplate(String headerFormat) {
+        String template = headerFormat == null || headerFormat.isBlank() ? "$signature" : headerFormat;
+        Matcher matcher = TEMPLATE_VAR_PATTERN.matcher(template);
+
+        List<String> literals = new ArrayList<>();
+        List<String> variables = new ArrayList<>();
+        int currentIndex = 0;
+
+        while (matcher.find()) {
+            literals.add(template.substring(currentIndex, matcher.start()));
+            String variable = matcher.group(1);
+            if (variable == null) {
+                variable = matcher.group(2);
+            }
+            if (variable == null) {
+                variable = matcher.group(3);
+            }
+            variables.add(variable);
+            currentIndex = matcher.end();
+        }
+        literals.add(template.substring(currentIndex));
+
+        if (variables.isEmpty()) {
+            literals = List.of("", "");
+            variables = List.of("signature");
+        }
+
+        return new HeaderTemplate(literals, variables);
+    }
+
+    private void addHeaderTemplateExtractionStatements(List<StatementNode> statements, HeaderTemplate template) {
+        statements.add(NodeParser.parseStatement("map<string> extractedHeaderValues = {};"));
+        statements.add(NodeParser.parseStatement("int headerCursor = 0;"));
+
+        for (int i = 0; i < template.variables().size(); i++) {
+            String variableName = template.variables().get(i);
+            String prefix = template.literals().get(i);
+
+            if (!prefix.isEmpty()) {
+                String escapedPrefix = escapeForBallerinaString(prefix);
+                statements.add(NodeParser.parseStatement(String.format(
+                        "if !receivedHeader.substring(headerCursor).startsWith(\"%s\") {"
+                                + " return error(\"Unauthorized: Malformed Signature Header\"); }",
+                        escapedPrefix)));
+                statements.add(NodeParser.parseStatement(String.format(
+                        "headerCursor += %d;",
+                        prefix.length())));
+            }
+
+            boolean isLastVariable = i == template.variables().size() - 1;
+            String nextLiteral = template.literals().get(i + 1);
+            if (!isLastVariable) {
+                if (nextLiteral.isEmpty()) {
+                    statements.add(NodeParser.parseStatement(
+                            "return error(\"Unauthorized: Ambiguous Header Template\");"));
+                    continue;
+                }
+                String markerVar = variableName + "Marker";
+                String safeIndexExpr = getSafeIndexOf("receivedHeader", nextLiteral, "headerCursor");
+                statements.add(NodeParser.parseStatement(String.format(
+                    "int %s = %s;",
+                        markerVar,
+                        safeIndexExpr)));
+                statements.add(NodeParser.parseStatement(String.format(
+                        "if %s < 0 { return error(\"Unauthorized: Malformed Signature Header\"); }",
+                        markerVar)));
+                statements.add(NodeParser.parseStatement(String.format(
+                        "extractedHeaderValues[\"%s\"] = receivedHeader.substring(headerCursor, %s);",
+                        variableName,
+                        markerVar)));
+                statements.add(NodeParser.parseStatement(String.format(
+                        "headerCursor = %s;",
+                        markerVar)));
+            } else {
+                if (nextLiteral.isEmpty()) {
+                    statements.add(NodeParser.parseStatement(String.format(
+                            "extractedHeaderValues[\"%s\"] = receivedHeader.substring(headerCursor);",
+                            variableName)));
+                    statements.add(NodeParser.parseStatement("headerCursor = receivedHeader.length();"));
+                } else {
+                    String escapedSuffix = escapeForBallerinaString(nextLiteral);
+                    statements.add(NodeParser.parseStatement(String.format(
+                            "if !receivedHeader.substring(headerCursor).endsWith(\"%s\") {"
+                                    + " return error(\"Unauthorized: Malformed Signature Header\"); }",
+                            escapedSuffix)));
+                    statements.add(NodeParser.parseStatement(String.format(
+                            "int %sEnd = receivedHeader.length() - %d;",
+                            variableName,
+                            nextLiteral.length())));
+                    statements.add(NodeParser.parseStatement(String.format(
+                            "if %sEnd < headerCursor { return error(\"Unauthorized: Malformed Signature Header\"); }",
+                            variableName)));
+                    statements.add(NodeParser.parseStatement(String.format(
+                            "extractedHeaderValues[\"%s\"] = receivedHeader.substring(headerCursor, %sEnd);",
+                            variableName,
+                            variableName)));
+                    statements.add(NodeParser.parseStatement("headerCursor = receivedHeader.length();"));
+                }
+            }
+        }
+
+            List<String> declaredVariables = new ArrayList<>();
+            for (String variableName : template.variables()) {
+                if (declaredVariables.contains(variableName)) {
+                continue;
+                }
+                declaredVariables.add(variableName);
+                statements.add(NodeParser.parseStatement(String.format(
+                    "if !extractedHeaderValues.hasKey(\"%s\") {"
+                        + " return error(\"Unauthorized: Missing Header Component: %s\"); }",
+                    variableName,
+                    variableName)));
+                String safeMapExtraction = getSafeMapExtraction("extractedHeaderValues", variableName, "");
+                statements.add(NodeParser.parseStatement(String.format(
+                    "string %s = %s;",
+                    variableName,
+                    safeMapExtraction)));
+            }
+    }
+
+    private String resolveSignatureVariableName(HeaderTemplate template) {
+        if (template.variables().contains("signature")) {
+            return "signature";
+        }
+        return template.variables().isEmpty() ? "signature" : template.variables().get(0);
+    }
+
+    private boolean hasAlgorithmConfigured(String algorithm) {
+        return algorithm != null && !algorithm.isBlank();
+    }
+
+    private String escapeForBallerinaString(String value) {
+        return value.replace("\\", "\\\\").replace("\"", "\\\"");
+    }
+
+    private String escapeBacktickTemplate(String value) {
+        return value.replace("\\", "\\\\").replace("`", "\\`");
+    }
+
+    private String getSafeMapExtraction(String mapName, String key, String defaultValue) {
+        String escapedKey = escapeForBallerinaString(key);
+        String escapedDefaultValue = escapeForBallerinaString(defaultValue);
+        return String.format("%s[\"%s\"] ?: \"%s\"", mapName, escapedKey, escapedDefaultValue);
+    }
+
+    private String getSafeHeaderExtraction(String headerName) {
+        String escapedHeaderName = escapeForBallerinaString(headerName);
+        return String.format("let var headerValue = trap request.getHeader(\"%s\") in "
+                + "(headerValue is string ? headerValue : \"\")", escapedHeaderName);
+    }
+
+    private String getSafeIndexOf(String targetVariable, String searchString, String startIndex) {
+        String escapedSearchString = escapeForBallerinaString(searchString);
+        return String.format("%s.indexOf(\"%s\", %s) ?: -1", targetVariable, escapedSearchString, startIndex);
+    }
+
+    private String normalizeCustomVariables(String text) {
+        String bracedResult = convertBracedVariables(text);
+
+        Matcher customVarMatcher = CUSTOM_VAR_PATTERN.matcher(bracedResult);
+        StringBuffer customResult = new StringBuffer();
+        while (customVarMatcher.find()) {
+            String replacement = "${" + customVarMatcher.group(1) + "}";
+            customVarMatcher.appendReplacement(customResult, Matcher.quoteReplacement(replacement));
+        }
+        customVarMatcher.appendTail(customResult);
+        return customResult.toString();
+    }
+
+    private String convertBracedVariables(String text) {
+        Matcher bracedVarMatcher = BRACED_VAR_PATTERN.matcher(text);
+        StringBuffer bracedResult = new StringBuffer();
+        while (bracedVarMatcher.find()) {
+            String replacement = "${" + bracedVarMatcher.group(1) + "}";
+            bracedVarMatcher.appendReplacement(bracedResult, Matcher.quoteReplacement(replacement));
+        }
+        bracedVarMatcher.appendTail(bracedResult);
+        return bracedResult.toString();
+    }
+
+    private String buildTemplateFromDotExpression(String expression) {
+        String[] segments = expression.split("\\s+\\.\\s+");
+        StringBuilder templateBuilder = new StringBuilder();
+
+        for (String segment : segments) {
+            String token = segment.trim();
+            if (token.length() >= 2 && token.startsWith("'") && token.endsWith("'")) {
+                templateBuilder.append(token, 1, token.length() - 1);
+            } else {
+                templateBuilder.append(mapConcatTokenToInterpolation(token));
+            }
+        }
+        return templateBuilder.toString();
+    }
+
+    private String mapConcatTokenToInterpolation(String token) {
+        // $method and $uri are mapped explicitly to request context values.
+        if ("$body".equals(token)) {
+            return "${check request.getTextPayload()}";
+        }
+        if ("$uri".equals(token)) {
+            return "${request.rawPath}";
+        }
+        if ("$method".equals(token)) {
+            return "${request.method}";
+        }
+
+        Matcher headerMatcher = HEADER_FUNC_PATTERN.matcher(token);
+        if (headerMatcher.matches()) {
+            return "${" + getSafeHeaderExtraction(headerMatcher.group(1)) + "}";
+        }
+
+        if (token.startsWith("${") && token.endsWith("}")) {
+            return token;
+        }
+        if (token.startsWith("$") && token.length() > 1) {
+            return "${" + token.substring(1) + "}";
+        }
+        return token;
+    }
+
+    private record HeaderTemplate(List<String> literals, List<String> variables) {
     }
 }

@@ -1,19 +1,19 @@
 /*
- *  Copyright (c) 2026, WSO2 LLC. (http://www.wso2.com)
+ * Copyright (c) 2026, WSO2 LLC. (http://www.wso2.com)
  *
- *  WSO2 LLC. licenses this file to you under the Apache License,
- *  Version 2.0 (the "License"); you may not use this file except
- *  in compliance with the License.
- *  You may obtain a copy of the License at
+ * WSO2 LLC. licenses this file to you under the Apache License,
+ * Version 2.0 (the "License"); you may not use this file except
+ * in compliance with the License.
+ * You may obtain a copy of the License at
  *
- *    http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
- *  Unless required by applicable law or agreed to in writing,
- *  software distributed under the License is distributed on an
- *  "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- *  KIND, either express or implied.  See the License for the
- *  specific language governing permissions and limitations
- *  under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package io.ballerina.asyncapi.generator.http.node;
 
@@ -93,6 +93,7 @@ public class GenerateDispatcherServiceNode implements Generator {
     private final List<HttpServiceType> serviceTypes;
     private final EventIdentifierConfig identifierConfig;
     private final Optional<WebhookAuthConfig> webhookAuthConfig;
+    private final String serviceName;
 
     /**
      * Creates a generator for the {@code DispatcherService} class.
@@ -100,12 +101,16 @@ public class GenerateDispatcherServiceNode implements Generator {
      * @param serviceTypes      the list of HTTP service type definitions
      * @param identifierConfig  the resolved event identifier type and path
      * @param webhookAuthConfig the optional webhook authentication configuration
+     * @param serviceName       a label identifying the generated package, embedded into the
+     *                          {@code MATCH_LEVEL_1_*}, {@code MATCH_LEVEL_2_*}, and
+     *                          {@code HANDLER_EXECUTED_*} diagnostic trace log messages
      */
     public GenerateDispatcherServiceNode(List<HttpServiceType> serviceTypes, EventIdentifierConfig identifierConfig,
-            Optional<WebhookAuthConfig> webhookAuthConfig) {
+                                         Optional<WebhookAuthConfig> webhookAuthConfig, String serviceName) {
         this.serviceTypes = serviceTypes;
         this.identifierConfig = identifierConfig;
         this.webhookAuthConfig = webhookAuthConfig;
+        this.serviceName = serviceName;
     }
 
     @Override
@@ -129,11 +134,13 @@ public class GenerateDispatcherServiceNode implements Generator {
         members.add(buildFunc(new GenerateAddServiceRefFuncNode()));
         members.add(buildFunc(new GenerateRemoveServiceRefFuncNode()));
         members.add(buildFunc(new GeneratePostResourceFunctionNode(identifierConfig, webhookAuthConfig)));
+        
         if (webhookAuthConfig.isPresent()) {
-            members.add(buildFunc(new GenerateVerifyWebhookSignatureFuncNode(webhookAuthConfig.get().headerName())));
+            members.add(buildFunc(new GenerateVerifyWebhookSignatureFuncNode(webhookAuthConfig.get())));
         }
+        
         GenerateMatchRemoteFuncNode matchRemoteFuncGen =
-                new GenerateMatchRemoteFuncNode(serviceTypes, identifierConfig, eventIdentifierPath);
+                new GenerateMatchRemoteFuncNode(serviceTypes, identifierConfig, eventIdentifierPath, serviceName);
         members.add(buildFunc(matchRemoteFuncGen));
 
         // Add one chunk function per channel group if chunking was triggered
@@ -141,7 +148,7 @@ public class GenerateDispatcherServiceNode implements Generator {
             members.add(buildFunc(chunkGen));
         }
 
-        members.add(buildFunc(new GenerateExecuteRemoteFuncNode()));
+        members.add(buildFunc(new GenerateExecuteRemoteFuncNode(serviceName)));
 
         return createClassDefinitionNode(
                 null,
