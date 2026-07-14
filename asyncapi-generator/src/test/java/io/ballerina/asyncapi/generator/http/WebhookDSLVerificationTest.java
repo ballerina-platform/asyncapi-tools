@@ -133,6 +133,28 @@ public class WebhookDSLVerificationTest {
                 "Should not import ballerina/time when no freshness check is configured");
     }
 
+    @Test
+    public void testCustomVariableSharingReservedTokenPrefixIsNotCorrupted() throws Exception {
+        // "bodyHash" is a custom variable extracted from the signature header, not the builtin
+        // "$body" token -- but it starts with the substring "body". A naive String.replace("$body", ...)
+        // on the input DSL would corrupt "$bodyHash" into "${check request.getTextPayload()}Hash"
+        // before the custom-variable pass ever runs. The fix must treat "$body" as matched only
+        // when it isn't immediately followed by another identifier character.
+        Path tempOutputDir = generateFromFixture("token_corruption_verification.yaml", "X-Test-Event",
+                "test_event");
+
+        String dispatcherContent = Files.readString(tempOutputDir.resolve("dispatcher_service.bal"));
+        Assert.assertTrue(
+                dispatcherContent.contains("${bodyHash}"),
+                "Should interpolate the custom bodyHash variable extracted from the signature header");
+        Assert.assertTrue(
+                dispatcherContent.contains("${check request.getTextPayload()}"),
+                "Should still correctly interpolate the builtin $body token");
+        Assert.assertFalse(
+                dispatcherContent.contains("${check request.getTextPayload()}Hash"),
+                "$body substitution must not corrupt the unrelated $bodyHash custom variable");
+    }
+
     /**
      * Loads a webhook-verification test fixture, injects the metadata the generator pipeline
      * expects, and runs it through {@link HttpCodeGenerator}.

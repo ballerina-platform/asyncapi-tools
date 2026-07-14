@@ -38,11 +38,16 @@ public final class WebhookDslValidator {
     private static final Set<String> SUPPORTED_ENCODINGS = Set.of("hex", "base64");
 
     private static final Pattern HEADER_FUNC_PATTERN = Pattern.compile("\\$header\\('([^']+)'\\)");
+    private static final Pattern CONFIG_FUNC_PATTERN = Pattern.compile("\\$config\\('([^']+)'\\)");
     private static final Pattern DOLLAR_TOKEN_PATTERN = Pattern.compile("\\$[A-Za-z_][A-Za-z0-9_]*");
     private static final Pattern BRACED_TOKEN_PATTERN =
             Pattern.compile("(?<!\\$)\\{([A-Za-z_][A-Za-z0-9_]*)\\}");
+    private static final Pattern DOLLAR_BRACED_TOKEN_PATTERN =
+            Pattern.compile("\\$\\{([A-Za-z_][A-Za-z0-9_]*)\\}");
 
-    private static final Set<String> BUILTIN_INPUT_TOKENS = Set.of("body", "method", "uri");
+    // "secret" allows $secret to fold the webhook secret directly into the hashed payload for
+    // strategy: "hash" (plain-digest) schemes, instead of using it as an HMAC key.
+    private static final Set<String> BUILTIN_INPUT_TOKENS = Set.of("body", "method", "uri", "secret");
 
     private WebhookDslValidator() {
     }
@@ -138,9 +143,12 @@ public final class WebhookDslValidator {
             return;
         }
 
-        // Remove valid header lookups first so their '$header' token does not appear as invalid '$header'.
+        // Remove valid header/config lookups first so their '$header'/'$config' token doesn't
+        // appear as an invalid bare '$header'/'$config'.
         Matcher headerMatcher = HEADER_FUNC_PATTERN.matcher(input);
         String withoutHeaderFuncs = headerMatcher.replaceAll(" ");
+        Matcher configMatcher = CONFIG_FUNC_PATTERN.matcher(withoutHeaderFuncs);
+        withoutHeaderFuncs = configMatcher.replaceAll(" ");
 
         Set<String> allowedCustomVariables = new HashSet<>(extractedVariables);
 
@@ -159,10 +167,25 @@ public final class WebhookDslValidator {
         Matcher bracedTokenMatcher = BRACED_TOKEN_PATTERN.matcher(withoutHeaderFuncs);
         while (bracedTokenMatcher.find()) {
             String token = bracedTokenMatcher.group(1);
+            if (BUILTIN_INPUT_TOKENS.contains(token)) {
+                continue;
+            }
             if (allowedCustomVariables.contains(token)) {
                 continue;
             }
             throw new GeneratorException("Invalid input token in webhook DSL: {" + token + "}");
+        }
+
+        Matcher dollarBracedTokenMatcher = DOLLAR_BRACED_TOKEN_PATTERN.matcher(withoutHeaderFuncs);
+        while (dollarBracedTokenMatcher.find()) {
+            String token = dollarBracedTokenMatcher.group(1);
+            if (BUILTIN_INPUT_TOKENS.contains(token)) {
+                continue;
+            }
+            if (allowedCustomVariables.contains(token)) {
+                continue;
+            }
+            throw new GeneratorException("Invalid input token in webhook DSL: ${" + token + "}");
         }
     }
 }

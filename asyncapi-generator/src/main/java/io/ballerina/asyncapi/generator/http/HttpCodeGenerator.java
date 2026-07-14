@@ -31,6 +31,7 @@ import io.ballerina.asyncapi.generator.http.generator.ServiceTypesGenerator;
 import io.ballerina.asyncapi.generator.http.model.EventIdentifierConfig;
 import io.ballerina.asyncapi.generator.http.model.HttpServiceType;
 import io.ballerina.asyncapi.generator.http.model.WebhookAuthConfig;
+import io.ballerina.asyncapi.generator.http.validator.WebhookDslValidator;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -82,6 +83,7 @@ public class HttpCodeGenerator {
         schemas.putAll(serviceTypeExtractor.getInlineSchemas());
         EventIdentifierConfig identifierConfig = new EventIdentifierExtractor(asyncApiSpec).extract();
         Optional<WebhookAuthConfig> webhookAuthConfig = new WebhookAuthExtractor(asyncApiSpec).extract();
+        validateWebhookDsl(webhookAuthConfig);
 
         // Generate Ballerina source content
         String dataTypesContent = new DataTypesGenerator(schemas, webhookAuthConfig).generate();
@@ -105,6 +107,12 @@ public class HttpCodeGenerator {
         LOG.info("Following files were created.\n-- {}\n-- {}\n-- {}\n-- {}",
                 writtenDataTypes.getFileName(), writtenServiceTypes.getFileName(),
                 writtenListener.getFileName(), writtenDispatcher.getFileName());
+    }
+
+    private void validateWebhookDsl(Optional<WebhookAuthConfig> webhookAuthConfig) throws GeneratorException {
+        if (webhookAuthConfig.isPresent()) {
+            WebhookDslValidator.validate(webhookAuthConfig.get());
+        }
     }
 
     /**

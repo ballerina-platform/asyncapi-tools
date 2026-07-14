@@ -1,0 +1,21 @@
+asyncapi: 2.6.0
+x-ballerina-event-identifier:
+  type: "header"
+  name: "X-Test-Event"
+x-ballerina-auth:
+  header: X-Test-Signature
+  signature:
+    algorithm: sha256
+    encoding: hex
+    headerFormat: "sha256=${signature},bh=${bodyHash}"
+    input: "$bodyHash . $body"
+info:
+  title: Token Corruption Test
+  version: 1.0.0
+channels:
+  events:
+    subscribe:
+      message:
+        x-ballerina-event-type: test_event
+        payload:
+          type: object
