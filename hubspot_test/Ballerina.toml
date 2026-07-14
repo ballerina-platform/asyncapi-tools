@@ -1,8 +1,0 @@
-[package]
-org = "dinuka"
-name = "hubspot_test"
-version = "0.1.0"
-distribution = "2201.13.4"
-
-[build-options]
-observabilityIncluded = true
