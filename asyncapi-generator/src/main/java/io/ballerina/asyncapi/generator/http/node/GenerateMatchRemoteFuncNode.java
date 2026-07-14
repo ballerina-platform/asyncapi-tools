@@ -29,6 +29,7 @@ import io.ballerina.compiler.syntax.tree.FunctionBodyBlockNode;
 import io.ballerina.compiler.syntax.tree.FunctionDefinitionNode;
 import io.ballerina.compiler.syntax.tree.FunctionSignatureNode;
 import io.ballerina.compiler.syntax.tree.MethodCallExpressionNode;
+import io.ballerina.compiler.syntax.tree.NodeParser;
 import io.ballerina.compiler.syntax.tree.ParameterNode;
 import io.ballerina.compiler.syntax.tree.SeparatedNodeList;
 import io.ballerina.compiler.syntax.tree.StatementNode;
@@ -74,9 +75,14 @@ import static io.ballerina.compiler.syntax.tree.SyntaxKind.SEMICOLON_TOKEN;
  * <p>For {@code "composite"}, the signature includes both {@code string eventIdentifier} (the
  * compound header+body value) and {@code string eventType} (the header value used for dispatch).
  * For {@code "header"} and {@code "body"}, the signature includes only {@code string eventType}.
- * Calls every {@link GenerateMatchChunkFuncNode} function unconditionally, one per channel group;
- * each chunk function matches the real per-message identifier internally and no-ops if none of
- * its clauses match, so exactly the right chunk (if any) ends up dispatching.
+ *
+ * <p>Calls every channel group's {@link GenerateMatchChunkFuncNode} function unconditionally, in
+ * sequence. Routing to the correct group is decided entirely by each chunk function's own inner
+ * match on the actual event identifier (see {@link GenerateMatchStatementNode}) -- there is only
+ * ever one raw identifier value on the wire, so gating this outer call on a second, independent
+ * literal (the channel/group label) can never succeed and previously made every group unreachable.
+ * Chunk functions for groups the event doesn't belong to simply find no matching case and return
+ * without side effects, so calling all of them is safe.
  */
 public class GenerateMatchRemoteFuncNode implements Generator {
 
@@ -85,6 +91,7 @@ public class GenerateMatchRemoteFuncNode implements Generator {
     private final List<HttpServiceType> serviceTypes;
     private final EventIdentifierConfig identifierConfig;
     private final String eventIdentifierPath;
+    private final String serviceName;
     private final List<GenerateMatchChunkFuncNode> chunkGenerators = new ArrayList<>();
 
     /**
@@ -93,13 +100,17 @@ public class GenerateMatchRemoteFuncNode implements Generator {
      * @param serviceTypes        the list of HTTP service type definitions
      * @param identifierConfig    the resolved event identifier type and path
      * @param eventIdentifierPath the expression matched against in the chunk match statements
+     * @param serviceName         a label identifying the generated package, embedded into the
+     *                            {@code MATCH_LEVEL_1_*} diagnostic trace log message
      */
     public GenerateMatchRemoteFuncNode(List<HttpServiceType> serviceTypes,
                                        EventIdentifierConfig identifierConfig,
-                                       String eventIdentifierPath) {
+                                       String eventIdentifierPath,
+                                       String serviceName) {
         this.serviceTypes = serviceTypes;
         this.identifierConfig = identifierConfig;
         this.eventIdentifierPath = eventIdentifierPath;
+        this.serviceName = serviceName;
     }
 
     /**
@@ -151,17 +162,15 @@ public class GenerateMatchRemoteFuncNode implements Generator {
                 createToken(OPEN_PAREN_TOKEN), params,
                 createToken(CLOSE_PAREN_TOKEN), buildErrorReturnType());
 
-        // Call one chunk function per service type (channel group), unconditionally. Each chunk
-        // function is self-contained: it matches the real per-message identifier (header value,
-        // body field, or composite string) internally and silently no-ops if none of its clauses
-        // match. Gating these calls on the channel's own snake-case name here would be wrong
-        // whenever a channel groups more than one event under it (composite dispatch, or any
-        // "header"/"body" channel with more than one message) — the per-message identifier the
-        // chunk actually cares about is never equal to the channel name itself in that case.
-        List<StatementNode> chunkCallStatements = new ArrayList<>();
+        // Call every channel group's chunk function unconditionally, in sequence. Each chunk
+        // function's own inner match (see GenerateMatchStatementNode) is the sole authority on
+        // whether the raw identifier belongs to that group; groups it doesn't match simply do
+        // nothing. See class-level Javadoc for why an outer literal-equality gate cannot work here.
+        List<StatementNode> statements = new ArrayList<>();
         for (HttpServiceType serviceType : serviceTypes) {
             GenerateMatchChunkFuncNode chunkGen =
-                    new GenerateMatchChunkFuncNode(serviceType, eventIdentifierPath, !isBody);
+                    new GenerateMatchChunkFuncNode(serviceType, eventIdentifierPath,
+                            isComposite ? "eventType" : null, !isBody, serviceName);
             chunkGenerators.add(chunkGen);
 
             SeparatedNodeList<FunctionArgumentNode> chunkArgs;
@@ -172,7 +181,10 @@ public class GenerateMatchRemoteFuncNode implements Generator {
                                         GenerateDispatcherServiceNode.CLONE_WITH_TYPE_VAR_NAME))),
                         createToken(COMMA_TOKEN),
                         createPositionalArgumentNode(
-                                createSimpleNameReferenceNode(createIdentifierToken("eventIdentifier"))));
+                                createSimpleNameReferenceNode(createIdentifierToken("eventIdentifier"))),
+                        createToken(COMMA_TOKEN),
+                        createPositionalArgumentNode(
+                                createSimpleNameReferenceNode(createIdentifierToken("eventType"))));
             } else if (!isBody) {
                 chunkArgs = createSeparatedNodeList(
                         createPositionalArgumentNode(
@@ -206,12 +218,16 @@ public class GenerateMatchRemoteFuncNode implements Generator {
                     checkExpr,
                     createToken(SEMICOLON_TOKEN));
 
-            chunkCallStatements.add(stmt);
+            StatementNode logStmt = NodeParser.parseStatement(String.format(
+                    "log:printInfo(\"MATCH_LEVEL_1_%s\", eventType = eventType);", serviceName));
+
+            statements.add(logStmt);
+            statements.add(stmt);
         }
 
         FunctionBodyBlockNode body = createFunctionBodyBlockNode(
                 createToken(OPEN_BRACE_TOKEN), null,
-                createNodeList(chunkCallStatements),
+                createNodeList(statements),
                 createToken(CLOSE_BRACE_TOKEN), null);
 
         return createFunctionDefinitionNode(

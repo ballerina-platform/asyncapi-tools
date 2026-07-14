@@ -118,6 +118,7 @@ public class GeneratePostResourceFunctionNode implements Generator {
                             + " http:Response r = new; r.statusCode = http:STATUS_UNAUTHORIZED;"
                             + " check caller->respond(r); return; }"));
         }
+        statements.add(NodeParser.parseStatement("log:printInfo(\"DISPATCHER_ENTERED\");"));
         statements.add(NodeParser.parseStatement("json payload = check request.getJsonPayload();"));
         if (EventIdentifierExtractor.X_BALLERINA_EVENT_TYPE_HEADER.equals(type)) {
             statements.add(NodeParser.parseStatement(String.format(

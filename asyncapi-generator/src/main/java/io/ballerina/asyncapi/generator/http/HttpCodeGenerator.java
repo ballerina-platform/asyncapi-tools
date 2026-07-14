@@ -77,11 +77,11 @@ public class HttpCodeGenerator {
         }
 
         // Extract data from the parsed spec
-        ServiceTypeExtractor serviceTypeExtractor = new ServiceTypeExtractor(asyncApiSpec);
+        EventIdentifierConfig identifierConfig = new EventIdentifierExtractor(asyncApiSpec).extract();
+        ServiceTypeExtractor serviceTypeExtractor = new ServiceTypeExtractor(asyncApiSpec, identifierConfig);
         List<HttpServiceType> serviceTypes = serviceTypeExtractor.extract();
         Map<String, AsyncApiSchema> schemas = new HashMap<>(new SchemaExtractor(asyncApiSpec).extract());
         schemas.putAll(serviceTypeExtractor.getInlineSchemas());
-        EventIdentifierConfig identifierConfig = new EventIdentifierExtractor(asyncApiSpec).extract();
         Optional<WebhookAuthConfig> webhookAuthConfig = new WebhookAuthExtractor(asyncApiSpec).extract();
         validateWebhookDsl(webhookAuthConfig);
 
@@ -89,7 +89,9 @@ public class HttpCodeGenerator {
         String dataTypesContent = new DataTypesGenerator(schemas, webhookAuthConfig).generate();
         String serviceTypesContent = new ServiceTypesGenerator(serviceTypes).generate();
         String listenerContent = new ListenerGenerator(serviceTypes, webhookAuthConfig).generate();
-        String dispatcherContent = new DispatcherGenerator(serviceTypes, identifierConfig, webhookAuthConfig)
+        String serviceName = deriveServiceName(outputPath);
+        String dispatcherContent =
+                new DispatcherGenerator(serviceTypes, identifierConfig, webhookAuthConfig, serviceName)
                 .generate();
 
         // Write generated files to the output directory
@@ -113,6 +115,23 @@ public class HttpCodeGenerator {
         if (webhookAuthConfig.isPresent()) {
             WebhookDslValidator.validate(webhookAuthConfig.get());
         }
+    }
+
+    /**
+     * Derives a diagnostic-log label for the package being generated from the output directory name.
+     *
+     * <p>Embedded into the {@code MATCH_LEVEL_1_*}, {@code MATCH_LEVEL_2_*}, and
+     * {@code HANDLER_EXECUTED_*} trace logs in {@code dispatcher_service.bal} so that logs from
+     * multiple generated packages running side by side can be told apart.
+     *
+     * @param outputPath the directory the generated files are being written to
+     * @return a sanitized, non-empty label safe to splice into a Ballerina string literal
+     */
+    private static String deriveServiceName(Path outputPath) {
+        Path fileName = outputPath.toAbsolutePath().normalize().getFileName();
+        String raw = fileName == null ? "service" : fileName.toString();
+        String sanitized = raw.replaceAll("[^A-Za-z0-9_]", "_");
+        return sanitized.isBlank() ? "service" : sanitized;
     }
 
     /**

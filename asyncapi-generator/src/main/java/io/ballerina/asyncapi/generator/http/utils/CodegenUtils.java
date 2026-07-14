@@ -91,7 +91,6 @@ public final class CodegenUtils {
             for (String part : split) {
                 if (!part.isBlank()) {
                     if (split.length > 1) {
-                        // FIXED: Removed the .toLowerCase() that was destroying camelCase!
                         part = part.substring(0, 1).toUpperCase(Locale.ENGLISH)
                                 + part.substring(1);
                     }
@@ -138,7 +137,6 @@ public final class CodegenUtils {
         String firstPart = parts[0];
         String initial = "";
         if (!firstPart.isEmpty()) {
-            // FIXED: Only lowercasing the first letter, not the whole word
             initial = firstPart.substring(0, 1).toLowerCase(Locale.ENGLISH)
                     + firstPart.substring(1);
         }
@@ -202,7 +200,6 @@ public final class CodegenUtils {
      * @return the remote function name for the corresponding service type method
      */
     public static String getFunctionNameByEventName(String eventName) {
-        // FIXED: Replaced the runtime exception trap with the correct implementation
         return REMOTE_FUNCTION_NAME_PREFIX + getValidName(eventName, true);
     }
 

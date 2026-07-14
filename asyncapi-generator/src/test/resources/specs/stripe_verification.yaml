@@ -1,0 +1,21 @@
+asyncapi: 3.0.0
+x-ballerina-event-identifier:
+  type: "header"
+  name: "X-Stripe-Event"
+x-ballerina-auth:
+  header: "Stripe-Signature"
+  signature:
+    algorithm: "sha256"
+    encoding: "hex"
+    headerFormat: "t=$timestamp,v1=$signature"
+    input: "$timestamp . '.' . $body"
+info:
+  title: Stripe Webhook Mock
+  version: 1.0.0
+channels:
+  events:
+    subscribe:
+      message:
+        x-ballerina-event-type: stripe_event
+        payload:
+          type: object

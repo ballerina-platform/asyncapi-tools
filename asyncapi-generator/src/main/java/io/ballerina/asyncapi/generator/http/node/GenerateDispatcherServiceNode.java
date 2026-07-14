@@ -94,6 +94,7 @@ public class GenerateDispatcherServiceNode implements Generator {
     private final List<HttpServiceType> serviceTypes;
     private final EventIdentifierConfig identifierConfig;
     private final Optional<WebhookAuthConfig> webhookAuthConfig;
+    private final String serviceName;
 
     /**
      * Creates a generator for the {@code DispatcherService} class.
@@ -101,12 +102,16 @@ public class GenerateDispatcherServiceNode implements Generator {
      * @param serviceTypes      the list of HTTP service type definitions
      * @param identifierConfig  the resolved event identifier type and path
      * @param webhookAuthConfig the optional webhook authentication configuration
+     * @param serviceName       a label identifying the generated package, embedded into the
+     *                          {@code MATCH_LEVEL_1_*}, {@code MATCH_LEVEL_2_*}, and
+     *                          {@code HANDLER_EXECUTED_*} diagnostic trace log messages
      */
     public GenerateDispatcherServiceNode(List<HttpServiceType> serviceTypes, EventIdentifierConfig identifierConfig,
-                                         Optional<WebhookAuthConfig> webhookAuthConfig) {
+                                         Optional<WebhookAuthConfig> webhookAuthConfig, String serviceName) {
         this.serviceTypes = serviceTypes;
         this.identifierConfig = identifierConfig;
         this.webhookAuthConfig = webhookAuthConfig;
+        this.serviceName = serviceName;
     }
 
     @Override
@@ -138,7 +143,7 @@ public class GenerateDispatcherServiceNode implements Generator {
         }
         
         GenerateMatchRemoteFuncNode matchRemoteFuncGen =
-                new GenerateMatchRemoteFuncNode(serviceTypes, identifierConfig, eventIdentifierPath);
+                new GenerateMatchRemoteFuncNode(serviceTypes, identifierConfig, eventIdentifierPath, serviceName);
         members.add(buildFunc(matchRemoteFuncGen));
 
         // Add one chunk function per channel group if chunking was triggered
@@ -146,7 +151,7 @@ public class GenerateDispatcherServiceNode implements Generator {
             members.add(buildFunc(chunkGen));
         }
 
-        members.add(buildFunc(new GenerateExecuteRemoteFuncNode()));
+        members.add(buildFunc(new GenerateExecuteRemoteFuncNode(serviceName)));
 
         return createClassDefinitionNode(
                 null,

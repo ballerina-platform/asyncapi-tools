@@ -1,14 +1,14 @@
-asyncapi: 2.6.0
+asyncapi: 3.0.0
 x-ballerina-event-identifier:
   type: "header"
   name: "X-GitHub-Event"
 x-ballerina-auth:
-  header: X-Hub-Signature-256
+  header: "X-Hub-Signature-256"
   signature:
-    algorithm: sha256
-    encoding: hex
-    headerFormat: sha256=${signature}
-    input: ${body}
+    algorithm: "sha256"
+    encoding: "hex"
+    headerFormat: "sha256=$signature"
+    input: "$body"
 info:
   title: GitHub Test
   version: 1.0.0
@@ -16,6 +16,6 @@ channels:
   events:
     subscribe:
       message:
-        x-ballerina-event-type: github_event
+        x-ballerina-event-type: "github_event"
         payload:
           type: object

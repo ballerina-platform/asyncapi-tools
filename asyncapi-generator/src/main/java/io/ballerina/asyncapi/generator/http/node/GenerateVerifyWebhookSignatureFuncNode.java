@@ -143,7 +143,7 @@ public class GenerateVerifyWebhookSignatureFuncNode implements Generator {
 
             // 1. Translate the DSL input string to Ballerina string interpolation
             String inputDsl = authConfig.input() != null ? authConfig.input() : "$body";
-            String balTemplate = buildPayloadTemplate(inputDsl);
+            String balTemplate = buildPayloadTemplate(escapeBacktickTemplate(inputDsl));
                     
             statements.add(NodeParser.parseStatement(
                     "string payloadToHash = string `" + balTemplate + "`;"));
@@ -188,7 +188,7 @@ public class GenerateVerifyWebhookSignatureFuncNode implements Generator {
                             encodeFunc)));
 
             // 4. Construct the final expected header string using the DSL format
-            String expectedHeaderTemplate = headerFormat
+            String expectedHeaderTemplate = escapeBacktickTemplate(headerFormat)
                     .replace("${signature}", "${computedSignature}")
                     .replace("{signature}", "${computedSignature}");
             expectedHeaderTemplate = replaceBareToken(expectedHeaderTemplate, "$signature", "${computedSignature}");
@@ -423,6 +423,10 @@ public class GenerateVerifyWebhookSignatureFuncNode implements Generator {
 
     private String escapeForBallerinaString(String value) {
         return value.replace("\\", "\\\\").replace("\"", "\\\"");
+    }
+
+    private String escapeBacktickTemplate(String value) {
+        return value.replace("\\", "\\\\").replace("`", "\\`");
     }
 
     private String getSafeMapExtraction(String mapName, String key, String defaultValue) {

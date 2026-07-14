@@ -1,19 +1,19 @@
 /*
- * Copyright (c) 2026, WSO2 LLC. (http://www.wso2.com)
+ *  Copyright (c) 2026, WSO2 LLC. (http://www.wso2.com)
  *
- * WSO2 LLC. licenses this file to you under the Apache License,
- * Version 2.0 (the "License"); you may not use this file except
- * in compliance with the License.
- * You may obtain a copy of the License at
+ *  WSO2 LLC. licenses this file to you under the Apache License,
+ *  Version 2.0 (the "License"); you may not use this file except
+ *  in compliance with the License.
+ *  You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ *    http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
+ *  Unless required by applicable law or agreed to in writing,
+ *  software distributed under the License is distributed on an
+ *  "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ *  KIND, either express or implied.  See the License for the
+ *  specific language governing permissions and limitations
+ *  under the License.
  */
 package io.ballerina.asyncapi.generator.http.node;
 
@@ -30,14 +30,19 @@ import static io.ballerina.compiler.syntax.tree.SyntaxKind.SEMICOLON_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.SLASH_TOKEN;
 
 /**
- * Generates the {@code import ballerina/log;} import declaration node for
- * {@code dispatcher_service.bal}, needed because {@code verifyWebhookSignature} logs a
- * {@code log:printInfo("SIGNATURE_VERIFIED")} confirmation on success.
+ * Generates the {@code import ballerina/log;} import declaration node for {@code dispatcher_service.bal}.
+ *
+ * <p>Required because {@code dispatcher_service.bal} emits diagnostic trace logs
+ * ({@code SIGNATURE_VERIFIED}, {@code DISPATCHER_ENTERED}, {@code MATCH_LEVEL_1_*},
+ * {@code MATCH_LEVEL_2_*}, {@code HANDLER_EXECUTED_*}) at each stage of request processing.
  */
 public class GenerateLogImportNode {
 
     public static final String LOG_MODULE = "log";
     private static final String BALLERINA_ORG = "ballerina";
+
+    private GenerateLogImportNode() {
+    }
 
     /**
      * Generates the {@code import ballerina/log;} import declaration node.
@@ -50,7 +55,7 @@ public class GenerateLogImportNode {
                 createToken(IMPORT_KEYWORD),
                 createImportOrgNameNode(createIdentifierToken(BALLERINA_ORG), createToken(SLASH_TOKEN)),
                 createSeparatedNodeList(createIdentifierToken(LOG_MODULE)),
-                null,
+                null, // no prefix/alias
                 createToken(SEMICOLON_TOKEN));
     }
 }

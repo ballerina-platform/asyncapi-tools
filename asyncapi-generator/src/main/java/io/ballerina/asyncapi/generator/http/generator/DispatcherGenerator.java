@@ -56,6 +56,7 @@ public class DispatcherGenerator {
     private final List<HttpServiceType> serviceTypes;
     private final EventIdentifierConfig identifierConfig;
     private final Optional<WebhookAuthConfig> webhookAuthConfig;
+    private final String serviceName;
 
     /**
      * Creates a generator for the given service types, event identifier configuration, and optional
@@ -64,12 +65,16 @@ public class DispatcherGenerator {
      * @param serviceTypes      the list of HTTP service type definitions
      * @param identifierConfig  the resolved event identifier type and path
      * @param webhookAuthConfig the optional webhook authentication configuration
+     * @param serviceName       a label identifying the generated package, embedded into the
+     *                          {@code MATCH_LEVEL_1_*}, {@code MATCH_LEVEL_2_*}, and
+     *                          {@code HANDLER_EXECUTED_*} diagnostic trace log messages
      */
     public DispatcherGenerator(List<HttpServiceType> serviceTypes, EventIdentifierConfig identifierConfig,
-            Optional<WebhookAuthConfig> webhookAuthConfig) {
+            Optional<WebhookAuthConfig> webhookAuthConfig, String serviceName) {
         this.serviceTypes = serviceTypes;
         this.identifierConfig = identifierConfig;
         this.webhookAuthConfig = webhookAuthConfig;
+        this.serviceName = serviceName;
     }
 
     /**
@@ -93,14 +98,15 @@ public class DispatcherGenerator {
         }
 
         ClassDefinitionNode classNode =
-                new GenerateDispatcherServiceNode(serviceTypes, identifierConfig, webhookAuthConfig).generate();
+                new GenerateDispatcherServiceNode(serviceTypes, identifierConfig, webhookAuthConfig, serviceName)
+                        .generate();
 
         List<ImportDeclarationNode> imports = new ArrayList<>();
         imports.add(GenerateHttpImportNode.generate());
         imports.add(GenerateNativeHandlerImportNode.generate());
+        imports.add(GenerateLogImportNode.generate());
         if (webhookAuthConfig.isPresent()) {
             imports.add(GenerateCryptoImportNode.generate());
-            imports.add(GenerateLogImportNode.generate());
             if (webhookAuthConfig.get().freshnessHeader() != null) {
                 imports.add(GenerateTimeImportNode.generate());
             }
