@@ -53,7 +53,6 @@ import static io.ballerina.compiler.syntax.tree.NodeFactory.createDefaultablePar
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createFunctionBodyBlockNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createFunctionDefinitionNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createFunctionSignatureNode;
-import static io.ballerina.compiler.syntax.tree.NodeFactory.createIncludedRecordParameterNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createMappingConstructorExpressionNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createMetadataNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createNilTypeDescriptorNode;
@@ -64,7 +63,6 @@ import static io.ballerina.compiler.syntax.tree.NodeFactory.createReturnTypeDesc
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createSimpleNameReferenceNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createSpecificFieldNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createUnionTypeDescriptorNode;
-import static io.ballerina.compiler.syntax.tree.SyntaxKind.ASTERISK_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.AT_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.CLASS_KEYWORD;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.CLOSE_BRACE_TOKEN;
@@ -187,13 +185,31 @@ public class GenerateListenerClassNode implements Generator {
     }
 
     private FunctionDefinitionNode buildInitFunc() {
-        // public function init(int|http:Listener listenTo = 8090,
-        //                      *ListenerConfiguration configuration) returns error?
+        // public function init(ListenerConfig listenerConfig = {webhookSecret: DEFAULT_SECRET},
+        //                      @cloud:Expose int|http:Listener listenOn = 8090) returns error?
+        AnnotationNode cloudExposeAnnotation = createAnnotationNode(
+                createToken(AT_TOKEN),
+                createQualifiedNameReferenceNode(
+                        createIdentifierToken(GenerateCloudImportNode.CLOUD_MODULE),
+                        createToken(COLON_TOKEN),
+                        createIdentifierToken("Expose")),
+                null);
+
         FunctionSignatureNode signature = createFunctionSignatureNode(
                 createToken(OPEN_PAREN_TOKEN),
                 createSeparatedNodeList(
                         createDefaultableParameterNode(
                                 createEmptyNodeList(),
+                                createSimpleNameReferenceNode(
+                                        createIdentifierToken(GenerateListenerConfigNode.LISTENER_CONFIG_TYPE)),
+                                createIdentifierToken("listenerConfig"),
+                                createToken(EQUAL_TOKEN),
+                                NodeParser.parseExpression(String.format("{%s: %s}",
+                                        GenerateListenerConfigNode.WEBHOOK_SECRET_FIELD,
+                                        GenerateListenerConfigNode.DEFAULT_SECRET_CONST))),
+                        createToken(COMMA_TOKEN),
+                        createDefaultableParameterNode(
+                                createNodeList(cloudExposeAnnotation),
                                 createUnionTypeDescriptorNode(
                                         createBuiltinSimpleNameReferenceNode(null,
                                                 createIdentifierToken("int")),
@@ -202,16 +218,9 @@ public class GenerateListenerClassNode implements Generator {
                                                 createIdentifierToken(GenerateHttpImportNode.HTTP_MODULE),
                                                 createToken(COLON_TOKEN),
                                                 createIdentifierToken(LISTENER_CLASS_NAME))),
-                                createIdentifierToken("listenTo"),
+                                createIdentifierToken("listenOn"),
                                 createToken(EQUAL_TOKEN),
-                                NodeParser.parseExpression("8090")),
-                        createToken(COMMA_TOKEN),
-                        createIncludedRecordParameterNode(
-                                createEmptyNodeList(),
-                                createToken(ASTERISK_TOKEN),
-                                createSimpleNameReferenceNode(
-                                        createIdentifierToken(GenerateListenerConfigNode.LISTENER_CONFIG_TYPE)),
-                                createIdentifierToken("configuration"))),
+                                NodeParser.parseExpression("8090"))),
                 createToken(CLOSE_PAREN_TOKEN),
                 buildErrorReturnType());
 
@@ -219,25 +228,15 @@ public class GenerateListenerClassNode implements Generator {
         configFieldNames.add(GenerateListenerConfigNode.WEBHOOK_SECRET_FIELD);
         webhookAuthConfig.ifPresent(config -> configFieldNames.addAll(config.configFields()));
 
-        StringBuilder removeCalls = new StringBuilder();
-        for (String fieldName : configFieldNames) {
-            removeCalls.append(String.format(" _ = configMap.remove(\"%s\");", fieldName));
-        }
-
         List<StatementNode> statements = new ArrayList<>();
         statements.add(NodeParser.parseStatement(String.format(
-                "if listenTo is http:Listener { self.%s = listenTo; } else {"
-                        + " json configJson = configuration.toJson();"
-                        + " map<json> configMap = check configJson.cloneWithType();"
-                        + "%s"
-                        + " http:ListenerConfiguration httpConfig = check configMap.cloneWithType();"
-                        + " self.%s = check new (listenTo, httpConfig); }",
+                "if listenOn is http:Listener { self.%s = listenOn; } else {"
+                        + " self.%s = check new (listenOn); }",
                 LISTENER_HTTP_LISTENER_FIELD,
-                removeCalls,
                 LISTENER_HTTP_LISTENER_FIELD)));
         if (webhookAuthConfig.isPresent()) {
             String constructorArgs = configFieldNames.stream()
-                    .map(fieldName -> "configuration." + fieldName)
+                    .map(fieldName -> "listenerConfig." + fieldName)
                     .collect(Collectors.joining(", "));
             statements.add(NodeParser.parseStatement(String.format(
                     "self.%s = new %s(%s);",

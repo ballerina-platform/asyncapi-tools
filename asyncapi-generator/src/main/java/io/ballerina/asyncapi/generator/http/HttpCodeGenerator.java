@@ -51,7 +51,23 @@ import java.util.Optional;
 public class HttpCodeGenerator {
 
     private static final Logger LOG = LogManager.getLogger(HttpCodeGenerator.class);
-    private static final String DATA_TYPES_BAL = "types.bal";
+    private static final String LICENSE_HEADER =
+            "// Copyright (c) " + java.time.Year.now() + ", WSO2 LLC. (http://www.wso2.com) All Rights Reserved.\n"
+            + "//\n"
+            + "// WSO2 LLC. licenses this file to you under the Apache License,\n"
+            + "// Version 2.0 (the \"License\"); you may not use this file except\n"
+            + "// in compliance with the License.\n"
+            + "// You may obtain a copy of the License at\n"
+            + "//\n"
+            + "// http://www.apache.org/licenses/LICENSE-2.0\n"
+            + "//\n"
+            + "// Unless required by applicable law or agreed to in writing,\n"
+            + "// software distributed under the License is distributed on an\n"
+            + "// \"AS IS\" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY\n"
+            + "// KIND, either express or implied.  See the License for the\n"
+            + "// specific language governing permissions and limitations\n"
+            + "// under the License.\n\n";
+    private static final String DATA_TYPES_BAL = "data_types.bal";
     private static final String SERVICE_TYPES_BAL = "service_types.bal";
     private static final String LISTENER_BAL = "listener.bal";
     private static final String DISPATCHER_SERVICE_BAL = "dispatcher_service.bal";
@@ -102,10 +118,12 @@ public class HttpCodeGenerator {
                 outputPath.resolve(DISPATCHER_SERVICE_BAL));
         validateOverwriteDecisions(filePathsToWrite);
 
-        Path writtenDataTypes = writeFile(outputPath.resolve(DATA_TYPES_BAL), dataTypesContent);
-        Path writtenServiceTypes = writeFile(outputPath.resolve(SERVICE_TYPES_BAL), serviceTypesContent);
-        Path writtenListener = writeFile(outputPath.resolve(LISTENER_BAL), listenerContent);
-        Path writtenDispatcher = writeFile(outputPath.resolve(DISPATCHER_SERVICE_BAL), dispatcherContent);
+        Path writtenDataTypes = writeFile(outputPath.resolve(DATA_TYPES_BAL), LICENSE_HEADER + dataTypesContent);
+        Path writtenServiceTypes =
+                writeFile(outputPath.resolve(SERVICE_TYPES_BAL), LICENSE_HEADER + serviceTypesContent);
+        Path writtenListener = writeFile(outputPath.resolve(LISTENER_BAL), LICENSE_HEADER + listenerContent);
+        Path writtenDispatcher =
+                writeFile(outputPath.resolve(DISPATCHER_SERVICE_BAL), LICENSE_HEADER + dispatcherContent);
         LOG.info("Following files were created.\n-- {}\n-- {}\n-- {}\n-- {}",
                 writtenDataTypes.getFileName(), writtenServiceTypes.getFileName(),
                 writtenListener.getFileName(), writtenDispatcher.getFileName());

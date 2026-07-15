@@ -268,13 +268,13 @@ public class WebhookDSLVerificationTest {
                 "Should reject stale requests");
 
         // callbackUrl must be threaded through as a real configurable field, not just referenced.
-        String dataTypesContent = Files.readString(tempOutputDir.resolve("types.bal"));
+        String dataTypesContent = Files.readString(tempOutputDir.resolve("data_types.bal"));
         Assert.assertTrue(
                 dataTypesContent.contains("string callbackUrl"),
-                "ListenerConfiguration should declare a callbackUrl field");
+                "ListenerConfig should declare a callbackUrl field");
         String listenerContent = Files.readString(tempOutputDir.resolve("listener.bal"));
         Assert.assertTrue(
-                listenerContent.contains("configuration.callbackUrl"),
+                listenerContent.contains("listenerConfig.callbackUrl"),
                 "Listener init should pass callbackUrl through to DispatcherService");
 
         // ballerina/time must be imported since freshness is configured.
