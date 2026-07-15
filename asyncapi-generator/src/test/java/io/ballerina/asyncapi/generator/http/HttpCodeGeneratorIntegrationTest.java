@@ -156,7 +156,9 @@ public class HttpCodeGeneratorIntegrationTest {
         try {
             new HttpCodeGenerator(asyncApiSpec).generate(null);
         } finally {
-            for (String file : List.of("data_types.bal", "service_types.bal", "listener.bal", "dispatcher_service.bal")) {
+            List<String> generatedFiles = List.of(
+                    "data_types.bal", "service_types.bal", "listener.bal", "dispatcher_service.bal");
+            for (String file : generatedFiles) {
                 Files.deleteIfExists(Path.of(file));
             }
         }
