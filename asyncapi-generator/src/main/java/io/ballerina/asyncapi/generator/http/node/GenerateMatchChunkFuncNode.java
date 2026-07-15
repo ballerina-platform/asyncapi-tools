@@ -24,13 +24,10 @@ import io.ballerina.asyncapi.generator.http.model.HttpServiceType;
 import io.ballerina.compiler.syntax.tree.FunctionBodyBlockNode;
 import io.ballerina.compiler.syntax.tree.FunctionDefinitionNode;
 import io.ballerina.compiler.syntax.tree.FunctionSignatureNode;
-import io.ballerina.compiler.syntax.tree.MatchClauseNode;
-import io.ballerina.compiler.syntax.tree.MatchStatementNode;
 import io.ballerina.compiler.syntax.tree.ParameterNode;
 import io.ballerina.compiler.syntax.tree.SeparatedNodeList;
 import io.ballerina.compiler.syntax.tree.StatementNode;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import static io.ballerina.asyncapi.generator.http.node.GenerateAddServiceRefFuncNode.buildErrorReturnType;
@@ -43,21 +40,19 @@ import static io.ballerina.compiler.syntax.tree.NodeFactory.createBuiltinSimpleN
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createFunctionBodyBlockNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createFunctionDefinitionNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createFunctionSignatureNode;
-import static io.ballerina.compiler.syntax.tree.NodeFactory.createMatchStatementNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createRequiredParameterNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createSimpleNameReferenceNode;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.CLOSE_BRACE_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.CLOSE_PAREN_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.COMMA_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.FUNCTION_KEYWORD;
-import static io.ballerina.compiler.syntax.tree.SyntaxKind.MATCH_KEYWORD;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.OBJECT_METHOD_DEFINITION;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.OPEN_BRACE_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.OPEN_PAREN_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.PRIVATE_KEYWORD;
 
 /**
- * Generates a private function containing a match statement
+ * Generates a private function containing the match statement(s)
  * for all remote functions in one {@link HttpServiceType} (channel group).
  *
  * <p>The generated function is named
@@ -69,6 +64,7 @@ public class GenerateMatchChunkFuncNode implements Generator {
 
     private final HttpServiceType serviceType;
     private final String eventIdentifierPath;
+    private final String eventTypePath;
     private final boolean isHeader;
     private final String serviceName;
 
@@ -77,17 +73,23 @@ public class GenerateMatchChunkFuncNode implements Generator {
      *
      * @param serviceType         the service type (channel group) whose
      *                            remote functions go into this function
-     * @param eventIdentifierPath the expression matched against
-     * @param isHeader            whether the identifier type is "header"
+     * @param eventIdentifierPath the expression matched against for events with an enumerable
+     *                            action field
+     * @param eventTypePath       the expression matched against for events whose action field has
+     *                            no enumerable set of values (composite identifier type only), or
+     *                            {@code null} for "header" and "body" identifier types
+     * @param isHeader            whether the identifier type is "header" or "composite" (i.e. not "body")
      * @param serviceName         a label identifying the generated package, embedded into the
      *                            {@code MATCH_LEVEL_2_*} diagnostic trace log message
      */
     public GenerateMatchChunkFuncNode(HttpServiceType serviceType,
                                       String eventIdentifierPath,
+                                      String eventTypePath,
                                       boolean isHeader,
                                       String serviceName) {
         this.serviceType = serviceType;
         this.eventIdentifierPath = eventIdentifierPath;
+        this.eventTypePath = eventTypePath;
         this.isHeader = isHeader;
         this.serviceName = serviceName;
     }
@@ -107,7 +109,30 @@ public class GenerateMatchChunkFuncNode implements Generator {
     @Override
     public FunctionDefinitionNode generate() throws GeneratorException {
         SeparatedNodeList<ParameterNode> params;
-        if (isHeader) {
+        if (isHeader && eventTypePath != null) {
+            // Composite identifier type: the function may need to match some remote functions
+            // against the composite identifier and others against the bare event type, so both
+            // variables must be in scope.
+            params = createSeparatedNodeList(
+                createRequiredParameterNode(
+                    createEmptyNodeList(),
+                    createSimpleNameReferenceNode(createIdentifierToken(
+                        DataTypesGenerator.GENERIC_DATA_TYPE)),
+                    createIdentifierToken(
+                        GenerateDispatcherServiceNode.CLONE_WITH_TYPE_VAR_NAME)),
+                createToken(COMMA_TOKEN),
+                createRequiredParameterNode(
+                    createEmptyNodeList(),
+                    createBuiltinSimpleNameReferenceNode(
+                        null, createIdentifierToken("string")),
+                    createIdentifierToken(eventIdentifierPath)),
+                createToken(COMMA_TOKEN),
+                createRequiredParameterNode(
+                    createEmptyNodeList(),
+                    createBuiltinSimpleNameReferenceNode(
+                        null, createIdentifierToken("string")),
+                    createIdentifierToken(eventTypePath)));
+        } else if (isHeader) {
             params = createSeparatedNodeList(
                 createRequiredParameterNode(
                     createEmptyNodeList(),
@@ -135,24 +160,16 @@ public class GenerateMatchChunkFuncNode implements Generator {
             createToken(OPEN_PAREN_TOKEN), params,
             createToken(CLOSE_PAREN_TOKEN), buildErrorReturnType());
 
-        // Build match clauses for all remote functions in this service type
-        List<MatchClauseNode> clauses = new ArrayList<>();
+        // Build the match statement(s) for all remote functions in this service type -- one
+        // statement per distinct match subject (composite identifier vs. bare event type).
         GenerateMatchStatementNode matchGen =
             new GenerateMatchStatementNode(
-                List.of(serviceType), eventIdentifierPath, serviceName);
-        matchGen.generate().matchClauses().forEach(clauses::add);
-
-        MatchStatementNode matchStatement = createMatchStatementNode(
-            createToken(MATCH_KEYWORD),
-            createSimpleNameReferenceNode(
-                createIdentifierToken(eventIdentifierPath)),
-            createToken(OPEN_BRACE_TOKEN),
-            createNodeList(clauses),
-            createToken(CLOSE_BRACE_TOKEN), null);
+                List.of(serviceType), eventIdentifierPath, eventTypePath, serviceName);
+        List<StatementNode> statements = matchGen.generate();
 
         FunctionBodyBlockNode body = createFunctionBodyBlockNode(
             createToken(OPEN_BRACE_TOKEN), null,
-            createNodeList((StatementNode) matchStatement),
+            createNodeList(statements),
             createToken(CLOSE_BRACE_TOKEN), null);
 
         return createFunctionDefinitionNode(

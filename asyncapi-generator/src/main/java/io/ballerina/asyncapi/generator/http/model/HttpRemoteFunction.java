@@ -21,8 +21,27 @@ package io.ballerina.asyncapi.generator.http.model;
  * Represents a remote function to be generated in a Ballerina service type.
  * Each remote function corresponds to a single event type handled by an HTTP listener.
  *
- * @param functionName the Ballerina-safe function name derived from the event name
- * @param eventType    the schema type reference for the event payload
+ * @param functionName     the Ballerina-safe function name derived from the event name
+ * @param eventType        the schema type reference for the event payload
+ * @param matchOnEventType {@code true} if this event's payload has no enumerable action field
+ *                         (i.e. its {@code action} property, if any, declares no fixed {@code enum}
+ *                         of possible values), so the generated match clause must compare against
+ *                         the bare event type instead of the composite {@code eventType_action}
+ *                         identifier -- there is no fixed action value to safely bake into the
+ *                         composite literal at generation time. Always {@code false} for
+ *                         {@code "header"} and {@code "body"} identifier types, where no composite
+ *                         identifier is ever built.
  */
-public record HttpRemoteFunction(String functionName, String eventType) {
+public record HttpRemoteFunction(String functionName, String eventType, boolean matchOnEventType) {
+
+    /**
+     * Creates a remote function that matches on the composite identifier (the pre-existing
+     * behavior), for callers that don't need to distinguish enumerable from free-form events.
+     *
+     * @param functionName the Ballerina-safe function name derived from the event name
+     * @param eventType    the schema type reference for the event payload
+     */
+    public HttpRemoteFunction(String functionName, String eventType) {
+        this(functionName, eventType, false);
+    }
 }

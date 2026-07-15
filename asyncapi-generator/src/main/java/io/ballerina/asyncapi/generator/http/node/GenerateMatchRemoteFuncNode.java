@@ -169,7 +169,8 @@ public class GenerateMatchRemoteFuncNode implements Generator {
         List<StatementNode> statements = new ArrayList<>();
         for (HttpServiceType serviceType : serviceTypes) {
             GenerateMatchChunkFuncNode chunkGen =
-                    new GenerateMatchChunkFuncNode(serviceType, eventIdentifierPath, !isBody, serviceName);
+                    new GenerateMatchChunkFuncNode(serviceType, eventIdentifierPath,
+                            isComposite ? "eventType" : null, !isBody, serviceName);
             chunkGenerators.add(chunkGen);
 
             SeparatedNodeList<FunctionArgumentNode> chunkArgs;
@@ -180,7 +181,10 @@ public class GenerateMatchRemoteFuncNode implements Generator {
                                         GenerateDispatcherServiceNode.CLONE_WITH_TYPE_VAR_NAME))),
                         createToken(COMMA_TOKEN),
                         createPositionalArgumentNode(
-                                createSimpleNameReferenceNode(createIdentifierToken("eventIdentifier"))));
+                                createSimpleNameReferenceNode(createIdentifierToken("eventIdentifier"))),
+                        createToken(COMMA_TOKEN),
+                        createPositionalArgumentNode(
+                                createSimpleNameReferenceNode(createIdentifierToken("eventType"))));
             } else if (!isBody) {
                 chunkArgs = createSeparatedNodeList(
                         createPositionalArgumentNode(

@@ -98,3 +98,5 @@ target
 /asyncapi-generator/bin
 /native.handler/java-wrapper/bin
 **/build/
+testing-artifacts/*/harness/target/
+testing-artifacts/*/harness/*.log
