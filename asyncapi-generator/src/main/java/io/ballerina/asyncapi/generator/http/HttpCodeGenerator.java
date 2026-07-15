@@ -20,14 +20,17 @@ package io.ballerina.asyncapi.generator.http;
 import io.ballerina.asyncapi.core.api.AsyncApiSpec;
 import io.ballerina.asyncapi.core.model.component.AsyncApiSchema;
 import io.ballerina.asyncapi.generator.GeneratorException;
+import io.ballerina.asyncapi.generator.http.extractor.DispatchTestCaseExtractor;
 import io.ballerina.asyncapi.generator.http.extractor.EventIdentifierExtractor;
 import io.ballerina.asyncapi.generator.http.extractor.SchemaExtractor;
 import io.ballerina.asyncapi.generator.http.extractor.ServiceTypeExtractor;
 import io.ballerina.asyncapi.generator.http.extractor.WebhookAuthExtractor;
 import io.ballerina.asyncapi.generator.http.generator.DataTypesGenerator;
+import io.ballerina.asyncapi.generator.http.generator.DispatchTestGenerator;
 import io.ballerina.asyncapi.generator.http.generator.DispatcherGenerator;
 import io.ballerina.asyncapi.generator.http.generator.ListenerGenerator;
 import io.ballerina.asyncapi.generator.http.generator.ServiceTypesGenerator;
+import io.ballerina.asyncapi.generator.http.model.DispatchTestCase;
 import io.ballerina.asyncapi.generator.http.model.EventIdentifierConfig;
 import io.ballerina.asyncapi.generator.http.model.HttpServiceType;
 import io.ballerina.asyncapi.generator.http.model.WebhookAuthConfig;
@@ -71,6 +74,7 @@ public class HttpCodeGenerator {
     private static final String SERVICE_TYPES_BAL = "service_types.bal";
     private static final String LISTENER_BAL = "listener.bal";
     private static final String DISPATCHER_SERVICE_BAL = "dispatcher_service.bal";
+    private static final String DISPATCH_TEST_BAL = "tests/dispatch_test.bal";
 
     private final AsyncApiSpec asyncApiSpec;
 
@@ -127,6 +131,17 @@ public class HttpCodeGenerator {
         LOG.info("Following files were created.\n-- {}\n-- {}\n-- {}\n-- {}",
                 writtenDataTypes.getFileName(), writtenServiceTypes.getFileName(),
                 writtenListener.getFileName(), writtenDispatcher.getFileName());
+
+        if (webhookAuthConfig.isPresent()) {
+            List<DispatchTestCase> testCases = new DispatchTestCaseExtractor(asyncApiSpec).extract();
+            if (!testCases.isEmpty()) {
+                String dispatchTestContent =
+                        new DispatchTestGenerator(testCases, webhookAuthConfig.get()).generate();
+                Path writtenDispatchTest = writeFile(
+                        outputPath.resolve(DISPATCH_TEST_BAL), LICENSE_HEADER + dispatchTestContent);
+                LOG.info("Also generated -- {}", writtenDispatchTest.getFileName());
+            }
+        }
     }
 
     private void validateWebhookDsl(Optional<WebhookAuthConfig> webhookAuthConfig) throws GeneratorException {
