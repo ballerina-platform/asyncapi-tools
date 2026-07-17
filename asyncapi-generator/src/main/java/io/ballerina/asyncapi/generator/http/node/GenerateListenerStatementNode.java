@@ -24,6 +24,7 @@ import io.ballerina.compiler.syntax.tree.ExpressionNode;
 import io.ballerina.compiler.syntax.tree.IfElseStatementNode;
 import io.ballerina.compiler.syntax.tree.Node;
 import io.ballerina.compiler.syntax.tree.NodeFactory;
+import io.ballerina.compiler.syntax.tree.NodeParser;
 import io.ballerina.compiler.syntax.tree.ReturnStatementNode;
 import io.ballerina.compiler.syntax.tree.StatementNode;
 import io.ballerina.compiler.syntax.tree.SyntaxKind;
@@ -59,9 +60,6 @@ public class GenerateListenerStatementNode implements Generator {
             throw new GeneratorException(
                     "No service types found, probably there are no channels defined in the async api spec");
         }
-        if (serviceTypeNames.size() == 1) {
-            return buildReturnStatement(serviceTypeNames.get(0));
-        }
         return buildIfElseChain(serviceTypeNames);
     }
 
@@ -93,15 +91,29 @@ public class GenerateListenerStatementNode implements Generator {
                 createToken(SyntaxKind.SEMICOLON_TOKEN));
     }
 
+    /**
+     * Builds the {@code else} branch: either a nested {@code if is <NextType>} check for the
+     * remaining candidates, or -- once every known type has been explicitly tested and none
+     * matched -- a {@code panic}, so an unrecognized {@code serviceRef} fails loudly instead of
+     * being silently mislabeled as whichever type happened to be last in the list.
+     *
+     * @param list the service types not yet tested by an enclosing {@code if}
+     */
     private Node buildElseNode(List<String> list) {
-        if (list.size() == 2) {
+        List<String> remaining = list.subList(1, list.size());
+        if (remaining.isEmpty()) {
             return NodeFactory.createElseBlockNode(createToken(SyntaxKind.ELSE_KEYWORD),
                     NodeFactory.createBlockStatementNode(
                             createToken(SyntaxKind.OPEN_BRACE_TOKEN),
-                            createNodeList(buildReturnStatement(list.get(1))),
+                            createNodeList(buildPanicStatement()),
                             createToken(SyntaxKind.CLOSE_BRACE_TOKEN)));
         }
         return NodeFactory.createElseBlockNode(createToken(SyntaxKind.ELSE_KEYWORD),
-                buildIfElseChain(list.subList(1, list.size())));
+                buildIfElseChain(remaining));
+    }
+
+    private StatementNode buildPanicStatement() {
+        return NodeParser.parseStatement(
+                "panic error(\"Unrecognized service type attached to the listener\");");
     }
 }

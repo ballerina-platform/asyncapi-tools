@@ -145,9 +145,13 @@ public class GenerateVerifyWebhookSignatureFuncNode implements Generator {
             String algo = authConfig.algorithm().toLowerCase();
             String cryptoFunc = switch (algo) {
                 case "sha1" -> "hmacSha1";
+                case "sha256" -> "hmacSha256";
                 case "sha384" -> "hmacSha384";
                 case "sha512" -> "hmacSha512";
-                default -> "hmacSha256";
+                default -> throw new GeneratorException(String.format(
+                        "Unsupported x-ballerina-auth signature algorithm: '%s'. Supported values: "
+                                + "sha1, sha256, sha384, sha512.",
+                        authConfig.algorithm()));
             };
 
             statements.add(NodeParser.parseStatement(
@@ -157,8 +161,14 @@ public class GenerateVerifyWebhookSignatureFuncNode implements Generator {
 
             // 3. Apply the requested encoding (hex or base64)
             String encoding = authConfig.encoding() != null ? authConfig.encoding().toLowerCase() : "hex";
-            String encodeFunc = encoding.equals("base64") ? "toBase64()" : "toBase16()";
-            
+            String encodeFunc = switch (encoding) {
+                case "hex" -> "toBase16()";
+                case "base64" -> "toBase64()";
+                default -> throw new GeneratorException(String.format(
+                        "Unsupported x-ballerina-auth signature encoding: '%s'. Supported values: hex, base64.",
+                        authConfig.encoding()));
+            };
+
             // Note: Shopify/QuickBooks use base64, Slack/GitHub use hex.
             statements.add(NodeParser.parseStatement(
                     String.format(
@@ -168,9 +178,9 @@ public class GenerateVerifyWebhookSignatureFuncNode implements Generator {
             // 4. Construct the final expected header string using the DSL format
             String expectedHeaderTemplate = escapeBacktickTemplate(headerFormat)
                     .replace("${signature}", "${computedSignature}")
-                    .replace("{signature}", "${computedSignature}")
-                    .replace("$signature", "${computedSignature}");
-                expectedHeaderTemplate = normalizeCustomVariables(expectedHeaderTemplate);
+                    .replace("{signature}", "${computedSignature}");
+            expectedHeaderTemplate = replaceBareToken(expectedHeaderTemplate, "$signature", "${computedSignature}");
+            expectedHeaderTemplate = normalizeCustomVariables(expectedHeaderTemplate);
             
             statements.add(NodeParser.parseStatement(
                     "string expectedHeader = string `" + expectedHeaderTemplate + "`;"));
@@ -221,10 +231,10 @@ public class GenerateVerifyWebhookSignatureFuncNode implements Generator {
             return buildTemplateFromDotExpression(normalizedDsl);
         }
 
-        String template = normalizedDsl
-                .replace("$body", "${check request.getTextPayload()}")
-                .replace("$uri", "${request.rawPath}")
-                .replace("$method", "${request.method}");
+        String template = normalizedDsl;
+        template = replaceBareToken(template, "$body", "${check request.getTextPayload()}");
+        template = replaceBareToken(template, "$uri", "${request.rawPath}");
+        template = replaceBareToken(template, "$method", "${request.method}");
 
         Matcher headerMatcher = HEADER_FUNC_PATTERN.matcher(template);
         StringBuffer headerReplaced = new StringBuffer();
@@ -373,6 +383,22 @@ public class GenerateVerifyWebhookSignatureFuncNode implements Generator {
 
     private boolean hasAlgorithmConfigured(String algorithm) {
         return algorithm != null && !algorithm.isBlank();
+    }
+
+    /**
+     * Replaces a bare reserved token (e.g. {@code "$body"}) with the given replacement, but only
+     * when the token is not immediately followed by another identifier character -- so a DSL
+     * variable that merely starts with a reserved name (e.g. {@code $bodyHash}) is left untouched
+     * instead of having its {@code $body} prefix corrupted by a plain substring replace.
+     *
+     * @param text        the text to search within
+     * @param token       the bare token to replace, including its leading {@code $}
+     * @param replacement the replacement text
+     * @return {@code text} with every standalone occurrence of {@code token} replaced
+     */
+    private String replaceBareToken(String text, String token, String replacement) {
+        Pattern tokenPattern = Pattern.compile(Pattern.quote(token) + "(?![A-Za-z0-9_])");
+        return tokenPattern.matcher(text).replaceAll(Matcher.quoteReplacement(replacement));
     }
 
     private String escapeForBallerinaString(String value) {
