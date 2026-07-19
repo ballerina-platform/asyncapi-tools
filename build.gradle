@@ -59,13 +59,6 @@ allprojects {
 }
 
 subprojects {
-    plugins.withId('java') {
-        java {
-            toolchain {
-                languageVersion = JavaLanguageVersion.of(25)
-            }
-        }
-    }
     // Only apply Java plugin to projects that need it (exclude asyncapi-tool which uses Ballerina plugin)
     if (project.name != 'asyncapi-tool') {
         apply plugin: 'java'
