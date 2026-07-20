@@ -98,12 +98,5 @@ target
 /asyncapi-generator/bin
 /native.handler/java-wrapper/bin
 **/build/
-hubspot_test/
-github_test/
-gitlab_test/
-shopify_test/
-slack_test/
-stripe_test/
-verify-all.ps1
 testing-artifacts/*/harness/target/
 testing-artifacts/*/harness/*.log

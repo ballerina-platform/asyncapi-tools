@@ -153,7 +153,7 @@ x-ballerina-auth:
     algorithm: "sha256"
     encoding: "hex"
     headerFormat: "v0=${signature}"
-    input: "v0:$header('X-Slack-Request-Timestamp'):$body"
+    input: "'v0' . ':' . $header('X-Slack-Request-Timestamp') . ':' . $body"
 ```
 
 ### GitLab-style static token fallback

@@ -158,18 +158,26 @@ public class GenerateVerifyWebhookSignatureFuncNode implements Generator {
             if (isPlainHash) {
                 cryptoFunc = switch (algo) {
                     case "sha1" -> "hashSha1";
+                    case "sha256" -> "hashSha256";
                     case "sha384" -> "hashSha384";
                     case "sha512" -> "hashSha512";
-                    default -> "hashSha256";
+                    default -> throw new GeneratorException(String.format(
+                            "Unsupported x-ballerina-auth signature algorithm: '%s'. Supported values: "
+                                    + "sha1, sha256, sha384, sha512.",
+                            authConfig.algorithm()));
                 };
                 computeStatement = String.format(
                         "byte[] computedDigest = crypto:%s(payloadToHash.toBytes());", cryptoFunc);
             } else {
                 cryptoFunc = switch (algo) {
                     case "sha1" -> "hmacSha1";
+                    case "sha256" -> "hmacSha256";
                     case "sha384" -> "hmacSha384";
                     case "sha512" -> "hmacSha512";
-                    default -> "hmacSha256";
+                    default -> throw new GeneratorException(String.format(
+                            "Unsupported x-ballerina-auth signature algorithm: '%s'. Supported values: "
+                                    + "sha1, sha256, sha384, sha512.",
+                            authConfig.algorithm()));
                 };
                 computeStatement = String.format(
                         "byte[] computedDigest = check crypto:%s(payloadToHash.toBytes(), webhookSecret.toBytes());",
@@ -179,7 +187,13 @@ public class GenerateVerifyWebhookSignatureFuncNode implements Generator {
 
             // 3. Apply the requested encoding (hex or base64)
             String encoding = authConfig.encoding() != null ? authConfig.encoding().toLowerCase() : "hex";
-            String encodeFunc = encoding.equals("base64") ? "toBase64()" : "toBase16()";
+            String encodeFunc = switch (encoding) {
+                case "hex" -> "toBase16()";
+                case "base64" -> "toBase64()";
+                default -> throw new GeneratorException(String.format(
+                        "Unsupported x-ballerina-auth signature encoding: '%s'. Supported values: hex, base64.",
+                        authConfig.encoding()));
+            };
 
             // Note: Shopify/QuickBooks use base64, Slack/GitHub use hex.
             statements.add(NodeParser.parseStatement(
