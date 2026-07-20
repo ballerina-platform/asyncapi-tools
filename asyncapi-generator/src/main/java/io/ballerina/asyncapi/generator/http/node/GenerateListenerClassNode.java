@@ -30,8 +30,6 @@ import io.ballerina.compiler.syntax.tree.MetadataNode;
 import io.ballerina.compiler.syntax.tree.Node;
 import io.ballerina.compiler.syntax.tree.NodeParser;
 import io.ballerina.compiler.syntax.tree.ObjectFieldNode;
-import io.ballerina.compiler.syntax.tree.OptionalTypeDescriptorNode;
-import io.ballerina.compiler.syntax.tree.ReturnTypeDescriptorNode;
 import io.ballerina.compiler.syntax.tree.StatementNode;
 
 import java.util.ArrayList;
@@ -48,7 +46,6 @@ import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createNodeLi
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createSeparatedNodeList;
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createToken;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createAnnotationNode;
-import static io.ballerina.compiler.syntax.tree.NodeFactory.createMemberTypeDescriptorNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createBasicLiteralNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createBuiltinSimpleNameReferenceNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createClassDefinitionNode;
@@ -56,19 +53,16 @@ import static io.ballerina.compiler.syntax.tree.NodeFactory.createDefaultablePar
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createFunctionBodyBlockNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createFunctionDefinitionNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createFunctionSignatureNode;
-import static io.ballerina.compiler.syntax.tree.NodeFactory.createIncludedRecordParameterNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createMappingConstructorExpressionNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createMetadataNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createNilTypeDescriptorNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createObjectFieldNode;
-import static io.ballerina.compiler.syntax.tree.NodeFactory.createOptionalTypeDescriptorNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createQualifiedNameReferenceNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createRequiredParameterNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createReturnTypeDescriptorNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createSimpleNameReferenceNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createSpecificFieldNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createUnionTypeDescriptorNode;
-import static io.ballerina.compiler.syntax.tree.SyntaxKind.ASTERISK_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.AT_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.CLASS_KEYWORD;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.CLOSE_BRACE_TOKEN;
@@ -76,7 +70,6 @@ import static io.ballerina.compiler.syntax.tree.SyntaxKind.CLOSE_PAREN_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.COLON_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.COMMA_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.EQUAL_TOKEN;
-import static io.ballerina.compiler.syntax.tree.SyntaxKind.ERROR_KEYWORD;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.FUNCTION_KEYWORD;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.ISOLATED_KEYWORD;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.OBJECT_METHOD_DEFINITION;
@@ -85,7 +78,6 @@ import static io.ballerina.compiler.syntax.tree.SyntaxKind.OPEN_PAREN_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.PIPE_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.PRIVATE_KEYWORD;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.PUBLIC_KEYWORD;
-import static io.ballerina.compiler.syntax.tree.SyntaxKind.QUESTION_MARK_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.RETURNS_KEYWORD;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.SEMICOLON_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.STRING_LITERAL;
@@ -193,13 +185,31 @@ public class GenerateListenerClassNode implements Generator {
     }
 
     private FunctionDefinitionNode buildInitFunc() {
-        // public function init(int|http:Listener listenTo = 8090,
-        //                      *ListenerConfiguration configuration) returns error?
+        // public function init(ListenerConfig listenerConfig = {webhookSecret: DEFAULT_SECRET},
+        //                      @cloud:Expose int|http:Listener listenOn = 8090) returns error?
+        AnnotationNode cloudExposeAnnotation = createAnnotationNode(
+                createToken(AT_TOKEN),
+                createQualifiedNameReferenceNode(
+                        createIdentifierToken(GenerateCloudImportNode.CLOUD_MODULE),
+                        createToken(COLON_TOKEN),
+                        createIdentifierToken("Expose")),
+                null);
+
         FunctionSignatureNode signature = createFunctionSignatureNode(
                 createToken(OPEN_PAREN_TOKEN),
                 createSeparatedNodeList(
                         createDefaultableParameterNode(
                                 createEmptyNodeList(),
+                                createSimpleNameReferenceNode(
+                                        createIdentifierToken(GenerateListenerConfigNode.LISTENER_CONFIG_TYPE)),
+                                createIdentifierToken("listenerConfig"),
+                                createToken(EQUAL_TOKEN),
+                                NodeParser.parseExpression(String.format("{%s: %s}",
+                                        GenerateListenerConfigNode.WEBHOOK_SECRET_FIELD,
+                                        GenerateListenerConfigNode.DEFAULT_SECRET_CONST))),
+                        createToken(COMMA_TOKEN),
+                        createDefaultableParameterNode(
+                                createNodeList(cloudExposeAnnotation),
                                 createUnionTypeDescriptorNode(
                                         createBuiltinSimpleNameReferenceNode(null,
                                                 createIdentifierToken("int")),
@@ -208,36 +218,31 @@ public class GenerateListenerClassNode implements Generator {
                                                 createIdentifierToken(GenerateHttpImportNode.HTTP_MODULE),
                                                 createToken(COLON_TOKEN),
                                                 createIdentifierToken(LISTENER_CLASS_NAME))),
-                                createIdentifierToken("listenTo"),
+                                createIdentifierToken("listenOn"),
                                 createToken(EQUAL_TOKEN),
-                                NodeParser.parseExpression("8090")),
-                        createToken(COMMA_TOKEN),
-                        createIncludedRecordParameterNode(
-                                createEmptyNodeList(),
-                                createToken(ASTERISK_TOKEN),
-                                createSimpleNameReferenceNode(
-                                        createIdentifierToken(GenerateListenerConfigNode.LISTENER_CONFIG_TYPE)),
-                                createIdentifierToken("configuration"))),
+                                NodeParser.parseExpression("8090"))),
                 createToken(CLOSE_PAREN_TOKEN),
                 buildErrorReturnType());
 
+        List<String> configFieldNames = new ArrayList<>();
+        configFieldNames.add(GenerateListenerConfigNode.WEBHOOK_SECRET_FIELD);
+        webhookAuthConfig.ifPresent(config -> configFieldNames.addAll(config.configFields()));
+
         List<StatementNode> statements = new ArrayList<>();
         statements.add(NodeParser.parseStatement(String.format(
-                "if listenTo is http:Listener { self.%s = listenTo; } else {"
-                        + " json configJson = configuration.toJson();"
-                        + " map<json> configMap = check configJson.cloneWithType();"
-                        + " _ = configMap.remove(\"%s\");"
-                        + " http:ListenerConfiguration httpConfig = check configMap.cloneWithType();"
-                        + " self.%s = check new (listenTo, httpConfig); }",
+                "if listenOn is http:Listener { self.%s = listenOn; } else {"
+                        + " self.%s = check new (listenOn); }",
                 LISTENER_HTTP_LISTENER_FIELD,
-                GenerateListenerConfigNode.WEBHOOK_SECRET_FIELD,
                 LISTENER_HTTP_LISTENER_FIELD)));
         if (webhookAuthConfig.isPresent()) {
+            String constructorArgs = configFieldNames.stream()
+                    .map(fieldName -> "listenerConfig." + fieldName)
+                    .collect(Collectors.joining(", "));
             statements.add(NodeParser.parseStatement(String.format(
-                    "self.%s = new %s(configuration.%s);",
+                    "self.%s = new %s(%s);",
                     LISTENER_DISPATCHER_SERVICE_FIELD,
                     GenerateDispatcherServiceNode.DISPATCHER_SERVICE_CLASS_NAME,
-                    GenerateListenerConfigNode.WEBHOOK_SECRET_FIELD)));
+                    constructorArgs)));
         } else {
             statements.add(NodeParser.parseStatement(String.format(
                     "self.%s = new %s();",
@@ -255,8 +260,7 @@ public class GenerateListenerClassNode implements Generator {
     }
 
     private FunctionDefinitionNode buildAttachFunc() {
-        // public isolated function attach(GenericServiceType serviceRef, () attachPoint)
-        //         returns @tainted error?
+        // public isolated function attach(GenericServiceType serviceRef, () attachPoint) returns error?
         FunctionSignatureNode signature = createFunctionSignatureNode(
                 createToken(OPEN_PAREN_TOKEN),
                 createSeparatedNodeList(
@@ -272,7 +276,7 @@ public class GenerateListenerClassNode implements Generator {
                                         createToken(OPEN_PAREN_TOKEN), createToken(CLOSE_PAREN_TOKEN)),
                                 createIdentifierToken("attachPoint"))),
                 createToken(CLOSE_PAREN_TOKEN),
-                buildTaintedErrorReturnType());
+                buildErrorReturnType());
 
         List<StatementNode> statements = new ArrayList<>();
         statements.add(NodeParser.parseStatement(String.format(
@@ -350,12 +354,12 @@ public class GenerateListenerClassNode implements Generator {
     }
 
     private FunctionDefinitionNode buildGracefulStopFunc() {
-        // public isolated function gracefulStop() returns @tainted error?
+        // public isolated function gracefulStop() returns error?
         FunctionSignatureNode signature = createFunctionSignatureNode(
                 createToken(OPEN_PAREN_TOKEN),
                 createSeparatedNodeList(),
                 createToken(CLOSE_PAREN_TOKEN),
-                buildTaintedErrorReturnType());
+                buildErrorReturnType());
 
         List<StatementNode> statements = new ArrayList<>();
         statements.add(NodeParser.parseStatement(String.format(
@@ -421,20 +425,6 @@ public class GenerateListenerClassNode implements Generator {
                 createIdentifierToken(LISTENER_GET_SERVICE_TYPE_FUNC),
                 createEmptyNodeList(),
                 signature, buildBody(List.of(body)));
-    }
-
-    private ReturnTypeDescriptorNode buildTaintedErrorReturnType() {
-        OptionalTypeDescriptorNode optionalError = createOptionalTypeDescriptorNode(
-                createToken(ERROR_KEYWORD), createToken(QUESTION_MARK_TOKEN));
-        AnnotationNode taintedAnnotation = createAnnotationNode(
-                createToken(AT_TOKEN),
-                createSimpleNameReferenceNode(createIdentifierToken("tainted")),
-                null);
-        return createReturnTypeDescriptorNode(
-                createToken(RETURNS_KEYWORD),
-                createEmptyNodeList(),
-                createMemberTypeDescriptorNode(
-                        createNodeList(taintedAnnotation), optionalError));
     }
 
     private FunctionBodyBlockNode buildBody(List<StatementNode> statements) {

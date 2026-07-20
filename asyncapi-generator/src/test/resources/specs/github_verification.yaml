@@ -1,4 +1,4 @@
-﻿asyncapi: 3.0.0
+asyncapi: 3.0.0
 x-ballerina-event-identifier:
   type: "header"
   name: "X-GitHub-Event"

@@ -215,6 +215,335 @@ class BallerinaToAsyncApiGeneratorTest {
             + "version = \"0.1.0\"\n"
             + "distribution = \"2201.13.0\"\n";
 
+    // Pre-resolved dependency graph for the gradle-assembled test toolchain (see
+    // asyncapi-generator/build.gradle's ballerinaStdLibs configuration / "ballerina.home" system
+    // property). BallerinaToAsyncApiGenerator resolves with BuildOptions.setOffline(true), which
+    // requires a lock file to determine the exact transitive graph up front — without one, the
+    // offline resolver cannot walk ballerina/websocket's transitive closure (ballerina/log and
+    // others) from scratch and fails with "cannot resolve module 'ballerina/log'" even though the
+    // package is physically present in the local repo. Versions below match exactly what's on disk
+    // under build/jballerina-tools-2201.13.0/repo/bala/ballerina after copyStdlibs runs.
+    private static final String DEPENDENCIES_TOML = """
+            [ballerina]
+            dependencies-toml-version = "2"
+            distribution-version = "2201.13.0"
+
+            [[package]]
+            org = "ballerina"
+            name = "auth"
+            version = "2.14.0"
+            dependencies = [
+            \t{org = "ballerina", name = "crypto"},
+            \t{org = "ballerina", name = "jballerina.java"},
+            \t{org = "ballerina", name = "lang.array"},
+            \t{org = "ballerina", name = "lang.string"},
+            \t{org = "ballerina", name = "log"}
+            ]
+
+            [[package]]
+            org = "ballerina"
+            name = "cache"
+            version = "3.10.0"
+            dependencies = [
+            \t{org = "ballerina", name = "constraint"},
+            \t{org = "ballerina", name = "jballerina.java"},
+            \t{org = "ballerina", name = "task"},
+            \t{org = "ballerina", name = "time"}
+            ]
+
+            [[package]]
+            org = "ballerina"
+            name = "constraint"
+            version = "1.7.0"
+            dependencies = [
+            \t{org = "ballerina", name = "jballerina.java"}
+            ]
+
+            [[package]]
+            org = "ballerina"
+            name = "crypto"
+            version = "2.9.2"
+            dependencies = [
+            \t{org = "ballerina", name = "jballerina.java"},
+            \t{org = "ballerina", name = "time"}
+            ]
+
+            [[package]]
+            org = "ballerina"
+            name = "data.jsondata"
+            version = "1.1.3"
+            dependencies = [
+            \t{org = "ballerina", name = "jballerina.java"},
+            \t{org = "ballerina", name = "lang.object"}
+            ]
+
+            [[package]]
+            org = "ballerina"
+            name = "file"
+            version = "1.12.0"
+            dependencies = [
+            \t{org = "ballerina", name = "io"},
+            \t{org = "ballerina", name = "jballerina.java"},
+            \t{org = "ballerina", name = "os"},
+            \t{org = "ballerina", name = "time"}
+            ]
+
+            [[package]]
+            org = "ballerina"
+            name = "http"
+            version = "2.15.0"
+            dependencies = [
+            \t{org = "ballerina", name = "auth"},
+            \t{org = "ballerina", name = "cache"},
+            \t{org = "ballerina", name = "constraint"},
+            \t{org = "ballerina", name = "crypto"},
+            \t{org = "ballerina", name = "data.jsondata"},
+            \t{org = "ballerina", name = "file"},
+            \t{org = "ballerina", name = "io"},
+            \t{org = "ballerina", name = "jballerina.java"},
+            \t{org = "ballerina", name = "jwt"},
+            \t{org = "ballerina", name = "lang.array"},
+            \t{org = "ballerina", name = "lang.decimal"},
+            \t{org = "ballerina", name = "lang.int"},
+            \t{org = "ballerina", name = "lang.regexp"},
+            \t{org = "ballerina", name = "lang.runtime"},
+            \t{org = "ballerina", name = "lang.string"},
+            \t{org = "ballerina", name = "lang.value"},
+            \t{org = "ballerina", name = "log"},
+            \t{org = "ballerina", name = "mime"},
+            \t{org = "ballerina", name = "oauth2"},
+            \t{org = "ballerina", name = "observe"},
+            \t{org = "ballerina", name = "time"},
+            \t{org = "ballerina", name = "url"}
+            ]
+
+            [[package]]
+            org = "ballerina"
+            name = "io"
+            version = "1.8.0"
+            dependencies = [
+            \t{org = "ballerina", name = "jballerina.java"},
+            \t{org = "ballerina", name = "lang.value"}
+            ]
+
+            [[package]]
+            org = "ballerina"
+            name = "jballerina.java"
+            version = "0.0.0"
+
+            [[package]]
+            org = "ballerina"
+            name = "jwt"
+            version = "2.15.1"
+            dependencies = [
+            \t{org = "ballerina", name = "cache"},
+            \t{org = "ballerina", name = "crypto"},
+            \t{org = "ballerina", name = "io"},
+            \t{org = "ballerina", name = "jballerina.java"},
+            \t{org = "ballerina", name = "lang.int"},
+            \t{org = "ballerina", name = "lang.string"},
+            \t{org = "ballerina", name = "log"},
+            \t{org = "ballerina", name = "time"}
+            ]
+
+            [[package]]
+            org = "ballerina"
+            name = "lang.__internal"
+            version = "0.0.0"
+            dependencies = [
+            \t{org = "ballerina", name = "jballerina.java"},
+            \t{org = "ballerina", name = "lang.object"}
+            ]
+
+            [[package]]
+            org = "ballerina"
+            name = "lang.array"
+            version = "0.0.0"
+            dependencies = [
+            \t{org = "ballerina", name = "jballerina.java"},
+            \t{org = "ballerina", name = "lang.__internal"}
+            ]
+
+            [[package]]
+            org = "ballerina"
+            name = "lang.decimal"
+            version = "0.0.0"
+            dependencies = [
+            \t{org = "ballerina", name = "jballerina.java"}
+            ]
+
+            [[package]]
+            org = "ballerina"
+            name = "lang.int"
+            version = "0.0.0"
+            dependencies = [
+            \t{org = "ballerina", name = "jballerina.java"},
+            \t{org = "ballerina", name = "lang.__internal"},
+            \t{org = "ballerina", name = "lang.object"}
+            ]
+
+            [[package]]
+            org = "ballerina"
+            name = "lang.object"
+            version = "0.0.0"
+
+            [[package]]
+            org = "ballerina"
+            name = "lang.regexp"
+            version = "0.0.0"
+            dependencies = [
+            \t{org = "ballerina", name = "jballerina.java"}
+            ]
+
+            [[package]]
+            org = "ballerina"
+            name = "lang.runtime"
+            version = "0.0.0"
+            dependencies = [
+            \t{org = "ballerina", name = "jballerina.java"}
+            ]
+
+            [[package]]
+            org = "ballerina"
+            name = "lang.string"
+            version = "0.0.0"
+            dependencies = [
+            \t{org = "ballerina", name = "jballerina.java"},
+            \t{org = "ballerina", name = "lang.regexp"}
+            ]
+
+            [[package]]
+            org = "ballerina"
+            name = "lang.value"
+            version = "0.0.0"
+            dependencies = [
+            \t{org = "ballerina", name = "jballerina.java"}
+            ]
+
+            [[package]]
+            org = "ballerina"
+            name = "log"
+            version = "2.13.0"
+            dependencies = [
+            \t{org = "ballerina", name = "io"},
+            \t{org = "ballerina", name = "jballerina.java"},
+            \t{org = "ballerina", name = "lang.value"},
+            \t{org = "ballerina", name = "observe"}
+            ]
+
+            [[package]]
+            org = "ballerina"
+            name = "mime"
+            version = "2.12.0"
+            dependencies = [
+            \t{org = "ballerina", name = "io"},
+            \t{org = "ballerina", name = "jballerina.java"},
+            \t{org = "ballerina", name = "lang.int"},
+            \t{org = "ballerina", name = "log"}
+            ]
+
+            [[package]]
+            org = "ballerina"
+            name = "oauth2"
+            version = "2.15.0"
+            dependencies = [
+            \t{org = "ballerina", name = "cache"},
+            \t{org = "ballerina", name = "crypto"},
+            \t{org = "ballerina", name = "jballerina.java"},
+            \t{org = "ballerina", name = "log"},
+            \t{org = "ballerina", name = "time"},
+            \t{org = "ballerina", name = "url"}
+            ]
+
+            [[package]]
+            org = "ballerina"
+            name = "observe"
+            version = "1.6.0"
+            dependencies = [
+            \t{org = "ballerina", name = "jballerina.java"}
+            ]
+
+            [[package]]
+            org = "ballerina"
+            name = "os"
+            version = "1.10.1"
+            dependencies = [
+            \t{org = "ballerina", name = "io"},
+            \t{org = "ballerina", name = "jballerina.java"}
+            ]
+
+            [[package]]
+            org = "ballerina"
+            name = "task"
+            version = "2.11.0"
+            dependencies = [
+            \t{org = "ballerina", name = "jballerina.java"},
+            \t{org = "ballerina", name = "time"},
+            \t{org = "ballerina", name = "uuid"}
+            ]
+
+            [[package]]
+            org = "ballerina"
+            name = "time"
+            version = "2.8.0"
+            dependencies = [
+            \t{org = "ballerina", name = "jballerina.java"}
+            ]
+
+            [[package]]
+            org = "ballerina"
+            name = "url"
+            version = "2.6.1"
+            dependencies = [
+            \t{org = "ballerina", name = "jballerina.java"}
+            ]
+
+            [[package]]
+            org = "ballerina"
+            name = "uuid"
+            version = "1.10.0"
+            dependencies = [
+            \t{org = "ballerina", name = "crypto"},
+            \t{org = "ballerina", name = "jballerina.java"},
+            \t{org = "ballerina", name = "lang.int"},
+            \t{org = "ballerina", name = "time"}
+            ]
+
+            [[package]]
+            org = "ballerina"
+            name = "websocket"
+            version = "2.15.0"
+            dependencies = [
+            \t{org = "ballerina", name = "auth"},
+            \t{org = "ballerina", name = "constraint"},
+            \t{org = "ballerina", name = "http"},
+            \t{org = "ballerina", name = "io"},
+            \t{org = "ballerina", name = "jballerina.java"},
+            \t{org = "ballerina", name = "jwt"},
+            \t{org = "ballerina", name = "lang.array"},
+            \t{org = "ballerina", name = "lang.runtime"},
+            \t{org = "ballerina", name = "lang.string"},
+            \t{org = "ballerina", name = "lang.value"},
+            \t{org = "ballerina", name = "log"},
+            \t{org = "ballerina", name = "oauth2"},
+            \t{org = "ballerina", name = "time"}
+            ]
+            modules = [
+            \t{org = "ballerina", packageName = "websocket", moduleName = "websocket"}
+            ]
+
+            [[package]]
+            org = "testorg"
+            name = "asyncspectest"
+            version = "0.1.0"
+            dependencies = [
+            \t{org = "ballerina", name = "websocket"}
+            ]
+            modules = [
+            \t{org = "testorg", packageName = "asyncspectest", moduleName = "asyncspectest"}
+            ]
+            """;
+
     private Path projectDir;
     private Path outDir;
     private Path balFile;
@@ -224,6 +553,7 @@ class BallerinaToAsyncApiGeneratorTest {
         outDir = Files.createTempDirectory("asyncspec-out-");
         projectDir = Files.createTempDirectory("asyncspec-project-");
         Files.writeString(projectDir.resolve("Ballerina.toml"), BALLERINA_TOML);
+        Files.writeString(projectDir.resolve("Dependencies.toml"), DEPENDENCIES_TOML);
         balFile = projectDir.resolve("service.bal");
     }
 

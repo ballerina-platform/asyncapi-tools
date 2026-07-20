@@ -18,10 +18,11 @@
 package io.ballerina.asyncapi.generator.http.node;
 
 import io.ballerina.asyncapi.generator.GeneratorException;
+import io.ballerina.compiler.syntax.tree.AnnotationNode;
 import io.ballerina.compiler.syntax.tree.MarkdownDocumentationNode;
 import io.ballerina.compiler.syntax.tree.MetadataNode;
+import io.ballerina.compiler.syntax.tree.ModuleMemberDeclarationNode;
 import io.ballerina.compiler.syntax.tree.Node;
-import io.ballerina.compiler.syntax.tree.QualifiedNameReferenceNode;
 import io.ballerina.compiler.syntax.tree.RecordTypeDescriptorNode;
 import io.ballerina.compiler.syntax.tree.TypeDefinitionNode;
 
@@ -33,21 +34,26 @@ import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createEmptyN
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createIdentifierToken;
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createLiteralValueToken;
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createNodeList;
+import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createSeparatedNodeList;
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createToken;
+import static io.ballerina.compiler.syntax.tree.NodeFactory.createAnnotationNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createBasicLiteralNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createBuiltinSimpleNameReferenceNode;
+import static io.ballerina.compiler.syntax.tree.NodeFactory.createConstantDeclarationNode;
+import static io.ballerina.compiler.syntax.tree.NodeFactory.createMappingConstructorExpressionNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createMarkdownDocumentationNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createMetadataNode;
-import static io.ballerina.compiler.syntax.tree.NodeFactory.createQualifiedNameReferenceNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createRecordFieldWithDefaultValueNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createRecordTypeDescriptorNode;
+import static io.ballerina.compiler.syntax.tree.NodeFactory.createSimpleNameReferenceNode;
+import static io.ballerina.compiler.syntax.tree.NodeFactory.createSpecificFieldNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createTypeDefinitionNode;
-import static io.ballerina.compiler.syntax.tree.NodeFactory.createTypeReferenceNode;
-import static io.ballerina.compiler.syntax.tree.SyntaxKind.ASTERISK_TOKEN;
-import static io.ballerina.compiler.syntax.tree.SyntaxKind.CLOSE_BRACE_PIPE_TOKEN;
+import static io.ballerina.compiler.syntax.tree.SyntaxKind.AT_TOKEN;
+import static io.ballerina.compiler.syntax.tree.SyntaxKind.CLOSE_BRACE_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.COLON_TOKEN;
+import static io.ballerina.compiler.syntax.tree.SyntaxKind.CONST_KEYWORD;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.EQUAL_TOKEN;
-import static io.ballerina.compiler.syntax.tree.SyntaxKind.OPEN_BRACE_PIPE_TOKEN;
+import static io.ballerina.compiler.syntax.tree.SyntaxKind.OPEN_BRACE_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.PUBLIC_KEYWORD;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.RECORD_KEYWORD;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.SEMICOLON_TOKEN;
@@ -56,46 +62,59 @@ import static io.ballerina.compiler.syntax.tree.SyntaxKind.STRING_LITERAL_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.TYPE_KEYWORD;
 
 /**
- * Generates the {@code public type ListenerConfiguration record {| *http:ListenerConfiguration;
- * string webhookSecret = ""; |};} type definition node for {@code data_types.bal}.
+ * Generates the {@code public type ListenerConfig record { string webhookSecret = DEFAULT_SECRET; };}
+ * type definition (and its {@code DEFAULT_SECRET} constant) for {@code data_types.bal}.
+ *
+ * <p>Deliberately minimal -- unlike {@code http:ListenerConfiguration}, this type is not spread
+ * into the record, matching the shape used by every other currently-shipped trigger. Users who
+ * need custom HTTP-level tuning construct their own {@code http:Listener} and pass it via the
+ * listener's {@code listenOn} parameter instead.
  */
 public class GenerateListenerConfigNode {
 
-    public static final String LISTENER_CONFIG_TYPE = "ListenerConfiguration";
+    public static final String LISTENER_CONFIG_TYPE = "ListenerConfig";
     public static final String WEBHOOK_SECRET_FIELD = "webhookSecret";
+    public static final String DEFAULT_SECRET_CONST = "DEFAULT_SECRET";
 
     /**
-     * Generates the {@code ListenerConfiguration} closed-record type definition.
+     * Generates the {@code ListenerConfig} open-record type definition, with the webhook secret
+     * field plus one additional {@code string} field (default {@code ""}) per name in
+     * {@code extraConfigFields} (populated from {@code $config('name')} references in the DSL).
      *
+     * @param extraConfigFields additional configurable field names beyond {@code webhookSecret}
      * @return the generated {@link TypeDefinitionNode}
      * @throws GeneratorException never thrown; declared for consistency with other node generators
      */
-    public static TypeDefinitionNode generate() throws GeneratorException {
-        QualifiedNameReferenceNode includedType = createQualifiedNameReferenceNode(
-                createIdentifierToken(GenerateHttpImportNode.HTTP_MODULE),
-                createToken(COLON_TOKEN),
-                createIdentifierToken(LISTENER_CONFIG_TYPE));
-
+    public static TypeDefinitionNode generate(List<String> extraConfigFields) throws GeneratorException {
         List<Node> recordFields = new ArrayList<>();
-        recordFields.add(createTypeReferenceNode(
-                createToken(ASTERISK_TOKEN), includedType, createToken(SEMICOLON_TOKEN)));
         recordFields.add(createRecordFieldWithDefaultValueNode(
-                null,
+                buildWebhookSecretDisplayMetadata(),
                 null,
                 createBuiltinSimpleNameReferenceNode(null, createIdentifierToken("string")),
                 createIdentifierToken(WEBHOOK_SECRET_FIELD),
                 createToken(EQUAL_TOKEN),
-                createBasicLiteralNode(STRING_LITERAL,
-                        createLiteralValueToken(STRING_LITERAL_TOKEN, "\"\"",
-                                createEmptyMinutiaeList(), createEmptyMinutiaeList())),
+                createSimpleNameReferenceNode(createIdentifierToken(DEFAULT_SECRET_CONST)),
                 createToken(SEMICOLON_TOKEN)));
+
+        for (String fieldName : extraConfigFields) {
+            recordFields.add(createRecordFieldWithDefaultValueNode(
+                    null,
+                    null,
+                    createBuiltinSimpleNameReferenceNode(null, createIdentifierToken("string")),
+                    createIdentifierToken(fieldName),
+                    createToken(EQUAL_TOKEN),
+                    createBasicLiteralNode(STRING_LITERAL,
+                            createLiteralValueToken(STRING_LITERAL_TOKEN, "\"\"",
+                                    createEmptyMinutiaeList(), createEmptyMinutiaeList())),
+                    createToken(SEMICOLON_TOKEN)));
+        }
 
         RecordTypeDescriptorNode recordType = createRecordTypeDescriptorNode(
                 createToken(RECORD_KEYWORD),
-                createToken(OPEN_BRACE_PIPE_TOKEN),
+                createToken(OPEN_BRACE_TOKEN),
                 createNodeList(recordFields),
                 null,
-                createToken(CLOSE_BRACE_PIPE_TOKEN));
+                createToken(CLOSE_BRACE_TOKEN));
 
         List<Node> schemaDoc = new ArrayList<>();
         MarkdownDocumentationNode documentationNode =
@@ -104,5 +123,44 @@ public class GenerateListenerConfigNode {
 
         return createTypeDefinitionNode(metadataNode, createToken(PUBLIC_KEYWORD), createToken(TYPE_KEYWORD),
                 createIdentifierToken(LISTENER_CONFIG_TYPE), recordType, createToken(SEMICOLON_TOKEN));
+    }
+
+    /**
+     * Generates the {@code const string DEFAULT_SECRET = "";} declaration referenced by the
+     * {@code webhookSecret} field's default value and the listener's {@code init()} default.
+     *
+     * @return the generated {@link ModuleMemberDeclarationNode}
+     */
+    public static ModuleMemberDeclarationNode generateDefaultSecretConst() {
+        return createConstantDeclarationNode(
+                null,
+                null,
+                createToken(CONST_KEYWORD),
+                createBuiltinSimpleNameReferenceNode(null, createIdentifierToken("string")),
+                createIdentifierToken(DEFAULT_SECRET_CONST),
+                createToken(EQUAL_TOKEN),
+                createBasicLiteralNode(STRING_LITERAL,
+                        createLiteralValueToken(STRING_LITERAL_TOKEN, "\"\"",
+                                createEmptyMinutiaeList(), createEmptyMinutiaeList())),
+                createToken(SEMICOLON_TOKEN));
+    }
+
+    private static MetadataNode buildWebhookSecretDisplayMetadata() {
+        AnnotationNode annotation = createAnnotationNode(
+                createToken(AT_TOKEN),
+                createSimpleNameReferenceNode(createIdentifierToken("display")),
+                createMappingConstructorExpressionNode(
+                        createToken(OPEN_BRACE_TOKEN),
+                        createSeparatedNodeList(
+                                createSpecificFieldNode(
+                                        null,
+                                        createIdentifierToken("label"),
+                                        createToken(COLON_TOKEN),
+                                        createBasicLiteralNode(STRING_LITERAL,
+                                                createLiteralValueToken(STRING_LITERAL_TOKEN,
+                                                        "\"Webhook Secret\"",
+                                                        createEmptyMinutiaeList(), createEmptyMinutiaeList())))),
+                        createToken(CLOSE_BRACE_TOKEN)));
+        return createMetadataNode(null, createNodeList(annotation));
     }
 }

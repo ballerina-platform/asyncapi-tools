@@ -45,7 +45,7 @@ public class HttpCodeGeneratorIntegrationTest {
             new HttpCodeGenerator(asyncApiSpec).generate(outDir);
 
             String serviceTypes = readFile(outDir, "service_types.bal");
-            String types = readFile(outDir, "types.bal");
+            String types = readFile(outDir, "data_types.bal");
             String listener = readFile(outDir, "listener.bal");
             String dispatcher = readFile(outDir, "dispatcher_service.bal");
 
@@ -61,11 +61,11 @@ public class HttpCodeGeneratorIntegrationTest {
                     "service_types.bal should contain onPush remote function");
 
             Assert.assertTrue(types.contains("PushEvent"),
-                    "types.bal should contain PushEvent schema type");
-            Assert.assertTrue(types.contains("ListenerConfiguration"),
-                    "types.bal should always contain ListenerConfiguration");
+                    "data_types.bal should contain PushEvent schema type");
+            Assert.assertTrue(types.contains("ListenerConfig"),
+                    "data_types.bal should always contain ListenerConfig");
             Assert.assertTrue(types.contains("GenericDataType"),
-                    "types.bal should contain GenericDataType union");
+                    "data_types.bal should contain GenericDataType union");
 
             Assert.assertTrue(listener.contains("Listener"),
                     "listener.bal should contain the Listener class");
@@ -94,7 +94,7 @@ public class HttpCodeGeneratorIntegrationTest {
             String serviceTypes = readFile(outDir, "service_types.bal");
             String dispatcher = readFile(outDir, "dispatcher_service.bal");
             String listener = readFile(outDir, "listener.bal");
-            String types = readFile(outDir, "types.bal");
+            String types = readFile(outDir, "data_types.bal");
 
             Assert.assertTrue(serviceTypes.contains("PaymentService"),
                     "service_types.bal should contain PaymentService");
@@ -111,9 +111,9 @@ public class HttpCodeGeneratorIntegrationTest {
             Assert.assertTrue(listener.contains("Listener"),
                     "listener.bal should contain the Listener class");
             Assert.assertTrue(types.contains("PaymentIntent"),
-                    "types.bal should contain PaymentIntent schema type");
+                    "data_types.bal should contain PaymentIntent schema type");
             Assert.assertTrue(types.contains("Customer"),
-                    "types.bal should contain Customer schema type");
+                    "data_types.bal should contain Customer schema type");
         } finally {
             deleteDir(outDir);
         }
@@ -128,7 +128,7 @@ public class HttpCodeGeneratorIntegrationTest {
             new HttpCodeGenerator(asyncApiSpec).generate(outDir);
 
             String serviceTypes = readFile(outDir, "service_types.bal");
-            String types = readFile(outDir, "types.bal");
+            String types = readFile(outDir, "data_types.bal");
             String listener = readFile(outDir, "listener.bal");
 
             Assert.assertTrue(serviceTypes.contains("EmailService"),
@@ -138,9 +138,9 @@ public class HttpCodeGeneratorIntegrationTest {
             Assert.assertTrue(serviceTypes.contains("GenericServiceType"),
                     "service_types.bal should contain GenericServiceType union");
 
-            Assert.assertTrue(types.contains("ListenerConfiguration"),
-                    "types.bal should contain ListenerConfiguration");
-            Assert.assertFalse(types.isBlank(), "types.bal should not be blank");
+            Assert.assertTrue(types.contains("ListenerConfig"),
+                    "data_types.bal should contain ListenerConfig");
+            Assert.assertFalse(types.isBlank(), "data_types.bal should not be blank");
 
             Assert.assertTrue(listener.contains("Listener"),
                     "listener.bal should contain the Listener class");
@@ -156,7 +156,9 @@ public class HttpCodeGeneratorIntegrationTest {
         try {
             new HttpCodeGenerator(asyncApiSpec).generate(null);
         } finally {
-            for (String file : List.of("types.bal", "service_types.bal", "listener.bal", "dispatcher_service.bal")) {
+            List<String> generatedFiles = List.of(
+                    "data_types.bal", "service_types.bal", "listener.bal", "dispatcher_service.bal");
+            for (String file : generatedFiles) {
                 Files.deleteIfExists(Path.of(file));
             }
         }

@@ -100,7 +100,7 @@ public class GenerateServiceTypeNode implements Generator {
             BuiltinSimpleNameReferenceNode typeNode = createBuiltinSimpleNameReferenceNode(
                     null, createIdentifierToken(eventType));
             List<Node> params = new ArrayList<>();
-            params.add(createRequiredParameterNode(createEmptyNodeList(), typeNode, createIdentifierToken("event")));
+            params.add(createRequiredParameterNode(createEmptyNodeList(), typeNode, createIdentifierToken("payload")));
             MethodDeclarationNode method = createMethodDeclarationNode(
                     SyntaxKind.METHOD_DECLARATION, null,
                     createNodeList(createToken(REMOTE_KEYWORD)),

@@ -42,7 +42,7 @@ public class WebhookDSLVerificationTest {
 
     @Test
     public void testGithubWebhookVerification() throws Exception {
-    String content = generateDispatcherService("github_verification.yaml");
+        String content = generateDispatcherService("github_verification.yaml");
         Assert.assertTrue(content.contains("crypto:hmacSha256"), "Should contain HMAC-SHA256 algorithm");
         Assert.assertTrue(
         content.contains("string `${check request.getTextPayload()}`"),
@@ -81,7 +81,7 @@ public class WebhookDSLVerificationTest {
     String content = generateDispatcherService("shopify_verification.yaml");
     Assert.assertTrue(content.contains("request.getHeader(\"X-Shopify-Hmac-Sha256\")"),
         "Should validate Shopify signature header");
-    Assert.assertTrue(content.contains("computedHmac.toBase64()"),
+    Assert.assertTrue(content.contains("computedDigest.toBase64()"),
         "Should apply base64 encoding for Shopify signatures");
     }
 
@@ -238,6 +238,133 @@ public class WebhookDSLVerificationTest {
             Assert.assertTrue(e.getMessage().contains(expectedMessagePart),
                 "Validation message mismatch for " + specFile + ": " + e.getMessage());
         }
+    }
+
+    @Test
+    public void testHubspotV3WebhookVerification() throws Exception {
+        Path tempOutputDir = generateFromFixture("hubspot_v3_verification.yaml", "X-HubSpot-Event",
+                "hubspot_event");
+
+        // HubSpot v3: $config('callbackUrl') resolves to a self field, folded into the HMAC input
+        // alongside method/body/timestamp; encoding is base64, not hex.
+        String dispatcherContent = Files.readString(tempOutputDir.resolve("dispatcher_service.bal"));
+        Assert.assertTrue(dispatcherContent.contains("crypto:hmacSha256"), "Should use HMAC-SHA256");
+        Assert.assertTrue(
+                dispatcherContent.contains("${self.callbackUrl}"),
+                "Should reference the config-derived callbackUrl field");
+        Assert.assertTrue(
+                dispatcherContent.contains("computedDigest.toBase64()"),
+                "Should base64-encode the computed digest");
+
+        // Freshness check: a staleness guard independent of signature verification.
+        Assert.assertTrue(
+                dispatcherContent.contains("decimal:fromString(freshnessHeaderValue)"),
+                "Should parse the freshness header as a decimal timestamp");
+        Assert.assertTrue(
+                dispatcherContent.contains("time:utcNow()"),
+                "Should compare against the current time");
+        Assert.assertTrue(
+                dispatcherContent.contains("Request Timestamp Expired"),
+                "Should reject stale requests");
+
+        // callbackUrl must be threaded through as a real configurable field, not just referenced.
+        String dataTypesContent = Files.readString(tempOutputDir.resolve("data_types.bal"));
+        Assert.assertTrue(
+                dataTypesContent.contains("string callbackUrl"),
+                "ListenerConfig should declare a callbackUrl field");
+        String listenerContent = Files.readString(tempOutputDir.resolve("listener.bal"));
+        Assert.assertTrue(
+                listenerContent.contains("listenerConfig.callbackUrl"),
+                "Listener init should pass callbackUrl through to DispatcherService");
+
+        // ballerina/time must be imported since freshness is configured.
+        Assert.assertTrue(dispatcherContent.contains("import ballerina/time;"), "Should import ballerina/time");
+    }
+
+    @Test
+    public void testHubspotV1WebhookVerification() throws Exception {
+        Path tempOutputDir = generateFromFixture("hubspot_v1_verification.yaml", "X-HubSpot-Event",
+                "hubspot_event");
+
+        // HubSpot v1/v2: plain (unkeyed) digest of secret+body, not a keyed HMAC.
+        String dispatcherContent = Files.readString(tempOutputDir.resolve("dispatcher_service.bal"));
+        Assert.assertTrue(dispatcherContent.contains("crypto:hashSha256"), "Should use plain hashSha256");
+        Assert.assertFalse(dispatcherContent.contains("crypto:hmacSha256"), "Should not use HMAC");
+        Assert.assertTrue(
+                dispatcherContent.contains("${webhookSecret}"),
+                "Should fold the secret directly into the hashed payload via $secret");
+        Assert.assertTrue(
+                dispatcherContent.contains("computedDigest.toBase16()"),
+                "Should hex-encode the computed digest");
+
+        // No freshness block in this fixture: no staleness check, no time import.
+        Assert.assertFalse(
+                dispatcherContent.contains("Request Timestamp Expired"),
+                "Should not emit a freshness check when none is configured");
+        Assert.assertFalse(dispatcherContent.contains("import ballerina/time;"),
+                "Should not import ballerina/time when no freshness check is configured");
+    }
+
+    @Test
+    public void testCustomVariableSharingReservedTokenPrefixIsNotCorrupted() throws Exception {
+        // "bodyHash" is a custom variable extracted from the signature header, not the builtin
+        // "$body" token -- but it starts with the substring "body". A naive String.replace("$body", ...)
+        // on the input DSL would corrupt "$bodyHash" into "${check request.getTextPayload()}Hash"
+        // before the custom-variable pass ever runs. The fix must treat "$body" as matched only
+        // when it isn't immediately followed by another identifier character.
+        Path tempOutputDir = generateFromFixture("token_corruption_verification.yaml", "X-Test-Event",
+                "test_event");
+
+        String dispatcherContent = Files.readString(tempOutputDir.resolve("dispatcher_service.bal"));
+        Assert.assertTrue(
+                dispatcherContent.contains("${bodyHash}"),
+                "Should interpolate the custom bodyHash variable extracted from the signature header");
+        Assert.assertTrue(
+                dispatcherContent.contains("${check request.getTextPayload()}"),
+                "Should still correctly interpolate the builtin $body token");
+        Assert.assertFalse(
+                dispatcherContent.contains("${check request.getTextPayload()}Hash"),
+                "$body substitution must not corrupt the unrelated $bodyHash custom variable");
+    }
+
+    /**
+     * Loads a webhook-verification test fixture, injects the metadata the generator pipeline
+     * expects, and runs it through {@link HttpCodeGenerator}.
+     *
+     * @param fixtureFileName the fixture file name under {@code src/test/resources/specs}
+     * @param eventHeaderName the header used for event-type dispatch
+     * @param eventType       the {@code x-ballerina-event-type} to assign to the fixture's message
+     * @return the temp directory the generator wrote output files into
+     */
+    private Path generateFromFixture(String fixtureFileName, String eventHeaderName, String eventType)
+            throws Exception {
+        Path asyncapiPath = RES_DIR.resolve(fixtureFileName);
+
+        String yamlContent = Files.readString(asyncapiPath);
+        ObjectMapper yamlMapper = new ObjectMapper(new YAMLFactory());
+        ObjectNode specNode = (ObjectNode) yamlMapper.readTree(yamlContent);
+
+        ObjectNode eventIdentifier = specNode.putObject("x-ballerina-event-identifier");
+        eventIdentifier.put("type", "header");
+        eventIdentifier.put("name", eventHeaderName);
+
+        ObjectNode subscribeNode = (ObjectNode) specNode.path("channels")
+                .path("events")
+                .path("subscribe");
+        ObjectNode messageNode = (ObjectNode) subscribeNode.path("message");
+        messageNode.put("x-ballerina-event-type", eventType);
+
+        if (subscribeNode.has("x-ballerina-auth")) {
+            specNode.set("x-ballerina-auth", subscribeNode.get("x-ballerina-auth"));
+        }
+
+        String jsonContent = new ObjectMapper().writeValueAsString(specNode);
+        AsyncApiSpec spec = AsyncApiParser.parseFromJsonString(jsonContent);
+
+        Path tempOutputDir = Files.createTempDirectory("asyncapi-gen-test");
+        HttpCodeGenerator generator = new HttpCodeGenerator(spec);
+        generator.generate(tempOutputDir);
+        return tempOutputDir;
     }
 }
 

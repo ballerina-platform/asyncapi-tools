@@ -1,0 +1,22 @@
+asyncapi: 2.6.0
+x-ballerina-event-identifier:
+  type: "header"
+  name: "X-HubSpot-Event"
+x-ballerina-auth:
+  header: X-HubSpot-Signature
+  signature:
+    strategy: hash
+    algorithm: sha256
+    encoding: hex
+    headerFormat: $signature
+    input: "$secret . $body"
+info:
+  title: HubSpot v1 Test
+  version: 1.0.0
+channels:
+  events:
+    subscribe:
+      message:
+        x-ballerina-event-type: hubspot_event
+        payload:
+          type: object

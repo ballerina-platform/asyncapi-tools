@@ -61,6 +61,7 @@ import static io.ballerina.compiler.syntax.tree.SyntaxKind.CLASS_KEYWORD;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.CLOSE_BRACE_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.CLOSE_PAREN_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.COLON_TOKEN;
+import static io.ballerina.compiler.syntax.tree.SyntaxKind.COMMA_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.EQUAL_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.FUNCTION_KEYWORD;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.GT_TOKEN;
@@ -128,7 +129,9 @@ public class GenerateDispatcherServiceNode implements Generator {
         members.add(buildServicesField());
         members.add(buildNativeHandlerField());
         if (webhookAuthConfig.isPresent()) {
-            members.add(buildWebhookSecretField());
+            for (String fieldName : getConfigFieldNames()) {
+                members.add(buildConfigField(fieldName));
+            }
             members.add(buildInitFunction());
         }
         members.add(buildFunc(new GenerateAddServiceRefFuncNode()));
@@ -213,35 +216,59 @@ public class GenerateDispatcherServiceNode implements Generator {
                 createToken(SEMICOLON_TOKEN));
     }
 
-    private ObjectFieldNode buildWebhookSecretField() {
+    /**
+     * Returns the names of every configurable field the {@code DispatcherService} needs: the
+     * webhook secret, plus one entry per distinct {@code $config('name')} reference in the DSL's
+     * {@code input} expression.
+     */
+    private List<String> getConfigFieldNames() {
+        List<String> fieldNames = new ArrayList<>();
+        fieldNames.add(WEBHOOK_SECRET_FIELD);
+        webhookAuthConfig.ifPresent(config -> fieldNames.addAll(config.configFields()));
+        return fieldNames;
+    }
+
+    private ObjectFieldNode buildConfigField(String fieldName) {
         return createObjectFieldNode(
                 null,
                 createToken(PRIVATE_KEYWORD),
                 createEmptyNodeList(),
                 createBuiltinSimpleNameReferenceNode(null, createIdentifierToken("string")),
-                createIdentifierToken(WEBHOOK_SECRET_FIELD),
+                createIdentifierToken(fieldName),
                 null,
                 null,
                 createToken(SEMICOLON_TOKEN));
     }
 
     private FunctionDefinitionNode buildInitFunction() {
+        List<String> fieldNames = getConfigFieldNames();
+
+        List<Node> params = new ArrayList<>();
+        for (int i = 0; i < fieldNames.size(); i++) {
+            if (i > 0) {
+                params.add(createToken(COMMA_TOKEN));
+            }
+            params.add(createRequiredParameterNode(
+                    createEmptyNodeList(),
+                    createBuiltinSimpleNameReferenceNode(null, createIdentifierToken("string")),
+                    createIdentifierToken(fieldNames.get(i))));
+        }
+
         FunctionSignatureNode signature = createFunctionSignatureNode(
                 createToken(OPEN_PAREN_TOKEN),
-                createSeparatedNodeList(
-                        createRequiredParameterNode(
-                                createEmptyNodeList(),
-                                createBuiltinSimpleNameReferenceNode(null, createIdentifierToken("string")),
-                                createIdentifierToken(WEBHOOK_SECRET_FIELD))),
+                createSeparatedNodeList(params),
                 createToken(CLOSE_PAREN_TOKEN),
                 null);
 
-        StatementNode assignStatement = NodeParser.parseStatement(
-                "self." + WEBHOOK_SECRET_FIELD + " = " + WEBHOOK_SECRET_FIELD + ";");
+        List<StatementNode> assignStatements = new ArrayList<>();
+        for (String fieldName : fieldNames) {
+            assignStatements.add(NodeParser.parseStatement(
+                    "self." + fieldName + " = " + fieldName + ";"));
+        }
 
         FunctionBodyBlockNode body = createFunctionBodyBlockNode(
                 createToken(OPEN_BRACE_TOKEN), null,
-                createNodeList(assignStatement),
+                createNodeList(assignStatements),
                 createToken(CLOSE_BRACE_TOKEN), null);
 
         return createFunctionDefinitionNode(

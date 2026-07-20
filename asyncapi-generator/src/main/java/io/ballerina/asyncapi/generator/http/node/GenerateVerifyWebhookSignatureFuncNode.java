@@ -19,6 +19,8 @@ package io.ballerina.asyncapi.generator.http.node;
 
 import io.ballerina.asyncapi.generator.GeneratorException;
 import io.ballerina.asyncapi.generator.http.model.WebhookAuthConfig;
+import io.ballerina.asyncapi.generator.http.utils.HeaderTemplateParser;
+import io.ballerina.asyncapi.generator.http.utils.HeaderTemplateParser.HeaderTemplate;
 import io.ballerina.compiler.syntax.tree.FunctionBodyBlockNode;
 import io.ballerina.compiler.syntax.tree.FunctionDefinitionNode;
 import io.ballerina.compiler.syntax.tree.FunctionSignatureNode;
@@ -69,11 +71,11 @@ public class GenerateVerifyWebhookSignatureFuncNode implements Generator {
 
     public static final String VERIFY_WEBHOOK_SIGNATURE_FUNC = "verifyWebhookSignature";
     private static final Pattern HEADER_FUNC_PATTERN = Pattern.compile("\\$header\\('([^']+)'\\)");
+    private static final Pattern CONFIG_FUNC_PATTERN = Pattern.compile("\\$config\\('([^']+)'\\)");
     private static final Pattern CUSTOM_VAR_PATTERN = Pattern.compile("\\$([A-Za-z_][A-Za-z0-9_]*)");
-    private static final Pattern TEMPLATE_VAR_PATTERN = Pattern.compile(
-            "\\$\\{([A-Za-z_][A-Za-z0-9_]*)\\}|\\$([A-Za-z_][A-Za-z0-9_]*)|\\{([A-Za-z_][A-Za-z0-9_]*)\\}");
     private static final Pattern BRACED_VAR_PATTERN =
             Pattern.compile("(?<!\\$)\\{([A-Za-z_][A-Za-z0-9_]*)\\}");
+    private static final String SECRET_TOKEN = "$secret";
 
     private final WebhookAuthConfig authConfig;
 
@@ -108,7 +110,12 @@ public class GenerateVerifyWebhookSignatureFuncNode implements Generator {
 
         List<StatementNode> statements = new ArrayList<>();
         String headerName = authConfig.headerName();
-        
+
+        if (authConfig.freshnessHeader() != null) {
+            addFreshnessCheckStatements(statements, authConfig.freshnessHeader(),
+                    authConfig.freshnessToleranceMillis());
+        }
+
         statements.add(NodeParser.parseStatement(String.format(
                 "if !request.hasHeader(\"%s\") { return error(\"Unauthorized: Missing Signature Header\"); }",
                 headerName)));
@@ -118,7 +125,7 @@ public class GenerateVerifyWebhookSignatureFuncNode implements Generator {
             receivedHeaderExpr)));
 
         String headerFormat = authConfig.headerFormat() != null ? authConfig.headerFormat() : "$signature";
-        HeaderTemplate headerTemplate = parseHeaderTemplate(headerFormat);
+        HeaderTemplate headerTemplate = HeaderTemplateParser.parse(headerFormat);
         addHeaderTemplateExtractionStatements(statements, headerTemplate);
 
         String signatureVariable = resolveSignatureVariableName(headerTemplate);
@@ -141,23 +148,42 @@ public class GenerateVerifyWebhookSignatureFuncNode implements Generator {
             statements.add(NodeParser.parseStatement(
                     "string payloadToHash = string `" + balTemplate + "`;"));
 
-            // 2. Map the algorithm to the correct Ballerina crypto module function
+            // 2. Map the algorithm to the correct Ballerina crypto module function. "hmac" (default, or
+            // absent) uses a secret-keyed HMAC; "hash" uses a plain, unkeyed digest — the secret must
+            // then be folded into `input` explicitly via $secret (e.g. HubSpot v1/v2-style schemes).
+            boolean isPlainHash = "hash".equalsIgnoreCase(authConfig.strategy());
             String algo = authConfig.algorithm().toLowerCase();
-            String cryptoFunc = switch (algo) {
-                case "sha1" -> "hmacSha1";
-                case "sha256" -> "hmacSha256";
-                case "sha384" -> "hmacSha384";
-                case "sha512" -> "hmacSha512";
-                default -> throw new GeneratorException(String.format(
-                        "Unsupported x-ballerina-auth signature algorithm: '%s'. Supported values: "
-                                + "sha1, sha256, sha384, sha512.",
-                        authConfig.algorithm()));
-            };
-
-            statements.add(NodeParser.parseStatement(
-                    String.format(
-                            "byte[] computedHmac = check crypto:%s(payloadToHash.toBytes(), webhookSecret.toBytes());",
-                            cryptoFunc)));
+            String cryptoFunc;
+            String computeStatement;
+            if (isPlainHash) {
+                cryptoFunc = switch (algo) {
+                    case "sha1" -> "hashSha1";
+                    case "sha256" -> "hashSha256";
+                    case "sha384" -> "hashSha384";
+                    case "sha512" -> "hashSha512";
+                    default -> throw new GeneratorException(String.format(
+                            "Unsupported x-ballerina-auth signature algorithm: '%s'. Supported values: "
+                                    + "sha1, sha256, sha384, sha512.",
+                            authConfig.algorithm()));
+                };
+                computeStatement = String.format(
+                        "byte[] computedDigest = crypto:%s(payloadToHash.toBytes());", cryptoFunc);
+            } else {
+                cryptoFunc = switch (algo) {
+                    case "sha1" -> "hmacSha1";
+                    case "sha256" -> "hmacSha256";
+                    case "sha384" -> "hmacSha384";
+                    case "sha512" -> "hmacSha512";
+                    default -> throw new GeneratorException(String.format(
+                            "Unsupported x-ballerina-auth signature algorithm: '%s'. Supported values: "
+                                    + "sha1, sha256, sha384, sha512.",
+                            authConfig.algorithm()));
+                };
+                computeStatement = String.format(
+                        "byte[] computedDigest = check crypto:%s(payloadToHash.toBytes(), webhookSecret.toBytes());",
+                        cryptoFunc);
+            }
+            statements.add(NodeParser.parseStatement(computeStatement));
 
             // 3. Apply the requested encoding (hex or base64)
             String encoding = authConfig.encoding() != null ? authConfig.encoding().toLowerCase() : "hex";
@@ -172,7 +198,7 @@ public class GenerateVerifyWebhookSignatureFuncNode implements Generator {
             // Note: Shopify/QuickBooks use base64, Slack/GitHub use hex.
             statements.add(NodeParser.parseStatement(
                     String.format(
-                            "string computedSignature = computedHmac.%s;",
+                            "string computedSignature = computedDigest.%s;",
                             encodeFunc)));
 
             // 4. Construct the final expected header string using the DSL format
@@ -211,6 +237,33 @@ public class GenerateVerifyWebhookSignatureFuncNode implements Generator {
                 signature, body);
     }
 
+    /**
+     * Emits a request-timestamp staleness check, independent of and preceding signature verification.
+     * Reads the freshness header, parses it as an epoch-millisecond {@code decimal}, and rejects the
+     * request if it's older than the configured tolerance.
+     *
+     * @param statements       the statement list to append to
+     * @param freshnessHeader  the header carrying the request timestamp (epoch milliseconds)
+     * @param toleranceMillis  the maximum allowed request age, in milliseconds
+     */
+    private void addFreshnessCheckStatements(List<StatementNode> statements, String freshnessHeader,
+            long toleranceMillis) {
+        statements.add(NodeParser.parseStatement(String.format(
+                "if !request.hasHeader(\"%s\") { return error(\"Unauthorized: Missing Freshness Header\"); }",
+                freshnessHeader)));
+        statements.add(NodeParser.parseStatement(String.format(
+                "string freshnessHeaderValue = %s;",
+                getSafeHeaderExtraction(freshnessHeader))));
+        statements.add(NodeParser.parseStatement(
+                "decimal freshnessTimestamp = check decimal:fromString(freshnessHeaderValue);"));
+        statements.add(NodeParser.parseStatement(
+                "decimal freshnessNowMillis = <decimal>time:utcNow()[0] * 1000;"));
+        statements.add(NodeParser.parseStatement(String.format(
+                "if (freshnessNowMillis - freshnessTimestamp) > <decimal>%d {"
+                        + " return error(\"Unauthorized: Request Timestamp Expired\"); }",
+                toleranceMillis)));
+    }
+
     private ReturnTypeDescriptorNode buildOptionalErrorReturnType() {
         return createReturnTypeDescriptorNode(
                 createToken(RETURNS_KEYWORD),
@@ -244,7 +297,18 @@ public class GenerateVerifyWebhookSignatureFuncNode implements Generator {
         }
         headerMatcher.appendTail(headerReplaced);
 
-        Matcher customVarMatcher = CUSTOM_VAR_PATTERN.matcher(headerReplaced.toString());
+        Matcher configMatcher = CONFIG_FUNC_PATTERN.matcher(headerReplaced.toString());
+        StringBuffer configReplaced = new StringBuffer();
+        while (configMatcher.find()) {
+            String replacement = "${self." + configMatcher.group(1) + "}";
+            configMatcher.appendReplacement(configReplaced, Matcher.quoteReplacement(replacement));
+        }
+        configMatcher.appendTail(configReplaced);
+
+        String secretReplaced = configReplaced.toString()
+                .replaceAll("\\$secret\\b", Matcher.quoteReplacement("${webhookSecret}"));
+
+        Matcher customVarMatcher = CUSTOM_VAR_PATTERN.matcher(secretReplaced);
         StringBuffer customReplaced = new StringBuffer();
         while (customVarMatcher.find()) {
             String replacement = "${" + customVarMatcher.group(1) + "}";
@@ -252,36 +316,6 @@ public class GenerateVerifyWebhookSignatureFuncNode implements Generator {
         }
         customVarMatcher.appendTail(customReplaced);
         return customReplaced.toString();
-    }
-
-    private HeaderTemplate parseHeaderTemplate(String headerFormat) {
-        String template = headerFormat == null || headerFormat.isBlank() ? "$signature" : headerFormat;
-        Matcher matcher = TEMPLATE_VAR_PATTERN.matcher(template);
-
-        List<String> literals = new ArrayList<>();
-        List<String> variables = new ArrayList<>();
-        int currentIndex = 0;
-
-        while (matcher.find()) {
-            literals.add(template.substring(currentIndex, matcher.start()));
-            String variable = matcher.group(1);
-            if (variable == null) {
-                variable = matcher.group(2);
-            }
-            if (variable == null) {
-                variable = matcher.group(3);
-            }
-            variables.add(variable);
-            currentIndex = matcher.end();
-        }
-        literals.add(template.substring(currentIndex));
-
-        if (variables.isEmpty()) {
-            literals = List.of("", "");
-            variables = List.of("signature");
-        }
-
-        return new HeaderTemplate(literals, variables);
     }
 
     private void addHeaderTemplateExtractionStatements(List<StatementNode> statements, HeaderTemplate template) {
@@ -476,6 +510,14 @@ public class GenerateVerifyWebhookSignatureFuncNode implements Generator {
         if ("$method".equals(token)) {
             return "${request.method}";
         }
+        if (SECRET_TOKEN.equals(token)) {
+            return "${webhookSecret}";
+        }
+
+        Matcher configMatcher = CONFIG_FUNC_PATTERN.matcher(token);
+        if (configMatcher.matches()) {
+            return "${self." + configMatcher.group(1) + "}";
+        }
 
         Matcher headerMatcher = HEADER_FUNC_PATTERN.matcher(token);
         if (headerMatcher.matches()) {
@@ -489,8 +531,5 @@ public class GenerateVerifyWebhookSignatureFuncNode implements Generator {
             return "${" + token.substring(1) + "}";
         }
         return token;
-    }
-
-    private record HeaderTemplate(List<String> literals, List<String> variables) {
     }
 }
