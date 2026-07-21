@@ -269,12 +269,13 @@ public class AsyncApiRemoteMapper {
                         if (isRemoteFunctionNameValid(functionName)) {
                             Optional<NodeList<AnnotationNode>> annotationNodes =
                                     remoteFunctionNode.metadata().map(MetadataNode::annotations);
-                            String remoteRequestTypeName = annotationNodes
-                                    .flatMap(this::getDispatcherTypeFromAnnotation)
-                                    .orElseGet(() -> unescapeIdentifier(functionName.substring(2)));
+                            Optional<String> dispatcherTypeOverride =
+                                    annotationNodes.flatMap(this::getDispatcherTypeFromAnnotation);
                             RequiredParameterNode requiredParameterNode =
-                                    checkParameterContainsCustomType(remoteRequestTypeName, remoteFunctionNode);
+                                    findCustomTypeParameter(remoteFunctionNode);
                             if (requiredParameterNode != null) {
+                                String remoteRequestTypeName = dispatcherTypeOverride.orElseGet(() ->
+                                        unescapeIdentifier(resolveParameterTypeName(requiredParameterNode)));
                                 String paramName = requiredParameterNode.paramName().get().toString().trim();
                                 Node parameterTypeNode = requiredParameterNode.typeName();
                                 TypeSymbol remoteFunctionNameTypeSymbol = (TypeSymbol) semanticModel.
@@ -450,30 +451,42 @@ public class AsyncApiRemoteMapper {
         return apiDocs;
     }
 
-    private RequiredParameterNode checkParameterContainsCustomType(String customTypeName,
-                                                                   FunctionDefinitionNode remoteFunctionNode) {
+    /**
+     * Finds the remote function's data parameter - the first required parameter whose type is a
+     * named reference to a custom (record) type. The function's own name plays no part in this;
+     * only the parameter's actual declared type determines what gets generated.
+     *
+     * @param remoteFunctionNode the remote function definition node
+     * @return the resolved parameter node, or {@code null} if none of the required parameters
+     *         reference a named custom type
+     */
+    private RequiredParameterNode findCustomTypeParameter(FunctionDefinitionNode remoteFunctionNode) {
         SeparatedNodeList<ParameterNode> remoteParameters = remoteFunctionNode.functionSignature().parameters();
         for (ParameterNode remoteParameterNode : remoteParameters) {
             if (remoteParameterNode.kind() == SyntaxKind.REQUIRED_PARAM) {
                 RequiredParameterNode requiredParameterNode = (RequiredParameterNode) remoteParameterNode;
                 Node parameterTypeNode = requiredParameterNode.typeName();
-                if (parameterTypeNode.kind() == SyntaxKind.SIMPLE_NAME_REFERENCE) {
-                    SimpleNameReferenceNode simpleNameReferenceNode = (SimpleNameReferenceNode) parameterTypeNode;
-                    String simpleType = simpleNameReferenceNode.name().toString().trim();
-                    if (simpleType.equals(customTypeName)) {
-                        return requiredParameterNode;
-                    }
-                } else if (parameterTypeNode.kind() == QUALIFIED_NAME_REFERENCE) {
-                    QualifiedNameReferenceNode qualifiedNameReferenceNode =
-                            (QualifiedNameReferenceNode) parameterTypeNode;
-                    String identifier = qualifiedNameReferenceNode.identifier().text();
-                    if (identifier.equals(customTypeName)) {
-                        return requiredParameterNode;
-                    }
+                if (parameterTypeNode.kind() == SyntaxKind.SIMPLE_NAME_REFERENCE
+                        || parameterTypeNode.kind() == QUALIFIED_NAME_REFERENCE) {
+                    return requiredParameterNode;
                 }
             }
         }
         return null;
+    }
+
+    /**
+     * Reads the actual type name off a parameter resolved by {@link #findCustomTypeParameter}.
+     *
+     * @param requiredParameterNode the resolved parameter node
+     * @return the parameter's declared type name
+     */
+    private String resolveParameterTypeName(RequiredParameterNode requiredParameterNode) {
+        Node parameterTypeNode = requiredParameterNode.typeName();
+        if (parameterTypeNode.kind() == SyntaxKind.SIMPLE_NAME_REFERENCE) {
+            return ((SimpleNameReferenceNode) parameterTypeNode).name().toString().trim();
+        }
+        return ((QualifiedNameReferenceNode) parameterTypeNode).identifier().text();
     }
 
     private Optional<String> getDispatcherTypeFromAnnotation(NodeList<AnnotationNode> annotationNodes) {

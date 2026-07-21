@@ -80,6 +80,31 @@ class BallerinaToAsyncApiGeneratorTest {
             + "    }\n"
             + "}\n";
 
+    // Regression fixture for #6601 — function name "onHello" does not follow the on<ParameterType>
+    // convention even though the parameter type is ClientData. Must still generate a full spec.
+    private static final String BAL_MISMATCHED_FUNCTION_NAME =
+            "import ballerina/websocket;\n\n"
+            + "public type ClientData record {\n"
+            + "    string event;\n"
+            + "    string id;\n"
+            + "};\n\n"
+            + "public type User record {\n"
+            + "    string name;\n"
+            + "    string gender;\n"
+            + "};\n\n"
+            + "@websocket:ServiceConfig {dispatcherKey: \"event\"}\n"
+            + "service / on new websocket:Listener(9090) {\n"
+            + "    resource function get .() returns websocket:Service|websocket:UpgradeError {\n"
+            + "        return new WsService();\n"
+            + "    }\n"
+            + "}\n\n"
+            + "service class WsService {\n"
+            + "    *websocket:Service;\n"
+            + "    remote function onHello(ClientData clientData) returns User[] {\n"
+            + "        return [];\n"
+            + "    }\n"
+            + "}\n";
+
     // Three remote functions — produces orders_asyncapi.yaml (service /orders).
     // Type names Order, Cancel, Update match functionName.substring(2) exactly.
     private static final String BAL_THREE_REMOTES =
@@ -638,6 +663,25 @@ class BallerinaToAsyncApiGeneratorTest {
                 "remoteRequestTypeName 'ChatMessage' (onChatMessage.substring(2)) must appear in spec");
         Assert.assertTrue(yaml.contains("sendChatMessage"),
                 "send operation 'sendChatMessage' must appear in spec");
+    }
+
+    @Test
+    void testMismatchedFunctionName_stillGeneratesFullSpec() throws IOException {
+        // Regression test for #6601: a remote function's name no longer needs to follow
+        // on<ParameterType> - the parameter's actual declared type drives generation, not a
+        // name-derived guess.
+        List<AsyncApiConverterDiagnostic> diagnostics = run(BAL_MISMATCHED_FUNCTION_NAME);
+        Assert.assertTrue(diagnostics.isEmpty(),
+                "generator must produce no diagnostics regardless of the remote function's name");
+        String yaml = readFile("service_asyncapi.yaml");
+        Assert.assertTrue(yaml.contains("ClientData"),
+                "ClientData schema/message must appear even though the function is named 'onHello'");
+        Assert.assertTrue(yaml.contains("User"),
+                "User (return type) schema must appear even though the function is named 'onHello'");
+        Assert.assertTrue(yaml.contains("sendClientData"),
+                "send operation must be derived from the parameter's real type, not the function name");
+        Assert.assertFalse(yaml.contains("operations: {}"),
+                "operations must not be empty - a mismatched name must not cause silent skipping");
     }
 
     @Test
