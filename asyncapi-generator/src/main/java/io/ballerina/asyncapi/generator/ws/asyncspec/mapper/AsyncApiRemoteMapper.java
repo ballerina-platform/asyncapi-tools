@@ -38,11 +38,8 @@ import io.ballerina.compiler.api.symbols.TypeDescKind;
 import io.ballerina.compiler.api.symbols.TypeReferenceTypeSymbol;
 import io.ballerina.compiler.api.symbols.TypeSymbol;
 import io.ballerina.compiler.syntax.tree.AnnotationNode;
-import io.ballerina.compiler.syntax.tree.ChildNodeList;
 import io.ballerina.compiler.syntax.tree.ClassDefinitionNode;
-import io.ballerina.compiler.syntax.tree.ExplicitNewExpressionNode;
 import io.ballerina.compiler.syntax.tree.ExpressionNode;
-import io.ballerina.compiler.syntax.tree.FunctionBodyNode;
 import io.ballerina.compiler.syntax.tree.FunctionDefinitionNode;
 import io.ballerina.compiler.syntax.tree.MappingConstructorExpressionNode;
 import io.ballerina.compiler.syntax.tree.MetadataNode;
@@ -52,13 +49,11 @@ import io.ballerina.compiler.syntax.tree.ParameterNode;
 import io.ballerina.compiler.syntax.tree.QualifiedNameReferenceNode;
 import io.ballerina.compiler.syntax.tree.RequiredParameterNode;
 import io.ballerina.compiler.syntax.tree.ResourcePathParameterNode;
-import io.ballerina.compiler.syntax.tree.ReturnStatementNode;
 import io.ballerina.compiler.syntax.tree.ReturnTypeDescriptorNode;
 import io.ballerina.compiler.syntax.tree.SeparatedNodeList;
 import io.ballerina.compiler.syntax.tree.SimpleNameReferenceNode;
 import io.ballerina.compiler.syntax.tree.SpecificFieldNode;
 import io.ballerina.compiler.syntax.tree.SyntaxKind;
-import io.ballerina.compiler.syntax.tree.TypeDescriptorNode;
 
 import java.util.Arrays;
 import java.util.HashMap;
@@ -100,6 +95,7 @@ import static io.ballerina.asyncapi.generator.ws.asyncspec.Constants.X_BALLERINA
 import static io.ballerina.asyncapi.generator.ws.asyncspec.Constants.X_BALLERINA_WS_CLOSE_FRAME_TYPE_BODY;
 import static io.ballerina.asyncapi.generator.ws.asyncspec.Constants.X_BALLERINA_WS_CLOSE_FRAME_VALUE;
 import static io.ballerina.asyncapi.generator.ws.asyncspec.Constants.X_BALLERINA_WS_CLOSE_FRAME_VALUE_CLOSE;
+import static io.ballerina.asyncapi.generator.ws.asyncspec.utils.ConverterCommonUtils.getServiceClassName;
 import static io.ballerina.asyncapi.generator.ws.asyncspec.utils.ConverterCommonUtils.unescapeIdentifier;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.QUALIFIED_NAME_REFERENCE;
 
@@ -507,24 +503,6 @@ public class AsyncApiRemoteMapper {
             }
         }
         return Optional.empty();
-    }
-
-    private String getServiceClassName(FunctionDefinitionNode resource) {
-        String serviceClassName = "";
-        FunctionBodyNode functionBodyNode = resource.functionBody();
-        ChildNodeList childNodeList = functionBodyNode.children();
-        for (Node node : childNodeList) {
-            if (node instanceof ReturnStatementNode) {
-                ReturnStatementNode returnStatementNode = (ReturnStatementNode) node;
-                Optional<ExpressionNode> expression = returnStatementNode.expression();
-                if (expression.get() instanceof ExplicitNewExpressionNode) {
-                    ExplicitNewExpressionNode explicitNewExpressionNode = (ExplicitNewExpressionNode) expression.get();
-                    TypeDescriptorNode typeDescriptorNode = explicitNewExpressionNode.typeDescriptor();
-                    serviceClassName = typeDescriptorNode.toString().trim();
-                }
-            }
-        }
-        return serviceClassName;
     }
 
     private Map<String, ReturnTypeDescriptorNode> getReturnTypesFromOnErrorMethods(

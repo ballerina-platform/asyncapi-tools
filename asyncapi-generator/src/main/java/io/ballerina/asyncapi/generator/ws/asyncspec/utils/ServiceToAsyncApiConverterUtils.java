@@ -35,6 +35,7 @@ import io.ballerina.compiler.api.symbols.Symbol;
 import io.ballerina.compiler.syntax.tree.AnnotationNode;
 import io.ballerina.compiler.syntax.tree.ClassDefinitionNode;
 import io.ballerina.compiler.syntax.tree.ExpressionNode;
+import io.ballerina.compiler.syntax.tree.FunctionDefinitionNode;
 import io.ballerina.compiler.syntax.tree.ListenerDeclarationNode;
 import io.ballerina.compiler.syntax.tree.MappingConstructorExpressionNode;
 import io.ballerina.compiler.syntax.tree.MappingFieldNode;
@@ -159,13 +160,15 @@ public final class ServiceToAsyncApiConverterUtils {
                     Optional<Symbol> serviceSymbol = semanticModel.symbol(serviceNode);
                     if (serviceSymbol.isPresent() && serviceSymbol.get() instanceof ServiceDeclarationSymbol) {
                         String service = AsyncApiEndpointMapper.ENDPOINT_MAPPER.getServiceBasePath(serviceNode);
+                        String serviceClassName = resolveServiceClassName(serviceNode);
                         String updateServiceName = service;
                         if (servicesToGenerate.containsKey(service)) {
                             updateServiceName = service + HYPHEN + serviceSymbol.get().hashCode();
                         }
                         if (serviceName != null) {
-                            availableService.add(service);
-                            if (serviceName.equals(service)) {
+                            availableService.add(serviceClassName.isEmpty()
+                                    ? service : service + " (" + serviceClassName + ")");
+                            if (serviceName.equals(service) || serviceName.equals(serviceClassName)) {
                                 servicesToGenerate.put(updateServiceName, serviceNode);
                             }
                         } else {
@@ -177,6 +180,29 @@ public final class ServiceToAsyncApiConverterUtils {
                 classDefinitionNodes.add((ClassDefinitionNode) node);
             }
         }
+    }
+
+    /**
+     * Resolves the class-based service name for an anonymous service declaration by inspecting
+     * its upgrade resource (e.g. {@code resource function get .()}) for a {@code return new
+     * ChatService();} expression. Anonymous services matched only by base path (e.g. {@code /chat})
+     * have no name of their own from a caller's perspective - the class they upgrade into is what
+     * a {@code --service} filter is actually expected to match against.
+     *
+     * @param serviceNode the anonymous service declaration node
+     * @return the resolved class name, or an empty string if none could be resolved
+     */
+    private static String resolveServiceClassName(ServiceDeclarationNode serviceNode) {
+        for (Node member : serviceNode.members()) {
+            if (member.kind().equals(SyntaxKind.RESOURCE_ACCESSOR_DEFINITION)) {
+                String serviceClassName =
+                        ConverterCommonUtils.getServiceClassName((FunctionDefinitionNode) member);
+                if (!serviceClassName.isEmpty()) {
+                    return serviceClassName;
+                }
+            }
+        }
+        return "";
     }
 
     /**
