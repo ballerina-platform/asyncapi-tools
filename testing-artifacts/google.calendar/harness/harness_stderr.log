@@ -1,0 +1,9 @@
+Compiling source (UP-TO-DATE)
+	ballerinax/trigger.google.calendar:0.12.0
+
+Running executable
+
+warning: [ballerina/http] HTTPS is recommended but using HTTP
+warning: [ballerina/http] HTTPS is recommended but using HTTP
+warning: [ballerina/http] HTTPS is recommended but using HTTP
+warning: [ballerina/http] HTTPS is recommended but using HTTP
