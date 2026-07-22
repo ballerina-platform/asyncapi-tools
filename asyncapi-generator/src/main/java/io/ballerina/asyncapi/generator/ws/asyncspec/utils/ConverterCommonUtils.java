@@ -43,8 +43,16 @@ import io.ballerina.compiler.api.symbols.TypeDescKind;
 import io.ballerina.compiler.api.symbols.TypeReferenceTypeSymbol;
 import io.ballerina.compiler.api.symbols.TypeSymbol;
 import io.ballerina.compiler.api.symbols.UnionTypeSymbol;
+import io.ballerina.compiler.syntax.tree.ChildNodeList;
+import io.ballerina.compiler.syntax.tree.ExplicitNewExpressionNode;
+import io.ballerina.compiler.syntax.tree.ExpressionNode;
+import io.ballerina.compiler.syntax.tree.FunctionBodyNode;
+import io.ballerina.compiler.syntax.tree.FunctionDefinitionNode;
+import io.ballerina.compiler.syntax.tree.Node;
+import io.ballerina.compiler.syntax.tree.ReturnStatementNode;
 import io.ballerina.compiler.syntax.tree.ServiceDeclarationNode;
 import io.ballerina.compiler.syntax.tree.SyntaxKind;
+import io.ballerina.compiler.syntax.tree.TypeDescriptorNode;
 import io.ballerina.runtime.api.utils.IdentifierUtils;
 import io.ballerina.tools.diagnostics.Diagnostic;
 import io.ballerina.tools.diagnostics.DiagnosticSeverity;
@@ -310,6 +318,32 @@ public final class ConverterCommonUtils {
                     ((TypeReferenceTypeSymbol) listenerType).typeDescriptor().getModule().get());
         }
         return false;
+    }
+
+    /**
+     * Resolves the service-class name a WebSocket upgrade resource returns, e.g. {@code ChatService}
+     * for {@code resource function get .() returns websocket:Service|websocket:UpgradeError {
+     * return new ChatService(); }}.
+     *
+     * @param resource the upgrade resource function definition node
+     * @return the resolved class name, or an empty string if the resource doesn't return a
+     *         {@code new <ClassName>(...)} expression
+     */
+    public static String getServiceClassName(FunctionDefinitionNode resource) {
+        String serviceClassName = "";
+        FunctionBodyNode functionBodyNode = resource.functionBody();
+        ChildNodeList childNodeList = functionBodyNode.children();
+        for (Node node : childNodeList) {
+            if (node instanceof ReturnStatementNode returnStatementNode) {
+                Optional<ExpressionNode> expression = returnStatementNode.expression();
+                if (expression.isPresent() && expression.get() instanceof ExplicitNewExpressionNode
+                        explicitNewExpressionNode) {
+                    TypeDescriptorNode typeDescriptorNode = explicitNewExpressionNode.typeDescriptor();
+                    serviceClassName = typeDescriptorNode.toString().trim();
+                }
+            }
+        }
+        return serviceClassName;
     }
 
     private static boolean isWebsocketModule(ModuleSymbol moduleSymbol) {
