@@ -662,6 +662,13 @@ class BallerinaToAsyncApiGeneratorTest {
                 balFile, outDir, null, false, System.out);
     }
 
+    private List<AsyncApiConverterDiagnostic> runWithServiceName(String source, String serviceName)
+            throws IOException {
+        Path balFile = writeBalSource(source);
+        return BallerinaToAsyncApiGenerator.generateAsyncAPIDefinitionsAllService(
+                balFile, outDir, serviceName, false, System.out);
+    }
+
     private String readFile(String fileName) throws IOException {
         return Files.readString(outDir.resolve(fileName));
     }
@@ -749,6 +756,19 @@ class BallerinaToAsyncApiGeneratorTest {
                 "send operation must be derived from the parameter's real type, not the function name");
         Assert.assertFalse(yaml.contains("operations: {}"),
                 "operations must not be empty - a mismatched name must not cause silent skipping");
+    }
+
+    @Test
+    void testServiceNameFilter_matchesClassBasedServiceName() throws IOException {
+        // Reproduces #8713: `--service ChatService` must match the class-based service name
+        // (the name a user actually knows their service by), not just the anonymous service's
+        // base path ("/chat"), which is all AAS_CONVERTOR_101's matching currently checks.
+        List<AsyncApiConverterDiagnostic> diagnostics = runWithServiceName(BAL_ONE_REMOTE, "ChatService");
+        Assert.assertTrue(diagnostics.isEmpty(),
+                "generator must find the service by its class-based name 'ChatService', not just its "
+                        + "base path '/chat'. Diagnostics: " + diagnostics);
+        Assert.assertTrue(Files.exists(outDir.resolve("chat_asyncapi.yaml")),
+                "output file chat_asyncapi.yaml must be created when filtering by service name 'ChatService'");
     }
 
     @Test
