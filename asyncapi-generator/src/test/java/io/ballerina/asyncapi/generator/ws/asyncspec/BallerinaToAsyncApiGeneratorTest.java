@@ -717,9 +717,6 @@ class BallerinaToAsyncApiGeneratorTest {
 
     @Test
     void testMismatchedFunctionName_stillGeneratesFullSpec() throws IOException {
-        // Regression test for #6601: a remote function's name no longer needs to follow
-        // on<ParameterType> - the parameter's actual declared type drives generation, not a
-        // name-derived guess.
         List<AsyncApiConverterDiagnostic> diagnostics = run(BAL_MISMATCHED_FUNCTION_NAME);
         Assert.assertTrue(diagnostics.isEmpty(),
                 "generator must produce no diagnostics regardless of the remote function's name");
