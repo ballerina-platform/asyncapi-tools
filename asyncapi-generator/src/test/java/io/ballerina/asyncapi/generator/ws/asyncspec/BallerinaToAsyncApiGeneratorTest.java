@@ -105,6 +105,37 @@ class BallerinaToAsyncApiGeneratorTest {
             + "    }\n"
             + "}\n";
 
+    // Exact scenario from the original #6601 issue: parameter/return types referenced via a
+    // *qualified* name from an imported submodule (types:ClientData), not a same-file simple
+    // name. Exercises the QUALIFIED_NAME_REFERENCE branch of resolveParameterTypeName(), which
+    // BAL_MISMATCHED_FUNCTION_NAME above doesn't reach. Paired with TYPES_SUBMODULE_SOURCE,
+    // written into modules/types/types.bal by runWithTypesSubmodule().
+    private static final String BAL_MISMATCHED_FUNCTION_NAME_QUALIFIED_TYPE =
+            "import ballerina/websocket;\n"
+            + "import testorg/asyncspectest.types;\n\n"
+            + "@websocket:ServiceConfig {dispatcherKey: \"event\"}\n"
+            + "service / on new websocket:Listener(9090) {\n"
+            + "    resource function get .() returns websocket:Service|websocket:UpgradeError {\n"
+            + "        return new WsService();\n"
+            + "    }\n"
+            + "}\n\n"
+            + "service class WsService {\n"
+            + "    *websocket:Service;\n"
+            + "    remote function onHello(types:ClientData clientData) returns types:User[] {\n"
+            + "        return [];\n"
+            + "    }\n"
+            + "}\n";
+
+    private static final String TYPES_SUBMODULE_SOURCE =
+            "public type ClientData record {\n"
+            + "    string event;\n"
+            + "    string id;\n"
+            + "};\n\n"
+            + "public type User record {\n"
+            + "    string name;\n"
+            + "    string gender;\n"
+            + "};\n";
+
     // Three remote functions — produces orders_asyncapi.yaml (service /orders).
     // Type names Order, Cancel, Update match functionName.substring(2) exactly.
     private static final String BAL_THREE_REMOTES =
@@ -619,6 +650,18 @@ class BallerinaToAsyncApiGeneratorTest {
                 balFile, outDir, null, needJson, System.out);
     }
 
+    // Writes TYPES_SUBMODULE_SOURCE into modules/types/types.bal (importable as
+    // testorg/asyncspectest.types) alongside the given main source, so tests can exercise a
+    // qualified (cross-module) type reference the way the original #6601 issue's repro did.
+    private List<AsyncApiConverterDiagnostic> runWithTypesSubmodule(String source) throws IOException {
+        Path modulesDir = projectDir.resolve("modules").resolve("types");
+        Files.createDirectories(modulesDir);
+        Files.writeString(modulesDir.resolve("types.bal"), TYPES_SUBMODULE_SOURCE);
+        Path balFile = writeBalSource(source);
+        return BallerinaToAsyncApiGenerator.generateAsyncAPIDefinitionsAllService(
+                balFile, outDir, null, false, System.out);
+    }
+
     private String readFile(String fileName) throws IOException {
         return Files.readString(outDir.resolve(fileName));
     }
@@ -678,6 +721,30 @@ class BallerinaToAsyncApiGeneratorTest {
                 "ClientData schema/message must appear even though the function is named 'onHello'");
         Assert.assertTrue(yaml.contains("User"),
                 "User (return type) schema must appear even though the function is named 'onHello'");
+        Assert.assertTrue(yaml.contains("sendClientData"),
+                "send operation must be derived from the parameter's real type, not the function name");
+        Assert.assertFalse(yaml.contains("operations: {}"),
+                "operations must not be empty - a mismatched name must not cause silent skipping");
+    }
+
+    @Test
+    void testMismatchedFunctionName_qualifiedTypeReference_stillGeneratesFullSpec() throws IOException {
+        // Exact scenario from the original #6601 issue report: parameter/return types
+        // referenced via a qualified name from an imported submodule (types:ClientData,
+        // types:User), not a same-file simple name. testMismatchedFunctionName_
+        // stillGeneratesFullSpec above only exercises the SIMPLE_NAME_REFERENCE branch of
+        // resolveParameterTypeName() - this exercises the QUALIFIED_NAME_REFERENCE branch,
+        // which was left unchanged by the fix and needed its own direct verification.
+        List<AsyncApiConverterDiagnostic> diagnostics =
+                runWithTypesSubmodule(BAL_MISMATCHED_FUNCTION_NAME_QUALIFIED_TYPE);
+        Assert.assertTrue(diagnostics.isEmpty(),
+                "generator must produce no diagnostics regardless of the remote function's name, "
+                        + "even when the parameter type is a qualified reference to an imported module");
+        String yaml = readFile("service_asyncapi.yaml");
+        Assert.assertTrue(yaml.contains("ClientData"),
+                "ClientData schema/message must appear even with a qualified type reference");
+        Assert.assertTrue(yaml.contains("User"),
+                "User (return type) schema must appear even with a qualified type reference");
         Assert.assertTrue(yaml.contains("sendClientData"),
                 "send operation must be derived from the parameter's real type, not the function name");
         Assert.assertFalse(yaml.contains("operations: {}"),
