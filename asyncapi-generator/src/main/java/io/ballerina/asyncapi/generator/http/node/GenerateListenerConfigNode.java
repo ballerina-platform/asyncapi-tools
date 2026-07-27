@@ -18,6 +18,7 @@
 package io.ballerina.asyncapi.generator.http.node;
 
 import io.ballerina.asyncapi.generator.GeneratorException;
+import io.ballerina.asyncapi.generator.http.model.ConnectionAuthConfig;
 import io.ballerina.compiler.syntax.tree.AnnotationNode;
 import io.ballerina.compiler.syntax.tree.MarkdownDocumentationNode;
 import io.ballerina.compiler.syntax.tree.MetadataNode;
@@ -28,6 +29,7 @@ import io.ballerina.compiler.syntax.tree.TypeDefinitionNode;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createEmptyMinutiaeList;
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createEmptyNodeList;
@@ -43,6 +45,7 @@ import static io.ballerina.compiler.syntax.tree.NodeFactory.createConstantDeclar
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createMappingConstructorExpressionNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createMarkdownDocumentationNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createMetadataNode;
+import static io.ballerina.compiler.syntax.tree.NodeFactory.createRecordFieldNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createRecordFieldWithDefaultValueNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createRecordTypeDescriptorNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createSimpleNameReferenceNode;
@@ -78,17 +81,29 @@ public class GenerateListenerConfigNode {
 
     /**
      * Generates the {@code ListenerConfig} open-record type definition, with the webhook secret
-     * field plus one additional {@code string} field (default {@code ""}) per name in
-     * {@code extraConfigFields} (populated from {@code $config('name')} references in the DSL).
+     * field, one additional {@code string} field (default {@code ""}) per name in
+     * {@code extraConfigFields} (populated from {@code $config('name')} references in the DSL),
+     * and - when {@code connectionAuthConfig} is present - the outbound API auth fields matching
+     * its type/flow (e.g. {@code clientId}/{@code clientSecret}/{@code refreshToken} for an
+     * {@code oauth2} {@code authorizationCode} scheme). Secret-shaped fields (client secrets,
+     * refresh/access tokens, passwords) are required, with no default. The token/refresh URL
+     * field is defaulted to the value declared in the spec: the AsyncAPI {@code OAuthFlow}
+     * object has no way to mark a URL as varying per deployment (unlike {@code servers}, which
+     * has variables), so a fixed provider endpoint and a per-tenant one (e.g. a multi-tenant
+     * identity provider's org-scoped token URL) look identical in the spec. Defaulting - rather
+     * than hardcoding as a constant - lets the common case (a fixed global endpoint) work
+     * unmodified while still leaving the field overridable for the per-tenant case.
      *
-     * @param extraConfigFields additional configurable field names beyond {@code webhookSecret}
+     * @param extraConfigFields    additional configurable field names beyond {@code webhookSecret}
+     * @param connectionAuthConfig the resolved outbound auth configuration, if any
      * @return the generated {@link TypeDefinitionNode}
-     * @throws GeneratorException never thrown; declared for consistency with other node generators
+     * @throws GeneratorException if the connection auth configuration's type/flow is unrecognized
      */
-    public static TypeDefinitionNode generate(List<String> extraConfigFields) throws GeneratorException {
+    public static TypeDefinitionNode generate(List<String> extraConfigFields,
+            Optional<ConnectionAuthConfig> connectionAuthConfig) throws GeneratorException {
         List<Node> recordFields = new ArrayList<>();
         recordFields.add(createRecordFieldWithDefaultValueNode(
-                buildWebhookSecretDisplayMetadata(),
+                buildDisplayMetadata("Webhook Secret"),
                 null,
                 createBuiltinSimpleNameReferenceNode(null, createIdentifierToken("string")),
                 createIdentifierToken(WEBHOOK_SECRET_FIELD),
@@ -109,6 +124,10 @@ public class GenerateListenerConfigNode {
                     createToken(SEMICOLON_TOKEN)));
         }
 
+        if (connectionAuthConfig.isPresent()) {
+            recordFields.addAll(connectionAuthFields(connectionAuthConfig.get()));
+        }
+
         RecordTypeDescriptorNode recordType = createRecordTypeDescriptorNode(
                 createToken(RECORD_KEYWORD),
                 createToken(OPEN_BRACE_TOKEN),
@@ -123,6 +142,88 @@ public class GenerateListenerConfigNode {
 
         return createTypeDefinitionNode(metadataNode, createToken(PUBLIC_KEYWORD), createToken(TYPE_KEYWORD),
                 createIdentifierToken(LISTENER_CONFIG_TYPE), recordType, createToken(SEMICOLON_TOKEN));
+    }
+
+    /**
+     * Builds the {@code ListenerConfig} record fields required for a given outbound auth
+     * configuration, in the same field order used by the hand-written triggers this mirrors
+     * (e.g. {@code clientId}, {@code clientSecret}, {@code refreshUrl}, {@code refreshToken}).
+     *
+     * @param config the resolved outbound auth configuration
+     * @return the ordered list of generated field nodes
+     * @throws GeneratorException if the configuration's type/flow combination is unrecognized
+     */
+    private static List<Node> connectionAuthFields(ConnectionAuthConfig config) throws GeneratorException {
+        if (ConnectionAuthConfig.TYPE_USER_PASSWORD.equals(config.type())) {
+            return List.of(
+                    createRequiredStringField("username"),
+                    createRequiredStringField("password"));
+        }
+        if (ConnectionAuthConfig.TYPE_OAUTH2.equals(config.type())) {
+            if (ConnectionAuthConfig.FLOW_AUTHORIZATION_CODE.equals(config.flow())) {
+                return List.of(
+                        createRequiredStringField("clientId"),
+                        createRequiredStringField("clientSecret"),
+                        createUrlFieldWithDefault("refreshUrl", config.refreshUrl()),
+                        createRequiredStringField("refreshToken"));
+            }
+            if (ConnectionAuthConfig.FLOW_CLIENT_CREDENTIALS.equals(config.flow())) {
+                return List.of(
+                        createRequiredStringField("clientId"),
+                        createRequiredStringField("clientSecret"),
+                        createUrlFieldWithDefault("tokenUrl", config.tokenUrl()));
+            }
+        }
+        throw new GeneratorException(
+                "Unrecognized connection auth type/flow combination: " + config.type() + "/" + config.flow());
+    }
+
+    private static Node createRequiredStringField(String fieldName) {
+        return createRecordFieldNode(
+                buildDisplayMetadata(toDisplayLabel(fieldName)),
+                null,
+                createBuiltinSimpleNameReferenceNode(null, createIdentifierToken("string")),
+                createIdentifierToken(fieldName),
+                null,
+                createToken(SEMICOLON_TOKEN));
+    }
+
+    /**
+     * Builds a {@code string} field defaulted to the URL extracted from the spec (e.g.
+     * {@code string refreshUrl = "https://oauth2.googleapis.com/token";}). Still overridable at
+     * deployment time, since the spec cannot distinguish a provider-fixed URL from a per-tenant
+     * one (see {@link #generate}).
+     */
+    private static Node createUrlFieldWithDefault(String fieldName, String url) {
+        return createRecordFieldWithDefaultValueNode(
+                buildDisplayMetadata(toDisplayLabel(fieldName)),
+                null,
+                createBuiltinSimpleNameReferenceNode(null, createIdentifierToken("string")),
+                createIdentifierToken(fieldName),
+                createToken(EQUAL_TOKEN),
+                createBasicLiteralNode(STRING_LITERAL,
+                        createLiteralValueToken(STRING_LITERAL_TOKEN, "\"" + url + "\"",
+                                createEmptyMinutiaeList(), createEmptyMinutiaeList())),
+                createToken(SEMICOLON_TOKEN));
+    }
+
+    /**
+     * Converts a camelCase field name (e.g. {@code clientSecret}) to a display label
+     * (e.g. {@code "Client Secret"}).
+     */
+    private static String toDisplayLabel(String fieldName) {
+        StringBuilder label = new StringBuilder();
+        for (int i = 0; i < fieldName.length(); i++) {
+            char current = fieldName.charAt(i);
+            if (i == 0) {
+                label.append(Character.toUpperCase(current));
+            } else if (Character.isUpperCase(current)) {
+                label.append(' ').append(current);
+            } else {
+                label.append(current);
+            }
+        }
+        return label.toString();
     }
 
     /**
@@ -145,7 +246,7 @@ public class GenerateListenerConfigNode {
                 createToken(SEMICOLON_TOKEN));
     }
 
-    private static MetadataNode buildWebhookSecretDisplayMetadata() {
+    private static MetadataNode buildDisplayMetadata(String label) {
         AnnotationNode annotation = createAnnotationNode(
                 createToken(AT_TOKEN),
                 createSimpleNameReferenceNode(createIdentifierToken("display")),
@@ -158,7 +259,7 @@ public class GenerateListenerConfigNode {
                                         createToken(COLON_TOKEN),
                                         createBasicLiteralNode(STRING_LITERAL,
                                                 createLiteralValueToken(STRING_LITERAL_TOKEN,
-                                                        "\"Webhook Secret\"",
+                                                        "\"" + label + "\"",
                                                         createEmptyMinutiaeList(), createEmptyMinutiaeList())))),
                         createToken(CLOSE_BRACE_TOKEN)));
         return createMetadataNode(null, createNodeList(annotation));

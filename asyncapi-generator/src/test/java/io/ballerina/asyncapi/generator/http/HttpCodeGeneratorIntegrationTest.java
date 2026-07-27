@@ -165,6 +165,90 @@ public class HttpCodeGeneratorIntegrationTest {
     }
 
     @Test
+    void testGenerateWithOAuth2AuthorizationCodeConnectionAuth() throws Exception {
+        Path spec = specPath("connection_auth_oauth2_authcode.json");
+        Path outDir = Files.createTempDirectory("oauth2-authcode-gen");
+        try {
+            AsyncApiSpec asyncApiSpec = AsyncApiParser.parseFromJsonString(Files.readString(spec));
+            new HttpCodeGenerator(asyncApiSpec).generate(outDir);
+
+            String types = readFile(outDir, "data_types.bal");
+            Assert.assertTrue(
+                    types.contains("refreshUrl = \"https://oauth2.googleapis.com/token\""),
+                    "ListenerConfig should declare a refreshUrl field defaulted to the spec's refreshUrl");
+            Assert.assertTrue(types.contains("clientId"), "ListenerConfig should declare a clientId field");
+            Assert.assertTrue(types.contains("clientSecret"), "ListenerConfig should declare a clientSecret field");
+            Assert.assertTrue(types.contains("refreshToken"), "ListenerConfig should declare a refreshToken field");
+            Assert.assertFalse(types.contains("username"),
+                    "authorizationCode flow should not generate username/password fields");
+        } finally {
+            deleteDir(outDir);
+        }
+    }
+
+    @Test
+    void testGenerateWithOAuth2ClientCredentialsConnectionAuth() throws Exception {
+        Path spec = specPath("connection_auth_oauth2_clientcreds.json");
+        Path outDir = Files.createTempDirectory("oauth2-clientcreds-gen");
+        try {
+            AsyncApiSpec asyncApiSpec = AsyncApiParser.parseFromJsonString(Files.readString(spec));
+            new HttpCodeGenerator(asyncApiSpec).generate(outDir);
+
+            String types = readFile(outDir, "data_types.bal");
+            Assert.assertTrue(
+                    types.contains("tokenUrl = \"https://api.example.com/oauth/token\""),
+                    "ListenerConfig should declare a tokenUrl field defaulted to the spec's tokenUrl");
+            Assert.assertTrue(types.contains("clientId"), "ListenerConfig should declare a clientId field");
+            Assert.assertTrue(types.contains("clientSecret"), "ListenerConfig should declare a clientSecret field");
+            Assert.assertFalse(types.contains("refreshToken"),
+                    "clientCredentials flow should not generate a refreshToken field");
+        } finally {
+            deleteDir(outDir);
+        }
+    }
+
+    @Test
+    void testGenerateWithUserPasswordConnectionAuth() throws Exception {
+        Path spec = specPath("connection_auth_userpassword.json");
+        Path outDir = Files.createTempDirectory("userpassword-gen");
+        try {
+            AsyncApiSpec asyncApiSpec = AsyncApiParser.parseFromJsonString(Files.readString(spec));
+            new HttpCodeGenerator(asyncApiSpec).generate(outDir);
+
+            String types = readFile(outDir, "data_types.bal");
+            Assert.assertFalse(types.contains("refreshUrl") || types.contains("tokenUrl"),
+                    "userPassword has no token/refresh endpoint, so no URL field should be generated");
+            Assert.assertTrue(types.contains("username"), "ListenerConfig should declare a username field");
+            Assert.assertTrue(types.contains("password"), "ListenerConfig should declare a password field");
+            Assert.assertFalse(types.contains("clientId"),
+                    "userPassword should not generate OAuth2 client fields");
+        } finally {
+            deleteDir(outDir);
+        }
+    }
+
+    @Test
+    void testGenerateWithNoSecuritySchemesOmitsConnectionAuthArtifacts() throws Exception {
+        // Regression check: a spec with no components.securitySchemes at all must generate
+        // exactly what it did before this feature existed -- none of the extra credential
+        // or URL fields.
+        Path spec = specPath("sendgrid_minimal.json");
+        Path outDir = Files.createTempDirectory("no-connection-auth-gen");
+        try {
+            AsyncApiSpec asyncApiSpec = AsyncApiParser.parseFromJsonString(Files.readString(spec));
+            new HttpCodeGenerator(asyncApiSpec).generate(outDir);
+
+            String types = readFile(outDir, "data_types.bal");
+            Assert.assertFalse(types.contains("clientId"), "No OAuth2 fields should be generated");
+            Assert.assertFalse(types.contains("username"), "No userPassword fields should be generated");
+            Assert.assertFalse(types.contains("refreshUrl") || types.contains("tokenUrl"),
+                    "No connection-auth URL field should be generated");
+        } finally {
+            deleteDir(outDir);
+        }
+    }
+
+    @Test
     void testGenerateMissingEventIdentifierThrows() throws Exception {
         Path spec = specPath("missing_event_identifier.json");
         AsyncApiSpec asyncApiSpec = AsyncApiParser.parseFromJsonString(Files.readString(spec));

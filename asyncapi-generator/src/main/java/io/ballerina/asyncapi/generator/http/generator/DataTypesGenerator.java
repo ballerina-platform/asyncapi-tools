@@ -19,6 +19,7 @@ package io.ballerina.asyncapi.generator.http.generator;
 
 import io.ballerina.asyncapi.core.model.component.AsyncApiSchema;
 import io.ballerina.asyncapi.generator.GeneratorException;
+import io.ballerina.asyncapi.generator.http.model.ConnectionAuthConfig;
 import io.ballerina.asyncapi.generator.http.model.WebhookAuthConfig;
 import io.ballerina.asyncapi.generator.http.node.GenerateHttpImportNode;
 import io.ballerina.asyncapi.generator.http.node.GenerateListenerConfigNode;
@@ -55,17 +56,23 @@ public class DataTypesGenerator {
 
     private final Map<String, AsyncApiSchema> schemas;
     private final Optional<WebhookAuthConfig> webhookAuthConfig;
+    private final Optional<ConnectionAuthConfig> connectionAuthConfig;
 
     /**
      * Creates a generator for the given schema map.
      *
-     * @param schemas           map of schema name to schema object from the AsyncAPI components
-     * @param webhookAuthConfig the optional webhook authentication configuration, whose
-     *                          {@code $config('name')} references become extra listener config fields
+     * @param schemas              map of schema name to schema object from the AsyncAPI components
+     * @param webhookAuthConfig    the optional webhook authentication configuration, whose
+     *                             {@code $config('name')} references become extra listener config fields
+     * @param connectionAuthConfig the optional outbound (client-side) API authentication configuration,
+     *                             whose type/flow determines any additional listener config fields
+     *                             (e.g. {@code clientId}/{@code clientSecret}/{@code refreshToken})
      */
-    public DataTypesGenerator(Map<String, AsyncApiSchema> schemas, Optional<WebhookAuthConfig> webhookAuthConfig) {
+    public DataTypesGenerator(Map<String, AsyncApiSchema> schemas, Optional<WebhookAuthConfig> webhookAuthConfig,
+            Optional<ConnectionAuthConfig> connectionAuthConfig) {
         this.schemas = schemas;
         this.webhookAuthConfig = webhookAuthConfig;
+        this.connectionAuthConfig = connectionAuthConfig;
     }
 
     /**
@@ -80,7 +87,7 @@ public class DataTypesGenerator {
                 .orElseGet(List::of);
         List<ModuleMemberDeclarationNode> typeNodes = new ArrayList<>();
         typeNodes.add(GenerateListenerConfigNode.generateDefaultSecretConst());
-        typeNodes.add(GenerateListenerConfigNode.generate(extraConfigFields));
+        typeNodes.add(GenerateListenerConfigNode.generate(extraConfigFields, connectionAuthConfig));
         List<TypeDescriptorNode> typeDescriptors = new ArrayList<>();
 
         for (Map.Entry<String, AsyncApiSchema> entry : schemas.entrySet()) {
