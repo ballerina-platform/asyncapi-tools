@@ -29,10 +29,13 @@ package io.ballerina.asyncapi.generator.http.model;
  * @param flow       for {@code type == "oauth2"}, the OAuth flow: {@code "authorizationCode"} or
  *                   {@code "clientCredentials"}; {@code null} for {@code "userPassword"}
  * @param tokenUrl   the resolved token endpoint URL for the {@code clientCredentials} flow;
- *                   {@code null} otherwise. Generated as a constant, not a user-configurable field,
- *                   since it is fixed by the provider rather than varying per deployment.
+ *                   {@code null} otherwise. Generated as a {@code ListenerConfig} field defaulted
+ *                   to this value (not hardcoded), since a spec cannot distinguish a URL that's
+ *                   fixed by the provider from one that varies per deployment (e.g. a per-tenant
+ *                   identity provider) - the default covers the common case while staying
+ *                   overridable for the other.
  * @param refreshUrl the resolved refresh endpoint URL for the {@code authorizationCode} flow;
- *                   {@code null} otherwise. Generated as a constant for the same reason.
+ *                   {@code null} otherwise. Generated the same way, for the same reason.
  */
 public record ConnectionAuthConfig(
         String type,

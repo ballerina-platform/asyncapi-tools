@@ -76,6 +76,28 @@ public class ConnectionAuthExtractorTest {
     }
 
     @Test
+    void testMultipleRecognizedSchemesThrows() throws AsyncApiParserException {
+        // Two recognized scheme entries in the same spec -- which one the trigger should
+        // actually use is ambiguous, so this must fail loudly rather than silently picking
+        // whichever one the map iterates to first.
+        String json = PREFIX + ",\"components\":{\"securitySchemes\":{"
+                + "\"basicAuth\":{\"type\":\"userPassword\"},"
+                + "\"oauthAuth\":{\"type\":\"oauth2\",\"flows\":{\"clientCredentials\":"
+                + "{\"tokenUrl\":\"https://example.com/token\","
+                + "\"scopes\":{\"read\":\"Read access\"}}}}}}}";
+        AsyncApiSpec spec = AsyncApiParser.parseFromJsonString(json);
+        try {
+            new ConnectionAuthExtractor(spec).extract();
+            Assert.fail("Expected GeneratorException for multiple recognized auth schemes");
+        } catch (GeneratorException e) {
+            Assert.assertTrue(e.getMessage().contains("Multiple outbound auth schemes"),
+                    "Exception should identify the ambiguity: " + e.getMessage());
+            Assert.assertTrue(e.getMessage().contains("basicAuth") && e.getMessage().contains("oauthAuth"),
+                    "Exception should name both conflicting scheme keys: " + e.getMessage());
+        }
+    }
+
+    @Test
     void testOAuth2AuthorizationCodeFlow() throws AsyncApiParserException, GeneratorException {
         String json = PREFIX + ",\"components\":{\"securitySchemes\":{\"oauthAuth\":"
                 + "{\"type\":\"oauth2\",\"flows\":{\"authorizationCode\":"

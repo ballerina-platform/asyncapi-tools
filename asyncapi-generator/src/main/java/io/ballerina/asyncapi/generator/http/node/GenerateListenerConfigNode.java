@@ -28,8 +28,10 @@ import io.ballerina.compiler.syntax.tree.RecordTypeDescriptorNode;
 import io.ballerina.compiler.syntax.tree.TypeDefinitionNode;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createEmptyMinutiaeList;
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createEmptyNodeList;
@@ -125,7 +127,19 @@ public class GenerateListenerConfigNode {
         }
 
         if (connectionAuthConfig.isPresent()) {
-            recordFields.addAll(connectionAuthFields(connectionAuthConfig.get()));
+            ConnectionAuthConfig config = connectionAuthConfig.get();
+            List<String> authFieldNames = connectionAuthFieldNames(config);
+            Set<String> existingFieldNames = new HashSet<>(extraConfigFields);
+            existingFieldNames.add(WEBHOOK_SECRET_FIELD);
+            List<String> collisions = authFieldNames.stream().filter(existingFieldNames::contains).toList();
+            if (!collisions.isEmpty()) {
+                throw new GeneratorException(
+                        "Outbound auth field name(s) " + collisions + " collide with existing webhook "
+                                + "DSL config field name(s) declared via $config('...') - rename the "
+                                + "colliding reference(s) in the webhook DSL, since generating both would "
+                                + "produce a ListenerConfig with duplicate fields that fails to compile.");
+            }
+            recordFields.addAll(connectionAuthFields(config, authFieldNames));
         }
 
         RecordTypeDescriptorNode recordType = createRecordTypeDescriptorNode(
@@ -145,37 +159,53 @@ public class GenerateListenerConfigNode {
     }
 
     /**
-     * Builds the {@code ListenerConfig} record fields required for a given outbound auth
+     * Resolves the {@code ListenerConfig} field names required for a given outbound auth
      * configuration, in the same field order used by the hand-written triggers this mirrors
      * (e.g. {@code clientId}, {@code clientSecret}, {@code refreshUrl}, {@code refreshToken}).
+     * The single source of truth for both the field-name-collision check in {@link #generate}
+     * and the actual field nodes built by {@link #connectionAuthFields}.
      *
      * @param config the resolved outbound auth configuration
-     * @return the ordered list of generated field nodes
+     * @return the ordered list of required field names
      * @throws GeneratorException if the configuration's type/flow combination is unrecognized
      */
-    private static List<Node> connectionAuthFields(ConnectionAuthConfig config) throws GeneratorException {
+    private static List<String> connectionAuthFieldNames(ConnectionAuthConfig config) throws GeneratorException {
         if (ConnectionAuthConfig.TYPE_USER_PASSWORD.equals(config.type())) {
-            return List.of(
-                    createRequiredStringField("username"),
-                    createRequiredStringField("password"));
+            return List.of("username", "password");
         }
         if (ConnectionAuthConfig.TYPE_OAUTH2.equals(config.type())) {
             if (ConnectionAuthConfig.FLOW_AUTHORIZATION_CODE.equals(config.flow())) {
-                return List.of(
-                        createRequiredStringField("clientId"),
-                        createRequiredStringField("clientSecret"),
-                        createUrlFieldWithDefault("refreshUrl", config.refreshUrl()),
-                        createRequiredStringField("refreshToken"));
+                return List.of("clientId", "clientSecret", "refreshUrl", "refreshToken");
             }
             if (ConnectionAuthConfig.FLOW_CLIENT_CREDENTIALS.equals(config.flow())) {
-                return List.of(
-                        createRequiredStringField("clientId"),
-                        createRequiredStringField("clientSecret"),
-                        createUrlFieldWithDefault("tokenUrl", config.tokenUrl()));
+                return List.of("clientId", "clientSecret", "tokenUrl");
             }
         }
         throw new GeneratorException(
                 "Unrecognized connection auth type/flow combination: " + config.type() + "/" + config.flow());
+    }
+
+    /**
+     * Builds the {@code ListenerConfig} record field nodes for the given field names, using a
+     * defaulted URL field for {@code refreshUrl}/{@code tokenUrl} and a plain required field for
+     * everything else (see {@link #createUrlFieldWithDefault} and {@link #createRequiredStringField}).
+     *
+     * @param config     the resolved outbound auth configuration (source of the URL default values)
+     * @param fieldNames the field names to build, as resolved by {@link #connectionAuthFieldNames}
+     * @return the ordered list of generated field nodes
+     */
+    private static List<Node> connectionAuthFields(ConnectionAuthConfig config, List<String> fieldNames) {
+        List<Node> fields = new ArrayList<>();
+        for (String fieldName : fieldNames) {
+            if ("refreshUrl".equals(fieldName)) {
+                fields.add(createUrlFieldWithDefault(fieldName, config.refreshUrl()));
+            } else if ("tokenUrl".equals(fieldName)) {
+                fields.add(createUrlFieldWithDefault(fieldName, config.tokenUrl()));
+            } else {
+                fields.add(createRequiredStringField(fieldName));
+            }
+        }
+        return fields;
     }
 
     private static Node createRequiredStringField(String fieldName) {

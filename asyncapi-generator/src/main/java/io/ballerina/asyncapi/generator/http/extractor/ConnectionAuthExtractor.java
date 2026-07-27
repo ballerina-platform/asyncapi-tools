@@ -25,8 +25,10 @@ import io.ballerina.asyncapi.core.model.security.AsyncApiSecurityScheme;
 import io.ballerina.asyncapi.generator.GeneratorException;
 import io.ballerina.asyncapi.generator.http.model.ConnectionAuthConfig;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 /**
  * Extracts outbound (client-side) API authentication configuration from the standard
@@ -54,12 +56,19 @@ public final class ConnectionAuthExtractor {
     /**
      * Extracts the outbound auth configuration from the spec's {@code components.securitySchemes}.
      *
-     * @return an {@link Optional} containing the resolved {@link ConnectionAuthConfig} if a
-     *         recognized scheme type ({@code oauth2} or {@code userPassword}) is present;
+     * <p>Exactly one {@code oauth2}/{@code userPassword} entry is expected. If more than one is
+     * declared, which one the generated trigger should actually use is genuinely ambiguous -
+     * rather than silently picking the first one encountered and leaving the rest to be
+     * discovered missing at runtime, this fails loudly and names the conflicting entries so the
+     * spec author can remove the ones that don't apply to this trigger's outbound calls.
+     *
+     * @return an {@link Optional} containing the resolved {@link ConnectionAuthConfig} if exactly
+     *         one recognized scheme type ({@code oauth2} or {@code userPassword}) is present;
      *         {@link Optional#empty()} if no security schemes are declared at all, or only
      *         scheme types outside this extractor's scope (e.g. {@code apiKey}, {@code http})
-     * @throws GeneratorException if a recognized scheme type is present but in an unsupported
-     *                            shape (unsupported {@code oauth2} flow, or a required URL missing)
+     * @throws GeneratorException if more than one recognized scheme is declared, or if the single
+     *                            recognized scheme is present but in an unsupported shape
+     *                            (unsupported {@code oauth2} flow, or a required URL missing)
      */
     public Optional<ConnectionAuthConfig> extract() throws GeneratorException {
         Optional<AsyncApiComponent> components = asyncApiSpec.getAsyncApiComponents();
@@ -71,19 +80,29 @@ public final class ConnectionAuthExtractor {
             return Optional.empty();
         }
 
-        for (AsyncApiSecurityScheme scheme : securitySchemes.values()) {
-            if (scheme == null || scheme.type() == null) {
-                continue;
-            }
-            if (ConnectionAuthConfig.TYPE_USER_PASSWORD.equals(scheme.type())) {
-                return Optional.of(new ConnectionAuthConfig(
-                        ConnectionAuthConfig.TYPE_USER_PASSWORD, null, null, null));
-            }
-            if (ConnectionAuthConfig.TYPE_OAUTH2.equals(scheme.type())) {
-                return Optional.of(extractOAuth2(scheme));
-            }
+        List<Map.Entry<String, AsyncApiSecurityScheme>> candidates = securitySchemes.entrySet().stream()
+                .filter(entry -> entry.getValue() != null && entry.getValue().type() != null)
+                .filter(entry -> ConnectionAuthConfig.TYPE_USER_PASSWORD.equals(entry.getValue().type())
+                        || ConnectionAuthConfig.TYPE_OAUTH2.equals(entry.getValue().type()))
+                .toList();
+        if (candidates.isEmpty()) {
+            return Optional.empty();
         }
-        return Optional.empty();
+        if (candidates.size() > 1) {
+            String names = candidates.stream().map(Map.Entry::getKey).collect(Collectors.joining(", "));
+            throw new GeneratorException(
+                    "Multiple outbound auth schemes declared under components.securitySchemes (" + names + ") "
+                            + "- only one is supported per spec, since it's ambiguous which one the generated "
+                            + "trigger should use. Remove the entries that don't apply to this trigger's "
+                            + "outbound calls.");
+        }
+
+        AsyncApiSecurityScheme scheme = candidates.get(0).getValue();
+        if (ConnectionAuthConfig.TYPE_USER_PASSWORD.equals(scheme.type())) {
+            return Optional.of(new ConnectionAuthConfig(
+                    ConnectionAuthConfig.TYPE_USER_PASSWORD, null, null, null));
+        }
+        return Optional.of(extractOAuth2(scheme));
     }
 
     private ConnectionAuthConfig extractOAuth2(AsyncApiSecurityScheme scheme) throws GeneratorException {
