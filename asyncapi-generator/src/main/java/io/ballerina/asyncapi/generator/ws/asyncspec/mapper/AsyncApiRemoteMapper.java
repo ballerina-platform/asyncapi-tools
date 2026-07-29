@@ -29,6 +29,7 @@ import io.apicurio.datamodels.models.asyncapi.v30.AsyncApi30OperationsImpl;
 import io.apicurio.datamodels.models.asyncapi.v30.AsyncApi30ReferenceImpl;
 import io.apicurio.datamodels.models.asyncapi.v30.AsyncApi30Schema;
 import io.ballerina.asyncapi.generator.ws.asyncspec.model.BalAsyncApi30MessageImpl;
+import io.ballerina.asyncapi.generator.ws.asyncspec.model.BalAsyncApi30SchemaImpl;
 import io.ballerina.compiler.api.SemanticModel;
 import io.ballerina.compiler.api.symbols.Documentable;
 import io.ballerina.compiler.api.symbols.Documentation;
@@ -66,6 +67,7 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 import static io.ballerina.asyncapi.generator.ws.asyncspec.Constants.ANNOTATION_ATTR_DISPATCHER_VALUE;
+import static io.ballerina.asyncapi.generator.ws.asyncspec.Constants.AsyncAPIType;
 import static io.ballerina.asyncapi.generator.ws.asyncspec.Constants.CAMEL_CASE_PATTERN;
 import static io.ballerina.asyncapi.generator.ws.asyncspec.Constants.CHANNELS_REFERENCE;
 import static io.ballerina.asyncapi.generator.ws.asyncspec.Constants.DISPATCHER_CONFIG_ANNOTATION;
@@ -88,6 +90,7 @@ import static io.ballerina.asyncapi.generator.ws.asyncspec.Constants.ON_PONG;
 import static io.ballerina.asyncapi.generator.ws.asyncspec.Constants.ON_TEXT_MESSAGE;
 import static io.ballerina.asyncapi.generator.ws.asyncspec.Constants.REMOTE_DESCRIPTION;
 import static io.ballerina.asyncapi.generator.ws.asyncspec.Constants.RETURN;
+import static io.ballerina.asyncapi.generator.ws.asyncspec.Constants.UNSUPPORTED_PARAMETER_TYPE;
 import static io.ballerina.asyncapi.generator.ws.asyncspec.Constants.WEBSOCKET;
 import static io.ballerina.asyncapi.generator.ws.asyncspec.Constants.X_BALLERINA_WS_CLOSE_FRAME_PATH;
 import static io.ballerina.asyncapi.generator.ws.asyncspec.Constants.X_BALLERINA_WS_CLOSE_FRAME_PATH_FRAME_TYPE;
@@ -95,6 +98,7 @@ import static io.ballerina.asyncapi.generator.ws.asyncspec.Constants.X_BALLERINA
 import static io.ballerina.asyncapi.generator.ws.asyncspec.Constants.X_BALLERINA_WS_CLOSE_FRAME_TYPE_BODY;
 import static io.ballerina.asyncapi.generator.ws.asyncspec.Constants.X_BALLERINA_WS_CLOSE_FRAME_VALUE;
 import static io.ballerina.asyncapi.generator.ws.asyncspec.Constants.X_BALLERINA_WS_CLOSE_FRAME_VALUE_CLOSE;
+import static io.ballerina.asyncapi.generator.ws.asyncspec.utils.ConverterCommonUtils.getAsyncApiSchema;
 import static io.ballerina.asyncapi.generator.ws.asyncspec.utils.ConverterCommonUtils.getServiceClassName;
 import static io.ballerina.asyncapi.generator.ws.asyncspec.utils.ConverterCommonUtils.unescapeIdentifier;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.QUALIFIED_NAME_REFERENCE;
@@ -267,88 +271,120 @@ public class AsyncApiRemoteMapper {
                                     remoteFunctionNode.metadata().map(MetadataNode::annotations);
                             Optional<String> dispatcherTypeOverride =
                                     annotationNodes.flatMap(this::getDispatcherTypeFromAnnotation);
-                            RequiredParameterNode requiredParameterNode =
-                                    findCustomTypeParameter(remoteFunctionNode);
-                            if (requiredParameterNode != null) {
-                                String remoteRequestTypeName = dispatcherTypeOverride.orElseGet(() ->
-                                        unescapeIdentifier(resolveParameterTypeName(requiredParameterNode)));
+                            FunctionSymbol remoteFunctionSymbol = (FunctionSymbol) semanticModel.
+                                    symbol(remoteFunctionNode).get();
+                            Map<String, String> remoteDocs = getRemoteDocumentation(remoteFunctionSymbol);
+
+                            RequiredParameterNode requiredParameterNode = findMessageParameter(remoteFunctionNode);
+                            String remoteRequestTypeName;
+                            BalAsyncApi30MessageImpl componentMessage;
+                            if (requiredParameterNode == null) {
+                                if (!remoteFunctionNode.functionSignature().parameters().isEmpty()) {
+                                    // Has a parameter, but its type is none of the shapes findMessageParameter
+                                    // recognizes (e.g. an array or map) - fail loudly rather than silently
+                                    // dropping the function, per #7669.
+                                    throw new NoSuchElementException(
+                                            String.format(UNSUPPORTED_PARAMETER_TYPE, functionName));
+                                }
+                                // No parameters at all: a valid dispatch target with no request payload
+                                // beyond the dispatcher key value itself (e.g. onSubscription() in #7669).
+                                remoteRequestTypeName = dispatcherTypeOverride.orElseGet(() ->
+                                        functionName.substring(2));
+                                BalAsyncApi30SchemaImpl emptySchema = getAsyncApiSchema(AsyncAPIType.OBJECT
+                                        .toString());
+                                componentMessage = responseMapper.extractInlineMessageSchema(
+                                        publishMessage, remoteRequestTypeName, emptySchema, null);
+                            } else {
                                 String paramName = requiredParameterNode.paramName().get().toString().trim();
                                 Node parameterTypeNode = requiredParameterNode.typeName();
-                                TypeSymbol remoteFunctionNameTypeSymbol = (TypeSymbol) semanticModel.
-                                        symbol(parameterTypeNode).orElseThrow();
-                                TypeReferenceTypeSymbol typeRef =
-                                        (TypeReferenceTypeSymbol) remoteFunctionNameTypeSymbol;
-                                TypeSymbol type = typeRef.typeDescriptor();
-                                if (type.typeKind().equals(TypeDescKind.RECORD)
-                                        || (type.typeKind().equals(TypeDescKind.INTERSECTION)
-                                        && componentMapper.excludeReadonlyIfPresent(type).typeKind()
-                                        .equals(TypeDescKind.RECORD))) {
-                                    FunctionSymbol remoteFunctionSymbol = (FunctionSymbol) semanticModel.
-                                            symbol(remoteFunctionNode).get();
-                                    Map<String, String> remoteDocs = getRemoteDocumentation(remoteFunctionSymbol);
-
-                                    String paramDescription = null;
-                                    if (remoteDocs.containsKey(paramName)) {
-                                        paramDescription = remoteDocs.get(paramName);
-                                        remoteDocs.remove(paramName);
-                                    }
-                                    BalAsyncApi30MessageImpl componentMessage = responseMapper.
-                                            extractMessageSchemaReference(publishMessage, remoteRequestTypeName,
-                                                    remoteFunctionNameTypeSymbol, dispatcherValue, paramDescription);
-                                    if (remoteDocs.containsKey(REMOTE_DESCRIPTION)) {
-                                        componentMessage.setDescription(remoteDocs.get(REMOTE_DESCRIPTION));
-                                        remoteDocs.remove(REMOTE_DESCRIPTION);
-                                    }
-                                    if (!functionName.endsWith(ERROR)) {
-                                        ReturnTypeDescriptorNode customErrorReturnType = null;
-                                        if (onErrorReturnTypes.containsKey(functionName + ERROR)) {
-                                            customErrorReturnType = onErrorReturnTypes.get(functionName + ERROR);
-                                        } else if (onErrorReturnTypes.containsKey(ON_ERROR)) {
-                                            customErrorReturnType = onErrorReturnTypes.get(ON_ERROR);
-                                        }
-                                        if (Objects.nonNull(customErrorReturnType)) {
-                                            responseMapper.createResponse(subscribeMessage, componentMessage,
-                                                    customErrorReturnType.type(), null, FALSE, null);
-                                        }
-                                    }
-                                    Optional<ReturnTypeDescriptorNode> optionalRemoteReturnNode = remoteFunctionNode.
-                                            functionSignature().returnTypeDesc();
-                                    if (optionalRemoteReturnNode.isPresent()) {
-                                        Node remoteReturnType = optionalRemoteReturnNode.get().type();
-                                        String returnDescription = null;
-                                        if (remoteDocs.containsKey(RETURN)) {
-                                            returnDescription = remoteDocs.get(RETURN);
-                                            remoteDocs.remove(RETURN);
-                                        }
-                                        responseMapper.createResponse(subscribeMessage, componentMessage,
-                                                remoteReturnType, returnDescription, FALSE, null);
-                                    }
-                                    components.addMessage(remoteRequestTypeName, componentMessage);
-
-                                    // Register request message on channel and create send operation
-                                    BalAsyncApi30MessageImpl channelMsgRef = new BalAsyncApi30MessageImpl();
-                                    channelMsgRef.setParent(channelItem);
-                                    channelMsgRef.set$ref(MESSAGE_REFERENCE + remoteRequestTypeName);
-                                    channelItem.addMessage(remoteRequestTypeName, channelMsgRef);
-
-                                    AsyncApi30OperationImpl sendOp =
-                                            (AsyncApi30OperationImpl) operations.createOperation();
-                                    sendOp.setAction("send");
-                                    AsyncApi30ReferenceImpl channelRef =
-                                            (AsyncApi30ReferenceImpl) sendOp.createReference();
-                                    channelRef.set$ref(CHANNELS_REFERENCE + channelKey);
-                                    sendOp.setChannel(channelRef);
-                                    AsyncApi30ReferenceImpl sendMsgRef =
-                                            (AsyncApi30ReferenceImpl) sendOp.createReference();
-                                    sendMsgRef.set$ref(CHANNELS_REFERENCE + channelKey
-                                            + "/messages/" + remoteRequestTypeName);
-                                    sendOp.addMessage(sendMsgRef);
-                                    operations.addItem("send" + remoteRequestTypeName, sendOp);
+                                String paramDescription = null;
+                                if (remoteDocs.containsKey(paramName)) {
+                                    paramDescription = remoteDocs.get(paramName);
+                                    remoteDocs.remove(paramName);
+                                }
+                                if (isPrimitiveTypeDesc(parameterTypeNode.kind())) {
+                                    // A primitive-typed parameter (e.g. `string`) has no named type to
+                                    // derive a message name from, unlike a record/class reference - fall
+                                    // back to the function name, same as the zero-parameter case above.
+                                    remoteRequestTypeName = dispatcherTypeOverride.orElseGet(() ->
+                                            functionName.substring(2));
+                                    BalAsyncApi30SchemaImpl primitiveSchema =
+                                            getAsyncApiSchema(parameterTypeNode.kind());
+                                    componentMessage = responseMapper.extractInlineMessageSchema(
+                                            publishMessage, remoteRequestTypeName, primitiveSchema,
+                                            paramDescription);
                                 } else {
-                                    throw new NoSuchElementException(String.format(FUNCTION_SIGNATURE_WRONG_TYPE,
-                                            remoteRequestTypeName, type.typeKind().getName()));
+                                    remoteRequestTypeName = dispatcherTypeOverride.orElseGet(() ->
+                                            unescapeIdentifier(resolveParameterTypeName(requiredParameterNode)));
+                                    TypeSymbol remoteFunctionNameTypeSymbol = (TypeSymbol) semanticModel.
+                                            symbol(parameterTypeNode).orElseThrow();
+                                    TypeReferenceTypeSymbol typeRef =
+                                            (TypeReferenceTypeSymbol) remoteFunctionNameTypeSymbol;
+                                    TypeSymbol type = typeRef.typeDescriptor();
+                                    if (type.typeKind().equals(TypeDescKind.RECORD)
+                                            || (type.typeKind().equals(TypeDescKind.INTERSECTION)
+                                            && componentMapper.excludeReadonlyIfPresent(type).typeKind()
+                                            .equals(TypeDescKind.RECORD))) {
+                                        componentMessage = responseMapper.extractMessageSchemaReference(
+                                                publishMessage, remoteRequestTypeName, remoteFunctionNameTypeSymbol,
+                                                dispatcherValue, paramDescription);
+                                    } else {
+                                        throw new NoSuchElementException(String.format(
+                                                FUNCTION_SIGNATURE_WRONG_TYPE, remoteRequestTypeName,
+                                                type.typeKind().getName()));
+                                    }
                                 }
                             }
+
+                            if (remoteDocs.containsKey(REMOTE_DESCRIPTION)) {
+                                componentMessage.setDescription(remoteDocs.get(REMOTE_DESCRIPTION));
+                                remoteDocs.remove(REMOTE_DESCRIPTION);
+                            }
+                            if (!functionName.endsWith(ERROR)) {
+                                ReturnTypeDescriptorNode customErrorReturnType = null;
+                                if (onErrorReturnTypes.containsKey(functionName + ERROR)) {
+                                    customErrorReturnType = onErrorReturnTypes.get(functionName + ERROR);
+                                } else if (onErrorReturnTypes.containsKey(ON_ERROR)) {
+                                    customErrorReturnType = onErrorReturnTypes.get(ON_ERROR);
+                                }
+                                if (Objects.nonNull(customErrorReturnType)) {
+                                    responseMapper.createResponse(subscribeMessage, componentMessage,
+                                            customErrorReturnType.type(), null, FALSE, null);
+                                }
+                            }
+                            Optional<ReturnTypeDescriptorNode> optionalRemoteReturnNode = remoteFunctionNode.
+                                    functionSignature().returnTypeDesc();
+                            if (optionalRemoteReturnNode.isPresent()) {
+                                Node remoteReturnType = optionalRemoteReturnNode.get().type();
+                                String returnDescription = null;
+                                if (remoteDocs.containsKey(RETURN)) {
+                                    returnDescription = remoteDocs.get(RETURN);
+                                    remoteDocs.remove(RETURN);
+                                }
+                                responseMapper.createResponse(subscribeMessage, componentMessage,
+                                        remoteReturnType, returnDescription, FALSE, null);
+                            }
+                            components.addMessage(remoteRequestTypeName, componentMessage);
+
+                            // Register request message on channel and create send operation
+                            BalAsyncApi30MessageImpl channelMsgRef = new BalAsyncApi30MessageImpl();
+                            channelMsgRef.setParent(channelItem);
+                            channelMsgRef.set$ref(MESSAGE_REFERENCE + remoteRequestTypeName);
+                            channelItem.addMessage(remoteRequestTypeName, channelMsgRef);
+
+                            AsyncApi30OperationImpl sendOp =
+                                    (AsyncApi30OperationImpl) operations.createOperation();
+                            sendOp.setAction("send");
+                            AsyncApi30ReferenceImpl channelRef =
+                                    (AsyncApi30ReferenceImpl) sendOp.createReference();
+                            channelRef.set$ref(CHANNELS_REFERENCE + channelKey);
+                            sendOp.setChannel(channelRef);
+                            AsyncApi30ReferenceImpl sendMsgRef =
+                                    (AsyncApi30ReferenceImpl) sendOp.createReference();
+                            sendMsgRef.set$ref(CHANNELS_REFERENCE + channelKey
+                                    + "/messages/" + remoteRequestTypeName);
+                            sendOp.addMessage(sendMsgRef);
+                            operations.addItem("send" + remoteRequestTypeName, sendOp);
                         }
                     } else {
                         throw new NoSuchElementException(FUNCTION_WRONG_NAME);
@@ -448,22 +484,29 @@ public class AsyncApiRemoteMapper {
     }
 
     /**
-     * Finds the remote function's data parameter - the first required parameter whose type is a
-     * named reference to a custom (record) type. The function's own name plays no part in this;
-     * only the parameter's actual declared type determines what gets generated.
+     * Finds the remote function's data parameter - the first required parameter whose type is
+     * either a named reference to a custom (record or class) type, or a primitive scalar type
+     * (see {@link #isPrimitiveTypeDesc}). The function's own name plays no part in this; only the
+     * parameter's actual declared type determines what gets generated.
+     *
+     * <p>Returning {@code null} here does not by itself mean the function is skipped - callers
+     * distinguish "no parameters at all" (a valid, payload-less remote function - see #7669) from
+     * "has a parameter, but its type isn't one of the shapes above" (genuinely unsupported, and
+     * reported rather than silently dropped).
      *
      * @param remoteFunctionNode the remote function definition node
-     * @return the resolved parameter node, or {@code null} if none of the required parameters
-     *         reference a named custom type
+     * @return the resolved parameter node, or {@code null} if there are no required parameters,
+     *         or none of them reference a named custom type or a primitive scalar type
      */
-    private RequiredParameterNode findCustomTypeParameter(FunctionDefinitionNode remoteFunctionNode) {
+    private RequiredParameterNode findMessageParameter(FunctionDefinitionNode remoteFunctionNode) {
         SeparatedNodeList<ParameterNode> remoteParameters = remoteFunctionNode.functionSignature().parameters();
         for (ParameterNode remoteParameterNode : remoteParameters) {
             if (remoteParameterNode.kind() == SyntaxKind.REQUIRED_PARAM) {
                 RequiredParameterNode requiredParameterNode = (RequiredParameterNode) remoteParameterNode;
                 Node parameterTypeNode = requiredParameterNode.typeName();
                 if (parameterTypeNode.kind() == SyntaxKind.SIMPLE_NAME_REFERENCE
-                        || parameterTypeNode.kind() == QUALIFIED_NAME_REFERENCE) {
+                        || parameterTypeNode.kind() == QUALIFIED_NAME_REFERENCE
+                        || isPrimitiveTypeDesc(parameterTypeNode.kind())) {
                     return requiredParameterNode;
                 }
             }
@@ -472,7 +515,8 @@ public class AsyncApiRemoteMapper {
     }
 
     /**
-     * Reads the actual type name off a parameter resolved by {@link #findCustomTypeParameter}.
+     * Reads the actual type name off a parameter resolved by {@link #findMessageParameter} whose
+     * type is a named record/class reference (not a primitive - see {@link #isPrimitiveTypeDesc}).
      *
      * @param requiredParameterNode the resolved parameter node
      * @return the parameter's declared type name
@@ -483,6 +527,25 @@ public class AsyncApiRemoteMapper {
             return ((SimpleNameReferenceNode) parameterTypeNode).name().toString().trim();
         }
         return ((QualifiedNameReferenceNode) parameterTypeNode).identifier().text();
+    }
+
+    /**
+     * True for the built-in scalar type-descriptor kinds that {@link ConverterCommonUtils#
+     * getAsyncApiSchema(SyntaxKind)} can turn directly into an inline AsyncAPI schema - the same
+     * set already supported on the return-type side (see {@code AsyncApiResponseMapper#
+     * createResponse}). Deliberately narrower than every kind that method accepts (e.g. excludes
+     * {@code ARRAY_TYPE_DESC}/{@code MAP_TYPE_DESC}): this only needs to cover what a remote
+     * function *parameter* can validly be shaped as for #7669, not every return-type shape.
+     *
+     * @param kind the parameter's type-descriptor syntax kind
+     * @return {@code true} if it's a supported primitive scalar type
+     */
+    private static boolean isPrimitiveTypeDesc(SyntaxKind kind) {
+        return switch (kind) {
+            case SyntaxKind.STRING_TYPE_DESC, SyntaxKind.INT_TYPE_DESC, SyntaxKind.BOOLEAN_TYPE_DESC,
+                    SyntaxKind.DECIMAL_TYPE_DESC, SyntaxKind.FLOAT_TYPE_DESC -> true;
+            default -> false;
+        };
     }
 
     private Optional<String> getDispatcherTypeFromAnnotation(NodeList<AnnotationNode> annotationNodes) {
