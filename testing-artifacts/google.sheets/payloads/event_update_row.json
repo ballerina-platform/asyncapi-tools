@@ -1,0 +1,16 @@
+{
+  "spreadsheetId": "test-spreadsheet-id",
+  "spreadsheetName": "Test Spreadsheet",
+  "worksheetId": 0,
+  "worksheetName": "Sheet1",
+  "rangeUpdated": "Sheet1!B2",
+  "startingRowPosition": 2,
+  "startingColumnPosition": 2,
+  "endRowPosition": 2,
+  "endColumnPosition": 2,
+  "newValues": [["updated value"]],
+  "lastRowWithContent": 5,
+  "lastColumnWithContent": 1,
+  "eventType": "updateRow",
+  "eventData": {}
+}

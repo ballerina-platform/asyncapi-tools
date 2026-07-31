@@ -1,0 +1,3 @@
+Action,RemoteFunction,PayloadType,Tested,CodegenOK,Issue
+onAppendRow,onAppendRow,event_append_row.json,Yes,Yes,
+onUpdateRow,onUpdateRow,event_update_row.json,Yes,Yes,
