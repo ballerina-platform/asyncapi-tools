@@ -94,6 +94,7 @@ public class DispatchTestGenerator {
         }
 
         source.append(buildSendHelper());
+        source.append(buildWaitHelper());
 
         for (DispatchTestCase testCase : testCases) {
             source.append(buildTestFunction(testCase));
@@ -116,7 +117,8 @@ public class DispatchTestGenerator {
         return "import ballerina/test;\n"
                 + "import ballerina/http;\n"
                 + "import ballerina/crypto;\n"
-                + "import ballerina/io;\n\n"
+                + "import ballerina/io;\n"
+                + "import ballerina/lang.runtime;\n\n"
                 + "const string TRIGGER_TEST_SECRET = \"" + TEST_SECRET + "\";\n"
                 + "const int TRIGGER_TEST_PORT = " + TEST_PORT + ";\n"
                 + "const string TRIGGER_PAYLOAD_DIR = \"" + DEFAULT_PAYLOAD_DIR + "\";\n\n"
@@ -195,8 +197,26 @@ public class DispatchTestGenerator {
                 + "    http:Response response = check sendSignedTriggerWebhook(\""
                 + testCase.headerValue() + "\", \"" + testCase.eventIdentifier() + "\");\n"
                 + "    test:assertEquals(response.statusCode, http:STATUS_OK);\n"
-                + "    test:assertTrue(triggerFired[\"" + trackerKey + "\"] ?: false, \""
+                + "    test:assertTrue(waitForDispatch(\"" + trackerKey + "\"), \""
                 + trackerKey + " should have fired\");\n"
+                + "}\n\n";
+    }
+
+    /**
+     * Emits the {@code waitForDispatch} helper: the dispatcher acks before invoking the user's
+     * handler, so the HTTP response the test client receives does not guarantee the handler has
+     * finished running yet on the server side. Polls {@code triggerFired} briefly instead of
+     * checking it once immediately after the response returns.
+     */
+    private String buildWaitHelper() {
+        return "function waitForDispatch(string trackerKey) returns boolean {\n"
+                + "    foreach int i in 0 ..< 20 {\n"
+                + "        if triggerFired[trackerKey] ?: false {\n"
+                + "            return true;\n"
+                + "        }\n"
+                + "        runtime:sleep(0.05);\n"
+                + "    }\n"
+                + "    return false;\n"
                 + "}\n\n";
     }
 
