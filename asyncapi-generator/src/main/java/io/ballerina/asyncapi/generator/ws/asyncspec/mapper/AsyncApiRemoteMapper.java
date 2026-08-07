@@ -280,9 +280,7 @@ public class AsyncApiRemoteMapper {
                             BalAsyncApi30MessageImpl componentMessage;
                             if (requiredParameterNode == null) {
                                 if (!remoteFunctionNode.functionSignature().parameters().isEmpty()) {
-                                    // Has a parameter, but its type is none of the shapes findMessageParameter
-                                    // recognizes (e.g. an array or map) - fail loudly rather than silently
-                                    // dropping the function, per #7669.
+                                    // Unsupported parameter type - fail loudly instead of silently dropping it.
                                     throw new NoSuchElementException(
                                             String.format(UNSUPPORTED_PARAMETER_TYPE, functionName));
                                 }
