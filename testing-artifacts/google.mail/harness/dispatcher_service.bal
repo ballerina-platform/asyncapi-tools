@@ -132,17 +132,7 @@ service class DispatcherService {
         if messagesAdded is gmail:HistoryMessageAdded[] {
             if messagesAdded.length() > 0 {
                 foreach gmail:HistoryMessageAdded newMessage in messagesAdded {
-                    gmail:Message? msg = newMessage.message;
-                    if msg is gmail:Message && msg.labelIds is string[] {
-                        foreach var labelId in <string[]>msg.labelIds {
-                            match labelId {
-                                INBOX => {
-                                    check self.dispatchNewMessage(newMessage);
-                                    check self.dispatchNewThread(newMessage);
-                                }
-                            }
-                        }
-                    }
+                    check self.dispatchNewMessage(newMessage);
                 }
             }
         }
@@ -172,10 +162,19 @@ service class DispatcherService {
             return;
         }
         gmail:Message message = check readMessage(self.gmailConfig, <@untainted>msg.id);
-        check self.executeRemoteFunc(message, "newEmail", "GmailService", "onNewEmail");
-        MessageBodyPart[] msgAttachments = convertToMessageBodyParts(getAttachments(message));
-        if (msgAttachments.length() > 0) {
-            check self.dispatchNewAttachment(msgAttachments, message);
+        if message.labelIds is string[] {
+            foreach var labelId in <string[]>message.labelIds {
+                match labelId {
+                    INBOX => {
+                        check self.executeRemoteFunc(message, "newEmail", "GmailService", "onNewEmail");
+                        MessageBodyPart[] msgAttachments = convertToMessageBodyParts(getAttachments(message));
+                        if (msgAttachments.length() > 0) {
+                            check self.dispatchNewAttachment(msgAttachments, message);
+                        }
+                        check self.dispatchNewThread(newMessage);
+                    }
+                }
+            }
         }
     }
 

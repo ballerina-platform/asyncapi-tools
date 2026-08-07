@@ -1,5 +1,13 @@
 # Google Mail Trigger — Dispatch-Verification Summary
 
+**Status: fix verified, 11/11 passing.** The bug documented below is fixed in
+`asyncapi-triggers` branch `fix/gmail-new-message-dispatch-inbox-check` (moved the Inbox check
+from `dispatch()` into `dispatchNewMessage()`, after the full message - with its real `labelIds` -
+is fetched). This harness's own `dispatcher_service.bal` copy has the same fix applied, and a
+re-run confirms all 7 remote functions now fire correctly; see the updated results table below.
+The original 6/11 findings are kept as-is beneath this note since they're what the filed issue
+references.
+
 **Scope:** Dispatch/routing logic only, for all 7 remote functions on the `google.mail` trigger's
 single `GmailService`, against the real, currently-shipped listener/dispatcher/connector code
 (`asyncapi-triggers/asyncapi/google.mail/` on `ballerinax/googleapis.gmail` 4.2.0, the exact
@@ -33,7 +41,7 @@ identified by reading `dispatch()` directly: a new inbox message always fires `o
 `STARRED` label add/remove fires both the generic and the starred-specific event from the same
 history entry.
 
-## Result: 6 / 11 checks pass (4 of 7 remote functions work; 3 never fire)
+## Result (original run, before the fix): 6 / 11 checks pass (4 of 7 remote functions work; 3 never fire)
 
 | Scenario | Expected | Result |
 |---|---|---|
@@ -44,6 +52,20 @@ history entry.
 | 5 - starred label added | `onEmailLabelAdded`, `onEmailStarred` | PASS (both) |
 | 6 - non-starred label removed | `onEmailLabelRemoved` | PASS |
 | 7 - starred label removed | `onEmailLabelRemoved`, `onEmailStarRemoved` | PASS (both) |
+
+## Result (after the fix): 11 / 11 checks pass
+
+| Scenario | Expected | Result |
+|---|---|---|
+| 1 - new email, no thread/attachment | `onNewEmail` | PASS |
+| 2 - new email, starts a thread | `onNewEmail`, `onNewThread` | PASS (both) |
+| 3 - new email with attachment | `onNewEmail`, `onNewAttachment` | PASS (both) |
+| 4 - non-starred label added | `onEmailLabelAdded` | PASS |
+| 5 - starred label added | `onEmailLabelAdded`, `onEmailStarred` | PASS (both) |
+| 6 - non-starred label removed | `onEmailLabelRemoved` | PASS |
+| 7 - starred label removed | `onEmailLabelRemoved`, `onEmailStarRemoved` | PASS (both) |
+
+Raw driver output for this run: `test_results.csv` in this directory.
 
 ## Root cause: a real production bug, not a mock artifact
 

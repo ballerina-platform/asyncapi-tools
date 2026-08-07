@@ -1,7 +1,7 @@
 Action,RemoteFunction,PayloadType,Tested,CodegenOK,Issue
-onNewEmail,onNewEmail,history_scenario1.json,Yes,No,"Never fires - connector strips labelIds from messagesAdded[].message (data_mappings.bal:416-423), so dispatcher_service.bal:136's msg.labelIds is string[] gate is always false in production"
-onNewThread,onNewThread,history_scenario2.json,Yes,No,"Never fires - same root cause as onNewEmail (dispatchNewThread is only reachable from inside the same dead branch)"
-onNewAttachment,onNewAttachment,history_scenario3.json,Yes,No,"Never fires - same root cause as onNewEmail (dispatchNewAttachment is only reachable from inside dispatchNewMessage, which is never called)"
+onNewEmail,onNewEmail,history_scenario1.json,Yes,Yes,"Fixed - Inbox check moved from dispatch() (read the connector-stripped labelIds-less summary) into dispatchNewMessage() (checks the full message's labelIds after readMessage())"
+onNewThread,onNewThread,history_scenario2.json,Yes,Yes,"Fixed - same change as onNewEmail; dispatchNewThread is now called from inside dispatchNewMessage's Inbox-check branch"
+onNewAttachment,onNewAttachment,history_scenario3.json,Yes,Yes,"Fixed - same change as onNewEmail; dispatchNewAttachment is reachable again now that dispatchNewMessage's gate passes"
 onEmailLabelAdded,onEmailLabelAdded,history_scenario4.json,Yes,Yes,
 onEmailStarred,onEmailStarred,history_scenario5.json,Yes,Yes,
 onEmailLabelRemoved,onEmailLabelRemoved,history_scenario6.json,Yes,Yes,
