@@ -67,6 +67,7 @@ service class DispatcherService {
         if (self.subscriptionResource === incomingSubscription) {
             string? pageToken = ();
             boolean historyFetchFailed = false;
+            boolean dispatchFailed = false;
             string startId = self.getStartHistoryId();
             string lastHistoryId = startId;
             while true {
@@ -75,17 +76,34 @@ service class DispatcherService {
                     gmail:History[]? historyList = historyResponse.history;
                     if historyList is gmail:History[] {
                         foreach gmail:History historyItem in historyList {
-                            check self.dispatch(historyItem);
+                            error? dispatchResult = self.dispatch(historyItem);
+                            if dispatchResult is error {
+                                // Stop here - don't advance the checkpoint past this item (it must
+                                // be retried, not silently skipped), and don't attempt later items
+                                // in this batch either, so they can't get checkpointed ahead of a
+                                // still-unresolved failure earlier in the same batch.
+                                log:printError(ERR_DISPATCH_FAILED, 'error = dispatchResult);
+                                dispatchFailed = true;
+                                break;
+                            }
+                            // Persist after every successful item, not once at the end of the whole
+                            // batch - a later item's dispatch failure must not erase the checkpoint
+                            // for items that already succeeded before it.
                             string? itemId = historyItem.id;
                             if itemId is string {
                                 lastHistoryId = itemId;
+                                self.setStartHistoryId(lastHistoryId);
                             }
                         }
+                    }
+                    if dispatchFailed {
+                        break;
                     }
                     // Prefer the mailbox-level historyId from the response as the next cursor
                     string? responseHistoryId = historyResponse.historyId;
                     if responseHistoryId is string {
                         lastHistoryId = responseHistoryId;
+                        self.setStartHistoryId(lastHistoryId);
                     }
                     string? nextToken = historyResponse.nextPageToken;
                     if nextToken is string {
@@ -99,15 +117,16 @@ service class DispatcherService {
                     break;
                 }
             }
-            if !historyFetchFailed {
-                self.setStartHistoryId(lastHistoryId);
-                log:printDebug(NEXT_HISTORY_ID + lastHistoryId);
-            }
+            log:printDebug(NEXT_HISTORY_ID + lastHistoryId);
             if historyFetchFailed {
                 http:Response errorRes = new;
                 errorRes.statusCode = http:STATUS_INTERNAL_SERVER_ERROR;
                 check caller->respond(errorRes);
             } else {
+                // Ack 200 even if a dispatch failed partway through - the delivery itself was
+                // received fine. The failed item stays un-checkpointed and gets retried on the
+                // next natural sync; that's a more precise retry than anything Pub/Sub redelivering
+                // the same push notification would give us.
                 http:Response ackRes = new;
                 ackRes.statusCode = http:STATUS_OK;
                 check caller->respond(ackRes);

@@ -106,6 +106,7 @@ const string INFO_RETRY_SCHEDULE = "Retrying to schedule watch renewal. Attempt 
 const string ERR_WATCH_MAILBOX = "Unable to watch mailbox.";
 const string ERR_SCHEDULE = "Unable to schedule watch renewal.";
 const string ERR_HISTORY_LIST = "Unable to schedule watch renewal.";
+const string ERR_DISPATCH_FAILED = "Unable to dispatch history item.";
 
 public enum Encoding {
     ENCODING_UNSPECIFIED,

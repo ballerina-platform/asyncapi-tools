@@ -6,6 +6,16 @@ import ballerina/time;
 // calls should return. Set by the driver via POST /control/scenario before each dispatch test.
 isolated string currentScenario = "scenario1";
 
+// The startHistoryId query param captured from the most recent .../history call. Lets the driver
+// verify the checkpoint fix directly - after a batch with a partial failure, this should reflect
+// whatever the dispatcher persisted, not the value it was called with before that batch.
+isolated string lastReceivedStartHistoryId = "";
+
+// A messages/{id} request for this specific messageId returns an error instead of a fixture, so a
+// test can make one specific item in a batch fail its dispatch on purpose, without needing the
+// mock to vary its history_*.json/message_*.json fixtures per messageId (it doesn't - see below).
+const string POISON_MESSAGE_ID = "poison-message-id";
+
 // Fixed subscription resource name always echoed back by the subscription-create call below,
 // regardless of the (uuid-generated, not knowable in advance) subscription name the trigger
 // actually requests. The driver uses this exact value as the "subscription" field of its
@@ -96,14 +106,25 @@ service / on new http:Listener(8091) {
         lock {
             scenario = currentScenario;
         }
+        lock {
+            lastReceivedStartHistoryId = req.getQueryParamValue("startHistoryId") ?: "";
+        }
         json fixture = check io:fileReadJson(string `../payloads/history_${scenario}.json`);
         check caller->respond(fixture);
     }
 
     // Fakes GET /v1/users/{userId}/messages/{messageId} (dispatch-critical, via the connector).
-    // Returns the current scenario's full Message fixture regardless of the requested messageId.
+    // Returns the current scenario's full Message fixture regardless of the requested messageId,
+    // except for the reserved poison ID, which always errors - see POISON_MESSAGE_ID above.
     resource function get gmail/v1/users/[string userId]/messages/[string messageId](http:Caller caller,
             http:Request req) returns error? {
+        if messageId == POISON_MESSAGE_ID {
+            http:Response res = new;
+            res.statusCode = http:STATUS_INTERNAL_SERVER_ERROR;
+            res.setJsonPayload({"error": {"message": "mock: intentional failure for " + POISON_MESSAGE_ID}});
+            check caller->respond(res);
+            return;
+        }
         string scenario;
         lock {
             scenario = currentScenario;
@@ -134,5 +155,17 @@ service / on new http:Listener(8091) {
             currentScenario = scenario;
         }
         check caller->respond({"status": "ok", "scenario": scenario});
+    }
+
+    // Test-only control endpoint - reports the startHistoryId query param the most recent
+    // .../history call actually received, so a test can confirm the dispatcher's checkpoint moved
+    // (or didn't) between two pushes, without needing to inspect the dispatcher's internal state
+    // directly. Not part of Google's API.
+    resource function get control/lastStartId(http:Caller caller, http:Request req) returns error? {
+        string lastStartId;
+        lock {
+            lastStartId = lastReceivedStartHistoryId;
+        }
+        check caller->respond({"lastStartHistoryId": lastStartId});
     }
 }
