@@ -99,16 +99,20 @@ service class DispatcherService {
                     if dispatchFailed {
                         break;
                     }
-                    // Prefer the mailbox-level historyId from the response as the next cursor
-                    string? responseHistoryId = historyResponse.historyId;
-                    if responseHistoryId is string {
-                        lastHistoryId = responseHistoryId;
-                        self.setStartHistoryId(lastHistoryId);
-                    }
                     string? nextToken = historyResponse.nextPageToken;
                     if nextToken is string {
+                        // More pages still to come - don't persist this page's own historyId yet.
+                        // If a later page then fails, that would jump the checkpoint ahead of
+                        // content this page's response cursor doesn't actually cover yet.
                         pageToken = nextToken;
                     } else {
+                        // Last page, and everything up to here succeeded - now it's safe to prefer
+                        // the mailbox-level historyId from the response as the next cursor.
+                        string? responseHistoryId = historyResponse.historyId;
+                        if responseHistoryId is string {
+                            lastHistoryId = responseHistoryId;
+                            self.setStartHistoryId(lastHistoryId);
+                        }
                         break;
                     }
                 } else {
