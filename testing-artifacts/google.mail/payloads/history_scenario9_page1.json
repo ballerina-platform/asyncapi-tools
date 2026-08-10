@@ -1,0 +1,18 @@
+{
+  "history": [
+    {
+      "id": "9001",
+      "messagesAdded": [
+        {
+          "message": {
+            "id": "msg-page1-success",
+            "threadId": "thread-page1-success",
+            "labelIds": ["INBOX"]
+          }
+        }
+      ]
+    }
+  ],
+  "historyId": "9100",
+  "nextPageToken": "page2-token"
+}

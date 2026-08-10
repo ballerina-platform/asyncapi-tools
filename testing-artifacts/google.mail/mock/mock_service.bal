@@ -97,9 +97,11 @@ service / on new http:Listener(8091) {
     }
 
     // Fakes GET /v1/users/{userId}/history (dispatch-critical, via the googleapis.gmail
-    // connector on MOCK_GMAIL_SERVICE_URL). Query params (startHistoryId/labelId/maxResults/
-    // pageToken) aren't inspected - the scenario fixture already omits nextPageToken, so this
-    // always returns a single page.
+    // connector on MOCK_GMAIL_SERVICE_URL). startHistoryId is captured (see lastReceivedStartHistoryId
+    // above); pageToken is used to pick between a scenario's page1/page2 fixtures, if it has them
+    // (a real first call never carries pageToken, so its absence reliably means "page 1"). Falls
+    // back to the original single-fixture-per-scenario file for scenarios with no page-specific
+    // fixtures, so existing single-page scenarios are unaffected.
     resource function get gmail/v1/users/[string userId]/history(http:Caller caller,
             http:Request req) returns error? {
         string scenario;
@@ -109,7 +111,14 @@ service / on new http:Listener(8091) {
         lock {
             lastReceivedStartHistoryId = req.getQueryParamValue("startHistoryId") ?: "";
         }
-        json fixture = check io:fileReadJson(string `../payloads/history_${scenario}.json`);
+        string? pageToken = req.getQueryParamValue("pageToken");
+        string pagedFile = pageToken is string
+            ? string `../payloads/history_${scenario}_page2.json`
+            : string `../payloads/history_${scenario}_page1.json`;
+        json|io:Error pagedFixture = io:fileReadJson(pagedFile);
+        json fixture = pagedFixture is json
+            ? pagedFixture
+            : check io:fileReadJson(string `../payloads/history_${scenario}.json`);
         check caller->respond(fixture);
     }
 

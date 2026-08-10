@@ -1,12 +1,10 @@
-# Verifies the batch-checkpoint fix (issue #9020) directly: a history batch with two items,
-# where the first succeeds and the second (intentionally) fails, must leave the persisted
-# checkpoint at the successful item - not at the pre-batch value (the original bug: mid-batch
-# failure discards already-processed progress) and not past the failed item either (would silently
-# skip retrying it). Verified by inspecting what startHistoryId each push's history call actually
-# used, via the mock's /control/lastStartId endpoint - the only externally-observable signal,
-# since the mock's fixtures are static and don't vary by the incoming startHistoryId.
+# Verifies the CodeRabbit-flagged multi-page fix directly: page 1 fully succeeds and would offer
+# its own historyId as a checkpoint, but page 2 (reached via nextPageToken) then fails. The
+# checkpoint after that must land on page 1's successfully-dispatched item - not on page 1's own
+# historyId (the bug: that gets persisted before we even know page 2 will succeed), and not on
+# page 2's historyId either (page 2 never actually completed).
 #
-# Usage: powershell -File run_batch_checkpoint_test.ps1
+# Usage: powershell -File run_multipage_checkpoint_test.ps1
 
 $ErrorActionPreference = "Stop"
 $root = $PSScriptRoot
@@ -66,10 +64,10 @@ $allPassed = $true
 
 try {
     Invoke-RestMethod -Method Post -Uri "http://localhost:8091/control/scenario" `
-        -ContentType "application/json" -Body (@{ scenario = "scenario8" } | ConvertTo-Json) | Out-Null
+        -ContentType "application/json" -Body (@{ scenario = "scenario9" } | ConvertTo-Json) | Out-Null
 
-    # --- Push 1: batch of [success item, poison item] ---
-    Write-Host "--- Push 1: batch with a success item followed by a failing item ---"
+    # --- Push 1: page 1 (succeeds) -> page 2 (fails) ---
+    Write-Host "--- Push 1: page 1 succeeds, page 2 (via nextPageToken) fails ---"
     $beforeLength = 0
     if (Test-Path $harnessStdout) { $beforeLength = (Get-Item $harnessStdout).Length }
 
@@ -83,17 +81,17 @@ try {
 
     $successFired = $log -and $log.Contains("FIRED::GmailService::onNewEmail")
     if ($successFired) {
-        Write-Host "  PASS - success item dispatched (FIRED::GmailService::onNewEmail found)"
+        Write-Host "  PASS - page 1's item dispatched (FIRED::GmailService::onNewEmail found)"
     } else {
-        Write-Host "  FAIL - success item never dispatched"
+        Write-Host "  FAIL - page 1's item never dispatched"
         $allPassed = $false
     }
 
     $push1LastStartId = (Invoke-RestMethod -Method Get -Uri "http://localhost:8091/control/lastStartId").lastStartHistoryId
-    Write-Host "  Push 1's own history call used startHistoryId = '$push1LastStartId' (the pre-batch value, expected)"
+    Write-Host "  Push 1's calls used startHistoryId = '$push1LastStartId' (the pre-batch value, expected)"
 
-    # --- Push 2: same batch again (simulating the trigger being pinged again) ---
-    Write-Host "--- Push 2: same batch, checking what checkpoint the dispatcher now uses ---"
+    # --- Push 2: same scenario again, checking what checkpoint the dispatcher now uses ---
+    Write-Host "--- Push 2: checking what checkpoint the dispatcher now uses ---"
     Invoke-WebRequest -Method Post -Uri "http://localhost:8090/" -ContentType "application/json" `
         -Body (@{ subscription = $fixedSubscriptionResource } | ConvertTo-Json) -UseBasicParsing | Out-Null
     Start-Sleep -Milliseconds 800
@@ -104,27 +102,31 @@ try {
     Write-Host ""
     Write-Host "=== Checkpoint assertions ==="
 
-    # The checkpoint tracks the outer History entry's own "id" (here "8001"), not the id of the
-    # message nested inside its messagesAdded[] - that's true of the original code too, this fix
-    # doesn't change which field is used, only when it gets persisted.
-    if ($push2LastStartId -eq "8001") {
-        Write-Host "  PASS - checkpoint advanced to the successful entry's own id ('8001')"
+    if ($push2LastStartId -eq "9001") {
+        Write-Host "  PASS - checkpoint advanced to page 1's successful entry id ('9001')"
     } else {
-        Write-Host "  FAIL - expected checkpoint '8001', got '$push2LastStartId'"
+        Write-Host "  FAIL - expected checkpoint '9001', got '$push2LastStartId'"
         $allPassed = $false
     }
 
     if ($push2LastStartId -ne $push1LastStartId) {
-        Write-Host "  PASS - checkpoint moved forward between push 1 and push 2 (not stuck at the pre-batch value)"
+        Write-Host "  PASS - checkpoint moved forward between push 1 and push 2"
     } else {
-        Write-Host "  FAIL - checkpoint did not move at all - this is the original bug (#9020)"
+        Write-Host "  FAIL - checkpoint did not move at all"
         $allPassed = $false
     }
 
-    if ($push2LastStartId -ne "8999") {
-        Write-Host "  PASS - checkpoint did NOT jump past the still-failing item to the page-level id ('8999')"
+    if ($push2LastStartId -ne "9100") {
+        Write-Host "  PASS - checkpoint did NOT prematurely save page 1's own historyId ('9100') - the CodeRabbit-flagged bug"
     } else {
-        Write-Host "  FAIL - checkpoint jumped past the failed item - it would never be retried"
+        Write-Host "  FAIL - checkpoint saved page 1's historyId before page 2 was confirmed - the exact bug CodeRabbit flagged"
+        $allPassed = $false
+    }
+
+    if ($push2LastStartId -ne "9999") {
+        Write-Host "  PASS - checkpoint did NOT jump to page 2's historyId ('9999') either - page 2 never completed"
+    } else {
+        Write-Host "  FAIL - checkpoint jumped to page 2's historyId despite page 2 failing"
         $allPassed = $false
     }
 }

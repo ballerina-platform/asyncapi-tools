@@ -127,8 +127,12 @@ try {
 }
 finally {
     Write-Host "Stopping harness and mock..."
-    Stop-Process -Id $harnessProc.Id -Force -ErrorAction SilentlyContinue
-    Stop-Process -Id $mockProc.Id -Force -ErrorAction SilentlyContinue
+    # Stop-Process only kills the bal.bat wrapper PID, not the java.exe it spawns underneath -
+    # the real process keeps running as an orphan, holding its redirected stdout/stderr open and
+    # leaving this script (and anything waiting on it) hanging indefinitely. taskkill /T kills the
+    # whole process tree instead.
+    taskkill /PID $harnessProc.Id /T /F 2>$null | Out-Null
+    taskkill /PID $mockProc.Id /T /F 2>$null | Out-Null
 }
 
 Write-Host ""
