@@ -19,7 +19,6 @@ package io.ballerina.asyncapi.generator.http.generator;
 
 import io.ballerina.asyncapi.core.model.component.AsyncApiSchema;
 import io.ballerina.asyncapi.generator.GeneratorException;
-import io.ballerina.asyncapi.generator.http.model.WebhookAuthConfig;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
