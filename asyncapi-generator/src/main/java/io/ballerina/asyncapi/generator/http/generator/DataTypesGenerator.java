@@ -25,6 +25,7 @@ import io.ballerina.asyncapi.generator.http.node.GenerateListenerConfigNode;
 import io.ballerina.asyncapi.generator.http.node.GenerateModuleMemberDeclarationNode;
 import io.ballerina.asyncapi.generator.http.node.GenerateUnionDescriptorNode;
 import io.ballerina.asyncapi.generator.http.node.Generator;
+import io.ballerina.asyncapi.generator.http.utils.CodegenUtils;
 import io.ballerina.compiler.syntax.tree.ImportDeclarationNode;
 import io.ballerina.compiler.syntax.tree.ModuleMemberDeclarationNode;
 import io.ballerina.compiler.syntax.tree.ModulePartNode;
@@ -96,13 +97,16 @@ public class DataTypesGenerator {
         Generator unionGen = new GenerateUnionDescriptorNode(typeDescriptors, GENERIC_DATA_TYPE);
         typeNodes.add(unionGen.generate());
 
-        ImportDeclarationNode importNode = GenerateHttpImportNode.generate();
+        List<ImportDeclarationNode> imports = new ArrayList<>();
+        if (needsHttpImport()) {
+            imports.add(GenerateHttpImportNode.generate());
+        }
 
         TextDocument textDocument = TextDocuments.from("");
         SyntaxTree syntaxTree = SyntaxTree.from(textDocument);
         ModulePartNode oldRoot = syntaxTree.rootNode();
         ModulePartNode newRoot = oldRoot.modify()
-                .withImports(createNodeList(importNode))
+                .withImports(createNodeList(imports))
                 .withMembers(oldRoot.members().addAll(typeNodes))
                 .apply();
         SyntaxTree modifiedTree = syntaxTree.replaceNode(oldRoot, newRoot);
@@ -112,5 +116,22 @@ public class DataTypesGenerator {
         } catch (FormatterException e) {
             throw new GeneratorException("Could not format the generated data_types.bal code", e);
         }
+    }
+
+    /**
+     * Determines whether {@code data_types.bal} needs {@code import ballerina/http;}. The only
+     * thing in this file that ever references {@code http:} is an {@code @http:Header {...}}
+     * annotation, generated for any schema property whose name requires one (see
+     * {@link CodegenUtils#requiresHeaderAnnotation}). Ballerina treats an unused import as a
+     * compile error, not a warning, so the import must only be added when at least one property
+     * actually needs that annotation.
+     *
+     * @return {@code true} if any schema field name requires an {@code @http:Header} annotation
+     */
+    private boolean needsHttpImport() {
+        return schemas.values().stream()
+                .filter(schema -> schema.properties() != null)
+                .flatMap(schema -> schema.properties().keySet().stream())
+                .anyMatch(CodegenUtils::requiresHeaderAnnotation);
     }
 }

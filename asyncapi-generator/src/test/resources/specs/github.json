@@ -85,34 +85,62 @@
       "PushEvent": {
         "type": "object",
         "properties": {
+          "event": {
+            "type": "object",
+            "properties": {
+              "type": { "type": "string" }
+            },
+            "required": ["type"]
+          },
           "ref": { "type": "string" },
           "before": { "type": "string" },
           "after": { "type": "string" }
         },
-        "required": ["ref", "before", "after"]
+        "required": ["event", "ref", "before", "after"]
       },
       "GenericEvent": {
         "type": "object",
         "properties": {
+          "event": {
+            "type": "object",
+            "properties": {
+              "type": { "type": "string" }
+            },
+            "required": ["type"]
+          },
           "action": { "type": "string" }
         },
-        "required": ["action"]
+        "required": ["event", "action"]
       },
       "IssueEvent": {
         "type": "object",
         "properties": {
+          "event": {
+            "type": "object",
+            "properties": {
+              "type": { "type": "string" }
+            },
+            "required": ["type"]
+          },
           "action": { "type": "string" },
           "number": { "type": "integer" }
         },
-        "required": ["action", "number"]
+        "required": ["event", "action", "number"]
       },
       "DeploymentEvent": {
         "type": "object",
         "properties": {
+          "event": {
+            "type": "object",
+            "properties": {
+              "type": { "type": "string" }
+            },
+            "required": ["type"]
+          },
           "action": { "type": "string" },
           "environment": { "type": "string" }
         },
-        "required": ["action"]
+        "required": ["event", "action"]
       }
     }
   }
