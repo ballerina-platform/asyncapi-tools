@@ -98,6 +98,126 @@ public class ConnectionAuthExtractorTest {
     }
 
     @Test
+    void testMultipleRecognizedSchemesIncludingNewTypesThrows() throws AsyncApiParserException {
+        // Same ambiguity guard, but proving it generalizes to the two new types too, not just
+        // the original oauth2/userPassword pair.
+        String json = PREFIX + ",\"components\":{\"securitySchemes\":{"
+                + "\"apiKeyAuth\":{\"type\":\"httpApiKey\",\"name\":\"X-API-Key\",\"in\":\"header\"},"
+                + "\"mtlsAuth\":{\"type\":\"X509\"}}}}";
+        AsyncApiSpec spec = AsyncApiParser.parseFromJsonString(json);
+        try {
+            new ConnectionAuthExtractor(spec).extract();
+            Assert.fail("Expected GeneratorException for multiple recognized auth schemes");
+        } catch (GeneratorException e) {
+            Assert.assertTrue(e.getMessage().contains("Multiple outbound auth schemes"),
+                    "Exception should identify the ambiguity: " + e.getMessage());
+            Assert.assertTrue(e.getMessage().contains("apiKeyAuth") && e.getMessage().contains("mtlsAuth"),
+                    "Exception should name both conflicting scheme keys: " + e.getMessage());
+        }
+    }
+
+    @Test
+    void testHttpApiKeyHeaderScheme() throws AsyncApiParserException, GeneratorException {
+        String json = PREFIX + ",\"components\":{\"securitySchemes\":{\"apiKeyAuth\":"
+                + "{\"type\":\"httpApiKey\",\"name\":\"X-API-Key\",\"in\":\"header\"}}}}";
+        AsyncApiSpec spec = AsyncApiParser.parseFromJsonString(json);
+        Optional<ConnectionAuthConfig> result = new ConnectionAuthExtractor(spec).extract();
+
+        Assert.assertTrue(result.isPresent(), "httpApiKey scheme should be extracted");
+        Assert.assertEquals(result.get().type(), ConnectionAuthConfig.TYPE_HTTP_API_KEY);
+        Assert.assertEquals(result.get().apiKeyName(), "X-API-Key");
+        Assert.assertEquals(result.get().apiKeyIn(), ConnectionAuthConfig.API_KEY_IN_HEADER);
+        Assert.assertNull(result.get().flow(), "httpApiKey has no OAuth flow");
+    }
+
+    @Test
+    void testHttpApiKeyQueryScheme() throws AsyncApiParserException, GeneratorException {
+        String json = PREFIX + ",\"components\":{\"securitySchemes\":{\"apiKeyAuth\":"
+                + "{\"type\":\"httpApiKey\",\"name\":\"api_key\",\"in\":\"query\"}}}}";
+        AsyncApiSpec spec = AsyncApiParser.parseFromJsonString(json);
+        Optional<ConnectionAuthConfig> result = new ConnectionAuthExtractor(spec).extract();
+
+        Assert.assertTrue(result.isPresent(), "httpApiKey scheme should be extracted");
+        Assert.assertEquals(result.get().apiKeyName(), "api_key");
+        Assert.assertEquals(result.get().apiKeyIn(), ConnectionAuthConfig.API_KEY_IN_QUERY);
+    }
+
+    @Test
+    void testHttpApiKeyCookieScheme() throws AsyncApiParserException, GeneratorException {
+        String json = PREFIX + ",\"components\":{\"securitySchemes\":{\"apiKeyAuth\":"
+                + "{\"type\":\"httpApiKey\",\"name\":\"session_key\",\"in\":\"cookie\"}}}}";
+        AsyncApiSpec spec = AsyncApiParser.parseFromJsonString(json);
+        Optional<ConnectionAuthConfig> result = new ConnectionAuthExtractor(spec).extract();
+
+        Assert.assertTrue(result.isPresent(), "httpApiKey scheme should be extracted");
+        Assert.assertEquals(result.get().apiKeyName(), "session_key");
+        Assert.assertEquals(result.get().apiKeyIn(), ConnectionAuthConfig.API_KEY_IN_COOKIE);
+    }
+
+    @Test
+    void testHttpApiKeyMissingNameThrows() throws AsyncApiParserException {
+        // A name that's entirely absent is already rejected by the upstream AsyncAPI parser
+        // itself ("API Key Security Scheme is missing a parameter name"), before this ever
+        // reaches our extractor - so a spec-valid fixture can't omit the field outright (same
+        // situation as testOAuth2ClientCredentialsMalformedTokenUrlThrows above). A blank string
+        // satisfies the parser's presence check but still fails our own isBlank() guard, which is
+        // the one way this branch is reachable through a real parsed spec.
+        String json = PREFIX + ",\"components\":{\"securitySchemes\":{\"apiKeyAuth\":"
+                + "{\"type\":\"httpApiKey\",\"name\":\"\",\"in\":\"header\"}}}}";
+        AsyncApiSpec spec = AsyncApiParser.parseFromJsonString(json);
+        try {
+            new ConnectionAuthExtractor(spec).extract();
+            Assert.fail("Expected GeneratorException for httpApiKey scheme with a blank name");
+        } catch (GeneratorException e) {
+            Assert.assertTrue(e.getMessage().contains("'name'"),
+                    "Exception should mention the missing name: " + e.getMessage());
+        }
+    }
+
+    @Test
+    void testHttpApiKeyInvalidInThrows() throws AsyncApiParserException {
+        String json = PREFIX + ",\"components\":{\"securitySchemes\":{\"apiKeyAuth\":"
+                + "{\"type\":\"httpApiKey\",\"name\":\"X-API-Key\",\"in\":\"body\"}}}}";
+        AsyncApiSpec spec = AsyncApiParser.parseFromJsonString(json);
+        try {
+            new ConnectionAuthExtractor(spec).extract();
+            Assert.fail("Expected GeneratorException for httpApiKey scheme with an invalid 'in' value");
+        } catch (GeneratorException e) {
+            Assert.assertTrue(e.getMessage().contains("'in'"),
+                    "Exception should mention the invalid in value: " + e.getMessage());
+        }
+    }
+
+    @Test
+    void testX509Scheme() throws AsyncApiParserException, GeneratorException {
+        // AsyncAPI intentionally carries no certificate material in the spec itself -- the
+        // scheme just declares that mutual TLS is required.
+        String json = PREFIX + ",\"components\":{\"securitySchemes\":{\"mtlsAuth\":"
+                + "{\"type\":\"X509\"}}}}";
+        AsyncApiSpec spec = AsyncApiParser.parseFromJsonString(json);
+        Optional<ConnectionAuthConfig> result = new ConnectionAuthExtractor(spec).extract();
+
+        Assert.assertTrue(result.isPresent(), "X509 scheme should be extracted");
+        Assert.assertEquals(result.get().type(), ConnectionAuthConfig.TYPE_X509);
+        Assert.assertNull(result.get().flow());
+        Assert.assertNull(result.get().tokenUrl());
+        Assert.assertNull(result.get().refreshUrl());
+        Assert.assertNull(result.get().apiKeyName());
+        Assert.assertNull(result.get().apiKeyIn());
+    }
+
+    @Test
+    void testApiKeyTypeStaysUnrelatedDistinctFromHttpApiKey() throws AsyncApiParserException, GeneratorException {
+        // apiKey (generic, non-HTTP) and httpApiKey (supported) are different `type` strings --
+        // locking this in explicitly so a future "fix" can't silently conflate the two.
+        String json = PREFIX + ",\"components\":{\"securitySchemes\":{\"apiKeyAuth\":"
+                + "{\"type\":\"apiKey\",\"in\":\"user\"}}}}";
+        AsyncApiSpec spec = AsyncApiParser.parseFromJsonString(json);
+        Optional<ConnectionAuthConfig> result = new ConnectionAuthExtractor(spec).extract();
+        Assert.assertTrue(result.isEmpty(), "apiKey (not httpApiKey) is still out of scope");
+    }
+
+    @Test
     void testOAuth2AuthorizationCodeFlow() throws AsyncApiParserException, GeneratorException {
         String json = PREFIX + ",\"components\":{\"securitySchemes\":{\"oauthAuth\":"
                 + "{\"type\":\"oauth2\",\"flows\":{\"authorizationCode\":"

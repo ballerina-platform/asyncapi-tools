@@ -1,0 +1,27 @@
+asyncapi: 2.6.0
+x-ballerina-event-identifier:
+  type: "header"
+  name: "X-Test-Event"
+x-ballerina-auth:
+  header: X-Test-Signature
+  signature:
+    algorithm: sha256
+    encoding: hex
+    headerFormat: $signature
+    input: "$config('apiKeyValue') . $body"
+info:
+  title: httpApiKey Field Collision Test
+  version: 1.0.0
+channels:
+  events:
+    subscribe:
+      message:
+        x-ballerina-event-type: test_event
+        payload:
+          type: object
+components:
+  securitySchemes:
+    apiKeyAuth:
+      type: httpApiKey
+      name: X-API-Key
+      in: header

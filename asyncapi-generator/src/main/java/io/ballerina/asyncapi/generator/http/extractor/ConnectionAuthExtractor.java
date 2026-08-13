@@ -39,11 +39,16 @@ import java.util.stream.Collectors;
  * with no custom syntax of its own: a spec that honestly documents how its own outbound API calls
  * are authenticated already has everything this extractor needs.
  *
- * <p>Only {@code oauth2} (with the {@code authorizationCode} or {@code clientCredentials} flow)
- * and {@code userPassword} scheme types are currently supported. A recognized scheme type in an
- * unsupported shape (e.g. {@code oauth2} declaring only the {@code implicit} flow) fails loudly
- * with a {@link GeneratorException} rather than being silently ignored, since a spec author
- * declaring such a scheme clearly intended it to be used.
+ * <p>Only {@code oauth2} (with the {@code authorizationCode} or {@code clientCredentials} flow),
+ * {@code userPassword}, {@code httpApiKey}, and {@code X509} scheme types are currently supported.
+ * A recognized scheme type in an unsupported shape (e.g. {@code oauth2} declaring only the
+ * {@code implicit} flow, or {@code httpApiKey} missing a required field) fails loudly with a
+ * {@link GeneratorException} rather than being silently ignored, since a spec author declaring
+ * such a scheme clearly intended it to be used.
+ *
+ * <p><b>Note:</b> {@code httpApiKey} (supported) and the generic AsyncAPI {@code apiKey} type
+ * (out of scope, stays silently ignored like any other unrecognized type) are different
+ * {@code type} strings - easy to conflate, but not the same scheme.
  */
 public final class ConnectionAuthExtractor {
 
@@ -63,9 +68,10 @@ public final class ConnectionAuthExtractor {
      * spec author can remove the ones that don't apply to this trigger's outbound calls.
      *
      * @return an {@link Optional} containing the resolved {@link ConnectionAuthConfig} if exactly
-     *         one recognized scheme type ({@code oauth2} or {@code userPassword}) is present;
-     *         {@link Optional#empty()} if no security schemes are declared at all, or only
-     *         scheme types outside this extractor's scope (e.g. {@code apiKey}, {@code http})
+     *         one recognized scheme type ({@code oauth2}, {@code userPassword}, {@code httpApiKey},
+     *         or {@code X509}) is present; {@link Optional#empty()} if no security schemes are
+     *         declared at all, or only scheme types outside this extractor's scope (e.g.
+     *         {@code apiKey}, {@code http})
      * @throws GeneratorException if more than one recognized scheme is declared, or if the single
      *                            recognized scheme is present but in an unsupported shape
      *                            (unsupported {@code oauth2} flow, or a required URL missing)
@@ -83,7 +89,9 @@ public final class ConnectionAuthExtractor {
         List<Map.Entry<String, AsyncApiSecurityScheme>> candidates = securitySchemes.entrySet().stream()
                 .filter(entry -> entry.getValue() != null && entry.getValue().type() != null)
                 .filter(entry -> ConnectionAuthConfig.TYPE_USER_PASSWORD.equals(entry.getValue().type())
-                        || ConnectionAuthConfig.TYPE_OAUTH2.equals(entry.getValue().type()))
+                        || ConnectionAuthConfig.TYPE_OAUTH2.equals(entry.getValue().type())
+                        || ConnectionAuthConfig.TYPE_HTTP_API_KEY.equals(entry.getValue().type())
+                        || ConnectionAuthConfig.TYPE_X509.equals(entry.getValue().type()))
                 .toList();
         if (candidates.isEmpty()) {
             return Optional.empty();
@@ -102,7 +110,35 @@ public final class ConnectionAuthExtractor {
             return Optional.of(new ConnectionAuthConfig(
                     ConnectionAuthConfig.TYPE_USER_PASSWORD, null, null, null));
         }
+        if (ConnectionAuthConfig.TYPE_X509.equals(scheme.type())) {
+            // AsyncAPI intentionally carries no certificate material in the spec itself (same as
+            // OpenAPI) - the scheme just declares that mutual TLS is required, nothing more to
+            // extract.
+            return Optional.of(new ConnectionAuthConfig(ConnectionAuthConfig.TYPE_X509, null, null, null));
+        }
+        if (ConnectionAuthConfig.TYPE_HTTP_API_KEY.equals(scheme.type())) {
+            return Optional.of(extractHttpApiKey(scheme));
+        }
         return Optional.of(extractOAuth2(scheme));
+    }
+
+    private ConnectionAuthConfig extractHttpApiKey(AsyncApiSecurityScheme scheme) throws GeneratorException {
+        String name = scheme.name();
+        if (name == null || name.isBlank()) {
+            throw new GeneratorException(
+                    "httpApiKey security scheme requires a 'name' - the header/query/cookie "
+                            + "parameter name the API key is sent as");
+        }
+        String in = scheme.in();
+        if (!ConnectionAuthConfig.API_KEY_IN_HEADER.equals(in)
+                && !ConnectionAuthConfig.API_KEY_IN_QUERY.equals(in)
+                && !ConnectionAuthConfig.API_KEY_IN_COOKIE.equals(in)) {
+            throw new GeneratorException(
+                    "httpApiKey security scheme requires 'in' to be one of 'header', 'query', "
+                            + "or 'cookie', but was: " + in);
+        }
+        return new ConnectionAuthConfig(
+                ConnectionAuthConfig.TYPE_HTTP_API_KEY, null, null, null, name, in);
     }
 
     private ConnectionAuthConfig extractOAuth2(AsyncApiSecurityScheme scheme) throws GeneratorException {

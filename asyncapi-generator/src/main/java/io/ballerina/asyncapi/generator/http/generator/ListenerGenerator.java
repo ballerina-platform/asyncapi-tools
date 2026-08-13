@@ -18,6 +18,7 @@
 package io.ballerina.asyncapi.generator.http.generator;
 
 import io.ballerina.asyncapi.generator.GeneratorException;
+import io.ballerina.asyncapi.generator.http.model.ConnectionAuthConfig;
 import io.ballerina.asyncapi.generator.http.model.HttpServiceType;
 import io.ballerina.asyncapi.generator.http.model.WebhookAuthConfig;
 import io.ballerina.asyncapi.generator.http.node.GenerateCloudImportNode;
@@ -48,17 +49,22 @@ public class ListenerGenerator {
 
     private final List<HttpServiceType> serviceTypes;
     private final Optional<WebhookAuthConfig> webhookAuthConfig;
+    private final Optional<ConnectionAuthConfig> connectionAuthConfig;
 
     /**
-     * Creates a generator for the given list of service types and optional webhook auth configuration.
+     * Creates a generator for the given list of service types and optional webhook/connection
+     * auth configuration.
      *
-     * @param serviceTypes      the list of HTTP service type definitions to generate
-     * @param webhookAuthConfig the optional webhook authentication configuration
+     * @param serviceTypes         the list of HTTP service type definitions to generate
+     * @param webhookAuthConfig    the optional webhook authentication configuration
+     * @param connectionAuthConfig the optional outbound (client-side) API authentication
+     *                             configuration
      */
     public ListenerGenerator(List<HttpServiceType> serviceTypes,
-            Optional<WebhookAuthConfig> webhookAuthConfig) {
+            Optional<WebhookAuthConfig> webhookAuthConfig, Optional<ConnectionAuthConfig> connectionAuthConfig) {
         this.serviceTypes = serviceTypes;
         this.webhookAuthConfig = webhookAuthConfig;
+        this.connectionAuthConfig = connectionAuthConfig;
     }
 
     /**
@@ -72,7 +78,8 @@ public class ListenerGenerator {
             throw new GeneratorException("No service types defined; cannot generate listener.bal");
         }
 
-        ClassDefinitionNode classNode = new GenerateListenerClassNode(serviceTypes, webhookAuthConfig).generate();
+        ClassDefinitionNode classNode = new GenerateListenerClassNode(serviceTypes, webhookAuthConfig,
+                connectionAuthConfig).generate();
         ImportDeclarationNode httpImport = GenerateHttpImportNode.generate();
         ImportDeclarationNode cloudImport = GenerateCloudImportNode.generate();
 

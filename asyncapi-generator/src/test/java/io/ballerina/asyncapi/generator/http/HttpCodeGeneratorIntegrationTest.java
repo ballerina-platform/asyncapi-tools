@@ -228,6 +228,64 @@ public class HttpCodeGeneratorIntegrationTest {
     }
 
     @Test
+    void testGenerateWithHttpApiKeyConnectionAuth() throws Exception {
+        Path spec = specPath("connection_auth_httpapikey.json");
+        Path outDir = Files.createTempDirectory("httpapikey-gen");
+        try {
+            AsyncApiSpec asyncApiSpec = AsyncApiParser.parseFromJsonString(Files.readString(spec));
+            new HttpCodeGenerator(asyncApiSpec).generate(outDir);
+
+            String types = readFile(outDir, "data_types.bal");
+            Assert.assertTrue(types.contains("apiKeyValue"), "ListenerConfig should declare an apiKeyValue field");
+            Assert.assertTrue(types.contains("API key sent as the 'X-API-Key' HTTP header"),
+                    "Field doc comment should name the header and location");
+            Assert.assertFalse(types.contains("@display"), "Generated fields should use doc comments, not @display");
+        } finally {
+            deleteDir(outDir);
+        }
+    }
+
+    @Test
+    void testGenerateWithX509ConnectionAuth() throws Exception {
+        Path spec = specPath("connection_auth_x509.json");
+        Path outDir = Files.createTempDirectory("x509-gen");
+        try {
+            AsyncApiSpec asyncApiSpec = AsyncApiParser.parseFromJsonString(Files.readString(spec));
+            new HttpCodeGenerator(asyncApiSpec).generate(outDir);
+
+            String types = readFile(outDir, "data_types.bal");
+            Assert.assertTrue(types.contains("crypto:TrustStore|string cert"),
+                    "ListenerConfig should declare a crypto:TrustStore|string cert field");
+            Assert.assertTrue(types.contains("crypto:KeyStore|http:CertKey keyConfig"),
+                    "ListenerConfig should declare a crypto:KeyStore|http:CertKey keyConfig field");
+            Assert.assertTrue(types.contains("import ballerina/crypto;"),
+                    "data_types.bal should import ballerina/crypto for the X509 union fields");
+            Assert.assertFalse(types.contains("@display"), "Generated fields should use doc comments, not @display");
+        } finally {
+            deleteDir(outDir);
+        }
+    }
+
+    @Test
+    void testGenerateWithoutX509OmitsCryptoImport() throws Exception {
+        // Regression check for the conditional crypto import's false branch -- without this,
+        // replacing the `if` in DataTypesGenerator with an unconditional import would go
+        // unnoticed by every other test here (they only check for the import's presence).
+        Path spec = specPath("connection_auth_userpassword.json");
+        Path outDir = Files.createTempDirectory("no-x509-gen");
+        try {
+            AsyncApiSpec asyncApiSpec = AsyncApiParser.parseFromJsonString(Files.readString(spec));
+            new HttpCodeGenerator(asyncApiSpec).generate(outDir);
+
+            String types = readFile(outDir, "data_types.bal");
+            Assert.assertFalse(types.contains("import ballerina/crypto;"),
+                    "data_types.bal should not import ballerina/crypto unless X509 is in use");
+        } finally {
+            deleteDir(outDir);
+        }
+    }
+
+    @Test
     void testGenerateWithNoSecuritySchemesOmitsConnectionAuthArtifacts() throws Exception {
         // Regression check: a spec with no components.securitySchemes at all must generate
         // exactly what it did before this feature existed -- none of the extra credential
@@ -243,6 +301,9 @@ public class HttpCodeGeneratorIntegrationTest {
             Assert.assertFalse(types.contains("username"), "No userPassword fields should be generated");
             Assert.assertFalse(types.contains("refreshUrl") || types.contains("tokenUrl"),
                     "No connection-auth URL field should be generated");
+            Assert.assertFalse(types.contains("@display"),
+                    "webhookSecret should use a doc comment, not @display, even with no connection auth");
+            Assert.assertTrue(types.contains("Webhook Secret"), "webhookSecret field should have a doc comment");
         } finally {
             deleteDir(outDir);
         }

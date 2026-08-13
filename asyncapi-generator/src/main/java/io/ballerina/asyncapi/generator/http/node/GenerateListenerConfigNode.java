@@ -19,13 +19,13 @@ package io.ballerina.asyncapi.generator.http.node;
 
 import io.ballerina.asyncapi.generator.GeneratorException;
 import io.ballerina.asyncapi.generator.http.model.ConnectionAuthConfig;
-import io.ballerina.compiler.syntax.tree.AnnotationNode;
 import io.ballerina.compiler.syntax.tree.MarkdownDocumentationNode;
 import io.ballerina.compiler.syntax.tree.MetadataNode;
 import io.ballerina.compiler.syntax.tree.ModuleMemberDeclarationNode;
 import io.ballerina.compiler.syntax.tree.Node;
 import io.ballerina.compiler.syntax.tree.RecordTypeDescriptorNode;
 import io.ballerina.compiler.syntax.tree.TypeDefinitionNode;
+import io.ballerina.compiler.syntax.tree.TypeDescriptorNode;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -38,27 +38,28 @@ import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createEmptyN
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createIdentifierToken;
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createLiteralValueToken;
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createNodeList;
-import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createSeparatedNodeList;
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createToken;
-import static io.ballerina.compiler.syntax.tree.NodeFactory.createAnnotationNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createBasicLiteralNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createBuiltinSimpleNameReferenceNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createConstantDeclarationNode;
-import static io.ballerina.compiler.syntax.tree.NodeFactory.createMappingConstructorExpressionNode;
+import static io.ballerina.compiler.syntax.tree.NodeFactory.createMarkdownDocumentationLineNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createMarkdownDocumentationNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createMetadataNode;
+import static io.ballerina.compiler.syntax.tree.NodeFactory.createQualifiedNameReferenceNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createRecordFieldNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createRecordFieldWithDefaultValueNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createRecordTypeDescriptorNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createSimpleNameReferenceNode;
-import static io.ballerina.compiler.syntax.tree.NodeFactory.createSpecificFieldNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createTypeDefinitionNode;
-import static io.ballerina.compiler.syntax.tree.SyntaxKind.AT_TOKEN;
+import static io.ballerina.compiler.syntax.tree.NodeFactory.createUnionTypeDescriptorNode;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.CLOSE_BRACE_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.COLON_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.CONST_KEYWORD;
+import static io.ballerina.compiler.syntax.tree.SyntaxKind.DOCUMENTATION_DESCRIPTION;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.EQUAL_TOKEN;
+import static io.ballerina.compiler.syntax.tree.SyntaxKind.HASH_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.OPEN_BRACE_TOKEN;
+import static io.ballerina.compiler.syntax.tree.SyntaxKind.PIPE_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.PUBLIC_KEYWORD;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.RECORD_KEYWORD;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.SEMICOLON_TOKEN;
@@ -105,7 +106,7 @@ public class GenerateListenerConfigNode {
             Optional<ConnectionAuthConfig> connectionAuthConfig) throws GeneratorException {
         List<Node> recordFields = new ArrayList<>();
         recordFields.add(createRecordFieldWithDefaultValueNode(
-                buildDisplayMetadata("Webhook Secret"),
+                buildFieldDocumentation("Webhook Secret"),
                 null,
                 createBuiltinSimpleNameReferenceNode(null, createIdentifierToken("string")),
                 createIdentifierToken(WEBHOOK_SECRET_FIELD),
@@ -173,6 +174,12 @@ public class GenerateListenerConfigNode {
         if (ConnectionAuthConfig.TYPE_USER_PASSWORD.equals(config.type())) {
             return List.of("username", "password");
         }
+        if (ConnectionAuthConfig.TYPE_HTTP_API_KEY.equals(config.type())) {
+            return List.of("apiKeyValue");
+        }
+        if (ConnectionAuthConfig.TYPE_X509.equals(config.type())) {
+            return List.of("cert", "keyConfig");
+        }
         if (ConnectionAuthConfig.TYPE_OAUTH2.equals(config.type())) {
             if (ConnectionAuthConfig.FLOW_AUTHORIZATION_CODE.equals(config.flow())) {
                 return List.of("clientId", "clientSecret", "refreshUrl", "refreshToken");
@@ -201,21 +208,53 @@ public class GenerateListenerConfigNode {
                 fields.add(createUrlFieldWithDefault(fieldName, config.refreshUrl()));
             } else if ("tokenUrl".equals(fieldName)) {
                 fields.add(createUrlFieldWithDefault(fieldName, config.tokenUrl()));
+            } else if ("apiKeyValue".equals(fieldName)) {
+                String description = "API key sent as the '" + config.apiKeyName() + "' HTTP " + config.apiKeyIn();
+                fields.add(createRequiredStringField(fieldName, description));
+            } else if ("cert".equals(fieldName)) {
+                fields.add(createRequiredUnionField(fieldName, "Client certificate for mutual TLS",
+                        qualifiedType(GenerateCryptoImportNode.CRYPTO_MODULE, "TrustStore"),
+                        createBuiltinSimpleNameReferenceNode(null, createIdentifierToken("string"))));
+            } else if ("keyConfig".equals(fieldName)) {
+                fields.add(createRequiredUnionField(fieldName, "Client private key for mutual TLS",
+                        qualifiedType(GenerateCryptoImportNode.CRYPTO_MODULE, "KeyStore"),
+                        qualifiedType(GenerateHttpImportNode.HTTP_MODULE, "CertKey")));
             } else {
-                fields.add(createRequiredStringField(fieldName));
+                fields.add(createRequiredStringField(fieldName, toDisplayLabel(fieldName)));
             }
         }
         return fields;
     }
 
-    private static Node createRequiredStringField(String fieldName) {
+    private static Node createRequiredStringField(String fieldName, String description) {
         return createRecordFieldNode(
-                buildDisplayMetadata(toDisplayLabel(fieldName)),
+                buildFieldDocumentation(description),
                 null,
                 createBuiltinSimpleNameReferenceNode(null, createIdentifierToken("string")),
                 createIdentifierToken(fieldName),
                 null,
                 createToken(SEMICOLON_TOKEN));
+    }
+
+    /**
+     * Builds a required record field with a union type descriptor (e.g.
+     * {@code crypto:TrustStore|string cert;}), for scheme shapes - currently only {@code X509} -
+     * whose fields aren't a single simple type.
+     */
+    private static Node createRequiredUnionField(String fieldName, String description, TypeDescriptorNode leftType,
+            TypeDescriptorNode rightType) {
+        return createRecordFieldNode(
+                buildFieldDocumentation(description),
+                null,
+                createUnionTypeDescriptorNode(leftType, createToken(PIPE_TOKEN), rightType),
+                createIdentifierToken(fieldName),
+                null,
+                createToken(SEMICOLON_TOKEN));
+    }
+
+    private static TypeDescriptorNode qualifiedType(String module, String typeName) {
+        return createQualifiedNameReferenceNode(
+                createIdentifierToken(module), createToken(COLON_TOKEN), createIdentifierToken(typeName));
     }
 
     /**
@@ -226,7 +265,7 @@ public class GenerateListenerConfigNode {
      */
     private static Node createUrlFieldWithDefault(String fieldName, String url) {
         return createRecordFieldWithDefaultValueNode(
-                buildDisplayMetadata(toDisplayLabel(fieldName)),
+                buildFieldDocumentation(toDisplayLabel(fieldName)),
                 null,
                 createBuiltinSimpleNameReferenceNode(null, createIdentifierToken("string")),
                 createIdentifierToken(fieldName),
@@ -276,22 +315,18 @@ public class GenerateListenerConfigNode {
                 createToken(SEMICOLON_TOKEN));
     }
 
-    private static MetadataNode buildDisplayMetadata(String label) {
-        AnnotationNode annotation = createAnnotationNode(
-                createToken(AT_TOKEN),
-                createSimpleNameReferenceNode(createIdentifierToken("display")),
-                createMappingConstructorExpressionNode(
-                        createToken(OPEN_BRACE_TOKEN),
-                        createSeparatedNodeList(
-                                createSpecificFieldNode(
-                                        null,
-                                        createIdentifierToken("label"),
-                                        createToken(COLON_TOKEN),
-                                        createBasicLiteralNode(STRING_LITERAL,
-                                                createLiteralValueToken(STRING_LITERAL_TOKEN,
-                                                        "\"" + label + "\"",
-                                                        createEmptyMinutiaeList(), createEmptyMinutiaeList())))),
-                        createToken(CLOSE_BRACE_TOKEN)));
-        return createMetadataNode(null, createNodeList(annotation));
+    /**
+     * Builds a {@code #} Ballerina doc comment (a {@link MarkdownDocumentationNode}-based
+     * {@link MetadataNode}) for a generated field, e.g. {@code # Client Secret}. Used instead of
+     * a {@code @display} annotation for every field this generator emits, per review decision
+     * (doc comments describe generated {@code ListenerConfig} fields, not {@code @display}).
+     */
+    private static MetadataNode buildFieldDocumentation(String description) {
+        List<Node> docLines = new ArrayList<>();
+        for (String line : description.split("\n")) {
+            docLines.add(createMarkdownDocumentationLineNode(DOCUMENTATION_DESCRIPTION,
+                    createToken(HASH_TOKEN), createNodeList(createIdentifierToken(line))));
+        }
+        return createMetadataNode(createMarkdownDocumentationNode(createNodeList(docLines)), createEmptyNodeList());
     }
 }

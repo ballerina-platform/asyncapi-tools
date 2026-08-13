@@ -112,7 +112,8 @@ public class HttpCodeGenerator {
         String dataTypesContent = new DataTypesGenerator(schemas, webhookAuthConfig, connectionAuthConfig)
                 .generate();
         String serviceTypesContent = new ServiceTypesGenerator(serviceTypes).generate();
-        String listenerContent = new ListenerGenerator(serviceTypes, webhookAuthConfig).generate();
+        String listenerContent = new ListenerGenerator(serviceTypes, webhookAuthConfig, connectionAuthConfig)
+                .generate();
         String serviceName = deriveServiceName(outputPath);
         String dispatcherContent =
                 new DispatcherGenerator(serviceTypes, identifierConfig, webhookAuthConfig, serviceName)

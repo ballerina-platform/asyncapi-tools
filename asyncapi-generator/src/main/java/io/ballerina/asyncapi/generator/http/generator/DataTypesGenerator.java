@@ -21,6 +21,7 @@ import io.ballerina.asyncapi.core.model.component.AsyncApiSchema;
 import io.ballerina.asyncapi.generator.GeneratorException;
 import io.ballerina.asyncapi.generator.http.model.ConnectionAuthConfig;
 import io.ballerina.asyncapi.generator.http.model.WebhookAuthConfig;
+import io.ballerina.asyncapi.generator.http.node.GenerateCryptoImportNode;
 import io.ballerina.asyncapi.generator.http.node.GenerateHttpImportNode;
 import io.ballerina.asyncapi.generator.http.node.GenerateListenerConfigNode;
 import io.ballerina.asyncapi.generator.http.node.GenerateModuleMemberDeclarationNode;
@@ -103,13 +104,20 @@ public class DataTypesGenerator {
         Generator unionGen = new GenerateUnionDescriptorNode(typeDescriptors, GENERIC_DATA_TYPE);
         typeNodes.add(unionGen.generate());
 
-        ImportDeclarationNode importNode = GenerateHttpImportNode.generate();
+        List<ImportDeclarationNode> imports = new ArrayList<>();
+        imports.add(GenerateHttpImportNode.generate());
+        if (connectionAuthConfig.isPresent()
+                && ConnectionAuthConfig.TYPE_X509.equals(connectionAuthConfig.get().type())) {
+            // X509's cert/keyConfig fields are crypto:TrustStore|string and crypto:KeyStore|http:CertKey -
+            // only pull in the crypto import when a scheme actually needs it.
+            imports.add(GenerateCryptoImportNode.generate());
+        }
 
         TextDocument textDocument = TextDocuments.from("");
         SyntaxTree syntaxTree = SyntaxTree.from(textDocument);
         ModulePartNode oldRoot = syntaxTree.rootNode();
         ModulePartNode newRoot = oldRoot.modify()
-                .withImports(createNodeList(importNode))
+                .withImports(createNodeList(imports))
                 .withMembers(oldRoot.members().addAll(typeNodes))
                 .apply();
         SyntaxTree modifiedTree = syntaxTree.replaceNode(oldRoot, newRoot);

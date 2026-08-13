@@ -142,6 +142,23 @@ public class WebhookDSLVerificationTest {
                 "collide with existing webhook DSL config field name(s)");
     }
 
+    @Test
+    public void testHttpApiKeyFieldCollisionWithWebhookDslConfigFieldThrows() throws Exception {
+        // Same collision check, exercised through the real DSL-parsing -> extractor ->
+        // collision-check path end to end, for the newly-added httpApiKey mechanism.
+        assertGeneratorException(
+                "connection_auth_field_collision_httpapikey.yaml",
+                "collide with existing webhook DSL config field name(s)");
+    }
+
+    @Test
+    public void testX509FieldCollisionWithWebhookDslConfigFieldThrows() throws Exception {
+        // Same collision check, exercised end to end, for the newly-added X509 mechanism.
+        assertGeneratorException(
+                "connection_auth_field_collision_x509.yaml",
+                "collide with existing webhook DSL config field name(s)");
+    }
+
     private String generateDispatcherService(String specFile) throws Exception {
     Path asyncapiPath = RES_DIR.resolve(specFile);
     String yamlContent = Files.readString(asyncapiPath);
