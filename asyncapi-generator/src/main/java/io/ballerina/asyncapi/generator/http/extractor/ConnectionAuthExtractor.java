@@ -150,6 +150,15 @@ public final class ConnectionAuthExtractor {
         }
 
         AsyncApiOAuthFlow authorizationCode = flows.authorizationCode();
+        AsyncApiOAuthFlow clientCredentials = flows.clientCredentials();
+        if (authorizationCode != null && clientCredentials != null) {
+            throw new GeneratorException(
+                    "oauth2 security scheme declares both authorizationCode and clientCredentials flows "
+                            + "- only one is supported per spec, since it's ambiguous which one the "
+                            + "generated trigger should use for its outbound calls. Remove the flow "
+                            + "that doesn't apply.");
+        }
+
         if (authorizationCode != null) {
             if (authorizationCode.refreshUrl() == null) {
                 throw new GeneratorException(
@@ -161,7 +170,6 @@ public final class ConnectionAuthExtractor {
                     authorizationCode.refreshUrl().toString());
         }
 
-        AsyncApiOAuthFlow clientCredentials = flows.clientCredentials();
         if (clientCredentials != null) {
             if (clientCredentials.tokenUrl() == null) {
                 throw new GeneratorException(

@@ -271,9 +271,19 @@ public class GenerateListenerConfigNode {
                 createIdentifierToken(fieldName),
                 createToken(EQUAL_TOKEN),
                 createBasicLiteralNode(STRING_LITERAL,
-                        createLiteralValueToken(STRING_LITERAL_TOKEN, "\"" + url + "\"",
+                        createLiteralValueToken(STRING_LITERAL_TOKEN, "\"" + escapeStringLiteral(url) + "\"",
                                 createEmptyMinutiaeList(), createEmptyMinutiaeList())),
                 createToken(SEMICOLON_TOKEN));
+    }
+
+    /**
+     * Escapes {@code \} and {@code "} so a spec-derived value can be embedded in a generated
+     * Ballerina string literal without prematurely closing it or altering the intended text -
+     * e.g. a {@code tokenUrl} containing a literal {@code "} would otherwise produce malformed
+     * generated source.
+     */
+    private static String escapeStringLiteral(String value) {
+        return value.replace("\\", "\\\\").replace("\"", "\\\"");
     }
 
     /**

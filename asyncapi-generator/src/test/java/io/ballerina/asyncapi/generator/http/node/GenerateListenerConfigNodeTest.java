@@ -87,6 +87,21 @@ public class GenerateListenerConfigNodeTest {
     }
 
     @Test
+    void testGenerateTokenUrlWithQuoteIsEscaped() throws GeneratorException {
+        // A tokenUrl/refreshUrl containing a literal '"' must not be embedded raw into the
+        // generated string literal - doing so would prematurely close it and produce malformed
+        // generated source. Contrived input, but proves the escape actually runs.
+        ConnectionAuthConfig config = new ConnectionAuthConfig(ConnectionAuthConfig.TYPE_OAUTH2,
+                ConnectionAuthConfig.FLOW_CLIENT_CREDENTIALS, "https://example.com/token?q=\"quoted\"", null);
+        String result = GenerateListenerConfigNode.generate(List.of(), Optional.of(config)).toString();
+
+        Assert.assertTrue(result.contains("https://example.com/token?q=\\\"quoted\\\""),
+                "Embedded quote should be escaped, not left raw: " + result);
+        Assert.assertFalse(result.contains("q=\"quoted\"\";"),
+                "Unescaped quote would prematurely close the string literal: " + result);
+    }
+
+    @Test
     void testGenerateHttpApiKeyHeaderDynamicDescription() throws GeneratorException {
         ConnectionAuthConfig config = new ConnectionAuthConfig(ConnectionAuthConfig.TYPE_HTTP_API_KEY,
                 null, null, null, "X-API-Key", ConnectionAuthConfig.API_KEY_IN_HEADER);

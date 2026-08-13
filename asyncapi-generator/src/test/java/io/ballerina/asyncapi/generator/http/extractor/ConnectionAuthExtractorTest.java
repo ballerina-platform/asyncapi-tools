@@ -252,6 +252,31 @@ public class ConnectionAuthExtractorTest {
     }
 
     @Test
+    void testOAuth2BothFlowsOnSameSchemeThrows() throws AsyncApiParserException {
+        // A single oauth2 scheme declaring both flows is genuinely ambiguous for the generated
+        // trigger's outbound calls - the spec has no way to say which flow this trigger should
+        // actually use, so this must fail loudly rather than silently preferring
+        // authorizationCode.
+        String json = PREFIX + ",\"components\":{\"securitySchemes\":{\"oauthAuth\":"
+                + "{\"type\":\"oauth2\",\"flows\":{"
+                + "\"authorizationCode\":{\"authorizationUrl\":\"https://example.com/authorize\","
+                + "\"tokenUrl\":\"https://example.com/token\","
+                + "\"refreshUrl\":\"https://example.com/refresh\","
+                + "\"scopes\":{\"read\":\"Read access\"}},"
+                + "\"clientCredentials\":{\"tokenUrl\":\"https://example.com/token\","
+                + "\"scopes\":{\"read\":\"Read access\"}}}}}}}";
+        AsyncApiSpec spec = AsyncApiParser.parseFromJsonString(json);
+        try {
+            new ConnectionAuthExtractor(spec).extract();
+            Assert.fail("Expected GeneratorException for a scheme declaring both oauth2 flows");
+        } catch (GeneratorException e) {
+            Assert.assertTrue(e.getMessage().contains("authorizationCode")
+                            && e.getMessage().contains("clientCredentials"),
+                    "Exception should name both conflicting flows: " + e.getMessage());
+        }
+    }
+
+    @Test
     void testOAuth2AuthorizationCodeMissingRefreshUrlThrows() throws AsyncApiParserException {
         // tokenUrl and scopes are required by the AsyncAPI spec itself for authorizationCode,
         // so the parser accepts this; refreshUrl is spec-optional, so its absence is only
