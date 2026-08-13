@@ -144,18 +144,22 @@ public class GeneratePostResourceFunctionNode implements Generator {
                 "%s %s = check payload.cloneWithType(%s);",
                 DataTypesGenerator.GENERIC_DATA_TYPE, GenerateDispatcherServiceNode.CLONE_WITH_TYPE_VAR_NAME,
                 DataTypesGenerator.GENERIC_DATA_TYPE)));
+        statements.add(NodeParser.parseStatement(
+                "http:Response ackResponse = new; ackResponse.statusCode = http:STATUS_OK;"
+                        + " check caller->respond(ackResponse);"));
         if (EventIdentifierExtractor.X_BALLERINA_EVENT_TYPE_COMPOSITE.equals(type)) {
             statements.add(NodeParser.parseStatement(String.format(
-                    "check self.%s(%s, eventIdentifier, eventType);",
+                    "error? dispatchResult = self.%s(%s, eventIdentifier, eventType);",
                     GenerateMatchRemoteFuncNode.DISPATCHER_MATCH_REMOTE_FUNC,
                     GenerateDispatcherServiceNode.CLONE_WITH_TYPE_VAR_NAME)));
         } else {
             statements.add(NodeParser.parseStatement(String.format(
-                    "check self.%s(%s, eventType);",
+                    "error? dispatchResult = self.%s(%s, eventType);",
                     GenerateMatchRemoteFuncNode.DISPATCHER_MATCH_REMOTE_FUNC,
                     GenerateDispatcherServiceNode.CLONE_WITH_TYPE_VAR_NAME)));
         }
-        statements.add(NodeParser.parseStatement("check caller->respond(http:STATUS_OK);"));
+        statements.add(NodeParser.parseStatement(
+                "if dispatchResult is error { log:printError(\"DISPATCH_FAILED\", dispatchResult); }"));
 
         FunctionBodyBlockNode body = createFunctionBodyBlockNode(
                 createToken(OPEN_BRACE_TOKEN), null, createNodeList(statements),

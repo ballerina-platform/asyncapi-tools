@@ -20,6 +20,8 @@ package io.ballerina.asyncapi.generator.http.generator;
 import io.ballerina.asyncapi.generator.GeneratorException;
 import io.ballerina.asyncapi.generator.http.model.DispatchTestCase;
 import io.ballerina.asyncapi.generator.http.model.WebhookAuthConfig;
+import io.ballerina.asyncapi.generator.http.utils.HeaderTemplateParser;
+import io.ballerina.asyncapi.generator.http.utils.HeaderTemplateParser.HeaderTemplate;
 import io.ballerina.compiler.syntax.tree.SyntaxTree;
 import io.ballerina.tools.text.TextDocument;
 import io.ballerina.tools.text.TextDocuments;
@@ -41,11 +43,12 @@ import java.util.Map;
  * curated data, not synthesizable from a schema alone) to a listener started on a dedicated test
  * port, then asserts the expected remote function fired.
  *
- * <p>Signing currently supports only the simple case backing this DSL's legacy/default fallback
- * (a single HMAC digest of the raw body, hex-encoded, under the configured header name with no
- * literal prefix) -- the same scheme GitHub's spec currently resolves to. Specs using a richer
- * {@code headerFormat} (literal prefixes, {@code $config}/{@code $header} composition, multiple
- * HMAC inputs) are not yet supported by this generator and are out of scope for this pass.
+ * <p>Signing currently supports a single HMAC-SHA256 digest of the raw body, hex-encoded, spliced
+ * into the configured {@code headerFormat} (literal prefix/suffix text around a single
+ * {@code signature} placeholder, e.g. {@code "sha256=$signature"} -- the scheme GitHub's spec
+ * uses). Other algorithms/encodings, and richer {@code headerFormat}s with additional placeholders
+ * or {@code $config}/{@code $header} composition, are not yet supported by this generator and are
+ * out of scope for this pass.
  */
 public class DispatchTestGenerator {
 
@@ -91,6 +94,7 @@ public class DispatchTestGenerator {
         }
 
         source.append(buildSendHelper());
+        source.append(buildWaitHelper());
 
         for (DispatchTestCase testCase : testCases) {
             source.append(buildTestFunction(testCase));
@@ -113,7 +117,8 @@ public class DispatchTestGenerator {
         return "import ballerina/test;\n"
                 + "import ballerina/http;\n"
                 + "import ballerina/crypto;\n"
-                + "import ballerina/io;\n\n"
+                + "import ballerina/io;\n"
+                + "import ballerina/lang.runtime;\n\n"
                 + "const string TRIGGER_TEST_SECRET = \"" + TEST_SECRET + "\";\n"
                 + "const int TRIGGER_TEST_PORT = " + TEST_PORT + ";\n"
                 + "const string TRIGGER_PAYLOAD_DIR = \"" + DEFAULT_PAYLOAD_DIR + "\";\n\n"
@@ -136,15 +141,19 @@ public class DispatchTestGenerator {
         return sb.toString();
     }
 
-    private String buildSendHelper() {
+    private String buildSendHelper() throws GeneratorException {
         String signatureHeader = webhookAuthConfig != null && webhookAuthConfig.headerName() != null
                 ? webhookAuthConfig.headerName()
                 : "X-Hub-Signature-256";
+        String headerFormat = webhookAuthConfig != null ? webhookAuthConfig.headerFormat() : null;
+        HeaderTemplate template = HeaderTemplateParser.parse(headerFormat);
+        String signatureExpr = buildSignatureExpression(template);
         return "isolated function sendSignedTriggerWebhook(string headerValue, string eventIdentifier) "
                 + "returns http:Response|error {\n"
                 + "    byte[] body = check io:fileReadBytes(string `${TRIGGER_PAYLOAD_DIR}/${eventIdentifier}.json`);\n"
                 + "    byte[] digest = check crypto:hmacSha256(body, TRIGGER_TEST_SECRET.toBytes());\n"
-                + "    string signature = digest.toBase16();\n\n"
+                + "    string computedSignature = digest.toBase16();\n"
+                + "    string signature = " + signatureExpr + ";\n\n"
                 + "    http:Client triggerClient = check new (string `http://localhost:${TRIGGER_TEST_PORT}`);\n"
                 + "    http:Request request = new;\n"
                 + "    request.setBinaryPayload(body, contentType = \"application/json\");\n"
@@ -154,6 +163,32 @@ public class DispatchTestGenerator {
                 + "}\n\n";
     }
 
+    /**
+     * Builds a Ballerina string-template expression that splices the computed signature into the
+     * configured {@code headerFormat}, e.g. {@code headerFormat = "sha256=$signature"} becomes
+     * {@code string `sha256=${computedSignature}`}. Only the {@code signature} placeholder is
+     * substituted -- see the class-level doc for the scope of {@code headerFormat}s supported.
+     *
+     * @param template the parsed {@code headerFormat}
+     * @return a Ballerina expression, as source text, evaluating to the full header value
+     */
+    private String buildSignatureExpression(HeaderTemplate template) {
+        StringBuilder expression = new StringBuilder("string `");
+        for (int i = 0; i < template.variables().size(); i++) {
+            expression.append(escapeBacktickTemplate(template.literals().get(i)));
+            String variable = template.variables().get(i);
+            expression.append("${").append("signature".equals(variable) ? "computedSignature" : variable)
+                    .append("}");
+        }
+        expression.append(escapeBacktickTemplate(template.literals().get(template.literals().size() - 1)));
+        expression.append("`");
+        return expression.toString();
+    }
+
+    private String escapeBacktickTemplate(String value) {
+        return value.replace("\\", "\\\\").replace("`", "\\`");
+    }
+
     private String buildTestFunction(DispatchTestCase testCase) {
         String testFnName = "test" + capitalize(testCase.functionName().replaceFirst("^on", "")) + "Dispatch";
         String trackerKey = testCase.serviceTypeName() + "." + testCase.functionName();
@@ -161,9 +196,27 @@ public class DispatchTestGenerator {
                 + "function " + testFnName + "() returns error? {\n"
                 + "    http:Response response = check sendSignedTriggerWebhook(\""
                 + testCase.headerValue() + "\", \"" + testCase.eventIdentifier() + "\");\n"
-                + "    test:assertEquals(response.statusCode, http:STATUS_CREATED);\n"
-                + "    test:assertTrue(triggerFired[\"" + trackerKey + "\"] ?: false, \""
+                + "    test:assertEquals(response.statusCode, http:STATUS_OK);\n"
+                + "    test:assertTrue(waitForDispatch(\"" + trackerKey + "\"), \""
                 + trackerKey + " should have fired\");\n"
+                + "}\n\n";
+    }
+
+    /**
+     * Emits the {@code waitForDispatch} helper: the dispatcher acks before invoking the user's
+     * handler, so the HTTP response the test client receives does not guarantee the handler has
+     * finished running yet on the server side. Polls {@code triggerFired} briefly instead of
+     * checking it once immediately after the response returns.
+     */
+    private String buildWaitHelper() {
+        return "function waitForDispatch(string trackerKey) returns boolean {\n"
+                + "    foreach int i in 0 ..< 20 {\n"
+                + "        if triggerFired[trackerKey] ?: false {\n"
+                + "            return true;\n"
+                + "        }\n"
+                + "        runtime:sleep(0.05);\n"
+                + "    }\n"
+                + "    return false;\n"
                 + "}\n\n";
     }
 

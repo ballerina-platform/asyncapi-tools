@@ -89,6 +89,29 @@ public class DispatcherGeneratorTest {
     }
 
     @Test
+    void testAckSentBeforeDispatchAndDispatchErrorsAreNotPropagated() throws GeneratorException {
+        EventIdentifierConfig config = new EventIdentifierConfig("body", null, "event.type");
+        String source = new DispatcherGenerator(SINGLE_SERVICE, config, Optional.<WebhookAuthConfig>empty(),
+                "test_service").generate();
+
+        int ackIndex = source.indexOf("ackResponse.statusCode = http:STATUS_OK;");
+        int dispatchIndex = source.indexOf("error? dispatchResult =");
+        Assert.assertTrue(ackIndex >= 0, "Generated source should ack with STATUS_OK");
+        Assert.assertTrue(source.contains("check caller->respond(ackResponse);"),
+                "Ack must be sent via a real http:Response with statusCode set - passing the status "
+                        + "constant directly to respond() sends it as the response body instead, and the "
+                        + "framework falls back to its default status for the method (201 for POST)");
+        Assert.assertTrue(dispatchIndex >= 0,
+                "Generated source should capture the dispatch result instead of propagating it via check");
+        Assert.assertTrue(ackIndex < dispatchIndex,
+                "The ack must be sent before dispatching to the user's handler, so a handler error can "
+                        + "never prevent the caller from receiving an acknowledgement");
+        Assert.assertFalse(source.contains("check self.matchRemoteFunc(genericDataType, eventType);"),
+                "The post resource function's dispatch call must not use check - a handler error should "
+                        + "be caught and logged, not propagated and left unacknowledged");
+    }
+
+    @Test
     void testEmptyServiceTypesThrows() {
         EventIdentifierConfig config = new EventIdentifierConfig("body", null, "event.type");
         try {
