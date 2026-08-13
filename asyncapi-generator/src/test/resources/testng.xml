@@ -19,6 +19,7 @@
             <class name="io.ballerina.asyncapi.generator.http.extractor.ServiceTypeExtractorTest"/>
             <class name="io.ballerina.asyncapi.generator.http.extractor.SchemaExtractorTest"/>
             <class name="io.ballerina.asyncapi.generator.http.generator.ListenerGeneratorTest"/>
+            <class name="io.ballerina.asyncapi.generator.http.generator.DataTypesGeneratorTest"/>
             <class name="io.ballerina.asyncapi.generator.http.generator.DispatcherGeneratorTest"/>
             <class name="io.ballerina.asyncapi.generator.http.generator.ServiceTypesGeneratorTest"/>
             <class name="io.ballerina.asyncapi.generator.http.utils.CodegenUtilsTest"/>
