@@ -27,6 +27,7 @@ import io.ballerina.asyncapi.generator.http.node.GenerateListenerConfigNode;
 import io.ballerina.asyncapi.generator.http.node.GenerateModuleMemberDeclarationNode;
 import io.ballerina.asyncapi.generator.http.node.GenerateUnionDescriptorNode;
 import io.ballerina.asyncapi.generator.http.node.Generator;
+import io.ballerina.asyncapi.generator.http.utils.CodegenUtils;
 import io.ballerina.compiler.syntax.tree.ImportDeclarationNode;
 import io.ballerina.compiler.syntax.tree.ModuleMemberDeclarationNode;
 import io.ballerina.compiler.syntax.tree.ModulePartNode;
@@ -105,9 +106,14 @@ public class DataTypesGenerator {
         typeNodes.add(unionGen.generate());
 
         List<ImportDeclarationNode> imports = new ArrayList<>();
-        imports.add(GenerateHttpImportNode.generate());
-        if (connectionAuthConfig.isPresent()
-                && ConnectionAuthConfig.TYPE_X509.equals(connectionAuthConfig.get().type())) {
+        boolean x509AuthConfigured = connectionAuthConfig.isPresent()
+                && ConnectionAuthConfig.TYPE_X509.equals(connectionAuthConfig.get().type());
+        // X509's keyConfig field type is crypto:KeyStore|http:CertKey, so http is needed even
+        // when no schema property requires an @http:Header annotation.
+        if (needsHttpImport() || x509AuthConfigured) {
+            imports.add(GenerateHttpImportNode.generate());
+        }
+        if (x509AuthConfigured) {
             // X509's cert/keyConfig fields are crypto:TrustStore|string and crypto:KeyStore|http:CertKey -
             // only pull in the crypto import when a scheme actually needs it.
             imports.add(GenerateCryptoImportNode.generate());
@@ -127,5 +133,23 @@ public class DataTypesGenerator {
         } catch (FormatterException e) {
             throw new GeneratorException("Could not format the generated data_types.bal code", e);
         }
+    }
+
+    /**
+     * Determines whether {@code data_types.bal} needs {@code import ballerina/http;} on account
+     * of an {@code @http:Header {...}} annotation, generated for any schema property whose name
+     * requires one (see {@link CodegenUtils#requiresHeaderAnnotation}). Ballerina treats an
+     * unused import as a compile error, not a warning, so the import must only be added when at
+     * least one property actually needs that annotation - or, separately (see {@link #generate}),
+     * when X509 connection auth is configured, since {@code keyConfig}'s type also references
+     * {@code http:CertKey}.
+     *
+     * @return {@code true} if any schema field name requires an {@code @http:Header} annotation
+     */
+    private boolean needsHttpImport() {
+        return schemas.values().stream()
+                .filter(schema -> schema.properties() != null)
+                .flatMap(schema -> schema.properties().keySet().stream())
+                .anyMatch(CodegenUtils::requiresHeaderAnnotation);
     }
 }

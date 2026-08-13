@@ -291,6 +291,43 @@ public class AsyncApiResponseMapper {
         return componentMessage;
     }
 
+    /**
+     * Creates a message entry with an inline (non-{@code $ref}) schema for a request payload
+     * that isn't a named record type - a primitive-typed parameter, or a zero-parameter remote
+     * function with no payload at all. Unlike {@link #extractMessageSchemaReference}, no
+     * component schema is registered in {@code components.schemas} and no discriminator field is
+     * injected, since there's no record to carry one: the schema is embedded directly in the
+     * message rather than referenced.
+     *
+     * @param message          channel-level message to add oneOf reference to
+     * @param typeName         the message name (from a dispatcher override annotation, or derived
+     *                         from the remote function's name when there's no parameter type name
+     *                         to use)
+     * @param schema           the inline schema describing the payload (e.g. {@code {type: string}}
+     *                         for a primitive parameter, or an empty object schema for no payload)
+     * @param paramDescription optional description for the payload node
+     * @return the component-level message with the payload set
+     */
+    public BalAsyncApi30MessageImpl extractInlineMessageSchema(BalAsyncApi30MessageImpl message, String typeName,
+                                                                BalAsyncApi30SchemaImpl schema,
+                                                                String paramDescription) {
+        BalAsyncApi30MessageImpl messageType = new BalAsyncApi30MessageImpl();
+
+        ObjectMapper objectMapper = callObjectMapper();
+        ObjectNode schemaNode = objectMapper.valueToTree(schema);
+        if (paramDescription != null) {
+            schemaNode.put(DESCRIPTION, paramDescription);
+        }
+
+        BalAsyncApi30MessageImpl componentMessage = new BalAsyncApi30MessageImpl();
+        componentMessage.setParent(components);
+        componentMessage.addExtension(PAYLOAD, schemaNode);
+
+        messageType.set$ref(MESSAGE_REFERENCE + ConverterCommonUtils.unescapeIdentifier(typeName));
+        setSchemasForChannelsAsOneOfSchema(message, messageType);
+        return componentMessage;
+    }
+
     private void setResponseOfRequest(BalAsyncApi30MessageImpl subscribeMessage,
                                       BalAsyncApi30MessageImpl componentMessage, String responseType,
                                       String returnDescription, ObjectMapper objMapper,

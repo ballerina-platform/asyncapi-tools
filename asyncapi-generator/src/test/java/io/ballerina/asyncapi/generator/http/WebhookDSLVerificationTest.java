@@ -53,6 +53,29 @@ public class WebhookDSLVerificationTest {
     }
 
     @Test
+    public void testGithubDispatchTestSignatureFormatAndStatusCode() throws Exception {
+        // github_verification.yaml configures headerFormat: "sha256=$signature", matching the real
+        // prefix GitHub always sends. The generated tests/dispatch_test.bal must build its outgoing
+        // signature using that same prefix, and assert the status code the dispatcher actually
+        // returns (STATUS_OK) - not a bare/wrong-status signature that would never pass real
+        // verification.
+        Path tempOutputDir = generateOutputDir("github_verification.yaml");
+        Path dispatchTestFile = tempOutputDir.resolve("tests").resolve("dispatch_test.bal");
+        Assert.assertTrue(Files.exists(dispatchTestFile), "tests/dispatch_test.bal was not generated!");
+        String dispatchTestContent = Files.readString(dispatchTestFile);
+
+        Assert.assertTrue(
+                dispatchTestContent.contains("string signature = string `sha256=${computedSignature}`;"),
+                "Should splice the computed signature into the configured sha256= headerFormat prefix");
+        Assert.assertTrue(
+                dispatchTestContent.contains("http:STATUS_OK"),
+                "Should assert the status code the dispatcher actually returns");
+        Assert.assertFalse(
+                dispatchTestContent.contains("http:STATUS_CREATED"),
+                "Should not assert a status code the dispatcher never returns");
+    }
+
+    @Test
     public void testStripeWebhookVerificationDsl() throws Exception {
     String content = generateDispatcherService("stripe_verification.yaml");
     Assert.assertTrue(content.contains("request.getHeader(\"Stripe-Signature\")"),
@@ -159,7 +182,7 @@ public class WebhookDSLVerificationTest {
                 "collide with existing webhook DSL config field name(s)");
     }
 
-    private String generateDispatcherService(String specFile) throws Exception {
+    private Path generateOutputDir(String specFile) throws Exception {
     Path asyncapiPath = RES_DIR.resolve(specFile);
     String yamlContent = Files.readString(asyncapiPath);
     ObjectNode specNode = (ObjectNode) YAML_MAPPER.readTree(yamlContent);
@@ -172,7 +195,11 @@ public class WebhookDSLVerificationTest {
     Files.createDirectories(tempOutputDir);
     HttpCodeGenerator generator = new HttpCodeGenerator(spec);
     generator.generate(tempOutputDir);
+    return tempOutputDir;
+    }
 
+    private String generateDispatcherService(String specFile) throws Exception {
+    Path tempOutputDir = generateOutputDir(specFile);
     Path dispatcherFile = tempOutputDir.resolve("dispatcher_service.bal");
     Assert.assertTrue(Files.exists(dispatcherFile), "dispatcher_service.bal was not generated!");
     return Files.readString(dispatcherFile);
