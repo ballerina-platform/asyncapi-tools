@@ -66,7 +66,6 @@ public class GenerateMatchChunkFuncNode implements Generator {
     private final String eventIdentifierPath;
     private final String eventTypePath;
     private final boolean isHeader;
-    private final String serviceName;
 
     /**
      * Creates a generator for one channel-group match function.
@@ -79,19 +78,15 @@ public class GenerateMatchChunkFuncNode implements Generator {
      *                            no enumerable set of values (composite identifier type only), or
      *                            {@code null} for "header" and "body" identifier types
      * @param isHeader            whether the identifier type is "header" or "composite" (i.e. not "body")
-     * @param serviceName         a label identifying the generated package, embedded into the
-     *                            {@code MATCH_LEVEL_2_*} diagnostic trace log message
      */
     public GenerateMatchChunkFuncNode(HttpServiceType serviceType,
                                       String eventIdentifierPath,
                                       String eventTypePath,
-                                      boolean isHeader,
-                                      String serviceName) {
+                                      boolean isHeader) {
         this.serviceType = serviceType;
         this.eventIdentifierPath = eventIdentifierPath;
         this.eventTypePath = eventTypePath;
         this.isHeader = isHeader;
-        this.serviceName = serviceName;
     }
 
     /**
@@ -164,7 +159,7 @@ public class GenerateMatchChunkFuncNode implements Generator {
         // statement per distinct match subject (composite identifier vs. bare event type).
         GenerateMatchStatementNode matchGen =
             new GenerateMatchStatementNode(
-                List.of(serviceType), eventIdentifierPath, eventTypePath, serviceName);
+                List.of(serviceType), eventIdentifierPath, eventTypePath);
         List<StatementNode> statements = matchGen.generate();
 
         FunctionBodyBlockNode body = createFunctionBodyBlockNode(

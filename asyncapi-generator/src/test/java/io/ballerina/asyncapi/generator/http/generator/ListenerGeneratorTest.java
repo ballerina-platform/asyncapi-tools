@@ -59,6 +59,27 @@ public class ListenerGeneratorTest {
     }
 
     @Test
+    void testGetServiceTypeStrReturnsErrorInsteadOfPanicking() throws GeneratorException {
+        // An unrecognized service type must fail as an ordinary error the caller can check/handle,
+        // not a panic that crashes the whole running listener over one bad attach() call.
+        List<HttpServiceType> serviceTypes = List.of(
+                new HttpServiceType("RepositoryService", List.of(
+                        new HttpRemoteFunction("push", "PushEvent")
+                ))
+        );
+        String source = new ListenerGenerator(serviceTypes, Optional.<WebhookAuthConfig>empty()).generate();
+
+        Assert.assertFalse(source.contains("panic"),
+                "getServiceTypeStr must not panic on an unrecognized service type: " + source);
+        Assert.assertTrue(source.contains("returns string|error"),
+                "getServiceTypeStr's return type must be string|error, not plain string: " + source);
+        Assert.assertTrue(source.contains("return error(\"Unrecognized service type attached to the listener\")"),
+                "The terminal else branch should return an error: " + source);
+        Assert.assertTrue(source.contains("check self.getServiceTypeStr(serviceRef)"),
+                "attach/detach must propagate getServiceTypeStr's error via check: " + source);
+    }
+
+    @Test
     void testEmptyServiceTypesThrows() {
         try {
             new ListenerGenerator(List.of(), Optional.<WebhookAuthConfig>empty()).generate();

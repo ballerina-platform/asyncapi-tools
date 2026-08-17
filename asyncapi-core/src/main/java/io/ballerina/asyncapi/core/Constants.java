@@ -63,6 +63,7 @@ public final class Constants {
     public static final String SCHEMA_UNIQUE_ITEMS = "uniqueItems";
     public static final String SCHEMA_MAX_PROPERTIES = "maxProperties";
     public static final String SCHEMA_MIN_PROPERTIES = "minProperties";
+    public static final String SCHEMA_NULLABLE = "nullable";
     public static final String SCHEMA_READ_ONLY = "readOnly";
     public static final String SCHEMA_WRITE_ONLY = "writeOnly";
     public static final String SCHEMA_DEPRECATED = "deprecated";

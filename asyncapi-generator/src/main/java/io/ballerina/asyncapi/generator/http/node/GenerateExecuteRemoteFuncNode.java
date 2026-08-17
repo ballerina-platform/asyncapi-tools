@@ -63,16 +63,10 @@ public class GenerateExecuteRemoteFuncNode implements Generator {
     private static final String EXECUTE_REMOTE_FUNC_PARAM_EVENT_FUNC = "eventFunction";
     private static final String EXECUTE_REMOTE_FUNC_LOCAL_SERVICE = "genericService";
 
-    private final String serviceName;
-
     /**
      * Creates a generator for the {@code executeRemoteFunc} method.
-     *
-     * @param serviceName a label identifying the generated package, embedded into the
-     *                    {@code HANDLER_EXECUTED_*} diagnostic trace log message
      */
-    public GenerateExecuteRemoteFuncNode(String serviceName) {
-        this.serviceName = serviceName;
+    public GenerateExecuteRemoteFuncNode() {
     }
 
     @Override
@@ -111,12 +105,9 @@ public class GenerateExecuteRemoteFuncNode implements Generator {
                 GenerateDispatcherServiceNode.DISPATCHER_SERVICES_FIELD,
                 EXECUTE_REMOTE_FUNC_PARAM_SERVICE_TYPE)));
         statements.add(NodeParser.parseStatement(String.format(
-                "if %s is %s { log:printInfo(\"HANDLER_EXECUTED_%s\", eventName = %s); "
-                        + "check self.%s.invokeRemoteFunction(%s, %s, %s, %s); }",
+                "if %s is %s { check self.%s.invokeRemoteFunction(%s, %s, %s, %s); }",
                 EXECUTE_REMOTE_FUNC_LOCAL_SERVICE,
                 ServiceTypesGenerator.GENERIC_SERVICE_TYPE,
-                serviceName,
-                EXECUTE_REMOTE_FUNC_PARAM_EVENT_NAME,
                 GenerateDispatcherServiceNode.DISPATCHER_NATIVE_HANDLER_FIELD,
                 EXECUTE_REMOTE_FUNC_PARAM_EVENT,
                 EXECUTE_REMOTE_FUNC_PARAM_EVENT_NAME,

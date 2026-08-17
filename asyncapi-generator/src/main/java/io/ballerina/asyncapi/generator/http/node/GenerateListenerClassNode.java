@@ -280,7 +280,7 @@ public class GenerateListenerClassNode implements Generator {
 
         List<StatementNode> statements = new ArrayList<>();
         statements.add(NodeParser.parseStatement(String.format(
-                "string serviceTypeStr = self.%s(serviceRef);",
+                "string serviceTypeStr = check self.%s(serviceRef);",
                 LISTENER_GET_SERVICE_TYPE_FUNC)));
         statements.add(NodeParser.parseStatement(String.format(
                 "check self.%s.%s(serviceTypeStr, serviceRef);",
@@ -311,7 +311,7 @@ public class GenerateListenerClassNode implements Generator {
 
         List<StatementNode> statements = new ArrayList<>();
         statements.add(NodeParser.parseStatement(String.format(
-                "string serviceTypeStr = self.%s(serviceRef);",
+                "string serviceTypeStr = check self.%s(serviceRef);",
                 LISTENER_GET_SERVICE_TYPE_FUNC)));
         statements.add(NodeParser.parseStatement(String.format(
                 "check self.%s.%s(serviceTypeStr);",
@@ -398,7 +398,11 @@ public class GenerateListenerClassNode implements Generator {
     }
 
     private FunctionDefinitionNode buildGetServiceTypeStrFunc() throws GeneratorException {
-        // private isolated function getServiceTypeStr(GenericServiceType serviceRef) returns string
+        // private isolated function getServiceTypeStr(GenericServiceType serviceRef) returns string|error
+        // - string|error (not plain string) because an unrecognized serviceRef returns an error
+        // (see GenerateListenerStatementNode) rather than panicking, so a caller attaching a
+        // service type this listener doesn't understand gets a normal error instead of crashing
+        // the whole runtime process.
         FunctionSignatureNode signature = createFunctionSignatureNode(
                 createToken(OPEN_PAREN_TOKEN),
                 createSeparatedNodeList(
@@ -411,7 +415,10 @@ public class GenerateListenerClassNode implements Generator {
                 createReturnTypeDescriptorNode(
                         createToken(RETURNS_KEYWORD),
                         createEmptyNodeList(),
-                        createBuiltinSimpleNameReferenceNode(null, createIdentifierToken("string"))));
+                        createUnionTypeDescriptorNode(
+                                createBuiltinSimpleNameReferenceNode(null, createIdentifierToken("string")),
+                                createToken(PIPE_TOKEN),
+                                createBuiltinSimpleNameReferenceNode(null, createIdentifierToken("error")))));
 
         List<String> typeNames = serviceTypes.stream()
                 .map(HttpServiceType::serviceTypeName)

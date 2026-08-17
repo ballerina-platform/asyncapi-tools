@@ -221,7 +221,6 @@ public class GenerateVerifyWebhookSignatureFuncNode implements Generator {
                             + " return error(\"Unauthorized: Signature Mismatch\"); }"));
         }
         
-        statements.add(NodeParser.parseStatement("log:printInfo(\"SIGNATURE_VERIFIED\");"));
         statements.add(NodeParser.parseStatement("return;"));
 
         FunctionBodyBlockNode body = createFunctionBodyBlockNode(

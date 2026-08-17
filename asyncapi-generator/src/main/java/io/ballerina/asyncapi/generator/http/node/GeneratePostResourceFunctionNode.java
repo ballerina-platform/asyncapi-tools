@@ -118,20 +118,15 @@ public class GeneratePostResourceFunctionNode implements Generator {
                             + " http:Response r = new; r.statusCode = http:STATUS_UNAUTHORIZED;"
                             + " check caller->respond(r); return; }"));
         }
-        statements.add(NodeParser.parseStatement("log:printInfo(\"DISPATCHER_ENTERED\");"));
         statements.add(NodeParser.parseStatement("json payload = check request.getJsonPayload();"));
         if (EventIdentifierExtractor.X_BALLERINA_EVENT_TYPE_HEADER.equals(type)) {
-            statements.add(NodeParser.parseStatement(String.format(
-                    "string eventType = check request.getHeader(\"%s\");",
-                    identifierConfig.name())));
+            statements.addAll(buildEventTypeFromHeaderStatements(identifierConfig.name()));
         } else if (EventIdentifierExtractor.X_BALLERINA_EVENT_TYPE_BODY.equals(type)) {
             statements.add(NodeParser.parseStatement(String.format(
                     "string eventType = (check payload.%s).toString();",
                     identifierConfig.path())));
         } else {
-            statements.add(NodeParser.parseStatement(String.format(
-                    "string eventType = check request.getHeader(\"%s\");",
-                    identifierConfig.name())));
+            statements.addAll(buildEventTypeFromHeaderStatements(identifierConfig.name()));
             statements.add(NodeParser.parseStatement(String.format(
                     "json|error actionField = payload.%s;",
                     identifierConfig.path())));
@@ -172,5 +167,26 @@ public class GeneratePostResourceFunctionNode implements Generator {
                 createIdentifierToken("post"),
                 createNodeList(createToken(DOT_TOKEN)),
                 signature, body);
+    }
+
+    /**
+     * Builds the statements that read {@code eventType} from a required request header, responding
+     * {@code 400 Bad Request} and returning early if it's absent - a missing header is a malformed
+     * request (client error), not a server fault, so it must not surface as a plain {@code check}
+     * failure (which the framework reports as a 500).
+     *
+     * @param headerName the request header to read (e.g. {@code "X-GitHub-Event"})
+     * @return the statements, ending with {@code eventType} bound to the header's value
+     */
+    private List<StatementNode> buildEventTypeFromHeaderStatements(String headerName) {
+        List<StatementNode> statements = new ArrayList<>();
+        statements.add(NodeParser.parseStatement(String.format(
+                "string|error eventTypeResult = request.getHeader(\"%s\");", headerName)));
+        statements.add(NodeParser.parseStatement(
+                "if eventTypeResult is error {"
+                        + " http:Response badRequest = new; badRequest.statusCode = http:STATUS_BAD_REQUEST;"
+                        + " check caller->respond(badRequest); return; }"));
+        statements.add(NodeParser.parseStatement("string eventType = eventTypeResult;"));
+        return statements;
     }
 }
