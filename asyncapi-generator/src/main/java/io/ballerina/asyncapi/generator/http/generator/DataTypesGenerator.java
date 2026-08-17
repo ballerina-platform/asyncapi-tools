@@ -85,19 +85,11 @@ public class DataTypesGenerator {
         typeNodes.add(GenerateListenerConfigNode.generateDefaultSecretConst());
         typeNodes.add(GenerateListenerConfigNode.generate(extraConfigFields));
 
-        // Split into two groups instead of one list, so "loose" schemas (every property optional -
-        // the shape cloneWithType's first-match union resolution can most easily mismatch, since an
-        // unrelated payload can satisfy an all-optional record structurally) are ordered after every
-        // concrete schema in the union, regardless of the order schemas.entrySet() happens to iterate
-        // in. See isLooseObjectSchema's javadoc.
+        // Loose schemas (see isLooseObjectSchema) are ordered last in the union.
         List<TypeDescriptorNode> strictTypeDescriptors = new ArrayList<>();
         List<TypeDescriptorNode> looseTypeDescriptors = new ArrayList<>();
 
-        // Shared across every entry's generator so two different schemas hoisting an inline object
-        // with the same field name (e.g. two payloads each with an inline "workflow" object) can
-        // never produce two colliding type definitions - see GenerateModuleMemberDeclarationNode's
-        // constructor javadoc. Seeded with every top-level schema's own (post-sanitization) name,
-        // since a hoisted type must not collide with those either.
+        // Shared across entries so hoisted inline types can't collide on name.
         Set<String> claimedTypeNames = new HashSet<>();
         for (String schemaName : schemas.keySet()) {
             claimedTypeNames.add(CodegenUtils.getValidName(CodegenUtils.escapeIdentifier(schemaName.trim()), true));
