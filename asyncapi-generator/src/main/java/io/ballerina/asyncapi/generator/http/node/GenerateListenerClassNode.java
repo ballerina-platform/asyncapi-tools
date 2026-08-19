@@ -22,6 +22,7 @@ import io.ballerina.asyncapi.generator.http.generator.ServiceTypesGenerator;
 import io.ballerina.asyncapi.generator.http.model.HttpServiceType;
 import io.ballerina.asyncapi.generator.http.model.WebhookAuthConfig;
 import io.ballerina.compiler.syntax.tree.AnnotationNode;
+import io.ballerina.compiler.syntax.tree.BasicLiteralNode;
 import io.ballerina.compiler.syntax.tree.ClassDefinitionNode;
 import io.ballerina.compiler.syntax.tree.FunctionBodyBlockNode;
 import io.ballerina.compiler.syntax.tree.FunctionDefinitionNode;
@@ -100,17 +101,20 @@ public class GenerateListenerClassNode implements Generator {
 
     private final List<HttpServiceType> serviceTypes;
     private final Optional<WebhookAuthConfig> webhookAuthConfig;
+    private final String displayLabel;
 
     /**
      * Creates a generator for the {@code Listener} class.
      *
      * @param serviceTypes      the list of HTTP service type definitions
      * @param webhookAuthConfig the optional webhook authentication configuration
+     * @param displayLabel      the connector's display name, from the spec's {@code info.title}
      */
     public GenerateListenerClassNode(List<HttpServiceType> serviceTypes,
-            Optional<WebhookAuthConfig> webhookAuthConfig) {
+            Optional<WebhookAuthConfig> webhookAuthConfig, String displayLabel) {
         this.serviceTypes = serviceTypes;
         this.webhookAuthConfig = webhookAuthConfig;
+        this.displayLabel = displayLabel;
     }
 
     @Override
@@ -149,11 +153,22 @@ public class GenerateListenerClassNode implements Generator {
                                         null,
                                         createIdentifierToken("label"),
                                         createToken(COLON_TOKEN),
-                                        createBasicLiteralNode(STRING_LITERAL,
-                                                createLiteralValueToken(STRING_LITERAL_TOKEN, "\"\"",
-                                                        createEmptyMinutiaeList(), createEmptyMinutiaeList())))),
+                                        createStringLiteralField(displayLabel)),
+                                createToken(COMMA_TOKEN),
+                                createSpecificFieldNode(
+                                        null,
+                                        createIdentifierToken("iconPath"),
+                                        createToken(COLON_TOKEN),
+                                        createStringLiteralField("icon.png"))),
                         createToken(CLOSE_BRACE_TOKEN)));
         return createMetadataNode(null, createNodeList(annotation));
+    }
+
+    private BasicLiteralNode createStringLiteralField(String value) {
+        String escaped = value.replace("\\", "\\\\").replace("\"", "\\\"");
+        return createBasicLiteralNode(STRING_LITERAL,
+                createLiteralValueToken(STRING_LITERAL_TOKEN, "\"" + escaped + "\"",
+                        createEmptyMinutiaeList(), createEmptyMinutiaeList()));
     }
 
     private ObjectFieldNode buildHttpListenerField() {

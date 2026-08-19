@@ -108,7 +108,8 @@ public class HttpCodeGenerator {
         // Generate Ballerina source content
         String dataTypesContent = new DataTypesGenerator(schemas, webhookAuthConfig).generate();
         String serviceTypesContent = new ServiceTypesGenerator(serviceTypes).generate();
-        String listenerContent = new ListenerGenerator(serviceTypes, webhookAuthConfig).generate();
+        String displayLabel = asyncApiSpec.getAsyncApiInfo().title();
+        String listenerContent = new ListenerGenerator(serviceTypes, webhookAuthConfig, displayLabel).generate();
         String dispatcherContent =
                 new DispatcherGenerator(serviceTypes, identifierConfig, webhookAuthConfig)
                 .generate();
