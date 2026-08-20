@@ -21,15 +21,19 @@ package io.ballerina.asyncapi.generator.http.model;
  * Holds the resolved event identifier configuration from the {@code x-ballerina-event-identifier}
  * extension on an AsyncAPI document.
  *
- * @param type the source of the event identifier: {@code "header"}, {@code "body"}, or {@code "composite"}
- * @param name the request header name; non-null for {@code "header"} and {@code "composite"} types,
- *             {@code null} for {@code "body"}
- * @param path the dot-notation JSON body path; non-null for {@code "body"} and {@code "composite"} types,
- *             {@code null} for {@code "header"}
+ * @param type    the source of the event identifier: {@code "header"}, {@code "body"}, or {@code "composite"}
+ * @param name    the request header name; non-null for {@code "header"} and {@code "composite"} types,
+ *                {@code null} for {@code "body"}
+ * @param path    the dot-notation JSON body path; non-null for {@code "body"} and {@code "composite"} types,
+ *                {@code null} for {@code "header"}
+ * @param batched whether a single POST body carries an array of events rather than one event; when
+ *                {@code true}, the generated dispatcher iterates the array, extracting the identifier
+ *                and dispatching each element independently, isolating one malformed event from the rest
  */
 public record EventIdentifierConfig(
         String type,
         String name,
-        String path
+        String path,
+        boolean batched
 ) {
 }

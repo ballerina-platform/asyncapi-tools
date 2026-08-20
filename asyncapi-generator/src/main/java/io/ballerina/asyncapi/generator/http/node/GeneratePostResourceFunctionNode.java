@@ -64,6 +64,12 @@ import static io.ballerina.compiler.syntax.tree.SyntaxKind.RESOURCE_KEYWORD;
  * argument. For {@code "composite"}, {@code eventType} comes from the header and {@code action}
  * from the body path; these are combined into a compound {@code eventIdentifier} and forwarded
  * as the second and third arguments of {@code matchRemoteFunc}.
+ *
+ * <p>When {@link EventIdentifierConfig#batched()} is set, the POST body is instead treated as a
+ * JSON array of events (some providers, e.g. HubSpot, batch multiple events into one delivery):
+ * the response is acknowledged once for the whole batch, then each array element is identified,
+ * converted, and dispatched independently, with per-element failures logged and skipped rather
+ * than aborting the rest of the batch.
  */
 public class GeneratePostResourceFunctionNode implements Generator {
 
@@ -119,6 +125,35 @@ public class GeneratePostResourceFunctionNode implements Generator {
                             + " check caller->respond(r); return; }"));
         }
         statements.add(NodeParser.parseStatement("json payload = check request.getJsonPayload();"));
+        if (identifierConfig.batched()) {
+            statements.addAll(buildBatchedDispatchStatements(type));
+        } else {
+            statements.addAll(buildSingleEventDispatchStatements(type));
+        }
+
+        FunctionBodyBlockNode body = createFunctionBodyBlockNode(
+                createToken(OPEN_BRACE_TOKEN), null, createNodeList(statements),
+                createToken(CLOSE_BRACE_TOKEN), null);
+
+        return createFunctionDefinitionNode(
+                RESOURCE_ACCESSOR_DEFINITION, null,
+                createNodeList(createToken(RESOURCE_KEYWORD)),
+                createToken(FUNCTION_KEYWORD),
+                createIdentifierToken("post"),
+                createNodeList(createToken(DOT_TOKEN)),
+                signature, body);
+    }
+
+    /**
+     * Builds the single-event dispatch statements: extract one {@code eventType} (and, for
+     * {@code composite}, one compound {@code eventIdentifier}), convert the whole body with one
+     * {@code cloneWithType}, acknowledge, and dispatch once.
+     *
+     * @param type the event identifier type ({@code header}, {@code body}, or {@code composite})
+     * @return the statements to append to the resource function body
+     */
+    private List<StatementNode> buildSingleEventDispatchStatements(String type) {
+        List<StatementNode> statements = new ArrayList<>();
         if (EventIdentifierExtractor.X_BALLERINA_EVENT_TYPE_HEADER.equals(type)) {
             statements.addAll(buildEventTypeFromHeaderStatements(identifierConfig.name()));
         } else if (EventIdentifierExtractor.X_BALLERINA_EVENT_TYPE_BODY.equals(type)) {
@@ -155,18 +190,67 @@ public class GeneratePostResourceFunctionNode implements Generator {
         }
         statements.add(NodeParser.parseStatement(
                 "if dispatchResult is error { log:printError(\"DISPATCH_FAILED\", dispatchResult); }"));
+        return statements;
+    }
 
-        FunctionBodyBlockNode body = createFunctionBodyBlockNode(
-                createToken(OPEN_BRACE_TOKEN), null, createNodeList(statements),
-                createToken(CLOSE_BRACE_TOKEN), null);
+    /**
+     * Builds the batched dispatch statements: the body is a JSON array of events. A
+     * {@code header}/{@code composite} identifier header is read once (it applies to the whole
+     * batch); a {@code body} identifier path is read per element (each event carries its own). The
+     * batch is acknowledged once, then each element is converted and dispatched independently --
+     * an element that fails to identify or convert is logged and skipped via {@code continue}
+     * rather than aborting the rest of the batch.
+     *
+     * @param type the event identifier type ({@code header}, {@code body}, or {@code composite})
+     * @return the statements to append to the resource function body
+     */
+    private List<StatementNode> buildBatchedDispatchStatements(String type) {
+        List<StatementNode> statements = new ArrayList<>();
+        statements.add(NodeParser.parseStatement("json[] eventsArray = check payload.ensureType();"));
 
-        return createFunctionDefinitionNode(
-                RESOURCE_ACCESSOR_DEFINITION, null,
-                createNodeList(createToken(RESOURCE_KEYWORD)),
-                createToken(FUNCTION_KEYWORD),
-                createIdentifierToken("post"),
-                createNodeList(createToken(DOT_TOKEN)),
-                signature, body);
+        if (EventIdentifierExtractor.X_BALLERINA_EVENT_TYPE_HEADER.equals(type)
+                || EventIdentifierExtractor.X_BALLERINA_EVENT_TYPE_COMPOSITE.equals(type)) {
+            statements.addAll(buildEventTypeFromHeaderStatements(identifierConfig.name()));
+        }
+
+        statements.add(NodeParser.parseStatement(
+                "http:Response ackResponse = new; ackResponse.statusCode = http:STATUS_OK;"
+                        + " check caller->respond(ackResponse);"));
+
+        String cloneVar = GenerateDispatcherServiceNode.CLONE_WITH_TYPE_VAR_NAME;
+        StringBuilder loopBody = new StringBuilder();
+        if (EventIdentifierExtractor.X_BALLERINA_EVENT_TYPE_BODY.equals(type)) {
+            loopBody.append(String.format("json|error eventTypeField = event.%s;", identifierConfig.path()));
+            loopBody.append(" if eventTypeField is error {"
+                    + " log:printError(\"DISPATCH_FAILED\", eventTypeField); continue; }");
+            loopBody.append(" string eventType = eventTypeField.toString();");
+        } else if (EventIdentifierExtractor.X_BALLERINA_EVENT_TYPE_COMPOSITE.equals(type)) {
+            loopBody.append(String.format("json|error actionField = event.%s;", identifierConfig.path()));
+            loopBody.append(" string eventIdentifier = eventType;");
+            loopBody.append(" if actionField is json && actionField != () {"
+                    + " eventIdentifier = eventType + \"_\" + actionField.toString(); }");
+        }
+
+        loopBody.append(String.format(" %s|error %sResult = event.cloneWithType(%s);",
+                DataTypesGenerator.GENERIC_DATA_TYPE, cloneVar, DataTypesGenerator.GENERIC_DATA_TYPE));
+        loopBody.append(String.format(
+                " if %sResult is error { log:printError(\"DISPATCH_FAILED\", %sResult); continue; }",
+                cloneVar, cloneVar));
+
+        if (EventIdentifierExtractor.X_BALLERINA_EVENT_TYPE_COMPOSITE.equals(type)) {
+            loopBody.append(String.format(
+                    " error? dispatchResult = self.%s(%sResult, eventIdentifier, eventType);",
+                    GenerateMatchRemoteFuncNode.DISPATCHER_MATCH_REMOTE_FUNC, cloneVar));
+        } else {
+            loopBody.append(String.format(
+                    " error? dispatchResult = self.%s(%sResult, eventType);",
+                    GenerateMatchRemoteFuncNode.DISPATCHER_MATCH_REMOTE_FUNC, cloneVar));
+        }
+        loopBody.append(" if dispatchResult is error { log:printError(\"DISPATCH_FAILED\", dispatchResult); }");
+
+        statements.add(NodeParser.parseStatement(String.format(
+                "foreach json event in eventsArray { %s }", loopBody)));
+        return statements;
     }
 
     /**
