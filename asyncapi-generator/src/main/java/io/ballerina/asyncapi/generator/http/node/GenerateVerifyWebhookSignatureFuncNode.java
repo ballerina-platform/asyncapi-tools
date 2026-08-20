@@ -229,8 +229,10 @@ public class GenerateVerifyWebhookSignatureFuncNode implements Generator {
                 "decimal freshnessTimestamp = check decimal:fromString(freshnessHeaderValue);"));
         statements.add(NodeParser.parseStatement(
                 "decimal freshnessNowMillis = <decimal>time:utcNow()[0] * 1000;"));
+        statements.add(NodeParser.parseStatement(
+                "decimal freshnessSkewMillis = freshnessNowMillis - freshnessTimestamp;"));
         statements.add(NodeParser.parseStatement(String.format(
-                "if (freshnessNowMillis - freshnessTimestamp) > <decimal>%d {"
+                "if freshnessSkewMillis.abs() > <decimal>%d {"
                         + " return error(\"Unauthorized: Request Timestamp Expired\"); }",
                 toleranceMillis)));
     }

@@ -293,6 +293,10 @@ public class WebhookDSLVerificationTest {
         Assert.assertTrue(
                 dispatcherContent.contains("Request Timestamp Expired"),
                 "Should reject stale requests");
+        Assert.assertTrue(
+                dispatcherContent.contains("freshnessSkewMillis.abs()"),
+                "The freshness window must be symmetric - a timestamp far in the future must be "
+                        + "rejected too, not just one that's too old: " + dispatcherContent);
 
         // callbackUrl must be threaded through as a real configurable field, not just referenced.
         String dataTypesContent = Files.readString(tempOutputDir.resolve("data_types.bal"));
