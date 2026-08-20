@@ -21,6 +21,8 @@ import io.ballerina.asyncapi.generator.GeneratorException;
 import io.ballerina.asyncapi.generator.http.model.WebhookAuthConfig;
 import io.ballerina.asyncapi.generator.http.utils.HeaderTemplateParser;
 import io.ballerina.asyncapi.generator.http.utils.HeaderTemplateParser.HeaderTemplate;
+import io.ballerina.asyncapi.generator.http.utils.SignaturePayloadTemplateBuilder;
+import io.ballerina.asyncapi.generator.http.utils.WebhookCryptoMapper;
 import io.ballerina.compiler.syntax.tree.FunctionBodyBlockNode;
 import io.ballerina.compiler.syntax.tree.FunctionDefinitionNode;
 import io.ballerina.compiler.syntax.tree.FunctionSignatureNode;
@@ -70,12 +72,9 @@ import static io.ballerina.compiler.syntax.tree.SyntaxKind.RETURNS_KEYWORD;
 public class GenerateVerifyWebhookSignatureFuncNode implements Generator {
 
     public static final String VERIFY_WEBHOOK_SIGNATURE_FUNC = "verifyWebhookSignature";
-    private static final Pattern HEADER_FUNC_PATTERN = Pattern.compile("\\$header\\('([^']+)'\\)");
-    private static final Pattern CONFIG_FUNC_PATTERN = Pattern.compile("\\$config\\('([^']+)'\\)");
     private static final Pattern CUSTOM_VAR_PATTERN = Pattern.compile("\\$([A-Za-z_][A-Za-z0-9_]*)");
     private static final Pattern BRACED_VAR_PATTERN =
             Pattern.compile("(?<!\\$)\\{([A-Za-z_][A-Za-z0-9_]*)\\}");
-    private static final String SECRET_TOKEN = "$secret";
 
     private final WebhookAuthConfig authConfig;
 
@@ -152,50 +151,23 @@ public class GenerateVerifyWebhookSignatureFuncNode implements Generator {
             // absent) uses a secret-keyed HMAC; "hash" uses a plain, unkeyed digest — the secret must
             // then be folded into `input` explicitly via $secret (e.g. HubSpot v1/v2-style schemes).
             boolean isPlainHash = "hash".equalsIgnoreCase(authConfig.strategy());
-            String algo = authConfig.algorithm().toLowerCase();
-            String cryptoFunc;
             String computeStatement;
             if (isPlainHash) {
-                cryptoFunc = switch (algo) {
-                    case "sha1" -> "hashSha1";
-                    case "sha256" -> "hashSha256";
-                    case "sha384" -> "hashSha384";
-                    case "sha512" -> "hashSha512";
-                    default -> throw new GeneratorException(String.format(
-                            "Unsupported x-ballerina-auth signature algorithm: '%s'. Supported values: "
-                                    + "sha1, sha256, sha384, sha512.",
-                            authConfig.algorithm()));
-                };
+                String cryptoFunc = WebhookCryptoMapper.hashFunctionFor(authConfig.algorithm());
                 computeStatement = String.format(
                         "byte[] computedDigest = crypto:%s(payloadToHash.toBytes());", cryptoFunc);
             } else {
-                cryptoFunc = switch (algo) {
-                    case "sha1" -> "hmacSha1";
-                    case "sha256" -> "hmacSha256";
-                    case "sha384" -> "hmacSha384";
-                    case "sha512" -> "hmacSha512";
-                    default -> throw new GeneratorException(String.format(
-                            "Unsupported x-ballerina-auth signature algorithm: '%s'. Supported values: "
-                                    + "sha1, sha256, sha384, sha512.",
-                            authConfig.algorithm()));
-                };
+                String cryptoFunc = WebhookCryptoMapper.hmacFunctionFor(authConfig.algorithm());
                 computeStatement = String.format(
                         "byte[] computedDigest = check crypto:%s(payloadToHash.toBytes(), webhookSecret.toBytes());",
                         cryptoFunc);
             }
             statements.add(NodeParser.parseStatement(computeStatement));
 
-            // 3. Apply the requested encoding (hex or base64)
-            String encoding = authConfig.encoding() != null ? authConfig.encoding().toLowerCase() : "hex";
-            String encodeFunc = switch (encoding) {
-                case "hex" -> "toBase16()";
-                case "base64" -> "toBase64()";
-                default -> throw new GeneratorException(String.format(
-                        "Unsupported x-ballerina-auth signature encoding: '%s'. Supported values: hex, base64.",
-                        authConfig.encoding()));
-            };
-
-            // Note: Shopify/QuickBooks use base64, Slack/GitHub use hex.
+            // 3. Apply the requested encoding (hex or base64). Note: Shopify/QuickBooks use base64,
+            // Slack/GitHub use hex.
+            String encoding = authConfig.encoding() != null ? authConfig.encoding() : "hex";
+            String encodeFunc = WebhookCryptoMapper.encodeFunctionFor(encoding);
             statements.add(NodeParser.parseStatement(
                     String.format(
                             "string computedSignature = computedDigest.%s;",
@@ -273,48 +245,37 @@ public class GenerateVerifyWebhookSignatureFuncNode implements Generator {
     }
 
     private String buildPayloadTemplate(String inputDsl) {
-        String normalizedDsl = convertBracedVariables(inputDsl)
-                .replace("${body}", "$body")
-                .replace("${uri}", "$uri")
-                .replace("${method}", "$method")
-                .replaceAll("\\$\\{header\\('([^']+)'\\)\\}", "\\$header('$1')");
+        return SignaturePayloadTemplateBuilder.build(inputDsl, new SignaturePayloadTemplateBuilder.TokenResolver() {
+            @Override
+            public String body() {
+                return "check request.getTextPayload()";
+            }
 
-        if (normalizedDsl.contains(" . ")) {
-            return buildTemplateFromDotExpression(normalizedDsl);
-        }
+            @Override
+            public String uri() {
+                return "request.rawPath";
+            }
 
-        String template = normalizedDsl;
-        template = replaceBareToken(template, "$body", "${check request.getTextPayload()}");
-        template = replaceBareToken(template, "$uri", "${request.rawPath}");
-        template = replaceBareToken(template, "$method", "${request.method}");
+            @Override
+            public String method() {
+                return "request.method";
+            }
 
-        Matcher headerMatcher = HEADER_FUNC_PATTERN.matcher(template);
-        StringBuffer headerReplaced = new StringBuffer();
-        while (headerMatcher.find()) {
-            String replacement = "${" + getSafeHeaderExtraction(headerMatcher.group(1)) + "}";
-            headerMatcher.appendReplacement(headerReplaced, Matcher.quoteReplacement(replacement));
-        }
-        headerMatcher.appendTail(headerReplaced);
+            @Override
+            public String secret() {
+                return "webhookSecret";
+            }
 
-        Matcher configMatcher = CONFIG_FUNC_PATTERN.matcher(headerReplaced.toString());
-        StringBuffer configReplaced = new StringBuffer();
-        while (configMatcher.find()) {
-            String replacement = "${self." + configMatcher.group(1) + "}";
-            configMatcher.appendReplacement(configReplaced, Matcher.quoteReplacement(replacement));
-        }
-        configMatcher.appendTail(configReplaced);
+            @Override
+            public String header(String headerName) {
+                return getSafeHeaderExtraction(headerName);
+            }
 
-        String secretReplaced = configReplaced.toString()
-                .replaceAll("\\$secret\\b", Matcher.quoteReplacement("${webhookSecret}"));
-
-        Matcher customVarMatcher = CUSTOM_VAR_PATTERN.matcher(secretReplaced);
-        StringBuffer customReplaced = new StringBuffer();
-        while (customVarMatcher.find()) {
-            String replacement = "${" + customVarMatcher.group(1) + "}";
-            customVarMatcher.appendReplacement(customReplaced, Matcher.quoteReplacement(replacement));
-        }
-        customVarMatcher.appendTail(customReplaced);
-        return customReplaced.toString();
+            @Override
+            public String config(String configName) {
+                return "self." + configName;
+            }
+        });
     }
 
     private void addHeaderTemplateExtractionStatements(List<StatementNode> statements, HeaderTemplate template) {
@@ -483,52 +444,4 @@ public class GenerateVerifyWebhookSignatureFuncNode implements Generator {
         return bracedResult.toString();
     }
 
-    private String buildTemplateFromDotExpression(String expression) {
-        String[] segments = expression.split("\\s+\\.\\s+");
-        StringBuilder templateBuilder = new StringBuilder();
-
-        for (String segment : segments) {
-            String token = segment.trim();
-            if (token.length() >= 2 && token.startsWith("'") && token.endsWith("'")) {
-                templateBuilder.append(token, 1, token.length() - 1);
-            } else {
-                templateBuilder.append(mapConcatTokenToInterpolation(token));
-            }
-        }
-        return templateBuilder.toString();
-    }
-
-    private String mapConcatTokenToInterpolation(String token) {
-        // $method and $uri are mapped explicitly to request context values.
-        if ("$body".equals(token)) {
-            return "${check request.getTextPayload()}";
-        }
-        if ("$uri".equals(token)) {
-            return "${request.rawPath}";
-        }
-        if ("$method".equals(token)) {
-            return "${request.method}";
-        }
-        if (SECRET_TOKEN.equals(token)) {
-            return "${webhookSecret}";
-        }
-
-        Matcher configMatcher = CONFIG_FUNC_PATTERN.matcher(token);
-        if (configMatcher.matches()) {
-            return "${self." + configMatcher.group(1) + "}";
-        }
-
-        Matcher headerMatcher = HEADER_FUNC_PATTERN.matcher(token);
-        if (headerMatcher.matches()) {
-            return "${" + getSafeHeaderExtraction(headerMatcher.group(1)) + "}";
-        }
-
-        if (token.startsWith("${") && token.endsWith("}")) {
-            return token;
-        }
-        if (token.startsWith("$") && token.length() > 1) {
-            return "${" + token.substring(1) + "}";
-        }
-        return token;
-    }
 }

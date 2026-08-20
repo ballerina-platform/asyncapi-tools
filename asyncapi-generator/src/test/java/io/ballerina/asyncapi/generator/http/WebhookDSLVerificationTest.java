@@ -333,6 +333,45 @@ public class WebhookDSLVerificationTest {
     }
 
     @Test
+    public void testHubspotV3DispatchTestUsesGeneralSigningNotGithubDefaults() throws Exception {
+        // DispatchTestGenerator previously hardcoded GitHub's scheme (single composite header,
+        // plain HMAC-SHA256 hex of the raw body) regardless of what the spec actually declared.
+        // HubSpot's v3 scheme is structurally different: input is method+config+body+timestamp,
+        // base64-encoded, with a freshness header the test itself must synthesize. This proves the
+        // generated tests/dispatch_test.bal now follows the spec's real DSL, not GitHub's shape.
+        Path tempOutputDir = generateFromFixture("hubspot_v3_verification.yaml", "X-HubSpot-Event",
+                "hubspot_event");
+
+        Path dispatchTestFile = tempOutputDir.resolve("tests").resolve("dispatch_test.bal");
+        Assert.assertTrue(Files.exists(dispatchTestFile), "tests/dispatch_test.bal was not generated!");
+        String dispatchTestContent = Files.readString(dispatchTestFile);
+
+        Assert.assertTrue(
+                dispatchTestContent.contains("import ballerina/time;"),
+                "Should import ballerina/time to synthesize the freshness timestamp: " + dispatchTestContent);
+        Assert.assertTrue(
+                dispatchTestContent.contains("const string TRIGGER_TEST_CALLBACK_URL"),
+                "Should synthesize a test value for the $config('callbackUrl') reference: "
+                        + dispatchTestContent);
+        Assert.assertTrue(
+                dispatchTestContent.contains("callbackUrl: TRIGGER_TEST_CALLBACK_URL"),
+                "Should thread the config value into the test listener's configuration: "
+                        + dispatchTestContent);
+        Assert.assertTrue(
+                dispatchTestContent.contains("crypto:hmacSha256(payloadToHash.toBytes(), "
+                        + "TRIGGER_TEST_SECRET.toBytes())"),
+                "Should compute a keyed HMAC-SHA256, not GitHub's plain-body hex default: "
+                        + dispatchTestContent);
+        Assert.assertTrue(
+                dispatchTestContent.contains("computedDigest.toBase64()"),
+                "Should base64-encode the digest per the spec's encoding, not GitHub's hex default: "
+                        + dispatchTestContent);
+        Assert.assertFalse(
+                dispatchTestContent.contains("digest.toBase16()"),
+                "Should not fall back to GitHub's hardcoded hex encoding: " + dispatchTestContent);
+    }
+
+    @Test
     public void testCustomVariableSharingReservedTokenPrefixIsNotCorrupted() throws Exception {
         // "bodyHash" is a custom variable extracted from the signature header, not the builtin
         // "$body" token -- but it starts with the substring "body". A naive String.replace("$body", ...)
