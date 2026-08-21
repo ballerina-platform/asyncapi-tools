@@ -132,6 +132,7 @@ public final class SchemaMapper {
                 .externalDocs(ExternalDocMapperV2.map(externalDocs))
                 .deprecated(schema.isDeprecated())
                 .extensions(extensions)
+                .nullable(mapNullable(schema))
                 .build();
     }
 
@@ -198,9 +199,14 @@ public final class SchemaMapper {
                 String refName = ref.substring(ref.lastIndexOf('/') + 1);
                 io.ballerina.asyncapi.core.model.component.AsyncApiSchema stub =
                         io.ballerina.asyncapi.core.model.component.AsyncApiSchema.refStub(refName);
-                if (entry.getValue() instanceof AsyncApiSchema typedSchema
-                        && typedSchema.getDescription() != null) {
-                    stub = stub.withDescription(typedSchema.getDescription());
+                if (entry.getValue() instanceof AsyncApiSchema typedSchema) {
+                    if (typedSchema.getDescription() != null) {
+                        stub = stub.withDescription(typedSchema.getDescription());
+                    }
+                    Boolean siblingNullable = mapNullable(typedSchema);
+                    if (siblingNullable != null) {
+                        stub = stub.withNullable(siblingNullable);
+                    }
                 }
                 properties.put(entry.getKey(), stub);
             } else if (entry.getValue() instanceof AsyncApiSchema typedSchema) {
@@ -225,6 +231,26 @@ public final class SchemaMapper {
             return extensible.getExtensions();
         }
         return null;
+    }
+
+    /**
+     * Extracts the standard {@code nullable} keyword from a schema.
+     *
+     * <p>Apicurio's AsyncAPI 3.0 schema model doesn't define {@code nullable} as a typed field
+     * (that dialect's JSON Schema subset has no such keyword - a nullable value is properly
+     * expressed as a {@code type} union with {@code "null"} instead), so a real-world spec that
+     * still uses the OpenAPI-style {@code nullable: true} convention has it captured only in the
+     * node's generic extra-properties bucket. It's also not picked up by {@link #mapExtensions},
+     * since that only surfaces {@code x-}-prefixed vendor extensions, not arbitrary unrecognized
+     * keywords - so it has to be read via {@link Schema#getExtraProperty(String)} directly.
+     *
+     * @param schema the Apicurio schema object
+     * @return {@code true}/{@code false} if the schema declares {@code nullable} explicitly,
+     *         {@code null} if it's absent
+     */
+    private static Boolean mapNullable(AsyncApiSchema schema) {
+        JsonNode nullableNode = schema.getExtraProperty(Constants.SCHEMA_NULLABLE);
+        return nullableNode != null && nullableNode.isBoolean() ? nullableNode.booleanValue() : null;
     }
 
     /**
@@ -354,6 +380,10 @@ public final class SchemaMapper {
                         if (siblingDescription != null) {
                             stub = stub.withDescription(siblingDescription);
                         }
+                    }
+                    JsonNode nullableNode = propNode.get(Constants.SCHEMA_NULLABLE);
+                    if (nullableNode != null && nullableNode.isBoolean()) {
+                        stub = stub.withNullable(nullableNode.booleanValue());
                     }
                     propsRef.put(entry.getKey(), stub);
                 } else {

@@ -22,6 +22,8 @@ import io.ballerina.asyncapi.generator.GeneratorException;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
+import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -73,5 +75,64 @@ public class DataTypesGeneratorTest {
 
         Assert.assertFalse(result.contains("import ballerina/http;"),
                 "A schema with no properties can't need @http:Header: " + result);
+    }
+
+    @Test
+    void testGenericDataTypeUnionOrdersLooseSchemasLast() throws GeneratorException {
+        // "Installation" (all fields optional) declared FIRST, "PushPayload" (a required field)
+        // declared SECOND - a LinkedHashMap so schemas.entrySet() iterates in this exact order,
+        // which is deliberately the wrong order for the union: without the ordering fix, the loose
+        // schema would stay first, at real risk of capturing payloads meant for concrete types via
+        // cloneWithType's first-match resolution. The generator must reorder it to last regardless
+        // of input order.
+        AsyncApiSchema installation = AsyncApiSchema.builder()
+                .type("object")
+                .properties(Map.of(
+                        "id", AsyncApiSchema.builder().type("integer").build(),
+                        "node_id", AsyncApiSchema.builder().type("string").build()))
+                .build();
+        AsyncApiSchema pushPayload = AsyncApiSchema.builder()
+                .type("object")
+                .required(List.of("ref"))
+                .properties(Map.of("ref", AsyncApiSchema.builder().type("string").build()))
+                .build();
+        Map<String, AsyncApiSchema> schemas = new LinkedHashMap<>();
+        schemas.put("Installation", installation);
+        schemas.put("PushPayload", pushPayload);
+
+        String result = new DataTypesGenerator(schemas, Optional.empty()).generate();
+
+        int unionStart = result.indexOf("public type GenericDataType");
+        Assert.assertTrue(unionStart >= 0, "Expected a GenericDataType union declaration: " + result);
+        String unionDecl = result.substring(unionStart, result.indexOf(';', unionStart));
+        Assert.assertTrue(unionDecl.indexOf("PushPayload") < unionDecl.indexOf("Installation"),
+                "The loose 'Installation' schema must be ordered after the concrete 'PushPayload' "
+                        + "schema in the union, regardless of input order: " + unionDecl);
+    }
+
+    @Test
+    void testGenericDataTypeUnionKeepsRequiredFieldSchemasBeforeEachOtherInOriginalOrder() throws GeneratorException {
+        // Two concrete (non-loose) schemas should keep their relative order - the ordering fix
+        // should only ever move loose schemas to the end, not reorder everything else.
+        AsyncApiSchema first = AsyncApiSchema.builder()
+                .type("object")
+                .required(List.of("a"))
+                .properties(Map.of("a", AsyncApiSchema.builder().type("string").build()))
+                .build();
+        AsyncApiSchema second = AsyncApiSchema.builder()
+                .type("object")
+                .required(List.of("b"))
+                .properties(Map.of("b", AsyncApiSchema.builder().type("string").build()))
+                .build();
+        Map<String, AsyncApiSchema> schemas = new LinkedHashMap<>();
+        schemas.put("FirstPayload", first);
+        schemas.put("SecondPayload", second);
+
+        String result = new DataTypesGenerator(schemas, Optional.empty()).generate();
+
+        int unionStart = result.indexOf("public type GenericDataType");
+        String unionDecl = result.substring(unionStart, result.indexOf(';', unionStart));
+        Assert.assertTrue(unionDecl.indexOf("FirstPayload") < unionDecl.indexOf("SecondPayload"),
+                "Two concrete schemas should keep their original relative order: " + unionDecl);
     }
 }

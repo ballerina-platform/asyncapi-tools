@@ -29,7 +29,6 @@ import io.ballerina.compiler.syntax.tree.FunctionBodyBlockNode;
 import io.ballerina.compiler.syntax.tree.FunctionDefinitionNode;
 import io.ballerina.compiler.syntax.tree.FunctionSignatureNode;
 import io.ballerina.compiler.syntax.tree.MethodCallExpressionNode;
-import io.ballerina.compiler.syntax.tree.NodeParser;
 import io.ballerina.compiler.syntax.tree.ParameterNode;
 import io.ballerina.compiler.syntax.tree.SeparatedNodeList;
 import io.ballerina.compiler.syntax.tree.StatementNode;
@@ -91,7 +90,6 @@ public class GenerateMatchRemoteFuncNode implements Generator {
     private final List<HttpServiceType> serviceTypes;
     private final EventIdentifierConfig identifierConfig;
     private final String eventIdentifierPath;
-    private final String serviceName;
     private final List<GenerateMatchChunkFuncNode> chunkGenerators = new ArrayList<>();
 
     /**
@@ -100,17 +98,13 @@ public class GenerateMatchRemoteFuncNode implements Generator {
      * @param serviceTypes        the list of HTTP service type definitions
      * @param identifierConfig    the resolved event identifier type and path
      * @param eventIdentifierPath the expression matched against in the chunk match statements
-     * @param serviceName         a label identifying the generated package, embedded into the
-     *                            {@code MATCH_LEVEL_1_*} diagnostic trace log message
      */
     public GenerateMatchRemoteFuncNode(List<HttpServiceType> serviceTypes,
                                        EventIdentifierConfig identifierConfig,
-                                       String eventIdentifierPath,
-                                       String serviceName) {
+                                       String eventIdentifierPath) {
         this.serviceTypes = serviceTypes;
         this.identifierConfig = identifierConfig;
         this.eventIdentifierPath = eventIdentifierPath;
-        this.serviceName = serviceName;
     }
 
     /**
@@ -170,7 +164,7 @@ public class GenerateMatchRemoteFuncNode implements Generator {
         for (HttpServiceType serviceType : serviceTypes) {
             GenerateMatchChunkFuncNode chunkGen =
                     new GenerateMatchChunkFuncNode(serviceType, eventIdentifierPath,
-                            isComposite ? "eventType" : null, !isBody, serviceName);
+                            isComposite ? "eventType" : null, !isBody);
             chunkGenerators.add(chunkGen);
 
             SeparatedNodeList<FunctionArgumentNode> chunkArgs;
@@ -218,10 +212,6 @@ public class GenerateMatchRemoteFuncNode implements Generator {
                     checkExpr,
                     createToken(SEMICOLON_TOKEN));
 
-            StatementNode logStmt = NodeParser.parseStatement(String.format(
-                    "log:printDebug(\"MATCH_LEVEL_1_%s\", eventType = eventType);", serviceName));
-
-            statements.add(logStmt);
             statements.add(stmt);
         }
 

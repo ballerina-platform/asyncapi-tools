@@ -48,17 +48,20 @@ public class ListenerGenerator {
 
     private final List<HttpServiceType> serviceTypes;
     private final Optional<WebhookAuthConfig> webhookAuthConfig;
+    private final String displayLabel;
 
     /**
      * Creates a generator for the given list of service types and optional webhook auth configuration.
      *
      * @param serviceTypes      the list of HTTP service type definitions to generate
      * @param webhookAuthConfig the optional webhook authentication configuration
+     * @param displayLabel      the connector's display name, from the spec's {@code info.title}
      */
     public ListenerGenerator(List<HttpServiceType> serviceTypes,
-            Optional<WebhookAuthConfig> webhookAuthConfig) {
+            Optional<WebhookAuthConfig> webhookAuthConfig, String displayLabel) {
         this.serviceTypes = serviceTypes;
         this.webhookAuthConfig = webhookAuthConfig;
+        this.displayLabel = displayLabel;
     }
 
     /**
@@ -72,7 +75,8 @@ public class ListenerGenerator {
             throw new GeneratorException("No service types defined; cannot generate listener.bal");
         }
 
-        ClassDefinitionNode classNode = new GenerateListenerClassNode(serviceTypes, webhookAuthConfig).generate();
+        ClassDefinitionNode classNode =
+                new GenerateListenerClassNode(serviceTypes, webhookAuthConfig, displayLabel).generate();
         ImportDeclarationNode httpImport = GenerateHttpImportNode.generate();
         ImportDeclarationNode cloudImport = GenerateCloudImportNode.generate();
 

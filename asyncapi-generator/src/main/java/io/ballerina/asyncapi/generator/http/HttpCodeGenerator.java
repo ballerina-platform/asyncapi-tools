@@ -108,10 +108,10 @@ public class HttpCodeGenerator {
         // Generate Ballerina source content
         String dataTypesContent = new DataTypesGenerator(schemas, webhookAuthConfig).generate();
         String serviceTypesContent = new ServiceTypesGenerator(serviceTypes).generate();
-        String listenerContent = new ListenerGenerator(serviceTypes, webhookAuthConfig).generate();
-        String serviceName = deriveServiceName(outputPath);
+        String displayLabel = asyncApiSpec.getAsyncApiInfo().title();
+        String listenerContent = new ListenerGenerator(serviceTypes, webhookAuthConfig, displayLabel).generate();
         String dispatcherContent =
-                new DispatcherGenerator(serviceTypes, identifierConfig, webhookAuthConfig, serviceName)
+                new DispatcherGenerator(serviceTypes, identifierConfig, webhookAuthConfig)
                 .generate();
 
         // Write generated files to the output directory
@@ -148,23 +148,6 @@ public class HttpCodeGenerator {
         if (webhookAuthConfig.isPresent()) {
             WebhookDslValidator.validate(webhookAuthConfig.get());
         }
-    }
-
-    /**
-     * Derives a diagnostic-log label for the package being generated from the output directory name.
-     *
-     * <p>Embedded into the {@code MATCH_LEVEL_1_*}, {@code MATCH_LEVEL_2_*}, and
-     * {@code HANDLER_EXECUTED_*} trace logs in {@code dispatcher_service.bal} so that logs from
-     * multiple generated packages running side by side can be told apart.
-     *
-     * @param outputPath the directory the generated files are being written to
-     * @return a sanitized, non-empty label safe to splice into a Ballerina string literal
-     */
-    private static String deriveServiceName(Path outputPath) {
-        Path fileName = outputPath.toAbsolutePath().normalize().getFileName();
-        String raw = fileName == null ? "service" : fileName.toString();
-        String sanitized = raw.replaceAll("[^A-Za-z0-9_]", "_");
-        return sanitized.isBlank() ? "service" : sanitized;
     }
 
     /**

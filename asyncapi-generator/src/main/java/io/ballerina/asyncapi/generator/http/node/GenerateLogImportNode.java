@@ -32,9 +32,9 @@ import static io.ballerina.compiler.syntax.tree.SyntaxKind.SLASH_TOKEN;
 /**
  * Generates the {@code import ballerina/log;} import declaration node for {@code dispatcher_service.bal}.
  *
- * <p>Required because {@code dispatcher_service.bal} emits diagnostic trace logs
- * ({@code SIGNATURE_VERIFIED}, {@code DISPATCHER_ENTERED}, {@code MATCH_LEVEL_1_*},
- * {@code MATCH_LEVEL_2_*}, {@code HANDLER_EXECUTED_*}) at each stage of request processing.
+ * <p>Required because {@code dispatcher_service.bal} logs a {@code DISPATCH_FAILED} error (with the
+ * causing error) when a dispatched callback returns an error, so an operator can see it without the
+ * failure otherwise being silently swallowed after the response has already been acknowledged.
  */
 public class GenerateLogImportNode {
 
