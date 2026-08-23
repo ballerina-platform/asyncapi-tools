@@ -19,6 +19,8 @@ package io.ballerina.asyncapi.generator.http.generator;
 
 import io.ballerina.asyncapi.core.model.component.AsyncApiSchema;
 import io.ballerina.asyncapi.generator.GeneratorException;
+import io.ballerina.asyncapi.generator.http.model.ConnectionAuthConfig;
+import io.ballerina.asyncapi.generator.http.model.WebhookAuthConfig;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -103,7 +105,8 @@ public class DataTypesGeneratorTest {
         schemas.put("Installation", installation);
         schemas.put("PushPayload", pushPayload);
 
-        String result = new DataTypesGenerator(schemas, Optional.empty()).generate();
+        String result = new DataTypesGenerator(schemas, Optional.<WebhookAuthConfig>empty(),
+                Optional.<ConnectionAuthConfig>empty()).generate();
 
         int unionStart = result.indexOf("public type GenericDataType");
         Assert.assertTrue(unionStart >= 0, "Expected a GenericDataType union declaration: " + result);
@@ -131,7 +134,8 @@ public class DataTypesGeneratorTest {
         schemas.put("FirstPayload", first);
         schemas.put("SecondPayload", second);
 
-        String result = new DataTypesGenerator(schemas, Optional.empty()).generate();
+        String result = new DataTypesGenerator(schemas, Optional.<WebhookAuthConfig>empty(),
+                Optional.<ConnectionAuthConfig>empty()).generate();
 
         int unionStart = result.indexOf("public type GenericDataType");
         String unionDecl = result.substring(unionStart, result.indexOf(';', unionStart));
