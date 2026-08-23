@@ -50,6 +50,7 @@ public class ListenerGenerator {
     private final List<HttpServiceType> serviceTypes;
     private final Optional<WebhookAuthConfig> webhookAuthConfig;
     private final Optional<ConnectionAuthConfig> connectionAuthConfig;
+    private final String displayLabel;
 
     /**
      * Creates a generator for the given list of service types and optional webhook/connection
@@ -59,12 +60,15 @@ public class ListenerGenerator {
      * @param webhookAuthConfig    the optional webhook authentication configuration
      * @param connectionAuthConfig the optional outbound (client-side) API authentication
      *                             configuration
+     * @param displayLabel         the connector's display name, from the spec's {@code info.title}
      */
     public ListenerGenerator(List<HttpServiceType> serviceTypes,
-            Optional<WebhookAuthConfig> webhookAuthConfig, Optional<ConnectionAuthConfig> connectionAuthConfig) {
+            Optional<WebhookAuthConfig> webhookAuthConfig, Optional<ConnectionAuthConfig> connectionAuthConfig,
+            String displayLabel) {
         this.serviceTypes = serviceTypes;
         this.webhookAuthConfig = webhookAuthConfig;
         this.connectionAuthConfig = connectionAuthConfig;
+        this.displayLabel = displayLabel;
     }
 
     /**
@@ -79,7 +83,7 @@ public class ListenerGenerator {
         }
 
         ClassDefinitionNode classNode = new GenerateListenerClassNode(serviceTypes, webhookAuthConfig,
-                connectionAuthConfig).generate();
+                connectionAuthConfig, displayLabel).generate();
         ImportDeclarationNode httpImport = GenerateHttpImportNode.generate();
         ImportDeclarationNode cloudImport = GenerateCloudImportNode.generate();
 

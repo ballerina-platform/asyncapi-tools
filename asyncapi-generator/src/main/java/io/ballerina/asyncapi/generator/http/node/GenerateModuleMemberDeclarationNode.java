@@ -43,7 +43,9 @@ import org.apache.logging.log4j.Logger;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createEmptyNodeList;
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createIdentifierToken;
@@ -93,17 +95,39 @@ public class GenerateModuleMemberDeclarationNode implements Generator {
 
     private final Map.Entry<String, AsyncApiSchema> entry;
     private final Map<String, AsyncApiSchema> allSchemas;
+    private final Set<String> claimedTypeNames;
+    private final List<TypeDefinitionNode> hoistedTypes = new ArrayList<>();
 
     /**
      * Creates a generator for a single schema entry.
      *
-     * @param entry      the schema name and its definition
-     * @param allSchemas the full schema map, used to resolve {@code allOf} sub-schema stubs
+     * @param entry            the schema name and its definition
+     * @param allSchemas       the full schema map, used to resolve {@code allOf} sub-schema stubs
+     * @param claimedTypeNames the set of type names already in use across the whole generation run
+     *                         (every top-level schema name, plus every name already hoisted by any
+     *                         instance so far) - shared across every {@code GenerateModuleMemberDeclarationNode}
+     *                         instance in one {@code DataTypesGenerator} run so two different schemas
+     *                         hoisting an inline object with the same field name (e.g. two different
+     *                         payloads each with an inline {@code workflow} object) can never produce
+     *                         two colliding type definitions. Mutated in place as names are claimed.
      */
     public GenerateModuleMemberDeclarationNode(Map.Entry<String, AsyncApiSchema> entry,
-                                               Map<String, AsyncApiSchema> allSchemas) {
+                                               Map<String, AsyncApiSchema> allSchemas,
+                                               Set<String> claimedTypeNames) {
         this.entry = entry;
         this.allSchemas = allSchemas;
+        this.claimedTypeNames = claimedTypeNames;
+    }
+
+    /**
+     * Returns any additional top-level type definitions hoisted out of inline object schemas
+     * (see {@link #getTypeDescriptorNode}) while building this entry's own declaration. Only
+     * meaningful after {@link #generate()} has been called.
+     *
+     * @return the hoisted type definitions, in the order they were encountered; empty if none
+     */
+    public List<TypeDefinitionNode> getHoistedTypes() {
+        return hoistedTypes;
     }
 
     @Override
@@ -124,7 +148,7 @@ public class GenerateModuleMemberDeclarationNode implements Generator {
         } else {
             Token anydata = AbstractNodeFactory.createIdentifierToken("anydata");
             MetadataNode metadataNode = createMetadataNode(
-                    createMarkdownDocumentationNode(createNodeList(new ArrayList<>())), createEmptyNodeList());
+                    createMarkdownDocumentationNode(createNodeList(buildDocLines(schema))), createEmptyNodeList());
             return createTypeDefinitionNode(metadataNode, createToken(PUBLIC_KEYWORD), createToken(TYPE_KEYWORD),
                     typeName, createBuiltinSimpleNameReferenceNode(null, anydata), createToken(SEMICOLON_TOKEN));
         }
@@ -143,12 +167,26 @@ public class GenerateModuleMemberDeclarationNode implements Generator {
                     null,                                                   // no explicit value assignment (= ...)
                     null));                                                 // no constant expression value
         }
-        return createEnumDeclarationNode(null, createToken(PUBLIC_KEYWORD), createToken(ENUM_KEYWORD),
+        MetadataNode metadataNode = createMetadataNode(
+                createMarkdownDocumentationNode(createNodeList(buildDocLines(schema))), createEmptyNodeList());
+        return createEnumDeclarationNode(metadataNode, createToken(PUBLIC_KEYWORD), createToken(ENUM_KEYWORD),
                 typeName, createToken(OPEN_BRACE_TOKEN), createSeparatedNodeList(enums),
                 createToken(CLOSE_BRACE_TOKEN), null);
     }
 
     private TypeDefinitionNode generateRecord(IdentifierToken typeName, AsyncApiSchema schema)
+            throws GeneratorException {
+        return buildRecordTypeDefinition(typeName, schema);
+    }
+
+    /**
+     * Builds a {@code public type <name> record {...};} declaration from an object schema's
+     * properties. Shared by {@link #generateRecord} (a top-level schema entry) and
+     * {@link #getTypeDescriptorNode} (a hoisted inline object schema) - the two cases differ only
+     * in where the resulting {@link TypeDefinitionNode} ends up (returned directly vs. collected
+     * into {@link #hoistedTypes}), not in how it's built.
+     */
+    private TypeDefinitionNode buildRecordTypeDefinition(IdentifierToken typeName, AsyncApiSchema schema)
             throws GeneratorException {
         List<String> required = schema.required() != null ? schema.required() : List.of();
         NodeList<Node> fieldNodes = createNodeList(buildRecordFields(schema.properties(), required));
@@ -156,7 +194,7 @@ public class GenerateModuleMemberDeclarationNode implements Generator {
                 createToken(SyntaxKind.RECORD_KEYWORD), createToken(OPEN_BRACE_TOKEN),
                 fieldNodes, null, createToken(SyntaxKind.CLOSE_BRACE_TOKEN));
         MetadataNode metadataNode = createMetadataNode(
-                createMarkdownDocumentationNode(createNodeList(new ArrayList<>())), createEmptyNodeList());
+                createMarkdownDocumentationNode(createNodeList(buildDocLines(schema))), createEmptyNodeList());
         return createTypeDefinitionNode(metadataNode, createToken(PUBLIC_KEYWORD), createToken(TYPE_KEYWORD),
                 typeName, recordType, createToken(SEMICOLON_TOKEN));
     }
@@ -187,16 +225,16 @@ public class GenerateModuleMemberDeclarationNode implements Generator {
                 createToken(SyntaxKind.RECORD_KEYWORD), createToken(OPEN_BRACE_TOKEN),
                 fieldNodes, null, createToken(SyntaxKind.CLOSE_BRACE_TOKEN));
         MetadataNode metadataNode = createMetadataNode(
-                createMarkdownDocumentationNode(createNodeList(new ArrayList<>())), createEmptyNodeList());
+                createMarkdownDocumentationNode(createNodeList(buildDocLines(schema))), createEmptyNodeList());
         return createTypeDefinitionNode(metadataNode, createToken(PUBLIC_KEYWORD), createToken(TYPE_KEYWORD),
                 typeName, recordType, createToken(SEMICOLON_TOKEN));
     }
 
     private TypeDefinitionNode generateTypeAlias(IdentifierToken typeName, AsyncApiSchema schema)
             throws GeneratorException {
-        TypeDescriptorNode fieldTypeName = getTypeDescriptorNode(schema);
+        TypeDescriptorNode fieldTypeName = getTypeDescriptorNode(schema, entry.getKey());
         MetadataNode metadataNode = createMetadataNode(
-                createMarkdownDocumentationNode(createNodeList(new ArrayList<>())), createEmptyNodeList());
+                createMarkdownDocumentationNode(createNodeList(buildDocLines(schema))), createEmptyNodeList());
         return createTypeDefinitionNode(metadataNode, createToken(PUBLIC_KEYWORD), createToken(TYPE_KEYWORD),
                 typeName, createOptionalTypeDescriptorNode(fieldTypeName, createToken(QUESTION_MARK_TOKEN)),
                 createToken(SEMICOLON_TOKEN));
@@ -219,21 +257,12 @@ public class GenerateModuleMemberDeclarationNode implements Generator {
                 annotations = createEmptyNodeList();
             }
             IdentifierToken fieldNameToken = AbstractNodeFactory.createIdentifierToken(fieldName);
-            TypeDescriptorNode fieldType = getTypeDescriptorNode(field.getValue());
+            TypeDescriptorNode fieldType = getTypeDescriptorNode(field.getValue(), rawKey);
             boolean isOptional = !required.contains(rawKey);
             Token questionMark = isOptional ? createToken(QUESTION_MARK_TOKEN) : null;
             Token semicolon = createToken(SEMICOLON_TOKEN);
-            List<Node> fieldDoc = new ArrayList<>();
-            String docText = field.getValue().title() != null ? field.getValue().title()
-                    : field.getValue().description();
-            if (docText != null) {
-                for (String line : docText.split("\n")) {
-                    fieldDoc.add(createMarkdownDocumentationLineNode(DOCUMENTATION_DESCRIPTION,
-                            createToken(HASH_TOKEN), createNodeList(createIdentifierToken(line))));
-                }
-            }
             MetadataNode fieldMetadata = createMetadataNode(
-                    createMarkdownDocumentationNode(createNodeList(fieldDoc)), annotations);
+                    createMarkdownDocumentationNode(createNodeList(buildDocLines(field.getValue()))), annotations);
             RecordFieldNode recordField = createRecordFieldNode(fieldMetadata,
                     null, // no readonly keyword
                     fieldType, fieldNameToken, questionMark, semicolon);
@@ -242,12 +271,52 @@ public class GenerateModuleMemberDeclarationNode implements Generator {
         return fields;
     }
 
-    private TypeDescriptorNode getTypeDescriptorNode(AsyncApiSchema schema) throws GeneratorException {
+    /**
+     * Builds the {@code #} doc-comment lines for a schema's {@code title} (preferred) or
+     * {@code description}, if either is present. Shared by both the type-level generators
+     * ({@link #generateRecord}, {@link #generateAllOfRecord}, {@link #generateTypeAlias},
+     * {@link #generateEnum}, and the {@code anydata} fallback in {@link #generate()}) and
+     * {@link #buildRecordFields}, which applies the same extraction per field.
+     *
+     * @param schema the schema whose {@code title}/{@code description} becomes the doc comment
+     * @return the doc-comment line nodes, empty if the schema has neither
+     */
+    private List<Node> buildDocLines(AsyncApiSchema schema) {
+        List<Node> docLines = new ArrayList<>();
+        String docText = schema.title() != null ? schema.title() : schema.description();
+        if (docText != null) {
+            for (String line : docText.split("\n")) {
+                docLines.add(createMarkdownDocumentationLineNode(DOCUMENTATION_DESCRIPTION,
+                        createToken(HASH_TOKEN), createNodeList(createIdentifierToken(line))));
+            }
+        }
+        return docLines;
+    }
+
+    /**
+     * Resolves the type descriptor for a field (or array-item, or type-alias) schema.
+     *
+     * <p>A schema resolved via {@code $ref} (has {@code schema.name() != null}) already has a
+     * reusable name, so it's referenced directly. An inline object schema (has {@code properties()}
+     * but no {@code $ref} name) has no such name - rather than embedding it as a long anonymous
+     * {@code record {...}} inline (the previous behavior), it's always hoisted into its own
+     * top-level named type instead, exactly like a {@code $ref}'d schema would be, so the shape of
+     * the generated code no longer depends on whether the spec author happened to extract a given
+     * object into a reusable component or left it inline - the generator no longer mirrors that
+     * spec-authoring inconsistency.
+     *
+     * @param schema   the field/item/alias-target schema to resolve
+     * @param nameHint a name to derive a hoisted type's name from if this schema turns out to be an
+     *                 inline object (typically the field key, or the array field's key for an
+     *                 array's item schema) - unused for every other case
+     */
+    private TypeDescriptorNode getTypeDescriptorNode(AsyncApiSchema schema, String nameHint)
+            throws GeneratorException {
         TypeDescriptorNode typeDesc;
         if (schema.properties() != null && !schema.properties().isEmpty()) {
-            typeDesc = buildInlineRecord(schema);
+            typeDesc = hoistInlineObject(schema, nameHint);
         } else if (schema.type() != null) {
-            typeDesc = getTypeDescriptorForPrimitive(schema);
+            typeDesc = getTypeDescriptorForPrimitive(schema, nameHint);
         } else if (schema.name() != null) {
             String typeName = CodegenUtils.getValidName(CodegenUtils.escapeIdentifier(schema.name()), true);
             typeDesc = createBuiltinSimpleNameReferenceNode(null, createIdentifierToken(typeName));
@@ -258,7 +327,8 @@ public class GenerateModuleMemberDeclarationNode implements Generator {
         return applyNullable(schema, typeDesc);
     }
 
-    private TypeDescriptorNode getTypeDescriptorForPrimitive(AsyncApiSchema schema) throws GeneratorException {
+    private TypeDescriptorNode getTypeDescriptorForPrimitive(AsyncApiSchema schema, String nameHint)
+            throws GeneratorException {
         return switch (schema.type()) {
             case SCHEMA_TYPE_INTEGER ->
                     createBuiltinSimpleNameReferenceNode(null, createIdentifierToken("int"));
@@ -275,10 +345,10 @@ public class GenerateModuleMemberDeclarationNode implements Generator {
             }
             case SCHEMA_TYPE_FLOAT, SCHEMA_TYPE_DOUBLE ->
                     createBuiltinSimpleNameReferenceNode(null, createIdentifierToken("float"));
-            case SCHEMA_TYPE_ARRAY -> getArrayTypeDescriptor(schema);
+            case SCHEMA_TYPE_ARRAY -> getArrayTypeDescriptor(schema, nameHint);
             case SCHEMA_TYPE_OBJECT -> {
                 if (schema.properties() != null && !schema.properties().isEmpty()) {
-                    yield buildInlineRecord(schema);
+                    yield hoistInlineObject(schema, nameHint);
                 }
                 yield createRecordTypeDescriptorNode(
                         AbstractNodeFactory.createIdentifierToken("record"),
@@ -290,7 +360,8 @@ public class GenerateModuleMemberDeclarationNode implements Generator {
         };
     }
 
-    private TypeDescriptorNode getArrayTypeDescriptor(AsyncApiSchema schema) throws GeneratorException {
+    private TypeDescriptorNode getArrayTypeDescriptor(AsyncApiSchema schema, String nameHint)
+            throws GeneratorException {
         if (schema.items() == null) {
             throw new GeneratorException("Array schema is missing the 'items' attribute");
         }
@@ -298,7 +369,7 @@ public class GenerateModuleMemberDeclarationNode implements Generator {
                 createToken(OPEN_BRACKET_TOKEN), null, createToken(CLOSE_BRACKET_TOKEN));
         TypeDescriptorNode memberType;
         if (schema.items() instanceof AsyncApiSchema itemSchema) {
-            memberType = getTypeDescriptorNode(itemSchema);
+            memberType = getTypeDescriptorNode(itemSchema, nameHint + "Item");
         } else {
             memberType = createBuiltinSimpleNameReferenceNode(null,
                     AbstractNodeFactory.createIdentifierToken("anydata"));
@@ -306,22 +377,106 @@ public class GenerateModuleMemberDeclarationNode implements Generator {
         return createArrayTypeDescriptorNode(memberType, createNodeList(dimension));
     }
 
-    private RecordTypeDescriptorNode buildInlineRecord(AsyncApiSchema schema) throws GeneratorException {
-        List<String> required = schema.required() != null ? schema.required() : List.of();
-        NodeList<Node> fieldNodes = createNodeList(buildRecordFields(schema.properties(), required));
-        return createRecordTypeDescriptorNode(
-                AbstractNodeFactory.createIdentifierToken("record"),
-                AbstractNodeFactory.createIdentifierToken("{ "),
-                fieldNodes, null,
-                AbstractNodeFactory.createIdentifierToken("} "));
+    /**
+     * Hoists an inline object schema into its own top-level {@code public type} declaration
+     * (collected into {@link #hoistedTypes}), returning a reference to it - see
+     * {@link #getTypeDescriptorNode} for why this always happens rather than embedding the object
+     * as an anonymous inline record.
+     */
+    private TypeDescriptorNode hoistInlineObject(AsyncApiSchema schema, String nameHint)
+            throws GeneratorException {
+        IdentifierToken hoistedTypeName = createIdentifierToken(resolveHoistedTypeName(nameHint));
+        hoistedTypes.add(buildRecordTypeDefinition(hoistedTypeName, schema));
+        return createBuiltinSimpleNameReferenceNode(null, hoistedTypeName);
     }
 
+    /**
+     * Names that collide with a compiler-builtin symbol even after {@link CodegenUtils#escapeIdentifier}
+     * quote-escaping (e.g. {@code 'error} is still the same symbol as {@code error} - the quote is an
+     * escape marker for using a keyword as an identifier, not a way to get a distinct name), or that
+     * are builtin symbols without being lexical keywords at all (e.g. {@code Thread} - confirmed by a
+     * real {@code bal build} rejecting a hoisted type generated with that name). Checked in addition
+     * to {@link #claimedTypeNames}, since neither {@link CodegenUtils#escapeIdentifier} nor
+     * {@link CodegenUtils#getValidName} know about this class of collision - they only reason about
+     * lexical keywords, not the compiler's builtin symbol table.
+     */
+    private static final Set<String> RESERVED_BUILTIN_TYPE_NAMES = Set.of(
+            "error", "anydata", "any", "never", "readonly", "handle", "future", "typedesc",
+            "stream", "table", "map", "record", "object", "service", "function", "var",
+            "int", "string", "boolean", "float", "decimal", "byte", "xml", "json", "thread");
+
+    /**
+     * Picks a unique type name for a newly-hoisted inline object, trying the field name itself
+     * first, then that name prefixed with the enclosing top-level schema's name, then a numeric
+     * suffix - checked and reserved against {@link #claimedTypeNames} (shared across every
+     * {@code GenerateModuleMemberDeclarationNode} instance in the run, so this can never collide
+     * with a pre-existing schema name or a type hoisted while processing a different entry) and
+     * {@link #RESERVED_BUILTIN_TYPE_NAMES}.
+     *
+     * <p>The parent-prefixed fallback is built by capitalizing the hint's first letter and
+     * concatenating it onto the raw parent name, then escaping/validating that combined string
+     * once - not by concatenating two already-escaped fragments, which can embed a leading
+     * {@code '} escape marker in the middle of the result (e.g. {@code "StatusPayload" + "'commit"}
+     * would produce the invalid identifier {@code StatusPayload'commit}). Capitalizing the hint
+     * fragment before concatenating also means the combined raw string is essentially never itself
+     * a reserved keyword even when the bare hint was (only bare {@code "commit"} is a keyword,
+     * {@code "StatusPayloadCommit"} isn't), so this naturally avoids needing the quote-escape at
+     * all in the common case, as a side effect of producing cleaner PascalCase names.
+     */
+    private String resolveHoistedTypeName(String nameHint) {
+        String candidate = buildTypeName(nameHint);
+        if (isAvailable(candidate)) {
+            claimedTypeNames.add(candidate);
+            return candidate;
+        }
+        String capitalizedHint = nameHint.isEmpty() ? nameHint
+                : nameHint.substring(0, 1).toUpperCase(Locale.ROOT) + nameHint.substring(1);
+        String parentPrefixed = buildTypeName(entry.getKey().trim() + capitalizedHint);
+        if (isAvailable(parentPrefixed)) {
+            claimedTypeNames.add(parentPrefixed);
+            return parentPrefixed;
+        }
+        int suffix = 2;
+        String numbered;
+        do {
+            numbered = parentPrefixed + suffix;
+            suffix++;
+        } while (!isAvailable(numbered));
+        claimedTypeNames.add(numbered);
+        return numbered;
+    }
+
+    private static String buildTypeName(String rawName) {
+        return CodegenUtils.getValidName(CodegenUtils.escapeIdentifier(rawName), true);
+    }
+
+    private boolean isAvailable(String candidateTypeName) {
+        return !claimedTypeNames.contains(candidateTypeName)
+                && !RESERVED_BUILTIN_TYPE_NAMES.contains(candidateTypeName.toLowerCase(Locale.ROOT))
+                && !RESERVED_BUILTIN_TYPE_NAMES.contains(
+                        candidateTypeName.replaceFirst("^'", "").toLowerCase(Locale.ROOT));
+    }
+
+    /**
+     * Applies the standard AsyncAPI/OpenAPI {@code nullable} keyword by widening the type
+     * descriptor to a {@code T?} union, if the schema declares it.
+     *
+     * <p>Also checks the legacy {@code x-nullable} extension key as a fallback, in case any
+     * existing spec relies on it - real specs almost always use the standard {@code nullable}
+     * field, which {@link AsyncApiSchema#nullable()} now carries directly (see
+     * {@code SchemaMapper#mapNullable} in {@code asyncapi-core} for how it's extracted).
+     */
     private TypeDescriptorNode applyNullable(AsyncApiSchema schema, TypeDescriptorNode typeDesc) {
-        Map<String, JsonNode> extensions = schema.extensions();
-        if (extensions != null && extensions.containsKey(X_NULLABLE)
-                && "true".equals(extensions.get(X_NULLABLE).asText())) {
+        boolean nullable = Boolean.TRUE.equals(schema.nullable()) || isLegacyExtensionNullable(schema);
+        if (nullable) {
             return createOptionalTypeDescriptorNode(typeDesc, createToken(QUESTION_MARK_TOKEN));
         }
         return typeDesc;
+    }
+
+    private boolean isLegacyExtensionNullable(AsyncApiSchema schema) {
+        Map<String, JsonNode> extensions = schema.extensions();
+        return extensions != null && extensions.containsKey(X_NULLABLE)
+                && "true".equals(extensions.get(X_NULLABLE).asText());
     }
 }

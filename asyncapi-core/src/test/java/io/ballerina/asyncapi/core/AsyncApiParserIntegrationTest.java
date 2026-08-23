@@ -495,6 +495,49 @@ public class AsyncApiParserIntegrationTest {
     }
 
     @Test
+    void v300_standardNullableKeyword_isCapturedOnSchema() throws AsyncApiParserException {
+        // AsyncAPI 3.0's JSON Schema dialect has no typed 'nullable' keyword (Apicurio's schema
+        // model doesn't expose one), so a real-world spec still using the OpenAPI-style
+        // 'nullable: true' convention must be read from the schema's generic extra-properties
+        // bucket rather than a typed accessor or the x-prefixed extensions map - see
+        // SchemaMapper#mapNullable.
+        String json = "{\"asyncapi\":\"3.0.0\",\"info\":{\"title\":\"T\",\"version\":\"1\"},\"channels\":{},"
+                + "\"components\":{\"schemas\":{\"Foo\":{\"type\":\"object\",\"properties\":{"
+                + "\"bar\":{\"type\":\"string\",\"nullable\":true},"
+                + "\"baz\":{\"type\":\"string\"}}}}}}";
+        AsyncApiSpec spec = AsyncApiParser.parseFromJsonString(json);
+        AsyncApiComponent components = spec.getAsyncApiComponents().orElseThrow();
+        AsyncApiSchema foo = components.schemas().get("Foo");
+        Assert.assertEquals(foo.properties().get("bar").nullable(), Boolean.TRUE,
+                "A field marked 'nullable: true' should have nullable() == true");
+        Assert.assertNull(foo.properties().get("baz").nullable(),
+                "A field with no 'nullable' keyword should have nullable() == null, not false");
+    }
+
+    @Test
+    void v300_refWithSiblingNullable_isCapturedOnStub() throws AsyncApiParserException {
+        // A field that's a $ref PLUS a sibling 'nullable: true' - real-world shape, e.g. GitHub's
+        // spec: assignee: {$ref: '#/components/schemas/User', nullable: true}. The property maps
+        // to a minimal ref stub (only 'name' set) rather than going through the normal schema
+        // mapping path, so the sibling 'nullable' has to be attached onto that stub explicitly,
+        // mirroring how a sibling 'description' is already attached (see SchemaMapper#mapProperties).
+        String json = "{\"asyncapi\":\"3.0.0\",\"info\":{\"title\":\"T\",\"version\":\"1\"},\"channels\":{},"
+                + "\"components\":{\"schemas\":{"
+                + "\"User\":{\"type\":\"object\",\"properties\":{\"id\":{\"type\":\"integer\"}}},"
+                + "\"PullRequestPayload\":{\"type\":\"object\",\"required\":[\"assignee\"],"
+                + "\"properties\":{\"assignee\":{\"$ref\":\"#/components/schemas/User\",\"nullable\":true}}}"
+                + "}}}";
+        AsyncApiSpec spec = AsyncApiParser.parseFromJsonString(json);
+        AsyncApiComponent components = spec.getAsyncApiComponents().orElseThrow();
+        AsyncApiSchema payload = components.schemas().get("PullRequestPayload");
+        AsyncApiSchema assignee = payload.properties().get("assignee");
+        Assert.assertEquals(assignee.name(), "User",
+                "The $ref stub should still resolve to the referenced schema's name");
+        Assert.assertEquals(assignee.nullable(), Boolean.TRUE,
+                "The sibling 'nullable: true' next to the $ref must be attached onto the stub");
+    }
+
+    @Test
     void nullInput_throwsAsyncApiParserException() {
         Assert.assertThrows(AsyncApiParserException.class, () -> AsyncApiParser.parseFromJsonString(null));
     }

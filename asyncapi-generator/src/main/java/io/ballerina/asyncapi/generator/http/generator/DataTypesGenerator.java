@@ -40,9 +40,11 @@ import org.ballerinalang.formatter.core.Formatter;
 import org.ballerinalang.formatter.core.FormatterException;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createIdentifierToken;
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createNodeList;
@@ -90,17 +92,36 @@ public class DataTypesGenerator {
         List<ModuleMemberDeclarationNode> typeNodes = new ArrayList<>();
         typeNodes.add(GenerateListenerConfigNode.generateDefaultSecretConst());
         typeNodes.add(GenerateListenerConfigNode.generate(extraConfigFields, connectionAuthConfig));
-        List<TypeDescriptorNode> typeDescriptors = new ArrayList<>();
+
+        // Loose schemas (see isLooseObjectSchema) are ordered last in the union.
+        List<TypeDescriptorNode> strictTypeDescriptors = new ArrayList<>();
+        List<TypeDescriptorNode> looseTypeDescriptors = new ArrayList<>();
+
+        // Shared across entries so hoisted inline types can't collide on name.
+        Set<String> claimedTypeNames = new HashSet<>();
+        for (String schemaName : schemas.keySet()) {
+            claimedTypeNames.add(CodegenUtils.getValidName(CodegenUtils.escapeIdentifier(schemaName.trim()), true));
+        }
 
         for (Map.Entry<String, AsyncApiSchema> entry : schemas.entrySet()) {
-            Generator gen = new GenerateModuleMemberDeclarationNode(entry, schemas);
+            GenerateModuleMemberDeclarationNode gen =
+                    new GenerateModuleMemberDeclarationNode(entry, schemas, claimedTypeNames);
             ModuleMemberDeclarationNode node = gen.generate();
             if (node instanceof TypeDefinitionNode typeDefNode) {
-                typeDescriptors.add(createSimpleNameReferenceNode(
-                        createIdentifierToken(typeDefNode.typeName().text())));
+                TypeDescriptorNode reference = createSimpleNameReferenceNode(
+                        createIdentifierToken(typeDefNode.typeName().text()));
+                if (isLooseObjectSchema(entry.getValue())) {
+                    looseTypeDescriptors.add(reference);
+                } else {
+                    strictTypeDescriptors.add(reference);
+                }
             }
             typeNodes.add(node);
+            typeNodes.addAll(gen.getHoistedTypes());
         }
+
+        List<TypeDescriptorNode> typeDescriptors = new ArrayList<>(strictTypeDescriptors);
+        typeDescriptors.addAll(looseTypeDescriptors);
 
         Generator unionGen = new GenerateUnionDescriptorNode(typeDescriptors, GENERIC_DATA_TYPE);
         typeNodes.add(unionGen.generate());
@@ -151,5 +172,29 @@ public class DataTypesGenerator {
                 .filter(schema -> schema.properties() != null)
                 .flatMap(schema -> schema.properties().keySet().stream())
                 .anyMatch(CodegenUtils::requiresHeaderAnnotation);
+    }
+
+    /**
+     * A top-level object schema is "loose" if it declares properties but requires none of them
+     * (e.g. {@code Installation}: {@code record { int id?; string node_id?; }}). Ballerina's
+     * {@code cloneWithType} resolves a union target by a first-match policy - if a member's shape
+     * is permissive enough to structurally accept almost any object, it can capture a payload that
+     * was really meant for a more specific, concrete member listed later in the union. Ordering
+     * loose members last in {@code GenericDataType} avoids that, without needing to guess at
+     * exactly which other payload a given loose schema might collide with.
+     *
+     * <p>Only applies to schemas that generate as a plain record (mirrors the
+     * {@code generateRecord} branch in {@link GenerateModuleMemberDeclarationNode#generate()}) -
+     * enums, type aliases, and {@code allOf}-merged records have different {@code cloneWithType}
+     * matching semantics and aren't reordered by this rule.
+     *
+     * @param schema the top-level schema to classify
+     * @return {@code true} if the schema has properties but none are required
+     */
+    private boolean isLooseObjectSchema(AsyncApiSchema schema) {
+        if (schema.properties() == null || schema.properties().isEmpty()) {
+            return false;
+        }
+        return schema.required() == null || schema.required().isEmpty();
     }
 }
