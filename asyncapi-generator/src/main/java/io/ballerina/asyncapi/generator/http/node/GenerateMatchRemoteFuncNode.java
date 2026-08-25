@@ -61,6 +61,7 @@ import static io.ballerina.compiler.syntax.tree.SyntaxKind.CLOSE_PAREN_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.COMMA_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.DOT_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.FUNCTION_KEYWORD;
+import static io.ballerina.compiler.syntax.tree.SyntaxKind.ISOLATED_KEYWORD;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.OBJECT_METHOD_DEFINITION;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.OPEN_BRACE_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.OPEN_PAREN_TOKEN;
@@ -219,10 +220,9 @@ public class GenerateMatchRemoteFuncNode implements Generator {
                 createToken(OPEN_BRACE_TOKEN), null,
                 createNodeList(statements),
                 createToken(CLOSE_BRACE_TOKEN), null);
-
         return createFunctionDefinitionNode(
                 OBJECT_METHOD_DEFINITION, null,
-                createNodeList(createToken(PRIVATE_KEYWORD)),
+                createNodeList(createToken(PRIVATE_KEYWORD), createToken(ISOLATED_KEYWORD)),
                 createToken(FUNCTION_KEYWORD),
                 createIdentifierToken(DISPATCHER_MATCH_REMOTE_FUNC),
                 createEmptyNodeList(),

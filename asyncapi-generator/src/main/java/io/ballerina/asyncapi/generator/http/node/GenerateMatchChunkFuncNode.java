@@ -46,6 +46,7 @@ import static io.ballerina.compiler.syntax.tree.SyntaxKind.CLOSE_BRACE_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.CLOSE_PAREN_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.COMMA_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.FUNCTION_KEYWORD;
+import static io.ballerina.compiler.syntax.tree.SyntaxKind.ISOLATED_KEYWORD;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.OBJECT_METHOD_DEFINITION;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.OPEN_BRACE_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.OPEN_PAREN_TOKEN;
@@ -169,7 +170,7 @@ public class GenerateMatchChunkFuncNode implements Generator {
 
         return createFunctionDefinitionNode(
             OBJECT_METHOD_DEFINITION, null,
-            createNodeList(createToken(PRIVATE_KEYWORD)),
+            createNodeList(createToken(PRIVATE_KEYWORD), createToken(ISOLATED_KEYWORD)),
             createToken(FUNCTION_KEYWORD),
             createIdentifierToken(chunkFuncName(
                 serviceType.serviceTypeName())),

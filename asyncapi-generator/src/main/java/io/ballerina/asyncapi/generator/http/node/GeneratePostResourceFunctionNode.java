@@ -174,9 +174,9 @@ public class GeneratePostResourceFunctionNode implements Generator {
                 "%s %s = check payload.cloneWithType(%s);",
                 DataTypesGenerator.GENERIC_DATA_TYPE, GenerateDispatcherServiceNode.CLONE_WITH_TYPE_VAR_NAME,
                 DataTypesGenerator.GENERIC_DATA_TYPE)));
-        statements.add(NodeParser.parseStatement(
-                "http:Response ackResponse = new; ackResponse.statusCode = http:STATUS_OK;"
-                        + " check caller->respond(ackResponse);"));
+        statements.add(NodeParser.parseStatement("http:Response ackResponse = new;"));
+        statements.add(NodeParser.parseStatement("ackResponse.statusCode = http:STATUS_OK;"));
+        statements.add(NodeParser.parseStatement("check caller->respond(ackResponse);"));
         if (EventIdentifierExtractor.X_BALLERINA_EVENT_TYPE_COMPOSITE.equals(type)) {
             statements.add(NodeParser.parseStatement(String.format(
                     "error? dispatchResult = self.%s(%s, eventIdentifier, eventType);",
@@ -213,43 +213,19 @@ public class GeneratePostResourceFunctionNode implements Generator {
             statements.addAll(buildEventTypeFromHeaderStatements(identifierConfig.name()));
         }
 
-        statements.add(NodeParser.parseStatement(
-                "http:Response ackResponse = new; ackResponse.statusCode = http:STATUS_OK;"
-                        + " check caller->respond(ackResponse);"));
+        statements.add(NodeParser.parseStatement("http:Response ackResponse = new;"));
+        statements.add(NodeParser.parseStatement("ackResponse.statusCode = http:STATUS_OK;"));
+        statements.add(NodeParser.parseStatement("check caller->respond(ackResponse);"));
 
-        String cloneVar = GenerateDispatcherServiceNode.CLONE_WITH_TYPE_VAR_NAME;
-        StringBuilder loopBody = new StringBuilder();
-        if (EventIdentifierExtractor.X_BALLERINA_EVENT_TYPE_BODY.equals(type)) {
-            loopBody.append(String.format("json|error eventTypeField = event.%s;", identifierConfig.path()));
-            loopBody.append(" if eventTypeField is error {"
-                    + " log:printError(\"DISPATCH_FAILED\", eventTypeField); continue; }");
-            loopBody.append(" string eventType = eventTypeField.toString();");
-        } else if (EventIdentifierExtractor.X_BALLERINA_EVENT_TYPE_COMPOSITE.equals(type)) {
-            loopBody.append(String.format("json|error actionField = event.%s;", identifierConfig.path()));
-            loopBody.append(" string eventIdentifier = eventType;");
-            loopBody.append(" if actionField is json && actionField != () {"
-                    + " eventIdentifier = eventType + \"_\" + actionField.toString(); }");
-        }
-
-        loopBody.append(String.format(" %s|error %sResult = event.cloneWithType(%s);",
-                DataTypesGenerator.GENERIC_DATA_TYPE, cloneVar, DataTypesGenerator.GENERIC_DATA_TYPE));
-        loopBody.append(String.format(
-                " if %sResult is error { log:printError(\"DISPATCH_FAILED\", %sResult); continue; }",
-                cloneVar, cloneVar));
-
-        if (EventIdentifierExtractor.X_BALLERINA_EVENT_TYPE_COMPOSITE.equals(type)) {
-            loopBody.append(String.format(
-                    " error? dispatchResult = self.%s(%sResult, eventIdentifier, eventType);",
-                    GenerateMatchRemoteFuncNode.DISPATCHER_MATCH_REMOTE_FUNC, cloneVar));
-        } else {
-            loopBody.append(String.format(
-                    " error? dispatchResult = self.%s(%sResult, eventType);",
-                    GenerateMatchRemoteFuncNode.DISPATCHER_MATCH_REMOTE_FUNC, cloneVar));
-        }
-        loopBody.append(" if dispatchResult is error { log:printError(\"DISPATCH_FAILED\", dispatchResult); }");
-
+        // The batch is acknowledged above; the actual per-element dispatch loop runs on a separate
+        // strand so it doesn't hold this HTTP worker thread for the loop's duration. For a "body"
+        // identifier there's no outer eventType (each element carries its own), so pass a placeholder
+        // the callee simply won't use.
+        boolean hasOuterEventType = EventIdentifierExtractor.X_BALLERINA_EVENT_TYPE_HEADER.equals(type)
+                || EventIdentifierExtractor.X_BALLERINA_EVENT_TYPE_COMPOSITE.equals(type);
         statements.add(NodeParser.parseStatement(String.format(
-                "foreach json event in eventsArray { %s }", loopBody)));
+                "_ = start self.%s(eventsArray, %s);",
+                GenerateDispatchBatchFuncNode.DISPATCH_BATCH_FUNC, hasOuterEventType ? "eventType" : "\"\"")));
         return statements;
     }
 
