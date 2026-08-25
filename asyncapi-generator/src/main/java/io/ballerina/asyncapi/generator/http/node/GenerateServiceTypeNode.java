@@ -33,12 +33,6 @@ import io.ballerina.compiler.syntax.tree.ReturnTypeDescriptorNode;
 import io.ballerina.compiler.syntax.tree.SyntaxKind;
 import io.ballerina.compiler.syntax.tree.TypeDefinitionNode;
 
-import static io.ballerina.compiler.syntax.tree.NodeFactory.createMarkdownParameterDocumentationLineNode;
-import static io.ballerina.compiler.syntax.tree.SyntaxKind.MARKDOWN_PARAMETER_DOCUMENTATION_LINE;
-import static io.ballerina.compiler.syntax.tree.SyntaxKind.MARKDOWN_RETURN_PARAMETER_DOCUMENTATION_LINE;
-import static io.ballerina.compiler.syntax.tree.SyntaxKind.MINUS_TOKEN;
-import static io.ballerina.compiler.syntax.tree.SyntaxKind.PLUS_TOKEN;
-
 import java.util.ArrayList;
 import java.util.List;
 
@@ -51,6 +45,7 @@ import static io.ballerina.compiler.syntax.tree.NodeFactory.createBuiltinSimpleN
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createFunctionSignatureNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createMarkdownDocumentationLineNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createMarkdownDocumentationNode;
+import static io.ballerina.compiler.syntax.tree.NodeFactory.createMarkdownParameterDocumentationLineNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createMetadataNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createMethodDeclarationNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createOptionalTypeDescriptorNode;
@@ -62,9 +57,13 @@ import static io.ballerina.compiler.syntax.tree.SyntaxKind.CLOSE_PAREN_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.DOCUMENTATION_DESCRIPTION;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.ERROR_KEYWORD;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.HASH_TOKEN;
+import static io.ballerina.compiler.syntax.tree.SyntaxKind.MARKDOWN_PARAMETER_DOCUMENTATION_LINE;
+import static io.ballerina.compiler.syntax.tree.SyntaxKind.MARKDOWN_RETURN_PARAMETER_DOCUMENTATION_LINE;
+import static io.ballerina.compiler.syntax.tree.SyntaxKind.MINUS_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.OBJECT_KEYWORD;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.OPEN_BRACE_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.OPEN_PAREN_TOKEN;
+import static io.ballerina.compiler.syntax.tree.SyntaxKind.PLUS_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.PUBLIC_KEYWORD;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.QUESTION_MARK_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.REMOTE_KEYWORD;
