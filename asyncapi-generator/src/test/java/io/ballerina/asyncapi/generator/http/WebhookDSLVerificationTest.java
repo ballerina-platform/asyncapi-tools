@@ -65,7 +65,7 @@ public class WebhookDSLVerificationTest {
         String dispatchTestContent = Files.readString(dispatchTestFile);
 
         Assert.assertTrue(
-                dispatchTestContent.contains("string signature = string `sha256=${computedSignature}`;"),
+                dispatchTestContent.contains("string `sha256=${computedSignature}`"),
                 "Should splice the computed signature into the configured sha256= headerFormat prefix");
         Assert.assertTrue(
                 dispatchTestContent.contains("http:STATUS_OK"),
@@ -93,8 +93,7 @@ public class WebhookDSLVerificationTest {
         "Should validate Slack signature header");
     Assert.assertTrue(content.contains("request.getHeader(\"X-Slack-Request-Timestamp\")"),
         "Should include Slack timestamp header in payload composition");
-    Assert.assertTrue(content.contains("`v0:${let var headerValue = trap request.getHeader"
-        + "(\"X-Slack-Request-Timestamp\") in (headerValue is string ? headerValue : \"\")}:"
+    Assert.assertTrue(content.contains("`v0:${check request.getHeader(\"X-Slack-Request-Timestamp\")}:"
         + "${check request.getTextPayload()}`"),
         "Should build Slack payload from dot-based DSL expression");
     }
@@ -114,8 +113,7 @@ public class WebhookDSLVerificationTest {
     Assert.assertTrue(content.contains("request.getHeader(\"X-HubSpot-Signature-v3\")"),
         "Should validate HubSpot signature header");
     Assert.assertTrue(content.contains("${request.method}${request.rawPath}${check request.getTextPayload()}"
-        + "${let var headerValue = trap request.getHeader(\"X-HubSpot-Request-Timestamp\")"
-        + " in (headerValue is string ? headerValue : \"\")}"),
+        + "${check request.getHeader(\"X-HubSpot-Request-Timestamp\")}"),
         "Should compose HubSpot payload using method, uri, body, and timestamp");
     }
 
@@ -124,10 +122,10 @@ public class WebhookDSLVerificationTest {
     String content = generateDispatcherService("gitlab_verification.yaml");
     Assert.assertTrue(content.contains("request.getHeader(\"X-Gitlab-Token\")"),
         "Should validate GitLab token header");
-    Assert.assertTrue(content.contains("string extractedSignature = extractedHeaderValues[\"signature\"]"),
+    Assert.assertTrue(content.contains("string signature = extractedHeaderValues[\"signature\"]"),
         "Should extract signature token from header template");
-    Assert.assertTrue(content.contains("crypto:equalConstantTime(" 
-    + "extractedSignature.toBytes(), webhookSecret.toBytes())"),
+    Assert.assertTrue(content.contains("crypto:equalConstantTime("
+    + "signature.toBytes(), webhookSecret.toBytes())"),
         "Should compare extracted signature directly with webhook secret for static token mode");
     Assert.assertFalse(content.contains("crypto:hmacSha"),
         "Should not generate HMAC code when algorithm is not configured");
@@ -354,7 +352,7 @@ public class WebhookDSLVerificationTest {
                 dispatchTestContent.contains("import ballerina/time;"),
                 "Should import ballerina/time to synthesize the freshness timestamp: " + dispatchTestContent);
         Assert.assertTrue(
-                dispatchTestContent.contains("const string TRIGGER_TEST_CALLBACK_URL"),
+                dispatchTestContent.contains("const TRIGGER_TEST_CALLBACK_URL"),
                 "Should synthesize a test value for the $config('callbackUrl') reference: "
                         + dispatchTestContent);
         Assert.assertTrue(

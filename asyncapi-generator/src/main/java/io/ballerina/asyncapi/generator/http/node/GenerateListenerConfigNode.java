@@ -41,6 +41,7 @@ import static io.ballerina.compiler.syntax.tree.NodeFactory.createBasicLiteralNo
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createBuiltinSimpleNameReferenceNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createConstantDeclarationNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createMappingConstructorExpressionNode;
+import static io.ballerina.compiler.syntax.tree.NodeFactory.createMarkdownDocumentationLineNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createMarkdownDocumentationNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createMetadataNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createRecordFieldWithDefaultValueNode;
@@ -52,7 +53,9 @@ import static io.ballerina.compiler.syntax.tree.SyntaxKind.AT_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.CLOSE_BRACE_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.COLON_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.CONST_KEYWORD;
+import static io.ballerina.compiler.syntax.tree.SyntaxKind.DOCUMENTATION_DESCRIPTION;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.EQUAL_TOKEN;
+import static io.ballerina.compiler.syntax.tree.SyntaxKind.HASH_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.OPEN_BRACE_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.PUBLIC_KEYWORD;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.RECORD_KEYWORD;
@@ -98,7 +101,9 @@ public class GenerateListenerConfigNode {
 
         for (String fieldName : extraConfigFields) {
             recordFields.add(createRecordFieldWithDefaultValueNode(
-                    null,
+                    buildFieldDoc(String.format(
+                            "Configurable value referenced by the webhook signature verification DSL"
+                                    + " (`$config('%s')`).", fieldName)),
                     null,
                     createBuiltinSimpleNameReferenceNode(null, createIdentifierToken("string")),
                     createIdentifierToken(fieldName),
@@ -117,6 +122,10 @@ public class GenerateListenerConfigNode {
                 createToken(CLOSE_BRACE_TOKEN));
 
         List<Node> schemaDoc = new ArrayList<>();
+        schemaDoc.add(createMarkdownDocumentationLineNode(DOCUMENTATION_DESCRIPTION,
+                createToken(HASH_TOKEN), createNodeList(createIdentifierToken(
+                        "Configuration for the webhook listener, including the secret used to verify"
+                                + " incoming requests."))));
         MarkdownDocumentationNode documentationNode =
                 createMarkdownDocumentationNode(createNodeList(schemaDoc));
         MetadataNode metadataNode = createMetadataNode(documentationNode, createEmptyNodeList());
@@ -161,6 +170,19 @@ public class GenerateListenerConfigNode {
                                                         "\"Webhook Secret\"",
                                                         createEmptyMinutiaeList(), createEmptyMinutiaeList())))),
                         createToken(CLOSE_BRACE_TOKEN)));
-        return createMetadataNode(null, createNodeList(annotation));
+        List<Node> docLines = new ArrayList<>();
+        docLines.add(createMarkdownDocumentationLineNode(DOCUMENTATION_DESCRIPTION,
+                createToken(HASH_TOKEN), createNodeList(createIdentifierToken(
+                        "The secret used to verify incoming webhook signatures."))));
+        MarkdownDocumentationNode documentationNode = createMarkdownDocumentationNode(createNodeList(docLines));
+        return createMetadataNode(documentationNode, createNodeList(annotation));
+    }
+
+    private static MetadataNode buildFieldDoc(String text) {
+        List<Node> docLines = new ArrayList<>();
+        docLines.add(createMarkdownDocumentationLineNode(DOCUMENTATION_DESCRIPTION,
+                createToken(HASH_TOKEN), createNodeList(createIdentifierToken(text))));
+        MarkdownDocumentationNode documentationNode = createMarkdownDocumentationNode(createNodeList(docLines));
+        return createMetadataNode(documentationNode, createEmptyNodeList());
     }
 }

@@ -23,6 +23,7 @@ import io.ballerina.asyncapi.generator.http.utils.CodegenUtils;
 import io.ballerina.compiler.syntax.tree.AbstractNodeFactory;
 import io.ballerina.compiler.syntax.tree.BuiltinSimpleNameReferenceNode;
 import io.ballerina.compiler.syntax.tree.IdentifierToken;
+import io.ballerina.compiler.syntax.tree.MetadataNode;
 import io.ballerina.compiler.syntax.tree.MethodDeclarationNode;
 import io.ballerina.compiler.syntax.tree.Node;
 import io.ballerina.compiler.syntax.tree.NodeFactory;
@@ -31,6 +32,12 @@ import io.ballerina.compiler.syntax.tree.OptionalTypeDescriptorNode;
 import io.ballerina.compiler.syntax.tree.ReturnTypeDescriptorNode;
 import io.ballerina.compiler.syntax.tree.SyntaxKind;
 import io.ballerina.compiler.syntax.tree.TypeDefinitionNode;
+
+import static io.ballerina.compiler.syntax.tree.NodeFactory.createMarkdownParameterDocumentationLineNode;
+import static io.ballerina.compiler.syntax.tree.SyntaxKind.MARKDOWN_PARAMETER_DOCUMENTATION_LINE;
+import static io.ballerina.compiler.syntax.tree.SyntaxKind.MARKDOWN_RETURN_PARAMETER_DOCUMENTATION_LINE;
+import static io.ballerina.compiler.syntax.tree.SyntaxKind.MINUS_TOKEN;
+import static io.ballerina.compiler.syntax.tree.SyntaxKind.PLUS_TOKEN;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -42,6 +49,9 @@ import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createSepara
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createToken;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createBuiltinSimpleNameReferenceNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createFunctionSignatureNode;
+import static io.ballerina.compiler.syntax.tree.NodeFactory.createMarkdownDocumentationLineNode;
+import static io.ballerina.compiler.syntax.tree.NodeFactory.createMarkdownDocumentationNode;
+import static io.ballerina.compiler.syntax.tree.NodeFactory.createMetadataNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createMethodDeclarationNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createOptionalTypeDescriptorNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createRequiredParameterNode;
@@ -49,7 +59,9 @@ import static io.ballerina.compiler.syntax.tree.NodeFactory.createReturnTypeDesc
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createTypeDefinitionNode;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.CLOSE_BRACE_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.CLOSE_PAREN_TOKEN;
+import static io.ballerina.compiler.syntax.tree.SyntaxKind.DOCUMENTATION_DESCRIPTION;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.ERROR_KEYWORD;
+import static io.ballerina.compiler.syntax.tree.SyntaxKind.HASH_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.OBJECT_KEYWORD;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.OPEN_BRACE_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.OPEN_PAREN_TOKEN;
@@ -101,11 +113,13 @@ public class GenerateServiceTypeNode implements Generator {
                     null, createIdentifierToken(eventType));
             List<Node> params = new ArrayList<>();
             params.add(createRequiredParameterNode(createEmptyNodeList(), typeNode, createIdentifierToken("payload")));
+            String functionName = CodegenUtils.getFunctionNameByEventName(fn.functionName());
             MethodDeclarationNode method = createMethodDeclarationNode(
-                    SyntaxKind.METHOD_DECLARATION, null,
+                    SyntaxKind.METHOD_DECLARATION,
+                    buildFunctionDoc("Triggered on " + humanize(functionName) + ".", eventType),
                     createNodeList(createToken(REMOTE_KEYWORD)),
                     createToken(SyntaxKind.FUNCTION_KEYWORD),
-                    createIdentifierToken(CodegenUtils.getFunctionNameByEventName(fn.functionName())),
+                    createIdentifierToken(functionName),
                     createEmptyNodeList(),
                     createFunctionSignatureNode(
                             createToken(OPEN_PAREN_TOKEN), createSeparatedNodeList(params),
@@ -114,13 +128,74 @@ public class GenerateServiceTypeNode implements Generator {
             methods.add(method);
         }
 
-        IdentifierToken typeNameToken = AbstractNodeFactory.createIdentifierToken(
-                CodegenUtils.getServiceTypeNameByServiceName(serviceTypeName));
+        String serviceName = CodegenUtils.getServiceTypeNameByServiceName(serviceTypeName);
+        IdentifierToken typeNameToken = AbstractNodeFactory.createIdentifierToken(serviceName);
         ObjectTypeDescriptorNode objectType = NodeFactory.createObjectTypeDescriptorNode(
                 createNodeList(createToken(SERVICE_KEYWORD)),
                 createToken(OBJECT_KEYWORD), createToken(OPEN_BRACE_TOKEN),
                 createNodeList(methods), createToken(CLOSE_BRACE_TOKEN));
-        return createTypeDefinitionNode(null, createToken(PUBLIC_KEYWORD), createToken(TYPE_KEYWORD),
+        return createTypeDefinitionNode(
+                buildDoc("Attachable service type exposing the " + serviceName + " family of webhook events."),
+                createToken(PUBLIC_KEYWORD), createToken(TYPE_KEYWORD),
                 typeNameToken, objectType, createToken(SEMICOLON_TOKEN));
+    }
+
+    /**
+     * Builds a single-line doc-comment metadata node.
+     *
+     * @param text the doc-comment text
+     * @return the metadata node carrying that one line
+     */
+    private MetadataNode buildDoc(String text) {
+        List<Node> docLines = new ArrayList<>();
+        docLines.add(createMarkdownDocumentationLineNode(DOCUMENTATION_DESCRIPTION,
+                createToken(HASH_TOKEN), createNodeList(createIdentifierToken(text))));
+        return createMetadataNode(createMarkdownDocumentationNode(createNodeList(docLines)), createEmptyNodeList());
+    }
+
+    /**
+     * Builds a remote function's doc comment: a one-line summary plus {@code + payload} and
+     * {@code + return} parameter documentation lines, so the compiler doesn't flag either as
+     * undocumented.
+     *
+     * @param summary   the one-line doc-comment summary
+     * @param eventType the payload's type name, used in the {@code payload} param description
+     * @return the metadata node carrying the full doc comment
+     */
+    private MetadataNode buildFunctionDoc(String summary, String eventType) {
+        List<Node> docLines = new ArrayList<>();
+        docLines.add(createMarkdownDocumentationLineNode(DOCUMENTATION_DESCRIPTION,
+                createToken(HASH_TOKEN), createNodeList(createIdentifierToken(summary))));
+        docLines.add(createMarkdownParameterDocumentationLineNode(MARKDOWN_PARAMETER_DOCUMENTATION_LINE,
+                createToken(HASH_TOKEN), createToken(PLUS_TOKEN), createIdentifierToken("payload"),
+                createToken(MINUS_TOKEN),
+                createNodeList(createIdentifierToken("the " + eventType + " webhook payload"))));
+        docLines.add(createMarkdownParameterDocumentationLineNode(MARKDOWN_RETURN_PARAMETER_DOCUMENTATION_LINE,
+                createToken(HASH_TOKEN), createToken(PLUS_TOKEN), createIdentifierToken("return"),
+                createToken(MINUS_TOKEN),
+                createNodeList(createIdentifierToken("an error if handling the event fails"))));
+        return createMetadataNode(createMarkdownDocumentationNode(createNodeList(docLines)), createEmptyNodeList());
+    }
+
+    /**
+     * Turns a Ballerina-safe function name like {@code onCompanyCreation} into a readable phrase
+     * like {@code "Company creation"}: drops the leading {@code on}, then splits on capitalization
+     * boundaries and lowercases every word after the first.
+     *
+     * @param functionName the {@code onXyz}-style function name
+     * @return a human-readable phrase derived from it
+     */
+    private String humanize(String functionName) {
+        String withoutOn = functionName.startsWith("on") && functionName.length() > 2
+                ? functionName.substring(2) : functionName;
+        StringBuilder phrase = new StringBuilder();
+        for (int i = 0; i < withoutOn.length(); i++) {
+            char c = withoutOn.charAt(i);
+            if (i > 0 && Character.isUpperCase(c)) {
+                phrase.append(' ');
+            }
+            phrase.append(i == 0 ? Character.toUpperCase(c) : Character.toLowerCase(c));
+        }
+        return phrase.toString();
     }
 }

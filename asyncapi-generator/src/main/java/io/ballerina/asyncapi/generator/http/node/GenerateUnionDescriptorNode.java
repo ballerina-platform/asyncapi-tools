@@ -19,6 +19,7 @@ package io.ballerina.asyncapi.generator.http.node;
 
 import io.ballerina.asyncapi.generator.GeneratorException;
 import io.ballerina.compiler.syntax.tree.MetadataNode;
+import io.ballerina.compiler.syntax.tree.Node;
 import io.ballerina.compiler.syntax.tree.SyntaxKind;
 import io.ballerina.compiler.syntax.tree.TypeDefinitionNode;
 import io.ballerina.compiler.syntax.tree.TypeDescriptorNode;
@@ -30,10 +31,13 @@ import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createEmptyN
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createIdentifierToken;
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createNodeList;
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createToken;
+import static io.ballerina.compiler.syntax.tree.NodeFactory.createMarkdownDocumentationLineNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createMarkdownDocumentationNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createMetadataNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createTypeDefinitionNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createUnionTypeDescriptorNode;
+import static io.ballerina.compiler.syntax.tree.SyntaxKind.DOCUMENTATION_DESCRIPTION;
+import static io.ballerina.compiler.syntax.tree.SyntaxKind.HASH_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.PUBLIC_KEYWORD;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.SEMICOLON_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.TYPE_KEYWORD;
@@ -45,14 +49,16 @@ public class GenerateUnionDescriptorNode implements Generator {
 
     private final List<TypeDescriptorNode> nodes;
     private final String identifierName;
+    private final String description;
 
     /**
      * Creates a generator for a union type definition.
      *
      * @param nodes          the list of type descriptors to union
      * @param identifierName the name of the resulting union type
+     * @param description    a one-line doc comment for the union type
      */
-    public GenerateUnionDescriptorNode(List<TypeDescriptorNode> nodes, String identifierName)
+    public GenerateUnionDescriptorNode(List<TypeDescriptorNode> nodes, String identifierName, String description)
             throws GeneratorException {
         if (nodes == null) {
             throw new GeneratorException("nodes must not be null");
@@ -62,6 +68,7 @@ public class GenerateUnionDescriptorNode implements Generator {
         }
         this.nodes = nodes;
         this.identifierName = identifierName;
+        this.description = description;
     }
 
     @Override
@@ -69,8 +76,13 @@ public class GenerateUnionDescriptorNode implements Generator {
         if (nodes.isEmpty()) {
             throw new GeneratorException("Nodes list is empty, hence can't generate the Union Node");
         }
+        List<Node> docLines = new ArrayList<>();
+        if (description != null && !description.isBlank()) {
+            docLines.add(createMarkdownDocumentationLineNode(DOCUMENTATION_DESCRIPTION,
+                    createToken(HASH_TOKEN), createNodeList(createIdentifierToken(description))));
+        }
         MetadataNode metadataNode = createMetadataNode(
-                createMarkdownDocumentationNode(createNodeList(new ArrayList<>())), createEmptyNodeList());
+                createMarkdownDocumentationNode(createNodeList(docLines)), createEmptyNodeList());
         return createTypeDefinitionNode(metadataNode, createToken(PUBLIC_KEYWORD),
                 createToken(TYPE_KEYWORD), createIdentifierToken(identifierName),
                 buildUnionDescriptor(nodes), createToken(SEMICOLON_TOKEN));

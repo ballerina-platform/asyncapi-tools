@@ -54,6 +54,7 @@ import static io.ballerina.compiler.syntax.tree.SyntaxKind.ERROR_KEYWORD;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.COLON_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.COMMA_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.FUNCTION_KEYWORD;
+import static io.ballerina.compiler.syntax.tree.SyntaxKind.ISOLATED_KEYWORD;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.OBJECT_METHOD_DEFINITION;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.OPEN_BRACE_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.OPEN_PAREN_TOKEN;
@@ -125,20 +126,18 @@ public class GenerateVerifyWebhookSignatureFuncNode implements Generator {
 
         String headerFormat = authConfig.headerFormat() != null ? authConfig.headerFormat() : "$signature";
         HeaderTemplate headerTemplate = HeaderTemplateParser.parse(headerFormat);
-        addHeaderTemplateExtractionStatements(statements, headerTemplate);
-
-        String signatureVariable = resolveSignatureVariableName(headerTemplate);
-        statements.add(NodeParser.parseStatement(String.format(
-            "if !extractedHeaderValues.hasKey(\"%s\") {"
-                + " return error(\"Unauthorized: Missing Signature Value\"); }",
-            signatureVariable)));
-        String extractedSignatureExpr = getSafeMapExtraction("extractedHeaderValues", signatureVariable, "");
-        statements.add(NodeParser.parseStatement(String.format(
-            "string extractedSignature = %s;",
-            extractedSignatureExpr)));
+        boolean useAlgorithm = hasAlgorithmConfigured(authConfig.algorithm());
+        // Extracts every named component of the header template (e.g. Stripe's "t=$timestamp,v1=$signature"
+        // yields both "timestamp" and "signature" as real variables) -- needed in both branches below,
+        // since the algorithm branch's own `input` DSL can reference any of these components too, not
+        // just the ones used for hashing. The signature-role component itself is never referenced by
+        // the algorithm branch (it compares receivedHeader/expectedHeader instead), so its declaration
+        // is skipped there to avoid an always-unused variable.
+        addHeaderTemplateExtractionStatements(statements, headerTemplate,
+                useAlgorithm ? resolveSignatureVariableName(headerTemplate) : null);
 
         // If algorithm is present, use HMAC verification. Otherwise do static token verification.
-        if (hasAlgorithmConfigured(authConfig.algorithm())) {
+        if (useAlgorithm) {
 
             // 1. Translate the DSL input string to Ballerina string interpolation
             String inputDsl = authConfig.input() != null ? authConfig.input() : "$body";
@@ -188,12 +187,15 @@ public class GenerateVerifyWebhookSignatureFuncNode implements Generator {
                             + " return error(\"Unauthorized: Signature Mismatch\"); }"));
 
         } else {
-            statements.add(NodeParser.parseStatement(
-                    "if !crypto:equalConstantTime(extractedSignature.toBytes(), webhookSecret.toBytes()) {"
-                            + " return error(\"Unauthorized: Signature Mismatch\"); }"));
+            // Static token mode: compare the signature-role component already declared above by
+            // addHeaderTemplateExtractionStatements directly against the configured secret, with no
+            // hashing involved.
+            String signatureVariable = resolveSignatureVariableName(headerTemplate);
+            statements.add(NodeParser.parseStatement(String.format(
+                    "if !crypto:equalConstantTime(%s.toBytes(), webhookSecret.toBytes()) {"
+                            + " return error(\"Unauthorized: Signature Mismatch\"); }",
+                    signatureVariable)));
         }
-        
-        statements.add(NodeParser.parseStatement("return;"));
 
         FunctionBodyBlockNode body = createFunctionBodyBlockNode(
                 createToken(OPEN_BRACE_TOKEN), null, createNodeList(statements),
@@ -201,7 +203,7 @@ public class GenerateVerifyWebhookSignatureFuncNode implements Generator {
 
         return createFunctionDefinitionNode(
                 OBJECT_METHOD_DEFINITION, null,
-                createNodeList(createToken(PRIVATE_KEYWORD)),
+                createNodeList(createToken(PRIVATE_KEYWORD), createToken(ISOLATED_KEYWORD)),
                 createToken(FUNCTION_KEYWORD),
                 createIdentifierToken(VERIFY_WEBHOOK_SIGNATURE_FUNC),
                 createEmptyNodeList(),
@@ -232,7 +234,7 @@ public class GenerateVerifyWebhookSignatureFuncNode implements Generator {
         statements.add(NodeParser.parseStatement(
                 "decimal freshnessSkewMillis = freshnessNowMillis - freshnessTimestamp;"));
         statements.add(NodeParser.parseStatement(String.format(
-                "if freshnessSkewMillis.abs() > <decimal>%d {"
+                "if freshnessSkewMillis.abs() > %dd {"
                         + " return error(\"Unauthorized: Request Timestamp Expired\"); }",
                 toleranceMillis)));
     }
@@ -280,7 +282,8 @@ public class GenerateVerifyWebhookSignatureFuncNode implements Generator {
         });
     }
 
-    private void addHeaderTemplateExtractionStatements(List<StatementNode> statements, HeaderTemplate template) {
+    private void addHeaderTemplateExtractionStatements(List<StatementNode> statements, HeaderTemplate template,
+            String skipDeclarationFor) {
         statements.add(NodeParser.parseStatement("map<string> extractedHeaderValues = {};"));
         statements.add(NodeParser.parseStatement("int headerCursor = 0;"));
 
@@ -362,6 +365,9 @@ public class GenerateVerifyWebhookSignatureFuncNode implements Generator {
                         + " return error(\"Unauthorized: Missing Header Component: %s\"); }",
                     variableName,
                     variableName)));
+                if (variableName.equals(skipDeclarationFor)) {
+                    continue;
+                }
                 String safeMapExtraction = getSafeMapExtraction("extractedHeaderValues", variableName, "");
                 statements.add(NodeParser.parseStatement(String.format(
                     "string %s = %s;",
@@ -413,8 +419,7 @@ public class GenerateVerifyWebhookSignatureFuncNode implements Generator {
 
     private String getSafeHeaderExtraction(String headerName) {
         String escapedHeaderName = escapeForBallerinaString(headerName);
-        return String.format("let var headerValue = trap request.getHeader(\"%s\") in "
-                + "(headerValue is string ? headerValue : \"\")", escapedHeaderName);
+        return String.format("check request.getHeader(\"%s\")", escapedHeaderName);
     }
 
     private String getSafeIndexOf(String targetVariable, String searchString, String startIndex) {

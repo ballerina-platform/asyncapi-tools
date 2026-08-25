@@ -69,8 +69,8 @@ public class GenerateRemoveServiceRefFuncNode implements Generator {
         List<StatementNode> statements = new ArrayList<>();
         statements.add(NodeParser.parseStatement(String.format(
                 "if (!self.%s.hasKey(serviceType)) {"
-                        + " return error(\"Cannot detach the service of type \" + serviceType"
-                        + " + \". Service has not been attached to the listener before\"); }",
+                        + " return error(string `Cannot detach the service of type ${serviceType}."
+                        + " Service has not been attached to the listener before`); }",
                 GenerateDispatcherServiceNode.DISPATCHER_SERVICES_FIELD)));
         statements.add(NodeParser.parseStatement(String.format(
                 "_ = self.%s.remove(serviceType);",

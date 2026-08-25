@@ -55,7 +55,7 @@ public class HttpCodeGenerator {
 
     private static final Logger LOG = LogManager.getLogger(HttpCodeGenerator.class);
     private static final String LICENSE_HEADER =
-            "// Copyright (c) " + java.time.Year.now() + ", WSO2 LLC. (http://www.wso2.com) All Rights Reserved.\n"
+            "// Copyright (c) " + java.time.Year.now() + ", WSO2 LLC. (http://www.wso2.com).\n"
             + "//\n"
             + "// WSO2 LLC. licenses this file to you under the Apache License,\n"
             + "// Version 2.0 (the \"License\"); you may not use this file except\n"

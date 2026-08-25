@@ -115,7 +115,8 @@ public class DataTypesGenerator {
         List<TypeDescriptorNode> typeDescriptors = new ArrayList<>(strictTypeDescriptors);
         typeDescriptors.addAll(looseTypeDescriptors);
 
-        Generator unionGen = new GenerateUnionDescriptorNode(typeDescriptors, GENERIC_DATA_TYPE);
+        Generator unionGen = new GenerateUnionDescriptorNode(typeDescriptors, GENERIC_DATA_TYPE,
+                "The union of every possible webhook payload type this listener can receive.");
         typeNodes.add(unionGen.generate());
 
         List<ImportDeclarationNode> imports = new ArrayList<>();

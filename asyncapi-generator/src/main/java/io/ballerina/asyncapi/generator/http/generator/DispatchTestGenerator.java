@@ -143,24 +143,26 @@ public class DispatchTestGenerator {
         }
 
         StringBuilder constants = new StringBuilder()
-                .append("const string TRIGGER_TEST_SECRET = \"").append(TEST_SECRET).append("\";\n")
-                .append("const int TRIGGER_TEST_PORT = ").append(TEST_PORT).append(";\n")
-                .append("const string TRIGGER_PAYLOAD_DIR = \"").append(DEFAULT_PAYLOAD_DIR).append("\";\n");
+                .append("const TRIGGER_TEST_SECRET = \"").append(TEST_SECRET).append("\";\n")
+                .append("const TRIGGER_TEST_PORT = ").append(TEST_PORT).append(";\n")
+                .append("const TRIGGER_PAYLOAD_DIR = \"").append(DEFAULT_PAYLOAD_DIR).append("\";\n");
 
         StringBuilder listenerConfigFields = new StringBuilder("webhookSecret: TRIGGER_TEST_SECRET");
         if (webhookAuthConfig != null && webhookAuthConfig.configFields() != null) {
             for (String field : webhookAuthConfig.configFields()) {
                 String constName = testConfigConstantName(field);
-                constants.append("const string ").append(constName).append(" = \"test-")
+                constants.append("const ").append(constName).append(" = \"test-")
                         .append(field).append("-value\";\n");
                 listenerConfigFields.append(", ").append(field).append(": ").append(constName);
             }
         }
 
         return imports.toString() + "\n" + constants
-                + "\nmap<boolean> triggerFired = {};\n\n"
+                + "\nisolated map<boolean> triggerFired = {};\n\n"
                 + "listener Listener triggerTestListener = "
-                + "check new ({" + listenerConfigFields + "}, TRIGGER_TEST_PORT);\n\n";
+                + "check new ({" + listenerConfigFields + "}, TRIGGER_TEST_PORT);\n\n"
+                + "final http:Client triggerClient = "
+                + "check new (string `http://localhost:${TRIGGER_TEST_PORT}`);\n\n";
     }
 
     private boolean needsTimeImport(List<String> headerRefs) {
@@ -172,10 +174,12 @@ public class DispatchTestGenerator {
         StringBuilder sb = new StringBuilder();
         sb.append("service ").append(serviceTypeName).append(" on triggerTestListener {\n");
         for (DispatchTestCase testCase : functions) {
-            sb.append("    remote function ").append(testCase.functionName())
+            sb.append("    isolated remote function ").append(testCase.functionName())
                     .append("(").append(testCase.payloadTypeName()).append(" payload) returns error? {\n")
-                    .append("        triggerFired[\"").append(serviceTypeName).append(".")
+                    .append("        lock {\n")
+                    .append("            triggerFired[\"").append(serviceTypeName).append(".")
                     .append(testCase.functionName()).append("\"] = true;\n")
+                    .append("        }\n")
                     .append("    }\n");
         }
         sb.append("}\n\n");
@@ -189,15 +193,15 @@ public class DispatchTestGenerator {
         sb.append("    byte[] body = check io:fileReadBytes("
                 + "string `${TRIGGER_PAYLOAD_DIR}/${eventIdentifier}.json`);\n");
         sb.append("    string bodyText = check string:fromBytes(body);\n");
-        sb.append("    http:Request request = new;\n");
-        sb.append("    request.setBinaryPayload(body, contentType = \"application/json\");\n");
+
+        List<String> headerEntries = new ArrayList<>();
 
         String identifierType = identifierConfig != null ? identifierConfig.type() : null;
         if (!EventIdentifierExtractor.X_BALLERINA_EVENT_TYPE_BODY.equals(identifierType)) {
             String identifierHeaderName = identifierConfig != null && identifierConfig.name() != null
                     ? identifierConfig.name()
                     : DEFAULT_IDENTIFIER_HEADER;
-            sb.append("    request.setHeader(\"").append(identifierHeaderName).append("\", headerValue);\n");
+            headerEntries.add("\"" + identifierHeaderName + "\": headerValue");
         }
 
         String freshnessHeader = webhookAuthConfig != null ? webhookAuthConfig.freshnessHeader() : null;
@@ -214,7 +218,7 @@ public class DispatchTestGenerator {
                 // test sends is what verification reads back, so any string is a valid signed input.
                 sb.append("    string ").append(varName).append(" = \"test-header-value\";\n");
             }
-            sb.append("    request.setHeader(\"").append(headerRef).append("\", ").append(varName).append(");\n");
+            headerEntries.add("\"" + headerRef + "\": " + varName);
         }
 
         String inputDsl = webhookAuthConfig != null && webhookAuthConfig.input() != null
@@ -253,10 +257,15 @@ public class DispatchTestGenerator {
         }
 
         String signatureExpr = buildSignatureExpression(template, signatureVariable);
-        sb.append("    string signature = ").append(signatureExpr).append(";\n\n");
-        sb.append("    http:Client triggerClient = check new (string `http://localhost:${TRIGGER_TEST_PORT}`);\n");
-        sb.append("    request.setHeader(\"").append(signatureHeader).append("\", signature);\n");
-        sb.append("    return triggerClient->post(\"/\", request);\n");
+        headerEntries.add("\"" + signatureHeader + "\": " + signatureExpr);
+
+        sb.append("    map<string> headers = {\n");
+        for (int i = 0; i < headerEntries.size(); i++) {
+            sb.append("        ").append(headerEntries.get(i));
+            sb.append(i < headerEntries.size() - 1 ? ",\n" : "\n");
+        }
+        sb.append("    };\n");
+        sb.append("    return triggerClient->post(\"/\", body, headers, \"application/json\");\n");
         sb.append("}\n\n");
         return sb.toString();
     }
@@ -375,8 +384,10 @@ public class DispatchTestGenerator {
     private String buildWaitHelper() {
         return "function waitForDispatch(string trackerKey) returns boolean {\n"
                 + "    foreach int i in 0 ..< 20 {\n"
-                + "        if triggerFired[trackerKey] ?: false {\n"
-                + "            return true;\n"
+                + "        lock {\n"
+                + "            if triggerFired[trackerKey] ?: false {\n"
+                + "                return true;\n"
+                + "            }\n"
                 + "        }\n"
                 + "        runtime:sleep(0.05);\n"
                 + "    }\n"
