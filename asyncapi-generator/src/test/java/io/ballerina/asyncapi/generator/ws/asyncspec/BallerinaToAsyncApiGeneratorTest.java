@@ -941,4 +941,133 @@ class BallerinaToAsyncApiGeneratorTest {
         String yaml = readGeneratedYaml();
         Assert.assertTrue(yaml.contains("9090"), "listener port must appear in server definition");
     }
+
+    // Regression fixture for #7669, reproduced verbatim from the issue report. Exercises all
+    // three parameter/payload shapes in one service: a primitive-typed parameter
+    // (onConnectionInit(string)), a zero-parameter remote function (onSubscription()), and the
+    // reserved onMessage lifecycle hook, which must still be excluded from the generated spec.
+    private static final String BAL_ISSUE_7669 =
+            "import ballerina/websocket;\n\n"
+            + "@websocket:ServiceConfig {\n"
+            + "    dispatcherKey: \"event\"\n"
+            + "}\n"
+            + "service /websockets on new websocket:Listener(9090) {\n"
+            + "    resource function get .() returns MyGqlSubService {\n"
+            + "        return new MyGqlSubService();\n"
+            + "    }\n"
+            + "}\n\n"
+            + "service class MyGqlSubService {\n"
+            + "    *websocket:Service;\n\n"
+            + "    remote function onConnectionInit(string chatMessage) returns ConnectionAck|error {\n"
+            + "        ConnectionAck connAck = { event: \"connection_ack\", payload: \"{}\" };\n"
+            + "        return connAck;\n"
+            + "    }\n\n"
+            + "    remote function onSubscription() returns stream<Next|Complete> {\n"
+            + "        Next[] next = [\n"
+            + "            { id: \"1\", event: \"data\", payload: \"{}\" },\n"
+            + "            { id: \"2\", event: \"data\", payload: \"{}\" },\n"
+            + "            { id: \"3\", event: \"data\", payload: \"{}\" }\n"
+            + "        ];\n"
+            + "        return next.toStream();\n"
+            + "    }\n\n"
+            + "    remote function onMessage(websocket:Caller caller, string chatMessage) returns error? {\n"
+            + "        return caller->close(4408, \"Connection initialisation timeout\");\n"
+            + "    }\n"
+            + "}\n\n"
+            + "type Next record {|\n"
+            + "    string id;\n"
+            + "    string event;\n"
+            + "    string payload;\n"
+            + "|};\n\n"
+            + "type Complete record {|\n"
+            + "    string id;\n"
+            + "    string event;\n"
+            + "|};\n\n"
+            + "type ConnectionAck record {|\n"
+            + "    string event;\n"
+            + "    string payload;\n"
+            + "|};\n";
+
+    @Test
+    void testIssue7669_primitiveAndZeroParamRemoteFunctionsAppearInSpec() throws IOException {
+        List<AsyncApiConverterDiagnostic> diagnostics = run(BAL_ISSUE_7669);
+        Assert.assertTrue(diagnostics.isEmpty(),
+                "generator must produce no diagnostics for onConnectionInit's primitive parameter "
+                        + "or onSubscription's zero parameters. Diagnostics: " + diagnostics);
+        String yaml = readGeneratedYaml();
+
+        // onConnectionInit(string chatMessage): primitive-typed parameter -> inline string schema,
+        // message name falls back to the function name (no record type to derive it from).
+        Assert.assertTrue(yaml.contains("sendConnectionInit"),
+                "a send operation must be generated for onConnectionInit despite its primitive parameter");
+        Assert.assertFalse(yaml.contains("#/components/schemas/ConnectionInit"),
+                "ConnectionInit's payload must be an inline schema, not a $ref to a component schema "
+                        + "(a primitive parameter has no named type to define one from)");
+
+        // onSubscription(): zero parameters -> inline empty-object schema, same fallback naming.
+        Assert.assertTrue(yaml.contains("sendSubscription"),
+                "a send operation must be generated for onSubscription despite having no parameters");
+
+        // Return types must still be processed for both, using the existing (already-working)
+        // return-type machinery -- onConnectionInit's ConnectionAck|error and onSubscription's
+        // stream<Next|Complete>.
+        Assert.assertTrue(yaml.contains("receiveConnectionAck"),
+                "onConnectionInit's ConnectionAck return type must still be processed");
+        Assert.assertTrue(yaml.contains("receiveNext") && yaml.contains("receiveComplete"),
+                "onSubscription's stream<Next|Complete> return type must still be processed, split per "
+                        + "union member");
+
+        // onMessage(websocket:Caller, string): the reserved WS lifecycle hook -- must remain
+        // excluded, same as before this fix. Its parameter shape (Caller + string) would otherwise
+        // now be primitive-eligible, so this specifically guards against the reserved-name check
+        // being bypassed by the broadened parameter handling.
+        Assert.assertFalse(yaml.contains("sendMessage") || yaml.contains("receiveMessage"),
+                "onMessage must remain excluded as a reserved WebSocket lifecycle hook, not a "
+                        + "dispatched application message");
+    }
+
+    // Regression fixture isolating stream<Union> return-type support from the zero-parameter
+    // fix above: a normal record-typed parameter (already supported) paired with a stream return
+    // type, the same return shape onSubscription() uses in #7669.
+    private static final String BAL_STREAM_RETURN_CHECK =
+            "import ballerina/websocket;\n\n"
+            + "public type ChatMessage record {\n"
+            + "    string event;\n"
+            + "    string content;\n"
+            + "};\n\n"
+            + "public type Next record {|\n"
+            + "    string id;\n"
+            + "|};\n\n"
+            + "public type Complete record {|\n"
+            + "    string id;\n"
+            + "|};\n\n"
+            + "@websocket:ServiceConfig {dispatcherKey: \"event\"}\n"
+            + "service /chat on new websocket:Listener(9090) {\n"
+            + "    resource function get .() returns websocket:Service|websocket:UpgradeError {\n"
+            + "        return new ChatService();\n"
+            + "    }\n"
+            + "}\n\n"
+            + "service class ChatService {\n"
+            + "    *websocket:Service;\n"
+            + "    remote function onChatMessage(ChatMessage msg) returns stream<Next|Complete> {\n"
+            + "        Next[] next = [{id: \"1\"}];\n"
+            + "        return next.toStream();\n"
+            + "    }\n"
+            + "}\n";
+
+    @Test
+    void testStreamReturnType_generatesReceiveOperationsPerUnionMember() throws IOException {
+        List<AsyncApiConverterDiagnostic> diagnostics = run(BAL_STREAM_RETURN_CHECK);
+        Assert.assertTrue(diagnostics.isEmpty(),
+                "generator must produce no diagnostics for a stream<Union> return type. Diagnostics: "
+                        + diagnostics);
+        String yaml = readGeneratedYaml();
+
+        Assert.assertTrue(yaml.contains("sendChatMessage"),
+                "the request side (record-typed parameter) must be unaffected");
+        Assert.assertTrue(yaml.contains("receiveNext") && yaml.contains("receiveComplete"),
+                "stream<Next|Complete> must split into one receive operation per union member");
+        Assert.assertTrue(yaml.contains("x-response-type: server-streaming"),
+                "the response must be tagged as server-streaming, not a one-shot simple-rpc reply");
+    }
 }

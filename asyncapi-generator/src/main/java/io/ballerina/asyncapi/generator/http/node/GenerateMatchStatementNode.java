@@ -27,7 +27,6 @@ import io.ballerina.compiler.syntax.tree.FunctionArgumentNode;
 import io.ballerina.compiler.syntax.tree.MatchClauseNode;
 import io.ballerina.compiler.syntax.tree.MatchStatementNode;
 import io.ballerina.compiler.syntax.tree.MethodCallExpressionNode;
-import io.ballerina.compiler.syntax.tree.NodeParser;
 import io.ballerina.compiler.syntax.tree.SeparatedNodeList;
 import io.ballerina.compiler.syntax.tree.StatementNode;
 import io.ballerina.compiler.syntax.tree.SyntaxKind;
@@ -68,7 +67,6 @@ public class GenerateMatchStatementNode implements Generator {
     private final List<HttpServiceType> serviceTypes;
     private final String eventIdentifierPath;
     private final String eventTypePath;
-    private final String serviceName;
 
     /**
      * Creates a generator for the match statement(s).
@@ -80,15 +78,12 @@ public class GenerateMatchStatementNode implements Generator {
      *                            no enumerable set of values, or {@code null} if the identifier
      *                            type never distinguishes the two (in which case every remote
      *                            function is matched against {@code eventIdentifierPath})
-     * @param serviceName         a label identifying the generated package, embedded into the
-     *                            {@code MATCH_LEVEL_2_*} diagnostic trace log message
      */
     public GenerateMatchStatementNode(List<HttpServiceType> serviceTypes, String eventIdentifierPath,
-            String eventTypePath, String serviceName) {
+            String eventTypePath) {
         this.serviceTypes = serviceTypes;
         this.eventIdentifierPath = eventIdentifierPath;
         this.eventTypePath = eventTypePath;
-        this.serviceName = serviceName;
     }
 
     @Override
@@ -162,12 +157,9 @@ public class GenerateMatchStatementNode implements Generator {
         CheckExpressionNode checkExpr = createCheckExpressionNode(SyntaxKind.CHECK_EXPRESSION,
                 createToken(SyntaxKind.CHECK_KEYWORD), methodCall);
 
-        StatementNode logStmt = NodeParser.parseStatement(String.format(
-                "log:printInfo(\"MATCH_LEVEL_2_%s\", matchedEvent = \"%s\");", serviceName, eventName));
-
         BlockStatementNode block = createBlockStatementNode(
                 createToken(SyntaxKind.OPEN_BRACE_TOKEN),
-                createNodeList(logStmt, createExpressionStatementNode(SyntaxKind.CALL_STATEMENT,
+                createNodeList(createExpressionStatementNode(SyntaxKind.CALL_STATEMENT,
                         checkExpr, createToken(SyntaxKind.SEMICOLON_TOKEN))),
                 createToken(SyntaxKind.CLOSE_BRACE_TOKEN));
 

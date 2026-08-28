@@ -56,7 +56,6 @@ public class DispatcherGenerator {
     private final List<HttpServiceType> serviceTypes;
     private final EventIdentifierConfig identifierConfig;
     private final Optional<WebhookAuthConfig> webhookAuthConfig;
-    private final String serviceName;
 
     /**
      * Creates a generator for the given service types, event identifier configuration, and optional
@@ -65,16 +64,12 @@ public class DispatcherGenerator {
      * @param serviceTypes      the list of HTTP service type definitions
      * @param identifierConfig  the resolved event identifier type and path
      * @param webhookAuthConfig the optional webhook authentication configuration
-     * @param serviceName       a label identifying the generated package, embedded into the
-     *                          {@code MATCH_LEVEL_1_*}, {@code MATCH_LEVEL_2_*}, and
-     *                          {@code HANDLER_EXECUTED_*} diagnostic trace log messages
      */
     public DispatcherGenerator(List<HttpServiceType> serviceTypes, EventIdentifierConfig identifierConfig,
-            Optional<WebhookAuthConfig> webhookAuthConfig, String serviceName) {
+            Optional<WebhookAuthConfig> webhookAuthConfig) {
         this.serviceTypes = serviceTypes;
         this.identifierConfig = identifierConfig;
         this.webhookAuthConfig = webhookAuthConfig;
-        this.serviceName = serviceName;
     }
 
     /**
@@ -98,7 +93,7 @@ public class DispatcherGenerator {
         }
 
         ClassDefinitionNode classNode =
-                new GenerateDispatcherServiceNode(serviceTypes, identifierConfig, webhookAuthConfig, serviceName)
+                new GenerateDispatcherServiceNode(serviceTypes, identifierConfig, webhookAuthConfig)
                         .generate();
 
         List<ImportDeclarationNode> imports = new ArrayList<>();

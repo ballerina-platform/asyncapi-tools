@@ -80,6 +80,11 @@ import java.util.Map;
  *                             {@code #/components/schemas}. Not part of JSON Schema; stamped by
  *                             the mapper when a {@code $ref} payload is resolved so that code
  *                             generators can use the component name as the Ballerina type name.
+ * @param nullable             The standard AsyncAPI/OpenAPI {@code nullable} keyword - {@code true}
+ *                             if the value may be {@code null} in addition to matching {@code type}.
+ *                             Not a recognized field in apicurio's AsyncAPI 3.0 schema model (that
+ *                             dialect has no {@code nullable} keyword), so it's read from the
+ *                             schema's generic extra-properties bucket rather than a typed accessor.
  */
 public record AsyncApiSchema(
         String title,
@@ -124,7 +129,8 @@ public record AsyncApiSchema(
         AsyncApiExternalDocs externalDocs,
         Boolean deprecated,
         Map<String, JsonNode> extensions,
-        String name
+        String name,
+        Boolean nullable
 ) {
 
     /**
@@ -164,7 +170,7 @@ public record AsyncApiSchema(
                 writeOnly(), properties(), patternProperties(), additionalProperties(),
                 additionalItems(), items(), propertyNames(), contains(), allOf(),
                 oneOf(), anyOf(), not(), description(), format(), defaultValue(),
-                discriminator(), externalDocs(), deprecated(), extensions(), name()
+                discriminator(), externalDocs(), deprecated(), extensions(), name(), nullable()
         );
     }
 
@@ -185,7 +191,30 @@ public record AsyncApiSchema(
                 writeOnly(), properties(), patternProperties(), additionalProperties(),
                 additionalItems(), items(), propertyNames(), contains(), allOf(),
                 oneOf(), anyOf(), not(), newDescription, format(), defaultValue(),
-                discriminator(), externalDocs(), deprecated(), extensions(), name()
+                discriminator(), externalDocs(), deprecated(), extensions(), name(), nullable()
+        );
+    }
+
+    /**
+     * Returns a copy of this schema with the given {@code nullable}, preserving all other fields.
+     * Used to attach a sibling {@code nullable} from a {@code $ref} property node onto the
+     * resolved stub schema - {@code $ref} plus a sibling {@code nullable: true} is exactly how a
+     * spec marks a referenced type as nullable (e.g. {@code assignee: {$ref: '#/.../User',
+     * nullable: true}}), and the stub otherwise carries nothing but {@code name}.
+     *
+     * @param newNullable the nullable flag to set
+     * @return a new {@link AsyncApiSchema} with the given nullable flag
+     */
+    public AsyncApiSchema withNullable(Boolean newNullable) {
+        return new AsyncApiSchema(
+                title(), type(), required(), multipleOf(), maximum(), exclusiveMaximum(),
+                minimum(), exclusiveMinimum(), maxLength(), minLength(), pattern(),
+                maxItems(), minItems(), uniqueItems(), maxProperties(), minProperties(),
+                enumValue(), constValue(), examples(), ifBranch(), then(), elseBranch(), readOnly(),
+                writeOnly(), properties(), patternProperties(), additionalProperties(),
+                additionalItems(), items(), propertyNames(), contains(), allOf(),
+                oneOf(), anyOf(), not(), description(), format(), defaultValue(),
+                discriminator(), externalDocs(), deprecated(), extensions(), name(), newNullable
         );
     }
 
@@ -206,7 +235,7 @@ public record AsyncApiSchema(
                 writeOnly(), properties(), patternProperties(), additionalProperties(),
                 additionalItems(), items(), propertyNames(), contains(), allOf(),
                 oneOf(), anyOf(), not(), description(), format(), defaultValue(),
-                discriminator(), externalDocs(), deprecated(), extensions(), newName
+                discriminator(), externalDocs(), deprecated(), extensions(), newName, nullable()
         );
     }
 
@@ -269,6 +298,7 @@ public record AsyncApiSchema(
         Boolean deprecated;
         Map<String, JsonNode> extensions;
         String name;
+        Boolean nullable;
 
         private Builder() {
         }
@@ -488,6 +518,11 @@ public record AsyncApiSchema(
             return this;
         }
 
+        public Builder nullable(Boolean nullable) {
+            this.nullable = nullable;
+            return this;
+        }
+
         /**
          * Constructs the {@link AsyncApiSchema} from the values set on this builder.
          *
@@ -505,7 +540,7 @@ public record AsyncApiSchema(
                     additionalItems, items, propertyNames, contains,
                     allOf, oneOf, anyOf, not,
                     description, format, defaultValue, discriminator, externalDocs,
-                    deprecated, extensions, name
+                    deprecated, extensions, name, nullable
             );
         }
     }

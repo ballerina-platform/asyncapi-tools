@@ -94,8 +94,13 @@ public class GenerateListenerStatementNode implements Generator {
     /**
      * Builds the {@code else} branch: either a nested {@code if is <NextType>} check for the
      * remaining candidates, or -- once every known type has been explicitly tested and none
-     * matched -- a {@code panic}, so an unrecognized {@code serviceRef} fails loudly instead of
+     * matched -- a {@code return error(...)}, so an unrecognized {@code serviceRef} fails loudly
+     * (the caller, {@code attach}/{@code detach}, propagates it via {@code check}) instead of
      * being silently mislabeled as whichever type happened to be last in the list.
+     *
+     * <p>Returns an {@code error}, not a {@code panic}: a {@code panic} would crash the entire
+     * running listener process over one bad {@code attach} call, whereas returning an error lets
+     * the caller handle it as an ordinary failed operation.
      *
      * @param list the service types not yet tested by an enclosing {@code if}
      */
@@ -105,15 +110,15 @@ public class GenerateListenerStatementNode implements Generator {
             return NodeFactory.createElseBlockNode(createToken(SyntaxKind.ELSE_KEYWORD),
                     NodeFactory.createBlockStatementNode(
                             createToken(SyntaxKind.OPEN_BRACE_TOKEN),
-                            createNodeList(buildPanicStatement()),
+                            createNodeList(buildUnrecognizedTypeErrorStatement()),
                             createToken(SyntaxKind.CLOSE_BRACE_TOKEN)));
         }
         return NodeFactory.createElseBlockNode(createToken(SyntaxKind.ELSE_KEYWORD),
                 buildIfElseChain(remaining));
     }
 
-    private StatementNode buildPanicStatement() {
+    private StatementNode buildUnrecognizedTypeErrorStatement() {
         return NodeParser.parseStatement(
-                "panic error(\"Unrecognized service type attached to the listener\");");
+                "return error(\"Unrecognized service type attached to the listener\");");
     }
 }
