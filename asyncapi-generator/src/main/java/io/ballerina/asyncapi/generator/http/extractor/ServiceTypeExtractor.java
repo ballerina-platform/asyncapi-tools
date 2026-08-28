@@ -42,6 +42,7 @@ import java.util.Map;
 public final class ServiceTypeExtractor {
 
     public static final String X_BALLERINA_EVENT_TYPE = "x-ballerina-event-type";
+    private static final String X_BALLERINA_EVENT_LABEL = "x-ballerina-event-label";
     private static final String X_BALLERINA_SERVICE_TYPE = "x-ballerina-service-type";
 
     private final AsyncApiSpec asyncApiSpec;
@@ -132,6 +133,9 @@ public final class ServiceTypeExtractor {
                 AsyncApiMessage message = msgEntry.getValue();
                 validateMessage(message, messageId, operationChannel.address());
                 String eventType = message.extensions().get(X_BALLERINA_EVENT_TYPE).asText();
+                JsonNode labelNode = message.extensions().get(X_BALLERINA_EVENT_LABEL);
+                String displayLabel = labelNode != null && !labelNode.asText().isBlank()
+                        ? labelNode.asText() : null;
                 Object payload = message.payload();
                 String payloadTypeName = eventType;
                 boolean matchOnEventType = false;
@@ -145,7 +149,7 @@ public final class ServiceTypeExtractor {
                     matchOnEventType = hasFreeFormActionField(schema);
                 }
                 serviceTypeMap.get(serviceTypeName).remoteFunctions()
-                        .add(new HttpRemoteFunction(eventType, payloadTypeName, matchOnEventType));
+                        .add(new HttpRemoteFunction(eventType, payloadTypeName, matchOnEventType, displayLabel));
             }
         }
 

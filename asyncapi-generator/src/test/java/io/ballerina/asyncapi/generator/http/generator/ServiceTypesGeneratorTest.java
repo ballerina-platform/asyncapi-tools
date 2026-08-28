@@ -80,6 +80,23 @@ public class ServiceTypesGeneratorTest {
     }
 
     @Test
+    void testDisplayLabelOverridesGeneratedFunctionName() throws GeneratorException {
+        List<HttpRemoteFunction> fns = List.of(
+                new HttpRemoteFunction("qbo.account.merged.v1", "QuickBookEvent", false, "AccountMerged"),
+                new HttpRemoteFunction("qbo.account.created.v1", "QuickBookEvent", false, null)
+        );
+        HttpServiceType serviceType = new HttpServiceType("AccountService", fns);
+        String source = new ServiceTypesGenerator(List.of(serviceType)).generate();
+
+        Assert.assertTrue(source.contains("onAccountMerged"),
+                "A display label should be used to build the function name instead of the raw event type");
+        Assert.assertFalse(source.contains("onQboAccountMergedV1"),
+                "The raw event type should not leak into the function name when a display label is set");
+        Assert.assertTrue(source.contains("onQboAccountCreatedV1"),
+                "With no display label, the function name should still be derived from the raw event type");
+    }
+
+    @Test
     void testGenerateWithEmptyRemoteFunctionsThrows() {
         HttpServiceType empty = new HttpServiceType("EmptyService", List.of());
         try {

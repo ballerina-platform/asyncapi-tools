@@ -31,8 +31,17 @@ package io.ballerina.asyncapi.generator.http.model;
  *                         composite literal at generation time. Always {@code false} for
  *                         {@code "header"} and {@code "body"} identifier types, where no composite
  *                         identifier is ever built.
+ * @param displayLabel     an optional, human-friendlier string (from a message's
+ *                         {@code x-ballerina-event-label} extension) to derive the generated
+ *                         function name and doc comment from instead of {@code functionName}.
+ *                         Exists for cases where the real wire-matching value makes an awkward
+ *                         function name (e.g. a versioned, prefixed CloudEvents type string like
+ *                         {@code "qbo.account.merged.v1"}). {@code null} preserves the pre-existing
+ *                         behavior of deriving the name from {@code functionName} itself; the match
+ *                         clause always compares against {@code functionName}, never this label.
  */
-public record HttpRemoteFunction(String functionName, String eventType, boolean matchOnEventType) {
+public record HttpRemoteFunction(String functionName, String eventType, boolean matchOnEventType,
+        String displayLabel) {
 
     /**
      * Creates a remote function that matches on the composite identifier (the pre-existing
@@ -42,6 +51,17 @@ public record HttpRemoteFunction(String functionName, String eventType, boolean 
      * @param eventType    the schema type reference for the event payload
      */
     public HttpRemoteFunction(String functionName, String eventType) {
-        this(functionName, eventType, false);
+        this(functionName, eventType, false, null);
+    }
+
+    /**
+     * Creates a remote function with no display label override (the pre-existing behavior).
+     *
+     * @param functionName     the Ballerina-safe function name derived from the event name
+     * @param eventType        the schema type reference for the event payload
+     * @param matchOnEventType see the class-level parameter doc
+     */
+    public HttpRemoteFunction(String functionName, String eventType, boolean matchOnEventType) {
+        this(functionName, eventType, matchOnEventType, null);
     }
 }

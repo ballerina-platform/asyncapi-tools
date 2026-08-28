@@ -42,6 +42,7 @@ import java.util.Map;
 public final class DispatchTestCaseExtractor {
 
     private static final String X_BALLERINA_EVENT_TYPE = "x-ballerina-event-type";
+    private static final String X_BALLERINA_EVENT_LABEL = "x-ballerina-event-label";
     private static final String X_BALLERINA_SERVICE_TYPE = "x-ballerina-service-type";
 
     private final AsyncApiSpec asyncApiSpec;
@@ -97,6 +98,9 @@ public final class DispatchTestCaseExtractor {
                 if (eventIdentifier.isBlank()) {
                     continue;
                 }
+                JsonNode labelNode = extensions.get(X_BALLERINA_EVENT_LABEL);
+                String displayLabel = labelNode != null && !labelNode.asText().isBlank()
+                        ? labelNode.asText() : null;
                 String headerValue = message.name() != null && !message.name().isBlank()
                         ? message.name()
                         : eventIdentifier;
@@ -110,7 +114,8 @@ public final class DispatchTestCaseExtractor {
                 payloadTypeName = CodegenUtils.getValidName(
                         CodegenUtils.escapeIdentifier(payloadTypeName.trim()), true);
 
-                String functionName = CodegenUtils.getFunctionNameByEventName(eventIdentifier);
+                String namingBasis = displayLabel != null ? displayLabel : eventIdentifier;
+                String functionName = CodegenUtils.getFunctionNameByEventName(namingBasis);
                 String serviceTypeDeclName = CodegenUtils.getServiceTypeNameByServiceName(serviceTypeName);
                 testCases.add(new DispatchTestCase(
                         serviceTypeDeclName, functionName, eventIdentifier, headerValue, payloadTypeName));
