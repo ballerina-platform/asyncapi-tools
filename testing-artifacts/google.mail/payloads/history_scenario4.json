@@ -1,0 +1,18 @@
+{
+  "history": [
+    {
+      "id": "1004",
+      "labelsAdded": [
+        {
+          "labelIds": ["IMPORTANT"],
+          "message": {
+            "id": "msg-400",
+            "threadId": "thread-400",
+            "labelIds": ["INBOX", "IMPORTANT"]
+          }
+        }
+      ]
+    }
+  ],
+  "historyId": "1004"
+}

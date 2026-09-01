@@ -1,0 +1,12 @@
+{
+  "id": "msg-200",
+  "historyId": "1002",
+  "snippet": "This is a new thread starter, scenario 2",
+  "messages": [
+    {
+      "id": "msg-200",
+      "threadId": "msg-200",
+      "labelIds": ["INBOX"]
+    }
+  ]
+}

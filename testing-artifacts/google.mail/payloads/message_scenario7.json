@@ -1,0 +1,14 @@
+{
+  "id": "msg-700",
+  "threadId": "thread-700",
+  "labelIds": ["INBOX"],
+  "snippet": "Label removed, scenario 7",
+  "internalDate": "1700000006000",
+  "payload": {
+    "mimeType": "text/plain",
+    "headers": [
+      {"name": "Subject", "value": "Scenario 7 - label removed (starred)"}
+    ],
+    "body": {"data": "U3RhciByZW1vdmVk", "size": 12}
+  }
+}
