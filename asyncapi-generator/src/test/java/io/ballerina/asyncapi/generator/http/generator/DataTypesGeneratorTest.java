@@ -19,6 +19,8 @@ package io.ballerina.asyncapi.generator.http.generator;
 
 import io.ballerina.asyncapi.core.model.component.AsyncApiSchema;
 import io.ballerina.asyncapi.generator.GeneratorException;
+import io.ballerina.asyncapi.generator.http.model.ConnectionAuthConfig;
+import io.ballerina.asyncapi.generator.http.model.WebhookAuthConfig;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -43,7 +45,8 @@ public class DataTypesGeneratorTest {
                         "eventId", AsyncApiSchema.builder().type("string").build(),
                         "leadId", AsyncApiSchema.builder().type("string").build()))
                 .build();
-        String result = new DataTypesGenerator(Map.of("LeadEvent", schema), Optional.empty()).generate();
+        String result = new DataTypesGenerator(Map.of("LeadEvent", schema),
+                Optional.empty(), Optional.empty()).generate();
 
         Assert.assertFalse(result.contains("import ballerina/http;"),
                 "No field needs @http:Header, so the http import should not be generated: " + result);
@@ -58,7 +61,8 @@ public class DataTypesGeneratorTest {
                         "X-Test-Header", AsyncApiSchema.builder().type("string").build(),
                         "leadId", AsyncApiSchema.builder().type("string").build()))
                 .build();
-        String result = new DataTypesGenerator(Map.of("LeadEvent", schema), Optional.empty()).generate();
+        String result = new DataTypesGenerator(Map.of("LeadEvent", schema),
+                Optional.empty(), Optional.empty()).generate();
 
         Assert.assertTrue(result.contains("import ballerina/http;"),
                 "The 'X-Test-Header' field name requires @http:Header, so the http import "
@@ -71,7 +75,8 @@ public class DataTypesGeneratorTest {
     void testGenerateWithNoPropertiesOmitsHttpImport() throws GeneratorException {
         // A schema with no properties at all has nothing that could ever need @http:Header.
         AsyncApiSchema schema = AsyncApiSchema.builder().type("object").build();
-        String result = new DataTypesGenerator(Map.of("EmptyEvent", schema), Optional.empty()).generate();
+        String result = new DataTypesGenerator(Map.of("EmptyEvent", schema),
+                Optional.empty(), Optional.empty()).generate();
 
         Assert.assertFalse(result.contains("import ballerina/http;"),
                 "A schema with no properties can't need @http:Header: " + result);
@@ -100,7 +105,8 @@ public class DataTypesGeneratorTest {
         schemas.put("Installation", installation);
         schemas.put("PushPayload", pushPayload);
 
-        String result = new DataTypesGenerator(schemas, Optional.empty()).generate();
+        String result = new DataTypesGenerator(schemas, Optional.<WebhookAuthConfig>empty(),
+                Optional.<ConnectionAuthConfig>empty()).generate();
 
         int unionStart = result.indexOf("public type GenericDataType");
         Assert.assertTrue(unionStart >= 0, "Expected a GenericDataType union declaration: " + result);
@@ -128,7 +134,8 @@ public class DataTypesGeneratorTest {
         schemas.put("FirstPayload", first);
         schemas.put("SecondPayload", second);
 
-        String result = new DataTypesGenerator(schemas, Optional.empty()).generate();
+        String result = new DataTypesGenerator(schemas, Optional.<WebhookAuthConfig>empty(),
+                Optional.<ConnectionAuthConfig>empty()).generate();
 
         int unionStart = result.indexOf("public type GenericDataType");
         String unionDecl = result.substring(unionStart, result.indexOf(';', unionStart));

@@ -1,0 +1,47 @@
+{
+  "asyncapi": "2.0.0",
+  "info": {
+    "title": "OAuth2 Authorization Code Connection Auth API",
+    "version": "1.0.0",
+    "description": "Minimal webhook API whose outbound calls to the provider are authenticated via oauth2 authorizationCode, used to verify ConnectionAuthExtractor end-to-end generation."
+  },
+  "x-ballerina-event-identifier": {
+    "type": "body",
+    "path": "event"
+  },
+  "channels": {
+    "calendarEvents": {
+      "description": "Calendar change notifications.",
+      "subscribe": {
+        "message": {
+          "x-ballerina-event-type": "calendar_event_changed",
+          "payload": {
+            "type": "object",
+            "properties": {
+              "event": { "type": "string" },
+              "id": { "type": "string" }
+            },
+            "required": ["event", "id"]
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "googleOAuth": {
+        "type": "oauth2",
+        "flows": {
+          "authorizationCode": {
+            "authorizationUrl": "https://accounts.google.com/o/oauth2/auth",
+            "tokenUrl": "https://oauth2.googleapis.com/token",
+            "refreshUrl": "https://oauth2.googleapis.com/token",
+            "scopes": {
+              "https://www.googleapis.com/auth/calendar": "Full access to Calendar"
+            }
+          }
+        }
+      }
+    }
+  }
+}
