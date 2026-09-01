@@ -101,11 +101,12 @@ public class GenerateServiceTypeNode implements Generator {
                     null, createIdentifierToken(eventType));
             List<Node> params = new ArrayList<>();
             params.add(createRequiredParameterNode(createEmptyNodeList(), typeNode, createIdentifierToken("payload")));
+            String namingBasis = fn.displayLabel() != null ? fn.displayLabel() : fn.functionName();
             MethodDeclarationNode method = createMethodDeclarationNode(
                     SyntaxKind.METHOD_DECLARATION, null,
                     createNodeList(createToken(REMOTE_KEYWORD)),
                     createToken(SyntaxKind.FUNCTION_KEYWORD),
-                    createIdentifierToken(CodegenUtils.getFunctionNameByEventName(fn.functionName())),
+                    createIdentifierToken(CodegenUtils.getFunctionNameByEventName(namingBasis)),
                     createEmptyNodeList(),
                     createFunctionSignatureNode(
                             createToken(OPEN_PAREN_TOKEN), createSeparatedNodeList(params),

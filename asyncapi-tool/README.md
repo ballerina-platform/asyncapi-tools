@@ -133,6 +133,8 @@ There are custom tags in this YAML starting with `x-ballerina`. It is very impor
 
 2\. `x-ballerina-event-type` - This should be there in every event inside the channel. This is the name of the event or the value of the attribute mentioned above for a specific event.
 
+3\. `x-ballerina-event-label` (optional) - By default, the generated remote function's name and doc comment are derived directly from `x-ballerina-event-type`. This works well when that value is itself a clean, readable string (e.g. `company.propertyChange`), but some real event sources use type strings with a required prefix/suffix that only makes sense for matching (e.g. a CloudEvents-style `qbo.account.merged.v1`), which produces an awkward function name if used for naming too (`onQboAccountMergedV1`). Set `x-ballerina-event-label` on a message to control the generated name independently (e.g. `AccountMerged` produces `onAccountMerged`), without changing the value actually compared against incoming payloads.
+
 ## Examples
 
 ### Generate HTTP listener from AsyncAPI contract

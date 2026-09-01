@@ -99,7 +99,7 @@ public class GenerateMatchStatementNode implements Generator {
         List<MatchClauseNode> eventTypeClauses = new ArrayList<>();
         for (HttpServiceType service : serviceTypes) {
             for (HttpRemoteFunction fn : service.remoteFunctions()) {
-                MatchClauseNode clause = generateMatchClause(service.serviceTypeName(), fn.functionName());
+                MatchClauseNode clause = generateMatchClause(service.serviceTypeName(), fn);
                 if (eventTypePath != null && fn.matchOnEventType()) {
                     eventTypeClauses.add(clause);
                 } else {
@@ -127,8 +127,10 @@ public class GenerateMatchStatementNode implements Generator {
                 createToken(SyntaxKind.CLOSE_BRACE_TOKEN), null);
     }
 
-    private MatchClauseNode generateMatchClause(String serviceTypeName, String eventName) {
-        String funcName = CodegenUtils.getFunctionNameByEventName(eventName);
+    private MatchClauseNode generateMatchClause(String serviceTypeName, HttpRemoteFunction fn) {
+        String eventName = fn.functionName();
+        String namingBasis = fn.displayLabel() != null ? fn.displayLabel() : fn.functionName();
+        String funcName = CodegenUtils.getFunctionNameByEventName(namingBasis);
         String resolvedServiceTypeName = CodegenUtils.getServiceTypeNameByServiceName(serviceTypeName);
 
         SeparatedNodeList<FunctionArgumentNode> args = createSeparatedNodeList(
