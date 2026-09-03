@@ -90,7 +90,6 @@ public class DataTypesGenerator {
                 .map(WebhookAuthConfig::configFields)
                 .orElseGet(List::of);
         List<ModuleMemberDeclarationNode> typeNodes = new ArrayList<>();
-        typeNodes.add(GenerateListenerConfigNode.generateDefaultSecretConst());
         typeNodes.add(GenerateListenerConfigNode.generate(extraConfigFields, connectionAuthConfig));
 
         // Loose schemas (see isLooseObjectSchema) are ordered last in the union.
