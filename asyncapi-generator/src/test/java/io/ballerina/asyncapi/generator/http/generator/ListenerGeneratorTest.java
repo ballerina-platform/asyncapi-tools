@@ -58,7 +58,7 @@ public class ListenerGeneratorTest {
                 "Generated source should reference IssueService in getServiceTypeStr");
         Assert.assertTrue(source.contains("http"),
                 "Generated source should import the ballerina/http module");
-        Assert.assertTrue(source.contains("ListenerConfig listenerConfig = {webhookSecret: DEFAULT_SECRET}"),
+        Assert.assertTrue(source.contains("ListenerConfig listenerConfig = {}"),
                 "With no connection auth, listenerConfig should stay defaultable");
     }
 

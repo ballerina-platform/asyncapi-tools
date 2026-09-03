@@ -21,7 +21,6 @@ import io.ballerina.asyncapi.generator.GeneratorException;
 import io.ballerina.asyncapi.generator.http.model.ConnectionAuthConfig;
 import io.ballerina.compiler.syntax.tree.MarkdownDocumentationNode;
 import io.ballerina.compiler.syntax.tree.MetadataNode;
-import io.ballerina.compiler.syntax.tree.ModuleMemberDeclarationNode;
 import io.ballerina.compiler.syntax.tree.Node;
 import io.ballerina.compiler.syntax.tree.RecordTypeDescriptorNode;
 import io.ballerina.compiler.syntax.tree.TypeDefinitionNode;
@@ -41,7 +40,6 @@ import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createNodeLi
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createToken;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createBasicLiteralNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createBuiltinSimpleNameReferenceNode;
-import static io.ballerina.compiler.syntax.tree.NodeFactory.createConstantDeclarationNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createMarkdownDocumentationLineNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createMarkdownDocumentationNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createMetadataNode;
@@ -49,18 +47,17 @@ import static io.ballerina.compiler.syntax.tree.NodeFactory.createQualifiedNameR
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createRecordFieldNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createRecordFieldWithDefaultValueNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createRecordTypeDescriptorNode;
-import static io.ballerina.compiler.syntax.tree.NodeFactory.createSimpleNameReferenceNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createTypeDefinitionNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createUnionTypeDescriptorNode;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.CLOSE_BRACE_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.COLON_TOKEN;
-import static io.ballerina.compiler.syntax.tree.SyntaxKind.CONST_KEYWORD;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.DOCUMENTATION_DESCRIPTION;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.EQUAL_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.HASH_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.OPEN_BRACE_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.PIPE_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.PUBLIC_KEYWORD;
+import static io.ballerina.compiler.syntax.tree.SyntaxKind.QUESTION_MARK_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.RECORD_KEYWORD;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.SEMICOLON_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.STRING_LITERAL;
@@ -68,8 +65,13 @@ import static io.ballerina.compiler.syntax.tree.SyntaxKind.STRING_LITERAL_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.TYPE_KEYWORD;
 
 /**
- * Generates the {@code public type ListenerConfig record { string webhookSecret = DEFAULT_SECRET; };}
- * type definition (and its {@code DEFAULT_SECRET} constant) for {@code data_types.bal}.
+ * Generates the {@code public type ListenerConfig record { string webhookSecret?; };} type
+ * definition for {@code data_types.bal}.
+ *
+ * <p>{@code webhookSecret} is a genuinely optional field with no default -- not a required field
+ * defaulting to an empty string -- so "not configured" is an explicit, checkable absent state
+ * ({@code webhookSecret is ()}) instead of a silent empty-string secret that verification would
+ * otherwise compute an HMAC against without anyone noticing.
  *
  * <p>Deliberately minimal -- unlike {@code http:ListenerConfiguration}, this type is not spread
  * into the record, matching the shape used by every other currently-shipped trigger. Users who
@@ -80,11 +82,10 @@ public class GenerateListenerConfigNode {
 
     public static final String LISTENER_CONFIG_TYPE = "ListenerConfig";
     public static final String WEBHOOK_SECRET_FIELD = "webhookSecret";
-    public static final String DEFAULT_SECRET_CONST = "DEFAULT_SECRET";
 
     /**
-     * Generates the {@code ListenerConfig} open-record type definition, with the webhook secret
-     * field, one additional {@code string} field (default {@code ""}) per name in
+     * Generates the {@code ListenerConfig} open-record type definition, with the optional webhook
+     * secret field, one additional {@code string} field (default {@code ""}) per name in
      * {@code extraConfigFields} (populated from {@code $config('name')} references in the DSL),
      * and - when {@code connectionAuthConfig} is present - the outbound API auth fields matching
      * its type/flow (e.g. {@code clientId}/{@code clientSecret}/{@code refreshToken} for an
@@ -105,13 +106,12 @@ public class GenerateListenerConfigNode {
     public static TypeDefinitionNode generate(List<String> extraConfigFields,
             Optional<ConnectionAuthConfig> connectionAuthConfig) throws GeneratorException {
         List<Node> recordFields = new ArrayList<>();
-        recordFields.add(createRecordFieldWithDefaultValueNode(
+        recordFields.add(createRecordFieldNode(
                 buildFieldDocumentation("Webhook Secret"),
                 null,
                 createBuiltinSimpleNameReferenceNode(null, createIdentifierToken("string")),
                 createIdentifierToken(WEBHOOK_SECRET_FIELD),
-                createToken(EQUAL_TOKEN),
-                createSimpleNameReferenceNode(createIdentifierToken(DEFAULT_SECRET_CONST)),
+                createToken(QUESTION_MARK_TOKEN),
                 createToken(SEMICOLON_TOKEN)));
 
         for (String fieldName : extraConfigFields) {
@@ -303,26 +303,6 @@ public class GenerateListenerConfigNode {
             }
         }
         return label.toString();
-    }
-
-    /**
-     * Generates the {@code const string DEFAULT_SECRET = "";} declaration referenced by the
-     * {@code webhookSecret} field's default value and the listener's {@code init()} default.
-     *
-     * @return the generated {@link ModuleMemberDeclarationNode}
-     */
-    public static ModuleMemberDeclarationNode generateDefaultSecretConst() {
-        return createConstantDeclarationNode(
-                null,
-                null,
-                createToken(CONST_KEYWORD),
-                createBuiltinSimpleNameReferenceNode(null, createIdentifierToken("string")),
-                createIdentifierToken(DEFAULT_SECRET_CONST),
-                createToken(EQUAL_TOKEN),
-                createBasicLiteralNode(STRING_LITERAL,
-                        createLiteralValueToken(STRING_LITERAL_TOKEN, "\"\"",
-                                createEmptyMinutiaeList(), createEmptyMinutiaeList())),
-                createToken(SEMICOLON_TOKEN));
     }
 
     /**

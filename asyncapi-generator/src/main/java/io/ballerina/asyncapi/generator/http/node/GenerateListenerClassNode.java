@@ -210,7 +210,7 @@ public class GenerateListenerClassNode implements Generator {
     }
 
     private FunctionDefinitionNode buildInitFunc() {
-        // public function init(ListenerConfig listenerConfig = {webhookSecret: DEFAULT_SECRET},
+        // public function init(ListenerConfig listenerConfig = {},
         //                      @cloud:Expose int|http:Listener listenOn = 8090) returns error?
         AnnotationNode cloudExposeAnnotation = createAnnotationNode(
                 createToken(AT_TOKEN),
@@ -221,11 +221,11 @@ public class GenerateListenerClassNode implements Generator {
                 null);
 
         // Connection auth (when present) always contributes at least one required field with no
-        // safe default (a password, client secret, API key value, or certificate) - {webhookSecret:
-        // DEFAULT_SECRET} alone would then be missing those required fields, which Ballerina
-        // rejects outright. So listenerConfig can only stay defaultable when there's no connection
-        // auth to account for; otherwise it must be a required parameter, forcing the caller to
-        // supply real credentials rather than accepting an incomplete or fabricated default.
+        // safe default (a password, client secret, API key value, or certificate) - {} alone would
+        // then be missing those required fields, which Ballerina rejects outright. So listenerConfig
+        // can only stay defaultable when there's no connection auth to account for; otherwise it
+        // must be a required parameter, forcing the caller to supply real credentials rather than
+        // accepting an incomplete or fabricated default.
         Node listenerConfigParam = connectionAuthConfig.isPresent()
                 ? createRequiredParameterNode(
                         createEmptyNodeList(),
@@ -238,9 +238,7 @@ public class GenerateListenerClassNode implements Generator {
                                 createIdentifierToken(GenerateListenerConfigNode.LISTENER_CONFIG_TYPE)),
                         createIdentifierToken("listenerConfig"),
                         createToken(EQUAL_TOKEN),
-                        NodeParser.parseExpression(String.format("{%s: %s}",
-                                GenerateListenerConfigNode.WEBHOOK_SECRET_FIELD,
-                                GenerateListenerConfigNode.DEFAULT_SECRET_CONST)));
+                        NodeParser.parseExpression("{}"));
 
         FunctionSignatureNode signature = createFunctionSignatureNode(
                 createToken(OPEN_PAREN_TOKEN),

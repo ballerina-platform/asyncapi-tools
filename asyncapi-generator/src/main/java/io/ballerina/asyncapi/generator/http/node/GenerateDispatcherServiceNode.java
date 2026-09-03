@@ -31,6 +31,7 @@ import io.ballerina.compiler.syntax.tree.Node;
 import io.ballerina.compiler.syntax.tree.NodeParser;
 import io.ballerina.compiler.syntax.tree.ObjectFieldNode;
 import io.ballerina.compiler.syntax.tree.StatementNode;
+import io.ballerina.compiler.syntax.tree.TypeDescriptorNode;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -50,6 +51,7 @@ import static io.ballerina.compiler.syntax.tree.NodeFactory.createImplicitNewExp
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createMapTypeDescriptorNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createMappingConstructorExpressionNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createObjectFieldNode;
+import static io.ballerina.compiler.syntax.tree.NodeFactory.createOptionalTypeDescriptorNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createParenthesizedArgList;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createQualifiedNameReferenceNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createRequiredParameterNode;
@@ -72,6 +74,7 @@ import static io.ballerina.compiler.syntax.tree.SyntaxKind.OBJECT_METHOD_DEFINIT
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.OPEN_BRACE_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.OPEN_PAREN_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.PRIVATE_KEYWORD;
+import static io.ballerina.compiler.syntax.tree.SyntaxKind.QUESTION_MARK_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.SEMICOLON_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.SERVICE_KEYWORD;
 
@@ -228,7 +231,7 @@ public class GenerateDispatcherServiceNode implements Generator {
                 null,
                 createToken(PRIVATE_KEYWORD),
                 createEmptyNodeList(),
-                createBuiltinSimpleNameReferenceNode(null, createIdentifierToken("string")),
+                buildConfigFieldType(fieldName),
                 createIdentifierToken(fieldName),
                 null,
                 null,
@@ -245,7 +248,7 @@ public class GenerateDispatcherServiceNode implements Generator {
             }
             params.add(createRequiredParameterNode(
                     createEmptyNodeList(),
-                    createBuiltinSimpleNameReferenceNode(null, createIdentifierToken("string")),
+                    buildConfigFieldType(fieldNames.get(i)),
                     createIdentifierToken(fieldNames.get(i))));
         }
 
@@ -277,5 +280,18 @@ public class GenerateDispatcherServiceNode implements Generator {
 
     private FunctionDefinitionNode buildFunc(Generator gen) throws GeneratorException {
         return gen.generate();
+    }
+
+    /**
+     * {@code webhookSecret} is genuinely optional (no default) so an unconfigured secret is an
+     * explicit, checkable {@code ()} rather than a silent empty string; every other config field
+     * (e.g. a DSL {@code $config('name')} reference) keeps its required {@code string} type.
+     */
+    private TypeDescriptorNode buildConfigFieldType(String fieldName) {
+        TypeDescriptorNode stringType = createBuiltinSimpleNameReferenceNode(null, createIdentifierToken("string"));
+        if (WEBHOOK_SECRET_FIELD.equals(fieldName)) {
+            return createOptionalTypeDescriptorNode(stringType, createToken(QUESTION_MARK_TOKEN));
+        }
+        return stringType;
     }
 }
