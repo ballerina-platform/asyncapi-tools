@@ -41,7 +41,6 @@ public final class EventIdentifierExtractor {
     private static final String X_BALLERINA_EVENT_FIELD_IDENTIFIER_TYPE = "type";
     private static final String X_BALLERINA_EVENT_FIELD_IDENTIFIER_PATH = "path";
     private static final String X_BALLERINA_EVENT_FIELD_IDENTIFIER_NAME = "name";
-    private static final String X_BALLERINA_EVENT_FIELD_IDENTIFIER_BATCHED = "batched";
 
     private final AsyncApiSpec asyncApiSpec;
 
@@ -83,17 +82,15 @@ public final class EventIdentifierExtractor {
         }
 
         String type = identifierFields.get(X_BALLERINA_EVENT_FIELD_IDENTIFIER_TYPE);
-        boolean batched = Boolean.parseBoolean(
-                identifierFields.getOrDefault(X_BALLERINA_EVENT_FIELD_IDENTIFIER_BATCHED, "false"));
 
         return switch (type) {
             case X_BALLERINA_EVENT_TYPE_HEADER ->
-                    new EventIdentifierConfig(type, extractHeaderName(identifierFields), null, batched);
+                    new EventIdentifierConfig(type, extractHeaderName(identifierFields), null);
             case X_BALLERINA_EVENT_TYPE_BODY ->
-                    new EventIdentifierConfig(type, null, extractBodyPath(identifierFields), batched);
+                    new EventIdentifierConfig(type, null, extractBodyPath(identifierFields));
             case X_BALLERINA_EVENT_TYPE_COMPOSITE ->
                     new EventIdentifierConfig(type, extractHeaderName(identifierFields),
-                            extractBodyPath(identifierFields), batched);
+                            extractBodyPath(identifierFields));
             default -> throw new GeneratorException(String.format(
                     "%s, %s or %s is not provided as the value of %s attribute within the attribute %s"
                             + " in the Async API Specification",

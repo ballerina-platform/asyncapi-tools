@@ -65,27 +65,30 @@ import static io.ballerina.compiler.syntax.tree.SyntaxKind.RESOURCE_KEYWORD;
  * from the body path; these are combined into a compound {@code eventIdentifier} and forwarded
  * as the second and third arguments of {@code matchRemoteFunc}.
  *
- * <p>When {@link EventIdentifierConfig#batched()} is set, the POST body is instead treated as a
- * JSON array of events (some providers, e.g. HubSpot, batch multiple events into one delivery):
- * the response is acknowledged once for the whole batch, then each array element is identified,
- * converted, and dispatched independently, with per-element failures logged and skipped rather
- * than aborting the rest of the batch.
+ * <p>When {@code batched} is set (detected from an array-typed message payload schema), the POST
+ * body is instead treated as a JSON array of events (some providers, e.g. HubSpot, batch multiple
+ * events into one delivery): the response is acknowledged once for the whole batch, then each
+ * array element is identified, converted, and dispatched independently, with per-element failures
+ * logged and skipped rather than aborting the rest of the batch.
  */
 public class GeneratePostResourceFunctionNode implements Generator {
 
     private final EventIdentifierConfig identifierConfig;
     private final Optional<WebhookAuthConfig> webhookAuthConfig;
+    private final boolean batched;
 
     /**
      * Creates a generator for the post resource function.
      *
      * @param identifierConfig  the resolved event identifier type and path
      * @param webhookAuthConfig the optional webhook authentication configuration
+     * @param batched           whether message payloads deliver a JSON array of events per request
      */
     public GeneratePostResourceFunctionNode(EventIdentifierConfig identifierConfig,
-            Optional<WebhookAuthConfig> webhookAuthConfig) {
+            Optional<WebhookAuthConfig> webhookAuthConfig, boolean batched) {
         this.identifierConfig = identifierConfig;
         this.webhookAuthConfig = webhookAuthConfig;
+        this.batched = batched;
     }
 
     @Override
@@ -125,7 +128,7 @@ public class GeneratePostResourceFunctionNode implements Generator {
                             + " check caller->respond(r); return; }"));
         }
         statements.add(NodeParser.parseStatement("json payload = check request.getJsonPayload();"));
-        if (identifierConfig.batched()) {
+        if (batched) {
             statements.addAll(buildBatchedDispatchStatements(type));
         } else {
             statements.addAll(buildSingleEventDispatchStatements(type));

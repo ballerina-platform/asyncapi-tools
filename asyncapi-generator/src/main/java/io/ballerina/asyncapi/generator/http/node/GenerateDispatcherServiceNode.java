@@ -94,6 +94,7 @@ public class GenerateDispatcherServiceNode implements Generator {
     private final List<HttpServiceType> serviceTypes;
     private final EventIdentifierConfig identifierConfig;
     private final Optional<WebhookAuthConfig> webhookAuthConfig;
+    private final boolean batched;
 
     /**
      * Creates a generator for the {@code DispatcherService} class.
@@ -101,12 +102,14 @@ public class GenerateDispatcherServiceNode implements Generator {
      * @param serviceTypes      the list of HTTP service type definitions
      * @param identifierConfig  the resolved event identifier type and path
      * @param webhookAuthConfig the optional webhook authentication configuration
+     * @param batched           whether message payloads deliver a JSON array of events per request
      */
     public GenerateDispatcherServiceNode(List<HttpServiceType> serviceTypes, EventIdentifierConfig identifierConfig,
-                                         Optional<WebhookAuthConfig> webhookAuthConfig) {
+                                         Optional<WebhookAuthConfig> webhookAuthConfig, boolean batched) {
         this.serviceTypes = serviceTypes;
         this.identifierConfig = identifierConfig;
         this.webhookAuthConfig = webhookAuthConfig;
+        this.batched = batched;
     }
 
     @Override
@@ -131,8 +134,8 @@ public class GenerateDispatcherServiceNode implements Generator {
         }
         members.add(buildFunc(new GenerateAddServiceRefFuncNode()));
         members.add(buildFunc(new GenerateRemoveServiceRefFuncNode()));
-        members.add(buildFunc(new GeneratePostResourceFunctionNode(identifierConfig, webhookAuthConfig)));
-        if (identifierConfig.batched()) {
+        members.add(buildFunc(new GeneratePostResourceFunctionNode(identifierConfig, webhookAuthConfig, batched)));
+        if (batched) {
             members.add(buildFunc(new GenerateDispatchBatchFuncNode(identifierConfig)));
         }
         

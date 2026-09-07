@@ -111,7 +111,8 @@ public class HttpCodeGenerator {
         String displayLabel = asyncApiSpec.getAsyncApiInfo().title();
         String listenerContent = new ListenerGenerator(serviceTypes, webhookAuthConfig, displayLabel).generate();
         String dispatcherContent =
-                new DispatcherGenerator(serviceTypes, identifierConfig, webhookAuthConfig)
+                new DispatcherGenerator(serviceTypes, identifierConfig, webhookAuthConfig,
+                        serviceTypeExtractor.isBatched())
                 .generate();
 
         // Write generated files to the output directory

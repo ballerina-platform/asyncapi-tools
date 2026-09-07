@@ -47,6 +47,7 @@ public final class ServiceTypeExtractor {
     private final AsyncApiSpec asyncApiSpec;
     private final EventIdentifierConfig identifierConfig;
     private final Map<String, AsyncApiSchema> inlineSchemas = new HashMap<>();
+    private Boolean batched;
 
     /**
      * Creates an extractor that does not have access to the resolved event identifier
@@ -83,6 +84,18 @@ public final class ServiceTypeExtractor {
      */
     public Map<String, AsyncApiSchema> getInlineSchemas() {
         return inlineSchemas;
+    }
+
+    /**
+     * Returns whether the spec's message payloads deliver a JSON array of events per request
+     * rather than one event per request, detected from each message's payload schema during
+     * {@link #extract()} (a {@code type: array} payload with an {@code items} schema, e.g. some
+     * providers such as HubSpot batch multiple events into one POST body).
+     *
+     * @return {@code true} if every message payload is array-typed; {@code false} otherwise
+     */
+    public boolean isBatched() {
+        return batched != null && batched;
     }
 
     /**
@@ -136,13 +149,14 @@ public final class ServiceTypeExtractor {
                 String payloadTypeName = eventType;
                 boolean matchOnEventType = false;
                 if (payload instanceof AsyncApiSchema schema) {
-                    String name = schema.name();
+                    AsyncApiSchema eventSchema = resolveEventSchema(schema, eventType);
+                    String name = eventSchema.name();
                     if (name != null && !name.isBlank()) {
                         payloadTypeName = name;
                     } else {
-                        inlineSchemas.put(eventType, schema);
+                        inlineSchemas.put(eventType, eventSchema);
                     }
-                    matchOnEventType = hasFreeFormActionField(schema);
+                    matchOnEventType = hasFreeFormActionField(eventSchema);
                 }
                 serviceTypeMap.get(serviceTypeName).remoteFunctions()
                         .add(new HttpRemoteFunction(eventType, payloadTypeName, matchOnEventType));
@@ -150,6 +164,42 @@ public final class ServiceTypeExtractor {
         }
 
         return new ArrayList<>(serviceTypeMap.values());
+    }
+
+    /**
+     * Resolves the effective per-event schema for a message, unwrapping a batched (array-typed)
+     * payload down to its {@code items} schema so that name resolution, inline-schema hoisting,
+     * and free-form-action detection all operate on the real event shape rather than the array
+     * wrapper. Also records whether this spec is batched, and enforces that every message agrees
+     * -- a spec cannot deliver some events as bare objects and others as arrays.
+     *
+     * @param payloadSchema the resolved payload schema for one message, as returned by {@code
+     *                      message.payload()}
+     * @param eventType     the message's {@code x-ballerina-event-type}, for error messages
+     * @return {@code payloadSchema} itself for a single-event payload, or its {@code items}
+     *         schema when {@code payloadSchema} is array-typed
+     * @throws GeneratorException if an array-typed payload declares no {@code items} schema, or
+     *                            if messages disagree on whether payloads are batched
+     */
+    private AsyncApiSchema resolveEventSchema(AsyncApiSchema payloadSchema, String eventType)
+            throws GeneratorException {
+        boolean isArray = "array".equals(payloadSchema.type());
+        if (batched == null) {
+            batched = isArray;
+        } else if (batched != isArray) {
+            throw new GeneratorException(String.format(
+                    "Message '%s' payload batching (array vs. single object) is inconsistent with "
+                            + "other messages in the spec; batching must be uniform across all messages",
+                    eventType));
+        }
+        if (!isArray) {
+            return payloadSchema;
+        }
+        if (!(payloadSchema.items() instanceof AsyncApiSchema itemSchema)) {
+            throw new GeneratorException(String.format(
+                    "Message '%s' payload is a JSON array but declares no 'items' schema", eventType));
+        }
+        return itemSchema;
     }
 
     /**
