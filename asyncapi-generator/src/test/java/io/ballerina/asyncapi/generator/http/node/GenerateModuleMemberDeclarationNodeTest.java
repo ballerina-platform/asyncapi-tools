@@ -93,6 +93,39 @@ public class GenerateModuleMemberDeclarationNodeTest {
     }
 
     @Test
+    void testExplicitlyOpenObjectRendersAsMapJson() throws GeneratorException {
+        AsyncApiSchema schema = AsyncApiSchema.builder()
+                .type("object")
+                .nullable(true)
+                .additionalProperties(true)
+                .description("Arbitrary caller-supplied JSON")
+                .build();
+        String result = generate("ClientPayload", schema);
+        Assert.assertTrue(result.contains("map<json>"),
+                "A property-less object schema with additionalProperties: true should render as "
+                        + "map<json>, not an empty record: " + result);
+        Assert.assertFalse(result.contains("record{}"),
+                "Should not fall back to the closed-empty-record placeholder: " + result);
+    }
+
+    @Test
+    void testUnspecifiedObjectStillRendersAsEmptyRecord() throws GeneratorException {
+        AsyncApiSchema schema = AsyncApiSchema.builder()
+                .type("object")
+                .nullable(true)
+                .description("Never filled in by the spec author")
+                .build();
+        String result = generate("StillBlank", schema);
+        Assert.assertTrue(result.contains("record{}"),
+                "A property-less object schema with no additionalProperties marker must keep "
+                        + "falling back to record {} - only an explicit additionalProperties: true "
+                        + "should change behavior, not mere absence of properties: " + result);
+        Assert.assertFalse(result.contains("map<json>"),
+                "Must not treat every unfilled object as open just because flattening happened "
+                        + "elsewhere: " + result);
+    }
+
+    @Test
     void testAllOfRecordWithTitleGetsDocComment() throws GeneratorException {
         AsyncApiSchema sub = AsyncApiSchema.builder()
                 .type("object")
