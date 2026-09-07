@@ -167,11 +167,11 @@ public final class ServiceTypeExtractor {
     }
 
     /**
-     * Resolves the effective per-event schema for a message, unwrapping a batched (array-typed)
-     * payload down to its {@code items} schema so that name resolution, inline-schema hoisting,
-     * and free-form-action detection all operate on the real event shape rather than the array
-     * wrapper. Also records whether this spec is batched, and enforces that every message agrees
-     * -- a spec cannot deliver some events as bare objects and others as arrays.
+     * Records whether this spec is batched (detected from {@code payloadSchema}'s type) and
+     * enforces that every message agrees -- a spec cannot deliver some events as bare objects
+     * and others as arrays -- then delegates to {@link CodegenUtils#unwrapBatchedPayload} for
+     * the actual unwrap, so that name resolution, inline-schema hoisting, and free-form-action
+     * detection all operate on the real event shape rather than the array wrapper.
      *
      * @param payloadSchema the resolved payload schema for one message, as returned by {@code
      *                      message.payload()}
@@ -192,14 +192,7 @@ public final class ServiceTypeExtractor {
                             + "other messages in the spec; batching must be uniform across all messages",
                     eventType));
         }
-        if (!isArray) {
-            return payloadSchema;
-        }
-        if (!(payloadSchema.items() instanceof AsyncApiSchema itemSchema)) {
-            throw new GeneratorException(String.format(
-                    "Message '%s' payload is a JSON array but declares no 'items' schema", eventType));
-        }
-        return itemSchema;
+        return CodegenUtils.unwrapBatchedPayload(payloadSchema, eventType);
     }
 
     /**
