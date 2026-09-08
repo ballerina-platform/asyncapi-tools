@@ -116,7 +116,8 @@ public class DispatcherGeneratorTest {
                 ))
         );
         EventIdentifierConfig config = new EventIdentifierConfig("body", null, "type");
-        String source = new DispatcherGenerator(serviceTypes, config, Optional.<WebhookAuthConfig>empty()).generate();
+        String source = new DispatcherGenerator(serviceTypes, config, Optional.<WebhookAuthConfig>empty(), false)
+                .generate();
 
         Assert.assertTrue(source.contains("qbo.account.merged.v1"),
                 "The match clause must still compare against the real wire event type, not the display label");
