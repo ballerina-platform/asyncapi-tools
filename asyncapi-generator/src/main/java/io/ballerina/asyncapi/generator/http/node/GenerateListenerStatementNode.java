@@ -19,26 +19,14 @@ package io.ballerina.asyncapi.generator.http.node;
 
 import io.ballerina.asyncapi.generator.GeneratorException;
 import io.ballerina.asyncapi.generator.http.utils.CodegenUtils;
-import io.ballerina.compiler.syntax.tree.AbstractNodeFactory;
-import io.ballerina.compiler.syntax.tree.ExpressionNode;
-import io.ballerina.compiler.syntax.tree.IfElseStatementNode;
-import io.ballerina.compiler.syntax.tree.Node;
-import io.ballerina.compiler.syntax.tree.NodeFactory;
 import io.ballerina.compiler.syntax.tree.NodeParser;
-import io.ballerina.compiler.syntax.tree.ReturnStatementNode;
 import io.ballerina.compiler.syntax.tree.StatementNode;
-import io.ballerina.compiler.syntax.tree.SyntaxKind;
 
 import java.util.List;
-
-import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createEmptyMinutiaeList;
-import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createLiteralValueToken;
-import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createNodeList;
-import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createToken;
-import static io.ballerina.compiler.syntax.tree.NodeFactory.createBasicLiteralNode;
+import java.util.stream.Collectors;
 
 /**
- * Generates the {@code if-else} statement body for {@code getServiceTypeStr} in
+ * Generates the {@code match} statement body for {@code getServiceTypeStr} in
  * {@code listener.bal}, mapping each attached service instance to its type name string.
  */
 public class GenerateListenerStatementNode implements Generator {
@@ -60,65 +48,36 @@ public class GenerateListenerStatementNode implements Generator {
             throw new GeneratorException(
                     "No service types found, probably there are no channels defined in the async api spec");
         }
-        return buildIfElseChain(serviceTypeNames);
-    }
-
-    private IfElseStatementNode buildIfElseChain(List<String> remaining) {
-        String serviceType = remaining.get(0);
-        ExpressionNode serviceRefNode = NodeFactory.createSimpleNameReferenceNode(
-                AbstractNodeFactory.createIdentifierToken("serviceRef"));
-        ExpressionNode condition = NodeFactory.createTypeTestExpressionNode(serviceRefNode,
-                createToken(SyntaxKind.IS_KEYWORD),
-                NodeFactory.createSimpleNameReferenceNode(AbstractNodeFactory.createIdentifierToken(
-                        CodegenUtils.getServiceTypeNameByServiceName(serviceType))));
-        ReturnStatementNode returnNode = buildReturnStatement(serviceType);
-        return NodeFactory.createIfElseStatementNode(
-                createToken(SyntaxKind.IF_KEYWORD), condition,
-                NodeFactory.createBlockStatementNode(
-                        createToken(SyntaxKind.OPEN_BRACE_TOKEN),
-                        createNodeList(returnNode),
-                        createToken(SyntaxKind.CLOSE_BRACE_TOKEN)),
-                buildElseNode(remaining));
-    }
-
-    private ReturnStatementNode buildReturnStatement(String serviceType) {
-        return NodeFactory.createReturnStatementNode(
-                createToken(SyntaxKind.RETURN_KEYWORD),
-                createBasicLiteralNode(SyntaxKind.STRING_LITERAL,
-                        createLiteralValueToken(SyntaxKind.STRING_LITERAL_TOKEN,
-                                '"' + CodegenUtils.getServiceTypeNameByServiceName(serviceType) + '"',
-                                createEmptyMinutiaeList(), createEmptyMinutiaeList())),
-                createToken(SyntaxKind.SEMICOLON_TOKEN));
+        return buildMatchStatement(serviceTypeNames);
     }
 
     /**
-     * Builds the {@code else} branch: either a nested {@code if is <NextType>} check for the
-     * remaining candidates, or -- once every known type has been explicitly tested and none
-     * matched -- a {@code return error(...)}, so an unrecognized {@code serviceRef} fails loudly
-     * (the caller, {@code attach}/{@code detach}, propagates it via {@code check}) instead of
-     * being silently mislabeled as whichever type happened to be last in the list.
+     * Builds a {@code match serviceRef { var v if v is XService => { return "XService"; } ... }}
+     * statement, one type-guarded clause per known service type, ending in a {@code var _} clause
+     * that returns an {@code error(...)} so an unrecognized {@code serviceRef} fails loudly (the
+     * caller, {@code attach}/{@code detach}, propagates it via {@code check}) instead of being
+     * silently mislabeled as whichever type happened to be tested last.
+     *
+     * <p>Deliberately {@code var v if v is XService}, not the more compact {@code XService _}: a
+     * bare {@code TypeName} pattern is parsed as a const-value pattern (requiring a real {@code
+     * const} of that name) rather than a type test, and {@code _} is rejected as a binding-pattern
+     * identifier - confirmed by an actual {@code bal build} failure, not just a syntax guess, since
+     * neither {@link NodeParser#parseStatement} nor this project's generator tests run the real
+     * compiler and so cannot themselves catch either mistake.
      *
      * <p>Returns an {@code error}, not a {@code panic}: a {@code panic} would crash the entire
      * running listener process over one bad {@code attach} call, whereas returning an error lets
      * the caller handle it as an ordinary failed operation.
-     *
-     * @param list the service types not yet tested by an enclosing {@code if}
      */
-    private Node buildElseNode(List<String> list) {
-        List<String> remaining = list.subList(1, list.size());
-        if (remaining.isEmpty()) {
-            return NodeFactory.createElseBlockNode(createToken(SyntaxKind.ELSE_KEYWORD),
-                    NodeFactory.createBlockStatementNode(
-                            createToken(SyntaxKind.OPEN_BRACE_TOKEN),
-                            createNodeList(buildUnrecognizedTypeErrorStatement()),
-                            createToken(SyntaxKind.CLOSE_BRACE_TOKEN)));
-        }
-        return NodeFactory.createElseBlockNode(createToken(SyntaxKind.ELSE_KEYWORD),
-                buildIfElseChain(remaining));
-    }
-
-    private StatementNode buildUnrecognizedTypeErrorStatement() {
-        return NodeParser.parseStatement(
-                "return error(\"Unrecognized service type attached to the listener\");");
+    private StatementNode buildMatchStatement(List<String> serviceTypes) {
+        String clauses = serviceTypes.stream()
+                .map(CodegenUtils::getServiceTypeNameByServiceName)
+                .map(typeName -> String.format("var v if v is %s => { return \"%s\"; }", typeName, typeName))
+                .collect(Collectors.joining(" "));
+        String matchStatement = String.format(
+                "match serviceRef { %s var _ => "
+                        + "{ return error(\"Unrecognized service type attached to the listener\"); } }",
+                clauses);
+        return NodeParser.parseStatement(matchStatement);
     }
 }
