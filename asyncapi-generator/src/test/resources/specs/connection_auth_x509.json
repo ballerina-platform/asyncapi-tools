@@ -1,0 +1,37 @@
+{
+  "asyncapi": "2.0.0",
+  "info": {
+    "title": "Mutual TLS Connection Auth API",
+    "version": "1.0.0",
+    "description": "Minimal webhook API whose outbound calls to the provider are authenticated via X509 mutual TLS, used to verify ConnectionAuthExtractor end-to-end generation."
+  },
+  "x-ballerina-event-identifier": {
+    "type": "body",
+    "path": "event"
+  },
+  "channels": {
+    "leads": {
+      "description": "Lead lifecycle events.",
+      "subscribe": {
+        "message": {
+          "x-ballerina-event-type": "lead_created",
+          "payload": {
+            "type": "object",
+            "properties": {
+              "event": { "type": "string" },
+              "leadId": { "type": "string" }
+            },
+            "required": ["event", "leadId"]
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "mtlsAuth": {
+        "type": "X509"
+      }
+    }
+  }
+}

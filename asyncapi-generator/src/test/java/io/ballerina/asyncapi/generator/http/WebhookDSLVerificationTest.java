@@ -154,6 +154,34 @@ public class WebhookDSLVerificationTest {
         "Invalid input token in webhook DSL");
     }
 
+    @Test
+    public void testConnectionAuthFieldCollisionWithWebhookDslConfigFieldThrows() throws Exception {
+        // The webhook DSL declares $config('clientId'), and the spec also declares an oauth2
+        // clientCredentials securityScheme, which generates its own "clientId" field. Both would
+        // land in the same ListenerConfig record under the same name, producing invalid Ballerina
+        // source (duplicate field) if not caught explicitly.
+        assertGeneratorException(
+                "connection_auth_field_collision.yaml",
+                "collide with existing webhook DSL config field name(s)");
+    }
+
+    @Test
+    public void testHttpApiKeyFieldCollisionWithWebhookDslConfigFieldThrows() throws Exception {
+        // Same collision check, exercised through the real DSL-parsing -> extractor ->
+        // collision-check path end to end, for the newly-added httpApiKey mechanism.
+        assertGeneratorException(
+                "connection_auth_field_collision_httpapikey.yaml",
+                "collide with existing webhook DSL config field name(s)");
+    }
+
+    @Test
+    public void testX509FieldCollisionWithWebhookDslConfigFieldThrows() throws Exception {
+        // Same collision check, exercised end to end, for the newly-added X509 mechanism.
+        assertGeneratorException(
+                "connection_auth_field_collision_x509.yaml",
+                "collide with existing webhook DSL config field name(s)");
+    }
+
     private Path generateOutputDir(String specFile) throws Exception {
     Path asyncapiPath = RES_DIR.resolve(specFile);
     String yamlContent = Files.readString(asyncapiPath);

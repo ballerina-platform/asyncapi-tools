@@ -19,7 +19,9 @@ package io.ballerina.asyncapi.generator.http.generator;
 
 import io.ballerina.asyncapi.core.model.component.AsyncApiSchema;
 import io.ballerina.asyncapi.generator.GeneratorException;
+import io.ballerina.asyncapi.generator.http.model.ConnectionAuthConfig;
 import io.ballerina.asyncapi.generator.http.model.WebhookAuthConfig;
+import io.ballerina.asyncapi.generator.http.node.GenerateCryptoImportNode;
 import io.ballerina.asyncapi.generator.http.node.GenerateHttpImportNode;
 import io.ballerina.asyncapi.generator.http.node.GenerateListenerConfigNode;
 import io.ballerina.asyncapi.generator.http.node.GenerateModuleMemberDeclarationNode;
@@ -58,17 +60,23 @@ public class DataTypesGenerator {
 
     private final Map<String, AsyncApiSchema> schemas;
     private final Optional<WebhookAuthConfig> webhookAuthConfig;
+    private final Optional<ConnectionAuthConfig> connectionAuthConfig;
 
     /**
      * Creates a generator for the given schema map.
      *
-     * @param schemas           map of schema name to schema object from the AsyncAPI components
-     * @param webhookAuthConfig the optional webhook authentication configuration, whose
-     *                          {@code $config('name')} references become extra listener config fields
+     * @param schemas              map of schema name to schema object from the AsyncAPI components
+     * @param webhookAuthConfig    the optional webhook authentication configuration, whose
+     *                             {@code $config('name')} references become extra listener config fields
+     * @param connectionAuthConfig the optional outbound (client-side) API authentication configuration,
+     *                             whose type/flow determines any additional listener config fields
+     *                             (e.g. {@code clientId}/{@code clientSecret}/{@code refreshToken})
      */
-    public DataTypesGenerator(Map<String, AsyncApiSchema> schemas, Optional<WebhookAuthConfig> webhookAuthConfig) {
+    public DataTypesGenerator(Map<String, AsyncApiSchema> schemas, Optional<WebhookAuthConfig> webhookAuthConfig,
+            Optional<ConnectionAuthConfig> connectionAuthConfig) {
         this.schemas = schemas;
         this.webhookAuthConfig = webhookAuthConfig;
+        this.connectionAuthConfig = connectionAuthConfig;
     }
 
     /**
@@ -83,7 +91,7 @@ public class DataTypesGenerator {
                 .orElseGet(List::of);
         List<ModuleMemberDeclarationNode> typeNodes = new ArrayList<>();
         typeNodes.add(GenerateListenerConfigNode.generateDefaultSecretConst());
-        typeNodes.add(GenerateListenerConfigNode.generate(extraConfigFields));
+        typeNodes.add(GenerateListenerConfigNode.generate(extraConfigFields, connectionAuthConfig));
 
         // Loose schemas (see isLooseObjectSchema) are ordered last in the union.
         List<TypeDescriptorNode> strictTypeDescriptors = new ArrayList<>();
@@ -119,8 +127,17 @@ public class DataTypesGenerator {
         typeNodes.add(unionGen.generate());
 
         List<ImportDeclarationNode> imports = new ArrayList<>();
-        if (needsHttpImport()) {
+        boolean x509AuthConfigured = connectionAuthConfig.isPresent()
+                && ConnectionAuthConfig.TYPE_X509.equals(connectionAuthConfig.get().type());
+        // X509's keyConfig field type is crypto:KeyStore|http:CertKey, so http is needed even
+        // when no schema property requires an @http:Header annotation.
+        if (needsHttpImport() || x509AuthConfigured) {
             imports.add(GenerateHttpImportNode.generate());
+        }
+        if (x509AuthConfigured) {
+            // X509's cert/keyConfig fields are crypto:TrustStore|string and crypto:KeyStore|http:CertKey -
+            // only pull in the crypto import when a scheme actually needs it.
+            imports.add(GenerateCryptoImportNode.generate());
         }
 
         TextDocument textDocument = TextDocuments.from("");
@@ -140,12 +157,13 @@ public class DataTypesGenerator {
     }
 
     /**
-     * Determines whether {@code data_types.bal} needs {@code import ballerina/http;}. The only
-     * thing in this file that ever references {@code http:} is an {@code @http:Header {...}}
-     * annotation, generated for any schema property whose name requires one (see
-     * {@link CodegenUtils#requiresHeaderAnnotation}). Ballerina treats an unused import as a
-     * compile error, not a warning, so the import must only be added when at least one property
-     * actually needs that annotation.
+     * Determines whether {@code data_types.bal} needs {@code import ballerina/http;} on account
+     * of an {@code @http:Header {...}} annotation, generated for any schema property whose name
+     * requires one (see {@link CodegenUtils#requiresHeaderAnnotation}). Ballerina treats an
+     * unused import as a compile error, not a warning, so the import must only be added when at
+     * least one property actually needs that annotation - or, separately (see {@link #generate}),
+     * when X509 connection auth is configured, since {@code keyConfig}'s type also references
+     * {@code http:CertKey}.
      *
      * @return {@code true} if any schema field name requires an {@code @http:Header} annotation
      */

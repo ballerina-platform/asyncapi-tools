@@ -18,6 +18,7 @@
 package io.ballerina.asyncapi.generator.http.generator;
 
 import io.ballerina.asyncapi.generator.GeneratorException;
+import io.ballerina.asyncapi.generator.http.model.ConnectionAuthConfig;
 import io.ballerina.asyncapi.generator.http.model.HttpRemoteFunction;
 import io.ballerina.asyncapi.generator.http.model.HttpServiceType;
 import io.ballerina.asyncapi.generator.http.model.WebhookAuthConfig;
@@ -43,8 +44,8 @@ public class ListenerGeneratorTest {
                         new HttpRemoteFunction("issues.opened", "IssueEvent")
                 ))
         );
-        String source = new ListenerGenerator(serviceTypes, Optional.<WebhookAuthConfig>empty(), "Test Connector")
-                .generate();
+        String source = new ListenerGenerator(serviceTypes, Optional.<WebhookAuthConfig>empty(),
+                Optional.<ConnectionAuthConfig>empty(), "Test Connector").generate();
 
         Assert.assertFalse(source.isBlank(), "Generated listener source should not be blank");
         Assert.assertTrue(source.contains("Listener"),
@@ -57,6 +58,31 @@ public class ListenerGeneratorTest {
                 "Generated source should reference IssueService in getServiceTypeStr");
         Assert.assertTrue(source.contains("http"),
                 "Generated source should import the ballerina/http module");
+        Assert.assertTrue(source.contains("ListenerConfig listenerConfig = {webhookSecret: DEFAULT_SECRET}"),
+                "With no connection auth, listenerConfig should stay defaultable");
+    }
+
+    @Test
+    void testGenerateWithConnectionAuthMakesListenerConfigRequired() throws GeneratorException {
+        // Regression check for the listener.bal compile bug (#9028): once connection auth
+        // contributes required fields (e.g. username/password) with no safe default, the
+        // listenerConfig parameter itself must become a required parameter - a partial default
+        // like {webhookSecret: DEFAULT_SECRET} would leave those required fields unset, which
+        // Ballerina rejects outright.
+        List<HttpServiceType> serviceTypes = List.of(
+                new HttpServiceType("RepositoryService", List.of(
+                        new HttpRemoteFunction("push", "PushEvent")
+                ))
+        );
+        ConnectionAuthConfig connectionAuthConfig = new ConnectionAuthConfig(
+                ConnectionAuthConfig.TYPE_USER_PASSWORD, null, null, null);
+        String source = new ListenerGenerator(serviceTypes, Optional.<WebhookAuthConfig>empty(),
+                Optional.of(connectionAuthConfig), "Test Connector").generate();
+
+        Assert.assertTrue(source.contains("ListenerConfig listenerConfig,"),
+                "With connection auth present, listenerConfig should be a required parameter: " + source);
+        Assert.assertFalse(source.contains("listenerConfig = {webhookSecret"),
+                "listenerConfig should not carry a partial default value: " + source);
     }
 
     @Test
@@ -69,8 +95,8 @@ public class ListenerGeneratorTest {
                         new HttpRemoteFunction("push", "PushEvent")
                 ))
         );
-        String source = new ListenerGenerator(serviceTypes, Optional.<WebhookAuthConfig>empty(), "GitHub Webhooks API")
-                .generate();
+        String source = new ListenerGenerator(serviceTypes, Optional.<WebhookAuthConfig>empty(),
+                Optional.<ConnectionAuthConfig>empty(), "GitHub Webhooks API").generate();
 
         Assert.assertTrue(source.contains("@display {label: \"GitHub Webhooks API\", iconPath: \"icon.png\"}"),
                 "The Listener class should carry the spec's title as its display label and a real "
@@ -86,8 +112,8 @@ public class ListenerGeneratorTest {
                         new HttpRemoteFunction("push", "PushEvent")
                 ))
         );
-        String source = new ListenerGenerator(serviceTypes, Optional.<WebhookAuthConfig>empty(), "Test Connector")
-                .generate();
+        String source = new ListenerGenerator(serviceTypes, Optional.<WebhookAuthConfig>empty(),
+                Optional.<ConnectionAuthConfig>empty(), "Test Connector").generate();
 
         Assert.assertFalse(source.contains("panic"),
                 "getServiceTypeStr must not panic on an unrecognized service type: " + source);
@@ -102,7 +128,8 @@ public class ListenerGeneratorTest {
     @Test
     void testEmptyServiceTypesThrows() {
         try {
-            new ListenerGenerator(List.of(), Optional.<WebhookAuthConfig>empty(), "Test Connector").generate();
+            new ListenerGenerator(List.of(), Optional.<WebhookAuthConfig>empty(),
+                    Optional.<ConnectionAuthConfig>empty(), "Test Connector").generate();
             Assert.fail("Expected GeneratorException for empty service types list");
         } catch (GeneratorException e) {
             Assert.assertNotNull(e.getMessage(), "Exception message should not be null");
@@ -112,7 +139,8 @@ public class ListenerGeneratorTest {
     @Test
     void testNullServiceTypesThrows() {
         try {
-            new ListenerGenerator(null, Optional.<WebhookAuthConfig>empty(), "Test Connector").generate();
+            new ListenerGenerator(null, Optional.<WebhookAuthConfig>empty(),
+                    Optional.<ConnectionAuthConfig>empty(), "Test Connector").generate();
             Assert.fail("Expected GeneratorException for null service types");
         } catch (GeneratorException e) {
             Assert.assertNotNull(e.getMessage(), "Exception message should not be null");

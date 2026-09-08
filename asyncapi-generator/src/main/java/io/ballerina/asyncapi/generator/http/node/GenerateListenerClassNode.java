@@ -19,6 +19,7 @@ package io.ballerina.asyncapi.generator.http.node;
 
 import io.ballerina.asyncapi.generator.GeneratorException;
 import io.ballerina.asyncapi.generator.http.generator.ServiceTypesGenerator;
+import io.ballerina.asyncapi.generator.http.model.ConnectionAuthConfig;
 import io.ballerina.asyncapi.generator.http.model.HttpServiceType;
 import io.ballerina.asyncapi.generator.http.model.WebhookAuthConfig;
 import io.ballerina.compiler.syntax.tree.AnnotationNode;
@@ -101,19 +102,28 @@ public class GenerateListenerClassNode implements Generator {
 
     private final List<HttpServiceType> serviceTypes;
     private final Optional<WebhookAuthConfig> webhookAuthConfig;
+    private final Optional<ConnectionAuthConfig> connectionAuthConfig;
     private final String displayLabel;
 
     /**
      * Creates a generator for the {@code Listener} class.
      *
-     * @param serviceTypes      the list of HTTP service type definitions
-     * @param webhookAuthConfig the optional webhook authentication configuration
-     * @param displayLabel      the connector's display name, from the spec's {@code info.title}
+     * @param serviceTypes         the list of HTTP service type definitions
+     * @param webhookAuthConfig    the optional webhook authentication configuration
+     * @param connectionAuthConfig the optional outbound (client-side) API authentication
+     *                             configuration - when present, {@code listenerConfig} is
+     *                             generated as a required constructor parameter instead of a
+     *                             defaultable one, since the generated {@code ListenerConfig}
+     *                             then has its own required fields (e.g. a password or client
+     *                             secret) with no safe default value to fall back on
+     * @param displayLabel         the connector's display name, from the spec's {@code info.title}
      */
     public GenerateListenerClassNode(List<HttpServiceType> serviceTypes,
-            Optional<WebhookAuthConfig> webhookAuthConfig, String displayLabel) {
+            Optional<WebhookAuthConfig> webhookAuthConfig, Optional<ConnectionAuthConfig> connectionAuthConfig,
+            String displayLabel) {
         this.serviceTypes = serviceTypes;
         this.webhookAuthConfig = webhookAuthConfig;
+        this.connectionAuthConfig = connectionAuthConfig;
         this.displayLabel = displayLabel;
     }
 
@@ -210,18 +220,32 @@ public class GenerateListenerClassNode implements Generator {
                         createIdentifierToken("Expose")),
                 null);
 
+        // Connection auth (when present) always contributes at least one required field with no
+        // safe default (a password, client secret, API key value, or certificate) - {webhookSecret:
+        // DEFAULT_SECRET} alone would then be missing those required fields, which Ballerina
+        // rejects outright. So listenerConfig can only stay defaultable when there's no connection
+        // auth to account for; otherwise it must be a required parameter, forcing the caller to
+        // supply real credentials rather than accepting an incomplete or fabricated default.
+        Node listenerConfigParam = connectionAuthConfig.isPresent()
+                ? createRequiredParameterNode(
+                        createEmptyNodeList(),
+                        createSimpleNameReferenceNode(
+                                createIdentifierToken(GenerateListenerConfigNode.LISTENER_CONFIG_TYPE)),
+                        createIdentifierToken("listenerConfig"))
+                : createDefaultableParameterNode(
+                        createEmptyNodeList(),
+                        createSimpleNameReferenceNode(
+                                createIdentifierToken(GenerateListenerConfigNode.LISTENER_CONFIG_TYPE)),
+                        createIdentifierToken("listenerConfig"),
+                        createToken(EQUAL_TOKEN),
+                        NodeParser.parseExpression(String.format("{%s: %s}",
+                                GenerateListenerConfigNode.WEBHOOK_SECRET_FIELD,
+                                GenerateListenerConfigNode.DEFAULT_SECRET_CONST)));
+
         FunctionSignatureNode signature = createFunctionSignatureNode(
                 createToken(OPEN_PAREN_TOKEN),
                 createSeparatedNodeList(
-                        createDefaultableParameterNode(
-                                createEmptyNodeList(),
-                                createSimpleNameReferenceNode(
-                                        createIdentifierToken(GenerateListenerConfigNode.LISTENER_CONFIG_TYPE)),
-                                createIdentifierToken("listenerConfig"),
-                                createToken(EQUAL_TOKEN),
-                                NodeParser.parseExpression(String.format("{%s: %s}",
-                                        GenerateListenerConfigNode.WEBHOOK_SECRET_FIELD,
-                                        GenerateListenerConfigNode.DEFAULT_SECRET_CONST))),
+                        listenerConfigParam,
                         createToken(COMMA_TOKEN),
                         createDefaultableParameterNode(
                                 createNodeList(cloudExposeAnnotation),
