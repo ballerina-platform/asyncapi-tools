@@ -89,9 +89,30 @@ public class ServiceTypesGenerator {
         SyntaxTree modifiedTree = syntaxTree.replaceNode(oldRoot, newRoot);
 
         try {
-            return Formatter.format(modifiedTree).toSourceCode();
+            return addBlankLineBetweenRemoteFunctions(Formatter.format(modifiedTree).toSourceCode());
         } catch (FormatterException e) {
             throw new GeneratorException("Could not format the generated service_types.bal code", e);
         }
+    }
+
+    /**
+     * Inserts a blank line between consecutive remote function declarations within a service
+     * type, so each one's own doc comment reads as its own block instead of the whole type
+     * running together as one dense wall of text (raised during review on
+     * module-ballerinax-quickbooks.trigger#1).
+     *
+     * <p>Done as a targeted post-process on the formatted text rather than via node minutiae -
+     * confirmed empirically that the Ballerina {@link Formatter} does not preserve extra
+     * end-of-line minutiae added to a service-object-type member's trailing token, so an AST-level
+     * approach doesn't survive the format pass. The pattern matched here ({@code error?;} directly
+     * followed by a doc-comment line at the same 4-space member indent) only ever occurs between
+     * two remote function declarations in this generator's output - never at the true end of a
+     * type (followed by {@code };}) or anywhere else in the file.
+     *
+     * @param source the formatted {@code service_types.bal} content
+     * @return the same content with a blank line inserted between remote function members
+     */
+    private String addBlankLineBetweenRemoteFunctions(String source) {
+        return source.replaceAll("(?m)^( {4}\\S.*error\\?;)(\\r?\\n)( {4}#)", "$1$2$2$3");
     }
 }
