@@ -185,14 +185,34 @@ public class GenerateModuleMemberDeclarationNode implements Generator {
      * {@link #getTypeDescriptorNode} (a hoisted inline object schema) - the two cases differ only
      * in where the resulting {@link TypeDefinitionNode} ends up (returned directly vs. collected
      * into {@link #hoistedTypes}), not in how it's built.
+     *
+     * <p>When the schema explicitly declares {@code additionalProperties: true} (or a schema)
+     * alongside real {@code properties} - "these known fields, plus possibly more" - the record
+     * is instead built as {@code record {| ...knownFields; json...; |}}: an inclusive ({@code {|
+     * |}}) record with an explicit {@code json} rest field. This is not a correctness fix (a
+     * plain {@code record { ... }} is open by default in Ballerina and already tolerates and
+     * preserves extra fields via {@code cloneWithType}/index access) - it's purely so the "extra
+     * fields may exist" contract the spec declares is visible in the generated type itself,
+     * instead of relying on a reader already knowing Ballerina's implicit-open-record default.
      */
     private TypeDefinitionNode buildRecordTypeDefinition(IdentifierToken typeName, AsyncApiSchema schema)
             throws GeneratorException {
         List<String> required = schema.required() != null ? schema.required() : List.of();
         NodeList<Node> fieldNodes = createNodeList(buildRecordFields(schema.properties(), required));
-        RecordTypeDescriptorNode recordType = createRecordTypeDescriptorNode(
-                createToken(SyntaxKind.RECORD_KEYWORD), createToken(OPEN_BRACE_TOKEN),
-                fieldNodes, null, createToken(SyntaxKind.CLOSE_BRACE_TOKEN));
+        RecordTypeDescriptorNode recordType;
+        if (isExplicitlyOpen(schema)) {
+            io.ballerina.compiler.syntax.tree.RecordRestDescriptorNode restDescriptor =
+                    NodeFactory.createRecordRestDescriptorNode(
+                            createBuiltinSimpleNameReferenceNode(null, createIdentifierToken("json")),
+                            createToken(SyntaxKind.ELLIPSIS_TOKEN), createToken(SEMICOLON_TOKEN));
+            recordType = createRecordTypeDescriptorNode(
+                    createToken(SyntaxKind.RECORD_KEYWORD), createToken(SyntaxKind.OPEN_BRACE_PIPE_TOKEN),
+                    fieldNodes, restDescriptor, createToken(SyntaxKind.CLOSE_BRACE_PIPE_TOKEN));
+        } else {
+            recordType = createRecordTypeDescriptorNode(
+                    createToken(SyntaxKind.RECORD_KEYWORD), createToken(OPEN_BRACE_TOKEN),
+                    fieldNodes, null, createToken(SyntaxKind.CLOSE_BRACE_TOKEN));
+        }
         MetadataNode metadataNode = createMetadataNode(
                 createMarkdownDocumentationNode(createNodeList(buildDocLines(schema))), createEmptyNodeList());
         return createTypeDefinitionNode(metadataNode, createToken(PUBLIC_KEYWORD), createToken(TYPE_KEYWORD),
@@ -350,6 +370,14 @@ public class GenerateModuleMemberDeclarationNode implements Generator {
                 if (schema.properties() != null && !schema.properties().isEmpty()) {
                     yield hoistInlineObject(schema, nameHint);
                 }
+                if (isExplicitlyOpen(schema)) {
+                    yield NodeFactory.createMapTypeDescriptorNode(
+                            createToken(SyntaxKind.MAP_KEYWORD),
+                            NodeFactory.createTypeParameterNode(
+                                    createToken(SyntaxKind.LT_TOKEN),
+                                    createBuiltinSimpleNameReferenceNode(null, createIdentifierToken("json")),
+                                    createToken(SyntaxKind.GT_TOKEN)));
+                }
                 yield createRecordTypeDescriptorNode(
                         AbstractNodeFactory.createIdentifierToken("record"),
                         AbstractNodeFactory.createIdentifierToken("{"),
@@ -358,6 +386,27 @@ public class GenerateModuleMemberDeclarationNode implements Generator {
             }
             default -> createBuiltinSimpleNameReferenceNode(null, createIdentifierToken("anydata"));
         };
+    }
+
+    /**
+     * Returns whether a {@code type: object} schema is explicitly declared open (arbitrary,
+     * caller-defined keys allowed beyond any declared {@code properties}) rather than simply
+     * never having been filled in. Only an explicit {@code additionalProperties: true} (or a
+     * schema constraining the value type) counts -- the field being merely absent must NOT be
+     * treated as open, since JSON Schema's abstract default for a missing {@code
+     * additionalProperties} is "open" but here it almost always means the spec just hasn't been
+     * written yet, not that the field is genuinely free-form. Used both for property-less schemas
+     * (which fall back to {@code map<json>}, see {@link #getTypeDescriptorForPrimitive}) and for
+     * schemas with real properties plus this marker (which get an explicit {@code json} rest
+     * field, see {@link #buildRecordTypeDefinition}).
+     *
+     * @param schema the object schema to check
+     * @return {@code true} only if {@code additionalProperties} is explicitly {@code true} or a
+     *         schema; {@code false} if absent or explicitly {@code false}
+     */
+    private boolean isExplicitlyOpen(AsyncApiSchema schema) {
+        Object additionalProperties = schema.additionalProperties();
+        return Boolean.TRUE.equals(additionalProperties) || additionalProperties instanceof AsyncApiSchema;
     }
 
     private TypeDescriptorNode getArrayTypeDescriptor(AsyncApiSchema schema, String nameHint)
