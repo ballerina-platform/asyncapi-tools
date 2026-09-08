@@ -52,11 +52,18 @@ public class GenerateListenerStatementNode implements Generator {
     }
 
     /**
-     * Builds a {@code match serviceRef { XService _ => { return "XService"; } ... }} statement,
-     * one type-binding-pattern clause per known service type, ending in a {@code var _} clause
+     * Builds a {@code match serviceRef { var v if v is XService => { return "XService"; } ... }}
+     * statement, one type-guarded clause per known service type, ending in a {@code var _} clause
      * that returns an {@code error(...)} so an unrecognized {@code serviceRef} fails loudly (the
      * caller, {@code attach}/{@code detach}, propagates it via {@code check}) instead of being
      * silently mislabeled as whichever type happened to be tested last.
+     *
+     * <p>Deliberately {@code var v if v is XService}, not the more compact {@code XService _}: a
+     * bare {@code TypeName} pattern is parsed as a const-value pattern (requiring a real {@code
+     * const} of that name) rather than a type test, and {@code _} is rejected as a binding-pattern
+     * identifier - confirmed by an actual {@code bal build} failure, not just a syntax guess, since
+     * neither {@link NodeParser#parseStatement} nor this project's generator tests run the real
+     * compiler and so cannot themselves catch either mistake.
      *
      * <p>Returns an {@code error}, not a {@code panic}: a {@code panic} would crash the entire
      * running listener process over one bad {@code attach} call, whereas returning an error lets
@@ -65,10 +72,11 @@ public class GenerateListenerStatementNode implements Generator {
     private StatementNode buildMatchStatement(List<String> serviceTypes) {
         String clauses = serviceTypes.stream()
                 .map(CodegenUtils::getServiceTypeNameByServiceName)
-                .map(typeName -> String.format("%s _ => { return \"%s\"; }", typeName, typeName))
+                .map(typeName -> String.format("var v if v is %s => { return \"%s\"; }", typeName, typeName))
                 .collect(Collectors.joining(" "));
         String matchStatement = String.format(
-                "match serviceRef { %s var _ => { return error(\"Unrecognized service type attached to the listener\"); } }",
+                "match serviceRef { %s var _ => "
+                        + "{ return error(\"Unrecognized service type attached to the listener\"); } }",
                 clauses);
         return NodeParser.parseStatement(matchStatement);
     }

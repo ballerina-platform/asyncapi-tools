@@ -60,6 +60,12 @@ public class ListenerGeneratorTest {
                 "Generated source should import the ballerina/http module");
         Assert.assertTrue(source.contains("ListenerConfig listenerConfig = {webhookSecret: DEFAULT_SECRET}"),
                 "With no connection auth, listenerConfig should stay defaultable");
+        Assert.assertTrue(source.contains("var v if v is RepositoryService"),
+                "getServiceTypeStr's match clauses must use a var-if-is type guard, not a bare "
+                        + "'TypeName _' binding pattern - the latter parses (NodeParser accepts it "
+                        + "silently) but fails a real bal build with 'variable should be declared "
+                        + "as constant' / \"'_' is a keyword\", confirmed via an actual compile: "
+                        + source);
     }
 
     @Test
