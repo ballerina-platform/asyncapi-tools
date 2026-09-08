@@ -56,6 +56,7 @@ public class DispatcherGenerator {
     private final List<HttpServiceType> serviceTypes;
     private final EventIdentifierConfig identifierConfig;
     private final Optional<WebhookAuthConfig> webhookAuthConfig;
+    private final boolean batched;
 
     /**
      * Creates a generator for the given service types, event identifier configuration, and optional
@@ -64,12 +65,17 @@ public class DispatcherGenerator {
      * @param serviceTypes      the list of HTTP service type definitions
      * @param identifierConfig  the resolved event identifier type and path
      * @param webhookAuthConfig the optional webhook authentication configuration
+     * @param batched           whether message payloads deliver a JSON array of events per request
+     *                          rather than one event per request, as detected from the payload
+     *                          schemas by {@link io.ballerina.asyncapi.generator.http.extractor
+     *                          .ServiceTypeExtractor#isBatched()}
      */
     public DispatcherGenerator(List<HttpServiceType> serviceTypes, EventIdentifierConfig identifierConfig,
-            Optional<WebhookAuthConfig> webhookAuthConfig) {
+            Optional<WebhookAuthConfig> webhookAuthConfig, boolean batched) {
         this.serviceTypes = serviceTypes;
         this.identifierConfig = identifierConfig;
         this.webhookAuthConfig = webhookAuthConfig;
+        this.batched = batched;
     }
 
     /**
@@ -93,7 +99,7 @@ public class DispatcherGenerator {
         }
 
         ClassDefinitionNode classNode =
-                new GenerateDispatcherServiceNode(serviceTypes, identifierConfig, webhookAuthConfig)
+                new GenerateDispatcherServiceNode(serviceTypes, identifierConfig, webhookAuthConfig, batched)
                         .generate();
 
         List<ImportDeclarationNode> imports = new ArrayList<>();

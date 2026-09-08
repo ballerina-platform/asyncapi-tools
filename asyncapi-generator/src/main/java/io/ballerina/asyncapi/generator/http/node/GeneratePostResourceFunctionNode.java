@@ -64,22 +64,31 @@ import static io.ballerina.compiler.syntax.tree.SyntaxKind.RESOURCE_KEYWORD;
  * argument. For {@code "composite"}, {@code eventType} comes from the header and {@code action}
  * from the body path; these are combined into a compound {@code eventIdentifier} and forwarded
  * as the second and third arguments of {@code matchRemoteFunc}.
+ *
+ * <p>When {@code batched} is set (detected from an array-typed message payload schema), the POST
+ * body is instead treated as a JSON array of events (some providers, e.g. HubSpot, batch multiple
+ * events into one delivery): the response is acknowledged once for the whole batch, then each
+ * array element is identified, converted, and dispatched independently, with per-element failures
+ * logged and skipped rather than aborting the rest of the batch.
  */
 public class GeneratePostResourceFunctionNode implements Generator {
 
     private final EventIdentifierConfig identifierConfig;
     private final Optional<WebhookAuthConfig> webhookAuthConfig;
+    private final boolean batched;
 
     /**
      * Creates a generator for the post resource function.
      *
      * @param identifierConfig  the resolved event identifier type and path
      * @param webhookAuthConfig the optional webhook authentication configuration
+     * @param batched           whether message payloads deliver a JSON array of events per request
      */
     public GeneratePostResourceFunctionNode(EventIdentifierConfig identifierConfig,
-            Optional<WebhookAuthConfig> webhookAuthConfig) {
+            Optional<WebhookAuthConfig> webhookAuthConfig, boolean batched) {
         this.identifierConfig = identifierConfig;
         this.webhookAuthConfig = webhookAuthConfig;
+        this.batched = batched;
     }
 
     @Override
@@ -119,6 +128,35 @@ public class GeneratePostResourceFunctionNode implements Generator {
                             + " check caller->respond(r); return; }"));
         }
         statements.add(NodeParser.parseStatement("json payload = check request.getJsonPayload();"));
+        if (batched) {
+            statements.addAll(buildBatchedDispatchStatements(type));
+        } else {
+            statements.addAll(buildSingleEventDispatchStatements(type));
+        }
+
+        FunctionBodyBlockNode body = createFunctionBodyBlockNode(
+                createToken(OPEN_BRACE_TOKEN), null, createNodeList(statements),
+                createToken(CLOSE_BRACE_TOKEN), null);
+
+        return createFunctionDefinitionNode(
+                RESOURCE_ACCESSOR_DEFINITION, null,
+                createNodeList(createToken(RESOURCE_KEYWORD)),
+                createToken(FUNCTION_KEYWORD),
+                createIdentifierToken("post"),
+                createNodeList(createToken(DOT_TOKEN)),
+                signature, body);
+    }
+
+    /**
+     * Builds the single-event dispatch statements: extract one {@code eventType} (and, for
+     * {@code composite}, one compound {@code eventIdentifier}), convert the whole body with one
+     * {@code cloneWithType}, acknowledge, and dispatch once.
+     *
+     * @param type the event identifier type ({@code header}, {@code body}, or {@code composite})
+     * @return the statements to append to the resource function body
+     */
+    private List<StatementNode> buildSingleEventDispatchStatements(String type) {
+        List<StatementNode> statements = new ArrayList<>();
         if (EventIdentifierExtractor.X_BALLERINA_EVENT_TYPE_HEADER.equals(type)) {
             statements.addAll(buildEventTypeFromHeaderStatements(identifierConfig.name()));
         } else if (EventIdentifierExtractor.X_BALLERINA_EVENT_TYPE_BODY.equals(type)) {
@@ -139,9 +177,9 @@ public class GeneratePostResourceFunctionNode implements Generator {
                 "%s %s = check payload.cloneWithType(%s);",
                 DataTypesGenerator.GENERIC_DATA_TYPE, GenerateDispatcherServiceNode.CLONE_WITH_TYPE_VAR_NAME,
                 DataTypesGenerator.GENERIC_DATA_TYPE)));
-        statements.add(NodeParser.parseStatement(
-                "http:Response ackResponse = new; ackResponse.statusCode = http:STATUS_OK;"
-                        + " check caller->respond(ackResponse);"));
+        statements.add(NodeParser.parseStatement("http:Response ackResponse = new;"));
+        statements.add(NodeParser.parseStatement("ackResponse.statusCode = http:STATUS_OK;"));
+        statements.add(NodeParser.parseStatement("check caller->respond(ackResponse);"));
         if (EventIdentifierExtractor.X_BALLERINA_EVENT_TYPE_COMPOSITE.equals(type)) {
             statements.add(NodeParser.parseStatement(String.format(
                     "error? dispatchResult = self.%s(%s, eventIdentifier, eventType);",
@@ -155,18 +193,43 @@ public class GeneratePostResourceFunctionNode implements Generator {
         }
         statements.add(NodeParser.parseStatement(
                 "if dispatchResult is error { log:printError(\"DISPATCH_FAILED\", dispatchResult); }"));
+        return statements;
+    }
 
-        FunctionBodyBlockNode body = createFunctionBodyBlockNode(
-                createToken(OPEN_BRACE_TOKEN), null, createNodeList(statements),
-                createToken(CLOSE_BRACE_TOKEN), null);
+    /**
+     * Builds the batched dispatch statements: the body is a JSON array of events. A
+     * {@code header}/{@code composite} identifier header is read once (it applies to the whole
+     * batch); a {@code body} identifier path is read per element (each event carries its own). The
+     * batch is acknowledged once, then each element is converted and dispatched independently --
+     * an element that fails to identify or convert is logged and skipped via {@code continue}
+     * rather than aborting the rest of the batch.
+     *
+     * @param type the event identifier type ({@code header}, {@code body}, or {@code composite})
+     * @return the statements to append to the resource function body
+     */
+    private List<StatementNode> buildBatchedDispatchStatements(String type) {
+        List<StatementNode> statements = new ArrayList<>();
+        statements.add(NodeParser.parseStatement("json[] eventsArray = check payload.ensureType();"));
 
-        return createFunctionDefinitionNode(
-                RESOURCE_ACCESSOR_DEFINITION, null,
-                createNodeList(createToken(RESOURCE_KEYWORD)),
-                createToken(FUNCTION_KEYWORD),
-                createIdentifierToken("post"),
-                createNodeList(createToken(DOT_TOKEN)),
-                signature, body);
+        if (EventIdentifierExtractor.X_BALLERINA_EVENT_TYPE_HEADER.equals(type)
+                || EventIdentifierExtractor.X_BALLERINA_EVENT_TYPE_COMPOSITE.equals(type)) {
+            statements.addAll(buildEventTypeFromHeaderStatements(identifierConfig.name()));
+        }
+
+        statements.add(NodeParser.parseStatement("http:Response ackResponse = new;"));
+        statements.add(NodeParser.parseStatement("ackResponse.statusCode = http:STATUS_OK;"));
+        statements.add(NodeParser.parseStatement("check caller->respond(ackResponse);"));
+
+        // The batch is acknowledged above; the actual per-element dispatch loop runs on a separate
+        // strand so it doesn't hold this HTTP worker thread for the loop's duration. For a "body"
+        // identifier there's no outer eventType (each element carries its own), so pass a placeholder
+        // the callee simply won't use.
+        boolean hasOuterEventType = EventIdentifierExtractor.X_BALLERINA_EVENT_TYPE_HEADER.equals(type)
+                || EventIdentifierExtractor.X_BALLERINA_EVENT_TYPE_COMPOSITE.equals(type);
+        statements.add(NodeParser.parseStatement(String.format(
+                "_ = start self.%s(eventsArray, %s);",
+                GenerateDispatchBatchFuncNode.DISPATCH_BATCH_FUNC, hasOuterEventType ? "eventType" : "\"\"")));
+        return statements;
     }
 
     /**

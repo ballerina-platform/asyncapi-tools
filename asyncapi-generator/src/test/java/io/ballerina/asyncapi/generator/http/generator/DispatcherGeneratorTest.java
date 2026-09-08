@@ -44,7 +44,8 @@ public class DispatcherGeneratorTest {
     @Test
     void testGenerateWithBodyIdentifier() throws GeneratorException {
         EventIdentifierConfig config = new EventIdentifierConfig("body", null, "event.type");
-        String source = new DispatcherGenerator(SINGLE_SERVICE, config, Optional.<WebhookAuthConfig>empty()).generate();
+        String source = new DispatcherGenerator(SINGLE_SERVICE, config, Optional.<WebhookAuthConfig>empty(), false)
+                .generate();
 
         Assert.assertFalse(source.isBlank(), "Generated dispatcher source should not be blank");
         Assert.assertTrue(source.contains("DispatcherService"),
@@ -63,7 +64,7 @@ public class DispatcherGeneratorTest {
         // were pure diagnostic trace noise with no value to an end user - removed. DISPATCH_FAILED
         // is a real error signal (includes the causing error) and must stay.
         EventIdentifierConfig config = new EventIdentifierConfig("body", null, "event.type");
-        String source = new DispatcherGenerator(SINGLE_SERVICE, config, Optional.<WebhookAuthConfig>empty())
+        String source = new DispatcherGenerator(SINGLE_SERVICE, config, Optional.<WebhookAuthConfig>empty(), false)
                 .generate();
 
         Assert.assertTrue(source.contains("DISPATCH_FAILED"),
@@ -80,7 +81,8 @@ public class DispatcherGeneratorTest {
     @Test
     void testGenerateWithHeaderIdentifier() throws GeneratorException {
         EventIdentifierConfig config = new EventIdentifierConfig("header", "X-Event-Type", null);
-        String source = new DispatcherGenerator(SINGLE_SERVICE, config, Optional.<WebhookAuthConfig>empty()).generate();
+        String source = new DispatcherGenerator(SINGLE_SERVICE, config, Optional.<WebhookAuthConfig>empty(), false)
+                .generate();
 
         Assert.assertFalse(source.isBlank(), "Generated dispatcher source should not be blank");
         Assert.assertTrue(source.contains("DispatcherService"),
@@ -92,7 +94,8 @@ public class DispatcherGeneratorTest {
     @Test
     void testGenerateWithCompositeIdentifier() throws GeneratorException {
         EventIdentifierConfig config = new EventIdentifierConfig("composite", "X-GitHub-Event", "action");
-        String source = new DispatcherGenerator(SINGLE_SERVICE, config, Optional.<WebhookAuthConfig>empty()).generate();
+        String source = new DispatcherGenerator(SINGLE_SERVICE, config, Optional.<WebhookAuthConfig>empty(), false)
+                .generate();
 
         Assert.assertFalse(source.isBlank(), "Generated dispatcher source should not be blank");
         Assert.assertTrue(source.contains("DispatcherService"),
@@ -113,7 +116,8 @@ public class DispatcherGeneratorTest {
                 ))
         );
         EventIdentifierConfig config = new EventIdentifierConfig("body", null, "type");
-        String source = new DispatcherGenerator(serviceTypes, config, Optional.<WebhookAuthConfig>empty()).generate();
+        String source = new DispatcherGenerator(serviceTypes, config, Optional.<WebhookAuthConfig>empty(), false)
+                .generate();
 
         Assert.assertTrue(source.contains("qbo.account.merged.v1"),
                 "The match clause must still compare against the real wire event type, not the display label");
@@ -128,13 +132,15 @@ public class DispatcherGeneratorTest {
         // of propagating via a bare `check`, which the framework would report as a 500. Covers both
         // identifier types that read a header ("header" and "composite").
         EventIdentifierConfig headerConfig = new EventIdentifierConfig("header", "X-Event-Type", null);
-        String headerSource = new DispatcherGenerator(SINGLE_SERVICE, headerConfig, Optional.<WebhookAuthConfig>empty())
+        String headerSource = new DispatcherGenerator(
+                SINGLE_SERVICE, headerConfig, Optional.<WebhookAuthConfig>empty(), false)
                 .generate();
         assertRespondsBadRequestOnMissingHeader(headerSource);
 
-        EventIdentifierConfig compositeConfig = new EventIdentifierConfig("composite", "X-GitHub-Event", "action");
+        EventIdentifierConfig compositeConfig =
+                new EventIdentifierConfig("composite", "X-GitHub-Event", "action");
         String compositeSource = new DispatcherGenerator(SINGLE_SERVICE, compositeConfig,
-                Optional.<WebhookAuthConfig>empty()).generate();
+                Optional.<WebhookAuthConfig>empty(), false).generate();
         assertRespondsBadRequestOnMissingHeader(compositeSource);
     }
 
@@ -151,7 +157,8 @@ public class DispatcherGeneratorTest {
     @Test
     void testAckSentBeforeDispatchAndDispatchErrorsAreNotPropagated() throws GeneratorException {
         EventIdentifierConfig config = new EventIdentifierConfig("body", null, "event.type");
-        String source = new DispatcherGenerator(SINGLE_SERVICE, config, Optional.<WebhookAuthConfig>empty()).generate();
+        String source = new DispatcherGenerator(SINGLE_SERVICE, config, Optional.<WebhookAuthConfig>empty(), false)
+                .generate();
 
         int ackIndex = source.indexOf("ackResponse.statusCode = http:STATUS_OK;");
         int dispatchIndex = source.indexOf("error? dispatchResult =");
@@ -171,10 +178,41 @@ public class DispatcherGeneratorTest {
     }
 
     @Test
+    void testGenerateWithBatchedBodyIdentifier() throws GeneratorException {
+        // Some providers (e.g. HubSpot) batch multiple events into a single POST body as a JSON
+        // array. batched=true must produce a foreach-based dispatcher that acks once for the whole
+        // batch, then identifies/converts/dispatches each element independently - one malformed
+        // element must not abort the rest of the batch.
+        EventIdentifierConfig config = new EventIdentifierConfig("body", null, "event.type");
+        String source = new DispatcherGenerator(SINGLE_SERVICE, config, Optional.<WebhookAuthConfig>empty(), true)
+                .generate();
+
+        Assert.assertTrue(source.contains("json[] eventsArray = check payload.ensureType();"),
+                "Batched dispatch should parse the body as a JSON array: " + source);
+        Assert.assertTrue(source.contains("foreach json event in eventsArray"),
+                "Batched dispatch should iterate the array: " + source);
+        Assert.assertTrue(source.contains("event.event.type"),
+                "Each loop iteration should read the identifier path off its own element, not the "
+                        + "whole payload: " + source);
+
+        int ackIndex = source.indexOf("ackResponse.statusCode = http:STATUS_OK;");
+        int loopIndex = source.indexOf("foreach json event in eventsArray");
+        Assert.assertTrue(ackIndex >= 0 && loopIndex >= 0 && ackIndex < loopIndex,
+                "The whole batch must be acked once, before the per-element loop runs: " + source);
+
+        Assert.assertFalse(source.contains("check event.cloneWithType"),
+                "A single element's conversion failure must not propagate via check and abort the "
+                        + "rest of the batch: " + source);
+        Assert.assertTrue(source.contains("continue"),
+                "A malformed element should be logged and skipped via continue, not crash the batch: "
+                        + source);
+    }
+
+    @Test
     void testEmptyServiceTypesThrows() {
         EventIdentifierConfig config = new EventIdentifierConfig("body", null, "event.type");
         try {
-            new DispatcherGenerator(List.of(), config, Optional.<WebhookAuthConfig>empty()).generate();
+            new DispatcherGenerator(List.of(), config, Optional.<WebhookAuthConfig>empty(), false).generate();
             Assert.fail("Expected GeneratorException for empty service types list");
         } catch (GeneratorException e) {
             Assert.assertNotNull(e.getMessage(), "Exception message should not be null");
@@ -185,7 +223,7 @@ public class DispatcherGeneratorTest {
     void testNullServiceTypesThrows() {
         EventIdentifierConfig config = new EventIdentifierConfig("body", null, "event.type");
         try {
-            new DispatcherGenerator(null, config, Optional.<WebhookAuthConfig>empty()).generate();
+            new DispatcherGenerator(null, config, Optional.<WebhookAuthConfig>empty(), false).generate();
             Assert.fail("Expected GeneratorException for null service types");
         } catch (GeneratorException e) {
             Assert.assertNotNull(e.getMessage(), "Exception message should not be null");
@@ -196,7 +234,7 @@ public class DispatcherGeneratorTest {
     void testInvalidIdentifierTypeThrows() {
         EventIdentifierConfig config = new EventIdentifierConfig("unknown", null, "event.type");
         try {
-            new DispatcherGenerator(SINGLE_SERVICE, config, Optional.<WebhookAuthConfig>empty()).generate();
+            new DispatcherGenerator(SINGLE_SERVICE, config, Optional.<WebhookAuthConfig>empty(), false).generate();
             Assert.fail("Expected GeneratorException for unsupported identifier type");
         } catch (GeneratorException e) {
             Assert.assertTrue(e.getMessage().contains("unknown") || e.getMessage().contains("Unsupported"),

@@ -107,9 +107,11 @@ public final class DispatchTestCaseExtractor {
 
                 Object payload = message.payload();
                 String payloadTypeName = eventIdentifier;
-                if (payload instanceof AsyncApiSchema schema && schema.name() != null
-                        && !schema.name().isBlank()) {
-                    payloadTypeName = schema.name();
+                if (payload instanceof AsyncApiSchema schema) {
+                    AsyncApiSchema eventSchema = CodegenUtils.unwrapBatchedPayload(schema, eventIdentifier);
+                    if (eventSchema.name() != null && !eventSchema.name().isBlank()) {
+                        payloadTypeName = eventSchema.name();
+                    }
                 }
                 payloadTypeName = CodegenUtils.getValidName(
                         CodegenUtils.escapeIdentifier(payloadTypeName.trim()), true);
