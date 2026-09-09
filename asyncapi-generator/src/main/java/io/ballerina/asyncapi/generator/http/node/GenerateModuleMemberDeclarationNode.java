@@ -185,14 +185,49 @@ public class GenerateModuleMemberDeclarationNode implements Generator {
      * {@link #getTypeDescriptorNode} (a hoisted inline object schema) - the two cases differ only
      * in where the resulting {@link TypeDefinitionNode} ends up (returned directly vs. collected
      * into {@link #hoistedTypes}), not in how it's built.
+     *
+     * <p>When the schema explicitly declares {@code additionalProperties: true} (or a schema)
+     * alongside real {@code properties} - "these known fields, plus possibly more" - the record
+     * is instead built as {@code record {| ...knownFields; json...; |}}: an inclusive ({@code {|
+     * |}}) record with an explicit {@code json} rest field. This is not a correctness fix (a
+     * plain {@code record { ... }} is open by default in Ballerina and already tolerates and
+     * preserves extra fields via {@code cloneWithType}/index access) - it's purely so the "extra
+     * fields may exist" contract the spec declares is visible in the generated type itself,
+     * instead of relying on a reader already knowing Ballerina's implicit-open-record default.
      */
     private TypeDefinitionNode buildRecordTypeDefinition(IdentifierToken typeName, AsyncApiSchema schema)
             throws GeneratorException {
+        return buildRecordTypeDefinition(typeName, schema, "");
+    }
+
+    /**
+     * Same as {@link #buildRecordTypeDefinition(IdentifierToken, AsyncApiSchema)}, but threads
+     * {@code fieldNamePrefix} down into {@link #buildRecordFields} so that any of this record's own
+     * fields which in turn need hoisting (a nested inline object) get a name derived from this
+     * record's own identity rather than just the bare field key. Used by {@link #hoistOneOfUnion}
+     * so that, e.g., a {@code MergeQueue} branch's {@code parameters} field hoists to
+     * {@code MergeQueueParameters} instead of colliding with every other branch's own generically-
+     * named {@code parameters} field. The two-arg overload is the default (empty prefix, i.e. no
+     * behavior change) used everywhere else.
+     */
+    private TypeDefinitionNode buildRecordTypeDefinition(
+            IdentifierToken typeName, AsyncApiSchema schema, String fieldNamePrefix) throws GeneratorException {
         List<String> required = schema.required() != null ? schema.required() : List.of();
-        NodeList<Node> fieldNodes = createNodeList(buildRecordFields(schema.properties(), required));
-        RecordTypeDescriptorNode recordType = createRecordTypeDescriptorNode(
-                createToken(SyntaxKind.RECORD_KEYWORD), createToken(OPEN_BRACE_TOKEN),
-                fieldNodes, null, createToken(SyntaxKind.CLOSE_BRACE_TOKEN));
+        NodeList<Node> fieldNodes = createNodeList(buildRecordFields(schema.properties(), required, fieldNamePrefix));
+        RecordTypeDescriptorNode recordType;
+        if (isExplicitlyOpen(schema)) {
+            io.ballerina.compiler.syntax.tree.RecordRestDescriptorNode restDescriptor =
+                    NodeFactory.createRecordRestDescriptorNode(
+                            createBuiltinSimpleNameReferenceNode(null, createIdentifierToken("json")),
+                            createToken(SyntaxKind.ELLIPSIS_TOKEN), createToken(SEMICOLON_TOKEN));
+            recordType = createRecordTypeDescriptorNode(
+                    createToken(SyntaxKind.RECORD_KEYWORD), createToken(SyntaxKind.OPEN_BRACE_PIPE_TOKEN),
+                    fieldNodes, restDescriptor, createToken(SyntaxKind.CLOSE_BRACE_PIPE_TOKEN));
+        } else {
+            recordType = createRecordTypeDescriptorNode(
+                    createToken(SyntaxKind.RECORD_KEYWORD), createToken(OPEN_BRACE_TOKEN),
+                    fieldNodes, null, createToken(SyntaxKind.CLOSE_BRACE_TOKEN));
+        }
         MetadataNode metadataNode = createMetadataNode(
                 createMarkdownDocumentationNode(createNodeList(buildDocLines(schema))), createEmptyNodeList());
         return createTypeDefinitionNode(metadataNode, createToken(PUBLIC_KEYWORD), createToken(TYPE_KEYWORD),
@@ -242,6 +277,18 @@ public class GenerateModuleMemberDeclarationNode implements Generator {
 
     private List<Node> buildRecordFields(Map<String, AsyncApiSchema> properties, List<String> required)
             throws GeneratorException {
+        return buildRecordFields(properties, required, "");
+    }
+
+    /**
+     * Same as {@link #buildRecordFields(Map, List)}, but hoists any field that itself needs a
+     * top-level type using {@code fieldNamePrefix + <field name>} as the name hint instead of the
+     * bare field name, when {@code fieldNamePrefix} is non-empty. See
+     * {@link #buildRecordTypeDefinition(IdentifierToken, AsyncApiSchema, String)}.
+     */
+    private List<Node> buildRecordFields(
+            Map<String, AsyncApiSchema> properties, List<String> required, String fieldNamePrefix)
+            throws GeneratorException {
         List<Node> fields = new ArrayList<>();
         for (Map.Entry<String, AsyncApiSchema> field : properties.entrySet()) {
             String rawKey = field.getKey().trim();
@@ -257,7 +304,8 @@ public class GenerateModuleMemberDeclarationNode implements Generator {
                 annotations = createEmptyNodeList();
             }
             IdentifierToken fieldNameToken = AbstractNodeFactory.createIdentifierToken(fieldName);
-            TypeDescriptorNode fieldType = getTypeDescriptorNode(field.getValue(), rawKey);
+            String fieldNameHint = fieldNamePrefix.isEmpty() ? rawKey : fieldNamePrefix + capitalize(rawKey);
+            TypeDescriptorNode fieldType = getTypeDescriptorNode(field.getValue(), fieldNameHint);
             boolean isOptional = !required.contains(rawKey);
             Token questionMark = isOptional ? createToken(QUESTION_MARK_TOKEN) : null;
             Token semicolon = createToken(SEMICOLON_TOKEN);
@@ -313,7 +361,9 @@ public class GenerateModuleMemberDeclarationNode implements Generator {
     private TypeDescriptorNode getTypeDescriptorNode(AsyncApiSchema schema, String nameHint)
             throws GeneratorException {
         TypeDescriptorNode typeDesc;
-        if (schema.properties() != null && !schema.properties().isEmpty()) {
+        if (schema.oneOf() != null && !schema.oneOf().isEmpty()) {
+            typeDesc = hoistOneOfUnion(schema, nameHint);
+        } else if (schema.properties() != null && !schema.properties().isEmpty()) {
             typeDesc = hoistInlineObject(schema, nameHint);
         } else if (schema.type() != null) {
             typeDesc = getTypeDescriptorForPrimitive(schema, nameHint);
@@ -350,6 +400,14 @@ public class GenerateModuleMemberDeclarationNode implements Generator {
                 if (schema.properties() != null && !schema.properties().isEmpty()) {
                     yield hoistInlineObject(schema, nameHint);
                 }
+                if (isExplicitlyOpen(schema)) {
+                    yield NodeFactory.createMapTypeDescriptorNode(
+                            createToken(SyntaxKind.MAP_KEYWORD),
+                            NodeFactory.createTypeParameterNode(
+                                    createToken(SyntaxKind.LT_TOKEN),
+                                    createBuiltinSimpleNameReferenceNode(null, createIdentifierToken("json")),
+                                    createToken(SyntaxKind.GT_TOKEN)));
+                }
                 yield createRecordTypeDescriptorNode(
                         AbstractNodeFactory.createIdentifierToken("record"),
                         AbstractNodeFactory.createIdentifierToken("{"),
@@ -358,6 +416,27 @@ public class GenerateModuleMemberDeclarationNode implements Generator {
             }
             default -> createBuiltinSimpleNameReferenceNode(null, createIdentifierToken("anydata"));
         };
+    }
+
+    /**
+     * Returns whether a {@code type: object} schema is explicitly declared open (arbitrary,
+     * caller-defined keys allowed beyond any declared {@code properties}) rather than simply
+     * never having been filled in. Only an explicit {@code additionalProperties: true} (or a
+     * schema constraining the value type) counts -- the field being merely absent must NOT be
+     * treated as open, since JSON Schema's abstract default for a missing {@code
+     * additionalProperties} is "open" but here it almost always means the spec just hasn't been
+     * written yet, not that the field is genuinely free-form. Used both for property-less schemas
+     * (which fall back to {@code map<json>}, see {@link #getTypeDescriptorForPrimitive}) and for
+     * schemas with real properties plus this marker (which get an explicit {@code json} rest
+     * field, see {@link #buildRecordTypeDefinition}).
+     *
+     * @param schema the object schema to check
+     * @return {@code true} only if {@code additionalProperties} is explicitly {@code true} or a
+     *         schema; {@code false} if absent or explicitly {@code false}
+     */
+    private boolean isExplicitlyOpen(AsyncApiSchema schema) {
+        Object additionalProperties = schema.additionalProperties();
+        return Boolean.TRUE.equals(additionalProperties) || additionalProperties instanceof AsyncApiSchema;
     }
 
     private TypeDescriptorNode getArrayTypeDescriptor(AsyncApiSchema schema, String nameHint)
@@ -388,6 +467,75 @@ public class GenerateModuleMemberDeclarationNode implements Generator {
         IdentifierToken hoistedTypeName = createIdentifierToken(resolveHoistedTypeName(nameHint));
         hoistedTypes.add(buildRecordTypeDefinition(hoistedTypeName, schema));
         return createBuiltinSimpleNameReferenceNode(null, hoistedTypeName);
+    }
+
+    /**
+     * Hoists a {@code oneOf} schema into a top-level {@code public type <name> Branch1|Branch2|...;}
+     * union, one member per branch, and returns a reference to that union.
+     *
+     * <p>Each branch goes back through {@link #getTypeDescriptorNode}, so a branch with real
+     * {@code properties} is hoisted via the exact same {@link #hoistInlineObject}/{@link
+     * #buildRecordTypeDefinition} path every other object schema in this generator uses - meaning
+     * every union member is an open record (Ballerina's default for a bare {@code record { ... }},
+     * confirmed empirically - {@code cloneWithType} tolerates and preserves fields beyond what's
+     * declared) exactly like everywhere else, not a special narrower case for {@code oneOf}
+     * branches specifically.
+     *
+     * <p>Each branch's hoisted name is derived from its own discriminator, when there is one - a
+     * sibling {@code type} property declaring a single-value {@code enum} (the common "tagged
+     * union" shape, e.g. a ruleset rule's {@code type: "merge_queue"}) - falling back to a plain
+     * positional name otherwise. This is purely for readability; nothing here depends on actually
+     * discriminating between branches at runtime (that's what the union's own member types do).
+     *
+     * @param schema   the {@code oneOf} schema to hoist
+     * @param nameHint a name to derive the union type's own name from
+     * @return a reference to the newly-hoisted union type
+     */
+    private TypeDescriptorNode hoistOneOfUnion(AsyncApiSchema schema, String nameHint) throws GeneratorException {
+        List<TypeDescriptorNode> branchTypes = new ArrayList<>();
+        List<AsyncApiSchema> branches = schema.oneOf();
+        for (int i = 0; i < branches.size(); i++) {
+            AsyncApiSchema branch = branches.get(i);
+            String branchHint = capitalize(nameHint) + capitalize(branchDiscriminatorHint(branch, i));
+            if (branch.properties() != null && !branch.properties().isEmpty()) {
+                // Hoisted directly (rather than via the generic getTypeDescriptorNode/
+                // hoistInlineObject dispatch) so the branch's own name-prefix reaches its nested
+                // fields too - see buildRecordTypeDefinition's 3-arg overload.
+                IdentifierToken branchTypeName = createIdentifierToken(resolveHoistedTypeName(branchHint));
+                hoistedTypes.add(buildRecordTypeDefinition(branchTypeName, branch, branchHint));
+                TypeDescriptorNode branchRef = createBuiltinSimpleNameReferenceNode(null, branchTypeName);
+                branchTypes.add(applyNullable(branch, branchRef));
+            } else {
+                branchTypes.add(getTypeDescriptorNode(branch, branchHint));
+            }
+        }
+        String unionName = resolveHoistedTypeName(nameHint);
+        hoistedTypes.add(new GenerateUnionDescriptorNode(branchTypes, unionName).generate());
+        return createBuiltinSimpleNameReferenceNode(null, createIdentifierToken(unionName));
+    }
+
+    /**
+     * Returns a name fragment for one {@code oneOf} branch, preferring its own discriminator value
+     * (a sibling {@code type} property's single-value {@code enum}, e.g. {@code "merge_queue"})
+     * over a plain positional fallback ({@code "Branch0"}, {@code "Branch1"}, ...).
+     *
+     * @param branch the branch schema
+     * @param index  the branch's position, used only in the positional fallback
+     * @return a name fragment identifying this branch, before {@link #resolveHoistedTypeName}'s
+     *         own collision handling is applied
+     */
+    private String branchDiscriminatorHint(AsyncApiSchema branch, int index) {
+        if (branch.properties() != null) {
+            AsyncApiSchema typeProperty = branch.properties().get("type");
+            if (typeProperty != null && typeProperty.enumValue() != null && typeProperty.enumValue().size() == 1) {
+                return typeProperty.enumValue().get(0).asText();
+            }
+        }
+        return "Branch" + index;
+    }
+
+    private static String capitalize(String text) {
+        return text.isEmpty() ? text : Character.toUpperCase(text.charAt(0)) + text.substring(1);
     }
 
     /**
