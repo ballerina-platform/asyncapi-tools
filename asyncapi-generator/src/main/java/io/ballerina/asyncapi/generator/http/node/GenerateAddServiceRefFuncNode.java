@@ -84,8 +84,7 @@ public class GenerateAddServiceRefFuncNode implements Generator {
         List<StatementNode> statements = new ArrayList<>();
         statements.add(NodeParser.parseStatement(String.format(
                 "if (self.%s.hasKey(serviceType)) {"
-                        + " return error(\"Service of type \" + serviceType"
-                        + " + \" has already been attached\"); }",
+                        + " return error(string `Service of type ${serviceType} has already been attached`); }",
                 GenerateDispatcherServiceNode.DISPATCHER_SERVICES_FIELD)));
         statements.add(NodeParser.parseStatement(String.format(
                 "self.%s[serviceType] = genericService;",
