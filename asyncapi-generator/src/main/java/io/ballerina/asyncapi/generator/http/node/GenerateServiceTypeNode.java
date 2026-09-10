@@ -112,7 +112,8 @@ public class GenerateServiceTypeNode implements Generator {
                     null, createIdentifierToken(eventType));
             List<Node> params = new ArrayList<>();
             params.add(createRequiredParameterNode(createEmptyNodeList(), typeNode, createIdentifierToken("payload")));
-            String functionName = CodegenUtils.getFunctionNameByEventName(fn.functionName());
+            String namingBasis = fn.displayLabel() != null ? fn.displayLabel() : fn.functionName();
+            String functionName = CodegenUtils.getFunctionNameByEventName(namingBasis);
             MethodDeclarationNode method = createMethodDeclarationNode(
                     SyntaxKind.METHOD_DECLARATION,
                     buildFunctionDoc("Triggered on " + humanize(functionName) + ".", eventType),

@@ -20,6 +20,7 @@ package io.ballerina.asyncapi.generator.http;
 import io.ballerina.asyncapi.core.api.AsyncApiSpec;
 import io.ballerina.asyncapi.core.model.component.AsyncApiSchema;
 import io.ballerina.asyncapi.generator.GeneratorException;
+import io.ballerina.asyncapi.generator.http.extractor.ConnectionAuthExtractor;
 import io.ballerina.asyncapi.generator.http.extractor.DispatchTestCaseExtractor;
 import io.ballerina.asyncapi.generator.http.extractor.EventIdentifierExtractor;
 import io.ballerina.asyncapi.generator.http.extractor.SchemaExtractor;
@@ -30,6 +31,7 @@ import io.ballerina.asyncapi.generator.http.generator.DispatchTestGenerator;
 import io.ballerina.asyncapi.generator.http.generator.DispatcherGenerator;
 import io.ballerina.asyncapi.generator.http.generator.ListenerGenerator;
 import io.ballerina.asyncapi.generator.http.generator.ServiceTypesGenerator;
+import io.ballerina.asyncapi.generator.http.model.ConnectionAuthConfig;
 import io.ballerina.asyncapi.generator.http.model.DispatchTestCase;
 import io.ballerina.asyncapi.generator.http.model.EventIdentifierConfig;
 import io.ballerina.asyncapi.generator.http.model.HttpServiceType;
@@ -104,12 +106,15 @@ public class HttpCodeGenerator {
         schemas.putAll(serviceTypeExtractor.getInlineSchemas());
         Optional<WebhookAuthConfig> webhookAuthConfig = new WebhookAuthExtractor(asyncApiSpec).extract();
         validateWebhookDsl(webhookAuthConfig);
+        Optional<ConnectionAuthConfig> connectionAuthConfig = new ConnectionAuthExtractor(asyncApiSpec).extract();
 
         // Generate Ballerina source content
-        String dataTypesContent = new DataTypesGenerator(schemas, webhookAuthConfig).generate();
+        String dataTypesContent = new DataTypesGenerator(schemas, webhookAuthConfig, connectionAuthConfig)
+                .generate();
         String serviceTypesContent = new ServiceTypesGenerator(serviceTypes).generate();
         String displayLabel = asyncApiSpec.getAsyncApiInfo().title();
-        String listenerContent = new ListenerGenerator(serviceTypes, webhookAuthConfig, displayLabel).generate();
+        String listenerContent = new ListenerGenerator(serviceTypes, webhookAuthConfig, connectionAuthConfig,
+                displayLabel).generate();
         String dispatcherContent =
                 new DispatcherGenerator(serviceTypes, identifierConfig, webhookAuthConfig)
                 .generate();
