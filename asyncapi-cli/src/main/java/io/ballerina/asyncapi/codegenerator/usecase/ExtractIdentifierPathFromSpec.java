@@ -98,10 +98,31 @@ public class ExtractIdentifierPathFromSpec implements Extractor {
     }
 
     private String escapeStringLiteral(String value) {
-        return value.replace("\\", "\\\\")
-                .replace("\"", "\\\"")
-                .replace("\r", "\\r")
-                .replace("\n", "\\n")
-                .replace("\t", "\\t");
+        StringBuilder escaped = new StringBuilder();
+        for (int index = 0; index < value.length();) {
+            int codePoint = value.codePointAt(index);
+            if (codePoint == '\\') {
+                escaped.append("\\\\");
+            } else if (codePoint == '"') {
+                escaped.append("\\\"");
+            } else if (codePoint == '\r') {
+                escaped.append("\\r");
+            } else if (codePoint == '\n') {
+                escaped.append("\\n");
+            } else if (codePoint == '\t') {
+                escaped.append("\\t");
+            } else if (isDisallowedSourceControl(codePoint)) {
+                escaped.append("\\u{").append(Integer.toHexString(codePoint)).append("}");
+            } else {
+                escaped.appendCodePoint(codePoint);
+            }
+            index += Character.charCount(codePoint);
+        }
+        return escaped.toString();
+    }
+
+    private boolean isDisallowedSourceControl(int codePoint) {
+        return (codePoint <= 0x1F && codePoint != 0x0C)
+                || (codePoint >= 0x80 && codePoint <= 0x9F);
     }
 }
