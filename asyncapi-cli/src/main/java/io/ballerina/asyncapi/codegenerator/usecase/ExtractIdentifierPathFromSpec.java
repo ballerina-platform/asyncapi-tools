@@ -76,18 +76,32 @@ public class ExtractIdentifierPathFromSpec implements Extractor {
             }
             String identifierPath = valuesMap.get(Constants.X_BALLERINA_EVENT_FIELD_IDENTIFIER_PATH);
             String[] pathParts = identifierPath.split("\\.");
-            String prefix = "";
             for (String eventPathPart : pathParts) {
-                eventPathString.append(prefix);
-                prefix = ".";
-                if (Constants.BAL_KEYWORDS.stream()
-                        .anyMatch(eventPathPart::equals)) {
-                    eventPathString.append("'").append(eventPathPart);
-                } else {
+                if (eventPathString.length() > 0 && isValidIdentifier(eventPathPart)) {
+                    eventPathString.append(".");
+                }
+                if (isValidIdentifier(eventPathPart)) {
+                    if (Constants.BAL_KEYWORDS.stream().anyMatch(eventPathPart::equals)) {
+                        eventPathString.append("'");
+                    }
                     eventPathString.append(eventPathPart);
+                } else {
+                    eventPathString.append("[\"").append(escapeStringLiteral(eventPathPart)).append("\"]");
                 }
             }
         }
         return eventPathString.toString();
+    }
+
+    private boolean isValidIdentifier(String identifier) {
+        return identifier.matches("[_a-zA-Z][_a-zA-Z0-9]*");
+    }
+
+    private String escapeStringLiteral(String value) {
+        return value.replace("\\", "\\\\")
+                .replace("\"", "\\\"")
+                .replace("\r", "\\r")
+                .replace("\n", "\\n")
+                .replace("\t", "\\t");
     }
 }
