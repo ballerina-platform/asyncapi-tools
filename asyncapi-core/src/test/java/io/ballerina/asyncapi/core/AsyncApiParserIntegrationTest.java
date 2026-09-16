@@ -538,6 +538,36 @@ public class AsyncApiParserIntegrationTest {
     }
 
     @Test
+    void v300_bareRefOneOfBranch_isCapturedOnStub() throws AsyncApiParserException {
+        // A oneOf branch that's a bare $ref, with no inline properties of its own - e.g. GitHub's
+        // repository ruleset rule-parameters union, where some branches share a component instead
+        // of repeating its fields. Named-property $refs already resolve to a name-only stub (see
+        // v300_refWithSiblingNullable_isCapturedOnStub above); a oneOf list entry must resolve the
+        // same way (ballerina-platform/ballerina-library#9168) - before the fix, oneOf/anyOf list
+        // entries skipped the $ref check entirely and mapped to a schema with every field null,
+        // indistinguishable from a genuinely empty schema, which the generator renders as anydata.
+        String json = "{\"asyncapi\":\"3.0.0\",\"info\":{\"title\":\"T\",\"version\":\"1\"},\"channels\":{},"
+                + "\"components\":{\"schemas\":{"
+                + "\"Pattern\":{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\"}}},"
+                + "\"RuleParameters\":{\"oneOf\":["
+                + "{\"$ref\":\"#/components/schemas/Pattern\"},"
+                + "{\"type\":\"object\",\"properties\":{\"maxLength\":{\"type\":\"integer\"}}}"
+                + "]}"
+                + "}}}";
+        AsyncApiSpec spec = AsyncApiParser.parseFromJsonString(json);
+        AsyncApiComponent components = spec.getAsyncApiComponents().orElseThrow();
+        AsyncApiSchema ruleParameters = components.schemas().get("RuleParameters");
+        Assert.assertNotNull(ruleParameters.oneOf(), "Expected a mapped oneOf list");
+        Assert.assertEquals(ruleParameters.oneOf().size(), 2, "Expected both oneOf branches to be mapped");
+        AsyncApiSchema refBranch = ruleParameters.oneOf().get(0);
+        Assert.assertEquals(refBranch.name(), "Pattern",
+                "The bare $ref oneOf branch should resolve to a stub naming the referenced schema");
+        AsyncApiSchema inlineBranch = ruleParameters.oneOf().get(1);
+        Assert.assertNotNull(inlineBranch.properties(), "The inline oneOf branch should keep its own properties");
+        Assert.assertTrue(inlineBranch.properties().containsKey("maxLength"));
+    }
+
+    @Test
     void nullInput_throwsAsyncApiParserException() {
         Assert.assertThrows(AsyncApiParserException.class, () -> AsyncApiParser.parseFromJsonString(null));
     }
