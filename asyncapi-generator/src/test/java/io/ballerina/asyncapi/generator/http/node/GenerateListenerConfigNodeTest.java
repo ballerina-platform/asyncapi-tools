@@ -37,7 +37,7 @@ public class GenerateListenerConfigNodeTest {
     @Test
     void testGenerateNoConnectionAuthWebhookSecretDocCommentOnly() throws GeneratorException {
         String result = GenerateListenerConfigNode.generate(List.of(), Optional.empty()).toString();
-        Assert.assertTrue(result.contains("#Webhook Secret"),
+        Assert.assertTrue(result.contains("#The secret used to verify incoming webhook signatures."),
                 "webhookSecret field should carry a doc comment: " + result);
         Assert.assertFalse(result.contains("@display"),
                 "No field should use a @display annotation anymore: " + result);
