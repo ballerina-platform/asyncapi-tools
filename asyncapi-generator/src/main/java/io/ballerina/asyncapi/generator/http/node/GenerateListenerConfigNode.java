@@ -107,7 +107,7 @@ public class GenerateListenerConfigNode {
             Optional<ConnectionAuthConfig> connectionAuthConfig) throws GeneratorException {
         List<Node> recordFields = new ArrayList<>();
         recordFields.add(createRecordFieldNode(
-                buildFieldDocumentation("Webhook Secret"),
+                buildFieldDocumentation("The secret used to verify incoming webhook signatures."),
                 null,
                 createBuiltinSimpleNameReferenceNode(null, createIdentifierToken("string")),
                 createIdentifierToken(WEBHOOK_SECRET_FIELD),
