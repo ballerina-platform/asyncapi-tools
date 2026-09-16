@@ -188,16 +188,16 @@ public class DispatchTestGenerator {
 
     private String buildSendHelper(List<String> headerRefs) throws GeneratorException {
         StringBuilder sb = new StringBuilder();
-        sb.append("isolated function sendSignedTriggerWebhook(string headerValue, string eventIdentifier) "
-                + "returns http:Response|error {\n");
+        sb.append("isolated function sendSignedTriggerWebhook(")
+                .append(isBodyModeIdentifier() ? "string eventIdentifier" : "string headerValue, string eventIdentifier")
+                .append(") returns http:Response|error {\n");
         sb.append("    byte[] body = check io:fileReadBytes("
                 + "string `${TRIGGER_PAYLOAD_DIR}/${eventIdentifier}.json`);\n");
         sb.append("    string bodyText = check string:fromBytes(body);\n");
 
         List<String> headerEntries = new ArrayList<>();
 
-        String identifierType = identifierConfig != null ? identifierConfig.type() : null;
-        if (!EventIdentifierExtractor.X_BALLERINA_EVENT_TYPE_BODY.equals(identifierType)) {
+        if (!isBodyModeIdentifier()) {
             String identifierHeaderName = identifierConfig != null && identifierConfig.name() != null
                     ? identifierConfig.name()
                     : DEFAULT_IDENTIFIER_HEADER;
@@ -365,14 +365,25 @@ public class DispatchTestGenerator {
     private String buildTestFunction(DispatchTestCase testCase) {
         String testFnName = "test" + capitalize(testCase.functionName().replaceFirst("^on", "")) + "Dispatch";
         String trackerKey = testCase.serviceTypeName() + "." + testCase.functionName();
+        String callArgs = isBodyModeIdentifier()
+                ? "\"" + testCase.eventIdentifier() + "\""
+                : "\"" + testCase.headerValue() + "\", \"" + testCase.eventIdentifier() + "\"";
         return "@test:Config {}\n"
                 + "function " + testFnName + "() returns error? {\n"
-                + "    http:Response response = check sendSignedTriggerWebhook(\""
-                + testCase.headerValue() + "\", \"" + testCase.eventIdentifier() + "\");\n"
+                + "    http:Response response = check sendSignedTriggerWebhook(" + callArgs + ");\n"
                 + "    test:assertEquals(response.statusCode, http:STATUS_OK);\n"
                 + "    test:assertTrue(waitForDispatch(\"" + trackerKey + "\"), \""
                 + trackerKey + " should have fired\");\n"
                 + "}\n\n";
+    }
+
+    /**
+     * {@code body}-mode identifiers are already present in the fixture, so the test client never
+     * needs to set a synthetic identifier header -- see the class-level Javadoc.
+     */
+    private boolean isBodyModeIdentifier() {
+        String identifierType = identifierConfig != null ? identifierConfig.type() : null;
+        return EventIdentifierExtractor.X_BALLERINA_EVENT_TYPE_BODY.equals(identifierType);
     }
 
     /**
