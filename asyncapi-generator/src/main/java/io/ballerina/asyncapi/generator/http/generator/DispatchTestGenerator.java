@@ -189,7 +189,9 @@ public class DispatchTestGenerator {
     private String buildSendHelper(List<String> headerRefs) throws GeneratorException {
         StringBuilder sb = new StringBuilder();
         sb.append("isolated function sendSignedTriggerWebhook(")
-                .append(isBodyModeIdentifier() ? "string eventIdentifier" : "string headerValue, string eventIdentifier")
+                .append(isBodyModeIdentifier()
+                        ? "string eventIdentifier"
+                        : "string headerValue, string eventIdentifier")
                 .append(") returns http:Response|error {\n");
         sb.append("    byte[] body = check io:fileReadBytes("
                 + "string `${TRIGGER_PAYLOAD_DIR}/${eventIdentifier}.json`);\n");
