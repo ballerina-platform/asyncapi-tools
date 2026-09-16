@@ -48,6 +48,34 @@ public class ExtractIdentifierPathFromSpecTest {
     }
 
     @Test(
+            description = "Test the functionality of the extract function when the body identifier path contains " +
+                    "a non-identifier field name"
+    )
+    public void testExtractWithNonIdentifierPath() throws BallerinaAsyncApiException {
+        String asyncApiSpecStr = fileRepository
+                .getFileContentFromResources("specs/spec-with-non-identifier-path.yml");
+        String asyncApiSpecJson = fileRepository.convertYamlToJson(asyncApiSpecStr);
+        AsyncApiDocument asyncApiSpec = (AsyncApiDocument) Library.readDocumentFromJSONString(asyncApiSpecJson);
+        Extractor extractIdentifierPathFromSpec = new ExtractIdentifierPathFromSpec(asyncApiSpec);
+        String identifierPath = extractIdentifierPathFromSpec.extract();
+
+        Assert.assertEquals(identifierPath, "[\"x-shopify-topic\"]");
+    }
+
+    @Test(description = "Test escaping of disallowed control characters in body identifier paths")
+    public void testExtractWithDisallowedControlCharacters() throws BallerinaAsyncApiException {
+        String asyncApiSpecJson = "{\"asyncapi\":\"2.1.0\","
+                + "\"x-ballerina-event-identifier\":{\"type\":\"body\","
+                + "\"path\":\"a.\\u0000.\\u0008.\\u0080.\\u009f\"}}";
+        AsyncApiDocument asyncApiSpec = (AsyncApiDocument) Library.readDocumentFromJSONString(asyncApiSpecJson);
+        Extractor extractIdentifierPathFromSpec = new ExtractIdentifierPathFromSpec(asyncApiSpec);
+
+        String identifierPath = extractIdentifierPathFromSpec.extract();
+
+        Assert.assertEquals(identifierPath, "a[\"\\u{0}\"][\"\\u{8}\"][\"\\u{80}\"][\"\\u{9f}\"]");
+    }
+
+    @Test(
             description = "Test the functionality of the extract function " +
                     "when the Async API spec contains the x-ballerina-identifier-path attribute in the channel " +
                     "but missing the path attribute inside it",
