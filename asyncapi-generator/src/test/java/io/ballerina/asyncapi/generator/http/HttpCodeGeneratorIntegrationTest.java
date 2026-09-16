@@ -45,7 +45,7 @@ public class HttpCodeGeneratorIntegrationTest {
             new HttpCodeGenerator(asyncApiSpec).generate(outDir);
 
             String serviceTypes = readFile(outDir, "service_types.bal");
-            String types = readFile(outDir, "data_types.bal");
+            String types = readFile(outDir, "types.bal");
             String listener = readFile(outDir, "listener.bal");
             String dispatcher = readFile(outDir, "dispatcher_service.bal");
 
@@ -61,11 +61,11 @@ public class HttpCodeGeneratorIntegrationTest {
                     "service_types.bal should contain onPush remote function");
 
             Assert.assertTrue(types.contains("PushEvent"),
-                    "data_types.bal should contain PushEvent schema type");
+                    "types.bal should contain PushEvent schema type");
             Assert.assertTrue(types.contains("ListenerConfig"),
-                    "data_types.bal should always contain ListenerConfig");
+                    "types.bal should always contain ListenerConfig");
             Assert.assertTrue(types.contains("GenericDataType"),
-                    "data_types.bal should contain GenericDataType union");
+                    "types.bal should contain GenericDataType union");
 
             Assert.assertTrue(listener.contains("Listener"),
                     "listener.bal should contain the Listener class");
@@ -94,7 +94,7 @@ public class HttpCodeGeneratorIntegrationTest {
             String serviceTypes = readFile(outDir, "service_types.bal");
             String dispatcher = readFile(outDir, "dispatcher_service.bal");
             String listener = readFile(outDir, "listener.bal");
-            String types = readFile(outDir, "data_types.bal");
+            String types = readFile(outDir, "types.bal");
 
             Assert.assertTrue(serviceTypes.contains("PaymentService"),
                     "service_types.bal should contain PaymentService");
@@ -111,9 +111,9 @@ public class HttpCodeGeneratorIntegrationTest {
             Assert.assertTrue(listener.contains("Listener"),
                     "listener.bal should contain the Listener class");
             Assert.assertTrue(types.contains("PaymentIntent"),
-                    "data_types.bal should contain PaymentIntent schema type");
+                    "types.bal should contain PaymentIntent schema type");
             Assert.assertTrue(types.contains("Customer"),
-                    "data_types.bal should contain Customer schema type");
+                    "types.bal should contain Customer schema type");
         } finally {
             deleteDir(outDir);
         }
@@ -128,7 +128,7 @@ public class HttpCodeGeneratorIntegrationTest {
             new HttpCodeGenerator(asyncApiSpec).generate(outDir);
 
             String serviceTypes = readFile(outDir, "service_types.bal");
-            String types = readFile(outDir, "data_types.bal");
+            String types = readFile(outDir, "types.bal");
             String listener = readFile(outDir, "listener.bal");
 
             Assert.assertTrue(serviceTypes.contains("EmailService"),
@@ -139,8 +139,8 @@ public class HttpCodeGeneratorIntegrationTest {
                     "service_types.bal should contain GenericServiceType union");
 
             Assert.assertTrue(types.contains("ListenerConfig"),
-                    "data_types.bal should contain ListenerConfig");
-            Assert.assertFalse(types.isBlank(), "data_types.bal should not be blank");
+                    "types.bal should contain ListenerConfig");
+            Assert.assertFalse(types.isBlank(), "types.bal should not be blank");
 
             Assert.assertTrue(listener.contains("Listener"),
                     "listener.bal should contain the Listener class");
@@ -157,7 +157,7 @@ public class HttpCodeGeneratorIntegrationTest {
             new HttpCodeGenerator(asyncApiSpec).generate(null);
         } finally {
             List<String> generatedFiles = List.of(
-                    "data_types.bal", "service_types.bal", "listener.bal", "dispatcher_service.bal");
+                    "types.bal", "service_types.bal", "listener.bal", "dispatcher_service.bal");
             for (String file : generatedFiles) {
                 Files.deleteIfExists(Path.of(file));
             }
@@ -172,7 +172,7 @@ public class HttpCodeGeneratorIntegrationTest {
             AsyncApiSpec asyncApiSpec = AsyncApiParser.parseFromJsonString(Files.readString(spec));
             new HttpCodeGenerator(asyncApiSpec).generate(outDir);
 
-            String types = readFile(outDir, "data_types.bal");
+            String types = readFile(outDir, "types.bal");
             Assert.assertTrue(
                     types.contains("refreshUrl = \"https://oauth2.googleapis.com/token\""),
                     "ListenerConfig should declare a refreshUrl field defaulted to the spec's refreshUrl");
@@ -194,7 +194,7 @@ public class HttpCodeGeneratorIntegrationTest {
             AsyncApiSpec asyncApiSpec = AsyncApiParser.parseFromJsonString(Files.readString(spec));
             new HttpCodeGenerator(asyncApiSpec).generate(outDir);
 
-            String types = readFile(outDir, "data_types.bal");
+            String types = readFile(outDir, "types.bal");
             Assert.assertTrue(
                     types.contains("tokenUrl = \"https://api.example.com/oauth/token\""),
                     "ListenerConfig should declare a tokenUrl field defaulted to the spec's tokenUrl");
@@ -215,7 +215,7 @@ public class HttpCodeGeneratorIntegrationTest {
             AsyncApiSpec asyncApiSpec = AsyncApiParser.parseFromJsonString(Files.readString(spec));
             new HttpCodeGenerator(asyncApiSpec).generate(outDir);
 
-            String types = readFile(outDir, "data_types.bal");
+            String types = readFile(outDir, "types.bal");
             Assert.assertFalse(types.contains("refreshUrl") || types.contains("tokenUrl"),
                     "userPassword has no token/refresh endpoint, so no URL field should be generated");
             Assert.assertTrue(types.contains("username"), "ListenerConfig should declare a username field");
@@ -235,7 +235,7 @@ public class HttpCodeGeneratorIntegrationTest {
             AsyncApiSpec asyncApiSpec = AsyncApiParser.parseFromJsonString(Files.readString(spec));
             new HttpCodeGenerator(asyncApiSpec).generate(outDir);
 
-            String types = readFile(outDir, "data_types.bal");
+            String types = readFile(outDir, "types.bal");
             Assert.assertTrue(types.contains("apiKeyValue"), "ListenerConfig should declare an apiKeyValue field");
             Assert.assertTrue(types.contains("API key sent as the 'X-API-Key' HTTP header"),
                     "Field doc comment should name the header and location");
@@ -253,13 +253,13 @@ public class HttpCodeGeneratorIntegrationTest {
             AsyncApiSpec asyncApiSpec = AsyncApiParser.parseFromJsonString(Files.readString(spec));
             new HttpCodeGenerator(asyncApiSpec).generate(outDir);
 
-            String types = readFile(outDir, "data_types.bal");
+            String types = readFile(outDir, "types.bal");
             Assert.assertTrue(types.contains("crypto:TrustStore|string cert"),
                     "ListenerConfig should declare a crypto:TrustStore|string cert field");
             Assert.assertTrue(types.contains("crypto:KeyStore|http:CertKey keyConfig"),
                     "ListenerConfig should declare a crypto:KeyStore|http:CertKey keyConfig field");
             Assert.assertTrue(types.contains("import ballerina/crypto;"),
-                    "data_types.bal should import ballerina/crypto for the X509 union fields");
+                    "types.bal should import ballerina/crypto for the X509 union fields");
             Assert.assertFalse(types.contains("@display"), "Generated fields should use doc comments, not @display");
         } finally {
             deleteDir(outDir);
@@ -277,9 +277,9 @@ public class HttpCodeGeneratorIntegrationTest {
             AsyncApiSpec asyncApiSpec = AsyncApiParser.parseFromJsonString(Files.readString(spec));
             new HttpCodeGenerator(asyncApiSpec).generate(outDir);
 
-            String types = readFile(outDir, "data_types.bal");
+            String types = readFile(outDir, "types.bal");
             Assert.assertFalse(types.contains("import ballerina/crypto;"),
-                    "data_types.bal should not import ballerina/crypto unless X509 is in use");
+                    "types.bal should not import ballerina/crypto unless X509 is in use");
         } finally {
             deleteDir(outDir);
         }
@@ -296,7 +296,7 @@ public class HttpCodeGeneratorIntegrationTest {
             AsyncApiSpec asyncApiSpec = AsyncApiParser.parseFromJsonString(Files.readString(spec));
             new HttpCodeGenerator(asyncApiSpec).generate(outDir);
 
-            String types = readFile(outDir, "data_types.bal");
+            String types = readFile(outDir, "types.bal");
             Assert.assertFalse(types.contains("clientId"), "No OAuth2 fields should be generated");
             Assert.assertFalse(types.contains("username"), "No userPassword fields should be generated");
             Assert.assertFalse(types.contains("refreshUrl") || types.contains("tokenUrl"),

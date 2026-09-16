@@ -175,7 +175,7 @@ bal asyncapi -i websocket-service.bal --protocol ws --service ChatService -o ./s
 
 This command generates Ballerina service and listener skeletons (i.e., the four Ballerina files below) from the given AsyncAPI definition file.
 
-1. `data_types.bal` - contains all the Ballerina data types extracted from the AsyncAPI definition
+1. `types.bal` - contains all the Ballerina data types extracted from the AsyncAPI definition
 2. `service_types.bal` - contains all the service types relevant to the event API described in the AsyncAPI definition
 3. `listener.bal` - contains the HTTP listener, which listens to the relevant third-party service
 4. `dispatcher_service.bal` - contains the event dispatching logic

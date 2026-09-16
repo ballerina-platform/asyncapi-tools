@@ -69,7 +69,7 @@ import static io.ballerina.compiler.syntax.tree.SyntaxKind.TYPE_KEYWORD;
 
 /**
  * Generates the {@code public type ListenerConfig record { string webhookSecret = DEFAULT_SECRET; };}
- * type definition (and its {@code DEFAULT_SECRET} constant) for {@code data_types.bal}.
+ * type definition (and its {@code DEFAULT_SECRET} constant) for {@code types.bal}.
  *
  * <p>Deliberately minimal -- unlike {@code http:ListenerConfiguration}, this type is not spread
  * into the record, matching the shape used by every other currently-shipped trigger. Users who

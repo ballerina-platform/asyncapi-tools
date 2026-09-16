@@ -51,7 +51,7 @@ import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createNodeLi
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createSimpleNameReferenceNode;
 
 /**
- * Generates the content for {@code data_types.bal} from a map of AsyncAPI schema definitions.
+ * Generates the content for {@code types.bal} from a map of AsyncAPI schema definitions.
  *
  */
 public class DataTypesGenerator {
@@ -80,7 +80,7 @@ public class DataTypesGenerator {
     }
 
     /**
-     * Generates the full content for {@code data_types.bal}.
+     * Generates the full content for {@code types.bal}.
      *
      * @return the generated Ballerina source string
      * @throws GeneratorException if a schema entry cannot be converted to a valid AST node
@@ -152,12 +152,12 @@ public class DataTypesGenerator {
         try {
             return Formatter.format(modifiedTree).toSourceCode();
         } catch (FormatterException e) {
-            throw new GeneratorException("Could not format the generated data_types.bal code", e);
+            throw new GeneratorException("Could not format the generated types.bal code", e);
         }
     }
 
     /**
-     * Determines whether {@code data_types.bal} needs {@code import ballerina/http;} on account
+     * Determines whether {@code types.bal} needs {@code import ballerina/http;} on account
      * of an {@code @http:Header {...}} annotation, generated for any schema property whose name
      * requires one (see {@link CodegenUtils#requiresHeaderAnnotation}). Ballerina treats an
      * unused import as a compile error, not a warning, so the import must only be added when at

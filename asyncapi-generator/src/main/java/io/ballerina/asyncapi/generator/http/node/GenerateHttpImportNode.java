@@ -30,7 +30,7 @@ import static io.ballerina.compiler.syntax.tree.SyntaxKind.SEMICOLON_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.SLASH_TOKEN;
 
 /**
- * Generates the {@code import ballerina/http;} import declaration node for {@code data_types.bal}.
+ * Generates the {@code import ballerina/http;} import declaration node for {@code types.bal}.
  */
 public class GenerateHttpImportNode {
 

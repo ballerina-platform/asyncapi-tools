@@ -72,7 +72,7 @@ public class HttpCodeGenerator {
             + "// KIND, either express or implied.  See the License for the\n"
             + "// specific language governing permissions and limitations\n"
             + "// under the License.\n\n";
-    private static final String DATA_TYPES_BAL = "data_types.bal";
+    private static final String TYPES_BAL = "types.bal";
     private static final String SERVICE_TYPES_BAL = "service_types.bal";
     private static final String LISTENER_BAL = "listener.bal";
     private static final String DISPATCHER_SERVICE_BAL = "dispatcher_service.bal";
@@ -87,7 +87,7 @@ public class HttpCodeGenerator {
     /**
      * Runs the full generation pipeline and writes Ballerina source files to {@code outputPath}.
      * Generates the four files:
-     * {@code data_types.bal}, {@code service_types.bal}, {@code listener.bal}, and
+     * {@code types.bal}, {@code service_types.bal}, {@code listener.bal}, and
      * {@code dispatcher_service.bal}.
      *
      * @param outputPath the directory to write generated files into
@@ -121,13 +121,13 @@ public class HttpCodeGenerator {
 
         // Write generated files to the output directory
         List<Path> filePathsToWrite = List.of(
-                outputPath.resolve(DATA_TYPES_BAL),
+                outputPath.resolve(TYPES_BAL),
                 outputPath.resolve(SERVICE_TYPES_BAL),
                 outputPath.resolve(LISTENER_BAL),
                 outputPath.resolve(DISPATCHER_SERVICE_BAL));
         validateOverwriteDecisions(filePathsToWrite);
 
-        Path writtenDataTypes = writeFile(outputPath.resolve(DATA_TYPES_BAL), LICENSE_HEADER + dataTypesContent);
+        Path writtenDataTypes = writeFile(outputPath.resolve(TYPES_BAL), LICENSE_HEADER + dataTypesContent);
         Path writtenServiceTypes =
                 writeFile(outputPath.resolve(SERVICE_TYPES_BAL), LICENSE_HEADER + serviceTypesContent);
         Path writtenListener = writeFile(outputPath.resolve(LISTENER_BAL), LICENSE_HEADER + listenerContent);
