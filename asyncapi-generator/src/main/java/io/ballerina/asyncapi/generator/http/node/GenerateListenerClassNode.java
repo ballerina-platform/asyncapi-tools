@@ -288,12 +288,6 @@ public class GenerateListenerClassNode implements Generator {
                     LISTENER_DISPATCHER_SERVICE_FIELD,
                     GenerateDispatcherServiceNode.DISPATCHER_SERVICE_CLASS_NAME)));
         }
-        // Attaching here, not in 'start(), aligns this wrapper with the real attach-then-start
-        // protocol a listener object is expected to follow: self.dispatcherService is the one
-        // fixed thing this wrapper ever attaches to self.httpListener (every user-facing
-        // attach/detach call only ever touches the dispatcher's own service map, never
-        // self.httpListener directly - see attach()/detach()), so it belongs at construction
-        // time alongside the two objects it connects, not smuggled into 'start().
         statements.add(NodeParser.parseStatement(String.format(
                 "check self.%s.attach(self.%s, ());",
                 LISTENER_HTTP_LISTENER_FIELD,
