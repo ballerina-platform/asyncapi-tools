@@ -286,6 +286,10 @@ public class GenerateListenerClassNode implements Generator {
                     LISTENER_DISPATCHER_SERVICE_FIELD,
                     GenerateDispatcherServiceNode.DISPATCHER_SERVICE_CLASS_NAME)));
         }
+        statements.add(NodeParser.parseStatement(String.format(
+                "check self.%s.attach(self.%s, ());",
+                LISTENER_HTTP_LISTENER_FIELD,
+                LISTENER_DISPATCHER_SERVICE_FIELD)));
 
         return createFunctionDefinitionNode(
                 OBJECT_METHOD_DEFINITION, null,
@@ -373,10 +377,6 @@ public class GenerateListenerClassNode implements Generator {
                 buildErrorReturnType());
 
         List<StatementNode> statements = new ArrayList<>();
-        statements.add(NodeParser.parseStatement(String.format(
-                "check self.%s.attach(self.%s, ());",
-                LISTENER_HTTP_LISTENER_FIELD,
-                LISTENER_DISPATCHER_SERVICE_FIELD)));
         statements.add(NodeParser.parseStatement(String.format(
                 "return self.%s.'start();",
                 LISTENER_HTTP_LISTENER_FIELD)));
