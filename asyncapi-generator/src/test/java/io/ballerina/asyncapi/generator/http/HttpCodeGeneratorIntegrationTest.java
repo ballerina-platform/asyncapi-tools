@@ -303,7 +303,8 @@ public class HttpCodeGeneratorIntegrationTest {
                     "No connection-auth URL field should be generated");
             Assert.assertFalse(types.contains("@display"),
                     "webhookSecret should use a doc comment, not @display, even with no connection auth");
-            Assert.assertTrue(types.contains("Webhook Secret"), "webhookSecret field should have a doc comment");
+            Assert.assertTrue(types.contains("The secret used to verify incoming webhook signatures."),
+                    "webhookSecret field should have a doc comment");
         } finally {
             deleteDir(outDir);
         }
