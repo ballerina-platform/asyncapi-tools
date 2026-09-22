@@ -17,6 +17,7 @@
  */
 package io.ballerina.asyncapi.generator.http.utils;
 
+import io.ballerina.asyncapi.core.model.component.AsyncApiSchema;
 import io.ballerina.asyncapi.generator.GeneratorException;
 import io.ballerina.compiler.syntax.tree.SyntaxInfo;
 
@@ -216,5 +217,31 @@ public final class CodegenUtils {
         }
         return String.format("%s%s", getValidName(serviceName.trim(), true),
                 SERVICE_TYPE_NAME_SUFFIX);
+    }
+
+    /**
+     * Resolves the effective per-event schema for a message payload, unwrapping a batched
+     * (array-typed) payload down to its {@code items} schema so that name resolution and other
+     * per-event logic operate on the real event shape rather than the array wrapper. Shared by
+     * every extractor that needs a message's real event schema, so they all agree on what a
+     * batched payload actually describes.
+     *
+     * @param payloadSchema the resolved payload schema for one message, as returned by {@code
+     *                      message.payload()}
+     * @param eventType     the message's {@code x-ballerina-event-type}, for the error message
+     * @return {@code payloadSchema} itself for a single-event payload, or its {@code items}
+     *         schema when {@code payloadSchema} is array-typed
+     * @throws GeneratorException if an array-typed payload declares no {@code items} schema
+     */
+    public static AsyncApiSchema unwrapBatchedPayload(AsyncApiSchema payloadSchema, String eventType)
+            throws GeneratorException {
+        if (!"array".equals(payloadSchema.type())) {
+            return payloadSchema;
+        }
+        if (!(payloadSchema.items() instanceof AsyncApiSchema itemSchema)) {
+            throw new GeneratorException(String.format(
+                    "Message '%s' payload is a JSON array but declares no 'items' schema", eventType));
+        }
+        return itemSchema;
     }
 }
