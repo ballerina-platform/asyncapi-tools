@@ -1,0 +1,4 @@
+Action,RemoteFunction,PayloadType,Tested,CodegenOK,Issue
+onNewEvent,onNewEvent,event_response_new.json,Yes,Yes,
+onEventUpdate,onEventUpdate,event_response_update.json,Yes,Yes,
+onEventDelete,onEventDelete,event_response_delete.json,Yes,Yes,
