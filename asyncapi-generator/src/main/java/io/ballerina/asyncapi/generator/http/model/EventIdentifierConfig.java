@@ -24,12 +24,16 @@ package io.ballerina.asyncapi.generator.http.model;
  * @param type the source of the event identifier: {@code "header"}, {@code "body"}, or {@code "composite"}
  * @param name the request header name; non-null for {@code "header"} and {@code "composite"} types,
  *             {@code null} for {@code "body"}
- * @param path the dot-notation JSON body path; non-null for {@code "body"} and {@code "composite"} types,
- *             {@code null} for {@code "header"}
+ * @param path the raw, keyword-escaped dot-notation JSON body path, for schema introspection;
+ *             non-null for {@code "body"} and {@code "composite"} types, {@code null} for {@code "header"}
+ * @param pathExpression the same path as a directly embeddable Ballerina field-access expression
+ *             fragment (dot notation for identifier-shaped segments, quoted index access otherwise);
+ *             non-null for {@code "body"} and {@code "composite"} types, {@code null} for {@code "header"}
  */
 public record EventIdentifierConfig(
         String type,
         String name,
-        String path
+        String path,
+        String pathExpression
 ) {
 }

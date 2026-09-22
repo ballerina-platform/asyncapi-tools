@@ -85,12 +85,13 @@ public final class EventIdentifierExtractor {
 
         return switch (type) {
             case X_BALLERINA_EVENT_TYPE_HEADER ->
-                    new EventIdentifierConfig(type, extractHeaderName(identifierFields), null);
+                    new EventIdentifierConfig(type, extractHeaderName(identifierFields), null, null);
             case X_BALLERINA_EVENT_TYPE_BODY ->
-                    new EventIdentifierConfig(type, null, extractBodyPath(identifierFields));
+                    new EventIdentifierConfig(type, null, extractBodyPath(identifierFields),
+                            extractBodyPathExpression(identifierFields));
             case X_BALLERINA_EVENT_TYPE_COMPOSITE ->
                     new EventIdentifierConfig(type, extractHeaderName(identifierFields),
-                            extractBodyPath(identifierFields));
+                            extractBodyPath(identifierFields), extractBodyPathExpression(identifierFields));
             default -> throw new GeneratorException(String.format(
                     "%s, %s or %s is not provided as the value of %s attribute within the attribute %s"
                             + " in the Async API Specification",
@@ -125,22 +126,91 @@ public final class EventIdentifierExtractor {
     /**
      * Extracts and escapes the dot-notation path for a {@code type=body} identifier.
      * Each path segment that matches a Ballerina keyword is prefixed with {@code '}.
+     * Used for schema introspection, not for embedding directly into generated source --
+     * a segment that isn't a valid Ballerina identifier is left as-is here; see
+     * {@link #extractBodyPathExpression(Map)} for the source-safe form.
      *
      * @param identifierFields the fields parsed from the extension node
      * @return the (possibly keyword-escaped) dot-notation path
      * @throws GeneratorException if the {@code path} field is absent
      */
     private String extractBodyPath(Map<String, String> identifierFields) throws GeneratorException {
+        String identifierPath = rawBodyPath(identifierFields);
+        return Arrays.stream(identifierPath.split("\\."))
+                .map(part -> CodegenUtils.BAL_KEYWORDS.stream().anyMatch(part::equals)
+                        ? String.format("'%s", part) : part)
+                .collect(Collectors.joining("."));
+    }
+
+    /**
+     * Builds a directly embeddable Ballerina field-access expression fragment for a
+     * {@code type=body} identifier's path, e.g. {@code .'type} or {@code ["x-shopify-topic"]}
+     * for a path segment that isn't a valid Ballerina identifier. Identifier-shaped segments
+     * keep dot notation (keyword-escaped where needed); any other segment falls back to quoted
+     * index access, so a path like {@code x-shopify-topic} still produces compilable source.
+     * The fragment carries its own leading separator (or none), so callers must not prepend
+     * their own {@code .} before it.
+     *
+     * @param identifierFields the fields parsed from the extension node
+     * @return the source-safe field-access expression fragment
+     * @throws GeneratorException if the {@code path} field is absent
+     */
+    private String extractBodyPathExpression(Map<String, String> identifierFields) throws GeneratorException {
+        String identifierPath = rawBodyPath(identifierFields);
+        StringBuilder expression = new StringBuilder();
+        for (String segment : identifierPath.split("\\.")) {
+            if (isValidIdentifier(segment)) {
+                expression.append('.');
+                if (CodegenUtils.BAL_KEYWORDS.stream().anyMatch(segment::equals)) {
+                    expression.append('\'');
+                }
+                expression.append(segment);
+            } else {
+                expression.append('[').append('"').append(escapeStringLiteral(segment)).append('"').append(']');
+            }
+        }
+        return expression.toString();
+    }
+
+    private String rawBodyPath(Map<String, String> identifierFields) throws GeneratorException {
         if (!identifierFields.containsKey(X_BALLERINA_EVENT_FIELD_IDENTIFIER_PATH)) {
             throw new GeneratorException(String.format(
                     "%s attribute is not found within the attribute %s in the Async API Specification",
                     X_BALLERINA_EVENT_FIELD_IDENTIFIER_PATH,
                     X_BALLERINA_EVENT_FIELD_IDENTIFIER));
         }
-        String identifierPath = identifierFields.get(X_BALLERINA_EVENT_FIELD_IDENTIFIER_PATH);
-        return Arrays.stream(identifierPath.split("\\."))
-                .map(part -> CodegenUtils.BAL_KEYWORDS.stream().anyMatch(part::equals)
-                        ? String.format("'%s", part) : part)
-                .collect(Collectors.joining("."));
+        return identifierFields.get(X_BALLERINA_EVENT_FIELD_IDENTIFIER_PATH);
+    }
+
+    private static boolean isValidIdentifier(String segment) {
+        return segment.matches("[a-zA-Z_][a-zA-Z0-9_]*");
+    }
+
+    private static String escapeStringLiteral(String value) {
+        StringBuilder escaped = new StringBuilder();
+        for (int index = 0; index < value.length();) {
+            int codePoint = value.codePointAt(index);
+            if (codePoint == '\\') {
+                escaped.append("\\\\");
+            } else if (codePoint == '"') {
+                escaped.append("\\\"");
+            } else if (codePoint == '\r') {
+                escaped.append("\\r");
+            } else if (codePoint == '\n') {
+                escaped.append("\\n");
+            } else if (codePoint == '\t') {
+                escaped.append("\\t");
+            } else if (isDisallowedSourceControl(codePoint)) {
+                escaped.append("\\u{").append(Integer.toHexString(codePoint)).append('}');
+            } else {
+                escaped.appendCodePoint(codePoint);
+            }
+            index += Character.charCount(codePoint);
+        }
+        return escaped.toString();
+    }
+
+    private static boolean isDisallowedSourceControl(int codePoint) {
+        return (codePoint <= 0x1F && codePoint != 0x0C) || (codePoint >= 0x80 && codePoint <= 0x9F);
     }
 }

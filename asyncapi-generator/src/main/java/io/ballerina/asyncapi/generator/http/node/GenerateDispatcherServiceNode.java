@@ -113,8 +113,8 @@ public class GenerateDispatcherServiceNode implements Generator {
     public ClassDefinitionNode generate() throws GeneratorException {
         String eventIdentifierPath;
         if (EventIdentifierExtractor.X_BALLERINA_EVENT_TYPE_BODY.equals(identifierConfig.type())) {
-            eventIdentifierPath = String.format("%s.%s",
-                    CLONE_WITH_TYPE_VAR_NAME, identifierConfig.path());
+            eventIdentifierPath = String.format("%s%s",
+                    CLONE_WITH_TYPE_VAR_NAME, identifierConfig.pathExpression());
         } else {
             eventIdentifierPath = "eventIdentifier";
         }

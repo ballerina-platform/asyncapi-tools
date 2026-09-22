@@ -123,13 +123,13 @@ public class GeneratePostResourceFunctionNode implements Generator {
             statements.addAll(buildEventTypeFromHeaderStatements(identifierConfig.name()));
         } else if (EventIdentifierExtractor.X_BALLERINA_EVENT_TYPE_BODY.equals(type)) {
             statements.add(NodeParser.parseStatement(String.format(
-                    "string eventType = (check payload.%s).toString();",
-                    identifierConfig.path())));
+                    "string eventType = (check payload%s).toString();",
+                    identifierConfig.pathExpression())));
         } else {
             statements.addAll(buildEventTypeFromHeaderStatements(identifierConfig.name()));
             statements.add(NodeParser.parseStatement(String.format(
-                    "json|error actionField = payload.%s;",
-                    identifierConfig.path())));
+                    "json|error actionField = payload%s;",
+                    identifierConfig.pathExpression())));
             statements.add(NodeParser.parseStatement("string eventIdentifier = eventType;"));
             statements.add(NodeParser.parseStatement(
                     "if actionField is json && actionField != () {"
