@@ -43,7 +43,7 @@ public class DispatcherGeneratorTest {
 
     @Test
     void testGenerateWithBodyIdentifier() throws GeneratorException {
-        EventIdentifierConfig config = new EventIdentifierConfig("body", null, "event.type");
+        EventIdentifierConfig config = new EventIdentifierConfig("body", null, "event.type", ".event.type");
         String source = new DispatcherGenerator(SINGLE_SERVICE, config, Optional.<WebhookAuthConfig>empty()).generate();
 
         Assert.assertFalse(source.isBlank(), "Generated dispatcher source should not be blank");
@@ -58,11 +58,28 @@ public class DispatcherGeneratorTest {
     }
 
     @Test
+    void testGenerateWithNonIdentifierBodyIdentifierPath() throws GeneratorException {
+        // Shopify identifies events via a body field literally named "x-shopify-topic" - dot
+        // notation there would generate uncompilable source (the hyphens parse as subtraction).
+        EventIdentifierConfig config =
+                new EventIdentifierConfig("body", null, "x-shopify-topic", "[\"x-shopify-topic\"]");
+        String source = new DispatcherGenerator(SINGLE_SERVICE, config, Optional.<WebhookAuthConfig>empty())
+                .generate();
+
+        Assert.assertTrue(source.contains("payload[\"x-shopify-topic\"]"),
+                "A non-identifier body path segment must be embedded as quoted index access, "
+                        + "with no dot before the bracket: " + source);
+        Assert.assertFalse(source.contains("payload.x-shopify-topic"),
+                "Dot notation on a non-identifier segment is not valid Ballerina and must never "
+                        + "be generated: " + source);
+    }
+
+    @Test
     void testDiagnosticTraceLogsRemovedButDispatchFailedKept() throws GeneratorException {
         // MATCH_LEVEL_1_*/MATCH_LEVEL_2_*/DISPATCHER_ENTERED/SIGNATURE_VERIFIED/HANDLER_EXECUTED_*
         // were pure diagnostic trace noise with no value to an end user - removed. DISPATCH_FAILED
         // is a real error signal (includes the causing error) and must stay.
-        EventIdentifierConfig config = new EventIdentifierConfig("body", null, "event.type");
+        EventIdentifierConfig config = new EventIdentifierConfig("body", null, "event.type", ".event.type");
         String source = new DispatcherGenerator(SINGLE_SERVICE, config, Optional.<WebhookAuthConfig>empty())
                 .generate();
 
@@ -79,7 +96,7 @@ public class DispatcherGeneratorTest {
 
     @Test
     void testGenerateWithHeaderIdentifier() throws GeneratorException {
-        EventIdentifierConfig config = new EventIdentifierConfig("header", "X-Event-Type", null);
+        EventIdentifierConfig config = new EventIdentifierConfig("header", "X-Event-Type", null, null);
         String source = new DispatcherGenerator(SINGLE_SERVICE, config, Optional.<WebhookAuthConfig>empty()).generate();
 
         Assert.assertFalse(source.isBlank(), "Generated dispatcher source should not be blank");
@@ -91,7 +108,7 @@ public class DispatcherGeneratorTest {
 
     @Test
     void testGenerateWithCompositeIdentifier() throws GeneratorException {
-        EventIdentifierConfig config = new EventIdentifierConfig("composite", "X-GitHub-Event", "action");
+        EventIdentifierConfig config = new EventIdentifierConfig("composite", "X-GitHub-Event", "action", ".action");
         String source = new DispatcherGenerator(SINGLE_SERVICE, config, Optional.<WebhookAuthConfig>empty()).generate();
 
         Assert.assertFalse(source.isBlank(), "Generated dispatcher source should not be blank");
@@ -112,7 +129,7 @@ public class DispatcherGeneratorTest {
                         new HttpRemoteFunction("qbo.account.merged.v1", "QuickBookEvent", false, "AccountMerged")
                 ))
         );
-        EventIdentifierConfig config = new EventIdentifierConfig("body", null, "type");
+        EventIdentifierConfig config = new EventIdentifierConfig("body", null, "type", ".type");
         String source = new DispatcherGenerator(serviceTypes, config, Optional.<WebhookAuthConfig>empty()).generate();
 
         Assert.assertTrue(source.contains("qbo.account.merged.v1"),
@@ -127,12 +144,13 @@ public class DispatcherGeneratorTest {
         // a client error, not a server fault - so it must produce an explicit 400 response instead
         // of propagating via a bare `check`, which the framework would report as a 500. Covers both
         // identifier types that read a header ("header" and "composite").
-        EventIdentifierConfig headerConfig = new EventIdentifierConfig("header", "X-Event-Type", null);
+        EventIdentifierConfig headerConfig = new EventIdentifierConfig("header", "X-Event-Type", null, null);
         String headerSource = new DispatcherGenerator(SINGLE_SERVICE, headerConfig, Optional.<WebhookAuthConfig>empty())
                 .generate();
         assertRespondsBadRequestOnMissingHeader(headerSource);
 
-        EventIdentifierConfig compositeConfig = new EventIdentifierConfig("composite", "X-GitHub-Event", "action");
+        EventIdentifierConfig compositeConfig =
+                new EventIdentifierConfig("composite", "X-GitHub-Event", "action", ".action");
         String compositeSource = new DispatcherGenerator(SINGLE_SERVICE, compositeConfig,
                 Optional.<WebhookAuthConfig>empty()).generate();
         assertRespondsBadRequestOnMissingHeader(compositeSource);
@@ -150,7 +168,7 @@ public class DispatcherGeneratorTest {
 
     @Test
     void testAckSentBeforeDispatchAndDispatchErrorsAreNotPropagated() throws GeneratorException {
-        EventIdentifierConfig config = new EventIdentifierConfig("body", null, "event.type");
+        EventIdentifierConfig config = new EventIdentifierConfig("body", null, "event.type", ".event.type");
         String source = new DispatcherGenerator(SINGLE_SERVICE, config, Optional.<WebhookAuthConfig>empty()).generate();
 
         int ackIndex = source.indexOf("ackResponse.statusCode = http:STATUS_OK;");
@@ -172,7 +190,7 @@ public class DispatcherGeneratorTest {
 
     @Test
     void testEmptyServiceTypesThrows() {
-        EventIdentifierConfig config = new EventIdentifierConfig("body", null, "event.type");
+        EventIdentifierConfig config = new EventIdentifierConfig("body", null, "event.type", ".event.type");
         try {
             new DispatcherGenerator(List.of(), config, Optional.<WebhookAuthConfig>empty()).generate();
             Assert.fail("Expected GeneratorException for empty service types list");
@@ -183,7 +201,7 @@ public class DispatcherGeneratorTest {
 
     @Test
     void testNullServiceTypesThrows() {
-        EventIdentifierConfig config = new EventIdentifierConfig("body", null, "event.type");
+        EventIdentifierConfig config = new EventIdentifierConfig("body", null, "event.type", ".event.type");
         try {
             new DispatcherGenerator(null, config, Optional.<WebhookAuthConfig>empty()).generate();
             Assert.fail("Expected GeneratorException for null service types");
@@ -194,7 +212,7 @@ public class DispatcherGeneratorTest {
 
     @Test
     void testInvalidIdentifierTypeThrows() {
-        EventIdentifierConfig config = new EventIdentifierConfig("unknown", null, "event.type");
+        EventIdentifierConfig config = new EventIdentifierConfig("unknown", null, "event.type", ".event.type");
         try {
             new DispatcherGenerator(SINGLE_SERVICE, config, Optional.<WebhookAuthConfig>empty()).generate();
             Assert.fail("Expected GeneratorException for unsupported identifier type");

@@ -45,6 +45,48 @@ public class EventIdentifierExtractorTest {
         Assert.assertEquals(config.type(), "body");
         Assert.assertEquals(config.path(), "event.action",
                 "Non-keyword path segments should be returned unchanged");
+        Assert.assertEquals(config.pathExpression(), ".event.action",
+                "The expression fragment must carry its own leading separator for direct embedding");
+    }
+
+    @Test
+    void testExtractBodyTypeWithNonIdentifierSegment() throws AsyncApiParserException, GeneratorException {
+        // Shopify identifies events via a field named "x-shopify-topic" - not a valid Ballerina
+        // identifier, so dot notation would generate uncompilable source (the hyphens parse as
+        // subtraction). Must fall back to quoted index access instead.
+        String json = ASYNCAPI_PREFIX
+                + ",\"x-ballerina-event-identifier\":{\"type\":\"body\",\"path\":\"x-shopify-topic\"}}";
+        AsyncApiSpec spec = AsyncApiParser.parseFromJsonString(json);
+        EventIdentifierConfig config = new EventIdentifierExtractor(spec).extract();
+
+        Assert.assertEquals(config.path(), "x-shopify-topic",
+                "The raw schema-lookup path is unaffected by source-expression escaping");
+        Assert.assertEquals(config.pathExpression(), "[\"x-shopify-topic\"]",
+                "A non-identifier segment must use quoted index access, with no leading dot");
+    }
+
+    @Test
+    void testExtractBodyTypeWithMixedSegments() throws AsyncApiParserException, GeneratorException {
+        String json = ASYNCAPI_PREFIX
+                + ",\"x-ballerina-event-identifier\":{\"type\":\"body\",\"path\":\"data.x-shopify-topic\"}}";
+        AsyncApiSpec spec = AsyncApiParser.parseFromJsonString(json);
+        EventIdentifierConfig config = new EventIdentifierExtractor(spec).extract();
+
+        Assert.assertEquals(config.pathExpression(), ".data[\"x-shopify-topic\"]",
+                "An identifier segment keeps dot notation even when followed by a bracket-access one");
+    }
+
+    @Test
+    void testExtractBodyTypeExpressionEscapesStringLiteralCharacters() throws AsyncApiParserException,
+            GeneratorException {
+        String json = ASYNCAPI_PREFIX
+                + ",\"x-ballerina-event-identifier\":{\"type\":\"body\",\"path\":\"a \\\"quoted\\\" field\"}}";
+        AsyncApiSpec spec = AsyncApiParser.parseFromJsonString(json);
+        EventIdentifierConfig config = new EventIdentifierExtractor(spec).extract();
+
+        Assert.assertEquals(config.pathExpression(), "[\"a \\\"quoted\\\" field\"]",
+                "A quote character within a non-identifier segment must be escaped in the generated "
+                        + "string literal");
     }
 
     @Test
@@ -80,6 +122,8 @@ public class EventIdentifierExtractorTest {
         Assert.assertEquals(config.type(), "body");
         Assert.assertEquals(config.path(), "event.'check.value",
                 "Keyword segment 'check' in dot-notation path must be escaped");
+        Assert.assertEquals(config.pathExpression(), ".event.'check.value",
+                "The expression fragment escapes keyword segments the same way as the raw path");
     }
 
     @Test
@@ -108,6 +152,8 @@ public class EventIdentifierExtractorTest {
                 "Header name should be extracted for composite type");
         Assert.assertEquals(config.path(), "action",
                 "Body path should be extracted for composite type");
+        Assert.assertEquals(config.pathExpression(), ".action",
+                "The expression fragment should also be populated for composite type");
     }
 
     @Test
