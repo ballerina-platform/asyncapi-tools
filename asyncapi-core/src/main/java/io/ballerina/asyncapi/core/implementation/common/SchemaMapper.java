@@ -514,8 +514,19 @@ public final class SchemaMapper {
         if (list == null || list.isEmpty()) {
             return null;
         }
-        List<io.ballerina.asyncapi.core.model.component.AsyncApiSchema> result = list.stream()
-                        .map(SchemaMapper::map).filter(Objects::nonNull).toList();
+        List<io.ballerina.asyncapi.core.model.component.AsyncApiSchema> result = new ArrayList<>();
+        for (AsyncApiSchema s : list) {
+            if (s instanceof AsyncApiReferenceable ref && ref.get$ref() != null) {
+                String refValue = ref.get$ref();
+                String refName = refValue.substring(refValue.lastIndexOf('/') + 1);
+                result.add(io.ballerina.asyncapi.core.model.component.AsyncApiSchema.refStub(refName));
+                continue;
+            }
+            io.ballerina.asyncapi.core.model.component.AsyncApiSchema mapped = map(s);
+            if (mapped != null) {
+                result.add(mapped);
+            }
+        }
         return result.isEmpty() ? null : result;
     }
 

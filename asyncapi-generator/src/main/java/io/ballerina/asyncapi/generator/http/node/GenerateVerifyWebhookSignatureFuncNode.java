@@ -60,12 +60,12 @@ import static io.ballerina.compiler.syntax.tree.SyntaxKind.QUESTION_MARK_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.RETURNS_KEYWORD;
 
 /**
- * Generates the {@code private function verifyWebhookSignature(http:Request request, string webhookSecret)
- * returns http:Response|error} method node for the {@code DispatcherService} class in
- * {@code dispatcher_service.bal}.
+ * Generates the {@code private function verifyWebhookSignature(http:Request request, string? webhookSecret)
+ * returns error?} method node for the {@code DispatcherService} class in {@code dispatcher_service.bal}.
  *
  * <p>Validates the HMAC signature carried in the configured auth header, supporting dynamic
- * payload extraction and formatting based on the AsyncAPI x-ballerina-auth DSL.
+ * payload extraction and formatting based on the AsyncAPI x-ballerina-auth DSL. Rejects up front,
+ * with a dedicated error, when {@code webhookSecret} is absent (see {@link GenerateListenerConfigNode}).
  */
 public class GenerateVerifyWebhookSignatureFuncNode implements Generator {
 
@@ -103,13 +103,21 @@ public class GenerateVerifyWebhookSignatureFuncNode implements Generator {
                         createToken(COMMA_TOKEN),
                         createRequiredParameterNode(
                                 createEmptyNodeList(),
-                                createBuiltinSimpleNameReferenceNode(null, createIdentifierToken("string")),
+                                createOptionalTypeDescriptorNode(
+                                        createBuiltinSimpleNameReferenceNode(null, createIdentifierToken("string")),
+                                        createToken(QUESTION_MARK_TOKEN)),
                                 createIdentifierToken("webhookSecret"))),
                 createToken(CLOSE_PAREN_TOKEN),
                 buildOptionalErrorReturnType());
 
         List<StatementNode> statements = new ArrayList<>();
         String headerName = authConfig.headerName();
+
+        // webhookSecret is optional with no default (see GenerateListenerConfigNode) so "not
+        // configured" is this explicit, checkable absent case rather than a silent empty-string
+        // secret that would otherwise verify against an HMAC nobody meant to compute.
+        statements.add(NodeParser.parseStatement(
+                "if webhookSecret is () { return error(\"Unauthorized: Webhook Secret Not Configured\"); }"));
 
         if (authConfig.freshnessHeader() != null) {
             addFreshnessCheckStatements(statements, authConfig.freshnessHeader(),

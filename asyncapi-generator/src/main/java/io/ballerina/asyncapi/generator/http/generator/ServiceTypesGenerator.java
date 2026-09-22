@@ -89,9 +89,13 @@ public class ServiceTypesGenerator {
         SyntaxTree modifiedTree = syntaxTree.replaceNode(oldRoot, newRoot);
 
         try {
-            return Formatter.format(modifiedTree).toSourceCode();
+            return addBlankLineBetweenRemoteFunctions(Formatter.format(modifiedTree).toSourceCode());
         } catch (FormatterException e) {
             throw new GeneratorException("Could not format the generated service_types.bal code", e);
         }
+    }
+
+    private String addBlankLineBetweenRemoteFunctions(String source) {
+        return source.replaceAll("(?m)^( {4}\\S.*error\\?;)(\\r?\\n)( {4}#)", "$1$2$2$3");
     }
 }
