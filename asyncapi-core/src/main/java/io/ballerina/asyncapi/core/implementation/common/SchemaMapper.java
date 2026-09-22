@@ -506,15 +506,6 @@ public final class SchemaMapper {
      * {@link io.ballerina.asyncapi.core.model.component.AsyncApiSchema}.
      * Used for {@code oneOf} and {@code anyOf}.
      *
-     * <p>A bare {@code $ref} entry (no inline content of its own) is mapped to a
-     * {@link io.ballerina.asyncapi.core.model.component.AsyncApiSchema#refStub name-only stub},
-     * the same way {@link #mapItems} and {@link #mapProperties} already resolve a bare {@code $ref}
-     * elsewhere - without this check, a bare {@code $ref} branch fell through {@link #map} with
-     * every field null (a {@code $ref} isn't one of the schema's own properties, so nothing here
-     * ever populated), which the generator can't tell apart from a genuinely empty schema and
-     * renders as {@code anydata} instead of the real referenced type
-     * (ballerina-platform/ballerina-library#9168).
-     *
      * @param list the Apicurio schema list
      * @return the mapped list, or null if empty
      */
