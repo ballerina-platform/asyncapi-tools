@@ -1,0 +1,16 @@
+{
+  "spreadsheetId": "test-spreadsheet-id",
+  "spreadsheetName": "Test Spreadsheet",
+  "worksheetId": 0,
+  "worksheetName": "Sheet1",
+  "rangeUpdated": "Sheet1!A5",
+  "startingRowPosition": 5,
+  "startingColumnPosition": 1,
+  "endRowPosition": 5,
+  "endColumnPosition": 1,
+  "newValues": [["new row value"]],
+  "lastRowWithContent": 5,
+  "lastColumnWithContent": 1,
+  "eventType": "appendRow",
+  "eventData": {}
+}
