@@ -185,15 +185,6 @@ public class GenerateModuleMemberDeclarationNode implements Generator {
      * {@link #getTypeDescriptorNode} (a hoisted inline object schema) - the two cases differ only
      * in where the resulting {@link TypeDefinitionNode} ends up (returned directly vs. collected
      * into {@link #hoistedTypes}), not in how it's built.
-     *
-     * <p>When the schema explicitly declares {@code additionalProperties: true} (or a schema)
-     * alongside real {@code properties} - "these known fields, plus possibly more" - the record
-     * is instead built as {@code record {| ...knownFields; json...; |}}: an inclusive ({@code {|
-     * |}}) record with an explicit {@code json} rest field. This is not a correctness fix (a
-     * plain {@code record { ... }} is open by default in Ballerina and already tolerates and
-     * preserves extra fields via {@code cloneWithType}/index access) - it's purely so the "extra
-     * fields may exist" contract the spec declares is visible in the generated type itself,
-     * instead of relying on a reader already knowing Ballerina's implicit-open-record default.
      */
     private TypeDefinitionNode buildRecordTypeDefinition(IdentifierToken typeName, AsyncApiSchema schema)
             throws GeneratorException {
