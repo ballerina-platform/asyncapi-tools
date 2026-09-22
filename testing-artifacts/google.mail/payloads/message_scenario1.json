@@ -1,0 +1,16 @@
+{
+  "id": "msg-100",
+  "threadId": "thread-050",
+  "labelIds": ["INBOX"],
+  "snippet": "This is a new email, scenario 1",
+  "internalDate": "1700000000000",
+  "payload": {
+    "mimeType": "text/plain",
+    "headers": [
+      {"name": "From", "value": "sender@example.com"},
+      {"name": "To", "value": "me@example.com"},
+      {"name": "Subject", "value": "Scenario 1 - new email"}
+    ],
+    "body": {"data": "SGVsbG8gd29ybGQ=", "size": 11}
+  }
+}
