@@ -1,0 +1,8 @@
+Action,RemoteFunction,Scenario,Tested,CodegenOK,Issue
+onFileCreate,onFileCreate,file_create,Yes,Yes,
+onFolderCreate,onFolderCreate,folder_create,Yes,Yes,
+onFileUpdate,onFileUpdate,file_update,Yes,Yes,
+onFolderUpdate,onFolderUpdate,folder_update,Yes,Yes,
+onDelete,onDelete,delete,Yes,Yes,
+onFileTrash,onFileTrash,file_trash,Yes,Yes,
+onFolderTrash,onFolderTrash,folder_trash,Yes,Yes,

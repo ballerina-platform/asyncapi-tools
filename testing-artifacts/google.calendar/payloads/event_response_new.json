@@ -1,0 +1,29 @@
+{
+  "kind": "calendar#events",
+  "etag": "\"mock-etag-response-new\"",
+  "summary": "Mock Calendar",
+  "updated": "2026-07-22T09:00:00.000Z",
+  "timeZone": "Asia/Colombo",
+  "accessRole": "owner",
+  "defaultReminders": [],
+  "nextSyncToken": "mock-sync-token-new",
+  "items": [
+    {
+      "kind": "calendar#event",
+      "etag": "\"mock-etag-new\"",
+      "id": "mock-event-new-001",
+      "status": "confirmed",
+      "created": "2026-07-22T09:00:00.000Z",
+      "updated": "2026-07-22T09:00:00.000Z",
+      "summary": "Mock New Event",
+      "start": {
+        "dateTime": "2026-07-22T10:00:00+05:30",
+        "timeZone": "Asia/Colombo"
+      },
+      "end": {
+        "dateTime": "2026-07-22T11:00:00+05:30",
+        "timeZone": "Asia/Colombo"
+      }
+    }
+  ]
+}
