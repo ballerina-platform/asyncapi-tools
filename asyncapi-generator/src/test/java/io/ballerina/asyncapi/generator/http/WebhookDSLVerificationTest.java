@@ -323,7 +323,7 @@ public class WebhookDSLVerificationTest {
                 "Should reject stale requests");
 
         // callbackUrl must be threaded through as a real configurable field, not just referenced.
-        String dataTypesContent = Files.readString(tempOutputDir.resolve("data_types.bal"));
+        String dataTypesContent = Files.readString(tempOutputDir.resolve("types.bal"));
         Assert.assertTrue(
                 dataTypesContent.contains("string callbackUrl"),
                 "ListenerConfig should declare a callbackUrl field");

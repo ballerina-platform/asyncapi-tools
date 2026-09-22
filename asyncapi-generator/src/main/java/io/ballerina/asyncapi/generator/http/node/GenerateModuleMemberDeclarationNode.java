@@ -77,7 +77,7 @@ import static io.ballerina.compiler.syntax.tree.SyntaxKind.TYPE_KEYWORD;
 
 /**
  * Generates a {@link ModuleMemberDeclarationNode} (enum, record, or type alias) for
- * {@code data_types.bal} from a single {@link AsyncApiSchema} entry.
+ * {@code types.bal} from a single {@link AsyncApiSchema} entry.
  */
 public class GenerateModuleMemberDeclarationNode implements Generator {
 

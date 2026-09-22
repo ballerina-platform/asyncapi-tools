@@ -66,7 +66,7 @@ import static io.ballerina.compiler.syntax.tree.SyntaxKind.TYPE_KEYWORD;
 
 /**
  * Generates the {@code public type ListenerConfig record { string webhookSecret?; };} type
- * definition for {@code data_types.bal}.
+ * definition for {@code types.bal}.
  *
  * <p>{@code webhookSecret} is a genuinely optional field with no default -- not a required field
  * defaulting to an empty string -- so "not configured" is an explicit, checkable absent state
