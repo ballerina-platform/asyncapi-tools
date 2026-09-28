@@ -21,8 +21,12 @@ import io.ballerina.asyncapi.core.model.component.AsyncApiSchema;
 import io.ballerina.asyncapi.generator.GeneratorException;
 import io.ballerina.compiler.syntax.tree.SyntaxInfo;
 
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
@@ -149,6 +153,55 @@ public final class CodegenUtils {
             }
         }
         return result.toString();
+    }
+
+    /**
+     * Returns {@code true} if a spec property name should be re-emitted as a camelCase record field
+     * carrying a {@code @jsondata:Name} annotation to preserve its original JSON key.
+     *
+     * <p>Only underscore-separated names qualify. A hyphenated name is left to
+     * {@link #requiresHeaderAnnotation}, which routes it to {@code @http:Header} instead, and a name
+     * that is already camelCase needs neither a rename nor an annotation.
+     *
+     * @param identifier the raw spec property name
+     * @return {@code true} if the name should be camelCased and annotated with its JSON key
+     */
+    public static boolean requiresJsonNameAnnotation(String identifier) {
+        return identifier.contains("_") && !requiresHeaderAnnotation(identifier)
+                && !toCamelCase(identifier).equals(identifier);
+    }
+
+    /**
+     * Resolves the record field names for a set of spec property names, camelCasing those that
+     * qualify while guaranteeing the result stays unique within the record.
+     *
+     * <p>Two distinct properties can camelCase to the same identifier ({@code first_name} and
+     * {@code firstName} both give {@code firstName}), which would be a duplicate-field compile
+     * error. A name that would collide keeps its original spelling instead, since a field left on
+     * its raw key binds correctly with no annotation at all - the rename is a convention
+     * improvement, never worth emitting broken code for.
+     *
+     * @param propertyNames the raw spec property names, in declaration order
+     * @return each raw property name mapped to the field name to emit for it
+     */
+    public static Map<String, String> resolveFieldNames(Collection<String> propertyNames) {
+        Set<String> taken = new HashSet<>();
+        for (String rawKey : propertyNames) {
+            if (!requiresJsonNameAnnotation(rawKey)) {
+                taken.add(rawKey);
+            }
+        }
+        Map<String, String> resolved = new LinkedHashMap<>();
+        for (String rawKey : propertyNames) {
+            if (!requiresJsonNameAnnotation(rawKey)) {
+                resolved.put(rawKey, rawKey);
+                continue;
+            }
+            String camelCased = toCamelCase(rawKey);
+            boolean available = taken.add(camelCased);
+            resolved.put(rawKey, available ? camelCased : rawKey);
+        }
+        return resolved;
     }
 
     /**
