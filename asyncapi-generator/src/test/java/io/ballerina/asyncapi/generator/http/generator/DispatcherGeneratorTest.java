@@ -231,6 +231,44 @@ public class DispatcherGeneratorTest {
     }
 
     @Test
+    void testPayloadIsBoundToTheConcreteEventTypeNotTheUnion() throws GeneratorException {
+        EventIdentifierConfig config = new EventIdentifierConfig("header", "X-Event-Type", null);
+        String source = new DispatcherGenerator(SINGLE_SERVICE, config, Optional.<WebhookAuthConfig>empty(), false)
+                .generate();
+
+        Assert.assertFalse(source.contains("cloneWithType"),
+                "cloneWithType ignores @jsondata:Name and resolves a union by first structural match, "
+                        + "so it must no longer be used to bind payloads: " + source);
+        Assert.assertTrue(source.contains("jsondata:parseAsType(payload, {}, targetType)"),
+                "The payload should be bound with parseAsType against the resolved concrete type: " + source);
+        Assert.assertTrue(source.contains("import ballerina/data.jsondata;"),
+                "Binding via parseAsType requires the data.jsondata import: " + source);
+    }
+
+    @Test
+    void testEventPayloadTypeMapRegistersEveryEventAgainstItsRecordType() throws GeneratorException {
+        EventIdentifierConfig config = new EventIdentifierConfig("header", "X-Event-Type", null);
+        String source = new DispatcherGenerator(SINGLE_SERVICE, config, Optional.<WebhookAuthConfig>empty(), false)
+                .generate();
+
+        Assert.assertTrue(source.contains("map<typedesc<GenericDataType>> EVENT_PAYLOAD_TYPES"),
+                "A module-level event-identifier to payload-type map should be generated: " + source);
+        Assert.assertTrue(source.contains("\"create\": GenericEvent"),
+                "The map should register the 'create' event against its concrete record type: " + source);
+    }
+
+    @Test
+    void testUnrecognizedEventIdentifierFailsLoudlyInsteadOfMisbinding() throws GeneratorException {
+        EventIdentifierConfig config = new EventIdentifierConfig("header", "X-Event-Type", null);
+        String source = new DispatcherGenerator(SINGLE_SERVICE, config, Optional.<WebhookAuthConfig>empty(), false)
+                .generate();
+
+        Assert.assertTrue(source.contains("Unrecognized event identifier"),
+                "An identifier with no registered type must return an error rather than silently "
+                        + "binding to whichever union member happens to match: " + source);
+    }
+
+    @Test
     void testInvalidIdentifierTypeThrows() {
         EventIdentifierConfig config = new EventIdentifierConfig("unknown", null, "event.type");
         try {

@@ -24,12 +24,15 @@ import io.ballerina.asyncapi.generator.http.model.HttpServiceType;
 import io.ballerina.asyncapi.generator.http.model.WebhookAuthConfig;
 import io.ballerina.asyncapi.generator.http.node.GenerateCryptoImportNode;
 import io.ballerina.asyncapi.generator.http.node.GenerateDispatcherServiceNode;
+import io.ballerina.asyncapi.generator.http.node.GenerateEventPayloadTypesNode;
 import io.ballerina.asyncapi.generator.http.node.GenerateHttpImportNode;
+import io.ballerina.asyncapi.generator.http.node.GenerateJsonDataImportNode;
 import io.ballerina.asyncapi.generator.http.node.GenerateLogImportNode;
 import io.ballerina.asyncapi.generator.http.node.GenerateNativeHandlerImportNode;
 import io.ballerina.asyncapi.generator.http.node.GenerateTimeImportNode;
 import io.ballerina.compiler.syntax.tree.ClassDefinitionNode;
 import io.ballerina.compiler.syntax.tree.ImportDeclarationNode;
+import io.ballerina.compiler.syntax.tree.ModuleMemberDeclarationNode;
 import io.ballerina.compiler.syntax.tree.ModulePartNode;
 import io.ballerina.compiler.syntax.tree.SyntaxTree;
 import io.ballerina.tools.text.TextDocument;
@@ -102,10 +105,14 @@ public class DispatcherGenerator {
                 new GenerateDispatcherServiceNode(serviceTypes, identifierConfig, webhookAuthConfig, batched)
                         .generate();
 
+        ModuleMemberDeclarationNode eventPayloadTypes =
+                new GenerateEventPayloadTypesNode(serviceTypes).generate();
+
         List<ImportDeclarationNode> imports = new ArrayList<>();
         imports.add(GenerateHttpImportNode.generate());
         imports.add(GenerateNativeHandlerImportNode.generate());
         imports.add(GenerateLogImportNode.generate());
+        imports.add(GenerateJsonDataImportNode.generate());
         if (webhookAuthConfig.isPresent()) {
             imports.add(GenerateCryptoImportNode.generate());
             if (webhookAuthConfig.get().freshnessHeader() != null) {
@@ -118,7 +125,7 @@ public class DispatcherGenerator {
         ModulePartNode oldRoot = syntaxTree.rootNode();
         ModulePartNode newRoot = oldRoot.modify()
                 .withImports(createNodeList(imports))
-                .withMembers(createNodeList(classNode))
+                .withMembers(createNodeList(eventPayloadTypes, classNode))
                 .apply();
         SyntaxTree modifiedTree = syntaxTree.replaceNode(oldRoot, newRoot);
 

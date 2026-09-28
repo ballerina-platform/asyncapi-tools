@@ -173,10 +173,13 @@ public class GeneratePostResourceFunctionNode implements Generator {
                     "if actionField is json && actionField != () {"
                     + " eventIdentifier = eventType + \"_\" + actionField.toString(); }"));
         }
+        String parseArgs = EventIdentifierExtractor.X_BALLERINA_EVENT_TYPE_COMPOSITE.equals(type)
+                ? "payload, eventIdentifier, eventType"
+                : "payload, eventType";
         statements.add(NodeParser.parseStatement(String.format(
-                "%s %s = check payload.cloneWithType(%s);",
+                "%s %s = check self.%s(%s);",
                 DataTypesGenerator.GENERIC_DATA_TYPE, GenerateDispatcherServiceNode.CLONE_WITH_TYPE_VAR_NAME,
-                DataTypesGenerator.GENERIC_DATA_TYPE)));
+                GenerateParseEventPayloadFuncNode.PARSE_EVENT_PAYLOAD_FUNC, parseArgs)));
         statements.add(NodeParser.parseStatement("http:Response ackResponse = new;"));
         statements.add(NodeParser.parseStatement("ackResponse.statusCode = http:STATUS_OK;"));
         statements.add(NodeParser.parseStatement("check caller->respond(ackResponse);"));

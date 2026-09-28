@@ -62,8 +62,12 @@ public class GenerateDispatchBatchFuncNode implements Generator {
             loopBody.append(" string elementEventType = eventType;");
         }
 
-        loopBody.append(String.format(" %s|error %sResult = event.cloneWithType(%s);",
-                DataTypesGenerator.GENERIC_DATA_TYPE, cloneVar, DataTypesGenerator.GENERIC_DATA_TYPE));
+        String parseArgs = EventIdentifierExtractor.X_BALLERINA_EVENT_TYPE_COMPOSITE.equals(type)
+                ? "event, eventIdentifier, eventType"
+                : "event, elementEventType";
+        loopBody.append(String.format(" %s|error %sResult = self.%s(%s);",
+                DataTypesGenerator.GENERIC_DATA_TYPE, cloneVar,
+                GenerateParseEventPayloadFuncNode.PARSE_EVENT_PAYLOAD_FUNC, parseArgs));
         loopBody.append(String.format(
                 " if %sResult is error { log:printError(\"DISPATCH_FAILED\", %sResult); continue; }",
                 cloneVar, cloneVar));
