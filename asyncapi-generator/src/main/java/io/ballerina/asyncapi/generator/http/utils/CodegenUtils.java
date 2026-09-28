@@ -21,6 +21,7 @@ import io.ballerina.asyncapi.core.model.component.AsyncApiSchema;
 import io.ballerina.asyncapi.generator.GeneratorException;
 import io.ballerina.compiler.syntax.tree.SyntaxInfo;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
@@ -40,8 +41,50 @@ public final class CodegenUtils {
     );
     private static final String REMOTE_FUNCTION_NAME_PREFIX = "on";
     private static final String SERVICE_TYPE_NAME_SUFFIX = "Service";
+    // 120-char budget less the deepest indent a doc line is emitted at (4, for a record field) and "# ".
+    private static final int DOC_TEXT_WRAP_WIDTH = 114;
 
     private CodegenUtils() {
+    }
+
+    /**
+     * Splits a spec-authored description into doc-comment lines that stay within the project's
+     * 120-character line budget once rendered as {@code # <text>}.
+     *
+     * <p>Explicit newlines in the description are always honoured as line breaks; each resulting
+     * line is then word-wrapped. A single word longer than the budget is emitted on its own line
+     * rather than split, since breaking an identifier or URL mid-token hurts more than the overflow.
+     *
+     * @param docText the raw {@code title}/{@code description} text from the spec
+     * @return the text split into wrapped lines, in order; empty if {@code docText} is null or blank
+     */
+    public static List<String> wrapDocText(String docText) {
+        if (docText == null || docText.isBlank()) {
+            return List.of();
+        }
+        List<String> wrapped = new ArrayList<>();
+        for (String paragraph : docText.split("\n")) {
+            String trimmed = paragraph.trim();
+            if (trimmed.isEmpty()) {
+                wrapped.add("");
+                continue;
+            }
+            StringBuilder line = new StringBuilder();
+            for (String word : trimmed.split("\\s+")) {
+                if (line.length() == 0) {
+                    line.append(word);
+                } else if (line.length() + 1 + word.length() <= DOC_TEXT_WRAP_WIDTH) {
+                    line.append(' ').append(word);
+                } else {
+                    wrapped.add(line.toString());
+                    line = new StringBuilder(word);
+                }
+            }
+            if (line.length() > 0) {
+                wrapped.add(line.toString());
+            }
+        }
+        return wrapped;
     }
 
     /**

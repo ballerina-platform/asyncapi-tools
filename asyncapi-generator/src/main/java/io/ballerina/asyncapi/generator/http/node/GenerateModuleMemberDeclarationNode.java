@@ -323,11 +323,9 @@ public class GenerateModuleMemberDeclarationNode implements Generator {
     private List<Node> buildDocLines(AsyncApiSchema schema) {
         List<Node> docLines = new ArrayList<>();
         String docText = schema.title() != null ? schema.title() : schema.description();
-        if (docText != null) {
-            for (String line : docText.split("\n")) {
-                docLines.add(createMarkdownDocumentationLineNode(DOCUMENTATION_DESCRIPTION,
-                        createToken(HASH_TOKEN), createNodeList(createIdentifierToken(line))));
-            }
+        for (String line : CodegenUtils.wrapDocText(docText)) {
+            docLines.add(createMarkdownDocumentationLineNode(DOCUMENTATION_DESCRIPTION,
+                    createToken(HASH_TOKEN), createNodeList(createIdentifierToken(line))));
         }
         return docLines;
     }

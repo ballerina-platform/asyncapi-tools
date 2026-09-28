@@ -142,4 +142,32 @@ public class DataTypesGeneratorTest {
         Assert.assertTrue(unionDecl.indexOf("FirstPayload") < unionDecl.indexOf("SecondPayload"),
                 "Two concrete schemas should keep their original relative order: " + unionDecl);
     }
+
+    @Test
+    void testGenerateWrapsLongFieldDescriptionsWithinLineBudget() throws GeneratorException {
+        // A real Shopify description that previously rendered as one ~210-character doc line.
+        String longDescription = "The value of the discrepancy between the calculated refund and the actual "
+                + "refund. If the kind property's value is shipping_refund, then amount returns the value of "
+                + "shipping charges refunded to the customer.";
+        AsyncApiSchema schema = AsyncApiSchema.builder()
+                .type("object")
+                .properties(Map.of("amount", AsyncApiSchema.builder()
+                        .type("string")
+                        .description(longDescription)
+                        .build()))
+                .build();
+
+        String result = new DataTypesGenerator(Map.of("OrderAdjustment", schema),
+                Optional.<WebhookAuthConfig>empty(), Optional.<ConnectionAuthConfig>empty()).generate();
+
+        for (String line : result.split("\n")) {
+            Assert.assertTrue(line.stripTrailing().length() <= 120,
+                    "Generated line exceeds the 120-character budget (" + line.stripTrailing().length()
+                            + " chars): " + line);
+        }
+        Assert.assertTrue(result.contains("# The value of the discrepancy"),
+                "The description should still be emitted as a doc comment: " + result);
+        Assert.assertTrue(result.lines().filter(line -> line.stripLeading().startsWith("#")).count() > 1,
+                "A description this long should be split across several doc-comment lines: " + result);
+    }
 }

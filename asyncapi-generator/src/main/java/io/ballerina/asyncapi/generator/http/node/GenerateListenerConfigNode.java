@@ -19,6 +19,7 @@ package io.ballerina.asyncapi.generator.http.node;
 
 import io.ballerina.asyncapi.generator.GeneratorException;
 import io.ballerina.asyncapi.generator.http.model.ConnectionAuthConfig;
+import io.ballerina.asyncapi.generator.http.utils.CodegenUtils;
 import io.ballerina.compiler.syntax.tree.MarkdownDocumentationNode;
 import io.ballerina.compiler.syntax.tree.MetadataNode;
 import io.ballerina.compiler.syntax.tree.Node;
@@ -313,7 +314,7 @@ public class GenerateListenerConfigNode {
      */
     private static MetadataNode buildFieldDocumentation(String description) {
         List<Node> docLines = new ArrayList<>();
-        for (String line : description.split("\n")) {
+        for (String line : CodegenUtils.wrapDocText(description)) {
             docLines.add(createMarkdownDocumentationLineNode(DOCUMENTATION_DESCRIPTION,
                     createToken(HASH_TOKEN), createNodeList(createIdentifierToken(line))));
         }
