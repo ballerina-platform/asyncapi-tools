@@ -142,6 +142,7 @@ public class DispatchTestGenerator {
 
         source.append(buildSendHelper());
         source.append(buildWaitHelper());
+        source.append(buildBoundPayloadHelper());
 
         for (DispatchTestCase testCase : testCases) {
             source.append(buildTestFunction(testCase));
@@ -269,7 +270,7 @@ public class DispatchTestGenerator {
             return "";
         }
         StringBuilder sb = new StringBuilder();
-        sb.append("    map<json> bound = <map<json>>boundPayloads[\"").append(trackerKey).append("\"];\n");
+        sb.append("    map<json> bound = boundPayloadOf(\"").append(trackerKey).append("\");\n");
         for (String rawKey : renamedKeys) {
             sb.append("    test:assertFalse(bound.hasKey(\"").append(rawKey).append("\"), \"'")
                     .append(rawKey).append("' should have bound to its camelCase field on ")
@@ -284,6 +285,18 @@ public class DispatchTestGenerator {
      * finished running yet on the server side. Polls {@code triggerFired} briefly instead of
      * checking it once immediately after the response returns.
      */
+    private String buildBoundPayloadHelper() {
+        if (renamedKeysByType.isEmpty()) {
+            return "";
+        }
+        return "function boundPayloadOf(string trackerKey) returns map<json> {\n"
+                + "    lock {\n"
+                + "        json payload = boundPayloads[trackerKey] ?: {};\n"
+                + "        return payload is map<json> ? payload.clone() : {};\n"
+                + "    }\n"
+                + "}\n\n";
+    }
+
     private String buildWaitHelper() {
         return "function waitForDispatch(string trackerKey) returns boolean {\n"
                 + "    foreach int i in 0 ..< 20 {\n"
