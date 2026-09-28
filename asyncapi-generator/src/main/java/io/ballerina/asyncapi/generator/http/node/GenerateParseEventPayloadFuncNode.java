@@ -33,6 +33,11 @@ import io.ballerina.compiler.syntax.tree.NodeParser;
  *
  * <p>A composite identifier is looked up by its compound value first, falling back to the bare
  * event type, mirroring how the dispatch match statements are ordered for the same events.
+ *
+ * <p>{@code nilAsOptionalField} is required because providers routinely send an explicit JSON
+ * {@code null} for an unset optional field (Shopify sends {@code "note": null} on most order
+ * events), which {@code parseAsType} otherwise rejects outright as an incompatible value for the
+ * field's non-nilable type. {@code absentAsNilableType} is its counterpart for a missing member.
  */
 public class GenerateParseEventPayloadFuncNode implements Generator {
 
@@ -48,7 +53,9 @@ public class GenerateParseEventPayloadFuncNode implements Generator {
                         + " targetType = %s[fallbackKey]; }"
                         + " if targetType is () {"
                         + " return error(string `Unrecognized event identifier: ${eventKey}`); }"
-                        + " return jsondata:parseAsType(payload, {}, targetType);"
+                        + " return jsondata:parseAsType(payload,"
+                        + " {allowDataProjection: {nilAsOptionalField: true, absentAsNilableType: true}},"
+                        + " targetType);"
                         + " }",
                 PARSE_EVENT_PAYLOAD_FUNC,
                 DataTypesGenerator.GENERIC_DATA_TYPE,

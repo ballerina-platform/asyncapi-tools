@@ -239,10 +239,27 @@ public class DispatcherGeneratorTest {
         Assert.assertFalse(source.contains("cloneWithType"),
                 "cloneWithType ignores @jsondata:Name and resolves a union by first structural match, "
                         + "so it must no longer be used to bind payloads: " + source);
-        Assert.assertTrue(source.contains("jsondata:parseAsType(payload, {}, targetType)"),
+        Assert.assertTrue(source.contains("jsondata:parseAsType(payload"),
                 "The payload should be bound with parseAsType against the resolved concrete type: " + source);
+        Assert.assertTrue(source.contains("targetType)"),
+                "parseAsType should be given the resolved concrete type: " + source);
         Assert.assertTrue(source.contains("import ballerina/data.jsondata;"),
                 "Binding via parseAsType requires the data.jsondata import: " + source);
+    }
+
+    @Test
+    void testParseToleratesExplicitNullsForOptionalFields() throws GeneratorException {
+        // Providers routinely send "field": null for an unset optional field. Without projection
+        // enabled, parseAsType rejects that outright as an incompatible value for a non-nilable
+        // type, which fails the whole delivery.
+        EventIdentifierConfig config = new EventIdentifierConfig("header", "X-Event-Type", null);
+        String source = new DispatcherGenerator(SINGLE_SERVICE, config, Optional.<WebhookAuthConfig>empty(), false)
+                .generate();
+
+        Assert.assertTrue(source.contains("nilAsOptionalField: true"),
+                "An explicit JSON null for an optional field must not fail the delivery: " + source);
+        Assert.assertTrue(source.contains("absentAsNilableType: true"),
+                "A missing member should bind as nil for a nilable field: " + source);
     }
 
     @Test
