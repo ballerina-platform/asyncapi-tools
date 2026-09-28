@@ -142,7 +142,7 @@ public class HttpCodeGenerator {
             List<DispatchTestCase> testCases = new DispatchTestCaseExtractor(asyncApiSpec).extract();
             if (!testCases.isEmpty()) {
                 String dispatchTestContent =
-                        new DispatchTestGenerator(testCases, webhookAuthConfig.get()).generate();
+                        new DispatchTestGenerator(testCases, webhookAuthConfig.get(), schemas).generate();
                 Path writtenDispatchTest = writeFile(
                         outputPath.resolve(DISPATCH_TEST_BAL), LICENSE_HEADER + dispatchTestContent);
                 LOG.info("Also generated -- {}", writtenDispatchTest.getFileName());

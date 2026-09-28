@@ -17,9 +17,11 @@
  */
 package io.ballerina.asyncapi.generator.http.generator;
 
+import io.ballerina.asyncapi.core.model.component.AsyncApiSchema;
 import io.ballerina.asyncapi.generator.GeneratorException;
 import io.ballerina.asyncapi.generator.http.model.DispatchTestCase;
 import io.ballerina.asyncapi.generator.http.model.WebhookAuthConfig;
+import io.ballerina.asyncapi.generator.http.utils.CodegenUtils;
 import io.ballerina.asyncapi.generator.http.utils.HeaderTemplateParser;
 import io.ballerina.asyncapi.generator.http.utils.HeaderTemplateParser.HeaderTemplate;
 import io.ballerina.compiler.syntax.tree.SyntaxTree;
@@ -30,8 +32,10 @@ import org.ballerinalang.formatter.core.FormatterException;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Generates {@code tests/dispatch_test.bal}: one real {@code @test:Config} dispatch-verification
@@ -58,6 +62,7 @@ public class DispatchTestGenerator {
 
     private final List<DispatchTestCase> testCases;
     private final WebhookAuthConfig webhookAuthConfig;
+    private final Map<String, Set<String>> renamedKeysByType;
 
     /**
      * Creates a generator for the given dispatch test cases and webhook auth configuration.
@@ -66,8 +71,50 @@ public class DispatchTestGenerator {
      * @param webhookAuthConfig the webhook authentication configuration (header name, algorithm)
      */
     public DispatchTestGenerator(List<DispatchTestCase> testCases, WebhookAuthConfig webhookAuthConfig) {
+        this(testCases, webhookAuthConfig, Map.of());
+    }
+
+    /**
+     * Creates a generator that also asserts renamed fields survive payload binding.
+     *
+     * @param testCases         the extracted dispatch test cases, one per event
+     * @param webhookAuthConfig the webhook authentication configuration (header name, algorithm)
+     * @param schemas           the schema map, used to work out which raw JSON keys each payload
+     *                          type re-emits under a camelCase field name
+     */
+    public DispatchTestGenerator(List<DispatchTestCase> testCases, WebhookAuthConfig webhookAuthConfig,
+            Map<String, AsyncApiSchema> schemas) {
         this.testCases = testCases;
         this.webhookAuthConfig = webhookAuthConfig;
+        this.renamedKeysByType = resolveRenamedKeys(schemas);
+    }
+
+    /**
+     * Maps each payload type name to the raw JSON keys it re-emits under a camelCase field.
+     *
+     * <p>Binding failures in this area are silent - a field whose annotation is not honoured comes
+     * back {@code nil} while its raw key sits unreachable in the rest descriptor, with no error
+     * raised. Knowing the renamed keys lets the generated tests assert on exactly that.
+     */
+    private static Map<String, Set<String>> resolveRenamedKeys(Map<String, AsyncApiSchema> schemas) {
+        Map<String, Set<String>> renamed = new LinkedHashMap<>();
+        for (Map.Entry<String, AsyncApiSchema> entry : schemas.entrySet()) {
+            AsyncApiSchema schema = entry.getValue();
+            if (schema == null || schema.properties() == null) {
+                continue;
+            }
+            Set<String> keys = new LinkedHashSet<>();
+            CodegenUtils.resolveFieldNames(schema.properties().keySet()).forEach((rawKey, fieldName) -> {
+                if (!rawKey.equals(fieldName)) {
+                    keys.add(rawKey);
+                }
+            });
+            if (!keys.isEmpty()) {
+                renamed.put(CodegenUtils.getValidName(CodegenUtils.escapeIdentifier(entry.getKey().trim()), true),
+                        keys);
+            }
+        }
+        return renamed;
     }
 
     /**
@@ -122,7 +169,8 @@ public class DispatchTestGenerator {
                 + "const string TRIGGER_TEST_SECRET = \"" + TEST_SECRET + "\";\n"
                 + "const int TRIGGER_TEST_PORT = " + TEST_PORT + ";\n"
                 + "const string TRIGGER_PAYLOAD_DIR = \"" + DEFAULT_PAYLOAD_DIR + "\";\n\n"
-                + "map<boolean> triggerFired = {};\n\n"
+                + "map<boolean> triggerFired = {};\n"
+                + "map<json> boundPayloads = {};\n\n"
                 + "listener Listener triggerTestListener = "
                 + "check new ({webhookSecret: TRIGGER_TEST_SECRET}, TRIGGER_TEST_PORT);\n\n";
     }
@@ -131,11 +179,14 @@ public class DispatchTestGenerator {
         StringBuilder sb = new StringBuilder();
         sb.append("service ").append(serviceTypeName).append(" on triggerTestListener {\n");
         for (DispatchTestCase testCase : functions) {
+            String trackerKey = serviceTypeName + "." + testCase.functionName();
             sb.append("    remote function ").append(testCase.functionName())
                     .append("(").append(testCase.payloadTypeName()).append(" payload) returns error? {\n")
-                    .append("        triggerFired[\"").append(serviceTypeName).append(".")
-                    .append(testCase.functionName()).append("\"] = true;\n")
-                    .append("    }\n");
+                    .append("        triggerFired[\"").append(trackerKey).append("\"] = true;\n");
+            if (renamedKeysByType.containsKey(testCase.payloadTypeName())) {
+                sb.append("        boundPayloads[\"").append(trackerKey).append("\"] = payload.toJson();\n");
+            }
+            sb.append("    }\n");
         }
         sb.append("}\n\n");
         return sb.toString();
@@ -199,7 +250,32 @@ public class DispatchTestGenerator {
                 + "    test:assertEquals(response.statusCode, http:STATUS_OK);\n"
                 + "    test:assertTrue(waitForDispatch(\"" + trackerKey + "\"), \""
                 + trackerKey + " should have fired\");\n"
+                + buildBindingAssertions(testCase, trackerKey)
                 + "}\n\n";
+    }
+
+    /**
+     * Emits assertions that every renamed field actually bound, for payload types that have any.
+     *
+     * <p>A rename that is not honoured fails silently: the field reads {@code nil} while its raw
+     * key sits in the rest descriptor, so asserting only that the right handler fired would pass
+     * either way. Checking that no raw key survived on the bound payload is what makes the
+     * regression visible. A fixture that happens not to carry the key passes trivially, which is
+     * correct - there is nothing to bind in that case.
+     */
+    private String buildBindingAssertions(DispatchTestCase testCase, String trackerKey) {
+        Set<String> renamedKeys = renamedKeysByType.get(testCase.payloadTypeName());
+        if (renamedKeys == null || renamedKeys.isEmpty()) {
+            return "";
+        }
+        StringBuilder sb = new StringBuilder();
+        sb.append("    map<json> bound = <map<json>>boundPayloads[\"").append(trackerKey).append("\"];\n");
+        for (String rawKey : renamedKeys) {
+            sb.append("    test:assertFalse(bound.hasKey(\"").append(rawKey).append("\"), \"'")
+                    .append(rawKey).append("' should have bound to its camelCase field on ")
+                    .append(testCase.payloadTypeName()).append(", not stayed a raw key\");\n");
+        }
+        return sb.toString();
     }
 
     /**
