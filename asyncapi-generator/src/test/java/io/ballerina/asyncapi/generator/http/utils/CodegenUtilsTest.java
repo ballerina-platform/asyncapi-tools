@@ -213,4 +213,21 @@ public class CodegenUtilsTest {
         Assert.assertEquals(CodegenUtils.wrapDocText("See " + longWord + " for details."),
                 List.of("See", longWord, "for details."));
     }
+
+    @Test
+    void testWrapDocText_nestedListIndentationIsPreserved() {
+        Assert.assertEquals(CodegenUtils.wrapDocText("- first\n  - nested"),
+                List.of("- first", "  - nested"));
+    }
+
+    @Test
+    void testWrapDocText_indentedLineWrapsWithIndentRepeatedOnContinuations() {
+        String indented = "  " + "word ".repeat(30).trim();
+        List<String> lines = CodegenUtils.wrapDocText(indented);
+        Assert.assertTrue(lines.size() > 1, "An over-long indented line should wrap onto several lines");
+        for (String line : lines) {
+            Assert.assertTrue(line.startsWith("  "), "Every continuation should repeat the original indent: " + line);
+            Assert.assertTrue(line.length() <= 114, "Wrapped line exceeds the doc-text budget: " + line);
+        }
+    }
 }
