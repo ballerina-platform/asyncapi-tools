@@ -55,6 +55,10 @@ public final class CodegenUtils {
      * line is then word-wrapped. A single word longer than the budget is emitted on its own line
      * rather than split, since breaking an identifier or URL mid-token hurts more than the overflow.
      *
+     * <p>A line's leading indentation (e.g. a nested Markdown list item) is preserved and repeated
+     * on every wrapped continuation of that line, so an indented example doesn't flatten into a
+     * top-level one.
+     *
      * @param docText the raw {@code title}/{@code description} text from the spec
      * @return the text split into wrapped lines, in order; empty if {@code docText} is null or blank
      */
@@ -64,23 +68,32 @@ public final class CodegenUtils {
         }
         List<String> wrapped = new ArrayList<>();
         for (String paragraph : docText.split("\n")) {
-            String trimmed = paragraph.trim();
-            if (trimmed.isEmpty()) {
+            if (paragraph.isBlank()) {
                 wrapped.add("");
                 continue;
             }
-            StringBuilder line = new StringBuilder();
-            for (String word : trimmed.split("\\s+")) {
-                if (line.length() == 0) {
+            int contentStart = 0;
+            while (contentStart < paragraph.length() && Character.isWhitespace(paragraph.charAt(contentStart))) {
+                contentStart++;
+            }
+            String indent = paragraph.substring(0, contentStart);
+            String content = paragraph.substring(contentStart).stripTrailing();
+            int width = Math.max(DOC_TEXT_WRAP_WIDTH, indent.length() + 1);
+
+            StringBuilder line = new StringBuilder(indent);
+            boolean lineHasWord = false;
+            for (String word : content.split("\\s+")) {
+                if (!lineHasWord) {
                     line.append(word);
-                } else if (line.length() + 1 + word.length() <= DOC_TEXT_WRAP_WIDTH) {
+                    lineHasWord = true;
+                } else if (line.length() + 1 + word.length() <= width) {
                     line.append(' ').append(word);
                 } else {
                     wrapped.add(line.toString());
-                    line = new StringBuilder(word);
+                    line = new StringBuilder(indent).append(word);
                 }
             }
-            if (line.length() > 0) {
+            if (lineHasWord) {
                 wrapped.add(line.toString());
             }
         }
