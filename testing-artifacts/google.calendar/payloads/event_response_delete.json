@@ -1,0 +1,18 @@
+{
+  "kind": "calendar#events",
+  "etag": "\"mock-etag-response-delete\"",
+  "summary": "Mock Calendar",
+  "updated": "2026-07-22T09:45:00.000Z",
+  "timeZone": "Asia/Colombo",
+  "accessRole": "owner",
+  "defaultReminders": [],
+  "nextSyncToken": "mock-sync-token-delete",
+  "items": [
+    {
+      "kind": "calendar#event",
+      "etag": "\"mock-etag-delete\"",
+      "id": "mock-event-delete-001",
+      "status": "cancelled"
+    }
+  ]
+}

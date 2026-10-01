@@ -1,0 +1,8 @@
+"Action","HttpStatus","Fired"
+"onFileCreate","200","True"
+"onFolderCreate","200","True"
+"onFileUpdate","200","True"
+"onFolderUpdate","200","True"
+"onDelete","200","True"
+"onFileTrash","200","True"
+"onFolderTrash","200","True"

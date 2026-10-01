@@ -1,0 +1,3 @@
+FIRED::CalendarService::onNewEvent
+FIRED::CalendarService::onEventUpdate
+FIRED::CalendarService::onEventDelete
