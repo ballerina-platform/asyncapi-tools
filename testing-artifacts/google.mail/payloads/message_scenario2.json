@@ -1,0 +1,14 @@
+{
+  "id": "msg-200",
+  "threadId": "msg-200",
+  "labelIds": ["INBOX"],
+  "snippet": "This is a new thread starter, scenario 2",
+  "internalDate": "1700000001000",
+  "payload": {
+    "mimeType": "text/plain",
+    "headers": [
+      {"name": "Subject", "value": "Scenario 2 - new thread"}
+    ],
+    "body": {"data": "SGVsbG8=", "size": 5}
+  }
+}

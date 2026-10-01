@@ -1,0 +1,17 @@
+{
+  "history": [
+    {
+      "id": "1003",
+      "messagesAdded": [
+        {
+          "message": {
+            "id": "msg-300",
+            "threadId": "thread-150",
+            "labelIds": ["INBOX"]
+          }
+        }
+      ]
+    }
+  ],
+  "historyId": "1003"
+}
