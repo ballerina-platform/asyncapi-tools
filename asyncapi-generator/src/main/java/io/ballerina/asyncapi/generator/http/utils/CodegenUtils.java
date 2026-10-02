@@ -21,6 +21,7 @@ import io.ballerina.asyncapi.core.model.component.AsyncApiSchema;
 import io.ballerina.asyncapi.generator.GeneratorException;
 import io.ballerina.compiler.syntax.tree.SyntaxInfo;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
@@ -40,8 +41,63 @@ public final class CodegenUtils {
     );
     private static final String REMOTE_FUNCTION_NAME_PREFIX = "on";
     private static final String SERVICE_TYPE_NAME_SUFFIX = "Service";
+    // 120-char budget less the deepest indent a doc line is emitted at (4, for a record field) and "# ".
+    private static final int DOC_TEXT_WRAP_WIDTH = 114;
 
     private CodegenUtils() {
+    }
+
+    /**
+     * Splits a spec-authored description into doc-comment lines that stay within the project's
+     * 120-character line budget once rendered as {@code # <text>}.
+     *
+     * <p>Explicit newlines in the description are always honoured as line breaks; each resulting
+     * line is then word-wrapped. A single word longer than the budget is emitted on its own line
+     * rather than split, since breaking an identifier or URL mid-token hurts more than the overflow.
+     *
+     * <p>A line's leading indentation (e.g. a nested Markdown list item) is preserved and repeated
+     * on every wrapped continuation of that line, so an indented example doesn't flatten into a
+     * top-level one.
+     *
+     * @param docText the raw {@code title}/{@code description} text from the spec
+     * @return the text split into wrapped lines, in order; empty if {@code docText} is null or blank
+     */
+    public static List<String> wrapDocText(String docText) {
+        if (docText == null || docText.isBlank()) {
+            return List.of();
+        }
+        List<String> wrapped = new ArrayList<>();
+        for (String paragraph : docText.split("\n")) {
+            if (paragraph.isBlank()) {
+                wrapped.add("");
+                continue;
+            }
+            int contentStart = 0;
+            while (contentStart < paragraph.length() && Character.isWhitespace(paragraph.charAt(contentStart))) {
+                contentStart++;
+            }
+            String indent = paragraph.substring(0, contentStart);
+            String content = paragraph.substring(contentStart).stripTrailing();
+            int width = Math.max(DOC_TEXT_WRAP_WIDTH, indent.length() + 1);
+
+            StringBuilder line = new StringBuilder(indent);
+            boolean lineHasWord = false;
+            for (String word : content.split("\\s+")) {
+                if (!lineHasWord) {
+                    line.append(word);
+                    lineHasWord = true;
+                } else if (line.length() + 1 + word.length() <= width) {
+                    line.append(' ').append(word);
+                } else {
+                    wrapped.add(line.toString());
+                    line = new StringBuilder(indent).append(word);
+                }
+            }
+            if (lineHasWord) {
+                wrapped.add(line.toString());
+            }
+        }
+        return wrapped;
     }
 
     /**
