@@ -135,7 +135,7 @@ public class GenerateMatchStatementNode implements Generator {
 
         SeparatedNodeList<FunctionArgumentNode> args = createSeparatedNodeList(
                 createPositionalArgumentNode(createSimpleNameReferenceNode(
-                        createIdentifierToken(GenerateDispatcherServiceNode.CLONE_WITH_TYPE_VAR_NAME))),
+                        createIdentifierToken(GenerateDispatcherServiceNode.PAYLOAD_VAR_NAME))),
                 createToken(SyntaxKind.COMMA_TOKEN),
                 createPositionalArgumentNode(createSimpleNameReferenceNode(
                         createIdentifierToken(String.format("\"%s\"", eventName)))),

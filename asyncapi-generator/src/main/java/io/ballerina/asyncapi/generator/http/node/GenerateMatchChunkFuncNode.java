@@ -19,7 +19,6 @@
 package io.ballerina.asyncapi.generator.http.node;
 
 import io.ballerina.asyncapi.generator.GeneratorException;
-import io.ballerina.asyncapi.generator.http.generator.DataTypesGenerator;
 import io.ballerina.asyncapi.generator.http.model.HttpServiceType;
 import io.ballerina.compiler.syntax.tree.FunctionBodyBlockNode;
 import io.ballerina.compiler.syntax.tree.FunctionDefinitionNode;
@@ -41,7 +40,6 @@ import static io.ballerina.compiler.syntax.tree.NodeFactory.createFunctionBodyBl
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createFunctionDefinitionNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createFunctionSignatureNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createRequiredParameterNode;
-import static io.ballerina.compiler.syntax.tree.NodeFactory.createSimpleNameReferenceNode;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.CLOSE_BRACE_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.CLOSE_PAREN_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.COMMA_TOKEN;
@@ -112,10 +110,9 @@ public class GenerateMatchChunkFuncNode implements Generator {
             params = createSeparatedNodeList(
                 createRequiredParameterNode(
                     createEmptyNodeList(),
-                    createSimpleNameReferenceNode(createIdentifierToken(
-                        DataTypesGenerator.GENERIC_DATA_TYPE)),
+                    createBuiltinSimpleNameReferenceNode(null, createIdentifierToken("json")),
                     createIdentifierToken(
-                        GenerateDispatcherServiceNode.CLONE_WITH_TYPE_VAR_NAME)),
+                        GenerateDispatcherServiceNode.PAYLOAD_VAR_NAME)),
                 createToken(COMMA_TOKEN),
                 createRequiredParameterNode(
                     createEmptyNodeList(),
@@ -132,10 +129,9 @@ public class GenerateMatchChunkFuncNode implements Generator {
             params = createSeparatedNodeList(
                 createRequiredParameterNode(
                     createEmptyNodeList(),
-                    createSimpleNameReferenceNode(createIdentifierToken(
-                        DataTypesGenerator.GENERIC_DATA_TYPE)),
+                    createBuiltinSimpleNameReferenceNode(null, createIdentifierToken("json")),
                     createIdentifierToken(
-                        GenerateDispatcherServiceNode.CLONE_WITH_TYPE_VAR_NAME)),
+                        GenerateDispatcherServiceNode.PAYLOAD_VAR_NAME)),
                 createToken(COMMA_TOKEN),
                 createRequiredParameterNode(
                     createEmptyNodeList(),
@@ -146,10 +142,9 @@ public class GenerateMatchChunkFuncNode implements Generator {
             params = createSeparatedNodeList(
                 createRequiredParameterNode(
                     createEmptyNodeList(),
-                    createSimpleNameReferenceNode(createIdentifierToken(
-                        DataTypesGenerator.GENERIC_DATA_TYPE)),
+                    createBuiltinSimpleNameReferenceNode(null, createIdentifierToken("json")),
                     createIdentifierToken(
-                        GenerateDispatcherServiceNode.CLONE_WITH_TYPE_VAR_NAME)));
+                        GenerateDispatcherServiceNode.PAYLOAD_VAR_NAME)));
         }
 
         FunctionSignatureNode signature = createFunctionSignatureNode(

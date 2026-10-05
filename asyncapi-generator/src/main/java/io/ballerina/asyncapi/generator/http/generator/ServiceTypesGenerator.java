@@ -79,7 +79,8 @@ public class ServiceTypesGenerator {
             serviceNodes.add(typeDefNode);
         }
 
-        Generator unionGen = new GenerateUnionDescriptorNode(typeDescriptors, GENERIC_SERVICE_TYPE);
+        Generator unionGen = new GenerateUnionDescriptorNode(typeDescriptors, GENERIC_SERVICE_TYPE,
+                "The union of every service type that can be attached to this listener.");
         serviceNodes.add(unionGen.generate());
 
         TextDocument textDocument = TextDocuments.from("\n");

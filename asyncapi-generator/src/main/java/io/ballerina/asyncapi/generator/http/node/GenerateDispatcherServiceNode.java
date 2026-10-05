@@ -90,7 +90,7 @@ public class GenerateDispatcherServiceNode implements Generator {
     public static final String DISPATCHER_SERVICE_CLASS_NAME = "DispatcherService";
     public static final String DISPATCHER_SERVICES_FIELD = "services";
     public static final String DISPATCHER_NATIVE_HANDLER_FIELD = "nativeHandler";
-    public static final String CLONE_WITH_TYPE_VAR_NAME = "genericDataType";
+    public static final String PAYLOAD_VAR_NAME = "payload";
     private static final String NATIVE_HANDLER_TYPE = "NativeHandler";
     public static final String WEBHOOK_SECRET_FIELD = "webhookSecret";
 
@@ -120,7 +120,7 @@ public class GenerateDispatcherServiceNode implements Generator {
         String eventIdentifierPath;
         if (EventIdentifierExtractor.X_BALLERINA_EVENT_TYPE_BODY.equals(identifierConfig.type())) {
             eventIdentifierPath = String.format("%s.%s",
-                    CLONE_WITH_TYPE_VAR_NAME, identifierConfig.path());
+                    PAYLOAD_VAR_NAME, identifierConfig.path());
         } else {
             eventIdentifierPath = "eventIdentifier";
         }
@@ -137,7 +137,6 @@ public class GenerateDispatcherServiceNode implements Generator {
         }
         members.add(buildFunc(new GenerateAddServiceRefFuncNode()));
         members.add(buildFunc(new GenerateRemoveServiceRefFuncNode()));
-        members.add(buildFunc(new GenerateParseEventPayloadFuncNode()));
         members.add(buildFunc(new GeneratePostResourceFunctionNode(identifierConfig, webhookAuthConfig, batched)));
         if (batched) {
             members.add(buildFunc(new GenerateDispatchBatchFuncNode(identifierConfig)));

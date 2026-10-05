@@ -19,7 +19,6 @@ package io.ballerina.asyncapi.generator.http.node;
 
 import io.ballerina.asyncapi.generator.GeneratorException;
 import io.ballerina.asyncapi.generator.http.extractor.EventIdentifierExtractor;
-import io.ballerina.asyncapi.generator.http.generator.DataTypesGenerator;
 import io.ballerina.asyncapi.generator.http.model.EventIdentifierConfig;
 import io.ballerina.asyncapi.generator.http.model.HttpServiceType;
 import io.ballerina.compiler.syntax.tree.CheckExpressionNode;
@@ -128,8 +127,8 @@ public class GenerateMatchRemoteFuncNode implements Generator {
             params = createSeparatedNodeList(
                     createRequiredParameterNode(
                             createEmptyNodeList(),
-                            createSimpleNameReferenceNode(createIdentifierToken(DataTypesGenerator.GENERIC_DATA_TYPE)),
-                            createIdentifierToken(GenerateDispatcherServiceNode.CLONE_WITH_TYPE_VAR_NAME)),
+                            createBuiltinSimpleNameReferenceNode(null, createIdentifierToken("json")),
+                            createIdentifierToken(GenerateDispatcherServiceNode.PAYLOAD_VAR_NAME)),
                     createToken(COMMA_TOKEN),
                     createRequiredParameterNode(
                             createEmptyNodeList(),
@@ -144,8 +143,8 @@ public class GenerateMatchRemoteFuncNode implements Generator {
             params = createSeparatedNodeList(
                     createRequiredParameterNode(
                             createEmptyNodeList(),
-                            createSimpleNameReferenceNode(createIdentifierToken(DataTypesGenerator.GENERIC_DATA_TYPE)),
-                            createIdentifierToken(GenerateDispatcherServiceNode.CLONE_WITH_TYPE_VAR_NAME)),
+                            createBuiltinSimpleNameReferenceNode(null, createIdentifierToken("json")),
+                            createIdentifierToken(GenerateDispatcherServiceNode.PAYLOAD_VAR_NAME)),
                     createToken(COMMA_TOKEN),
                     createRequiredParameterNode(
                             createEmptyNodeList(),
@@ -173,7 +172,7 @@ public class GenerateMatchRemoteFuncNode implements Generator {
                 chunkArgs = createSeparatedNodeList(
                         createPositionalArgumentNode(
                                 createSimpleNameReferenceNode(createIdentifierToken(
-                                        GenerateDispatcherServiceNode.CLONE_WITH_TYPE_VAR_NAME))),
+                                        GenerateDispatcherServiceNode.PAYLOAD_VAR_NAME))),
                         createToken(COMMA_TOKEN),
                         createPositionalArgumentNode(
                                 createSimpleNameReferenceNode(createIdentifierToken("eventIdentifier"))),
@@ -184,7 +183,7 @@ public class GenerateMatchRemoteFuncNode implements Generator {
                 chunkArgs = createSeparatedNodeList(
                         createPositionalArgumentNode(
                                 createSimpleNameReferenceNode(createIdentifierToken(
-                                        GenerateDispatcherServiceNode.CLONE_WITH_TYPE_VAR_NAME))),
+                                        GenerateDispatcherServiceNode.PAYLOAD_VAR_NAME))),
                         createToken(COMMA_TOKEN),
                         createPositionalArgumentNode(
                                 createSimpleNameReferenceNode(createIdentifierToken("eventType"))));
@@ -192,7 +191,7 @@ public class GenerateMatchRemoteFuncNode implements Generator {
                 chunkArgs = createSeparatedNodeList(
                         createPositionalArgumentNode(
                                 createSimpleNameReferenceNode(createIdentifierToken(
-                                        GenerateDispatcherServiceNode.CLONE_WITH_TYPE_VAR_NAME))));
+                                        GenerateDispatcherServiceNode.PAYLOAD_VAR_NAME))));
             }
 
             MethodCallExpressionNode call = createMethodCallExpressionNode(

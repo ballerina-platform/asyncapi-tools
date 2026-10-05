@@ -172,7 +172,7 @@ public class DispatcherGeneratorTest {
         Assert.assertTrue(ackIndex < dispatchIndex,
                 "The ack must be sent before dispatching to the user's handler, so a handler error can "
                         + "never prevent the caller from receiving an acknowledgement");
-        Assert.assertFalse(source.contains("check self.matchRemoteFunc(genericDataType, eventType);"),
+        Assert.assertFalse(source.contains("check self.matchRemoteFunc(payload, eventType);"),
                 "The post resource function's dispatch call must not use check - a handler error should "
                         + "be caught and logged, not propagated and left unacknowledged");
     }
@@ -231,58 +231,60 @@ public class DispatcherGeneratorTest {
     }
 
     @Test
-    void testPayloadIsBoundToTheConcreteEventTypeNotTheUnion() throws GeneratorException {
+    void testPayloadBindingIsDelegatedToTheNativeHandlerNotCloneWithType() throws GeneratorException {
         EventIdentifierConfig config = new EventIdentifierConfig("header", "X-Event-Type", null);
         String source = new DispatcherGenerator(SINGLE_SERVICE, config, Optional.<WebhookAuthConfig>empty(), false)
                 .generate();
 
         Assert.assertFalse(source.contains("cloneWithType"),
                 "cloneWithType ignores @jsondata:Name and resolves a union by first structural match, "
-                        + "so it must no longer be used to bind payloads: " + source);
-        Assert.assertTrue(source.contains("jsondata:parseAsType(payload"),
-                "The payload should be bound with parseAsType against the resolved concrete type: " + source);
-        Assert.assertTrue(source.contains("targetType)"),
-                "parseAsType should be given the resolved concrete type: " + source);
-        Assert.assertTrue(source.contains("import ballerina/data.jsondata;"),
-                "Binding via parseAsType requires the data.jsondata import: " + source);
+                        + "so it must not be used to bind payloads: " + source);
+        Assert.assertFalse(source.contains("GenericDataType") || source.contains("EVENT_PAYLOAD_TYPES")
+                        || source.contains("parseEventPayload"),
+                "No generated union type or event-to-type table should remain; the target type is "
+                        + "discovered from the attached service's own remote function: " + source);
+        Assert.assertTrue(source.contains("bindEventPayload(genericService, eventFunction, payload)"),
+                "executeRemoteFunc should bind the raw payload against the attached service's remote "
+                        + "function via the native handler: " + source);
     }
 
     @Test
-    void testParseToleratesExplicitNullsForOptionalFields() throws GeneratorException {
-        // Providers routinely send "field": null for an unset optional field. Without projection
-        // enabled, parseAsType rejects that outright as an incompatible value for a non-nilable
-        // type, which fails the whole delivery.
+    void testBindingHappensAtDispatchBeforeInvokingTheHandler() throws GeneratorException {
         EventIdentifierConfig config = new EventIdentifierConfig("header", "X-Event-Type", null);
         String source = new DispatcherGenerator(SINGLE_SERVICE, config, Optional.<WebhookAuthConfig>empty(), false)
                 .generate();
 
-        Assert.assertTrue(source.contains("nilAsOptionalField: true"),
-                "An explicit JSON null for an optional field must not fail the delivery: " + source);
-        Assert.assertTrue(source.contains("absentAsNilableType: true"),
-                "A missing member should bind as nil for a nilable field: " + source);
+        int executeStart = source.indexOf("isolated function executeRemoteFunc");
+        int bindIndex = source.indexOf("bindEventPayload(");
+        int invokeIndex = source.indexOf("invokeRemoteFunction(");
+        Assert.assertTrue(executeStart >= 0 && bindIndex > executeStart,
+                "Binding belongs inside executeRemoteFunc, where the attached service is known, not in "
+                        + "the post resource function: " + source);
+        Assert.assertTrue(invokeIndex > bindIndex,
+                "The payload must be bound before the user's remote function is invoked with it: " + source);
     }
 
     @Test
-    void testEventPayloadTypeMapRegistersEveryEventAgainstItsRecordType() throws GeneratorException {
+    void testRoutingFunctionsCarryTheRawPayloadAsJson() throws GeneratorException {
         EventIdentifierConfig config = new EventIdentifierConfig("header", "X-Event-Type", null);
         String source = new DispatcherGenerator(SINGLE_SERVICE, config, Optional.<WebhookAuthConfig>empty(), false)
                 .generate();
 
-        Assert.assertTrue(source.contains("map<typedesc<GenericDataType>> EVENT_PAYLOAD_TYPES"),
-                "A module-level event-identifier to payload-type map should be generated: " + source);
-        Assert.assertTrue(source.contains("\"create\": GenericEvent"),
-                "The map should register the 'create' event against its concrete record type: " + source);
+        Assert.assertTrue(source.contains("matchRemoteFunc(json payload, string eventType)"),
+                "The routing function should take the raw JSON payload: " + source);
+        Assert.assertTrue(source.contains("executeRemoteFunc(json payload,"),
+                "executeRemoteFunc should take the raw JSON payload: " + source);
     }
 
     @Test
-    void testUnrecognizedEventIdentifierFailsLoudlyInsteadOfMisbinding() throws GeneratorException {
-        EventIdentifierConfig config = new EventIdentifierConfig("header", "X-Event-Type", null);
-        String source = new DispatcherGenerator(SINGLE_SERVICE, config, Optional.<WebhookAuthConfig>empty(), false)
+    void testBatchedElementsAreRoutedRawAndBoundIndividually() throws GeneratorException {
+        EventIdentifierConfig config = new EventIdentifierConfig("body", null, "event.type");
+        String source = new DispatcherGenerator(SINGLE_SERVICE, config, Optional.<WebhookAuthConfig>empty(), true)
                 .generate();
 
-        Assert.assertTrue(source.contains("Unrecognized event identifier"),
-                "An identifier with no registered type must return an error rather than silently "
-                        + "binding to whichever union member happens to match: " + source);
+        Assert.assertTrue(source.contains("self.matchRemoteFunc(event, elementEventType)"),
+                "Each batch element should be routed as its own raw payload, so each binds to its own "
+                        + "event's type: " + source);
     }
 
     @Test
