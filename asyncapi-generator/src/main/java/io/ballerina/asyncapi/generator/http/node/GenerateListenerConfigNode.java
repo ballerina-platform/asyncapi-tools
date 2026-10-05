@@ -116,7 +116,9 @@ public class GenerateListenerConfigNode {
 
         for (String fieldName : extraConfigFields) {
             recordFields.add(createRecordFieldWithDefaultValueNode(
-                    null,
+                    buildFieldDocumentation(String.format(
+                            "Configurable value referenced by the webhook signature verification DSL"
+                                    + " (`$config('%s')`).", fieldName)),
                     null,
                     createBuiltinSimpleNameReferenceNode(null, createIdentifierToken("string")),
                     createIdentifierToken(fieldName),
@@ -151,6 +153,10 @@ public class GenerateListenerConfigNode {
                 createToken(CLOSE_BRACE_TOKEN));
 
         List<Node> schemaDoc = new ArrayList<>();
+        schemaDoc.add(createMarkdownDocumentationLineNode(DOCUMENTATION_DESCRIPTION,
+                createToken(HASH_TOKEN), createNodeList(createIdentifierToken(
+                        "Configuration for the webhook listener, including the secret used to verify"
+                                + " incoming requests."))));
         MarkdownDocumentationNode documentationNode =
                 createMarkdownDocumentationNode(createNodeList(schemaDoc));
         MetadataNode metadataNode = createMetadataNode(documentationNode, createEmptyNodeList());
