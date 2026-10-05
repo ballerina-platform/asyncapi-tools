@@ -104,7 +104,8 @@ public class GenerateExecuteRemoteFuncNode implements Generator {
                 EXECUTE_REMOTE_FUNC_PARAM_SERVICE_TYPE)));
         statements.add(NodeParser.parseStatement(String.format(
                 "if %s is %s { any boundEvent = check self.%s.bindEventPayload(%s, %s, %s);"
-                        + " check self.%s.invokeRemoteFunction(boundEvent, %s, %s, %s); }",
+                        + " check self.%s.invokeRemoteFunction(boundEvent, %s, %s, %s); }"
+                        + " else { log:printDebug(\"SERVICE_NOT_ATTACHED\", serviceType = %s, eventName = %s); }",
                 EXECUTE_REMOTE_FUNC_LOCAL_SERVICE,
                 ServiceTypesGenerator.GENERIC_SERVICE_TYPE,
                 GenerateDispatcherServiceNode.DISPATCHER_NATIVE_HANDLER_FIELD,
@@ -114,7 +115,9 @@ public class GenerateExecuteRemoteFuncNode implements Generator {
                 GenerateDispatcherServiceNode.DISPATCHER_NATIVE_HANDLER_FIELD,
                 EXECUTE_REMOTE_FUNC_PARAM_EVENT_NAME,
                 EXECUTE_REMOTE_FUNC_PARAM_EVENT_FUNC,
-                EXECUTE_REMOTE_FUNC_LOCAL_SERVICE)));
+                EXECUTE_REMOTE_FUNC_LOCAL_SERVICE,
+                EXECUTE_REMOTE_FUNC_PARAM_SERVICE_TYPE,
+                EXECUTE_REMOTE_FUNC_PARAM_EVENT_NAME)));
 
         FunctionBodyBlockNode body = createFunctionBodyBlockNode(
                 createToken(OPEN_BRACE_TOKEN), null, createNodeList(statements),
