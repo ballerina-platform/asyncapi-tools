@@ -83,6 +83,65 @@ public class DataTypesGeneratorTest {
     }
 
     @Test
+    void testSnakeCaseFieldsAreCamelCasedAndAnnotatedWithTheirJsonKey() throws GeneratorException {
+        AsyncApiSchema schema = AsyncApiSchema.builder()
+                .type("object")
+                .properties(Map.of(
+                        "country_code", AsyncApiSchema.builder().type("string").build(),
+                        "id", AsyncApiSchema.builder().type("integer").build()))
+                .build();
+        String result = new DataTypesGenerator(Map.of("Address", schema),
+                Optional.<WebhookAuthConfig>empty(), Optional.<ConnectionAuthConfig>empty()).generate();
+
+        Assert.assertTrue(result.contains("countryCode"),
+                "A snake_case property should be emitted as a camelCase field: " + result);
+        Assert.assertTrue(result.contains("@jsondata:Name {value: \"country_code\"}")
+                        || result.contains("@jsondata:Name { value: \"country_code\" }"),
+                "The renamed field must carry its original JSON key: " + result);
+        Assert.assertTrue(result.contains("import ballerina/data.jsondata;"),
+                "The annotation requires the data.jsondata import: " + result);
+        Assert.assertFalse(result.contains("string country_code"),
+                "The raw snake_case field name should no longer be emitted: " + result);
+    }
+
+    @Test
+    void testAlreadyCamelCaseFieldsAreLeftAloneAndNeedNoImport() throws GeneratorException {
+        AsyncApiSchema schema = AsyncApiSchema.builder()
+                .type("object")
+                .properties(Map.of(
+                        "eventId", AsyncApiSchema.builder().type("string").build(),
+                        "id", AsyncApiSchema.builder().type("integer").build()))
+                .build();
+        String result = new DataTypesGenerator(Map.of("LeadEvent", schema),
+                Optional.<WebhookAuthConfig>empty(), Optional.<ConnectionAuthConfig>empty()).generate();
+
+        Assert.assertFalse(result.contains("@jsondata:Name"),
+                "A field that needs no rename should carry no annotation: " + result);
+        Assert.assertFalse(result.contains("import ballerina/data.jsondata;"),
+                "Ballerina treats an unused import as a compile error, so it must be omitted: " + result);
+    }
+
+    @Test
+    void testCollidingCamelCaseNameKeepsItsRawSpellingInsteadOfDuplicating() throws GeneratorException {
+        // "first_name" camelCases to "firstName", which this schema already declares - emitting
+        // both would be a duplicate-field compile error, so the snake_case one keeps its raw name
+        // (which binds correctly with no annotation).
+        Map<String, AsyncApiSchema> properties = new LinkedHashMap<>();
+        properties.put("firstName", AsyncApiSchema.builder().type("string").build());
+        properties.put("first_name", AsyncApiSchema.builder().type("string").build());
+        AsyncApiSchema schema = AsyncApiSchema.builder().type("object").properties(properties).build();
+
+        String result = new DataTypesGenerator(Map.of("Customer", schema),
+                Optional.<WebhookAuthConfig>empty(), Optional.<ConnectionAuthConfig>empty()).generate();
+
+        Assert.assertTrue(result.contains("first_name"),
+                "The colliding property should keep its raw spelling: " + result);
+        int firstNameFields = result.split("firstName", -1).length - 1;
+        Assert.assertEquals(firstNameFields, 1,
+                "Exactly one 'firstName' field should be emitted, not a duplicate pair: " + result);
+    }
+
+    @Test
     void testGenericDataTypeUnionOrdersLooseSchemasLast() throws GeneratorException {
         // "Installation" (all fields optional) declared FIRST, "PushPayload" (a required field)
         // declared SECOND - a LinkedHashMap so schemas.entrySet() iterates in this exact order,

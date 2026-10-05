@@ -27,6 +27,7 @@ import io.ballerina.compiler.syntax.tree.FunctionArgumentNode;
 import io.ballerina.compiler.syntax.tree.MatchClauseNode;
 import io.ballerina.compiler.syntax.tree.MatchStatementNode;
 import io.ballerina.compiler.syntax.tree.MethodCallExpressionNode;
+import io.ballerina.compiler.syntax.tree.NodeParser;
 import io.ballerina.compiler.syntax.tree.SeparatedNodeList;
 import io.ballerina.compiler.syntax.tree.StatementNode;
 import io.ballerina.compiler.syntax.tree.SyntaxKind;
@@ -135,7 +136,7 @@ public class GenerateMatchStatementNode implements Generator {
 
         SeparatedNodeList<FunctionArgumentNode> args = createSeparatedNodeList(
                 createPositionalArgumentNode(createSimpleNameReferenceNode(
-                        createIdentifierToken(GenerateDispatcherServiceNode.CLONE_WITH_TYPE_VAR_NAME))),
+                        createIdentifierToken(GenerateDispatcherServiceNode.PAYLOAD_VAR_NAME))),
                 createToken(SyntaxKind.COMMA_TOKEN),
                 createPositionalArgumentNode(createSimpleNameReferenceNode(
                         createIdentifierToken(String.format("\"%s\"", eventName)))),
@@ -160,7 +161,8 @@ public class GenerateMatchStatementNode implements Generator {
         BlockStatementNode block = createBlockStatementNode(
                 createToken(SyntaxKind.OPEN_BRACE_TOKEN),
                 createNodeList(createExpressionStatementNode(SyntaxKind.CALL_STATEMENT,
-                        checkExpr, createToken(SyntaxKind.SEMICOLON_TOKEN))),
+                        checkExpr, createToken(SyntaxKind.SEMICOLON_TOKEN)),
+                        NodeParser.parseStatement("return true;")),
                 createToken(SyntaxKind.CLOSE_BRACE_TOKEN));
 
         return createMatchClauseNode(
