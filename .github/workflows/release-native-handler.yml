@@ -27,7 +27,7 @@ jobs:
       - name: Set Up Ballerina
         uses: ballerina-platform/setup-ballerina@v1.1.3
         with:
-          version: 2201.11.0
+          version: 2201.12.0
 
       - name: Release the package
         env:
