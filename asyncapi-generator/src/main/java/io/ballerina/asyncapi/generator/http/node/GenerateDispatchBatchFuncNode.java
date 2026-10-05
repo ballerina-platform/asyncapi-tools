@@ -19,7 +19,6 @@ package io.ballerina.asyncapi.generator.http.node;
 
 import io.ballerina.asyncapi.generator.GeneratorException;
 import io.ballerina.asyncapi.generator.http.extractor.EventIdentifierExtractor;
-import io.ballerina.asyncapi.generator.http.generator.DataTypesGenerator;
 import io.ballerina.asyncapi.generator.http.model.EventIdentifierConfig;
 import io.ballerina.compiler.syntax.tree.FunctionDefinitionNode;
 import io.ballerina.compiler.syntax.tree.NodeParser;
@@ -45,7 +44,6 @@ public class GenerateDispatchBatchFuncNode implements Generator {
     @Override
     public FunctionDefinitionNode generate() throws GeneratorException {
         String type = identifierConfig.type();
-        String cloneVar = GenerateDispatcherServiceNode.CLONE_WITH_TYPE_VAR_NAME;
         StringBuilder loopBody = new StringBuilder();
 
         if (EventIdentifierExtractor.X_BALLERINA_EVENT_TYPE_BODY.equals(type)) {
@@ -62,24 +60,14 @@ public class GenerateDispatchBatchFuncNode implements Generator {
             loopBody.append(" string elementEventType = eventType;");
         }
 
-        String parseArgs = EventIdentifierExtractor.X_BALLERINA_EVENT_TYPE_COMPOSITE.equals(type)
-                ? "event, eventIdentifier, eventType"
-                : "event, elementEventType";
-        loopBody.append(String.format(" %s|error %sResult = self.%s(%s);",
-                DataTypesGenerator.GENERIC_DATA_TYPE, cloneVar,
-                GenerateParseEventPayloadFuncNode.PARSE_EVENT_PAYLOAD_FUNC, parseArgs));
-        loopBody.append(String.format(
-                " if %sResult is error { log:printError(\"DISPATCH_FAILED\", %sResult); continue; }",
-                cloneVar, cloneVar));
-
         if (EventIdentifierExtractor.X_BALLERINA_EVENT_TYPE_COMPOSITE.equals(type)) {
             loopBody.append(String.format(
-                    " error? dispatchResult = self.%s(%sResult, eventIdentifier, eventType);",
-                    GenerateMatchRemoteFuncNode.DISPATCHER_MATCH_REMOTE_FUNC, cloneVar));
+                    " error? dispatchResult = self.%s(event, eventIdentifier, eventType);",
+                    GenerateMatchRemoteFuncNode.DISPATCHER_MATCH_REMOTE_FUNC));
         } else {
             loopBody.append(String.format(
-                    " error? dispatchResult = self.%s(%sResult, elementEventType);",
-                    GenerateMatchRemoteFuncNode.DISPATCHER_MATCH_REMOTE_FUNC, cloneVar));
+                    " error? dispatchResult = self.%s(event, elementEventType);",
+                    GenerateMatchRemoteFuncNode.DISPATCHER_MATCH_REMOTE_FUNC));
         }
         loopBody.append(" if dispatchResult is error { log:printError(\"DISPATCH_FAILED\", dispatchResult); }");
 
