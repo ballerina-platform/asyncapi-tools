@@ -23,13 +23,14 @@ import io.ballerina.asyncapi.generator.http.model.HttpServiceType;
 import io.ballerina.compiler.syntax.tree.FunctionBodyBlockNode;
 import io.ballerina.compiler.syntax.tree.FunctionDefinitionNode;
 import io.ballerina.compiler.syntax.tree.FunctionSignatureNode;
+import io.ballerina.compiler.syntax.tree.NodeParser;
 import io.ballerina.compiler.syntax.tree.ParameterNode;
 import io.ballerina.compiler.syntax.tree.SeparatedNodeList;
 import io.ballerina.compiler.syntax.tree.StatementNode;
 
 import java.util.List;
 
-import static io.ballerina.asyncapi.generator.http.node.GenerateAddServiceRefFuncNode.buildErrorReturnType;
+import static io.ballerina.asyncapi.generator.http.node.GenerateAddServiceRefFuncNode.buildHandledOrErrorReturnType;
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createEmptyNodeList;
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createIdentifierToken;
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createNodeList;
@@ -149,7 +150,7 @@ public class GenerateMatchChunkFuncNode implements Generator {
 
         FunctionSignatureNode signature = createFunctionSignatureNode(
             createToken(OPEN_PAREN_TOKEN), params,
-            createToken(CLOSE_PAREN_TOKEN), buildErrorReturnType());
+            createToken(CLOSE_PAREN_TOKEN), buildHandledOrErrorReturnType());
 
         // Build the match statement(s) for all remote functions in this service type -- one
         // statement per distinct match subject (composite identifier vs. bare event type).
@@ -157,6 +158,7 @@ public class GenerateMatchChunkFuncNode implements Generator {
             new GenerateMatchStatementNode(
                 List.of(serviceType), eventIdentifierPath, eventTypePath);
         List<StatementNode> statements = matchGen.generate();
+        statements.add(NodeParser.parseStatement("return false;"));
 
         FunctionBodyBlockNode body = createFunctionBodyBlockNode(
             createToken(OPEN_BRACE_TOKEN), null,

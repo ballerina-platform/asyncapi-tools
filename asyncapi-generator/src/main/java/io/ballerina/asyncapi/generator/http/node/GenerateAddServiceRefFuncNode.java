@@ -108,4 +108,11 @@ public class GenerateAddServiceRefFuncNode implements Generator {
                 createToken(ERROR_KEYWORD), createToken(QUESTION_MARK_TOKEN));
         return createReturnTypeDescriptorNode(createToken(RETURNS_KEYWORD), createEmptyNodeList(), optionalError);
     }
+
+    // Router functions report whether any handler matched, so the caller can warn when none did.
+    static ReturnTypeDescriptorNode buildHandledOrErrorReturnType() {
+        FunctionDefinitionNode signatureHolder = (FunctionDefinitionNode) NodeParser.parseModuleMemberDeclaration(
+                "function f() returns boolean|error { }");
+        return signatureHolder.functionSignature().returnTypeDesc().orElseThrow();
+    }
 }

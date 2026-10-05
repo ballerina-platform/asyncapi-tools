@@ -62,14 +62,16 @@ public class GenerateDispatchBatchFuncNode implements Generator {
 
         if (EventIdentifierExtractor.X_BALLERINA_EVENT_TYPE_COMPOSITE.equals(type)) {
             loopBody.append(String.format(
-                    " error? dispatchResult = self.%s(event, eventIdentifier, eventType);",
+                    " boolean|error dispatchResult = self.%s(event, eventIdentifier, eventType);",
                     GenerateMatchRemoteFuncNode.DISPATCHER_MATCH_REMOTE_FUNC));
         } else {
             loopBody.append(String.format(
-                    " error? dispatchResult = self.%s(event, elementEventType);",
+                    " boolean|error dispatchResult = self.%s(event, elementEventType);",
                     GenerateMatchRemoteFuncNode.DISPATCHER_MATCH_REMOTE_FUNC));
         }
-        loopBody.append(" if dispatchResult is error { log:printError(\"DISPATCH_FAILED\", dispatchResult); }");
+        String identifierVar = EventIdentifierExtractor.X_BALLERINA_EVENT_TYPE_COMPOSITE.equals(type)
+                ? "eventIdentifier" : "elementEventType";
+        loopBody.append(" ").append(GeneratePostResourceFunctionNode.unhandledAwareLog(identifierVar));
 
         String functionText = String.format(
                 "isolated function %s(json[] eventsArray, string eventType) returns error? {"

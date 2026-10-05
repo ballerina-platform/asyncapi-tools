@@ -177,18 +177,25 @@ public class GeneratePostResourceFunctionNode implements Generator {
         statements.add(NodeParser.parseStatement("check caller->respond(ackResponse);"));
         if (EventIdentifierExtractor.X_BALLERINA_EVENT_TYPE_COMPOSITE.equals(type)) {
             statements.add(NodeParser.parseStatement(String.format(
-                    "error? dispatchResult = self.%s(%s, eventIdentifier, eventType);",
+                    "boolean|error dispatchResult = self.%s(%s, eventIdentifier, eventType);",
                     GenerateMatchRemoteFuncNode.DISPATCHER_MATCH_REMOTE_FUNC,
                     GenerateDispatcherServiceNode.PAYLOAD_VAR_NAME)));
         } else {
             statements.add(NodeParser.parseStatement(String.format(
-                    "error? dispatchResult = self.%s(%s, eventType);",
+                    "boolean|error dispatchResult = self.%s(%s, eventType);",
                     GenerateMatchRemoteFuncNode.DISPATCHER_MATCH_REMOTE_FUNC,
                     GenerateDispatcherServiceNode.PAYLOAD_VAR_NAME)));
         }
-        statements.add(NodeParser.parseStatement(
-                "if dispatchResult is error { log:printError(\"DISPATCH_FAILED\", dispatchResult); }"));
+        boolean composite = EventIdentifierExtractor.X_BALLERINA_EVENT_TYPE_COMPOSITE.equals(type);
+        statements.add(NodeParser.parseStatement(unhandledAwareLog(composite ? "eventIdentifier" : "eventType")));
         return statements;
+    }
+
+    // An identifier no attached service handles is not an error to the provider, but must not vanish silently.
+    static String unhandledAwareLog(String identifierVar) {
+        return "if dispatchResult is error { log:printError(\"DISPATCH_FAILED\", dispatchResult); }"
+                + " else if !dispatchResult { log:printWarn(\"NO_HANDLER_FOR_EVENT\", eventIdentifier = "
+                + identifierVar + "); }";
     }
 
     /**

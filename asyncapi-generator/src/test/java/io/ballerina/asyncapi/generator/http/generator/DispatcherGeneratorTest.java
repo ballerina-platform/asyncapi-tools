@@ -161,7 +161,7 @@ public class DispatcherGeneratorTest {
                 .generate();
 
         int ackIndex = source.indexOf("ackResponse.statusCode = http:STATUS_OK;");
-        int dispatchIndex = source.indexOf("error? dispatchResult =");
+        int dispatchIndex = source.indexOf("boolean|error dispatchResult =");
         Assert.assertTrue(ackIndex >= 0, "Generated source should ack with STATUS_OK");
         Assert.assertTrue(source.contains("check caller->respond(ackResponse);"),
                 "Ack must be sent via a real http:Response with statusCode set - passing the status "
@@ -285,6 +285,64 @@ public class DispatcherGeneratorTest {
         Assert.assertTrue(source.contains("self.matchRemoteFunc(event, elementEventType)"),
                 "Each batch element should be routed as its own raw payload, so each binds to its own "
                         + "event's type: " + source);
+    }
+
+    @Test
+    void testEventNoHandlerMatchesIsLoggedAsAWarningNotDropped() throws GeneratorException {
+        EventIdentifierConfig config = new EventIdentifierConfig("header", "X-Event-Type", null);
+        String source = new DispatcherGenerator(SINGLE_SERVICE, config, Optional.<WebhookAuthConfig>empty(), false)
+                .generate();
+
+        Assert.assertTrue(source.contains("boolean|error dispatchResult = self.matchRemoteFunc(payload, eventType);"),
+                "The router reports whether any handler matched: " + source);
+        Assert.assertTrue(source.contains("else if !dispatchResult {")
+                        && source.contains("log:printWarn(\"NO_HANDLER_FOR_EVENT\", eventIdentifier = eventType);"),
+                "An event nothing handles must produce a warning rather than vanish without a trace: " + source);
+    }
+
+    @Test
+    void testRoutersAndMatchArmsReportWhetherAHandlerMatched() throws GeneratorException {
+        EventIdentifierConfig config = new EventIdentifierConfig("header", "X-Event-Type", null);
+        String source = new DispatcherGenerator(SINGLE_SERVICE, config, Optional.<WebhookAuthConfig>empty(), false)
+                .generate();
+
+        Assert.assertTrue(source.contains("if check self.matchRemoteFuncForRepositoryService(payload, eventType) {"),
+                "The router should stop at the first group that handled the event: " + source);
+        Assert.assertTrue(source.contains("return true;"),
+                "A matching arm should report that it handled the event: " + source);
+        Assert.assertTrue(source.contains("return false;"),
+                "A group that matched nothing should report that, so the router can fall through: " + source);
+    }
+
+    @Test
+    void testCompositeWarningNamesTheCompositeIdentifier() throws GeneratorException {
+        EventIdentifierConfig config = new EventIdentifierConfig("composite", "X-Event-Type", "action");
+        String source = new DispatcherGenerator(SINGLE_SERVICE, config, Optional.<WebhookAuthConfig>empty(), false)
+                .generate();
+
+        Assert.assertTrue(source.contains("eventIdentifier = eventIdentifier);"),
+                "A composite event should be reported by its full identifier: " + source);
+    }
+
+    @Test
+    void testBatchedWarningNamesTheElementsOwnIdentifier() throws GeneratorException {
+        EventIdentifierConfig config = new EventIdentifierConfig("body", null, "event.type");
+        String source = new DispatcherGenerator(SINGLE_SERVICE, config, Optional.<WebhookAuthConfig>empty(), true)
+                .generate();
+
+        Assert.assertTrue(source.contains("eventIdentifier = elementEventType);"),
+                "Each batch element should be reported by its own identifier: " + source);
+    }
+
+    @Test
+    void testEventForAnUnattachedServiceIsLoggedAtDebug() throws GeneratorException {
+        EventIdentifierConfig config = new EventIdentifierConfig("header", "X-Event-Type", null);
+        String source = new DispatcherGenerator(SINGLE_SERVICE, config, Optional.<WebhookAuthConfig>empty(), false)
+                .generate();
+
+        Assert.assertTrue(source.contains("log:printDebug(\"SERVICE_NOT_ATTACHED\""),
+                "A matched event whose service is not attached is normal, but should still be traceable: "
+                        + source);
     }
 
     @Test
