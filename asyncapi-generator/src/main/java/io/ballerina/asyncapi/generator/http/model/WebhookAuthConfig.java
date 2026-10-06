@@ -31,8 +31,10 @@ import java.util.List;
  * @param input                  the DSL format string defining the payload construction
  *                               (e.g., ${body}, v0:${ts}:${body})
  * @param strategy               the signature strategy: {@code "hmac"} (default/null) for a keyed HMAC,
- *                               or {@code "hash"} for a plain, unkeyed digest (the secret must then be
- *                               folded into {@code input} explicitly via {@code $secret})
+ *                               {@code "hash"} for a plain, unkeyed digest (the secret must then be
+ *                               folded into {@code input} explicitly via {@code $secret}), or
+ *                               {@code "rsa"} for a public-key signature verified against the
+ *                               certificate supplied in place of the secret
  * @param configFields           distinct {@code $config('name')} references found in {@code input}; each
  *                               becomes a configurable field threaded through the generated listener
  * @param freshnessHeader        the header carrying a request timestamp to validate for staleness, or
@@ -51,4 +53,17 @@ public record WebhookAuthConfig(
         String freshnessHeader,
         Long freshnessToleranceMillis
 ) {
+
+    public static final String STRATEGY_HMAC = "hmac";
+    public static final String STRATEGY_HASH = "hash";
+    public static final String STRATEGY_RSA = "rsa";
+
+    /**
+     * Whether the signature is a public-key (RSA) signature rather than a secret-keyed digest.
+     *
+     * @return {@code true} if {@code strategy} is {@code "rsa"}
+     */
+    public boolean isRsa() {
+        return STRATEGY_RSA.equalsIgnoreCase(strategy);
+    }
 }

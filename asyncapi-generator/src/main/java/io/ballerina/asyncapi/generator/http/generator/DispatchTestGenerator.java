@@ -142,12 +142,21 @@ public class DispatchTestGenerator {
             imports.append("import ballerina/time;\n");
         }
 
-        StringBuilder constants = new StringBuilder()
-                .append("const TRIGGER_TEST_SECRET = \"").append(TEST_SECRET).append("\";\n")
-                .append("const TRIGGER_TEST_PORT = ").append(TEST_PORT).append(";\n")
+        boolean rsa = webhookAuthConfig != null && webhookAuthConfig.isRsa();
+        StringBuilder constants = new StringBuilder();
+        if (rsa) {
+            constants.append("const TRIGGER_TEST_PRIVATE_KEY = \"")
+                    .append(RsaTestKeys.PRIVATE_KEY_PEM.replace("\n", "\\n")).append("\";\n")
+                    .append("const TRIGGER_TEST_CERTIFICATE = \"")
+                    .append(RsaTestKeys.CERTIFICATE_PEM.replace("\n", "\\n")).append("\";\n");
+        } else {
+            constants.append("const TRIGGER_TEST_SECRET = \"").append(TEST_SECRET).append("\";\n");
+        }
+        constants.append("const TRIGGER_TEST_PORT = ").append(TEST_PORT).append(";\n")
                 .append("const TRIGGER_PAYLOAD_DIR = \"").append(DEFAULT_PAYLOAD_DIR).append("\";\n");
 
-        StringBuilder listenerConfigFields = new StringBuilder("webhookSecret: TRIGGER_TEST_SECRET");
+        StringBuilder listenerConfigFields = new StringBuilder(
+                rsa ? "webhookSecret: TRIGGER_TEST_CERTIFICATE" : "webhookSecret: TRIGGER_TEST_SECRET");
         if (webhookAuthConfig != null && webhookAuthConfig.configFields() != null) {
             for (String field : webhookAuthConfig.configFields()) {
                 String constName = testConfigConstantName(field);
@@ -240,7 +249,13 @@ public class DispatchTestGenerator {
         String signatureVariable;
         if (algorithm != null && !algorithm.isBlank()) {
             boolean isPlainHash = webhookAuthConfig != null && "hash".equalsIgnoreCase(webhookAuthConfig.strategy());
-            if (isPlainHash) {
+            if (webhookAuthConfig.isRsa()) {
+                String signFunc = WebhookCryptoMapper.rsaSignFunctionFor(algorithm);
+                sb.append("    crypto:PrivateKey privateKey = check "
+                        + "crypto:decodeRsaPrivateKeyFromContent(TRIGGER_TEST_PRIVATE_KEY.toBytes());\n");
+                sb.append("    byte[] computedDigest = check crypto:").append(signFunc)
+                        .append("(payloadToHash.toBytes(), privateKey);\n");
+            } else if (isPlainHash) {
                 String cryptoFunc = WebhookCryptoMapper.hashFunctionFor(algorithm);
                 sb.append("    byte[] computedDigest = crypto:").append(cryptoFunc)
                         .append("(payloadToHash.toBytes());\n");

@@ -501,7 +501,7 @@ public class GenerateModuleMemberDeclarationNode implements Generator {
             }
         }
         String unionName = resolveHoistedTypeName(nameHint);
-        hoistedTypes.add(new GenerateUnionDescriptorNode(branchTypes, unionName).generate());
+        hoistedTypes.add(new GenerateUnionDescriptorNode(branchTypes, unionName, null).generate());
         return createBuiltinSimpleNameReferenceNode(null, createIdentifierToken(unionName));
     }
 
