@@ -281,6 +281,11 @@ public class GenerateModuleMemberDeclarationNode implements Generator {
             Map<String, AsyncApiSchema> properties, List<String> required, String fieldNamePrefix)
             throws GeneratorException {
         List<Node> fields = new ArrayList<>();
+        List<String> rawKeys = new ArrayList<>();
+        for (String key : properties.keySet()) {
+            rawKeys.add(key.trim());
+        }
+        Map<String, String> resolvedFieldNames = CodegenUtils.resolveFieldNames(rawKeys);
         for (Map.Entry<String, AsyncApiSchema> field : properties.entrySet()) {
             String rawKey = field.getKey().trim();
             String fieldName;
@@ -290,6 +295,11 @@ public class GenerateModuleMemberDeclarationNode implements Generator {
                 AnnotationNode headerAnnotation = NodeParser.parseAnnotation(
                         String.format("@http:Header { name: \"%s\" }", rawKey));
                 annotations = createNodeList(headerAnnotation);
+            } else if (!resolvedFieldNames.get(rawKey).equals(rawKey)) {
+                fieldName = resolvedFieldNames.get(rawKey);
+                AnnotationNode nameAnnotation = NodeParser.parseAnnotation(String.format(
+                        "@jsondata:Name { value: \"%s\" }", rawKey.replace("\\", "\\\\").replace("\"", "\\\"")));
+                annotations = createNodeList(nameAnnotation);
             } else {
                 fieldName = CodegenUtils.escapeIdentifier(rawKey);
                 annotations = createEmptyNodeList();
@@ -501,7 +511,7 @@ public class GenerateModuleMemberDeclarationNode implements Generator {
             }
         }
         String unionName = resolveHoistedTypeName(nameHint);
-        hoistedTypes.add(new GenerateUnionDescriptorNode(branchTypes, unionName).generate());
+        hoistedTypes.add(new GenerateUnionDescriptorNode(branchTypes, unionName, null).generate());
         return createBuiltinSimpleNameReferenceNode(null, createIdentifierToken(unionName));
     }
 

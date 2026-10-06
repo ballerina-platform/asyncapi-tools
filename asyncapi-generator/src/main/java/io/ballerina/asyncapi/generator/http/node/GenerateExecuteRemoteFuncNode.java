@@ -18,7 +18,6 @@
 package io.ballerina.asyncapi.generator.http.node;
 
 import io.ballerina.asyncapi.generator.GeneratorException;
-import io.ballerina.asyncapi.generator.http.generator.DataTypesGenerator;
 import io.ballerina.asyncapi.generator.http.generator.ServiceTypesGenerator;
 import io.ballerina.compiler.syntax.tree.FunctionBodyBlockNode;
 import io.ballerina.compiler.syntax.tree.FunctionDefinitionNode;
@@ -40,7 +39,6 @@ import static io.ballerina.compiler.syntax.tree.NodeFactory.createFunctionBodyBl
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createFunctionDefinitionNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createFunctionSignatureNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createRequiredParameterNode;
-import static io.ballerina.compiler.syntax.tree.NodeFactory.createSimpleNameReferenceNode;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.CLOSE_BRACE_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.CLOSE_PAREN_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.COMMA_TOKEN;
@@ -58,7 +56,7 @@ import static io.ballerina.compiler.syntax.tree.SyntaxKind.PRIVATE_KEYWORD;
 public class GenerateExecuteRemoteFuncNode implements Generator {
 
     public static final String EXECUTE_REMOTE_FUNC_NAME = "executeRemoteFunc";
-    private static final String EXECUTE_REMOTE_FUNC_PARAM_EVENT = "genericEvent";
+    private static final String EXECUTE_REMOTE_FUNC_PARAM_EVENT = "payload";
     private static final String EXECUTE_REMOTE_FUNC_PARAM_EVENT_NAME = "eventName";
     private static final String EXECUTE_REMOTE_FUNC_PARAM_SERVICE_TYPE = "serviceTypeStr";
     private static final String EXECUTE_REMOTE_FUNC_PARAM_EVENT_FUNC = "eventFunction";
@@ -77,8 +75,7 @@ public class GenerateExecuteRemoteFuncNode implements Generator {
                 createSeparatedNodeList(
                         createRequiredParameterNode(
                                 createEmptyNodeList(),
-                                createSimpleNameReferenceNode(
-                                        createIdentifierToken(DataTypesGenerator.GENERIC_DATA_TYPE)),
+                                createBuiltinSimpleNameReferenceNode(null, createIdentifierToken("json")),
                                 createIdentifierToken(EXECUTE_REMOTE_FUNC_PARAM_EVENT)),
                         createToken(COMMA_TOKEN),
                         createRequiredParameterNode(
@@ -106,14 +103,21 @@ public class GenerateExecuteRemoteFuncNode implements Generator {
                 GenerateDispatcherServiceNode.DISPATCHER_SERVICES_FIELD,
                 EXECUTE_REMOTE_FUNC_PARAM_SERVICE_TYPE)));
         statements.add(NodeParser.parseStatement(String.format(
-                "if %s is %s { check self.%s.invokeRemoteFunction(%s, %s, %s, %s); }",
+                "if %s is %s { any boundEvent = check self.%s.bindEventPayload(%s, %s, %s);"
+                        + " check self.%s.invokeRemoteFunction(boundEvent, %s, %s, %s); }"
+                        + " else { log:printDebug(\"SERVICE_NOT_ATTACHED\", serviceType = %s, eventName = %s); }",
                 EXECUTE_REMOTE_FUNC_LOCAL_SERVICE,
                 ServiceTypesGenerator.GENERIC_SERVICE_TYPE,
                 GenerateDispatcherServiceNode.DISPATCHER_NATIVE_HANDLER_FIELD,
+                EXECUTE_REMOTE_FUNC_LOCAL_SERVICE,
+                EXECUTE_REMOTE_FUNC_PARAM_EVENT_FUNC,
                 EXECUTE_REMOTE_FUNC_PARAM_EVENT,
+                GenerateDispatcherServiceNode.DISPATCHER_NATIVE_HANDLER_FIELD,
                 EXECUTE_REMOTE_FUNC_PARAM_EVENT_NAME,
                 EXECUTE_REMOTE_FUNC_PARAM_EVENT_FUNC,
-                EXECUTE_REMOTE_FUNC_LOCAL_SERVICE)));
+                EXECUTE_REMOTE_FUNC_LOCAL_SERVICE,
+                EXECUTE_REMOTE_FUNC_PARAM_SERVICE_TYPE,
+                EXECUTE_REMOTE_FUNC_PARAM_EVENT_NAME)));
 
         FunctionBodyBlockNode body = createFunctionBodyBlockNode(
                 createToken(OPEN_BRACE_TOKEN), null, createNodeList(statements),
