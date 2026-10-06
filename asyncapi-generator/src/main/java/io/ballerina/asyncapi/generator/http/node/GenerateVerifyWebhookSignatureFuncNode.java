@@ -121,7 +121,7 @@ public class GenerateVerifyWebhookSignatureFuncNode implements Generator {
 
         if (authConfig.freshnessHeader() != null) {
             addFreshnessCheckStatements(statements, authConfig.freshnessHeader(),
-                    authConfig.freshnessToleranceMillis());
+                    authConfig.freshnessToleranceMillis(), authConfig.freshnessInSeconds());
         }
 
         statements.add(NodeParser.parseStatement(String.format(
@@ -220,15 +220,17 @@ public class GenerateVerifyWebhookSignatureFuncNode implements Generator {
 
     /**
      * Emits a request-timestamp staleness check, independent of and preceding signature verification.
-     * Reads the freshness header, parses it as an epoch-millisecond {@code decimal}, and rejects the
+     * Reads the freshness header, parses it as an epoch {@code decimal} (scaled to milliseconds when it
+     * is declared in seconds), and rejects the
      * request if it's older than the configured tolerance.
      *
      * @param statements       the statement list to append to
-     * @param freshnessHeader  the header carrying the request timestamp (epoch milliseconds)
+     * @param freshnessHeader  the header carrying the request timestamp (epoch milliseconds or seconds)
      * @param toleranceMillis  the maximum allowed request age, in milliseconds
+     * @param inSeconds        whether the header carries epoch seconds instead of epoch milliseconds
      */
     private void addFreshnessCheckStatements(List<StatementNode> statements, String freshnessHeader,
-            long toleranceMillis) {
+            long toleranceMillis, boolean inSeconds) {
         statements.add(NodeParser.parseStatement(String.format(
                 "if !request.hasHeader(\"%s\") { return error(\"Unauthorized: Missing Freshness Header\"); }",
                 freshnessHeader)));
@@ -237,6 +239,9 @@ public class GenerateVerifyWebhookSignatureFuncNode implements Generator {
                 getSafeHeaderExtraction(freshnessHeader))));
         statements.add(NodeParser.parseStatement(
                 "decimal freshnessTimestamp = check decimal:fromString(freshnessHeaderValue);"));
+        if (inSeconds) {
+            statements.add(NodeParser.parseStatement("freshnessTimestamp = freshnessTimestamp * 1000;"));
+        }
         statements.add(NodeParser.parseStatement(
                 "decimal freshnessNowMillis = <decimal>time:utcNow()[0] * 1000;"));
         statements.add(NodeParser.parseStatement(

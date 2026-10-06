@@ -180,6 +180,54 @@ public class WebhookDSLVerificationTest {
                 "collide with existing webhook DSL config field name(s)");
     }
 
+    @Test
+    public void testFreshnessInSecondsScalesTheHeaderTimestampToMillis() throws Exception {
+        // Slack sends X-Slack-Request-Timestamp in epoch seconds. Compared against the millisecond
+        // clock unscaled, every request would look decades old and be rejected as expired.
+        Path outputDir = generateOutputDir("slack_freshness_seconds.yaml");
+
+        String dispatcherContent = Files.readString(outputDir.resolve("dispatcher_service.bal"));
+        Assert.assertTrue(
+                dispatcherContent.contains("freshnessTimestamp = freshnessTimestamp * 1000;"),
+                "A seconds timestamp must be scaled to milliseconds before it is compared: "
+                        + dispatcherContent);
+        Assert.assertTrue(
+                dispatcherContent.contains("freshnessSkewMillis.abs()"),
+                "The window must stay symmetric: " + dispatcherContent);
+
+        String dispatchTestContent = Files.readString(outputDir.resolve("tests").resolve("dispatch_test.bal"));
+        Assert.assertTrue(
+                dispatchTestContent.contains("= time:utcNow()[0].toString();"),
+                "The generated test client must send epoch seconds, or it would fail its own freshness "
+                        + "check: " + dispatchTestContent);
+        Assert.assertFalse(
+                dispatchTestContent.contains("(time:utcNow()[0] * 1000).toString()"),
+                "The test client must not send milliseconds for a seconds header: " + dispatchTestContent);
+    }
+
+    @Test
+    public void testFreshnessDefaultsToMillisecondsWithoutAUnit() throws Exception {
+        Path tempOutputDir = generateFromFixture("hubspot_v3_verification.yaml", "X-HubSpot-Event",
+                "hubspot_event");
+
+        String dispatcherContent = Files.readString(tempOutputDir.resolve("dispatcher_service.bal"));
+        Assert.assertFalse(
+                dispatcherContent.contains("freshnessTimestamp * 1000"),
+                "A freshness block without a unit must keep treating the header as milliseconds");
+        String dispatchTestContent = Files.readString(
+                tempOutputDir.resolve("tests").resolve("dispatch_test.bal"));
+        Assert.assertTrue(
+                dispatchTestContent.contains("(time:utcNow()[0] * 1000).toString()"),
+                "The test client must keep sending milliseconds by default");
+    }
+
+    @Test
+    public void testInvalidFreshnessUnitIsRejected() throws Exception {
+        assertGeneratorException(
+                "invalid_freshness_unit.yaml",
+                "expected 'seconds' or 'milliseconds', but found 'minutes'");
+    }
+
     private Path generateOutputDir(String specFile) throws Exception {
     Path asyncapiPath = RES_DIR.resolve(specFile);
     String yamlContent = Files.readString(asyncapiPath);

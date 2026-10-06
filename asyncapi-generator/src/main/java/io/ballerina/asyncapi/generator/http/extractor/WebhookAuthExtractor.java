@@ -50,6 +50,7 @@ public final class WebhookAuthExtractor {
     // Freshness DSL keys
     private static final String FRESHNESS_HEADER = "header";
     private static final String FRESHNESS_TOLERANCE_MILLIS = "toleranceMillis";
+    private static final String FRESHNESS_UNIT = "unit";
 
     private static final Pattern CONFIG_FUNC_PATTERN = Pattern.compile("\\$config\\('([^']+)'\\)");
 
@@ -103,7 +104,7 @@ public final class WebhookAuthExtractor {
             List<String> configFields = extractConfigFields(input);
 
             return Optional.of(new WebhookAuthConfig(header, algorithm, encoding, headerFormat, input,
-                    strategy, configFields, freshness.header(), freshness.toleranceMillis()));
+                    strategy, configFields, freshness.header(), freshness.toleranceMillis(), freshness.unit()));
         }
 
         // No signature block at all (as opposed to a malformed one, handled above): fallback for
@@ -111,7 +112,7 @@ public final class WebhookAuthExtractor {
         // guarantee, default to GitHub's HMAC-SHA256 configuration so existing pipelines keep
         // working unchanged.
         return Optional.of(new WebhookAuthConfig(header, "sha256", "hex", "{signature}", "$body",
-                null, List.of(), freshness.header(), freshness.toleranceMillis()));
+                null, List.of(), freshness.header(), freshness.toleranceMillis(), freshness.unit()));
     }
 
     /**
@@ -125,7 +126,7 @@ public final class WebhookAuthExtractor {
     private WebhookFreshnessConfig extractFreshness(JsonNode authNode) throws GeneratorException {
         JsonNode freshnessNode = authNode.get(X_BALLERINA_AUTH_FRESHNESS);
         if (freshnessNode == null) {
-            return new WebhookFreshnessConfig(null, null);
+            return new WebhookFreshnessConfig(null, null, null);
         }
         if (!freshnessNode.isObject()) {
             throw new GeneratorException(String.format(
@@ -140,7 +141,31 @@ public final class WebhookAuthExtractor {
                     "Invalid %s.%s: both '%s' (string) and '%s' (number) are required",
                     X_BALLERINA_AUTH, X_BALLERINA_AUTH_FRESHNESS, FRESHNESS_HEADER, FRESHNESS_TOLERANCE_MILLIS));
         }
-        return new WebhookFreshnessConfig(headerNode.asText(), toleranceNode.asLong());
+        return new WebhookFreshnessConfig(headerNode.asText(), toleranceNode.asLong(),
+                extractFreshnessUnit(freshnessNode));
+    }
+
+    /**
+     * Reads the optional {@code freshness.unit}: the unit of the timestamp the freshness header carries.
+     *
+     * @param freshnessNode the parsed {@code freshness} block
+     * @return {@code "seconds"} or {@code "milliseconds"}, or {@code null} if absent (milliseconds)
+     * @throws GeneratorException if the value is not one of the two supported units
+     */
+    private String extractFreshnessUnit(JsonNode freshnessNode) throws GeneratorException {
+        JsonNode unitNode = freshnessNode.get(FRESHNESS_UNIT);
+        if (unitNode == null) {
+            return null;
+        }
+        String unit = unitNode.asText();
+        if (!unitNode.isTextual() || !(WebhookAuthConfig.FRESHNESS_UNIT_SECONDS.equals(unit)
+                || WebhookAuthConfig.FRESHNESS_UNIT_MILLISECONDS.equals(unit))) {
+            throw new GeneratorException(String.format(
+                    "Invalid %s.%s.%s: expected '%s' or '%s', but found '%s'",
+                    X_BALLERINA_AUTH, X_BALLERINA_AUTH_FRESHNESS, FRESHNESS_UNIT,
+                    WebhookAuthConfig.FRESHNESS_UNIT_SECONDS, WebhookAuthConfig.FRESHNESS_UNIT_MILLISECONDS, unit));
+        }
+        return unit;
     }
 
     /**
@@ -170,8 +195,9 @@ public final class WebhookAuthExtractor {
      *
      * @param header          the header carrying the request timestamp
      * @param toleranceMillis the maximum allowed request age, in milliseconds
+     * @param unit            the unit of the header's timestamp, or {@code null} for milliseconds
      */
-    private record WebhookFreshnessConfig(String header, Long toleranceMillis) {
+    private record WebhookFreshnessConfig(String header, Long toleranceMillis, String unit) {
     }
 
     private String extractTextNode(JsonNode parentNode, String fieldName) {
