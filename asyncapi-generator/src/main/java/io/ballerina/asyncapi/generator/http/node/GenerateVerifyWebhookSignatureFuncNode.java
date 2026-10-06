@@ -142,10 +142,12 @@ public class GenerateVerifyWebhookSignatureFuncNode implements Generator {
         // the algorithm branch (it compares receivedHeader/expectedHeader instead), so its declaration
         // is skipped there to avoid an always-unused variable.
         addHeaderTemplateExtractionStatements(statements, headerTemplate,
-                useAlgorithm ? resolveSignatureVariableName(headerTemplate) : null);
+                useAlgorithm && !authConfig.isRsa() ? resolveSignatureVariableName(headerTemplate) : null);
 
         // If algorithm is present, use HMAC verification. Otherwise do static token verification.
-        if (useAlgorithm) {
+        if (authConfig.isRsa()) {
+            addRsaVerificationStatements(statements, resolveSignatureVariableName(headerTemplate));
+        } else if (useAlgorithm) {
 
             // 1. Translate the DSL input string to Ballerina string interpolation
             String inputDsl = authConfig.input() != null ? authConfig.input() : "$body";
@@ -245,6 +247,42 @@ public class GenerateVerifyWebhookSignatureFuncNode implements Generator {
                 "if freshnessSkewMillis.abs() > %dd {"
                         + " return error(\"Unauthorized: Request Timestamp Expired\"); }",
                 toleranceMillis)));
+    }
+
+    /**
+     * Emits public-key verification for {@code strategy: rsa}. The listener's {@code webhookSecret}
+     * carries the provider's X.509 certificate (PEM), which holds the public key; the received signature
+     * is decoded per the configured encoding and checked against the DSL-built input. A malformed
+     * signature or a failed verification is reported as a mismatch (401), never as a server error.
+     *
+     * @param statements        the statement list to append to
+     * @param signatureVariable the variable holding the signature extracted from the header
+     * @throws GeneratorException if the algorithm or encoding is not supported
+     */
+    private void addRsaVerificationStatements(List<StatementNode> statements, String signatureVariable)
+            throws GeneratorException {
+        String inputDsl = authConfig.input() != null ? authConfig.input() : "$body";
+        String balTemplate = buildPayloadTemplate(escapeBacktickTemplate(inputDsl));
+        String encoding = authConfig.encoding() != null ? authConfig.encoding() : "hex";
+        String decodeFunc = WebhookCryptoMapper.decodeFunctionFor(encoding);
+        String verifyFunc = WebhookCryptoMapper.rsaVerifyFunctionFor(authConfig.algorithm());
+
+        statements.add(NodeParser.parseStatement("string payloadToHash = string `" + balTemplate + "`;"));
+        statements.add(NodeParser.parseStatement(
+                "crypto:PublicKey|crypto:Error publicKey = "
+                        + "crypto:decodeRsaPublicKeyFromContent(webhookSecret.toBytes());"));
+        statements.add(NodeParser.parseStatement(
+                "if publicKey is crypto:Error { return error(\"Unauthorized: Invalid Webhook Public Key\"); }"));
+        statements.add(NodeParser.parseStatement(String.format(
+                "byte[]|error receivedSignature = array:%s(%s);", decodeFunc, signatureVariable)));
+        statements.add(NodeParser.parseStatement(
+                "if receivedSignature is error { return error(\"Unauthorized: Signature Mismatch\"); }"));
+        statements.add(NodeParser.parseStatement(String.format(
+                "boolean|crypto:Error signatureValid = crypto:%s(payloadToHash.toBytes(), receivedSignature, "
+                        + "publicKey);", verifyFunc)));
+        statements.add(NodeParser.parseStatement(
+                "if signatureValid is crypto:Error || !signatureValid {"
+                        + " return error(\"Unauthorized: Signature Mismatch\"); }"));
     }
 
     private ReturnTypeDescriptorNode buildOptionalErrorReturnType() {

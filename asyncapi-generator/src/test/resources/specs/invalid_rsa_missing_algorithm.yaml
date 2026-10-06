@@ -1,0 +1,34 @@
+asyncapi: 3.0.0
+x-ballerina-event-identifier:
+  type: "body"
+  path: "eventType"
+x-ballerina-auth:
+  header: "mftg-wh-signature"
+  signature:
+    strategy: "rsa"
+    encoding: "base64"
+    headerFormat: "$signature"
+    input: "$body"
+info:
+  title: Invalid RSA Without Algorithm Test
+  version: 1.0.0
+channels:
+  messages:
+    address: messages
+    messages:
+      receivedMessage:
+        x-ballerina-event-type: "MESSAGE.RECEIVED.SUCCESS"
+        payload:
+          type: object
+          required:
+            - eventType
+          properties:
+            eventType:
+              type: string
+operations:
+  receiveMessages:
+    action: receive
+    channel:
+      $ref: "#/channels/messages"
+    messages:
+      - $ref: "#/channels/messages/messages/receivedMessage"

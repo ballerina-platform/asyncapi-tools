@@ -111,6 +111,36 @@ x-ballerina-auth:
 This computes `hash = SHA256(secret + body)` (no HMAC key) and compares it against the header,
 instead of `HMAC-SHA256(body, secret)`.
 
+## Public-Key (RSA) Signatures
+
+Some providers sign each payload with a private key and publish the matching public key, so there is no
+shared secret to key an HMAC with. Set `strategy: "rsa"` and an `algorithm`:
+
+```yaml
+x-ballerina-auth:
+  header: "mftg-wh-signature"
+  signature:
+    strategy: "rsa"
+    algorithm: "sha256"
+    encoding: "base64"
+    headerFormat: "$signature"
+    input: "$body"
+```
+
+The generated verifier decodes the signature header per `encoding` and checks it against the bytes built
+from `input` with `crypto:verifyRsaSha256Signature` (or the Sha1/Sha384/Sha512 variant). A malformed or
+non-matching signature is rejected as a signature mismatch.
+
+The listener's `webhookSecret` field carries the provider's **X.509 certificate in PEM form** (the one
+holding the public key), not a shared secret. A bare `-----BEGIN PUBLIC KEY-----` PEM is not accepted,
+because `ballerina/crypto` can only decode a public key from a certificate. If the provider only
+publishes a bare public key, wrap it in a certificate first.
+
+`strategy` must be one of `hmac` (the default), `hash` or `rsa`; any other value fails generation.
+
+The generated dispatch tests sign with a fixed, throwaway key pair embedded in the test file and
+configure the test listener with its certificate, so the suite exercises real verification.
+
 ## Header Format Placeholders
 
 `headerFormat` supports these placeholder syntaxes:

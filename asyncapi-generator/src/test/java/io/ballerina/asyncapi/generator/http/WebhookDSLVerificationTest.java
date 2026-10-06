@@ -180,6 +180,54 @@ public class WebhookDSLVerificationTest {
                 "collide with existing webhook DSL config field name(s)");
     }
 
+    @Test
+    public void testRsaStrategyVerifiesTheSignatureWithTheProvidersPublicKey() throws Exception {
+        // Aayu MFT Gateway signs with a private key and the consumer verifies with the downloaded
+        // public key, so there is no shared secret to key an HMAC with.
+        Path outputDir = generateOutputDir("rsa_signature_verification.yaml");
+
+        String dispatcherContent = Files.readString(outputDir.resolve("dispatcher_service.bal"));
+        Assert.assertTrue(dispatcherContent.contains("import ballerina/lang.array;"),
+                "Should import lang.array to decode the signature header: " + dispatcherContent);
+        Assert.assertTrue(
+                dispatcherContent.contains("crypto:decodeRsaPublicKeyFromContent(webhookSecret.toBytes())"),
+                "The configured value must be decoded as the provider's public key: " + dispatcherContent);
+        Assert.assertTrue(dispatcherContent.contains("array:fromBase64(signature)"),
+                "The signature header must be decoded per the declared encoding: " + dispatcherContent);
+        Assert.assertTrue(
+                dispatcherContent.contains(
+                        "crypto:verifyRsaSha256Signature(payloadToHash.toBytes(), receivedSignature, publicKey)"),
+                "Should verify against the raw body with the RSA verifier: " + dispatcherContent);
+        Assert.assertFalse(dispatcherContent.contains("crypto:hmac"),
+                "A public-key scheme must not derive an HMAC from the configured value: " + dispatcherContent);
+        Assert.assertFalse(dispatcherContent.contains("equalConstantTime"),
+                "A public-key signature cannot be recomputed and compared: " + dispatcherContent);
+
+        String dispatchTestContent = Files.readString(outputDir.resolve("tests").resolve("dispatch_test.bal"));
+        Assert.assertTrue(dispatchTestContent.contains("const TRIGGER_TEST_PRIVATE_KEY = "),
+                "The generated test must carry a throwaway private key to sign with: " + dispatchTestContent);
+        Assert.assertTrue(dispatchTestContent.contains("webhookSecret: TRIGGER_TEST_CERTIFICATE"),
+                "The test listener must be configured with the matching certificate: " + dispatchTestContent);
+        Assert.assertTrue(dispatchTestContent.contains("crypto:signRsaSha256(payloadToHash.toBytes(), privateKey)"),
+                "The test client must sign with the private key: " + dispatchTestContent);
+        Assert.assertFalse(dispatchTestContent.contains("TRIGGER_TEST_SECRET"),
+                "No shared secret exists in a public-key scheme: " + dispatchTestContent);
+    }
+
+    @Test
+    public void testRsaStrategyWithoutAnAlgorithmIsRejected() throws Exception {
+        assertGeneratorException(
+                "invalid_rsa_missing_algorithm.yaml",
+                "strategy 'rsa' requires an algorithm");
+    }
+
+    @Test
+    public void testUnknownSignatureStrategyIsRejected() throws Exception {
+        assertGeneratorException(
+                "invalid_signature_strategy.yaml",
+                "Unsupported x-ballerina-auth signature strategy: 'ecdsa'");
+    }
+
     private Path generateOutputDir(String specFile) throws Exception {
     Path asyncapiPath = RES_DIR.resolve(specFile);
     String yamlContent = Files.readString(asyncapiPath);

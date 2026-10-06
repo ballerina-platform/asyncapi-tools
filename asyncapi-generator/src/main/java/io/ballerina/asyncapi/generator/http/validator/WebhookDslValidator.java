@@ -36,6 +36,7 @@ public final class WebhookDslValidator {
 
     private static final Set<String> SUPPORTED_ALGORITHMS = Set.of("sha1", "sha256", "sha384", "sha512");
     private static final Set<String> SUPPORTED_ENCODINGS = Set.of("hex", "base64");
+    private static final Set<String> SUPPORTED_STRATEGIES = Set.of("hmac", "hash", "rsa");
 
     private static final Pattern HEADER_FUNC_PATTERN = Pattern.compile("\\$header\\('([^']+)'\\)");
     private static final Pattern CONFIG_FUNC_PATTERN = Pattern.compile("\\$config\\('([^']+)'\\)");
@@ -70,9 +71,34 @@ public final class WebhookDslValidator {
         HeaderTemplate template = HeaderTemplateParser.parse(headerFormat);
 
         validateNoAdjacentPlaceholders(headerFormat, template);
+        validateStrategy(config);
         validateSignaturePresence(config.algorithm(), template.variables());
         validateAlgorithmAndEncoding(config.algorithm(), config.encoding());
         validatePayloadInput(config.input(), template.variables());
+    }
+
+    /**
+     * Validates {@code strategy}. An unrecognised value would otherwise fall through to the keyed-HMAC
+     * default and generate a verifier that never matches the provider, with no diagnostic.
+     *
+     * @param config the webhook auth config
+     * @throws GeneratorException if the strategy is unknown, or is {@code rsa} without an algorithm
+     */
+    private static void validateStrategy(WebhookAuthConfig config) throws GeneratorException {
+        String strategy = config.strategy();
+        if (strategy == null || strategy.isBlank()) {
+            return;
+        }
+        if (!SUPPORTED_STRATEGIES.contains(strategy.toLowerCase(Locale.ROOT))) {
+            throw new GeneratorException(String.format(
+                    "Unsupported x-ballerina-auth signature strategy: '%s'. Supported values: %s.",
+                    strategy, String.join(", ", SUPPORTED_STRATEGIES.stream().sorted().toList())));
+        }
+        if (config.isRsa() && (config.algorithm() == null || config.algorithm().isBlank())) {
+            throw new GeneratorException(
+                    "Invalid x-ballerina-auth signature: strategy 'rsa' requires an algorithm "
+                            + "(sha1, sha256, sha384 or sha512).");
+        }
     }
 
     private static void validateNoAdjacentPlaceholders(String headerFormat, HeaderTemplate template)
