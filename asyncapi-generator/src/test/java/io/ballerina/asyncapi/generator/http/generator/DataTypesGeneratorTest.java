@@ -72,6 +72,87 @@ public class DataTypesGeneratorTest {
     }
 
     @Test
+    void testUriPropertyNameBecomesACleanFieldCarryingItsUri() throws GeneratorException {
+        // WSO2 Identity Platform events are keyed by URI. A URI contains a hyphen, so it used to be taken
+        // for an HTTP header name and emitted verbatim as a field identifier, which does not parse.
+        String uri = "https://schemas.identity.wso2.org/events/token/event-type/accessTokenIssued";
+        AsyncApiSchema schema = AsyncApiSchema.builder()
+                .type("object")
+                .required(List.of(uri))
+                .properties(Map.of(uri, AsyncApiSchema.builder().type("object").build()))
+                .build();
+        String result = new DataTypesGenerator(Map.of("EventData", schema),
+                Optional.empty(), Optional.empty()).generate();
+
+        Assert.assertTrue(result.contains("accessTokenIssued"),
+                "The field should be named after the last segment of the URI: " + result);
+        Assert.assertTrue(result.contains("@jsondata:Name {value: \"" + uri + "\"}")
+                        || result.contains("@jsondata:Name { value: \"" + uri + "\" }"),
+                "The field must keep the full URI as its JSON key: " + result);
+        Assert.assertFalse(result.contains("@http:Header"),
+                "A URI is not an HTTP header name: " + result);
+        Assert.assertFalse(result.contains("import ballerina/http;"),
+                "Without a header annotation the http import would be unused: " + result);
+        Assert.assertTrue(result.contains("import ballerina/data.jsondata;"),
+                "The annotation requires the data.jsondata import: " + result);
+        Assert.assertFalse(result.matches("(?s).*[A-Za-z]+ https://.*"),
+                "The URI must not be emitted as a field identifier: " + result);
+    }
+
+    @Test
+    void testUriNamesThatDeriveTheSameIdentifierStayDistinctAndValid() throws GeneratorException {
+        // Two URIs ending in the same segment derive the same name; the second must not duplicate it.
+        String first = "https://a.example.org/events/login/loginSuccess";
+        String second = "https://b.example.org/events/login/loginSuccess";
+        Map<String, AsyncApiSchema> properties = new LinkedHashMap<>();
+        properties.put(first, AsyncApiSchema.builder().type("string").build());
+        properties.put(second, AsyncApiSchema.builder().type("string").build());
+        AsyncApiSchema schema = AsyncApiSchema.builder().type("object").properties(properties).build();
+
+        String result = new DataTypesGenerator(Map.of("EventData", schema),
+                Optional.empty(), Optional.empty()).generate();
+
+        long loginSuccessFields = result.lines().filter(line -> line.matches("\\s*string loginSuccess\\??;")).count();
+        Assert.assertEquals(loginSuccessFields, 1L,
+                "Exactly one field may take the derived name, or the record would not compile: " + result);
+        Assert.assertFalse(result.contains("string https://"),
+                "The other URI must fall back to an escaped identifier, never a raw one: " + result);
+    }
+
+    @Test
+    void testDerivedNameThatIsAKeywordFallsBackToTheRawSpelling() throws GeneratorException {
+        // "import" is a Ballerina keyword; a field cannot take it as a derived name.
+        String uri = "https://example.org/events/import";
+        AsyncApiSchema schema = AsyncApiSchema.builder()
+                .type("object")
+                .properties(Map.of(uri, AsyncApiSchema.builder().type("string").build()))
+                .build();
+        String result = new DataTypesGenerator(Map.of("EventData", schema),
+                Optional.empty(), Optional.empty()).generate();
+
+        Assert.assertFalse(result.contains("string import;"),
+                "A keyword cannot be used as a field name: " + result);
+        Assert.assertFalse(result.contains("string https://"),
+                "The raw URI must still be escaped, not emitted as written: " + result);
+    }
+
+    @Test
+    void testHeaderStyleNamesKeepTheirHeaderAnnotation() throws GeneratorException {
+        // The narrower URI rule must not change how real header names are generated.
+        AsyncApiSchema schema = AsyncApiSchema.builder()
+                .type("object")
+                .properties(Map.of("X-GitHub-Event", AsyncApiSchema.builder().type("string").build()))
+                .build();
+        String result = new DataTypesGenerator(Map.of("WebhookHeaders", schema),
+                Optional.empty(), Optional.empty()).generate();
+
+        Assert.assertTrue(result.contains("@http:Header {name: \"X-GitHub-Event\"}")
+                        || result.contains("@http:Header { name: \"X-GitHub-Event\" }"),
+                "A hyphenated header name keeps @http:Header: " + result);
+        Assert.assertTrue(result.contains("xGitHubEvent"), "and its camelCase field name: " + result);
+    }
+
+    @Test
     void testGenerateWithNoPropertiesOmitsHttpImport() throws GeneratorException {
         // A schema with no properties at all has nothing that could ever need @http:Header.
         AsyncApiSchema schema = AsyncApiSchema.builder().type("object").build();

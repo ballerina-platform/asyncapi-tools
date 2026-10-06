@@ -297,8 +297,8 @@ public class GenerateModuleMemberDeclarationNode implements Generator {
                 annotations = createNodeList(headerAnnotation);
             } else if (!resolvedFieldNames.get(rawKey).equals(rawKey)) {
                 fieldName = resolvedFieldNames.get(rawKey);
-                AnnotationNode nameAnnotation = NodeParser.parseAnnotation(
-                        String.format("@jsondata:Name { value: \"%s\" }", rawKey));
+                AnnotationNode nameAnnotation = NodeParser.parseAnnotation(String.format(
+                        "@jsondata:Name { value: \"%s\" }", rawKey.replace("\\", "\\\\").replace("\"", "\\\"")));
                 annotations = createNodeList(nameAnnotation);
             } else {
                 fieldName = CodegenUtils.escapeIdentifier(rawKey);

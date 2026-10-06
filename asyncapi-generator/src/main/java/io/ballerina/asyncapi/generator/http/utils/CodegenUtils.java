@@ -29,11 +29,15 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.regex.Pattern;
 
 /**
  * Utility methods for Ballerina identifier and name generation during HTTP code generation.
  */
 public final class CodegenUtils {
+
+    private static final Pattern PLAIN_IDENTIFIER_CHARS = Pattern.compile("[A-Za-z0-9_]+");
+    private static final Pattern SIMPLE_NAME_CHARS = Pattern.compile("[A-Za-z0-9_-]+");
 
     public static final String ESCAPE_PATTERN = "([\\[\\]\\\\?!<>@#&~`*\\-=^+();:\\/\\_{}\\s|.$])";
     public static final List<String> BAL_KEYWORDS = SyntaxInfo.keywords();
@@ -112,14 +116,19 @@ public final class CodegenUtils {
     }
 
     /**
-     * Returns {@code true} if the identifier contains a hyphen ({@code -}), indicating that a
-     * {@code @http:Header} annotation is required for the corresponding record field.
+     * Returns {@code true} if the identifier looks like an HTTP header name, indicating that a
+     * {@code @http:Header} annotation is required for the corresponding record field: it contains a
+     * hyphen ({@code -}) and is made only of letters, digits, hyphens and underscores.
+     *
+     * <p>A name with any other character, for example a URI such as
+     * {@code https://schemas.example.org/events/login-success}, can never be a header name and is
+     * handled as a JSON key instead (see {@link #requiresJsonNameAnnotation}).
      *
      * @param identifier the field name to check
-     * @return {@code true} if the identifier contains a hyphen, {@code false} otherwise
+     * @return {@code true} if the identifier looks like a hyphenated HTTP header name
      */
     public static boolean requiresHeaderAnnotation(String identifier) {
-        return identifier.contains("-");
+        return identifier.contains("-") && SIMPLE_NAME_CHARS.matcher(identifier).matches();
     }
 
     /**
@@ -156,30 +165,79 @@ public final class CodegenUtils {
     }
 
     /**
-     * Returns {@code true} if a spec property name should be re-emitted as a camelCase record field
+     * Returns {@code true} if a spec property name should be re-emitted under a clean field name
      * carrying a {@code @jsondata:Name} annotation to preserve its original JSON key.
      *
-     * <p>Only underscore-separated names qualify. A hyphenated name is left to
-     * {@link #requiresHeaderAnnotation}, which routes it to {@code @http:Header} instead, and a name
-     * that is already camelCase needs neither a rename nor an annotation.
+     * <p>A name qualifies when it contains an underscore or a hyphen, or any character that cannot appear
+     * in a Ballerina identifier (a URI such as {@code https://schemas.example.org/events/login}, a dot,
+     * a space...). A hyphenated name that looks like an HTTP header name is left to
+     * {@link #requiresHeaderAnnotation}, which routes it to {@code @http:Header} instead, and a name that
+     * is already a plain identifier needs neither a rename nor an annotation.
      *
      * @param identifier the raw spec property name
-     * @return {@code true} if the name should be camelCased and annotated with its JSON key
+     * @return {@code true} if the name should be renamed and annotated with its JSON key
      */
     public static boolean requiresJsonNameAnnotation(String identifier) {
-        return identifier.contains("_") && !requiresHeaderAnnotation(identifier)
-                && !toCamelCase(identifier).equals(identifier);
+        if (requiresHeaderAnnotation(identifier)) {
+            return false;
+        }
+        boolean needsClean = identifier.contains("_") || identifier.contains("-")
+                || !PLAIN_IDENTIFIER_CHARS.matcher(identifier).matches();
+        return needsClean && !deriveFieldName(identifier).equals(identifier);
     }
 
     /**
-     * Resolves the record field names for a set of spec property names, camelCasing those that
-     * qualify while guaranteeing the result stays unique within the record.
+     * Derives a clean camelCase field name from a spec property name that is not usable as one.
      *
-     * <p>Two distinct properties can camelCase to the same identifier ({@code first_name} and
-     * {@code firstName} both give {@code firstName}), which would be a duplicate-field compile
-     * error. A name that would collide keeps its original spelling instead, since a field left on
-     * its raw key binds correctly with no annotation at all - the rename is a convention
-     * improvement, never worth emitting broken code for.
+     * <p>A name made only of letters, digits, underscores and hyphens is converted with
+     * {@link #toCamelCase}. Anything else (for example a URI) is reduced to its last path segment and
+     * split on every non-alphanumeric character, so
+     * {@code https://schemas.example.org/events/token/event-type/accessTokenIssued} becomes
+     * {@code accessTokenIssued}. A result that would start with a digit is prefixed with an underscore.
+     *
+     * @param identifier the raw spec property name
+     * @return a camelCase name made of letters, digits and underscores, never empty
+     */
+    public static String deriveFieldName(String identifier) {
+        String derived;
+        if (SIMPLE_NAME_CHARS.matcher(identifier).matches()) {
+            derived = toCamelCase(identifier);
+        } else {
+            String tail = identifier;
+            String[] segments = identifier.split("/");
+            for (int i = segments.length - 1; i >= 0; i--) {
+                if (!segments[i].isBlank()) {
+                    tail = segments[i];
+                    break;
+                }
+            }
+            StringBuilder camel = new StringBuilder();
+            for (String part : tail.split("[^A-Za-z0-9]+")) {
+                if (part.isEmpty()) {
+                    continue;
+                }
+                camel.append(camel.length() == 0
+                        ? part.substring(0, 1).toLowerCase(Locale.ENGLISH) + part.substring(1)
+                        : part.substring(0, 1).toUpperCase(Locale.ENGLISH) + part.substring(1));
+            }
+            derived = camel.toString();
+        }
+        if (derived.isEmpty()) {
+            return "field";
+        }
+        return Character.isDigit(derived.charAt(0)) ? "_" + derived : derived;
+    }
+
+    /**
+     * Resolves the record field names for a set of spec property names, renaming those that qualify
+     * (see {@link #requiresJsonNameAnnotation}) while guaranteeing the result stays unique and valid
+     * within the record.
+     *
+     * <p>Two distinct properties can derive the same identifier ({@code first_name} and
+     * {@code firstName} both give {@code firstName}), which would be a duplicate-field compile error,
+     * and a derived name can be a Ballerina keyword. In either case the property keeps its original
+     * spelling instead, which is emitted as an escaped identifier with no annotation and still binds
+     * correctly - the rename is a convention improvement, never worth emitting broken code for.
      *
      * @param propertyNames the raw spec property names, in declaration order
      * @return each raw property name mapped to the field name to emit for it
@@ -197,9 +255,9 @@ public final class CodegenUtils {
                 resolved.put(rawKey, rawKey);
                 continue;
             }
-            String camelCased = toCamelCase(rawKey);
-            boolean available = taken.add(camelCased);
-            resolved.put(rawKey, available ? camelCased : rawKey);
+            String derived = deriveFieldName(rawKey);
+            boolean available = !BAL_KEYWORDS.contains(derived) && taken.add(derived);
+            resolved.put(rawKey, available ? derived : rawKey);
         }
         return resolved;
     }
