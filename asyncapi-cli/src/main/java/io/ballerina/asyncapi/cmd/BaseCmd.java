@@ -50,9 +50,9 @@ public class BaseCmd {
             description = "Path to a file containing the license header for generated files.")
     public String licensePath;
 
-    @CommandLine.Option(names = {"--json"},
-            description = "Generate the AsyncAPI definition in JSON format.")
-    public boolean jsonFlag;
+    @CommandLine.Option(names = {"--format"},
+            description = "Format of the generated AsyncAPI definition: yaml or json. Defaults to yaml.")
+    public String format;
 
     @CommandLine.Option(names = {"--service"},
             description = "Name of the service to generate.")

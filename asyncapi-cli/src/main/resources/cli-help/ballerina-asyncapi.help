@@ -4,7 +4,7 @@ NAME
 
 SYNOPSIS
         bal asyncapi <input> --protocol <http|ws> [-o <dir>] [--module <name>] [--license <file>]
-                     [--with-tests] [--service <name>] [--json]
+                     [--with-tests] [--service <name>] [--format <yaml|json>]
 
 DESCRIPTION
         Generate Ballerina sources from the given AsyncAPI definition (.yaml, .yml or .json),

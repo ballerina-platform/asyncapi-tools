@@ -41,6 +41,9 @@ public final class ErrorMessages {
     public static final String UNKNOWN_PROTOCOL =
             "error: unknown protocol '%s'. Supported protocols: %s.";
 
+    public static final String UNKNOWN_FORMAT =
+            "error: unknown format '%s'. Supported formats: json, yaml.";
+
     public static final String UNEXPECTED_GENERATION_FAILURE =
             "error: unexpected failure during generation: ";
 

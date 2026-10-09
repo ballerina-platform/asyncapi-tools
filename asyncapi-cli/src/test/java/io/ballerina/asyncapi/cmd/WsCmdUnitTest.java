@@ -64,19 +64,19 @@ public class WsCmdUnitTest extends CmdTestBase {
         Assert.assertFalse(getErr().contains("warning:"), "Unexpected warning. Err: " + getErr());
     }
 
-    @Test(description = "--json with a .bal input produces no warning")
+    @Test(description = "--format json with a .bal input produces no warning")
     public void testJsonFlagOnBalInput() throws IOException {
         Path balFile = Files.createTempFile(tmpDir, "service-", ".bal");
-        parse(balFile.toString(), "--protocol", "ws", "--service", "MyService", "--json").execute();
-        Assert.assertFalse(getErr().contains("warning: --json"), "Unexpected warning. Err: " + getErr());
+        parse(balFile.toString(), "--protocol", "ws", "--service", "MyService", "--format", "json").execute();
+        Assert.assertFalse(getErr().contains("warning: --format"), "Unexpected warning. Err: " + getErr());
     }
 
-    @Test(description = "--json and --service warn when generating code from a spec")
+    @Test(description = "--format and --service warn when generating code from a spec")
     public void testSpecOutputOnlyOptionsWarn() throws IOException {
         Path specFile = Files.createTempFile(tmpDir, "spec-", ".yaml");
-        parse(specFile.toString(), "--protocol", "ws", "--json", "--service", "MyService").execute();
-        Assert.assertTrue(getErr().contains("warning: --json only applies"),
-                "Expected the --json warning. Err: " + getErr());
+        parse(specFile.toString(), "--protocol", "ws", "--format", "json", "--service", "MyService").execute();
+        Assert.assertTrue(getErr().contains("warning: --format only applies"),
+                "Expected the --format warning. Err: " + getErr());
         Assert.assertTrue(getErr().contains("warning: --service only applies"),
                 "Expected the --service warning. Err: " + getErr());
     }

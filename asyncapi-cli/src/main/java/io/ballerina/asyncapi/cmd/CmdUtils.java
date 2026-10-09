@@ -133,7 +133,7 @@ public final class CmdUtils {
                 .withOutput(baseCmd.outputPath)
                 .withLicenseFilePath(baseCmd.licensePath)
                 .withService(baseCmd.serviceName)
-                .withJson(baseCmd.jsonFlag)
+                .withJson(CmdConstants.FORMAT_JSON.equalsIgnoreCase(baseCmd.format))
                 .withTests(baseCmd.withTests)
                 .withModule(module)
                 .build();

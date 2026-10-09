@@ -71,6 +71,40 @@ public class AsyncApiCmdUnitTest extends CmdTestBase {
                 "Expected the input path error. Err: " + getErr());
     }
 
+    @Test(description = "An unknown --format prints an error listing the supported formats")
+    public void testUnknownFormat() {
+        parse("service.bal", "--protocol", "ws", "--format", "xml").execute();
+        Assert.assertTrue(getErr().contains("unknown format 'xml'"),
+                "Expected unknown format error. Err: " + getErr());
+        Assert.assertTrue(getErr().contains("json, yaml"), "Expected supported formats. Err: " + getErr());
+    }
+
+    @Test(description = "--format accepts json and yaml in any case")
+    public void testKnownFormatsAccepted() {
+        for (String format : new String[]{"json", "yaml", "JSON", "Yaml"}) {
+            errContent.reset();
+            parse("/non/existent/service.bal", "--protocol", "ws", "--format", format).execute();
+            Assert.assertFalse(getErr().contains("unknown format"),
+                    format + " should be accepted. Err: " + getErr());
+        }
+    }
+
+    @Test(description = "--format selects JSON output only for json, yaml and no flag give YAML")
+    public void testFormatMapsToJsonOption() {
+        BaseCmd base = new BaseCmd();
+        Assert.assertFalse(CmdUtils.collectCmdOptions(base).isJson(), "no --format should mean yaml");
+        base.format = "yaml";
+        Assert.assertFalse(CmdUtils.collectCmdOptions(base).isJson());
+        base.format = "JSON";
+        Assert.assertTrue(CmdUtils.collectCmdOptions(base).isJson());
+    }
+
+    @Test(description = "The --json flag no longer exists")
+    public void testJsonFlagRemoved() {
+        Assert.expectThrows(CommandLine.UnmatchedArgumentException.class,
+                () -> parse("service.bal", "--protocol", "ws", "--json"));
+    }
+
     @Test(description = "The input is a positional argument")
     public void testPositionalInput() {
         parse("/non/existent/spec.yaml", "--protocol", "ws").execute();

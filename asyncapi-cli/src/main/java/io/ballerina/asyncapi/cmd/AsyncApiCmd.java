@@ -126,6 +126,11 @@ public class AsyncApiCmd implements BLauncherCmd {
                             ProtocolCommands.names(", ")));
             return;
         }
+        if (baseCmd.format != null && !CmdConstants.FORMAT_JSON.equalsIgnoreCase(baseCmd.format)
+                && !CmdConstants.FORMAT_YAML.equalsIgnoreCase(baseCmd.format)) {
+            fail(String.format(ErrorMessages.UNKNOWN_FORMAT, baseCmd.format));
+            return;
+        }
         ProtocolHandler handler;
         try {
             handler = CodeGenOrchestrator.getHandler(command.get().protocol());
@@ -172,8 +177,8 @@ public class AsyncApiCmd implements BLauncherCmd {
             ctx.printWarning(String.format(ErrorMessages.WARN_OPTION_UNSUPPORTED, "--license", protocol));
         }
         if (mode == CmdConstants.Mode.ASYNCAPI_TO_BALLERINA) {
-            if (baseCmd.jsonFlag) {
-                ctx.printWarning(String.format(ErrorMessages.WARN_OPTION_ONLY_FOR_SPEC_OUTPUT, "--json"));
+            if (baseCmd.format != null) {
+                ctx.printWarning(String.format(ErrorMessages.WARN_OPTION_ONLY_FOR_SPEC_OUTPUT, "--format"));
             }
             if (baseCmd.serviceName != null) {
                 ctx.printWarning(String.format(ErrorMessages.WARN_OPTION_ONLY_FOR_SPEC_OUTPUT, "--service"));

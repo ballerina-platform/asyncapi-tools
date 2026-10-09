@@ -34,6 +34,9 @@ public final class CmdConstants {
     public static final String JSON_EXTENSION = ".json";
     public static final String FILE_EXTENSION_SEPARATOR = ".";
 
+    public static final String FORMAT_JSON = "json";
+    public static final String FORMAT_YAML = "yaml";
+
     /**
      * Describes the direction of code generation for a given invocation.
      *
