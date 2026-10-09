@@ -53,10 +53,20 @@ public class AsyncApiCmdToolDiagnosticTest extends CmdTestBase {
                 "ASYNC_CLI_002 message must not be blank");
     }
 
+    @Test(description = "ASYNC_CLI_002 names the protocol it is raised for")
+    void testAsyncCli002NamesProtocol() {
+        AsyncApiCmdToolException ex =
+                new AsyncApiCmdToolException(AsyncApiCmdToolDiagnostic.ASYNC_CLI_002, "http");
+
+        Assert.assertEquals(
+                ex.getDiagnosticMessage(),
+                "The http protocol does not support Ballerina-to-AsyncAPI generation.");
+    }
+
     @Test(description = "Exception from no-args diagnostic: getMessage() has 'ERROR: ' prefix")
     void testExceptionMessageHasErrorPrefix() {
         AsyncApiCmdToolException ex =
-                new AsyncApiCmdToolException(AsyncApiCmdToolDiagnostic.ASYNC_CLI_002);
+                new AsyncApiCmdToolException(AsyncApiCmdToolDiagnostic.ASYNC_CLI_003);
 
         Assert.assertTrue(
                 ex.getMessage().startsWith("ERROR: "),
@@ -66,15 +76,15 @@ public class AsyncApiCmdToolDiagnosticTest extends CmdTestBase {
     @Test(description = "Exception from no-args diagnostic: getDiagnosticCode() returns enum code")
     void testExceptionDiagnosticCode() {
         AsyncApiCmdToolException ex =
-                new AsyncApiCmdToolException(AsyncApiCmdToolDiagnostic.ASYNC_CLI_002);
+                new AsyncApiCmdToolException(AsyncApiCmdToolDiagnostic.ASYNC_CLI_003);
 
-        Assert.assertEquals(ex.getDiagnosticCode(), "ASYNC_CLI_002");
+        Assert.assertEquals(ex.getDiagnosticCode(), "ASYNC_CLI_003");
     }
 
     @Test(description = "Exception from no-args diagnostic: getDiagnosticMessage() has no 'ERROR: ' prefix")
     void testExceptionDiagnosticMessageNoPrefix() {
         AsyncApiCmdToolException ex =
-                new AsyncApiCmdToolException(AsyncApiCmdToolDiagnostic.ASYNC_CLI_002);
+                new AsyncApiCmdToolException(AsyncApiCmdToolDiagnostic.ASYNC_CLI_003);
 
         Assert.assertFalse(
                 ex.getDiagnosticMessage().startsWith("ERROR: "),
@@ -130,7 +140,7 @@ public class AsyncApiCmdToolDiagnosticTest extends CmdTestBase {
     @Test(description = "Exception is a RuntimeException (unchecked)")
     void testExceptionIsUnchecked() {
         AsyncApiCmdToolException ex =
-                new AsyncApiCmdToolException(AsyncApiCmdToolDiagnostic.ASYNC_CLI_002);
+                new AsyncApiCmdToolException(AsyncApiCmdToolDiagnostic.ASYNC_CLI_003);
 
         Assert.assertTrue(
                 ex instanceof RuntimeException,

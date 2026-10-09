@@ -18,9 +18,9 @@
 package io.ballerina.asyncapi.cmd;
 
 /**
- * Immutable value object holding the resolved, validated options for one asyncapi sub-command
+ * Immutable value object holding the resolved, validated options for one asyncapi command
  * invocation. Instances are created exclusively via {@link CmdOptionsBuilder} and are passed
- * directly to {@link SubCmdBase#generate(CmdOptions, CmdConstants.Mode)}.
+ * directly to {@link ProtocolCommand#generate(CmdOptions, CmdConstants.Mode, CmdContext)}.
  *
  */
 public class CmdOptions {

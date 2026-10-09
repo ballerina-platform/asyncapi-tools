@@ -1,24 +1,53 @@
 NAME
-        bal asyncapi - Generate a Ballerina listener from an AsyncAPI contract,
+        bal asyncapi - Generate a Ballerina listener or client from an AsyncAPI contract,
                        or generate an AsyncAPI specification from a Ballerina service file.
 
 SYNOPSIS
-        bal asyncapi <http|ws> [flags]
+        bal asyncapi <input> --protocol <http|ws> [-o <dir>] [--module <name>] [--license <file>]
+                     [--with-tests] [--service <name>] [--json]
 
 DESCRIPTION
-        Generate a Ballerina source from the given AsyncAPI definition file, or generate
-        an AsyncAPI specification from a Ballerina service file.
+        Generate Ballerina sources from the given AsyncAPI definition (.yaml, .yml or .json),
+        or generate an AsyncAPI specification from a Ballerina service file (.bal).
+        The direction is taken from the input: a definition generates code, a .bal file
+        generates a definition.
 
-        The generated Ballerina sources and AsyncAPI specification will be written into
-        the provided output location.
+        Options a protocol does not support are reported as warnings and ignored.
 
 OPTIONS
+        <input>
+                Path to the AsyncAPI definition or the Ballerina source file.
+
+        --protocol <http|ws>
+                Protocol of the AsyncAPI definition. Required.
+
+        -o, --output <dir>
+                Directory the generated files are written to. Defaults to the current directory.
+
+        --module <name>
+                Module of the Ballerina package the generated files are written to.
+
+        --license <file>
+                File with the license header placed on generated files (ws only).
+
+        --with-tests
+                Generate test files along with the code (ws only).
+
+        --service <name>
+                Service to generate the AsyncAPI definition for (Ballerina source input only).
+
+        --json
+                Write the generated AsyncAPI definition as JSON (Ballerina source input only).
+
         -h, --help
-                Display help for the parent command or a subcommand.
+                Display this help.
 
 EXAMPLES
-        Display help for the http subcommand.
-            $ bal asyncapi http --help
+        Generate a WebSocket client with tests.
+            $ bal asyncapi chat.yaml --protocol ws --with-tests
 
-        Display help for the ws subcommand.
-            $ bal asyncapi ws --help
+        Generate an HTTP webhook listener into a module.
+            $ bal asyncapi events.yaml --protocol http --module events -o ./pkg
+
+        Generate an AsyncAPI definition from a Ballerina service.
+            $ bal asyncapi service.bal --protocol ws --service chat --json

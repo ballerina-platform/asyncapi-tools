@@ -29,10 +29,9 @@ public enum AsyncApiCmdToolDiagnostic {
     /** General code-generation failure; {@code %s} is replaced with the underlying error message. */
     ASYNC_CLI_001("ASYNC_CLI_001", "Code generation failed: %s"),
 
-    /** The http sub-command does not support Ballerina-to-AsyncAPI export. */
+    /** The protocol does not support Ballerina-to-AsyncAPI generation; {@code %s} is the protocol name. */
     ASYNC_CLI_002("ASYNC_CLI_002",
-            "The http subcommand does not support Ballerina-to-AsyncAPI generation. "
-            + "Use 'bal asyncapi ws --service <name> --input <file.bal>' instead."),
+            "The %s protocol does not support Ballerina-to-AsyncAPI generation."),
 
     /** Ballerina workspace detected during project resolution; use --output to target a package. */
     ASYNC_CLI_003("ASYNC_CLI_003",

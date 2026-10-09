@@ -1,202 +1,97 @@
+/*
+ *  Copyright (c) 2026, WSO2 LLC. (http://www.wso2.com).
+ *
+ *  WSO2 LLC. licenses this file to you under the Apache License,
+ *  Version 2.0 (the "License"); you may not use this file except
+ *  in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing,
+ *  software distributed under the License is distributed on an
+ *  "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ *  KIND, either express or implied.  See the License for the
+ *  specific language governing permissions and limitations
+ *  under the License.
+ */
 package io.ballerina.asyncapi.cmd;
 
 import org.testng.Assert;
 import org.testng.annotations.Test;
-import picocli.CommandLine;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
 /**
- * Unit tests for {@link Ws} subcommand — validation logic,
- * mode resolution, and flag handling without real generation.
+ * Tests for {@code --protocol ws}: input validation, mode resolution and the options ws supports.
+ * Generation itself is covered by the generator tests.
  */
 public class WsCmdUnitTest extends CmdTestBase {
 
-    @Test(description = "Ws with --help does not print error")
-    public void testHelpFlag() {
-        Ws cmd = new Ws(outStream, errStream, false);
-        new CommandLine(cmd).parseArgs("--help");
-        cmd.execute();
-        Assert.assertTrue(getErr().isEmpty(),
-            "No error expected for --help. Err: " + getErr());
-    }
-
-    @Test(description = "Ws with no --input prints missing "
-            + "input error")
-    public void testMissingInputFlag() {
-        Ws cmd = new Ws(outStream, errStream, false);
-        new CommandLine(cmd).parseArgs();
-        cmd.setExitWhenFinish(false);
-        cmd.execute();
-        String err = getErr();
-        Assert.assertTrue(
-            err.contains(ErrorMessages.MISSING_INPUT_FLAG),
-            "Expected missing input error. Err: " + err);
-    }
-
-    @Test(description = "Ws with non-existent input prints "
-            + "invalid path error")
+    @Test(description = "A non-existent spec prints the invalid path error")
     public void testInvalidInputPath() {
-        Ws cmd = new Ws(outStream, errStream, false);
-        new CommandLine(cmd).parseArgs(
-            "--input", "/non/existent/file.yaml");
-        cmd.setExitWhenFinish(false);
-        cmd.execute();
-        String err = getErr();
-        Assert.assertTrue(
-            err.contains("error:"),
-            "Expected error for invalid path. Err: " + err);
+        parse("/non/existent/file.yaml", "--protocol", "ws").execute();
+        Assert.assertTrue(getErr().contains("error: invalid input path '/non/existent/file.yaml'"),
+                "Expected invalid path error. Err: " + getErr());
     }
 
-    @Test(description = "Ws getName() returns 'ws'")
-    public void testGetName() {
-        Ws cmd = new Ws(outStream, errStream, false);
-        Assert.assertEquals(cmd.getName(), "ws");
+    @Test(description = "A .bal input is accepted (code to spec) with --service")
+    public void testBalFileAcceptedWithServiceFlag() throws IOException {
+        Path balFile = Files.createTempFile(tmpDir, "service-", ".bal");
+        parse(balFile.toString(), "--protocol", "ws", "--service", "ChatService").execute();
+        Assert.assertFalse(getErr().contains("is not a valid Ballerina source file"),
+                "A .bal file should be accepted. Err: " + getErr());
+        Assert.assertFalse(getErr().contains("does not support"), "Unexpected capability error. Err: " + getErr());
     }
 
-    @Test(description = "Ws with --input .bal and --service "
-            + "accepts the .bal file (BALLERINA_TO_ASYNCAPI)")
-    void testBalFileAcceptedWithServiceFlag() throws IOException {
-        Path balFile = Files.createTempFile(
-            tmpDir, "service-", ".bal");
-        Ws cmd = new Ws(outStream, errStream, false);
-        new CommandLine(cmd).parseArgs(
-            "--input", balFile.toString(),
-            "--service", "ChatService");
-        cmd.setExitWhenFinish(false);
-        cmd.execute();
-        String err = getErr();
-        Assert.assertFalse(
-            err.contains(ErrorMessages.MISSING_INPUT_FLAG),
-            "Unexpected missing-input error. Err: " + err);
-        Assert.assertFalse(
-            err.contains(ErrorMessages.INVALID_BAL_INPUT_PATH),
-            "Unexpected invalid-path error — .bal should be "
-                + "accepted in B2A mode. Err: " + err);
+    @Test(description = "A .bal input is accepted without --service")
+    public void testBalFileAcceptedWithoutServiceFlag() throws IOException {
+        Path balFile = Files.createTempFile(tmpDir, "service-", ".bal");
+        parse(balFile.toString(), "--protocol", "ws").execute();
+        Assert.assertFalse(getErr().contains("does not support"), "Unexpected capability error. Err: " + getErr());
+        Assert.assertFalse(getErr().contains("is not a valid Ballerina source file"),
+                "A .bal file should be accepted. Err: " + getErr());
     }
 
-    @Test(description = "Ws with --input .bal but no --service "
-            + "is accepted (BALLERINA_TO_ASYNCAPI mode via extension)")
-    void testBalFileAcceptedWithoutServiceFlag()
-            throws IOException {
-        Path balFile = Files.createTempFile(
-            tmpDir, "service-", ".bal");
-        Ws cmd = new Ws(outStream, errStream, false);
-        new CommandLine(cmd).parseArgs(
-            "--input", balFile.toString());
-        cmd.setExitWhenFinish(false);
-        cmd.execute();
-        Assert.assertFalse(
-            getErr().contains(ErrorMessages.MISSING_INPUT_FLAG),
-            "Unexpected missing-input error. Err: " + getErr());
-        Assert.assertFalse(
-            getErr().contains(ErrorMessages.INVALID_BAL_INPUT_PATH),
-            "Unexpected invalid-path error — .bal should be "
-                + "accepted without --service. Err: " + getErr());
+    @Test(description = "--with-tests and --license are supported for ws and produce no warning")
+    public void testSupportedOptionsDoNotWarn() throws IOException {
+        Path specFile = Files.createTempFile(tmpDir, "spec-", ".yaml");
+        Path licenseFile = Files.createTempFile(tmpDir, "license-", ".txt");
+        parse(specFile.toString(), "--protocol", "ws", "--with-tests", "--license", licenseFile.toString(),
+                "--output", tmpDir.resolve("out").toString()).execute();
+        Assert.assertFalse(getErr().contains("warning:"), "Unexpected warning. Err: " + getErr());
     }
 
-    @Test(description = "Ws with --with-tests flag and valid .yaml "
-            + "input does not print an error before generation")
-    public void testWithTestsFlagOnWs() throws IOException {
-        Path yamlFile = Files.createTempFile(
-            tmpDir, "spec-", ".yaml");
-        try {
-            Ws cmd = new Ws(outStream, errStream, false);
-            new CommandLine(cmd).parseArgs(
-                "--input", yamlFile.toString(),
-                "--with-tests");
-            cmd.setExitWhenFinish(false);
-            cmd.execute();
-            Assert.assertFalse(
-                getErr().contains(ErrorMessages.MISSING_INPUT_FLAG),
-                "Expected no missing input error. Err: " + getErr());
-            Assert.assertFalse(
-                getErr().contains(ErrorMessages.INVALID_INPUT_PATH),
-                "Expected no invalid path error. Err: " + getErr());
-        } finally {
-            Files.deleteIfExists(yamlFile);
-        }
+    @Test(description = "--json with a .bal input produces no warning")
+    public void testJsonFlagOnBalInput() throws IOException {
+        Path balFile = Files.createTempFile(tmpDir, "service-", ".bal");
+        parse(balFile.toString(), "--protocol", "ws", "--service", "MyService", "--json").execute();
+        Assert.assertFalse(getErr().contains("warning: --json"), "Unexpected warning. Err: " + getErr());
     }
 
-    @Test(description = "Ws with --json flag and valid .bal input "
-            + "does not print an error before generation")
-    public void testJsonFlagOnWs() throws IOException {
-        Path balFile = Files.createTempFile(
-            tmpDir, "service-", ".bal");
-        try {
-            Ws cmd = new Ws(outStream, errStream, false);
-            new CommandLine(cmd).parseArgs(
-                "--input", balFile.toString(),
-                "--service", "MyService",
-                "--json");
-            cmd.setExitWhenFinish(false);
-            cmd.execute();
-            Assert.assertFalse(
-                getErr().contains(ErrorMessages.MISSING_INPUT_FLAG),
-                "Expected no missing input error. Err: " + getErr());
-            Assert.assertFalse(
-                getErr().contains(ErrorMessages.INVALID_BAL_INPUT_PATH),
-                "Expected no invalid path error. Err: " + getErr());
-        } finally {
-            Files.deleteIfExists(balFile);
-        }
+    @Test(description = "--json and --service warn when generating code from a spec")
+    public void testSpecOutputOnlyOptionsWarn() throws IOException {
+        Path specFile = Files.createTempFile(tmpDir, "spec-", ".yaml");
+        parse(specFile.toString(), "--protocol", "ws", "--json", "--service", "MyService").execute();
+        Assert.assertTrue(getErr().contains("warning: --json only applies"),
+                "Expected the --json warning. Err: " + getErr());
+        Assert.assertTrue(getErr().contains("warning: --service only applies"),
+                "Expected the --service warning. Err: " + getErr());
     }
 
-    @Test(description = "Ws with --output flag and valid .yaml "
-            + "input does not print an error before generation")
-    public void testOutputFlagOnWs() throws IOException {
-        Path yamlFile = Files.createTempFile(
-            tmpDir, "spec-", ".yaml");
-        try {
-            Ws cmd = new Ws(outStream, errStream, false);
-            new CommandLine(cmd).parseArgs(
-                "--input", yamlFile.toString(),
-                "--output", "some/output");
-            cmd.setExitWhenFinish(false);
-            cmd.execute();
-            Assert.assertFalse(
-                getErr().contains(ErrorMessages.MISSING_INPUT_FLAG),
-                "Expected no missing input error. Err: " + getErr());
-            Assert.assertFalse(
-                getErr().contains(ErrorMessages.INVALID_INPUT_PATH),
-                "Expected no invalid path error. Err: " + getErr());
-        } finally {
-            Files.deleteIfExists(yamlFile);
-        }
-    }
-
-    @Test(description = "printUsage writes 'bal asyncapi ws' to "
-            + "infoStream")
-    public void testPrintUsage() {
-        Ws cmd = new Ws(outStream, errStream, false);
-        cmd.printUsage(new StringBuilder());
-        Assert.assertTrue(
-            getOut().contains("bal asyncapi ws"),
-            "Expected usage line in outStream. Out: " + getOut());
-    }
-
-    @Test(description = "CmdUtils.resolveMode returns "
-            + "ASYNCAPI_TO_BALLERINA when input is a .yaml file")
+    @Test(description = "CmdUtils.resolveMode returns ASYNCAPI_TO_BALLERINA for a .yaml input")
     public void testResolveModeSpecToCode() {
         BaseCmd base = new BaseCmd();
         base.inputPath = "definition.yaml";
-        Assert.assertEquals(
-            CmdUtils.resolveMode(base),
-            CmdConstants.Mode.ASYNCAPI_TO_BALLERINA,
-            "Expected ASYNCAPI_TO_BALLERINA for .yaml input");
+        Assert.assertEquals(CmdUtils.resolveMode(base), CmdConstants.Mode.ASYNCAPI_TO_BALLERINA);
     }
 
-    @Test(description = "CmdUtils.resolveMode returns "
-            + "BALLERINA_TO_ASYNCAPI when input is a .bal file")
+    @Test(description = "CmdUtils.resolveMode returns BALLERINA_TO_ASYNCAPI for a .bal input")
     public void testResolveModeCodeToSpec() {
         BaseCmd base = new BaseCmd();
         base.inputPath = "service.bal";
-        Assert.assertEquals(
-            CmdUtils.resolveMode(base),
-            CmdConstants.Mode.BALLERINA_TO_ASYNCAPI,
-            "Expected BALLERINA_TO_ASYNCAPI for .bal input");
+        Assert.assertEquals(CmdUtils.resolveMode(base), CmdConstants.Mode.BALLERINA_TO_ASYNCAPI);
     }
 }
-

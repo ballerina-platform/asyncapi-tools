@@ -26,13 +26,6 @@ public final class CmdConstants {
 
     public static final String ASYNCAPI_CMD = "asyncapi";
 
-    /**
-     * Format string used to look up per-subcommand help text via
-     * {@code BLauncherCmd.getCommandUsageInfo()}. The single {@code %s} placeholder is filled
-     * with the subcommand's {@link CmdType#getName()} value (e.g. {@code "asyncapi-http"}).
-     */
-    public static final String COMMAND_IDENTIFIER = "asyncapi-%s";
-
     public static final String LINE_SEPARATOR = System.lineSeparator();
 
     public static final String BAL_EXTENSION = ".bal";
@@ -40,31 +33,6 @@ public final class CmdConstants {
     public static final String YML_EXTENSION = ".yml";
     public static final String JSON_EXTENSION = ".json";
     public static final String FILE_EXTENSION_SEPARATOR = ".";
-
-    /**
-     * Identifies the protocol-specific sub-command, providing the name string used by the
-     * Ballerina launcher and in help text lookup.
-     *
-     */
-    public enum CmdType {
-        HTTP("http"),
-        WS("ws");
-
-        private final String name;
-
-        CmdType(String name) {
-            this.name = name;
-        }
-
-        /**
-         * Returns the lowercase sub-command name as registered with the Ballerina launcher.
-         *
-         * @return sub-command name string
-         */
-        public String getName() {
-            return name;
-        }
-    }
 
     /**
      * Describes the direction of code generation for a given invocation.

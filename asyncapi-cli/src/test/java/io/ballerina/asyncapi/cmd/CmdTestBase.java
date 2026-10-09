@@ -20,6 +20,7 @@ package io.ballerina.asyncapi.cmd;
 import org.testng.Assert;
 import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeMethod;
+import picocli.CommandLine;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -66,6 +67,13 @@ public abstract class CmdTestBase {
         }
         outStream.close();
         errStream.close();
+    }
+
+    /** Builds a command wired to the captured streams, with the given arguments parsed. */
+    protected AsyncApiCmd parse(String... args) {
+        AsyncApiCmd cmd = new AsyncApiCmd(outStream, errStream, false);
+        new CommandLine(cmd).parseArgs(args);
+        return cmd;
     }
 
     protected String getOut() {

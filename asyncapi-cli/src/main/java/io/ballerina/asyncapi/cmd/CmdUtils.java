@@ -121,10 +121,10 @@ public final class CmdUtils {
      *
      * @param baseCmd the mixin holding the raw picocli-parsed values
      * @return a fully populated {@link CmdOptions} ready to pass to
-     *         {@link SubCmdBase#generate(CmdOptions, CmdConstants.Mode)}
+     *         {@link ProtocolCommand#generate(CmdOptions, CmdConstants.Mode, CmdContext)}
      */
     public static CmdOptions collectCmdOptions(BaseCmd baseCmd) {
-        return collectCmdOptions(baseCmd, null);
+        return collectCmdOptions(baseCmd, baseCmd.module);
     }
 
     public static CmdOptions collectCmdOptions(BaseCmd baseCmd, String module) {

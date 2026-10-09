@@ -20,9 +20,8 @@ package io.ballerina.asyncapi.cmd;
 import picocli.CommandLine;
 
 /**
- * Picocli mixin that holds the common option flags shared across all asyncapi sub-commands.
- * Injected into sub-commands via {@code @CommandLine.Mixin} — this class is a pure data holder
- * with no lifecycle of its own.
+ * Picocli mixin that holds the option flags and the positional input of the asyncapi command.
+ * This class is a pure data holder with no lifecycle of its own.
  *
  */
 public class BaseCmd {
@@ -30,13 +29,22 @@ public class BaseCmd {
     @CommandLine.Option(names = {"-h", "--help"}, hidden = true)
     public boolean helpFlag;
 
-    @CommandLine.Option(names = {"-i", "--input"},
-            description = "Path to the AsyncAPI definition file.")
+    @CommandLine.Parameters(arity = "0..1", paramLabel = "<input>",
+            description = "Path to the AsyncAPI definition to generate code from, "
+                    + "or to the Ballerina source to generate a definition from.")
     public String inputPath;
+
+    @CommandLine.Option(names = {"--protocol"},
+            description = "Protocol of the AsyncAPI definition: http or ws.")
+    public String protocol;
 
     @CommandLine.Option(names = {"-o", "--output"},
             description = "Path to the output directory.")
     public String outputPath;
+
+    @CommandLine.Option(names = {"--module"},
+            description = "Target module name inside the Ballerina project.")
+    public String module;
 
     @CommandLine.Option(names = {"--license"},
             description = "Path to a file containing the license header for generated files.")

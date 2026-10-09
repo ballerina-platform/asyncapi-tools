@@ -17,38 +17,37 @@
  */
 package io.ballerina.asyncapi.cmd;
 
+import io.ballerina.asyncapi.generator.CodeGenOrchestrator;
+import io.ballerina.asyncapi.generator.GeneratorException;
+import io.ballerina.asyncapi.generator.spi.ProtocolHandler;
 import io.ballerina.cli.BLauncherCmd;
 import picocli.CommandLine;
 
 import java.io.PrintStream;
+import java.util.Optional;
 
 /**
- * Root CLI command for the Ballerina AsyncAPI tool.
- * Registers {@link Http} and {@link Ws} as subcommands.
+ * The {@code bal asyncapi} command. The protocol is chosen with {@code --protocol}; what each protocol
+ * supports comes from its generator {@link ProtocolHandler}.
  */
 @CommandLine.Command(
         name = "asyncapi",
         description = "Generate Ballerina code from AsyncAPI "
                 + "specifications or generate AsyncAPI specs "
-                + "from Ballerina services.",
-        subcommands = {Http.class, Ws.class}
+                + "from Ballerina services."
 )
 public class AsyncApiCmd implements BLauncherCmd {
 
     @CommandLine.Mixin
     private BaseCmd baseCmd;
 
-    private final PrintStream outStream;
-    private final PrintStream errStream;
-    private final boolean exitWhenFinish;
+    private final CmdContext ctx;
 
     /**
      * Production constructor.
      */
     public AsyncApiCmd() {
-        this.outStream = System.out;
-        this.errStream = System.err;
-        this.exitWhenFinish = true;
+        this.ctx = new CmdContext(System.out, System.err, true);
     }
 
     /**
@@ -59,9 +58,7 @@ public class AsyncApiCmd implements BLauncherCmd {
      */
     public AsyncApiCmd(PrintStream outStream,
                        PrintStream errStream) {
-        this.outStream = outStream;
-        this.errStream = errStream;
-        this.exitWhenFinish = false;
+        this.ctx = new CmdContext(outStream, errStream, false);
     }
 
     /**
@@ -71,9 +68,18 @@ public class AsyncApiCmd implements BLauncherCmd {
      * @param exitWhenFinish {@code false} to suppress {@link Runtime#exit} calls during tests
      */
     public AsyncApiCmd(PrintStream outStream, boolean exitWhenFinish) {
-        this.outStream = outStream;
-        this.errStream = System.err;
-        this.exitWhenFinish = exitWhenFinish;
+        this.ctx = new CmdContext(outStream, System.err, exitWhenFinish);
+    }
+
+    /**
+     * Test constructor.
+     *
+     * @param outStream      stream for standard output
+     * @param errStream      stream for error output
+     * @param exitWhenFinish {@code false} to suppress {@link Runtime#exit} calls during tests
+     */
+    public AsyncApiCmd(PrintStream outStream, PrintStream errStream, boolean exitWhenFinish) {
+        this.ctx = new CmdContext(outStream, errStream, exitWhenFinish);
     }
 
     @Override
@@ -86,18 +92,20 @@ public class AsyncApiCmd implements BLauncherCmd {
         String help = BLauncherCmd.getCommandUsageInfo(
                 CmdConstants.ASYNCAPI_CMD,
                 AsyncApiCmd.class.getClassLoader());
-        outStream.println(help);
+        ctx.printInfo(help);
     }
 
     @Override
     public void printUsage(StringBuilder out) {
-        outStream.println(
-                "Usage: bal asyncapi [http|ws] [flags]");
+        ctx.printInfo("Usage: bal asyncapi <input> --protocol <" + ProtocolCommands.names("|") + "> [flags]");
     }
 
     @Override
-    public void setParentCmdParser(
-            picocli.CommandLine parentCmdParser) {
+    public void setParentCmdParser(CommandLine parentCmdParser) {
+    }
+
+    void setExitWhenFinish(boolean exitWhenFinish) {
+        ctx.setExitWhenFinish(exitWhenFinish);
     }
 
     @Override
@@ -106,18 +114,75 @@ public class AsyncApiCmd implements BLauncherCmd {
             printLongDesc(null);
             return;
         }
-        errStream.println(
-                "bal asyncapi: missing subcommand. "
-                + "Use 'bal asyncapi --help' for usage, or "
-                + "'bal asyncapi http --help' / "
-                + "'bal asyncapi ws --help' "
-                + "for subcommand details.");
-        exitError();
+        if (baseCmd.inputPath == null || baseCmd.inputPath.isBlank()) {
+            fail(ErrorMessages.MISSING_INPUT);
+            return;
+        }
+        Optional<ProtocolCommand> command = ProtocolCommands.find(baseCmd.protocol);
+        if (command.isEmpty()) {
+            fail(baseCmd.protocol == null || baseCmd.protocol.isBlank()
+                    ? String.format(ErrorMessages.MISSING_PROTOCOL, ProtocolCommands.names(", "))
+                    : String.format(ErrorMessages.UNKNOWN_PROTOCOL, baseCmd.protocol,
+                            ProtocolCommands.names(", ")));
+            return;
+        }
+        ProtocolHandler handler;
+        try {
+            handler = CodeGenOrchestrator.getHandler(command.get().protocol());
+        } catch (GeneratorException e) {
+            fail("ERROR: " + e.getMessage());
+            return;
+        }
+        CmdConstants.Mode mode = CmdUtils.resolveMode(baseCmd);
+        if (!validate(mode, handler, command.get())) {
+            return;
+        }
+        warnUnsupportedOptions(handler, mode);
+        try {
+            command.get().generate(CmdUtils.collectCmdOptions(baseCmd), mode, ctx);
+        } catch (RuntimeException e) {
+            fail(ErrorMessages.UNEXPECTED_GENERATION_FAILURE + e.getMessage());
+        }
     }
 
-    private void exitError() {
-        if (exitWhenFinish) {
-            Runtime.getRuntime().exit(1);
+    private boolean validate(CmdConstants.Mode mode, ProtocolHandler handler, ProtocolCommand command) {
+        if (mode == CmdConstants.Mode.BALLERINA_TO_ASYNCAPI) {
+            if (!handler.supportsCodeToSpec()) {
+                fail(new AsyncApiCmdToolException(AsyncApiCmdToolDiagnostic.ASYNC_CLI_002,
+                        command.protocol().name().toLowerCase()).getMessage());
+                return false;
+            }
+            if (!CmdUtils.isValidBallerinaFile(baseCmd.inputPath)) {
+                fail(String.format(ErrorMessages.INVALID_BAL_INPUT_PATH, baseCmd.inputPath));
+                return false;
+            }
+        } else if (!CmdUtils.isValidInputFile(baseCmd.inputPath)) {
+            fail(String.format(ErrorMessages.INVALID_INPUT_PATH, baseCmd.inputPath));
+            return false;
         }
+        return true;
+    }
+
+    private void warnUnsupportedOptions(ProtocolHandler handler, CmdConstants.Mode mode) {
+        String protocol = handler.getProtocol().name().toLowerCase();
+        if (baseCmd.withTests && !handler.supportsTestGeneration()) {
+            ctx.printWarning(String.format(ErrorMessages.WARN_OPTION_UNSUPPORTED, "--with-tests", protocol));
+        }
+        if (baseCmd.licensePath != null && !handler.supportsLicenseHeader()) {
+            ctx.printWarning(String.format(ErrorMessages.WARN_OPTION_UNSUPPORTED, "--license", protocol));
+        }
+        if (mode == CmdConstants.Mode.ASYNCAPI_TO_BALLERINA) {
+            if (baseCmd.jsonFlag) {
+                ctx.printWarning(String.format(ErrorMessages.WARN_OPTION_ONLY_FOR_SPEC_OUTPUT, "--json"));
+            }
+            if (baseCmd.serviceName != null) {
+                ctx.printWarning(String.format(ErrorMessages.WARN_OPTION_ONLY_FOR_SPEC_OUTPUT, "--service"));
+            }
+        }
+    }
+
+    private void fail(String message) {
+        ctx.printError(message);
+        ctx.exitError();
     }
 }
