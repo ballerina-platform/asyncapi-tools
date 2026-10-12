@@ -19,16 +19,12 @@ package io.ballerina.asyncapi.generator.http.node;
 
 import io.ballerina.asyncapi.generator.GeneratorException;
 import io.ballerina.asyncapi.generator.http.extractor.EventIdentifierExtractor;
-import io.ballerina.asyncapi.generator.http.generator.DataTypesGenerator;
 import io.ballerina.asyncapi.generator.http.model.EventIdentifierConfig;
 import io.ballerina.asyncapi.generator.http.model.HttpServiceType;
-import io.ballerina.compiler.syntax.tree.CheckExpressionNode;
-import io.ballerina.compiler.syntax.tree.ExpressionStatementNode;
-import io.ballerina.compiler.syntax.tree.FunctionArgumentNode;
 import io.ballerina.compiler.syntax.tree.FunctionBodyBlockNode;
 import io.ballerina.compiler.syntax.tree.FunctionDefinitionNode;
 import io.ballerina.compiler.syntax.tree.FunctionSignatureNode;
-import io.ballerina.compiler.syntax.tree.MethodCallExpressionNode;
+import io.ballerina.compiler.syntax.tree.NodeParser;
 import io.ballerina.compiler.syntax.tree.ParameterNode;
 import io.ballerina.compiler.syntax.tree.SeparatedNodeList;
 import io.ballerina.compiler.syntax.tree.StatementNode;
@@ -37,36 +33,26 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-import static io.ballerina.asyncapi.generator.http.node.GenerateAddServiceRefFuncNode.buildErrorReturnType;
+import static io.ballerina.asyncapi.generator.http.node.GenerateAddServiceRefFuncNode.buildHandledOrErrorReturnType;
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createEmptyNodeList;
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createIdentifierToken;
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createNodeList;
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createSeparatedNodeList;
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createToken;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createBuiltinSimpleNameReferenceNode;
-import static io.ballerina.compiler.syntax.tree.NodeFactory.createCheckExpressionNode;
-import static io.ballerina.compiler.syntax.tree.NodeFactory.createExpressionStatementNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createFunctionBodyBlockNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createFunctionDefinitionNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createFunctionSignatureNode;
-import static io.ballerina.compiler.syntax.tree.NodeFactory.createMethodCallExpressionNode;
-import static io.ballerina.compiler.syntax.tree.NodeFactory.createPositionalArgumentNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createRequiredParameterNode;
-import static io.ballerina.compiler.syntax.tree.NodeFactory.createSimpleNameReferenceNode;
-import static io.ballerina.compiler.syntax.tree.SyntaxKind.CALL_STATEMENT;
-import static io.ballerina.compiler.syntax.tree.SyntaxKind.CHECK_EXPRESSION;
-import static io.ballerina.compiler.syntax.tree.SyntaxKind.CHECK_KEYWORD;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.CLOSE_BRACE_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.CLOSE_PAREN_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.COMMA_TOKEN;
-import static io.ballerina.compiler.syntax.tree.SyntaxKind.DOT_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.FUNCTION_KEYWORD;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.ISOLATED_KEYWORD;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.OBJECT_METHOD_DEFINITION;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.OPEN_BRACE_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.OPEN_PAREN_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.PRIVATE_KEYWORD;
-import static io.ballerina.compiler.syntax.tree.SyntaxKind.SEMICOLON_TOKEN;
 
 /**
  * Generates the {@code private function matchRemoteFunc(...) returns error?} method node
@@ -128,8 +114,8 @@ public class GenerateMatchRemoteFuncNode implements Generator {
             params = createSeparatedNodeList(
                     createRequiredParameterNode(
                             createEmptyNodeList(),
-                            createSimpleNameReferenceNode(createIdentifierToken(DataTypesGenerator.GENERIC_DATA_TYPE)),
-                            createIdentifierToken(GenerateDispatcherServiceNode.CLONE_WITH_TYPE_VAR_NAME)),
+                            createBuiltinSimpleNameReferenceNode(null, createIdentifierToken("json")),
+                            createIdentifierToken(GenerateDispatcherServiceNode.PAYLOAD_VAR_NAME)),
                     createToken(COMMA_TOKEN),
                     createRequiredParameterNode(
                             createEmptyNodeList(),
@@ -144,8 +130,8 @@ public class GenerateMatchRemoteFuncNode implements Generator {
             params = createSeparatedNodeList(
                     createRequiredParameterNode(
                             createEmptyNodeList(),
-                            createSimpleNameReferenceNode(createIdentifierToken(DataTypesGenerator.GENERIC_DATA_TYPE)),
-                            createIdentifierToken(GenerateDispatcherServiceNode.CLONE_WITH_TYPE_VAR_NAME)),
+                            createBuiltinSimpleNameReferenceNode(null, createIdentifierToken("json")),
+                            createIdentifierToken(GenerateDispatcherServiceNode.PAYLOAD_VAR_NAME)),
                     createToken(COMMA_TOKEN),
                     createRequiredParameterNode(
                             createEmptyNodeList(),
@@ -155,7 +141,7 @@ public class GenerateMatchRemoteFuncNode implements Generator {
 
         FunctionSignatureNode signature = createFunctionSignatureNode(
                 createToken(OPEN_PAREN_TOKEN), params,
-                createToken(CLOSE_PAREN_TOKEN), buildErrorReturnType());
+                createToken(CLOSE_PAREN_TOKEN), buildHandledOrErrorReturnType());
 
         // Call every channel group's chunk function unconditionally, in sequence. Each chunk
         // function's own inner match (see GenerateMatchStatementNode) is the sole authority on
@@ -168,53 +154,13 @@ public class GenerateMatchRemoteFuncNode implements Generator {
                             isComposite ? "eventType" : null, !isBody);
             chunkGenerators.add(chunkGen);
 
-            SeparatedNodeList<FunctionArgumentNode> chunkArgs;
-            if (isComposite) {
-                chunkArgs = createSeparatedNodeList(
-                        createPositionalArgumentNode(
-                                createSimpleNameReferenceNode(createIdentifierToken(
-                                        GenerateDispatcherServiceNode.CLONE_WITH_TYPE_VAR_NAME))),
-                        createToken(COMMA_TOKEN),
-                        createPositionalArgumentNode(
-                                createSimpleNameReferenceNode(createIdentifierToken("eventIdentifier"))),
-                        createToken(COMMA_TOKEN),
-                        createPositionalArgumentNode(
-                                createSimpleNameReferenceNode(createIdentifierToken("eventType"))));
-            } else if (!isBody) {
-                chunkArgs = createSeparatedNodeList(
-                        createPositionalArgumentNode(
-                                createSimpleNameReferenceNode(createIdentifierToken(
-                                        GenerateDispatcherServiceNode.CLONE_WITH_TYPE_VAR_NAME))),
-                        createToken(COMMA_TOKEN),
-                        createPositionalArgumentNode(
-                                createSimpleNameReferenceNode(createIdentifierToken("eventType"))));
-            } else {
-                chunkArgs = createSeparatedNodeList(
-                        createPositionalArgumentNode(
-                                createSimpleNameReferenceNode(createIdentifierToken(
-                                        GenerateDispatcherServiceNode.CLONE_WITH_TYPE_VAR_NAME))));
-            }
-
-            MethodCallExpressionNode call = createMethodCallExpressionNode(
-                    createSimpleNameReferenceNode(createIdentifierToken("self")),
-                    createToken(DOT_TOKEN),
-                    createSimpleNameReferenceNode(createIdentifierToken(
-                            GenerateMatchChunkFuncNode.chunkFuncName(serviceType.serviceTypeName()))),
-                    createToken(OPEN_PAREN_TOKEN),
-                    chunkArgs,
-                    createToken(CLOSE_PAREN_TOKEN));
-
-            CheckExpressionNode checkExpr = createCheckExpressionNode(
-                    CHECK_EXPRESSION,
-                    createToken(CHECK_KEYWORD), call);
-
-            ExpressionStatementNode stmt = createExpressionStatementNode(
-                    CALL_STATEMENT,
-                    checkExpr,
-                    createToken(SEMICOLON_TOKEN));
-
-            statements.add(stmt);
+            String payloadVar = GenerateDispatcherServiceNode.PAYLOAD_VAR_NAME;
+            String chunkArgs = isComposite ? payloadVar + ", eventIdentifier, eventType"
+                    : (isBody ? payloadVar : payloadVar + ", eventType");
+            statements.add(NodeParser.parseStatement(String.format("if check self.%s(%s) { return true; }",
+                    GenerateMatchChunkFuncNode.chunkFuncName(serviceType.serviceTypeName()), chunkArgs)));
         }
+        statements.add(NodeParser.parseStatement("return false;"));
 
         FunctionBodyBlockNode body = createFunctionBodyBlockNode(
                 createToken(OPEN_BRACE_TOKEN), null,

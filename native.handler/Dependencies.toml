@@ -5,7 +5,19 @@
 
 [ballerina]
 dependencies-toml-version = "2"
-distribution-version = "2201.11.0"
+distribution-version = "2201.13.6"
+
+[[package]]
+org = "ballerina"
+name = "data.jsondata"
+version = "1.1.4"
+dependencies = [
+	{org = "ballerina", name = "jballerina.java"},
+	{org = "ballerina", name = "lang.object"}
+]
+modules = [
+	{org = "ballerina", packageName = "data.jsondata", moduleName = "data.jsondata"}
+]
 
 [[package]]
 org = "ballerina"
@@ -17,8 +29,13 @@ modules = [
 
 [[package]]
 org = "ballerina"
+name = "lang.object"
+version = "0.0.0"
+
+[[package]]
+org = "ballerina"
 name = "observe"
-version = "1.4.0"
+version = "1.7.2"
 dependencies = [
 	{org = "ballerina", name = "jballerina.java"}
 ]
@@ -38,8 +55,9 @@ modules = [
 [[package]]
 org = "ballerinax"
 name = "asyncapi.native.handler"
-version = "0.5.1-SNAPSHOT"
+version = "0.6.0"
 dependencies = [
+	{org = "ballerina", name = "data.jsondata"},
 	{org = "ballerina", name = "jballerina.java"},
 	{org = "ballerinai", name = "observe"}
 ]

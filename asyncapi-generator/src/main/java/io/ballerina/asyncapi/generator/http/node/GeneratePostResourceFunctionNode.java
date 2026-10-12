@@ -19,7 +19,6 @@ package io.ballerina.asyncapi.generator.http.node;
 
 import io.ballerina.asyncapi.generator.GeneratorException;
 import io.ballerina.asyncapi.generator.http.extractor.EventIdentifierExtractor;
-import io.ballerina.asyncapi.generator.http.generator.DataTypesGenerator;
 import io.ballerina.asyncapi.generator.http.model.EventIdentifierConfig;
 import io.ballerina.asyncapi.generator.http.model.WebhookAuthConfig;
 import io.ballerina.compiler.syntax.tree.FunctionBodyBlockNode;
@@ -173,27 +172,30 @@ public class GeneratePostResourceFunctionNode implements Generator {
                     "if actionField is json && actionField != () {"
                     + " eventIdentifier = eventType + \"_\" + actionField.toString(); }"));
         }
-        statements.add(NodeParser.parseStatement(String.format(
-                "%s %s = check payload.cloneWithType(%s);",
-                DataTypesGenerator.GENERIC_DATA_TYPE, GenerateDispatcherServiceNode.CLONE_WITH_TYPE_VAR_NAME,
-                DataTypesGenerator.GENERIC_DATA_TYPE)));
         statements.add(NodeParser.parseStatement("http:Response ackResponse = new;"));
         statements.add(NodeParser.parseStatement("ackResponse.statusCode = http:STATUS_OK;"));
         statements.add(NodeParser.parseStatement("check caller->respond(ackResponse);"));
         if (EventIdentifierExtractor.X_BALLERINA_EVENT_TYPE_COMPOSITE.equals(type)) {
             statements.add(NodeParser.parseStatement(String.format(
-                    "error? dispatchResult = self.%s(%s, eventIdentifier, eventType);",
+                    "boolean|error dispatchResult = self.%s(%s, eventIdentifier, eventType);",
                     GenerateMatchRemoteFuncNode.DISPATCHER_MATCH_REMOTE_FUNC,
-                    GenerateDispatcherServiceNode.CLONE_WITH_TYPE_VAR_NAME)));
+                    GenerateDispatcherServiceNode.PAYLOAD_VAR_NAME)));
         } else {
             statements.add(NodeParser.parseStatement(String.format(
-                    "error? dispatchResult = self.%s(%s, eventType);",
+                    "boolean|error dispatchResult = self.%s(%s, eventType);",
                     GenerateMatchRemoteFuncNode.DISPATCHER_MATCH_REMOTE_FUNC,
-                    GenerateDispatcherServiceNode.CLONE_WITH_TYPE_VAR_NAME)));
+                    GenerateDispatcherServiceNode.PAYLOAD_VAR_NAME)));
         }
-        statements.add(NodeParser.parseStatement(
-                "if dispatchResult is error { log:printError(\"DISPATCH_FAILED\", dispatchResult); }"));
+        boolean composite = EventIdentifierExtractor.X_BALLERINA_EVENT_TYPE_COMPOSITE.equals(type);
+        statements.add(NodeParser.parseStatement(unhandledAwareLog(composite ? "eventIdentifier" : "eventType")));
         return statements;
+    }
+
+    // An identifier no attached service handles is not an error to the provider, but must not vanish silently.
+    static String unhandledAwareLog(String identifierVar) {
+        return "if dispatchResult is error { log:printError(\"DISPATCH_FAILED\", dispatchResult); }"
+                + " else if !dispatchResult { log:printWarn(\"NO_HANDLER_FOR_EVENT\", eventIdentifier = "
+                + identifierVar + "); }";
     }
 
     /**
