@@ -64,4 +64,13 @@ public class BaseCmd {
             description = "Generate test files along with the service.")
     public boolean withTests;
 
+    @CommandLine.Option(names = {"--force"},
+            description = "Overwrite files that already exist in the output location. Without it, existing "
+                    + "files are skipped with a warning.")
+    public boolean force;
+
+    @CommandLine.Option(names = {"--dry-run"},
+            description = "Show which files would be created, overwritten or skipped, without writing anything.")
+    public boolean dryRun;
+
 }

@@ -23,18 +23,12 @@ import io.ballerina.asyncapi.generator.Protocol;
 import io.ballerina.asyncapi.generator.spi.SpecToCodeOptions;
 
 import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 
 /**
  * Generates Ballerina listener/service code from an HTTP AsyncAPI definition.
  */
 final class HttpProtocolCommand implements ProtocolCommand {
-
-    private static final String TYPES_BAL = "types.bal";
-    private static final String SERVICE_TYPES_BAL = "service_types.bal";
-    private static final String LISTENER_BAL = "listener.bal";
-    private static final String DISPATCHER_SERVICE_BAL = "dispatcher_service.bal";
 
     @Override
     public Protocol protocol() {
@@ -59,30 +53,20 @@ final class HttpProtocolCommand implements ProtocolCommand {
                 return;
             }
 
-            if (!Files.exists(outputPath)) {
-                try {
-                    Files.createDirectories(outputPath);
-                } catch (IOException e) {
-                    ctx.printError("ERROR: failed to create output directory: " + e.getMessage());
-                    ctx.exitError();
-                    return;
-                }
-            }
-
             SpecToCodeOptions options = new SpecToCodeOptions.Builder()
                     .withLicenseHeader("")
                     .withIncludeTestFiles(false)
                     .build();
 
-            CodeGenOrchestrator.specToCode(Protocol.HTTP, inputPath, outputPath, options);
-            ctx.printInfo(ErrorMessages.SUCCESS_MESSAGE);
-            ctx.printInfo("Following files were created.");
-            ctx.printInfo("-- " + TYPES_BAL);
-            ctx.printInfo("-- " + SERVICE_TYPES_BAL);
-            ctx.printInfo("-- " + LISTENER_BAL);
-            ctx.printInfo("-- " + DISPATCHER_SERVICE_BAL);
+            try (OutputStage stage = OutputStage.open(outputPath, opts, ctx)) {
+                CodeGenOrchestrator.specToCode(Protocol.HTTP, inputPath, stage.stagingDir(), options);
+                stage.commit(ErrorMessages.SUCCESS_MESSAGE);
+            }
         } catch (GeneratorException e) {
             ctx.printError("ERROR: " + e.getMessage());
+            ctx.exitError();
+        } catch (IOException e) {
+            ctx.printError("ERROR: failed to write the generated files: " + e.getMessage());
             ctx.exitError();
         }
     }

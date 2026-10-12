@@ -24,7 +24,6 @@ import io.ballerina.asyncapi.generator.spi.CodeToSpecOptions;
 import io.ballerina.asyncapi.generator.spi.SpecToCodeOptions;
 
 import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 
 /**
@@ -32,12 +31,6 @@ import java.nio.file.Path;
  * Ballerina service.
  */
 final class WsProtocolCommand implements ProtocolCommand {
-
-    private static final String CLIENT_BAL = "client.bal";
-    private static final String TYPES_BAL = "types.bal";
-    private static final String UTILS_BAL = "utils.bal";
-    private static final String TESTS_TEST_BAL = "tests/test.bal";
-    private static final String TESTS_CONFIG_TOML = "tests/Config.toml";
 
     @Override
     public Protocol protocol() {
@@ -56,10 +49,14 @@ final class WsProtocolCommand implements ProtocolCommand {
         } catch (GeneratorException e) {
             ctx.printError("ERROR: " + e.getMessage());
             ctx.exitError();
+        } catch (IOException e) {
+            ctx.printError("ERROR: failed to write the generated files: " + e.getMessage());
+            ctx.exitError();
         }
     }
 
-    private void codeToSpec(CmdOptions opts, Path inputPath, CmdContext ctx) throws GeneratorException {
+    private void codeToSpec(CmdOptions opts, Path inputPath, CmdContext ctx)
+            throws GeneratorException, IOException {
         try {
             AsyncApiProjectUtils.validateBalFile(inputPath);
         } catch (AsyncApiCmdToolException e) {
@@ -68,17 +65,20 @@ final class WsProtocolCommand implements ProtocolCommand {
             return;
         }
         Path outputPath = opts.getOutput() != null ? Path.of(opts.getOutput()) : ctx.executionPath();
-        CodeToSpecOptions options = new CodeToSpecOptions.Builder()
-                .withServiceName(opts.getService())
-                .withModuleName(opts.getModule())
-                .withNeedJson(opts.isJson())
-                .withOutStream(ctx.infoStream())
-                .build();
-        CodeGenOrchestrator.codeToSpec(Protocol.WS, inputPath, outputPath, options);
-        ctx.printInfo(ErrorMessages.CODE_TO_SPEC_SUCCESS);
+        try (OutputStage stage = OutputStage.open(outputPath, opts, ctx)) {
+            CodeToSpecOptions options = new CodeToSpecOptions.Builder()
+                    .withServiceName(opts.getService())
+                    .withModuleName(opts.getModule())
+                    .withNeedJson(opts.isJson())
+                    .withOutStream(ctx.infoStream())
+                    .build();
+            CodeGenOrchestrator.codeToSpec(Protocol.WS, inputPath, stage.stagingDir(), options);
+            stage.commit(ErrorMessages.CODE_TO_SPEC_SUCCESS);
+        }
     }
 
-    private void specToCode(CmdOptions opts, Path inputPath, CmdContext ctx) throws GeneratorException {
+    private void specToCode(CmdOptions opts, Path inputPath, CmdContext ctx)
+            throws GeneratorException, IOException {
         Path effectivePath = opts.getOutput() != null ? Path.of(opts.getOutput()) : ctx.executionPath();
         Path outputPath;
         try {
@@ -89,30 +89,14 @@ final class WsProtocolCommand implements ProtocolCommand {
             return;
         }
 
-        if (!Files.exists(outputPath)) {
-            try {
-                Files.createDirectories(outputPath);
-            } catch (IOException e) {
-                ctx.printError("ERROR: failed to create output directory: " + e.getMessage());
-                ctx.exitError();
-                return;
-            }
-        }
-
         String licenseHeader = opts.getLicenseFilePath() != null ? ctx.readLicenseFile(opts.getLicenseFilePath()) : "";
         SpecToCodeOptions options = new SpecToCodeOptions.Builder()
                 .withLicenseHeader(licenseHeader)
                 .withIncludeTestFiles(opts.isWithTests())
                 .build();
-        CodeGenOrchestrator.specToCode(Protocol.WS, inputPath, outputPath, options);
-        ctx.printInfo(ErrorMessages.SUCCESS_MESSAGE);
-        ctx.printInfo("Following files were created.");
-        ctx.printInfo("-- " + CLIENT_BAL);
-        ctx.printInfo("-- " + TYPES_BAL);
-        ctx.printInfo("-- " + UTILS_BAL);
-        if (opts.isWithTests()) {
-            ctx.printInfo("-- " + TESTS_TEST_BAL);
-            ctx.printInfo("-- " + TESTS_CONFIG_TOML);
+        try (OutputStage stage = OutputStage.open(outputPath, opts, ctx)) {
+            CodeGenOrchestrator.specToCode(Protocol.WS, inputPath, stage.stagingDir(), options);
+            stage.commit(ErrorMessages.SUCCESS_MESSAGE);
         }
     }
 }

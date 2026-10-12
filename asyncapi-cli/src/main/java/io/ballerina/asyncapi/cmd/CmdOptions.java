@@ -32,6 +32,8 @@ public class CmdOptions {
     private final boolean json;
     private final boolean withTests;
     private final String module;
+    private final boolean force;
+    private final boolean dryRun;
 
     private CmdOptions(CmdOptionsBuilder builder) {
         this.input = builder.input;
@@ -41,6 +43,26 @@ public class CmdOptions {
         this.json = builder.json;
         this.withTests = builder.withTests;
         this.module = builder.module;
+        this.force = builder.force;
+        this.dryRun = builder.dryRun;
+    }
+
+    /**
+     * Returns {@code true} if existing files in the output location may be overwritten.
+     *
+     * @return whether to overwrite existing files
+     */
+    public boolean isForce() {
+        return force;
+    }
+
+    /**
+     * Returns {@code true} if the files that would be written should be reported instead of written.
+     *
+     * @return whether this is a dry run
+     */
+    public boolean isDryRun() {
+        return dryRun;
     }
 
     /**
@@ -119,6 +141,8 @@ public class CmdOptions {
         private boolean json;
         private boolean withTests;
         private String module;
+        private boolean force;
+        private boolean dryRun;
 
         /**
          * Sets the input AsyncAPI definition file path.
@@ -194,6 +218,28 @@ public class CmdOptions {
          */
         public CmdOptionsBuilder withModule(String module) {
             this.module = module;
+            return this;
+        }
+
+        /**
+         * Sets whether existing files in the output location may be overwritten.
+         *
+         * @param force {@code true} to overwrite existing files
+         * @return this builder
+         */
+        public CmdOptionsBuilder withForce(boolean force) {
+            this.force = force;
+            return this;
+        }
+
+        /**
+         * Sets whether to report the files that would be written instead of writing them.
+         *
+         * @param dryRun {@code true} for a dry run
+         * @return this builder
+         */
+        public CmdOptionsBuilder withDryRun(boolean dryRun) {
+            this.dryRun = dryRun;
             return this;
         }
 

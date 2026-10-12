@@ -71,6 +71,15 @@ public final class ErrorMessages {
     public static final String SUCCESS_MESSAGE =
             "Ballerina code generation completed successfully.";
 
+    public static final String WARN_FILE_SKIPPED =
+            "Skipped \"%s\": the file already exists. Use --force to overwrite it.";
+
+    public static final String FILES_WRITTEN = "Following files were written.";
+
+    public static final String NO_FILES_WRITTEN = "No files were written.";
+
+    public static final String FILES_UP_TO_DATE = "No changes: the existing files are already up to date.";
+
     public static final String CODE_TO_SPEC_SUCCESS =
             "AsyncAPI spec generation completed successfully.";
 

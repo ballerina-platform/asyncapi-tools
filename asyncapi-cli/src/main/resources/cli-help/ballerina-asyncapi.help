@@ -4,7 +4,8 @@ NAME
 
 SYNOPSIS
         bal asyncapi <input> --protocol <http|ws> [-o <dir>] [--module <name>] [--license <file>]
-                     [--with-tests] [--service <base-path>] [--format <yaml|json>]
+                     [--with-tests] [--service <base-path>] [--format <yaml|json>] [--force]
+                     [--dry-run]
 
 DESCRIPTION
         Generate Ballerina sources from the given AsyncAPI definition (.yaml, .yml or .json),
@@ -17,6 +18,11 @@ DESCRIPTION
         package directory instead.
 
         Options a protocol does not support are reported as warnings and ignored.
+
+        Existing files are never overwritten by default: a generated file that already exists
+        with different content is skipped with a warning. Use --force to overwrite such files,
+        and --dry-run to see what would be created, overwritten or skipped without writing.
+        Files that already have the generated content are left untouched.
 
 OPTIONS
         <input>
@@ -47,6 +53,14 @@ OPTIONS
                 Format of the generated AsyncAPI definition. Defaults to yaml (Ballerina code
                 input only).
 
+        --force
+                Overwrite files that already exist in the output location. Without it, existing
+                files are skipped with a warning.
+
+        --dry-run
+                Show which files would be created, overwritten or skipped, without writing
+                anything.
+
         -h, --help
                 Display this help.
 
@@ -56,6 +70,10 @@ EXAMPLES
 
         Generate an HTTP webhook listener into a module.
             $ bal asyncapi events.yaml --protocol http --module events -o ./pkg
+
+        Preview what regenerating an HTTP listener would change, then apply it.
+            $ bal asyncapi events.yaml --protocol http -o ./pkg --dry-run
+            $ bal asyncapi events.yaml --protocol http -o ./pkg --force
 
         Generate the AsyncAPI definition of one service in a package, as JSON.
             $ bal asyncapi ./chat-package --protocol ws --service /chat --format json

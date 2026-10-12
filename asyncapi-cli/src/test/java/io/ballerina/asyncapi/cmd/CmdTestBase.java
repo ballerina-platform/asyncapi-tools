@@ -76,6 +76,20 @@ public abstract class CmdTestBase {
         return cmd;
     }
 
+    /** Creates a Ballerina package with a Ballerina.toml and an empty main.bal inside the temp directory. */
+    protected Path newPackage(String name) throws IOException {
+        Path pkg = Files.createDirectory(tmpDir.resolve(name));
+        Files.writeString(pkg.resolve("Ballerina.toml"),
+                "[package]\norg = \"demo\"\nname = \"" + name + "\"\nversion = \"0.1.0\"\n");
+        Files.writeString(pkg.resolve("main.bal"), "");
+        return pkg;
+    }
+
+    /** Resolves a file under src/test/resources. */
+    protected Path resource(String name) throws Exception {
+        return Path.of(getClass().getClassLoader().getResource(name).toURI());
+    }
+
     protected String getOut() {
         return outContent.toString();
     }

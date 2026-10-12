@@ -157,6 +157,8 @@ public final class CmdUtils {
                 .withJson(CmdConstants.FORMAT_JSON.equalsIgnoreCase(baseCmd.format))
                 .withTests(baseCmd.withTests)
                 .withModule(module)
+                .withForce(baseCmd.force)
+                .withDryRun(baseCmd.dryRun)
                 .build();
     }
 

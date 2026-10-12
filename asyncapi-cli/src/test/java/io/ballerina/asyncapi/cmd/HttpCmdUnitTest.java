@@ -92,6 +92,104 @@ public class HttpCmdUnitTest extends CmdTestBase {
                 "Expected the --service warning. Err: " + getErr());
     }
 
+    private Path generateTiny(Path pkg, String... extra) throws Exception {
+        String[] args = new String[3 + extra.length];
+        args[0] = resource("specs/tiny_http.yaml").toString();
+        args[1] = "--protocol";
+        args[2] = "http";
+        System.arraycopy(extra, 0, args, 3, extra.length);
+        errContent.reset();
+        outContent.reset();
+        parse(args).execute();
+        return pkg;
+    }
+
+    @Test(description = "A first run writes every generated file and lists them")
+    public void testFirstRunWritesAndListsFiles() throws Exception {
+        Path pkg = newPackage("firstrun");
+        generateTiny(pkg, "-o", pkg.toString());
+        Assert.assertTrue(getErr().isEmpty(), "Err: " + getErr());
+        Assert.assertTrue(getOut().contains("Following files were written."), "Out: " + getOut());
+        for (String name : new String[]{"types.bal", "listener.bal", "service_types.bal", "dispatcher_service.bal",
+                "tests/dispatch_test.bal"}) {
+            Assert.assertTrue(Files.exists(pkg.resolve(name)), name + " should exist");
+            Assert.assertTrue(getOut().contains("-- " + name), name + " should be listed. Out: " + getOut());
+        }
+    }
+
+    @Test(description = "Running again with nothing changed is quiet and writes nothing")
+    public void testRerunIsUnchanged() throws Exception {
+        Path pkg = newPackage("rerun");
+        generateTiny(pkg, "-o", pkg.toString());
+        generateTiny(pkg, "-o", pkg.toString());
+        Assert.assertTrue(getErr().isEmpty(), "Unchanged files should not warn. Err: " + getErr());
+        Assert.assertTrue(getOut().contains("already up to date"), "Out: " + getOut());
+    }
+
+    @Test(description = "An existing file that differs is skipped with a warning unless --force is given")
+    public void testExistingFileSkippedWithoutForce() throws Exception {
+        Path pkg = newPackage("skip");
+        generateTiny(pkg, "-o", pkg.toString());
+        Files.writeString(pkg.resolve("types.bal"), "// hand edit");
+        generateTiny(pkg, "-o", pkg.toString());
+        Assert.assertTrue(getErr().contains("warning: Skipped \""), "Expected the skip warning. Err: " + getErr());
+        Assert.assertTrue(getErr().contains("types.bal"), "Err: " + getErr());
+        Assert.assertTrue(getErr().contains("Use --force to overwrite it."), "Err: " + getErr());
+        Assert.assertTrue(getOut().contains("No files were written."), "Out: " + getOut());
+        Assert.assertEquals(Files.readString(pkg.resolve("types.bal")), "// hand edit");
+    }
+
+    @Test(description = "--force overwrites the file that differs and leaves the unchanged ones alone")
+    public void testForceOverwrites() throws Exception {
+        Path pkg = newPackage("force");
+        generateTiny(pkg, "-o", pkg.toString());
+        Files.writeString(pkg.resolve("types.bal"), "// hand edit");
+        generateTiny(pkg, "-o", pkg.toString(), "--force");
+        Assert.assertTrue(getErr().isEmpty(), "Err: " + getErr());
+        Assert.assertNotEquals(Files.readString(pkg.resolve("types.bal")), "// hand edit");
+        Assert.assertTrue(getOut().contains("-- types.bal"), "Out: " + getOut());
+        Assert.assertFalse(getOut().contains("-- listener.bal"), "Unchanged files are not rewritten. Out: " + getOut());
+    }
+
+    @Test(description = "--dry-run reports the plan and writes nothing")
+    public void testDryRunWritesNothing() throws Exception {
+        Path pkg = newPackage("dryrun");
+        generateTiny(pkg, "-o", pkg.toString(), "--dry-run");
+        Assert.assertTrue(getOut().startsWith("Dry run: no files were written."), "Out: " + getOut());
+        Assert.assertTrue(getOut().contains("5 to create, 0 to overwrite, 0 to skip, 0 unchanged."),
+                "Out: " + getOut());
+        Assert.assertTrue(getOut().contains("create"), "Out: " + getOut());
+        Assert.assertFalse(Files.exists(pkg.resolve("types.bal")), "A dry run must not write");
+        Assert.assertFalse(Files.exists(pkg.resolve("tests")), "A dry run must not create folders");
+    }
+
+    @Test(description = "--dry-run does not create a module folder that is missing")
+    public void testDryRunDoesNotCreateModuleFolder() throws Exception {
+        Path pkg = newPackage("drymodule");
+        generateTiny(pkg, "-o", pkg.toString(), "--module", "events", "--dry-run");
+        Assert.assertTrue(getOut().contains("Dry run"), "Out: " + getOut() + " Err: " + getErr());
+        Assert.assertFalse(Files.exists(pkg.resolve("modules")), "A dry run must not create the module");
+    }
+
+    @Test(description = "--dry-run shows skip for a changed file, and overwrite when --force is also given")
+    public void testDryRunShowsSkipAndOverwrite() throws Exception {
+        Path pkg = newPackage("dryskip");
+        generateTiny(pkg, "-o", pkg.toString());
+        Files.writeString(pkg.resolve("types.bal"), "// hand edit");
+
+        generateTiny(pkg, "-o", pkg.toString(), "--dry-run");
+        Assert.assertTrue(getOut().contains("skip"), "Out: " + getOut());
+        Assert.assertTrue(getOut().contains("(already exists, use --force to overwrite)"), "Out: " + getOut());
+        Assert.assertTrue(getOut().contains("0 to create, 0 to overwrite, 1 to skip, 4 unchanged."),
+                "Out: " + getOut());
+
+        generateTiny(pkg, "-o", pkg.toString(), "--dry-run", "--force");
+        Assert.assertTrue(getOut().contains("overwrite"), "Out: " + getOut());
+        Assert.assertTrue(getOut().contains("0 to create, 1 to overwrite, 0 to skip, 4 unchanged."),
+                "Out: " + getOut());
+        Assert.assertEquals(Files.readString(pkg.resolve("types.bal")), "// hand edit");
+    }
+
     @Test(description = "No warning is printed when only supported options are given")
     public void testNoWarningForSupportedOptions() throws IOException {
         Path specFile = Files.createTempFile(tmpDir, "spec-", ".yaml");

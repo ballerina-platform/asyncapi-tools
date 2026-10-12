@@ -81,14 +81,6 @@ public class WsCmdUnitTest extends CmdTestBase {
                 "Expected the --service warning. Err: " + getErr());
     }
 
-    private Path newPackage(String name) throws IOException {
-        Path pkg = Files.createDirectory(tmpDir.resolve(name));
-        Files.writeString(pkg.resolve("Ballerina.toml"),
-                "[package]\norg = \"demo\"\nname = \"" + name + "\"\nversion = \"0.1.0\"\n");
-        Files.writeString(pkg.resolve("main.bal"), "");
-        return pkg;
-    }
-
     @Test(description = "A package directory is accepted as the input for code to spec")
     public void testPackageDirectoryAccepted() throws IOException {
         Path pkg = newPackage("chatpkg");
