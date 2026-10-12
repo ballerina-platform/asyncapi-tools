@@ -23,6 +23,10 @@ import picocli.CommandLine;
  * Picocli mixin that holds the option flags and the positional input of the asyncapi command.
  * This class is a pure data holder with no lifecycle of its own.
  *
+ * <p>The descriptions and parameter labels below are the only place the flags are documented: the
+ * {@code --help} text is generated from them, so a flag cannot be missing from it or described differently.
+ * The protocol and format lists in the labels are checked against {@link ProtocolCommands} and
+ * {@link CmdConstants} by a test.
  */
 public class BaseCmd {
 
@@ -34,34 +38,36 @@ public class BaseCmd {
                     + "directory or standalone .bal file to generate a definition from.")
     public String inputPath;
 
-    @CommandLine.Option(names = {"--protocol"},
-            description = "Protocol of the AsyncAPI definition: http or ws.")
+    @CommandLine.Option(names = {"--protocol"}, paramLabel = "<http|ws>",
+            description = "Protocol of the AsyncAPI definition. Required.")
     public String protocol;
 
-    @CommandLine.Option(names = {"-o", "--output"},
-            description = "Path to the output directory.")
+    @CommandLine.Option(names = {"-o", "--output"}, paramLabel = "<dir>",
+            description = "Directory the generated files are written to. Defaults to the current directory.")
     public String outputPath;
 
-    @CommandLine.Option(names = {"--module"},
+    @CommandLine.Option(names = {"--module"}, paramLabel = "<name>",
             description = "Module of the Ballerina package to read services from, or to write generated code "
                     + "into. Not used with a standalone .bal file.")
     public String module;
 
-    @CommandLine.Option(names = {"--license"},
-            description = "Path to a file containing the license header for generated files.")
+    @CommandLine.Option(names = {"--license"}, paramLabel = "<file>",
+            description = "File with the license header placed on generated files. Ignored with a warning "
+                    + "when the protocol does not support it.")
     public String licensePath;
 
-    @CommandLine.Option(names = {"--format"},
-            description = "Format of the generated AsyncAPI definition: yaml or json. Defaults to yaml.")
+    @CommandLine.Option(names = {"--format"}, paramLabel = "<yaml|json>",
+            description = "Format of a generated AsyncAPI definition. Defaults to yaml.")
     public String format;
 
-    @CommandLine.Option(names = {"--service"},
-            description = "Base path of the service to generate the definition for, e.g. /chat. "
-                    + "Every service with that base path is generated.")
+    @CommandLine.Option(names = {"--service"}, paramLabel = "<base-path>",
+            description = "Base path of the service to generate the definition for, e.g. /chat. Every service "
+                    + "with that base path is generated.")
     public String serviceName;
 
     @CommandLine.Option(names = {"--with-tests"},
-            description = "Generate test files along with the service.")
+            description = "Generate test files along with the code. Ignored with a warning when the protocol "
+                    + "does not support it.")
     public boolean withTests;
 
     @CommandLine.Option(names = {"--force"},

@@ -131,17 +131,100 @@ public class AsyncApiCmdUnitTest extends CmdTestBase {
         Assert.assertEquals(new AsyncApiCmd(outStream, errStream).getName(), "asyncapi");
     }
 
-    @Test(description = "printUsage shows the positional input and the supported protocols")
+    @Test(description = "printUsage is the generated usage line: the command, its flags and the input")
     public void testPrintUsage() {
         new AsyncApiCmd(outStream, errStream).printUsage(new StringBuilder());
-        Assert.assertTrue(getOut().contains("bal asyncapi <input> --protocol <http|ws>"),
-                "Expected usage line. Out: " + getOut());
+        String usage = squash(getOut());
+        Assert.assertTrue(usage.startsWith("bal asyncapi "), "Expected the command name. Out: " + getOut());
+        Assert.assertTrue(usage.contains("--protocol <http|ws>"), "Expected the protocol flag. Out: " + getOut());
+        Assert.assertTrue(usage.contains("[<input>]"), "Expected the input. Out: " + getOut());
     }
 
-    @Test(description = "printLongDesc writes non-blank output")
-    public void testPrintLongDesc() {
+    private String help() {
+        outContent.reset();
         new AsyncApiCmd(outStream, errStream).printLongDesc(new StringBuilder());
-        Assert.assertFalse(getOut().isBlank(), "Expected help text. Out: " + getOut());
+        return getOut();
+    }
+
+    // Help wraps long descriptions across lines, so compare with all whitespace collapsed.
+    private static String squash(String text) {
+        return text.replaceAll("\\s+", " ").trim();
+    }
+
+    @Test(description = "printLongDesc writes the generated help with its sections")
+    public void testPrintLongDesc() {
+        String help = help();
+        for (String section : new String[]{"NAME", "SYNOPSIS", "DESCRIPTION", "ARGUMENTS", "OPTIONS"}) {
+            Assert.assertTrue(help.contains(section + System.lineSeparator()) || help.contains(section + "\n"),
+                    "Expected the " + section + " section. Out: " + help);
+        }
+        Assert.assertTrue(help.contains("bal asyncapi - "), "Expected the name line. Out: " + help);
+    }
+
+    @Test(description = "Every flag the command accepts is described in the help, with its own description")
+    public void testEveryFlagIsInTheHelp() {
+        String help = squash(help());
+        CommandLine.Model.CommandSpec spec = new CommandLine(new AsyncApiCmd(outStream, errStream))
+                .getCommandSpec();
+        int visibleOptions = 0;
+        for (CommandLine.Model.OptionSpec option : spec.options()) {
+            if (option.hidden()) {
+                continue;
+            }
+            visibleOptions++;
+            for (String name : option.names()) {
+                Assert.assertTrue(help.contains(name), name + " is missing from the help");
+            }
+            String description = squash(String.join(" ", option.description()));
+            Assert.assertFalse(description.isBlank(), option.longestName() + " has no description");
+            Assert.assertTrue(help.contains(description),
+                    option.longestName() + " is described differently in the help");
+        }
+        // Guards against the loop passing vacuously if the flags stop being found.
+        Assert.assertTrue(visibleOptions >= 9, "Expected the command's flags. Found " + visibleOptions);
+        for (CommandLine.Model.PositionalParamSpec input : spec.positionalParameters()) {
+            String description = squash(String.join(" ", input.description()));
+            Assert.assertFalse(description.isBlank(), "The input has no description");
+            Assert.assertTrue(help.contains(description), "The input is described differently in the help");
+        }
+    }
+
+    @Test(description = "The protocols and formats written in the flag labels match what the command accepts")
+    public void testHelpListsRegisteredProtocolsAndFormats() {
+        String help = squash(help());
+        Assert.assertTrue(help.contains("--protocol <" + ProtocolCommands.names("|") + ">"),
+                "The --protocol label should list the registered protocols. Out: " + help);
+        Assert.assertTrue(help.contains("--format <" + CmdConstants.FORMAT_YAML + "|" + CmdConstants.FORMAT_JSON + ">"),
+                "The --format label should list the accepted formats. Out: " + help);
+    }
+
+    @Test(description = "A flag's value can still be given with =, although the help shows it after a space")
+    public void testEqualsFormStillParses() {
+        parse("/non/existent/spec.yaml", "--protocol=HTTP", "--format=json", "--output=somewhere").execute();
+        Assert.assertFalse(getErr().contains("--protocol flag is required"), "Err: " + getErr());
+        Assert.assertFalse(getErr().contains("unknown protocol"), "Err: " + getErr());
+        Assert.assertFalse(getErr().contains("unknown format"), "Err: " + getErr());
+        Assert.assertTrue(getErr().contains("/non/existent/spec.yaml"), "Err: " + getErr());
+    }
+
+    @Test(description = "Printing the help or usage does not disturb options that were already parsed")
+    public void testPrintingHelpKeepsParsedOptions() {
+        AsyncApiCmd cmd = parse("/non/existent/spec.yaml", "--protocol", "http");
+        cmd.printUsage(new StringBuilder());
+        cmd.printLongDesc(new StringBuilder());
+        errContent.reset();
+        cmd.execute();
+        Assert.assertFalse(getErr().contains("--protocol flag is required"), "Err: " + getErr());
+        Assert.assertFalse(getErr().contains("no input provided"), "Err: " + getErr());
+        Assert.assertTrue(getErr().contains("/non/existent/spec.yaml"), "Err: " + getErr());
+    }
+
+    @Test(description = "The help is generated: there is no help text file to keep in step")
+    public void testHelpIsNotLoadedFromAFile() {
+        Assert.assertNull(getClass().getClassLoader().getResource("cli-help/ballerina-asyncapi.help"),
+                "The help must come from the flag definitions, not a text file");
+        Assert.assertFalse(help().contains("(ws only)"),
+                "What a protocol supports belongs to the protocol, not the static help");
     }
 
     @Test(description = "setParentCmdParser is a no-op")

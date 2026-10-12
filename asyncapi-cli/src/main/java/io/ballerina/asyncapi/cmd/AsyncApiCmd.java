@@ -30,14 +30,33 @@ import java.util.Optional;
 /**
  * The {@code bal asyncapi} command. The protocol is chosen with {@code --protocol}; what each protocol
  * supports comes from its generator {@link ProtocolHandler}.
+ *
+ * <p>The {@code --help} text is generated from the annotations here and on {@link BaseCmd}, including the usage
+ * line, so there is no separate help text to keep in step. Anything that needs prose beyond a flag's own
+ * description belongs in the documentation, not here.
  */
 @CommandLine.Command(
         name = "asyncapi",
-        description = "Generate Ballerina code from AsyncAPI "
-                + "specifications or generate AsyncAPI specs "
-                + "from Ballerina services."
+        usageHelpWidth = 100,
+        sortOptions = false,
+        headerHeading = "NAME%n",
+        header = AsyncApiCmd.HEADER,
+        synopsisHeading = "%nSYNOPSIS%n",
+        descriptionHeading = "%nDESCRIPTION%n",
+        description = AsyncApiCmd.DESCRIPTION,
+        parameterListHeading = "%nARGUMENTS%n",
+        optionListHeading = "%nOPTIONS%n"
 )
 public class AsyncApiCmd implements BLauncherCmd {
+
+    // Not private: the @Command annotation on the class can only reference non-private constants.
+    static final String HEADER =
+            "  bal asyncapi - Generate Ballerina code from AsyncAPI definitions, or the reverse";
+    static final String DESCRIPTION =
+            "Generate Ballerina listeners and clients from AsyncAPI definitions, or generate AsyncAPI "
+                    + "definitions from Ballerina code.";
+    private static final String COMMAND_NAME = "bal asyncapi";
+    private static final int INDENT = 2;
 
     @CommandLine.Mixin
     private BaseCmd baseCmd;
@@ -91,15 +110,30 @@ public class AsyncApiCmd implements BLauncherCmd {
 
     @Override
     public void printLongDesc(StringBuilder out) {
-        String help = BLauncherCmd.getCommandUsageInfo(
-                CmdConstants.ASYNCAPI_CMD,
-                AsyncApiCmd.class.getClassLoader());
-        ctx.printInfo(help);
+        // ANSI is off because ANSI codes print as raw characters when the help goes to a file, pipe or test.
+        helpCommandLine().usage(ctx.infoStream(), CommandLine.Help.Ansi.OFF);
     }
 
     @Override
     public void printUsage(StringBuilder out) {
-        ctx.printInfo("Usage: bal asyncapi <input> --protocol <" + ProtocolCommands.names("|") + "> [flags]");
+        CommandLine commandLine = helpCommandLine();
+        ctx.printInfo(new CommandLine.Help(commandLine.getCommandSpec(), CommandLine.Help.Ansi.OFF)
+                .synopsis(0).stripTrailing());
+    }
+
+    /**
+     * A separate parser model used only for printing: it shows the command as {@code bal asyncapi} and shows a
+     * flag's value after a space, which does not change how the real command line is parsed.
+     */
+    private CommandLine helpCommandLine() {
+        CommandLine commandLine = new CommandLine(this);
+        commandLine.setCommandName(COMMAND_NAME);
+        commandLine.getCommandSpec().parser().separator(" ");
+        commandLine.getHelpSectionMap().put(CommandLine.Model.UsageMessageSpec.SECTION_KEY_SYNOPSIS,
+                help -> help.synopsis(0).indent(INDENT));
+        commandLine.getHelpSectionMap().put(CommandLine.Model.UsageMessageSpec.SECTION_KEY_DESCRIPTION,
+                help -> help.description().indent(INDENT));
+        return commandLine;
     }
 
     @Override
