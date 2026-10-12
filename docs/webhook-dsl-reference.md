@@ -84,11 +84,14 @@ x-ballerina-auth:
     toleranceMillis: 300000
 ```
 
-- `header`: the header carrying the request timestamp, as epoch milliseconds.
+- `header`: the header carrying the request timestamp, as epoch milliseconds by default.
 - `toleranceMillis`: the maximum allowed age of a request before it's rejected as stale.
+- `unit` (optional): `milliseconds` (default) or `seconds`, the unit of the timestamp in `header`. Slack
+  sends epoch seconds; with `unit: seconds` the generated check scales the value to milliseconds before
+  comparing it, and the generated test client sends a seconds timestamp.
 
 The freshness check runs before signature verification and is independent of it — it's evaluated
-whenever `freshness` is present, regardless of `algorithm`/`strategy`. Both fields are required if
+whenever `freshness` is present, regardless of `algorithm`/`strategy`. `header` and `toleranceMillis` are required if
 the block is present.
 
 ## Non-HMAC / Plain-Hash Schemes
@@ -184,6 +187,26 @@ x-ballerina-auth:
   freshness:
     header: "X-HubSpot-Request-Timestamp"
     toleranceMillis: 300000
+```
+
+### Slack: timestamp in the signature, freshness in seconds
+
+Slack signs `v0:<timestamp>:<body>` with HMAC-SHA256 (hex, `v0=` prefix), where the timestamp is the
+`X-Slack-Request-Timestamp` header in epoch seconds, and recommends rejecting requests older than
+5 minutes:
+
+```yaml
+x-ballerina-auth:
+  header: "X-Slack-Signature"
+  signature:
+    algorithm: "sha256"
+    encoding: "hex"
+    headerFormat: "v0=$signature"
+    input: "'v0' . ':' . $header('X-Slack-Request-Timestamp') . ':' . $body"
+  freshness:
+    header: "X-Slack-Request-Timestamp"
+    toleranceMillis: 300000
+    unit: "seconds"
 ```
 
 ### HubSpot v1/v2: plain hash, no HMAC

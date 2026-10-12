@@ -39,6 +39,8 @@ import java.util.List;
  *                               {@code null} if no freshness check is configured
  * @param freshnessToleranceMillis the maximum allowed age of a request, in milliseconds, before it's
  *                               rejected as stale; only meaningful when {@code freshnessHeader} is set
+ * @param freshnessUnit          the unit of the freshness header's timestamp, {@code "seconds"} or
+ *                               {@code "milliseconds"}; {@code null} means milliseconds
  */
 public record WebhookAuthConfig(
         String headerName,
@@ -49,6 +51,29 @@ public record WebhookAuthConfig(
         String strategy,
         List<String> configFields,
         String freshnessHeader,
-        Long freshnessToleranceMillis
+        Long freshnessToleranceMillis,
+        String freshnessUnit
 ) {
+
+    public static final String FRESHNESS_UNIT_SECONDS = "seconds";
+    public static final String FRESHNESS_UNIT_MILLISECONDS = "milliseconds";
+
+    /**
+     * Creates a config whose freshness timestamp is in milliseconds, the default.
+     */
+    public WebhookAuthConfig(String headerName, String algorithm, String encoding, String headerFormat,
+            String input, String strategy, List<String> configFields, String freshnessHeader,
+            Long freshnessToleranceMillis) {
+        this(headerName, algorithm, encoding, headerFormat, input, strategy, configFields, freshnessHeader,
+                freshnessToleranceMillis, null);
+    }
+
+    /**
+     * Whether the freshness header carries epoch seconds rather than the default epoch milliseconds.
+     *
+     * @return {@code true} if {@code freshnessUnit} is {@code "seconds"}
+     */
+    public boolean freshnessInSeconds() {
+        return FRESHNESS_UNIT_SECONDS.equals(freshnessUnit);
+    }
 }

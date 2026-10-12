@@ -214,7 +214,9 @@ public class DispatchTestGenerator {
             if (freshnessHeader != null && freshnessHeader.equals(headerRef)) {
                 // A real timestamp -- this header may also be validated by a freshness check, which
                 // requires a numeric, currently-fresh value, not just an arbitrary test string.
-                sb.append("    string ").append(varName).append(" = (time:utcNow()[0] * 1000).toString();\n");
+                String timestampExpr = webhookAuthConfig.freshnessInSeconds()
+                        ? "time:utcNow()[0].toString()" : "(time:utcNow()[0] * 1000).toString()";
+                sb.append("    string ").append(varName).append(" = ").append(timestampExpr).append(";\n");
             } else {
                 // Client and server only need to agree on *some* value for this header -- what the
                 // test sends is what verification reads back, so any string is a valid signed input.
