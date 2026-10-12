@@ -155,11 +155,9 @@ public class BallerinaToAsyncApiGenerator {
         if (asyncAPIDefinitions.isEmpty()) {
             return errors;
         }
-        List<String> fileNames = new ArrayList<>();
         for (AsyncApiResult definition : asyncAPIDefinitions) {
-            writeToFile(outPath, definition, needJson, errors, fileNames);
+            writeToFile(outPath, definition, needJson, errors);
         }
-        printSuccessMessage(outStream, fileNames);
         return errors;
     }
 
@@ -219,12 +217,8 @@ public class BallerinaToAsyncApiGenerator {
             outStream.println("No WebSocket service found in the module.");
             return errors;
         }
-        List<String> fileNames = new ArrayList<>();
         for (AsyncApiResult definition : definitions) {
-            writeToFile(outPath, definition, needJson, errors, fileNames);
-        }
-        if (!fileNames.isEmpty()) {
-            printSuccessMessage(outStream, fileNames);
+            writeToFile(outPath, definition, needJson, errors);
         }
         return errors;
     }
@@ -255,19 +249,6 @@ public class BallerinaToAsyncApiGenerator {
     }
 
     /**
-     * Prints the success message listing all generated file names.
-     *
-     * @param outStream stream to print to
-     * @param fileNames generated file names
-     */
-    private static void printSuccessMessage(PrintStream outStream, List<String> fileNames) {
-        outStream.println("AsyncAPI definition(s) generated successfully and copied to :");
-        for (String fileName : fileNames) {
-            outStream.println("-- " + fileName);
-        }
-    }
-
-    /**
      * Creates the output directory, adding a diagnostic on failure.
      *
      * @param outPath output directory path
@@ -290,10 +271,9 @@ public class BallerinaToAsyncApiGenerator {
      * @param definition conversion result to write
      * @param needJson   {@code true} to write JSON, {@code false} for YAML
      * @param errors     accumulator for diagnostics
-     * @param fileNames  accumulator for successfully written file names
      */
     private static void writeToFile(Path outPath, AsyncApiResult definition, boolean needJson,
-                                    List<AsyncApiConverterDiagnostic> errors, List<String> fileNames) {
+                                    List<AsyncApiConverterDiagnostic> errors) {
         if (Files.notExists(outPath)) {
             createOutputDirectory(outPath, errors);
         }
@@ -308,7 +288,6 @@ public class BallerinaToAsyncApiGenerator {
             }
             String fileName = resolveContractFileName(outPath, definition.getServiceName(), needJson);
             CodegenUtils.writeFile(outPath.resolve(fileName), content.get());
-            fileNames.add(fileName);
         } catch (IOException e) {
             DiagnosticMessages message = DiagnosticMessages.AAS_CONVERTOR_102;
             errors.add(new ExceptionDiagnostic(message.getCode(), message.getDescription(), null,
