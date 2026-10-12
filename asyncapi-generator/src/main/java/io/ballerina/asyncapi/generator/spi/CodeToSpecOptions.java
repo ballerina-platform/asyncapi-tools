@@ -25,13 +25,25 @@ import java.io.PrintStream;
 public final class CodeToSpecOptions {
 
     private final String serviceName;
+    private final String moduleName;
     private final boolean needJson;
     private final PrintStream outStream;
 
     private CodeToSpecOptions(Builder builder) {
         this.serviceName = builder.serviceName;
+        this.moduleName = builder.moduleName;
         this.needJson = builder.needJson;
         this.outStream = builder.outStream;
+    }
+
+    /**
+     * Returns the module of the input package to read services from, or null for the default module.
+     * Only applies when the input is a package.
+     *
+     * @return module name, or null
+     */
+    public String getModuleName() {
+        return moduleName;
     }
 
     /**
@@ -66,6 +78,7 @@ public final class CodeToSpecOptions {
      */
     public static class Builder {
         private String serviceName = null;
+        private String moduleName = null;
         private boolean needJson = false;
         private PrintStream outStream = System.out;
 
@@ -77,6 +90,17 @@ public final class CodeToSpecOptions {
          */
         public Builder withServiceName(String serviceName) {
             this.serviceName = serviceName;
+            return this;
+        }
+
+        /**
+         * Sets the module of the input package to read services from.
+         *
+         * @param moduleName module name, or null for the default module
+         * @return this builder
+         */
+        public Builder withModuleName(String moduleName) {
+            this.moduleName = moduleName;
             return this;
         }
 

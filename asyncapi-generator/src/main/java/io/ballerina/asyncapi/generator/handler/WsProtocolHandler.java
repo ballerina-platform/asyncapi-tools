@@ -87,6 +87,7 @@ public final class WsProtocolHandler implements ProtocolHandler {
                     inputPath,
                     outputPath,
                     options.getServiceName(),
+                    options.getModuleName(),
                     options.isNeedJson(),
                     options.getOutStream());
 
