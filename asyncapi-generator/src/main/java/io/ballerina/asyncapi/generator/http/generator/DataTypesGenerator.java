@@ -23,6 +23,7 @@ import io.ballerina.asyncapi.generator.http.model.ConnectionAuthConfig;
 import io.ballerina.asyncapi.generator.http.model.WebhookAuthConfig;
 import io.ballerina.asyncapi.generator.http.node.GenerateCryptoImportNode;
 import io.ballerina.asyncapi.generator.http.node.GenerateHttpImportNode;
+import io.ballerina.asyncapi.generator.http.node.GenerateJsonDataImportNode;
 import io.ballerina.asyncapi.generator.http.node.GenerateListenerConfigNode;
 import io.ballerina.asyncapi.generator.http.node.GenerateModuleMemberDeclarationNode;
 import io.ballerina.asyncapi.generator.http.node.GenerateUnionDescriptorNode;
@@ -131,6 +132,9 @@ public class DataTypesGenerator {
                 && ConnectionAuthConfig.TYPE_X509.equals(connectionAuthConfig.get().type());
         // X509's keyConfig field type is crypto:KeyStore|http:CertKey, so http is needed even
         // when no schema property requires an @http:Header annotation.
+        if (needsJsonDataImport()) {
+            imports.add(GenerateJsonDataImportNode.generate());
+        }
         if (needsHttpImport() || x509AuthConfigured) {
             imports.add(GenerateHttpImportNode.generate());
         }
@@ -172,6 +176,38 @@ public class DataTypesGenerator {
                 .filter(schema -> schema.properties() != null)
                 .flatMap(schema -> schema.properties().keySet().stream())
                 .anyMatch(CodegenUtils::requiresHeaderAnnotation);
+    }
+
+    /**
+     * Determines whether {@code types.bal} needs {@code import ballerina/data.jsondata;} on account
+     * of a {@code @jsondata:Name {...}} annotation, generated for any property re-emitted under a
+     * camelCase field name. As with {@link #needsHttpImport}, an unused import is a compile error,
+     * so this must reflect what is actually emitted rather than what merely looks eligible: a name
+     * that would collide with another field keeps its raw spelling and gets no annotation.
+     *
+     * <p>Walks nested properties and array items too, since an inline object schema is hoisted into
+     * its own named type whose fields are renamed by the same rule.
+     *
+     * @return {@code true} if any field anywhere in the schemas is emitted with a renamed identifier
+     */
+    private boolean needsJsonDataImport() {
+        return schemas.values().stream().anyMatch(DataTypesGenerator::hasRenamedField);
+    }
+
+    private static boolean hasRenamedField(AsyncApiSchema schema) {
+        if (schema == null) {
+            return false;
+        }
+        if (schema.properties() != null) {
+            Map<String, String> resolved = CodegenUtils.resolveFieldNames(schema.properties().keySet());
+            if (resolved.entrySet().stream().anyMatch(entry -> !entry.getKey().equals(entry.getValue()))) {
+                return true;
+            }
+            if (schema.properties().values().stream().anyMatch(DataTypesGenerator::hasRenamedField)) {
+                return true;
+            }
+        }
+        return schema.items() instanceof AsyncApiSchema itemSchema && hasRenamedField(itemSchema);
     }
 
     /**
