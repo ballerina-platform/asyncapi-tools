@@ -80,6 +80,27 @@ public final class CmdUtils {
     }
 
     /**
+     * Returns {@code true} if the given path is an existing directory.
+     *
+     * @param inputPath path to check; may be {@code null}
+     * @return {@code true} if it is an existing directory
+     */
+    public static boolean isDirectory(String inputPath) {
+        return inputPath != null && !inputPath.isBlank() && Files.isDirectory(Path.of(inputPath));
+    }
+
+    /**
+     * Returns {@code true} if {@code inputPath} is an existing {@code .bal} file or an existing directory,
+     * the two shapes accepted when generating an AsyncAPI definition from Ballerina code.
+     *
+     * @param inputPath input path provided by the user; may be {@code null}
+     * @return {@code true} if it is a Ballerina source file or a directory
+     */
+    public static boolean isValidBallerinaInput(String inputPath) {
+        return isDirectory(inputPath) || isValidBallerinaFile(inputPath);
+    }
+
+    /**
      * Returns {@code true} if {@code inputPath} is non-null, non-blank, the file exists on the
      * filesystem, and its name ends with a supported AsyncAPI spec extension
      * ({@code .yaml}, {@code .yml}, or {@code .json}).
@@ -149,7 +170,7 @@ public final class CmdUtils {
      * @return the resolved {@link CmdConstants.Mode}
      */
     public static CmdConstants.Mode resolveMode(BaseCmd baseCmd) {
-        if (isBallerinaFile(baseCmd.inputPath)) {
+        if (isBallerinaFile(baseCmd.inputPath) || isDirectory(baseCmd.inputPath)) {
             return CmdConstants.Mode.BALLERINA_TO_ASYNCAPI;
         }
         return CmdConstants.Mode.ASYNCAPI_TO_BALLERINA;

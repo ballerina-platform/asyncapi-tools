@@ -45,6 +45,14 @@ public class HttpCmdUnitTest extends CmdTestBase {
                 "Expected the capability error. Err: " + getErr());
     }
 
+    @Test(description = "A package directory is rejected for http too, for the same reason")
+    public void testDirectoryInputRejected() throws IOException {
+        Path dir = Files.createDirectory(tmpDir.resolve("pkg"));
+        parse(dir.toString(), "--protocol", "http").execute();
+        Assert.assertTrue(getErr().contains("The http protocol does not support Ballerina-to-AsyncAPI"),
+                "Expected the capability error. Err: " + getErr());
+    }
+
     @Test(description = "--service with a .bal input is rejected the same way")
     public void testServiceWithBalInputRejected() throws IOException {
         Path balFile = Files.createTempFile(tmpDir, "service-", ".bal");

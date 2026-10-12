@@ -1,22 +1,27 @@
 NAME
         bal asyncapi - Generate a Ballerina listener or client from an AsyncAPI contract,
-                       or generate an AsyncAPI specification from a Ballerina service file.
+                       or generate an AsyncAPI specification from Ballerina code.
 
 SYNOPSIS
         bal asyncapi <input> --protocol <http|ws> [-o <dir>] [--module <name>] [--license <file>]
-                     [--with-tests] [--service <name>] [--format <yaml|json>]
+                     [--with-tests] [--service <base-path>] [--format <yaml|json>]
 
 DESCRIPTION
         Generate Ballerina sources from the given AsyncAPI definition (.yaml, .yml or .json),
-        or generate an AsyncAPI specification from a Ballerina service file (.bal).
-        The direction is taken from the input: a definition generates code, a .bal file
-        generates a definition.
+        or generate an AsyncAPI specification from Ballerina code. The direction is taken from
+        the input: a definition generates code, a package directory or a .bal file generates
+        a definition.
+
+        Ballerina code is given as a package directory or as a standalone .bal file, the way
+        'bal run' takes it. A .bal file that belongs to a package is not accepted; pass the
+        package directory instead.
 
         Options a protocol does not support are reported as warnings and ignored.
 
 OPTIONS
         <input>
-                Path to the AsyncAPI definition or the Ballerina source file.
+                Path to the AsyncAPI definition, or to the Ballerina package directory or
+                standalone .bal file.
 
         --protocol <http|ws>
                 Protocol of the AsyncAPI definition. Required.
@@ -25,7 +30,8 @@ OPTIONS
                 Directory the generated files are written to. Defaults to the current directory.
 
         --module <name>
-                Module of the Ballerina package the generated files are written to.
+                Module of the Ballerina package to read services from, or to write generated
+                code into. Not used with a standalone .bal file.
 
         --license <file>
                 File with the license header placed on generated files (ws only).
@@ -33,11 +39,13 @@ OPTIONS
         --with-tests
                 Generate test files along with the code (ws only).
 
-        --service <name>
-                Service to generate the AsyncAPI definition for (Ballerina source input only).
+        --service <base-path>
+                Base path of the service to generate the definition for, e.g. /chat. Every
+                service with that base path is generated (Ballerina code input only).
 
-        --json
-                Write the generated AsyncAPI definition as JSON (Ballerina source input only).
+        --format <yaml|json>
+                Format of the generated AsyncAPI definition. Defaults to yaml (Ballerina code
+                input only).
 
         -h, --help
                 Display this help.
@@ -49,5 +57,5 @@ EXAMPLES
         Generate an HTTP webhook listener into a module.
             $ bal asyncapi events.yaml --protocol http --module events -o ./pkg
 
-        Generate an AsyncAPI definition from a Ballerina service.
-            $ bal asyncapi service.bal --protocol ws --service chat --json
+        Generate the AsyncAPI definition of one service in a package, as JSON.
+            $ bal asyncapi ./chat-package --protocol ws --service /chat --format json

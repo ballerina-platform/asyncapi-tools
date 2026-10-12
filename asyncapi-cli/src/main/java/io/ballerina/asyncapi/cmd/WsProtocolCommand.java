@@ -70,6 +70,7 @@ final class WsProtocolCommand implements ProtocolCommand {
         Path outputPath = opts.getOutput() != null ? Path.of(opts.getOutput()) : ctx.executionPath();
         CodeToSpecOptions options = new CodeToSpecOptions.Builder()
                 .withServiceName(opts.getService())
+                .withModuleName(opts.getModule())
                 .withNeedJson(opts.isJson())
                 .withOutStream(ctx.infoStream())
                 .build();

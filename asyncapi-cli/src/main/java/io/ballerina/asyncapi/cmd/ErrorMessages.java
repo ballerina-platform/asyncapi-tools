@@ -30,7 +30,10 @@ public final class ErrorMessages {
             "error: invalid input path '%s': file does not exist or is not a valid AsyncAPI spec file.";
 
     public static final String INVALID_BAL_INPUT_PATH =
-            "error: invalid input path '%s': file does not exist or is not a valid Ballerina source file.";
+            "error: invalid input path '%s': it does not exist or is not a Ballerina source file or package.";
+
+    public static final String WARN_MODULE_STANDALONE_FILE =
+            "--module only applies to a Ballerina package and will be ignored for a standalone .bal file.";
 
     public static final String MISSING_INPUT =
             "error: no input provided. Usage: bal asyncapi <input> --protocol <protocol> [flags]";

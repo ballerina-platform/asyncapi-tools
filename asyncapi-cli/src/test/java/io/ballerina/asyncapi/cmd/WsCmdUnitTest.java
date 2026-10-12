@@ -81,6 +81,92 @@ public class WsCmdUnitTest extends CmdTestBase {
                 "Expected the --service warning. Err: " + getErr());
     }
 
+    private Path newPackage(String name) throws IOException {
+        Path pkg = Files.createDirectory(tmpDir.resolve(name));
+        Files.writeString(pkg.resolve("Ballerina.toml"),
+                "[package]\norg = \"demo\"\nname = \"" + name + "\"\nversion = \"0.1.0\"\n");
+        Files.writeString(pkg.resolve("main.bal"), "");
+        return pkg;
+    }
+
+    @Test(description = "A package directory is accepted as the input for code to spec")
+    public void testPackageDirectoryAccepted() throws IOException {
+        Path pkg = newPackage("chatpkg");
+        parse(pkg.toString(), "--protocol", "ws").execute();
+        Assert.assertTrue(getErr().isEmpty(), "A package should be accepted. Err: " + getErr());
+        Assert.assertTrue(getOut().contains("No WebSocket service found"),
+                "Expected the package to be read. Out: " + getOut());
+    }
+
+    @Test(description = "A directory without a Ballerina.toml is not a package")
+    public void testDirectoryWithoutBallerinaToml() throws IOException {
+        Path dir = Files.createDirectory(tmpDir.resolve("plain"));
+        parse(dir.toString(), "--protocol", "ws").execute();
+        Assert.assertTrue(getErr().contains("is not a Ballerina package"),
+                "Expected the not-a-package error. Err: " + getErr());
+    }
+
+    @Test(description = "A .bal file inside a package is rejected, as bal run does")
+    public void testBalFileInsidePackageRejected() throws IOException {
+        Path pkg = newPackage("insidepkg");
+        parse(pkg.resolve("main.bal").toString(), "--protocol", "ws").execute();
+        Assert.assertTrue(getErr().contains("belongs to the Ballerina package"),
+                "Expected the file-in-package error. Err: " + getErr());
+        Assert.assertTrue(getErr().contains("Pass the package directory"),
+                "Expected the hint. Err: " + getErr());
+    }
+
+    @Test(description = "--module reads a module of the package")
+    public void testModuleOfPackageAccepted() throws IOException {
+        Path pkg = newPackage("modpkg");
+        Files.createDirectories(pkg.resolve("modules").resolve("chat"));
+        Files.writeString(pkg.resolve("modules").resolve("chat").resolve("chat.bal"), "");
+        parse(pkg.toString(), "--protocol", "ws", "--module", "chat").execute();
+        Assert.assertTrue(getErr().isEmpty(), "A module of the package should be accepted. Err: " + getErr());
+    }
+
+    @Test(description = "A module the package does not have is rejected and the available ones are listed")
+    public void testUnknownModuleRejected() throws IOException {
+        Path pkg = newPackage("nomodpkg");
+        Files.createDirectories(pkg.resolve("modules").resolve("chat"));
+        Files.createDirectories(pkg.resolve("modules").resolve("admin"));
+        parse(pkg.toString(), "--protocol", "ws", "--module", "missing").execute();
+        Assert.assertTrue(getErr().contains("Module 'missing' not found"),
+                "Expected the module error. Err: " + getErr());
+        Assert.assertTrue(getErr().contains("Available modules: admin, chat"),
+                "Expected the available modules. Err: " + getErr());
+    }
+
+    @Test(description = "A package without modules says there are none")
+    public void testUnknownModuleWithoutModulesDirectory() throws IOException {
+        Path pkg = newPackage("barepkg");
+        parse(pkg.toString(), "--protocol", "ws", "--module", "chat").execute();
+        Assert.assertTrue(getErr().contains("Available modules: none"), "Err: " + getErr());
+    }
+
+    @Test(description = "The package's own name selects its default module")
+    public void testPackageNameSelectsDefaultModule() throws IOException {
+        Path pkg = newPackage("selfpkg");
+        parse(pkg.toString(), "--protocol", "ws", "--module", "selfpkg").execute();
+        Assert.assertTrue(getErr().isEmpty(), "The package name should mean the default module. Err: " + getErr());
+    }
+
+    @Test(description = "--module is ignored with a warning for a standalone .bal file")
+    public void testModuleIgnoredForStandaloneFile() throws IOException {
+        Path balFile = Files.createTempFile(tmpDir, "service-", ".bal");
+        parse(balFile.toString(), "--protocol", "ws", "--module", "chat").execute();
+        Assert.assertTrue(getErr().contains("warning: --module only applies to a Ballerina package"),
+                "Expected the module warning. Err: " + getErr());
+        Assert.assertFalse(getErr().contains("error:"), "Generation should continue. Err: " + getErr());
+    }
+
+    @Test(description = "CmdUtils.resolveMode returns BALLERINA_TO_ASYNCAPI for a directory")
+    public void testResolveModeDirectory() throws IOException {
+        BaseCmd base = new BaseCmd();
+        base.inputPath = Files.createDirectory(tmpDir.resolve("somedir")).toString();
+        Assert.assertEquals(CmdUtils.resolveMode(base), CmdConstants.Mode.BALLERINA_TO_ASYNCAPI);
+    }
+
     @Test(description = "CmdUtils.resolveMode returns ASYNCAPI_TO_BALLERINA for a .yaml input")
     public void testResolveModeSpecToCode() {
         BaseCmd base = new BaseCmd();

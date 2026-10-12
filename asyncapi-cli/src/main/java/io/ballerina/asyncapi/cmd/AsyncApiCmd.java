@@ -24,6 +24,7 @@ import io.ballerina.cli.BLauncherCmd;
 import picocli.CommandLine;
 
 import java.io.PrintStream;
+import java.nio.file.Path;
 import java.util.Optional;
 
 /**
@@ -42,6 +43,7 @@ public class AsyncApiCmd implements BLauncherCmd {
     private BaseCmd baseCmd;
 
     private final CmdContext ctx;
+    private String resolvedModule;
 
     /**
      * Production constructor.
@@ -143,8 +145,9 @@ public class AsyncApiCmd implements BLauncherCmd {
             return;
         }
         warnUnsupportedOptions(handler, mode);
+        String module = mode == CmdConstants.Mode.BALLERINA_TO_ASYNCAPI ? resolvedModule : baseCmd.module;
         try {
-            command.get().generate(CmdUtils.collectCmdOptions(baseCmd), mode, ctx);
+            command.get().generate(CmdUtils.collectCmdOptions(baseCmd, module), mode, ctx);
         } catch (RuntimeException e) {
             fail(ErrorMessages.UNEXPECTED_GENERATION_FAILURE + e.getMessage());
         }
@@ -157,15 +160,36 @@ public class AsyncApiCmd implements BLauncherCmd {
                         command.protocol().name().toLowerCase()).getMessage());
                 return false;
             }
-            if (!CmdUtils.isValidBallerinaFile(baseCmd.inputPath)) {
+            if (!CmdUtils.isValidBallerinaInput(baseCmd.inputPath)) {
                 fail(String.format(ErrorMessages.INVALID_BAL_INPUT_PATH, baseCmd.inputPath));
                 return false;
             }
+            return resolveCodeInput();
         } else if (!CmdUtils.isValidInputFile(baseCmd.inputPath)) {
             fail(String.format(ErrorMessages.INVALID_INPUT_PATH, baseCmd.inputPath));
             return false;
         }
         return true;
+    }
+
+    /**
+     * Applies the input rules for Ballerina code: a package or a standalone file, never a file inside a
+     * package. {@code --module} picks a module of a package and is ignored for a standalone file.
+     */
+    private boolean resolveCodeInput() {
+        try {
+            Path input = Path.of(baseCmd.inputPath);
+            if (AsyncApiProjectUtils.resolveCodeInput(input) == AsyncApiProjectUtils.CodeInputKind.PACKAGE) {
+                resolvedModule = AsyncApiProjectUtils.resolveModule(input.toAbsolutePath().normalize(),
+                        baseCmd.module);
+            } else if (baseCmd.module != null) {
+                ctx.printWarning(ErrorMessages.WARN_MODULE_STANDALONE_FILE);
+            }
+            return true;
+        } catch (AsyncApiCmdToolException e) {
+            fail(e.getMessage());
+            return false;
+        }
     }
 
     private void warnUnsupportedOptions(ProtocolHandler handler, CmdConstants.Mode mode) {

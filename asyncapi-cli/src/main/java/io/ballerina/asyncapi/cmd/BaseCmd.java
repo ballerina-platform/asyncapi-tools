@@ -30,8 +30,8 @@ public class BaseCmd {
     public boolean helpFlag;
 
     @CommandLine.Parameters(arity = "0..1", paramLabel = "<input>",
-            description = "Path to the AsyncAPI definition to generate code from, "
-                    + "or to the Ballerina source to generate a definition from.")
+            description = "Path to the AsyncAPI definition to generate code from, or to the Ballerina package "
+                    + "directory or standalone .bal file to generate a definition from.")
     public String inputPath;
 
     @CommandLine.Option(names = {"--protocol"},
@@ -43,7 +43,8 @@ public class BaseCmd {
     public String outputPath;
 
     @CommandLine.Option(names = {"--module"},
-            description = "Target module name inside the Ballerina project.")
+            description = "Module of the Ballerina package to read services from, or to write generated code "
+                    + "into. Not used with a standalone .bal file.")
     public String module;
 
     @CommandLine.Option(names = {"--license"},
@@ -55,7 +56,8 @@ public class BaseCmd {
     public String format;
 
     @CommandLine.Option(names = {"--service"},
-            description = "Name of the service to generate.")
+            description = "Base path of the service to generate the definition for, e.g. /chat. "
+                    + "Every service with that base path is generated.")
     public String serviceName;
 
     @CommandLine.Option(names = {"--with-tests"},
