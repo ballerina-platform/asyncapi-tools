@@ -44,6 +44,15 @@ public final class ErrorMessages {
     public static final String UNKNOWN_PROTOCOL =
             "error: unknown protocol '%s'. Supported protocols: %s.";
 
+    public static final String REMOVED_INPUT_FLAG =
+            "error: -i/--input has been removed. Pass the input as the first argument instead: %s";
+
+    public static final String REMOVED_JSON_FLAG =
+            "error: --json has been replaced by --format json.";
+
+    public static final String RENAMED_PROTOCOL =
+            "error: unknown protocol '%s'. Use --protocol ws for WebSocket.";
+
     public static final String UNKNOWN_FORMAT =
             "error: unknown format '%s'. Supported formats: json, yaml.";
 

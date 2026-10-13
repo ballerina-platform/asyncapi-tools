@@ -79,4 +79,11 @@ public class BaseCmd {
             description = "Show which files would be created, overwritten or skipped, without writing anything.")
     public boolean dryRun;
 
+    // Removed in the revamp; kept hidden so their use gets a pointer to the new syntax.
+    @CommandLine.Option(names = {"-i", "--input"}, hidden = true)
+    public String removedInputPath;
+
+    @CommandLine.Option(names = {"--json"}, hidden = true)
+    public boolean removedJsonFlag;
+
 }

@@ -25,6 +25,8 @@ import picocli.CommandLine;
 
 import java.io.PrintStream;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -150,6 +152,9 @@ public class AsyncApiCmd implements BLauncherCmd {
             printLongDesc(null);
             return;
         }
+        if (rejectRemovedSyntax()) {
+            return;
+        }
         if (baseCmd.inputPath == null || baseCmd.inputPath.isBlank()) {
             fail(ErrorMessages.MISSING_INPUT);
             return;
@@ -185,6 +190,37 @@ public class AsyncApiCmd implements BLauncherCmd {
         } catch (RuntimeException e) {
             fail(ErrorMessages.UNEXPECTED_GENERATION_FAILURE + e.getMessage());
         }
+    }
+
+    /**
+     * Fails with the replacement when the command uses syntax of the released 0.12.0 tool that the revamp
+     * removed: {@code -i/--input}, {@code --json}, and the {@code wss}/{@code websocket} protocol names.
+     */
+    private boolean rejectRemovedSyntax() {
+        List<String> errors = new ArrayList<>();
+        boolean oldWsName = isOldWebSocketName(baseCmd.protocol);
+        if (baseCmd.removedInputPath != null) {
+            String protocol = oldWsName ? "ws"
+                    : baseCmd.protocol == null ? "<" + ProtocolCommands.names("|") + ">" : baseCmd.protocol;
+            String suggestion = "bal asyncapi " + baseCmd.removedInputPath + " --protocol " + protocol
+                    + (baseCmd.removedJsonFlag ? " --format json" : "");
+            errors.add(String.format(ErrorMessages.REMOVED_INPUT_FLAG, suggestion));
+        }
+        if (baseCmd.removedJsonFlag) {
+            errors.add(ErrorMessages.REMOVED_JSON_FLAG);
+        }
+        if (oldWsName) {
+            errors.add(String.format(ErrorMessages.RENAMED_PROTOCOL, baseCmd.protocol));
+        }
+        if (errors.isEmpty()) {
+            return false;
+        }
+        fail(String.join(System.lineSeparator(), errors));
+        return true;
+    }
+
+    private static boolean isOldWebSocketName(String protocol) {
+        return "wss".equalsIgnoreCase(protocol) || "websocket".equalsIgnoreCase(protocol);
     }
 
     private boolean validate(CmdConstants.Mode mode, ProtocolHandler handler, ProtocolCommand command) {

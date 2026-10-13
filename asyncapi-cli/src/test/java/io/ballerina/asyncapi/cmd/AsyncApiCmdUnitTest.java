@@ -62,6 +62,43 @@ public class AsyncApiCmdUnitTest extends CmdTestBase {
         Assert.assertTrue(getErr().contains("http, ws"), "Expected supported protocols. Err: " + getErr());
     }
 
+    @Test(description = "The removed -i flag points at the positional input, keeping the given protocol")
+    public void testRemovedInputFlagSuggestsNewSyntax() {
+        parse("-i", "service.bal", "--protocol", "ws").execute();
+        Assert.assertTrue(getErr().contains("-i/--input has been removed"), "Err: " + getErr());
+        Assert.assertTrue(getErr().contains("bal asyncapi service.bal --protocol ws"), "Err: " + getErr());
+    }
+
+    @Test(description = "Without --protocol the suggestion shows the protocols to choose from")
+    public void testRemovedInputFlagWithoutProtocol() {
+        parse("--input", "spec.yaml").execute();
+        Assert.assertTrue(getErr().contains("bal asyncapi spec.yaml --protocol <http|ws>"), "Err: " + getErr());
+    }
+
+    @Test(description = "The removed --json flag points at --format json, also inside the -i suggestion")
+    public void testRemovedJsonFlagSuggestsFormat() {
+        parse("-i", "service.bal", "--protocol", "ws", "--json").execute();
+        Assert.assertTrue(getErr().contains("bal asyncapi service.bal --protocol ws --format json"),
+                "Err: " + getErr());
+        Assert.assertTrue(getErr().contains("--json has been replaced by --format json"), "Err: " + getErr());
+    }
+
+    @Test(description = "The old WebSocket protocol names point at ws, and -i suggestions use ws")
+    public void testOldWebSocketProtocolNames() {
+        parse("service.bal", "--protocol", "websocket").execute();
+        Assert.assertTrue(getErr().contains("Use --protocol ws for WebSocket"), "Err: " + getErr());
+        errContent.reset();
+        parse("-i", "service.bal", "--protocol", "wss").execute();
+        Assert.assertTrue(getErr().contains("bal asyncapi service.bal --protocol ws"), "Err: " + getErr());
+    }
+
+    @Test(description = "The removed flags stay out of the help")
+    public void testRemovedFlagsAreNotInHelp() {
+        String help = help();
+        Assert.assertFalse(help.contains("--input"), "Out: " + help);
+        Assert.assertFalse(help.contains("--json"), "Out: " + help);
+    }
+
     @Test(description = "The protocol name is matched case-insensitively")
     public void testProtocolCaseInsensitive() {
         parse("/non/existent/spec.yaml", "--protocol", "HTTP").execute();
@@ -99,25 +136,11 @@ public class AsyncApiCmdUnitTest extends CmdTestBase {
         Assert.assertTrue(CmdUtils.collectCmdOptions(base).isJson());
     }
 
-    @Test(description = "The --json flag no longer exists")
-    public void testJsonFlagRemoved() {
-        Assert.expectThrows(CommandLine.UnmatchedArgumentException.class,
-                () -> parse("service.bal", "--protocol", "ws", "--json"));
-    }
-
     @Test(description = "The input is a positional argument")
     public void testPositionalInput() {
         parse("/non/existent/spec.yaml", "--protocol", "ws").execute();
         Assert.assertTrue(getErr().contains("/non/existent/spec.yaml"),
                 "Expected the positional input in the error. Err: " + getErr());
-    }
-
-    @Test(description = "The -i/--input flag no longer exists")
-    public void testInputFlagRemoved() {
-        Assert.expectThrows(CommandLine.UnmatchedArgumentException.class,
-                () -> parse("-i", "spec.yaml", "--protocol", "http"));
-        Assert.expectThrows(CommandLine.UnmatchedArgumentException.class,
-                () -> parse("--input", "spec.yaml", "--protocol", "http"));
     }
 
     @Test(description = "The command has no subcommands")
