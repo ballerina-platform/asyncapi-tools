@@ -63,10 +63,10 @@ final class HttpProtocolCommand implements ProtocolCommand {
                 stage.commit(ErrorMessages.SUCCESS_MESSAGE);
             }
         } catch (GeneratorException e) {
-            ctx.printError("ERROR: " + e.getMessage());
+            ctx.printError("error: " + e.getMessage());
             ctx.exitError();
         } catch (IOException e) {
-            ctx.printError("ERROR: failed to write the generated files: " + e.getMessage());
+            ctx.printError("error: failed to write the generated files: " + e.getMessage());
             ctx.exitError();
         }
     }

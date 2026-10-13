@@ -47,10 +47,10 @@ final class WsProtocolCommand implements ProtocolCommand {
                 specToCode(opts, inputPath, ctx);
             }
         } catch (GeneratorException e) {
-            ctx.printError("ERROR: " + e.getMessage());
+            ctx.printError("error: " + e.getMessage());
             ctx.exitError();
         } catch (IOException e) {
-            ctx.printError("ERROR: failed to write the generated files: " + e.getMessage());
+            ctx.printError("error: failed to write the generated files: " + e.getMessage());
             ctx.exitError();
         }
     }

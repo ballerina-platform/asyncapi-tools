@@ -67,7 +67,7 @@ public class HttpCmdUnitTest extends CmdTestBase {
         parse(specFile.toString(), "--protocol", "http", "--with-tests").execute();
         Assert.assertTrue(getErr().contains("warning: --with-tests is not supported for the http protocol"),
                 "Expected the unsupported option warning. Err: " + getErr());
-        Assert.assertTrue(getErr().contains("ERROR:"),
+        Assert.assertTrue(getErr().contains("error:"),
                 "Generation should still be attempted after the warning. Err: " + getErr());
     }
 
@@ -78,7 +78,7 @@ public class HttpCmdUnitTest extends CmdTestBase {
         parse(specFile.toString(), "--protocol", "http", "--license", licenseFile.toString()).execute();
         Assert.assertTrue(getErr().contains("warning: --license is not supported for the http protocol"),
                 "Expected the unsupported option warning. Err: " + getErr());
-        Assert.assertTrue(getErr().contains("ERROR:"),
+        Assert.assertTrue(getErr().contains("error:"),
                 "Generation should still be attempted after the warning. Err: " + getErr());
     }
 

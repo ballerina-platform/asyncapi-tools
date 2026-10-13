@@ -171,7 +171,7 @@ public class AsyncApiCmd implements BLauncherCmd {
         try {
             handler = CodeGenOrchestrator.getHandler(command.get().protocol());
         } catch (GeneratorException e) {
-            fail("ERROR: " + e.getMessage());
+            fail("error: " + e.getMessage());
             return;
         }
         CmdConstants.Mode mode = CmdUtils.resolveMode(baseCmd);
