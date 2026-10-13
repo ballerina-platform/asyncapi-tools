@@ -31,6 +31,7 @@ import io.ballerina.asyncapi.generator.http.node.GenerateTimeImportNode;
 import io.ballerina.compiler.syntax.tree.ClassDefinitionNode;
 import io.ballerina.compiler.syntax.tree.ImportDeclarationNode;
 import io.ballerina.compiler.syntax.tree.ModulePartNode;
+import io.ballerina.compiler.syntax.tree.NodeParser;
 import io.ballerina.compiler.syntax.tree.SyntaxTree;
 import io.ballerina.tools.text.TextDocument;
 import io.ballerina.tools.text.TextDocuments;
@@ -108,6 +109,9 @@ public class DispatcherGenerator {
         imports.add(GenerateLogImportNode.generate());
         if (webhookAuthConfig.isPresent()) {
             imports.add(GenerateCryptoImportNode.generate());
+            if (webhookAuthConfig.get().isRsa()) {
+                imports.add(NodeParser.parseImportDeclaration("import ballerina/lang.array;"));
+            }
             if (webhookAuthConfig.get().freshnessHeader() != null) {
                 imports.add(GenerateTimeImportNode.generate());
             }

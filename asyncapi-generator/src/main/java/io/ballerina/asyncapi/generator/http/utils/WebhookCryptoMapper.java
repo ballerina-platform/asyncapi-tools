@@ -52,6 +52,39 @@ public final class WebhookCryptoMapper {
         };
     }
 
+    /** Resolves the {@code crypto:verifyRsaXxxSignature} function name for the given algorithm. */
+    public static String rsaVerifyFunctionFor(String algorithm) throws GeneratorException {
+        return switch (algorithm.toLowerCase()) {
+            case "sha1" -> "verifyRsaSha1Signature";
+            case "sha256" -> "verifyRsaSha256Signature";
+            case "sha384" -> "verifyRsaSha384Signature";
+            case "sha512" -> "verifyRsaSha512Signature";
+            default -> throw unsupportedAlgorithm(algorithm);
+        };
+    }
+
+    /** Resolves the {@code crypto:signRsaXxx} function name for the given algorithm. */
+    public static String rsaSignFunctionFor(String algorithm) throws GeneratorException {
+        return switch (algorithm.toLowerCase()) {
+            case "sha1" -> "signRsaSha1";
+            case "sha256" -> "signRsaSha256";
+            case "sha384" -> "signRsaSha384";
+            case "sha512" -> "signRsaSha512";
+            default -> throw unsupportedAlgorithm(algorithm);
+        };
+    }
+
+    /** Resolves the {@code lang.array} function that decodes a signature header value for the given encoding. */
+    public static String decodeFunctionFor(String encoding) throws GeneratorException {
+        return switch (encoding.toLowerCase()) {
+            case "hex" -> "fromBase16";
+            case "base64" -> "fromBase64";
+            default -> throw new GeneratorException(String.format(
+                    "Unsupported x-ballerina-auth signature encoding: '%s'. Supported values: hex, base64.",
+                    encoding));
+        };
+    }
+
     /** Resolves the {@code byte[]} encoding method call (e.g. {@code "toBase16()"}) for the given encoding. */
     public static String encodeFunctionFor(String encoding) throws GeneratorException {
         return switch (encoding.toLowerCase()) {
