@@ -80,6 +80,26 @@ class BallerinaToAsyncApiGeneratorTest {
             + "    }\n"
             + "}\n";
 
+    // The connection handle comes first and the module is imported under another prefix.
+    private static final String BAL_CALLER_FIRST =
+            "import ballerina/websocket as ws;\n\n"
+            + "public type ChatMessage record {\n"
+            + "    string event;\n"
+            + "    string content;\n"
+            + "};\n\n"
+            + "@ws:ServiceConfig {dispatcherKey: \"event\"}\n"
+            + "service /chat on new ws:Listener(9090) {\n"
+            + "    resource function get .() returns ws:Service|ws:UpgradeError {\n"
+            + "        return new ChatService();\n"
+            + "    }\n"
+            + "}\n\n"
+            + "service class ChatService {\n"
+            + "    *ws:Service;\n"
+            + "    remote function onChatMessage(ws:Caller caller, ChatMessage msg) returns string|error {\n"
+            + "        return msg.content;\n"
+            + "    }\n"
+            + "}\n";
+
     // Regression fixture for #6601 — function name "onHello" does not follow the on<ParameterType>
     // convention even though the parameter type is ClientData. Must still generate a full spec.
     private static final String BAL_MISMATCHED_FUNCTION_NAME =
@@ -859,6 +879,18 @@ class BallerinaToAsyncApiGeneratorTest {
         Assert.assertTrue(yaml.contains("asyncapi"), "root asyncapi key must be present");
         Assert.assertTrue(yaml.contains("sendChatMessage"),
                 "send operation 'sendChatMessage' must appear in spec");
+    }
+
+    @Test
+    void callerParameterIsSkippedWhenFindingTheMessage() throws IOException {
+        Files.writeString(balFile, BAL_CALLER_FIRST);
+        BallerinaToAsyncApiGenerator.generateAsyncAPIDefinitionsAllService(
+                balFile, outDir, null, false, System.out);
+
+        String yaml = readGeneratedYaml();
+        Assert.assertTrue(yaml.contains("ChatMessage"),
+                "the message type after the caller must be the message: " + yaml);
+        Assert.assertFalse(yaml.contains("Caller"), "the caller must not become a message: " + yaml);
     }
 
     @Test
