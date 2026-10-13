@@ -1,0 +1,13 @@
+[package]
+license = ["Apache-2.0"]
+keywords = ["Communication/Team Chat", "Cost/Freemium", "Trigger"]
+org = "ballerinax"
+name = "trigger.google.sheets"
+repository = "https://github.com/ballerina-platform/asyncapi-triggers"
+version = "0.10.0"
+distribution = "2201.11.0"
+icon = "docs/icon.png"
+authors = ["Ballerina"]
+
+[build-options]
+observabilityIncluded = true
