@@ -42,6 +42,16 @@ public class DispatcherGeneratorTest {
     );
 
     @Test
+    void testChannelIdentifiersRejectBatchedPayloads() {
+        List<HttpServiceType> channels = List.of(new HttpServiceType("SmsStatus",
+                List.of(new HttpRemoteFunction("delivered", "SmsEvent")), "smsStatus",
+                new EventIdentifierConfig("body", null, "MessageStatus")));
+        GeneratorException e = Assert.expectThrows(GeneratorException.class, () ->
+                new DispatcherGenerator(channels, null, Optional.<WebhookAuthConfig>empty(), true).generate());
+        Assert.assertTrue(e.getMessage().contains("does not support batched payloads"), e.getMessage());
+    }
+
+    @Test
     void testGenerateWithBodyIdentifier() throws GeneratorException {
         EventIdentifierConfig config = new EventIdentifierConfig("body", null, "event.type");
         String source = new DispatcherGenerator(SINGLE_SERVICE, config, Optional.<WebhookAuthConfig>empty(), false)

@@ -63,7 +63,28 @@ public final class EventIdentifierExtractor {
                     X_BALLERINA_EVENT_FIELD_IDENTIFIER));
         }
 
-        JsonNode identifierNode = extensions.get(X_BALLERINA_EVENT_FIELD_IDENTIFIER);
+        return parse(extensions.get(X_BALLERINA_EVENT_FIELD_IDENTIFIER));
+    }
+
+    /**
+     * Whether the document declares a root-level {@code x-ballerina-event-identifier}. It may be left out when
+     * every channel declares its own.
+     *
+     * @return {@code true} if the extension is present at the root
+     */
+    public boolean isPresent() {
+        Map<String, JsonNode> extensions = asyncApiSpec.getAsyncApiExtensions().orElse(null);
+        return extensions != null && extensions.containsKey(X_BALLERINA_EVENT_FIELD_IDENTIFIER);
+    }
+
+    /**
+     * Parses an {@code x-ballerina-event-identifier} block, at the root or on a channel.
+     *
+     * @param identifierNode the block
+     * @return the resolved {@link EventIdentifierConfig}
+     * @throws GeneratorException if the block is not an object, has an invalid type, or is missing required fields
+     */
+    public static EventIdentifierConfig parse(JsonNode identifierNode) throws GeneratorException {
         if (identifierNode == null || !identifierNode.isObject()) {
             throw new GeneratorException(String.format(
                     "%s must be a JSON object in the Async API Specification",
@@ -108,7 +129,7 @@ public final class EventIdentifierExtractor {
      * @return the (possibly keyword-escaped) header name
      * @throws GeneratorException if the {@code name} field is absent
      */
-    private String extractHeaderName(Map<String, String> identifierFields) throws GeneratorException {
+    private static String extractHeaderName(Map<String, String> identifierFields) throws GeneratorException {
         if (!identifierFields.containsKey(X_BALLERINA_EVENT_FIELD_IDENTIFIER_NAME)) {
             throw new GeneratorException(String.format(
                     "%s attribute is not found within the attribute %s in the Async API Specification",
@@ -130,7 +151,7 @@ public final class EventIdentifierExtractor {
      * @return the (possibly keyword-escaped) dot-notation path
      * @throws GeneratorException if the {@code path} field is absent
      */
-    private String extractBodyPath(Map<String, String> identifierFields) throws GeneratorException {
+    private static String extractBodyPath(Map<String, String> identifierFields) throws GeneratorException {
         if (!identifierFields.containsKey(X_BALLERINA_EVENT_FIELD_IDENTIFIER_PATH)) {
             throw new GeneratorException(String.format(
                     "%s attribute is not found within the attribute %s in the Async API Specification",

@@ -1,0 +1,97 @@
+asyncapi: 3.0.0
+x-ballerina-event-identifier:
+  type: header
+  name: X-Event-Type
+x-ballerina-auth:
+  header: X-Signature
+  signature:
+    algorithm: sha256
+    encoding: hex
+    headerFormat: "$signature"
+    input: "$uri . $body"
+info:
+  title: Channel Identifiers Test
+  version: 1.0.0
+channels:
+  callStatus:
+    address: callStatus
+    x-ballerina-event-identifier:
+      type: body
+      path: CallStatus
+    messages:
+      callQueued:
+        x-ballerina-event-type: queued
+        payload:
+          $ref: "#/components/schemas/CallStatusEvent"
+      callFailed:
+        x-ballerina-event-type: failed
+        payload:
+          $ref: "#/components/schemas/CallStatusEvent"
+  smsStatus:
+    address: smsStatus
+    x-ballerina-event-identifier:
+      type: body
+      path: MessageStatus
+    messages:
+      smsQueued:
+        x-ballerina-event-type: queued
+        payload:
+          $ref: "#/components/schemas/SmsStatusEvent"
+      smsFailed:
+        x-ballerina-event-type: failed
+        payload:
+          $ref: "#/components/schemas/SmsStatusEvent"
+      smsDelivered:
+        x-ballerina-event-type: delivered
+        payload:
+          $ref: "#/components/schemas/SmsStatusEvent"
+  alerts:
+    address: alerts
+    messages:
+      alertWarning:
+        x-ballerina-event-type: warning
+        payload:
+          $ref: "#/components/schemas/AlertEvent"
+operations:
+  callStatus:
+    action: receive
+    channel:
+      $ref: "#/channels/callStatus"
+    messages:
+      - $ref: "#/channels/callStatus/messages/callQueued"
+      - $ref: "#/channels/callStatus/messages/callFailed"
+  smsStatus:
+    action: receive
+    channel:
+      $ref: "#/channels/smsStatus"
+    messages:
+      - $ref: "#/channels/smsStatus/messages/smsQueued"
+      - $ref: "#/channels/smsStatus/messages/smsFailed"
+      - $ref: "#/channels/smsStatus/messages/smsDelivered"
+  alerts:
+    action: receive
+    channel:
+      $ref: "#/channels/alerts"
+    messages:
+      - $ref: "#/channels/alerts/messages/alertWarning"
+components:
+  schemas:
+    CallStatusEvent:
+      type: object
+      properties:
+        CallSid:
+          type: string
+        CallStatus:
+          type: string
+    SmsStatusEvent:
+      type: object
+      properties:
+        MessageSid:
+          type: string
+        MessageStatus:
+          type: string
+    AlertEvent:
+      type: object
+      properties:
+        level:
+          type: string

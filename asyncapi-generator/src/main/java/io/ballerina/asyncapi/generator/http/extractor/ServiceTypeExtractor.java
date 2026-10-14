@@ -44,6 +44,7 @@ public final class ServiceTypeExtractor {
     public static final String X_BALLERINA_EVENT_TYPE = "x-ballerina-event-type";
     private static final String X_BALLERINA_EVENT_LABEL = "x-ballerina-event-label";
     private static final String X_BALLERINA_SERVICE_TYPE = "x-ballerina-service-type";
+    private static final String X_BALLERINA_EVENT_IDENTIFIER = "x-ballerina-event-identifier";
 
     private final AsyncApiSpec asyncApiSpec;
     private final EventIdentifierConfig identifierConfig;
@@ -134,7 +135,15 @@ public final class ServiceTypeExtractor {
                 }
             }
 
-            serviceTypeMap.computeIfAbsent(serviceTypeName, k -> new HttpServiceType(k, new ArrayList<>()));
+            Map<String, JsonNode> channelExtensions = operationChannel.extensions();
+            JsonNode channelIdentifierNode = channelExtensions == null ? null
+                    : channelExtensions.get(X_BALLERINA_EVENT_IDENTIFIER);
+            EventIdentifierConfig channelIdentifier = channelIdentifierNode == null ? null
+                    : EventIdentifierExtractor.parse(channelIdentifierNode);
+            // computeIfAbsent, not put: within a hash bucket it orders entries differently, which would reorder
+            // the generated services.
+            serviceTypeMap.computeIfAbsent(serviceTypeName, k -> new HttpServiceType(k, new ArrayList<>(),
+                    operationChannel.address(), channelIdentifier));
 
             Map<String, AsyncApiMessage> messages = operation.messages();
             if (messages == null || messages.isEmpty()) {
