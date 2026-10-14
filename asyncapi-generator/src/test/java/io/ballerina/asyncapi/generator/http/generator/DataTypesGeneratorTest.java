@@ -310,4 +310,26 @@ public class DataTypesGeneratorTest {
         Assert.assertTrue(result.lines().filter(line -> line.stripLeading().startsWith("#")).count() > 1,
                 "A description this long should be split across several doc-comment lines: " + result);
     }
+
+    @Test
+    void testGenerateWrapsLongListenerConfigDescriptionWithinLineBudget() throws GeneratorException {
+        // ListenerConfig field docs are built from the spec too (here, an API key header name), so they wrap the same.
+        String longHeaderName = "header part ".repeat(20).stripTrailing();
+        ConnectionAuthConfig apiKey = new ConnectionAuthConfig(ConnectionAuthConfig.TYPE_HTTP_API_KEY,
+                null, null, null, longHeaderName, ConnectionAuthConfig.API_KEY_IN_HEADER);
+        AsyncApiSchema schema = AsyncApiSchema.builder().type("object").build();
+
+        String result = new DataTypesGenerator(Map.of("Event", schema),
+                Optional.<WebhookAuthConfig>empty(), Optional.of(apiKey)).generate();
+
+        for (String line : result.split("\n")) {
+            Assert.assertTrue(line.stripTrailing().length() <= 120,
+                    "Generated line exceeds the 120-character budget (" + line.stripTrailing().length()
+                            + " chars): " + line);
+        }
+        Assert.assertTrue(result.contains("# API key sent as the 'header part"),
+                "The description should still be emitted as a doc comment: " + result);
+        Assert.assertTrue(result.lines().filter(line -> line.stripLeading().startsWith("# header part")).count() > 0,
+                "The long API key description should continue on further doc-comment lines: " + result);
+    }
 }
