@@ -24,6 +24,8 @@ import io.ballerina.asyncapi.generator.http.model.WebhookAuthConfig;
 import io.ballerina.compiler.syntax.tree.FunctionBodyBlockNode;
 import io.ballerina.compiler.syntax.tree.FunctionDefinitionNode;
 import io.ballerina.compiler.syntax.tree.FunctionSignatureNode;
+import io.ballerina.compiler.syntax.tree.Node;
+import io.ballerina.compiler.syntax.tree.NodeList;
 import io.ballerina.compiler.syntax.tree.NodeParser;
 import io.ballerina.compiler.syntax.tree.StatementNode;
 
@@ -92,6 +94,26 @@ public class GeneratePostResourceFunctionNode implements Generator {
 
     @Override
     public FunctionDefinitionNode generate() throws GeneratorException {
+        String type = identifierConfig.type();
+
+        List<StatementNode> statements = new ArrayList<>(buildVerifyStatements(webhookAuthConfig));
+        statements.add(NodeParser.parseStatement("json payload = check request.getJsonPayload();"));
+        if (batched) {
+            statements.addAll(buildBatchedDispatchStatements(type));
+        } else {
+            statements.addAll(buildSingleEventDispatchStatements(type));
+        }
+        return buildPostResource(createNodeList(createToken(DOT_TOKEN)), statements);
+    }
+
+    /**
+     * Builds {@code resource function post <path>(http:Caller caller, http:Request request) returns error?}.
+     *
+     * @param path       the resource path nodes, e.g. {@code .} or {@code callStatus}
+     * @param statements the function body
+     * @return the resource function definition
+     */
+    static FunctionDefinitionNode buildPostResource(NodeList<Node> path, List<StatementNode> statements) {
         FunctionSignatureNode signature = createFunctionSignatureNode(
                 createToken(OPEN_PAREN_TOKEN),
                 createSeparatedNodeList(
@@ -113,8 +135,26 @@ public class GeneratePostResourceFunctionNode implements Generator {
                 createToken(CLOSE_PAREN_TOKEN),
                 buildErrorReturnType());
 
-        String type = identifierConfig.type();
+        FunctionBodyBlockNode body = createFunctionBodyBlockNode(
+                createToken(OPEN_BRACE_TOKEN), null, createNodeList(statements),
+                createToken(CLOSE_BRACE_TOKEN), null);
 
+        return createFunctionDefinitionNode(
+                RESOURCE_ACCESSOR_DEFINITION, null,
+                createNodeList(createToken(RESOURCE_KEYWORD)),
+                createToken(FUNCTION_KEYWORD),
+                createIdentifierToken("post"),
+                path,
+                signature, body);
+    }
+
+    /**
+     * Builds the statements that reject a request whose signature does not verify with {@code 401 Unauthorized}.
+     *
+     * @param webhookAuthConfig the optional webhook authentication configuration
+     * @return the statements, empty when no signature is configured
+     */
+    static List<StatementNode> buildVerifyStatements(Optional<WebhookAuthConfig> webhookAuthConfig) {
         List<StatementNode> statements = new ArrayList<>();
         if (webhookAuthConfig.isPresent()) {
             statements.add(NodeParser.parseStatement(String.format(
@@ -126,24 +166,7 @@ public class GeneratePostResourceFunctionNode implements Generator {
                             + " http:Response r = new; r.statusCode = http:STATUS_UNAUTHORIZED;"
                             + " check caller->respond(r); return; }"));
         }
-        statements.add(NodeParser.parseStatement("json payload = check request.getJsonPayload();"));
-        if (batched) {
-            statements.addAll(buildBatchedDispatchStatements(type));
-        } else {
-            statements.addAll(buildSingleEventDispatchStatements(type));
-        }
-
-        FunctionBodyBlockNode body = createFunctionBodyBlockNode(
-                createToken(OPEN_BRACE_TOKEN), null, createNodeList(statements),
-                createToken(CLOSE_BRACE_TOKEN), null);
-
-        return createFunctionDefinitionNode(
-                RESOURCE_ACCESSOR_DEFINITION, null,
-                createNodeList(createToken(RESOURCE_KEYWORD)),
-                createToken(FUNCTION_KEYWORD),
-                createIdentifierToken("post"),
-                createNodeList(createToken(DOT_TOKEN)),
-                signature, body);
+        return statements;
     }
 
     /**
@@ -243,7 +266,7 @@ public class GeneratePostResourceFunctionNode implements Generator {
      * @param headerName the request header to read (e.g. {@code "X-GitHub-Event"})
      * @return the statements, ending with {@code eventType} bound to the header's value
      */
-    private List<StatementNode> buildEventTypeFromHeaderStatements(String headerName) {
+    static List<StatementNode> buildEventTypeFromHeaderStatements(String headerName) {
         List<StatementNode> statements = new ArrayList<>();
         statements.add(NodeParser.parseStatement(String.format(
                 "string|error eventTypeResult = request.getHeader(\"%s\");", headerName)));

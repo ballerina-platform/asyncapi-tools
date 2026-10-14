@@ -16,6 +16,39 @@ x-ballerina-auth:
     input: "$body"
 ```
 
+## Event Identifiers per Channel
+
+`x-ballerina-event-identifier` is normally declared once, at the root, and the listener serves every channel at
+`/`. When channels name their events differently, give a channel its own identifier. Twilio, for example, puts the
+call status in `CallStatus` and the message status in `MessageStatus`, and both use values such as `failed`:
+
+```yaml
+channels:
+  callStatus:
+    address: callStatus
+    x-ballerina-event-identifier:
+      type: body
+      path: CallStatus
+  smsStatus:
+    address: smsStatus
+    x-ballerina-event-identifier:
+      type: body
+      path: MessageStatus
+```
+
+- As soon as any channel declares its own identifier, the listener serves **each channel at its own path**, its
+  `address` (`/callStatus`, `/smsStatus`), instead of one resource at `/`. Each path reads the event type with that
+  channel's identifier and dispatches only to that channel's service, so a `failed` call can never reach the
+  messaging service. Register each path with the provider separately.
+- A channel without its own identifier uses the root one. Generation fails if a channel has neither.
+- A channel's identifier must be `body` or `header`. Batched payloads are not supported with channel identifiers.
+- Each address must be one or more path segments made of letters, digits, `_` or `-`, starting with a letter or
+  `_`, and no two channels may share an address.
+- `$uri` in a signature `input` is the request path, so it is each channel's own path.
+- The generated dispatch tests post each event to its channel's path, read its payload from a folder named after the
+  channel (for example `tests/resources/trigger_payloads/callStatus/failed.json`), and check that only that channel's
+  remote function fired.
+
 ## Signature Config
 
 Fields under `x-ballerina-auth.signature`:
