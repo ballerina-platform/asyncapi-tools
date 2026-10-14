@@ -1,6 +1,8 @@
 # Webhook Signature DSL Reference
 
-This document describes the webhook verification DSL consumed from root-level `x-ballerina-auth` in AsyncAPI specs.
+This document describes the webhook verification DSL consumed from root-level `x-ballerina-auth` in AsyncAPI specs,
+and the endpoint verification handshakes described in `x-ballerina-event-identifier` (see
+[Verification Handshakes](#verification-handshakes)).
 
 ## Location
 
@@ -162,6 +164,60 @@ Validation rules:
 
 - Adjacent placeholders are not allowed (for example `$ts$signature`).
 - When `algorithm` is configured, `headerFormat` must include signature placeholder `$signature`, `${signature}`, or `{signature}`.
+
+## Verification Handshakes
+
+Some providers check the endpoint before they send any events: they send a challenge and only activate the
+webhook once the endpoint returns it. The generated listener answers the challenge itself; it never reaches a
+service, and no remote function is generated for it. Describe the handshake in a `handshake` block of
+`x-ballerina-event-identifier` (not in `x-ballerina-auth`), and do not model it as a message in `channels`.
+
+**POST, challenge in the JSON body** (for example Slack's `url_verification`):
+
+```yaml
+x-ballerina-event-identifier:
+  type: body
+  path: event.type
+  handshake:
+    method: POST
+    when:
+      path: type
+      equals: url_verification
+    challenge:
+      in: body
+      path: challenge
+```
+
+- `when.path` and `when.equals` tell the handshake apart from events: a request whose body has `equals` at `path`
+  is the handshake.
+- `challenge.path` is where the challenge is. The listener responds `200` with the challenge as plain text, or
+  `400` if it is missing.
+- Paths use dot notation, like the identifier `path`.
+- The handshake is answered after the `x-ballerina-auth` signature check, so a provider that signs it (Slack does)
+  is verified like any other request.
+
+**GET, challenge in the query** (for example a WebSub hub's `hub.challenge`):
+
+```yaml
+x-ballerina-event-identifier:
+  type: body
+  path: eventType
+  handshake:
+    method: GET
+    challenge:
+      in: query
+      name: hub.challenge
+```
+
+- The listener gets a `GET` resource that responds `200` with the `name` query parameter as plain text, or `400`
+  if it is missing.
+- A `GET` request has no body, so it is not signature-checked, and `when` is not used.
+
+Generation fails if the block is incomplete or mixes the two shapes: `method` must be `GET` or `POST`; `POST`
+needs `when.path`, `when.equals` and `challenge: {in: body, path}`; `GET` needs `challenge: {in: query, name}`.
+
+When dispatch tests are generated, they include `testVerificationHandshake`, which sends the handshake (signed, for
+`POST`) and checks that the challenge comes back.
 
 ## Examples
 

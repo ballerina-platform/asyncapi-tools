@@ -17,11 +17,16 @@
  */
 package io.ballerina.asyncapi.generator.http.generator;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.ballerina.asyncapi.core.model.component.AsyncApiSchema;
 import io.ballerina.asyncapi.generator.GeneratorException;
 import io.ballerina.asyncapi.generator.http.extractor.EventIdentifierExtractor;
 import io.ballerina.asyncapi.generator.http.model.DispatchTestCase;
 import io.ballerina.asyncapi.generator.http.model.EventIdentifierConfig;
+import io.ballerina.asyncapi.generator.http.model.HandshakeConfig;
 import io.ballerina.asyncapi.generator.http.model.WebhookAuthConfig;
 import io.ballerina.asyncapi.generator.http.utils.CodegenUtils;
 import io.ballerina.asyncapi.generator.http.utils.HeaderTemplateParser;
@@ -34,6 +39,8 @@ import io.ballerina.tools.text.TextDocuments;
 import org.ballerinalang.formatter.core.Formatter;
 import org.ballerinalang.formatter.core.FormatterException;
 
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -68,6 +75,8 @@ public class DispatchTestGenerator {
     private static final int TEST_PORT = 9091;
     private static final String TEST_SECRET = "trigger-test-secret";
     private static final String DEFAULT_IDENTIFIER_HEADER = "X-GitHub-Event";
+    private static final String HANDSHAKE_TEST_CHALLENGE = "trigger-test-challenge";
+    private static final ObjectMapper JSON = new ObjectMapper();
 
     private final List<DispatchTestCase> testCases;
     private final WebhookAuthConfig webhookAuthConfig;
@@ -166,6 +175,9 @@ public class DispatchTestGenerator {
         for (DispatchTestCase testCase : testCases) {
             source.append(buildTestFunction(testCase));
         }
+        if (identifierConfig != null && identifierConfig.handshake() != null) {
+            source.append(buildHandshakeTestFunction(identifierConfig.handshake()));
+        }
 
         SyntaxTree syntaxTree = parse(source.toString());
         try {
@@ -260,6 +272,14 @@ public class DispatchTestGenerator {
                 .append(") returns http:Response|error {\n");
         sb.append("    byte[] body = check io:fileReadBytes("
                 + "string `${TRIGGER_PAYLOAD_DIR}/${eventIdentifier}.json`);\n");
+        if (hasPostHandshake()) {
+            // The handshake test signs a body of its own, so signing gets a function that takes the bytes.
+            String headerArg = isBodyModeIdentifier() ? "" : ", headerValue";
+            sb.append("    return sendSignedTriggerBody(body").append(headerArg).append(");\n}\n\n");
+            sb.append("isolated function sendSignedTriggerBody(byte[] body")
+                    .append(isBodyModeIdentifier() ? "" : ", string headerValue")
+                    .append(") returns http:Response|error {\n");
+        }
         sb.append("    string bodyText = check string:fromBytes(body);\n");
 
         List<String> headerEntries = new ArrayList<>();
@@ -451,6 +471,61 @@ public class DispatchTestGenerator {
                 + trackerKey + " should have fired\");\n"
                 + buildBindingAssertions(testCase, trackerKey)
                 + "}\n\n";
+    }
+
+    private boolean hasPostHandshake() {
+        return identifierConfig != null && identifierConfig.handshake() != null
+                && !identifierConfig.handshake().isGet();
+    }
+
+    /**
+     * Builds a test that sends the verification handshake and checks the listener echoes the challenge: a signed
+     * {@code POST} whose body carries the marker and the challenge, or a {@code GET} with the challenge in the query.
+     *
+     * @param handshake the handshake from the event identifier
+     * @return the test function source
+     */
+    private String buildHandshakeTestFunction(HandshakeConfig handshake) throws GeneratorException {
+        String send;
+        if (handshake.isGet()) {
+            String query = URLEncoder.encode(handshake.challengeKey(), StandardCharsets.UTF_8) + "="
+                    + HANDSHAKE_TEST_CHALLENGE;
+            send = "    http:Response response = check triggerClient->get(\"/?" + escapeBalString(query) + "\");\n";
+        } else {
+            ObjectNode body = JSON.createObjectNode();
+            putAtPath(body, handshake.whenPath(), handshake.whenEquals());
+            putAtPath(body, handshake.challengeKey(), HANDSHAKE_TEST_CHALLENGE);
+            String bodyJson;
+            try {
+                bodyJson = JSON.writeValueAsString(body);
+            } catch (JsonProcessingException e) {
+                throw new GeneratorException("Could not build the handshake test body", e);
+            }
+            send = "    json handshake = " + bodyJson + ";\n"
+                    + "    http:Response response = check sendSignedTriggerBody(handshake.toJsonString().toBytes()"
+                    + (isBodyModeIdentifier() ? "" : ", \"handshake\"") + ");\n";
+        }
+        return "@test:Config {}\n"
+                + "function testVerificationHandshake() returns error? {\n"
+                + send
+                + "    test:assertEquals(response.statusCode, http:STATUS_OK);\n"
+                + "    test:assertEquals(check response.getTextPayload(), \"" + HANDSHAKE_TEST_CHALLENGE + "\");\n"
+                + "}\n\n";
+    }
+
+    // Sets a dot-notation path in a JSON object, creating the objects along the way.
+    private static void putAtPath(ObjectNode root, String path, String value) {
+        String[] segments = path.split("\\.");
+        ObjectNode node = root;
+        for (int i = 0; i < segments.length - 1; i++) {
+            JsonNode child = node.get(segments[i]);
+            node = child instanceof ObjectNode object ? object : node.putObject(segments[i]);
+        }
+        node.put(segments[segments.length - 1], value);
+    }
+
+    private static String escapeBalString(String value) {
+        return value.replace("\\", "\\\\").replace("\"", "\\\"");
     }
 
     /**
