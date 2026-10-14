@@ -24,6 +24,7 @@ import io.ballerina.asyncapi.generator.http.model.DispatchTestCase;
 import io.ballerina.asyncapi.generator.http.model.EventIdentifierConfig;
 import io.ballerina.asyncapi.generator.http.model.WebhookAuthConfig;
 import io.ballerina.asyncapi.generator.http.utils.CodegenUtils;
+import io.ballerina.asyncapi.generator.http.utils.FormBodies;
 import io.ballerina.asyncapi.generator.http.utils.HeaderTemplateParser;
 import io.ballerina.asyncapi.generator.http.utils.HeaderTemplateParser.HeaderTemplate;
 import io.ballerina.asyncapi.generator.http.utils.SignaturePayloadTemplateBuilder;
@@ -73,6 +74,7 @@ public class DispatchTestGenerator {
     private final WebhookAuthConfig webhookAuthConfig;
     private final EventIdentifierConfig identifierConfig;
     private final Map<String, Set<String>> renamedKeysByType;
+    private boolean formBodies;
 
     /**
      * Creates a generator for the given dispatch test cases, webhook authentication configuration,
@@ -102,6 +104,18 @@ public class DispatchTestGenerator {
         this.webhookAuthConfig = webhookAuthConfig;
         this.identifierConfig = identifierConfig;
         this.renamedKeysByType = resolveRenamedKeys(schemas);
+    }
+
+    /**
+     * Sends the tests' payloads form-encoded: each JSON fixture's fields become form parameters, and
+     * {@code $formParams} signs them sorted by name.
+     *
+     * @param formBodies whether the listener reads {@code application/x-www-form-urlencoded} bodies
+     * @return this generator
+     */
+    public DispatchTestGenerator withFormBodies(boolean formBodies) {
+        this.formBodies = formBodies;
+        return this;
     }
 
     /**
@@ -187,6 +201,9 @@ public class DispatchTestGenerator {
                 .append("import ballerina/crypto;\n")
                 .append("import ballerina/io;\n")
                 .append("import ballerina/lang.runtime;\n");
+        if (formBodies) {
+            imports.append("import ballerina/url;\n");
+        }
         if (needsTimeImport(headerRefs)) {
             imports.append("import ballerina/time;\n");
         }
@@ -258,9 +275,31 @@ public class DispatchTestGenerator {
                         ? "string eventIdentifier"
                         : "string headerValue, string eventIdentifier")
                 .append(") returns http:Response|error {\n");
-        sb.append("    byte[] body = check io:fileReadBytes("
-                + "string `${TRIGGER_PAYLOAD_DIR}/${eventIdentifier}.json`);\n");
-        sb.append("    string bodyText = check string:fromBytes(body);\n");
+        if (formBodies) {
+            // The fixture is JSON; its fields are sent as form parameters, as a form-encoding provider sends them.
+            sb.append("    json fixture = check io:fileReadJson("
+                    + "string `${TRIGGER_PAYLOAD_DIR}/${eventIdentifier}.json`);\n")
+                    .append("    map<json> fields = check fixture.ensureType();\n")
+                    .append("    map<string> params = {};\n")
+                    .append("    foreach var [name, value] in fields.entries() {\n")
+                    .append("        params[name] = value.toString();\n")
+                    .append("    }\n")
+                    .append("    string[] encodedPairs = [];\n")
+                    .append("    foreach var [name, value] in params.entries() {\n")
+                    .append("        encodedPairs.push(check url:encode(name, \"UTF-8\") + \"=\" "
+                            + "+ check url:encode(value, \"UTF-8\"));\n")
+                    .append("    }\n")
+                    .append("    string bodyText = string:'join(\"&\", ...encodedPairs);\n")
+                    .append("    byte[] body = bodyText.toBytes();\n")
+                    .append("    string formParamsText = \"\";\n")
+                    .append("    foreach string name in params.keys().sort() {\n")
+                    .append("        formParamsText += name + params.get(name);\n")
+                    .append("    }\n");
+        } else {
+            sb.append("    byte[] body = check io:fileReadBytes("
+                    + "string `${TRIGGER_PAYLOAD_DIR}/${eventIdentifier}.json`);\n");
+            sb.append("    string bodyText = check string:fromBytes(body);\n");
+        }
 
         List<String> headerEntries = new ArrayList<>();
 
@@ -340,7 +379,8 @@ public class DispatchTestGenerator {
             sb.append(i < headerEntries.size() - 1 ? ",\n" : "\n");
         }
         sb.append("    };\n");
-        sb.append("    return triggerClient->post(\"/\", body, headers, \"application/json\");\n");
+        sb.append("    return triggerClient->post(\"/\", body, headers, \"")
+                .append(formBodies ? FormBodies.FORM_CONTENT_TYPE : "application/json").append("\");\n");
         sb.append("}\n\n");
         return sb.toString();
     }
@@ -375,6 +415,11 @@ public class DispatchTestGenerator {
             @Override
             public String config(String configName) {
                 return testConfigConstantName(configName);
+            }
+
+            @Override
+            public String formParams() {
+                return "formParamsText";
             }
         };
     }

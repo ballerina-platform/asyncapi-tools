@@ -181,6 +181,42 @@ public class WebhookDSLVerificationTest {
     }
 
     @Test
+    public void testFormBodiesAreReadAndSignedWithSortedParams() throws Exception {
+        // Twilio: form-encoded status callbacks, signed over the URL and the parameters sorted by name.
+        Path outputDir = generateOutputDir("form_bodies.yaml");
+
+        String dispatcher = Files.readString(outputDir.resolve("dispatcher_service.bal"));
+        Assert.assertTrue(dispatcher.contains("map<string> formParams = check request.getFormParams();"), dispatcher);
+        Assert.assertFalse(dispatcher.contains("getJsonPayload"), "A form body is not JSON: " + dispatcher);
+        Assert.assertTrue(dispatcher.contains("int|error converted = int:fromString(formParams.get(\"NumMedia\"));"),
+                "An integer field is converted from its string: " + dispatcher);
+        Assert.assertFalse(dispatcher.contains("fromString(formParams.get(\"MessageSid\"))"),
+                "String fields stay strings: " + dispatcher);
+        Assert.assertTrue(dispatcher.contains("string payloadToHash = string `${self.webhookUrl}"
+                + "${self.sortedFormParams(check request.getFormParams())}`;"), dispatcher);
+        Assert.assertTrue(dispatcher.contains("private isolated function sortedFormParams(map<string> params)"),
+                dispatcher);
+        Assert.assertTrue(dispatcher.contains("crypto:hmacSha1"), dispatcher);
+
+        String dispatchTest = Files.readString(outputDir.resolve("tests").resolve("dispatch_test.bal"));
+        Assert.assertTrue(dispatchTest.contains("import ballerina/url;"), dispatchTest);
+        Assert.assertTrue(dispatchTest.contains("formParamsText += name + params.get(name);"), dispatchTest);
+        Assert.assertTrue(dispatchTest.contains("\"application/x-www-form-urlencoded\");"),
+                "The test client posts form bodies: " + dispatchTest);
+    }
+
+    @Test
+    public void testMixedFormAndJsonMessagesAreRejected() throws Exception {
+        assertGeneratorException("form_mixed_content.yaml", "all messages must use the same content type");
+    }
+
+    @Test
+    public void testFormParamsWithoutFormBodiesIsRejected() throws Exception {
+        assertGeneratorException("form_params_without_form.yaml",
+                "uses $formParams, but the messages are not form-encoded");
+    }
+
+    @Test
     public void testFreshnessInSecondsScalesTheHeaderTimestampToMillis() throws Exception {
         // Slack sends X-Slack-Request-Timestamp in epoch seconds. Compared against the millisecond
         // clock unscaled, every request would look decades old and be rejected as expired.
