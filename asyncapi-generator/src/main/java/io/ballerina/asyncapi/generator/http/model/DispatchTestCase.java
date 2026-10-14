@@ -29,12 +29,23 @@ package io.ballerina.asyncapi.generator.http.model;
  * @param headerValue      the bare event-identifier header value a real delivery carries (e.g.
  *                         {@code "meta"}), independent of any composite action suffix
  * @param payloadTypeName  the Ballerina type name of the remote function's payload parameter
+ * @param messageName      the message's key in the definition (e.g. {@code "loginSuccess"}), which names the
+ *                         fixture when the event type cannot (a {@code body-key} event type is a key such as a URI)
  */
 public record DispatchTestCase(
         String serviceTypeName,
         String functionName,
         String eventIdentifier,
         String headerValue,
-        String payloadTypeName
+        String payloadTypeName,
+        String messageName
 ) {
+
+    /**
+     * Creates a test case whose message name is its event identifier.
+     */
+    public DispatchTestCase(String serviceTypeName, String functionName, String eventIdentifier, String headerValue,
+                            String payloadTypeName) {
+        this(serviceTypeName, functionName, eventIdentifier, headerValue, payloadTypeName, eventIdentifier);
+    }
 }
