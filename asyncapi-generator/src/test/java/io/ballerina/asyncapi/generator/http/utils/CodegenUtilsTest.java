@@ -21,6 +21,8 @@ import io.ballerina.asyncapi.generator.GeneratorException;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
+import java.util.List;
+
 /**
  * Unit tests for {@link CodegenUtils} covering identifier escaping, name sanitisation,
  * reference type extraction, function name derivation, and service type name resolution.
@@ -171,5 +173,61 @@ public class CodegenUtilsTest {
     @Test
     void testToSnakeCase_empty() {
         Assert.assertEquals(CodegenUtils.toSnakeCase(""), "");
+    }
+
+    @Test
+    void testWrapDocText_shortTextStaysOnOneLine() {
+        Assert.assertEquals(CodegenUtils.wrapDocText("The customer's city, town, or village."),
+                List.of("The customer's city, town, or village."));
+    }
+
+    @Test
+    void testWrapDocText_nullAndBlankYieldNoLines() {
+        Assert.assertEquals(CodegenUtils.wrapDocText(null), List.of());
+        Assert.assertEquals(CodegenUtils.wrapDocText("   "), List.of());
+    }
+
+    @Test
+    void testWrapDocText_longTextWrapsWithinBudget() {
+        String docText = "The value of the discrepancy between the calculated refund and the actual refund. "
+                + "If the kind property's value is shipping_refund, then amount returns the value of shipping "
+                + "charges refunded to the customer.";
+        List<String> lines = CodegenUtils.wrapDocText(docText);
+        Assert.assertTrue(lines.size() > 1, "A description well over the budget should wrap onto several lines");
+        for (String line : lines) {
+            Assert.assertTrue(line.length() <= 114,
+                    "Wrapped line exceeds the doc-text budget: " + line.length() + " chars - " + line);
+        }
+        Assert.assertEquals(String.join(" ", lines), docText, "Wrapping must preserve the original wording");
+    }
+
+    @Test
+    void testWrapDocText_explicitNewlinesArePreserved() {
+        Assert.assertEquals(CodegenUtils.wrapDocText("First line.\nSecond line."),
+                List.of("First line.", "Second line."));
+    }
+
+    @Test
+    void testWrapDocText_wordLongerThanBudgetIsNotSplit() {
+        String longWord = "a".repeat(150);
+        Assert.assertEquals(CodegenUtils.wrapDocText("See " + longWord + " for details."),
+                List.of("See", longWord, "for details."));
+    }
+
+    @Test
+    void testWrapDocText_nestedListIndentationIsPreserved() {
+        Assert.assertEquals(CodegenUtils.wrapDocText("- first\n  - nested"),
+                List.of("- first", "  - nested"));
+    }
+
+    @Test
+    void testWrapDocText_indentedLineWrapsWithIndentRepeatedOnContinuations() {
+        String indented = "  " + "word ".repeat(30).trim();
+        List<String> lines = CodegenUtils.wrapDocText(indented);
+        Assert.assertTrue(lines.size() > 1, "An over-long indented line should wrap onto several lines");
+        for (String line : lines) {
+            Assert.assertTrue(line.startsWith("  "), "Every continuation should repeat the original indent: " + line);
+            Assert.assertTrue(line.length() <= 114, "Wrapped line exceeds the doc-text budget: " + line);
+        }
     }
 }
