@@ -1,0 +1,52 @@
+asyncapi: 3.0.0
+defaultContentType: application/x-www-form-urlencoded
+x-ballerina-event-identifier:
+  type: body
+  path: MessageStatus
+x-ballerina-auth:
+  header: X-Twilio-Signature
+  signature:
+    algorithm: sha1
+    encoding: base64
+    headerFormat: "$signature"
+    input: "$config('webhookUrl') . $formParams"
+info:
+  title: Form Bodies Test
+  version: 1.0.0
+channels:
+  smsStatus:
+    address: smsStatus
+    messages:
+      smsDelivered:
+        x-ballerina-event-type: delivered
+        payload:
+          $ref: "#/components/schemas/SmsStatusEvent"
+      smsFailed:
+        contentType: application/json
+        x-ballerina-event-type: failed
+        payload:
+          $ref: "#/components/schemas/SmsStatusEvent"
+operations:
+  smsStatus:
+    action: receive
+    channel:
+      $ref: "#/channels/smsStatus"
+    messages:
+      - $ref: "#/channels/smsStatus/messages/smsDelivered"
+      - $ref: "#/channels/smsStatus/messages/smsFailed"
+components:
+  schemas:
+    SmsStatusEvent:
+      type: object
+      required:
+        - MessageSid
+        - MessageStatus
+      properties:
+        MessageSid:
+          type: string
+        MessageStatus:
+          type: string
+        To:
+          type: string
+        NumMedia:
+          type: integer
