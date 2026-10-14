@@ -206,6 +206,56 @@ public class WebhookDSLVerificationTest {
     }
 
     @Test
+    public void testPostHandshakeEchoesTheChallengeBeforeDispatching() throws Exception {
+        // Slack's url_verification: answered by the listener, after the signature check, before any dispatch.
+        Path outputDir = generateOutputDir("handshake_post.yaml");
+
+        String dispatcher = Files.readString(outputDir.resolve("dispatcher_service.bal"));
+        int verify = dispatcher.indexOf("verifyWebhookSignature(request");
+        int handshake = dispatcher.indexOf("handshakeMarker == \"url_verification\"");
+        int eventType = dispatcher.indexOf("string eventType =");
+        Assert.assertTrue(verify >= 0 && handshake > verify && eventType > handshake,
+                "The handshake is answered after the signature check and before the event type is read: "
+                        + dispatcher);
+        Assert.assertTrue(dispatcher.contains("json|error handshakeMarker = payload.'type;"),
+                "A keyword path segment must be escaped: " + dispatcher);
+        Assert.assertTrue(dispatcher.contains("handshakeResponse.setTextPayload(challenge.toString());"),
+                "The challenge is echoed as plain text: " + dispatcher);
+        Assert.assertFalse(dispatcher.contains("resource function get"),
+                "A POST handshake needs no GET resource: " + dispatcher);
+
+        String serviceTypes = Files.readString(outputDir.resolve("service_types.bal"));
+        Assert.assertFalse(serviceTypes.toLowerCase(java.util.Locale.ROOT).contains("verification"),
+                "The handshake must not become a remote function: " + serviceTypes);
+
+        String dispatchTest = Files.readString(outputDir.resolve("tests").resolve("dispatch_test.bal"));
+        Assert.assertTrue(dispatchTest.contains("function testVerificationHandshake()"), dispatchTest);
+        Assert.assertTrue(dispatchTest.contains("isolated function sendSignedTriggerBody(byte[] body)"),
+                "The handshake test signs its own body: " + dispatchTest);
+        Assert.assertTrue(dispatchTest.contains("\"type\": \"url_verification\""), dispatchTest);
+    }
+
+    @Test
+    public void testGetHandshakeAddsAResourceThatEchoesTheQueryChallenge() throws Exception {
+        // WebSub hubs verify a subscription with GET ?hub.challenge=...; there is no body to sign.
+        Path outputDir = generateOutputDir("handshake_get.yaml");
+
+        String dispatcher = Files.readString(outputDir.resolve("dispatcher_service.bal"));
+        Assert.assertTrue(dispatcher.contains("resource function get .(http:Caller caller, http:Request request)"),
+                dispatcher);
+        Assert.assertTrue(dispatcher.contains("string? challenge = request.getQueryParamValue(\"hub.challenge\");"),
+                dispatcher);
+        Assert.assertFalse(dispatcher.contains("handshakeMarker"),
+                "A GET handshake adds nothing to the POST resource: " + dispatcher);
+
+        String dispatchTest = Files.readString(outputDir.resolve("tests").resolve("dispatch_test.bal"));
+        Assert.assertTrue(dispatchTest.contains("triggerClient->get(\"/?hub.challenge=trigger-test-challenge\")"),
+                dispatchTest);
+        Assert.assertFalse(dispatchTest.contains("sendSignedTriggerBody"),
+                "Without a POST handshake the send helper stays as it was: " + dispatchTest);
+    }
+
+    @Test
     public void testFreshnessDefaultsToMillisecondsWithoutAUnit() throws Exception {
         Path tempOutputDir = generateFromFixture("hubspot_v3_verification.yaml", "X-HubSpot-Event",
                 "hubspot_event");

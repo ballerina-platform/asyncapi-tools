@@ -20,6 +20,7 @@ package io.ballerina.asyncapi.generator.http.node;
 import io.ballerina.asyncapi.generator.GeneratorException;
 import io.ballerina.asyncapi.generator.http.extractor.EventIdentifierExtractor;
 import io.ballerina.asyncapi.generator.http.model.EventIdentifierConfig;
+import io.ballerina.asyncapi.generator.http.model.HandshakeConfig;
 import io.ballerina.asyncapi.generator.http.model.WebhookAuthConfig;
 import io.ballerina.compiler.syntax.tree.FunctionBodyBlockNode;
 import io.ballerina.compiler.syntax.tree.FunctionDefinitionNode;
@@ -92,7 +93,58 @@ public class GeneratePostResourceFunctionNode implements Generator {
 
     @Override
     public FunctionDefinitionNode generate() throws GeneratorException {
-        FunctionSignatureNode signature = createFunctionSignatureNode(
+        FunctionSignatureNode signature = buildCallerRequestSignature();
+
+        String type = identifierConfig.type();
+
+        List<StatementNode> statements = new ArrayList<>();
+        if (webhookAuthConfig.isPresent()) {
+            statements.add(NodeParser.parseStatement(String.format(
+                    "error? verifyResult = self.%s(request, self.%s);",
+                    GenerateVerifyWebhookSignatureFuncNode.VERIFY_WEBHOOK_SIGNATURE_FUNC,
+                    GenerateDispatcherServiceNode.WEBHOOK_SECRET_FIELD)));
+            statements.add(NodeParser.parseStatement(
+                    "if verifyResult is error {"
+                            + " http:Response r = new; r.statusCode = http:STATUS_UNAUTHORIZED;"
+                            + " check caller->respond(r); return; }"));
+        }
+        statements.add(NodeParser.parseStatement("json payload = check request.getJsonPayload();"));
+        HandshakeConfig handshake = identifierConfig.handshake();
+        if (handshake != null && !handshake.isGet()) {
+            statements.addAll(buildHandshakeStatements(handshake));
+        }
+        if (batched) {
+            statements.addAll(buildBatchedDispatchStatements(type));
+        } else {
+            statements.addAll(buildSingleEventDispatchStatements(type));
+        }
+
+        return buildResourceFunction("post", statements);
+    }
+
+    /**
+     * Builds a {@code resource function <accessor> .} with the given body on the dispatcher service.
+     *
+     * @param accessor   the HTTP method accessor, e.g. {@code post}
+     * @param statements the function body
+     * @return the resource function definition
+     */
+    static FunctionDefinitionNode buildResourceFunction(String accessor, List<StatementNode> statements) {
+        FunctionBodyBlockNode body = createFunctionBodyBlockNode(
+                createToken(OPEN_BRACE_TOKEN), null, createNodeList(statements),
+                createToken(CLOSE_BRACE_TOKEN), null);
+        return createFunctionDefinitionNode(
+                RESOURCE_ACCESSOR_DEFINITION, null,
+                createNodeList(createToken(RESOURCE_KEYWORD)),
+                createToken(FUNCTION_KEYWORD),
+                createIdentifierToken(accessor),
+                createNodeList(createToken(DOT_TOKEN)),
+                buildCallerRequestSignature(), body);
+    }
+
+    // (http:Caller caller, http:Request request) returns error?
+    private static FunctionSignatureNode buildCallerRequestSignature() {
+        return createFunctionSignatureNode(
                 createToken(OPEN_PAREN_TOKEN),
                 createSeparatedNodeList(
                         createRequiredParameterNode(
@@ -112,38 +164,6 @@ public class GeneratePostResourceFunctionNode implements Generator {
                                 createIdentifierToken("request"))),
                 createToken(CLOSE_PAREN_TOKEN),
                 buildErrorReturnType());
-
-        String type = identifierConfig.type();
-
-        List<StatementNode> statements = new ArrayList<>();
-        if (webhookAuthConfig.isPresent()) {
-            statements.add(NodeParser.parseStatement(String.format(
-                    "error? verifyResult = self.%s(request, self.%s);",
-                    GenerateVerifyWebhookSignatureFuncNode.VERIFY_WEBHOOK_SIGNATURE_FUNC,
-                    GenerateDispatcherServiceNode.WEBHOOK_SECRET_FIELD)));
-            statements.add(NodeParser.parseStatement(
-                    "if verifyResult is error {"
-                            + " http:Response r = new; r.statusCode = http:STATUS_UNAUTHORIZED;"
-                            + " check caller->respond(r); return; }"));
-        }
-        statements.add(NodeParser.parseStatement("json payload = check request.getJsonPayload();"));
-        if (batched) {
-            statements.addAll(buildBatchedDispatchStatements(type));
-        } else {
-            statements.addAll(buildSingleEventDispatchStatements(type));
-        }
-
-        FunctionBodyBlockNode body = createFunctionBodyBlockNode(
-                createToken(OPEN_BRACE_TOKEN), null, createNodeList(statements),
-                createToken(CLOSE_BRACE_TOKEN), null);
-
-        return createFunctionDefinitionNode(
-                RESOURCE_ACCESSOR_DEFINITION, null,
-                createNodeList(createToken(RESOURCE_KEYWORD)),
-                createToken(FUNCTION_KEYWORD),
-                createIdentifierToken("post"),
-                createNodeList(createToken(DOT_TOKEN)),
-                signature, body);
     }
 
     /**
@@ -189,6 +209,36 @@ public class GeneratePostResourceFunctionNode implements Generator {
         boolean composite = EventIdentifierExtractor.X_BALLERINA_EVENT_TYPE_COMPOSITE.equals(type);
         statements.add(NodeParser.parseStatement(unhandledAwareLog(composite ? "eventIdentifier" : "eventType")));
         return statements;
+    }
+
+    /**
+     * Builds the statements that answer a {@code POST} verification handshake: when the body marks the request as
+     * the handshake, echo the challenge as plain text and return before anything is dispatched. A missing
+     * challenge is a malformed handshake and gets {@code 400 Bad Request}.
+     *
+     * @param handshake the {@code POST} handshake from the event identifier
+     * @return the statements to run right after the body is parsed
+     */
+    private List<StatementNode> buildHandshakeStatements(HandshakeConfig handshake) {
+        List<StatementNode> statements = new ArrayList<>();
+        statements.add(NodeParser.parseStatement(String.format("json|error handshakeMarker = payload.%s;",
+                EventIdentifierExtractor.escapeBodyPath(handshake.whenPath()))));
+        statements.add(NodeParser.parseStatement(String.format(
+                "if handshakeMarker is json && handshakeMarker == %s {"
+                        + " json|error challenge = payload.%s;"
+                        + " http:Response handshakeResponse = new;"
+                        + " if challenge is json && challenge != () {"
+                        + " handshakeResponse.setTextPayload(challenge.toString()); }"
+                        + " else { handshakeResponse.statusCode = http:STATUS_BAD_REQUEST; }"
+                        + " check caller->respond(handshakeResponse); return; }",
+                balStringLiteral(handshake.whenEquals()),
+                EventIdentifierExtractor.escapeBodyPath(handshake.challengeKey()))));
+        return statements;
+    }
+
+    // A Ballerina string literal for an arbitrary value from the definition.
+    static String balStringLiteral(String value) {
+        return "\"" + value.replace("\\", "\\\\").replace("\"", "\\\"") + "\"";
     }
 
     // An identifier no attached service handles is not an error to the provider, but must not vanish silently.

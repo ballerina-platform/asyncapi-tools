@@ -22,6 +22,7 @@ import io.ballerina.asyncapi.core.AsyncApiParserException;
 import io.ballerina.asyncapi.core.api.AsyncApiSpec;
 import io.ballerina.asyncapi.generator.GeneratorException;
 import io.ballerina.asyncapi.generator.http.model.EventIdentifierConfig;
+import io.ballerina.asyncapi.generator.http.model.HandshakeConfig;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -152,6 +153,74 @@ public class EventIdentifierExtractorTest {
             Assert.assertTrue(e.getMessage().contains("name"),
                     "Exception should mention the missing 'name' attribute");
         }
+    }
+
+    private static EventIdentifierConfig extractWithHandshake(String handshake)
+            throws AsyncApiParserException, GeneratorException {
+        String json = ASYNCAPI_PREFIX + ",\"x-ballerina-event-identifier\":{\"type\":\"body\",\"path\":\"event.type\","
+                + "\"handshake\":" + handshake + "}}";
+        return new EventIdentifierExtractor(AsyncApiParser.parseFromJsonString(json)).extract();
+    }
+
+    private static void assertHandshakeRejected(String handshake, String expectedMessagePart)
+            throws AsyncApiParserException {
+        try {
+            extractWithHandshake(handshake);
+            Assert.fail("Expected the handshake to be rejected: " + handshake);
+        } catch (GeneratorException e) {
+            Assert.assertTrue(e.getMessage().contains(expectedMessagePart),
+                    "Expected '" + expectedMessagePart + "' in: " + e.getMessage());
+        }
+    }
+
+    @Test
+    void testNoHandshakeByDefault() throws AsyncApiParserException, GeneratorException {
+        String json = ASYNCAPI_PREFIX + ",\"x-ballerina-event-identifier\":{\"type\":\"body\",\"path\":\"type\"}}";
+        Assert.assertNull(new EventIdentifierExtractor(AsyncApiParser.parseFromJsonString(json)).extract()
+                .handshake());
+    }
+
+    @Test
+    void testExtractPostHandshake() throws AsyncApiParserException, GeneratorException {
+        HandshakeConfig handshake = extractWithHandshake("{\"method\":\"post\","
+                + "\"when\":{\"path\":\"type\",\"equals\":\"url_verification\"},"
+                + "\"challenge\":{\"in\":\"body\",\"path\":\"challenge\"}}").handshake();
+        Assert.assertEquals(handshake.method(), "POST", "The method is case-insensitive and normalised");
+        Assert.assertFalse(handshake.isGet());
+        Assert.assertEquals(handshake.whenPath(), "type", "Paths are kept unescaped; code generation escapes them");
+        Assert.assertEquals(handshake.whenEquals(), "url_verification");
+        Assert.assertEquals(handshake.challengeKey(), "challenge");
+    }
+
+    @Test
+    void testExtractGetHandshake() throws AsyncApiParserException, GeneratorException {
+        HandshakeConfig handshake = extractWithHandshake(
+                "{\"method\":\"GET\",\"challenge\":{\"in\":\"query\",\"name\":\"hub.challenge\"}}").handshake();
+        Assert.assertTrue(handshake.isGet());
+        Assert.assertEquals(handshake.challengeKey(), "hub.challenge");
+        Assert.assertNull(handshake.whenPath());
+    }
+
+    @Test
+    void testInvalidHandshakesAreRejected() throws AsyncApiParserException {
+        assertHandshakeRejected("\"yes\"", "must be an object");
+        assertHandshakeRejected("{\"challenge\":{\"in\":\"query\",\"name\":\"c\"}}", "handshake.method is required");
+        assertHandshakeRejected("{\"method\":\"PUT\",\"challenge\":{\"in\":\"query\",\"name\":\"c\"}}",
+                "must be GET or POST");
+        assertHandshakeRejected("{\"method\":\"GET\"}", "handshake.challenge is required");
+        assertHandshakeRejected("{\"method\":\"GET\",\"challenge\":{\"in\":\"body\",\"path\":\"c\"}}",
+                "must be 'query' for a GET handshake");
+        assertHandshakeRejected("{\"method\":\"GET\",\"challenge\":{\"in\":\"query\"}}", "challenge.name is required");
+        assertHandshakeRejected("{\"method\":\"GET\",\"when\":{\"path\":\"a\",\"equals\":\"b\"},"
+                + "\"challenge\":{\"in\":\"query\",\"name\":\"c\"}}", "only used with a POST handshake");
+        assertHandshakeRejected("{\"method\":\"POST\",\"challenge\":{\"in\":\"query\",\"name\":\"c\"}}",
+                "must be 'body' for a POST handshake");
+        assertHandshakeRejected("{\"method\":\"POST\",\"challenge\":{\"in\":\"body\",\"path\":\"c\"}}",
+                "needs x-ballerina-event-identifier.handshake.when");
+        assertHandshakeRejected("{\"method\":\"POST\",\"when\":{\"path\":\"type\"},"
+                + "\"challenge\":{\"in\":\"body\",\"path\":\"c\"}}", "when.equals is required");
+        assertHandshakeRejected("{\"method\":\"POST\",\"when\":{\"path\":\"type\",\"equals\":\"v\"},"
+                + "\"challenge\":{\"in\":\"body\"}}", "challenge.path is required");
     }
 
     @Test
