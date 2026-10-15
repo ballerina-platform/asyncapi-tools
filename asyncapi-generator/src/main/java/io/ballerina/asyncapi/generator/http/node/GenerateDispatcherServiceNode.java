@@ -67,6 +67,7 @@ import static io.ballerina.compiler.syntax.tree.SyntaxKind.COMMA_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.EQUAL_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.FUNCTION_KEYWORD;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.GT_TOKEN;
+import static io.ballerina.compiler.syntax.tree.SyntaxKind.ISOLATED_KEYWORD;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.LT_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.MAP_KEYWORD;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.NEW_KEYWORD;
@@ -275,9 +276,10 @@ public class GenerateDispatcherServiceNode implements Generator {
                 createNodeList(assignStatements),
                 createToken(CLOSE_BRACE_TOKEN), null);
 
+        // isolated so the listener's isolated attach() can create a dispatcher per path
         return createFunctionDefinitionNode(
                 OBJECT_METHOD_DEFINITION, null,
-                createEmptyNodeList(),
+                createNodeList(createToken(ISOLATED_KEYWORD)),
                 createToken(FUNCTION_KEYWORD),
                 createIdentifierToken("init"),
                 createEmptyNodeList(),

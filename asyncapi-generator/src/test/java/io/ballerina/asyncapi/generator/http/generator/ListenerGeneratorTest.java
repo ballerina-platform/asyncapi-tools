@@ -69,6 +69,25 @@ public class ListenerGeneratorTest {
     }
 
     @Test
+    void testAttachMountsOneDispatcherPerPath() throws GeneratorException {
+        List<HttpServiceType> serviceTypes = List.of(
+                new HttpServiceType("RepositoryService", List.of(new HttpRemoteFunction("push", "PushEvent"))));
+        String source = new ListenerGenerator(serviceTypes, Optional.<WebhookAuthConfig>empty(),
+                Optional.<ConnectionAuthConfig>empty(), "Test Connector").generate();
+
+        // #8818: services choose their path, and each path gets its own dispatcher.
+        Assert.assertTrue(source.contains("attach(GenericServiceType serviceRef, string[]|string? attachPoint)"),
+                "attach should accept a path: " + source);
+        Assert.assertTrue(source.contains("map<DispatcherService> dispatchers = {}"), source);
+        Assert.assertTrue(source.contains("check self.httpListener.attach(dispatcher, path == \"\" ? () : path);"),
+                "a new path should mount a new dispatcher: " + source);
+        Assert.assertTrue(source.contains("check self.httpListener.detach(dispatcher);"),
+                "detaching the last service on a path should unmount its dispatcher: " + source);
+        Assert.assertFalse(source.contains("attach(self.dispatcherService, ())"),
+                "init should no longer mount a dispatcher at the root: " + source);
+    }
+
+    @Test
     void testGenerateWithConnectionAuthMakesListenerConfigRequired() throws GeneratorException {
         // Regression check for the listener.bal compile bug (#9028): once connection auth
         // contributes required fields (e.g. username/password) with no safe default, the
