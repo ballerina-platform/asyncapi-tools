@@ -97,6 +97,18 @@ public final class CodeGenOrchestrator {
         handler.codeToSpec(inputPath, outputPath, options);
     }
 
+    /**
+     * Returns the registered handler for a protocol so callers can query its capabilities.
+     *
+     * @param protocol the protocol to look up
+     * @return the registered handler
+     * @throws GeneratorException if no handler is registered for the protocol
+     */
+    public static ProtocolHandler getHandler(Protocol protocol)
+            throws GeneratorException {
+        return resolve(protocol);
+    }
+
     private static ProtocolHandler resolve(Protocol protocol)
             throws GeneratorException {
         ProtocolHandler handler = HANDLERS.get(protocol);

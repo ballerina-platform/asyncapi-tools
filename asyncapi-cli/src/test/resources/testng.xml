@@ -28,6 +28,7 @@
             <class name="io.ballerina.asyncapi.cmd.WsCmdUnitTest"/>
             <class name="io.ballerina.asyncapi.cmd.AsyncApiCmdToolDiagnosticTest"/>
             <class name="io.ballerina.asyncapi.cmd.AsyncApiProjectUtilsTest"/>
+            <class name="io.ballerina.asyncapi.cmd.OutputStageTest"/>
         </classes>
     </test>
 </suite>

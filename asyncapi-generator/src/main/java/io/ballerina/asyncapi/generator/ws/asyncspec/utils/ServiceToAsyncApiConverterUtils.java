@@ -97,9 +97,29 @@ public final class ServiceToAsyncApiConverterUtils {
                                                                        String serviceName,
                                                                        Boolean needJson,
                                                                        Path inputPath) {
-        List<ListenerDeclarationNode> endpoints = new ArrayList<>();
+        return generateAsyncAPISpecDefinition(syntaxTree, semanticModel, serviceName, needJson, inputPath,
+                List.of(), null);
+    }
+
+    /**
+     * Same as the five-argument form, for one file of a multi-file module.
+     *
+     * @param otherListeners    listeners declared in the other files of the module
+     * @param availableServices when non-null, receives the services found while filtering by name, and a
+     *                          service that matches nothing is not reported here: the caller reports it
+     *                          once, across all files
+     * @see #generateAsyncAPISpecDefinition(SyntaxTree, SemanticModel, String, Boolean, Path)
+     */
+    public static List<AsyncApiResult> generateAsyncAPISpecDefinition(SyntaxTree syntaxTree,
+                                                                       SemanticModel semanticModel,
+                                                                       String serviceName,
+                                                                       Boolean needJson,
+                                                                       Path inputPath,
+                                                                       List<ListenerDeclarationNode> otherListeners,
+                                                                       List<String> availableServices) {
+        List<ListenerDeclarationNode> endpoints = new ArrayList<>(otherListeners);
         Map<String, ServiceDeclarationNode> servicesToGenerate = new LinkedHashMap<>();
-        List<String> availableService = new ArrayList<>();
+        List<String> availableService = availableServices != null ? availableServices : new ArrayList<>();
         List<AsyncApiConverterDiagnostic> diagnostics = new ArrayList<>();
         List<AsyncApiResult> outputs = new ArrayList<>();
         List<ClassDefinitionNode> classDefinitionNodes = new ArrayList<>();
@@ -112,7 +132,7 @@ public final class ServiceToAsyncApiConverterUtils {
             ModulePartNode modulePartNode = syntaxTree.rootNode();
             extractListenersAndServiceNodes(serviceName, availableService, servicesToGenerate,
                     classDefinitionNodes, modulePartNode, endpoints, semanticModel);
-            if (serviceName != null && servicesToGenerate.isEmpty()) {
+            if (serviceName != null && servicesToGenerate.isEmpty() && availableServices == null) {
                 DiagnosticMessages messages = DiagnosticMessages.AAS_CONVERTOR_101;
                 ExceptionDiagnostic error = new ExceptionDiagnostic(messages.getCode(),
                         messages.getDescription(), null, serviceName, availableService.toString().trim());
