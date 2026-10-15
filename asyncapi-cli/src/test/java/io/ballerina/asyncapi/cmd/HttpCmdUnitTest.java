@@ -61,14 +61,33 @@ public class HttpCmdUnitTest extends CmdTestBase {
                 "Expected the capability error. Err: " + getErr());
     }
 
-    @Test(description = "--with-tests warns that http does not support it, and generation is still attempted")
-    public void testWithTestsWarnsAndContinues() throws IOException {
-        Path specFile = Files.createTempFile(tmpDir, "spec-", ".yaml");
-        parse(specFile.toString(), "--protocol", "http", "--with-tests").execute();
-        Assert.assertTrue(getErr().contains("warning: --with-tests is not supported for the http protocol"),
-                "Expected the unsupported option warning. Err: " + getErr());
-        Assert.assertTrue(getErr().contains("error:"),
-                "Generation should still be attempted after the warning. Err: " + getErr());
+    @Test(description = "Without --with-tests no test file is written, even when the spec has x-ballerina-auth")
+    public void testNoTestsWithoutFlag() throws Exception {
+        Path pkg = newPackage("notests");
+        generateTiny(pkg, "-o", pkg.toString());
+        Assert.assertTrue(getErr().isEmpty(), "Err: " + getErr());
+        Assert.assertFalse(Files.exists(pkg.resolve("tests/dispatch_test.bal")), "Tests were not requested");
+    }
+
+    @Test(description = "--with-tests writes the dispatch tests for a spec with x-ballerina-auth")
+    public void testWithTestsWritesDispatchTests() throws Exception {
+        Path pkg = newPackage("withtests");
+        generateTiny(pkg, "-o", pkg.toString(), "--with-tests");
+        Assert.assertTrue(getErr().isEmpty(), "Err: " + getErr());
+        Assert.assertTrue(Files.exists(pkg.resolve("tests/dispatch_test.bal")), "dispatch_test.bal should exist");
+        Assert.assertTrue(getOut().contains("-- tests/dispatch_test.bal"), "Out: " + getOut());
+    }
+
+    @Test(description = "--with-tests on a spec without x-ballerina-auth warns that no tests could be written")
+    public void testWithTestsWithoutAuthWarns() throws Exception {
+        Path pkg = newPackage("noauth");
+        String tiny = Files.readString(resource("specs/tiny_http.yaml"));
+        String noAuth = tiny.replaceAll("(?s)x-ballerina-auth:.*?(?=info:)", "");
+        Path spec = Files.writeString(tmpDir.resolve("noauth.yaml"), noAuth);
+        parse(spec.toString(), "--protocol", "http", "-o", pkg.toString(), "--with-tests").execute();
+        Assert.assertTrue(getErr().contains("warning: --with-tests generated no tests"), "Err: " + getErr());
+        Assert.assertTrue(Files.exists(pkg.resolve("listener.bal")), "The code should still be generated");
+        Assert.assertFalse(Files.exists(pkg.resolve("tests/dispatch_test.bal")));
     }
 
     @Test(description = "--license warns that http does not support it, and generation is still attempted")
@@ -110,8 +129,7 @@ public class HttpCmdUnitTest extends CmdTestBase {
         generateTiny(pkg, "-o", pkg.toString());
         Assert.assertTrue(getErr().isEmpty(), "Err: " + getErr());
         Assert.assertTrue(getOut().contains("Following files were written."), "Out: " + getOut());
-        for (String name : new String[]{"types.bal", "listener.bal", "service_types.bal", "dispatcher_service.bal",
-                "tests/dispatch_test.bal"}) {
+        for (String name : new String[]{"types.bal", "listener.bal", "service_types.bal", "dispatcher_service.bal"}) {
             Assert.assertTrue(Files.exists(pkg.resolve(name)), name + " should exist");
             Assert.assertTrue(getOut().contains("-- " + name), name + " should be listed. Out: " + getOut());
         }
@@ -154,7 +172,8 @@ public class HttpCmdUnitTest extends CmdTestBase {
     @Test(description = "--dry-run reports the plan and writes nothing")
     public void testDryRunWritesNothing() throws Exception {
         Path pkg = newPackage("dryrun");
-        generateTiny(pkg, "-o", pkg.toString(), "--dry-run");
+        // --with-tests so the run would also create the tests folder
+        generateTiny(pkg, "-o", pkg.toString(), "--dry-run", "--with-tests");
         Assert.assertTrue(getOut().startsWith("Dry run: no files were written."), "Out: " + getOut());
         Assert.assertTrue(getOut().contains("5 to create, 0 to overwrite, 0 to skip, 0 unchanged."),
                 "Out: " + getOut());
@@ -180,12 +199,12 @@ public class HttpCmdUnitTest extends CmdTestBase {
         generateTiny(pkg, "-o", pkg.toString(), "--dry-run");
         Assert.assertTrue(getOut().contains("skip"), "Out: " + getOut());
         Assert.assertTrue(getOut().contains("(already exists, use --force to overwrite)"), "Out: " + getOut());
-        Assert.assertTrue(getOut().contains("0 to create, 0 to overwrite, 1 to skip, 4 unchanged."),
+        Assert.assertTrue(getOut().contains("0 to create, 0 to overwrite, 1 to skip, 3 unchanged."),
                 "Out: " + getOut());
 
         generateTiny(pkg, "-o", pkg.toString(), "--dry-run", "--force");
         Assert.assertTrue(getOut().contains("overwrite"), "Out: " + getOut());
-        Assert.assertTrue(getOut().contains("0 to create, 1 to overwrite, 0 to skip, 4 unchanged."),
+        Assert.assertTrue(getOut().contains("0 to create, 1 to overwrite, 0 to skip, 3 unchanged."),
                 "Out: " + getOut());
         Assert.assertEquals(Files.readString(pkg.resolve("types.bal")), "// hand edit");
     }

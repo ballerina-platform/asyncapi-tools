@@ -62,6 +62,10 @@ public final class ErrorMessages {
     public static final String WARN_OPTION_UNSUPPORTED =
             "%s is not supported for the %s protocol and will be ignored.";
 
+    public static final String WARN_HTTP_TESTS_NEED_AUTH =
+            "--with-tests generated no tests: they send signed events, so the definition needs an "
+                    + "x-ballerina-auth block.";
+
     public static final String WARN_OPTION_ONLY_FOR_SPEC_OUTPUT =
             "%s only applies when generating an AsyncAPI definition from Ballerina code and will be ignored.";
 

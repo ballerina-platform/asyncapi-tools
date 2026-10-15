@@ -23,12 +23,15 @@ import io.ballerina.asyncapi.generator.Protocol;
 import io.ballerina.asyncapi.generator.spi.SpecToCodeOptions;
 
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 
 /**
  * Generates Ballerina listener/service code from an HTTP AsyncAPI definition.
  */
 final class HttpProtocolCommand implements ProtocolCommand {
+
+    private static final String DISPATCH_TEST = "tests/dispatch_test.bal";
 
     @Override
     public Protocol protocol() {
@@ -55,11 +58,15 @@ final class HttpProtocolCommand implements ProtocolCommand {
 
             SpecToCodeOptions options = new SpecToCodeOptions.Builder()
                     .withLicenseHeader("")
-                    .withIncludeTestFiles(false)
+                    .withIncludeTestFiles(opts.isWithTests())
                     .build();
 
             try (OutputStage stage = OutputStage.open(outputPath, opts, ctx)) {
                 CodeGenOrchestrator.specToCode(Protocol.HTTP, inputPath, stage.stagingDir(), options);
+                // Dispatch tests send signed events, so a spec without x-ballerina-auth gets none.
+                if (opts.isWithTests() && !Files.exists(stage.stagingDir().resolve(DISPATCH_TEST))) {
+                    ctx.printWarning(ErrorMessages.WARN_HTTP_TESTS_NEED_AUTH);
+                }
                 stage.commit(ErrorMessages.SUCCESS_MESSAGE);
             }
         } catch (GeneratorException e) {

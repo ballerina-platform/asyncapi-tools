@@ -33,11 +33,11 @@ bal asyncapi <input> --protocol <http|ws> [options]
 | `--license <file>` | File with the license header placed on generated files. Supported by `ws` only. |
 | `--format <yaml\|json>` | Format of a generated AsyncAPI definition. Defaults to `yaml`. |
 | `--service <base-path>` | Base path of the service to generate the definition for, for example `/chat`. Every service with that base path is generated. |
-| `--with-tests` | Generate test files along with the code. Supported by `ws` only. |
+| `--with-tests` | Generate test files along with the code. For `http`, the definition needs `x-ballerina-auth`. |
 | `--force` | Overwrite files that already exist in the output location. |
 | `--dry-run` | Show which files would be created, overwritten or skipped, without writing anything. |
 
-An option that does not apply to what you are generating is ignored with a warning, for example `--with-tests` with `--protocol http`, or `--format` when generating code. Run `bal asyncapi --help` for the same list.
+An option that does not apply to what you are generating is ignored with a warning, for example `--license` with `--protocol http`, or `--format` when generating code. Run `bal asyncapi --help` for the same list.
 
 ### Existing files
 
@@ -193,7 +193,7 @@ Generating a listener writes these files:
 3. `listener.bal` - the HTTP listener that receives the events
 4. `dispatcher_service.bal` - the logic that dispatches each event to its remote function
 
-When the definition verifies requests with `x-ballerina-auth`, the tool also writes `tests/dispatch_test.bal`, which sends signed sample events to the listener and checks that each reaches its remote function.
+With `--with-tests`, the tool also writes `tests/dispatch_test.bal`, which sends signed sample events to the listener and checks that each reaches its remote function. The events are signed, so this needs `x-ballerina-auth` in the definition; without it the tool warns and writes no tests.
 
 When modifying the generated code, keep the following in mind.
 
