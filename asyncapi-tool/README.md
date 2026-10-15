@@ -231,3 +231,18 @@ service AppService on webhookListener {
 ```
 
 4\. Execute the `bal run` command to execute this.
+
+### Choosing the path
+
+A service without a path receives events at `/`. Give it a path to receive them somewhere else. This also lets several triggers, or your own HTTP services, share one port:
+
+```ballerina
+listener http:Listener httpListener = new (8090);
+listener github:Listener githubListener = new ({webhookSecret: githubSecret}, httpListener);
+listener slack:Listener slackListener = new ({verificationToken: slackToken}, httpListener);
+
+service github:PushService /github on githubListener { ... }   // http://host:8090/github
+service slack:AppService /slack on slackListener { ... }       // http://host:8090/slack
+```
+
+Services on the same path share its dispatcher, so each service type can be attached once per path. Detaching the last service on a path frees that path.
