@@ -15,17 +15,18 @@
  *  specific language governing permissions and limitations
  *  under the License.
  */
-package io.ballerina.asyncapi.trigger.plugin;
+package io.ballerina.asyncapi.trigger.plugin.endpointyaml.generator;
 
 /**
- * An HTTP endpoint a trigger listener serves: services on the same port and path share one.
+ * Endpoint details of a service attached to a trigger listener, as written to {@code endpoints.yaml}.
  *
- * @param port     the port, or {@code 0} when it cannot be read from the source
- * @param basePath the path the services are attached to, starting with {@code /}, or empty for the root
+ * <p>A record, so services that share a listener and path compare equal and are exported once.
+ *
+ * @param name       the endpoint name, the service base path as for HTTP services
+ * @param port       the port
+ * @param basePath   the service base path
+ * @param type       the endpoint type
+ * @param schemaPath the schema file, empty since a trigger has no OpenAPI definition
  */
-record TriggerEndpoint(int port, String basePath) {
-
-    // Same defaults the ballerina/http plugin uses for an HTTP service, minus its OpenAPI file.
-    static final String TYPE = "REST";
-    static final String SCHEMA_PATH = "";
+public record Endpoint(String name, int port, String basePath, String type, String schemaPath) {
 }

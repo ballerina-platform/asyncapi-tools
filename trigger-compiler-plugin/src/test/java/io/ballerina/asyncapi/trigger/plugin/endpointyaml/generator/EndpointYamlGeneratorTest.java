@@ -15,7 +15,7 @@
  *  specific language governing permissions and limitations
  *  under the License.
  */
-package io.ballerina.asyncapi.trigger.plugin;
+package io.ballerina.asyncapi.trigger.plugin.endpointyaml.generator;
 
 import io.ballerina.compiler.syntax.tree.ModulePartNode;
 import io.ballerina.compiler.syntax.tree.ServiceDeclarationNode;
@@ -26,21 +26,20 @@ import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
 /**
- * Tests how a service's attach point becomes the exported base path.
+ * Tests that a trigger service's base path is computed the way the ballerina/http plugin computes it for an
+ * HTTP service; the expected values were taken from bal build --export-endpoints on HTTP services.
  */
-public class TriggerEndpointCollectorTest {
+public class EndpointYamlGeneratorTest {
 
     @DataProvider
     public Object[][] attachPoints() {
         return new Object[][]{
-                // No path is reported as empty, as the ballerina/http plugin does for a root service.
                 {"service github:PushService on l {}", ""},
-                {"service github:PushService \"/\" on l {}", ""},
                 {"service github:PushService /github on l {}", "/github"},
                 {"service github:PushService /org/events on l {}", "/org/events"},
-                {"service github:PushService \"/org/b/\" on l {}", "/org/b"},
-                {"service github:PushService \"github\" on l {}", "/github"},
-                {"service github:PushService /team\\-a on l {}", "/team-a"},
+                {"service github:PushService \"/quoted/path\" on l {}", "/quoted/path"},
+                {"service github:PushService \"/a/b/\" on l {}", "/a/b/"},
+                {"service github:PushService /team\\-a on l {}", "/team\\-a"},
         };
     }
 
@@ -48,6 +47,6 @@ public class TriggerEndpointCollectorTest {
     public void testBasePath(String source, String expected) {
         ModulePartNode root = SyntaxTree.from(TextDocuments.from(source)).rootNode();
         ServiceDeclarationNode service = (ServiceDeclarationNode) root.members().get(0);
-        Assert.assertEquals(TriggerEndpointCollector.basePath(service), expected);
+        Assert.assertEquals(EndpointYamlGenerator.getBasePath(service), expected);
     }
 }

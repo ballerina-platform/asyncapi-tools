@@ -17,40 +17,34 @@
  */
 package io.ballerina.asyncapi.trigger.plugin;
 
-import io.ballerina.compiler.syntax.tree.SyntaxKind;
-import io.ballerina.projects.plugins.CodeAnalysisContext;
-import io.ballerina.projects.plugins.CodeAnalyzer;
-import io.ballerina.projects.plugins.CompilerLifecycleContext;
-import io.ballerina.projects.plugins.CompilerLifecycleListener;
+import io.ballerina.asyncapi.trigger.plugin.endpointyaml.generator.Endpoint;
+import io.ballerina.asyncapi.trigger.plugin.endpointyaml.generator.ServiceArtifactsLifecycleListener;
 import io.ballerina.projects.plugins.CompilerPlugin;
 import io.ballerina.projects.plugins.CompilerPluginContext;
 
+import java.util.ArrayList;
 import java.util.Collections;
-import java.util.LinkedHashSet;
-import java.util.Set;
+import java.util.HashMap;
+import java.util.Map;
+
+import static io.ballerina.asyncapi.trigger.plugin.Constants.TRIGGER_EXPORTED_ENDPOINTS;
 
 /**
- * Compiler plugin shipped with each generated trigger package. On {@code bal build --export-endpoints} it reports
- * the HTTP endpoint of every service attached to that trigger's listener, which the {@code ballerina/http} plugin
- * skips because the listener is not an {@code http:Listener}.
+ * The compiler plugin shipped with each generated trigger package.
+ *
+ * <p>Modelled on the {@code ballerina/http} compiler plugin's endpoint export: on
+ * {@code bal build --export-endpoints} it reports the HTTP endpoint of every service attached to the trigger's
+ * listener, which the {@code ballerina/http} plugin skips because that listener is not an {@code http:Listener}.
  */
 public class TriggerCompilerPlugin extends CompilerPlugin {
 
     @Override
     public void init(CompilerPluginContext context) {
-        Set<TriggerEndpoint> endpoints = Collections.synchronizedSet(new LinkedHashSet<>());
-        context.addCodeAnalyzer(new CodeAnalyzer() {
-            @Override
-            public void init(CodeAnalysisContext analysisContext) {
-                analysisContext.addSyntaxNodeAnalysisTask(new TriggerEndpointCollector(endpoints),
-                        SyntaxKind.SERVICE_DECLARATION);
-            }
-        });
-        context.addCompilerLifecycleListener(new CompilerLifecycleListener() {
-            @Override
-            public void init(CompilerLifecycleContext lifecycleContext) {
-                lifecycleContext.addCodeGenerationCompletedTask(new TriggerEndpointReporter(endpoints));
-            }
-        });
+        // Not context.userData(): every plugin in the build shares that map, and each trigger brings its own copy of
+        // this plugin, from its own class loader, so the copies would overwrite each other's endpoints.
+        Map<String, Object> ctxData = new HashMap<>();
+        ctxData.put(TRIGGER_EXPORTED_ENDPOINTS, Collections.synchronizedList(new ArrayList<Endpoint>()));
+        context.addCodeAnalyzer(new TriggerServiceAnalyzer(ctxData));
+        context.addCompilerLifecycleListener(new ServiceArtifactsLifecycleListener(ctxData));
     }
 }
