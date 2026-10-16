@@ -67,4 +67,12 @@ checkstyle {
     configProperties = ["suppressionFile" : file("${rootDir}/config/checkstyle/build/suppressions.xml")]
 }
 
-checkstyleMain.dependsOn(":checkstyle:downloadCheckstyleRuleFiles")
+// Both read the shared rules in config/checkstyle, as in native.handler/java-wrapper.
+[checkstyleMain, checkstyleTest].each { task ->
+    task.dependsOn(":checkstyle:downloadCheckstyleRuleFiles")
+    task.dependsOn(":checkstyle:compileTestJava")
+    task.dependsOn(":checkstyle:checkstyleMain")
+    task.dependsOn(":checkstyle:checkstyleTest")
+    task.dependsOn(":checkstyle:test")
+    task.dependsOn(":checkstyle:processTestResources")
+}
