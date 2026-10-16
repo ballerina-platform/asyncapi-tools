@@ -231,3 +231,18 @@ service AppService on webhookListener {
 ```
 
 4\. Execute the `bal run` command to execute this.
+
+## Exporting trigger endpoints
+
+`bal build --export-endpoints` lists the ports and paths a program listens on in `target/artifact/endpoints.yaml`. The `ballerina/http` compiler plugin only reports services attached to an `http:Listener`, so a trigger package ships the trigger compiler plugin to report services attached to its own `Listener`, with the same rules and defaults as HTTP services (`type: "REST"`, an empty `schemaPath`).
+
+A trigger package adds it the way `ballerina/http` adds its compiler plugin dependencies: the plugin jar (`io.ballerina:trigger-compiler-plugin`, published with each tool release) is downloaded at a pinned version, and a `CompilerPlugin.toml` next to `Ballerina.toml` points at it.
+
+```toml
+[plugin]
+id = "asyncapi-trigger-compiler-plugin"
+class = "io.ballerina.asyncapi.trigger.plugin.TriggerCompilerPlugin"
+
+[[dependency]]
+path = "<path to trigger-compiler-plugin-<version>.jar>"
+```
