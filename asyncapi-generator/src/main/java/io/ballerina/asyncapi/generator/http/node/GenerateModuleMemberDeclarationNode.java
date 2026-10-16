@@ -311,13 +311,33 @@ public class GenerateModuleMemberDeclarationNode implements Generator {
             Token questionMark = isOptional ? createToken(QUESTION_MARK_TOKEN) : null;
             Token semicolon = createToken(SEMICOLON_TOKEN);
             MetadataNode fieldMetadata = createMetadataNode(
-                    createMarkdownDocumentationNode(createNodeList(buildDocLines(field.getValue()))), annotations);
+                    createMarkdownDocumentationNode(createNodeList(buildDocLines(resolveDocSource(field.getValue())))),
+                    annotations);
             RecordFieldNode recordField = createRecordFieldNode(fieldMetadata,
                     null, // no readonly keyword
                     fieldType, fieldNameToken, questionMark, semicolon);
             fields.add(recordField);
         }
         return fields;
+    }
+
+    /**
+     * Returns the schema a field's doc comment comes from: the field itself if it has a {@code title} or
+     * {@code description}, otherwise the component it references through a bare {@code $ref}, so a field such as
+     * {@code sender: {$ref: '#/components/schemas/User'}} is documented with {@code User}'s description.
+     *
+     * @param schema the field schema as written
+     * @return the schema carrying the field's documentation, {@code schema} itself when neither has any
+     */
+    private AsyncApiSchema resolveDocSource(AsyncApiSchema schema) {
+        if (schema.title() != null || schema.description() != null || schema.name() == null) {
+            return schema;
+        }
+        AsyncApiSchema referenced = allSchemas.get(schema.name());
+        if (referenced != null && (referenced.title() != null || referenced.description() != null)) {
+            return referenced;
+        }
+        return schema;
     }
 
     /**
