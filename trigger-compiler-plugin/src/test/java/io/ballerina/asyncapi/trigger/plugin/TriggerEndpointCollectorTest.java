@@ -33,7 +33,9 @@ public class TriggerEndpointCollectorTest {
     @DataProvider
     public Object[][] attachPoints() {
         return new Object[][]{
-                {"service github:PushService on l {}", "/"},
+                // No path is reported as empty, as the ballerina/http plugin does for a root service.
+                {"service github:PushService on l {}", ""},
+                {"service github:PushService \"/\" on l {}", ""},
                 {"service github:PushService /github on l {}", "/github"},
                 {"service github:PushService /org/events on l {}", "/org/events"},
                 {"service github:PushService \"/org/b/\" on l {}", "/org/b"},

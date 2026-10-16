@@ -167,7 +167,7 @@ class TriggerEndpointCollector implements AnalysisTask<SyntaxNodeAnalysisContext
     }
 
     /**
-     * The path the service is attached to, as {@code /} when it has none.
+     * The path the service is attached to, or empty when it has none, as the {@code ballerina/http} plugin reports it.
      */
     static String basePath(ServiceDeclarationNode service) {
         StringBuilder path = new StringBuilder();
@@ -181,6 +181,9 @@ class TriggerEndpointCollector implements AnalysisTask<SyntaxNodeAnalysisContext
         String normalized = path.toString().replaceAll("/+", "/");
         if (normalized.endsWith("/")) {
             normalized = normalized.substring(0, normalized.length() - 1);
+        }
+        if (normalized.isEmpty()) {
+            return "";
         }
         return normalized.startsWith("/") ? normalized : "/" + normalized;
     }

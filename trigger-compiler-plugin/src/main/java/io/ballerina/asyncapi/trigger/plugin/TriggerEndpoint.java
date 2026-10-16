@@ -21,7 +21,7 @@ package io.ballerina.asyncapi.trigger.plugin;
  * An HTTP endpoint a trigger listener serves: services on the same port and path share one.
  *
  * @param port     the port, or {@code 0} when it cannot be read from the source
- * @param basePath the path the services are attached to, starting with {@code /}
+ * @param basePath the path the services are attached to, starting with {@code /}, or empty for the root
  */
 record TriggerEndpoint(int port, String basePath) {
 
