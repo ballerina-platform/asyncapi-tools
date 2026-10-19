@@ -23,6 +23,7 @@ import io.ballerina.asyncapi.core.api.AsyncApiSpec;
 import io.ballerina.asyncapi.generator.GeneratorException;
 import io.ballerina.asyncapi.generator.http.model.EventIdentifierConfig;
 import io.ballerina.asyncapi.generator.http.model.HandshakeConfig;
+import io.ballerina.compiler.syntax.tree.NodeParser;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -221,6 +222,18 @@ public class EventIdentifierExtractorTest {
                 + "\"challenge\":{\"in\":\"body\",\"path\":\"c\"}}", "when.equals is required");
         assertHandshakeRejected("{\"method\":\"POST\",\"when\":{\"path\":\"type\",\"equals\":\"v\"},"
                 + "\"challenge\":{\"in\":\"body\"}}", "challenge.path is required");
+    }
+
+    @Test
+    void testBodyPathSegmentsAreEscapedIntoValidFieldAccess() {
+        Assert.assertEquals(EventIdentifierExtractor.escapeBodyPath("event.type"), "event.'type");
+        Assert.assertEquals(EventIdentifierExtractor.escapeBodyPath("event-type"), "event\\-type");
+        Assert.assertEquals(EventIdentifierExtractor.escapeBodyPath("data.1st"), "data.'1st");
+        for (String path : new String[]{"event.type", "event-type", "data.1st", "hub.mode$x", "plain"}) {
+            String access = "payload." + EventIdentifierExtractor.escapeBodyPath(path);
+            Assert.assertFalse(NodeParser.parseExpression(access).hasDiagnostics(),
+                    "Not a valid field access: " + access);
+        }
     }
 
     @Test
