@@ -93,5 +93,8 @@ public class FormBodiesTest {
         Assert.assertTrue(FormBodies.usesFormParams("$uri . $formParams"));
         Assert.assertTrue(FormBodies.usesFormParams("${formParams}"));
         Assert.assertFalse(FormBodies.usesFormParams("$body"));
+        Assert.assertFalse(FormBodies.usesFormParams("$uri . $formParamsDigest"),
+                "Only the whole token counts, not a longer name that starts with it");
+        Assert.assertTrue(FormBodies.usesFormParams("$formParams.$uri"));
     }
 }

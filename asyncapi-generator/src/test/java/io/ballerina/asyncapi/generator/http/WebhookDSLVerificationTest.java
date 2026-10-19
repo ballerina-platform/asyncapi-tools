@@ -211,6 +211,12 @@ public class WebhookDSLVerificationTest {
     }
 
     @Test
+    public void testFormFieldTypedInOneMessageAndStringInAnotherIsRejected() throws Exception {
+        assertGeneratorException("form_field_type_conflict.yaml",
+                "a form field must have one type");
+    }
+
+    @Test
     public void testFormParamsWithoutFormBodiesIsRejected() throws Exception {
         assertGeneratorException("form_params_without_form.yaml",
                 "uses $formParams, but the messages are not form-encoded");

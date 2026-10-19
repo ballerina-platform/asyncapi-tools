@@ -20,6 +20,7 @@ package io.ballerina.asyncapi.generator.http.utils;
 import io.ballerina.asyncapi.core.model.component.AsyncApiSchema;
 
 import java.util.Locale;
+import java.util.regex.Pattern;
 
 /**
  * Form-encoded webhook bodies ({@code application/x-www-form-urlencoded}), as Twilio sends them: every parameter
@@ -29,6 +30,9 @@ public final class FormBodies {
 
     public static final String FORM_CONTENT_TYPE = "application/x-www-form-urlencoded";
     public static final String SORTED_FORM_PARAMS_FUNC = "sortedFormParams";
+    public static final String STRING_TYPE = "string";
+    // The whole token only, so a name such as $formParamsDigest does not count.
+    private static final Pattern FORM_PARAMS_TOKEN = Pattern.compile("\\$formParams(?![A-Za-z0-9_])|\\{formParams}");
 
     private FormBodies() {
     }
@@ -51,7 +55,7 @@ public final class FormBodies {
      * @return {@code true} if it refers to the sorted form parameters
      */
     public static boolean usesFormParams(String input) {
-        return input != null && (input.contains("$formParams") || input.contains("{formParams}"));
+        return input != null && FORM_PARAMS_TOKEN.matcher(input).find();
     }
 
     /**
