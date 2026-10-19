@@ -324,7 +324,8 @@ public class GenerateModuleMemberDeclarationNode implements Generator {
     /**
      * Returns the schema a field's doc comment comes from: the field itself if it has a {@code title} or
      * {@code description}, otherwise the component it references through a bare {@code $ref}, so a field such as
-     * {@code sender: {$ref: '#/components/schemas/User'}} is documented with {@code User}'s description.
+     * {@code sender: {$ref: '#/components/schemas/User'}} is documented with {@code User}'s description. Only the
+     * description is borrowed, since a component's title usually just names the type.
      *
      * @param schema the field schema as written
      * @return the schema carrying the field's documentation, {@code schema} itself when neither has any
@@ -334,8 +335,8 @@ public class GenerateModuleMemberDeclarationNode implements Generator {
             return schema;
         }
         AsyncApiSchema referenced = allSchemas.get(schema.name());
-        if (referenced != null && (referenced.title() != null || referenced.description() != null)) {
-            return referenced;
+        if (referenced != null && referenced.description() != null) {
+            return schema.withDescription(referenced.description());
         }
         return schema;
     }
