@@ -112,29 +112,58 @@ final class OutputStage implements AutoCloseable {
      * Applies the overwrite rule to everything the generator wrote, then reports. A dry run only reports.
      *
      * @param successMessage printed when at least one file was written
+     * @return the number of files skipped because they exist and differ; the caller exits non-zero if any were
      * @throws IOException if a file cannot be copied to the output location
      */
-    void commit(String successMessage) throws IOException {
+    int commit(String successMessage) throws IOException {
         List<PlannedFile> plan = plan();
         if (dryRun) {
             printDryRun(plan);
-            return;
+            return 0;
         }
         List<PlannedFile> written = new ArrayList<>();
+        int skipped = 0;
         for (PlannedFile file : plan) {
             switch (file.action()) {
                 case CREATE, OVERWRITE -> {
-                    Files.createDirectories(file.target().getParent());
-                    Files.copy(staging.resolve(file.relativePath()), file.target(),
-                            StandardCopyOption.REPLACE_EXISTING);
+                    write(file, written);
                     written.add(file);
                 }
-                case SKIP -> ctx.printWarning(String.format(ErrorMessages.WARN_FILE_SKIPPED, displayPath(file)));
+                case SKIP -> {
+                    ctx.printWarning(String.format(ErrorMessages.WARN_FILE_SKIPPED, displayPath(file)));
+                    skipped++;
+                }
                 case UNCHANGED -> {
                 }
             }
         }
         report(plan, written, successMessage);
+        if (skipped > 0) {
+            ctx.printWarning(String.format(ErrorMessages.WARN_FILES_SKIPPED_SUMMARY, skipped));
+        }
+        return skipped;
+    }
+
+    // On a failure partway through, says which files were already written, so the user knows the state.
+    private void write(PlannedFile file, List<PlannedFile> written) throws IOException {
+        try {
+            Path target = writePath(file.target());
+            Files.createDirectories(target.getParent());
+            Files.copy(staging.resolve(file.relativePath()), target, StandardCopyOption.REPLACE_EXISTING);
+        } catch (IOException e) {
+            if (!written.isEmpty()) {
+                ctx.printWarning(String.format(ErrorMessages.WARN_WRITTEN_BEFORE_FAILURE,
+                        written.stream().map(PlannedFile::name).collect(Collectors.joining(", "))));
+            }
+            throw e;
+        }
+    }
+
+    // A symbolic link is written through, so the file it points to gets the content, not the link itself.
+    private static Path writePath(Path target) throws IOException {
+        return Files.isSymbolicLink(target)
+                ? target.resolveSibling(Files.readSymbolicLink(target)).normalize()
+                : target;
     }
 
     private void report(List<PlannedFile> plan, List<PlannedFile> written, String successMessage) {
@@ -165,10 +194,14 @@ final class OutputStage implements AutoCloseable {
     }
 
     private Action actionFor(Path relative, Path target) throws IOException {
-        if (!Files.exists(target)) {
+        Path existing = writePath(target);
+        if (Files.isDirectory(existing)) {
+            throw new IOException(String.format(ErrorMessages.TARGET_IS_DIRECTORY, existing));
+        }
+        if (!Files.exists(existing)) {
             return Action.CREATE;
         }
-        if (Files.mismatch(staging.resolve(relative), target) == -1) {
+        if (Files.mismatch(staging.resolve(relative), existing) == -1) {
             return Action.UNCHANGED;
         }
         return force ? Action.OVERWRITE : Action.SKIP;

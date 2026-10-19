@@ -65,6 +65,7 @@ final class WsProtocolCommand implements ProtocolCommand {
             return;
         }
         Path outputPath = opts.getOutput() != null ? Path.of(opts.getOutput()) : ctx.executionPath();
+        int skipped;
         try (OutputStage stage = OutputStage.open(outputPath, opts, ctx)) {
             CodeToSpecOptions options = new CodeToSpecOptions.Builder()
                     .withServiceName(opts.getService())
@@ -73,7 +74,15 @@ final class WsProtocolCommand implements ProtocolCommand {
                     .withOutStream(ctx.infoStream())
                     .build();
             CodeGenOrchestrator.codeToSpec(Protocol.WS, inputPath, stage.stagingDir(), options);
-            stage.commit(ErrorMessages.CODE_TO_SPEC_SUCCESS);
+            skipped = stage.commit(ErrorMessages.CODE_TO_SPEC_SUCCESS);
+        }
+        exitIfSkipped(skipped, ctx);
+    }
+
+    // A skipped file can leave the output out of sync, so a script must not see this as a success.
+    private static void exitIfSkipped(int skipped, CmdContext ctx) {
+        if (skipped > 0) {
+            ctx.exitError();
         }
     }
 
@@ -94,9 +103,11 @@ final class WsProtocolCommand implements ProtocolCommand {
                 .withLicenseHeader(licenseHeader)
                 .withIncludeTestFiles(opts.isWithTests())
                 .build();
+        int skipped;
         try (OutputStage stage = OutputStage.open(outputPath, opts, ctx)) {
             CodeGenOrchestrator.specToCode(Protocol.WS, inputPath, stage.stagingDir(), options);
-            stage.commit(ErrorMessages.SUCCESS_MESSAGE);
+            skipped = stage.commit(ErrorMessages.SUCCESS_MESSAGE);
         }
+        exitIfSkipped(skipped, ctx);
     }
 }

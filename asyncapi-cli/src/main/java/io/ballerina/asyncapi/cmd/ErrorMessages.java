@@ -87,6 +87,15 @@ public final class ErrorMessages {
     public static final String WARN_FILE_SKIPPED =
             "Skipped \"%s\": the file already exists. Use --force to overwrite it.";
 
+    public static final String WARN_FILES_SKIPPED_SUMMARY =
+            "%d file(s) skipped, so the generated code may be out of sync with the definition. "
+                    + "Use --dry-run to see what differs, or --force to overwrite.";
+
+    public static final String WARN_WRITTEN_BEFORE_FAILURE = "these files were written before the failure: %s";
+
+    public static final String TARGET_IS_DIRECTORY =
+            "%s is a directory, so the generated file cannot be written there";
+
     public static final String FILES_WRITTEN = "Following files were written.";
 
     public static final String NO_FILES_WRITTEN = "No files were written.";

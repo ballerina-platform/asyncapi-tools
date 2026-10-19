@@ -61,13 +61,18 @@ final class HttpProtocolCommand implements ProtocolCommand {
                     .withIncludeTestFiles(opts.isWithTests())
                     .build();
 
+            int skipped;
             try (OutputStage stage = OutputStage.open(outputPath, opts, ctx)) {
                 CodeGenOrchestrator.specToCode(Protocol.HTTP, inputPath, stage.stagingDir(), options);
                 // Dispatch tests send signed events, so a spec without x-ballerina-auth gets none.
                 if (opts.isWithTests() && !Files.exists(stage.stagingDir().resolve(DISPATCH_TEST))) {
                     ctx.printWarning(ErrorMessages.WARN_HTTP_TESTS_NEED_AUTH);
                 }
-                stage.commit(ErrorMessages.SUCCESS_MESSAGE);
+                skipped = stage.commit(ErrorMessages.SUCCESS_MESSAGE);
+            }
+            // A skipped file can leave the output out of sync, so a script must not see this as a success.
+            if (skipped > 0) {
+                ctx.exitError();
             }
         } catch (GeneratorException e) {
             ctx.printError("error: " + e.getMessage());

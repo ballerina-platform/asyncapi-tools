@@ -51,7 +51,10 @@ The tool never overwrites a file you have edited unless you ask it to. For every
 $ bal asyncapi slack-events.yaml --protocol http
 warning: Skipped "types.bal": the file already exists. Use --force to overwrite it.
 No files were written.
+warning: 1 file(s) skipped, so the generated code may be out of sync with the definition. Use --dry-run to see what differs, or --force to overwrite.
 ```
+
+Skipping a file leaves the output out of sync with the definition, so a run that skips any file exits with a non-zero code. A script that regenerates code, such as a CI workflow, should pass `--force`.
 
 To see what a run would do before running it, add `--dry-run`:
 

@@ -18,6 +18,7 @@
 package io.ballerina.asyncapi.cmd;
 
 import org.testng.Assert;
+import org.testng.SkipException;
 import org.testng.annotations.Test;
 
 import java.io.IOException;
@@ -70,6 +71,83 @@ public class OutputStageTest extends CmdTestBase {
         Assert.assertEquals(Files.readString(out.resolve("a.yaml")), "mine");
         Assert.assertTrue(getErr().contains("Skipped"), "Err: " + getErr());
         Assert.assertTrue(getOut().contains("No files were written."), "Out: " + getOut());
+    }
+
+    @Test(description = "Skipped files are counted and summarised, so the caller can exit non-zero")
+    public void testSkippedFilesAreCountedAndSummarised() throws IOException {
+        Path out = Files.createDirectory(tmpDir.resolve("out"));
+        Files.writeString(out.resolve("a.yaml"), "mine");
+        Files.writeString(out.resolve("b.yaml"), "mine too");
+        int skipped;
+        try (OutputStage stage = OutputStage.open(out, options(false, false), context())) {
+            generate(stage, "a.yaml", "generated");
+            generate(stage, "b.yaml", "generated");
+            generate(stage, "c.yaml", "new");
+            skipped = stage.commit(SUCCESS);
+        }
+        Assert.assertEquals(skipped, 2);
+        Assert.assertEquals(Files.readString(out.resolve("c.yaml")), "new", "Files that can be written still are");
+        Assert.assertTrue(getErr().contains("2 file(s) skipped, so the generated code may be out of sync"),
+                "Err: " + getErr());
+    }
+
+    @Test(description = "Nothing skipped means a zero count and no summary")
+    public void testNoSummaryWhenNothingSkipped() throws IOException {
+        Path out = tmpDir.resolve("out");
+        int skipped;
+        try (OutputStage stage = OutputStage.open(out, options(false, false), context())) {
+            generate(stage, "a.yaml", "a");
+            skipped = stage.commit(SUCCESS);
+        }
+        Assert.assertEquals(skipped, 0);
+        Assert.assertTrue(getErr().isEmpty(), "Err: " + getErr());
+    }
+
+    @Test(description = "A directory where a generated file should go gets a clear error")
+    public void testDirectoryInPlaceOfFileIsReported() throws IOException {
+        Path out = Files.createDirectory(tmpDir.resolve("out"));
+        Files.createDirectory(out.resolve("a.yaml"));
+        try (OutputStage stage = OutputStage.open(out, options(true, false), context())) {
+            generate(stage, "a.yaml", "generated");
+            stage.commit(SUCCESS);
+            Assert.fail("A directory in place of the file should be reported");
+        } catch (IOException e) {
+            Assert.assertTrue(e.getMessage().endsWith("is a directory, so the generated file cannot be written there"),
+                    e.getMessage());
+        }
+    }
+
+    @Test(description = "A failure partway through says which files were already written")
+    public void testFailurePartwayListsWrittenFiles() throws IOException {
+        Path out = Files.createDirectory(tmpDir.resolve("out"));
+        // A file named like the folder the second generated file needs makes that write fail.
+        Files.writeString(out.resolve("tests"), "not a folder");
+        try (OutputStage stage = OutputStage.open(out, options(false, false), context())) {
+            generate(stage, "a.yaml", "a");
+            generate(stage, "tests/b.bal", "b");
+            stage.commit(SUCCESS);
+            Assert.fail("Writing under a file should fail");
+        } catch (IOException e) {
+            Assert.assertTrue(getErr().contains("these files were written before the failure: a.yaml"),
+                    "Err: " + getErr());
+        }
+    }
+
+    @Test(description = "A symbolic link is written through to the file it points to")
+    public void testSymbolicLinkIsWrittenThrough() throws IOException {
+        Path out = Files.createDirectory(tmpDir.resolve("out"));
+        Path real = Files.writeString(out.resolve("real.yaml"), "old");
+        try {
+            Files.createSymbolicLink(out.resolve("a.yaml"), real.getFileName());
+        } catch (IOException | UnsupportedOperationException e) {
+            throw new SkipException("Symbolic links cannot be created here: " + e.getMessage());
+        }
+        try (OutputStage stage = OutputStage.open(out, options(true, false), context())) {
+            generate(stage, "a.yaml", "generated");
+            stage.commit(SUCCESS);
+        }
+        Assert.assertTrue(Files.isSymbolicLink(out.resolve("a.yaml")), "The link itself is kept");
+        Assert.assertEquals(Files.readString(real), "generated");
     }
 
     @Test(description = "--force replaces a changed file")
