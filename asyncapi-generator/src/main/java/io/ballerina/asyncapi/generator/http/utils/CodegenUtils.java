@@ -90,7 +90,8 @@ public final class CodegenUtils {
 
             StringBuilder line = new StringBuilder(indent);
             boolean lineHasWord = false;
-            for (String word : content.split("\\s+")) {
+            // Same whitespace as the indent check, so an em space also separates words.
+            for (String word : content.split("\\p{javaWhitespace}+")) {
                 if (!lineHasWord) {
                     line.append(word);
                     lineHasWord = true;

@@ -230,4 +230,18 @@ public class CodegenUtilsTest {
             Assert.assertTrue(line.length() <= 114, "Wrapped line exceeds the doc-text budget: " + line);
         }
     }
+
+    @Test
+    void testWrapDocText_emSpaceSeparatesWords() {
+        List<String> lines = CodegenUtils.wrapDocText("alpha ".repeat(25).trim());
+        Assert.assertTrue(lines.size() > 1, "Words separated by em spaces should wrap: " + lines);
+        for (String line : lines) {
+            Assert.assertTrue(line.length() <= 114, "Wrapped line exceeds the doc-text budget: " + line);
+        }
+    }
+
+    @Test
+    void testWrapDocText_noBreakSpaceKeepsWordsTogether() {
+        Assert.assertEquals(CodegenUtils.wrapDocText("10 km"), List.of("10 km"));
+    }
 }
