@@ -98,13 +98,14 @@ public final class ServiceToAsyncApiConverterUtils {
                                                                        Boolean needJson,
                                                                        Path inputPath) {
         return generateAsyncAPISpecDefinition(syntaxTree, semanticModel, serviceName, needJson, inputPath,
-                List.of(), null);
+                List.of(), List.of(), null);
     }
 
     /**
      * Same as the five-argument form, for one file of a multi-file module.
      *
      * @param otherListeners    listeners declared in the other files of the module
+     * @param otherClasses      classes declared in the other files of the module, such as a service class
      * @param availableServices when non-null, receives the services found while filtering by name, and a
      *                          service that matches nothing is not reported here: the caller reports it
      *                          once, across all files
@@ -116,13 +117,14 @@ public final class ServiceToAsyncApiConverterUtils {
                                                                        Boolean needJson,
                                                                        Path inputPath,
                                                                        List<ListenerDeclarationNode> otherListeners,
+                                                                       List<ClassDefinitionNode> otherClasses,
                                                                        List<String> availableServices) {
         List<ListenerDeclarationNode> endpoints = new ArrayList<>(otherListeners);
         Map<String, ServiceDeclarationNode> servicesToGenerate = new LinkedHashMap<>();
         List<String> availableService = availableServices != null ? availableServices : new ArrayList<>();
         List<AsyncApiConverterDiagnostic> diagnostics = new ArrayList<>();
         List<AsyncApiResult> outputs = new ArrayList<>();
-        List<ClassDefinitionNode> classDefinitionNodes = new ArrayList<>();
+        List<ClassDefinitionNode> classDefinitionNodes = new ArrayList<>(otherClasses);
         if (containErrors(semanticModel.diagnostics())) {
             DiagnosticMessages messages = DiagnosticMessages.AAS_CONVERTOR_100;
             ExceptionDiagnostic error = new ExceptionDiagnostic(messages.getCode(),

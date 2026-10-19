@@ -25,6 +25,8 @@ import io.ballerina.tools.diagnostics.DiagnosticSeverity;
  */
 public enum DiagnosticMessages {
 
+    /** The module named for code-to-spec is not in the package. */
+    AAS_CONVERTOR_109("AAS_CONVERTOR_109", "Module '%s' not found in package '%s'.", DiagnosticSeverity.ERROR),
     /** Ballerina file has compilation errors. */
     AAS_CONVERTOR_100("AAS_CONVERTOR_100", "Given Ballerina file contains compilation error(s).",
             DiagnosticSeverity.ERROR),

@@ -24,6 +24,7 @@ import io.ballerina.asyncapi.generator.ws.asyncspec.model.AsyncApiResult;
 import io.ballerina.asyncapi.generator.ws.asyncspec.utils.CodegenUtils;
 import io.ballerina.asyncapi.generator.ws.asyncspec.utils.ServiceToAsyncApiConverterUtils;
 import io.ballerina.compiler.api.SemanticModel;
+import io.ballerina.compiler.syntax.tree.ClassDefinitionNode;
 import io.ballerina.compiler.syntax.tree.ListenerDeclarationNode;
 import io.ballerina.compiler.syntax.tree.ModuleMemberDeclarationNode;
 import io.ballerina.compiler.syntax.tree.ModulePartNode;
@@ -57,7 +58,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-import static io.ballerina.asyncapi.generator.ws.asyncspec.utils.CodegenUtils.resolveContractFileName;
 
 /**
  * Generates AsyncAPI specification files from Ballerina WebSocket service definitions.
@@ -163,7 +163,7 @@ public class BallerinaToAsyncApiGenerator {
 
     /**
      * Generates AsyncAPI definitions for every WebSocket service in one module of a package.
-     * Listeners are shared across the module's files, and a service filter that matches nothing is
+     * Listeners and classes are shared across the module's files, and a service filter that matches nothing is
      * reported once, after every file has been read.
      */
     private static List<AsyncApiConverterDiagnostic> generateForPackage(
@@ -182,14 +182,20 @@ public class BallerinaToAsyncApiGenerator {
                 ? currentPackage.getDefaultModule()
                 : currentPackage.module(ModuleName.from(currentPackage.packageName(), moduleName));
         if (module == null) {
-            throw new IllegalArgumentException("module '" + moduleName + "' not found in package '"
-                    + currentPackage.packageName() + "'");
+            DiagnosticMessages message = DiagnosticMessages.AAS_CONVERTOR_109;
+            errors.add(new ExceptionDiagnostic(message.getCode(), message.getDescription(), null, moduleName,
+                    currentPackage.packageName().value()));
+            return errors;
         }
         List<DocumentId> documentIds = new ArrayList<>(module.documentIds());
         documentIds.sort(Comparator.comparing(id -> module.document(id).name()));
         Map<DocumentId, List<ListenerDeclarationNode>> listenersByDocument = new LinkedHashMap<>();
+        Map<DocumentId, List<ClassDefinitionNode>> classesByDocument = new LinkedHashMap<>();
         for (DocumentId id : documentIds) {
-            listenersByDocument.put(id, listenersOf(module.document(id)));
+            listenersByDocument.put(id, membersOf(module.document(id), SyntaxKind.LISTENER_DECLARATION,
+                    ListenerDeclarationNode.class));
+            classesByDocument.put(id, membersOf(module.document(id), SyntaxKind.CLASS_DEFINITION,
+                    ClassDefinitionNode.class));
         }
 
         SemanticModel semanticModel = compilation.getSemanticModel(module.moduleId());
@@ -197,14 +203,16 @@ public class BallerinaToAsyncApiGenerator {
         List<AsyncApiResult> definitions = new ArrayList<>();
         for (DocumentId id : documentIds) {
             List<ListenerDeclarationNode> otherListeners = new ArrayList<>();
-            listenersByDocument.forEach((otherId, listeners) -> {
+            List<ClassDefinitionNode> otherClasses = new ArrayList<>();
+            for (DocumentId otherId : documentIds) {
                 if (!otherId.equals(id)) {
-                    otherListeners.addAll(listeners);
+                    otherListeners.addAll(listenersByDocument.get(otherId));
+                    otherClasses.addAll(classesByDocument.get(otherId));
                 }
-            });
+            }
             definitions.addAll(ServiceToAsyncApiConverterUtils.generateAsyncAPISpecDefinition(
                     module.document(id).syntaxTree(), semanticModel, serviceName, needJson,
-                    project.documentPath(id).orElse(null), otherListeners, availableServices));
+                    project.documentPath(id).orElse(null), otherListeners, otherClasses, availableServices));
         }
         if (serviceName != null && definitions.stream().noneMatch(d -> d.getAsyncAPI().isPresent())) {
             DiagnosticMessages messages = DiagnosticMessages.AAS_CONVERTOR_101;
@@ -223,14 +231,14 @@ public class BallerinaToAsyncApiGenerator {
         return errors;
     }
 
-    private static List<ListenerDeclarationNode> listenersOf(Document document) {
-        List<ListenerDeclarationNode> listeners = new ArrayList<>();
+    private static <T> List<T> membersOf(Document document, SyntaxKind kind, Class<T> type) {
+        List<T> members = new ArrayList<>();
         for (ModuleMemberDeclarationNode member : ((ModulePartNode) document.syntaxTree().rootNode()).members()) {
-            if (member.kind().equals(SyntaxKind.LISTENER_DECLARATION)) {
-                listeners.add((ListenerDeclarationNode) member);
+            if (member.kind().equals(kind)) {
+                members.add(type.cast(member));
             }
         }
-        return listeners;
+        return members;
     }
 
     /**
@@ -286,8 +294,8 @@ public class BallerinaToAsyncApiGenerator {
             if (content.isEmpty()) {
                 return;
             }
-            String fileName = resolveContractFileName(outPath, definition.getServiceName(), needJson);
-            CodegenUtils.writeFile(outPath.resolve(fileName), content.get());
+            // The caller decides about existing files, so the definition's own file name is used as-is.
+            CodegenUtils.writeFile(outPath.resolve(definition.getServiceName()), content.get());
         } catch (IOException e) {
             DiagnosticMessages message = DiagnosticMessages.AAS_CONVERTOR_102;
             errors.add(new ExceptionDiagnostic(message.getCode(), message.getDescription(), null,

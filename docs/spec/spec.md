@@ -269,7 +269,7 @@ If the `x-dispatcherStreamId` property is available, the client will instead use
 
 These pipes are consumed by the respective `remote` functions.
 
-For each `publish` message type in the `channels` section, the tool will generate a `remote` function to send the message to the server. If the server responds with a single response, i.e., if the `x-response-type` property is set to `simple-rpc`, the generated function will return the response. If the server responds with a stream of responses, i.e., if the `x-response-type` property is set to `server-streaming`, the generated function will return a `stream` of responses.
+Since the client is generated from AsyncAPI 2.x definitions, this uses the 2.x terms. For each `publish` message type in the `channels` section, the tool will generate a `remote` function to send the message to the server. If the server responds with a single response, i.e., if the `x-response-type` property is set to `simple-rpc`, the generated function will return the response. If the server responds with a stream of responses, i.e., if the `x-response-type` property is set to `server-streaming`, the generated function will return a `stream` of responses.
 
 ### The `utils.bal` file
 
