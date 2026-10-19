@@ -45,8 +45,9 @@ channels:
 - Each address must be one or more path segments made of letters, digits, `_` or `-`, starting with a letter or
   `_`, and no two channels may share an address.
 - `$uri` in a signature `input` is the request path, so it is each channel's own path.
-- The generated dispatch tests post each event to its channel's path, read its payload from a folder named after the
-  channel (for example `tests/resources/trigger_payloads/callStatus/failed.json`), and check that only that channel's
+- The generated dispatch tests post each event to its channel's path, read its payload from a folder that follows the
+  channel's address (for example `tests/resources/trigger_payloads/callStatus/failed.json`, or
+  `trigger_payloads/voice/status/failed.json` for `address: voice/status`), and check that only that channel's
   remote function fired.
 
 ## Signature Config

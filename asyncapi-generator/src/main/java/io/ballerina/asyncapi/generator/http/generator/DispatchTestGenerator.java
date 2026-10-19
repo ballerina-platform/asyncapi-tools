@@ -109,7 +109,7 @@ public class DispatchTestGenerator {
 
     /**
      * Routes the tests by channel when the listener does: each test posts to its channel's path, with its
-     * channel's identifier, and reads its payload from a folder named after the channel, since the same event
+     * channel's identifier, and reads its payload from a folder that follows the channel's address, since the same event
      * type can exist on several channels. Has no effect when no channel declares its own identifier.
      *
      * @param serviceTypes the service types with their effective identifiers and addresses
