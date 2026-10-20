@@ -36,10 +36,11 @@ import java.util.Optional;
  * {@code reply}, the AsyncAPI request/reply pattern: the listener answers it itself, so it is not an event.
  *
  * <ul>
- *     <li>The {@code const} values in the request message's payload schema tell the handshake apart from
- *     events, for example {@code type: {const: url_verification}}.</li>
- *     <li>The request message's {@code correlationId} points at the challenge to echo, for example
- *     {@code $message.payload#/challenge}.</li>
+ *     <li>A {@code POST} (the default): the {@code const} values in the request message's payload schema tell the
+ *     handshake apart from events, for example {@code type: {const: url_verification}}, and the request message's
+ *     {@code correlationId} points at the challenge to echo, for example {@code $message.payload#/challenge}.</li>
+ *     <li>A {@code GET} (the operation's HTTP binding {@code method}): a W3C WebSub verification of intent, with
+ *     the challenge in the {@code hub.challenge} query parameter of the binding's {@code query} schema.</li>
  *     <li>The reply message's HTTP binding {@code statusCode} is the response status, {@code 200} if unset.</li>
  * </ul>
  */
@@ -48,6 +49,7 @@ public final class HandshakeExtractor {
     private static final String PAYLOAD_EXPRESSION = "$message.payload#/";
     private static final String HEADER_EXPRESSION = "$message.header";
     private static final int DEFAULT_STATUS_CODE = 200;
+    private static final String WEBSUB_CHALLENGE = "hub.challenge";
 
     private final AsyncApiSpec asyncApiSpec;
 
@@ -92,10 +94,14 @@ public final class HandshakeExtractor {
     private static HandshakeConfig read(String operationId, AsyncApiOperation operation) throws GeneratorException {
         HttpOperationBindings http = operation.bindings() != null
                 ? operation.bindings().httpOperationBindings() : null;
-        if (http != null && http.method() != null && http.method() != HttpOperationBindings.HttpMethod.POST) {
-            throw new GeneratorException(String.format("Handshake operation '%s' uses %s; only a POST handshake is "
-                    + "supported, since a runtime expression cannot point into the query", operationId,
-                    http.method()));
+        HttpOperationBindings.HttpMethod method = http != null && http.method() != null
+                ? http.method() : HttpOperationBindings.HttpMethod.POST;
+        if (method == HttpOperationBindings.HttpMethod.GET) {
+            return readWebSub(operationId, operation, http.query());
+        }
+        if (method != HttpOperationBindings.HttpMethod.POST) {
+            throw new GeneratorException(String.format("Handshake operation '%s' uses %s; a handshake is a POST with "
+                    + "the challenge in the body, or a GET WebSub verification", operationId, method));
         }
         Map<String, AsyncApiMessage> messages = operation.messages();
         if (messages == null || messages.size() != 1) {
@@ -113,8 +119,30 @@ public final class HandshakeExtractor {
                     + "payload schema, such as type: {const: url_verification}, to tell it apart from events",
                     operationId));
         }
-        return new HandshakeConfig(when, challengePath(operationId, request.correlationId()),
+        return new HandshakeConfig(when, challengePath(operationId, request.correlationId()), null,
                 statusCode(operation));
+    }
+
+    /**
+     * Reads a {@code GET} handshake as a W3C WebSub verification of intent: the hub sends the challenge in the
+     * {@code hub.challenge} query parameter, which a runtime expression cannot point at, so the standard names it.
+     * The {@code const} values in the query schema, such as {@code hub.mode: {const: subscribe}}, are the requests
+     * the listener confirms.
+     */
+    private static HandshakeConfig readWebSub(String operationId, AsyncApiOperation operation, AsyncApiSchema query)
+            throws GeneratorException {
+        if (query == null || query.properties() == null || !query.properties().containsKey(WEBSUB_CHALLENGE)) {
+            throw new GeneratorException(String.format("Handshake operation '%s' is a GET, which is read as a WebSub "
+                    + "verification of intent; its HTTP binding's query schema needs %s", operationId,
+                    WEBSUB_CHALLENGE));
+        }
+        Map<String, JsonNode> when = new LinkedHashMap<>();
+        for (Map.Entry<String, AsyncApiSchema> parameter : query.properties().entrySet()) {
+            if (parameter.getValue().constValue() != null) {
+                when.put(parameter.getKey(), parameter.getValue().constValue());
+            }
+        }
+        return new HandshakeConfig(when, null, WEBSUB_CHALLENGE, statusCode(operation));
     }
 
     // Walks the payload's object properties, collecting each const with its dot-notation path.

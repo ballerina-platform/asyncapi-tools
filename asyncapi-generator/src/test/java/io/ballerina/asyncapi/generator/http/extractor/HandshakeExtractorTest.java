@@ -125,7 +125,24 @@ public class HandshakeExtractorTest {
         assertRejected(SLACK_PAYLOAD, "", "", "needs a correlationId");
         assertRejected(SLACK_PAYLOAD, "correlationId: {location: '$message.header#/X-Challenge'}", "",
                 "only a challenge in the payload is supported");
-        assertRejected(SLACK_PAYLOAD, CHALLENGE_ID, "bindings: {http: {method: GET}}",
-                "only a POST handshake is supported");
+        assertRejected(SLACK_PAYLOAD, CHALLENGE_ID, "bindings: {http: {method: PUT}}",
+                "a handshake is a POST with the challenge in the body, or a GET WebSub verification");
+        assertRejected(SLACK_PAYLOAD, CHALLENGE_ID,
+                "bindings: {http: {method: GET, query: {type: object, properties: {challenge: {type: string}}}}}",
+                "query schema needs hub.challenge");
+    }
+
+    @Test
+    void testGetIsReadAsWebSubVerification() throws Exception {
+        String query = "bindings: {http: {method: GET, query: {type: object, properties: {"
+                + "hub.mode: {type: string, const: subscribe}, hub.topic: {type: string}, "
+                + "hub.challenge: {type: string}}}}}";
+        HandshakeConfig handshake = extract("{type: string}", "", "", query).orElseThrow();
+        Assert.assertTrue(handshake.isQuery());
+        Assert.assertEquals(handshake.challengeQuery(), "hub.challenge");
+        Assert.assertEquals(handshake.when().keySet(), java.util.Set.of("hub.mode"),
+                "Only the fixed parameters decide which requests are confirmed");
+        Assert.assertEquals(handshake.when().get("hub.mode").asText(), "subscribe");
+        Assert.assertNull(handshake.challengePath());
     }
 }

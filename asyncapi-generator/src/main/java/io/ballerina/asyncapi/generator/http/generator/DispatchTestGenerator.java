@@ -39,6 +39,8 @@ import io.ballerina.tools.text.TextDocuments;
 import org.ballerinalang.formatter.core.Formatter;
 import org.ballerinalang.formatter.core.FormatterException;
 
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -270,7 +272,7 @@ public class DispatchTestGenerator {
                 .append(") returns http:Response|error {\n");
         sb.append("    byte[] body = check io:fileReadBytes("
                 + "string `${TRIGGER_PAYLOAD_DIR}/${eventIdentifier}.json`);\n");
-        if (hasHandshake()) {
+        if (hasBodyHandshake()) {
             // The handshake test signs a body of its own, so signing gets a function that takes the bytes.
             String headerArg = isBodyModeIdentifier() ? "" : ", headerValue";
             sb.append("    return sendSignedTriggerBody(body").append(headerArg).append(");\n}\n\n");
@@ -485,18 +487,23 @@ public class DispatchTestGenerator {
                 + "}\n\n";
     }
 
-    private boolean hasHandshake() {
-        return identifierConfig != null && identifierConfig.handshake() != null;
+    // A handshake in the body is signed like an event, so signing gets a function that takes the bytes.
+    private boolean hasBodyHandshake() {
+        return identifierConfig != null && identifierConfig.handshake() != null
+                && !identifierConfig.handshake().isQuery();
     }
 
     /**
      * Builds a test that sends the verification handshake and checks the listener echoes the challenge: a signed
-     * request whose body carries every {@code const} marker and the challenge.
+     * request whose body carries every {@code const} marker and the challenge, or a WebSub {@code GET}.
      *
      * @param handshake the handshake read from the definition's reply operation
      * @return the test function source
      */
     private String buildHandshakeTestFunction(HandshakeConfig handshake) throws GeneratorException {
+        if (handshake.isQuery()) {
+            return buildWebSubTestFunctions(handshake);
+        }
         ObjectNode body = JSON.createObjectNode();
         for (Map.Entry<String, JsonNode> marker : handshake.when().entrySet()) {
             putAtPath(body, marker.getKey(), marker.getValue());
@@ -516,6 +523,46 @@ public class DispatchTestGenerator {
                 + "    test:assertEquals(response.statusCode, " + handshake.statusCode() + ");\n"
                 + "    test:assertEquals(check response.getTextPayload(), \"" + HANDSHAKE_TEST_CHALLENGE + "\");\n"
                 + "}\n\n";
+    }
+
+    /**
+     * Builds the WebSub verification tests: a {@code GET} with the expected query is confirmed by echoing
+     * {@code hub.challenge}, and, when the definition fixes a value such as {@code hub.mode}, a request with another
+     * value gets {@code 404 Not Found}.
+     */
+    private String buildWebSubTestFunctions(HandshakeConfig handshake) {
+        List<String> confirmQuery = new ArrayList<>();
+        handshake.when().forEach((name, value) -> confirmQuery.add(queryPair(name, value.asText())));
+        confirmQuery.add(queryPair(handshake.challengeQuery(), HANDSHAKE_TEST_CHALLENGE));
+        StringBuilder tests = new StringBuilder()
+                .append("@test:Config {}\n")
+                .append("function testVerificationHandshake() returns error? {\n")
+                .append("    http:Response response = check triggerClient->get(\"/?")
+                .append(escapeBalString(String.join("&", confirmQuery))).append("\");\n")
+                .append("    test:assertEquals(response.statusCode, ").append(handshake.statusCode()).append(");\n")
+                .append("    test:assertEquals(check response.getTextPayload(), \"")
+                .append(HANDSHAKE_TEST_CHALLENGE).append("\");\n")
+                .append("}\n\n");
+        if (!handshake.when().isEmpty()) {
+            Map.Entry<String, JsonNode> fixed = handshake.when().entrySet().iterator().next();
+            String rejectQuery = queryPair(fixed.getKey(), "not-" + fixed.getValue().asText()) + "&"
+                    + queryPair(handshake.challengeQuery(), HANDSHAKE_TEST_CHALLENGE);
+            tests.append("@test:Config {}\n")
+                    .append("function testVerificationHandshakeIsNotConfirmedForOtherRequests() returns error? {\n")
+                    .append("    http:Response response = check triggerClient->get(\"/?")
+                    .append(escapeBalString(rejectQuery)).append("\");\n")
+                    .append("    test:assertEquals(response.statusCode, http:STATUS_NOT_FOUND);\n")
+                    .append("}\n\n");
+        }
+        return tests.toString();
+    }
+
+    private static String queryPair(String name, String value) {
+        return URLEncoder.encode(name, StandardCharsets.UTF_8) + "=" + URLEncoder.encode(value, StandardCharsets.UTF_8);
+    }
+
+    private static String escapeBalString(String value) {
+        return value.replace("\\", "\\\\").replace("\"", "\\\"");
     }
 
     // Sets a dot-notation path in a JSON object, creating the objects along the way.

@@ -133,7 +133,7 @@ public class GeneratePostResourceFunctionNode implements Generator {
         }
         statements.add(NodeParser.parseStatement("json payload = check request.getJsonPayload();"));
         HandshakeConfig handshake = identifierConfig.handshake();
-        if (handshake != null) {
+        if (handshake != null && !handshake.isQuery()) {
             statements.addAll(buildHandshakeStatements(handshake));
         }
         if (batched) {

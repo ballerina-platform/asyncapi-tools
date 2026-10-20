@@ -219,12 +219,51 @@ operations:
 - The reply message's HTTP binding `statusCode` is the response status; without it, `200`.
 - The handshake is answered after the `x-ballerina-auth` signature check, so a provider that signs it (Slack does)
   is verified like any other request.
-- Only a handshake that arrives as a `POST` with the challenge in the body is supported. A runtime expression can
-  only point into the payload or the headers, so a challenge in the query (`GET`, as WebSub hubs send it) cannot
-  be described, and a challenge in a header is not supported yet.
+- The challenge in a header is not supported yet.
 
-When dispatch tests are generated, they include `testVerificationHandshake`, which sends the signed handshake and
-checks the status code and that the challenge comes back.
+**WebSub verification of intent** (for example WSO2 Identity Server and Asgardeo): the hub sends
+`GET /?hub.mode=subscribe&hub.topic=...&hub.challenge=...` and the subscriber confirms by echoing `hub.challenge`.
+A runtime expression cannot point into the query, so a `GET` handshake is read as the
+[W3C WebSub](https://www.w3.org/TR/websub/#hub-verifies-intent) verification: describe it with the operation's
+HTTP binding, and the challenge is the `hub.challenge` query parameter.
+
+```yaml
+operations:
+  verifyIntent:
+    action: receive
+    channel:
+      $ref: '#/channels/events'
+    bindings:
+      http:
+        method: GET
+        query:
+          type: object
+          properties:
+            hub.mode:
+              type: string
+              const: subscribe
+            hub.topic:
+              type: string
+            hub.challenge:
+              type: string
+            hub.lease_seconds:
+              type: integer
+    reply:
+      channel:
+        $ref: '#/channels/events'
+      messages:
+        - $ref: '#/channels/events/messages/verificationReply'
+```
+
+- The listener gets a `get` resource that responds with `hub.challenge` as plain text, or `400` if it is missing.
+- The `const` values in the query schema (here `hub.mode: subscribe`) are the requests it confirms; any other
+  request gets `404 Not Found`, which WebSub defines as the subscriber declining.
+- A `GET` has no body, so it is not signature-checked.
+- The query schema must have `hub.challenge`; any method other than `GET` or `POST` fails generation.
+
+When dispatch tests are generated, they include `testVerificationHandshake`, which sends the handshake (signed, for
+a `POST`) and checks the status code and that the challenge comes back. A WebSub verification also gets
+`testVerificationHandshakeIsNotConfirmedForOtherRequests`, which checks that another `hub.mode` gets `404`.
 
 ## Examples
 
