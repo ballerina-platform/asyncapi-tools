@@ -23,6 +23,7 @@ import io.ballerina.asyncapi.generator.GeneratorException;
 import io.ballerina.asyncapi.generator.http.extractor.ConnectionAuthExtractor;
 import io.ballerina.asyncapi.generator.http.extractor.DispatchTestCaseExtractor;
 import io.ballerina.asyncapi.generator.http.extractor.EventIdentifierExtractor;
+import io.ballerina.asyncapi.generator.http.extractor.HandshakeExtractor;
 import io.ballerina.asyncapi.generator.http.extractor.SchemaExtractor;
 import io.ballerina.asyncapi.generator.http.extractor.ServiceTypeExtractor;
 import io.ballerina.asyncapi.generator.http.extractor.WebhookAuthExtractor;
@@ -118,7 +119,8 @@ public class HttpCodeGenerator {
         }
 
         // Extract data from the parsed spec
-        EventIdentifierConfig identifierConfig = new EventIdentifierExtractor(asyncApiSpec).extract();
+        EventIdentifierConfig identifierConfig = new EventIdentifierExtractor(asyncApiSpec).extract()
+                .withHandshake(new HandshakeExtractor(asyncApiSpec).extract().orElse(null));
         ServiceTypeExtractor serviceTypeExtractor = new ServiceTypeExtractor(asyncApiSpec, identifierConfig);
         List<HttpServiceType> serviceTypes = serviceTypeExtractor.extract();
         Map<String, AsyncApiSchema> schemas = new LinkedHashMap<>(new SchemaExtractor(asyncApiSpec).extract());

@@ -66,7 +66,9 @@ public final class DispatchTestCaseExtractor {
         List<DispatchTestCase> testCases = new ArrayList<>();
 
         for (AsyncApiOperation operation : operations.values()) {
-            if (operation.action() != AsyncApiOperation.Action.RECEIVE) {
+            if (operation.action() != AsyncApiOperation.Action.RECEIVE
+                    || HandshakeExtractor.isHandshake(operation)) {
+                // A handshake is answered by the listener, so it is not an event for a service.
                 continue;
             }
 

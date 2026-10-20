@@ -17,35 +17,24 @@
  */
 package io.ballerina.asyncapi.generator.http.model;
 
+import com.fasterxml.jackson.databind.JsonNode;
+
+import java.util.Map;
+
 /**
- * An endpoint verification handshake from the {@code handshake} block of {@code x-ballerina-event-identifier}: a
- * request the provider sends to check the endpoint, which the listener answers by echoing a challenge instead of
- * dispatching it to a service.
+ * An endpoint verification handshake, described in the definition as a {@code receive} operation with a
+ * {@code reply}: a request the provider sends to check the endpoint, which the listener answers by echoing a
+ * challenge instead of dispatching it to a service.
  *
- * @param method       {@code GET} (challenge in a query parameter) or {@code POST} (challenge in the JSON body)
- * @param whenPath     for {@code POST}, the dot-notation body path that marks a request as the handshake;
- *                     {@code null} for {@code GET}
- * @param whenEquals   for {@code POST}, the value at {@code whenPath} that marks the handshake; {@code null} for
- *                     {@code GET}
- * @param challengeKey the dot-notation body path ({@code POST}) or query parameter name ({@code GET}) holding the
- *                     challenge to echo
+ * @param when          the body fields that mark a request as the handshake, as dot-notation paths to the
+ *                      {@code const} value each must have, taken from the request message's payload schema
+ * @param challengePath the dot-notation body path of the challenge to echo, from the request message's
+ *                      {@code correlationId}
+ * @param statusCode    the status code of the reply, from the reply message's HTTP binding, {@code 200} if unset
  */
 public record HandshakeConfig(
-        String method,
-        String whenPath,
-        String whenEquals,
-        String challengeKey
+        Map<String, JsonNode> when,
+        String challengePath,
+        int statusCode
 ) {
-
-    public static final String METHOD_GET = "GET";
-    public static final String METHOD_POST = "POST";
-
-    /**
-     * Whether the handshake arrives as a {@code GET} with the challenge in the query.
-     *
-     * @return {@code true} for {@code GET}, {@code false} for {@code POST}
-     */
-    public boolean isGet() {
-        return METHOD_GET.equals(method);
-    }
 }

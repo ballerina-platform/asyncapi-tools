@@ -1,7 +1,7 @@
 # Webhook Signature DSL Reference
 
 This document describes the webhook verification DSL consumed from root-level `x-ballerina-auth` in AsyncAPI specs,
-and the endpoint verification handshakes described in `x-ballerina-event-identifier` (see
+and how endpoint verification handshakes are described with AsyncAPI's request/reply pattern (see
 [Verification Handshakes](#verification-handshakes)).
 
 ## Location
@@ -168,56 +168,63 @@ Validation rules:
 ## Verification Handshakes
 
 Some providers check the endpoint before they send any events: they send a challenge and only activate the
-webhook once the endpoint returns it. The generated listener answers the challenge itself; it never reaches a
-service, and no remote function is generated for it. Describe the handshake in a `handshake` block of
-`x-ballerina-event-identifier` (not in `x-ballerina-auth`), and do not model it as a message in `channels`.
+webhook once the endpoint returns it. Describe the handshake with AsyncAPI's own request/reply pattern: a `receive`
+operation with a `reply`. The generated listener answers it itself; it never reaches a service, and no remote
+function is generated for it.
 
-**POST, challenge in the JSON body** (for example Slack's `url_verification`):
+For example, Slack's `url_verification`:
 
 ```yaml
-x-ballerina-event-identifier:
-  type: body
-  path: event.type
-  handshake:
-    method: POST
-    when:
-      path: type
-      equals: url_verification
-    challenge:
-      in: body
-      path: challenge
+channels:
+  events:
+    address: events
+    messages:
+      urlVerification:
+        payload:
+          type: object
+          properties:
+            type:
+              type: string
+              const: url_verification
+            challenge:
+              type: string
+        correlationId:
+          location: $message.payload#/challenge
+      urlVerificationReply:
+        payload:
+          type: string
+        bindings:
+          http:
+            statusCode: 200
+operations:
+  verifyUrl:
+    action: receive
+    channel:
+      $ref: '#/channels/events'
+    messages:
+      - $ref: '#/channels/events/messages/urlVerification'
+    reply:
+      channel:
+        $ref: '#/channels/events'
+      messages:
+        - $ref: '#/channels/events/messages/urlVerificationReply'
 ```
 
-- `when.path` and `when.equals` tell the handshake apart from events: a request whose body has `equals` at `path`
-  is the handshake.
-- `challenge.path` is where the challenge is. The listener responds `200` with the challenge as plain text, or
-  `400` if it is missing.
-- Paths use dot notation, like the identifier `path`.
+- A `receive` operation with a `reply` is the handshake. A definition can have one.
+- The `const` values in the request message's payload schema tell the handshake apart from events: a request whose
+  body has every one of them is the handshake. At least one is required.
+- The request message's `correlationId` points at the challenge, as a runtime expression into the payload
+  (`$message.payload#/challenge`). The listener responds with the challenge as plain text, or `400` if it is
+  missing.
+- The reply message's HTTP binding `statusCode` is the response status; without it, `200`.
 - The handshake is answered after the `x-ballerina-auth` signature check, so a provider that signs it (Slack does)
   is verified like any other request.
+- Only a handshake that arrives as a `POST` with the challenge in the body is supported. A runtime expression can
+  only point into the payload or the headers, so a challenge in the query (`GET`, as WebSub hubs send it) cannot
+  be described, and a challenge in a header is not supported yet.
 
-**GET, challenge in the query** (for example a WebSub hub's `hub.challenge`):
-
-```yaml
-x-ballerina-event-identifier:
-  type: body
-  path: eventType
-  handshake:
-    method: GET
-    challenge:
-      in: query
-      name: hub.challenge
-```
-
-- The listener gets a `GET` resource that responds `200` with the `name` query parameter as plain text, or `400`
-  if it is missing.
-- A `GET` request has no body, so it is not signature-checked, and `when` is not used.
-
-Generation fails if the block is incomplete or mixes the two shapes: `method` must be `GET` or `POST`; `POST`
-needs `when.path`, `when.equals` and `challenge: {in: body, path}`; `GET` needs `challenge: {in: query, name}`.
-
-When dispatch tests are generated, they include `testVerificationHandshake`, which sends the handshake (signed, for
-`POST`) and checks that the challenge comes back.
+When dispatch tests are generated, they include `testVerificationHandshake`, which sends the signed handshake and
+checks the status code and that the challenge comes back.
 
 ## Examples
 

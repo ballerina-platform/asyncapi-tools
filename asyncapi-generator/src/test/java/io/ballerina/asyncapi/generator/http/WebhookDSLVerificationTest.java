@@ -258,26 +258,8 @@ public class WebhookDSLVerificationTest {
         Assert.assertTrue(dispatchTest.contains("isolated function sendSignedTriggerBody(byte[] body)"),
                 "The handshake test signs its own body: " + dispatchTest);
         Assert.assertTrue(dispatchTest.contains("\"type\": \"url_verification\""), dispatchTest);
-    }
-
-    @Test
-    public void testGetHandshakeAddsAResourceThatEchoesTheQueryChallenge() throws Exception {
-        // WebSub hubs verify a subscription with GET ?hub.challenge=...; there is no body to sign.
-        Path outputDir = generateOutputDir("handshake_get.yaml");
-
-        String dispatcher = Files.readString(outputDir.resolve("dispatcher_service.bal"));
-        Assert.assertTrue(dispatcher.contains("resource function get .(http:Caller caller, http:Request request)"),
-                dispatcher);
-        Assert.assertTrue(dispatcher.contains("string? challenge = request.getQueryParamValue(\"hub.challenge\");"),
-                dispatcher);
-        Assert.assertFalse(dispatcher.contains("handshakeMarker"),
-                "A GET handshake adds nothing to the POST resource: " + dispatcher);
-
-        String dispatchTest = Files.readString(outputDir.resolve("tests").resolve("dispatch_test.bal"));
-        Assert.assertTrue(dispatchTest.contains("triggerClient->get(\"/?hub.challenge=trigger-test-challenge\")"),
-                dispatchTest);
-        Assert.assertFalse(dispatchTest.contains("sendSignedTriggerBody"),
-                "Without a POST handshake the send helper stays as it was: " + dispatchTest);
+        Assert.assertTrue(dispatchTest.contains("\"challenge\": \"trigger-test-challenge\""), dispatchTest);
+        Assert.assertTrue(dispatchTest.contains("test:assertEquals(response.statusCode, 200);"), dispatchTest);
     }
 
     @Test

@@ -39,8 +39,6 @@ import io.ballerina.tools.text.TextDocuments;
 import org.ballerinalang.formatter.core.Formatter;
 import org.ballerinalang.formatter.core.FormatterException;
 
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -272,7 +270,7 @@ public class DispatchTestGenerator {
                 .append(") returns http:Response|error {\n");
         sb.append("    byte[] body = check io:fileReadBytes("
                 + "string `${TRIGGER_PAYLOAD_DIR}/${eventIdentifier}.json`);\n");
-        if (hasPostHandshake()) {
+        if (hasHandshake()) {
             // The handshake test signs a body of its own, so signing gets a function that takes the bytes.
             String headerArg = isBodyModeIdentifier() ? "" : ", headerValue";
             sb.append("    return sendSignedTriggerBody(body").append(headerArg).append(");\n}\n\n");
@@ -487,59 +485,48 @@ public class DispatchTestGenerator {
                 + "}\n\n";
     }
 
-    private boolean hasPostHandshake() {
-        return identifierConfig != null && identifierConfig.handshake() != null
-                && !identifierConfig.handshake().isGet();
+    private boolean hasHandshake() {
+        return identifierConfig != null && identifierConfig.handshake() != null;
     }
 
     /**
      * Builds a test that sends the verification handshake and checks the listener echoes the challenge: a signed
-     * {@code POST} whose body carries the marker and the challenge, or a {@code GET} with the challenge in the query.
+     * request whose body carries every {@code const} marker and the challenge.
      *
-     * @param handshake the handshake from the event identifier
+     * @param handshake the handshake read from the definition's reply operation
      * @return the test function source
      */
     private String buildHandshakeTestFunction(HandshakeConfig handshake) throws GeneratorException {
-        String send;
-        if (handshake.isGet()) {
-            String query = URLEncoder.encode(handshake.challengeKey(), StandardCharsets.UTF_8) + "="
-                    + HANDSHAKE_TEST_CHALLENGE;
-            send = "    http:Response response = check triggerClient->get(\"/?" + escapeBalString(query) + "\");\n";
-        } else {
-            ObjectNode body = JSON.createObjectNode();
-            putAtPath(body, handshake.whenPath(), handshake.whenEquals());
-            putAtPath(body, handshake.challengeKey(), HANDSHAKE_TEST_CHALLENGE);
-            String bodyJson;
-            try {
-                bodyJson = JSON.writeValueAsString(body);
-            } catch (JsonProcessingException e) {
-                throw new GeneratorException("Could not build the handshake test body", e);
-            }
-            send = "    json handshake = " + bodyJson + ";\n"
-                    + "    http:Response response = check sendSignedTriggerBody(handshake.toJsonString().toBytes()"
-                    + (isBodyModeIdentifier() ? "" : ", \"handshake\"") + ");\n";
+        ObjectNode body = JSON.createObjectNode();
+        for (Map.Entry<String, JsonNode> marker : handshake.when().entrySet()) {
+            putAtPath(body, marker.getKey(), marker.getValue());
+        }
+        putAtPath(body, handshake.challengePath(), JSON.getNodeFactory().textNode(HANDSHAKE_TEST_CHALLENGE));
+        String bodyJson;
+        try {
+            bodyJson = JSON.writeValueAsString(body);
+        } catch (JsonProcessingException e) {
+            throw new GeneratorException("Could not build the handshake test body", e);
         }
         return "@test:Config {}\n"
                 + "function testVerificationHandshake() returns error? {\n"
-                + send
-                + "    test:assertEquals(response.statusCode, http:STATUS_OK);\n"
+                + "    json handshake = " + bodyJson + ";\n"
+                + "    http:Response response = check sendSignedTriggerBody(handshake.toJsonString().toBytes()"
+                + (isBodyModeIdentifier() ? "" : ", \"handshake\"") + ");\n"
+                + "    test:assertEquals(response.statusCode, " + handshake.statusCode() + ");\n"
                 + "    test:assertEquals(check response.getTextPayload(), \"" + HANDSHAKE_TEST_CHALLENGE + "\");\n"
                 + "}\n\n";
     }
 
     // Sets a dot-notation path in a JSON object, creating the objects along the way.
-    private static void putAtPath(ObjectNode root, String path, String value) {
+    private static void putAtPath(ObjectNode root, String path, JsonNode value) {
         String[] segments = path.split("\\.");
         ObjectNode node = root;
         for (int i = 0; i < segments.length - 1; i++) {
             JsonNode child = node.get(segments[i]);
             node = child instanceof ObjectNode object ? object : node.putObject(segments[i]);
         }
-        node.put(segments[segments.length - 1], value);
-    }
-
-    private static String escapeBalString(String value) {
-        return value.replace("\\", "\\\\").replace("\"", "\\\"");
+        node.set(segments[segments.length - 1], value);
     }
 
     /**

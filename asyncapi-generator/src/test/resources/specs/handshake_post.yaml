@@ -2,14 +2,6 @@ asyncapi: 3.0.0
 x-ballerina-event-identifier:
   type: "body"
   path: "event.type"
-  handshake:
-    method: POST
-    when:
-      path: "type"
-      equals: "url_verification"
-    challenge:
-      in: body
-      path: "challenge"
 x-ballerina-auth:
   header: "X-Slack-Signature"
   signature:
@@ -42,6 +34,23 @@ channels:
               properties:
                 type:
                   type: string
+      urlVerification:
+        payload:
+          type: object
+          properties:
+            type:
+              type: string
+              const: "url_verification"
+            challenge:
+              type: string
+        correlationId:
+          location: "$message.payload#/challenge"
+      urlVerificationReply:
+        payload:
+          type: string
+        bindings:
+          http:
+            statusCode: 200
 operations:
   receiveEvents:
     action: receive
@@ -49,3 +58,14 @@ operations:
       $ref: "#/channels/events"
     messages:
       - $ref: "#/channels/events/messages/slackEvent"
+  verifyUrl:
+    action: receive
+    channel:
+      $ref: "#/channels/events"
+    messages:
+      - $ref: "#/channels/events/messages/urlVerification"
+    reply:
+      channel:
+        $ref: "#/channels/events"
+      messages:
+        - $ref: "#/channels/events/messages/urlVerificationReply"

@@ -138,9 +138,6 @@ public class GenerateDispatcherServiceNode implements Generator {
         members.add(buildFunc(new GenerateAddServiceRefFuncNode()));
         members.add(buildFunc(new GenerateRemoveServiceRefFuncNode()));
         members.add(buildFunc(new GeneratePostResourceFunctionNode(identifierConfig, webhookAuthConfig, batched)));
-        if (identifierConfig.handshake() != null && identifierConfig.handshake().isGet()) {
-            members.add(buildFunc(new GenerateGetResourceFunctionNode(identifierConfig.handshake())));
-        }
         if (batched) {
             members.add(buildFunc(new GenerateDispatchBatchFuncNode(identifierConfig)));
         }

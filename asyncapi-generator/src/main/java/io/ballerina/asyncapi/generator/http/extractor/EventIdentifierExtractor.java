@@ -21,12 +21,10 @@ import com.fasterxml.jackson.databind.JsonNode;
 import io.ballerina.asyncapi.core.api.AsyncApiSpec;
 import io.ballerina.asyncapi.generator.GeneratorException;
 import io.ballerina.asyncapi.generator.http.model.EventIdentifierConfig;
-import io.ballerina.asyncapi.generator.http.model.HandshakeConfig;
 import io.ballerina.asyncapi.generator.http.utils.CodegenUtils;
 
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.Locale;
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -44,16 +42,6 @@ public final class EventIdentifierExtractor {
     private static final String X_BALLERINA_EVENT_FIELD_IDENTIFIER_TYPE = "type";
     private static final String X_BALLERINA_EVENT_FIELD_IDENTIFIER_PATH = "path";
     private static final String X_BALLERINA_EVENT_FIELD_IDENTIFIER_NAME = "name";
-    private static final String X_BALLERINA_EVENT_FIELD_IDENTIFIER_HANDSHAKE = "handshake";
-    private static final String HANDSHAKE_METHOD = "method";
-    private static final String HANDSHAKE_WHEN = "when";
-    private static final String HANDSHAKE_WHEN_EQUALS = "equals";
-    private static final String HANDSHAKE_CHALLENGE = "challenge";
-    private static final String HANDSHAKE_CHALLENGE_IN = "in";
-    private static final String HANDSHAKE_IN_BODY = "body";
-    private static final String HANDSHAKE_IN_QUERY = "query";
-    private static final String HANDSHAKE_FIELD =
-            X_BALLERINA_EVENT_FIELD_IDENTIFIER + "." + X_BALLERINA_EVENT_FIELD_IDENTIFIER_HANDSHAKE;
 
     private final AsyncApiSpec asyncApiSpec;
 
@@ -95,18 +83,17 @@ public final class EventIdentifierExtractor {
         }
 
         String type = identifierFields.get(X_BALLERINA_EVENT_FIELD_IDENTIFIER_TYPE);
-        HandshakeConfig handshake = extractHandshake(identifierNode.get(X_BALLERINA_EVENT_FIELD_IDENTIFIER_HANDSHAKE));
 
         return switch (type) {
             case X_BALLERINA_EVENT_TYPE_HEADER ->
-                    new EventIdentifierConfig(type, extractHeaderName(identifierFields), null, handshake);
+                    new EventIdentifierConfig(type, extractHeaderName(identifierFields), null);
             case X_BALLERINA_EVENT_TYPE_BODY ->
-                    new EventIdentifierConfig(type, null, extractBodyPath(identifierFields), handshake);
+                    new EventIdentifierConfig(type, null, extractBodyPath(identifierFields));
             case X_BALLERINA_EVENT_TYPE_BODY_KEY ->
-                    new EventIdentifierConfig(type, null, extractBodyPath(identifierFields), handshake);
+                    new EventIdentifierConfig(type, null, extractBodyPath(identifierFields));
             case X_BALLERINA_EVENT_TYPE_COMPOSITE ->
                     new EventIdentifierConfig(type, extractHeaderName(identifierFields),
-                            extractBodyPath(identifierFields), handshake);
+                            extractBodyPath(identifierFields));
             default -> throw new GeneratorException(String.format(
                     "%s, %s, %s or %s is not provided as the value of %s attribute within the attribute %s"
                             + " in the Async API Specification",
@@ -176,78 +163,5 @@ public final class EventIdentifierExtractor {
         boolean quoted = CodegenUtils.BAL_KEYWORDS.contains(segment)
                 || (!segment.isEmpty() && Character.isDigit(segment.charAt(0)));
         return quoted ? "'" + escaped : escaped;
-    }
-
-    /**
-     * Reads the optional {@code handshake} block: {@code POST} needs {@code when.path}, {@code when.equals} and
-     * {@code challenge: {in: body, path}}; {@code GET} needs {@code challenge: {in: query, name}}.
-     *
-     * @param node the {@code handshake} node, or {@code null} if absent
-     * @return the handshake with its paths unescaped, or {@code null} if there is none
-     * @throws GeneratorException if the block is incomplete or mixes the two shapes
-     */
-    private static HandshakeConfig extractHandshake(JsonNode node) throws GeneratorException {
-        if (node == null || node.isNull()) {
-            return null;
-        }
-        if (!node.isObject()) {
-            throw new GeneratorException(String.format("%s must be an object", HANDSHAKE_FIELD));
-        }
-        String method = requiredText(node, HANDSHAKE_METHOD, HANDSHAKE_FIELD).toUpperCase(Locale.ROOT);
-        if (!HandshakeConfig.METHOD_GET.equals(method) && !HandshakeConfig.METHOD_POST.equals(method)) {
-            throw new GeneratorException(String.format(
-                    "%s.%s must be GET or POST, but found '%s'", HANDSHAKE_FIELD, HANDSHAKE_METHOD, method));
-        }
-        JsonNode challenge = requiredObject(node, HANDSHAKE_CHALLENGE, HANDSHAKE_FIELD);
-        String challengeField = HANDSHAKE_FIELD + "." + HANDSHAKE_CHALLENGE;
-        String in = requiredText(challenge, HANDSHAKE_CHALLENGE_IN, challengeField);
-        JsonNode when = node.get(HANDSHAKE_WHEN);
-
-        if (HandshakeConfig.METHOD_GET.equals(method)) {
-            if (!HANDSHAKE_IN_QUERY.equals(in)) {
-                throw new GeneratorException(String.format(
-                        "%s.%s must be '%s' for a GET handshake", challengeField, HANDSHAKE_CHALLENGE_IN,
-                        HANDSHAKE_IN_QUERY));
-            }
-            if (when != null) {
-                throw new GeneratorException(String.format(
-                        "%s.%s is only used with a POST handshake", HANDSHAKE_FIELD, HANDSHAKE_WHEN));
-            }
-            return new HandshakeConfig(method, null, null,
-                    requiredText(challenge, X_BALLERINA_EVENT_FIELD_IDENTIFIER_NAME, challengeField));
-        }
-        if (!HANDSHAKE_IN_BODY.equals(in)) {
-            throw new GeneratorException(String.format(
-                    "%s.%s must be '%s' for a POST handshake", challengeField, HANDSHAKE_CHALLENGE_IN,
-                    HANDSHAKE_IN_BODY));
-        }
-        if (when == null) {
-            throw new GeneratorException(String.format(
-                    "A POST handshake needs %s.%s to tell it apart from events", HANDSHAKE_FIELD, HANDSHAKE_WHEN));
-        }
-        String whenField = HANDSHAKE_FIELD + "." + HANDSHAKE_WHEN;
-        if (!when.isObject()) {
-            throw new GeneratorException(String.format("%s must be an object", whenField));
-        }
-        return new HandshakeConfig(method,
-                requiredText(when, X_BALLERINA_EVENT_FIELD_IDENTIFIER_PATH, whenField),
-                requiredText(when, HANDSHAKE_WHEN_EQUALS, whenField),
-                requiredText(challenge, X_BALLERINA_EVENT_FIELD_IDENTIFIER_PATH, challengeField));
-    }
-
-    private static String requiredText(JsonNode node, String key, String parent) throws GeneratorException {
-        JsonNode value = node.get(key);
-        if (value == null || !value.isValueNode() || value.asText().isBlank()) {
-            throw new GeneratorException(String.format("%s.%s is required", parent, key));
-        }
-        return value.asText().trim();
-    }
-
-    private static JsonNode requiredObject(JsonNode node, String key, String parent) throws GeneratorException {
-        JsonNode value = node.get(key);
-        if (value == null || !value.isObject()) {
-            throw new GeneratorException(String.format("%s.%s is required and must be an object", parent, key));
-        }
-        return value;
     }
 }

@@ -116,7 +116,9 @@ public final class ServiceTypeExtractor {
         for (Map.Entry<String, AsyncApiOperation> entry : operations.entrySet()) {
             AsyncApiOperation operation = entry.getValue();
 
-            if (operation.action() != AsyncApiOperation.Action.RECEIVE) {
+            if (operation.action() != AsyncApiOperation.Action.RECEIVE
+                    || HandshakeExtractor.isHandshake(operation)) {
+                // A handshake is answered by the listener, so it is not an event for a service.
                 continue;
             }
 
