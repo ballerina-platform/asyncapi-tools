@@ -316,9 +316,10 @@ public class GenerateDispatcherServiceNode implements Generator {
                 createNodeList(assignStatements),
                 createToken(CLOSE_BRACE_TOKEN), null);
 
+        // isolated so the listener's isolated attach() can create a dispatcher per path
         return createFunctionDefinitionNode(
                 OBJECT_METHOD_DEFINITION, null,
-                createEmptyNodeList(),
+                createNodeList(createToken(ISOLATED_KEYWORD)),
                 createToken(FUNCTION_KEYWORD),
                 createIdentifierToken("init"),
                 createEmptyNodeList(),
