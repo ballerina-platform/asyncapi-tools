@@ -116,7 +116,7 @@ public class CmdUtilsTest extends CmdTestBase {
         base.outputPath = "/out";
         base.licensePath = "license.txt";
         base.serviceName = "MyService";
-        base.jsonFlag = true;
+        base.format = "json";
         base.withTests = true;
 
         CmdOptions opts = CmdUtils.collectCmdOptions(base);
@@ -163,10 +163,10 @@ public class CmdUtilsTest extends CmdTestBase {
         Assert.assertTrue(opts.isWithTests());
     }
 
-    @Test(description = "collectCmdOptions maps jsonFlag = true correctly")
+    @Test(description = "collectCmdOptions maps format = json correctly")
     public void testCollectCmdOptionsWithJson() {
         BaseCmd base = new BaseCmd();
-        base.jsonFlag = true;
+        base.format = "json";
         CmdOptions opts = CmdUtils.collectCmdOptions(base);
         Assert.assertTrue(opts.isJson());
     }
@@ -179,7 +179,7 @@ public class CmdUtilsTest extends CmdTestBase {
         base.licensePath = "some/license.txt";
         base.serviceName = "MyService";
         base.withTests = true;
-        base.jsonFlag = true;
+        base.format = "json";
         CmdOptions opts = CmdUtils.collectCmdOptions(base);
         Assert.assertEquals(opts.getInput(), "input.yaml");
         Assert.assertEquals(opts.getOutput(), "some/output/dir");

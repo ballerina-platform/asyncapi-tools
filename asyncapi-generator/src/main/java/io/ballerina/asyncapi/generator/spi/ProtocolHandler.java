@@ -48,6 +48,26 @@ public interface ProtocolHandler {
     }
 
     /**
+     * Returns true if this handler honours the include-test-files option.
+     * Defaults to false — override to opt in.
+     *
+     * @return true if test generation can be requested
+     */
+    default boolean supportsTestGeneration() {
+        return false;
+    }
+
+    /**
+     * Returns true if this handler honours a caller-supplied license header.
+     * Defaults to false — override to opt in.
+     *
+     * @return true if a custom license header is applied
+     */
+    default boolean supportsLicenseHeader() {
+        return false;
+    }
+
+    /**
      * Returns true if this handler supports code-to-spec generation.
      * Defaults to false — override to opt in.
      *

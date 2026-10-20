@@ -217,15 +217,8 @@ public class GenerateListenerClassNode implements Generator {
     }
 
     private FunctionDefinitionNode buildInitFunc() {
-        // public function init(ListenerConfig listenerConfig = {},
-        //                      @cloud:Expose int|http:Listener listenOn = 8090) returns error?
-        AnnotationNode cloudExposeAnnotation = createAnnotationNode(
-                createToken(AT_TOKEN),
-                createQualifiedNameReferenceNode(
-                        createIdentifierToken(GenerateCloudImportNode.CLOUD_MODULE),
-                        createToken(COLON_TOKEN),
-                        createIdentifierToken("Expose")),
-                null);
+        // public function init(ListenerConfig listenerConfig = {}, int|http:Listener listenOn = 8090) returns error?
+        // No @cloud:Expose on the port: it would make every trigger depend on ballerina/cloud.
 
         // Connection auth (when present) always contributes at least one required field with no
         // safe default (a password, client secret, API key value, or certificate) - {} alone would
@@ -253,7 +246,7 @@ public class GenerateListenerClassNode implements Generator {
                         listenerConfigParam,
                         createToken(COMMA_TOKEN),
                         createDefaultableParameterNode(
-                                createNodeList(cloudExposeAnnotation),
+                                createEmptyNodeList(),
                                 createUnionTypeDescriptorNode(
                                         createBuiltinSimpleNameReferenceNode(null,
                                                 createIdentifierToken("int")),

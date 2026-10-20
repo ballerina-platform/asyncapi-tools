@@ -6,12 +6,14 @@ This is a set of Ballerina WebSocket test examples. The examples demonstrates ho
 
 ## Generating the AsyncAPI specification
 
-You can generate a demo AsyncAPI specification using the `server-demo` package. A pregenerated specification already exists in the `specs` directory. If you want to generate the specification again, you can use the following command, where `main.bal` is the Ballerina file that contains the entry point to the WebSocket service.
+You can generate a demo AsyncAPI specification using the `server-demo` package. A pregenerated specification already exists in the `specs` directory. If you want to generate the specification again, you can use the following command, which reads the WebSocket services of the package in the current directory.
 
 ```bash
 cd server-demo
-bal asyncapi --protocol ws -i main.bal -o specs
+bal asyncapi . --protocol ws -o specs --force
 ```
+
+Without `--force`, specifications that already exist with different content are skipped with a warning.
 
 ## A client-server example
 
@@ -27,7 +29,7 @@ You can regenerate the client using the following command:
 
 ```bash
 cd client
-bal asyncapi --protocol ws -i asyncapi.yaml
+bal asyncapi asyncapi.yaml --protocol ws --force
 ```
 
 You can run the server and client using the following commands:

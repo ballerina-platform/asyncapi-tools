@@ -1,0 +1,51 @@
+asyncapi: 3.0.0
+x-ballerina-event-identifier:
+  type: "body"
+  path: "eventType"
+x-ballerina-auth:
+  header: "X-Signature"
+  signature:
+    algorithm: "sha256"
+    encoding: "hex"
+    headerFormat: "$signature"
+    input: "$body"
+info:
+  title: Tiny Webhooks
+  version: 1.0.0
+  description: A minimal webhook spec used by the CLI tests.
+channels:
+  order:
+    address: order
+    messages:
+      orderCreated:
+        x-ballerina-event-type: "order.created"
+        payload:
+          type: array
+          items:
+            $ref: "#/components/schemas/OrderEvent"
+      orderCancelled:
+        x-ballerina-event-type: "order.cancelled"
+        payload:
+          type: array
+          items:
+            $ref: "#/components/schemas/OrderEvent"
+operations:
+  order:
+    action: receive
+    channel:
+      $ref: "#/channels/order"
+    messages:
+      - $ref: "#/channels/order/messages/orderCreated"
+      - $ref: "#/channels/order/messages/orderCancelled"
+components:
+  schemas:
+    OrderEvent:
+      required:
+        - eventType
+      properties:
+        eventType:
+          type: string
+          description: Type of the event.
+        orderId:
+          type: string
+          description: The order the event is about.
