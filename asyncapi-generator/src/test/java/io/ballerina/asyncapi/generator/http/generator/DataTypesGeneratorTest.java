@@ -247,63 +247,70 @@ public class DataTypesGeneratorTest {
     }
 
     @Test
-    void testGenericDataTypeUnionOrdersLooseSchemasLast() throws GeneratorException {
-        // "Installation" (all fields optional) declared FIRST, "PushPayload" (a required field)
-        // declared SECOND - a LinkedHashMap so schemas.entrySet() iterates in this exact order,
-        // which is deliberately the wrong order for the union: without the ordering fix, the loose
-        // schema would stay first, at real risk of capturing payloads meant for concrete types via
-        // cloneWithType's first-match resolution. The generator must reorder it to last regardless
-        // of input order.
-        AsyncApiSchema installation = AsyncApiSchema.builder()
-                .type("object")
-                .properties(Map.of(
-                        "id", AsyncApiSchema.builder().type("integer").build(),
-                        "node_id", AsyncApiSchema.builder().type("string").build()))
-                .build();
+    void testNoGenericDataTypeUnion() throws GeneratorException {
+        // Payloads bind to each handler's own type, so nothing uses a union of them all.
         AsyncApiSchema pushPayload = AsyncApiSchema.builder()
                 .type("object")
                 .required(List.of("ref"))
                 .properties(Map.of("ref", AsyncApiSchema.builder().type("string").build()))
                 .build();
         Map<String, AsyncApiSchema> schemas = new LinkedHashMap<>();
-        schemas.put("Installation", installation);
         schemas.put("PushPayload", pushPayload);
 
         String result = new DataTypesGenerator(schemas, Optional.<WebhookAuthConfig>empty(),
                 Optional.<ConnectionAuthConfig>empty()).generate();
 
-        int unionStart = result.indexOf("public type GenericDataType");
-        Assert.assertTrue(unionStart >= 0, "Expected a GenericDataType union declaration: " + result);
-        String unionDecl = result.substring(unionStart, result.indexOf(';', unionStart));
-        Assert.assertTrue(unionDecl.indexOf("PushPayload") < unionDecl.indexOf("Installation"),
-                "The loose 'Installation' schema must be ordered after the concrete 'PushPayload' "
-                        + "schema in the union, regardless of input order: " + unionDecl);
+        Assert.assertTrue(result.contains("public type PushPayload record"), result);
+        Assert.assertFalse(result.contains("GenericDataType"), "No GenericDataType union expected: " + result);
     }
 
     @Test
-    void testGenericDataTypeUnionKeepsRequiredFieldSchemasBeforeEachOtherInOriginalOrder() throws GeneratorException {
-        // Two concrete (non-loose) schemas should keep their relative order - the ordering fix
-        // should only ever move loose schemas to the end, not reorder everything else.
-        AsyncApiSchema first = AsyncApiSchema.builder()
+    void testGenerateWrapsLongFieldDescriptionsWithinLineBudget() throws GeneratorException {
+        // A real Shopify description that previously rendered as one ~210-character doc line.
+        String longDescription = "The value of the discrepancy between the calculated refund and the actual "
+                + "refund. If the kind property's value is shipping_refund, then amount returns the value of "
+                + "shipping charges refunded to the customer.";
+        AsyncApiSchema schema = AsyncApiSchema.builder()
                 .type("object")
-                .required(List.of("a"))
-                .properties(Map.of("a", AsyncApiSchema.builder().type("string").build()))
+                .properties(Map.of("amount", AsyncApiSchema.builder()
+                        .type("string")
+                        .description(longDescription)
+                        .build()))
                 .build();
-        AsyncApiSchema second = AsyncApiSchema.builder()
-                .type("object")
-                .required(List.of("b"))
-                .properties(Map.of("b", AsyncApiSchema.builder().type("string").build()))
-                .build();
-        Map<String, AsyncApiSchema> schemas = new LinkedHashMap<>();
-        schemas.put("FirstPayload", first);
-        schemas.put("SecondPayload", second);
 
-        String result = new DataTypesGenerator(schemas, Optional.<WebhookAuthConfig>empty(),
-                Optional.<ConnectionAuthConfig>empty()).generate();
+        String result = new DataTypesGenerator(Map.of("OrderAdjustment", schema),
+                Optional.<WebhookAuthConfig>empty(), Optional.<ConnectionAuthConfig>empty()).generate();
 
-        int unionStart = result.indexOf("public type GenericDataType");
-        String unionDecl = result.substring(unionStart, result.indexOf(';', unionStart));
-        Assert.assertTrue(unionDecl.indexOf("FirstPayload") < unionDecl.indexOf("SecondPayload"),
-                "Two concrete schemas should keep their original relative order: " + unionDecl);
+        for (String line : result.split("\n")) {
+            Assert.assertTrue(line.stripTrailing().length() <= 120,
+                    "Generated line exceeds the 120-character budget (" + line.stripTrailing().length()
+                            + " chars): " + line);
+        }
+        Assert.assertTrue(result.contains("# The value of the discrepancy"),
+                "The description should still be emitted as a doc comment: " + result);
+        Assert.assertTrue(result.lines().filter(line -> line.stripLeading().startsWith("#")).count() > 1,
+                "A description this long should be split across several doc-comment lines: " + result);
+    }
+
+    @Test
+    void testGenerateWrapsLongListenerConfigDescriptionWithinLineBudget() throws GeneratorException {
+        // ListenerConfig field docs are built from the spec too (here, an API key header name), so they wrap the same.
+        String longHeaderName = "header part ".repeat(20).stripTrailing();
+        ConnectionAuthConfig apiKey = new ConnectionAuthConfig(ConnectionAuthConfig.TYPE_HTTP_API_KEY,
+                null, null, null, longHeaderName, ConnectionAuthConfig.API_KEY_IN_HEADER);
+        AsyncApiSchema schema = AsyncApiSchema.builder().type("object").build();
+
+        String result = new DataTypesGenerator(Map.of("Event", schema),
+                Optional.<WebhookAuthConfig>empty(), Optional.of(apiKey)).generate();
+
+        for (String line : result.split("\n")) {
+            Assert.assertTrue(line.stripTrailing().length() <= 120,
+                    "Generated line exceeds the 120-character budget (" + line.stripTrailing().length()
+                            + " chars): " + line);
+        }
+        Assert.assertTrue(result.contains("# API key sent as the 'header part"),
+                "The description should still be emitted as a doc comment: " + result);
+        Assert.assertTrue(result.lines().filter(line -> line.stripLeading().startsWith("# header part")).count() > 0,
+                "The long API key description should continue on further doc-comment lines: " + result);
     }
 }

@@ -69,6 +69,20 @@ public class ListenerGeneratorTest {
     }
 
     @Test
+    void testGenerateDoesNotDependOnBallerinaCloud() throws GeneratorException {
+        List<HttpServiceType> serviceTypes = List.of(
+                new HttpServiceType("RepositoryService", List.of(new HttpRemoteFunction("push", "PushEvent"))));
+        String source = new ListenerGenerator(serviceTypes, Optional.<WebhookAuthConfig>empty(),
+                Optional.<ConnectionAuthConfig>empty(), "Test Connector").generate();
+
+        // ballerina/cloud would become a transitive dependency of every trigger (#8870).
+        Assert.assertFalse(source.contains("ballerina/cloud"), "Listener must not import ballerina/cloud: " + source);
+        Assert.assertFalse(source.contains("@cloud:Expose"), "listenOn must not carry @cloud:Expose: " + source);
+        Assert.assertTrue(source.contains("int|http:Listener listenOn = 8090"),
+                "listenOn should keep its type and default: " + source);
+    }
+
+    @Test
     void testGenerateWithConnectionAuthMakesListenerConfigRequired() throws GeneratorException {
         // Regression check for the listener.bal compile bug (#9028): once connection auth
         // contributes required fields (e.g. username/password) with no safe default, the

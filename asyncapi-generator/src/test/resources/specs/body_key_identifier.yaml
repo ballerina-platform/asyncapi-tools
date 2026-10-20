@@ -1,0 +1,67 @@
+asyncapi: 3.0.0
+x-ballerina-event-identifier:
+  type: "body-key"
+  path: "events"
+x-ballerina-auth:
+  header: "x-hub-signature"
+  signature:
+    algorithm: "sha256"
+    encoding: "hex"
+    headerFormat: "sha256=$signature"
+    input: "$body"
+info:
+  title: Identity Server Body Key Test
+  version: 1.0.0
+channels:
+  login:
+    address: login
+    messages:
+      loginSuccess:
+        x-ballerina-event-type: "https://schemas.identity.wso2.org/events/login/event-type/loginSuccess"
+        x-ballerina-event-label: "LoginSuccess"
+        payload:
+          $ref: "#/components/schemas/LoginSuccessEvent"
+      loginFailed:
+        x-ballerina-event-type: "https://schemas.identity.wso2.org/events/login/event-type/loginFailed"
+        x-ballerina-event-label: "LoginFailed"
+        payload:
+          $ref: "#/components/schemas/LoginFailedEvent"
+operations:
+  login:
+    action: receive
+    channel:
+      $ref: "#/channels/login"
+    messages:
+      - $ref: "#/channels/login/messages/loginSuccess"
+      - $ref: "#/channels/login/messages/loginFailed"
+components:
+  schemas:
+    LoginSuccessEvent:
+      type: object
+      required:
+        - events
+      properties:
+        iss:
+          type: string
+        events:
+          type: object
+          properties:
+            https://schemas.identity.wso2.org/events/login/event-type/loginSuccess:
+              $ref: "#/components/schemas/LoginData"
+    LoginFailedEvent:
+      type: object
+      required:
+        - events
+      properties:
+        iss:
+          type: string
+        events:
+          type: object
+          properties:
+            https://schemas.identity.wso2.org/events/login/event-type/loginFailed:
+              $ref: "#/components/schemas/LoginData"
+    LoginData:
+      type: object
+      properties:
+        action:
+          type: string
