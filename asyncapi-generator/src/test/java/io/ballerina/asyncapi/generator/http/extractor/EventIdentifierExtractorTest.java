@@ -85,6 +85,33 @@ public class EventIdentifierExtractorTest {
     }
 
     @Test
+    void testExtractBodyKeyType() throws AsyncApiParserException, GeneratorException {
+        String json = ASYNCAPI_PREFIX
+                + ",\"x-ballerina-event-identifier\":{\"type\":\"body-key\",\"path\":\"events\"}}";
+        EventIdentifierConfig config = new EventIdentifierExtractor(AsyncApiParser.parseFromJsonString(json)).extract();
+
+        Assert.assertEquals(config.type(), "body-key");
+        Assert.assertEquals(config.path(), "events");
+        Assert.assertNull(config.name(), "A body-key identifier has no header");
+    }
+
+    @Test
+    void testBodyKeyTypeNeedsAPath() throws AsyncApiParserException {
+        String json = ASYNCAPI_PREFIX + ",\"x-ballerina-event-identifier\":{\"type\":\"body-key\"}}";
+        GeneratorException e = Assert.expectThrows(GeneratorException.class, () ->
+                new EventIdentifierExtractor(AsyncApiParser.parseFromJsonString(json)).extract());
+        Assert.assertTrue(e.getMessage().contains("path"), e.getMessage());
+    }
+
+    @Test
+    void testUnknownTypeListsBodyKey() throws AsyncApiParserException {
+        String json = ASYNCAPI_PREFIX + ",\"x-ballerina-event-identifier\":{\"type\":\"query\",\"path\":\"a\"}}";
+        GeneratorException e = Assert.expectThrows(GeneratorException.class, () ->
+                new EventIdentifierExtractor(AsyncApiParser.parseFromJsonString(json)).extract());
+        Assert.assertTrue(e.getMessage().contains("body-key"), e.getMessage());
+    }
+
+    @Test
     void testMissingExtensionThrows() throws AsyncApiParserException {
         String json = ASYNCAPI_PREFIX + "}";
         AsyncApiSpec spec = AsyncApiParser.parseFromJsonString(json);

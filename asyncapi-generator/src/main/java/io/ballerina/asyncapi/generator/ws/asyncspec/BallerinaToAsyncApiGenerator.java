@@ -24,11 +24,17 @@ import io.ballerina.asyncapi.generator.ws.asyncspec.model.AsyncApiResult;
 import io.ballerina.asyncapi.generator.ws.asyncspec.utils.CodegenUtils;
 import io.ballerina.asyncapi.generator.ws.asyncspec.utils.ServiceToAsyncApiConverterUtils;
 import io.ballerina.compiler.api.SemanticModel;
+import io.ballerina.compiler.syntax.tree.ClassDefinitionNode;
+import io.ballerina.compiler.syntax.tree.ListenerDeclarationNode;
+import io.ballerina.compiler.syntax.tree.ModuleMemberDeclarationNode;
+import io.ballerina.compiler.syntax.tree.ModulePartNode;
+import io.ballerina.compiler.syntax.tree.SyntaxKind;
 import io.ballerina.compiler.syntax.tree.SyntaxTree;
 import io.ballerina.projects.BuildOptions;
 import io.ballerina.projects.Document;
 import io.ballerina.projects.DocumentId;
 import io.ballerina.projects.Module;
+import io.ballerina.projects.ModuleName;
 import io.ballerina.projects.Package;
 import io.ballerina.projects.PackageCompilation;
 import io.ballerina.projects.Project;
@@ -46,10 +52,12 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
-import static io.ballerina.asyncapi.generator.ws.asyncspec.utils.CodegenUtils.resolveContractFileName;
 
 /**
  * Generates AsyncAPI specification files from Ballerina WebSocket service definitions.
@@ -70,9 +78,30 @@ public class BallerinaToAsyncApiGenerator {
      */
     public static List<AsyncApiConverterDiagnostic> generateAsyncAPIDefinitionsAllService(
             Path servicePath, Path outPath, String serviceName, Boolean needJson, PrintStream outStream) {
+        return generateAsyncAPIDefinitionsAllService(servicePath, outPath, serviceName, null, needJson, outStream);
+    }
+
+    /**
+     * Generates AsyncAPI definitions for the services in a Ballerina source file or package.
+     * A file is read on its own; a package directory is read across every file of one module.
+     *
+     * @param servicePath path to a Ballerina source file or a package directory
+     * @param outPath     directory to write generated AsyncAPI files into
+     * @param serviceName optional service filter, a base path or class name (null to export all services)
+     * @param moduleName  module of the package to read, or null for the default module; ignored for a file
+     * @param needJson    {@code true} to emit JSON, {@code false} for YAML
+     * @param outStream   stream for progress and error messages
+     * @return list of diagnostics produced during generation
+     */
+    public static List<AsyncApiConverterDiagnostic> generateAsyncAPIDefinitionsAllService(
+            Path servicePath, Path outPath, String serviceName, String moduleName, Boolean needJson,
+            PrintStream outStream) {
+        Path absServicePath = servicePath.toAbsolutePath().normalize();
+        if (Files.isDirectory(absServicePath)) {
+            return generateForPackage(absServicePath, outPath, serviceName, moduleName, needJson, outStream);
+        }
         final List<AsyncApiConverterDiagnostic> errors = new ArrayList<>();
         BuildOptions buildOptions = BuildOptions.builder().setOffline(true).build();
-        Path absServicePath = servicePath.toAbsolutePath().normalize();
         Path loadPath = absServicePath.getParent();
         while (loadPath != null && !Files.exists(loadPath.resolve("Ballerina.toml"))) {
             loadPath = loadPath.getParent();
@@ -126,12 +155,90 @@ public class BallerinaToAsyncApiGenerator {
         if (asyncAPIDefinitions.isEmpty()) {
             return errors;
         }
-        List<String> fileNames = new ArrayList<>();
         for (AsyncApiResult definition : asyncAPIDefinitions) {
-            writeToFile(outPath, definition, needJson, errors, fileNames);
+            writeToFile(outPath, definition, needJson, errors);
         }
-        printSuccessMessage(outStream, fileNames);
         return errors;
+    }
+
+    /**
+     * Generates AsyncAPI definitions for every WebSocket service in one module of a package.
+     * Listeners and classes are shared across the module's files, and a service filter that matches nothing is
+     * reported once, after every file has been read.
+     */
+    private static List<AsyncApiConverterDiagnostic> generateForPackage(
+            Path packagePath, Path outPath, String serviceName, String moduleName, Boolean needJson,
+            PrintStream outStream) {
+        final List<AsyncApiConverterDiagnostic> errors = new ArrayList<>();
+        BuildOptions buildOptions = BuildOptions.builder().setOffline(true).build();
+        Project project = ProjectLoader.load(packagePath, buildOptions).project();
+        Package currentPackage = project.currentPackage();
+        PackageCompilation compilation = currentPackage.getCompilation();
+        if (compilation.diagnosticResult().hasErrors()) {
+            printDiagnostics(outStream, compilation.diagnosticResult().diagnostics());
+            return errors;
+        }
+        Module module = moduleName == null || moduleName.isBlank()
+                ? currentPackage.getDefaultModule()
+                : currentPackage.module(ModuleName.from(currentPackage.packageName(), moduleName));
+        if (module == null) {
+            DiagnosticMessages message = DiagnosticMessages.AAS_CONVERTOR_109;
+            errors.add(new ExceptionDiagnostic(message.getCode(), message.getDescription(), null, moduleName,
+                    currentPackage.packageName().value()));
+            return errors;
+        }
+        List<DocumentId> documentIds = new ArrayList<>(module.documentIds());
+        documentIds.sort(Comparator.comparing(id -> module.document(id).name()));
+        Map<DocumentId, List<ListenerDeclarationNode>> listenersByDocument = new LinkedHashMap<>();
+        Map<DocumentId, List<ClassDefinitionNode>> classesByDocument = new LinkedHashMap<>();
+        for (DocumentId id : documentIds) {
+            listenersByDocument.put(id, membersOf(module.document(id), SyntaxKind.LISTENER_DECLARATION,
+                    ListenerDeclarationNode.class));
+            classesByDocument.put(id, membersOf(module.document(id), SyntaxKind.CLASS_DEFINITION,
+                    ClassDefinitionNode.class));
+        }
+
+        SemanticModel semanticModel = compilation.getSemanticModel(module.moduleId());
+        List<String> availableServices = new ArrayList<>();
+        List<AsyncApiResult> definitions = new ArrayList<>();
+        for (DocumentId id : documentIds) {
+            List<ListenerDeclarationNode> otherListeners = new ArrayList<>();
+            List<ClassDefinitionNode> otherClasses = new ArrayList<>();
+            for (DocumentId otherId : documentIds) {
+                if (!otherId.equals(id)) {
+                    otherListeners.addAll(listenersByDocument.get(otherId));
+                    otherClasses.addAll(classesByDocument.get(otherId));
+                }
+            }
+            definitions.addAll(ServiceToAsyncApiConverterUtils.generateAsyncAPISpecDefinition(
+                    module.document(id).syntaxTree(), semanticModel, serviceName, needJson,
+                    project.documentPath(id).orElse(null), otherListeners, otherClasses, availableServices));
+        }
+        if (serviceName != null && definitions.stream().noneMatch(d -> d.getAsyncAPI().isPresent())) {
+            DiagnosticMessages messages = DiagnosticMessages.AAS_CONVERTOR_101;
+            List<AsyncApiConverterDiagnostic> notFound = new ArrayList<>();
+            notFound.add(new ExceptionDiagnostic(messages.getCode(), messages.getDescription(), null,
+                    serviceName, availableServices.toString().trim()));
+            definitions.add(new AsyncApiResult(null, null, notFound));
+        }
+        if (definitions.isEmpty()) {
+            outStream.println("No WebSocket service found in the module.");
+            return errors;
+        }
+        for (AsyncApiResult definition : definitions) {
+            writeToFile(outPath, definition, needJson, errors);
+        }
+        return errors;
+    }
+
+    private static <T> List<T> membersOf(Document document, SyntaxKind kind, Class<T> type) {
+        List<T> members = new ArrayList<>();
+        for (ModuleMemberDeclarationNode member : ((ModulePartNode) document.syntaxTree().rootNode()).members()) {
+            if (member.kind().equals(kind)) {
+                members.add(type.cast(member));
+            }
+        }
+        return members;
     }
 
     /**
@@ -146,19 +253,6 @@ public class BallerinaToAsyncApiGenerator {
             if (e.diagnosticInfo().severity().equals(DiagnosticSeverity.ERROR)) {
                 outStream.println(e.message());
             }
-        }
-    }
-
-    /**
-     * Prints the success message listing all generated file names.
-     *
-     * @param outStream stream to print to
-     * @param fileNames generated file names
-     */
-    private static void printSuccessMessage(PrintStream outStream, List<String> fileNames) {
-        outStream.println("AsyncAPI definition(s) generated successfully and copied to :");
-        for (String fileName : fileNames) {
-            outStream.println("-- " + fileName);
         }
     }
 
@@ -185,10 +279,9 @@ public class BallerinaToAsyncApiGenerator {
      * @param definition conversion result to write
      * @param needJson   {@code true} to write JSON, {@code false} for YAML
      * @param errors     accumulator for diagnostics
-     * @param fileNames  accumulator for successfully written file names
      */
     private static void writeToFile(Path outPath, AsyncApiResult definition, boolean needJson,
-                                    List<AsyncApiConverterDiagnostic> errors, List<String> fileNames) {
+                                    List<AsyncApiConverterDiagnostic> errors) {
         if (Files.notExists(outPath)) {
             createOutputDirectory(outPath, errors);
         }
@@ -201,9 +294,8 @@ public class BallerinaToAsyncApiGenerator {
             if (content.isEmpty()) {
                 return;
             }
-            String fileName = resolveContractFileName(outPath, definition.getServiceName(), needJson);
-            CodegenUtils.writeFile(outPath.resolve(fileName), content.get());
-            fileNames.add(fileName);
+            // The caller decides about existing files, so the definition's own file name is used as-is.
+            CodegenUtils.writeFile(outPath.resolve(definition.getServiceName()), content.get());
         } catch (IOException e) {
             DiagnosticMessages message = DiagnosticMessages.AAS_CONVERTOR_102;
             errors.add(new ExceptionDiagnostic(message.getCode(), message.getDescription(), null,

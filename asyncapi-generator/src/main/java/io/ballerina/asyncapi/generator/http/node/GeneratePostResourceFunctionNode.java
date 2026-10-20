@@ -182,6 +182,8 @@ public class GeneratePostResourceFunctionNode implements Generator {
             statements.add(NodeParser.parseStatement(String.format(
                     "string eventType = (check payload.%s).toString();",
                     identifierConfig.path())));
+        } else if (EventIdentifierExtractor.X_BALLERINA_EVENT_TYPE_BODY_KEY.equals(type)) {
+            statements.addAll(buildEventTypeFromBodyKeyStatements(identifierConfig.path()));
         } else {
             statements.addAll(buildEventTypeFromHeaderStatements(identifierConfig.name()));
             statements.add(NodeParser.parseStatement(String.format(
@@ -239,6 +241,25 @@ public class GeneratePostResourceFunctionNode implements Generator {
     // A Ballerina string literal for an arbitrary value from the definition.
     static String balStringLiteral(String value) {
         return "\"" + value.replace("\\", "\\\\").replace("\"", "\\\"") + "\"";
+    }
+
+    /**
+     * Builds the statements that take {@code eventType} from the key of the object at {@code path}, for providers
+     * that name the event by a key (for example WSO2 Identity Server's {@code events: {"<event URI>": {...}}}).
+     * Anything but an object with exactly one key is a malformed delivery and gets {@code 400 Bad Request}.
+     *
+     * @param path the escaped dot-notation path of the object whose key names the event
+     * @return the statements, ending with {@code eventType} bound to that key
+     */
+    private List<StatementNode> buildEventTypeFromBodyKeyStatements(String path) {
+        List<StatementNode> statements = new ArrayList<>();
+        statements.add(NodeParser.parseStatement(String.format("json|error keyedEvents = payload.%s;", path)));
+        statements.add(NodeParser.parseStatement(
+                "if keyedEvents !is map<json> || keyedEvents.length() != 1 {"
+                        + " http:Response badRequest = new; badRequest.statusCode = http:STATUS_BAD_REQUEST;"
+                        + " check caller->respond(badRequest); return; }"));
+        statements.add(NodeParser.parseStatement("string eventType = keyedEvents.keys()[0];"));
+        return statements;
     }
 
     // An identifier no attached service handles is not an error to the provider, but must not vanish silently.
