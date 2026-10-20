@@ -223,6 +223,44 @@ public class WebhookDSLVerificationTest {
     }
 
     @Test
+    public void testChannelIdentifiersGiveEachChannelItsOwnResource() throws Exception {
+        // Twilio-style: calls and messages name their status in different fields and share values like `failed`.
+        Path outputDir = generateOutputDir("channel_identifiers.yaml");
+
+        String dispatcher = Files.readString(outputDir.resolve("dispatcher_service.bal"));
+        Assert.assertTrue(dispatcher.contains("resource function post callStatus(http:Caller caller"), dispatcher);
+        Assert.assertTrue(dispatcher.contains("resource function post smsStatus(http:Caller caller"), dispatcher);
+        Assert.assertTrue(dispatcher.contains("resource function post alerts(http:Caller caller"), dispatcher);
+        Assert.assertFalse(dispatcher.contains("resource function post .("), "No catch-all resource: " + dispatcher);
+        Assert.assertFalse(dispatcher.contains("function matchRemoteFunc("),
+                "Each resource dispatches to its own service only: " + dispatcher);
+        Assert.assertTrue(dispatcher.contains("string eventType = (check payload.CallStatus).toString();"), dispatcher);
+        Assert.assertTrue(dispatcher.contains("string eventType = (check payload.MessageStatus).toString();"),
+                dispatcher);
+        Assert.assertTrue(dispatcher.contains("request.getHeader(\"X-Event-Type\")"),
+                "A channel without its own identifier uses the document's: " + dispatcher);
+        Assert.assertTrue(dispatcher.contains("self.matchRemoteFuncForCallStatus(payload, eventType)"), dispatcher);
+
+        String dispatchTest = Files.readString(outputDir.resolve("tests").resolve("dispatch_test.bal"));
+        Assert.assertTrue(dispatchTest.contains(
+                "sendSignedTriggerWebhook(\"/callStatus\", \"callStatus/failed\", {})"), dispatchTest);
+        Assert.assertTrue(dispatchTest.contains(
+                "sendSignedTriggerWebhook(\"/smsStatus\", \"smsStatus/failed\", {})"), dispatchTest);
+        Assert.assertTrue(dispatchTest.contains(
+                "sendSignedTriggerWebhook(\"/alerts\", \"alerts/warning\", {\"X-Event-Type\": "), dispatchTest);
+        Assert.assertTrue(dispatchTest.contains("function testCallStatusServiceFailedDispatch()"), dispatchTest);
+        Assert.assertTrue(dispatchTest.contains("function testSmsStatusServiceFailedDispatch()"), dispatchTest);
+        Assert.assertTrue(dispatchTest.contains("string payloadToHash = string `${path}${bodyText}`;"),
+                "$uri signs the channel's path: " + dispatchTest);
+    }
+
+    @Test
+    public void testChannelWithoutAnyIdentifierIsRejected() throws Exception {
+        assertGeneratorException("channel_identifier_missing.yaml",
+                "Channel 'alerts' has no x-ballerina-event-identifier");
+    }
+
+    @Test
     public void testBodyKeyIdentifierDispatchesOnTheKeyAndNamesFixturesByMessage() throws Exception {
         // WSO2 Identity Server: the event URI is the single key under `events`.
         Path outputDir = generateOutputDir("body_key_identifier.yaml");

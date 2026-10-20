@@ -23,6 +23,7 @@ import io.ballerina.asyncapi.generator.http.generator.ServiceTypesGenerator;
 import io.ballerina.asyncapi.generator.http.model.EventIdentifierConfig;
 import io.ballerina.asyncapi.generator.http.model.HttpServiceType;
 import io.ballerina.asyncapi.generator.http.model.WebhookAuthConfig;
+import io.ballerina.asyncapi.generator.http.utils.ChannelRoutes;
 import io.ballerina.asyncapi.generator.http.utils.FormBodies;
 import io.ballerina.compiler.syntax.tree.ClassDefinitionNode;
 import io.ballerina.compiler.syntax.tree.FunctionBodyBlockNode;
@@ -135,8 +136,11 @@ public class GenerateDispatcherServiceNode implements Generator {
 
     @Override
     public ClassDefinitionNode generate() throws GeneratorException {
+        boolean perChannel = ChannelRoutes.isPerChannel(serviceTypes);
         String eventIdentifierPath;
-        if (EventIdentifierExtractor.X_BALLERINA_EVENT_TYPE_BODY.equals(identifierConfig.type())) {
+        if (perChannel) {
+            eventIdentifierPath = "eventIdentifier";
+        } else if (EventIdentifierExtractor.X_BALLERINA_EVENT_TYPE_BODY.equals(identifierConfig.type())) {
             eventIdentifierPath = String.format("%s.%s",
                     PAYLOAD_VAR_NAME, identifierConfig.path());
         } else {
@@ -155,26 +159,41 @@ public class GenerateDispatcherServiceNode implements Generator {
         }
         members.add(buildFunc(new GenerateAddServiceRefFuncNode()));
         members.add(buildFunc(new GenerateRemoveServiceRefFuncNode()));
-        members.add(buildFunc(new GeneratePostResourceFunctionNode(identifierConfig, webhookAuthConfig, batched)
-                .withFormBodies(formFieldConversions)));
-        if (batched) {
-            members.add(buildFunc(new GenerateDispatchBatchFuncNode(identifierConfig)));
+        if (perChannel) {
+            for (HttpServiceType serviceType : serviceTypes) {
+                members.add(buildFunc(new GenerateChannelResourceFunctionNode(serviceType, webhookAuthConfig)
+                        .withFormBodies(formFieldConversions)));
+            }
+        } else {
+            members.add(buildFunc(new GeneratePostResourceFunctionNode(identifierConfig, webhookAuthConfig, batched)
+                    .withFormBodies(formFieldConversions)));
+            if (batched) {
+                members.add(buildFunc(new GenerateDispatchBatchFuncNode(identifierConfig)));
+            }
         }
-        
+
         if (webhookAuthConfig.isPresent()) {
             members.add(buildFunc(new GenerateVerifyWebhookSignatureFuncNode(webhookAuthConfig.get())));
             if (FormBodies.usesFormParams(webhookAuthConfig.get().input())) {
                 members.add(buildSortedFormParamsFunction());
             }
         }
-        
-        GenerateMatchRemoteFuncNode matchRemoteFuncGen =
-                new GenerateMatchRemoteFuncNode(serviceTypes, identifierConfig, eventIdentifierPath);
-        members.add(buildFunc(matchRemoteFuncGen));
 
-        // Add one chunk function per channel group if chunking was triggered
-        for (GenerateMatchChunkFuncNode chunkGen : matchRemoteFuncGen.getChunkGenerators()) {
-            members.add(buildFunc(chunkGen));
+        if (perChannel) {
+            // Each channel's resource calls its own service's match function with the event type it read.
+            for (HttpServiceType serviceType : serviceTypes) {
+                members.add(buildFunc(
+                        new GenerateMatchChunkFuncNode(serviceType, eventIdentifierPath, null, true)));
+            }
+        } else {
+            GenerateMatchRemoteFuncNode matchRemoteFuncGen =
+                    new GenerateMatchRemoteFuncNode(serviceTypes, identifierConfig, eventIdentifierPath);
+            members.add(buildFunc(matchRemoteFuncGen));
+
+            // Add one chunk function per channel group if chunking was triggered
+            for (GenerateMatchChunkFuncNode chunkGen : matchRemoteFuncGen.getChunkGenerators()) {
+                members.add(buildFunc(chunkGen));
+            }
         }
 
         members.add(buildFunc(new GenerateExecuteRemoteFuncNode()));
