@@ -64,8 +64,8 @@ public class HttpCodeGeneratorIntegrationTest {
                     "types.bal should contain PushEvent schema type");
             Assert.assertTrue(types.contains("ListenerConfig"),
                     "types.bal should always contain ListenerConfig");
-            Assert.assertTrue(types.contains("GenericDataType"),
-                    "types.bal should contain GenericDataType union");
+            Assert.assertFalse(types.contains("GenericDataType"),
+                    "types.bal should not contain the unused GenericDataType union");
 
             Assert.assertTrue(listener.contains("Listener"),
                     "listener.bal should contain the Listener class");
