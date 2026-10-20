@@ -80,6 +80,26 @@ class BallerinaToAsyncApiGeneratorTest {
             + "    }\n"
             + "}\n";
 
+    // The connection handle comes first and the module is imported under another prefix.
+    private static final String BAL_CALLER_FIRST =
+            "import ballerina/websocket as ws;\n\n"
+            + "public type ChatMessage record {\n"
+            + "    string event;\n"
+            + "    string content;\n"
+            + "};\n\n"
+            + "@ws:ServiceConfig {dispatcherKey: \"event\"}\n"
+            + "service /chat on new ws:Listener(9090) {\n"
+            + "    resource function get .() returns ws:Service|ws:UpgradeError {\n"
+            + "        return new ChatService();\n"
+            + "    }\n"
+            + "}\n\n"
+            + "service class ChatService {\n"
+            + "    *ws:Service;\n"
+            + "    remote function onChatMessage(ws:Caller caller, ChatMessage msg) returns string|error {\n"
+            + "        return msg.content;\n"
+            + "    }\n"
+            + "}\n";
+
     // Regression fixture for #6601 — function name "onHello" does not follow the on<ParameterType>
     // convention even though the parameter type is ClientData. Must still generate a full spec.
     private static final String BAL_MISMATCHED_FUNCTION_NAME =
@@ -859,6 +879,58 @@ class BallerinaToAsyncApiGeneratorTest {
         Assert.assertTrue(yaml.contains("asyncapi"), "root asyncapi key must be present");
         Assert.assertTrue(yaml.contains("sendChatMessage"),
                 "send operation 'sendChatMessage' must appear in spec");
+    }
+
+    @Test
+    void missingModuleIsReportedAsADiagnostic() throws IOException {
+        Files.writeString(balFile, BAL_CALLER_FIRST);
+        List<AsyncApiConverterDiagnostic> diagnostics = BallerinaToAsyncApiGenerator
+                .generateAsyncAPIDefinitionsAllService(projectDir, outDir, null, "missing", false, System.out);
+
+        Assert.assertTrue(diagnostics.stream().anyMatch(d -> "AAS_CONVERTOR_109".equals(d.getCode())
+                        && d.getMessage().contains("Module 'missing' not found")),
+                "A missing module must come back as a diagnostic: " + diagnostics);
+    }
+
+    @Test
+    void serviceClassInAnotherFileIsFound() throws IOException {
+        Files.writeString(balFile, "import ballerina/websocket as ws;\n\n"
+                + "@ws:ServiceConfig {dispatcherKey: \"event\"}\n"
+                + "service /chat on new ws:Listener(9090) {\n"
+                + "    resource function get .() returns ws:Service|ws:UpgradeError {\n"
+                + "        return new ChatService();\n"
+                + "    }\n"
+                + "}\n");
+        Files.writeString(projectDir.resolve("chat_service.bal"), "import ballerina/websocket as ws;\n\n"
+                + "public type ChatMessage record {\n"
+                + "    string event;\n"
+                + "    string content;\n"
+                + "};\n\n"
+                + "service class ChatService {\n"
+                + "    *ws:Service;\n"
+                + "    remote function onChatMessage(ws:Caller caller, ChatMessage msg) returns string|error {\n"
+                + "        return msg.content;\n"
+                + "    }\n"
+                + "}\n");
+        List<AsyncApiConverterDiagnostic> diagnostics = BallerinaToAsyncApiGenerator
+                .generateAsyncAPIDefinitionsAllService(projectDir, outDir, null, null, false, System.out);
+
+        Assert.assertTrue(diagnostics.isEmpty(), "unexpected diagnostics: " + diagnostics);
+        String yaml = readGeneratedYaml();
+        Assert.assertTrue(yaml.contains("sendChatMessage"),
+                "the remote function of a class in another file must become an operation: " + yaml);
+    }
+
+    @Test
+    void callerParameterIsSkippedWhenFindingTheMessage() throws IOException {
+        Files.writeString(balFile, BAL_CALLER_FIRST);
+        BallerinaToAsyncApiGenerator.generateAsyncAPIDefinitionsAllService(
+                balFile, outDir, null, false, System.out);
+
+        String yaml = readGeneratedYaml();
+        Assert.assertTrue(yaml.contains("ChatMessage"),
+                "the message type after the caller must be the message: " + yaml);
+        Assert.assertFalse(yaml.contains("Caller"), "the caller must not become a message: " + yaml);
     }
 
     @Test

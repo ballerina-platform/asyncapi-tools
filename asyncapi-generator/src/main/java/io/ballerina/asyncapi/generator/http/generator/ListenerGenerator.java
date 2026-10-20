@@ -21,7 +21,6 @@ import io.ballerina.asyncapi.generator.GeneratorException;
 import io.ballerina.asyncapi.generator.http.model.ConnectionAuthConfig;
 import io.ballerina.asyncapi.generator.http.model.HttpServiceType;
 import io.ballerina.asyncapi.generator.http.model.WebhookAuthConfig;
-import io.ballerina.asyncapi.generator.http.node.GenerateCloudImportNode;
 import io.ballerina.asyncapi.generator.http.node.GenerateHttpImportNode;
 import io.ballerina.asyncapi.generator.http.node.GenerateListenerClassNode;
 import io.ballerina.compiler.syntax.tree.ClassDefinitionNode;
@@ -85,13 +84,12 @@ public class ListenerGenerator {
         ClassDefinitionNode classNode = new GenerateListenerClassNode(serviceTypes, webhookAuthConfig,
                 connectionAuthConfig, displayLabel).generate();
         ImportDeclarationNode httpImport = GenerateHttpImportNode.generate();
-        ImportDeclarationNode cloudImport = GenerateCloudImportNode.generate();
 
         TextDocument textDocument = TextDocuments.from("");
         SyntaxTree syntaxTree = SyntaxTree.from(textDocument);
         ModulePartNode oldRoot = syntaxTree.rootNode();
         ModulePartNode newRoot = oldRoot.modify()
-                .withImports(createNodeList(httpImport, cloudImport))
+                .withImports(createNodeList(httpImport))
                 .withMembers(createNodeList(classNode))
                 .apply();
         SyntaxTree modifiedTree = syntaxTree.replaceNode(oldRoot, newRoot);

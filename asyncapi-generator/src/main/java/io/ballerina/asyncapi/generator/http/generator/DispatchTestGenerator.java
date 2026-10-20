@@ -440,26 +440,45 @@ public class DispatchTestGenerator {
     private String buildTestFunction(DispatchTestCase testCase) {
         String testFnName = "test" + capitalize(testCase.functionName().replaceFirst("^on", "")) + "Dispatch";
         String trackerKey = testCase.serviceTypeName() + "." + testCase.functionName();
-        String callArgs = isBodyModeIdentifier()
-                ? "\"" + testCase.eventIdentifier() + "\""
-                : "\"" + testCase.headerValue() + "\", \"" + testCase.eventIdentifier() + "\"";
+        String callArgs;
+        if (isBodyKeyIdentifier()) {
+            // The event type is a key such as a URI, which cannot name a file; the message key names the fixture.
+            callArgs = "\"" + testCase.messageName() + "\"";
+        } else if (isBodyModeIdentifier()) {
+            callArgs = "\"" + testCase.eventIdentifier() + "\"";
+        } else {
+            callArgs = "\"" + testCase.headerValue() + "\", \"" + testCase.eventIdentifier() + "\"";
+        }
+        // A key-named event is checked to reach only its own function, not any function of the service.
+        String onlyThisFunction = isBodyKeyIdentifier()
+                ? "    lock {\n        test:assertEquals(triggerFired.keys(), [\"" + trackerKey
+                        + "\"], \"Only " + trackerKey + " should have fired\");\n    }\n"
+                : "";
+        String resetFired = isBodyKeyIdentifier() ? "    lock {\n        triggerFired.removeAll();\n    }\n" : "";
         return "@test:Config {}\n"
                 + "function " + testFnName + "() returns error? {\n"
+                + resetFired
                 + "    http:Response response = check sendSignedTriggerWebhook(" + callArgs + ");\n"
                 + "    test:assertEquals(response.statusCode, http:STATUS_OK);\n"
                 + "    test:assertTrue(waitForDispatch(\"" + trackerKey + "\"), \""
                 + trackerKey + " should have fired\");\n"
+                + onlyThisFunction
                 + buildBindingAssertions(testCase, trackerKey)
                 + "}\n\n";
     }
 
     /**
-     * {@code body}-mode identifiers are already present in the fixture, so the test client never
+     * {@code body} and {@code body-key} identifiers are already present in the fixture, so the test client never
      * needs to set a synthetic identifier header -- see the class-level Javadoc.
      */
     private boolean isBodyModeIdentifier() {
         String identifierType = identifierConfig != null ? identifierConfig.type() : null;
-        return EventIdentifierExtractor.X_BALLERINA_EVENT_TYPE_BODY.equals(identifierType);
+        return EventIdentifierExtractor.X_BALLERINA_EVENT_TYPE_BODY.equals(identifierType) || isBodyKeyIdentifier();
+    }
+
+    private boolean isBodyKeyIdentifier() {
+        String identifierType = identifierConfig != null ? identifierConfig.type() : null;
+        return EventIdentifierExtractor.X_BALLERINA_EVENT_TYPE_BODY_KEY.equals(identifierType);
     }
 
     /**

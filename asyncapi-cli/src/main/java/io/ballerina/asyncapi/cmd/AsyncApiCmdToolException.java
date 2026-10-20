@@ -36,7 +36,7 @@ public class AsyncApiCmdToolException extends RuntimeException {
      * @param args       format arguments applied to {@code diagnostic.getMessage()}
      */
     public AsyncApiCmdToolException(AsyncApiCmdToolDiagnostic diagnostic, String... args) {
-        super("ERROR: " + String.format(diagnostic.getMessage(), (Object[]) args));
+        super("error: " + String.format(diagnostic.getMessage(), (Object[]) args));
         this.diagnosticCode = diagnostic.getCode();
         this.diagnosticMessage = String.format(diagnostic.getMessage(), (Object[]) args);
     }
@@ -51,7 +51,7 @@ public class AsyncApiCmdToolException extends RuntimeException {
      */
     public AsyncApiCmdToolException(Throwable cause, AsyncApiCmdToolDiagnostic diagnostic,
                                     String... args) {
-        super("ERROR: " + String.format(diagnostic.getMessage(), (Object[]) args), cause);
+        super("error: " + String.format(diagnostic.getMessage(), (Object[]) args), cause);
         this.diagnosticCode = diagnostic.getCode();
         this.diagnosticMessage = String.format(diagnostic.getMessage(), (Object[]) args);
     }

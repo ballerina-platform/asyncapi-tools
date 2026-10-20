@@ -59,6 +59,35 @@ public class DispatcherGeneratorTest {
     }
 
     @Test
+    void testGenerateWithBodyKeyIdentifier() throws GeneratorException {
+        // WSO2 Identity Server names the event by the single key under `events`, not by a field value.
+        EventIdentifierConfig config = new EventIdentifierConfig("body-key", null, "events");
+        String source = new DispatcherGenerator(SINGLE_SERVICE, config, Optional.<WebhookAuthConfig>empty(), false)
+                .generate();
+
+        Assert.assertTrue(source.contains("json|error keyedEvents = payload.events;"), source);
+        Assert.assertTrue(source.contains("if keyedEvents !is map<json> || keyedEvents.length() != 1 {"),
+                "Anything but an object with exactly one key must be rejected: " + source);
+        Assert.assertTrue(source.contains("badRequest.statusCode = http:STATUS_BAD_REQUEST;"), source);
+        Assert.assertTrue(source.contains("string eventType = keyedEvents.keys()[0];"), source);
+        Assert.assertTrue(
+                source.indexOf("keyedEvents.keys()[0]") < source.indexOf("check caller->respond(ackResponse)"),
+                "The key is read before the delivery is acknowledged: " + source);
+        Assert.assertTrue(source.contains("self.matchRemoteFunc(payload, eventType)"),
+                "The key is matched like a header value: " + source);
+        Assert.assertFalse(source.contains("(check payload.events).toString()"),
+                "The object's value must not be used as the event type: " + source);
+    }
+
+    @Test
+    void testBodyKeyIdentifierRejectsBatchedPayloads() {
+        EventIdentifierConfig config = new EventIdentifierConfig("body-key", null, "events");
+        GeneratorException e = Assert.expectThrows(GeneratorException.class, () ->
+                new DispatcherGenerator(SINGLE_SERVICE, config, Optional.<WebhookAuthConfig>empty(), true).generate());
+        Assert.assertTrue(e.getMessage().contains("does not support batched payloads"), e.getMessage());
+    }
+
+    @Test
     void testDiagnosticTraceLogsRemovedButDispatchFailedKept() throws GeneratorException {
         // MATCH_LEVEL_1_*/MATCH_LEVEL_2_*/DISPATCHER_ENTERED/SIGNATURE_VERIFIED/HANDLER_EXECUTED_*
         // were pure diagnostic trace noise with no value to an end user - removed. DISPATCH_FAILED

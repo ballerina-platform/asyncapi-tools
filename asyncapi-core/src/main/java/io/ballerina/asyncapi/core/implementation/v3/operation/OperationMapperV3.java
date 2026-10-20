@@ -43,7 +43,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.util.Collections;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -82,7 +82,7 @@ public final class OperationMapperV3 {
         }
         AsyncApi30Channels rawChannels = v3Doc.getChannels() instanceof AsyncApi30Channels c ? c : null;
         AsyncApi30Components components = v3Doc.getComponents() instanceof AsyncApi30Components c ? c : null;
-        Map<String, AsyncApiOperation> result = new HashMap<>();
+        Map<String, AsyncApiOperation> result = new LinkedHashMap<>();
         for (String operationId : operationIds) {
             Object item = operations.getItem(operationId);
             if (item instanceof AsyncApi30Operation op) {
@@ -141,7 +141,7 @@ public final class OperationMapperV3 {
         Map<String, io.ballerina.asyncapi.core.model.message.AsyncApiMessage> messages = null;
         List<AsyncApi30Reference> messageRefs = typed.getMessages();
         if (messageRefs != null && !messageRefs.isEmpty()) {
-            Map<String, io.ballerina.asyncapi.core.model.message.AsyncApiMessage> msgMap = new HashMap<>();
+            Map<String, io.ballerina.asyncapi.core.model.message.AsyncApiMessage> msgMap = new LinkedHashMap<>();
             for (AsyncApi30Reference messageRef : messageRefs) {
                 if (messageRef == null) {
                     continue;

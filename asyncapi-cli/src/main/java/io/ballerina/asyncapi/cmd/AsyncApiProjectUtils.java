@@ -33,9 +33,11 @@ import io.ballerina.tools.diagnostics.Diagnostic;
 import io.ballerina.tools.text.TextDocument;
 import io.ballerina.tools.text.TextDocuments;
 
+import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.stream.Collectors;
 
 /**
  * Utility methods for inspecting and navigating Ballerina project structures.
@@ -141,17 +143,89 @@ public final class AsyncApiProjectUtils {
         return rootPath.resolve("modules").resolve(module);
     }
 
+    /** What a Ballerina-code input to the CLI turned out to be. */
+    public enum CodeInputKind {
+        /** A directory holding a Ballerina package. */
+        PACKAGE,
+        /** A single .bal file outside any package. */
+        STANDALONE_FILE
+    }
+
     /**
-     * Validates that the given path points to a readable Ballerina source file.
+     * Classifies a Ballerina-code input as a package or a standalone file, rejecting everything else the way
+     * {@code bal run} does: a directory must be a package, and a file inside a package must be given as the
+     * package instead.
      *
-     * @param inputPath path to the .bal file
+     * @param input path to a package directory or a .bal file
+     * @return the kind of input
+     * @throws AsyncApiCmdToolException if the directory is not a package or is a workspace, or the file
+     *                                  belongs to a package
+     */
+    public static CodeInputKind resolveCodeInput(Path input) {
+        Path abs = input.toAbsolutePath().normalize();
+        if (Files.isDirectory(abs)) {
+            if (!Files.exists(abs.resolve("Ballerina.toml"))) {
+                throw new AsyncApiCmdToolException(AsyncApiCmdToolDiagnostic.ASYNC_CLI_011, input.toString());
+            }
+            if (ProjectPaths.isWorkspaceProjectRoot(abs)) {
+                throw new AsyncApiCmdToolException(AsyncApiCmdToolDiagnostic.ASYNC_CLI_014, input.toString());
+            }
+            return CodeInputKind.PACKAGE;
+        }
+        Path parent = abs.getParent();
+        while (parent != null) {
+            if (Files.exists(parent.resolve("Ballerina.toml"))) {
+                throw new AsyncApiCmdToolException(
+                        AsyncApiCmdToolDiagnostic.ASYNC_CLI_012, input.toString(), parent.toString());
+            }
+            parent = parent.getParent();
+        }
+        return CodeInputKind.STANDALONE_FILE;
+    }
+
+    /**
+     * Checks that a module exists in a package and normalises it: the package's own name means its default
+     * module, which is returned as {@code null}.
+     *
+     * @param packageRoot root of the package
+     * @param module      module requested by the user, may be null or blank
+     * @return the module to read, or {@code null} for the default module
+     * @throws AsyncApiCmdToolException if the package has no such module
+     */
+    public static String resolveModule(Path packageRoot, String module) {
+        if (module == null || module.isBlank() || module.equals(readPackageName(packageRoot))) {
+            return null;
+        }
+        Path modules = packageRoot.resolve("modules");
+        if (Files.isDirectory(modules.resolve(module))) {
+            return module;
+        }
+        String available = "none";
+        if (Files.isDirectory(modules)) {
+            try (var children = Files.list(modules)) {
+                available = children.filter(Files::isDirectory).map(p -> p.getFileName().toString()).sorted()
+                        .collect(Collectors.joining(", "));
+            } catch (IOException e) {
+                available = "unknown";
+            }
+            if (available.isEmpty()) {
+                available = "none";
+            }
+        }
+        throw new AsyncApiCmdToolException(AsyncApiCmdToolDiagnostic.ASYNC_CLI_013, module, available);
+    }
+
+    /**
+     * Validates that the given path points to a Ballerina source file or package that compiles.
+     *
+     * @param inputPath path to the .bal file or the package directory
      * @throws AsyncApiCmdToolException if the file does not exist, is not a .bal file, or has compilation errors
      */
     public static void validateBalFile(Path inputPath) {
         Path absPath = inputPath.toAbsolutePath();
-        // Walk up to check if this .bal file belongs to a package
-        Path parent = absPath.getParent();
+        // A package directory loads as itself; a file loads from the package that contains it, if any
         Path packageRoot = null;
+        Path parent = Files.isDirectory(absPath) ? absPath : absPath.getParent();
         while (parent != null) {
             if (Files.exists(parent.resolve("Ballerina.toml"))) {
                 packageRoot = parent;

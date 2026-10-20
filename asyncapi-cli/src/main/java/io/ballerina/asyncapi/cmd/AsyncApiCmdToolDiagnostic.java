@@ -29,10 +29,9 @@ public enum AsyncApiCmdToolDiagnostic {
     /** General code-generation failure; {@code %s} is replaced with the underlying error message. */
     ASYNC_CLI_001("ASYNC_CLI_001", "Code generation failed: %s"),
 
-    /** The http sub-command does not support Ballerina-to-AsyncAPI export. */
+    /** The protocol does not support Ballerina-to-AsyncAPI generation; {@code %s} is the protocol name. */
     ASYNC_CLI_002("ASYNC_CLI_002",
-            "The http subcommand does not support Ballerina-to-AsyncAPI generation. "
-            + "Use 'bal asyncapi ws --service <name> --input <file.bal>' instead."),
+            "The %s protocol does not support Ballerina-to-AsyncAPI generation."),
 
     /** Ballerina workspace detected during project resolution; use --output to target a package. */
     ASYNC_CLI_003("ASYNC_CLI_003",
@@ -66,7 +65,25 @@ public enum AsyncApiCmdToolDiagnostic {
     /** Output path is inside project but not root or modules/<name>; {@code %s} is the path. */
     ASYNC_CLI_010("ASYNC_CLI_010",
             "Unrecognized module location: %s. "
-            + "Use the project root, modules/<module>, or pass --module to target a specific module.");
+            + "Use the project root, modules/<module>, or pass --module to target a specific module."),
+
+    /** Input directory has no Ballerina.toml; {@code %s} is the path. */
+    ASYNC_CLI_011("ASYNC_CLI_011",
+            "'%s' is not a Ballerina package: it has no Ballerina.toml. "
+            + "Pass a package directory or a standalone .bal file."),
+
+    /** Input .bal file sits inside a package; first {@code %s} is the file, second the package root. */
+    ASYNC_CLI_012("ASYNC_CLI_012",
+            "'%s' belongs to the Ballerina package at '%s'. "
+            + "Pass the package directory instead of a file inside it, as 'bal run' does."),
+
+    /** Requested module is not in the package; first {@code %s} is the module, second the available ones. */
+    ASYNC_CLI_013("ASYNC_CLI_013",
+            "Module '%s' not found in the package. Available modules: %s."),
+
+    /** Input directory is a workspace root; {@code %s} is the path. */
+    ASYNC_CLI_014("ASYNC_CLI_014",
+            "'%s' is a Ballerina workspace. Pass the directory of one of its packages.");
 
     private final String code;
     private final String message;
