@@ -89,7 +89,8 @@ public final class DispatchTestCaseExtractor {
                 continue;
             }
 
-            for (AsyncApiMessage message : messages.values()) {
+            for (Map.Entry<String, AsyncApiMessage> messageEntry : messages.entrySet()) {
+                AsyncApiMessage message = messageEntry.getValue();
                 Map<String, JsonNode> extensions = message.extensions();
                 if (extensions == null || !extensions.containsKey(X_BALLERINA_EVENT_TYPE)) {
                     continue;
@@ -119,8 +120,8 @@ public final class DispatchTestCaseExtractor {
                 String namingBasis = displayLabel != null ? displayLabel : eventIdentifier;
                 String functionName = CodegenUtils.getFunctionNameByEventName(namingBasis);
                 String serviceTypeDeclName = CodegenUtils.getServiceTypeNameByServiceName(serviceTypeName);
-                testCases.add(new DispatchTestCase(
-                        serviceTypeDeclName, functionName, eventIdentifier, headerValue, payloadTypeName));
+                testCases.add(new DispatchTestCase(serviceTypeDeclName, functionName, eventIdentifier, headerValue,
+                        payloadTypeName, messageEntry.getKey()));
             }
         }
 

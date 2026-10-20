@@ -290,6 +290,40 @@ x-ballerina-auth:
     input: "$secret . $body"
 ```
 
+## Event Named by a Key (`body-key`)
+
+`x-ballerina-event-identifier` normally reads the event type from a value: a header (`type: header`), a body
+field (`type: body`), or both (`type: composite`). Some providers name the event by a **key** instead. WSO2 Identity
+Server and Asgardeo send one event per delivery, keyed by its URI:
+
+```json
+{
+  "iss": "https://api.asgardeo.io/t/myorg",
+  "events": {
+    "https://schemas.identity.wso2.org/events/login/event-type/loginSuccess": { "action": "LOGIN" }
+  }
+}
+```
+
+For these, use `type: body-key` with the path of the object whose key names the event:
+
+```yaml
+x-ballerina-event-identifier:
+  type: body-key
+  path: events
+```
+
+- The listener reads the object at `path` and uses its single key as the event type, matched against each
+  message's `x-ballerina-event-type` (here, the full URI).
+- A delivery where that object is missing, is not an object, or does not have exactly one key gets `400 Bad Request`.
+- Use `x-ballerina-event-label` on each message to name its remote function, since a URI makes a poor function
+  name (for example `LoginSuccess` gives `onLoginSuccess`).
+- `body-key` does not support batched payloads; generation fails if the payload is an array of events.
+
+The generated dispatch tests name each payload file after the message's key in `channels` (for example
+`tests/resources/trigger_payloads/loginSuccess.json`), because an event type such as a URI cannot be a file name,
+and check that each event reaches only its own remote function.
+
 ## Backwards Compatibility
 
 If `x-ballerina-auth` only declares `header` (no nested `signature` block), generation defaults to the

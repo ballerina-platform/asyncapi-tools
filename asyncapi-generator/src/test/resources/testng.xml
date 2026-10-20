@@ -15,6 +15,7 @@
             <class name="io.ballerina.asyncapi.generator.ws.asyncspec.model.BalBooleanSchemaTest"/>
             <class name="io.ballerina.asyncapi.generator.ws.asyncspec.BallerinaToAsyncApiGeneratorTest"/>
             <class name="io.ballerina.asyncapi.generator.http.HttpCodeGeneratorIntegrationTest"/>
+            <class name="io.ballerina.asyncapi.generator.http.HttpTypeNamingOrderTest"/>
             <class name="io.ballerina.asyncapi.generator.http.extractor.EventIdentifierExtractorTest"/>
             <class name="io.ballerina.asyncapi.generator.http.extractor.ServiceTypeExtractorTest"/>
             <class name="io.ballerina.asyncapi.generator.http.extractor.ConnectionAuthExtractorTest"/>

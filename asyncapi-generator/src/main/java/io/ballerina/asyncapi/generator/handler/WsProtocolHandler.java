@@ -54,6 +54,16 @@ public final class WsProtocolHandler implements ProtocolHandler {
     }
 
     @Override
+    public boolean supportsTestGeneration() {
+        return true;
+    }
+
+    @Override
+    public boolean supportsLicenseHeader() {
+        return true;
+    }
+
+    @Override
     public void specToCode(AsyncApiSpec spec,
                            Path outputPath,
                            SpecToCodeOptions options)
@@ -77,6 +87,7 @@ public final class WsProtocolHandler implements ProtocolHandler {
                     inputPath,
                     outputPath,
                     options.getServiceName(),
+                    options.getModuleName(),
                     options.isNeedJson(),
                     options.getOutStream());
 

@@ -26,15 +26,11 @@ import io.ballerina.asyncapi.generator.http.node.GenerateHttpImportNode;
 import io.ballerina.asyncapi.generator.http.node.GenerateJsonDataImportNode;
 import io.ballerina.asyncapi.generator.http.node.GenerateListenerConfigNode;
 import io.ballerina.asyncapi.generator.http.node.GenerateModuleMemberDeclarationNode;
-import io.ballerina.asyncapi.generator.http.node.GenerateUnionDescriptorNode;
-import io.ballerina.asyncapi.generator.http.node.Generator;
 import io.ballerina.asyncapi.generator.http.utils.CodegenUtils;
 import io.ballerina.compiler.syntax.tree.ImportDeclarationNode;
 import io.ballerina.compiler.syntax.tree.ModuleMemberDeclarationNode;
 import io.ballerina.compiler.syntax.tree.ModulePartNode;
 import io.ballerina.compiler.syntax.tree.SyntaxTree;
-import io.ballerina.compiler.syntax.tree.TypeDefinitionNode;
-import io.ballerina.compiler.syntax.tree.TypeDescriptorNode;
 import io.ballerina.tools.text.TextDocument;
 import io.ballerina.tools.text.TextDocuments;
 import org.ballerinalang.formatter.core.Formatter;
@@ -47,17 +43,13 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
-import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createIdentifierToken;
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createNodeList;
-import static io.ballerina.compiler.syntax.tree.NodeFactory.createSimpleNameReferenceNode;
 
 /**
  * Generates the content for {@code types.bal} from a map of AsyncAPI schema definitions.
  *
  */
 public class DataTypesGenerator {
-
-    public static final String GENERIC_DATA_TYPE = "GenericDataType";
 
     private final Map<String, AsyncApiSchema> schemas;
     private final Optional<WebhookAuthConfig> webhookAuthConfig;
@@ -93,10 +85,6 @@ public class DataTypesGenerator {
         List<ModuleMemberDeclarationNode> typeNodes = new ArrayList<>();
         typeNodes.add(GenerateListenerConfigNode.generate(extraConfigFields, connectionAuthConfig));
 
-        // Loose schemas (see isLooseObjectSchema) are ordered last in the union.
-        List<TypeDescriptorNode> strictTypeDescriptors = new ArrayList<>();
-        List<TypeDescriptorNode> looseTypeDescriptors = new ArrayList<>();
-
         // Shared across entries so hoisted inline types can't collide on name.
         Set<String> claimedTypeNames = new HashSet<>();
         for (String schemaName : schemas.keySet()) {
@@ -106,26 +94,9 @@ public class DataTypesGenerator {
         for (Map.Entry<String, AsyncApiSchema> entry : schemas.entrySet()) {
             GenerateModuleMemberDeclarationNode gen =
                     new GenerateModuleMemberDeclarationNode(entry, schemas, claimedTypeNames);
-            ModuleMemberDeclarationNode node = gen.generate();
-            if (node instanceof TypeDefinitionNode typeDefNode) {
-                TypeDescriptorNode reference = createSimpleNameReferenceNode(
-                        createIdentifierToken(typeDefNode.typeName().text()));
-                if (isLooseObjectSchema(entry.getValue())) {
-                    looseTypeDescriptors.add(reference);
-                } else {
-                    strictTypeDescriptors.add(reference);
-                }
-            }
-            typeNodes.add(node);
+            typeNodes.add(gen.generate());
             typeNodes.addAll(gen.getHoistedTypes());
         }
-
-        List<TypeDescriptorNode> typeDescriptors = new ArrayList<>(strictTypeDescriptors);
-        typeDescriptors.addAll(looseTypeDescriptors);
-
-        Generator unionGen = new GenerateUnionDescriptorNode(typeDescriptors, GENERIC_DATA_TYPE,
-                "The union of every possible webhook payload type this listener can receive.");
-        typeNodes.add(unionGen.generate());
 
         List<ImportDeclarationNode> imports = new ArrayList<>();
         boolean x509AuthConfigured = connectionAuthConfig.isPresent()
@@ -208,29 +179,5 @@ public class DataTypesGenerator {
             }
         }
         return schema.items() instanceof AsyncApiSchema itemSchema && hasRenamedField(itemSchema);
-    }
-
-    /**
-     * A top-level object schema is "loose" if it declares properties but requires none of them
-     * (e.g. {@code Installation}: {@code record { int id?; string node_id?; }}). Ballerina's
-     * {@code cloneWithType} resolves a union target by a first-match policy - if a member's shape
-     * is permissive enough to structurally accept almost any object, it can capture a payload that
-     * was really meant for a more specific, concrete member listed later in the union. Ordering
-     * loose members last in {@code GenericDataType} avoids that, without needing to guess at
-     * exactly which other payload a given loose schema might collide with.
-     *
-     * <p>Only applies to schemas that generate as a plain record (mirrors the
-     * {@code generateRecord} branch in {@link GenerateModuleMemberDeclarationNode#generate()}) -
-     * enums, type aliases, and {@code allOf}-merged records have different {@code cloneWithType}
-     * matching semantics and aren't reordered by this rule.
-     *
-     * @param schema the top-level schema to classify
-     * @return {@code true} if the schema has properties but none are required
-     */
-    private boolean isLooseObjectSchema(AsyncApiSchema schema) {
-        if (schema.properties() == null || schema.properties().isEmpty()) {
-            return false;
-        }
-        return schema.required() == null || schema.required().isEmpty();
     }
 }

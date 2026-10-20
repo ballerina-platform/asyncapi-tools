@@ -1,233 +1,231 @@
 ## Overview
 
-The AsyncAPI contract is a specification that creates an event-driven architecture based contract for APIs by detailing all of its resources and channels in a human and machine-readable format for easy development, discovery, and integration. The Ballerina AsyncAPI tool makes it easy for the users to start the development of an event API documented in an AsyncAPI contract in Ballerina by generating a Ballerina service and listener skeletons.
+The AsyncAPI contract is a specification that creates an event-driven architecture based contract for APIs by detailing all of its resources and channels in a human and machine-readable format for easy development, discovery, and integration. The Ballerina AsyncAPI tool generates Ballerina code from an AsyncAPI definition, and AsyncAPI definitions from Ballerina code.
 
-## Commands
+What the tool generates depends on the protocol and on what you give it as input:
 
-### `bal asyncapi` (AsyncAPI to Ballerina)
+| Protocol | Input | Output |
+|----------|-------|--------|
+| `http` | An AsyncAPI definition | A webhook listener: event types, service types, the listener and the dispatcher |
+| `ws` | An AsyncAPI definition | A WebSocket client |
+| `ws` | A Ballerina package or a standalone `.bal` file | An AsyncAPI definition of its WebSocket services |
 
-Generate Ballerina client stubs from an AsyncAPI contract using WebSocket protocol.
+The tool requires Ballerina Swan Lake Update 13 (2201.13.0) or later.
 
-**Synopsis:**
-
-```bash
-bal asyncapi -i | --input <asyncapi-contract-file-path>
-            [-o | --output <output-directory>]
-            [--protocol <ws>]
-            [--license <license-file-path>]
-            [--with-tests]
-```
-
-**Options:**
-
-| Option           | Description                                                        | Required |
-|------------------|--------------------------------------------------------------------|---------|
-| `-i`, `--input`  | Path of the AsyncAPI contract file                                 | Yes      |
-| `-o`, `--output` | Output directory location (defaults to current directory)          | No       |
-| `--protocol`     | Protocol to be used: `ws`                   | No       |
-| `--license`      | Add copyright/license header from specified file path              | No       |
-| `--with-tests`   | Generate test files for the client (hidden option)                 | No       |
-
-### `bal asyncapi` (Ballerina to AsyncAPI)
-
-Export AsyncAPI definition from a Ballerina service using WebSocket protocol.
-
-**Synopsis:**
+## Usage
 
 ```bash
-bal asyncapi -i | --input <ballerina-service-file-path>
-            [-o | --output <output-location>]
-            [--protocol <ws|wss|websocket>]
-            [--service <service-name>]
-            [--json]
+bal asyncapi <input> --protocol <http|ws> [options]
 ```
 
-**Options:**
+`<input>` decides the direction:
 
-| Option            | Description                                                   | Required |
-|-------------------|---------------------------------------------------------------|---------| 
-| `-i`, `--input`   | Path of the Ballerina service file                            | Yes      |
-| `-o`, `--output`  | Output directory location (defaults to current directory)     | No       |
-| `--protocol`      | Protocol to be used: `ws`, `wss`, or `websocket`              | No       |
-| `--service`       | Name of the specific service to document                       | No       |
-| `--json`          | Generate AsyncAPI output in JSON format (defaults to YAML)    | No       |
+- An AsyncAPI definition (`.yaml`, `.yml` or `.json`) generates Ballerina code.
+- A Ballerina package directory or a standalone `.bal` file generates an AsyncAPI definition. A `.bal` file that belongs to a package is not accepted; pass the package directory instead, as `bal run` does.
 
-### Sample AsyncAPI contract
+### Options
+
+| Option | Description |
+|--------|-------------|
+| `--protocol <http\|ws>` | Protocol of the AsyncAPI definition. Required. |
+| `-o`, `--output <dir>` | Directory the generated files are written to. Defaults to the current directory. |
+| `--module <name>` | Module of the Ballerina package to read services from, or to write generated code into. Not used with a standalone `.bal` file. |
+| `--license <file>` | File with the license header placed on generated files. Supported by `ws` only. |
+| `--format <yaml\|json>` | Format of a generated AsyncAPI definition. Defaults to `yaml`. |
+| `--service <base-path>` | Base path of the service to generate the definition for, for example `/chat`. Every service with that base path is generated. |
+| `--with-tests` | Generate test files along with the code. For `http`, the definition needs `x-ballerina-auth`. |
+| `--force` | Overwrite files that already exist in the output location. |
+| `--dry-run` | Show which files would be created, overwritten or skipped, without writing anything. |
+
+An option that does not apply to what you are generating is ignored with a warning, for example `--license` with `--protocol http`, or `--format` when generating code. Run `bal asyncapi --help` for the same list.
+
+### Existing files
+
+The tool never overwrites a file you have edited unless you ask it to. For every file it generates:
+
+- a file that does not exist yet is created;
+- a file that already has the same content is left alone;
+- a file with different content is skipped with a warning, unless `--force` is given.
+
+```
+$ bal asyncapi slack-events.yaml --protocol http
+warning: Skipped "types.bal": the file already exists. Use --force to overwrite it.
+No files were written.
+warning: 1 file(s) skipped, so the generated code may be out of sync with the definition. Use --dry-run to see what differs, or --force to overwrite.
+```
+
+Skipping a file leaves the output out of sync with the definition, so a run that skips any file exits with a non-zero code. A script that regenerates code, such as a CI workflow, should pass `--force`.
+
+To see what a run would do before running it, add `--dry-run`:
+
+```
+$ bal asyncapi slack-events.yaml --protocol http --dry-run --force
+Dry run: no files were written.
+
+  unchanged  dispatcher_service.bal
+  unchanged  listener.bal
+  unchanged  service_types.bal
+  overwrite  types.bal
+
+0 to create, 1 to overwrite, 0 to skip, 3 unchanged.
+```
+
+Generated Ballerina code is written into a Ballerina package, so run the command inside one (create it with `bal new` first), or point `-o` at one.
+
+## Examples
+
+### Generate a webhook listener from an AsyncAPI definition
+
+```bash
+# Into the package in the current directory
+bal asyncapi slack-events.yaml --protocol http
+
+# Into another package, replacing files generated earlier
+bal asyncapi slack-events.yaml --protocol http -o ./slack-listener --force
+
+# Into a module of the package
+bal asyncapi slack-events.yaml --protocol http --module events
+```
+
+### Generate a WebSocket client from an AsyncAPI definition
+
+```bash
+bal asyncapi chat-api.yaml --protocol ws
+
+# With tests and a license header
+bal asyncapi chat-api.yaml --protocol ws -o ./chat-client --with-tests --license ./license.txt
+```
+
+### Generate an AsyncAPI definition from Ballerina code
+
+```bash
+# Every WebSocket service in the package in the current directory
+bal asyncapi . --protocol ws
+
+# One service, as JSON
+bal asyncapi . --protocol ws --service /chat --format json -o ./specs
+
+# Services in one module of the package
+bal asyncapi . --protocol ws --module chat
+
+# A standalone file
+bal asyncapi chat_service.bal --protocol ws
+```
+
+## Webhook listeners
+
+### Sample AsyncAPI definition
 
 ```yaml
-asyncapi: 2.1.0
+asyncapi: 3.0.0
+info:
+  title: Slack Events
+  version: 1.0.0
 x-ballerina-event-identifier:
-  type: "body"
-  path: "event.type"
+  type: body
+  path: event.type
+channels:
+  app:
+    address: app
+    messages:
+      appMention:
+        x-ballerina-event-type: app_mention
+        summary: Subscribe to only the message events that mention your app or bot
+        payload:
+          $ref: "#/components/schemas/GenericEventWrapper"
+      appRateLimited:
+        x-ballerina-event-type: app_rate_limited
+        summary: Indicates that your app's event subscriptions are being rate limited
+        payload:
+          $ref: "#/components/schemas/GenericEventWrapper"
+operations:
+  app:
+    action: receive
+    channel:
+      $ref: "#/channels/app"
+    messages:
+      - $ref: "#/channels/app/messages/appMention"
+      - $ref: "#/channels/app/messages/appRateLimited"
 components:
   schemas:
     GenericEventWrapper:
-      additionalProperties: true
-      description: Adapted from auto-generated content
+      title: Standard event wrapper for the Events API
+      type: object
+      required:
+        - event
       properties:
         event:
-          additionalProperties: true
+          title: The actual event, an object, which happened
+          type: object
+          required:
+            - type
+            - event_ts
           properties:
-            event_ts:
-              title: When the event was dispatched
-              type: string
             type:
               title: The specific name of the event
+              type: string
+            event_ts:
+              title: When the event was dispatched
               type: string
             text:
               title: The message content
               type: string
-          required:
-            - type
-            - event_ts
-          title: "The actual event, an object, which happened"
-          type: object
-      required:
-        - event
-      title: Standard event wrapper for the Events API
-      type: object
-channels:
-  app:
-    subscribe:
-      message:
-        oneOf:
-          - x-ballerina-event-type: "app_mention"
-            externalDocs:
-              description: Event documentation for `app_mention`
-            payload:
-              $ref: "#/components/schemas/GenericEventWrapper"
-            summary: Subscribe to only the message events that mention your app or bot
-            tags:
-              - name: allows_user_tokens
-              - name: app_event
-            x-scopes-required: []
-            x-tokens-allowed:
-              - user
-          - x-ballerina-event-type: "app_rate_limited"
-            externalDocs:
-              description: Event documentation for `app_rate_limited`
-            payload:
-              $ref: "#/components/schemas/GenericEventWrapper"
-            summary: Indicates that your app's event subscriptions are being rate limited
-            tags:
-              - name: allows_user_tokens
-              - name: app_event
-              - name: allows_workspace_tokens
-            x-scopes-required: []
-            x-tokens-allowed:
-              - user
-              - workspace
 ```
 
-There are custom tags in this YAML starting with `x-ballerina`. It is very important that these tags must be added to the AsyncAPI contract before using the tool. The usage of those tags are as follows.
+Every event the listener should handle is a message of a channel, and every channel is listed in a `receive` operation.
 
-1\. `x-ballerina-event-identifier` - When the listener receives an event from the event source (Slack is the event source in this scenario), there should be a way to identify the event type. This includes two parts, `type`, and `path`.
+The extensions starting with `x-ballerina` tell the tool how to dispatch events. They must be added to the definition before using the tool.
 
-- `type` - Type can be either header or body. In other words, the type of event can be included in the payload either as an HTTP header or as an attribute in the body.
+1\. `x-ballerina-event-identifier` - When the listener receives an event, there should be a way to identify the event type. This has two parts, `type` and `path`.
 
-  > **Note:** Currently, this tool supports only the body property. Hence, the path is equal to the JSON path of the attribute.
+- `type` - Either `header` or `body`: whether the event type arrives as an HTTP header or as an attribute in the body.
+- `path` - The header name if the type is `header`, or the JSON path of the attribute if the type is `body`.
 
-- `path` - Path is equal to the header-name if the type is `header`, or the JSON path of the attribute if the type is `body`.
-
-  > **Note:** Currently, this tool supports only HTTP-based event APIs.
-
-2\. `x-ballerina-event-type` - This should be there in every event inside the channel. This is the name of the event or the value of the attribute mentioned above for a specific event.
+2\. `x-ballerina-event-type` - This should be there in every message inside the channel. It is the value the identifier above has for that event.
 
 3\. `x-ballerina-event-label` (optional) - By default, the generated remote function's name and doc comment are derived directly from `x-ballerina-event-type`. This works well when that value is itself a clean, readable string (e.g. `company.propertyChange`), but some real event sources use type strings with a required prefix/suffix that only makes sense for matching (e.g. a CloudEvents-style `qbo.account.merged.v1`), which produces an awkward function name if used for naming too (`onQboAccountMergedV1`). Set `x-ballerina-event-label` on a message to control the generated name independently (e.g. `AccountMerged` produces `onAccountMerged`), without changing the value actually compared against incoming payloads.
 
-## Examples
+4\. `x-ballerina-auth` (optional) - How the listener verifies that a request really comes from the event source, for example an HMAC signature header. See the [webhook signature DSL reference](https://github.com/ballerina-platform/asyncapi-tools/blob/main/docs/webhook-dsl-reference.md).
 
-### Generate HTTP listener from AsyncAPI contract
+### Generated files
 
-```bash
-# Basic HTTP listener generation
-bal asyncapi -i slack-events.yaml
+Generating a listener writes these files:
 
-# Generate with custom output directory
-bal asyncapi -i slack-events.yaml -o ./generated
-```
+1. `types.bal` - the Ballerina data types extracted from the AsyncAPI definition
+2. `service_types.bal` - the service types for the events described in the definition
+3. `listener.bal` - the HTTP listener that receives the events
+4. `dispatcher_service.bal` - the logic that dispatches each event to its remote function
 
-### Generate WebSocket client from AsyncAPI contract
+With `--with-tests`, the tool also writes `tests/dispatch_test.bal`, which sends signed sample events to the listener and checks that each reaches its remote function. The events are signed, so this needs `x-ballerina-auth` in the definition; without it the tool warns and writes no tests.
 
-```bash
-# Basic WebSocket client generation
-bal asyncapi -i websocket-api.yaml --protocol ws
-
-# Generate with custom output directory and tests
-bal asyncapi -i websocket-api.yaml --protocol ws -o ./ws-client --with-tests
-
-# Generate with license header
-bal asyncapi -i websocket-api.yaml --protocol websocket --license ./license.txt
-```
-
-### Export AsyncAPI from Ballerina WebSocket service
-
-```bash
-# Export to YAML (default format)
-bal asyncapi -i websocket-service.bal --protocol ws
-
-# Export to JSON with specific output directory
-bal asyncapi -i websocket-service.bal --protocol ws --json -o ./asyncapi-specs
-
-# Export specific service by name
-bal asyncapi -i websocket-service.bal --protocol ws --service ChatService -o ./specs
-```
-
-This command generates Ballerina service and listener skeletons (i.e., the four Ballerina files below) from the given AsyncAPI definition file.
-
-1. `types.bal` - contains all the Ballerina data types extracted from the AsyncAPI definition
-2. `service_types.bal` - contains all the service types relevant to the event API described in the AsyncAPI definition
-3. `listener.bal` - contains the HTTP listener, which listens to the relevant third-party service
-4. `dispatcher_service.bal` - contains the event dispatching logic
-
-The generated Ballerina sources are written into the same directory from which the command is run. The above command can be run from anywhere on the execution path. It is not mandatory to run it from within a Ballerina package.
-
-The above AsyncAPI to Ballerina command supports several usages in the Ballerina AsyncAPI tool as follows.
-
-## Generate to a specified location
-
-If you want to generate Ballerina sources to a specific provided output location, you can modify the above command as below.
-
-```
-$ bal asyncapi -i hello.yaml -o ./output_path
-```
-
-Then, the generated files can be modified according to the custom requirements. When modifying the generated code segments, it is easier to consider the below facts.
+When modifying the generated code, keep the following in mind.
 
 - All the incoming requests are received by the resource method in the `dispatcher_service.bal` file. Hence, if there is a necessity to add an authentication logic for the incoming calls, that logic can be included there before processing the incoming HTTP request.
 - If more information is needed when initializing the listener such as secrets, endpoint URLs, tokens, refresh tokens, etc., update the `init` function in the `listener.bal` file.
 
-Below are some example libraries generated using the tool.
+### Using the generated listener
 
-| Module     | AsyncAPI specification                                                                                                                | Generated and modified code                                                                                                | Published module                                                                                 |
-| ---------- | ------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
-| **Slack**  | <a href="https://github.com/ballerina-platform/asyncapi-triggers/blob/main/asyncapi/slack/asyncapi.yml" target="_blank">`asyncapi.yml` of Slack</a>   | <a href="https://github.com/ballerina-platform/asyncapi-triggers/tree/main/asyncapi/slack" target="_blank">`asyncapi-triggers/slack`</a>   | <a href="https://central.ballerina.io/ballerinax/trigger.slack" target="_blank">`ballerinax/trigger.slack`</a>   |
-| **Twilio** | <a href="https://github.com/ballerina-platform/asyncapi-triggers/blob/main/asyncapi/twilio/asyncapi.yml" target="_blank">`asyncapi.yml` of Twilio</a> | <a href="https://github.com/ballerina-platform/asyncapi-triggers/tree/main/asyncapi/twilio" target="_blank">`asyncapi-triggers/twilio`</a> | <a href="https://central.ballerina.io/ballerinax/trigger.twilio" target="_blank">`ballerinax/trigger.twilio`</a> |
+1\. Create a package with `bal new slack_listener` and generate the listener into it:
 
-## Example
+```bash
+cd slack_listener
+bal asyncapi slack-events.yaml --protocol http
+```
 
-Follow the steps below to execute the generated Ballerina sources.
-
-1\. Navigate to the directory in which the generated files exist.
-
-2\. Execute the `bal init` command.
-
-> **Info:** This generates a `Ballerina.toml` file.
-
-3\. Create a new Ballerina file inside the directory (e.g., `slack_service.bal` ) and copy the code below to it.
+2\. Add a service for the events to `main.bal`:
 
 ```ballerina
-listener Listener webhookListener = new (8090);
+listener Listener webhookListener = new ({}, 8090);
 
 service AppService on webhookListener {
     remote function onAppMention(GenericEventWrapper event) returns error? {
-        //Implement the logic to use the received `event` here.
+        // Implement the logic to use the received `event` here.
     }
 
     remote function onAppRateLimited(GenericEventWrapper event) returns error? {
-        //Implement the logic to use the received `event` here.
+        // Implement the logic to use the received `event` here.
     }
 }
 ```
 
-4\. Execute the `bal run` command to execute this.
+3\. Execute `bal run`.

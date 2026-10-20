@@ -46,7 +46,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -80,9 +80,28 @@ public class HttpCodeGenerator {
     private static final String DISPATCH_TEST_BAL = "tests/dispatch_test.bal";
 
     private final AsyncApiSpec asyncApiSpec;
+    private final boolean includeTests;
 
+    /**
+     * Creates a generator that also writes {@code tests/dispatch_test.bal} when the spec has
+     * {@code x-ballerina-auth}.
+     *
+     * @param asyncApiSpec the parsed spec
+     */
     public HttpCodeGenerator(AsyncApiSpec asyncApiSpec) {
+        this(asyncApiSpec, true);
+    }
+
+    /**
+     * Creates a generator.
+     *
+     * @param asyncApiSpec the parsed spec
+     * @param includeTests whether to write {@code tests/dispatch_test.bal}; it is only written when the
+     *                     spec has {@code x-ballerina-auth}, since the tests send signed events
+     */
+    public HttpCodeGenerator(AsyncApiSpec asyncApiSpec, boolean includeTests) {
         this.asyncApiSpec = asyncApiSpec;
+        this.includeTests = includeTests;
     }
 
     /**
@@ -103,7 +122,7 @@ public class HttpCodeGenerator {
         EventIdentifierConfig identifierConfig = new EventIdentifierExtractor(asyncApiSpec).extract();
         ServiceTypeExtractor serviceTypeExtractor = new ServiceTypeExtractor(asyncApiSpec, identifierConfig);
         List<HttpServiceType> serviceTypes = serviceTypeExtractor.extract();
-        Map<String, AsyncApiSchema> schemas = new HashMap<>(new SchemaExtractor(asyncApiSpec).extract());
+        Map<String, AsyncApiSchema> schemas = new LinkedHashMap<>(new SchemaExtractor(asyncApiSpec).extract());
         schemas.putAll(serviceTypeExtractor.getInlineSchemas());
         Optional<WebhookAuthConfig> webhookAuthConfig = new WebhookAuthExtractor(asyncApiSpec).extract();
         validateWebhookDsl(webhookAuthConfig);
@@ -147,7 +166,7 @@ public class HttpCodeGenerator {
                 writtenDataTypes.getFileName(), writtenServiceTypes.getFileName(),
                 writtenListener.getFileName(), writtenDispatcher.getFileName());
 
-        if (webhookAuthConfig.isPresent()) {
+        if (includeTests && webhookAuthConfig.isPresent()) {
             List<DispatchTestCase> testCases = new DispatchTestCaseExtractor(asyncApiSpec).extract();
             if (!testCases.isEmpty()) {
                 String dispatchTestContent =

@@ -32,7 +32,6 @@ import io.ballerina.asyncapi.generator.http.utils.FormBodies;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -49,11 +48,11 @@ public final class ServiceTypeExtractor {
 
     private final AsyncApiSpec asyncApiSpec;
     private final EventIdentifierConfig identifierConfig;
-    private final Map<String, AsyncApiSchema> inlineSchemas = new HashMap<>();
+    private final Map<String, AsyncApiSchema> inlineSchemas = new LinkedHashMap<>();
     private Boolean batched;
     private Boolean formEncoded;
     private final Map<String, String> formFieldConversions = new LinkedHashMap<>();
-    private final Map<String, String> formFieldTypes = new HashMap<>();
+    private final Map<String, String> formFieldTypes = new LinkedHashMap<>();
 
     /**
      * Creates an extractor that does not have access to the resolved event identifier
@@ -137,7 +136,7 @@ public final class ServiceTypeExtractor {
             return Collections.emptyList();
         }
 
-        Map<String, HttpServiceType> serviceTypeMap = new HashMap<>();
+        Map<String, HttpServiceType> serviceTypeMap = new LinkedHashMap<>();
 
         for (Map.Entry<String, AsyncApiOperation> entry : operations.entrySet()) {
             AsyncApiOperation operation = entry.getValue();

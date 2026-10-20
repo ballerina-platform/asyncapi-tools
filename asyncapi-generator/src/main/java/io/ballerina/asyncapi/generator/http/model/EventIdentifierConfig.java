@@ -21,11 +21,12 @@ package io.ballerina.asyncapi.generator.http.model;
  * Holds the resolved event identifier configuration from the {@code x-ballerina-event-identifier}
  * extension on an AsyncAPI document.
  *
- * @param type the source of the event identifier: {@code "header"}, {@code "body"}, or {@code "composite"}
+ * @param type the source of the event identifier: {@code "header"}, {@code "body"}, {@code "body-key"} or
+ *             {@code "composite"}
  * @param name the request header name; non-null for {@code "header"} and {@code "composite"} types,
  *             {@code null} for {@code "body"}
- * @param path the dot-notation JSON body path; non-null for {@code "body"} and {@code "composite"} types,
- *             {@code null} for {@code "header"}
+ * @param path the dot-notation JSON body path; non-null for {@code "body"}, {@code "body-key"} (the object whose
+ *             single key names the event) and {@code "composite"} types, {@code null} for {@code "header"}
  */
 public record EventIdentifierConfig(
         String type,
