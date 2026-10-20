@@ -53,32 +53,42 @@ public class AsyncApiCmdToolDiagnosticTest extends CmdTestBase {
                 "ASYNC_CLI_002 message must not be blank");
     }
 
-    @Test(description = "Exception from no-args diagnostic: getMessage() has 'ERROR: ' prefix")
+    @Test(description = "ASYNC_CLI_002 names the protocol it is raised for")
+    void testAsyncCli002NamesProtocol() {
+        AsyncApiCmdToolException ex =
+                new AsyncApiCmdToolException(AsyncApiCmdToolDiagnostic.ASYNC_CLI_002, "http");
+
+        Assert.assertEquals(
+                ex.getDiagnosticMessage(),
+                "The http protocol does not support Ballerina-to-AsyncAPI generation.");
+    }
+
+    @Test(description = "Exception from no-args diagnostic: getMessage() has 'error: ' prefix")
     void testExceptionMessageHasErrorPrefix() {
         AsyncApiCmdToolException ex =
-                new AsyncApiCmdToolException(AsyncApiCmdToolDiagnostic.ASYNC_CLI_002);
+                new AsyncApiCmdToolException(AsyncApiCmdToolDiagnostic.ASYNC_CLI_003);
 
         Assert.assertTrue(
-                ex.getMessage().startsWith("ERROR: "),
-                "getMessage() must start with 'ERROR: '. Got: " + ex.getMessage());
+                ex.getMessage().startsWith("error: "),
+                "getMessage() must start with 'error: '. Got: " + ex.getMessage());
     }
 
     @Test(description = "Exception from no-args diagnostic: getDiagnosticCode() returns enum code")
     void testExceptionDiagnosticCode() {
         AsyncApiCmdToolException ex =
-                new AsyncApiCmdToolException(AsyncApiCmdToolDiagnostic.ASYNC_CLI_002);
+                new AsyncApiCmdToolException(AsyncApiCmdToolDiagnostic.ASYNC_CLI_003);
 
-        Assert.assertEquals(ex.getDiagnosticCode(), "ASYNC_CLI_002");
+        Assert.assertEquals(ex.getDiagnosticCode(), "ASYNC_CLI_003");
     }
 
-    @Test(description = "Exception from no-args diagnostic: getDiagnosticMessage() has no 'ERROR: ' prefix")
+    @Test(description = "Exception from no-args diagnostic: getDiagnosticMessage() has no 'error: ' prefix")
     void testExceptionDiagnosticMessageNoPrefix() {
         AsyncApiCmdToolException ex =
-                new AsyncApiCmdToolException(AsyncApiCmdToolDiagnostic.ASYNC_CLI_002);
+                new AsyncApiCmdToolException(AsyncApiCmdToolDiagnostic.ASYNC_CLI_003);
 
         Assert.assertFalse(
-                ex.getDiagnosticMessage().startsWith("ERROR: "),
-                "getDiagnosticMessage() must not have 'ERROR: ' prefix. Got: "
+                ex.getDiagnosticMessage().startsWith("error: "),
+                "getDiagnosticMessage() must not have 'error: ' prefix. Got: "
                         + ex.getDiagnosticMessage());
     }
 
@@ -90,10 +100,10 @@ public class AsyncApiCmdToolDiagnosticTest extends CmdTestBase {
 
         Assert.assertEquals(
                 ex.getMessage(),
-                "ERROR: Code generation failed: file not found");
+                "error: Code generation failed: file not found");
     }
 
-    @Test(description = "Exception with format args: getDiagnosticMessage() has no 'ERROR: ' prefix")
+    @Test(description = "Exception with format args: getDiagnosticMessage() has no 'error: ' prefix")
     void testExceptionWithFormatArgsDiagnosticMessage() {
         AsyncApiCmdToolException ex =
                 new AsyncApiCmdToolException(
@@ -124,13 +134,13 @@ public class AsyncApiCmdToolDiagnosticTest extends CmdTestBase {
 
         Assert.assertEquals(
                 ex.getMessage(),
-                "ERROR: Code generation failed: something failed");
+                "error: Code generation failed: something failed");
     }
 
     @Test(description = "Exception is a RuntimeException (unchecked)")
     void testExceptionIsUnchecked() {
         AsyncApiCmdToolException ex =
-                new AsyncApiCmdToolException(AsyncApiCmdToolDiagnostic.ASYNC_CLI_002);
+                new AsyncApiCmdToolException(AsyncApiCmdToolDiagnostic.ASYNC_CLI_003);
 
         Assert.assertTrue(
                 ex instanceof RuntimeException,

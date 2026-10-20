@@ -79,9 +79,28 @@ public class HttpCodeGenerator {
     private static final String DISPATCH_TEST_BAL = "tests/dispatch_test.bal";
 
     private final AsyncApiSpec asyncApiSpec;
+    private final boolean includeTests;
 
+    /**
+     * Creates a generator that also writes {@code tests/dispatch_test.bal} when the spec has
+     * {@code x-ballerina-auth}.
+     *
+     * @param asyncApiSpec the parsed spec
+     */
     public HttpCodeGenerator(AsyncApiSpec asyncApiSpec) {
+        this(asyncApiSpec, true);
+    }
+
+    /**
+     * Creates a generator.
+     *
+     * @param asyncApiSpec the parsed spec
+     * @param includeTests whether to write {@code tests/dispatch_test.bal}; it is only written when the
+     *                     spec has {@code x-ballerina-auth}, since the tests send signed events
+     */
+    public HttpCodeGenerator(AsyncApiSpec asyncApiSpec, boolean includeTests) {
         this.asyncApiSpec = asyncApiSpec;
+        this.includeTests = includeTests;
     }
 
     /**
@@ -138,7 +157,7 @@ public class HttpCodeGenerator {
                 writtenDataTypes.getFileName(), writtenServiceTypes.getFileName(),
                 writtenListener.getFileName(), writtenDispatcher.getFileName());
 
-        if (webhookAuthConfig.isPresent()) {
+        if (includeTests && webhookAuthConfig.isPresent()) {
             List<DispatchTestCase> testCases = new DispatchTestCaseExtractor(asyncApiSpec).extract();
             if (!testCases.isEmpty()) {
                 String dispatchTestContent =

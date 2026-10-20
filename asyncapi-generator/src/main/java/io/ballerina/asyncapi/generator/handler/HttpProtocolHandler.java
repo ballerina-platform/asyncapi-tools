@@ -46,12 +46,15 @@ public final class HttpProtocolHandler implements ProtocolHandler {
     // supportsCodeToSpec() stays false (inherited default).
 
     @Override
+    public boolean supportsTestGeneration() {
+        return true;
+    }
+
+    @Override
     public void specToCode(AsyncApiSpec spec,
                            Path outputPath,
                            SpecToCodeOptions options)
             throws GeneratorException {
-        // --with-tests is not supported for HTTP yet.
-        // options.isIncludeTestFiles() is intentionally ignored.
-        new HttpCodeGenerator(spec).generate(outputPath);
+        new HttpCodeGenerator(spec, options.isIncludeTestFiles()).generate(outputPath);
     }
 }

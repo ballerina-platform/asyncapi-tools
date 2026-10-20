@@ -34,6 +34,7 @@ import io.ballerina.compiler.api.SemanticModel;
 import io.ballerina.compiler.api.symbols.Documentable;
 import io.ballerina.compiler.api.symbols.Documentation;
 import io.ballerina.compiler.api.symbols.FunctionSymbol;
+import io.ballerina.compiler.api.symbols.ParameterSymbol;
 import io.ballerina.compiler.api.symbols.Symbol;
 import io.ballerina.compiler.api.symbols.TypeDescKind;
 import io.ballerina.compiler.api.symbols.TypeReferenceTypeSymbol;
@@ -501,6 +502,9 @@ public class AsyncApiRemoteMapper {
         for (ParameterNode remoteParameterNode : remoteParameters) {
             if (remoteParameterNode.kind() == SyntaxKind.REQUIRED_PARAM) {
                 RequiredParameterNode requiredParameterNode = (RequiredParameterNode) remoteParameterNode;
+                if (isWebSocketCaller(requiredParameterNode)) {
+                    continue;
+                }
                 Node parameterTypeNode = requiredParameterNode.typeName();
                 if (parameterTypeNode.kind() == SyntaxKind.SIMPLE_NAME_REFERENCE
                         || parameterTypeNode.kind() == QUALIFIED_NAME_REFERENCE
@@ -510,6 +514,27 @@ public class AsyncApiRemoteMapper {
             }
         }
         return null;
+    }
+
+    /**
+     * Whether the parameter is the connection handle {@code websocket:Caller}, which carries no message and
+     * so is never the data parameter, whatever prefix the module was imported under.
+     *
+     * @param requiredParameterNode the parameter to check
+     * @return {@code true} if its type is {@code Caller} from {@code ballerina/websocket}
+     */
+    private boolean isWebSocketCaller(RequiredParameterNode requiredParameterNode) {
+        Optional<Symbol> symbol = semanticModel.symbol(requiredParameterNode);
+        if (symbol.isEmpty() || !(symbol.get() instanceof ParameterSymbol parameterSymbol)
+                || !(parameterSymbol.typeDescriptor() instanceof TypeReferenceTypeSymbol typeReference)) {
+            return false;
+        }
+        Symbol definition = typeReference.definition();
+        return "Caller".equals(definition.getName().orElse(null))
+                && definition.getModule()
+                        .map(module -> "ballerina".equals(module.id().orgName())
+                                && "websocket".equals(module.id().moduleName()))
+                        .orElse(false);
     }
 
     /**
