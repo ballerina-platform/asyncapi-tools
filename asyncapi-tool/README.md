@@ -232,9 +232,9 @@ service AppService on webhookListener {
 
 ## Exporting trigger endpoints
 
-`bal build --export-endpoints` lists the ports and paths a program listens on in `target/artifact/endpoints.yaml`. The `ballerina/http` compiler plugin only reports services attached to an `http:Listener`, so a trigger package ships the trigger compiler plugin to report services attached to its own `Listener`, with the same rules and defaults as HTTP services (`type: "REST"`, an empty `schemaPath`).
+`bal build --export-endpoints` lists the ports and paths a program listens on in `target/artifact/endpoints.yaml`. The `ballerina/http` compiler plugin only reports services attached to an `http:Listener`, so each trigger package ships its own compiler plugin to report services attached to its `Listener`, with the same rules and defaults as HTTP services (`type: "REST"`, an empty `schemaPath`).
 
-A trigger package adds it the way `ballerina/http` adds its compiler plugin dependencies: the plugin jar (`io.ballerina:trigger-compiler-plugin`, published with each tool release) is downloaded at a pinned version, and a `CompilerPlugin.toml` next to `Ballerina.toml` points at it.
+As `ballerina/http` does, the trigger repo builds the plugin from source and a `CompilerPlugin.toml` next to `Ballerina.toml` points at the built jar, so nothing is published separately:
 
 ```toml
 [plugin]
@@ -242,5 +242,7 @@ id = "asyncapi-trigger-compiler-plugin"
 class = "io.ballerina.asyncapi.trigger.plugin.TriggerCompilerPlugin"
 
 [[dependency]]
-path = "<path to trigger-compiler-plugin-<version>.jar>"
+path = "../compiler-plugin/build/libs/github.trigger-compiler-plugin-0.2.0.jar"
 ```
+
+The plugin source and the files a trigger repo needs for it are in [`trigger-template`](../trigger-template), which the trigger scaffold copies into each repo.

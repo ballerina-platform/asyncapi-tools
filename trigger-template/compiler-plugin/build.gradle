@@ -16,17 +16,17 @@
  *  under the License.
  */
 
+// Copied into each trigger repo as its compiler-plugin sub-project, the way ballerina/http builds its own plugin.
+// It only needs the repo's ballerinaLangVersion, so it builds the same here and in a trigger repo.
 plugins {
     id 'java-library'
-    id 'checkstyle'
 }
 
 description = 'Ballerina - AsyncAPI Trigger Compiler Plugin'
 
-dependencies {
-    checkstyle project(':checkstyle')
-    checkstyle "com.puppycrawl.tools:checkstyle:${checkstylePluginVersion}"
+def testngVersion = findProperty('testngVersion') ?: '7.6.1'
 
+dependencies {
     compileOnly "org.ballerinalang:ballerina-lang:${ballerinaLangVersion}"
     compileOnly "org.ballerinalang:ballerina-parser:${ballerinaLangVersion}"
     compileOnly "org.ballerinalang:ballerina-tools-api:${ballerinaLangVersion}"
@@ -39,40 +39,4 @@ dependencies {
 
 test {
     useTestNG()
-}
-
-// Trigger repos download this jar and bundle it through their CompilerPlugin.toml.
-publishing {
-    publications {
-        maven(MavenPublication) {
-            artifactId = 'trigger-compiler-plugin'
-            from components.java
-        }
-    }
-    repositories {
-        maven {
-            name = "GitHubPackages"
-            url = uri("https://maven.pkg.github.com/ballerina-platform/asyncapi-tools")
-            credentials {
-                username = System.getenv("packageUser")
-                password = System.getenv("packagePAT")
-            }
-        }
-    }
-}
-
-checkstyle {
-    toolVersion '10.12.0'
-    configFile rootProject.file("config/checkstyle/build/checkstyle.xml")
-    configProperties = ["suppressionFile" : file("${rootDir}/config/checkstyle/build/suppressions.xml")]
-}
-
-// Both read the shared rules in config/checkstyle, as in native.handler/java-wrapper.
-[checkstyleMain, checkstyleTest].each { task ->
-    task.dependsOn(":checkstyle:downloadCheckstyleRuleFiles")
-    task.dependsOn(":checkstyle:compileTestJava")
-    task.dependsOn(":checkstyle:checkstyleMain")
-    task.dependsOn(":checkstyle:checkstyleTest")
-    task.dependsOn(":checkstyle:test")
-    task.dependsOn(":checkstyle:processTestResources")
 }
