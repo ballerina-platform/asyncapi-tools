@@ -37,6 +37,7 @@ public final class EventIdentifierExtractor {
     public static final String X_BALLERINA_EVENT_TYPE_HEADER = "header";
     public static final String X_BALLERINA_EVENT_TYPE_BODY = "body";
     public static final String X_BALLERINA_EVENT_TYPE_COMPOSITE = "composite";
+    public static final String X_BALLERINA_EVENT_TYPE_BODY_KEY = "body-key";
     private static final String X_BALLERINA_EVENT_FIELD_IDENTIFIER = "x-ballerina-event-identifier";
     private static final String X_BALLERINA_EVENT_FIELD_IDENTIFIER_TYPE = "type";
     private static final String X_BALLERINA_EVENT_FIELD_IDENTIFIER_PATH = "path";
@@ -88,14 +89,16 @@ public final class EventIdentifierExtractor {
                     new EventIdentifierConfig(type, extractHeaderName(identifierFields), null);
             case X_BALLERINA_EVENT_TYPE_BODY ->
                     new EventIdentifierConfig(type, null, extractBodyPath(identifierFields));
+            case X_BALLERINA_EVENT_TYPE_BODY_KEY ->
+                    new EventIdentifierConfig(type, null, extractBodyPath(identifierFields));
             case X_BALLERINA_EVENT_TYPE_COMPOSITE ->
                     new EventIdentifierConfig(type, extractHeaderName(identifierFields),
                             extractBodyPath(identifierFields));
             default -> throw new GeneratorException(String.format(
-                    "%s, %s or %s is not provided as the value of %s attribute within the attribute %s"
+                    "%s, %s, %s or %s is not provided as the value of %s attribute within the attribute %s"
                             + " in the Async API Specification",
                     X_BALLERINA_EVENT_TYPE_HEADER, X_BALLERINA_EVENT_TYPE_BODY,
-                    X_BALLERINA_EVENT_TYPE_COMPOSITE,
+                    X_BALLERINA_EVENT_TYPE_BODY_KEY, X_BALLERINA_EVENT_TYPE_COMPOSITE,
                     X_BALLERINA_EVENT_FIELD_IDENTIFIER_TYPE,
                     X_BALLERINA_EVENT_FIELD_IDENTIFIER));
         };
@@ -123,7 +126,8 @@ public final class EventIdentifierExtractor {
     }
 
     /**
-     * Extracts and escapes the dot-notation path for a {@code type=body} identifier.
+     * Extracts and escapes the dot-notation path for a {@code type=body}, {@code body-key} or {@code composite}
+     * identifier.
      * Each path segment that matches a Ballerina keyword is prefixed with {@code '}.
      *
      * @param identifierFields the fields parsed from the extension node
