@@ -219,6 +219,31 @@ public class WebhookDSLVerificationTest {
     }
 
     @Test
+    public void testBodyKeyIdentifierDispatchesOnTheKeyAndNamesFixturesByMessage() throws Exception {
+        // WSO2 Identity Server: the event URI is the single key under `events`.
+        Path outputDir = generateOutputDir("body_key_identifier.yaml");
+
+        String dispatcher = Files.readString(outputDir.resolve("dispatcher_service.bal"));
+        Assert.assertTrue(dispatcher.contains("string eventType = keyedEvents.keys()[0];"), dispatcher);
+        Assert.assertTrue(dispatcher.contains(
+                "\"https://schemas.identity.wso2.org/events/login/event-type/loginSuccess\" =>"), dispatcher);
+
+        String serviceTypes = Files.readString(outputDir.resolve("service_types.bal"));
+        Assert.assertTrue(serviceTypes.contains("remote function onLoginSuccess("), serviceTypes);
+        Assert.assertTrue(serviceTypes.contains("remote function onLoginFailed("), serviceTypes);
+
+        String dispatchTest = Files.readString(outputDir.resolve("tests").resolve("dispatch_test.bal"));
+        Assert.assertTrue(dispatchTest.contains("sendSignedTriggerWebhook(\"loginSuccess\")"),
+                "A URI cannot name a file, so the message key names the fixture: " + dispatchTest);
+        Assert.assertFalse(dispatchTest.contains("sendSignedTriggerWebhook(\"https://"), dispatchTest);
+        Assert.assertTrue(
+                dispatchTest.contains("test:assertEquals(triggerFired.keys(), [\"LoginService.onLoginSuccess\"]"),
+                "Each event must reach only its own function: " + dispatchTest);
+        Assert.assertFalse(dispatchTest.contains("x-hub-signature\": headerValue"),
+                "A body-key identifier sends no identifier header: " + dispatchTest);
+    }
+
+    @Test
     public void testFreshnessInSecondsScalesTheHeaderTimestampToMillis() throws Exception {
         // Slack sends X-Slack-Request-Timestamp in epoch seconds. Compared against the millisecond
         // clock unscaled, every request would look decades old and be rejected as expired.

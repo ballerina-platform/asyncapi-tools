@@ -98,7 +98,7 @@ public class DispatcherGenerator {
                         + "payloads: each delivery must carry one event");
             }
         } else {
-            validateIdentifierType(identifierConfig.type());
+            validateIdentifierType(identifierConfig.type(), batched);
         }
 
         ClassDefinitionNode classNode =
@@ -107,13 +107,19 @@ public class DispatcherGenerator {
         return render(classNode);
     }
 
-    private static void validateIdentifierType(String identifierType) throws GeneratorException {
+    private static void validateIdentifierType(String identifierType, boolean batched) throws GeneratorException {
+        boolean bodyKey = EventIdentifierExtractor.X_BALLERINA_EVENT_TYPE_BODY_KEY.equals(identifierType);
         if (!EventIdentifierExtractor.X_BALLERINA_EVENT_TYPE_BODY.equals(identifierType)
                 && !EventIdentifierExtractor.X_BALLERINA_EVENT_TYPE_HEADER.equals(identifierType)
-                && !EventIdentifierExtractor.X_BALLERINA_EVENT_TYPE_COMPOSITE.equals(identifierType)) {
+                && !EventIdentifierExtractor.X_BALLERINA_EVENT_TYPE_COMPOSITE.equals(identifierType)
+                && !bodyKey) {
             throw new GeneratorException(String.format(
-                    "Unsupported identifier type: %s. Expected \"body\", \"header\" or \"composite\".",
-                    identifierType));
+                    "Unsupported identifier type: %s. Expected \"body\", \"body-key\", \"header\" or "
+                            + "\"composite\".", identifierType));
+        }
+        if (bodyKey && batched) {
+            throw new GeneratorException("x-ballerina-event-identifier type \"body-key\" does not support batched "
+                    + "payloads: each delivery must carry one event");
         }
     }
 

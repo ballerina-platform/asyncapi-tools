@@ -109,8 +109,8 @@ public class DispatchTestGenerator {
 
     /**
      * Routes the tests by channel when the listener does: each test posts to its channel's path, with its
-     * channel's identifier, and reads its payload from a folder that follows the channel's address, since the same event
-     * type can exist on several channels. Has no effect when no channel declares its own identifier.
+     * channel's identifier, and reads its payload from a folder that follows the channel's address, since the same
+     * event type can exist on several channels. Has no effect when no channel declares its own identifier.
      *
      * @param serviceTypes the service types with their effective identifiers and addresses
      * @return this generator
@@ -502,6 +502,14 @@ public class DispatchTestGenerator {
             resetFired = "    lock {\n        triggerFired.removeAll();\n    }\n";
             onlyThisFunction = "    lock {\n        test:assertEquals(triggerFired.keys(), [\"" + trackerKey
                     + "\"], \"Only " + trackerKey + " should have fired\");\n    }\n";
+        } else if (isBodyKeyIdentifier()) {
+            // The event type is a key such as a URI, which cannot name a file; the message key names the fixture.
+            testFnName = "test" + event + "Dispatch";
+            callArgs = "\"" + testCase.messageName() + "\"";
+            // A key-named event is checked to reach only its own function, not any function of the service.
+            resetFired = "    lock {\n        triggerFired.removeAll();\n    }\n";
+            onlyThisFunction = "    lock {\n        test:assertEquals(triggerFired.keys(), [\"" + trackerKey
+                    + "\"], \"Only " + trackerKey + " should have fired\");\n    }\n";
         } else {
             testFnName = "test" + event + "Dispatch";
             callArgs = isBodyModeIdentifier()
@@ -521,12 +529,17 @@ public class DispatchTestGenerator {
     }
 
     /**
-     * {@code body}-mode identifiers are already present in the fixture, so the test client never
+     * {@code body} and {@code body-key} identifiers are already present in the fixture, so the test client never
      * needs to set a synthetic identifier header -- see the class-level Javadoc.
      */
     private boolean isBodyModeIdentifier() {
         String identifierType = identifierConfig != null ? identifierConfig.type() : null;
-        return EventIdentifierExtractor.X_BALLERINA_EVENT_TYPE_BODY.equals(identifierType);
+        return EventIdentifierExtractor.X_BALLERINA_EVENT_TYPE_BODY.equals(identifierType) || isBodyKeyIdentifier();
+    }
+
+    private boolean isBodyKeyIdentifier() {
+        String identifierType = identifierConfig != null ? identifierConfig.type() : null;
+        return EventIdentifierExtractor.X_BALLERINA_EVENT_TYPE_BODY_KEY.equals(identifierType);
     }
 
     /**

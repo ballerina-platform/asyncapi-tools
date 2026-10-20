@@ -31,7 +31,7 @@ import io.ballerina.asyncapi.generator.http.utils.CodegenUtils;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -48,7 +48,7 @@ public final class ServiceTypeExtractor {
 
     private final AsyncApiSpec asyncApiSpec;
     private final EventIdentifierConfig identifierConfig;
-    private final Map<String, AsyncApiSchema> inlineSchemas = new HashMap<>();
+    private final Map<String, AsyncApiSchema> inlineSchemas = new LinkedHashMap<>();
     private Boolean batched;
 
     /**
@@ -112,7 +112,7 @@ public final class ServiceTypeExtractor {
             return Collections.emptyList();
         }
 
-        Map<String, HttpServiceType> serviceTypeMap = new HashMap<>();
+        Map<String, HttpServiceType> serviceTypeMap = new LinkedHashMap<>();
 
         for (Map.Entry<String, AsyncApiOperation> entry : operations.entrySet()) {
             AsyncApiOperation operation = entry.getValue();

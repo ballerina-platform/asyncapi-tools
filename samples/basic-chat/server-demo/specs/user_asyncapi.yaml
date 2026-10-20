@@ -1,29 +1,56 @@
-asyncapi: 2.5.0
+asyncapi: 3.0.0
 info:
   title: User
   version: 0.1.0
 servers:
   development:
-    url: "{server}:{port}/user"
+    host: "{server}:{port}"
     protocol: ws
     protocolVersion: "13"
+    pathname: /user
     variables:
       server:
         default: ws://localhost
       port:
         default: "9092"
 channels:
-  /:
+  root:
+    address: /
+    messages:
+      Subscribe:
+        $ref: "#/components/messages/Subscribe"
+      Unsubscribe:
+        $ref: "#/components/messages/Unsubscribe"
+      Chat:
+        $ref: "#/components/messages/Chat"
+      Response:
+        $ref: "#/components/messages/Response"
     description: Allows clients to get real-time data on users and chat with them.
-    subscribe:
-      message:
-        $ref: '#/components/messages/Response'
-    publish:
-      message:
-        oneOf:
-        - $ref: '#/components/messages/Subscribe'
-        - $ref: '#/components/messages/Unsubscribe'
-        - $ref: '#/components/messages/Chat'
+operations:
+  sendSubscribe:
+    action: send
+    channel:
+      $ref: "#/channels/root"
+    messages:
+    - $ref: "#/channels/root/messages/Subscribe"
+  sendUnsubscribe:
+    action: send
+    channel:
+      $ref: "#/channels/root"
+    messages:
+    - $ref: "#/channels/root/messages/Unsubscribe"
+  sendChat:
+    action: send
+    channel:
+      $ref: "#/channels/root"
+    messages:
+    - $ref: "#/channels/root/messages/Chat"
+  receiveResponse:
+    action: receive
+    channel:
+      $ref: "#/channels/root"
+    messages:
+    - $ref: "#/channels/root/messages/Response"
 components:
   schemas:
     Subscribe:
@@ -88,20 +115,20 @@ components:
   messages:
     Response:
       payload:
-        $ref: '#/components/schemas/Response'
+        $ref: "#/components/schemas/Response"
     Subscribe:
       payload:
-        $ref: '#/components/schemas/Subscribe'
+        $ref: "#/components/schemas/Subscribe"
       x-response:
-        $ref: '#/components/messages/Response'
+        $ref: "#/components/messages/Response"
       x-response-type: server-streaming
     Unsubscribe:
       payload:
-        $ref: '#/components/schemas/Unsubscribe'
+        $ref: "#/components/schemas/Unsubscribe"
     Chat:
       payload:
-        $ref: '#/components/schemas/Chat'
+        $ref: "#/components/schemas/Chat"
       x-response:
-        $ref: '#/components/messages/Response'
+        $ref: "#/components/messages/Response"
       x-response-type: simple-rpc
 x-dispatcherKey: event
