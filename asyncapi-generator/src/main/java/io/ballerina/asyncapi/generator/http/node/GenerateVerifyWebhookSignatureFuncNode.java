@@ -19,6 +19,7 @@ package io.ballerina.asyncapi.generator.http.node;
 
 import io.ballerina.asyncapi.generator.GeneratorException;
 import io.ballerina.asyncapi.generator.http.model.WebhookAuthConfig;
+import io.ballerina.asyncapi.generator.http.utils.FormBodies;
 import io.ballerina.asyncapi.generator.http.utils.HeaderTemplateParser;
 import io.ballerina.asyncapi.generator.http.utils.HeaderTemplateParser.HeaderTemplate;
 import io.ballerina.asyncapi.generator.http.utils.SignaturePayloadTemplateBuilder;
@@ -329,6 +330,11 @@ public class GenerateVerifyWebhookSignatureFuncNode implements Generator {
             @Override
             public String config(String configName) {
                 return "self." + configName;
+            }
+
+            @Override
+            public String formParams() {
+                return "self." + FormBodies.SORTED_FORM_PARAMS_FUNC + "(check request.getFormParams())";
             }
         });
     }

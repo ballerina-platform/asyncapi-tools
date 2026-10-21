@@ -48,7 +48,7 @@ public final class WebhookDslValidator {
 
     // "secret" allows $secret to fold the webhook secret directly into the hashed payload for
     // strategy: "hash" (plain-digest) schemes, instead of using it as an HMAC key.
-    private static final Set<String> BUILTIN_INPUT_TOKENS = Set.of("body", "method", "uri", "secret");
+    private static final Set<String> BUILTIN_INPUT_TOKENS = Set.of("body", "method", "uri", "secret", "formParams");
 
     private WebhookDslValidator() {
     }

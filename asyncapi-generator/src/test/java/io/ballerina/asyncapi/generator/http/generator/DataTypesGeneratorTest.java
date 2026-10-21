@@ -72,6 +72,30 @@ public class DataTypesGeneratorTest {
     }
 
     @Test
+    void testRefFieldWithoutDescriptionIsDocumentedFromItsComponent() throws GeneratorException {
+        Map<String, AsyncApiSchema> schemas = new LinkedHashMap<>();
+        schemas.put("User", AsyncApiSchema.builder().type("object").title("User").description("A GitHub user")
+                .properties(Map.of("login", AsyncApiSchema.builder().type("string").build())).build());
+        schemas.put("Label", AsyncApiSchema.builder().type("object").title("Label")
+                .properties(Map.of("name", AsyncApiSchema.builder().type("string").build())).build());
+        Map<String, AsyncApiSchema> eventFields = new LinkedHashMap<>();
+        eventFields.put("sender", AsyncApiSchema.builder().name("User").build());
+        eventFields.put("owner", AsyncApiSchema.builder().name("User").description("The repository owner").build());
+        eventFields.put("label", AsyncApiSchema.builder().name("Label").build());
+        schemas.put("PushEvent", AsyncApiSchema.builder().type("object").properties(eventFields).build());
+
+        String result = new DataTypesGenerator(schemas, Optional.empty(), Optional.empty()).generate()
+                .replace("\r\n", "\n");
+
+        Assert.assertTrue(result.contains("# A GitHub user\n    User sender?;"),
+                "A bare $ref field takes its component's description, not its title: " + result);
+        Assert.assertTrue(result.contains("# The repository owner\n    User owner?;"),
+                "A field's own description wins over its component's: " + result);
+        Assert.assertTrue(result.contains("User owner?;\n    Label label?;"),
+                "A component with only a title adds no comment: " + result);
+    }
+
+    @Test
     void testUriPropertyNameBecomesACleanFieldCarryingItsUri() throws GeneratorException {
         // WSO2 Identity Platform events are keyed by URI. A URI contains a hyphen, so it used to be taken
         // for an HTTP header name and emitted verbatim as a field identifier, which does not parse.

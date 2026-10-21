@@ -28,6 +28,7 @@ import io.ballerina.asyncapi.generator.http.model.EventIdentifierConfig;
 import io.ballerina.asyncapi.generator.http.model.HttpRemoteFunction;
 import io.ballerina.asyncapi.generator.http.model.HttpServiceType;
 import io.ballerina.asyncapi.generator.http.utils.CodegenUtils;
+import io.ballerina.asyncapi.generator.http.utils.FormBodies;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -44,11 +45,15 @@ public final class ServiceTypeExtractor {
     public static final String X_BALLERINA_EVENT_TYPE = "x-ballerina-event-type";
     private static final String X_BALLERINA_EVENT_LABEL = "x-ballerina-event-label";
     private static final String X_BALLERINA_SERVICE_TYPE = "x-ballerina-service-type";
+    private static final String X_BALLERINA_EVENT_IDENTIFIER = "x-ballerina-event-identifier";
 
     private final AsyncApiSpec asyncApiSpec;
     private final EventIdentifierConfig identifierConfig;
     private final Map<String, AsyncApiSchema> inlineSchemas = new LinkedHashMap<>();
     private Boolean batched;
+    private Boolean formEncoded;
+    private final Map<String, String> formFieldConversions = new LinkedHashMap<>();
+    private final Map<String, String> formFieldTypes = new LinkedHashMap<>();
 
     /**
      * Creates an extractor that does not have access to the resolved event identifier
@@ -100,6 +105,27 @@ public final class ServiceTypeExtractor {
     }
 
     /**
+     * Returns whether the messages arrive form-encoded ({@code application/x-www-form-urlencoded}), from each
+     * message's {@code contentType} or the document's {@code defaultContentType}, detected during
+     * {@link #extract()}.
+     *
+     * @return {@code true} if every message is form-encoded; {@code false} otherwise
+     */
+    public boolean isFormEncoded() {
+        return formEncoded != null && formEncoded;
+    }
+
+    /**
+     * Returns the top-level payload fields of form-encoded messages that must be converted from the string they
+     * arrive as, with the Ballerina type to convert to, collected during {@link #extract()}.
+     *
+     * @return field name to {@code int}, {@code decimal}, {@code float} or {@code boolean}; empty for JSON bodies
+     */
+    public Map<String, String> getFormFieldConversions() {
+        return formFieldConversions;
+    }
+
+    /**
      * Extracts the list of HTTP service types defined in the spec.
      *
      * @return a non-null list of {@link HttpServiceType} objects; empty if no qualifying operations exist
@@ -134,7 +160,15 @@ public final class ServiceTypeExtractor {
                 }
             }
 
-            serviceTypeMap.computeIfAbsent(serviceTypeName, k -> new HttpServiceType(k, new ArrayList<>()));
+            Map<String, JsonNode> channelExtensions = operationChannel.extensions();
+            JsonNode channelIdentifierNode = channelExtensions == null ? null
+                    : channelExtensions.get(X_BALLERINA_EVENT_IDENTIFIER);
+            EventIdentifierConfig channelIdentifier = channelIdentifierNode == null ? null
+                    : EventIdentifierExtractor.parse(channelIdentifierNode);
+            // computeIfAbsent, not put: within a hash bucket it orders entries differently, which would reorder
+            // the generated services.
+            serviceTypeMap.computeIfAbsent(serviceTypeName, k -> new HttpServiceType(k, new ArrayList<>(),
+                    operationChannel.address(), channelIdentifier));
 
             Map<String, AsyncApiMessage> messages = operation.messages();
             if (messages == null || messages.isEmpty()) {
@@ -152,6 +186,9 @@ public final class ServiceTypeExtractor {
                 Object payload = message.payload();
                 String payloadTypeName = eventType;
                 boolean matchOnEventType = false;
+                AsyncApiSchema unwrapped = payload instanceof AsyncApiSchema payloadSchema
+                        ? CodegenUtils.unwrapBatchedPayload(payloadSchema, eventType) : null;
+                recordContentType(message, eventType, unwrapped);
                 if (payload instanceof AsyncApiSchema schema) {
                     AsyncApiSchema eventSchema = resolveEventSchema(schema, eventType);
                     String name = eventSchema.name();
@@ -168,6 +205,47 @@ public final class ServiceTypeExtractor {
         }
 
         return new ArrayList<>(serviceTypeMap.values());
+    }
+
+    /**
+     * Records whether a message is form-encoded, requiring every message to agree (one resource reads every
+     * body), and collects the fields of its payload that must be converted from strings.
+     *
+     * @param message     the message
+     * @param eventType   the message's {@code x-ballerina-event-type}, for error messages
+     * @param eventSchema the event's payload schema, or {@code null} if it has none
+     * @throws GeneratorException if messages disagree on the encoding, or two form payloads type the same field
+     *                            differently
+     */
+    private void recordContentType(AsyncApiMessage message, String eventType, AsyncApiSchema eventSchema)
+            throws GeneratorException {
+        String contentType = message.contentType() != null && !message.contentType().isBlank()
+                ? message.contentType() : asyncApiSpec.getAsyncApiContentType().orElse(null);
+        boolean form = FormBodies.isFormContentType(contentType);
+        if (formEncoded == null) {
+            formEncoded = form;
+        } else if (formEncoded != form) {
+            throw new GeneratorException(String.format(
+                    "Message '%s' is %s while other messages are not; all messages must use the same content "
+                            + "type, form-encoded or JSON", eventType, form ? FormBodies.FORM_CONTENT_TYPE : "JSON"));
+        }
+        if (!form || eventSchema == null || eventSchema.properties() == null) {
+            return;
+        }
+        for (Map.Entry<String, AsyncApiSchema> property : eventSchema.properties().entrySet()) {
+            String conversion = FormBodies.conversionFor(property.getValue());
+            // One conversion serves every message, so a field kept as a string elsewhere is a conflict too.
+            String fieldType = conversion != null ? conversion : FormBodies.STRING_TYPE;
+            String previous = formFieldTypes.putIfAbsent(property.getKey(), fieldType);
+            if (previous != null && !previous.equals(fieldType)) {
+                throw new GeneratorException(String.format(
+                        "Form field '%s' is %s in one payload and %s in another; a form field must have one type",
+                        property.getKey(), previous, fieldType));
+            }
+            if (conversion != null) {
+                formFieldConversions.put(property.getKey(), conversion);
+            }
+        }
     }
 
     /**

@@ -16,6 +16,40 @@ x-ballerina-auth:
     input: "$body"
 ```
 
+## Event Identifiers per Channel
+
+`x-ballerina-event-identifier` is normally declared once, at the root, and the listener serves every channel at
+`/`. When channels name their events differently, give a channel its own identifier. Twilio, for example, puts the
+call status in `CallStatus` and the message status in `MessageStatus`, and both use values such as `failed`:
+
+```yaml
+channels:
+  callStatus:
+    address: callStatus
+    x-ballerina-event-identifier:
+      type: body
+      path: CallStatus
+  smsStatus:
+    address: smsStatus
+    x-ballerina-event-identifier:
+      type: body
+      path: MessageStatus
+```
+
+- As soon as any channel declares its own identifier, the listener serves **each channel at its own path**, its
+  `address` (`/callStatus`, `/smsStatus`), instead of one resource at `/`. Each path reads the event type with that
+  channel's identifier and dispatches only to that channel's service, so a `failed` call can never reach the
+  messaging service. Register each path with the provider separately.
+- A channel without its own identifier uses the root one. Generation fails if a channel has neither.
+- A channel's identifier must be `body` or `header`. Batched payloads are not supported with channel identifiers.
+- Each address must be one or more path segments made of letters, digits, `_` or `-`, starting with a letter or
+  `_`, and no two channels may share an address.
+- `$uri` in a signature `input` is the request path, so it is each channel's own path.
+- The generated dispatch tests post each event to its channel's path, read its payload from a folder that follows the
+  channel's address (for example `tests/resources/trigger_payloads/callStatus/failed.json`, or
+  `trigger_payloads/voice/status/failed.json` for `address: voice/status`), and check that only that channel's
+  remote function fired.
+
 ## Signature Config
 
 Fields under `x-ballerina-auth.signature`:
@@ -40,6 +74,8 @@ Allowed built-in input tokens:
   [Config-Derived Values](#config-derived-values) if a provider signs the full external URL).
 - `$secret`: the configured webhook secret itself, for schemes that fold it directly into the
   hashed payload instead of using it as an HMAC key (see `strategy: "hash"` above).
+- `$formParams`: the form parameters of a form-encoded body, sorted by name and each appended as name then value
+  (see [Form-Encoded Bodies](#form-encoded-bodies)).
 
 Header-derived variables become available in `input` when they are declared in `headerFormat`, and can
 be referenced either as `$name` or `{name}` (for example `$timestamp` or `{timestamp}`).
@@ -143,6 +179,40 @@ publishes a bare public key, wrap it in a certificate first.
 
 The generated dispatch tests sign with a fixed, throwaway key pair embedded in the test file and
 configure the test listener with its certificate, so the suite exercises real verification.
+
+## Form-Encoded Bodies
+
+Some providers send webhooks as `application/x-www-form-urlencoded` instead of JSON. Twilio, for example, sends
+`MessageSid=SM123&MessageStatus=delivered&To=%2B15551234567`. Declare it with the standard AsyncAPI content type,
+on each message or for the whole document:
+
+```yaml
+defaultContentType: application/x-www-form-urlencoded
+```
+
+- The listener reads the form parameters into a JSON object and then identifies and dispatches the event exactly
+  as for a JSON body, so `x-ballerina-event-identifier` names a parameter (for example `path: MessageStatus`).
+- Every parameter arrives as a string. Top-level payload fields the schema types as `integer`, `number` or `boolean`
+  are converted to the type the generated record field has; a value that does not convert gets `400 Bad Request`.
+- All messages must use the same content type, and form bodies do not support batched payloads.
+
+Providers that sign form bodies usually sign the parameters, not the raw body. `$formParams` is the parameters
+sorted by name (case-sensitive, byte order) and each appended as name then value, with no separators and with
+values decoded. Twilio signs the full URL followed by these parameters, with HMAC-SHA1 and Base64:
+
+```yaml
+x-ballerina-auth:
+  header: X-Twilio-Signature
+  signature:
+    algorithm: sha1
+    encoding: base64
+    headerFormat: "$signature"
+    input: "$config('webhookUrl') . $formParams"
+```
+
+`webhookUrl` becomes a field of the listener configuration, set to the URL registered with Twilio (see
+[Config-Derived Values](#config-derived-values)). `$formParams` can only be used when the messages are form-encoded.
+The generated dispatch tests send each JSON fixture's fields as form parameters and sign them the same way.
 
 ## Header Format Placeholders
 

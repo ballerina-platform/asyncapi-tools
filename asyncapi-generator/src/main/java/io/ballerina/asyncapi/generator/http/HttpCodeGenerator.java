@@ -36,6 +36,8 @@ import io.ballerina.asyncapi.generator.http.model.DispatchTestCase;
 import io.ballerina.asyncapi.generator.http.model.EventIdentifierConfig;
 import io.ballerina.asyncapi.generator.http.model.HttpServiceType;
 import io.ballerina.asyncapi.generator.http.model.WebhookAuthConfig;
+import io.ballerina.asyncapi.generator.http.utils.ChannelRoutes;
+import io.ballerina.asyncapi.generator.http.utils.FormBodies;
 import io.ballerina.asyncapi.generator.http.validator.WebhookDslValidator;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -118,13 +120,27 @@ public class HttpCodeGenerator {
         }
 
         // Extract data from the parsed spec
-        EventIdentifierConfig identifierConfig = new EventIdentifierExtractor(asyncApiSpec).extract();
+        EventIdentifierExtractor identifierExtractor = new EventIdentifierExtractor(asyncApiSpec);
+        EventIdentifierConfig identifierConfig = identifierExtractor.isPresent() ? identifierExtractor.extract() : null;
         ServiceTypeExtractor serviceTypeExtractor = new ServiceTypeExtractor(asyncApiSpec, identifierConfig);
         List<HttpServiceType> serviceTypes = serviceTypeExtractor.extract();
+        if (ChannelRoutes.isPerChannel(serviceTypes)) {
+            serviceTypes = ChannelRoutes.resolve(serviceTypes, identifierConfig);
+        } else if (identifierConfig == null) {
+            // Without identifiers on channels the document's is required; this reports it missing.
+            identifierConfig = identifierExtractor.extract();
+        }
         Map<String, AsyncApiSchema> schemas = new LinkedHashMap<>(new SchemaExtractor(asyncApiSpec).extract());
         schemas.putAll(serviceTypeExtractor.getInlineSchemas());
         Optional<WebhookAuthConfig> webhookAuthConfig = new WebhookAuthExtractor(asyncApiSpec).extract();
         validateWebhookDsl(webhookAuthConfig);
+        if (webhookAuthConfig.isPresent() && FormBodies.usesFormParams(webhookAuthConfig.get().input())
+                && !serviceTypeExtractor.isFormEncoded()) {
+            throw new GeneratorException("x-ballerina-auth input uses $formParams, but the messages are not "
+                    + "form-encoded; set contentType: " + FormBodies.FORM_CONTENT_TYPE + " on them");
+        }
+        Map<String, String> formFieldConversions =
+                serviceTypeExtractor.isFormEncoded() ? serviceTypeExtractor.getFormFieldConversions() : null;
         Optional<ConnectionAuthConfig> connectionAuthConfig = new ConnectionAuthExtractor(asyncApiSpec).extract();
 
         // Generate Ballerina source content
@@ -137,6 +153,7 @@ public class HttpCodeGenerator {
         String dispatcherContent =
                 new DispatcherGenerator(serviceTypes, identifierConfig, webhookAuthConfig,
                         serviceTypeExtractor.isBatched())
+                .withFormBodies(formFieldConversions)
                 .generate();
 
         // Write generated files to the output directory
@@ -162,6 +179,8 @@ public class HttpCodeGenerator {
             if (!testCases.isEmpty()) {
                 String dispatchTestContent =
                         new DispatchTestGenerator(testCases, webhookAuthConfig.get(), identifierConfig, schemas)
+                                .withFormBodies(formFieldConversions != null)
+                                .withChannelRoutes(serviceTypes)
                                 .generate();
                 Path writtenDispatchTest = writeFile(
                         outputPath.resolve(DISPATCH_TEST_BAL), LICENSE_HEADER + dispatchTestContent);
