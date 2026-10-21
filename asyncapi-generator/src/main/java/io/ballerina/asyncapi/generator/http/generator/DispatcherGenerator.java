@@ -28,6 +28,7 @@ import io.ballerina.asyncapi.generator.http.node.GenerateHttpImportNode;
 import io.ballerina.asyncapi.generator.http.node.GenerateLogImportNode;
 import io.ballerina.asyncapi.generator.http.node.GenerateNativeHandlerImportNode;
 import io.ballerina.asyncapi.generator.http.node.GenerateTimeImportNode;
+import io.ballerina.asyncapi.generator.http.utils.ChannelRoutes;
 import io.ballerina.compiler.syntax.tree.ClassDefinitionNode;
 import io.ballerina.compiler.syntax.tree.ImportDeclarationNode;
 import io.ballerina.compiler.syntax.tree.ModulePartNode;
@@ -90,7 +91,23 @@ public class DispatcherGenerator {
             throw new GeneratorException("No service types defined; cannot generate dispatcher_service.bal");
         }
 
-        String identifierType = identifierConfig.type();
+        if (ChannelRoutes.isPerChannel(serviceTypes)) {
+            // Each channel's identifier was checked when the routes were resolved.
+            if (batched) {
+                throw new GeneratorException("x-ballerina-event-identifier on channels does not support batched "
+                        + "payloads: each delivery must carry one event");
+            }
+        } else {
+            validateIdentifierType(identifierConfig.type(), batched);
+        }
+
+        ClassDefinitionNode classNode =
+                new GenerateDispatcherServiceNode(serviceTypes, identifierConfig, webhookAuthConfig, batched)
+                        .generate();
+        return render(classNode);
+    }
+
+    private static void validateIdentifierType(String identifierType, boolean batched) throws GeneratorException {
         boolean bodyKey = EventIdentifierExtractor.X_BALLERINA_EVENT_TYPE_BODY_KEY.equals(identifierType);
         if (!EventIdentifierExtractor.X_BALLERINA_EVENT_TYPE_BODY.equals(identifierType)
                 && !EventIdentifierExtractor.X_BALLERINA_EVENT_TYPE_HEADER.equals(identifierType)
@@ -104,11 +121,9 @@ public class DispatcherGenerator {
             throw new GeneratorException("x-ballerina-event-identifier type \"body-key\" does not support batched "
                     + "payloads: each delivery must carry one event");
         }
+    }
 
-        ClassDefinitionNode classNode =
-                new GenerateDispatcherServiceNode(serviceTypes, identifierConfig, webhookAuthConfig, batched)
-                        .generate();
-
+    private String render(ClassDefinitionNode classNode) throws GeneratorException {
         List<ImportDeclarationNode> imports = new ArrayList<>();
         imports.add(GenerateHttpImportNode.generate());
         imports.add(GenerateNativeHandlerImportNode.generate());

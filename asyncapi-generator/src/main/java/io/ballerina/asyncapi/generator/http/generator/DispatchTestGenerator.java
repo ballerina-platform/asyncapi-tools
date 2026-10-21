@@ -22,7 +22,9 @@ import io.ballerina.asyncapi.generator.GeneratorException;
 import io.ballerina.asyncapi.generator.http.extractor.EventIdentifierExtractor;
 import io.ballerina.asyncapi.generator.http.model.DispatchTestCase;
 import io.ballerina.asyncapi.generator.http.model.EventIdentifierConfig;
+import io.ballerina.asyncapi.generator.http.model.HttpServiceType;
 import io.ballerina.asyncapi.generator.http.model.WebhookAuthConfig;
+import io.ballerina.asyncapi.generator.http.utils.ChannelRoutes;
 import io.ballerina.asyncapi.generator.http.utils.CodegenUtils;
 import io.ballerina.asyncapi.generator.http.utils.HeaderTemplateParser;
 import io.ballerina.asyncapi.generator.http.utils.HeaderTemplateParser.HeaderTemplate;
@@ -73,6 +75,7 @@ public class DispatchTestGenerator {
     private final WebhookAuthConfig webhookAuthConfig;
     private final EventIdentifierConfig identifierConfig;
     private final Map<String, Set<String>> renamedKeysByType;
+    private final Map<String, HttpServiceType> channelRoutes = new LinkedHashMap<>();
 
     /**
      * Creates a generator for the given dispatch test cases, webhook authentication configuration,
@@ -102,6 +105,29 @@ public class DispatchTestGenerator {
         this.webhookAuthConfig = webhookAuthConfig;
         this.identifierConfig = identifierConfig;
         this.renamedKeysByType = resolveRenamedKeys(schemas);
+    }
+
+    /**
+     * Routes the tests by channel when the listener does: each test posts to its channel's path, with its
+     * channel's identifier, and reads its payload from a folder that follows the channel's address, since the same
+     * event type can exist on several channels. Has no effect when no channel declares its own identifier.
+     *
+     * @param serviceTypes the service types with their effective identifiers and addresses
+     * @return this generator
+     */
+    public DispatchTestGenerator withChannelRoutes(List<HttpServiceType> serviceTypes) {
+        channelRoutes.clear();
+        if (ChannelRoutes.isPerChannel(serviceTypes)) {
+            for (HttpServiceType serviceType : serviceTypes) {
+                channelRoutes.put(CodegenUtils.getServiceTypeNameByServiceName(serviceType.serviceTypeName()),
+                        serviceType);
+            }
+        }
+        return this;
+    }
+
+    private boolean isPerChannel() {
+        return !channelRoutes.isEmpty();
     }
 
     /**
@@ -253,18 +279,26 @@ public class DispatchTestGenerator {
 
     private String buildSendHelper(List<String> headerRefs) throws GeneratorException {
         StringBuilder sb = new StringBuilder();
-        sb.append("isolated function sendSignedTriggerWebhook(")
-                .append(isBodyModeIdentifier()
-                        ? "string eventIdentifier"
-                        : "string headerValue, string eventIdentifier")
-                .append(") returns http:Response|error {\n");
-        sb.append("    byte[] body = check io:fileReadBytes("
-                + "string `${TRIGGER_PAYLOAD_DIR}/${eventIdentifier}.json`);\n");
+        if (isPerChannel()) {
+            // Each test names its channel's path, payload file and identifier header (if the channel uses one).
+            sb.append("isolated function sendSignedTriggerWebhook(string path, string fixtureName, "
+                    + "map<string> identifierHeaders) returns http:Response|error {\n");
+            sb.append("    byte[] body = check io:fileReadBytes("
+                    + "string `${TRIGGER_PAYLOAD_DIR}/${fixtureName}.json`);\n");
+        } else {
+            sb.append("isolated function sendSignedTriggerWebhook(")
+                    .append(isBodyModeIdentifier()
+                            ? "string eventIdentifier"
+                            : "string headerValue, string eventIdentifier")
+                    .append(") returns http:Response|error {\n");
+            sb.append("    byte[] body = check io:fileReadBytes("
+                    + "string `${TRIGGER_PAYLOAD_DIR}/${eventIdentifier}.json`);\n");
+        }
         sb.append("    string bodyText = check string:fromBytes(body);\n");
 
         List<String> headerEntries = new ArrayList<>();
 
-        if (!isBodyModeIdentifier()) {
+        if (!isPerChannel() && !isBodyModeIdentifier()) {
             String identifierHeaderName = identifierConfig != null && identifierConfig.name() != null
                     ? identifierConfig.name()
                     : DEFAULT_IDENTIFIER_HEADER;
@@ -340,7 +374,14 @@ public class DispatchTestGenerator {
             sb.append(i < headerEntries.size() - 1 ? ",\n" : "\n");
         }
         sb.append("    };\n");
-        sb.append("    return triggerClient->post(\"/\", body, headers, \"application/json\");\n");
+        if (isPerChannel()) {
+            sb.append("    foreach var [name, value] in identifierHeaders.entries() {\n")
+                    .append("        headers[name] = value;\n")
+                    .append("    }\n");
+            sb.append("    return triggerClient->post(path, body, headers, \"application/json\");\n");
+        } else {
+            sb.append("    return triggerClient->post(\"/\", body, headers, \"application/json\");\n");
+        }
         sb.append("}\n\n");
         return sb.toString();
     }
@@ -354,7 +395,7 @@ public class DispatchTestGenerator {
 
             @Override
             public String uri() {
-                return "\"/\"";
+                return isPerChannel() ? "path" : "\"/\"";
             }
 
             @Override
@@ -437,24 +478,44 @@ public class DispatchTestGenerator {
         return "TRIGGER_TEST_" + upperSnake;
     }
 
-    private String buildTestFunction(DispatchTestCase testCase) {
-        String testFnName = "test" + capitalize(testCase.functionName().replaceFirst("^on", "")) + "Dispatch";
+    private String buildTestFunction(DispatchTestCase testCase) throws GeneratorException {
+        String event = capitalize(testCase.functionName().replaceFirst("^on", ""));
         String trackerKey = testCase.serviceTypeName() + "." + testCase.functionName();
+        String testFnName;
         String callArgs;
-        if (isBodyKeyIdentifier()) {
+        String resetFired = "";
+        String onlyThisFunction = "";
+        if (isPerChannel()) {
+            // The same event can exist on several channels, so the test name and payload file carry the channel.
+            HttpServiceType route = channelRoutes.get(testCase.serviceTypeName());
+            if (route == null) {
+                throw new GeneratorException("No channel route for service type " + testCase.serviceTypeName());
+            }
+            String path = ChannelRoutes.urlPath(route.address());
+            EventIdentifierConfig identifier = route.identifier();
+            String headers = EventIdentifierExtractor.X_BALLERINA_EVENT_TYPE_HEADER.equals(identifier.type())
+                    ? "{\"" + identifier.name().replaceFirst("^'", "") + "\": \"" + testCase.headerValue() + "\"}"
+                    : "{}";
+            testFnName = "test" + testCase.serviceTypeName() + event + "Dispatch";
+            callArgs = "\"" + path + "\", \"" + path.substring(1) + "/" + testCase.eventIdentifier() + "\", "
+                    + headers;
+            resetFired = "    lock {\n        triggerFired.removeAll();\n    }\n";
+            onlyThisFunction = "    lock {\n        test:assertEquals(triggerFired.keys(), [\"" + trackerKey
+                    + "\"], \"Only " + trackerKey + " should have fired\");\n    }\n";
+        } else if (isBodyKeyIdentifier()) {
             // The event type is a key such as a URI, which cannot name a file; the message key names the fixture.
+            testFnName = "test" + event + "Dispatch";
             callArgs = "\"" + testCase.messageName() + "\"";
-        } else if (isBodyModeIdentifier()) {
-            callArgs = "\"" + testCase.eventIdentifier() + "\"";
+            // A key-named event is checked to reach only its own function, not any function of the service.
+            resetFired = "    lock {\n        triggerFired.removeAll();\n    }\n";
+            onlyThisFunction = "    lock {\n        test:assertEquals(triggerFired.keys(), [\"" + trackerKey
+                    + "\"], \"Only " + trackerKey + " should have fired\");\n    }\n";
         } else {
-            callArgs = "\"" + testCase.headerValue() + "\", \"" + testCase.eventIdentifier() + "\"";
+            testFnName = "test" + event + "Dispatch";
+            callArgs = isBodyModeIdentifier()
+                    ? "\"" + testCase.eventIdentifier() + "\""
+                    : "\"" + testCase.headerValue() + "\", \"" + testCase.eventIdentifier() + "\"";
         }
-        // A key-named event is checked to reach only its own function, not any function of the service.
-        String onlyThisFunction = isBodyKeyIdentifier()
-                ? "    lock {\n        test:assertEquals(triggerFired.keys(), [\"" + trackerKey
-                        + "\"], \"Only " + trackerKey + " should have fired\");\n    }\n"
-                : "";
-        String resetFired = isBodyKeyIdentifier() ? "    lock {\n        triggerFired.removeAll();\n    }\n" : "";
         return "@test:Config {}\n"
                 + "function " + testFnName + "() returns error? {\n"
                 + resetFired
