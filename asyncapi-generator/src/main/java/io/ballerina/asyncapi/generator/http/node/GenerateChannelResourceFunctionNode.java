@@ -30,6 +30,7 @@ import io.ballerina.compiler.syntax.tree.StatementNode;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createIdentifierToken;
@@ -46,6 +47,7 @@ public class GenerateChannelResourceFunctionNode implements Generator {
 
     private final HttpServiceType serviceType;
     private final Optional<WebhookAuthConfig> webhookAuthConfig;
+    private Map<String, String> formFieldConversions;
 
     /**
      * Creates a generator for one channel's resource function.
@@ -59,12 +61,24 @@ public class GenerateChannelResourceFunctionNode implements Generator {
         this.webhookAuthConfig = webhookAuthConfig;
     }
 
+    /**
+     * Reads form-encoded bodies instead of JSON.
+     *
+     * @param formFieldConversions the fields to convert from strings, with their Ballerina types, or {@code null}
+     *                             for JSON bodies
+     * @return this generator
+     */
+    public GenerateChannelResourceFunctionNode withFormBodies(Map<String, String> formFieldConversions) {
+        this.formFieldConversions = formFieldConversions;
+        return this;
+    }
+
     @Override
     public FunctionDefinitionNode generate() throws GeneratorException {
         EventIdentifierConfig identifier = serviceType.identifier();
         List<StatementNode> statements =
                 new ArrayList<>(GeneratePostResourceFunctionNode.buildVerifyStatements(webhookAuthConfig));
-        statements.add(NodeParser.parseStatement("json payload = check request.getJsonPayload();"));
+        statements.addAll(GeneratePostResourceFunctionNode.buildPayloadStatements(formFieldConversions));
         if (EventIdentifierExtractor.X_BALLERINA_EVENT_TYPE_HEADER.equals(identifier.type())) {
             statements.addAll(GeneratePostResourceFunctionNode.buildEventTypeFromHeaderStatements(identifier.name()));
         } else {

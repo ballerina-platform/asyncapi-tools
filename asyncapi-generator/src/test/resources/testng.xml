@@ -27,6 +27,7 @@
             <class name="io.ballerina.asyncapi.generator.http.generator.DispatcherGeneratorTest"/>
             <class name="io.ballerina.asyncapi.generator.http.generator.ServiceTypesGeneratorTest"/>
             <class name="io.ballerina.asyncapi.generator.http.utils.CodegenUtilsTest"/>
+            <class name="io.ballerina.asyncapi.generator.http.utils.FormBodiesTest"/>
             <class name="io.ballerina.asyncapi.generator.http.utils.ChannelRoutesTest"/>
             <class name="io.ballerina.asyncapi.generator.ws.client.WsClientCodeGeneratorIntegrationTest"/>
             <class name="io.ballerina.asyncapi.generator.ws.client.extractor.DispatcherKeyExtractorTest"/>

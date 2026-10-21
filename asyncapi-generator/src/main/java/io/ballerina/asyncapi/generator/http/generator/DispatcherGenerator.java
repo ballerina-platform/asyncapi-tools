@@ -41,6 +41,7 @@ import org.ballerinalang.formatter.core.FormatterException;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createNodeList;
@@ -59,6 +60,7 @@ public class DispatcherGenerator {
     private final EventIdentifierConfig identifierConfig;
     private final Optional<WebhookAuthConfig> webhookAuthConfig;
     private final boolean batched;
+    private Map<String, String> formFieldConversions;
 
     /**
      * Creates a generator for the given service types, event identifier configuration, and optional
@@ -78,6 +80,18 @@ public class DispatcherGenerator {
         this.identifierConfig = identifierConfig;
         this.webhookAuthConfig = webhookAuthConfig;
         this.batched = batched;
+    }
+
+    /**
+     * Reads form-encoded bodies instead of JSON.
+     *
+     * @param formFieldConversions the fields to convert from strings, with their Ballerina types, or {@code null}
+     *                             for JSON bodies
+     * @return this generator
+     */
+    public DispatcherGenerator withFormBodies(Map<String, String> formFieldConversions) {
+        this.formFieldConversions = formFieldConversions;
+        return this;
     }
 
     /**
@@ -101,8 +115,14 @@ public class DispatcherGenerator {
             validateIdentifierType(identifierConfig.type(), batched);
         }
 
+        if (formFieldConversions != null && batched) {
+            throw new GeneratorException("Form-encoded bodies do not support batched payloads: each delivery must "
+                    + "carry one event");
+        }
+
         ClassDefinitionNode classNode =
                 new GenerateDispatcherServiceNode(serviceTypes, identifierConfig, webhookAuthConfig, batched)
+                        .withFormBodies(formFieldConversions)
                         .generate();
         return render(classNode);
     }

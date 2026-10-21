@@ -31,6 +31,7 @@ import io.ballerina.compiler.syntax.tree.StatementNode;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import static io.ballerina.asyncapi.generator.http.node.GenerateAddServiceRefFuncNode.buildErrorReturnType;
@@ -77,6 +78,7 @@ public class GeneratePostResourceFunctionNode implements Generator {
     private final EventIdentifierConfig identifierConfig;
     private final Optional<WebhookAuthConfig> webhookAuthConfig;
     private final boolean batched;
+    private Map<String, String> formFieldConversions;
 
     /**
      * Creates a generator for the post resource function.
@@ -92,12 +94,54 @@ public class GeneratePostResourceFunctionNode implements Generator {
         this.batched = batched;
     }
 
+    /**
+     * Reads form-encoded bodies instead of JSON.
+     *
+     * @param formFieldConversions the fields to convert from strings, with their Ballerina types, or {@code null}
+     *                             for JSON bodies
+     * @return this generator
+     */
+    public GeneratePostResourceFunctionNode withFormBodies(Map<String, String> formFieldConversions) {
+        this.formFieldConversions = formFieldConversions;
+        return this;
+    }
+
+    /**
+     * Builds the statements that read the body into {@code json payload}: the JSON body, or the form parameters as
+     * a JSON object whose typed fields are converted from strings. A value that does not convert is a malformed
+     * delivery and gets {@code 400 Bad Request}.
+     *
+     * @param formFieldConversions the fields to convert, or {@code null} for a JSON body
+     * @return the statements, ending with {@code payload} bound
+     */
+    static List<StatementNode> buildPayloadStatements(Map<String, String> formFieldConversions) {
+        List<StatementNode> statements = new ArrayList<>();
+        if (formFieldConversions == null) {
+            statements.add(NodeParser.parseStatement("json payload = check request.getJsonPayload();"));
+            return statements;
+        }
+        statements.add(NodeParser.parseStatement("map<string> formParams = check request.getFormParams();"));
+        statements.add(NodeParser.parseStatement("map<json> formPayload = {};"));
+        statements.add(NodeParser.parseStatement(
+                "foreach var [name, value] in formParams.entries() { formPayload[name] = value; }"));
+        for (Map.Entry<String, String> field : formFieldConversions.entrySet()) {
+            String key = "\"" + field.getKey().replace("\\", "\\\\").replace("\"", "\\\"") + "\"";
+            statements.add(NodeParser.parseStatement(String.format(
+                    "if formParams.hasKey(%1$s) { %2$s|error converted = %2$s:fromString(formParams.get(%1$s));"
+                            + " if converted is error { http:Response badRequest = new;"
+                            + " badRequest.statusCode = http:STATUS_BAD_REQUEST; check caller->respond(badRequest);"
+                            + " return; } formPayload[%1$s] = converted; }", key, field.getValue())));
+        }
+        statements.add(NodeParser.parseStatement("json payload = formPayload;"));
+        return statements;
+    }
+
     @Override
     public FunctionDefinitionNode generate() throws GeneratorException {
         String type = identifierConfig.type();
 
         List<StatementNode> statements = new ArrayList<>(buildVerifyStatements(webhookAuthConfig));
-        statements.add(NodeParser.parseStatement("json payload = check request.getJsonPayload();"));
+        statements.addAll(buildPayloadStatements(formFieldConversions));
         if (batched) {
             statements.addAll(buildBatchedDispatchStatements(type));
         } else {

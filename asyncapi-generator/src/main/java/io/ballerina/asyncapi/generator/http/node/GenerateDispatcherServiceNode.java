@@ -24,6 +24,7 @@ import io.ballerina.asyncapi.generator.http.model.EventIdentifierConfig;
 import io.ballerina.asyncapi.generator.http.model.HttpServiceType;
 import io.ballerina.asyncapi.generator.http.model.WebhookAuthConfig;
 import io.ballerina.asyncapi.generator.http.utils.ChannelRoutes;
+import io.ballerina.asyncapi.generator.http.utils.FormBodies;
 import io.ballerina.compiler.syntax.tree.ClassDefinitionNode;
 import io.ballerina.compiler.syntax.tree.FunctionBodyBlockNode;
 import io.ballerina.compiler.syntax.tree.FunctionDefinitionNode;
@@ -36,6 +37,7 @@ import io.ballerina.compiler.syntax.tree.TypeDescriptorNode;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createEmptyNodeList;
@@ -56,6 +58,7 @@ import static io.ballerina.compiler.syntax.tree.NodeFactory.createOptionalTypeDe
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createParenthesizedArgList;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createQualifiedNameReferenceNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createRequiredParameterNode;
+import static io.ballerina.compiler.syntax.tree.NodeFactory.createReturnTypeDescriptorNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createSimpleNameReferenceNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createTypeParameterNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createTypeReferenceNode;
@@ -67,6 +70,7 @@ import static io.ballerina.compiler.syntax.tree.SyntaxKind.COLON_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.COMMA_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.EQUAL_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.FUNCTION_KEYWORD;
+import static io.ballerina.compiler.syntax.tree.SyntaxKind.ISOLATED_KEYWORD;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.GT_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.ISOLATED_KEYWORD;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.LT_TOKEN;
@@ -77,6 +81,7 @@ import static io.ballerina.compiler.syntax.tree.SyntaxKind.OPEN_BRACE_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.OPEN_PAREN_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.PRIVATE_KEYWORD;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.QUESTION_MARK_TOKEN;
+import static io.ballerina.compiler.syntax.tree.SyntaxKind.RETURNS_KEYWORD;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.SEMICOLON_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.SERVICE_KEYWORD;
 
@@ -100,6 +105,7 @@ public class GenerateDispatcherServiceNode implements Generator {
     private final EventIdentifierConfig identifierConfig;
     private final Optional<WebhookAuthConfig> webhookAuthConfig;
     private final boolean batched;
+    private Map<String, String> formFieldConversions;
 
     /**
      * Creates a generator for the {@code DispatcherService} class.
@@ -115,6 +121,18 @@ public class GenerateDispatcherServiceNode implements Generator {
         this.identifierConfig = identifierConfig;
         this.webhookAuthConfig = webhookAuthConfig;
         this.batched = batched;
+    }
+
+    /**
+     * Reads form-encoded bodies instead of JSON.
+     *
+     * @param formFieldConversions the fields to convert from strings, with their Ballerina types, or {@code null}
+     *                             for JSON bodies
+     * @return this generator
+     */
+    public GenerateDispatcherServiceNode withFormBodies(Map<String, String> formFieldConversions) {
+        this.formFieldConversions = formFieldConversions;
+        return this;
     }
 
     @Override
@@ -144,11 +162,12 @@ public class GenerateDispatcherServiceNode implements Generator {
         members.add(buildFunc(new GenerateRemoveServiceRefFuncNode()));
         if (perChannel) {
             for (HttpServiceType serviceType : serviceTypes) {
-                members.add(buildFunc(new GenerateChannelResourceFunctionNode(serviceType, webhookAuthConfig)));
+                members.add(buildFunc(new GenerateChannelResourceFunctionNode(serviceType, webhookAuthConfig)
+                        .withFormBodies(formFieldConversions)));
             }
         } else {
-            members.add(buildFunc(
-                    new GeneratePostResourceFunctionNode(identifierConfig, webhookAuthConfig, batched)));
+            members.add(buildFunc(new GeneratePostResourceFunctionNode(identifierConfig, webhookAuthConfig, batched)
+                    .withFormBodies(formFieldConversions)));
             if (batched) {
                 members.add(buildFunc(new GenerateDispatchBatchFuncNode(identifierConfig)));
             }
@@ -156,6 +175,9 @@ public class GenerateDispatcherServiceNode implements Generator {
 
         if (webhookAuthConfig.isPresent()) {
             members.add(buildFunc(new GenerateVerifyWebhookSignatureFuncNode(webhookAuthConfig.get())));
+            if (FormBodies.usesFormParams(webhookAuthConfig.get().input())) {
+                members.add(buildSortedFormParamsFunction());
+            }
         }
 
         if (perChannel) {
@@ -301,6 +323,35 @@ public class GenerateDispatcherServiceNode implements Generator {
                 createNodeList(createToken(ISOLATED_KEYWORD)),
                 createToken(FUNCTION_KEYWORD),
                 createIdentifierToken("init"),
+                createEmptyNodeList(),
+                signature, body);
+    }
+
+    /**
+     * Builds the method behind {@code $formParams}: the form parameters sorted by name (case-sensitive, byte order,
+     * as Twilio sorts them), each appended as name then value with no separator.
+     */
+    private FunctionDefinitionNode buildSortedFormParamsFunction() {
+        FunctionSignatureNode signature = createFunctionSignatureNode(
+                createToken(OPEN_PAREN_TOKEN),
+                createSeparatedNodeList(createRequiredParameterNode(createEmptyNodeList(),
+                        NodeParser.parseTypeDescriptor("map<string>"), createIdentifierToken("params"))),
+                createToken(CLOSE_PAREN_TOKEN),
+                createReturnTypeDescriptorNode(createToken(RETURNS_KEYWORD), createEmptyNodeList(),
+                        NodeParser.parseTypeDescriptor("string")));
+        List<StatementNode> statements = List.of(
+                NodeParser.parseStatement("string[] names = params.keys().sort();"),
+                NodeParser.parseStatement("string sorted = \"\";"),
+                NodeParser.parseStatement("foreach string name in names { sorted += name + params.get(name); }"),
+                NodeParser.parseStatement("return sorted;"));
+        FunctionBodyBlockNode body = createFunctionBodyBlockNode(
+                createToken(OPEN_BRACE_TOKEN), null, createNodeList(statements),
+                createToken(CLOSE_BRACE_TOKEN), null);
+        return createFunctionDefinitionNode(
+                OBJECT_METHOD_DEFINITION, null,
+                createNodeList(createToken(PRIVATE_KEYWORD), createToken(ISOLATED_KEYWORD)),
+                createToken(FUNCTION_KEYWORD),
+                createIdentifierToken(FormBodies.SORTED_FORM_PARAMS_FUNC),
                 createEmptyNodeList(),
                 signature, body);
     }
