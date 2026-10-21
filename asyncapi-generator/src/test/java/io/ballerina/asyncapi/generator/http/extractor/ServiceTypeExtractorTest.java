@@ -21,6 +21,7 @@ import io.ballerina.asyncapi.core.AsyncApiParser;
 import io.ballerina.asyncapi.core.AsyncApiParserException;
 import io.ballerina.asyncapi.core.api.AsyncApiSpec;
 import io.ballerina.asyncapi.generator.GeneratorException;
+import io.ballerina.asyncapi.generator.http.model.EventIdentifierConfig;
 import io.ballerina.asyncapi.generator.http.model.HttpServiceType;
 import org.testng.Assert;
 import org.testng.annotations.Test;
@@ -51,6 +52,20 @@ public class ServiceTypeExtractorTest {
         List<HttpServiceType> result = new ServiceTypeExtractor(spec).extract();
         Assert.assertTrue(result.isEmpty(),
                 "Publish-only (SEND) operations should be excluded from service types");
+    }
+
+    @Test
+    void testFreeFormActionIsFoundThroughAnEscapedCompositePath() throws AsyncApiParserException, GeneratorException {
+        // The stored path is escaped for Ballerina (action\-type), but the schema key is the raw action-type.
+        String json = PREFIX + ",\"channels\":{\"events\":{\"subscribe\":{\"message\":"
+                + "{\"x-ballerina-event-type\":\"issue\",\"payload\":{\"type\":\"object\",\"properties\":"
+                + "{\"action-type\":{\"type\":\"string\"}}}}}}}}";
+        EventIdentifierConfig identifier = new EventIdentifierConfig(EventIdentifierExtractor
+                .X_BALLERINA_EVENT_TYPE_COMPOSITE, "X-Event", EventIdentifierExtractor.escapeBodyPath("action-type"));
+        List<HttpServiceType> result =
+                new ServiceTypeExtractor(AsyncApiParser.parseFromJsonString(json), identifier).extract();
+        Assert.assertTrue(result.get(0).remoteFunctions().get(0).matchOnEventType(),
+                "An action field without an enum is free-form, so events match on their type alone");
     }
 
     @Test

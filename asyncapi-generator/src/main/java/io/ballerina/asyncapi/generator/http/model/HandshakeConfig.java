@@ -19,6 +19,7 @@ package io.ballerina.asyncapi.generator.http.model;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -33,12 +34,15 @@ import java.util.Map;
  *                       {@code correlationId}; {@code null} for a {@code GET}
  * @param challengeQuery for a {@code GET}, the query parameter holding the challenge ({@code hub.challenge});
  *                       {@code null} for a {@code POST}
+ * @param requiredQuery  for a {@code GET}, the query parameters the query schema marks {@code required}, which a
+ *                       request must carry to be confirmed, such as {@code hub.topic}; empty for a {@code POST}
  * @param statusCode     the status code of the reply, from the reply message's HTTP binding, {@code 200} if unset
  */
 public record HandshakeConfig(
         Map<String, JsonNode> when,
         String challengePath,
         String challengeQuery,
+        List<String> requiredQuery,
         int statusCode
 ) {
 

@@ -47,6 +47,10 @@ operations:
         method: GET
         query:
           type: object
+          required:
+            - hub.mode
+            - hub.topic
+            - hub.challenge
           properties:
             hub.mode:
               type: string

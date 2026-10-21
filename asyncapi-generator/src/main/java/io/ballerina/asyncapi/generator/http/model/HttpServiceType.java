@@ -25,9 +25,21 @@ import java.util.List;
  *
  * @param serviceTypeName the Ballerina-safe name for the service type (from {@code x-ballerina-service-type})
  * @param remoteFunctions the list of remote functions this service type exposes, one per event
+ * @param address         the channel's {@code address}, or {@code null} if not known
+ * @param identifier      the channel's own {@code x-ballerina-event-identifier}, or {@code null} if it uses the
+ *                        document's
  */
 public record HttpServiceType(
         String serviceTypeName,
-        List<HttpRemoteFunction> remoteFunctions
+        List<HttpRemoteFunction> remoteFunctions,
+        String address,
+        EventIdentifierConfig identifier
 ) {
+
+    /**
+     * Creates a service type that uses the document's event identifier.
+     */
+    public HttpServiceType(String serviceTypeName, List<HttpRemoteFunction> remoteFunctions) {
+        this(serviceTypeName, remoteFunctions, null, null);
+    }
 }

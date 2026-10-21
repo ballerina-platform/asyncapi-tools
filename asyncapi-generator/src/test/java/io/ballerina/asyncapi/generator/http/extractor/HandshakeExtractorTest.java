@@ -134,7 +134,8 @@ public class HandshakeExtractorTest {
 
     @Test
     void testGetIsReadAsWebSubVerification() throws Exception {
-        String query = "bindings: {http: {method: GET, query: {type: object, properties: {"
+        String query = "bindings: {http: {method: GET, query: {type: object, "
+                + "required: [hub.mode, hub.topic, hub.challenge], properties: {"
                 + "hub.mode: {type: string, const: subscribe}, hub.topic: {type: string}, "
                 + "hub.challenge: {type: string}}}}}";
         HandshakeConfig handshake = extract("{type: string}", "", "", query).orElseThrow();
@@ -143,6 +144,8 @@ public class HandshakeExtractorTest {
         Assert.assertEquals(handshake.when().keySet(), java.util.Set.of("hub.mode"),
                 "Only the fixed parameters decide which requests are confirmed");
         Assert.assertEquals(handshake.when().get("hub.mode").asText(), "subscribe");
+        Assert.assertEquals(handshake.requiredQuery(), java.util.List.of("hub.topic"),
+                "Required parameters must be present; the fixed ones and the challenge are checked anyway");
         Assert.assertNull(handshake.challengePath());
     }
 }

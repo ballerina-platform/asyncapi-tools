@@ -26,6 +26,8 @@ import io.ballerina.asyncapi.generator.http.model.WebhookAuthConfig;
 import io.ballerina.compiler.syntax.tree.FunctionBodyBlockNode;
 import io.ballerina.compiler.syntax.tree.FunctionDefinitionNode;
 import io.ballerina.compiler.syntax.tree.FunctionSignatureNode;
+import io.ballerina.compiler.syntax.tree.Node;
+import io.ballerina.compiler.syntax.tree.NodeList;
 import io.ballerina.compiler.syntax.tree.NodeParser;
 import io.ballerina.compiler.syntax.tree.StatementNode;
 
@@ -80,6 +82,7 @@ public class GeneratePostResourceFunctionNode implements Generator {
     private final EventIdentifierConfig identifierConfig;
     private final Optional<WebhookAuthConfig> webhookAuthConfig;
     private final boolean batched;
+    private Map<String, String> formFieldConversions;
 
     /**
      * Creates a generator for the post resource function.
@@ -95,8 +98,74 @@ public class GeneratePostResourceFunctionNode implements Generator {
         this.batched = batched;
     }
 
+    /**
+     * Reads form-encoded bodies instead of JSON.
+     *
+     * @param formFieldConversions the fields to convert from strings, with their Ballerina types, or {@code null}
+     *                             for JSON bodies
+     * @return this generator
+     */
+    public GeneratePostResourceFunctionNode withFormBodies(Map<String, String> formFieldConversions) {
+        this.formFieldConversions = formFieldConversions;
+        return this;
+    }
+
+    /**
+     * Builds the statements that read the body into {@code json payload}: the JSON body, or the form parameters as
+     * a JSON object whose typed fields are converted from strings. A value that does not convert is a malformed
+     * delivery and gets {@code 400 Bad Request}.
+     *
+     * @param formFieldConversions the fields to convert, or {@code null} for a JSON body
+     * @return the statements, ending with {@code payload} bound
+     */
+    static List<StatementNode> buildPayloadStatements(Map<String, String> formFieldConversions) {
+        List<StatementNode> statements = new ArrayList<>();
+        if (formFieldConversions == null) {
+            statements.add(NodeParser.parseStatement("json payload = check request.getJsonPayload();"));
+            return statements;
+        }
+        statements.add(NodeParser.parseStatement("map<string> formParams = check request.getFormParams();"));
+        statements.add(NodeParser.parseStatement("map<json> formPayload = {};"));
+        statements.add(NodeParser.parseStatement(
+                "foreach var [name, value] in formParams.entries() { formPayload[name] = value; }"));
+        for (Map.Entry<String, String> field : formFieldConversions.entrySet()) {
+            String key = "\"" + field.getKey().replace("\\", "\\\\").replace("\"", "\\\"") + "\"";
+            statements.add(NodeParser.parseStatement(String.format(
+                    "if formParams.hasKey(%1$s) { %2$s|error converted = %2$s:fromString(formParams.get(%1$s));"
+                            + " if converted is error { http:Response badRequest = new;"
+                            + " badRequest.statusCode = http:STATUS_BAD_REQUEST; check caller->respond(badRequest);"
+                            + " return; } formPayload[%1$s] = converted; }", key, field.getValue())));
+        }
+        statements.add(NodeParser.parseStatement("json payload = formPayload;"));
+        return statements;
+    }
+
     @Override
     public FunctionDefinitionNode generate() throws GeneratorException {
+        String type = identifierConfig.type();
+
+        List<StatementNode> statements = new ArrayList<>(buildVerifyStatements(webhookAuthConfig));
+        statements.addAll(buildPayloadStatements(formFieldConversions));
+        HandshakeConfig handshake = identifierConfig.handshake();
+        if (handshake != null && !handshake.isQuery()) {
+            statements.addAll(buildHandshakeStatements(handshake));
+        }
+        if (batched) {
+            statements.addAll(buildBatchedDispatchStatements(type));
+        } else {
+            statements.addAll(buildSingleEventDispatchStatements(type));
+        }
+        return buildPostResource(createNodeList(createToken(DOT_TOKEN)), statements);
+    }
+
+    /**
+     * Builds {@code resource function post <path>(http:Caller caller, http:Request request) returns error?}.
+     *
+     * @param path       the resource path nodes, e.g. {@code .} or {@code callStatus}
+     * @param statements the function body
+     * @return the resource function definition
+     */
+    static FunctionDefinitionNode buildPostResource(NodeList<Node> path, List<StatementNode> statements) {
         FunctionSignatureNode signature = createFunctionSignatureNode(
                 createToken(OPEN_PAREN_TOKEN),
                 createSeparatedNodeList(
@@ -118,8 +187,26 @@ public class GeneratePostResourceFunctionNode implements Generator {
                 createToken(CLOSE_PAREN_TOKEN),
                 buildErrorReturnType());
 
-        String type = identifierConfig.type();
+        FunctionBodyBlockNode body = createFunctionBodyBlockNode(
+                createToken(OPEN_BRACE_TOKEN), null, createNodeList(statements),
+                createToken(CLOSE_BRACE_TOKEN), null);
 
+        return createFunctionDefinitionNode(
+                RESOURCE_ACCESSOR_DEFINITION, null,
+                createNodeList(createToken(RESOURCE_KEYWORD)),
+                createToken(FUNCTION_KEYWORD),
+                createIdentifierToken("post"),
+                path,
+                signature, body);
+    }
+
+    /**
+     * Builds the statements that reject a request whose signature does not verify with {@code 401 Unauthorized}.
+     *
+     * @param webhookAuthConfig the optional webhook authentication configuration
+     * @return the statements, empty when no signature is configured
+     */
+    static List<StatementNode> buildVerifyStatements(Optional<WebhookAuthConfig> webhookAuthConfig) {
         List<StatementNode> statements = new ArrayList<>();
         if (webhookAuthConfig.isPresent()) {
             statements.add(NodeParser.parseStatement(String.format(
@@ -131,28 +218,7 @@ public class GeneratePostResourceFunctionNode implements Generator {
                             + " http:Response r = new; r.statusCode = http:STATUS_UNAUTHORIZED;"
                             + " check caller->respond(r); return; }"));
         }
-        statements.add(NodeParser.parseStatement("json payload = check request.getJsonPayload();"));
-        HandshakeConfig handshake = identifierConfig.handshake();
-        if (handshake != null && !handshake.isQuery()) {
-            statements.addAll(buildHandshakeStatements(handshake));
-        }
-        if (batched) {
-            statements.addAll(buildBatchedDispatchStatements(type));
-        } else {
-            statements.addAll(buildSingleEventDispatchStatements(type));
-        }
-
-        FunctionBodyBlockNode body = createFunctionBodyBlockNode(
-                createToken(OPEN_BRACE_TOKEN), null, createNodeList(statements),
-                createToken(CLOSE_BRACE_TOKEN), null);
-
-        return createFunctionDefinitionNode(
-                RESOURCE_ACCESSOR_DEFINITION, null,
-                createNodeList(createToken(RESOURCE_KEYWORD)),
-                createToken(FUNCTION_KEYWORD),
-                createIdentifierToken("post"),
-                createNodeList(createToken(DOT_TOKEN)),
-                signature, body);
+        return statements;
     }
 
     /**
@@ -313,7 +379,7 @@ public class GeneratePostResourceFunctionNode implements Generator {
      * @param headerName the request header to read (e.g. {@code "X-GitHub-Event"})
      * @return the statements, ending with {@code eventType} bound to the header's value
      */
-    private List<StatementNode> buildEventTypeFromHeaderStatements(String headerName) {
+    static List<StatementNode> buildEventTypeFromHeaderStatements(String headerName) {
         List<StatementNode> statements = new ArrayList<>();
         statements.add(NodeParser.parseStatement(String.format(
                 "string|error eventTypeResult = request.getHeader(\"%s\");", headerName)));

@@ -30,7 +30,8 @@ import java.util.Map;
  * Generates the {@code resource function get .} that answers a W3C WebSub verification of intent: the hub sends
  * {@code GET ?hub.mode=subscribe&hub.topic=...&hub.challenge=...} and the subscriber confirms by echoing
  * {@code hub.challenge}. A request whose query does not have the definition's {@code const} values (for example
- * another {@code hub.mode}) is not confirmed: WebSub has the subscriber answer {@code 404 Not Found}.
+ * another {@code hub.mode}) or lacks a parameter the query schema marks {@code required} (for example
+ * {@code hub.topic}) is not confirmed: WebSub has the subscriber answer {@code 404 Not Found}.
  */
 public class GenerateWebSubVerificationFuncNode implements Generator {
 
@@ -48,6 +49,9 @@ public class GenerateWebSubVerificationFuncNode implements Generator {
         for (Map.Entry<String, JsonNode> parameter : handshake.when().entrySet()) {
             conditions.add(String.format("request.getQueryParamValue(%s) != %s",
                     stringLiteral(parameter.getKey()), stringLiteral(parameter.getValue().asText())));
+        }
+        for (String required : handshake.requiredQuery()) {
+            conditions.add(String.format("request.getQueryParamValue(%s) is ()", stringLiteral(required)));
         }
         String status = handshake.statusCode() == HTTP_OK ? ""
                 : String.format(" handshakeResponse.statusCode = %d;", handshake.statusCode());

@@ -181,6 +181,86 @@ public class WebhookDSLVerificationTest {
     }
 
     @Test
+    public void testFormBodiesAreReadAndSignedWithSortedParams() throws Exception {
+        // Twilio: form-encoded status callbacks, signed over the URL and the parameters sorted by name.
+        Path outputDir = generateOutputDir("form_bodies.yaml");
+
+        String dispatcher = Files.readString(outputDir.resolve("dispatcher_service.bal"));
+        Assert.assertTrue(dispatcher.contains("map<string> formParams = check request.getFormParams();"), dispatcher);
+        Assert.assertFalse(dispatcher.contains("getJsonPayload"), "A form body is not JSON: " + dispatcher);
+        Assert.assertTrue(dispatcher.contains("int|error converted = int:fromString(formParams.get(\"NumMedia\"));"),
+                "An integer field is converted from its string: " + dispatcher);
+        Assert.assertFalse(dispatcher.contains("fromString(formParams.get(\"MessageSid\"))"),
+                "String fields stay strings: " + dispatcher);
+        Assert.assertTrue(dispatcher.contains("string payloadToHash = string `${self.webhookUrl}"
+                + "${self.sortedFormParams(check request.getFormParams())}`;"), dispatcher);
+        Assert.assertTrue(dispatcher.contains("private isolated function sortedFormParams(map<string> params)"),
+                dispatcher);
+        Assert.assertTrue(dispatcher.contains("crypto:hmacSha1"), dispatcher);
+
+        String dispatchTest = Files.readString(outputDir.resolve("tests").resolve("dispatch_test.bal"));
+        Assert.assertTrue(dispatchTest.contains("import ballerina/url;"), dispatchTest);
+        Assert.assertTrue(dispatchTest.contains("formParamsText += name + params.get(name);"), dispatchTest);
+        Assert.assertTrue(dispatchTest.contains("\"application/x-www-form-urlencoded\");"),
+                "The test client posts form bodies: " + dispatchTest);
+    }
+
+    @Test
+    public void testMixedFormAndJsonMessagesAreRejected() throws Exception {
+        assertGeneratorException("form_mixed_content.yaml", "all messages must use the same content type");
+    }
+
+    @Test
+    public void testFormFieldTypedInOneMessageAndStringInAnotherIsRejected() throws Exception {
+        assertGeneratorException("form_field_type_conflict.yaml",
+                "a form field must have one type");
+    }
+
+    @Test
+    public void testFormParamsWithoutFormBodiesIsRejected() throws Exception {
+        assertGeneratorException("form_params_without_form.yaml",
+                "uses $formParams, but the messages are not form-encoded");
+    }
+
+    @Test
+    public void testChannelIdentifiersGiveEachChannelItsOwnResource() throws Exception {
+        // Twilio-style: calls and messages name their status in different fields and share values like `failed`.
+        Path outputDir = generateOutputDir("channel_identifiers.yaml");
+
+        String dispatcher = Files.readString(outputDir.resolve("dispatcher_service.bal"));
+        Assert.assertTrue(dispatcher.contains("resource function post callStatus(http:Caller caller"), dispatcher);
+        Assert.assertTrue(dispatcher.contains("resource function post smsStatus(http:Caller caller"), dispatcher);
+        Assert.assertTrue(dispatcher.contains("resource function post alerts(http:Caller caller"), dispatcher);
+        Assert.assertFalse(dispatcher.contains("resource function post .("), "No catch-all resource: " + dispatcher);
+        Assert.assertFalse(dispatcher.contains("function matchRemoteFunc("),
+                "Each resource dispatches to its own service only: " + dispatcher);
+        Assert.assertTrue(dispatcher.contains("string eventType = (check payload.CallStatus).toString();"), dispatcher);
+        Assert.assertTrue(dispatcher.contains("string eventType = (check payload.MessageStatus).toString();"),
+                dispatcher);
+        Assert.assertTrue(dispatcher.contains("request.getHeader(\"X-Event-Type\")"),
+                "A channel without its own identifier uses the document's: " + dispatcher);
+        Assert.assertTrue(dispatcher.contains("self.matchRemoteFuncForCallStatus(payload, eventType)"), dispatcher);
+
+        String dispatchTest = Files.readString(outputDir.resolve("tests").resolve("dispatch_test.bal"));
+        Assert.assertTrue(dispatchTest.contains(
+                "sendSignedTriggerWebhook(\"/callStatus\", \"callStatus/failed\", {})"), dispatchTest);
+        Assert.assertTrue(dispatchTest.contains(
+                "sendSignedTriggerWebhook(\"/smsStatus\", \"smsStatus/failed\", {})"), dispatchTest);
+        Assert.assertTrue(dispatchTest.contains(
+                "sendSignedTriggerWebhook(\"/alerts\", \"alerts/warning\", {\"X-Event-Type\": "), dispatchTest);
+        Assert.assertTrue(dispatchTest.contains("function testCallStatusServiceFailedDispatch()"), dispatchTest);
+        Assert.assertTrue(dispatchTest.contains("function testSmsStatusServiceFailedDispatch()"), dispatchTest);
+        Assert.assertTrue(dispatchTest.contains("string payloadToHash = string `${path}${bodyText}`;"),
+                "$uri signs the channel's path: " + dispatchTest);
+    }
+
+    @Test
+    public void testChannelWithoutAnyIdentifierIsRejected() throws Exception {
+        assertGeneratorException("channel_identifier_missing.yaml",
+                "Channel 'alerts' has no x-ballerina-event-identifier");
+    }
+
+    @Test
     public void testBodyKeyIdentifierDispatchesOnTheKeyAndNamesFixturesByMessage() throws Exception {
         // WSO2 Identity Server: the event URI is the single key under `events`.
         Path outputDir = generateOutputDir("body_key_identifier.yaml");
@@ -270,8 +350,10 @@ public class WebhookDSLVerificationTest {
         String dispatcher = Files.readString(outputDir.resolve("dispatcher_service.bal"));
         Assert.assertTrue(dispatcher.contains("resource function get .(http:Caller caller, http:Request request)"),
                 dispatcher);
-        Assert.assertTrue(dispatcher.contains("if request.getQueryParamValue(\"hub.mode\") != \"subscribe\" {"),
+        Assert.assertTrue(dispatcher.contains("request.getQueryParamValue(\"hub.mode\") != \"subscribe\""),
                 "Another hub.mode is not confirmed: " + dispatcher);
+        Assert.assertTrue(dispatcher.contains("request.getQueryParamValue(\"hub.topic\") is ()"),
+                "A request without the required hub.topic is not confirmed: " + dispatcher);
         Assert.assertTrue(dispatcher.contains("handshakeResponse.statusCode = http:STATUS_NOT_FOUND;"), dispatcher);
         Assert.assertTrue(dispatcher.contains("string? challenge = request.getQueryParamValue(\"hub.challenge\");"),
                 dispatcher);
@@ -283,8 +365,11 @@ public class WebhookDSLVerificationTest {
 
         String dispatchTest = Files.readString(outputDir.resolve("tests").resolve("dispatch_test.bal"));
         Assert.assertTrue(dispatchTest.contains(
-                "triggerClient->get(\"/?hub.mode=subscribe&hub.challenge=trigger-test-challenge\")"), dispatchTest);
+                "triggerClient->get(\"/?hub.mode=subscribe&hub.topic=trigger-test-value"
+                        + "&hub.challenge=trigger-test-challenge\")"), dispatchTest);
         Assert.assertTrue(dispatchTest.contains("function testVerificationHandshakeIsNotConfirmedForOtherRequests()"),
+                dispatchTest);
+        Assert.assertTrue(dispatchTest.contains("function testVerificationHandshakeNeedsEveryRequiredParameter()"),
                 dispatchTest);
         Assert.assertFalse(dispatchTest.contains("sendSignedTriggerBody"),
                 "A GET is not signed, so the send helper stays as it was: " + dispatchTest);

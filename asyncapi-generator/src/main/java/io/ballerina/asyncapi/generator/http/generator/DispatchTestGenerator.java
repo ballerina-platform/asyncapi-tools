@@ -27,8 +27,11 @@ import io.ballerina.asyncapi.generator.http.extractor.EventIdentifierExtractor;
 import io.ballerina.asyncapi.generator.http.model.DispatchTestCase;
 import io.ballerina.asyncapi.generator.http.model.EventIdentifierConfig;
 import io.ballerina.asyncapi.generator.http.model.HandshakeConfig;
+import io.ballerina.asyncapi.generator.http.model.HttpServiceType;
 import io.ballerina.asyncapi.generator.http.model.WebhookAuthConfig;
+import io.ballerina.asyncapi.generator.http.utils.ChannelRoutes;
 import io.ballerina.asyncapi.generator.http.utils.CodegenUtils;
+import io.ballerina.asyncapi.generator.http.utils.FormBodies;
 import io.ballerina.asyncapi.generator.http.utils.HeaderTemplateParser;
 import io.ballerina.asyncapi.generator.http.utils.HeaderTemplateParser.HeaderTemplate;
 import io.ballerina.asyncapi.generator.http.utils.SignaturePayloadTemplateBuilder;
@@ -82,6 +85,8 @@ public class DispatchTestGenerator {
     private final WebhookAuthConfig webhookAuthConfig;
     private final EventIdentifierConfig identifierConfig;
     private final Map<String, Set<String>> renamedKeysByType;
+    private boolean formBodies;
+    private final Map<String, HttpServiceType> channelRoutes = new LinkedHashMap<>();
 
     /**
      * Creates a generator for the given dispatch test cases, webhook authentication configuration,
@@ -111,6 +116,41 @@ public class DispatchTestGenerator {
         this.webhookAuthConfig = webhookAuthConfig;
         this.identifierConfig = identifierConfig;
         this.renamedKeysByType = resolveRenamedKeys(schemas);
+    }
+
+    /**
+     * Sends the tests' payloads form-encoded: each JSON fixture's fields become form parameters, and
+     * {@code $formParams} signs them sorted by name.
+     *
+     * @param formBodies whether the listener reads {@code application/x-www-form-urlencoded} bodies
+     * @return this generator
+     */
+    public DispatchTestGenerator withFormBodies(boolean formBodies) {
+        this.formBodies = formBodies;
+        return this;
+    }
+
+    /**
+     * Routes the tests by channel when the listener does: each test posts to its channel's path, with its
+     * channel's identifier, and reads its payload from a folder that follows the channel's address, since the same
+     * event type can exist on several channels. Has no effect when no channel declares its own identifier.
+     *
+     * @param serviceTypes the service types with their effective identifiers and addresses
+     * @return this generator
+     */
+    public DispatchTestGenerator withChannelRoutes(List<HttpServiceType> serviceTypes) {
+        channelRoutes.clear();
+        if (ChannelRoutes.isPerChannel(serviceTypes)) {
+            for (HttpServiceType serviceType : serviceTypes) {
+                channelRoutes.put(CodegenUtils.getServiceTypeNameByServiceName(serviceType.serviceTypeName()),
+                        serviceType);
+            }
+        }
+        return this;
+    }
+
+    private boolean isPerChannel() {
+        return !channelRoutes.isEmpty();
     }
 
     /**
@@ -175,7 +215,8 @@ public class DispatchTestGenerator {
         for (DispatchTestCase testCase : testCases) {
             source.append(buildTestFunction(testCase));
         }
-        if (identifierConfig != null && identifierConfig.handshake() != null) {
+        if (identifierConfig != null && identifierConfig.handshake() != null
+                && (identifierConfig.handshake().isQuery() || hasBodyHandshake())) {
             source.append(buildHandshakeTestFunction(identifierConfig.handshake()));
         }
 
@@ -199,6 +240,9 @@ public class DispatchTestGenerator {
                 .append("import ballerina/crypto;\n")
                 .append("import ballerina/io;\n")
                 .append("import ballerina/lang.runtime;\n");
+        if (formBodies) {
+            imports.append("import ballerina/url;\n");
+        }
         if (needsTimeImport(headerRefs)) {
             imports.append("import ballerina/time;\n");
         }
@@ -265,26 +309,55 @@ public class DispatchTestGenerator {
 
     private String buildSendHelper(List<String> headerRefs) throws GeneratorException {
         StringBuilder sb = new StringBuilder();
-        sb.append("isolated function sendSignedTriggerWebhook(")
-                .append(isBodyModeIdentifier()
-                        ? "string eventIdentifier"
-                        : "string headerValue, string eventIdentifier")
-                .append(") returns http:Response|error {\n");
-        sb.append("    byte[] body = check io:fileReadBytes("
-                + "string `${TRIGGER_PAYLOAD_DIR}/${eventIdentifier}.json`);\n");
-        if (hasBodyHandshake()) {
-            // The handshake test signs a body of its own, so signing gets a function that takes the bytes.
-            String headerArg = isBodyModeIdentifier() ? "" : ", headerValue";
-            sb.append("    return sendSignedTriggerBody(body").append(headerArg).append(");\n}\n\n");
-            sb.append("isolated function sendSignedTriggerBody(byte[] body")
-                    .append(isBodyModeIdentifier() ? "" : ", string headerValue")
+        if (isPerChannel()) {
+            // Each test names its channel's path, payload file and identifier header (if the channel uses one).
+            sb.append("isolated function sendSignedTriggerWebhook(string path, string fixtureName, "
+                    + "map<string> identifierHeaders) returns http:Response|error {\n");
+        } else {
+            sb.append("isolated function sendSignedTriggerWebhook(")
+                    .append(isBodyModeIdentifier()
+                            ? "string eventIdentifier"
+                            : "string headerValue, string eventIdentifier")
                     .append(") returns http:Response|error {\n");
         }
-        sb.append("    string bodyText = check string:fromBytes(body);\n");
+        String fixtureVariable = isPerChannel() ? "fixtureName" : "eventIdentifier";
+        if (formBodies) {
+            // The fixture is JSON; its fields are sent as form parameters, as a form-encoding provider sends them.
+            sb.append("    json fixture = check io:fileReadJson("
+                    + "string `${TRIGGER_PAYLOAD_DIR}/${" + fixtureVariable + "}.json`);\n")
+                    .append("    map<json> fields = check fixture.ensureType();\n")
+                    .append("    map<string> params = {};\n")
+                    .append("    foreach var [name, value] in fields.entries() {\n")
+                    .append("        params[name] = value.toString();\n")
+                    .append("    }\n")
+                    .append("    string[] encodedPairs = [];\n")
+                    .append("    foreach var [name, value] in params.entries() {\n")
+                    .append("        encodedPairs.push(check url:encode(name, \"UTF-8\") + \"=\" "
+                            + "+ check url:encode(value, \"UTF-8\"));\n")
+                    .append("    }\n")
+                    .append("    string bodyText = string:'join(\"&\", ...encodedPairs);\n")
+                    .append("    byte[] body = bodyText.toBytes();\n")
+                    .append("    string formParamsText = \"\";\n")
+                    .append("    foreach string name in params.keys().sort() {\n")
+                    .append("        formParamsText += name + params.get(name);\n")
+                    .append("    }\n");
+        } else {
+            sb.append("    byte[] body = check io:fileReadBytes("
+                    + "string `${TRIGGER_PAYLOAD_DIR}/${" + fixtureVariable + "}.json`);\n");
+            if (hasBodyHandshake()) {
+                // The handshake test signs a body of its own, so signing gets a function that takes the bytes.
+                String headerArg = isBodyModeIdentifier() ? "" : ", headerValue";
+                sb.append("    return sendSignedTriggerBody(body").append(headerArg).append(");\n}\n\n");
+                sb.append("isolated function sendSignedTriggerBody(byte[] body")
+                        .append(isBodyModeIdentifier() ? "" : ", string headerValue")
+                        .append(") returns http:Response|error {\n");
+            }
+            sb.append("    string bodyText = check string:fromBytes(body);\n");
+        }
 
         List<String> headerEntries = new ArrayList<>();
 
-        if (!isBodyModeIdentifier()) {
+        if (!isPerChannel() && !isBodyModeIdentifier()) {
             String identifierHeaderName = identifierConfig != null && identifierConfig.name() != null
                     ? identifierConfig.name()
                     : DEFAULT_IDENTIFIER_HEADER;
@@ -360,7 +433,15 @@ public class DispatchTestGenerator {
             sb.append(i < headerEntries.size() - 1 ? ",\n" : "\n");
         }
         sb.append("    };\n");
-        sb.append("    return triggerClient->post(\"/\", body, headers, \"application/json\");\n");
+        if (isPerChannel()) {
+            sb.append("    foreach var [name, value] in identifierHeaders.entries() {\n")
+                    .append("        headers[name] = value;\n")
+                    .append("    }\n");
+        }
+        sb.append("    return triggerClient->post(")
+                .append(isPerChannel() ? "path" : "\"/\"")
+                .append(", body, headers, \"")
+                .append(formBodies ? FormBodies.FORM_CONTENT_TYPE : "application/json").append("\");\n");
         sb.append("}\n\n");
         return sb.toString();
     }
@@ -374,7 +455,7 @@ public class DispatchTestGenerator {
 
             @Override
             public String uri() {
-                return "\"/\"";
+                return isPerChannel() ? "path" : "\"/\"";
             }
 
             @Override
@@ -395,6 +476,11 @@ public class DispatchTestGenerator {
             @Override
             public String config(String configName) {
                 return testConfigConstantName(configName);
+            }
+
+            @Override
+            public String formParams() {
+                return "formParamsText";
             }
         };
     }
@@ -457,24 +543,44 @@ public class DispatchTestGenerator {
         return "TRIGGER_TEST_" + upperSnake;
     }
 
-    private String buildTestFunction(DispatchTestCase testCase) {
-        String testFnName = "test" + capitalize(testCase.functionName().replaceFirst("^on", "")) + "Dispatch";
+    private String buildTestFunction(DispatchTestCase testCase) throws GeneratorException {
+        String event = capitalize(testCase.functionName().replaceFirst("^on", ""));
         String trackerKey = testCase.serviceTypeName() + "." + testCase.functionName();
+        String testFnName;
         String callArgs;
-        if (isBodyKeyIdentifier()) {
+        String resetFired = "";
+        String onlyThisFunction = "";
+        if (isPerChannel()) {
+            // The same event can exist on several channels, so the test name and payload file carry the channel.
+            HttpServiceType route = channelRoutes.get(testCase.serviceTypeName());
+            if (route == null) {
+                throw new GeneratorException("No channel route for service type " + testCase.serviceTypeName());
+            }
+            String path = ChannelRoutes.urlPath(route.address());
+            EventIdentifierConfig identifier = route.identifier();
+            String headers = EventIdentifierExtractor.X_BALLERINA_EVENT_TYPE_HEADER.equals(identifier.type())
+                    ? "{\"" + identifier.name().replaceFirst("^'", "") + "\": \"" + testCase.headerValue() + "\"}"
+                    : "{}";
+            testFnName = "test" + testCase.serviceTypeName() + event + "Dispatch";
+            callArgs = "\"" + path + "\", \"" + path.substring(1) + "/" + testCase.eventIdentifier() + "\", "
+                    + headers;
+            resetFired = "    lock {\n        triggerFired.removeAll();\n    }\n";
+            onlyThisFunction = "    lock {\n        test:assertEquals(triggerFired.keys(), [\"" + trackerKey
+                    + "\"], \"Only " + trackerKey + " should have fired\");\n    }\n";
+        } else if (isBodyKeyIdentifier()) {
             // The event type is a key such as a URI, which cannot name a file; the message key names the fixture.
+            testFnName = "test" + event + "Dispatch";
             callArgs = "\"" + testCase.messageName() + "\"";
-        } else if (isBodyModeIdentifier()) {
-            callArgs = "\"" + testCase.eventIdentifier() + "\"";
+            // A key-named event is checked to reach only its own function, not any function of the service.
+            resetFired = "    lock {\n        triggerFired.removeAll();\n    }\n";
+            onlyThisFunction = "    lock {\n        test:assertEquals(triggerFired.keys(), [\"" + trackerKey
+                    + "\"], \"Only " + trackerKey + " should have fired\");\n    }\n";
         } else {
-            callArgs = "\"" + testCase.headerValue() + "\", \"" + testCase.eventIdentifier() + "\"";
+            testFnName = "test" + event + "Dispatch";
+            callArgs = isBodyModeIdentifier()
+                    ? "\"" + testCase.eventIdentifier() + "\""
+                    : "\"" + testCase.headerValue() + "\", \"" + testCase.eventIdentifier() + "\"";
         }
-        // A key-named event is checked to reach only its own function, not any function of the service.
-        String onlyThisFunction = isBodyKeyIdentifier()
-                ? "    lock {\n        test:assertEquals(triggerFired.keys(), [\"" + trackerKey
-                        + "\"], \"Only " + trackerKey + " should have fired\");\n    }\n"
-                : "";
-        String resetFired = isBodyKeyIdentifier() ? "    lock {\n        triggerFired.removeAll();\n    }\n" : "";
         return "@test:Config {}\n"
                 + "function " + testFnName + "() returns error? {\n"
                 + resetFired
@@ -490,7 +596,7 @@ public class DispatchTestGenerator {
     // A handshake in the body is signed like an event, so signing gets a function that takes the bytes.
     private boolean hasBodyHandshake() {
         return identifierConfig != null && identifierConfig.handshake() != null
-                && !identifierConfig.handshake().isQuery();
+                && !identifierConfig.handshake().isQuery() && !formBodies && !isPerChannel();
     }
 
     /**
@@ -527,34 +633,49 @@ public class DispatchTestGenerator {
 
     /**
      * Builds the WebSub verification tests: a {@code GET} with the expected query is confirmed by echoing
-     * {@code hub.challenge}, and, when the definition fixes a value such as {@code hub.mode}, a request with another
-     * value gets {@code 404 Not Found}.
+     * {@code hub.challenge}, and a request with another fixed value (such as {@code hub.mode}) or without a required
+     * parameter (such as {@code hub.topic}) gets {@code 404 Not Found}.
      */
     private String buildWebSubTestFunctions(HandshakeConfig handshake) {
-        List<String> confirmQuery = new ArrayList<>();
-        handshake.when().forEach((name, value) -> confirmQuery.add(queryPair(name, value.asText())));
-        confirmQuery.add(queryPair(handshake.challengeQuery(), HANDSHAKE_TEST_CHALLENGE));
+        Map<String, String> confirm = new LinkedHashMap<>();
+        handshake.when().forEach((name, value) -> confirm.put(name, value.asText()));
+        handshake.requiredQuery().forEach(name -> confirm.put(name, "trigger-test-value"));
+        confirm.put(handshake.challengeQuery(), HANDSHAKE_TEST_CHALLENGE);
         StringBuilder tests = new StringBuilder()
                 .append("@test:Config {}\n")
                 .append("function testVerificationHandshake() returns error? {\n")
                 .append("    http:Response response = check triggerClient->get(\"/?")
-                .append(escapeBalString(String.join("&", confirmQuery))).append("\");\n")
+                .append(escapeBalString(query(confirm))).append("\");\n")
                 .append("    test:assertEquals(response.statusCode, ").append(handshake.statusCode()).append(");\n")
                 .append("    test:assertEquals(check response.getTextPayload(), \"")
                 .append(HANDSHAKE_TEST_CHALLENGE).append("\");\n")
                 .append("}\n\n");
         if (!handshake.when().isEmpty()) {
-            Map.Entry<String, JsonNode> fixed = handshake.when().entrySet().iterator().next();
-            String rejectQuery = queryPair(fixed.getKey(), "not-" + fixed.getValue().asText()) + "&"
-                    + queryPair(handshake.challengeQuery(), HANDSHAKE_TEST_CHALLENGE);
-            tests.append("@test:Config {}\n")
-                    .append("function testVerificationHandshakeIsNotConfirmedForOtherRequests() returns error? {\n")
-                    .append("    http:Response response = check triggerClient->get(\"/?")
-                    .append(escapeBalString(rejectQuery)).append("\");\n")
-                    .append("    test:assertEquals(response.statusCode, http:STATUS_NOT_FOUND);\n")
-                    .append("}\n\n");
+            Map<String, String> otherValue = new LinkedHashMap<>(confirm);
+            otherValue.computeIfPresent(handshake.when().keySet().iterator().next(), (name, value) -> "not-" + value);
+            tests.append(buildWebSubRejectTest("testVerificationHandshakeIsNotConfirmedForOtherRequests", otherValue));
+        }
+        if (!handshake.requiredQuery().isEmpty()) {
+            Map<String, String> missing = new LinkedHashMap<>(confirm);
+            missing.remove(handshake.requiredQuery().get(0));
+            tests.append(buildWebSubRejectTest("testVerificationHandshakeNeedsEveryRequiredParameter", missing));
         }
         return tests.toString();
+    }
+
+    private static String buildWebSubRejectTest(String name, Map<String, String> query) {
+        return "@test:Config {}\n"
+                + "function " + name + "() returns error? {\n"
+                + "    http:Response response = check triggerClient->get(\"/?" + escapeBalString(query(query))
+                + "\");\n"
+                + "    test:assertEquals(response.statusCode, http:STATUS_NOT_FOUND);\n"
+                + "}\n\n";
+    }
+
+    private static String query(Map<String, String> parameters) {
+        List<String> pairs = new ArrayList<>();
+        parameters.forEach((name, value) -> pairs.add(queryPair(name, value)));
+        return String.join("&", pairs);
     }
 
     private static String queryPair(String name, String value) {

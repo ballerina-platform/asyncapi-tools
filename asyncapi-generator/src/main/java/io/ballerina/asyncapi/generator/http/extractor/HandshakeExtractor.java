@@ -28,6 +28,7 @@ import io.ballerina.asyncapi.generator.GeneratorException;
 import io.ballerina.asyncapi.generator.http.model.HandshakeConfig;
 
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -119,15 +120,16 @@ public final class HandshakeExtractor {
                     + "payload schema, such as type: {const: url_verification}, to tell it apart from events",
                     operationId));
         }
-        return new HandshakeConfig(when, challengePath(operationId, request.correlationId()), null,
+        return new HandshakeConfig(when, challengePath(operationId, request.correlationId()), null, List.of(),
                 statusCode(operation));
     }
 
     /**
      * Reads a {@code GET} handshake as a W3C WebSub verification of intent: the hub sends the challenge in the
      * {@code hub.challenge} query parameter, which a runtime expression cannot point at, so the standard names it.
-     * The {@code const} values in the query schema, such as {@code hub.mode: {const: subscribe}}, are the requests
-     * the listener confirms.
+     * The listener confirms a request whose query has the schema's {@code const} values, such as
+     * {@code hub.mode: {const: subscribe}}, and every parameter the schema marks {@code required}, such as
+     * {@code hub.topic}.
      */
     private static HandshakeConfig readWebSub(String operationId, AsyncApiOperation operation, AsyncApiSchema query)
             throws GeneratorException {
@@ -142,7 +144,9 @@ public final class HandshakeExtractor {
                 when.put(parameter.getKey(), parameter.getValue().constValue());
             }
         }
-        return new HandshakeConfig(when, null, WEBSUB_CHALLENGE, statusCode(operation));
+        List<String> required = query.required() == null ? List.of() : query.required().stream()
+                .filter(name -> !WEBSUB_CHALLENGE.equals(name) && !when.containsKey(name)).toList();
+        return new HandshakeConfig(when, null, WEBSUB_CHALLENGE, required, statusCode(operation));
     }
 
     // Walks the payload's object properties, collecting each const with its dot-notation path.
