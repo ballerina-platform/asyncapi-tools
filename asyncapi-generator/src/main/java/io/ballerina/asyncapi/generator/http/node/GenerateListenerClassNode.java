@@ -57,7 +57,6 @@ import static io.ballerina.compiler.syntax.tree.NodeFactory.createFunctionDefini
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createFunctionSignatureNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createMappingConstructorExpressionNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createMetadataNode;
-import static io.ballerina.compiler.syntax.tree.NodeFactory.createNilTypeDescriptorNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createObjectFieldNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createQualifiedNameReferenceNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createRequiredParameterNode;
@@ -97,8 +96,11 @@ public class GenerateListenerClassNode implements Generator {
 
     private static final String LISTENER_CLASS_NAME = "Listener";
     private static final String LISTENER_HTTP_LISTENER_FIELD = "httpListener";
-    private static final String LISTENER_DISPATCHER_SERVICE_FIELD = "dispatcherService";
+    private static final String LISTENER_CONFIG_FIELD = "listenerConfig";
+    private static final String LISTENER_DISPATCHERS_FIELD = "dispatchers";
+    private static final String LISTENER_ATTACHMENTS_FIELD = "attachments";
     private static final String LISTENER_GET_SERVICE_TYPE_FUNC = "getServiceTypeStr";
+    private static final String LISTENER_PATH_KEY_FUNC = "pathKey";
 
     private final List<HttpServiceType> serviceTypes;
     private final Optional<WebhookAuthConfig> webhookAuthConfig;
@@ -131,7 +133,12 @@ public class GenerateListenerClassNode implements Generator {
     public ClassDefinitionNode generate() throws GeneratorException {
         List<Node> members = new ArrayList<>();
         members.add(buildHttpListenerField());
-        members.add(buildDispatcherServiceField());
+        members.add(buildPrivateField(GenerateListenerConfigNode.LISTENER_CONFIG_TYPE, LISTENER_CONFIG_FIELD, null));
+        // One dispatcher per attach path, so triggers can share an http:Listener (#8818).
+        members.add(buildPrivateField("map<" + GenerateDispatcherServiceNode.DISPATCHER_SERVICE_CLASS_NAME + ">",
+                LISTENER_DISPATCHERS_FIELD, "{}"));
+        members.add(buildPrivateField("[string, " + ServiceTypesGenerator.GENERIC_SERVICE_TYPE + "][]",
+                LISTENER_ATTACHMENTS_FIELD, "[]"));
         members.add(buildInitFunc());
         members.add(buildAttachFunc());
         members.add(buildDetachFunc());
@@ -139,6 +146,7 @@ public class GenerateListenerClassNode implements Generator {
         members.add(buildGracefulStopFunc());
         members.add(buildImmediateStopFunc());
         members.add(buildGetServiceTypeStrFunc());
+        members.add(buildPathKeyFunc());
 
         return createClassDefinitionNode(
                 buildDisplayAnnotationMetadata(),
@@ -196,16 +204,15 @@ public class GenerateListenerClassNode implements Generator {
                 createToken(SEMICOLON_TOKEN));
     }
 
-    private ObjectFieldNode buildDispatcherServiceField() {
+    private ObjectFieldNode buildPrivateField(String type, String name, String initializer) {
         return createObjectFieldNode(
                 null,
                 createToken(PRIVATE_KEYWORD),
                 createEmptyNodeList(),
-                createSimpleNameReferenceNode(
-                        createIdentifierToken(GenerateDispatcherServiceNode.DISPATCHER_SERVICE_CLASS_NAME)),
-                createIdentifierToken(LISTENER_DISPATCHER_SERVICE_FIELD),
-                null,
-                null,
+                NodeParser.parseTypeDescriptor(type),
+                createIdentifierToken(name),
+                initializer == null ? null : createToken(EQUAL_TOKEN),
+                initializer == null ? null : NodeParser.parseExpression(initializer),
                 createToken(SEMICOLON_TOKEN));
     }
 
@@ -254,35 +261,14 @@ public class GenerateListenerClassNode implements Generator {
                 createToken(CLOSE_PAREN_TOKEN),
                 buildErrorReturnType());
 
-        List<String> configFieldNames = new ArrayList<>();
-        configFieldNames.add(GenerateListenerConfigNode.WEBHOOK_SECRET_FIELD);
-        webhookAuthConfig.ifPresent(config -> configFieldNames.addAll(config.configFields()));
-
         List<StatementNode> statements = new ArrayList<>();
         statements.add(NodeParser.parseStatement(String.format(
                 "if listenOn is http:Listener { self.%s = listenOn; } else {"
                         + " self.%s = check new (listenOn); }",
                 LISTENER_HTTP_LISTENER_FIELD,
                 LISTENER_HTTP_LISTENER_FIELD)));
-        if (webhookAuthConfig.isPresent()) {
-            String constructorArgs = configFieldNames.stream()
-                    .map(fieldName -> "listenerConfig." + fieldName)
-                    .collect(Collectors.joining(", "));
-            statements.add(NodeParser.parseStatement(String.format(
-                    "self.%s = new %s(%s);",
-                    LISTENER_DISPATCHER_SERVICE_FIELD,
-                    GenerateDispatcherServiceNode.DISPATCHER_SERVICE_CLASS_NAME,
-                    constructorArgs)));
-        } else {
-            statements.add(NodeParser.parseStatement(String.format(
-                    "self.%s = new %s();",
-                    LISTENER_DISPATCHER_SERVICE_FIELD,
-                    GenerateDispatcherServiceNode.DISPATCHER_SERVICE_CLASS_NAME)));
-        }
         statements.add(NodeParser.parseStatement(String.format(
-                "check self.%s.attach(self.%s, ());",
-                LISTENER_HTTP_LISTENER_FIELD,
-                LISTENER_DISPATCHER_SERVICE_FIELD)));
+                "self.%s = listenerConfig;", LISTENER_CONFIG_FIELD)));
 
         return createFunctionDefinitionNode(
                 OBJECT_METHOD_DEFINITION, null,
@@ -294,7 +280,7 @@ public class GenerateListenerClassNode implements Generator {
     }
 
     private FunctionDefinitionNode buildAttachFunc() {
-        // public isolated function attach(GenericServiceType serviceRef, () attachPoint) returns error?
+        // public isolated function attach(GenericServiceType serviceRef, string[]|string? attachPoint) returns error?
         FunctionSignatureNode signature = createFunctionSignatureNode(
                 createToken(OPEN_PAREN_TOKEN),
                 createSeparatedNodeList(
@@ -306,20 +292,34 @@ public class GenerateListenerClassNode implements Generator {
                         createToken(COMMA_TOKEN),
                         createRequiredParameterNode(
                                 createEmptyNodeList(),
-                                createNilTypeDescriptorNode(
-                                        createToken(OPEN_PAREN_TOKEN), createToken(CLOSE_PAREN_TOKEN)),
+                                NodeParser.parseTypeDescriptor("string[]|string?"),
                                 createIdentifierToken("attachPoint"))),
                 createToken(CLOSE_PAREN_TOKEN),
                 buildErrorReturnType());
 
+        String dispatcherClass = GenerateDispatcherServiceNode.DISPATCHER_SERVICE_CLASS_NAME;
         List<StatementNode> statements = new ArrayList<>();
         statements.add(NodeParser.parseStatement(String.format(
                 "string serviceTypeStr = check self.%s(serviceRef);",
                 LISTENER_GET_SERVICE_TYPE_FUNC)));
         statements.add(NodeParser.parseStatement(String.format(
-                "check self.%s.%s(serviceTypeStr, serviceRef);",
-                LISTENER_DISPATCHER_SERVICE_FIELD,
+                "string path = self.%s(attachPoint);", LISTENER_PATH_KEY_FUNC)));
+        statements.add(NodeParser.parseStatement(dispatcherClass + " dispatcher;"));
+        statements.add(NodeParser.parseStatement(String.format(
+                "%1$s? existing = self.%2$s[path];", dispatcherClass, LISTENER_DISPATCHERS_FIELD)));
+        // The first service on a path mounts a new dispatcher there.
+        statements.add(NodeParser.parseStatement(String.format(
+                "if existing is %1$s { dispatcher = existing; } else {"
+                        + " dispatcher = new (%2$s);"
+                        + " check self.%3$s.attach(dispatcher, path == \"\" ? () : path);"
+                        + " self.%4$s[path] = dispatcher; }",
+                dispatcherClass, buildDispatcherConstructorArgs(), LISTENER_HTTP_LISTENER_FIELD,
+                LISTENER_DISPATCHERS_FIELD)));
+        statements.add(NodeParser.parseStatement(String.format(
+                "check dispatcher.%s(serviceTypeStr, serviceRef);",
                 GenerateAddServiceRefFuncNode.ADD_SERVICE_REF_FUNC)));
+        statements.add(NodeParser.parseStatement(String.format(
+                "self.%s.push([path, serviceRef]);", LISTENER_ATTACHMENTS_FIELD)));
 
         return createFunctionDefinitionNode(
                 OBJECT_METHOD_DEFINITION, null,
@@ -347,10 +347,25 @@ public class GenerateListenerClassNode implements Generator {
         statements.add(NodeParser.parseStatement(String.format(
                 "string serviceTypeStr = check self.%s(serviceRef);",
                 LISTENER_GET_SERVICE_TYPE_FUNC)));
+        // Unmount a path's dispatcher once its last service is detached, freeing the path.
         statements.add(NodeParser.parseStatement(String.format(
-                "check self.%s.%s(serviceTypeStr);",
-                LISTENER_DISPATCHER_SERVICE_FIELD,
-                GenerateRemoveServiceRefFuncNode.REMOVE_SERVICE_REF_FUNC)));
+                "foreach int i in 0 ..< self.%1$s.length() {"
+                        + " string path = self.%1$s[i][0];"
+                        + " if self.%1$s[i][1] === serviceRef {"
+                        + " %2$s dispatcher = self.%3$s.get(path);"
+                        + " check dispatcher.%4$s(serviceTypeStr);"
+                        + " _ = self.%1$s.remove(i);"
+                        + " boolean pathInUse = false;"
+                        + " foreach [string, %5$s] attachment in self.%1$s {"
+                        + " if attachment[0] == path { pathInUse = true; } }"
+                        + " if !pathInUse { check self.%6$s.detach(dispatcher); _ = self.%3$s.remove(path); }"
+                        + " return; } }",
+                LISTENER_ATTACHMENTS_FIELD, GenerateDispatcherServiceNode.DISPATCHER_SERVICE_CLASS_NAME,
+                LISTENER_DISPATCHERS_FIELD, GenerateRemoveServiceRefFuncNode.REMOVE_SERVICE_REF_FUNC,
+                ServiceTypesGenerator.GENERIC_SERVICE_TYPE, LISTENER_HTTP_LISTENER_FIELD)));
+        statements.add(NodeParser.parseStatement(
+                "return error(string `Cannot detach the service of type ${serviceTypeStr}. "
+                        + "Service has not been attached to the listener before`);"));
 
         return createFunctionDefinitionNode(
                 OBJECT_METHOD_DEFINITION, null,
@@ -462,6 +477,52 @@ public class GenerateListenerClassNode implements Generator {
                 createIdentifierToken(LISTENER_GET_SERVICE_TYPE_FUNC),
                 createEmptyNodeList(),
                 signature, buildBody(List.of(body)));
+    }
+
+    private String buildDispatcherConstructorArgs() {
+        if (webhookAuthConfig.isEmpty()) {
+            return "";
+        }
+        List<String> configFieldNames = new ArrayList<>();
+        configFieldNames.add(GenerateListenerConfigNode.WEBHOOK_SECRET_FIELD);
+        configFieldNames.addAll(webhookAuthConfig.get().configFields());
+        return configFieldNames.stream()
+                .map(fieldName -> "self." + LISTENER_CONFIG_FIELD + "." + fieldName)
+                .collect(Collectors.joining(", "));
+    }
+
+    private FunctionDefinitionNode buildPathKeyFunc() {
+        // private isolated function pathKey(string[]|string? attachPoint) returns string
+        // "/github/", "github" and ["github"] all name the same path, so they share a dispatcher.
+        FunctionSignatureNode signature = createFunctionSignatureNode(
+                createToken(OPEN_PAREN_TOKEN),
+                createSeparatedNodeList(
+                        createRequiredParameterNode(
+                                createEmptyNodeList(),
+                                NodeParser.parseTypeDescriptor("string[]|string?"),
+                                createIdentifierToken("attachPoint"))),
+                createToken(CLOSE_PAREN_TOKEN),
+                createReturnTypeDescriptorNode(
+                        createToken(RETURNS_KEYWORD),
+                        createEmptyNodeList(),
+                        createBuiltinSimpleNameReferenceNode(null, createIdentifierToken("string"))));
+
+        List<StatementNode> statements = List.of(
+                NodeParser.parseStatement("if attachPoint is () { return \"\"; }"),
+                NodeParser.parseStatement(
+                        "string path = attachPoint is string ? attachPoint : string:'join(\"/\", ...attachPoint);"),
+                NodeParser.parseStatement("while path.startsWith(\"/\") { path = path.substring(1); }"),
+                NodeParser.parseStatement(
+                        "while path.endsWith(\"/\") { path = path.substring(0, path.length() - 1); }"),
+                NodeParser.parseStatement("return path;"));
+
+        return createFunctionDefinitionNode(
+                OBJECT_METHOD_DEFINITION, null,
+                createNodeList(createToken(PRIVATE_KEYWORD), createToken(ISOLATED_KEYWORD)),
+                createToken(FUNCTION_KEYWORD),
+                createIdentifierToken(LISTENER_PATH_KEY_FUNC),
+                createEmptyNodeList(),
+                signature, buildBody(statements));
     }
 
     private FunctionBodyBlockNode buildBody(List<StatementNode> statements) {
