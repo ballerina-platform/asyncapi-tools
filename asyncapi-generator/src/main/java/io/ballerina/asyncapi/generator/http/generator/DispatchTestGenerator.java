@@ -225,6 +225,9 @@ public class DispatchTestGenerator {
                 && (identifierConfig.handshake().isQuery() || hasBodyHandshake())) {
             source.append(buildHandshakeTestFunction(identifierConfig.handshake()));
         }
+        if (webhookAuthConfig != null && SortedJsonBodies.usesSortedJsonBody(webhookAuthConfig.input())) {
+            source.append(SortedJsonBodies.testFunction());
+        }
 
         SyntaxTree syntaxTree = parse(source.toString());
         try {

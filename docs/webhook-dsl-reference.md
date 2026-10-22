@@ -208,9 +208,13 @@ x-ballerina-auth:
 The generated listener parses the body, sorts its top-level keys, and writes it as compact JSON: no whitespace,
 nested objects and arrays in the order they were received. The generated test client signs the same form.
 
-`JSON.stringify` and Ballerina write fractional numbers differently (`1.0` is `1` in JavaScript), so a body whose
-signed fields hold fractional numbers may not verify. Strings, integers, booleans, `null`, objects and arrays are
-written the same way.
+`JSON.stringify` and Ballerina write some numbers differently, so a body whose signed fields hold them may not
+verify:
+
+- fractional numbers (`1.0` is `1` in JavaScript)
+- integers outside JavaScript's safe range of ±9007199254740991, which JavaScript rounds and Ballerina keeps as sent
+
+Strings, booleans, `null`, objects, arrays and integers within that range are written the same way.
 
 ## Form-Encoded Bodies
 

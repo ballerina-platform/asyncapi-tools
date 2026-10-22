@@ -454,6 +454,11 @@ public class WebhookDSLVerificationTest {
         Assert.assertTrue(dispatchTest.contains("check sortedJsonBody(check bodyText.fromJsonString())"),
                 "The test client signs the same sorted body: " + dispatchTest);
         Assert.assertTrue(dispatchTest.contains("isolated function sortedJsonBody(json payload)"), dispatchTest);
+        // A fixed expected string, so a wrong sort on both sides cannot pass.
+        Assert.assertTrue(dispatchTest.contains("function testSortedJsonBody() returns error?"), dispatchTest);
+        Assert.assertTrue(dispatchTest.contains(
+                "\"{\\\"a\\\":{\\\"y\\\":true,\\\"b\\\":[1,\\\"x\\\",null]},\\\"m\\\":\\\"s\\\",\\\"z\\\":1}\""),
+                dispatchTest);
     }
 
     @Test

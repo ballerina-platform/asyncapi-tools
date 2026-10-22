@@ -73,4 +73,20 @@ public final class SortedJsonBodies {
                 qualifiers, COMPACT_JSON_FUNC, receiver);
         return List.of(sorted, compact);
     }
+
+    /**
+     * A test that checks the sorted form against a fixed expected string. The signing round trip alone would
+     * still pass if both sides built the same wrong form.
+     *
+     * @return the test function source
+     */
+    public static String testFunction() {
+        return "@test:Config {}\n"
+                + "function testSortedJsonBody() returns error? {\n"
+                + "    json payload = {\"z\": 1, \"a\": {\"y\": true, \"b\": [1, \"x\", null]}, \"m\": \"s\"};\n"
+                + "    test:assertEquals(check " + SORTED_JSON_BODY_FUNC + "(payload),\n"
+                + "            \"{\\\"a\\\":{\\\"y\\\":true,\\\"b\\\":[1,\\\"x\\\",null]},"
+                + "\\\"m\\\":\\\"s\\\",\\\"z\\\":1}\");\n"
+                + "}\n\n";
+    }
 }

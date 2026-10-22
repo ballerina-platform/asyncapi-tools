@@ -63,13 +63,18 @@ public final class RsaPublicKeys {
                 "private isolated function %s(byte[] der, int offset, int tag) returns [int, int]|error {"
                         + " if offset + 2 > der.length() || der[offset] != tag {"
                         + " return error(\"Invalid RSA public key\"); }"
-                        + " int lengthByte = der[offset + 1];"
-                        + " if lengthByte < 128 { return [offset + 2, lengthByte]; }"
-                        + " int count = lengthByte - 128;"
-                        + " if offset + 2 + count > der.length() { return error(\"Invalid RSA public key\"); }"
-                        + " int length = 0;"
-                        + " foreach int i in 0 ..< count { length = length * 256 + der[offset + 2 + i]; }"
-                        + " return [offset + 2 + count, length]; }",
+                        + " int length = der[offset + 1];"
+                        + " int contentOffset = offset + 2;"
+                        + " if length >= 128 {"
+                        + " int count = length - 128;"
+                        + " if count > 4 || contentOffset + count > der.length() {"
+                        + " return error(\"Invalid RSA public key\"); }"
+                        + " length = 0;"
+                        + " foreach int i in 0 ..< count { length = length * 256 + der[contentOffset + i]; }"
+                        + " contentOffset += count; }"
+                        // A truncated key must fail here, not panic on a later slice past the end.
+                        + " if contentOffset + length > der.length() { return error(\"Invalid RSA public key\"); }"
+                        + " return [contentOffset, length]; }",
                 DER_ELEMENT_FUNC);
         // An unsigned big-endian integer as base64url without padding, the form crypto:buildRsaPublicKey takes.
         String base64Url = String.format(
