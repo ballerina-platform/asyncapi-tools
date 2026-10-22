@@ -35,6 +35,7 @@ import io.ballerina.asyncapi.generator.http.utils.FormBodies;
 import io.ballerina.asyncapi.generator.http.utils.HeaderTemplateParser;
 import io.ballerina.asyncapi.generator.http.utils.HeaderTemplateParser.HeaderTemplate;
 import io.ballerina.asyncapi.generator.http.utils.SignaturePayloadTemplateBuilder;
+import io.ballerina.asyncapi.generator.http.utils.SortedJsonBodies;
 import io.ballerina.asyncapi.generator.http.utils.WebhookCryptoMapper;
 import io.ballerina.compiler.syntax.tree.SyntaxTree;
 import io.ballerina.tools.text.TextDocument;
@@ -209,6 +210,11 @@ public class DispatchTestGenerator {
         }
 
         source.append(buildSendHelper(headerRefs));
+        if (webhookAuthConfig != null && SortedJsonBodies.usesSortedJsonBody(webhookAuthConfig.input())) {
+            // The test client signs the same sorted form of the body the listener rebuilds.
+            SortedJsonBodies.helperFunctions("isolated", "")
+                    .forEach(function -> source.append(function).append("\n\n"));
+        }
         source.append(buildWaitHelper());
         source.append(buildBoundPayloadHelper());
 
@@ -218,6 +224,9 @@ public class DispatchTestGenerator {
         if (identifierConfig != null && identifierConfig.handshake() != null
                 && (identifierConfig.handshake().isQuery() || hasBodyHandshake())) {
             source.append(buildHandshakeTestFunction(identifierConfig.handshake()));
+        }
+        if (webhookAuthConfig != null && SortedJsonBodies.usesSortedJsonBody(webhookAuthConfig.input())) {
+            source.append(SortedJsonBodies.testFunction());
         }
 
         SyntaxTree syntaxTree = parse(source.toString());
@@ -252,8 +261,8 @@ public class DispatchTestGenerator {
         if (rsa) {
             constants.append("const TRIGGER_TEST_PRIVATE_KEY = \"")
                     .append(RsaTestKeys.PRIVATE_KEY_PEM.replace("\n", "\\n")).append("\";\n")
-                    .append("const TRIGGER_TEST_CERTIFICATE = \"")
-                    .append(RsaTestKeys.CERTIFICATE_PEM.replace("\n", "\\n")).append("\";\n");
+                    .append("const TRIGGER_TEST_PUBLIC_KEY = \"")
+                    .append(RsaTestKeys.PUBLIC_KEY_PEM.replace("\n", "\\n")).append("\";\n");
         } else {
             constants.append("const TRIGGER_TEST_SECRET = \"").append(TEST_SECRET).append("\";\n");
         }
@@ -261,7 +270,7 @@ public class DispatchTestGenerator {
                 .append("const TRIGGER_PAYLOAD_DIR = \"").append(DEFAULT_PAYLOAD_DIR).append("\";\n");
 
         StringBuilder listenerConfigFields = new StringBuilder(
-                rsa ? "webhookSecret: TRIGGER_TEST_CERTIFICATE" : "webhookSecret: TRIGGER_TEST_SECRET");
+                rsa ? "webhookSecret: TRIGGER_TEST_PUBLIC_KEY" : "webhookSecret: TRIGGER_TEST_SECRET");
         if (webhookAuthConfig != null && webhookAuthConfig.configFields() != null) {
             for (String field : webhookAuthConfig.configFields()) {
                 String constName = testConfigConstantName(field);
@@ -481,6 +490,11 @@ public class DispatchTestGenerator {
             @Override
             public String formParams() {
                 return "formParamsText";
+            }
+
+            @Override
+            public String sortedJsonBody() {
+                return "check " + SortedJsonBodies.SORTED_JSON_BODY_FUNC + "(check bodyText.fromJsonString())";
             }
         };
     }

@@ -25,6 +25,8 @@ import io.ballerina.asyncapi.generator.http.model.HttpServiceType;
 import io.ballerina.asyncapi.generator.http.model.WebhookAuthConfig;
 import io.ballerina.asyncapi.generator.http.utils.ChannelRoutes;
 import io.ballerina.asyncapi.generator.http.utils.FormBodies;
+import io.ballerina.asyncapi.generator.http.utils.RsaPublicKeys;
+import io.ballerina.asyncapi.generator.http.utils.SortedJsonBodies;
 import io.ballerina.compiler.syntax.tree.ClassDefinitionNode;
 import io.ballerina.compiler.syntax.tree.FunctionBodyBlockNode;
 import io.ballerina.compiler.syntax.tree.FunctionDefinitionNode;
@@ -180,6 +182,13 @@ public class GenerateDispatcherServiceNode implements Generator {
             members.add(buildFunc(new GenerateVerifyWebhookSignatureFuncNode(webhookAuthConfig.get())));
             if (FormBodies.usesFormParams(webhookAuthConfig.get().input())) {
                 members.add(buildSortedFormParamsFunction());
+            }
+            if (SortedJsonBodies.usesSortedJsonBody(webhookAuthConfig.get().input())) {
+                SortedJsonBodies.helperFunctions("private isolated", "self.")
+                        .forEach(source -> members.add(NodeParser.parseObjectMember(source)));
+            }
+            if (webhookAuthConfig.get().isRsa()) {
+                RsaPublicKeys.dispatcherMethods().forEach(source -> members.add(NodeParser.parseObjectMember(source)));
             }
         }
 

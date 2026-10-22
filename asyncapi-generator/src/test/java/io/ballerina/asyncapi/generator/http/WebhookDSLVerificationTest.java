@@ -408,8 +408,12 @@ public class WebhookDSLVerificationTest {
         Assert.assertTrue(dispatcherContent.contains("import ballerina/lang.array;"),
                 "Should import lang.array to decode the signature header: " + dispatcherContent);
         Assert.assertTrue(
-                dispatcherContent.contains("crypto:decodeRsaPublicKeyFromContent(webhookSecret.toBytes())"),
-                "The configured value must be decoded as the provider's public key: " + dispatcherContent);
+                dispatcherContent.contains("crypto:PublicKey|error publicKey = self.rsaPublicKey(webhookSecret);"),
+                "The configured value must be read as the provider's public key: " + dispatcherContent);
+        Assert.assertTrue(dispatcherContent.contains("crypto:decodeRsaPublicKeyFromContent(pem.toBytes())"),
+                "A certificate is still accepted: " + dispatcherContent);
+        Assert.assertTrue(dispatcherContent.contains("crypto:buildRsaPublicKey("),
+                "A PEM public key is built from its modulus and exponent: " + dispatcherContent);
         Assert.assertTrue(dispatcherContent.contains("array:fromBase64(signature)"),
                 "The signature header must be decoded per the declared encoding: " + dispatcherContent);
         Assert.assertTrue(
@@ -424,12 +428,44 @@ public class WebhookDSLVerificationTest {
         String dispatchTestContent = Files.readString(outputDir.resolve("tests").resolve("dispatch_test.bal"));
         Assert.assertTrue(dispatchTestContent.contains("const TRIGGER_TEST_PRIVATE_KEY = "),
                 "The generated test must carry a throwaway private key to sign with: " + dispatchTestContent);
-        Assert.assertTrue(dispatchTestContent.contains("webhookSecret: TRIGGER_TEST_CERTIFICATE"),
-                "The test listener must be configured with the matching certificate: " + dispatchTestContent);
+        Assert.assertTrue(dispatchTestContent.contains("webhookSecret: TRIGGER_TEST_PUBLIC_KEY"),
+                "The test listener must be configured with the matching public key: " + dispatchTestContent);
+        Assert.assertTrue(dispatchTestContent.contains("-----BEGIN PUBLIC KEY-----"), dispatchTestContent);
         Assert.assertTrue(dispatchTestContent.contains("crypto:signRsaSha256(payloadToHash.toBytes(), privateKey)"),
                 "The test client must sign with the private key: " + dispatchTestContent);
         Assert.assertFalse(dispatchTestContent.contains("TRIGGER_TEST_SECRET"),
                 "No shared secret exists in a public-key scheme: " + dispatchTestContent);
+    }
+
+    @Test
+    public void testSortedJsonBodySignsTheBodyWithItsTopLevelKeysSorted() throws Exception {
+        // Aayu MFT Gateway signs JSON.stringify of the payload with its top-level keys sorted, not the sent body.
+        Path outputDir = generateOutputDir("rsa_sorted_json_body.yaml");
+
+        String dispatcher = Files.readString(outputDir.resolve("dispatcher_service.bal"));
+        Assert.assertTrue(dispatcher.contains(
+                "string payloadToHash = string `${check self.sortedJsonBody(check request.getJsonPayload())}`;"),
+                dispatcher);
+        Assert.assertTrue(dispatcher.contains("private isolated function sortedJsonBody(json payload)"), dispatcher);
+        Assert.assertTrue(dispatcher.contains("from string name in fields.keys().sort()"), dispatcher);
+        Assert.assertTrue(dispatcher.contains("private isolated function compactJson(json value)"), dispatcher);
+
+        String dispatchTest = Files.readString(outputDir.resolve("tests").resolve("dispatch_test.bal"));
+        Assert.assertTrue(dispatchTest.contains("check sortedJsonBody(check bodyText.fromJsonString())"),
+                "The test client signs the same sorted body: " + dispatchTest);
+        Assert.assertTrue(dispatchTest.contains("isolated function sortedJsonBody(json payload)"), dispatchTest);
+        // A fixed expected string, so a wrong sort on both sides cannot pass.
+        Assert.assertTrue(dispatchTest.contains("function testSortedJsonBody() returns error?"), dispatchTest);
+        Assert.assertTrue(dispatchTest.contains(
+                "\"{\\\"a\\\":{\\\"y\\\":true,\\\"b\\\":[1,\\\"x\\\",null]},\\\"m\\\":\\\"s\\\",\\\"z\\\":1}\""),
+                dispatchTest);
+    }
+
+    @Test
+    public void testSortedJsonBodyIsOnlyGeneratedWhenUsed() throws Exception {
+        String dispatcher = Files.readString(
+                generateOutputDir("rsa_signature_verification.yaml").resolve("dispatcher_service.bal"));
+        Assert.assertFalse(dispatcher.contains("sortedJsonBody"), dispatcher);
     }
 
     @Test

@@ -20,7 +20,7 @@ package io.ballerina.asyncapi.generator.http.generator;
 /**
  * A fixed, throwaway RSA key pair for the generated dispatch tests of specs that verify a public-key
  * signature ({@code strategy: rsa}). The test client signs with the private key and the test
- * listener is configured with the matching certificate, so a generated suite can exercise real
+ * listener is configured with the matching public key, so a generated suite can exercise real
  * signature verification without any provider credentials.
  *
  * <p>This key pair protects nothing: it exists only inside generated test code and is not used
@@ -59,27 +59,20 @@ final class RsaTestKeys {
             "dc+jvxmU0n66FG07r/uOfNWV",
             "-----END PRIVATE KEY-----");
 
-    /** X.509 certificate PEM (self-signed, holding the matching public key) used to configure the listener. */
-    static final String CERTIFICATE_PEM = String.join("\n",
-            "-----BEGIN CERTIFICATE-----",
-            "MIIDHzCCAgegAwIBAgIUZpuLZsikcHGoQQ/U+zzZW1oQOa8wDQYJKoZIhvcNAQEL",
-            "BQAwHjEcMBoGA1UEAwwTYXN5bmNhcGktdG9vbHMtdGVzdDAgFw0yNjEwMDYwNTE0",
-            "NDhaGA8yMTI2MDkxMjA1MTQ0OFowHjEcMBoGA1UEAwwTYXN5bmNhcGktdG9vbHMt",
-            "dGVzdDCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBAKPpFQMcG55n2jmn",
-            "VcSBgVE+Tp6/ffxneyK6ceFBz4J/Vpht6geKAxQFvxtecPZNIkwZ82TL5i79a9Fo",
-            "nqDPa0SbUthQRX7wtk/7PEO4P7Duhxgc6UvE1c5p0kZ5r+9Y5anxLSP9JJb4pxnf",
-            "M47q9iO/0YYhnVcqN32BJyY3IxGgj2DJEvwAPfcdLMpGpDKfkM+NeBezkOj0ulF9",
-            "K1RCHYBKlwBr45My+lPGZ8XPz0BwGZ58XIyGlwDA6TAo2jusMLV6yEErVnv3gtkD",
-            "Vm+R765kN4G0lyl2cE/XeRrxMRXSu3OI+uI2Tmmfg95KAm+uAFQ9137sg3+Chwqx",
-            "hO0oTRcCAwEAAaNTMFEwHQYDVR0OBBYEFHkh+xquwERJZ7zklp+fsMQSrROgMB8G",
-            "A1UdIwQYMBaAFHkh+xquwERJZ7zklp+fsMQSrROgMA8GA1UdEwEB/wQFMAMBAf8w",
-            "DQYJKoZIhvcNAQELBQADggEBAEQZ1KFc+uJl4zGFp3VioqQFcuPOjh7Gf3+3CtyS",
-            "GltL4NOwYZY/n0Az7oaoaUcB7KZD8GlNgHNZev2xCgGrWuHX41CnD7JDcAzPTQsT",
-            "jJXKZQpTBtK+hnHonZfAF/XqI7+7FHJHpkLphFLZSfGngIxGi+JmHrbripKnS31s",
-            "Lo/ekIEyi8AjuHRinBMiZiUDhRyVDwzU4mSKMjmi1hbuJY3wJGmAxHZrNkY/ADHu",
-            "VZxV6Qg7sMbSakELVRwx4J8cXCO+AmPIC0HPvYXy/EOGTvv5pdI8XtmBPlV+L7Te",
-            "+EdF/8qusGBkizuwbdoGUQV6t6MyrRXKWmEzIWf93yunQVw=",
-            "-----END CERTIFICATE-----");
+    /**
+     * The matching PEM public key, used to configure the listener the way a provider's downloaded key is (a
+     * certificate works too; the generated listener reads either).
+     */
+    static final String PUBLIC_KEY_PEM = String.join("\n",
+            "-----BEGIN PUBLIC KEY-----",
+            "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAo+kVAxwbnmfaOadVxIGB",
+            "UT5Onr99/Gd7Irpx4UHPgn9WmG3qB4oDFAW/G15w9k0iTBnzZMvmLv1r0WieoM9r",
+            "RJtS2FBFfvC2T/s8Q7g/sO6HGBzpS8TVzmnSRnmv71jlqfEtI/0klvinGd8zjur2",
+            "I7/RhiGdVyo3fYEnJjcjEaCPYMkS/AA99x0sykakMp+Qz414F7OQ6PS6UX0rVEId",
+            "gEqXAGvjkzL6U8Znxc/PQHAZnnxcjIaXAMDpMCjaO6wwtXrIQStWe/eC2QNWb5Hv",
+            "rmQ3gbSXKXZwT9d5GvExFdK7c4j64jZOaZ+D3koCb64AVD3XfuyDf4KHCrGE7ShN",
+            "FwIDAQAB",
+            "-----END PUBLIC KEY-----");
 
     private RsaTestKeys() {
     }
