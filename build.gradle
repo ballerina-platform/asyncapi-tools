@@ -5,9 +5,13 @@ plugins {
     id 'maven-publish'
     id "com.github.spotbugs"
     id "jacoco"
-    id "com.github.johnrengelman.shadow"
+    id "com.gradleup.shadow"
     id "de.undercouch.download"
     id "net.researchgate.release"
+}
+
+jacoco {
+    toolVersion = jacocoVersion
 }
 
 def packageName = "asyncapi"
@@ -142,9 +146,9 @@ task codeCoverageReport(type: JacocoReport) {
         xml.required = true
         html.required = true
         csv.required = true
-        xml.destination(new File("${buildDir}/reports/jacoco/report.xml"))
-        html.destination(new File("${buildDir}/reports/jacoco/report.html"))
-        csv.destination(new File("${buildDir}/reports/jacoco/report.csv"))
+        xml.outputLocation.set(new File("${buildDir}/reports/jacoco/report.xml"))
+        html.outputLocation.set(new File("${buildDir}/reports/jacoco/report.html"))
+        csv.outputLocation.set(new File("${buildDir}/reports/jacoco/report.csv"))
     }
 
     onlyIf = {
@@ -208,7 +212,7 @@ task directoryBuild {
 }
 
 task createArtifactZip(type: Zip) {
-    destinationDirectory = file("${buildDir}/distributions")
+    destinationDirectory = layout.buildDirectory.dir("distributions").get().asFile
     from directoryBuild
 }
 
@@ -264,7 +268,7 @@ project(':trigger-template-compiler-plugin') {
 }
 
 directoryBuild.dependsOn ":trigger-template-compiler-plugin:build"
-
+directoryBuild.dependsOn ":shadowJar"
 directoryBuild.dependsOn ":asyncapi-tool:jBallerinaPack"
 directoryBuild.dependsOn ":asyncapi-tool:generatePomFileForMavenPublication"
 directoryBuild.dependsOn ":asyncapi-tool:createArtifactZip"
