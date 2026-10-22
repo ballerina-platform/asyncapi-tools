@@ -78,6 +78,8 @@ Allowed built-in input tokens:
   hashed payload instead of using it as an HMAC key (see `strategy: "hash"` above).
 - `$formParams`: the form parameters of a form-encoded body, sorted by name and each appended as name then value
   (see [Form-Encoded Bodies](#form-encoded-bodies)).
+- `$sortedJsonBody`: the JSON body with its top-level keys sorted, written as compact JSON (see
+  [Signing a Key-Sorted JSON Body](#signing-a-key-sorted-json-body)).
 
 Header-derived variables become available in `input` when they are declared in `headerFormat`, and can
 be referenced either as `$name` or `{name}` (for example `$timestamp` or `{timestamp}`).
@@ -172,15 +174,43 @@ The generated verifier decodes the signature header per `encoding` and checks it
 from `input` with `crypto:verifyRsaSha256Signature` (or the Sha1/Sha384/Sha512 variant). A malformed or
 non-matching signature is rejected as a signature mismatch.
 
-The listener's `webhookSecret` field carries the provider's **X.509 certificate in PEM form** (the one
-holding the public key), not a shared secret. A bare `-----BEGIN PUBLIC KEY-----` PEM is not accepted,
-because `ballerina/crypto` can only decode a public key from a certificate. If the provider only
-publishes a bare public key, wrap it in a certificate first.
+The listener's `webhookSecret` field carries the provider's public key, not a shared secret, in either PEM form:
+
+- a public key (`-----BEGIN PUBLIC KEY-----`), as providers such as Aayu MFT Gateway let you download it; or
+- an X.509 certificate (`-----BEGIN CERTIFICATE-----`) holding the public key.
+
+`ballerina/crypto` decodes RSA public keys only from certificates, so for a public key the generated listener
+reads the modulus and exponent from the PEM itself and builds the key with `crypto:buildRsaPublicKey`.
 
 `strategy` must be one of `hmac` (the default), `hash` or `rsa`; any other value fails generation.
 
 The generated dispatch tests sign with a fixed, throwaway key pair embedded in the test file and
-configure the test listener with its certificate, so the suite exercises real verification.
+configure the test listener with its public key, so the suite exercises real verification.
+
+### Signing a Key-Sorted JSON Body
+
+Some providers do not sign the body they send but the payload re-serialised in a canonical form. Aayu MFT Gateway
+signs the payload with its **top-level keys sorted**, written by JavaScript's `JSON.stringify` (its
+`@aayu-tech/json-sign` module), while the body it sends keeps the original key order. `$sortedJsonBody` is that
+form:
+
+```yaml
+x-ballerina-auth:
+  header: "mftg-wh-signature"
+  signature:
+    strategy: "rsa"
+    algorithm: "sha256"
+    encoding: "base64"
+    headerFormat: "$signature"
+    input: "$sortedJsonBody"
+```
+
+The generated listener parses the body, sorts its top-level keys, and writes it as compact JSON: no whitespace,
+nested objects and arrays in the order they were received. The generated test client signs the same form.
+
+`JSON.stringify` and Ballerina write fractional numbers differently (`1.0` is `1` in JavaScript), so a body whose
+signed fields hold fractional numbers may not verify. Strings, integers, booleans, `null`, objects and arrays are
+written the same way.
 
 ## Form-Encoded Bodies
 

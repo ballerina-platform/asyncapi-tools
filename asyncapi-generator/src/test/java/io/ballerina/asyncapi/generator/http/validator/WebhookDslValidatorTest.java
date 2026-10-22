@@ -35,6 +35,14 @@ public class WebhookDslValidatorTest {
     }
 
     @Test
+    public void testSortedJsonBodyTokenIsAccepted() throws GeneratorException {
+        WebhookAuthConfig config = new WebhookAuthConfig(
+                "mftg-wh-signature", "sha256", "base64", "$signature", "${sortedJsonBody}",
+                null, List.of(), null, null);
+        WebhookDslValidator.validate(config);
+    }
+
+    @Test
     public void testDollarBracedBuiltinTokenIsAccepted() throws GeneratorException {
         WebhookAuthConfig config = new WebhookAuthConfig(
                 "X-Test-Signature", "sha256", "hex", "sha256=${signature}", "${body}",

@@ -62,6 +62,11 @@ public class FormBodiesTest {
                 public String formParams() {
                     return "FORM";
                 }
+
+                @Override
+                public String sortedJsonBody() {
+                    return "SORTED";
+                }
             };
 
     @Test
@@ -96,5 +101,17 @@ public class FormBodiesTest {
         Assert.assertFalse(FormBodies.usesFormParams("$uri . $formParamsDigest"),
                 "Only the whole token counts, not a longer name that starts with it");
         Assert.assertTrue(FormBodies.usesFormParams("$formParams.$uri"));
+    }
+
+    @Test
+    void testSortedJsonBodyTokenInEveryInputSyntax() {
+        Assert.assertEquals(SignaturePayloadTemplateBuilder.build("$sortedJsonBody", RESOLVER), "${SORTED}");
+        Assert.assertEquals(SignaturePayloadTemplateBuilder.build("${sortedJsonBody}", RESOLVER), "${SORTED}");
+        Assert.assertEquals(SignaturePayloadTemplateBuilder.build("'v0' . $sortedJsonBody", RESOLVER), "v0${SORTED}");
+        Assert.assertTrue(SortedJsonBodies.usesSortedJsonBody("$sortedJsonBody"));
+        Assert.assertTrue(SortedJsonBodies.usesSortedJsonBody("{sortedJsonBody}"));
+        Assert.assertFalse(SortedJsonBodies.usesSortedJsonBody("$body"));
+        Assert.assertFalse(SortedJsonBodies.usesSortedJsonBody("$sortedJsonBodyDigest"),
+                "Only the whole token counts, not a longer name that starts with it");
     }
 }

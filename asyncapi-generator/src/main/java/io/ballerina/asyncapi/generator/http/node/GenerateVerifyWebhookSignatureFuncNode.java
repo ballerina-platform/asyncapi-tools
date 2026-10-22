@@ -22,7 +22,9 @@ import io.ballerina.asyncapi.generator.http.model.WebhookAuthConfig;
 import io.ballerina.asyncapi.generator.http.utils.FormBodies;
 import io.ballerina.asyncapi.generator.http.utils.HeaderTemplateParser;
 import io.ballerina.asyncapi.generator.http.utils.HeaderTemplateParser.HeaderTemplate;
+import io.ballerina.asyncapi.generator.http.utils.RsaPublicKeys;
 import io.ballerina.asyncapi.generator.http.utils.SignaturePayloadTemplateBuilder;
+import io.ballerina.asyncapi.generator.http.utils.SortedJsonBodies;
 import io.ballerina.asyncapi.generator.http.utils.WebhookCryptoMapper;
 import io.ballerina.compiler.syntax.tree.FunctionBodyBlockNode;
 import io.ballerina.compiler.syntax.tree.FunctionDefinitionNode;
@@ -257,7 +259,8 @@ public class GenerateVerifyWebhookSignatureFuncNode implements Generator {
 
     /**
      * Emits public-key verification for {@code strategy: rsa}. The listener's {@code webhookSecret}
-     * carries the provider's X.509 certificate (PEM), which holds the public key; the received signature
+     * carries the provider's X.509 certificate or PEM public key, read by the generated
+     * {@code rsaPublicKey} method; the received signature
      * is decoded per the configured encoding and checked against the DSL-built input. A malformed
      * signature or a failed verification is reported as a mismatch (401), never as a server error.
      *
@@ -275,10 +278,9 @@ public class GenerateVerifyWebhookSignatureFuncNode implements Generator {
 
         statements.add(NodeParser.parseStatement("string payloadToHash = string `" + balTemplate + "`;"));
         statements.add(NodeParser.parseStatement(
-                "crypto:PublicKey|crypto:Error publicKey = "
-                        + "crypto:decodeRsaPublicKeyFromContent(webhookSecret.toBytes());"));
+                "crypto:PublicKey|error publicKey = self." + RsaPublicKeys.RSA_PUBLIC_KEY_FUNC + "(webhookSecret);"));
         statements.add(NodeParser.parseStatement(
-                "if publicKey is crypto:Error { return error(\"Unauthorized: Invalid Webhook Public Key\"); }"));
+                "if publicKey is error { return error(\"Unauthorized: Invalid Webhook Public Key\"); }"));
         statements.add(NodeParser.parseStatement(String.format(
                 "byte[]|error receivedSignature = array:%s(%s);", decodeFunc, signatureVariable)));
         statements.add(NodeParser.parseStatement(
@@ -335,6 +337,11 @@ public class GenerateVerifyWebhookSignatureFuncNode implements Generator {
             @Override
             public String formParams() {
                 return "self." + FormBodies.SORTED_FORM_PARAMS_FUNC + "(check request.getFormParams())";
+            }
+
+            @Override
+            public String sortedJsonBody() {
+                return "check self." + SortedJsonBodies.SORTED_JSON_BODY_FUNC + "(check request.getJsonPayload())";
             }
         });
     }

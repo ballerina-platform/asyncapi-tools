@@ -64,6 +64,13 @@ public final class SignaturePayloadTemplateBuilder {
          * @return the Ballerina expression for {@code $formParams}
          */
         String formParams();
+
+        /**
+         * The JSON body with its top-level keys sorted, as compact JSON.
+         *
+         * @return the Ballerina expression for {@code $sortedJsonBody}
+         */
+        String sortedJsonBody();
     }
 
     /**
@@ -80,6 +87,7 @@ public final class SignaturePayloadTemplateBuilder {
                 .replace("${uri}", "$uri")
                 .replace("${method}", "$method")
                 .replace("${formParams}", "$formParams")
+                .replace("${sortedJsonBody}", "$sortedJsonBody")
                 .replaceAll("\\$\\{header\\('([^']+)'\\)\\}", "\\$header('$1')");
 
         if (normalizedDsl.contains(" . ")) {
@@ -94,6 +102,7 @@ public final class SignaturePayloadTemplateBuilder {
         template = replaceBareToken(template, "$uri", "${" + resolver.uri() + "}");
         template = replaceBareToken(template, "$method", "${" + resolver.method() + "}");
         template = replaceBareToken(template, "$formParams", "${" + resolver.formParams() + "}");
+        template = replaceBareToken(template, "$sortedJsonBody", "${" + resolver.sortedJsonBody() + "}");
 
         Matcher headerMatcher = HEADER_FUNC_PATTERN.matcher(template);
         StringBuffer headerReplaced = new StringBuffer();
@@ -151,6 +160,9 @@ public final class SignaturePayloadTemplateBuilder {
         }
         if ("$formParams".equals(token)) {
             return "${" + resolver.formParams() + "}";
+        }
+        if ("$sortedJsonBody".equals(token)) {
+            return "${" + resolver.sortedJsonBody() + "}";
         }
         if (SECRET_TOKEN.equals(token)) {
             return "${" + resolver.secret() + "}";
