@@ -154,5 +154,9 @@ test {
 
 checkstyleMain.dependsOn(":checkstyle:build")
 checkstyleTest.dependsOn(":checkstyle:build")
+// Gradle 9 rejects reading the downloaded rule files without depending on the task that downloads them.
+tasks.withType(Checkstyle).configureEach {
+    dependsOn(":checkstyle:downloadCheckstyleRuleFiles")
+}
 
 
