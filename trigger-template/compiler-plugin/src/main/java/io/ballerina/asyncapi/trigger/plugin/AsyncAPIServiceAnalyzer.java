@@ -27,11 +27,11 @@ import java.util.Map;
 /**
  * Registers the analysis tasks for services attached to a trigger listener.
  */
-public class TriggerServiceAnalyzer extends CodeAnalyzer {
+public class AsyncAPIServiceAnalyzer extends CodeAnalyzer {
 
     private final Map<String, Object> ctxData;
 
-    public TriggerServiceAnalyzer(Map<String, Object> ctxData) {
+    public AsyncAPIServiceAnalyzer(Map<String, Object> ctxData) {
         this.ctxData = ctxData;
     }
 

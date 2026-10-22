@@ -23,7 +23,7 @@ package io.ballerina.asyncapi.trigger.plugin;
 public final class Constants {
 
     // Key of the endpoint list shared by the analysis task and the lifecycle task.
-    public static final String TRIGGER_EXPORTED_ENDPOINTS = "TRIGGER_EXPORTED_ENDPOINTS";
+    public static final String ASYNCAPI_EXPORTED_ENDPOINTS = "ASYNCAPI_EXPORTED_ENDPOINTS";
 
     private Constants() {
     }

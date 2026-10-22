@@ -37,9 +37,9 @@ import java.util.Optional;
 /**
  * Utilities of the trigger compiler plugin.
  */
-public final class TriggerCompilerPluginUtil {
+public final class AsyncAPICompilerPluginUtil {
 
-    private TriggerCompilerPluginUtil() {
+    private AsyncAPICompilerPluginUtil() {
     }
 
     /**
@@ -87,7 +87,7 @@ public final class TriggerCompilerPluginUtil {
     private static Optional<PackageDescriptor> getTriggerPackage(Package currentPackage) {
         Path pluginJar;
         try {
-            pluginJar = Path.of(TriggerCompilerPluginUtil.class.getProtectionDomain().getCodeSource().getLocation()
+            pluginJar = Path.of(AsyncAPICompilerPluginUtil.class.getProtectionDomain().getCodeSource().getLocation()
                     .toURI()).toAbsolutePath().normalize();
         } catch (URISyntaxException | SecurityException | NullPointerException e) {
             return Optional.empty();

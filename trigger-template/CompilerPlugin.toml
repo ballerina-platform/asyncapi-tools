@@ -1,5 +1,5 @@
 [plugin]
-id = "asyncapi-trigger-compiler-plugin"
+id = "asyncapi-compiler-plugin"
 class = "io.ballerina.asyncapi.trigger.plugin.AsyncAPICompilerPlugin"
 
 [[dependency]]

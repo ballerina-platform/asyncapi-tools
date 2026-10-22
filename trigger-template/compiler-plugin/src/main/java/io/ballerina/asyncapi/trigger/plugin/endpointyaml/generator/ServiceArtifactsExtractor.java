@@ -31,8 +31,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-import static io.ballerina.asyncapi.trigger.plugin.Constants.TRIGGER_EXPORTED_ENDPOINTS;
-import static io.ballerina.asyncapi.trigger.plugin.TriggerCompilerPluginUtil.getTriggerListeners;
+import static io.ballerina.asyncapi.trigger.plugin.Constants.ASYNCAPI_EXPORTED_ENDPOINTS;
+import static io.ballerina.asyncapi.trigger.plugin.AsyncAPICompilerPluginUtil.getTriggerListeners;
 
 /**
  * Collects the endpoint details of a service attached to a trigger listener into the package-wide list that
@@ -71,7 +71,7 @@ public class ServiceArtifactsExtractor implements AnalysisTask<SyntaxNodeAnalysi
 
     @SuppressWarnings("unchecked")
     private void collectEndpoint(Endpoint endpoint) {
-        ((List<Endpoint>) ctxData.get(TRIGGER_EXPORTED_ENDPOINTS)).add(endpoint);
+        ((List<Endpoint>) ctxData.get(ASYNCAPI_EXPORTED_ENDPOINTS)).add(endpoint);
     }
 
     private static boolean isTestDocument(SyntaxNodeAnalysisContext context) {

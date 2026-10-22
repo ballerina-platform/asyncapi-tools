@@ -253,7 +253,7 @@ As `ballerina/http` does, the trigger repo builds the plugin from source and a `
 
 ```toml
 [plugin]
-id = "asyncapi-trigger-compiler-plugin"
+id = "asyncapi-compiler-plugin"
 class = "io.ballerina.asyncapi.trigger.plugin.AsyncAPICompilerPlugin"
 
 [[dependency]]

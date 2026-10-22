@@ -17,7 +17,7 @@
  */
 package io.ballerina.asyncapi.trigger.plugin.endpointyaml.generator;
 
-import io.ballerina.asyncapi.trigger.plugin.TriggerDiagnostic;
+import io.ballerina.asyncapi.trigger.plugin.AsyncAPIDiagnostic;
 import io.ballerina.projects.plugins.CompilerLifecycleEventContext;
 import io.ballerina.projects.plugins.CompilerLifecycleTask;
 import io.ballerina.tools.diagnostics.DiagnosticFactory;
@@ -34,7 +34,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import static io.ballerina.asyncapi.trigger.plugin.Constants.TRIGGER_EXPORTED_ENDPOINTS;
+import static io.ballerina.asyncapi.trigger.plugin.Constants.ASYNCAPI_EXPORTED_ENDPOINTS;
 
 /**
  * Hands the collected endpoints to Ballerina, which writes them to {@code target/artifact/endpoints.yaml}.
@@ -56,7 +56,7 @@ public class EndpointMetadataTask implements CompilerLifecycleTask<CompilerLifec
     @Override
     @SuppressWarnings("unchecked")
     public void perform(CompilerLifecycleEventContext context) {
-        List<Endpoint> endpoints = (List<Endpoint>) ctxData.get(TRIGGER_EXPORTED_ENDPOINTS);
+        List<Endpoint> endpoints = (List<Endpoint>) ctxData.get(ASYNCAPI_EXPORTED_ENDPOINTS);
         if (endpoints == null || endpoints.isEmpty()) {
             return;
         }
@@ -71,7 +71,7 @@ public class EndpointMetadataTask implements CompilerLifecycleTask<CompilerLifec
                 addEndpointMetadata(context, endpoint);
             }
         } catch (ReflectiveOperationException | SecurityException e) {
-            TriggerDiagnostic diagnostic = TriggerDiagnostic.TRIGGER_WARNING_102;
+            AsyncAPIDiagnostic diagnostic = AsyncAPIDiagnostic.ASYNCAPI_WARNING_102;
             context.reportDiagnostic(DiagnosticFactory.createDiagnostic(new DiagnosticInfo(diagnostic.getCode(),
                     diagnostic.getMessage(), diagnostic.getSeverity()), new NullLocation()));
         }

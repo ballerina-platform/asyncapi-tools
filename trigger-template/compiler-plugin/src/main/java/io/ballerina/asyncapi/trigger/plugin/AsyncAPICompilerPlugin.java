@@ -27,7 +27,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
-import static io.ballerina.asyncapi.trigger.plugin.Constants.TRIGGER_EXPORTED_ENDPOINTS;
+import static io.ballerina.asyncapi.trigger.plugin.Constants.ASYNCAPI_EXPORTED_ENDPOINTS;
 
 /**
  * The compiler plugin shipped with each generated trigger package.
@@ -43,8 +43,8 @@ public class AsyncAPICompilerPlugin extends CompilerPlugin {
         // Not context.userData(): every plugin in the build shares that map, and each trigger brings its own copy of
         // this plugin, from its own class loader, so the copies would overwrite each other's endpoints.
         Map<String, Object> ctxData = new HashMap<>();
-        ctxData.put(TRIGGER_EXPORTED_ENDPOINTS, Collections.synchronizedList(new ArrayList<Endpoint>()));
-        context.addCodeAnalyzer(new TriggerServiceAnalyzer(ctxData));
+        ctxData.put(ASYNCAPI_EXPORTED_ENDPOINTS, Collections.synchronizedList(new ArrayList<Endpoint>()));
+        context.addCodeAnalyzer(new AsyncAPIServiceAnalyzer(ctxData));
         context.addCompilerLifecycleListener(new ServiceArtifactsLifecycleListener(ctxData));
     }
 }

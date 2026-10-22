@@ -17,8 +17,8 @@
  */
 package io.ballerina.asyncapi.trigger.plugin.endpointyaml.generator;
 
-import io.ballerina.asyncapi.trigger.plugin.TriggerCompilerPluginUtil;
-import io.ballerina.asyncapi.trigger.plugin.TriggerDiagnostic;
+import io.ballerina.asyncapi.trigger.plugin.AsyncAPICompilerPluginUtil;
+import io.ballerina.asyncapi.trigger.plugin.AsyncAPIDiagnostic;
 import io.ballerina.compiler.api.symbols.ClassSymbol;
 import io.ballerina.compiler.api.symbols.ParameterSymbol;
 import io.ballerina.compiler.api.symbols.TypeReferenceTypeSymbol;
@@ -142,11 +142,11 @@ public class EndpointYamlGenerator {
                 ExpressionNode initializer = ((ModuleVariableDeclarationNode) declaration.get()).initializer()
                         .orElse(null);
                 if (initializer == null || initializer.kind() == SyntaxKind.REQUIRED_EXPRESSION) {
-                    diagnostics.add(diagnostic(TriggerDiagnostic.TRIGGER_ERROR_101,
+                    diagnostics.add(diagnostic(AsyncAPIDiagnostic.ASYNCAPI_ERROR_101,
                             initializer != null ? initializer : value));
                     return Optional.empty();
                 }
-                diagnostics.add(diagnostic(TriggerDiagnostic.TRIGGER_WARNING_101, initializer));
+                diagnostics.add(diagnostic(AsyncAPIDiagnostic.ASYNCAPI_WARNING_101, initializer));
                 return getPort(initializer, diagnostics);
             }
             Optional<ExpressionNode> initializer = declaration.flatMap(EndpointYamlGenerator::initializerOf);
@@ -159,7 +159,7 @@ public class EndpointYamlGenerator {
 
     // The index of the generated listener's port parameter in its init method.
     private Optional<Integer> getPortParamIndex() {
-        Optional<TypeSymbol> type = TriggerCompilerPluginUtil.getListenerType(context.semanticModel(), listener);
+        Optional<TypeSymbol> type = AsyncAPICompilerPluginUtil.getListenerType(context.semanticModel(), listener);
         if (type.isEmpty() || !(type.get() instanceof TypeReferenceTypeSymbol reference)
                 || !(reference.typeDescriptor() instanceof ClassSymbol listenerClass)) {
             return Optional.empty();
@@ -261,11 +261,11 @@ public class EndpointYamlGenerator {
     }
 
     private static Optional<Integer> unsupported(Node node, List<Diagnostic> diagnostics) {
-        diagnostics.add(diagnostic(TriggerDiagnostic.TRIGGER_ERROR_102, node));
+        diagnostics.add(diagnostic(AsyncAPIDiagnostic.ASYNCAPI_ERROR_102, node));
         return Optional.empty();
     }
 
-    private static Diagnostic diagnostic(TriggerDiagnostic diagnostic, Node node) {
+    private static Diagnostic diagnostic(AsyncAPIDiagnostic diagnostic, Node node) {
         DiagnosticInfo info = new DiagnosticInfo(diagnostic.getCode(), diagnostic.getMessage(),
                 diagnostic.getSeverity());
         return DiagnosticFactory.createDiagnostic(info, node.location());
