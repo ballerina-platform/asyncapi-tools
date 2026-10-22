@@ -1,0 +1,22 @@
+[package]
+license = ["Apache-2.0"]
+keywords = ["Communication/Team Chat", "Cost/Freemium", "Trigger"]
+org = "ballerinax"
+name = "trigger.google.drive"
+repository = "https://github.com/ballerina-platform/asyncapi-triggers"
+version = "0.11.0"
+distribution = "2201.13.4"
+icon = "docs/icon.png"
+authors = ["Ballerina"]
+
+[build-options]
+observabilityIncluded = true
+
+# DEVIATION FROM PRODUCTION (documented in SUMMARY.md): resolves the patched, local-only
+# testorg/googleapis_drive_mockable connector instead of the real ballerinax/googleapis.drive.
+[[dependency]]
+org = "testorg"
+name = "googleapis_drive_mockable"
+version = "3.5.0"
+repository = "local"
+
