@@ -245,6 +245,26 @@ directoryBuild.dependsOn ":checkstyle:processTestResources"
 directoryBuild.dependsOn ":asyncapi-core:build"
 directoryBuild.dependsOn ":asyncapi-generator:build"
 
+// The trigger template's plugin is checked with the shared rules here; trigger repos build it without them.
+project(':trigger-template-compiler-plugin') {
+    dependencies {
+        checkstyle project(':checkstyle')
+        checkstyle "com.puppycrawl.tools:checkstyle:${checkstylePluginVersion}"
+    }
+    checkstyle {
+        toolVersion '10.12.0'
+        configFile rootProject.file("config/checkstyle/build/checkstyle.xml")
+        configProperties = ["suppressionFile" : rootProject.file("config/checkstyle/build/suppressions.xml")]
+    }
+    tasks.matching { it.name in ['checkstyleMain', 'checkstyleTest'] }.configureEach {
+        dependsOn ":checkstyle:downloadCheckstyleRuleFiles", ":checkstyle:compileTestJava",
+                ":checkstyle:checkstyleMain", ":checkstyle:checkstyleTest", ":checkstyle:test",
+                ":checkstyle:processTestResources"
+    }
+}
+
+directoryBuild.dependsOn ":trigger-template-compiler-plugin:build"
+
 directoryBuild.dependsOn ":asyncapi-tool:jBallerinaPack"
 directoryBuild.dependsOn ":asyncapi-tool:generatePomFileForMavenPublication"
 directoryBuild.dependsOn ":asyncapi-tool:createArtifactZip"

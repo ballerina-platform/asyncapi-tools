@@ -244,3 +244,20 @@ service slack:AppService /slack on slackListener { ... }       // http://host:80
 ```
 
 Services on the same path share its dispatcher, so each service type can be attached once per path. Detaching the last service on a path frees that path.
+
+## Exporting trigger endpoints
+
+`bal build --export-endpoints` lists the ports and paths a program listens on in `target/artifact/endpoints.yaml`. The `ballerina/http` compiler plugin only reports services attached to an `http:Listener`, so each trigger package ships its own compiler plugin to report services attached to its `Listener`, with the same rules and defaults as HTTP services (`type: "REST"`, an empty `schemaPath`).
+
+As `ballerina/http` does, the trigger repo builds the plugin from source and a `CompilerPlugin.toml` next to `Ballerina.toml` points at the built jar, so nothing is published separately:
+
+```toml
+[plugin]
+id = "asyncapi-compiler-plugin"
+class = "io.ballerina.asyncapi.trigger.plugin.AsyncAPICompilerPlugin"
+
+[[dependency]]
+path = "../compiler-plugin/build/libs/github.trigger-compiler-plugin-0.2.0.jar"
+```
+
+The plugin source and the files a trigger repo needs for it are in [`trigger-template`](../trigger-template), which the trigger scaffold copies into each repo.

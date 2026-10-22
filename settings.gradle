@@ -51,6 +51,8 @@ include(':asyncapi-cli')
 include(':asyncapi-core')
 include(':asyncapi-generator')
 include(':asyncapi-tool')
+include(':trigger-template-compiler-plugin')
+project(':trigger-template-compiler-plugin').projectDir = file("trigger-template${File.separator}compiler-plugin")
 project(':checkstyle').projectDir = file("config${File.separator}checkstyle")
 gradleEnterprise {
     buildScan {
