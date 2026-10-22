@@ -142,7 +142,9 @@ public final class ServiceTypeExtractor {
         for (Map.Entry<String, AsyncApiOperation> entry : operations.entrySet()) {
             AsyncApiOperation operation = entry.getValue();
 
-            if (operation.action() != AsyncApiOperation.Action.RECEIVE) {
+            if (operation.action() != AsyncApiOperation.Action.RECEIVE
+                    || HandshakeExtractor.isHandshake(operation)) {
+                // A handshake is answered by the listener, so it is not an event for a service.
                 continue;
             }
 
@@ -307,8 +309,9 @@ public final class ServiceTypeExtractor {
             if (current == null || current.properties() == null) {
                 return false;
             }
-            String segment = rawSegment.startsWith("'") ? rawSegment.substring(1) : rawSegment;
-            current = current.properties().get(segment);
+            // The stored path is escaped for Ballerina (a leading ', and \ before symbols); schema keys are not.
+            String unquoted = rawSegment.startsWith("'") ? rawSegment.substring(1) : rawSegment;
+            current = current.properties().get(unquoted.replaceAll("\\\\(.)", "$1"));
         }
         if (current == null) {
             return false;

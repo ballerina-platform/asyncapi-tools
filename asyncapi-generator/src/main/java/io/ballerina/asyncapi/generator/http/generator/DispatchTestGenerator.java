@@ -17,11 +17,16 @@
  */
 package io.ballerina.asyncapi.generator.http.generator;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.ballerina.asyncapi.core.model.component.AsyncApiSchema;
 import io.ballerina.asyncapi.generator.GeneratorException;
 import io.ballerina.asyncapi.generator.http.extractor.EventIdentifierExtractor;
 import io.ballerina.asyncapi.generator.http.model.DispatchTestCase;
 import io.ballerina.asyncapi.generator.http.model.EventIdentifierConfig;
+import io.ballerina.asyncapi.generator.http.model.HandshakeConfig;
 import io.ballerina.asyncapi.generator.http.model.HttpServiceType;
 import io.ballerina.asyncapi.generator.http.model.WebhookAuthConfig;
 import io.ballerina.asyncapi.generator.http.utils.ChannelRoutes;
@@ -37,6 +42,8 @@ import io.ballerina.tools.text.TextDocuments;
 import org.ballerinalang.formatter.core.Formatter;
 import org.ballerinalang.formatter.core.FormatterException;
 
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -71,6 +78,8 @@ public class DispatchTestGenerator {
     private static final int TEST_PORT = 9091;
     private static final String TEST_SECRET = "trigger-test-secret";
     private static final String DEFAULT_IDENTIFIER_HEADER = "X-GitHub-Event";
+    private static final String HANDSHAKE_TEST_CHALLENGE = "trigger-test-challenge";
+    private static final ObjectMapper JSON = new ObjectMapper();
 
     private final List<DispatchTestCase> testCases;
     private final WebhookAuthConfig webhookAuthConfig;
@@ -206,6 +215,10 @@ public class DispatchTestGenerator {
         for (DispatchTestCase testCase : testCases) {
             source.append(buildTestFunction(testCase));
         }
+        if (identifierConfig != null && identifierConfig.handshake() != null
+                && (identifierConfig.handshake().isQuery() || hasBodyHandshake())) {
+            source.append(buildHandshakeTestFunction(identifierConfig.handshake()));
+        }
 
         SyntaxTree syntaxTree = parse(source.toString());
         try {
@@ -331,6 +344,14 @@ public class DispatchTestGenerator {
         } else {
             sb.append("    byte[] body = check io:fileReadBytes("
                     + "string `${TRIGGER_PAYLOAD_DIR}/${" + fixtureVariable + "}.json`);\n");
+            if (hasBodyHandshake()) {
+                // The handshake test signs a body of its own, so signing gets a function that takes the bytes.
+                String headerArg = isBodyModeIdentifier() ? "" : ", headerValue";
+                sb.append("    return sendSignedTriggerBody(body").append(headerArg).append(");\n}\n\n");
+                sb.append("isolated function sendSignedTriggerBody(byte[] body")
+                        .append(isBodyModeIdentifier() ? "" : ", string headerValue")
+                        .append(") returns http:Response|error {\n");
+            }
             sb.append("    string bodyText = check string:fromBytes(body);\n");
         }
 
@@ -570,6 +591,110 @@ public class DispatchTestGenerator {
                 + onlyThisFunction
                 + buildBindingAssertions(testCase, trackerKey)
                 + "}\n\n";
+    }
+
+    // A handshake in the body is signed like an event, so signing gets a function that takes the bytes.
+    private boolean hasBodyHandshake() {
+        return identifierConfig != null && identifierConfig.handshake() != null
+                && !identifierConfig.handshake().isQuery() && !formBodies && !isPerChannel();
+    }
+
+    /**
+     * Builds a test that sends the verification handshake and checks the listener echoes the challenge: a signed
+     * request whose body carries every {@code const} marker and the challenge, or a WebSub {@code GET}.
+     *
+     * @param handshake the handshake read from the definition's reply operation
+     * @return the test function source
+     */
+    private String buildHandshakeTestFunction(HandshakeConfig handshake) throws GeneratorException {
+        if (handshake.isQuery()) {
+            return buildWebSubTestFunctions(handshake);
+        }
+        ObjectNode body = JSON.createObjectNode();
+        for (Map.Entry<String, JsonNode> marker : handshake.when().entrySet()) {
+            putAtPath(body, marker.getKey(), marker.getValue());
+        }
+        putAtPath(body, handshake.challengePath(), JSON.getNodeFactory().textNode(HANDSHAKE_TEST_CHALLENGE));
+        String bodyJson;
+        try {
+            bodyJson = JSON.writeValueAsString(body);
+        } catch (JsonProcessingException e) {
+            throw new GeneratorException("Could not build the handshake test body", e);
+        }
+        return "@test:Config {}\n"
+                + "function testVerificationHandshake() returns error? {\n"
+                + "    json handshake = " + bodyJson + ";\n"
+                + "    http:Response response = check sendSignedTriggerBody(handshake.toJsonString().toBytes()"
+                + (isBodyModeIdentifier() ? "" : ", \"handshake\"") + ");\n"
+                + "    test:assertEquals(response.statusCode, " + handshake.statusCode() + ");\n"
+                + "    test:assertEquals(check response.getTextPayload(), \"" + HANDSHAKE_TEST_CHALLENGE + "\");\n"
+                + "}\n\n";
+    }
+
+    /**
+     * Builds the WebSub verification tests: a {@code GET} with the expected query is confirmed by echoing
+     * {@code hub.challenge}, and a request with another fixed value (such as {@code hub.mode}) or without a required
+     * parameter (such as {@code hub.topic}) gets {@code 404 Not Found}.
+     */
+    private String buildWebSubTestFunctions(HandshakeConfig handshake) {
+        Map<String, String> confirm = new LinkedHashMap<>();
+        handshake.when().forEach((name, value) -> confirm.put(name, value.asText()));
+        handshake.requiredQuery().forEach(name -> confirm.put(name, "trigger-test-value"));
+        confirm.put(handshake.challengeQuery(), HANDSHAKE_TEST_CHALLENGE);
+        StringBuilder tests = new StringBuilder()
+                .append("@test:Config {}\n")
+                .append("function testVerificationHandshake() returns error? {\n")
+                .append("    http:Response response = check triggerClient->get(\"/?")
+                .append(escapeBalString(query(confirm))).append("\");\n")
+                .append("    test:assertEquals(response.statusCode, ").append(handshake.statusCode()).append(");\n")
+                .append("    test:assertEquals(check response.getTextPayload(), \"")
+                .append(HANDSHAKE_TEST_CHALLENGE).append("\");\n")
+                .append("}\n\n");
+        if (!handshake.when().isEmpty()) {
+            Map<String, String> otherValue = new LinkedHashMap<>(confirm);
+            otherValue.computeIfPresent(handshake.when().keySet().iterator().next(), (name, value) -> "not-" + value);
+            tests.append(buildWebSubRejectTest("testVerificationHandshakeIsNotConfirmedForOtherRequests", otherValue));
+        }
+        if (!handshake.requiredQuery().isEmpty()) {
+            Map<String, String> missing = new LinkedHashMap<>(confirm);
+            missing.remove(handshake.requiredQuery().get(0));
+            tests.append(buildWebSubRejectTest("testVerificationHandshakeNeedsEveryRequiredParameter", missing));
+        }
+        return tests.toString();
+    }
+
+    private static String buildWebSubRejectTest(String name, Map<String, String> query) {
+        return "@test:Config {}\n"
+                + "function " + name + "() returns error? {\n"
+                + "    http:Response response = check triggerClient->get(\"/?" + escapeBalString(query(query))
+                + "\");\n"
+                + "    test:assertEquals(response.statusCode, http:STATUS_NOT_FOUND);\n"
+                + "}\n\n";
+    }
+
+    private static String query(Map<String, String> parameters) {
+        List<String> pairs = new ArrayList<>();
+        parameters.forEach((name, value) -> pairs.add(queryPair(name, value)));
+        return String.join("&", pairs);
+    }
+
+    private static String queryPair(String name, String value) {
+        return URLEncoder.encode(name, StandardCharsets.UTF_8) + "=" + URLEncoder.encode(value, StandardCharsets.UTF_8);
+    }
+
+    private static String escapeBalString(String value) {
+        return value.replace("\\", "\\\\").replace("\"", "\\\"");
+    }
+
+    // Sets a dot-notation path in a JSON object, creating the objects along the way.
+    private static void putAtPath(ObjectNode root, String path, JsonNode value) {
+        String[] segments = path.split("\\.");
+        ObjectNode node = root;
+        for (int i = 0; i < segments.length - 1; i++) {
+            JsonNode child = node.get(segments[i]);
+            node = child instanceof ObjectNode object ? object : node.putObject(segments[i]);
+        }
+        node.set(segments[segments.length - 1], value);
     }
 
     /**

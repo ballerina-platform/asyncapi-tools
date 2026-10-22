@@ -21,16 +21,37 @@ package io.ballerina.asyncapi.generator.http.model;
  * Holds the resolved event identifier configuration from the {@code x-ballerina-event-identifier}
  * extension on an AsyncAPI document.
  *
- * @param type the source of the event identifier: {@code "header"}, {@code "body"}, {@code "body-key"} or
- *             {@code "composite"}
- * @param name the request header name; non-null for {@code "header"} and {@code "composite"} types,
- *             {@code null} for {@code "body"}
- * @param path the dot-notation JSON body path; non-null for {@code "body"}, {@code "body-key"} (the object whose
- *             single key names the event) and {@code "composite"} types, {@code null} for {@code "header"}
+ * @param type      the source of the event identifier: {@code "header"}, {@code "body"}, {@code "body-key"} or
+ *                  {@code "composite"}
+ * @param name      the request header name; non-null for {@code "header"} and {@code "composite"} types,
+ *                  {@code null} for {@code "body"}
+ * @param path      the dot-notation JSON body path; non-null for {@code "body"}, {@code "body-key"} (the object
+ *                  whose single key names the event) and {@code "composite"} types, {@code null} for
+ *                  {@code "header"}
+ * @param handshake the endpoint verification handshake the listener answers itself, read from the definition's
+ *                  reply operation, or {@code null} if none
  */
 public record EventIdentifierConfig(
         String type,
         String name,
-        String path
+        String path,
+        HandshakeConfig handshake
 ) {
+
+    /**
+     * Creates a config without a verification handshake.
+     */
+    public EventIdentifierConfig(String type, String name, String path) {
+        this(type, name, path, null);
+    }
+
+    /**
+     * Returns this config with the given verification handshake.
+     *
+     * @param newHandshake the handshake, or {@code null} for none
+     * @return a copy with {@code handshake} replaced
+     */
+    public EventIdentifierConfig withHandshake(HandshakeConfig newHandshake) {
+        return new EventIdentifierConfig(type, name, path, newHandshake);
+    }
 }

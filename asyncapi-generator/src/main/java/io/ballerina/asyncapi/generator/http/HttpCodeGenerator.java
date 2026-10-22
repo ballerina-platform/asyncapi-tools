@@ -23,6 +23,7 @@ import io.ballerina.asyncapi.generator.GeneratorException;
 import io.ballerina.asyncapi.generator.http.extractor.ConnectionAuthExtractor;
 import io.ballerina.asyncapi.generator.http.extractor.DispatchTestCaseExtractor;
 import io.ballerina.asyncapi.generator.http.extractor.EventIdentifierExtractor;
+import io.ballerina.asyncapi.generator.http.extractor.HandshakeExtractor;
 import io.ballerina.asyncapi.generator.http.extractor.SchemaExtractor;
 import io.ballerina.asyncapi.generator.http.extractor.ServiceTypeExtractor;
 import io.ballerina.asyncapi.generator.http.extractor.WebhookAuthExtractor;
@@ -34,6 +35,7 @@ import io.ballerina.asyncapi.generator.http.generator.ServiceTypesGenerator;
 import io.ballerina.asyncapi.generator.http.model.ConnectionAuthConfig;
 import io.ballerina.asyncapi.generator.http.model.DispatchTestCase;
 import io.ballerina.asyncapi.generator.http.model.EventIdentifierConfig;
+import io.ballerina.asyncapi.generator.http.model.HandshakeConfig;
 import io.ballerina.asyncapi.generator.http.model.HttpServiceType;
 import io.ballerina.asyncapi.generator.http.model.WebhookAuthConfig;
 import io.ballerina.asyncapi.generator.http.utils.ChannelRoutes;
@@ -129,6 +131,17 @@ public class HttpCodeGenerator {
         } else if (identifierConfig == null) {
             // Without identifiers on channels the document's is required; this reports it missing.
             identifierConfig = identifierExtractor.extract();
+        }
+        Optional<HandshakeConfig> handshake = new HandshakeExtractor(asyncApiSpec).extract();
+        // A body handshake is answered on the single post resource, which channel resources replace.
+        if (handshake.isPresent() && !handshake.get().isQuery() && ChannelRoutes.isPerChannel(serviceTypes)) {
+            throw new GeneratorException("A verification handshake in the request body is not supported with "
+                    + "x-ballerina-event-identifier on channels");
+        }
+        if (identifierConfig != null) {
+            identifierConfig = identifierConfig.withHandshake(handshake.orElse(null));
+        } else if (handshake.isPresent()) {
+            throw new GeneratorException("A verification handshake needs the document's x-ballerina-event-identifier");
         }
         Map<String, AsyncApiSchema> schemas = new LinkedHashMap<>(new SchemaExtractor(asyncApiSpec).extract());
         schemas.putAll(serviceTypeExtractor.getInlineSchemas());

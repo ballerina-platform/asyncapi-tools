@@ -1,6 +1,8 @@
 # Webhook Signature DSL Reference
 
-This document describes the webhook verification DSL consumed from root-level `x-ballerina-auth` in AsyncAPI specs.
+This document describes the webhook verification DSL consumed from root-level `x-ballerina-auth` in AsyncAPI specs,
+and how endpoint verification handshakes are described with AsyncAPI's request/reply pattern (see
+[Verification Handshakes](#verification-handshakes)).
 
 ## Location
 
@@ -232,6 +234,113 @@ Validation rules:
 
 - Adjacent placeholders are not allowed (for example `$ts$signature`).
 - When `algorithm` is configured, `headerFormat` must include signature placeholder `$signature`, `${signature}`, or `{signature}`.
+
+## Verification Handshakes
+
+Some providers check the endpoint before they send any events: they send a challenge and only activate the
+webhook once the endpoint returns it. Describe the handshake with AsyncAPI's own request/reply pattern: a `receive`
+operation with a `reply`. The generated listener answers it itself; it never reaches a service, and no remote
+function is generated for it.
+
+For example, Slack's `url_verification`:
+
+```yaml
+channels:
+  events:
+    address: events
+    messages:
+      urlVerification:
+        payload:
+          type: object
+          properties:
+            type:
+              type: string
+              const: url_verification
+            challenge:
+              type: string
+        correlationId:
+          location: $message.payload#/challenge
+      urlVerificationReply:
+        payload:
+          type: string
+        bindings:
+          http:
+            statusCode: 200
+operations:
+  verifyUrl:
+    action: receive
+    channel:
+      $ref: '#/channels/events'
+    messages:
+      - $ref: '#/channels/events/messages/urlVerification'
+    reply:
+      channel:
+        $ref: '#/channels/events'
+      messages:
+        - $ref: '#/channels/events/messages/urlVerificationReply'
+```
+
+- A `receive` operation with a `reply` is the handshake. A definition can have one.
+- The `const` values in the request message's payload schema tell the handshake apart from events: a request whose
+  body has every one of them is the handshake. At least one is required.
+- The request message's `correlationId` points at the challenge, as a runtime expression into the payload
+  (`$message.payload#/challenge`). The listener responds with the challenge as plain text, or `400` if it is
+  missing.
+- The reply message's HTTP binding `statusCode` is the response status; without it, `200`.
+- The handshake is answered after the `x-ballerina-auth` signature check, so a provider that signs it (Slack does)
+  is verified like any other request.
+- The challenge in a header is not supported yet.
+
+**WebSub verification of intent** (for example WSO2 Identity Server and Asgardeo): the hub sends
+`GET /?hub.mode=subscribe&hub.topic=...&hub.challenge=...` and the subscriber confirms by echoing `hub.challenge`.
+A runtime expression cannot point into the query, so a `GET` handshake is read as the
+[W3C WebSub](https://www.w3.org/TR/websub/#hub-verifies-intent) verification: describe it with the operation's
+HTTP binding, and the challenge is the `hub.challenge` query parameter.
+
+```yaml
+operations:
+  verifyIntent:
+    action: receive
+    channel:
+      $ref: '#/channels/events'
+    bindings:
+      http:
+        method: GET
+        query:
+          type: object
+          required:
+            - hub.mode
+            - hub.topic
+            - hub.challenge
+          properties:
+            hub.mode:
+              type: string
+              const: subscribe
+            hub.topic:
+              type: string
+            hub.challenge:
+              type: string
+            hub.lease_seconds:
+              type: integer
+    reply:
+      channel:
+        $ref: '#/channels/events'
+      messages:
+        - $ref: '#/channels/events/messages/verificationReply'
+```
+
+- The listener gets a `get` resource that responds with `hub.challenge` as plain text, or `400` if it is missing.
+- The listener confirms a request whose query has the schema's `const` values (here `hub.mode: subscribe`) and
+  every parameter the schema marks `required` (here `hub.topic`). Any other request gets `404 Not Found`, which
+  WebSub defines as the subscriber declining. The listener keeps no subscription state, so it cannot check that
+  `hub.topic` is one it subscribed to.
+- A `GET` has no body, so it is not signature-checked.
+- The query schema must have `hub.challenge`; any method other than `GET` or `POST` fails generation.
+
+When dispatch tests are generated, they include `testVerificationHandshake`, which sends the handshake (signed, for
+a `POST`) and checks the status code and that the challenge comes back. A WebSub verification also gets
+`testVerificationHandshakeIsNotConfirmedForOtherRequests` (another `hub.mode` gets `404`) and
+`testVerificationHandshakeNeedsEveryRequiredParameter` (a missing required parameter gets `404`).
 
 ## Examples
 

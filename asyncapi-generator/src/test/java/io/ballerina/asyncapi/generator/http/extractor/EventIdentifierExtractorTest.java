@@ -22,6 +22,7 @@ import io.ballerina.asyncapi.core.AsyncApiParserException;
 import io.ballerina.asyncapi.core.api.AsyncApiSpec;
 import io.ballerina.asyncapi.generator.GeneratorException;
 import io.ballerina.asyncapi.generator.http.model.EventIdentifierConfig;
+import io.ballerina.compiler.syntax.tree.NodeParser;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -178,6 +179,18 @@ public class EventIdentifierExtractorTest {
         } catch (GeneratorException e) {
             Assert.assertTrue(e.getMessage().contains("name"),
                     "Exception should mention the missing 'name' attribute");
+        }
+    }
+
+    @Test
+    void testBodyPathSegmentsAreEscapedIntoValidFieldAccess() {
+        Assert.assertEquals(EventIdentifierExtractor.escapeBodyPath("event.type"), "event.'type");
+        Assert.assertEquals(EventIdentifierExtractor.escapeBodyPath("event-type"), "event\\-type");
+        Assert.assertEquals(EventIdentifierExtractor.escapeBodyPath("data.1st"), "data.'1st");
+        for (String path : new String[]{"event.type", "event-type", "data.1st", "hub.mode$x", "plain"}) {
+            String access = "payload." + EventIdentifierExtractor.escapeBodyPath(path);
+            Assert.assertFalse(NodeParser.parseExpression(access).hasDiagnostics(),
+                    "Not a valid field access: " + access);
         }
     }
 

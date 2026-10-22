@@ -162,10 +162,27 @@ public final class EventIdentifierExtractor {
                     X_BALLERINA_EVENT_FIELD_IDENTIFIER_PATH,
                     X_BALLERINA_EVENT_FIELD_IDENTIFIER));
         }
-        String identifierPath = identifierFields.get(X_BALLERINA_EVENT_FIELD_IDENTIFIER_PATH);
-        return Arrays.stream(identifierPath.split("\\."))
-                .map(part -> CodegenUtils.BAL_KEYWORDS.stream().anyMatch(part::equals)
-                        ? String.format("'%s", part) : part)
+        return escapeBodyPath(identifierFields.get(X_BALLERINA_EVENT_FIELD_IDENTIFIER_PATH));
+    }
+
+    /**
+     * Escapes a dot-notation body path for use as a Ballerina field access: in each segment, a character that
+     * cannot appear in an identifier is escaped with {@code \}, and a segment that is a keyword or starts with a
+     * digit is prefixed with {@code '}.
+     *
+     * @param path the dot-notation path, e.g. {@code event.type} or {@code event-type}
+     * @return the escaped path, e.g. {@code event.'type} or {@code event\-type}
+     */
+    public static String escapeBodyPath(String path) {
+        return Arrays.stream(path.split("\\."))
+                .map(EventIdentifierExtractor::escapePathSegment)
                 .collect(Collectors.joining("."));
+    }
+
+    private static String escapePathSegment(String segment) {
+        String escaped = segment.replaceAll("([^A-Za-z0-9_])", "\\\\$1");
+        boolean quoted = CodegenUtils.BAL_KEYWORDS.contains(segment)
+                || (!segment.isEmpty() && Character.isDigit(segment.charAt(0)));
+        return quoted ? "'" + escaped : escaped;
     }
 }

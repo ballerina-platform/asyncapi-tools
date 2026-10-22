@@ -17,9 +17,11 @@
  */
 package io.ballerina.asyncapi.generator.http.node;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import io.ballerina.asyncapi.generator.GeneratorException;
 import io.ballerina.asyncapi.generator.http.extractor.EventIdentifierExtractor;
 import io.ballerina.asyncapi.generator.http.model.EventIdentifierConfig;
+import io.ballerina.asyncapi.generator.http.model.HandshakeConfig;
 import io.ballerina.asyncapi.generator.http.model.WebhookAuthConfig;
 import io.ballerina.compiler.syntax.tree.FunctionBodyBlockNode;
 import io.ballerina.compiler.syntax.tree.FunctionDefinitionNode;
@@ -74,6 +76,8 @@ import static io.ballerina.compiler.syntax.tree.SyntaxKind.RESOURCE_KEYWORD;
  * logged and skipped rather than aborting the rest of the batch.
  */
 public class GeneratePostResourceFunctionNode implements Generator {
+
+    private static final int HTTP_OK = 200;
 
     private final EventIdentifierConfig identifierConfig;
     private final Optional<WebhookAuthConfig> webhookAuthConfig;
@@ -142,6 +146,10 @@ public class GeneratePostResourceFunctionNode implements Generator {
 
         List<StatementNode> statements = new ArrayList<>(buildVerifyStatements(webhookAuthConfig));
         statements.addAll(buildPayloadStatements(formFieldConversions));
+        HandshakeConfig handshake = identifierConfig.handshake();
+        if (handshake != null && !handshake.isQuery()) {
+            statements.addAll(buildHandshakeStatements(handshake));
+        }
         if (batched) {
             statements.addAll(buildBatchedDispatchStatements(type));
         } else {
@@ -258,6 +266,46 @@ public class GeneratePostResourceFunctionNode implements Generator {
         boolean composite = EventIdentifierExtractor.X_BALLERINA_EVENT_TYPE_COMPOSITE.equals(type);
         statements.add(NodeParser.parseStatement(unhandledAwareLog(composite ? "eventIdentifier" : "eventType")));
         return statements;
+    }
+
+    /**
+     * Builds the statements that answer the verification handshake: when every {@code const} field of the
+     * handshake's payload has its value, echo the challenge as plain text and return before anything is
+     * dispatched. A missing challenge is a malformed handshake and gets {@code 400 Bad Request}.
+     *
+     * @param handshake the handshake read from the definition's reply operation
+     * @return the statements to run right after the body is parsed
+     */
+    private List<StatementNode> buildHandshakeStatements(HandshakeConfig handshake) {
+        List<StatementNode> statements = new ArrayList<>();
+        List<String> conditions = new ArrayList<>();
+        int index = 0;
+        for (Map.Entry<String, JsonNode> marker : handshake.when().entrySet()) {
+            String variable = "handshakeMarker" + (handshake.when().size() > 1 ? index++ : "");
+            statements.add(NodeParser.parseStatement(String.format("json|error %s = payload.%s;", variable,
+                    EventIdentifierExtractor.escapeBodyPath(marker.getKey()))));
+            conditions.add(String.format("%1$s is json && %1$s == %2$s", variable, balLiteral(marker.getValue())));
+        }
+        String status = handshake.statusCode() == HTTP_OK ? ""
+                : String.format(" handshakeResponse.statusCode = %d;", handshake.statusCode());
+        statements.add(NodeParser.parseStatement(String.format(
+                "if %s {"
+                        + " json|error challenge = payload.%s;"
+                        + " http:Response handshakeResponse = new;"
+                        + " if challenge is json && challenge != () {"
+                        + " handshakeResponse.setTextPayload(challenge.toString());%s }"
+                        + " else { handshakeResponse.statusCode = http:STATUS_BAD_REQUEST; }"
+                        + " check caller->respond(handshakeResponse); return; }",
+                String.join(" && ", conditions),
+                EventIdentifierExtractor.escapeBodyPath(handshake.challengePath()), status)));
+        return statements;
+    }
+
+    // A Ballerina literal for a const from the definition: a string literal, or the JSON text otherwise.
+    private static String balLiteral(JsonNode value) {
+        return value.isTextual()
+                ? "\"" + value.asText().replace("\\", "\\\\").replace("\"", "\\\"") + "\""
+                : value.toString();
     }
 
     /**
