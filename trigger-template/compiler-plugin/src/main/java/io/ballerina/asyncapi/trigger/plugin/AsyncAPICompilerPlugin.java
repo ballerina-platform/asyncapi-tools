@@ -36,7 +36,7 @@ import static io.ballerina.asyncapi.trigger.plugin.Constants.TRIGGER_EXPORTED_EN
  * {@code bal build --export-endpoints} it reports the HTTP endpoint of every service attached to the trigger's
  * listener, which the {@code ballerina/http} plugin skips because that listener is not an {@code http:Listener}.
  */
-public class TriggerCompilerPlugin extends CompilerPlugin {
+public class AsyncAPICompilerPlugin extends CompilerPlugin {
 
     @Override
     public void init(CompilerPluginContext context) {

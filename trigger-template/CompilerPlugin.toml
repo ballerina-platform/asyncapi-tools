@@ -1,6 +1,6 @@
 [plugin]
 id = "asyncapi-trigger-compiler-plugin"
-class = "io.ballerina.asyncapi.trigger.plugin.TriggerCompilerPlugin"
+class = "io.ballerina.asyncapi.trigger.plugin.AsyncAPICompilerPlugin"
 
 [[dependency]]
 path = "../compiler-plugin/build/libs/@package.name@-compiler-plugin-@project.version@.jar"
