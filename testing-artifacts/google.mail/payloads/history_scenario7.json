@@ -1,0 +1,18 @@
+{
+  "history": [
+    {
+      "id": "1007",
+      "labelsRemoved": [
+        {
+          "labelIds": ["STARRED"],
+          "message": {
+            "id": "msg-700",
+            "threadId": "thread-700",
+            "labelIds": ["INBOX"]
+          }
+        }
+      ]
+    }
+  ],
+  "historyId": "1007"
+}

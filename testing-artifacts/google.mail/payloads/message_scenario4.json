@@ -1,0 +1,14 @@
+{
+  "id": "msg-400",
+  "threadId": "thread-400",
+  "labelIds": ["INBOX", "IMPORTANT"],
+  "snippet": "Label added, scenario 4",
+  "internalDate": "1700000003000",
+  "payload": {
+    "mimeType": "text/plain",
+    "headers": [
+      {"name": "Subject", "value": "Scenario 4 - label added (non-starred)"}
+    ],
+    "body": {"data": "TGFiZWwgYWRkZWQ=", "size": 11}
+  }
+}
