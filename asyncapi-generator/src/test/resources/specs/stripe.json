@@ -1,0 +1,87 @@
+{
+  "asyncapi": "2.1.0",
+  "info": {
+    "title": "Stripe Webhook Events API",
+    "version": "1.0.0",
+    "description": "Webhook API for receiving Stripe payment and customer events via header-based event identification"
+  },
+  "x-ballerina-event-identifier": {
+    "type": "header",
+    "name": "X-Stripe-Event"
+  },
+  "servers": {
+    "production": {
+      "url": "{webhook_url}",
+      "protocol": "https",
+      "description": "Your registered Stripe webhook endpoint.",
+      "variables": {
+        "webhook_url": {
+          "description": "The HTTPS URL where Stripe delivers webhook events."
+        }
+      }
+    }
+  },
+  "channels": {
+    "payment": {
+      "description": "Payment intent lifecycle events.",
+      "subscribe": {
+        "message": {
+          "oneOf": [
+            {
+              "x-ballerina-event-type": "payment_intent.succeeded",
+              "summary": "A payment intent was successfully confirmed.",
+              "payload": { "$ref": "#/components/schemas/PaymentIntent" }
+            },
+            {
+              "x-ballerina-event-type": "payment_intent.failed",
+              "summary": "A payment intent failed.",
+              "payload": { "$ref": "#/components/schemas/PaymentIntent" }
+            }
+          ]
+        }
+      }
+    },
+    "customer": {
+      "description": "Customer lifecycle events.",
+      "subscribe": {
+        "message": {
+          "oneOf": [
+            {
+              "x-ballerina-event-type": "customer.created",
+              "summary": "A new customer was created.",
+              "payload": { "$ref": "#/components/schemas/Customer" }
+            },
+            {
+              "x-ballerina-event-type": "customer.deleted",
+              "summary": "A customer was deleted.",
+              "payload": { "$ref": "#/components/schemas/Customer" }
+            }
+          ]
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "PaymentIntent": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "amount": { "type": "integer" },
+          "currency": { "type": "string" },
+          "status": { "type": "string" }
+        },
+        "required": ["id", "amount", "currency", "status"]
+      },
+      "Customer": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "email": { "type": "string" },
+          "name": { "type": "string" }
+        },
+        "required": ["id", "email"]
+      }
+    }
+  }
+}

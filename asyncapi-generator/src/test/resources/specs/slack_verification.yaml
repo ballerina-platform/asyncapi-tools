@@ -1,0 +1,35 @@
+asyncapi: 3.0.0
+x-ballerina-event-identifier:
+  type: "body"
+  path: "event.type"
+x-ballerina-auth:
+  header: "X-Slack-Signature"
+  signature:
+    algorithm: "sha256"
+    encoding: "hex"
+    headerFormat: "v0=$signature"
+    input: "'v0' . ':' . $header('X-Slack-Request-Timestamp') . ':' . $body"
+info:
+  title: Slack Verification Test
+  version: 1.0.0
+channels:
+  events:
+    address: events
+    messages:
+      slackEvent:
+        x-ballerina-event-type: "app_mention"
+        payload:
+          type: object
+          properties:
+            event:
+              type: object
+              properties:
+                type:
+                  type: string
+operations:
+  receiveEvents:
+    action: receive
+    channel:
+      $ref: "#/channels/events"
+    messages:
+      - $ref: "#/channels/events/messages/slackEvent"

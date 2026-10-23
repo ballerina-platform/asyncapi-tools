@@ -1,0 +1,344 @@
+/*
+ *  Copyright (c) 2026, WSO2 LLC. (http://www.wso2.com)
+ *
+ *  WSO2 LLC. licenses this file to you under the Apache License,
+ *  Version 2.0 (the "License"); you may not use this file except
+ *  in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing,
+ *  software distributed under the License is distributed on an
+ *  "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ *  KIND, either express or implied.  See the License for the
+ *  specific language governing permissions and limitations
+ *  under the License.
+ */
+package io.ballerina.asyncapi.generator.http.extractor;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import io.ballerina.asyncapi.core.api.AsyncApiSpec;
+import io.ballerina.asyncapi.core.model.channel.AsyncApiChannel;
+import io.ballerina.asyncapi.core.model.component.AsyncApiSchema;
+import io.ballerina.asyncapi.core.model.message.AsyncApiMessage;
+import io.ballerina.asyncapi.core.model.operation.AsyncApiOperation;
+import io.ballerina.asyncapi.generator.GeneratorException;
+import io.ballerina.asyncapi.generator.http.model.EventIdentifierConfig;
+import io.ballerina.asyncapi.generator.http.model.HttpRemoteFunction;
+import io.ballerina.asyncapi.generator.http.model.HttpServiceType;
+import io.ballerina.asyncapi.generator.http.utils.CodegenUtils;
+import io.ballerina.asyncapi.generator.http.utils.FormBodies;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+
+/**
+ * Extracts {@link HttpServiceType} definitions from an {@link AsyncApiSpec}.
+ *
+ */
+public final class ServiceTypeExtractor {
+
+    public static final String X_BALLERINA_EVENT_TYPE = "x-ballerina-event-type";
+    private static final String X_BALLERINA_EVENT_LABEL = "x-ballerina-event-label";
+    private static final String X_BALLERINA_SERVICE_TYPE = "x-ballerina-service-type";
+    private static final String X_BALLERINA_EVENT_IDENTIFIER = "x-ballerina-event-identifier";
+
+    private final AsyncApiSpec asyncApiSpec;
+    private final EventIdentifierConfig identifierConfig;
+    private final Map<String, AsyncApiSchema> inlineSchemas = new LinkedHashMap<>();
+    private Boolean batched;
+    private Boolean formEncoded;
+    private final Map<String, String> formFieldConversions = new LinkedHashMap<>();
+    private final Map<String, String> formFieldTypes = new LinkedHashMap<>();
+
+    /**
+     * Creates an extractor that does not have access to the resolved event identifier
+     * configuration, so every remote function it produces matches on the composite identifier
+     * (the pre-existing behavior). Prefer {@link #ServiceTypeExtractor(AsyncApiSpec,
+     * EventIdentifierConfig)} so free-form (non-enumerable) action fields are detected.
+     *
+     * @param asyncApiSpec the parsed AsyncAPI specification
+     */
+    public ServiceTypeExtractor(AsyncApiSpec asyncApiSpec) {
+        this(asyncApiSpec, null);
+    }
+
+    /**
+     * Creates an extractor that uses the resolved event identifier configuration to detect,
+     * for {@code "composite"} identifiers, which events have no enumerable action field and
+     * therefore must match on the bare event type instead of the composite identifier.
+     *
+     * @param asyncApiSpec     the parsed AsyncAPI specification
+     * @param identifierConfig the resolved event identifier type and path, or {@code null} if
+     *                         not yet known (every remote function will match on the composite
+     *                         identifier)
+     */
+    public ServiceTypeExtractor(AsyncApiSpec asyncApiSpec, EventIdentifierConfig identifierConfig) {
+        this.asyncApiSpec = asyncApiSpec;
+        this.identifierConfig = identifierConfig;
+    }
+
+    /**
+     * Returns inline payload schemas collected during {@link #extract()}.
+     * Keyed by the {@code x-ballerina-event-type} value of each message.
+     *
+     * @return a non-null, possibly empty map of event-type name to schema
+     */
+    public Map<String, AsyncApiSchema> getInlineSchemas() {
+        return inlineSchemas;
+    }
+
+    /**
+     * Returns whether the spec's message payloads deliver a JSON array of events per request
+     * rather than one event per request, detected from each message's payload schema during
+     * {@link #extract()} (a {@code type: array} payload with an {@code items} schema, e.g. some
+     * providers such as HubSpot batch multiple events into one POST body).
+     *
+     * @return {@code true} if every message payload is array-typed; {@code false} otherwise
+     */
+    public boolean isBatched() {
+        return batched != null && batched;
+    }
+
+    /**
+     * Returns whether the messages arrive form-encoded ({@code application/x-www-form-urlencoded}), from each
+     * message's {@code contentType} or the document's {@code defaultContentType}, detected during
+     * {@link #extract()}.
+     *
+     * @return {@code true} if every message is form-encoded; {@code false} otherwise
+     */
+    public boolean isFormEncoded() {
+        return formEncoded != null && formEncoded;
+    }
+
+    /**
+     * Returns the top-level payload fields of form-encoded messages that must be converted from the string they
+     * arrive as, with the Ballerina type to convert to, collected during {@link #extract()}.
+     *
+     * @return field name to {@code int}, {@code decimal}, {@code float} or {@code boolean}; empty for JSON bodies
+     */
+    public Map<String, String> getFormFieldConversions() {
+        return formFieldConversions;
+    }
+
+    /**
+     * Extracts the list of HTTP service types defined in the spec.
+     *
+     * @return a non-null list of {@link HttpServiceType} objects; empty if no qualifying operations exist
+     * @throws GeneratorException if the spec is malformed or required extensions are missing
+     */
+    public List<HttpServiceType> extract() throws GeneratorException {
+        Map<String, AsyncApiOperation> operations = asyncApiSpec.getAsyncApiOperations().orElse(null);
+        if (operations == null) {
+            return Collections.emptyList();
+        }
+
+        Map<String, HttpServiceType> serviceTypeMap = new LinkedHashMap<>();
+
+        for (Map.Entry<String, AsyncApiOperation> entry : operations.entrySet()) {
+            AsyncApiOperation operation = entry.getValue();
+
+            if (operation.action() != AsyncApiOperation.Action.RECEIVE
+                    || HandshakeExtractor.isHandshake(operation)) {
+                // A handshake is answered by the listener, so it is not an event for a service.
+                continue;
+            }
+
+            AsyncApiChannel operationChannel = operation.channel();
+            String serviceTypeName;
+            String channelId = operation.channelId();
+            if (channelId != null && !channelId.isBlank()) {
+                serviceTypeName = channelId;
+            } else {
+                Map<String, JsonNode> channelExtensions = operationChannel.extensions();
+                if (channelExtensions != null && channelExtensions.containsKey(X_BALLERINA_SERVICE_TYPE)) {
+                    serviceTypeName = channelExtensions.get(X_BALLERINA_SERVICE_TYPE).asText();
+                } else {
+                    serviceTypeName = CodegenUtils.getValidName(operationChannel.address(), true);
+                }
+            }
+
+            Map<String, JsonNode> channelExtensions = operationChannel.extensions();
+            JsonNode channelIdentifierNode = channelExtensions == null ? null
+                    : channelExtensions.get(X_BALLERINA_EVENT_IDENTIFIER);
+            EventIdentifierConfig channelIdentifier = channelIdentifierNode == null ? null
+                    : EventIdentifierExtractor.parse(channelIdentifierNode);
+            // computeIfAbsent, not put: within a hash bucket it orders entries differently, which would reorder
+            // the generated services.
+            serviceTypeMap.computeIfAbsent(serviceTypeName, k -> new HttpServiceType(k, new ArrayList<>(),
+                    operationChannel.address(), channelIdentifier));
+
+            Map<String, AsyncApiMessage> messages = operation.messages();
+            if (messages == null || messages.isEmpty()) {
+                continue;
+            }
+
+            for (Map.Entry<String, AsyncApiMessage> msgEntry : messages.entrySet()) {
+                String messageId = msgEntry.getKey();
+                AsyncApiMessage message = msgEntry.getValue();
+                validateMessage(message, messageId, operationChannel.address());
+                String eventType = message.extensions().get(X_BALLERINA_EVENT_TYPE).asText();
+                JsonNode labelNode = message.extensions().get(X_BALLERINA_EVENT_LABEL);
+                String displayLabel = labelNode != null && !labelNode.asText().isBlank()
+                        ? labelNode.asText() : null;
+                Object payload = message.payload();
+                String payloadTypeName = eventType;
+                boolean matchOnEventType = false;
+                AsyncApiSchema unwrapped = payload instanceof AsyncApiSchema payloadSchema
+                        ? CodegenUtils.unwrapBatchedPayload(payloadSchema, eventType) : null;
+                recordContentType(message, eventType, unwrapped);
+                if (payload instanceof AsyncApiSchema schema) {
+                    AsyncApiSchema eventSchema = resolveEventSchema(schema, eventType);
+                    String name = eventSchema.name();
+                    if (name != null && !name.isBlank()) {
+                        payloadTypeName = name;
+                    } else {
+                        inlineSchemas.put(eventType, eventSchema);
+                    }
+                    matchOnEventType = hasFreeFormActionField(eventSchema);
+                }
+                serviceTypeMap.get(serviceTypeName).remoteFunctions()
+                        .add(new HttpRemoteFunction(eventType, payloadTypeName, matchOnEventType, displayLabel));
+            }
+        }
+
+        return new ArrayList<>(serviceTypeMap.values());
+    }
+
+    /**
+     * Records whether a message is form-encoded, requiring every message to agree (one resource reads every
+     * body), and collects the fields of its payload that must be converted from strings.
+     *
+     * @param message     the message
+     * @param eventType   the message's {@code x-ballerina-event-type}, for error messages
+     * @param eventSchema the event's payload schema, or {@code null} if it has none
+     * @throws GeneratorException if messages disagree on the encoding, or two form payloads type the same field
+     *                            differently
+     */
+    private void recordContentType(AsyncApiMessage message, String eventType, AsyncApiSchema eventSchema)
+            throws GeneratorException {
+        String contentType = message.contentType() != null && !message.contentType().isBlank()
+                ? message.contentType() : asyncApiSpec.getAsyncApiContentType().orElse(null);
+        boolean form = FormBodies.isFormContentType(contentType);
+        if (formEncoded == null) {
+            formEncoded = form;
+        } else if (formEncoded != form) {
+            throw new GeneratorException(String.format(
+                    "Message '%s' is %s while other messages are not; all messages must use the same content "
+                            + "type, form-encoded or JSON", eventType, form ? FormBodies.FORM_CONTENT_TYPE : "JSON"));
+        }
+        if (!form || eventSchema == null || eventSchema.properties() == null) {
+            return;
+        }
+        for (Map.Entry<String, AsyncApiSchema> property : eventSchema.properties().entrySet()) {
+            String conversion = FormBodies.conversionFor(property.getValue());
+            // One conversion serves every message, so a field kept as a string elsewhere is a conflict too.
+            String fieldType = conversion != null ? conversion : FormBodies.STRING_TYPE;
+            String previous = formFieldTypes.putIfAbsent(property.getKey(), fieldType);
+            if (previous != null && !previous.equals(fieldType)) {
+                throw new GeneratorException(String.format(
+                        "Form field '%s' is %s in one payload and %s in another; a form field must have one type",
+                        property.getKey(), previous, fieldType));
+            }
+            if (conversion != null) {
+                formFieldConversions.put(property.getKey(), conversion);
+            }
+        }
+    }
+
+    /**
+     * Records whether this spec is batched (detected from {@code payloadSchema}'s type) and
+     * enforces that every message agrees -- a spec cannot deliver some events as bare objects
+     * and others as arrays -- then delegates to {@link CodegenUtils#unwrapBatchedPayload} for
+     * the actual unwrap, so that name resolution, inline-schema hoisting, and free-form-action
+     * detection all operate on the real event shape rather than the array wrapper.
+     *
+     * @param payloadSchema the resolved payload schema for one message, as returned by {@code
+     *                      message.payload()}
+     * @param eventType     the message's {@code x-ballerina-event-type}, for error messages
+     * @return {@code payloadSchema} itself for a single-event payload, or its {@code items}
+     *         schema when {@code payloadSchema} is array-typed
+     * @throws GeneratorException if an array-typed payload declares no {@code items} schema, or
+     *                            if messages disagree on whether payloads are batched
+     */
+    private AsyncApiSchema resolveEventSchema(AsyncApiSchema payloadSchema, String eventType)
+            throws GeneratorException {
+        boolean isArray = "array".equals(payloadSchema.type());
+        if (batched == null) {
+            batched = isArray;
+        } else if (batched != isArray) {
+            throw new GeneratorException(String.format(
+                    "Message '%s' payload batching (array vs. single object) is inconsistent with "
+                            + "other messages in the spec; batching must be uniform across all messages",
+                    eventType));
+        }
+        return CodegenUtils.unwrapBatchedPayload(payloadSchema, eventType);
+    }
+
+    /**
+     * Determines whether a message's payload schema has a free-form action field at the
+     * configured identifier {@code path} -- present, but declaring no fixed {@code enum} of
+     * possible values. Such a field's real value can never be known at generation time, so no
+     * composite {@code eventType_action} literal can ever be safely written into the generated
+     * match clause for it.
+     *
+     * <p>Returns {@code false} (no change from the pre-existing composite-match behavior) when
+     * the identifier type isn't {@code "composite"}, or when the payload has no property at the
+     * configured path at all -- in that case the field is simply absent from every real delivery,
+     * so the composite identifier already degrades to the bare event type at runtime and matches
+     * correctly without any special handling.
+     *
+     * @param payloadSchema the resolved payload schema for one message
+     * @return {@code true} only if the field at {@code path} exists but declares no {@code enum}
+     */
+    private boolean hasFreeFormActionField(AsyncApiSchema payloadSchema) {
+        if (identifierConfig == null
+                || !EventIdentifierExtractor.X_BALLERINA_EVENT_TYPE_COMPOSITE.equals(identifierConfig.type())) {
+            return false;
+        }
+        String path = identifierConfig.path();
+        if (path == null || path.isBlank()) {
+            return false;
+        }
+        AsyncApiSchema current = payloadSchema;
+        for (String rawSegment : path.split("\\.")) {
+            if (current == null || current.properties() == null) {
+                return false;
+            }
+            // The stored path is escaped for Ballerina (a leading ', and \ before symbols); schema keys are not.
+            String unquoted = rawSegment.startsWith("'") ? rawSegment.substring(1) : rawSegment;
+            current = current.properties().get(unquoted.replaceAll("\\\\(.)", "$1"));
+        }
+        if (current == null) {
+            return false;
+        }
+        List<JsonNode> enumValue = current.enumValue();
+        return enumValue == null || enumValue.isEmpty();
+    }
+
+    private void validateMessage(AsyncApiMessage message, String messageId, String channelAddress)
+            throws GeneratorException {
+        Map<String, JsonNode> extensions = message.extensions();
+        if (extensions == null || !extensions.containsKey(X_BALLERINA_EVENT_TYPE)) {
+            throw new GeneratorException(String.format(
+                    "Could not find the %s attribute in the message '%s' of the channel %s",
+                    X_BALLERINA_EVENT_TYPE, messageId, channelAddress));
+        }
+        String eventType = extensions.get(X_BALLERINA_EVENT_TYPE).asText();
+        if (eventType.isBlank()) {
+            throw new GeneratorException(String.format(
+                    "Resolved event type is blank for message '%s' in channel %s",
+                    messageId, channelAddress));
+        }
+
+        if (message.payload() == null) {
+            throw new GeneratorException(String.format(
+                    "Could not find the payload reference in the message of the channel %s",
+                    channelAddress));
+        }
+    }
+}

@@ -1,0 +1,33 @@
+{
+  "asyncapi": "2.0.0",
+  "info": {
+    "title": "SendGrid Webhook Events API",
+    "version": "1.0.0",
+    "description": "Minimal webhook API for receiving SendGrid email delivery events with an inline payload schema"
+  },
+  "x-ballerina-event-identifier": {
+    "type": "body",
+    "path": "event"
+  },
+  "channels": {
+    "email": {
+      "description": "Email delivery and engagement events.",
+      "subscribe": {
+        "message": {
+          "x-ballerina-event-type": "email_delivered",
+          "summary": "An email was successfully delivered to the recipient.",
+          "payload": {
+            "type": "object",
+            "properties": {
+              "email": { "type": "string" },
+              "timestamp": { "type": "integer" },
+              "event": { "type": "string" },
+              "sg_message_id": { "type": "string" }
+            },
+            "required": ["email", "timestamp", "event"]
+          }
+        }
+      }
+    }
+  }
+}

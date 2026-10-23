@@ -1,0 +1,68 @@
+asyncapi: 3.0.0
+x-ballerina-event-identifier:
+  type: "body"
+  path: "eventType"
+x-ballerina-auth:
+  header: "x-hub-signature"
+  signature:
+    algorithm: "sha256"
+    encoding: "hex"
+    headerFormat: "sha256=$signature"
+    input: "$body"
+info:
+  title: WebSub Handshake Test
+  version: 1.0.0
+channels:
+  events:
+    address: events
+    messages:
+      loginSuccess:
+        x-ballerina-event-type: "loginSuccess"
+        payload:
+          type: object
+          required:
+            - eventType
+          properties:
+            eventType:
+              type: string
+      verificationReply:
+        payload:
+          type: string
+        bindings:
+          http:
+            statusCode: 200
+operations:
+  receiveEvents:
+    action: receive
+    channel:
+      $ref: "#/channels/events"
+    messages:
+      - $ref: "#/channels/events/messages/loginSuccess"
+  verifyIntent:
+    action: receive
+    channel:
+      $ref: "#/channels/events"
+    bindings:
+      http:
+        method: GET
+        query:
+          type: object
+          required:
+            - hub.mode
+            - hub.topic
+            - hub.challenge
+          properties:
+            hub.mode:
+              type: string
+              const: "subscribe"
+            hub.topic:
+              type: string
+            hub.challenge:
+              type: string
+            hub.lease_seconds:
+              type: integer
+    reply:
+      channel:
+        $ref: "#/channels/events"
+      messages:
+        - $ref: "#/channels/events/messages/verificationReply"

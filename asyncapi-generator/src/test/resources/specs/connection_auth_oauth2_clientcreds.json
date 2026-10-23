@@ -1,0 +1,45 @@
+{
+  "asyncapi": "2.0.0",
+  "info": {
+    "title": "OAuth2 Client Credentials Connection Auth API",
+    "version": "1.0.0",
+    "description": "Minimal webhook API whose outbound calls to the provider are authenticated via oauth2 clientCredentials, used to verify ConnectionAuthExtractor end-to-end generation."
+  },
+  "x-ballerina-event-identifier": {
+    "type": "body",
+    "path": "event"
+  },
+  "channels": {
+    "orders": {
+      "description": "Order lifecycle events.",
+      "subscribe": {
+        "message": {
+          "x-ballerina-event-type": "order_created",
+          "payload": {
+            "type": "object",
+            "properties": {
+              "event": { "type": "string" },
+              "orderId": { "type": "string" }
+            },
+            "required": ["event", "orderId"]
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "clientCredentialsAuth": {
+        "type": "oauth2",
+        "flows": {
+          "clientCredentials": {
+            "tokenUrl": "https://api.example.com/oauth/token",
+            "scopes": {
+              "orders:read": "Read order data"
+            }
+          }
+        }
+      }
+    }
+  }
+}

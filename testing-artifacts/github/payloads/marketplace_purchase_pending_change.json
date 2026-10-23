@@ -1,0 +1,45 @@
+{
+  "action" : "pending_change",
+  "marketplace_purchase" : {
+    "account" : {
+      "type" : "User",
+      "id" : 1,
+      "node_id" : "sample-node_id",
+      "login" : "sample-login",
+      "organization_billing_email" : "sample-organization_billing_email"
+    },
+    "billing_cycle" : "monthly",
+    "unit_count" : 1,
+    "on_free_trial" : false,
+    "free_trial_ends_on" : "sample-free_trial_ends_on",
+    "next_billing_date" : "sample-next_billing_date",
+    "plan" : {
+      "id" : 1,
+      "name" : "sample-name",
+      "description" : "sample-description",
+      "monthly_price_in_cents" : 1,
+      "yearly_price_in_cents" : 1,
+      "price_model" : "FREE",
+      "has_free_trial" : false,
+      "unit_name" : "sample-unit_name",
+      "bullets" : [ ]
+    }
+  },
+  "previous_marketplace_purchase" : { },
+  "effective_date" : "sample-effective_date",
+  "sender" : {
+    "login" : "sample-login",
+    "id" : 1,
+    "node_id" : "sample-node_id",
+    "avatar_url" : "sample-avatar_url",
+    "gravatar_id" : "sample-gravatar_id",
+    "url" : "sample-url",
+    "html_url" : "sample-html_url",
+    "type" : "User",
+    "site_admin" : false
+  },
+  "installation" : {
+    "id" : 1,
+    "node_id" : "sample-node_id"
+  }
+}

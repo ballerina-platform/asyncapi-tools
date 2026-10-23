@@ -1,0 +1,26 @@
+asyncapi: 3.0.0
+x-ballerina-event-identifier:
+  type: "header"
+  name: "X-Gitlab-Event"
+x-ballerina-auth:
+  header: "X-Gitlab-Token"
+  signature:
+    headerFormat: "$signature"
+info:
+  title: GitLab Verification Test
+  version: 1.0.0
+channels:
+  events:
+    address: events
+    messages:
+      gitlabEvent:
+        x-ballerina-event-type: "push"
+        payload:
+          type: object
+operations:
+  receiveEvents:
+    action: receive
+    channel:
+      $ref: "#/channels/events"
+    messages:
+      - $ref: "#/channels/events/messages/gitlabEvent"

@@ -1,0 +1,30 @@
+asyncapi: 2.6.0
+x-ballerina-event-identifier:
+  type: "header"
+  name: "X-Test-Event"
+x-ballerina-auth:
+  header: X-Test-Signature
+  signature:
+    algorithm: sha256
+    encoding: hex
+    headerFormat: $signature
+    input: "$config('clientId') . $body"
+info:
+  title: Field Collision Test
+  version: 1.0.0
+channels:
+  events:
+    subscribe:
+      message:
+        x-ballerina-event-type: test_event
+        payload:
+          type: object
+components:
+  securitySchemes:
+    clientCredentialsAuth:
+      type: oauth2
+      flows:
+        clientCredentials:
+          tokenUrl: https://api.example.com/oauth/token
+          scopes:
+            read: Read access

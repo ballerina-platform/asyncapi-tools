@@ -1,0 +1,366 @@
+asyncapi: 3.0.0
+x-ballerina-event-identifier:
+  type: "body"
+  path: "subscriptionType"
+x-ballerina-auth:
+  header: "X-HubSpot-Signature-v3"
+  signature:
+    algorithm: "sha256"
+    encoding: "base64"
+    headerFormat: "$signature"
+    input: "$method . $uri . $body . $header('X-HubSpot-Request-Timestamp')"
+info:
+  title: HubSpot Subscription API
+  version: 1.0.0
+  description: Webhook notifications for selected event types on HubSpot
+  termsOfService: "https://legal.hubspot.com/terms-of-service"
+  contact:
+    name: HubSpot support
+    url: "https://developers.hubspot.com/"
+  externalDocs:
+    description: HubSpot Webhooks API documentation
+    url: "https://developers.hubspot.com/docs/api-reference/latest/webhooks/guide"
+channels:
+  company:
+    address: company
+    messages:
+      companyCreation:
+        x-ballerina-event-type: "company.creation"
+        payload:
+          $ref: "#/components/schemas/WebhookEvent"
+      companyDeletion:
+        x-ballerina-event-type: "company.deletion"
+        payload:
+          $ref: "#/components/schemas/WebhookEvent"
+      companyPropertyChange:
+        x-ballerina-event-type: "company.propertyChange"
+        payload:
+          $ref: "#/components/schemas/WebhookEvent"
+      companyAssociationChange:
+        x-ballerina-event-type: "company.associationChange"
+        payload:
+          $ref: "#/components/schemas/WebhookEvent"
+      companyMerge:
+        x-ballerina-event-type: "company.merge"
+        payload:
+          $ref: "#/components/schemas/WebhookEvent"
+      companyRestore:
+        x-ballerina-event-type: "company.restore"
+        payload:
+          $ref: "#/components/schemas/WebhookEvent"
+  contact:
+    address: contact
+    messages:
+      contactCreation:
+        x-ballerina-event-type: "contact.creation"
+        payload:
+          $ref: "#/components/schemas/WebhookEvent"
+      contactDeletion:
+        x-ballerina-event-type: "contact.deletion"
+        payload:
+          $ref: "#/components/schemas/WebhookEvent"
+      contactPropertyChange:
+        x-ballerina-event-type: "contact.propertyChange"
+        payload:
+          $ref: "#/components/schemas/WebhookEvent"
+      contactAssociationChange:
+        x-ballerina-event-type: "contact.associationChange"
+        payload:
+          $ref: "#/components/schemas/WebhookEvent"
+      contactMerge:
+        x-ballerina-event-type: "contact.merge"
+        payload:
+          $ref: "#/components/schemas/WebhookEvent"
+      contactRestore:
+        x-ballerina-event-type: "contact.restore"
+        payload:
+          $ref: "#/components/schemas/WebhookEvent"
+      contactPrivacyDeletion:
+        x-ballerina-event-type: "contact.privacyDeletion"
+        payload:
+          $ref: "#/components/schemas/WebhookEvent"
+  conversation:
+    address: conversation
+    messages:
+      conversationCreation:
+        x-ballerina-event-type: "conversation.creation"
+        payload:
+          $ref: "#/components/schemas/WebhookEvent"
+      conversationDeletion:
+        x-ballerina-event-type: "conversation.deletion"
+        payload:
+          $ref: "#/components/schemas/WebhookEvent"
+      conversationPropertyChange:
+        x-ballerina-event-type: "conversation.propertyChange"
+        payload:
+          $ref: "#/components/schemas/WebhookEvent"
+      conversationPrivacyDeletion:
+        x-ballerina-event-type: "conversation.privacyDeletion"
+        payload:
+          $ref: "#/components/schemas/WebhookEvent"
+      conversationNewMessage:
+        x-ballerina-event-type: "conversation.newMessage"
+        payload:
+          $ref: "#/components/schemas/WebhookEvent"
+  deal:
+    address: deal
+    messages:
+      dealCreation:
+        x-ballerina-event-type: "deal.creation"
+        payload:
+          $ref: "#/components/schemas/WebhookEvent"
+      dealDeletion:
+        x-ballerina-event-type: "deal.deletion"
+        payload:
+          $ref: "#/components/schemas/WebhookEvent"
+      dealPropertyChange:
+        x-ballerina-event-type: "deal.propertyChange"
+        payload:
+          $ref: "#/components/schemas/WebhookEvent"
+      dealAssociationChange:
+        x-ballerina-event-type: "deal.associationChange"
+        payload:
+          $ref: "#/components/schemas/WebhookEvent"
+      dealMerge:
+        x-ballerina-event-type: "deal.merge"
+        payload:
+          $ref: "#/components/schemas/WebhookEvent"
+      dealRestore:
+        x-ballerina-event-type: "deal.restore"
+        payload:
+          $ref: "#/components/schemas/WebhookEvent"
+  ticket:
+    address: ticket
+    messages:
+      ticketCreation:
+        x-ballerina-event-type: "ticket.creation"
+        payload:
+          $ref: "#/components/schemas/WebhookEvent"
+      ticketDeletion:
+        x-ballerina-event-type: "ticket.deletion"
+        payload:
+          $ref: "#/components/schemas/WebhookEvent"
+      ticketPropertyChange:
+        x-ballerina-event-type: "ticket.propertyChange"
+        payload:
+          $ref: "#/components/schemas/WebhookEvent"
+      ticketAssociationChange:
+        x-ballerina-event-type: "ticket.associationChange"
+        payload:
+          $ref: "#/components/schemas/WebhookEvent"
+      ticketMerge:
+        x-ballerina-event-type: "ticket.merge"
+        payload:
+          $ref: "#/components/schemas/WebhookEvent"
+      ticketRestore:
+        x-ballerina-event-type: "ticket.restore"
+        payload:
+          $ref: "#/components/schemas/WebhookEvent"
+  product:
+    address: product
+    messages:
+      productCreation:
+        x-ballerina-event-type: "product.creation"
+        payload:
+          $ref: "#/components/schemas/WebhookEvent"
+      productDeletion:
+        x-ballerina-event-type: "product.deletion"
+        payload:
+          $ref: "#/components/schemas/WebhookEvent"
+      productPropertyChange:
+        x-ballerina-event-type: "product.propertyChange"
+        payload:
+          $ref: "#/components/schemas/WebhookEvent"
+      productMerge:
+        x-ballerina-event-type: "product.merge"
+        payload:
+          $ref: "#/components/schemas/WebhookEvent"
+      productRestore:
+        x-ballerina-event-type: "product.restore"
+        payload:
+          $ref: "#/components/schemas/WebhookEvent"
+  line_item:
+    address: line_item
+    messages:
+      lineItemCreation:
+        x-ballerina-event-type: "line_item.creation"
+        payload:
+          $ref: "#/components/schemas/WebhookEvent"
+      lineItemDeletion:
+        x-ballerina-event-type: "line_item.deletion"
+        payload:
+          $ref: "#/components/schemas/WebhookEvent"
+      lineItemPropertyChange:
+        x-ballerina-event-type: "line_item.propertyChange"
+        payload:
+          $ref: "#/components/schemas/WebhookEvent"
+      lineItemAssociationChange:
+        x-ballerina-event-type: "line_item.associationChange"
+        payload:
+          $ref: "#/components/schemas/WebhookEvent"
+      lineItemMerge:
+        x-ballerina-event-type: "line_item.merge"
+        payload:
+          $ref: "#/components/schemas/WebhookEvent"
+      lineItemRestore:
+        x-ballerina-event-type: "line_item.restore"
+        payload:
+          $ref: "#/components/schemas/WebhookEvent"
+operations:
+  company:
+    action: receive
+    channel:
+      $ref: "#/channels/company"
+    messages:
+      - $ref: "#/channels/company/messages/companyCreation"
+      - $ref: "#/channels/company/messages/companyDeletion"
+      - $ref: "#/channels/company/messages/companyPropertyChange"
+      - $ref: "#/channels/company/messages/companyAssociationChange"
+      - $ref: "#/channels/company/messages/companyMerge"
+      - $ref: "#/channels/company/messages/companyRestore"
+  contact:
+    action: receive
+    channel:
+      $ref: "#/channels/contact"
+    messages:
+      - $ref: "#/channels/contact/messages/contactCreation"
+      - $ref: "#/channels/contact/messages/contactDeletion"
+      - $ref: "#/channels/contact/messages/contactPropertyChange"
+      - $ref: "#/channels/contact/messages/contactAssociationChange"
+      - $ref: "#/channels/contact/messages/contactMerge"
+      - $ref: "#/channels/contact/messages/contactRestore"
+      - $ref: "#/channels/contact/messages/contactPrivacyDeletion"
+  conversation:
+    action: receive
+    channel:
+      $ref: "#/channels/conversation"
+    messages:
+      - $ref: "#/channels/conversation/messages/conversationCreation"
+      - $ref: "#/channels/conversation/messages/conversationDeletion"
+      - $ref: "#/channels/conversation/messages/conversationPropertyChange"
+      - $ref: "#/channels/conversation/messages/conversationPrivacyDeletion"
+      - $ref: "#/channels/conversation/messages/conversationNewMessage"
+  deal:
+    action: receive
+    channel:
+      $ref: "#/channels/deal"
+    messages:
+      - $ref: "#/channels/deal/messages/dealCreation"
+      - $ref: "#/channels/deal/messages/dealDeletion"
+      - $ref: "#/channels/deal/messages/dealPropertyChange"
+      - $ref: "#/channels/deal/messages/dealAssociationChange"
+      - $ref: "#/channels/deal/messages/dealMerge"
+      - $ref: "#/channels/deal/messages/dealRestore"
+  ticket:
+    action: receive
+    channel:
+      $ref: "#/channels/ticket"
+    messages:
+      - $ref: "#/channels/ticket/messages/ticketCreation"
+      - $ref: "#/channels/ticket/messages/ticketDeletion"
+      - $ref: "#/channels/ticket/messages/ticketPropertyChange"
+      - $ref: "#/channels/ticket/messages/ticketAssociationChange"
+      - $ref: "#/channels/ticket/messages/ticketMerge"
+      - $ref: "#/channels/ticket/messages/ticketRestore"
+  product:
+    action: receive
+    channel:
+      $ref: "#/channels/product"
+    messages:
+      - $ref: "#/channels/product/messages/productCreation"
+      - $ref: "#/channels/product/messages/productDeletion"
+      - $ref: "#/channels/product/messages/productPropertyChange"
+      - $ref: "#/channels/product/messages/productMerge"
+      - $ref: "#/channels/product/messages/productRestore"
+  line_item:
+    action: receive
+    channel:
+      $ref: "#/channels/line_item"
+    messages:
+      - $ref: "#/channels/line_item/messages/lineItemCreation"
+      - $ref: "#/channels/line_item/messages/lineItemDeletion"
+      - $ref: "#/channels/line_item/messages/lineItemPropertyChange"
+      - $ref: "#/channels/line_item/messages/lineItemAssociationChange"
+      - $ref: "#/channels/line_item/messages/lineItemMerge"
+      - $ref: "#/channels/line_item/messages/lineItemRestore"
+components:
+  schemas:
+    WebhookEvent:
+      additionalProperties: true
+      required:
+        - eventId
+      properties:
+        eventId:
+          type: integer
+          description: The ID of the event that triggered this notification. This value is not guaranteed to be unique.
+        subscriptionId:
+          type: integer
+          description: The ID of the subscription that triggered a notification about the event.
+        portalId:
+          type: integer
+          description: The customer's (HubSpot account ID)[https://knowledge.hubspot.com/account/manage-multiple-hubspot-accounts?_ga=2.56562472.2054080341.1656611011-2068059512.1656469161#check-your-current-account] where the event occurred.
+        appId:
+          type: integer
+          description: The ID of the HubSpot application
+        occurredAt:
+          type: integer
+          description: When this event occurred as a millisecond timestamp.
+        subscriptionType:
+          type: string
+          description: Type of the event
+        attemptNumber:
+          type: integer
+          description: Starting at 0, which number attempt this is to notify your service of this event. If your service times-out or throws an error as describe in the Retries section below, HubSpot will attempt to send the notification again.
+        objectId:
+          type: integer
+          description: The ID of the object that was created, changed, or deleted. For contacts this is the contact ID; for companies, the company ID; for deals, the deal ID; and for conversations the thread ID
+        changeSource:
+          type: string
+          description: The source of the change. This can be any of the change sources that appear in contact property histories.
+        sourceId:
+          type: string
+          description: The ID of the source of the change. The format depends on the change source (for example, "userId:12345" for changes made by a user in the CRM UI).
+        changeFlag:
+          type: string
+          description: Flag of the change.
+        propertyName:
+          type: string
+          description: The name of the property changed. Present for propertyChange events.
+        propertyValue:
+          type: string
+          description: The new value set for the property that triggered the notification. Present for propertyChange events.
+        associationType:
+          type: string
+          description: The type of the association (e.g. CONTACT_TO_COMPANY, DEAL_TO_LINE_ITEM). Present for associationChange events.
+        fromObjectId:
+          type: integer
+          description: The ID of the record that the association change was made from. Present for associationChange events.
+        toObjectId:
+          type: integer
+          description: The ID of the secondary record in the association event. Present for associationChange events.
+        associationRemoved:
+          type: boolean
+          description: Whether the association was removed (true) or added (false). Present for associationChange events.
+        isPrimaryAssociation:
+          type: boolean
+          description: Whether the secondary record is the primary association. Present for associationChange events.
+        primaryObjectId:
+          type: integer
+          description: The ID of the merge winner, which is the record that remains after the merge. Present for merge events.
+        mergedObjectIds:
+          type: array
+          items:
+            type: integer
+          description: An array of IDs that represent the records merged into the winner. Present for merge events.
+        newObjectId:
+          type: integer
+          description: The ID of the record created as a result of the merge. Present for merge events.
+        numberOfPropertiesMoved:
+          type: integer
+          description: How many properties were transferred during the merge. Present for merge events.
+        messageId:
+          type: integer
+          description: The ID of the new message. Present for conversation.newMessage events.
+        messageType:
+          type: string
+          description: The type of the new message, either MESSAGE or COMMENT. Present for conversation.newMessage events.

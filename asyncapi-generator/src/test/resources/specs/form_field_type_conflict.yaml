@@ -1,0 +1,44 @@
+asyncapi: 3.0.0
+defaultContentType: application/x-www-form-urlencoded
+x-ballerina-event-identifier:
+  type: body
+  path: CallStatus
+info:
+  title: Form Field Type Conflict Test
+  version: 1.0.0
+channels:
+  callStatus:
+    address: callStatus
+    messages:
+      callRinging:
+        x-ballerina-event-type: ringing
+        payload:
+          $ref: "#/components/schemas/RingingEvent"
+      callCompleted:
+        x-ballerina-event-type: completed
+        payload:
+          $ref: "#/components/schemas/CompletedEvent"
+operations:
+  callStatus:
+    action: receive
+    channel:
+      $ref: "#/channels/callStatus"
+    messages:
+      - $ref: "#/channels/callStatus/messages/callRinging"
+      - $ref: "#/channels/callStatus/messages/callCompleted"
+components:
+  schemas:
+    RingingEvent:
+      type: object
+      properties:
+        CallStatus:
+          type: string
+        StatusCode:
+          type: string
+    CompletedEvent:
+      type: object
+      properties:
+        CallStatus:
+          type: string
+        StatusCode:
+          type: integer

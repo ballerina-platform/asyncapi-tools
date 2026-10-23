@@ -1,4 +1,0 @@
-[package]
-org= "ballerina"
-name= "asyncapi"
-version= "2.0.0"

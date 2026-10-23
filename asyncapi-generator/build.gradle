@@ -1,0 +1,162 @@
+/*
+ *  Copyright (c) 2026, WSO2 LLC. (http://www.wso2.com)
+ *
+ *  WSO2 LLC. licenses this file to you under the Apache License,
+ *  Version 2.0 (the "License"); you may not use this file except
+ *  in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing,
+ *  software distributed under the License is distributed on an
+ *  "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ *  KIND, either express or implied.  See the License for the
+ *  specific language governing permissions and limitations
+ *  under the License.
+ */
+
+plugins {
+    id 'java'
+    id 'checkstyle'
+}
+
+description = "Ballerina - AsyncAPI Generator"
+
+java {
+    modularity.inferModulePath = true
+}
+
+compileJava {
+    doFirst {
+        options.compilerArgs += ['--module-path', classpath.asPath]
+        classpath = files()
+    }
+}
+
+def ballerinaDist = "$project.buildDir/jballerina-tools-${ballerinaLangVersion}"
+
+tasks.register("jBallerinaPack")
+tasks.register("unpackStdLibs")
+tasks.register("copyStdlibs")
+
+configurations {
+    balTools
+    ballerinaStdLibs
+}
+
+dependencies {
+    checkstyle project(':checkstyle')
+    checkstyle "com.puppycrawl.tools:checkstyle:${checkstylePluginVersion}"
+
+    implementation project(':asyncapi-core')
+    implementation "io.apicurio:apicurio-data-models:2.3.1"
+    implementation "com.fasterxml.jackson.core:jackson-databind:${jacksonDataformatYamlVersion}"
+    implementation "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:${jacksonDataformatYamlVersion}"
+    implementation "commons-io:commons-io:${commonsIoVersion}"
+    compileOnly "org.ballerinalang:ballerina-lang:${ballerinaLangVersion}"
+    compileOnly "org.ballerinalang:ballerina-parser:${ballerinaLangVersion}"
+    compileOnly "org.ballerinalang:formatter-core:${ballerinaLangVersion}"
+    compileOnly "org.ballerinalang:ballerina-tools-api:${ballerinaLangVersion}"
+    compileOnly "org.ballerinalang:ballerina-runtime:${ballerinaLangVersion}"
+    implementation "org.semver4j:semver4j:${semver4jVersion}"
+
+    balTools("org.ballerinalang:jballerina-tools:${ballerinaLangVersion}") {
+        transitive = false
+    }
+
+    /* Standard libraries */
+    ballerinaStdLibs "io.ballerina.stdlib:io-ballerina:${stdlibIoVersion}"
+    ballerinaStdLibs "io.ballerina.stdlib:http-ballerina:${stdlibHttpVersion}"
+    ballerinaStdLibs "io.ballerina.stdlib:log-ballerina:${stdlibLogVersion}"
+    ballerinaStdLibs "io.ballerina.stdlib:os-ballerina:${stdlibOsVersion}"
+    ballerinaStdLibs "io.ballerina.stdlib:mime-ballerina:${stdlibMimeVersion}"
+    ballerinaStdLibs "io.ballerina.stdlib:crypto-ballerina:${stdlibCryptoVersion}"
+    ballerinaStdLibs "io.ballerina.stdlib:auth-ballerina:${stdlibAuthVersion}"
+    ballerinaStdLibs "io.ballerina.stdlib:time-ballerina:${stdlibTimeVersion}"
+    ballerinaStdLibs "io.ballerina.stdlib:cache-ballerina:${stdlibCacheVersion}"
+    ballerinaStdLibs "io.ballerina.stdlib:task-ballerina:${stdlibTaskVersion}"
+    ballerinaStdLibs "io.ballerina.stdlib:file-ballerina:${stdlibFileVersion}"
+    ballerinaStdLibs "io.ballerina.stdlib:jwt-ballerina:${stdlibJwtVersion}"
+    ballerinaStdLibs "io.ballerina.stdlib:oauth2-ballerina:${stdlibOAuth2Version}"
+    ballerinaStdLibs "io.ballerina.stdlib:uuid-ballerina:${stdlibUuidVersion}"
+    ballerinaStdLibs "io.ballerina.stdlib:url-ballerina:${stdlibUrlVersion}"
+    ballerinaStdLibs "io.ballerina.lib:data.xmldata-ballerina:${stdlibDataXmldataVersion}"
+    ballerinaStdLibs "io.ballerina.stdlib:observe-ballerina:${observeVersion}"
+    ballerinaStdLibs "io.ballerina:observe-ballerina:${observeInternalVersion}"
+    ballerinaStdLibs "io.ballerina.stdlib:websocket-ballerina:${stdlibWebsocketVersion}"
+    ballerinaStdLibs "io.ballerina.stdlib:constraint-ballerina:${stdlibConstraintVersion}"
+    ballerinaStdLibs "io.ballerina.lib:data.jsondata-ballerina:${stdlibDataJsonDataVersion}"
+    implementation "org.apache.logging.log4j:log4j-api:${log4jVersion}"
+}
+
+checkstyle {
+    toolVersion "${checkstylePluginVersion}"
+    configFile rootProject.file("config/checkstyle/build/checkstyle.xml")
+    configProperties = ["suppressionFile": file("${rootDir}/config/checkstyle/build/suppressions.xml")]
+}
+
+def excludePattern = '**/module-info.java'
+tasks.withType(Checkstyle) {
+    exclude excludePattern
+}
+
+jBallerinaPack {
+    doLast {
+        configurations.balTools.resolvedConfiguration.resolvedArtifacts.each { artifact ->
+            copy {
+                from project.zipTree(artifact.getFile())
+                into new File("${project.buildDir}")
+            }
+        }
+    }
+    outputs.dir ballerinaDist
+}
+
+unpackStdLibs() {
+    dependsOn(jBallerinaPack)
+    doLast {
+        configurations.ballerinaStdLibs.resolvedConfiguration.resolvedArtifacts.each { artifact ->
+            copy {
+                from project.zipTree(artifact.getFile())
+                into new File("${project.buildDir}/extracted-stdlibs/" + artifact.name + "-zip")
+            }
+        }
+    }
+}
+
+copyStdlibs() {
+    dependsOn(unpackStdLibs)
+    doLast {
+        configurations.ballerinaStdLibs.resolvedConfiguration.resolvedArtifacts.each { artifact ->
+            def artifactExtractedPath = "${project.buildDir}/extracted-stdlibs/" + artifact.name + "-zip"
+            copy {
+                into ballerinaDist
+                into("repo/bala") {
+                    from "${artifactExtractedPath}/bala"
+                }
+                into("repo/cache") {
+                    from "${artifactExtractedPath}/cache"
+                }
+            }
+        }
+    }
+}
+
+test {
+    dependsOn(copyStdlibs)
+    systemProperty "ballerina.home", ballerinaDist
+    useTestNG() {
+        suites "src/test/resources/testng.xml"
+    }
+    jvmArgs '-Dlog4j2.level=INFO'
+}
+
+checkstyleMain.dependsOn(":checkstyle:build")
+checkstyleTest.dependsOn(":checkstyle:build")
+// Gradle 9 rejects reading the downloaded rule files without depending on the task that downloads them.
+tasks.withType(Checkstyle).configureEach {
+    dependsOn(":checkstyle:downloadCheckstyleRuleFiles")
+}
+
+

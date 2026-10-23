@@ -1,0 +1,26 @@
+{
+  "asyncapi": "2.0.0",
+  "info": {
+    "title": "Missing Event Identifier API",
+    "version": "1.0.0",
+    "description": "A valid spec with subscribe channels but no x-ballerina-event-identifier extension. EventIdentifierExtractor should throw GeneratorException."
+  },
+  "channels": {
+    "orders": {
+      "description": "Order lifecycle events.",
+      "subscribe": {
+        "message": {
+          "x-ballerina-event-type": "order.created",
+          "payload": {
+            "type": "object",
+            "properties": {
+              "orderId": { "type": "string" },
+              "status": { "type": "string" }
+            },
+            "required": ["orderId", "status"]
+          }
+        }
+      }
+    }
+  }
+}

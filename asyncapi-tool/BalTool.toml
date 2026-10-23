@@ -2,7 +2,13 @@
 id = "asyncapi"
 
 [[dependency]]
-path = "../native.handler/build/libs/native.handler-0.12.0.jar"
+path = "../native.handler/java-wrapper/build/libs/java-wrapper-0.13.0-SNAPSHOT.jar"
 
 [[dependency]]
-path = "../asyncapi-cli/build/libs/asyncapi-cli-0.12.0.jar"
+path = "../asyncapi-core/build/libs/asyncapi-core-0.13.0-SNAPSHOT.jar"
+
+[[dependency]]
+path = "../asyncapi-generator/build/libs/asyncapi-generator-0.13.0-SNAPSHOT.jar"
+
+[[dependency]]
+path = "../asyncapi-cli/build/libs/asyncapi-cli-0.13.0-SNAPSHOT.jar"

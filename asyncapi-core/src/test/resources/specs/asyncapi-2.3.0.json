@@ -1,0 +1,148 @@
+{
+  "asyncapi": "2.3.0",
+  "info": {
+    "title": "User Events API",
+    "version": "1.0.0",
+    "description": "API for user lifecycle events",
+    "contact": {
+      "name": "API Support",
+      "email": "support@example.com"
+    },
+    "license": {
+      "name": "Apache 2.0"
+    }
+  },
+  "servers": {
+    "webhookServer": {
+      "url": "https://api.example.com",
+      "protocol": "http"
+    },
+    "wsServer": {
+      "url": "wss://api.example.com",
+      "protocol": "ws"
+    }
+  },
+  "channels": {
+    "user/signedup": {
+      "description": "Channel for user sign-up events",
+      "parameters": {
+        "userId": {
+          "schema": {
+            "type": "string"
+          }
+        }
+      },
+      "bindings": {
+        "http": {
+          "method": "POST"
+        }
+      },
+      "subscribe": {
+        "operationId": "receiveUserSignedUp",
+        "summary": "Receive user signed-up events",
+        "message": {
+          "oneOf": [
+            { "$ref": "#/components/messages/UserSignedUp" },
+            { "$ref": "#/components/messages/UserUpdated" }
+          ]
+        }
+      },
+      "publish": {
+        "operationId": "sendUserCommand",
+        "summary": "Send user commands",
+        "message": {
+          "$ref": "#/components/messages/UserCommand"
+        }
+      }
+    },
+    "user/stream": {
+      "description": "WebSocket channel for streaming user events",
+      "bindings": {
+        "ws": {
+          "method": "GET",
+          "query": {
+            "type": "object"
+          }
+        }
+      },
+      "subscribe": {
+        "operationId": "streamUserEvents",
+        "summary": "Stream user events",
+        "message": {
+          "$ref": "#/components/messages/UserEvent"
+        }
+      }
+    }
+  },
+  "components": {
+    "servers": {
+      "sharedWebhookServer": {
+        "url": "https://shared.example.com",
+        "protocol": "http"
+      }
+    },
+    "messages": {
+      "UserSignedUp": {
+        "name": "UserSignedUp",
+        "title": "User Signed Up",
+        "payload": {
+          "$ref": "#/components/schemas/UserPayload"
+        },
+        "bindings": {
+          "http": {
+            "headers": {
+              "type": "object",
+              "properties": {
+                "X-Event-Type": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      },
+      "UserUpdated": {
+        "name": "UserUpdated",
+        "title": "User Updated",
+        "payload": {
+          "$ref": "#/components/schemas/UserPayload"
+        }
+      },
+      "UserCommand": {
+        "name": "UserCommand",
+        "title": "User Command",
+        "payload": {
+          "type": "object",
+          "properties": {
+            "command": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "UserEvent": {
+        "name": "UserEvent",
+        "title": "User Event",
+        "payload": {
+          "$ref": "#/components/schemas/UserPayload"
+        }
+      }
+    },
+    "schemas": {
+      "UserPayload": {
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "timestamp": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

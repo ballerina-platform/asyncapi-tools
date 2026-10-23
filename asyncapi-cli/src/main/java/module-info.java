@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2025, WSO2 LLC. (http://www.wso2.com).
+ *  Copyright (c) 2026, WSO2 LLC. (http://www.wso2.com).
  *
  *  WSO2 LLC. licenses this file to you under the Apache License,
  *  Version 2.0 (the "License"); you may not use this file except
@@ -17,18 +17,13 @@
  */
 
 module io.ballerina.asyncapi {
-    requires apicurio.data.models;
+    requires io.ballerina.asyncapi.generator;
     requires info.picocli;
     requires io.ballerina.cli;
     requires io.ballerina.tools.api;
-    requires io.ballerina.parser;
-    requires io.ballerina.formatter.core;
-    requires io.ballerina.runtime;
-    requires org.apache.commons.io;
-    requires com.fasterxml.jackson.databind;
-    requires com.fasterxml.jackson.dataformat.yaml;
-    requires java.sql;
     requires io.ballerina.lang;
-    requires org.apache.commons.lang3;
-    requires org.slf4j;
+    requires io.ballerina.toml;
+
+    exports io.ballerina.asyncapi.cmd;
+    opens io.ballerina.asyncapi.cmd;
 }

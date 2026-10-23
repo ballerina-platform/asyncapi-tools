@@ -92,3 +92,11 @@ Temporary Items
 
 build
 target
+
+.vscode/
+/asyncapi-core/bin
+/asyncapi-generator/bin
+/native.handler/java-wrapper/bin
+**/build/
+testing-artifacts/*/harness/target/
+testing-artifacts/*/harness/*.log

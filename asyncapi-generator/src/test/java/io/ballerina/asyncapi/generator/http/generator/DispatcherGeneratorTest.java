@@ -1,0 +1,398 @@
+/*
+ *  Copyright (c) 2026, WSO2 LLC. (http://www.wso2.com)
+ *
+ *  WSO2 LLC. licenses this file to you under the Apache License,
+ *  Version 2.0 (the "License"); you may not use this file except
+ *  in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing,
+ *  software distributed under the License is distributed on an
+ *  "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ *  KIND, either express or implied.  See the License for the
+ *  specific language governing permissions and limitations
+ *  under the License.
+ */
+package io.ballerina.asyncapi.generator.http.generator;
+
+import io.ballerina.asyncapi.generator.GeneratorException;
+import io.ballerina.asyncapi.generator.http.model.EventIdentifierConfig;
+import io.ballerina.asyncapi.generator.http.model.HttpRemoteFunction;
+import io.ballerina.asyncapi.generator.http.model.HttpServiceType;
+import io.ballerina.asyncapi.generator.http.model.WebhookAuthConfig;
+import org.testng.Assert;
+import org.testng.annotations.Test;
+
+import java.util.List;
+import java.util.Optional;
+
+/**
+ * Unit tests for {@link DispatcherGenerator} verifying generated {@code dispatcher_service.bal}
+ * content for body, header, and composite identifier types, and error handling for invalid inputs.
+ */
+public class DispatcherGeneratorTest {
+
+    private static final List<HttpServiceType> SINGLE_SERVICE = List.of(
+            new HttpServiceType("RepositoryService", List.of(
+                    new HttpRemoteFunction("push", "PushEvent"),
+                    new HttpRemoteFunction("create", "GenericEvent")
+            ))
+    );
+
+    @Test
+    void testChannelIdentifiersRejectBatchedPayloads() {
+        List<HttpServiceType> channels = List.of(new HttpServiceType("SmsStatus",
+                List.of(new HttpRemoteFunction("delivered", "SmsEvent")), "smsStatus",
+                new EventIdentifierConfig("body", null, "MessageStatus")));
+        GeneratorException e = Assert.expectThrows(GeneratorException.class, () ->
+                new DispatcherGenerator(channels, null, Optional.<WebhookAuthConfig>empty(), true).generate());
+        Assert.assertTrue(e.getMessage().contains("does not support batched payloads"), e.getMessage());
+    }
+
+    @Test
+    void testGenerateWithBodyIdentifier() throws GeneratorException {
+        EventIdentifierConfig config = new EventIdentifierConfig("body", null, "event.type");
+        String source = new DispatcherGenerator(SINGLE_SERVICE, config, Optional.<WebhookAuthConfig>empty(), false)
+                .generate();
+
+        Assert.assertFalse(source.isBlank(), "Generated dispatcher source should not be blank");
+        Assert.assertTrue(source.contains("DispatcherService"),
+                "Generated source should contain the DispatcherService class");
+        Assert.assertTrue(source.contains("matchRemoteFunc"),
+                "Generated source should contain the matchRemoteFunc method");
+        Assert.assertTrue(source.contains("executeRemoteFunc"),
+                "Generated source should contain the executeRemoteFunc method");
+        Assert.assertTrue(source.contains("event.type"),
+                "Generated source should reference the body identifier path 'event.type'");
+    }
+
+    @Test
+    void testGenerateWithBodyKeyIdentifier() throws GeneratorException {
+        // WSO2 Identity Server names the event by the single key under `events`, not by a field value.
+        EventIdentifierConfig config = new EventIdentifierConfig("body-key", null, "events");
+        String source = new DispatcherGenerator(SINGLE_SERVICE, config, Optional.<WebhookAuthConfig>empty(), false)
+                .generate();
+
+        Assert.assertTrue(source.contains("json|error keyedEvents = payload.events;"), source);
+        Assert.assertTrue(source.contains("if keyedEvents !is map<json> || keyedEvents.length() != 1 {"),
+                "Anything but an object with exactly one key must be rejected: " + source);
+        Assert.assertTrue(source.contains("badRequest.statusCode = http:STATUS_BAD_REQUEST;"), source);
+        Assert.assertTrue(source.contains("string eventType = keyedEvents.keys()[0];"), source);
+        Assert.assertTrue(
+                source.indexOf("keyedEvents.keys()[0]") < source.indexOf("check caller->respond(ackResponse)"),
+                "The key is read before the delivery is acknowledged: " + source);
+        Assert.assertTrue(source.contains("self.matchRemoteFunc(payload, eventType)"),
+                "The key is matched like a header value: " + source);
+        Assert.assertFalse(source.contains("(check payload.events).toString()"),
+                "The object's value must not be used as the event type: " + source);
+    }
+
+    @Test
+    void testBodyKeyIdentifierRejectsBatchedPayloads() {
+        EventIdentifierConfig config = new EventIdentifierConfig("body-key", null, "events");
+        GeneratorException e = Assert.expectThrows(GeneratorException.class, () ->
+                new DispatcherGenerator(SINGLE_SERVICE, config, Optional.<WebhookAuthConfig>empty(), true).generate());
+        Assert.assertTrue(e.getMessage().contains("does not support batched payloads"), e.getMessage());
+    }
+
+    @Test
+    void testDiagnosticTraceLogsRemovedButDispatchFailedKept() throws GeneratorException {
+        // MATCH_LEVEL_1_*/MATCH_LEVEL_2_*/DISPATCHER_ENTERED/SIGNATURE_VERIFIED/HANDLER_EXECUTED_*
+        // were pure diagnostic trace noise with no value to an end user - removed. DISPATCH_FAILED
+        // is a real error signal (includes the causing error) and must stay.
+        EventIdentifierConfig config = new EventIdentifierConfig("body", null, "event.type");
+        String source = new DispatcherGenerator(SINGLE_SERVICE, config, Optional.<WebhookAuthConfig>empty(), false)
+                .generate();
+
+        Assert.assertTrue(source.contains("DISPATCH_FAILED"),
+                "DISPATCH_FAILED is a real error signal and must be kept: " + source);
+        Assert.assertFalse(source.contains("MATCH_LEVEL"), "MATCH_LEVEL_1/2 trace logs should be removed: " + source);
+        Assert.assertFalse(source.contains("DISPATCHER_ENTERED"),
+                "DISPATCHER_ENTERED trace log should be removed: " + source);
+        Assert.assertFalse(source.contains("HANDLER_EXECUTED"),
+                "HANDLER_EXECUTED trace log should be removed: " + source);
+        Assert.assertTrue(source.contains("invokeRemoteFunction"),
+                "The real remote-function invocation must survive removing its log wrapper: " + source);
+    }
+
+    @Test
+    void testGenerateWithHeaderIdentifier() throws GeneratorException {
+        EventIdentifierConfig config = new EventIdentifierConfig("header", "X-Event-Type", null);
+        String source = new DispatcherGenerator(SINGLE_SERVICE, config, Optional.<WebhookAuthConfig>empty(), false)
+                .generate();
+
+        Assert.assertFalse(source.isBlank(), "Generated dispatcher source should not be blank");
+        Assert.assertTrue(source.contains("DispatcherService"),
+                "Generated source should contain the DispatcherService class");
+        Assert.assertTrue(source.contains("matchRemoteFunc"),
+                "Generated source should contain the matchRemoteFunc method");
+    }
+
+    @Test
+    void testGenerateWithCompositeIdentifier() throws GeneratorException {
+        EventIdentifierConfig config = new EventIdentifierConfig("composite", "X-GitHub-Event", "action");
+        String source = new DispatcherGenerator(SINGLE_SERVICE, config, Optional.<WebhookAuthConfig>empty(), false)
+                .generate();
+
+        Assert.assertFalse(source.isBlank(), "Generated dispatcher source should not be blank");
+        Assert.assertTrue(source.contains("DispatcherService"),
+                "Generated source should contain the DispatcherService class");
+        Assert.assertTrue(source.contains("matchRemoteFunc"),
+                "Generated source should contain the matchRemoteFunc method");
+        Assert.assertTrue(source.contains("X-GitHub-Event"),
+                "Generated source should reference the composite header name");
+        Assert.assertTrue(source.contains("eventIdentifier"),
+                "Generated source should contain eventIdentifier for composite type");
+    }
+
+    @Test
+    void testDisplayLabelDoesNotLeakIntoMatchClauseLiteral() throws GeneratorException {
+        List<HttpServiceType> serviceTypes = List.of(
+                new HttpServiceType("AccountService", List.of(
+                        new HttpRemoteFunction("qbo.account.merged.v1", "QuickBookEvent", false, "AccountMerged")
+                ))
+        );
+        EventIdentifierConfig config = new EventIdentifierConfig("body", null, "type");
+        String source = new DispatcherGenerator(serviceTypes, config, Optional.<WebhookAuthConfig>empty(), false)
+                .generate();
+
+        Assert.assertTrue(source.contains("qbo.account.merged.v1"),
+                "The match clause must still compare against the real wire event type, not the display label");
+        Assert.assertTrue(source.contains("onAccountMerged"),
+                "The dispatched remote function call should use the display-label-derived function name");
+    }
+
+    @Test
+    void testMissingRequiredHeaderRespondsBadRequestNotPlainCheck() throws GeneratorException {
+        // A missing required header (X-GitHub-Event, X-Event-Type, etc.) is a malformed request -
+        // a client error, not a server fault - so it must produce an explicit 400 response instead
+        // of propagating via a bare `check`, which the framework would report as a 500. Covers both
+        // identifier types that read a header ("header" and "composite").
+        EventIdentifierConfig headerConfig = new EventIdentifierConfig("header", "X-Event-Type", null);
+        String headerSource = new DispatcherGenerator(
+                SINGLE_SERVICE, headerConfig, Optional.<WebhookAuthConfig>empty(), false)
+                .generate();
+        assertRespondsBadRequestOnMissingHeader(headerSource);
+
+        EventIdentifierConfig compositeConfig =
+                new EventIdentifierConfig("composite", "X-GitHub-Event", "action");
+        String compositeSource = new DispatcherGenerator(SINGLE_SERVICE, compositeConfig,
+                Optional.<WebhookAuthConfig>empty(), false).generate();
+        assertRespondsBadRequestOnMissingHeader(compositeSource);
+    }
+
+    private void assertRespondsBadRequestOnMissingHeader(String source) {
+        Assert.assertFalse(source.contains("check request.getHeader"),
+                "The header read must not be a bare check - a missing header must be handled "
+                        + "explicitly, not propagated as a 500: " + source);
+        Assert.assertTrue(source.contains("string|error eventTypeResult = request.getHeader"),
+                "The header read should be captured as string|error: " + source);
+        Assert.assertTrue(source.contains("http:STATUS_BAD_REQUEST"),
+                "A missing header should respond 400, not fall through to a 500: " + source);
+    }
+
+    @Test
+    void testAckSentBeforeDispatchAndDispatchErrorsAreNotPropagated() throws GeneratorException {
+        EventIdentifierConfig config = new EventIdentifierConfig("body", null, "event.type");
+        String source = new DispatcherGenerator(SINGLE_SERVICE, config, Optional.<WebhookAuthConfig>empty(), false)
+                .generate();
+
+        int ackIndex = source.indexOf("ackResponse.statusCode = http:STATUS_OK;");
+        int dispatchIndex = source.indexOf("boolean|error dispatchResult =");
+        Assert.assertTrue(ackIndex >= 0, "Generated source should ack with STATUS_OK");
+        Assert.assertTrue(source.contains("check caller->respond(ackResponse);"),
+                "Ack must be sent via a real http:Response with statusCode set - passing the status "
+                        + "constant directly to respond() sends it as the response body instead, and the "
+                        + "framework falls back to its default status for the method (201 for POST)");
+        Assert.assertTrue(dispatchIndex >= 0,
+                "Generated source should capture the dispatch result instead of propagating it via check");
+        Assert.assertTrue(ackIndex < dispatchIndex,
+                "The ack must be sent before dispatching to the user's handler, so a handler error can "
+                        + "never prevent the caller from receiving an acknowledgement");
+        Assert.assertFalse(source.contains("check self.matchRemoteFunc(payload, eventType);"),
+                "The post resource function's dispatch call must not use check - a handler error should "
+                        + "be caught and logged, not propagated and left unacknowledged");
+    }
+
+    @Test
+    void testGenerateWithBatchedBodyIdentifier() throws GeneratorException {
+        // Some providers (e.g. HubSpot) batch multiple events into a single POST body as a JSON
+        // array. batched=true must produce a foreach-based dispatcher that acks once for the whole
+        // batch, then identifies/converts/dispatches each element independently - one malformed
+        // element must not abort the rest of the batch.
+        EventIdentifierConfig config = new EventIdentifierConfig("body", null, "event.type");
+        String source = new DispatcherGenerator(SINGLE_SERVICE, config, Optional.<WebhookAuthConfig>empty(), true)
+                .generate();
+
+        Assert.assertTrue(source.contains("json[] eventsArray = check payload.ensureType();"),
+                "Batched dispatch should parse the body as a JSON array: " + source);
+        Assert.assertTrue(source.contains("foreach json event in eventsArray"),
+                "Batched dispatch should iterate the array: " + source);
+        Assert.assertTrue(source.contains("event.event.type"),
+                "Each loop iteration should read the identifier path off its own element, not the "
+                        + "whole payload: " + source);
+
+        int ackIndex = source.indexOf("ackResponse.statusCode = http:STATUS_OK;");
+        int loopIndex = source.indexOf("foreach json event in eventsArray");
+        Assert.assertTrue(ackIndex >= 0 && loopIndex >= 0 && ackIndex < loopIndex,
+                "The whole batch must be acked once, before the per-element loop runs: " + source);
+
+        Assert.assertFalse(source.contains("check event.cloneWithType"),
+                "A single element's conversion failure must not propagate via check and abort the "
+                        + "rest of the batch: " + source);
+        Assert.assertTrue(source.contains("continue"),
+                "A malformed element should be logged and skipped via continue, not crash the batch: "
+                        + source);
+    }
+
+    @Test
+    void testEmptyServiceTypesThrows() {
+        EventIdentifierConfig config = new EventIdentifierConfig("body", null, "event.type");
+        try {
+            new DispatcherGenerator(List.of(), config, Optional.<WebhookAuthConfig>empty(), false).generate();
+            Assert.fail("Expected GeneratorException for empty service types list");
+        } catch (GeneratorException e) {
+            Assert.assertNotNull(e.getMessage(), "Exception message should not be null");
+        }
+    }
+
+    @Test
+    void testNullServiceTypesThrows() {
+        EventIdentifierConfig config = new EventIdentifierConfig("body", null, "event.type");
+        try {
+            new DispatcherGenerator(null, config, Optional.<WebhookAuthConfig>empty(), false).generate();
+            Assert.fail("Expected GeneratorException for null service types");
+        } catch (GeneratorException e) {
+            Assert.assertNotNull(e.getMessage(), "Exception message should not be null");
+        }
+    }
+
+    @Test
+    void testPayloadBindingIsDelegatedToTheNativeHandlerNotCloneWithType() throws GeneratorException {
+        EventIdentifierConfig config = new EventIdentifierConfig("header", "X-Event-Type", null);
+        String source = new DispatcherGenerator(SINGLE_SERVICE, config, Optional.<WebhookAuthConfig>empty(), false)
+                .generate();
+
+        Assert.assertFalse(source.contains("cloneWithType"),
+                "cloneWithType ignores @jsondata:Name and resolves a union by first structural match, "
+                        + "so it must not be used to bind payloads: " + source);
+        Assert.assertFalse(source.contains("GenericDataType") || source.contains("EVENT_PAYLOAD_TYPES")
+                        || source.contains("parseEventPayload"),
+                "No generated union type or event-to-type table should remain; the target type is "
+                        + "discovered from the attached service's own remote function: " + source);
+        Assert.assertTrue(source.contains("bindEventPayload(genericService, eventFunction, payload)"),
+                "executeRemoteFunc should bind the raw payload against the attached service's remote "
+                        + "function via the native handler: " + source);
+    }
+
+    @Test
+    void testBindingHappensAtDispatchBeforeInvokingTheHandler() throws GeneratorException {
+        EventIdentifierConfig config = new EventIdentifierConfig("header", "X-Event-Type", null);
+        String source = new DispatcherGenerator(SINGLE_SERVICE, config, Optional.<WebhookAuthConfig>empty(), false)
+                .generate();
+
+        int executeStart = source.indexOf("isolated function executeRemoteFunc");
+        int bindIndex = source.indexOf("bindEventPayload(");
+        int invokeIndex = source.indexOf("invokeRemoteFunction(");
+        Assert.assertTrue(executeStart >= 0 && bindIndex > executeStart,
+                "Binding belongs inside executeRemoteFunc, where the attached service is known, not in "
+                        + "the post resource function: " + source);
+        Assert.assertTrue(invokeIndex > bindIndex,
+                "The payload must be bound before the user's remote function is invoked with it: " + source);
+    }
+
+    @Test
+    void testRoutingFunctionsCarryTheRawPayloadAsJson() throws GeneratorException {
+        EventIdentifierConfig config = new EventIdentifierConfig("header", "X-Event-Type", null);
+        String source = new DispatcherGenerator(SINGLE_SERVICE, config, Optional.<WebhookAuthConfig>empty(), false)
+                .generate();
+
+        Assert.assertTrue(source.contains("matchRemoteFunc(json payload, string eventType)"),
+                "The routing function should take the raw JSON payload: " + source);
+        Assert.assertTrue(source.contains("executeRemoteFunc(json payload,"),
+                "executeRemoteFunc should take the raw JSON payload: " + source);
+    }
+
+    @Test
+    void testBatchedElementsAreRoutedRawAndBoundIndividually() throws GeneratorException {
+        EventIdentifierConfig config = new EventIdentifierConfig("body", null, "event.type");
+        String source = new DispatcherGenerator(SINGLE_SERVICE, config, Optional.<WebhookAuthConfig>empty(), true)
+                .generate();
+
+        Assert.assertTrue(source.contains("self.matchRemoteFunc(event, elementEventType)"),
+                "Each batch element should be routed as its own raw payload, so each binds to its own "
+                        + "event's type: " + source);
+    }
+
+    @Test
+    void testEventNoHandlerMatchesIsLoggedAsAWarningNotDropped() throws GeneratorException {
+        EventIdentifierConfig config = new EventIdentifierConfig("header", "X-Event-Type", null);
+        String source = new DispatcherGenerator(SINGLE_SERVICE, config, Optional.<WebhookAuthConfig>empty(), false)
+                .generate();
+
+        Assert.assertTrue(source.contains("boolean|error dispatchResult = self.matchRemoteFunc(payload, eventType);"),
+                "The router reports whether any handler matched: " + source);
+        Assert.assertTrue(source.contains("else if !dispatchResult {")
+                        && source.contains("log:printWarn(\"NO_HANDLER_FOR_EVENT\", eventIdentifier = eventType);"),
+                "An event nothing handles must produce a warning rather than vanish without a trace: " + source);
+    }
+
+    @Test
+    void testRoutersAndMatchArmsReportWhetherAHandlerMatched() throws GeneratorException {
+        EventIdentifierConfig config = new EventIdentifierConfig("header", "X-Event-Type", null);
+        String source = new DispatcherGenerator(SINGLE_SERVICE, config, Optional.<WebhookAuthConfig>empty(), false)
+                .generate();
+
+        Assert.assertTrue(source.contains("if check self.matchRemoteFuncForRepositoryService(payload, eventType) {"),
+                "The router should stop at the first group that handled the event: " + source);
+        Assert.assertTrue(source.contains("return true;"),
+                "A matching arm should report that it handled the event: " + source);
+        Assert.assertTrue(source.contains("return false;"),
+                "A group that matched nothing should report that, so the router can fall through: " + source);
+    }
+
+    @Test
+    void testCompositeWarningNamesTheCompositeIdentifier() throws GeneratorException {
+        EventIdentifierConfig config = new EventIdentifierConfig("composite", "X-Event-Type", "action");
+        String source = new DispatcherGenerator(SINGLE_SERVICE, config, Optional.<WebhookAuthConfig>empty(), false)
+                .generate();
+
+        Assert.assertTrue(source.contains("eventIdentifier = eventIdentifier);"),
+                "A composite event should be reported by its full identifier: " + source);
+    }
+
+    @Test
+    void testBatchedWarningNamesTheElementsOwnIdentifier() throws GeneratorException {
+        EventIdentifierConfig config = new EventIdentifierConfig("body", null, "event.type");
+        String source = new DispatcherGenerator(SINGLE_SERVICE, config, Optional.<WebhookAuthConfig>empty(), true)
+                .generate();
+
+        Assert.assertTrue(source.contains("eventIdentifier = elementEventType);"),
+                "Each batch element should be reported by its own identifier: " + source);
+    }
+
+    @Test
+    void testEventForAnUnattachedServiceIsLoggedAtDebug() throws GeneratorException {
+        EventIdentifierConfig config = new EventIdentifierConfig("header", "X-Event-Type", null);
+        String source = new DispatcherGenerator(SINGLE_SERVICE, config, Optional.<WebhookAuthConfig>empty(), false)
+                .generate();
+
+        Assert.assertTrue(source.contains("log:printDebug(\"SERVICE_NOT_ATTACHED\""),
+                "A matched event whose service is not attached is normal, but should still be traceable: "
+                        + source);
+    }
+
+    @Test
+    void testInvalidIdentifierTypeThrows() {
+        EventIdentifierConfig config = new EventIdentifierConfig("unknown", null, "event.type");
+        try {
+            new DispatcherGenerator(SINGLE_SERVICE, config, Optional.<WebhookAuthConfig>empty(), false).generate();
+            Assert.fail("Expected GeneratorException for unsupported identifier type");
+        } catch (GeneratorException e) {
+            Assert.assertTrue(e.getMessage().contains("unknown") || e.getMessage().contains("Unsupported"),
+                    "Exception should mention the unsupported identifier type");
+        }
+    }
+}

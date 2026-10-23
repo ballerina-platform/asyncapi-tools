@@ -1,0 +1,25 @@
+{
+  "action" : "renamed",
+  "account" : {
+    "id" : 1,
+    "node_id" : "sample-node_id",
+    "login" : "sample-login",
+    "type" : "User",
+    "avatar_url" : "sample-avatar_url",
+    "html_url" : "sample-html_url",
+    "site_admin" : false
+  },
+  "target_type" : "User",
+  "changes" : {
+    "login" : {
+      "from" : "sample-from"
+    },
+    "slug" : {
+      "from" : "sample-from"
+    }
+  },
+  "installation" : {
+    "id" : 1,
+    "node_id" : "sample-node_id"
+  }
+}
