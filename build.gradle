@@ -123,6 +123,8 @@ release {
     failOnPublishNeeded = false
     versionPropertyFile = 'gradle.properties'
     tagTemplate = 'v${version}'
+    // Release plugin 3.x builds nothing by default; the build commits the tool's jar paths before the tag.
+    buildTasks = ['build']
     git {
         // To release from any branch
         requireBranch = "release-${moduleVersion}"
