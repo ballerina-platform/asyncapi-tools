@@ -1,0 +1,30 @@
+{
+  "id": "msg-300",
+  "threadId": "thread-150",
+  "labelIds": ["INBOX"],
+  "snippet": "This email has an attachment, scenario 3",
+  "internalDate": "1700000002000",
+  "payload": {
+    "mimeType": "multipart/mixed",
+    "headers": [
+      {"name": "Subject", "value": "Scenario 3 - with attachment"}
+    ],
+    "parts": [
+      {
+        "partId": "0",
+        "mimeType": "text/plain",
+        "headers": [],
+        "body": {"data": "Qm9keQ==", "size": 4}
+      },
+      {
+        "partId": "1",
+        "mimeType": "application/pdf",
+        "filename": "report.pdf",
+        "headers": [
+          {"name": "Content-Type", "value": "application/pdf"}
+        ],
+        "body": {"attachmentId": "att-001", "size": 2048}
+      }
+    ]
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "id": "msg-page1-success",
+  "threadId": "thread-page1-success",
+  "labelIds": ["INBOX"],
+  "snippet": "Multi-page checkpoint test - page 1's success item",
+  "internalDate": "1700000020000",
+  "payload": {
+    "mimeType": "text/plain",
+    "headers": [
+      {"name": "From", "value": "sender@example.com"},
+      {"name": "To", "value": "me@example.com"},
+      {"name": "Subject", "value": "Scenario 9 - multi-page checkpoint"}
+    ],
+    "body": {"data": "SGVsbG8gd29ybGQ=", "size": 11}
+  }
+}

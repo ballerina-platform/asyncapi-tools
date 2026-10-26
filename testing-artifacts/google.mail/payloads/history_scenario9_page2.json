@@ -1,0 +1,17 @@
+{
+  "history": [
+    {
+      "id": "9002",
+      "messagesAdded": [
+        {
+          "message": {
+            "id": "poison-message-id",
+            "threadId": "thread-page2-poison",
+            "labelIds": ["INBOX"]
+          }
+        }
+      ]
+    }
+  ],
+  "historyId": "9999"
+}

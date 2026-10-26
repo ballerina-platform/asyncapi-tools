@@ -1,0 +1,14 @@
+{
+  "id": "msg-500",
+  "threadId": "thread-500",
+  "labelIds": ["INBOX", "STARRED"],
+  "snippet": "Label added, scenario 5",
+  "internalDate": "1700000004000",
+  "payload": {
+    "mimeType": "text/plain",
+    "headers": [
+      {"name": "Subject", "value": "Scenario 5 - label added (starred)"}
+    ],
+    "body": {"data": "U3RhcnJlZA==", "size": 7}
+  }
+}

@@ -1,0 +1,29 @@
+{
+  "history": [
+    {
+      "id": "8001",
+      "messagesAdded": [
+        {
+          "message": {
+            "id": "msg-batch-success",
+            "threadId": "thread-batch-success",
+            "labelIds": ["INBOX"]
+          }
+        }
+      ]
+    },
+    {
+      "id": "8002",
+      "messagesAdded": [
+        {
+          "message": {
+            "id": "poison-message-id",
+            "threadId": "thread-batch-poison",
+            "labelIds": ["INBOX"]
+          }
+        }
+      ]
+    }
+  ],
+  "historyId": "8999"
+}
