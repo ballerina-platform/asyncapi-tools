@@ -334,10 +334,13 @@ public class WebhookDSLVerificationTest {
         Path outputDir = generateOutputDir("slack_freshness_seconds.yaml");
         String dispatcher = Files.readString(outputDir.resolve("dispatcher_service.bal"));
 
-        Assert.assertFalse(dispatcher.contains("check decimal:fromString(freshnessHeaderValue)"),
-                "The conversion error must not propagate as is: " + dispatcher);
-        Assert.assertTrue(dispatcher.contains("return error(\"Unauthorized: Invalid Freshness Header\");"),
-                "An unparsable freshness header should get a generic error: " + dispatcher);
+        int parse = dispatcher.indexOf("freshnessTimestamp = check decimal:fromString(freshnessHeaderValue);");
+        int onFail = dispatcher.indexOf("on fail {", parse);
+        int generic = dispatcher.indexOf("return error(\"Unauthorized: Invalid Freshness Header\");", onFail);
+        Assert.assertTrue(parse > 0 && onFail > parse && generic > onFail,
+                "A conversion failure should be caught and replaced with a generic error: " + dispatcher);
+        Assert.assertFalse(dispatcher.contains("parsedTimestamp"),
+                "No extra local that a headerFormat placeholder could collide with: " + dispatcher);
     }
 
     @Test

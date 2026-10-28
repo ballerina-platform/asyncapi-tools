@@ -108,9 +108,11 @@ public class ListenerGeneratorTest {
         Assert.assertTrue(source.contains("if !detached {"),
                 "detach should fail only when the service was attached nowhere: " + source);
         // A path stays mounted while another service still uses it.
+        int pathInUse = source.indexOf("if !pathInUse {");
+        int pathInUseEnd = source.indexOf("}", pathInUse);
         int unmount = source.indexOf("check self.httpListener.detach(dispatcher);");
-        Assert.assertTrue(unmount > source.indexOf("if !pathInUse {") && source.indexOf("if !pathInUse {") > 0,
-                "a path should be unmounted only when no service is left on it: " + source);
+        Assert.assertTrue(pathInUse > 0 && unmount > pathInUse && unmount < pathInUseEnd,
+                "a path should be unmounted only inside the no-service-left branch: " + source);
     }
 
     @Test
