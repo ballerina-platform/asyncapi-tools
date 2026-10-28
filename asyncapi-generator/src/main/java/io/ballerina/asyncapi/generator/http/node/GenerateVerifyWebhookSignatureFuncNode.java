@@ -120,7 +120,8 @@ public class GenerateVerifyWebhookSignatureFuncNode implements Generator {
         // configured" is this explicit, checkable absent case rather than a silent empty-string
         // secret that would otherwise verify against an HMAC nobody meant to compute.
         statements.add(NodeParser.parseStatement(
-                "if webhookSecret is () { return error(\"Unauthorized: Webhook Secret Not Configured\"); }"));
+                "if webhookSecret is () || webhookSecret.trim() == \"\" {"
+                        + " return error(\"Unauthorized: Webhook Secret Not Configured\"); }"));
 
         if (authConfig.freshnessHeader() != null) {
             addFreshnessCheckStatements(statements, authConfig.freshnessHeader(),

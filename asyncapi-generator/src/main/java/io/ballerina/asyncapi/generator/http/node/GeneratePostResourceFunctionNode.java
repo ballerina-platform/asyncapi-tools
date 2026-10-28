@@ -213,8 +213,11 @@ public class GeneratePostResourceFunctionNode implements Generator {
                     "error? verifyResult = self.%s(request, self.%s);",
                     GenerateVerifyWebhookSignatureFuncNode.VERIFY_WEBHOOK_SIGNATURE_FUNC,
                     GenerateDispatcherServiceNode.WEBHOOK_SECRET_FIELD)));
+            // Log why, so a wrong secret or URL isn't just silently missing events; never the secret or signature.
             statements.add(NodeParser.parseStatement(
                     "if verifyResult is error {"
+                            + " log:printWarn(\"WEBHOOK_SIGNATURE_REJECTED\", reason = verifyResult.message(),"
+                            + " path = request.rawPath);"
                             + " http:Response r = new; r.statusCode = http:STATUS_UNAUTHORIZED;"
                             + " check caller->respond(r); return; }"));
         }

@@ -311,6 +311,21 @@ public class WebhookDSLVerificationTest {
     }
 
     @Test
+    public void testRejectedSignatureIsLoggedAndEmptySecretCountsAsMissing() throws Exception {
+        // #9397: a rejection says why in the log, and "" is reported like a missing secret.
+        Path outputDir = generateOutputDir("github_verification.yaml");
+        String dispatcher = Files.readString(outputDir.resolve("dispatcher_service.bal"));
+
+        int log = dispatcher.indexOf("log:printWarn(\"WEBHOOK_SIGNATURE_REJECTED\", reason = verifyResult.message(),"
+                + " path = request.rawPath);");
+        int unauthorized = dispatcher.indexOf("r.statusCode = http:STATUS_UNAUTHORIZED;");
+        Assert.assertTrue(log >= 0 && log < unauthorized,
+                "A rejected request should be logged before the 401 is sent: " + dispatcher);
+        Assert.assertTrue(dispatcher.contains("if webhookSecret is () || webhookSecret.trim() == \"\" {"),
+                "An empty secret should be treated as not configured: " + dispatcher);
+    }
+
+    @Test
     public void testPostHandshakeEchoesTheChallengeBeforeDispatching() throws Exception {
         // Slack's url_verification: answered by the listener, after the signature check, before any dispatch.
         Path outputDir = generateOutputDir("handshake_post.yaml");
