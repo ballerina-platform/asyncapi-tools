@@ -243,8 +243,12 @@ public class GenerateVerifyWebhookSignatureFuncNode implements Generator {
         statements.add(NodeParser.parseStatement(String.format(
                 "string freshnessHeaderValue = %s;",
                 getSafeHeaderExtraction(freshnessHeader))));
+        // A generic error: the conversion error would carry the received header value.
         statements.add(NodeParser.parseStatement(
-                "decimal freshnessTimestamp = check decimal:fromString(freshnessHeaderValue);"));
+                "decimal|error parsedTimestamp = decimal:fromString(freshnessHeaderValue);"));
+        statements.add(NodeParser.parseStatement(
+                "if parsedTimestamp is error { return error(\"Unauthorized: Invalid Freshness Header\"); }"));
+        statements.add(NodeParser.parseStatement("decimal freshnessTimestamp = parsedTimestamp;"));
         if (inSeconds) {
             statements.add(NodeParser.parseStatement("freshnessTimestamp = freshnessTimestamp * 1000;"));
         }
