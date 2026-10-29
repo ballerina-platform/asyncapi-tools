@@ -88,6 +88,34 @@ public class ListenerGeneratorTest {
     }
 
     @Test
+    void testAttachRegistersBeforeMountingAndDetachCoversEveryPath() throws GeneratorException {
+        List<HttpServiceType> serviceTypes = List.of(
+                new HttpServiceType("RepositoryService", List.of(new HttpRemoteFunction("push", "PushEvent"))));
+        String source = new ListenerGenerator(serviceTypes, Optional.<WebhookAuthConfig>empty(),
+                Optional.<ConnectionAuthConfig>empty(), "Test Connector").generate();
+
+        // #9397: a request on a started listener must not reach a dispatcher before its service is registered.
+        int register = source.indexOf("check dispatcher.addServiceRef(serviceTypeStr, serviceRef);",
+                source.indexOf("dispatcher = new ("));
+        int mount = source.indexOf("check self.httpListener.attach(dispatcher");
+        Assert.assertTrue(register > 0 && register < mount,
+                "a new dispatcher should get its service before it is mounted: " + source);
+        // #9397: the same service attached on two paths is detached from both.
+        Assert.assertTrue(source.contains("while i < self.attachments.length()"),
+                "detach should walk every attachment: " + source);
+        Assert.assertFalse(source.contains("return; } }"),
+                "detach should not stop after the first path: " + source);
+        Assert.assertTrue(source.contains("if !detached {"),
+                "detach should fail only when the service was attached nowhere: " + source);
+        // A path stays mounted while another service still uses it.
+        int pathInUse = source.indexOf("if !pathInUse {");
+        int pathInUseEnd = source.indexOf("}", pathInUse);
+        int unmount = source.indexOf("check self.httpListener.detach(dispatcher);");
+        Assert.assertTrue(pathInUse > 0 && unmount > pathInUse && unmount < pathInUseEnd,
+                "a path should be unmounted only inside the no-service-left branch: " + source);
+    }
+
+    @Test
     void testGenerateDoesNotDependOnBallerinaCloud() throws GeneratorException {
         List<HttpServiceType> serviceTypes = List.of(
                 new HttpServiceType("RepositoryService", List.of(new HttpRemoteFunction("push", "PushEvent"))));

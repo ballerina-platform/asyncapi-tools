@@ -311,6 +311,39 @@ public class WebhookDSLVerificationTest {
     }
 
     @Test
+    public void testRejectedSignatureIsLoggedAndEmptySecretCountsAsMissing() throws Exception {
+        // #9397: a rejection says why in the log, and "" is reported like a missing secret.
+        Path outputDir = generateOutputDir("github_verification.yaml");
+        String dispatcher = Files.readString(outputDir.resolve("dispatcher_service.bal"));
+
+        int log = dispatcher.indexOf(
+                "log:printWarn(\"WEBHOOK_SIGNATURE_REJECTED\", reason = reason, path = request.rawPath);");
+        int unauthorized = dispatcher.indexOf("r.statusCode = http:STATUS_UNAUTHORIZED;");
+        Assert.assertTrue(log >= 0 && log < unauthorized,
+                "A rejected request should be logged before the 401 is sent: " + dispatcher);
+        Assert.assertTrue(dispatcher.contains("verifyResult.message().startsWith(\"Unauthorized:\")")
+                        && dispatcher.contains("\"Unauthorized: Malformed Request\""),
+                "Only the fixed reasons are logged, never text taken from the request: " + dispatcher);
+        Assert.assertTrue(dispatcher.contains("if webhookSecret is () || webhookSecret.trim() == \"\" {"),
+                "An empty secret should be treated as not configured: " + dispatcher);
+    }
+
+    @Test
+    public void testUnparsableFreshnessHeaderGetsAGenericError() throws Exception {
+        // #9397: the conversion error would carry the received header value into the rejection log.
+        Path outputDir = generateOutputDir("slack_freshness_seconds.yaml");
+        String dispatcher = Files.readString(outputDir.resolve("dispatcher_service.bal"));
+
+        int parse = dispatcher.indexOf("freshnessTimestamp = check decimal:fromString(freshnessHeaderValue);");
+        int onFail = dispatcher.indexOf("on fail {", parse);
+        int generic = dispatcher.indexOf("return error(\"Unauthorized: Invalid Freshness Header\");", onFail);
+        Assert.assertTrue(parse > 0 && onFail > parse && generic > onFail,
+                "A conversion failure should be caught and replaced with a generic error: " + dispatcher);
+        Assert.assertFalse(dispatcher.contains("parsedTimestamp"),
+                "No extra local that a headerFormat placeholder could collide with: " + dispatcher);
+    }
+
+    @Test
     public void testPostHandshakeEchoesTheChallengeBeforeDispatching() throws Exception {
         // Slack's url_verification: answered by the listener, after the signature check, before any dispatch.
         Path outputDir = generateOutputDir("handshake_post.yaml");

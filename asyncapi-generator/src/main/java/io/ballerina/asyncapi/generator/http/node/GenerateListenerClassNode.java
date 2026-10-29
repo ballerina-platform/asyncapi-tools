@@ -307,17 +307,16 @@ public class GenerateListenerClassNode implements Generator {
         statements.add(NodeParser.parseStatement(dispatcherClass + " dispatcher;"));
         statements.add(NodeParser.parseStatement(String.format(
                 "%1$s? existing = self.%2$s[path];", dispatcherClass, LISTENER_DISPATCHERS_FIELD)));
-        // The first service on a path mounts a new dispatcher there.
+        // The first service on a path mounts a new dispatcher there. The service is registered before the
+        // path is mounted, so a request on a started listener never reaches a dispatcher without its handler.
         statements.add(NodeParser.parseStatement(String.format(
-                "if existing is %1$s { dispatcher = existing; } else {"
-                        + " dispatcher = new (%2$s);"
+                "if existing is %1$s { dispatcher = existing; check dispatcher.%5$s(serviceTypeStr, serviceRef); }"
+                        + " else { dispatcher = new (%2$s);"
+                        + " check dispatcher.%5$s(serviceTypeStr, serviceRef);"
                         + " check self.%3$s.attach(dispatcher, path == \"\" ? () : path);"
                         + " self.%4$s[path] = dispatcher; }",
                 dispatcherClass, buildDispatcherConstructorArgs(), LISTENER_HTTP_LISTENER_FIELD,
-                LISTENER_DISPATCHERS_FIELD)));
-        statements.add(NodeParser.parseStatement(String.format(
-                "check dispatcher.%s(serviceTypeStr, serviceRef);",
-                GenerateAddServiceRefFuncNode.ADD_SERVICE_REF_FUNC)));
+                LISTENER_DISPATCHERS_FIELD, GenerateAddServiceRefFuncNode.ADD_SERVICE_REF_FUNC)));
         statements.add(NodeParser.parseStatement(String.format(
                 "self.%s.push([path, serviceRef]);", LISTENER_ATTACHMENTS_FIELD)));
 
@@ -347,25 +346,28 @@ public class GenerateListenerClassNode implements Generator {
         statements.add(NodeParser.parseStatement(String.format(
                 "string serviceTypeStr = check self.%s(serviceRef);",
                 LISTENER_GET_SERVICE_TYPE_FUNC)));
-        // Unmount a path's dispatcher once its last service is detached, freeing the path.
+        // Remove the service from every path it is attached on, and unmount a path's dispatcher once its
+        // last service is detached, freeing the path.
+        statements.add(NodeParser.parseStatement("boolean detached = false;"));
+        statements.add(NodeParser.parseStatement("int i = 0;"));
         statements.add(NodeParser.parseStatement(String.format(
-                "foreach int i in 0 ..< self.%1$s.length() {"
+                "while i < self.%1$s.length() {"
+                        + " if self.%1$s[i][1] !== serviceRef { i += 1; continue; }"
                         + " string path = self.%1$s[i][0];"
-                        + " if self.%1$s[i][1] === serviceRef {"
                         + " %2$s dispatcher = self.%3$s.get(path);"
                         + " check dispatcher.%4$s(serviceTypeStr);"
                         + " _ = self.%1$s.remove(i);"
+                        + " detached = true;"
                         + " boolean pathInUse = false;"
                         + " foreach [string, %5$s] attachment in self.%1$s {"
                         + " if attachment[0] == path { pathInUse = true; } }"
-                        + " if !pathInUse { check self.%6$s.detach(dispatcher); _ = self.%3$s.remove(path); }"
-                        + " return; } }",
+                        + " if !pathInUse { check self.%6$s.detach(dispatcher); _ = self.%3$s.remove(path); } }",
                 LISTENER_ATTACHMENTS_FIELD, GenerateDispatcherServiceNode.DISPATCHER_SERVICE_CLASS_NAME,
                 LISTENER_DISPATCHERS_FIELD, GenerateRemoveServiceRefFuncNode.REMOVE_SERVICE_REF_FUNC,
                 ServiceTypesGenerator.GENERIC_SERVICE_TYPE, LISTENER_HTTP_LISTENER_FIELD)));
         statements.add(NodeParser.parseStatement(
-                "return error(string `Cannot detach the service of type ${serviceTypeStr}. "
-                        + "Service has not been attached to the listener before`);"));
+                "if !detached { return error(string `Cannot detach the service of type ${serviceTypeStr}. "
+                        + "Service has not been attached to the listener before`); }"));
 
         return createFunctionDefinitionNode(
                 OBJECT_METHOD_DEFINITION, null,

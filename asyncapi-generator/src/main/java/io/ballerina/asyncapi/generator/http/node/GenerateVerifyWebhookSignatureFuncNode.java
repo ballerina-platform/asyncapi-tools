@@ -120,7 +120,8 @@ public class GenerateVerifyWebhookSignatureFuncNode implements Generator {
         // configured" is this explicit, checkable absent case rather than a silent empty-string
         // secret that would otherwise verify against an HMAC nobody meant to compute.
         statements.add(NodeParser.parseStatement(
-                "if webhookSecret is () { return error(\"Unauthorized: Webhook Secret Not Configured\"); }"));
+                "if webhookSecret is () || webhookSecret.trim() == \"\" {"
+                        + " return error(\"Unauthorized: Webhook Secret Not Configured\"); }"));
 
         if (authConfig.freshnessHeader() != null) {
             addFreshnessCheckStatements(statements, authConfig.freshnessHeader(),
@@ -242,8 +243,12 @@ public class GenerateVerifyWebhookSignatureFuncNode implements Generator {
         statements.add(NodeParser.parseStatement(String.format(
                 "string freshnessHeaderValue = %s;",
                 getSafeHeaderExtraction(freshnessHeader))));
+        // A generic error: the conversion error would carry the received header value. No new local is
+        // declared, since headerFormat placeholders also become locals and could collide with it.
+        statements.add(NodeParser.parseStatement("decimal freshnessTimestamp;"));
         statements.add(NodeParser.parseStatement(
-                "decimal freshnessTimestamp = check decimal:fromString(freshnessHeaderValue);"));
+                "do { freshnessTimestamp = check decimal:fromString(freshnessHeaderValue); }"
+                        + " on fail { return error(\"Unauthorized: Invalid Freshness Header\"); }"));
         if (inSeconds) {
             statements.add(NodeParser.parseStatement("freshnessTimestamp = freshnessTimestamp * 1000;"));
         }
