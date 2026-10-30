@@ -36,6 +36,8 @@ import java.util.Map;
  *                       {@code null} for a {@code POST}
  * @param requiredQuery  for a {@code GET}, the query parameters the query schema marks {@code required}, which a
  *                       request must carry to be confirmed, such as {@code hub.topic}; empty for a {@code POST}
+ * @param allowedQuery   for a {@code GET}, the query parameters with an {@code enum}, each with the values a
+ *                       request may have, such as {@code hub.mode: [subscribe, unsubscribe]}; empty for a {@code POST}
  * @param statusCode     the status code of the reply, from the reply message's HTTP binding, {@code 200} if unset
  */
 public record HandshakeConfig(
@@ -43,6 +45,7 @@ public record HandshakeConfig(
         String challengePath,
         String challengeQuery,
         List<String> requiredQuery,
+        Map<String, List<String>> allowedQuery,
         int statusCode
 ) {
 

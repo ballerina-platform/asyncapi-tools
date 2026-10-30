@@ -121,15 +121,16 @@ public final class HandshakeExtractor {
                     operationId));
         }
         return new HandshakeConfig(when, challengePath(operationId, request.correlationId()), null, List.of(),
-                statusCode(operation));
+                Map.of(), statusCode(operation));
     }
 
     /**
      * Reads a {@code GET} handshake as a W3C WebSub verification of intent: the hub sends the challenge in the
      * {@code hub.challenge} query parameter, which a runtime expression cannot point at, so the standard names it.
      * The listener confirms a request whose query has the schema's {@code const} values, such as
-     * {@code hub.mode: {const: subscribe}}, and every parameter the schema marks {@code required}, such as
-     * {@code hub.topic}.
+     * {@code hub.mode: {const: subscribe}}, a value from each {@code enum}, such as
+     * {@code hub.mode: {enum: [subscribe, unsubscribe]}}, and every parameter the schema marks {@code required},
+     * such as {@code hub.topic}.
      */
     private static HandshakeConfig readWebSub(String operationId, AsyncApiOperation operation, AsyncApiSchema query)
             throws GeneratorException {
@@ -139,14 +140,19 @@ public final class HandshakeExtractor {
                     WEBSUB_CHALLENGE));
         }
         Map<String, JsonNode> when = new LinkedHashMap<>();
+        Map<String, List<String>> allowed = new LinkedHashMap<>();
         for (Map.Entry<String, AsyncApiSchema> parameter : query.properties().entrySet()) {
-            if (parameter.getValue().constValue() != null) {
-                when.put(parameter.getKey(), parameter.getValue().constValue());
+            AsyncApiSchema schema = parameter.getValue();
+            if (schema.constValue() != null) {
+                when.put(parameter.getKey(), schema.constValue());
+            } else if (schema.enumValue() != null && !schema.enumValue().isEmpty()) {
+                allowed.put(parameter.getKey(), schema.enumValue().stream().map(JsonNode::asText).toList());
             }
         }
         List<String> required = query.required() == null ? List.of() : query.required().stream()
-                .filter(name -> !WEBSUB_CHALLENGE.equals(name) && !when.containsKey(name)).toList();
-        return new HandshakeConfig(when, null, WEBSUB_CHALLENGE, required, statusCode(operation));
+                .filter(name -> !WEBSUB_CHALLENGE.equals(name) && !when.containsKey(name) && !allowed.containsKey(name))
+                .toList();
+        return new HandshakeConfig(when, null, WEBSUB_CHALLENGE, required, allowed, statusCode(operation));
     }
 
     // Walks the payload's object properties, collecting each const with its dot-notation path.
