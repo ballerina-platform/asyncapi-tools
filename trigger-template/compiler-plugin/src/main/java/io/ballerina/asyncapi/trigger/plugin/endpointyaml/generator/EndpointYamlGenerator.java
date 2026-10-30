@@ -19,11 +19,17 @@ package io.ballerina.asyncapi.trigger.plugin.endpointyaml.generator;
 
 import io.ballerina.asyncapi.trigger.plugin.AsyncAPICompilerPluginUtil;
 import io.ballerina.asyncapi.trigger.plugin.AsyncAPIDiagnostic;
+import io.ballerina.compiler.api.ModuleID;
+import io.ballerina.compiler.api.SemanticModel;
 import io.ballerina.compiler.api.symbols.ClassSymbol;
+import io.ballerina.compiler.api.symbols.ConstantSymbol;
+import io.ballerina.compiler.api.symbols.ModuleSymbol;
 import io.ballerina.compiler.api.symbols.ParameterSymbol;
+import io.ballerina.compiler.api.symbols.Symbol;
 import io.ballerina.compiler.api.symbols.TypeReferenceTypeSymbol;
 import io.ballerina.compiler.api.symbols.TypeSymbol;
 import io.ballerina.compiler.syntax.tree.BasicLiteralNode;
+import io.ballerina.compiler.syntax.tree.BracedExpressionNode;
 import io.ballerina.compiler.syntax.tree.CaptureBindingPatternNode;
 import io.ballerina.compiler.syntax.tree.CheckExpressionNode;
 import io.ballerina.compiler.syntax.tree.ConstantDeclarationNode;
@@ -40,11 +46,13 @@ import io.ballerina.compiler.syntax.tree.Node;
 import io.ballerina.compiler.syntax.tree.NodeList;
 import io.ballerina.compiler.syntax.tree.ParenthesizedArgList;
 import io.ballerina.compiler.syntax.tree.PositionalArgumentNode;
+import io.ballerina.compiler.syntax.tree.QualifiedNameReferenceNode;
 import io.ballerina.compiler.syntax.tree.ServiceDeclarationNode;
 import io.ballerina.compiler.syntax.tree.SimpleNameReferenceNode;
 import io.ballerina.compiler.syntax.tree.SyntaxKind;
 import io.ballerina.projects.DocumentId;
 import io.ballerina.projects.Module;
+import io.ballerina.projects.Package;
 import io.ballerina.projects.plugins.SyntaxNodeAnalysisContext;
 import io.ballerina.tools.diagnostics.Diagnostic;
 import io.ballerina.tools.diagnostics.DiagnosticFactory;
@@ -60,7 +68,8 @@ import java.util.Set;
  *
  * <p>Follows the {@code ballerina/http} plugin's {@code EndpointYamlGenerator}: the same base path, the same type,
  * and the same rules for the port (a literal, a constant, a module variable or a configurable's default value;
- * an error for a configurable without a default or any other expression).
+ * an error for a configurable without a default or any other expression). Beyond those, it also reads a
+ * hexadecimal literal, a parenthesized value, and a constant, variable or listener from another module.
  */
 public class EndpointYamlGenerator {
 
@@ -124,20 +133,17 @@ public class EndpointYamlGenerator {
 
     // The port of a listenOn argument: a port number, or an http:Listener to share.
     private Optional<Integer> getPort(ExpressionNode expression, List<Diagnostic> diagnostics) {
-        ExpressionNode value = unwrapCheck(expression);
+        ExpressionNode value = unwrap(expression);
         if (value instanceof BasicLiteralNode literal && literal.kind() == SyntaxKind.NUMERIC_LITERAL) {
-            try {
-                return Optional.of(Integer.parseInt(literal.literalToken().text().trim()));
-            } catch (NumberFormatException e) {
-                return unsupported(value, diagnostics);
-            }
+            Optional<Integer> port = parsePort(literal.literalToken().text().trim());
+            return port.isPresent() ? port : unsupported(value, diagnostics);
         }
         if (isNewExpression(value)) {
             Optional<ExpressionNode> httpPort = getArgument(value, 0, Set.of(HTTP_LISTENER_PORT_PARAM));
             return httpPort.isPresent() ? getPort(httpPort.get(), diagnostics) : unsupported(value, diagnostics);
         }
-        if (value instanceof SimpleNameReferenceNode reference) {
-            Optional<ModuleMemberDeclarationNode> declaration = findDeclaration(reference.name().text());
+        if (isReference(value)) {
+            Optional<ModuleMemberDeclarationNode> declaration = findDeclaration(value);
             if (declaration.isPresent() && isConfigurable(declaration.get())) {
                 ExpressionNode initializer = ((ModuleVariableDeclarationNode) declaration.get()).initializer()
                         .orElse(null);
@@ -153,8 +159,30 @@ public class EndpointYamlGenerator {
             if (initializer.isPresent()) {
                 return getPort(initializer.get(), diagnostics);
             }
+            // A constant from another package has no source here, but the compiler knows its value.
+            Optional<Integer> constant = constantValue(value);
+            if (constant.isPresent()) {
+                return constant;
+            }
         }
         return unsupported(value, diagnostics);
+    }
+
+    // A decimal or hexadecimal int literal, as Ballerina accepts both for an int.
+    private static Optional<Integer> parsePort(String text) {
+        try {
+            boolean hex = text.startsWith("0x") || text.startsWith("0X");
+            return Optional.of(hex ? Integer.parseInt(text.substring(2), 16) : Integer.parseInt(text));
+        } catch (NumberFormatException e) {
+            return Optional.empty();
+        }
+    }
+
+    private Optional<Integer> constantValue(ExpressionNode reference) {
+        return semanticModelOf(reference).symbol(reference)
+                .filter(ConstantSymbol.class::isInstance)
+                .flatMap(symbol -> ((ConstantSymbol) symbol).resolvedValue())
+                .flatMap(resolved -> parsePort(resolved.trim()));
     }
 
     // The index of the generated listener's port parameter in its init method.
@@ -177,17 +205,59 @@ public class EndpointYamlGenerator {
 
     // Follows a reference to a module-level listener or variable to the expression it is initialized with.
     private Optional<ExpressionNode> resolve(ExpressionNode expression) {
-        ExpressionNode value = unwrapCheck(expression);
-        if (value instanceof SimpleNameReferenceNode reference) {
-            return findDeclaration(reference.name().text())
+        ExpressionNode value = unwrap(expression);
+        if (isReference(value)) {
+            return findDeclaration(value)
                     .flatMap(EndpointYamlGenerator::initializerOf)
                     .flatMap(this::resolve);
         }
         return Optional.of(value);
     }
 
-    private Optional<ModuleMemberDeclarationNode> findDeclaration(String name) {
-        Module module = context.currentPackage().module(context.moduleId());
+    private static boolean isReference(ExpressionNode expression) {
+        return expression instanceof SimpleNameReferenceNode || expression instanceof QualifiedNameReferenceNode;
+    }
+
+    // The module-level declaration a name refers to: in the module the name is written in, or for a prefixed
+    // name, in the imported module when it belongs to this package (another package's source is not available).
+    private Optional<ModuleMemberDeclarationNode> findDeclaration(ExpressionNode reference) {
+        if (reference instanceof SimpleNameReferenceNode simple) {
+            return findDeclaration(moduleOf(reference), simple.name().text());
+        }
+        QualifiedNameReferenceNode qualified = (QualifiedNameReferenceNode) reference;
+        Optional<ModuleID> target = semanticModelOf(reference).symbol(qualified)
+                .flatMap(Symbol::getModule)
+                .map(ModuleSymbol::id);
+        Package currentPackage = context.currentPackage();
+        if (target.isEmpty() || !target.get().orgName().equals(currentPackage.packageOrg().value())
+                || !target.get().packageName().equals(currentPackage.packageName().value())) {
+            return Optional.empty();
+        }
+        for (Module module : currentPackage.modules()) {
+            if (module.descriptor().name().toString().equals(target.get().moduleName())) {
+                return findDeclaration(module, qualified.identifier().text());
+            }
+        }
+        return Optional.empty();
+    }
+
+    // The module whose source holds the node, so names in an imported module's listener resolve there.
+    private Module moduleOf(Node node) {
+        for (Module module : context.currentPackage().modules()) {
+            for (DocumentId documentId : module.documentIds()) {
+                if (module.document(documentId).syntaxTree() == node.syntaxTree()) {
+                    return module;
+                }
+            }
+        }
+        return context.currentPackage().module(context.moduleId());
+    }
+
+    private SemanticModel semanticModelOf(Node node) {
+        return context.compilation().getSemanticModel(moduleOf(node).moduleId());
+    }
+
+    private static Optional<ModuleMemberDeclarationNode> findDeclaration(Module module, String name) {
         for (DocumentId documentId : module.documentIds()) {
             ModulePartNode root = module.document(documentId).syntaxTree().rootNode();
             for (ModuleMemberDeclarationNode member : root.members()) {
@@ -237,8 +307,15 @@ public class EndpointYamlGenerator {
         return expression instanceof ExplicitNewExpressionNode || expression instanceof ImplicitNewExpressionNode;
     }
 
-    private static ExpressionNode unwrapCheck(ExpressionNode expression) {
-        return expression instanceof CheckExpressionNode check ? check.expression() : expression;
+    // Strips check, checkpanic and parentheses, in any combination.
+    private static ExpressionNode unwrap(ExpressionNode expression) {
+        if (expression instanceof CheckExpressionNode check) {
+            return unwrap(check.expression());
+        }
+        if (expression instanceof BracedExpressionNode braced) {
+            return unwrap(braced.expression());
+        }
+        return expression;
     }
 
     // The argument for a parameter of a new expression, given by one of its names or at its position.
