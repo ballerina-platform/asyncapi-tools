@@ -143,6 +143,11 @@ public class EndpointYamlGenerator {
             return httpPort.isPresent() ? getPort(httpPort.get(), diagnostics) : unsupported(value, diagnostics);
         }
         if (isReference(value)) {
+            // The compiler knows a constant's value, even a computed one (8000 + 90) or one from another package.
+            Optional<Integer> constant = constantValue(value);
+            if (constant.isPresent()) {
+                return constant;
+            }
             Optional<ModuleMemberDeclarationNode> declaration = findDeclaration(value);
             if (declaration.isPresent() && isConfigurable(declaration.get())) {
                 ExpressionNode initializer = ((ModuleVariableDeclarationNode) declaration.get()).initializer()
@@ -158,11 +163,6 @@ public class EndpointYamlGenerator {
             Optional<ExpressionNode> initializer = declaration.flatMap(EndpointYamlGenerator::initializerOf);
             if (initializer.isPresent()) {
                 return getPort(initializer.get(), diagnostics);
-            }
-            // A constant from another package has no source here, but the compiler knows its value.
-            Optional<Integer> constant = constantValue(value);
-            if (constant.isPresent()) {
-                return constant;
             }
         }
         return unsupported(value, diagnostics);

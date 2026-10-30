@@ -303,13 +303,10 @@ public class DispatchTestGenerator {
             String trackerKey = serviceTypeName + "." + testCase.functionName();
             sb.append("    isolated remote function ").append(testCase.functionName())
                     .append("(").append(testCase.payloadTypeName()).append(" payload) returns error? {\n")
-                    .append("        lock {\n")
-                    .append("            triggerFired[\"").append(trackerKey).append("\"] = true;\n")
-                    .append("        }\n")
                     // Serialized back with the original keys, so the test can compare it with the fixture.
-                    .append("        readonly & json bound = jsondata:toJson(payload).cloneReadOnly();\n")
+                    .append("        readonly & json received = jsondata:toJson(payload).cloneReadOnly();\n")
                     .append("        lock {\n")
-                    .append("            boundJson[\"").append(trackerKey).append("\"] = bound;\n")
+                    .append("            boundJson[\"").append(trackerKey).append("\"] = received;\n")
                     .append("        }\n");
             if (renamedKeysByType.containsKey(testCase.payloadTypeName())) {
                 sb.append("        lock {\n")
@@ -317,7 +314,11 @@ public class DispatchTestGenerator {
                         .append("\"] = payload.toJson().clone();\n")
                         .append("        }\n");
             }
-            sb.append("    }\n");
+            // Set last: a test waiting on it then finds the payload already recorded.
+            sb.append("        lock {\n")
+                    .append("            triggerFired[\"").append(trackerKey).append("\"] = true;\n")
+                    .append("        }\n")
+                    .append("    }\n");
         }
         sb.append("}\n\n");
         return sb.toString();
@@ -614,8 +615,8 @@ public class DispatchTestGenerator {
                 + onlyThisFunction
                 + "    json fixture = check io:fileReadJson(string `${TRIGGER_PAYLOAD_DIR}/"
                 + escapeBalString(fixtureName) + ".json`);\n"
-                + "    json bound = boundJsonOf(\"" + trackerKey + "\");\n"
-                + "    assertBindsFixture(bound, deliveredEvent(bound, fixture), \""
+                + "    json received = boundJsonOf(\"" + trackerKey + "\");\n"
+                + "    assertBindsFixture(received, deliveredEvent(received, fixture), \""
                 + testCase.payloadTypeName() + "\");\n"
                 + buildBindingAssertions(testCase, trackerKey)
                 + "}\n\n";
@@ -683,7 +684,15 @@ public class DispatchTestGenerator {
                 : handshake.allowedQuery().keySet().stream().findFirst().orElse(null);
         if (fixed != null) {
             Map<String, String> otherValue = new LinkedHashMap<>(confirm);
-            otherValue.computeIfPresent(fixed, (name, value) -> "not-" + value);
+            // A value no const or enum allows, so the request is one the listener must refuse.
+            List<String> allowed = handshake.allowedQuery().getOrDefault(fixed, List.of());
+            otherValue.computeIfPresent(fixed, (name, value) -> {
+                String other = "not-" + value;
+                while (allowed.contains(other)) {
+                    other = "not-" + other;
+                }
+                return other;
+            });
             tests.append(buildWebSubRejectTest("testVerificationHandshakeIsNotConfirmedForOtherRequests", otherValue));
         }
         if (!handshake.requiredQuery().isEmpty()) {
