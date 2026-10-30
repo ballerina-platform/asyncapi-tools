@@ -60,12 +60,57 @@ public class ListenerGeneratorTest {
                 "Generated source should import the ballerina/http module");
         Assert.assertTrue(source.contains("ListenerConfig listenerConfig = {}"),
                 "With no connection auth, listenerConfig should stay defaultable");
-        Assert.assertTrue(source.contains("var v if v is RepositoryService"),
-                "getServiceTypeStr's match clauses must use a var-if-is type guard, not a bare "
-                        + "'TypeName _' binding pattern - the latter parses (NodeParser accepts it "
-                        + "silently) but fails a real bal build with 'variable should be declared "
-                        + "as constant' / \"'_' is a keyword\", confirmed via an actual compile: "
-                        + source);
+        Assert.assertTrue(source.contains("if serviceRef is RepositoryService"),
+                "getServiceTypeStr should test the service against each service type: " + source);
+    }
+
+    @Test
+    void testServiceMatchingTwoServiceTypesIsRejected() throws GeneratorException {
+        List<HttpServiceType> serviceTypes = List.of(
+                new HttpServiceType("RepositoryService", List.of(new HttpRemoteFunction("push", "PushEvent"))),
+                new HttpServiceType("IssueService", List.of(new HttpRemoteFunction("issues.opened", "IssueEvent"))));
+        String source = new ListenerGenerator(serviceTypes, Optional.<WebhookAuthConfig>empty(),
+                Optional.<ConnectionAuthConfig>empty(), "Test Connector").generate();
+
+        // #9425: every type is tested, not just the first match, so a service of two types is an error.
+        Assert.assertTrue(source.contains("matched.push(\"RepositoryService\");")
+                && source.contains("matched.push(\"IssueService\");"), source);
+        Assert.assertFalse(source.contains("return \"RepositoryService\";"),
+                "a match must not return before the other types are tested: " + source);
+        Assert.assertTrue(source.contains("if matched.length() == 1 {"), source);
+        Assert.assertTrue(source.contains("The service matches more than one service type"), source);
+    }
+
+    @Test
+    void testDetachUnmountsBeforeForgettingTheService() throws GeneratorException {
+        List<HttpServiceType> serviceTypes = List.of(
+                new HttpServiceType("RepositoryService", List.of(new HttpRemoteFunction("push", "PushEvent"))));
+        String source = new ListenerGenerator(serviceTypes, Optional.<WebhookAuthConfig>empty(),
+                Optional.<ConnectionAuthConfig>empty(), "Test Connector").generate();
+
+        // #9425: a failed unmount leaves the attachment in place, so a retry can still detach it.
+        int detach = source.indexOf("public isolated function detach");
+        int unmount = source.indexOf("check self.httpListener.detach(dispatcher);", detach);
+        int unregister = source.indexOf("check dispatcher.removeServiceRef(serviceTypeStr);", detach);
+        int forget = source.indexOf("_ = self.attachments.remove(i);", detach);
+        Assert.assertTrue(unmount > detach && unmount < unregister && unregister < forget,
+                "detach should unmount, then unregister, then drop the attachment: " + source);
+        Assert.assertTrue(source.contains("if j != i && self.attachments[j][0] == path"),
+                "the path check should skip the attachment being removed: " + source);
+    }
+
+    @Test
+    void testOwnHttpListenerCapsTheBodySize() throws GeneratorException {
+        List<HttpServiceType> serviceTypes = List.of(
+                new HttpServiceType("RepositoryService", List.of(new HttpRemoteFunction("push", "PushEvent"))));
+        String source = new ListenerGenerator(serviceTypes, Optional.<WebhookAuthConfig>empty(),
+                Optional.<ConnectionAuthConfig>empty(), "Test Connector").generate();
+
+        // #9425: the body is read before the signature is checked, so the listener the trigger creates caps it.
+        Assert.assertTrue(source.contains("check new (listenOn, requestLimits = {maxEntityBodySize: 10485760})"),
+                source);
+        Assert.assertTrue(source.contains("self.httpListener = listenOn;"),
+                "an http:Listener passed in keeps its own limits: " + source);
     }
 
     @Test
