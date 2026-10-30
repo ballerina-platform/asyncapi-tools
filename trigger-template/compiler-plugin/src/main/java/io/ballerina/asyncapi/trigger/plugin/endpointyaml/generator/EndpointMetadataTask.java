@@ -28,6 +28,7 @@ import io.ballerina.tools.text.LineRange;
 import io.ballerina.tools.text.TextRange;
 
 import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -70,11 +71,22 @@ public class EndpointMetadataTask implements CompilerLifecycleTask<CompilerLifec
             for (Endpoint endpoint : unique) {
                 addEndpointMetadata(context, endpoint);
             }
+        } catch (ClassNotFoundException | NoSuchMethodException e) {
+            // The endpoint API is missing: a Ballerina version before 2201.13.6.
+            report(context, AsyncAPIDiagnostic.ASYNCAPI_WARNING_102,
+                    AsyncAPIDiagnostic.ASYNCAPI_WARNING_102.getMessage());
         } catch (ReflectiveOperationException | SecurityException e) {
-            AsyncAPIDiagnostic diagnostic = AsyncAPIDiagnostic.ASYNCAPI_WARNING_102;
-            context.reportDiagnostic(DiagnosticFactory.createDiagnostic(new DiagnosticInfo(diagnostic.getCode(),
-                    diagnostic.getMessage(), diagnostic.getSeverity()), new NullLocation()));
+            Throwable cause = e instanceof InvocationTargetException invocation && invocation.getCause() != null
+                    ? invocation.getCause() : e;
+            report(context, AsyncAPIDiagnostic.ASYNCAPI_WARNING_103,
+                    String.format(AsyncAPIDiagnostic.ASYNCAPI_WARNING_103.getMessage(), cause));
         }
+    }
+
+    private static void report(CompilerLifecycleEventContext context, AsyncAPIDiagnostic diagnostic,
+                               String message) {
+        context.reportDiagnostic(DiagnosticFactory.createDiagnostic(new DiagnosticInfo(diagnostic.getCode(),
+                message, diagnostic.getSeverity()), new NullLocation()));
     }
 
     private void addEndpointMetadata(CompilerLifecycleEventContext context, Endpoint endpoint)

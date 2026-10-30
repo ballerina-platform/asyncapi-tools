@@ -35,7 +35,9 @@ public enum AsyncAPIDiagnostic {
     ASYNCAPI_WARNING_101("ASYNCAPI_WARNING_101", "The server port is defined as a configurable. Hence, using the "
             + "default value to generate the server information", WARNING),
     ASYNCAPI_WARNING_102("ASYNCAPI_WARNING_102", "The Ballerina version is not supported for endpoints.yaml. "
-            + "Try using Ballerina 2201.13.6 or above", WARNING);
+            + "Try using Ballerina 2201.13.6 or above", WARNING),
+    ASYNCAPI_WARNING_103("ASYNCAPI_WARNING_103", "Could not export the trigger endpoints to endpoints.yaml: %s",
+            WARNING);
 
     private final String code;
     private final String message;
