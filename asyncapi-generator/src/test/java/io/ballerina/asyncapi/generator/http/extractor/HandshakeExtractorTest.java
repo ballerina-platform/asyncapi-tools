@@ -169,4 +169,16 @@ public class HandshakeExtractorTest {
                 + "request.getQueryParamValue(\"hub.mode\") == \"unsubscribe\")"), resource);
         Assert.assertTrue(resource.contains("http:STATUS_NOT_FOUND"), resource);
     }
+
+    @Test
+    void testWebSubChallengeIsNeverMatched() throws Exception {
+        String query = "bindings: {http: {method: GET, query: {type: object, "
+                + "required: [hub.mode, hub.challenge], properties: {"
+                + "hub.mode: {type: string, const: subscribe}, "
+                + "hub.challenge: {type: string, enum: [abc, def]}}}}}";
+        HandshakeConfig handshake = extract("{type: string}", "", "", query).orElseThrow();
+        // The challenge is the value echoed back, so a restriction in its schema must not refuse the hub.
+        Assert.assertFalse(handshake.when().containsKey("hub.challenge"));
+        Assert.assertFalse(handshake.allowedQuery().containsKey("hub.challenge"));
+    }
 }

@@ -143,6 +143,10 @@ public final class HandshakeExtractor {
         Map<String, List<String>> allowed = new LinkedHashMap<>();
         for (Map.Entry<String, AsyncApiSchema> parameter : query.properties().entrySet()) {
             AsyncApiSchema schema = parameter.getValue();
+            // The challenge is echoed back, never matched, whatever its schema restricts.
+            if (WEBSUB_CHALLENGE.equals(parameter.getKey())) {
+                continue;
+            }
             if (schema.constValue() != null) {
                 when.put(parameter.getKey(), schema.constValue());
             } else if (schema.enumValue() != null && !schema.enumValue().isEmpty()) {

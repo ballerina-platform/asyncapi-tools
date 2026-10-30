@@ -782,8 +782,9 @@ public class DispatchTestGenerator {
      * checking it once immediately after the response returns.
      */
     private String buildBoundPayloadHelper() {
-        // Every value in the fixture must reach the handler unchanged. Numbers compare by value and other
-        // scalars by text, since a form body sends every field as a string.
+        // Every value in the fixture must reach the handler unchanged. A null may arrive as an absent optional
+        // field, which binding treats the same. Numbers compare by value; other scalars by type for JSON, and by
+        // text for a form body, which sends every field as a string.
         String fixtureHelpers = ""
                 + "function boundJsonOf(string trackerKey) returns json {\n"
                 + "    lock {\n"
@@ -817,7 +818,9 @@ public class DispatchTestGenerator {
                 + "        test:assertEquals(<decimal>bound, <decimal>fixture,\n"
                 + "                string `${at} should have bound unchanged`);\n"
                 + "    } else {\n"
-                + "        test:assertEquals(bound.toString(), fixture.toString(),\n"
+                + (formBodies
+                        ? "        test:assertEquals(bound.toString(), fixture.toString(),\n"
+                        : "        test:assertEquals(bound, fixture,\n")
                 + "                string `${at} should have bound unchanged`);\n"
                 + "    }\n"
                 + "}\n"
