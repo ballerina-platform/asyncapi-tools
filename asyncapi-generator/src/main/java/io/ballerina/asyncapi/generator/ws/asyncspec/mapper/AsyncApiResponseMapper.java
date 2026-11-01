@@ -480,7 +480,7 @@ public class AsyncApiResponseMapper {
     private void setSchemasForChannelsAsOneOfSchema(BalAsyncApi30MessageImpl oneOfSchema,
                                                     BalAsyncApi30MessageImpl schema) {
         ObjectMapper objMapper = ConverterCommonUtils.callObjectMapper();
-        JsonNode schemaNode = objMapper.valueToTree(schema);
+        JsonNode schemaNode = messageNode(schema);
         Map<String, JsonNode> extensions = oneOfSchema.getExtensions();
 
         if (extensions == null || extensions.get(ONEOF) == null) {
@@ -544,7 +544,7 @@ public class AsyncApiResponseMapper {
         if (isOptional.equals(TRUE)) {
             oneOfSchema.addExtension(X_REQUIRED, BooleanNode.FALSE);
         }
-        componentMessage.addExtension(X_RESPONSE, objMapper.valueToTree(oneOfSchema));
+        componentMessage.addExtension(X_RESPONSE, messageNode(oneOfSchema));
         componentMessage.addExtension(X_RESPONSE_TYPE, new TextNode(responseType));
     }
 
@@ -557,9 +557,26 @@ public class AsyncApiResponseMapper {
                 .noneMatch(ref -> schema.get$ref().equals(ref.asText()))) {
             ArrayNode oneOfArray = oneOfNode instanceof ArrayNode
                     ? (ArrayNode) oneOfNode : objMapper.createArrayNode();
-            oneOfArray.add(objMapper.valueToTree(schema));
+            oneOfArray.add(messageNode(schema));
             oneOfSchema.addExtension(ONEOF, oneOfArray);
         }
+    }
+
+    // Writes a transient message the way AsyncAPI reads it: $ref, description and each extension (payload,
+    // oneOf, x-required) as its own field. Serialising the message object directly nests the extensions
+    // under an "extensions" key, which is not AsyncAPI.
+    private static ObjectNode messageNode(BalAsyncApi30MessageImpl message) {
+        ObjectNode node = ConverterCommonUtils.createObjectNode();
+        if (message.get$ref() != null) {
+            node.put(REF, message.get$ref());
+        }
+        if (message.getDescription() != null) {
+            node.put(DESCRIPTION, message.getDescription());
+        }
+        if (message.getExtensions() != null) {
+            message.getExtensions().forEach(node::set);
+        }
+        return node;
     }
 
     private void setRefPayloadAsOneOfSchemaForPreviousOneResponse(BalAsyncApi30MessageImpl componentMessage,

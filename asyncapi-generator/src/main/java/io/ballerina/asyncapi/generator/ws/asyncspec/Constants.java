@@ -127,10 +127,16 @@ public class Constants {
     public static final String FUNCTION_DEFAULT_NAME_CONTAINS_ERROR = "ERROR: onIdleTimeOut, onMessage, "
             + "onTextMessage, onBinaryMessage, onClose, onOpen, and onError names are not permitted in a "
             + "function's name";
-    public static final String NO_ANNOTATION_PRESENT = "ERROR: No Annotation present, "
-            + "use @websocket:ServiceConfig{dispatcherKey: \"event\"} above the service";
-    public static final String NO_DISPATCHER_KEY = "ERROR: No dispatcherKey field is present in "
-            + "@websocket:ServiceConfig annotation";
+    public static final String NO_ANNOTATION_PRESENT = "ERROR: the service has no "
+            + "@websocket:ServiceConfig {dispatcherKey: ...}. Without a dispatcherKey, WebSocket delivers every "
+            + "message to onMessage, so the other remote functions can't be described. Add one above the service, "
+            + "for example @websocket:ServiceConfig {dispatcherKey: \"event\"}";
+    public static final String NO_DISPATCHER_KEY = "ERROR: the @websocket:ServiceConfig annotation has no "
+            + "dispatcherKey. Without it, WebSocket delivers every message to onMessage, so the other remote "
+            + "functions can't be described. Add one, for example dispatcherKey: \"event\"";
+    public static final String SHARED_REQUEST_TYPE = "ERROR: remote functions %s and %s both take %s, but each "
+            + "message carries its own dispatcher value in its schema. Give each remote function its own request "
+            + "type";
     public static final String DISPATCHER_KEY_VALUE_CANNOT_BE_EMPTY = "ERROR: dispatcherKey cannot be empty";
     public static final String DISPATCHER_STREAM_ID_VALUE_CANNOT_BE_EMPTY = "ERROR: dispatcherStreamId cannot be "
             + "empty";
