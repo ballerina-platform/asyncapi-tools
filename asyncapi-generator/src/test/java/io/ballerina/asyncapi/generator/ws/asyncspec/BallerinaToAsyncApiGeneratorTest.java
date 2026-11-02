@@ -897,6 +897,37 @@ class BallerinaToAsyncApiGeneratorTest {
                 "the inline response gets the next free name: " + yaml);
     }
 
+    @Test
+    void testSharedMessageName_acrossFunctionForms_isReportedAsADiagnostic() throws IOException {
+        // onFoo() names its message after the function and onBar(Foo) after its type: both are Foo.
+        List<AsyncApiConverterDiagnostic> diagnostics = run(BAL_MESSAGE_NAME_CLASH);
+        Assert.assertEquals(diagnostics.size(), 1, "Diagnostics: " + diagnostics);
+        String message = diagnostics.get(0).getMessage();
+        Assert.assertTrue(message.contains("onFoo") && message.contains("onBar") && message.contains("Foo"),
+                message);
+    }
+
+    private static final String BAL_MESSAGE_NAME_CLASH =
+            "import ballerina/websocket;\n\n"
+            + "public type Foo record {\n"
+            + "    string event;\n"
+            + "};\n\n"
+            + "@websocket:ServiceConfig {dispatcherKey: \"event\"}\n"
+            + "service /names on new websocket:Listener(9090) {\n"
+            + "    resource function get .() returns websocket:Service {\n"
+            + "        return new NamesService();\n"
+            + "    }\n"
+            + "}\n\n"
+            + "service class NamesService {\n"
+            + "    *websocket:Service;\n"
+            + "    remote function onFoo() returns string {\n"
+            + "        return \"ok\";\n"
+            + "    }\n"
+            + "    remote function onBar(Foo foo) returns string {\n"
+            + "        return \"ok\";\n"
+            + "    }\n"
+            + "}\n";
+
     private static final String BAL_RESPONSE_NAME_CLASH =
             "import ballerina/websocket;\n\n"
             + "public type Foo record {\n"

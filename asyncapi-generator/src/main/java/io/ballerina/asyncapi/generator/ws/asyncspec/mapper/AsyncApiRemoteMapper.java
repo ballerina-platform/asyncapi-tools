@@ -97,6 +97,7 @@ import static io.ballerina.asyncapi.generator.ws.asyncspec.Constants.ON_TEXT_MES
 import static io.ballerina.asyncapi.generator.ws.asyncspec.Constants.PAYLOAD;
 import static io.ballerina.asyncapi.generator.ws.asyncspec.Constants.REMOTE_DESCRIPTION;
 import static io.ballerina.asyncapi.generator.ws.asyncspec.Constants.RETURN;
+import static io.ballerina.asyncapi.generator.ws.asyncspec.Constants.SHARED_MESSAGE_NAME;
 import static io.ballerina.asyncapi.generator.ws.asyncspec.Constants.SHARED_REQUEST_TYPE;
 import static io.ballerina.asyncapi.generator.ws.asyncspec.Constants.UNSUPPORTED_PARAMETER_TYPE;
 import static io.ballerina.asyncapi.generator.ws.asyncspec.Constants.WEBSOCKET;
@@ -269,6 +270,7 @@ public class AsyncApiRemoteMapper {
                 semanticModel, components);
         Map<String, ReturnTypeDescriptorNode> onErrorReturnTypes = getReturnTypesFromOnErrorMethods(classMethodNodes);
         Map<String, String> requestTypeOwners = new HashMap<>();
+        Map<String, String> messageOwners = new HashMap<>();
         // Named once every function's messages are registered, so an inline response can't take a used name.
         Map<String, BalAsyncApi30MessageImpl> inlineResponseRequests = new LinkedHashMap<>();
 
@@ -393,6 +395,13 @@ public class AsyncApiRemoteMapper {
                                 }
                                 responseMapper.createResponse(subscribeMessage, componentMessage,
                                         remoteReturnType, returnDescription, FALSE, null);
+                            }
+                            // Names come from the function (no or primitive parameter, @DispatcherConfig) or the
+                            // request type, so two functions can still land on one message name.
+                            String messageOwner = messageOwners.putIfAbsent(remoteRequestTypeName, functionName);
+                            if (messageOwner != null) {
+                                throw new NoSuchElementException(String.format(SHARED_MESSAGE_NAME,
+                                        messageOwner, functionName, remoteRequestTypeName));
                             }
                             inlineResponseRequests.put(remoteRequestTypeName, componentMessage);
                             components.addMessage(remoteRequestTypeName, componentMessage);
