@@ -271,12 +271,34 @@ public class AsyncApiResponseMapper {
     public BalAsyncApi30MessageImpl extractMessageSchemaReference(BalAsyncApi30MessageImpl message, String typeName,
                                                                    TypeSymbol typeSymbol, String dispatcherValue,
                                                                    String paramDescription) {
+        return extractMessageSchemaReference(message, typeName, typeName, typeSymbol, dispatcherValue,
+                paramDescription);
+    }
+
+    /**
+     * Like {@link #extractMessageSchemaReference(BalAsyncApi30MessageImpl, String, TypeSymbol, String, String)},
+     * for a message named differently from its payload type, such as one named by a
+     * {@code @websocket:DispatcherConfig} value.
+     *
+     * @param message          channel-level message to add oneOf reference to
+     * @param messageName      the message name
+     * @param schemaName       the payload type's schema name
+     * @param typeSymbol       type symbol used to generate the component schema
+     * @param dispatcherValue  dispatcher value passed to the component mapper
+     * @param paramDescription optional description for the payload node
+     * @return the component-level message with the payload set
+     */
+    public BalAsyncApi30MessageImpl extractMessageSchemaReference(BalAsyncApi30MessageImpl message,
+                                                                   String messageName, String schemaName,
+                                                                   TypeSymbol typeSymbol, String dispatcherValue,
+                                                                   String paramDescription) {
+        String typeName = messageName;
         BalAsyncApi30MessageImpl messageType = new BalAsyncApi30MessageImpl();
 
         componentMapper.createComponentSchema(typeSymbol, dispatcherValue);
 
         ObjectNode objNode1 = ConverterCommonUtils.createObjectNode();
-        objNode1.put(REF, SCHEMA_REFERENCE + ConverterCommonUtils.unescapeIdentifier(typeName));
+        objNode1.put(REF, SCHEMA_REFERENCE + ConverterCommonUtils.unescapeIdentifier(schemaName));
 
         if (paramDescription != null) {
             objNode1.put(DESCRIPTION, paramDescription);

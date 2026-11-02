@@ -62,6 +62,7 @@ import io.ballerina.compiler.syntax.tree.SyntaxKind;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -268,6 +269,8 @@ public class AsyncApiRemoteMapper {
                 semanticModel, components);
         Map<String, ReturnTypeDescriptorNode> onErrorReturnTypes = getReturnTypesFromOnErrorMethods(classMethodNodes);
         Map<String, String> requestTypeOwners = new HashMap<>();
+        // Named once every function's messages are registered, so an inline response can't take a used name.
+        Map<String, BalAsyncApi30MessageImpl> inlineResponseRequests = new LinkedHashMap<>();
 
         for (Node node : classMethodNodes) {
             if (node.kind().equals(SyntaxKind.OBJECT_METHOD_DEFINITION)) {
@@ -347,8 +350,10 @@ public class AsyncApiRemoteMapper {
                                         }
                                         componentMapper.setDispatchValue(wireValue);
                                         try {
+                                            // A @DispatcherConfig value names the message, but the payload is
+                                            // still the parameter type's schema.
                                             componentMessage = responseMapper.extractMessageSchemaReference(
-                                                    publishMessage, remoteRequestTypeName,
+                                                    publishMessage, remoteRequestTypeName, requestType,
                                                     remoteFunctionNameTypeSymbol, dispatcherValue, paramDescription);
                                         } finally {
                                             componentMapper.setDispatchValue(null);
@@ -389,7 +394,7 @@ public class AsyncApiRemoteMapper {
                                 responseMapper.createResponse(subscribeMessage, componentMessage,
                                         remoteReturnType, returnDescription, FALSE, null);
                             }
-                            registerInlineResponses(remoteRequestTypeName, componentMessage, channelItem, channelKey);
+                            inlineResponseRequests.put(remoteRequestTypeName, componentMessage);
                             components.addMessage(remoteRequestTypeName, componentMessage);
 
                             // Register request message on channel and create send operation
@@ -420,6 +425,9 @@ public class AsyncApiRemoteMapper {
                 }
             }
         }
+
+        inlineResponseRequests.forEach((requestName, componentMessage) ->
+                registerInlineResponses(requestName, componentMessage, channelItem, channelKey));
 
         // Build receive operations from subscribeMessage oneOf entries
         Map<String, io.ballerina.asyncapi.generator.ws.asyncspec.model.BalAsyncApi30MessageImpl>
@@ -489,7 +497,13 @@ public class AsyncApiRemoteMapper {
             });
         }
         for (int i = 0; i < payloads.size(); i++) {
-            String messageName = requestName + "Response" + (payloads.size() > 1 ? String.valueOf(i + 1) : "");
+            String baseName = requestName + "Response" + (payloads.size() > 1 ? String.valueOf(i + 1) : "");
+            // A record can already be called <Request>Response, so take the next free name.
+            String messageName = baseName;
+            for (int n = 2; components.getMessages() != null && components.getMessages().containsKey(messageName);
+                 n++) {
+                messageName = baseName + "_" + n;
+            }
             BalAsyncApi30MessageImpl message = new BalAsyncApi30MessageImpl();
             message.setParent(components);
             message.addExtension(PAYLOAD, payloads.get(i));

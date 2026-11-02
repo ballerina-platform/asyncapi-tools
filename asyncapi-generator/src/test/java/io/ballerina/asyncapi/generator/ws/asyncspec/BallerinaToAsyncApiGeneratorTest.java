@@ -881,7 +881,49 @@ class BallerinaToAsyncApiGeneratorTest {
         Assert.assertTrue(yaml.contains("const: custom_value"),
                 "a @websocket:DispatcherConfig value is used exactly as written: " + yaml);
         Assert.assertFalse(yaml.contains("const: CustomValue") || yaml.contains("const: ConnectionInit"), yaml);
+        // The annotation names the message, but its payload is still the parameter type's schema.
+        Assert.assertTrue(yaml.contains("$ref: \"#/components/schemas/Custom\""), yaml);
+        Assert.assertFalse(yaml.contains("#/components/schemas/CustomValue"), "no dangling schema reference: " + yaml);
     }
+
+    @Test
+    void testInlineResponse_doesNotTakeARecordMessageName() throws IOException {
+        // onFoo's string[] response would be FooResponse, which onBar's record response already uses.
+        Assert.assertTrue(run(BAL_RESPONSE_NAME_CLASH).isEmpty());
+        String yaml = readGeneratedYaml();
+        Assert.assertTrue(yaml.contains("$ref: \"#/components/schemas/FooResponse\""),
+                "the record response keeps its message: " + yaml);
+        Assert.assertTrue(yaml.contains("FooResponse_2:") && yaml.contains("receiveFooResponse_2"),
+                "the inline response gets the next free name: " + yaml);
+    }
+
+    private static final String BAL_RESPONSE_NAME_CLASH =
+            "import ballerina/websocket;\n\n"
+            + "public type Foo record {\n"
+            + "    string event;\n"
+            + "};\n\n"
+            + "public type Bar record {\n"
+            + "    string event;\n"
+            + "};\n\n"
+            + "public type FooResponse record {\n"
+            + "    string event;\n"
+            + "    string result;\n"
+            + "};\n\n"
+            + "@websocket:ServiceConfig {dispatcherKey: \"event\"}\n"
+            + "service /clash on new websocket:Listener(9090) {\n"
+            + "    resource function get .() returns websocket:Service {\n"
+            + "        return new ClashService();\n"
+            + "    }\n"
+            + "}\n\n"
+            + "service class ClashService {\n"
+            + "    *websocket:Service;\n"
+            + "    remote function onFoo(Foo foo) returns string[] {\n"
+            + "        return [];\n"
+            + "    }\n"
+            + "    remote function onBar(Bar bar) returns FooResponse {\n"
+            + "        return {event: \"FooResponse\", result: \"ok\"};\n"
+            + "    }\n"
+            + "}\n";
 
     @Test
     void testInlinePayloads_carryTheDispatcherField() throws IOException {
