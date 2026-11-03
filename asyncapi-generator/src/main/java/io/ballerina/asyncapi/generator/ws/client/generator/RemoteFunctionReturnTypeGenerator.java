@@ -22,6 +22,7 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import io.ballerina.asyncapi.core.api.AsyncApiSpec;
 import io.ballerina.asyncapi.core.model.component.AsyncApiSchema;
 import io.ballerina.asyncapi.core.model.message.AsyncApiMessage;
+import io.ballerina.asyncapi.core.model.operation.AsyncApiOperation;
 import io.ballerina.asyncapi.generator.GeneratorException;
 import io.ballerina.asyncapi.generator.ws.client.utils.CodegenUtils;
 import io.ballerina.asyncapi.generator.ws.client.utils.CommonFunctionUtils;
@@ -32,6 +33,9 @@ import java.util.List;
 import java.util.Map;
 
 import static io.ballerina.asyncapi.generator.ws.client.extractor.DispatcherKeyExtractor.X_DISPATCHER_KEY;
+import static io.ballerina.asyncapi.generator.ws.client.generator.ClientGenerator.SERVER_STREAMING;
+import static io.ballerina.asyncapi.generator.ws.client.generator.ClientGenerator.X_RESPONSE;
+import static io.ballerina.asyncapi.generator.ws.client.generator.ClientGenerator.X_RESPONSE_TYPE;
 
 /**
  * Computes the Ballerina return type string for a remote function based on
@@ -39,8 +43,17 @@ import static io.ballerina.asyncapi.generator.ws.client.extractor.DispatcherKeyE
  */
 public class RemoteFunctionReturnTypeGenerator {
 
+    /** Pipe the reader puts every frame without the dispatcher key on, such as a plain string reply. */
+    public static final String NO_DISPATCHER_KEY_PIPE = "#noDispatcherKey";
+
     private static final String DEFAULT_RETURN = "null";
     private static final String PIPE = "|";
+    private static final String OBJECT = "object";
+    private static final String STRING = "string";
+    private static final String INLINE_RESPONSE_NOT_A_SCHEMA =
+            "x-response payload must be a schema object";
+    private static final String REPLY_WITHOUT_DISPATCHER_KEY_NOT_ALONE = "Reply type '%s' has no dispatcher key, "
+            + "so it must be the only reply of a simple-rpc message, not part of a oneOf or a stream: %s";
 
     private final AsyncApiSpec asyncApiSpec;
 
@@ -82,20 +95,23 @@ public class RemoteFunctionReturnTypeGenerator {
                     if (jsonNode.get("$ref") != null) {
                         handleReferenceReturn(jsonNode, messages, responseMessages, returnTypes);
                     } else if (jsonNode.get("payload") != null) {
-                        throw new GeneratorException(
-                                "Ballerina service file cannot be generated for the given AsyncAPI "
-                                        + "specification, Response type must be a Record");
+                        throw new GeneratorException(INLINE_RESPONSE_NOT_A_SCHEMA);
                     }
                 }
             }
         } else if (xResponse.get("$ref") != null) {
             handleReferenceReturn(xResponse, messages, responseMessages, returnTypes);
         } else if (xResponse.get("payload") != null) {
-            throw new GeneratorException(
-                    "Ballerina service file cannot be generated for the given AsyncAPI "
-                            + "specification, Response type must be a Record");
+            throw new GeneratorException(INLINE_RESPONSE_NOT_A_SCHEMA);
         }
 
+        boolean streaming = xResponseType != null && SERVER_STREAMING.equals(xResponseType.asText());
+        for (String returnType : returnTypes) {
+            if (isReplyWithoutDispatcherKey(returnType) && (returnTypes.size() > 1 || streaming)) {
+                throw new GeneratorException(String.format(REPLY_WITHOUT_DISPATCHER_KEY_NOT_ALONE, returnType,
+                        xResponse));
+            }
+        }
         if (!returnTypes.isEmpty()) {
             return String.join(PIPE, returnTypes);
         } else {
@@ -139,11 +155,83 @@ public class RemoteFunctionReturnTypeGenerator {
         }
 
         CommonFunctionUtils commonFunctionUtils = new CommonFunctionUtils(asyncApiSpec);
-        if (dispatcherKey != null
+        if (dispatcherKey != null && !isSchemaWithoutDispatcherKey(refSchema)
                 && !commonFunctionUtils.isDispatcherPresent(schemaName, refSchema, dispatcherKey, true)) {
             throw new GeneratorException(
                     String.format("dispatcherKey must be inside %s schema properties", schemaName));
         }
         returnTypes.add(CodegenUtils.getValidName(schemaName, true));
+    }
+
+    /**
+     * Returns {@code true} if the reply type can't carry the dispatcher key (a string, number, boolean or array),
+     * so its frames reach the client on {@link #NO_DISPATCHER_KEY_PIPE}.
+     *
+     * @param typeName the Ballerina reply type name
+     * @return whether the reply has no dispatcher key
+     */
+    public boolean isReplyWithoutDispatcherKey(String typeName) {
+        return isSchemaWithoutDispatcherKey(findSchema(typeName));
+    }
+
+    /**
+     * Returns {@code true} if the reply type is a string, whose frame text is the value itself rather than JSON.
+     *
+     * @param typeName the Ballerina reply type name
+     * @return whether the reply is a string
+     */
+    public boolean isTextReply(String typeName) {
+        AsyncApiSchema schema = findSchema(typeName);
+        return isSchemaWithoutDispatcherKey(schema) && STRING.equals(schema.type());
+    }
+
+    /**
+     * Returns {@code true} if any remote function waits for a reply without the dispatcher key.
+     *
+     * @return whether the reader needs to route such frames
+     * @throws GeneratorException if a reply type can't be resolved
+     */
+    public boolean hasRepliesWithoutDispatcherKey() throws GeneratorException {
+        Map<String, AsyncApiOperation> operations = asyncApiSpec.getAsyncApiOperations().orElse(Map.of());
+        for (AsyncApiOperation op : operations.values()) {
+            if (op.messages() == null) {
+                continue;
+            }
+            for (AsyncApiMessage message : op.messages().values()) {
+                if (op.action() == AsyncApiOperation.Action.RECEIVE) {
+                    if (message.payload() instanceof AsyncApiSchema payload && payload.name() != null
+                            && isReplyWithoutDispatcherKey(CodegenUtils.getValidName(payload.name(), true))) {
+                        return true;
+                    }
+                } else if (message.extensions() != null && message.extensions().get(X_RESPONSE) != null) {
+                    String returnType = getReturnType(message.extensions().get(X_RESPONSE),
+                            message.extensions().get(X_RESPONSE_TYPE), null);
+                    if (isReplyWithoutDispatcherKey(returnType)) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
+    private AsyncApiSchema findSchema(String typeName) {
+        Map<String, AsyncApiSchema> schemas = asyncApiSpec.getAsyncApiComponents()
+                .map(c -> c.schemas()).orElse(null);
+        if (schemas == null) {
+            return null;
+        }
+        for (Map.Entry<String, AsyncApiSchema> entry : schemas.entrySet()) {
+            if (CodegenUtils.getValidName(entry.getKey().trim(), true).equals(typeName)) {
+                return entry.getValue();
+            }
+        }
+        return null;
+    }
+
+    private static boolean isSchemaWithoutDispatcherKey(AsyncApiSchema schema) {
+        return schema != null && schema.type() != null && !OBJECT.equals(schema.type())
+                && schema.properties() == null && schema.oneOf() == null && schema.anyOf() == null
+                && schema.allOf() == null;
     }
 }

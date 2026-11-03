@@ -107,7 +107,7 @@ public class RemoteFunctionSignatureGenerator {
             return String.format("%s %s", DECIMAL, TIMEOUT);
         }
         String typeName = getDataType(payload);
-        String varName = CodegenUtils.getValidName(typeName, false);
+        String varName = CodegenUtils.getRequestParamName(typeName);
         return String.format("%s %s, %s %s", typeName, varName, DECIMAL, TIMEOUT);
     }
 
@@ -152,7 +152,7 @@ public class RemoteFunctionSignatureGenerator {
             parameterList.add(createToken(COMMA_TOKEN));
             if (payload.description() != null) {
                 MarkdownParameterDocumentationLineNode paramDoc = DocCommentsGenerator.createAPIParamDoc(
-                        CodegenUtils.getValidName(parameterType, false), payload.description());
+                        CodegenUtils.getRequestParamName(parameterType), payload.description());
                 MarkdownParameterDocumentationLineNode timeoutDoc = DocCommentsGenerator.createAPIParamDoc(
                         TIMEOUT, "waiting period to keep the event in the buffer in seconds");
                 remoteFunctionDoc.add(paramDoc);
@@ -222,7 +222,7 @@ public class RemoteFunctionSignatureGenerator {
     public Node getRequestTypeParameterNode(String paramType) {
         TypeDescriptorNode typeName = createBuiltinSimpleNameReferenceNode(null,
                 createIdentifierToken(CodegenUtils.getValidName(paramType, true)));
-        IdentifierToken paramName = createIdentifierToken(CodegenUtils.getValidName(paramType, false));
+        IdentifierToken paramName = createIdentifierToken(CodegenUtils.getRequestParamName(paramType));
         return createRequiredParameterNode(createNodeList(new ArrayList<>()), typeName, paramName);
     }
 

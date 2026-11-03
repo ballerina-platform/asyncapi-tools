@@ -4,8 +4,10 @@ import xlibb/pipe;
 # PipesMap class to handle generated pipes
 public isolated class PipesMap {
     private final map<pipe:Pipe> pipes;
+    private final map<pipe:Pipe> turns;
     public isolated function init() {
         self.pipes = {};
+        self.turns = {};
     }
 
     public isolated function addPipe(string id, pipe:Pipe pipe) {
@@ -38,6 +40,42 @@ public isolated class PipesMap {
                 check pipe.gracefulClose();
             }
             self.pipes.removeAll();
+            foreach pipe:Pipe turn in self.turns {
+                check turn.immediateClose();
+            }
+            self.turns.removeAll();
+        }
+    }
+
+    # Waits until no other call is waiting for a reply on the given pipe.
+    #
+    # + id - The reply pipe
+    # + timeout - Seconds to wait for the turn
+    # + return - A `pipe:Error` if the wait times out or the connection closes
+    public isolated function takeTurn(string id, decimal timeout) returns pipe:Error? {
+        pipe:Pipe turn;
+        lock {
+            if !self.turns.hasKey(id) {
+                pipe:Pipe newTurn = new (1);
+                check newTurn.produce(true, timeout);
+                self.turns[id] = newTurn;
+            }
+            turn = self.turns.get(id);
+        }
+        boolean _ = check turn.consume(timeout);
+    }
+
+    # Lets the next call waiting on the given pipe send its request.
+    #
+    # + id - The reply pipe
+    # + return - A `pipe:Error` if the connection has closed
+    public isolated function giveTurn(string id) returns pipe:Error? {
+        pipe:Pipe? turn;
+        lock {
+            turn = self.turns[id];
+        }
+        if turn is pipe:Pipe {
+            check turn.produce(true, 5);
         }
     }
 }

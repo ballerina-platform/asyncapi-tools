@@ -18,6 +18,7 @@
 package io.ballerina.asyncapi.generator.ws.client.utils;
 
 import io.ballerina.asyncapi.core.model.component.AsyncApiSchema;
+import io.ballerina.asyncapi.core.model.info.AsyncApiInfo;
 import io.ballerina.asyncapi.core.model.server.AsyncApiServerVariable;
 import io.ballerina.asyncapi.generator.GeneratorException;
 import io.ballerina.compiler.syntax.tree.AbstractNodeFactory;
@@ -39,6 +40,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Utility methods for WebSocket client code generation.
@@ -71,6 +73,12 @@ public final class CodegenUtils {
         typeMap.put("{}", "json");
         TYPE_MAP = Collections.unmodifiableMap(typeMap);
     }
+
+    private static final String DEFAULT_CLIENT_TITLE = "AsyncApi";
+
+    // Names a generated remote function declares itself, which its parameter and reply variable must avoid
+    private static final Set<String> REMOTE_FUNCTION_LOCALS = Set.of("self", "timeout", "message", "pipeErr",
+            "responseMessage", "pipeCloseError", "streamMessages", "streamGenerator", "turnErr", "turnReleaseErr");
 
     private CodegenUtils() {
     }
@@ -234,6 +242,46 @@ public final class CodegenUtils {
         return String.format("%s%s",
                 returnType.substring(0, 1).toUpperCase(Locale.ENGLISH),
                 returnType.substring(1));
+    }
+
+    /**
+     * Returns the remote function parameter name for a request type, kept clear of the function's own locals.
+     *
+     * @param requestType the Ballerina request type name
+     * @return the parameter name
+     */
+    public static String getRequestParamName(String requestType) {
+        return getFreeLocalName(getValidName(requestType, false), "Request", Set.of());
+    }
+
+    /**
+     * Returns the title part of the client class name, or {@code AsyncApi} when the title can't start one,
+     * such as the {@code /} title of a service on the root path.
+     *
+     * @param info the spec's info object (may be {@code null})
+     * @return the title part of the class name
+     */
+    public static String getClientTitleName(AsyncApiInfo info) {
+        if (info == null || info.title() == null || !info.title().matches("(?s).*[A-Za-z].*")) {
+            return DEFAULT_CLIENT_TITLE;
+        }
+        String name = getValidName(info.title(), true);
+        return Character.isLetter(name.charAt(0)) ? name : DEFAULT_CLIENT_TITLE;
+    }
+
+    /**
+     * Returns {@code name}, suffixed until it clashes with neither a remote function local nor {@code taken}.
+     *
+     * @param name   the preferred variable name
+     * @param suffix the suffix appended on each clash
+     * @param taken  other names already used in the function
+     * @return a free variable name
+     */
+    public static String getFreeLocalName(String name, String suffix, Set<String> taken) {
+        while (REMOTE_FUNCTION_LOCALS.contains(name) || taken.contains(name)) {
+            name += suffix;
+        }
+        return name;
     }
 
     /**

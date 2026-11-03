@@ -261,7 +261,8 @@ public class ClientGenerator {
                 JsonNode xResponse = message.extensions().get(X_RESPONSE);
                 List<String> responseMessages = new ArrayList<>();
                 String returnType = returnTypeGen.getReturnType(xResponse, xResponseType, responseMessages);
-                if (!"null".equals(returnType)) {
+                // A reply without the dispatcher key is never routed by its value
+                if (!"null".equals(returnType) && !returnTypeGen.isReplyWithoutDispatcherKey(returnType)) {
                     String requestType = getRequestTypeFromMessage(message);
                     for (String responseMsg : responseMessages) {
                         String key = CodegenUtils.getValidName(responseMsg, true);
@@ -356,7 +357,8 @@ public class ClientGenerator {
         classMembers.add(helperGen.buildGetPipeName());
 
         ClientWorkerGenerator workerGen =
-                new ClientWorkerGenerator(asyncApiSpec, dispatcherKey, dispatcherStreamId);
+                new ClientWorkerGenerator(asyncApiSpec, dispatcherKey, dispatcherStreamId,
+                        new RemoteFunctionReturnTypeGenerator(asyncApiSpec).hasRepliesWithoutDispatcherKey());
         classMembers.add(workerGen.buildStartMessageWriting());
         classMembers.add(workerGen.buildStartMessageReading());
 
@@ -375,10 +377,7 @@ public class ClientGenerator {
                 CodegenUtils.tokenWithSpace(ISOLATED_KEYWORD));
 
         // Class name: {Title}{ChannelName}Client
-        String title = asyncApiSpec.getAsyncApiInfo() != null
-                && asyncApiSpec.getAsyncApiInfo().title() != null
-                ? CodegenUtils.getValidName(asyncApiSpec.getAsyncApiInfo().title(), true)
-                : "AsyncApi";
+        String title = CodegenUtils.getClientTitleName(asyncApiSpec.getAsyncApiInfo());
         String chanName = "/".equals(channel.address()) ? "" : CodegenUtils.getValidName(channelName, true);
         String className = String.format("%s%sClient", title, chanName);
 

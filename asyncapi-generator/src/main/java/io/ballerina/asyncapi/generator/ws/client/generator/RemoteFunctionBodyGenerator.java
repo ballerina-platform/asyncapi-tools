@@ -30,6 +30,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 
 import static io.ballerina.asyncapi.generator.ws.client.generator.ClientGenerator.ATTEMPT_TO_CLOSE_CONNECTION;
 import static io.ballerina.asyncapi.generator.ws.client.generator.ClientGenerator.IS_ACTIVE;
@@ -67,11 +68,29 @@ public class RemoteFunctionBodyGenerator {
     private static final String CONSUMING = "consuming";
     private static final String PRODUCING = "producing";
     private static final String ERROR_PIPE_CLOSE = "Error in closing pipe.";
-    private static final String ERROR = "error";
     private static final String SELF_PIPES_GET_PIPE = "self.pipes.getPipe(%s)";
     private static final String PIPE_CLOSE_STATEMENT = "error? %s = self.pipes.removePipe(%s);";
     private static final String CREATE_UUID_STATEMENT = "%s.%s = uuid:createType1AsString();";
     private static final String STREAM_GENERATORS = "streamGenerators";
+    private static final String STRING = "string";
+    private static final String FROM_JSON_STRING_WITH_TYPE = "fromJsonStringWithType";
+    private static final String TURN_ERR_VAR = "turnErr";
+    private static final String TURN_RELEASE_ERR_VAR = "turnReleaseErr";
+    private static final String TURN_WAIT_ERR_MSG =
+            "\"PipeError: Error in waiting for an earlier call to get its reply\"";
+    private static final String TURN_RELEASE_ERR_MSG = "\"PipeError: Error in releasing the reply pipe\"";
+
+    /**
+     * How a remote function turns the reply frame it consumes into its return type.
+     */
+    public enum ReplyFormat {
+        /** A JSON message with the dispatcher key, routed to its pipe by the key's value. */
+        KEYED,
+        /** A string reply, whose frame text is the value itself. */
+        TEXT,
+        /** Any other reply without the dispatcher key, sent as JSON text. */
+        JSON
+    }
 
     private final List<ImportDeclarationNode> imports;
 
@@ -107,13 +126,33 @@ public class RemoteFunctionBodyGenerator {
     public String buildBodySource(Map<String, JsonNode> extensions, String requestType,
                                   String specDispatcherStreamId, boolean isSubscribe,
                                   String responseType, String pipeName) {
+        return buildBodySource(extensions, requestType, specDispatcherStreamId, isSubscribe, responseType, pipeName,
+                ReplyFormat.KEYED);
+    }
+
+    /**
+     * Builds the function body source text for a remote function whose reply has the given format.
+     *
+     * @param extensions             message-level extensions ({@code x-response-type}, etc.)
+     * @param requestType            the Ballerina request type name
+     * @param specDispatcherStreamId the dispatcher stream ID field name (may be {@code null})
+     * @param isSubscribe            {@code true} for receive-only (subscribe) operations
+     * @param responseType           the Ballerina response type name
+     * @param pipeName               the canonical pipe key for this response type (from the responseMap)
+     * @param replyFormat            how the reply frame becomes the response type
+     * @return function body source text (statements only, no braces)
+     */
+    public String buildBodySource(Map<String, JsonNode> extensions, String requestType,
+                                  String specDispatcherStreamId, boolean isSubscribe,
+                                  String responseType, String pipeName, ReplyFormat replyFormat) {
         StringBuilder sb = new StringBuilder();
         if (extensions != null) {
             JsonNode xResponseType = extensions.get(X_RESPONSE_TYPE);
             if (xResponseType != null && SERVER_STREAMING.equals(xResponseType.asText())) {
                 buildStreamBodySource(sb, requestType, responseType, specDispatcherStreamId, isSubscribe, pipeName);
             } else {
-                buildSimpleRpcBodySource(sb, requestType, responseType, specDispatcherStreamId, isSubscribe, pipeName);
+                buildSimpleRpcBodySource(sb, requestType, responseType, specDispatcherStreamId, isSubscribe, pipeName,
+                        replyFormat);
             }
         } else {
             buildNoResponseBodySource(sb, requestType);
@@ -152,13 +191,14 @@ public class RemoteFunctionBodyGenerator {
 
     private void buildStreamBodySource(StringBuilder sb, String requestType, String responseType,
                                        String dispatcherStreamId, boolean isSubscribe, String pipeName) {
-        String camelCaseRequestType = Character.toLowerCase(requestType.charAt(0)) + requestType.substring(1);
-        String pipeId = String.format("\"%s\"", camelCaseRequestType);
+        // Same key the reader gets from responseMap for this request type
+        String pipeId = String.format("\"%s\"", CodegenUtils.getValidName(requestType, false));
         if (!isSubscribe) {
             appendConnectionActiveCheck(sb);
         }
         if (!Objects.isNull(dispatcherStreamId)) {
-            pipeId = String.format("%s.%s", camelCaseRequestType, CodegenUtils.escapeIdentifier(dispatcherStreamId));
+            pipeId = String.format("%s.%s", CodegenUtils.getRequestParamName(requestType),
+                    CodegenUtils.escapeIdentifier(dispatcherStreamId));
         }
         appendProduceStatements(sb, requestType, isSubscribe);
 
@@ -175,43 +215,59 @@ public class RemoteFunctionBodyGenerator {
     }
 
     private void buildSimpleRpcBodySource(StringBuilder sb, String requestType, String responseType,
-                                          String dispatcherStreamId, boolean isSubscribe, String pipeName) {
-        String camelCaseRequestType = Character.toLowerCase(requestType.charAt(0)) + requestType.substring(1);
-        String responseTypeCamelCase;
-        if (responseType.contains(PIPE_SEP)) {
-            responseTypeCamelCase = "unionResult";
-        } else {
-            responseTypeCamelCase = String.format("%s%s",
-                    Character.toLowerCase(responseType.charAt(0)), responseType.substring(1));
+                                          String dispatcherStreamId, boolean isSubscribe, String pipeName,
+                                          ReplyFormat replyFormat) {
+        String camelCaseRequestType = CodegenUtils.getRequestParamName(requestType);
+        String responseVar = responseType.contains(PIPE_SEP)
+                ? "unionResult" : CodegenUtils.getValidName(responseType, false);
+        // An echo reply shares the request's type, so its variable needs a name apart from the parameter
+        String cloneVar = CodegenUtils.getFreeLocalName(responseVar, "Response", Set.of(camelCaseRequestType));
+        boolean keyed = replyFormat == ReplyFormat.KEYED;
+        // A reply without the dispatcher key can't carry a stream id either
+        boolean perRequestPipe = keyed && !Objects.isNull(dispatcherStreamId);
+        String pipeId = String.format("\"%s\"",
+                keyed ? pipeName : RemoteFunctionReturnTypeGenerator.NO_DISPATCHER_KEY_PIPE);
+        if (perRequestPipe) {
+            pipeId = String.format("%s.%s", camelCaseRequestType, CodegenUtils.escapeIdentifier(dispatcherStreamId));
         }
-        String pipeId = String.format("\"%s\"", pipeName);
+        // Calls sharing a reply pipe take turns, so each one consumes the reply to its own request
+        boolean takesTurn = !isSubscribe && !perRequestPipe;
         if (!isSubscribe) {
             appendConnectionActiveCheck(sb);
         }
-        if (!Objects.isNull(dispatcherStreamId)) {
-            pipeId = String.format("%s.%s", camelCaseRequestType, CodegenUtils.escapeIdentifier(dispatcherStreamId));
+        if (takesTurn) {
+            sb.append(String.format("%s? %s = self.%s.takeTurn(%s, timeout);\n",
+                    PIPE_ERROR_TYPE, TURN_ERR_VAR, PIPES, pipeId));
+            sb.append(String.format("if %s is %s { return error(%s, %s); }\n",
+                    TURN_ERR_VAR, PIPE_ERROR_TYPE, TURN_WAIT_ERR_MSG, TURN_ERR_VAR));
         }
         appendProduceStatements(sb, requestType, isSubscribe);
 
         // consume
         sb.append(String.format("%s|%s %s = %s.%s(timeout);\n",
-                MESSAGE_TYPE, PIPE_ERROR_TYPE, RESPONSE_MESSAGE_VAR,
+                keyed ? MESSAGE_TYPE : STRING, PIPE_ERROR_TYPE, RESPONSE_MESSAGE_VAR,
                 String.format(SELF_PIPES_GET_PIPE, pipeId), CONSUME));
         sb.append(String.format("if %s is %s { self.%s(); return error(%s, %s); }\n",
                 RESPONSE_MESSAGE_VAR, PIPE_ERROR_TYPE, ATTEMPT_TO_CLOSE_CONNECTION,
                 String.format(PIPE_ERR_TEMPLATE, CONSUMING), RESPONSE_MESSAGE_VAR));
 
-        if (!Objects.isNull(dispatcherStreamId)) {
+        if (takesTurn) {
+            sb.append(String.format("%s? %s = self.%s.giveTurn(%s);\n",
+                    PIPE_ERROR_TYPE, TURN_RELEASE_ERR_VAR, PIPES, pipeId));
+            sb.append(String.format("if %s is %s { self.%s(); return error(%s, %s); }\n",
+                    TURN_RELEASE_ERR_VAR, PIPE_ERROR_TYPE, ATTEMPT_TO_CLOSE_CONNECTION, TURN_RELEASE_ERR_MSG,
+                    TURN_RELEASE_ERR_VAR));
+        }
+        if (perRequestPipe) {
             String pipeCloseErr = "pipeCloseError";
             sb.append(String.format(PIPE_CLOSE_STATEMENT, pipeCloseErr, pipeId)).append("\n");
             sb.append(String.format("if %s is error { %s }\n", pipeCloseErr,
                     String.format(LOG_PRINT_DEBUG_TEMPLATE, PIPE_ERR_CAPITAL, ERROR_PIPE_CLOSE, pipeCloseErr)));
         }
 
-        String cloneVar = requestType.equals(ERROR)
-                ? responseTypeCamelCase + MESSAGE_TYPE : responseTypeCamelCase;
-        sb.append(String.format("%s|error %s = %s.%s();\n",
-                responseType, cloneVar, RESPONSE_MESSAGE_VAR, CLONE_WITH_TYPE));
+        // A string reply's frame text is the value itself; any other reply without the key is JSON text
+        sb.append(String.format("%s|error %s = %s.%s();\n", responseType, cloneVar, RESPONSE_MESSAGE_VAR,
+                replyFormat == ReplyFormat.JSON ? FROM_JSON_STRING_WITH_TYPE : CLONE_WITH_TYPE));
         sb.append(String.format("if %s is error { self.%s(); return error(%s, %s); }\n",
                 cloneVar, ATTEMPT_TO_CLOSE_CONNECTION, DATABINDING_ERR_MSG, cloneVar));
         sb.append(String.format("return %s;\n", cloneVar));
@@ -219,7 +275,7 @@ public class RemoteFunctionBodyGenerator {
 
     private void buildNoResponseBodySource(StringBuilder sb, String requestType) {
         appendConnectionActiveCheck(sb);
-        String paramName = Character.toLowerCase(requestType.charAt(0)) + requestType.substring(1);
+        String paramName = CodegenUtils.getRequestParamName(requestType);
         sb.append(String.format("%s|error %s = %s.%s();\n",
                 MESSAGE_TYPE, MESSAGE_VAR, paramName, CLONE_WITH_TYPE));
         sb.append(String.format("if %s is error { self.%s(); return error(%s, %s); }\n",
@@ -235,7 +291,7 @@ public class RemoteFunctionBodyGenerator {
         if (isSubscribe) {
             return;
         }
-        String paramName = Character.toLowerCase(requestType.charAt(0)) + requestType.substring(1);
+        String paramName = CodegenUtils.getRequestParamName(requestType);
         sb.append(String.format("%s|error %s = %s.%s();\n",
                 MESSAGE_TYPE, MESSAGE_VAR, paramName, CLONE_WITH_TYPE));
         sb.append(String.format("if %s is error { self.%s(); return error(%s, %s); }\n",

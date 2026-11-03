@@ -261,7 +261,7 @@ public class ClientRemoteFunctionGenerator {
         // Build param doc lines
         if (payload != null && payload.description() != null) {
             String typeName = sigGen.getDataType(payload);
-            String varName = CodegenUtils.getValidName(typeName, false);
+            String varName = CodegenUtils.getRequestParamName(typeName);
             docBuilder.append("# + ").append(varName).append(" - ").append(payload.description()).append("\n");
             docBuilder.append("# + timeout - waiting period to keep the event in the buffer in seconds\n");
         }
@@ -288,8 +288,13 @@ public class ClientRemoteFunctionGenerator {
         // the same response type route through the same pipe
         String requestType = payload != null ? sigGen.getDataType(payload) : "null";
         String pipeName = responseMap.getOrDefault(returnType, requestType);
+        RemoteFunctionBodyGenerator.ReplyFormat replyFormat = RemoteFunctionBodyGenerator.ReplyFormat.KEYED;
+        if (!"null".equals(returnType) && returnTypeGen.isReplyWithoutDispatcherKey(returnType)) {
+            replyFormat = returnTypeGen.isTextReply(returnType)
+                    ? RemoteFunctionBodyGenerator.ReplyFormat.TEXT : RemoteFunctionBodyGenerator.ReplyFormat.JSON;
+        }
         String bodySource = bodyGen.buildBodySource(msgExtensions, requestType, dispatcherStreamId,
-                isSubscribe, returnType, pipeName);
+                isSubscribe, returnType, pipeName, replyFormat);
 
         // Build complete function source and parse
         String funcSource = String.format(
