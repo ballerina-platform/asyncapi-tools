@@ -881,6 +881,8 @@ class BallerinaToAsyncApiGeneratorTest {
         Assert.assertTrue(yaml.contains("const: custom_value"),
                 "a @websocket:DispatcherConfig value is used exactly as written: " + yaml);
         Assert.assertFalse(yaml.contains("const: CustomValue") || yaml.contains("const: ConnectionInit"), yaml);
+        // websocket gives each capital its own word, so only h_t_t_p_response reaches onHTTPResponse
+        Assert.assertTrue(yaml.contains("const: h_t_t_p_response"), yaml);
         // The annotation names the message, but its payload is still the parameter type's schema.
         Assert.assertTrue(yaml.contains("$ref: \"#/components/schemas/Custom\""), yaml);
         Assert.assertFalse(yaml.contains("#/components/schemas/CustomValue"), "no dangling schema reference: " + yaml);
@@ -1097,6 +1099,9 @@ class BallerinaToAsyncApiGeneratorTest {
             + "    }\n"
             + "    @websocket:DispatcherConfig {dispatcherValue: \"custom_value\"}\n"
             + "    remote function onAnnotated(Custom custom) returns string {\n"
+            + "        return \"ok\";\n"
+            + "    }\n"
+            + "    remote function onHTTPResponse(Init init) returns string {\n"
             + "        return \"ok\";\n"
             + "    }\n"
             + "}\n";

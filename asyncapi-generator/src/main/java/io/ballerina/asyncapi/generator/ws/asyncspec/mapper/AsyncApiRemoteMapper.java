@@ -542,13 +542,12 @@ public class AsyncApiRemoteMapper {
     }
 
     /**
-     * The value websocket dispatches to {@code on<Name>}: the words of {@code <Name>} in lower case, joined with "_".
-     * websocket capitalises each "_"- or "-"-separated word, so connection_init reaches onConnectionInit.
+     * The value websocket dispatches to {@code on<Name>}. websocket capitalises the first letter of each "_"- or
+     * "-"-separated word and lowercases the rest, so every capital in {@code <Name>} starts a word of its own:
+     * connection_init reaches onConnectionInit, and h_t_t_p_response reaches onHTTPResponse.
      */
     static String dispatchValueOf(String name) {
-        return name.replaceAll("([a-z0-9])([A-Z])", "$1_$2")
-                .replaceAll("([A-Z]+)([A-Z][a-z])", "$1_$2")
-                .toLowerCase(Locale.ENGLISH);
+        return name.replaceAll("(?<!^)(?=[A-Z])", "_").toLowerCase(Locale.ENGLISH);
     }
 
     /**
