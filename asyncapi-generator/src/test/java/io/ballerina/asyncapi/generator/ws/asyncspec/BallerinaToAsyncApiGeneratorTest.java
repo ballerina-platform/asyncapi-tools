@@ -994,8 +994,8 @@ class BallerinaToAsyncApiGeneratorTest {
         // onHello's message is Hello, so the Hello record that onGreet replies with needs another message name.
         Assert.assertTrue(run(BAL_REPLY_NAME_CLASH).isEmpty());
         String yaml = readGeneratedYaml();
-        Assert.assertTrue(yaml.contains("    Hello:\n      payload:\n        $ref: \"#/components/schemas/HelloData\""),
-                yaml);
+        Assert.assertTrue(yaml.contains("    Hello:\n      payload:\n        allOf:\n"
+                + "        - $ref: \"#/components/schemas/HelloData\""), yaml);
         Assert.assertTrue(
                 yaml.contains("    HelloReply:\n      payload:\n        $ref: \"#/components/schemas/Hello\""), yaml);
         Assert.assertTrue(yaml.contains("x-response:\n        $ref: \"#/components/messages/HelloReply\""), yaml);
@@ -1030,13 +1030,51 @@ class BallerinaToAsyncApiGeneratorTest {
             + "}\n";
 
     @Test
-    void testSharedRequestType_isReportedAsADiagnostic() throws IOException {
-        List<AsyncApiConverterDiagnostic> diagnostics = run(BAL_SHARED_REQUEST_TYPE);
-        Assert.assertEquals(diagnostics.size(), 1, "Diagnostics: " + diagnostics);
-        String message = diagnostics.get(0).getMessage();
-        Assert.assertTrue(message.contains("onSubscribe") && message.contains("onUnsubscribe")
-                && message.contains("Topic"), message);
+    void testSharedRequestType_getsOneMessagePerFunction() throws IOException {
+        // Each message carries its own dispatcher value, so both functions can take Topic.
+        Assert.assertTrue(run(BAL_SHARED_REQUEST_TYPE).isEmpty());
+        String yaml = readGeneratedYaml();
+        Assert.assertTrue(yaml.contains("    Subscribe:\n      payload:\n        allOf:\n"
+                + "        - $ref: \"#/components/schemas/Topic\""), yaml);
+        Assert.assertTrue(yaml.contains("    Unsubscribe:\n      payload:\n        allOf:\n"
+                + "        - $ref: \"#/components/schemas/Topic\""), yaml);
+        Assert.assertTrue(yaml.contains("const: subscribe") && yaml.contains("const: unsubscribe"), yaml);
     }
+
+    @Test
+    void testEchoReply_isNotHeldToTheRequestsDispatcherValue() throws IOException {
+        // The reply may carry any event, so it points at the plain ChatMessage schema, not at the request message.
+        Assert.assertTrue(run(BAL_ECHO).isEmpty());
+        String yaml = readGeneratedYaml();
+        Assert.assertTrue(yaml.contains("    ChatMessage:\n      payload:\n        allOf:\n"
+                + "        - $ref: \"#/components/schemas/ChatMessage\""), yaml);
+        Assert.assertTrue(yaml.contains(
+                "    ChatMessageReply:\n      payload:\n        $ref: \"#/components/schemas/ChatMessage\""), yaml);
+        Assert.assertTrue(yaml.contains("x-response:\n        $ref: \"#/components/messages/ChatMessageReply\""),
+                yaml);
+        int schemas = yaml.indexOf("\n  schemas:");
+        String schema = yaml.substring(schemas, yaml.indexOf("\n  messages:", schemas));
+        Assert.assertFalse(schema.contains("const:"), "the shared schema carries no dispatcher value: " + schema);
+    }
+
+    private static final String BAL_ECHO =
+            "import ballerina/websocket;\n\n"
+            + "public type ChatMessage record {\n"
+            + "    string event;\n"
+            + "    string text;\n"
+            + "};\n\n"
+            + "@websocket:ServiceConfig {dispatcherKey: \"event\"}\n"
+            + "service /echo on new websocket:Listener(9090) {\n"
+            + "    resource function get .() returns websocket:Service {\n"
+            + "        return new EchoService();\n"
+            + "    }\n"
+            + "}\n\n"
+            + "service class EchoService {\n"
+            + "    *websocket:Service;\n"
+            + "    remote function onChatMessage(ChatMessage msg) returns ChatMessage {\n"
+            + "        return {event: \"ack\", text: msg.text};\n"
+            + "    }\n"
+            + "}\n";
 
     private static final String BAL_DISPATCH_VALUES =
             "import ballerina/websocket;\n\n"

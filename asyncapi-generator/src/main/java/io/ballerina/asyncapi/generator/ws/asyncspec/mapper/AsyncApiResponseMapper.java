@@ -67,6 +67,7 @@ import static io.ballerina.asyncapi.generator.ws.asyncspec.Constants.CUSTOM_CLOS
 import static io.ballerina.asyncapi.generator.ws.asyncspec.Constants.DESCRIPTION;
 import static io.ballerina.asyncapi.generator.ws.asyncspec.Constants.MESSAGE_REFERENCE;
 import static io.ballerina.asyncapi.generator.ws.asyncspec.Constants.NO_TYPE_IN_STREAM;
+import static io.ballerina.asyncapi.generator.ws.asyncspec.Constants.ALLOF;
 import static io.ballerina.asyncapi.generator.ws.asyncspec.Constants.ONEOF;
 import static io.ballerina.asyncapi.generator.ws.asyncspec.Constants.PAYLOAD;
 import static io.ballerina.asyncapi.generator.ws.asyncspec.Constants.PREDEFINED_CLOSE_FRAME_TYPE;
@@ -100,7 +101,7 @@ public class AsyncApiResponseMapper {
     private final AsyncApi30ComponentsImpl components;
     private final AsyncApiComponentMapper componentMapper;
     private final List<AsyncApiConverterDiagnostic> errors = new ArrayList<>();
-    private Map<String, String> requestMessages = Map.of();
+    private Set<String> requestMessageNames = Set.of();
 
     /**
      * Creates a new response mapper.
@@ -119,13 +120,12 @@ public class AsyncApiResponseMapper {
     }
 
     /**
-     * Sets the service's request messages, which reply messages must not take the names of.
+     * Sets the names of the service's request messages, which reply messages must not take.
      *
-     * @param requestMessages each request message's name, mapped to its payload's schema name
-     *                        ({@code null} for an inline payload)
+     * @param requestMessageNames the request message names
      */
-    public void setRequestMessages(Map<String, String> requestMessages) {
-        this.requestMessages = requestMessages;
+    public void setRequestMessageNames(Set<String> requestMessageNames) {
+        this.requestMessageNames = requestMessageNames;
     }
 
     /**
@@ -303,13 +303,44 @@ public class AsyncApiResponseMapper {
                                                                    String messageName, String schemaName,
                                                                    TypeSymbol typeSymbol, String dispatcherValue,
                                                                    String paramDescription) {
+        return extractMessageSchemaReference(message, messageName, schemaName, typeSymbol, dispatcherValue,
+                paramDescription, null);
+    }
+
+    /**
+     * Like {@link #extractMessageSchemaReference(BalAsyncApi30MessageImpl, String, String, TypeSymbol, String,
+     * String)}, for a request message whose payload also has to carry its remote function's dispatcher value.
+     * The payload is {@code allOf} the type's schema and {@code dispatcherConstraint}, so the type's schema
+     * stays free for replies and other functions.
+     *
+     * @param message              channel-level message to add oneOf reference to
+     * @param messageName          the message name
+     * @param schemaName           the payload type's schema name
+     * @param typeSymbol           type symbol used to generate the component schema
+     * @param dispatcherValue      dispatcher key passed to the component mapper
+     * @param paramDescription     optional description for the payload node
+     * @param dispatcherConstraint the schema fixing the dispatcher field's value, or {@code null} for none
+     * @return the component-level message with the payload set
+     */
+    public BalAsyncApi30MessageImpl extractMessageSchemaReference(BalAsyncApi30MessageImpl message,
+                                                                   String messageName, String schemaName,
+                                                                   TypeSymbol typeSymbol, String dispatcherValue,
+                                                                   String paramDescription,
+                                                                   BalAsyncApi30SchemaImpl dispatcherConstraint) {
         String typeName = messageName;
         BalAsyncApi30MessageImpl messageType = new BalAsyncApi30MessageImpl();
 
         componentMapper.createComponentSchema(typeSymbol, dispatcherValue);
 
-        ObjectNode objNode1 = ConverterCommonUtils.createObjectNode();
-        objNode1.put(REF, SCHEMA_REFERENCE + ConverterCommonUtils.unescapeIdentifier(schemaName));
+        ObjectNode schemaRef = ConverterCommonUtils.createObjectNode();
+        schemaRef.put(REF, SCHEMA_REFERENCE + ConverterCommonUtils.unescapeIdentifier(schemaName));
+        ObjectNode objNode1 = schemaRef;
+        if (dispatcherConstraint != null) {
+            objNode1 = ConverterCommonUtils.createObjectNode();
+            ArrayNode allOf = objNode1.putArray(ALLOF);
+            allOf.add(schemaRef);
+            allOf.add(callObjectMapper().<JsonNode>valueToTree(dispatcherConstraint));
+        }
 
         if (paramDescription != null) {
             objNode1.put(DESCRIPTION, paramDescription);
@@ -493,8 +524,8 @@ public class AsyncApiResponseMapper {
         }
     }
 
-    // A reply record's message is named after the record, unless a request message (or another record's
-    // reply) has that name for a different payload; then it takes the next free <Record>Reply name.
+    // A reply record's message is named after the record, unless a request message or another record's reply
+    // has that name; then it takes the next free <Record>Reply name.
     private String replyMessageName(String recordName) {
         String candidate = recordName;
         for (int n = 1; !canNameReply(candidate, recordName); n++) {
@@ -503,10 +534,11 @@ public class AsyncApiResponseMapper {
         return candidate;
     }
 
-    // An echo reply shares its request's message, and replies of one record share a message
+    // Replies of one record share a message. A request message carries its function's dispatcher value, so even
+    // an echo reply gets a message of its own.
     private boolean canNameReply(String messageName, String recordName) {
-        if (requestMessages.containsKey(messageName)) {
-            return recordName.equals(requestMessages.get(messageName));
+        if (requestMessageNames.contains(messageName)) {
+            return false;
         }
         Object existing = components.getMessages() == null ? null : components.getMessages().get(messageName);
         if (existing == null) {

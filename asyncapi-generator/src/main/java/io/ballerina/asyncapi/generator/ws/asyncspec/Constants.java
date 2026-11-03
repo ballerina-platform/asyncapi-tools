@@ -68,6 +68,7 @@ public class Constants {
     public static final String SCHEMA_REFERENCE = "#/components/schemas/";
     public static final String REF = "$ref";
     public static final String ONEOF = "oneOf";
+    public static final String ALLOF = "allOf";
     public static final String MESSAGE_REFERENCE = "#/components/messages/";
     public static final String CHANNELS_REFERENCE = "#/channels/";
     public static final String OPERATIONS_REFERENCE = "#/operations/";
@@ -134,9 +135,6 @@ public class Constants {
     public static final String NO_DISPATCHER_KEY = "ERROR: the @websocket:ServiceConfig annotation has no "
             + "dispatcherKey. Without it, WebSocket delivers every message to onMessage, so the other remote "
             + "functions can't be described. Add one, for example dispatcherKey: \"event\"";
-    public static final String SHARED_REQUEST_TYPE = "ERROR: remote functions %s and %s both take %s, but each "
-            + "message carries its own dispatcher value in its schema. Give each remote function its own request "
-            + "type";
     public static final String SHARED_MESSAGE_NAME = "ERROR: the @websocket:DispatcherConfig values of remote "
             + "functions %s and %s both give a message named %s. Change one of the values so the names differ";
     public static final String DISPATCHER_KEY_VALUE_CANNOT_BE_EMPTY = "ERROR: dispatcherKey cannot be empty";

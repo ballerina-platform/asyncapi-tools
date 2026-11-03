@@ -98,9 +98,6 @@ public class AsyncApiComponentMapper {
 
     private final AsyncApi30ComponentsImpl components;
     private final List<AsyncApiConverterDiagnostic> diagnostics;
-    // The value a client sends in the dispatcher field to reach the remote function being mapped.
-    private String dispatchValue;
-
     private static final Set<String> closeFrameTypes =
             Set.of(PREDEFINED_CLOSE_FRAME_TYPE, CUSTOM_CLOSE_FRAME_TYPE);
 
@@ -121,17 +118,6 @@ public class AsyncApiComponentMapper {
      */
     public List<AsyncApiConverterDiagnostic> getDiagnostics() {
         return Collections.unmodifiableList(diagnostics);
-    }
-
-    /**
-     * Sets the value a client sends in the dispatcher field to reach the remote function whose request
-     * type is mapped next, written as that field's {@code const}. {@code null} falls back to the
-     * schema's own name.
-     *
-     * @param dispatchValue the dispatcher value, or {@code null}
-     */
-    public void setDispatchValue(String dispatchValue) {
-        this.dispatchValue = dispatchValue;
     }
 
     /**
@@ -402,7 +388,6 @@ public class AsyncApiComponentMapper {
                 if (fieldType.equals(STRING)) {
                     if (!fieldIsOptional) {
                         dispatcherValuePresent = true;
-                        property.setConst(new TextNode(dispatchValue != null ? dispatchValue : componentName));
                     } else {
                         throw new NoSuchElementException(String.format(
                                 DISPATCHERKEY_OPTIONAL_EXCEPTION, fieldName, componentName));

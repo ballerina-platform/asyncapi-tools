@@ -63,6 +63,7 @@ import io.ballerina.compiler.syntax.tree.SyntaxKind;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -70,6 +71,7 @@ import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import static io.ballerina.asyncapi.generator.ws.asyncspec.Constants.ANNOTATION_ATTR_DISPATCHER_VALUE;
@@ -100,7 +102,6 @@ import static io.ballerina.asyncapi.generator.ws.asyncspec.Constants.REF;
 import static io.ballerina.asyncapi.generator.ws.asyncspec.Constants.REMOTE_DESCRIPTION;
 import static io.ballerina.asyncapi.generator.ws.asyncspec.Constants.RETURN;
 import static io.ballerina.asyncapi.generator.ws.asyncspec.Constants.SHARED_MESSAGE_NAME;
-import static io.ballerina.asyncapi.generator.ws.asyncspec.Constants.SHARED_REQUEST_TYPE;
 import static io.ballerina.asyncapi.generator.ws.asyncspec.Constants.UNSUPPORTED_PARAMETER_TYPE;
 import static io.ballerina.asyncapi.generator.ws.asyncspec.Constants.WEBSOCKET;
 import static io.ballerina.asyncapi.generator.ws.asyncspec.Constants.X_BALLERINA_WS_CLOSE_FRAME_PATH;
@@ -271,11 +272,10 @@ public class AsyncApiRemoteMapper {
         AsyncApiResponseMapper responseMapper = new AsyncApiResponseMapper(resource.location(), componentMapper,
                 semanticModel, components);
         Map<String, ReturnTypeDescriptorNode> onErrorReturnTypes = getReturnTypesFromOnErrorMethods(classMethodNodes);
-        Map<String, String> requestTypeOwners = new HashMap<>();
         Map<String, String> messageOwners = new HashMap<>();
         // Named once every function's messages are registered, so an inline response can't take a used name.
         Map<String, BalAsyncApi30MessageImpl> inlineResponseRequests = new LinkedHashMap<>();
-        responseMapper.setRequestMessages(requestMessages(classMethodNodes));
+        responseMapper.setRequestMessageNames(requestMessageNames(classMethodNodes));
 
         for (Node node : classMethodNodes) {
             if (node.kind().equals(SyntaxKind.OBJECT_METHOD_DEFINITION)) {
@@ -340,25 +340,14 @@ public class AsyncApiRemoteMapper {
                                             || (type.typeKind().equals(TypeDescKind.INTERSECTION)
                                             && componentMapper.excludeReadonlyIfPresent(type).typeKind()
                                             .equals(TypeDescKind.RECORD))) {
-                                        // The request type's schema carries this function's dispatcher value, so
-                                        // a second function taking the same type can't be described.
                                         String requestType = unescapeIdentifier(
                                                 resolveParameterTypeName(requiredParameterNode));
-                                        String owner = requestTypeOwners.putIfAbsent(requestType, functionName);
-                                        if (owner != null) {
-                                            throw new NoSuchElementException(String.format(SHARED_REQUEST_TYPE,
-                                                    owner, functionName, requestType));
-                                        }
-                                        componentMapper.setDispatchValue(wireValue);
-                                        try {
-                                            // The function names the message; the payload is the parameter
-                                            // type's schema.
-                                            componentMessage = responseMapper.extractMessageSchemaReference(
-                                                    publishMessage, remoteRequestTypeName, requestType,
-                                                    remoteFunctionNameTypeSymbol, dispatcherValue, paramDescription);
-                                        } finally {
-                                            componentMapper.setDispatchValue(null);
-                                        }
+                                        // The message, not the type, carries the dispatcher value, so replies and
+                                        // other functions can use the same type.
+                                        componentMessage = responseMapper.extractMessageSchemaReference(
+                                                publishMessage, remoteRequestTypeName, requestType,
+                                                remoteFunctionNameTypeSymbol, dispatcherValue, paramDescription,
+                                                dispatcherFieldSchema(dispatcherValue, wireValue));
                                     } else {
                                         throw new NoSuchElementException(String.format(
                                                 FUNCTION_SIGNATURE_WRONG_TYPE, remoteRequestTypeName,
@@ -469,24 +458,20 @@ public class AsyncApiRemoteMapper {
                 .orElseGet(() -> functionName.substring(2));
     }
 
-    // Each remote function's message name, mapped to its payload's schema name (null for an inline payload).
-    private Map<String, String> requestMessages(NodeList<Node> classMethodNodes) {
-        Map<String, String> requestMessages = new HashMap<>();
+    // The message name of every remote function, collected up front so no reply message takes one.
+    private Set<String> requestMessageNames(NodeList<Node> classMethodNodes) {
+        Set<String> requestMessageNames = new HashSet<>();
         for (Node node : classMethodNodes) {
             if (node.kind() != SyntaxKind.OBJECT_METHOD_DEFINITION) {
                 continue;
             }
             FunctionDefinitionNode remoteFunctionNode = (FunctionDefinitionNode) node;
             String functionName = remoteFunctionNode.functionName().toString().trim();
-            if (!functionName.matches(CAMEL_CASE_PATTERN) || !isRemoteFunctionNameValid(functionName)) {
-                continue;
+            if (functionName.matches(CAMEL_CASE_PATTERN) && isRemoteFunctionNameValid(functionName)) {
+                requestMessageNames.add(requestMessageName(remoteFunctionNode));
             }
-            RequiredParameterNode parameter = findMessageParameter(remoteFunctionNode);
-            requestMessages.put(requestMessageName(remoteFunctionNode),
-                    parameter == null || isPrimitiveTypeDesc(parameter.typeName().kind())
-                            ? null : unescapeIdentifier(resolveParameterTypeName(parameter)));
         }
-        return requestMessages;
+        return requestMessageNames;
     }
 
     // Lists a component message on the channel and adds the receive operation that points at it.
