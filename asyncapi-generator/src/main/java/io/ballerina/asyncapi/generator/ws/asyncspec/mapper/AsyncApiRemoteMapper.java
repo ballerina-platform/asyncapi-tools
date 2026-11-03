@@ -449,7 +449,9 @@ public class AsyncApiRemoteMapper {
         return channelObject;
     }
 
-    // A remote function's message is named after the function, or after its @DispatcherConfig value.
+    /**
+     * A remote function's message is named after the function, or after its {@code @DispatcherConfig} value.
+     */
     private String requestMessageName(FunctionDefinitionNode remoteFunctionNode) {
         String functionName = remoteFunctionNode.functionName().toString().trim();
         return remoteFunctionNode.metadata().map(MetadataNode::annotations)
@@ -458,7 +460,9 @@ public class AsyncApiRemoteMapper {
                 .orElseGet(() -> functionName.substring(2));
     }
 
-    // The message name of every remote function, collected up front so no reply message takes one.
+    /**
+     * The message name of every remote function, collected up front so no reply message takes one.
+     */
     private Set<String> requestMessageNames(NodeList<Node> classMethodNodes) {
         Set<String> requestMessageNames = new HashSet<>();
         for (Node node : classMethodNodes) {
@@ -474,7 +478,9 @@ public class AsyncApiRemoteMapper {
         return requestMessageNames;
     }
 
-    // Lists a component message on the channel and adds the receive operation that points at it.
+    /**
+     * Lists a component message on the channel and adds the receive operation that points at it.
+     */
     private void addReceiveOperation(String messageName, AsyncApi30ChannelImpl channelItem, String channelKey) {
         BalAsyncApi30MessageImpl respChannelMsgRef = new BalAsyncApi30MessageImpl();
         respChannelMsgRef.setParent(channelItem);
@@ -492,8 +498,10 @@ public class AsyncApiRemoteMapper {
         operations.addItem("receive" + messageName, receiveOp);
     }
 
-    // A response that isn't a named record (an array, a primitive, a map) has no message of its own, so it
-    // gets one named after its request, which the channel lists, a receive operation and x-response point at.
+    /**
+     * A response that isn't a named record (an array, a primitive, a map) has no message of its own, so it
+     * gets one named after its request, which the channel lists, a receive operation and x-response point at.
+     */
     private void registerInlineResponses(String requestName, BalAsyncApi30MessageImpl componentMessage,
                                          AsyncApi30ChannelImpl channelItem, String channelKey) {
         Map<String, JsonNode> extensions = componentMessage.getExtensions();
@@ -533,15 +541,19 @@ public class AsyncApiRemoteMapper {
         }
     }
 
-    // The value websocket dispatches to on<Name>: the words of <Name> in lower case, joined with "_".
-    // websocket capitalises each "_"- or "-"-separated word, so connection_init reaches onConnectionInit.
+    /**
+     * The value websocket dispatches to {@code on<Name>}: the words of {@code <Name>} in lower case, joined with "_".
+     * websocket capitalises each "_"- or "-"-separated word, so connection_init reaches onConnectionInit.
+     */
     static String dispatchValueOf(String name) {
         return name.replaceAll("([a-z0-9])([A-Z])", "$1_$2")
                 .replaceAll("([A-Z]+)([A-Z][a-z])", "$1_$2")
                 .toLowerCase(Locale.ENGLISH);
     }
 
-    // An object payload that carries only the dispatcher field, fixed to the function's dispatcher value.
+    /**
+     * An object payload that carries only the dispatcher field, fixed to the function's dispatcher value.
+     */
     private static BalAsyncApi30SchemaImpl dispatcherFieldSchema(String dispatcherKey, String wireValue) {
         BalAsyncApi30SchemaImpl schema = getAsyncApiSchema(AsyncAPIType.OBJECT.toString());
         BalAsyncApi30SchemaImpl field = getAsyncApiSchema(AsyncAPIType.STRING.toString());
@@ -679,7 +691,9 @@ public class AsyncApiRemoteMapper {
         };
     }
 
-    // The dispatcherValue of a @websocket:DispatcherConfig on the remote function, exactly as written.
+    /**
+     * The dispatcherValue of a {@code @websocket:DispatcherConfig} on the remote function, exactly as written.
+     */
     private Optional<String> getDispatcherValueFromAnnotation(NodeList<AnnotationNode> annotationNodes) {
         if (Objects.isNull(annotationNodes) || annotationNodes.isEmpty()) {
             return Optional.empty();

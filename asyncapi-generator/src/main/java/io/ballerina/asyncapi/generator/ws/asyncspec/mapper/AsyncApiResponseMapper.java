@@ -524,8 +524,10 @@ public class AsyncApiResponseMapper {
         }
     }
 
-    // A reply record's message is named after the record, unless a request message or another record's reply
-    // has that name; then it takes the next free <Record>Reply name.
+    /**
+     * A reply record's message is named after the record, unless a request message or another record's reply
+     * has that name; then it takes the next free {@code <Record>Reply} name.
+     */
     private String replyMessageName(String recordName) {
         String candidate = recordName;
         for (int n = 1; !canNameReply(candidate, recordName); n++) {
@@ -534,8 +536,10 @@ public class AsyncApiResponseMapper {
         return candidate;
     }
 
-    // Replies of one record share a message. A request message carries its function's dispatcher value, so even
-    // an echo reply gets a message of its own.
+    /**
+     * Replies of one record share a message. A request message carries its function's dispatcher value, so even
+     * an echo reply gets a message of its own.
+     */
     private boolean canNameReply(String messageName, String recordName) {
         if (requestMessageNames.contains(messageName)) {
             return false;
@@ -652,9 +656,11 @@ public class AsyncApiResponseMapper {
         }
     }
 
-    // Writes a transient message the way AsyncAPI reads it: $ref, description and each extension (payload,
-    // oneOf, x-required) as its own field. Serialising the message object directly nests the extensions
-    // under an "extensions" key, which is not AsyncAPI.
+    /**
+     * Writes a transient message the way AsyncAPI reads it: $ref, description and each extension (payload,
+     * oneOf, x-required) as its own field. Serialising the message object directly nests the extensions
+     * under an "extensions" key, which is not AsyncAPI.
+     */
     private static ObjectNode messageNode(BalAsyncApi30MessageImpl message) {
         ObjectNode node = ConverterCommonUtils.createObjectNode();
         if (message.get$ref() != null) {
