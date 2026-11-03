@@ -189,6 +189,9 @@ public class RemoteFunctionBodyGenerator {
                 createToken(CLOSE_BRACE_TOKEN), null);
     }
 
+    /**
+     * Sends the request and returns a stream that a generator fills from the request type pipe.
+     */
     private void buildStreamBodySource(StringBuilder sb, String requestType, String responseType,
                                        String dispatcherStreamId, boolean isSubscribe, String pipeName) {
         // Same key the reader gets from responseMap for this request type
@@ -214,6 +217,9 @@ public class RemoteFunctionBodyGenerator {
         sb.append("return streamMessages;\n");
     }
 
+    /**
+     * Sends the request and waits for its one reply, taking a turn on a reply pipe that other calls share.
+     */
     private void buildSimpleRpcBodySource(StringBuilder sb, String requestType, String responseType,
                                           String dispatcherStreamId, boolean isSubscribe, String pipeName,
                                           ReplyFormat replyFormat) {
@@ -273,6 +279,9 @@ public class RemoteFunctionBodyGenerator {
         sb.append(String.format("return %s;\n", cloneVar));
     }
 
+    /**
+     * Sends the request without waiting for a reply.
+     */
     private void buildNoResponseBodySource(StringBuilder sb, String requestType) {
         appendConnectionActiveCheck(sb);
         String paramName = CodegenUtils.getRequestParamName(requestType);
@@ -287,6 +296,9 @@ public class RemoteFunctionBodyGenerator {
         sb.append(String.format("lock { if !self.%s { return error(%s); } }\n", IS_ACTIVE, CONNECTION_CLOSED_MSG));
     }
 
+    /**
+     * Clones the request into a {@code Message} and puts it on the write queue. A receive-only function sends nothing.
+     */
     private void appendProduceStatements(StringBuilder sb, String requestType, boolean isSubscribe) {
         if (isSubscribe) {
             return;

@@ -456,7 +456,9 @@ public final class SchemaMapper {
                 .build();
     }
 
-    // A $ref maps to a stub named after the referenced schema, keeping a sibling description or nullable
+    /**
+     * A {@code $ref} maps to a stub named after the referenced schema, keeping a sibling description or nullable.
+     */
     private static io.ballerina.asyncapi.core.model.component.AsyncApiSchema mapReference(ObjectNode refNode) {
         String ref = refNode.get(Constants.SCHEMA_REF).asText();
         io.ballerina.asyncapi.core.model.component.AsyncApiSchema stub =
@@ -471,6 +473,9 @@ public final class SchemaMapper {
         return nullable != null ? stub.withNullable(nullable) : stub;
     }
 
+    /**
+     * The boolean {@code nullable} of a JSON schema node, or {@code null} when it has none.
+     */
     private static Boolean mapNullable(ObjectNode objectNode) {
         JsonNode nullableNode = objectNode.get(Constants.SCHEMA_NULLABLE);
         return nullableNode != null && nullableNode.isBoolean() ? nullableNode.booleanValue() : null;

@@ -70,6 +70,9 @@ public final class NamedPayloadSpec implements AsyncApiSpec {
     private final AsyncApiComponent components;
     private final Map<String, AsyncApiOperation> operations;
 
+    /**
+     * Names every payload of {@code spec} up front, so the getters only return the result.
+     */
     private NamedPayloadSpec(AsyncApiSpec spec) {
         this.spec = spec;
         JsonNode dispatcherKeyNode = spec.getAsyncApiExtensions().map(ext -> ext.get(X_DISPATCHER_KEY)).orElse(null);
@@ -110,6 +113,9 @@ public final class NamedPayloadSpec implements AsyncApiSpec {
         return new NamedPayloadSpec(spec);
     }
 
+    /**
+     * Copies the operations with each message payload named.
+     */
     private Map<String, AsyncApiOperation> nameOperations(Map<String, AsyncApiOperation> original) {
         Map<String, AsyncApiOperation> result = new LinkedHashMap<>();
         for (Map.Entry<String, AsyncApiOperation> entry : original.entrySet()) {
@@ -129,7 +135,9 @@ public final class NamedPayloadSpec implements AsyncApiSpec {
         return result;
     }
 
-    // An operation message equal to a component message reuses the names given to the component message
+    /**
+     * An operation message equal to a component message reuses the names given to the component message.
+     */
     private AsyncApiMessage name(String messageName, AsyncApiMessage message) {
         AsyncApiMessage done = named.get(message);
         if (done != null) {
@@ -140,6 +148,10 @@ public final class NamedPayloadSpec implements AsyncApiSpec {
         return result;
     }
 
+    /**
+     * Moves an unnamed payload into {@code components.schemas} under its message name, unless it is a named type with
+     * only its dispatcher value pinned.
+     */
     private AsyncApiMessage withNamedPayload(String messageName, AsyncApiMessage message) {
         if (!(message.payload() instanceof AsyncApiSchema payload) || payload.name() != null
                 || CodegenUtils.isCloseFrameSchema(payload)) {
@@ -153,7 +165,9 @@ public final class NamedPayloadSpec implements AsyncApiSpec {
         return withPayload(message, payload.withName(schemaName), message.extensions());
     }
 
-    // allOf a named schema and a schema fixing only the dispatcher field's value is still that named type
+    /**
+     * {@code allOf} a named schema and a schema fixing only the dispatcher field's value is still that named type.
+     */
     private AsyncApiSchema constrainedType(AsyncApiSchema payload) {
         List<AsyncApiSchema> allOf = payload.allOf();
         if (dispatcherKey == null || allOf == null || allOf.size() != 2) {
@@ -169,6 +183,10 @@ public final class NamedPayloadSpec implements AsyncApiSpec {
         return schemas.get(type.name()).withName(type.name());
     }
 
+    /**
+     * Replaces each inline {@code x-response} payload, directly or in a {@code oneOf}, with a reference to a component
+     * message.
+     */
     private AsyncApiMessage withResponseRefs(String messageName, AsyncApiMessage message) {
         Map<String, JsonNode> extensions = message.extensions();
         if (extensions == null || extensions.get(X_RESPONSE) == null) {
@@ -196,7 +214,10 @@ public final class NamedPayloadSpec implements AsyncApiSpec {
         return withPayload(message, message.payload(), newExtensions);
     }
 
-    // Points an inline reply at a component message, reusing `<name>Response` when it carries the same payload
+    /**
+     * Points an inline reply at a component message, reusing {@code <name>Response} when it carries the same
+     * payload.
+     */
     private JsonNode responseRef(String baseName, JsonNode inlineResponse) {
         // A $ref payload maps to a stub that only carries the referenced schema's name
         AsyncApiSchema payload = AsyncApiParser.parseSchema(inlineResponse.get(PAYLOAD));
@@ -216,6 +237,9 @@ public final class NamedPayloadSpec implements AsyncApiSpec {
         return ref;
     }
 
+    /**
+     * Whether {@code existing} carries {@code payload}: the same named schema, or an equal inline one.
+     */
     private boolean samePayload(AsyncApiMessage existing, AsyncApiSchema payload) {
         if (existing == null || !(existing.payload() instanceof AsyncApiSchema existingPayload)
                 || existingPayload.name() == null) {
@@ -227,6 +251,10 @@ public final class NamedPayloadSpec implements AsyncApiSpec {
         return payload.equals(schemas.get(existingPayload.name()));
     }
 
+    /**
+     * Adds {@code schema} to {@code components.schemas} under a free name taken from the message name, and returns that
+     * name.
+     */
     private String addSchema(String messageName, AsyncApiSchema schema) {
         String schemaName = freeName(CodegenUtils.getValidName(messageName.trim(), true), takenTypeNames);
         schemas.put(schemaName, schema);
@@ -234,6 +262,9 @@ public final class NamedPayloadSpec implements AsyncApiSpec {
         return schemaName;
     }
 
+    /**
+     * Returns {@code base}, numbered from 2 until it is not in {@code taken}.
+     */
     private static String freeName(String base, Set<String> taken) {
         String candidate = base;
         for (int i = 2; taken.contains(candidate); i++) {
@@ -242,12 +273,18 @@ public final class NamedPayloadSpec implements AsyncApiSpec {
         return candidate;
     }
 
+    /**
+     * Copies {@code m} with the given payload and extensions.
+     */
     private static AsyncApiMessage withPayload(AsyncApiMessage m, Object payload, Map<String, JsonNode> extensions) {
         return new AsyncApiMessage(m.headers(), payload, m.correlationId(), m.contentType(), m.name(), m.title(),
                 m.summary(), m.description(), m.tags(), m.externalDocs(), m.bindings(), m.examples(), m.traits(),
                 extensions);
     }
 
+    /**
+     * Copies the components with the named schemas and messages, creating components when the spec had none.
+     */
     private AsyncApiComponent withSchemasAndMessages(AsyncApiComponent c) {
         if (c == null) {
             return schemas.isEmpty() && messages.isEmpty() ? null : new AsyncApiComponent(schemas, null, null,

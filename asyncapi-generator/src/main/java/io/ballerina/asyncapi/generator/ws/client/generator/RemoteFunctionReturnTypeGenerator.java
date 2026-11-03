@@ -215,6 +215,9 @@ public class RemoteFunctionReturnTypeGenerator {
         return false;
     }
 
+    /**
+     * The component schema whose Ballerina type name is {@code typeName}, or {@code null}.
+     */
     private AsyncApiSchema findSchema(String typeName) {
         Map<String, AsyncApiSchema> schemas = asyncApiSpec.getAsyncApiComponents()
                 .map(c -> c.schemas()).orElse(null);
@@ -229,6 +232,9 @@ public class RemoteFunctionReturnTypeGenerator {
         return null;
     }
 
+    /**
+     * Whether the schema is a string, number, boolean or array, which can not carry the dispatcher key.
+     */
     private static boolean isSchemaWithoutDispatcherKey(AsyncApiSchema schema) {
         return schema != null && schema.type() != null && !OBJECT.equals(schema.type())
                 && schema.properties() == null && schema.oneOf() == null && schema.anyOf() == null

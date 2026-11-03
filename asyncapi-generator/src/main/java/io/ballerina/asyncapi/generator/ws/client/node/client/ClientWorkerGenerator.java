@@ -316,6 +316,9 @@ public class ClientWorkerGenerator {
                 whileStatements);
     }
 
+    /**
+     * Reads each frame straight into {@code Message}, closing the connection when it is not one.
+     */
     private static void addMessageRead(List<StatementNode> whileStatements) {
         // Message|websocket:Error message = self.clientEp->readMessage(Message);
         VariableDeclarationNode responseMessage = createVariableDeclarationNode(createEmptyNodeList(), null,
@@ -341,7 +344,9 @@ public class ClientWorkerGenerator {
         whileStatements.add(getIsWsError(READ_WS_ERR_MSG, MESSAGE_VAR));
     }
 
-    // Reads the frame as text; one that isn't a JSON message with the dispatcher key goes to its own pipe as is
+    /**
+     * Reads the frame as text. One that isn't a JSON message with the dispatcher key goes to its own pipe as is.
+     */
     private static void addFrameWithoutDispatcherRoute(List<StatementNode> whileStatements) {
         whileStatements.add(NodeParser.parseStatement(String.format("string|%s %s = self.%s->%s(string);",
                 WS_ERROR_TYPE, FRAME_VAR, CLIENT_EP, READ_MESSAGE)));

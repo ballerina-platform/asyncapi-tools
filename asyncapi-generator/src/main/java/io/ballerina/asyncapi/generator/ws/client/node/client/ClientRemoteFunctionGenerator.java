@@ -174,7 +174,9 @@ public class ClientRemoteFunctionGenerator {
         return remoteFunctions;
     }
 
-    // The component messages an x-response points at, directly or through oneOf
+    /**
+     * The component messages an {@code x-response} points at, directly or through {@code oneOf}.
+     */
     private static List<String> responseMessageNames(JsonNode xResponse) {
         List<JsonNode> entries = new ArrayList<>();
         if (xResponse.get(ONE_OF) instanceof ArrayNode oneOf) {
