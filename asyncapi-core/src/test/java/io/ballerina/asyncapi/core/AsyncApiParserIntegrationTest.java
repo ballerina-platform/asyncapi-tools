@@ -17,6 +17,8 @@
  */
 package io.ballerina.asyncapi.core;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.TextNode;
 import io.ballerina.asyncapi.core.api.AsyncApiSpec;
 import io.ballerina.asyncapi.core.model.channel.AsyncApiChannel;
 import io.ballerina.asyncapi.core.model.component.AsyncApiComponent;
@@ -590,5 +592,18 @@ public class AsyncApiParserIntegrationTest {
                 + "\"paths\":{}}";
         Assert.assertThrows(AsyncApiParserException.class,
                 () -> AsyncApiParser.parseFromJsonString(openApiJson));
+    }
+
+    @Test
+    void parseSchema_mapsAnInlineSchema() throws IOException {
+        AsyncApiSchema schema = AsyncApiParser.parseSchema(new ObjectMapper().readTree(
+                "{\"type\":\"array\",\"items\":{\"$ref\":\"#/components/schemas/User\"}}"));
+        Assert.assertEquals(schema.type(), "array");
+        Assert.assertEquals(((AsyncApiSchema) schema.items()).name(), "User");
+    }
+
+    @Test
+    void parseSchema_returnsNullForANonObject() {
+        Assert.assertNull(AsyncApiParser.parseSchema(TextNode.valueOf("string")));
     }
 }

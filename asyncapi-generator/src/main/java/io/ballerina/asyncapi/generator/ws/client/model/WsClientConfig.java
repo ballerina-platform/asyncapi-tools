@@ -28,12 +28,12 @@ public class WsClientConfig {
     private final String licenseHeader;
 
     private WsClientConfig(Builder builder) {
-        this.asyncApi = builder.asyncApi;
+        this.asyncApi = NamedPayloadSpec.of(builder.asyncApi);
         this.licenseHeader = builder.licenseHeader;
     }
 
     /**
-     * Returns the parsed AsyncAPI specification.
+     * Returns the parsed AsyncAPI specification, with every message payload named (see {@link NamedPayloadSpec}).
      *
      * @return the AsyncAPI spec
      */
