@@ -75,6 +75,18 @@ public class WsClientRoundTripTest {
                 client);
         Assert.assertTrue(client.contains(
                 "doUnsubscribe(Topic topic, decimal timeout) returns UnsubscribeResponse|error"), client);
+        // Each method sends its own dispatcher value, whatever event the caller put in the Topic
+        Assert.assertTrue(client.contains("request.event = \"subscribe\";"), client);
+        Assert.assertTrue(client.contains("request.event = \"unsubscribe\";"), client);
+    }
+
+    @Test
+    void testRequestWithoutAFixedValueIsSentAsGiven() throws Exception {
+        // shared_response's request schemas fix no event value in this test copy, so nothing is overwritten
+        JsonNode spec = spec("shared_response");
+        ((ObjectNode) spec.at("/components/schemas/Subscribe/properties/event")).remove("const");
+        String client = generate(spec).get("client.bal");
+        Assert.assertTrue(client.contains("Message|error message = subscribe.cloneWithType();"), client);
     }
 
     @Test
@@ -116,7 +128,7 @@ public class WsClientRoundTripTest {
         JsonNode spec = YAML.readTree(resource("echo").replace("ChatMessage", "Timeout"));
         String client = generate(spec).get("client.bal");
         Assert.assertTrue(client.contains("doTimeout(Timeout timeoutRequest, decimal timeout)"), client);
-        Assert.assertTrue(client.contains("Message|error message = timeoutRequest.cloneWithType();"), client);
+        Assert.assertTrue(client.contains("Timeout request = timeoutRequest.clone();"), client);
         Assert.assertTrue(client.contains("Timeout|error timeoutResponse = responseMessage.cloneWithType();"), client);
     }
 

@@ -21,6 +21,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.fasterxml.jackson.databind.node.TextNode;
 import io.ballerina.asyncapi.core.AsyncApiParser;
 import io.ballerina.asyncapi.core.api.AsyncApiSpec;
 import io.ballerina.asyncapi.core.model.channel.AsyncApiChannel;
@@ -47,9 +48,16 @@ import static io.ballerina.asyncapi.generator.ws.client.extractor.DispatcherKeyE
 /**
  * A view of a spec in which every message payload has a schema name, so each one maps to a generated type.
  * Inline payloads move into {@code components.schemas} under their message's name, and inline
- * {@code x-response} payloads become references to component messages.
+ * {@code x-response} payloads become references to component messages. A request message also records the
+ * dispatcher value its payload fixes, as {@link #X_DISPATCHER_VALUE}.
  */
 public final class NamedPayloadSpec implements AsyncApiSpec {
+
+    /**
+     * Message extension holding the value a request message fixes for the dispatcher field, which the generated
+     * client sets before sending.
+     */
+    public static final String X_DISPATCHER_VALUE = "x-dispatcherValue";
 
     private static final String X_RESPONSE = "x-response";
     private static final String PAYLOAD = "payload";
@@ -150,25 +158,32 @@ public final class NamedPayloadSpec implements AsyncApiSpec {
 
     /**
      * Moves an unnamed payload into {@code components.schemas} under its message name, unless it is a named type with
-     * only its dispatcher value pinned.
+     * only its dispatcher value pinned, and records the dispatcher value the payload fixes.
      */
     private AsyncApiMessage withNamedPayload(String messageName, AsyncApiMessage message) {
-        if (!(message.payload() instanceof AsyncApiSchema payload) || payload.name() != null
-                || CodegenUtils.isCloseFrameSchema(payload)) {
+        if (!(message.payload() instanceof AsyncApiSchema payload) || CodegenUtils.isCloseFrameSchema(payload)) {
             return message;
         }
-        AsyncApiSchema constrainedType = constrainedType(payload);
-        if (constrainedType != null) {
-            return withPayload(message, constrainedType, message.extensions());
+        if (payload.name() != null) {
+            return withDispatchValue(message, schemas.get(payload.name()));
+        }
+        AsyncApiSchema constraint = dispatcherConstraint(payload);
+        if (constraint != null) {
+            List<AsyncApiSchema> allOf = payload.allOf();
+            AsyncApiSchema type = allOf.get(0) == constraint ? allOf.get(1) : allOf.get(0);
+            AsyncApiMessage typed = withPayload(message, schemas.get(type.name()).withName(type.name()),
+                    message.extensions());
+            return withDispatchValue(typed, constraint);
         }
         String schemaName = addSchema(messageName, payload);
-        return withPayload(message, payload.withName(schemaName), message.extensions());
+        return withDispatchValue(withPayload(message, payload.withName(schemaName), message.extensions()), payload);
     }
 
     /**
-     * {@code allOf} a named schema and a schema fixing only the dispatcher field's value is still that named type.
+     * The part of an {@code allOf} payload that fixes only the dispatcher field, when the other part is a named
+     * schema, so the payload is still that named type. {@code null} for any other payload.
      */
-    private AsyncApiSchema constrainedType(AsyncApiSchema payload) {
+    private AsyncApiSchema dispatcherConstraint(AsyncApiSchema payload) {
         List<AsyncApiSchema> allOf = payload.allOf();
         if (dispatcherKey == null || allOf == null || allOf.size() != 2) {
             return null;
@@ -180,7 +195,23 @@ public final class NamedPayloadSpec implements AsyncApiSpec {
                 || !schemas.containsKey(type.name())) {
             return null;
         }
-        return schemas.get(type.name()).withName(type.name());
+        return constraint;
+    }
+
+    /**
+     * Records the value {@code schema} fixes for the dispatcher field as {@link #X_DISPATCHER_VALUE}, so the client
+     * sends that value whatever the caller passes.
+     */
+    private AsyncApiMessage withDispatchValue(AsyncApiMessage message, AsyncApiSchema schema) {
+        AsyncApiSchema field = dispatcherKey == null || schema == null || schema.properties() == null
+                ? null : schema.properties().get(dispatcherKey);
+        if (field == null || field.constValue() == null || !field.constValue().isTextual()) {
+            return message;
+        }
+        Map<String, JsonNode> extensions = message.extensions() == null
+                ? new LinkedHashMap<>() : new LinkedHashMap<>(message.extensions());
+        extensions.put(X_DISPATCHER_VALUE, TextNode.valueOf(field.constValue().asText()));
+        return withPayload(message, message.payload(), extensions);
     }
 
     /**

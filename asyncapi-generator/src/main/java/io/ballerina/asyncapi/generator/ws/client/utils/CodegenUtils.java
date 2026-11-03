@@ -78,7 +78,8 @@ public final class CodegenUtils {
 
     // Names a generated remote function declares itself, which its parameter and reply variable must avoid
     private static final Set<String> REMOTE_FUNCTION_LOCALS = Set.of("self", "timeout", "message", "pipeErr",
-            "responseMessage", "pipeCloseError", "streamMessages", "streamGenerator", "turnErr", "turnReleaseErr");
+            "responseMessage", "pipeCloseError", "streamMessages", "streamGenerator", "turnErr", "turnReleaseErr",
+            "request");
 
     private CodegenUtils() {
     }

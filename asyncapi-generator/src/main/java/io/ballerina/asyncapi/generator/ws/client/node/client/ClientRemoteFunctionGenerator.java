@@ -43,6 +43,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import static io.ballerina.asyncapi.generator.ws.client.extractor.DispatcherKeyExtractor.X_DISPATCHER_KEY;
+
 /**
  * Builds the remote function definition nodes for a WebSocket client class.
  */
@@ -97,7 +99,9 @@ public class ClientRemoteFunctionGenerator {
 
         RemoteFunctionSignatureGenerator sigGen =
                 new RemoteFunctionSignatureGenerator(asyncApiSpec, typeDefinitionNodeList);
-        RemoteFunctionBodyGenerator bodyGen = new RemoteFunctionBodyGenerator(imports);
+        String dispatcherKey = asyncApiSpec.getAsyncApiExtensions().map(ext -> ext.get(X_DISPATCHER_KEY))
+                .map(JsonNode::asText).orElse(null);
+        RemoteFunctionBodyGenerator bodyGen = new RemoteFunctionBodyGenerator(imports, dispatcherKey);
         RemoteFunctionReturnTypeGenerator returnTypeGen = new RemoteFunctionReturnTypeGenerator(asyncApiSpec);
 
         // Track response messages already handled by SEND ops
