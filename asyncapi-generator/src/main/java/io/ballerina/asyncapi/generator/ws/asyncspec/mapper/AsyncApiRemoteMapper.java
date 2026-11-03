@@ -87,6 +87,7 @@ import static io.ballerina.asyncapi.generator.ws.asyncspec.Constants.FUNCTION_PA
 import static io.ballerina.asyncapi.generator.ws.asyncspec.Constants.FUNCTION_SIGNATURE_WRONG_TYPE;
 import static io.ballerina.asyncapi.generator.ws.asyncspec.Constants.FUNCTION_WRONG_NAME;
 import static io.ballerina.asyncapi.generator.ws.asyncspec.Constants.MESSAGE_REFERENCE;
+import static io.ballerina.asyncapi.generator.ws.asyncspec.Constants.NON_STRING_PRIMITIVE_PARAMETER;
 import static io.ballerina.asyncapi.generator.ws.asyncspec.Constants.NO_SERVICE_CLASS;
 import static io.ballerina.asyncapi.generator.ws.asyncspec.Constants.ON_BINARY_MESSAGE;
 import static io.ballerina.asyncapi.generator.ws.asyncspec.Constants.ON_CLOSE;
@@ -325,8 +326,14 @@ public class AsyncApiRemoteMapper {
                                     remoteDocs.remove(paramName);
                                 }
                                 if (isPrimitiveTypeDesc(parameterTypeNode.kind())) {
-                                    // With a dispatcherKey the message is still a JSON object carrying the
-                                    // dispatcher field; the primitive parameter just binds its text.
+                                    // Only a string binds the message text; websocket closes the connection for others
+                                    if (parameterTypeNode.kind() != SyntaxKind.STRING_TYPE_DESC) {
+                                        String typeName = parameterTypeNode.toString().trim();
+                                        throw new NoSuchElementException(String.format(
+                                                NON_STRING_PRIMITIVE_PARAMETER, functionName, typeName, typeName));
+                                    }
+                                    // The message is still a JSON object carrying the dispatcher field, and the
+                                    // string parameter gets its whole text.
                                     componentMessage = responseMapper.extractInlineMessageSchema(
                                             publishMessage, remoteRequestTypeName,
                                             dispatcherFieldSchema(dispatcherValue, wireValue), paramDescription);

@@ -145,6 +145,9 @@ public class Constants {
     public static final String UNSUPPORTED_PARAMETER_TYPE = "ERROR: Could not determine a message payload for "
             + "remote function '%s' - its parameter type is not currently supported for AsyncAPI generation "
             + "(expected a record, class, or primitive type)";
+    public static final String NON_STRING_PRIMITIVE_PARAMETER = "ERROR: remote function '%s' takes %s, but with "
+            + "a dispatcherKey every message is a JSON object carrying the dispatcher field, which can't bind to %s. "
+            + "Take a string or a record with the dispatcher field instead";
     public static final String UNION_STREAMING_SIMPLE_RPC_ERROR = "ERROR: Response server streaming types cannot be "
             + "union with simple rpc types";
     public static final String PATH_PARAM_DASH_CONTAIN_ERROR = "ERROR: Path parameter contains an invalid"

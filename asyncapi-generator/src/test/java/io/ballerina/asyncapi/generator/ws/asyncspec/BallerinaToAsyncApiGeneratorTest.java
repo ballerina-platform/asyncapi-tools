@@ -965,6 +965,30 @@ class BallerinaToAsyncApiGeneratorTest {
             + "}\n";
 
     @Test
+    void testNonStringPrimitiveParameter_isReportedAsADiagnostic() throws IOException {
+        // The message is a JSON object with the dispatcher field, which websocket can't bind to an int.
+        List<AsyncApiConverterDiagnostic> diagnostics = run(BAL_INT_PARAMETER);
+        Assert.assertEquals(diagnostics.size(), 1, "Diagnostics: " + diagnostics);
+        String message = diagnostics.get(0).getMessage();
+        Assert.assertTrue(message.contains("onCount") && message.contains("int"), message);
+    }
+
+    private static final String BAL_INT_PARAMETER =
+            "import ballerina/websocket;\n\n"
+            + "@websocket:ServiceConfig {dispatcherKey: \"event\"}\n"
+            + "service /count on new websocket:Listener(9090) {\n"
+            + "    resource function get .() returns websocket:Service {\n"
+            + "        return new CountService();\n"
+            + "    }\n"
+            + "}\n\n"
+            + "service class CountService {\n"
+            + "    *websocket:Service;\n"
+            + "    remote function onCount(int count) returns string {\n"
+            + "        return \"ok\";\n"
+            + "    }\n"
+            + "}\n";
+
+    @Test
     void testInlinePayloads_carryTheDispatcherField() throws IOException {
         Assert.assertTrue(run(BAL_ISSUE_7669).isEmpty());
         String yaml = readGeneratedYaml();
