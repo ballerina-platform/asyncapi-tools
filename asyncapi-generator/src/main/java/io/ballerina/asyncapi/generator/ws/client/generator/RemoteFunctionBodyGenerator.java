@@ -78,10 +78,8 @@ public class RemoteFunctionBodyGenerator {
     private static final String STRING = "string";
     private static final String FROM_JSON_STRING_WITH_TYPE = "fromJsonStringWithType";
     private static final String TURN_ERR_VAR = "turnErr";
-    private static final String TURN_RELEASE_ERR_VAR = "turnReleaseErr";
     private static final String TURN_WAIT_ERR_MSG =
             "\"PipeError: Error in waiting for an earlier call to get its reply\"";
-    private static final String TURN_RELEASE_ERR_MSG = "\"PipeError: Error in releasing the reply pipe\"";
 
     /**
      * How a remote function turns the reply frame it consumes into its return type.
@@ -257,8 +255,9 @@ public class RemoteFunctionBodyGenerator {
         if (perRequestPipe) {
             pipeId = String.format("%s.%s", camelCaseRequestType, CodegenUtils.escapeIdentifier(dispatcherStreamId));
         }
-        // Calls sharing a reply pipe take turns, so each one consumes the reply to its own request
-        boolean takesTurn = !isSubscribe && !perRequestPipe;
+        // Calls sharing a reply pipe take turns, so each one consumes the reply to its own request. A receive-only
+        // function on the pipe for replies without the dispatcher key waits its turn too, so it can't take a reply.
+        boolean takesTurn = !perRequestPipe && (!isSubscribe || !keyed);
         if (!isSubscribe) {
             appendConnectionActiveCheck(sb);
         }
@@ -279,11 +278,7 @@ public class RemoteFunctionBodyGenerator {
                 String.format(PIPE_ERR_TEMPLATE, CONSUMING), RESPONSE_MESSAGE_VAR));
 
         if (takesTurn) {
-            sb.append(String.format("%s? %s = self.%s.giveTurn(%s);\n",
-                    PIPE_ERROR_TYPE, TURN_RELEASE_ERR_VAR, PIPES, pipeId));
-            sb.append(String.format("if %s is %s { self.%s(); return error(%s, %s); }\n",
-                    TURN_RELEASE_ERR_VAR, PIPE_ERROR_TYPE, ATTEMPT_TO_CLOSE_CONNECTION, TURN_RELEASE_ERR_MSG,
-                    TURN_RELEASE_ERR_VAR));
+            sb.append(String.format("self.%s.giveTurn(%s);\n", PIPES, pipeId));
         }
         if (perRequestPipe) {
             String pipeCloseErr = "pipeCloseError";
@@ -326,7 +321,7 @@ public class RemoteFunctionBodyGenerator {
         if (dispatchValue != null && dispatcherKey != null) {
             sb.append(String.format("%s %s = %s.clone();\n", requestType, REQUEST_VAR, source));
             sb.append(String.format("%s.%s = %s;\n", REQUEST_VAR, CodegenUtils.escapeIdentifier(dispatcherKey),
-                    toStringLiteral(dispatchValue)));
+                    CodegenUtils.toStringLiteral(dispatchValue)));
             source = REQUEST_VAR;
         }
         sb.append(String.format("%s|error %s = %s.%s();\n",
@@ -334,10 +329,6 @@ public class RemoteFunctionBodyGenerator {
         sb.append(String.format("if %s is error { self.%s(); return error(%s, %s); }\n",
                 MESSAGE_VAR, ATTEMPT_TO_CLOSE_CONNECTION, DATABINDING_ERR_MSG, MESSAGE_VAR));
         appendProduceToWriteQueue(sb);
-    }
-
-    private static String toStringLiteral(String value) {
-        return "\"" + value.replace("\\", "\\\\").replace("\"", "\\\"") + "\"";
     }
 
     private void appendProduceToWriteQueue(StringBuilder sb) {

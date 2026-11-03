@@ -78,7 +78,7 @@ public final class CodegenUtils {
 
     // Names a generated remote function declares itself, which its parameter and reply variable must avoid
     private static final Set<String> REMOTE_FUNCTION_LOCALS = Set.of("self", "timeout", "message", "pipeErr",
-            "responseMessage", "pipeCloseError", "streamMessages", "streamGenerator", "turnErr", "turnReleaseErr",
+            "responseMessage", "pipeCloseError", "streamMessages", "streamGenerator", "turnErr",
             "request");
 
     private CodegenUtils() {
@@ -253,6 +253,39 @@ public final class CodegenUtils {
      */
     public static String getRequestParamName(String requestType) {
         return getFreeLocalName(getValidName(requestType, false), "Request", Set.of());
+    }
+
+    /**
+     * Returns the value {@code schema} fixes for the dispatcher field, as a {@code const} or a one-value
+     * {@code enum}, or {@code null} when the field can take any value.
+     *
+     * @param schema        the message payload schema (may be {@code null})
+     * @param dispatcherKey the dispatcher field name (may be {@code null})
+     * @return the fixed dispatcher value, or {@code null}
+     */
+    public static String getFixedDispatchValue(AsyncApiSchema schema, String dispatcherKey) {
+        AsyncApiSchema field = schema == null || dispatcherKey == null || schema.properties() == null
+                ? null : schema.properties().get(dispatcherKey);
+        if (field == null) {
+            return null;
+        }
+        if (field.constValue() != null && field.constValue().isTextual()) {
+            return field.constValue().asText();
+        }
+        if (field.enumValue() != null && field.enumValue().size() == 1 && field.enumValue().get(0).isTextual()) {
+            return field.enumValue().get(0).asText();
+        }
+        return null;
+    }
+
+    /**
+     * Returns {@code value} as a Ballerina string literal, escaping backslashes and double quotes.
+     *
+     * @param value the string value
+     * @return the quoted literal
+     */
+    public static String toStringLiteral(String value) {
+        return "\"" + value.replace("\\", "\\\\").replace("\"", "\\\"") + "\"";
     }
 
     /**

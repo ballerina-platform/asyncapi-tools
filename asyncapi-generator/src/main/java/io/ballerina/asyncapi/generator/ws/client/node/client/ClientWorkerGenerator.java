@@ -270,10 +270,11 @@ public class ClientWorkerGenerator {
         if (dispatcherStreamId != null) {
             addStreamIdBranch(whileStatements, escapedDispKey);
         } else {
-            // string pipeName = self.getPipeName(message.<dispKey>);
+            // string? pipeName = self.getPipeName(message.<dispKey>);
             whileStatements.add(NodeParser.parseStatement(
-                    "string " + PIPE_NAME_VAR + " = self." + GET_PIPE_NAME
+                    "string? " + PIPE_NAME_VAR + " = self." + GET_PIPE_NAME
                     + "(" + MESSAGE_VAR + "." + escapedDispKey + ");"));
+            whileStatements.add(getDropUnroutedStatement(escapedDispKey));
             // pipe:Pipe pipe = self.pipes.getPipe(pipeName);
             VariableDeclarationNode pipesVar = createVariableDeclarationNode(createEmptyNodeList(), null,
                     createTypedBindingPatternNode(
@@ -367,6 +368,16 @@ public class ClientWorkerGenerator {
                 MESSAGE_TYPE, MESSAGE_VAR, PARSED_MESSAGE_VAR)));
     }
 
+    /**
+     * A frame whose dispatcher value has no pipe is logged and dropped, since no call waits for it. Queuing it on a
+     * pipe nobody reads would fill that pipe and end with the reader closing the connection.
+     */
+    private static StatementNode getDropUnroutedStatement(String escapedDispKey) {
+        return NodeParser.parseStatement(String.format(
+                "if %s is () { log:printWarn(\"Dropped a message that no call is waiting for\", "
+                        + "dispatcherValue = %s.%s); continue; }", PIPE_NAME_VAR, MESSAGE_VAR, escapedDispKey));
+    }
+
     private void addStreamIdBranch(List<StatementNode> whileStatements, String escapedDispKey) {
         String escapedStreamId = CodegenUtils.escapeIdentifier(dispatcherStreamId);
         // pipe:Pipe pipe;
@@ -376,7 +387,7 @@ public class ClientWorkerGenerator {
                 MESSAGE_WITH_ID + "|error " + MESSAGE_WITH_ID_VAR + " = "
                 + MESSAGE_VAR + ".cloneWithType(" + MESSAGE_WITH_ID + ");"));
         StatementNode getPipeNameStmt = NodeParser.parseStatement(
-                "string " + PIPE_NAME_VAR + " = self." + GET_PIPE_NAME
+                "string? " + PIPE_NAME_VAR + " = self." + GET_PIPE_NAME
                 + "(" + MESSAGE_VAR + "." + escapedDispKey + ");");
         IfElseStatementNode pipeConditional = createIfElseStatementNode(createToken(IF_KEYWORD),
                 NodeParser.parseExpression(MESSAGE_WITH_ID_VAR + IS + MESSAGE_WITH_ID),
@@ -387,7 +398,7 @@ public class ClientWorkerGenerator {
                         CLOSE_BRACE),
                 createElseBlockNode(createToken(ELSE_KEYWORD),
                         createBlockStatementNode(OPEN_BRACE,
-                                createNodeList(getPipeNameStmt,
+                                createNodeList(getPipeNameStmt, getDropUnroutedStatement(escapedDispKey),
                                         NodeParser.parseStatement(PIPE_VAR + " = self." + PIPES
                                                 + "." + GET_PIPE + "(" + PIPE_NAME_VAR + ");")),
                                 CLOSE_BRACE)));

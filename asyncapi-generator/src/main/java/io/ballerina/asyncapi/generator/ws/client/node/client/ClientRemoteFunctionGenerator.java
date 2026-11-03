@@ -104,8 +104,9 @@ public class ClientRemoteFunctionGenerator {
         RemoteFunctionBodyGenerator bodyGen = new RemoteFunctionBodyGenerator(imports, dispatcherKey);
         RemoteFunctionReturnTypeGenerator returnTypeGen = new RemoteFunctionReturnTypeGenerator(asyncApiSpec);
 
-        // Track response messages already handled by SEND ops
+        // Messages and types a send function already returns
         Set<String> remainingResponseMessages = new HashSet<>();
+        Set<String> replyTypes = new HashSet<>();
 
         // First pass: SEND operations
         for (Map.Entry<String, AsyncApiOperation> opEntry : operations.entrySet()) {
@@ -130,8 +131,12 @@ public class ClientRemoteFunctionGenerator {
 
                 // The messages this send function returns need no receive-only function of their own
                 if (message.extensions() != null && message.extensions().containsKey(ClientGenerator.X_RESPONSE)) {
-                    remainingResponseMessages.addAll(
-                            responseMessageNames(message.extensions().get(ClientGenerator.X_RESPONSE)));
+                    JsonNode xResponse = message.extensions().get(ClientGenerator.X_RESPONSE);
+                    remainingResponseMessages.addAll(responseMessageNames(xResponse));
+                    List<String> replySchemas = new ArrayList<>();
+                    returnTypeGen.getReturnType(xResponse, message.extensions().get(ClientGenerator.X_RESPONSE_TYPE),
+                            replySchemas);
+                    replyTypes.addAll(replySchemas);
                 }
 
                 FunctionDefinitionNode fn = getRemoteFunctionDefinitionNode(asyncApiSpec, msgName, message,
@@ -161,8 +166,9 @@ public class ClientRemoteFunctionGenerator {
                     }
                 }
 
-                // Skip if already in remainingResponseMessages
-                if (remainingResponseMessages.contains(msgName)) {
+                // A receive function on the pipe a send function waits on would take its replies
+                if (remainingResponseMessages.contains(msgName)
+                        || message.payload() instanceof AsyncApiSchema payload && replyTypes.contains(payload.name())) {
                     continue;
                 }
 
@@ -181,7 +187,7 @@ public class ClientRemoteFunctionGenerator {
     /**
      * The component messages an {@code x-response} points at, directly or through {@code oneOf}.
      */
-    private static List<String> responseMessageNames(JsonNode xResponse) {
+    private static List<String> responseMessageNames(JsonNode xResponse) throws GeneratorException {
         List<JsonNode> entries = new ArrayList<>();
         if (xResponse.get(ONE_OF) instanceof ArrayNode oneOf) {
             oneOf.forEach(entries::add);
@@ -192,7 +198,7 @@ public class ClientRemoteFunctionGenerator {
         for (JsonNode entry : entries) {
             JsonNode ref = entry.get(REF);
             if (ref != null) {
-                names.add(ref.asText().substring(ref.asText().lastIndexOf('/') + 1));
+                names.add(CodegenUtils.extractReferenceType(ref.asText()));
             }
         }
         return names;
@@ -311,7 +317,9 @@ public class ClientRemoteFunctionGenerator {
         // Build body source — use the canonical pipe key from responseMap so all functions sharing
         // the same response type route through the same pipe
         String requestType = payload != null ? sigGen.getDataType(payload) : "null";
-        String pipeName = responseMap.getOrDefault(returnType, requestType);
+        // A receive-only function waits on the pipe of its own type
+        String pipeName = responseMap.getOrDefault(returnType,
+                payload != null ? requestType : CodegenUtils.getValidName(returnType, false));
         RemoteFunctionBodyGenerator.ReplyFormat replyFormat = RemoteFunctionBodyGenerator.ReplyFormat.KEYED;
         if (!"null".equals(returnType) && returnTypeGen.isReplyWithoutDispatcherKey(returnType)) {
             replyFormat = returnTypeGen.isTextReply(returnType)

@@ -81,14 +81,17 @@ public class ClientHelperGenerator {
     private static final String RETURN_RESULT_STMT = "return result;";
 
     // getPipeName
-    private static final String GET_PIPE_NAME = "getPipeName";
-    private static final String RESPONSE_TYPE = "responseType";
-    private static final String RESPONSE_RECORD_TYPE_STMT =
-            "string responseRecordType = self.getRecordName(responseType);";
-    private static final String RESPONSE_MAP_HAS_KEY_EXPR = "self.responseMap.hasKey(responseRecordType)";
-    private static final String RETURN_RESPONSE_MAP_GET_STMT =
-            "return self.responseMap.get(responseRecordType);";
-    private static final String RETURN_RESPONSE_TYPE_STMT = "return responseType;";
+    private static final String GET_PIPE_NAME_SOURCE = """
+            private isolated function getPipeName(string responseType) returns string? {
+                if self.dispatchValueMap.hasKey(responseType) {
+                    return self.dispatchValueMap.get(responseType);
+                }
+                string responseRecordType = self.getRecordName(responseType);
+                if self.responseMap.hasKey(responseRecordType) {
+                    return self.responseMap.get(responseRecordType);
+                }
+                return ();
+            }""";
 
     // attemptToCloseConnection / connectionClose
     private static final String ATTEMPT_TO_CLOSE_CONNECTION = "attemptToCloseConnection";
@@ -156,33 +159,13 @@ public class ClientHelperGenerator {
     }
 
     /**
-     * Builds the {@code getPipeName} private helper function node.
+     * Builds the {@code getPipeName} private helper function node. It finds a frame's pipe by its exact dispatcher
+     * value first, then by the type name the value converts to, and returns {@code ()} when no call waits for it.
      *
      * @return the function definition node
      */
     public FunctionDefinitionNode buildGetPipeName() {
-        RequiredParameterNode param = createRequiredParameterNode(createNodeList(),
-                createSimpleNameReferenceNode(createIdentifierToken(STRING_TYPE)),
-                createIdentifierToken(RESPONSE_TYPE));
-        SimpleNameReferenceNode returnTypeNode = createSimpleNameReferenceNode(createIdentifierToken(STRING_TYPE));
-        ReturnTypeDescriptorNode returnTypeDesc = createReturnTypeDescriptorNode(
-                createToken(RETURNS_KEYWORD), createEmptyNodeList(), returnTypeNode);
-        FunctionSignatureNode signature = createFunctionSignatureNode(OPEN_PAREN,
-                createSeparatedNodeList(param), CLOSE_PAREN, returnTypeDesc);
-        List<StatementNode> statements = new ArrayList<>();
-        statements.add(NodeParser.parseStatement(RESPONSE_RECORD_TYPE_STMT));
-        statements.add(createIfElseStatementNode(createToken(IF_KEYWORD),
-                NodeParser.parseExpression(RESPONSE_MAP_HAS_KEY_EXPR),
-                createBlockStatementNode(OPEN_BRACE,
-                        createNodeList(NodeParser.parseStatement(RETURN_RESPONSE_MAP_GET_STMT)),
-                        CLOSE_BRACE), null));
-        statements.add(NodeParser.parseStatement(RETURN_RESPONSE_TYPE_STMT));
-        FunctionBodyNode body = createFunctionBodyBlockNode(OPEN_BRACE, null,
-                createNodeList(statements), CLOSE_BRACE, null);
-        return createFunctionDefinitionNode(OBJECT_METHOD_DEFINITION, null,
-                createNodeList(createToken(PRIVATE_KEYWORD), createToken(ISOLATED_KEYWORD)),
-                createToken(FUNCTION_KEYWORD), createIdentifierToken(GET_PIPE_NAME),
-                createEmptyNodeList(), signature, body);
+        return (FunctionDefinitionNode) NodeParser.parseObjectMember(GET_PIPE_NAME_SOURCE);
     }
 
     /**

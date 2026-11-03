@@ -36,14 +36,18 @@ public isolated class PipesMap {
 
     public isolated function removePipes() returns error? {
         lock {
+            // Turns close first, so calls waiting for one end even if a reply pipe fails to close
+            foreach pipe:Pipe turn in self.turns {
+                pipe:Error? turnErr = turn.immediateClose();
+                if turnErr is pipe:Error {
+                    continue;
+                }
+            }
+            self.turns.removeAll();
             foreach pipe:Pipe pipe in self.pipes {
                 check pipe.gracefulClose();
             }
             self.pipes.removeAll();
-            foreach pipe:Pipe turn in self.turns {
-                check turn.immediateClose();
-            }
-            self.turns.removeAll();
         }
     }
 
@@ -65,17 +69,20 @@ public isolated class PipesMap {
         boolean _ = check turn.consume(timeout);
     }
 
-    # Lets the next call waiting on the given pipe send its request.
+    # Lets the next call waiting on the given pipe send its request. A closed turn means the connection is closing,
+    # so there is no one to hand it to, and the caller keeps the reply it already has.
     #
     # + id - The reply pipe
-    # + return - A `pipe:Error` if the connection has closed
-    public isolated function giveTurn(string id) returns pipe:Error? {
+    public isolated function giveTurn(string id) {
         pipe:Pipe? turn;
         lock {
             turn = self.turns[id];
         }
         if turn is pipe:Pipe {
-            check turn.produce(true, 5);
+            pipe:Error? produceErr = turn.produce(true, 5);
+            if produceErr is pipe:Error {
+                return;
+            }
         }
     }
 }
