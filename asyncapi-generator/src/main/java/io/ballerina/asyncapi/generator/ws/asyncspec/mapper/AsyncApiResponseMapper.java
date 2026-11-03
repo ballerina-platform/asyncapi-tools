@@ -100,6 +100,7 @@ public class AsyncApiResponseMapper {
     private final AsyncApi30ComponentsImpl components;
     private final AsyncApiComponentMapper componentMapper;
     private final List<AsyncApiConverterDiagnostic> errors = new ArrayList<>();
+    private Map<String, String> requestMessages = Map.of();
 
     /**
      * Creates a new response mapper.
@@ -115,6 +116,16 @@ public class AsyncApiResponseMapper {
         this.semanticModel = semanticModel;
         this.componentMapper = componentMapper;
         this.components = components;
+    }
+
+    /**
+     * Sets the service's request messages, which reply messages must not take the names of.
+     *
+     * @param requestMessages each request message's name, mapped to its payload's schema name
+     *                        ({@code null} for an inline payload)
+     */
+    public void setRequestMessages(Map<String, String> requestMessages) {
+        this.requestMessages = requestMessages;
     }
 
     /**
@@ -445,14 +456,14 @@ public class AsyncApiResponseMapper {
     private void handleRecordTypeSymbol(BalAsyncApi30MessageImpl subscribeMessage,
                                         BalAsyncApi30MessageImpl componentMessage, String returnDescription,
                                         TypeSymbol returnTypeSymbol, String remoteReturnTypeName, String isOptional) {
+        String replyMessageName = replyMessageName(ConverterCommonUtils.unescapeIdentifier(remoteReturnTypeName));
         BalAsyncApi30MessageImpl componentReturnMessage = extractMessageSchemaReference(subscribeMessage,
-                remoteReturnTypeName, returnTypeSymbol, null, null);
-        if (!(components.getMessages() != null && components.getMessages().get(remoteReturnTypeName) != null)) {
-            components.addMessage(remoteReturnTypeName, componentReturnMessage);
+                replyMessageName, remoteReturnTypeName, returnTypeSymbol, null, null);
+        if (!(components.getMessages() != null && components.getMessages().get(replyMessageName) != null)) {
+            components.addMessage(replyMessageName, componentReturnMessage);
         }
         ObjectNode messageRefObject = ConverterCommonUtils.createObjectNode();
-        messageRefObject.put(REF, MESSAGE_REFERENCE
-                + ConverterCommonUtils.unescapeIdentifier(remoteReturnTypeName));
+        messageRefObject.put(REF, MESSAGE_REFERENCE + replyMessageName);
         Map<String, JsonNode> xResponses = componentMessage.getExtensions();
         if (xResponses != null && xResponses.get(X_RESPONSE) != null) {
             if (SERVER_STREAMING_TYPE_NODE.equals(xResponses.get(X_RESPONSE_TYPE))
@@ -469,7 +480,7 @@ public class AsyncApiResponseMapper {
             } else if (xResponses.get(X_RESPONSE).get(ONEOF) != null) {
                 setRefPayloadAsOneOfSchemaForPreviousOneOfResponses(componentMessage, oneOfSchema);
                 BalAsyncApi30MessageImpl schema = new BalAsyncApi30MessageImpl();
-                schema.set$ref(MESSAGE_REFERENCE + ConverterCommonUtils.unescapeIdentifier(remoteReturnTypeName));
+                schema.set$ref(MESSAGE_REFERENCE + replyMessageName);
                 setSchemaForOneOfSchema(oneOfSchema, schema);
             }
             String responseType = isCloseFrameRecordType(returnTypeSymbol)
@@ -480,6 +491,31 @@ public class AsyncApiResponseMapper {
             setDescriptionForOneResponse(returnDescription, messageRefObject, componentMessage,
                     SIMPLE_RPC, isOptional);
         }
+    }
+
+    // A reply record's message is named after the record, unless a request message (or another record's
+    // reply) has that name for a different payload; then it takes the next free <Record>Reply name.
+    private String replyMessageName(String recordName) {
+        String candidate = recordName;
+        for (int n = 1; !canNameReply(candidate, recordName); n++) {
+            candidate = recordName + "Reply" + (n == 1 ? "" : String.valueOf(n));
+        }
+        return candidate;
+    }
+
+    // An echo reply shares its request's message, and replies of one record share a message
+    private boolean canNameReply(String messageName, String recordName) {
+        if (requestMessages.containsKey(messageName)) {
+            return recordName.equals(requestMessages.get(messageName));
+        }
+        Object existing = components.getMessages() == null ? null : components.getMessages().get(messageName);
+        if (existing == null) {
+            return true;
+        }
+        JsonNode payload = existing instanceof BalAsyncApi30MessageImpl message && message.getExtensions() != null
+                ? message.getExtensions().get(PAYLOAD) : null;
+        return payload != null && payload.get(REF) != null
+                && (SCHEMA_REFERENCE + recordName).equals(payload.get(REF).asText());
     }
 
     private void updateArraySchema(BalAsyncApi30MessageImpl subscribeMessage,

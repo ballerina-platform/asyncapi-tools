@@ -137,8 +137,6 @@ public class Constants {
     public static final String SHARED_REQUEST_TYPE = "ERROR: remote functions %s and %s both take %s, but each "
             + "message carries its own dispatcher value in its schema. Give each remote function its own request "
             + "type";
-    public static final String SHARED_MESSAGE_NAME = "ERROR: remote functions %s and %s both describe a message "
-            + "named %s. Rename one of them, or its request type";
     public static final String DISPATCHER_KEY_VALUE_CANNOT_BE_EMPTY = "ERROR: dispatcherKey cannot be empty";
     public static final String DISPATCHER_STREAM_ID_VALUE_CANNOT_BE_EMPTY = "ERROR: dispatcherStreamId cannot be "
             + "empty";

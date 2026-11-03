@@ -744,8 +744,8 @@ class BallerinaToAsyncApiGeneratorTest {
                 "ClientData schema/message must appear even though the function is named 'onHello'");
         Assert.assertTrue(yaml.contains("User"),
                 "User (return type) schema must appear even though the function is named 'onHello'");
-        Assert.assertTrue(yaml.contains("sendClientData"),
-                "send operation must be derived from the parameter's real type, not the function name");
+        Assert.assertTrue(yaml.contains("sendHello:") && yaml.contains("$ref: \"#/components/schemas/ClientData\""),
+                "the message is named after onHello, and its payload is the parameter's type: " + yaml);
         Assert.assertFalse(yaml.contains("operations: {}"),
                 "operations must not be empty - a mismatched name must not cause silent skipping");
     }
@@ -768,8 +768,8 @@ class BallerinaToAsyncApiGeneratorTest {
                 "ClientData schema/message must appear even with a qualified type reference");
         Assert.assertTrue(yaml.contains("User"),
                 "User (return type) schema must appear even with a qualified type reference");
-        Assert.assertTrue(yaml.contains("sendClientData"),
-                "send operation must be derived from the parameter's real type, not the function name");
+        Assert.assertTrue(yaml.contains("sendHello:") && yaml.contains("$ref: \"#/components/schemas/ClientData\""),
+                "the message is named after onHello, and its payload is the parameter's type: " + yaml);
         Assert.assertFalse(yaml.contains("operations: {}"),
                 "operations must not be empty - a mismatched name must not cause silent skipping");
     }
@@ -895,38 +895,8 @@ class BallerinaToAsyncApiGeneratorTest {
                 "the record response keeps its message: " + yaml);
         Assert.assertTrue(yaml.contains("FooResponse_2:") && yaml.contains("receiveFooResponse_2"),
                 "the inline response gets the next free name: " + yaml);
+        Assert.assertTrue(yaml.contains("$ref: \"#/components/messages/FooResponse_2\""), yaml);
     }
-
-    @Test
-    void testSharedMessageName_acrossFunctionForms_isReportedAsADiagnostic() throws IOException {
-        // onFoo() names its message after the function and onBar(Foo) after its type: both are Foo.
-        List<AsyncApiConverterDiagnostic> diagnostics = run(BAL_MESSAGE_NAME_CLASH);
-        Assert.assertEquals(diagnostics.size(), 1, "Diagnostics: " + diagnostics);
-        String message = diagnostics.get(0).getMessage();
-        Assert.assertTrue(message.contains("onFoo") && message.contains("onBar") && message.contains("Foo"),
-                message);
-    }
-
-    private static final String BAL_MESSAGE_NAME_CLASH =
-            "import ballerina/websocket;\n\n"
-            + "public type Foo record {\n"
-            + "    string event;\n"
-            + "};\n\n"
-            + "@websocket:ServiceConfig {dispatcherKey: \"event\"}\n"
-            + "service /names on new websocket:Listener(9090) {\n"
-            + "    resource function get .() returns websocket:Service {\n"
-            + "        return new NamesService();\n"
-            + "    }\n"
-            + "}\n\n"
-            + "service class NamesService {\n"
-            + "    *websocket:Service;\n"
-            + "    remote function onFoo() returns string {\n"
-            + "        return \"ok\";\n"
-            + "    }\n"
-            + "    remote function onBar(Foo foo) returns string {\n"
-            + "        return \"ok\";\n"
-            + "    }\n"
-            + "}\n";
 
     private static final String BAL_RESPONSE_NAME_CLASH =
             "import ballerina/websocket;\n\n"
@@ -977,10 +947,51 @@ class BallerinaToAsyncApiGeneratorTest {
     void testArrayResponse_getsAReceiveOperation() throws IOException {
         Assert.assertTrue(run(BAL_MISMATCHED_FUNCTION_NAME).isEmpty());
         String yaml = readFile("service_asyncapi.yaml");
-        // User[] has no message of its own, so it gets one named after its request.
-        Assert.assertTrue(yaml.contains("receiveClientDataResponse"), yaml);
-        Assert.assertTrue(yaml.contains("ClientDataResponse:"), yaml);
+        // User[] has no message of its own, so it gets one named after its request, which x-response points at.
+        Assert.assertTrue(yaml.contains("receiveHelloResponse"), yaml);
+        Assert.assertTrue(yaml.contains("HelloResponse:"), yaml);
+        Assert.assertTrue(yaml.contains("x-response:\n        $ref: \"#/components/messages/HelloResponse\""), yaml);
     }
+
+    @Test
+    void testReplyRecord_doesNotTakeARequestMessageName() throws IOException {
+        // onHello's message is Hello, so the Hello record that onGreet replies with needs another message name.
+        Assert.assertTrue(run(BAL_REPLY_NAME_CLASH).isEmpty());
+        String yaml = readGeneratedYaml();
+        Assert.assertTrue(yaml.contains("    Hello:\n      payload:\n        $ref: \"#/components/schemas/HelloData\""),
+                yaml);
+        Assert.assertTrue(
+                yaml.contains("    HelloReply:\n      payload:\n        $ref: \"#/components/schemas/Hello\""), yaml);
+        Assert.assertTrue(yaml.contains("x-response:\n        $ref: \"#/components/messages/HelloReply\""), yaml);
+    }
+
+    private static final String BAL_REPLY_NAME_CLASH =
+            "import ballerina/websocket;\n\n"
+            + "public type HelloData record {\n"
+            + "    string event;\n"
+            + "};\n\n"
+            + "public type Greeting record {\n"
+            + "    string event;\n"
+            + "};\n\n"
+            + "public type Hello record {\n"
+            + "    string event;\n"
+            + "    string text;\n"
+            + "};\n\n"
+            + "@websocket:ServiceConfig {dispatcherKey: \"event\"}\n"
+            + "service /greet on new websocket:Listener(9090) {\n"
+            + "    resource function get .() returns websocket:Service {\n"
+            + "        return new GreetService();\n"
+            + "    }\n"
+            + "}\n\n"
+            + "service class GreetService {\n"
+            + "    *websocket:Service;\n"
+            + "    remote function onGreet(Greeting greeting) returns Hello {\n"
+            + "        return {event: \"hello\", text: \"hi\"};\n"
+            + "    }\n"
+            + "    remote function onHello(HelloData data) returns string {\n"
+            + "        return \"ok\";\n"
+            + "    }\n"
+            + "}\n";
 
     @Test
     void testSharedRequestType_isReportedAsADiagnostic() throws IOException {

@@ -19,6 +19,7 @@ package io.ballerina.asyncapi.generator.ws.asyncspec.mapper;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 import io.apicurio.datamodels.models.asyncapi.AsyncApiSchema;
@@ -95,9 +96,9 @@ import static io.ballerina.asyncapi.generator.ws.asyncspec.Constants.ON_PONG;
 import static io.ballerina.asyncapi.generator.ws.asyncspec.Constants.ONEOF;
 import static io.ballerina.asyncapi.generator.ws.asyncspec.Constants.ON_TEXT_MESSAGE;
 import static io.ballerina.asyncapi.generator.ws.asyncspec.Constants.PAYLOAD;
+import static io.ballerina.asyncapi.generator.ws.asyncspec.Constants.REF;
 import static io.ballerina.asyncapi.generator.ws.asyncspec.Constants.REMOTE_DESCRIPTION;
 import static io.ballerina.asyncapi.generator.ws.asyncspec.Constants.RETURN;
-import static io.ballerina.asyncapi.generator.ws.asyncspec.Constants.SHARED_MESSAGE_NAME;
 import static io.ballerina.asyncapi.generator.ws.asyncspec.Constants.SHARED_REQUEST_TYPE;
 import static io.ballerina.asyncapi.generator.ws.asyncspec.Constants.UNSUPPORTED_PARAMETER_TYPE;
 import static io.ballerina.asyncapi.generator.ws.asyncspec.Constants.WEBSOCKET;
@@ -270,9 +271,9 @@ public class AsyncApiRemoteMapper {
                 semanticModel, components);
         Map<String, ReturnTypeDescriptorNode> onErrorReturnTypes = getReturnTypesFromOnErrorMethods(classMethodNodes);
         Map<String, String> requestTypeOwners = new HashMap<>();
-        Map<String, String> messageOwners = new HashMap<>();
         // Named once every function's messages are registered, so an inline response can't take a used name.
         Map<String, BalAsyncApi30MessageImpl> inlineResponseRequests = new LinkedHashMap<>();
+        responseMapper.setRequestMessages(requestMessages(classMethodNodes));
 
         for (Node node : classMethodNodes) {
             if (node.kind().equals(SyntaxKind.OBJECT_METHOD_DEFINITION)) {
@@ -285,8 +286,8 @@ public class AsyncApiRemoteMapper {
                                     remoteFunctionNode.metadata().map(MetadataNode::annotations);
                             Optional<String> dispatcherValueOverride =
                                     annotationNodes.flatMap(this::getDispatcherValueFromAnnotation);
-                            Optional<String> dispatcherTypeOverride = dispatcherValueOverride
-                                    .map(AsyncApiRemoteMapper::createCustomRemoteFunctionName);
+                            // The function names its message, so a client calls do<Name> for on<Name>
+                            String remoteRequestTypeName = requestMessageName(remoteFunctionNode);
                             // What a client sends in the dispatcher field to reach this function.
                             String wireValue = dispatcherValueOverride
                                     .orElseGet(() -> dispatchValueOf(functionName.substring(2)));
@@ -295,7 +296,6 @@ public class AsyncApiRemoteMapper {
                             Map<String, String> remoteDocs = getRemoteDocumentation(remoteFunctionSymbol);
 
                             RequiredParameterNode requiredParameterNode = findMessageParameter(remoteFunctionNode);
-                            String remoteRequestTypeName;
                             BalAsyncApi30MessageImpl componentMessage;
                             if (requiredParameterNode == null) {
                                 if (!remoteFunctionNode.functionSignature().parameters().isEmpty()) {
@@ -305,8 +305,6 @@ public class AsyncApiRemoteMapper {
                                 }
                                 // No parameters at all: a valid dispatch target with no request payload
                                 // beyond the dispatcher key value itself (e.g. onSubscription() in #7669).
-                                remoteRequestTypeName = dispatcherTypeOverride.orElseGet(() ->
-                                        functionName.substring(2));
                                 componentMessage = responseMapper.extractInlineMessageSchema(publishMessage,
                                         remoteRequestTypeName, dispatcherFieldSchema(dispatcherValue, wireValue),
                                         null);
@@ -319,19 +317,12 @@ public class AsyncApiRemoteMapper {
                                     remoteDocs.remove(paramName);
                                 }
                                 if (isPrimitiveTypeDesc(parameterTypeNode.kind())) {
-                                    // A primitive-typed parameter (e.g. `string`) has no named type to
-                                    // derive a message name from, unlike a record/class reference - fall
-                                    // back to the function name, same as the zero-parameter case above.
                                     // With a dispatcherKey the message is still a JSON object carrying the
                                     // dispatcher field; the primitive parameter just binds its text.
-                                    remoteRequestTypeName = dispatcherTypeOverride.orElseGet(() ->
-                                            functionName.substring(2));
                                     componentMessage = responseMapper.extractInlineMessageSchema(
                                             publishMessage, remoteRequestTypeName,
                                             dispatcherFieldSchema(dispatcherValue, wireValue), paramDescription);
                                 } else {
-                                    remoteRequestTypeName = dispatcherTypeOverride.orElseGet(() ->
-                                            unescapeIdentifier(resolveParameterTypeName(requiredParameterNode)));
                                     TypeSymbol remoteFunctionNameTypeSymbol = (TypeSymbol) semanticModel.
                                             symbol(parameterTypeNode).orElseThrow();
                                     TypeReferenceTypeSymbol typeRef =
@@ -352,8 +343,8 @@ public class AsyncApiRemoteMapper {
                                         }
                                         componentMapper.setDispatchValue(wireValue);
                                         try {
-                                            // A @DispatcherConfig value names the message, but the payload is
-                                            // still the parameter type's schema.
+                                            // The function names the message; the payload is the parameter
+                                            // type's schema.
                                             componentMessage = responseMapper.extractMessageSchemaReference(
                                                     publishMessage, remoteRequestTypeName, requestType,
                                                     remoteFunctionNameTypeSymbol, dispatcherValue, paramDescription);
@@ -395,13 +386,6 @@ public class AsyncApiRemoteMapper {
                                 }
                                 responseMapper.createResponse(subscribeMessage, componentMessage,
                                         remoteReturnType, returnDescription, FALSE, null);
-                            }
-                            // Names come from the function (no or primitive parameter, @DispatcherConfig) or the
-                            // request type, so two functions can still land on one message name.
-                            String messageOwner = messageOwners.putIfAbsent(remoteRequestTypeName, functionName);
-                            if (messageOwner != null) {
-                                throw new NoSuchElementException(String.format(SHARED_MESSAGE_NAME,
-                                        messageOwner, functionName, remoteRequestTypeName));
                             }
                             inlineResponseRequests.put(remoteRequestTypeName, componentMessage);
                             components.addMessage(remoteRequestTypeName, componentMessage);
@@ -468,6 +452,36 @@ public class AsyncApiRemoteMapper {
         return channelObject;
     }
 
+    // A remote function's message is named after the function, or after its @DispatcherConfig value. websocket
+    // rejects two functions that map to one name, so every message name in a service is unique.
+    private String requestMessageName(FunctionDefinitionNode remoteFunctionNode) {
+        String functionName = remoteFunctionNode.functionName().toString().trim();
+        return remoteFunctionNode.metadata().map(MetadataNode::annotations)
+                .flatMap(this::getDispatcherValueFromAnnotation)
+                .map(AsyncApiRemoteMapper::createCustomRemoteFunctionName)
+                .orElseGet(() -> functionName.substring(2));
+    }
+
+    // Each remote function's message name, mapped to its payload's schema name (null for an inline payload).
+    private Map<String, String> requestMessages(NodeList<Node> classMethodNodes) {
+        Map<String, String> requestMessages = new HashMap<>();
+        for (Node node : classMethodNodes) {
+            if (node.kind() != SyntaxKind.OBJECT_METHOD_DEFINITION) {
+                continue;
+            }
+            FunctionDefinitionNode remoteFunctionNode = (FunctionDefinitionNode) node;
+            String functionName = remoteFunctionNode.functionName().toString().trim();
+            if (!functionName.matches(CAMEL_CASE_PATTERN) || !isRemoteFunctionNameValid(functionName)) {
+                continue;
+            }
+            RequiredParameterNode parameter = findMessageParameter(remoteFunctionNode);
+            requestMessages.put(requestMessageName(remoteFunctionNode),
+                    parameter == null || isPrimitiveTypeDesc(parameter.typeName().kind())
+                            ? null : unescapeIdentifier(resolveParameterTypeName(parameter)));
+        }
+        return requestMessages;
+    }
+
     // Lists a component message on the channel and adds the receive operation that points at it.
     private void addReceiveOperation(String messageName, AsyncApi30ChannelImpl channelItem, String channelKey) {
         BalAsyncApi30MessageImpl respChannelMsgRef = new BalAsyncApi30MessageImpl();
@@ -487,37 +501,43 @@ public class AsyncApiRemoteMapper {
     }
 
     // A response that isn't a named record (an array, a primitive, a map) has no message of its own, so it
-    // gets one named after its request, which the channel lists and a receive operation points at.
+    // gets one named after its request, which the channel lists, a receive operation and x-response point at.
     private void registerInlineResponses(String requestName, BalAsyncApi30MessageImpl componentMessage,
                                          AsyncApi30ChannelImpl channelItem, String channelKey) {
         Map<String, JsonNode> extensions = componentMessage.getExtensions();
         JsonNode response = extensions == null ? null : extensions.get(X_RESPONSE);
-        if (response == null) {
+        if (!(response instanceof ObjectNode responseNode)) {
             return;
         }
-        List<JsonNode> payloads = new ArrayList<>();
-        if (response.has(PAYLOAD)) {
-            payloads.add(response.get(PAYLOAD));
-        } else if (response.has(ONEOF)) {
-            response.get(ONEOF).forEach(entry -> {
-                if (entry.has(PAYLOAD)) {
-                    payloads.add(entry.get(PAYLOAD));
+        ObjectNode newResponse = responseNode.deepCopy();
+        List<ObjectNode> inlineEntries = new ArrayList<>();
+        if (newResponse.has(PAYLOAD)) {
+            inlineEntries.add(newResponse);
+        } else if (newResponse.get(ONEOF) instanceof ArrayNode oneOf) {
+            oneOf.forEach(entry -> {
+                if (entry instanceof ObjectNode entryNode && entryNode.has(PAYLOAD)) {
+                    inlineEntries.add(entryNode);
                 }
             });
         }
-        for (int i = 0; i < payloads.size(); i++) {
-            String baseName = requestName + "Response" + (payloads.size() > 1 ? String.valueOf(i + 1) : "");
+        for (int i = 0; i < inlineEntries.size(); i++) {
+            String baseName = requestName + "Response" + (inlineEntries.size() > 1 ? String.valueOf(i + 1) : "");
             // A record can already be called <Request>Response, so take the next free name.
             String messageName = baseName;
             for (int n = 2; components.getMessages() != null && components.getMessages().containsKey(messageName);
                  n++) {
                 messageName = baseName + "_" + n;
             }
+            ObjectNode entry = inlineEntries.get(i);
             BalAsyncApi30MessageImpl message = new BalAsyncApi30MessageImpl();
             message.setParent(components);
-            message.addExtension(PAYLOAD, payloads.get(i));
+            message.addExtension(PAYLOAD, entry.remove(PAYLOAD));
             components.addMessage(messageName, message);
             addReceiveOperation(messageName, channelItem, channelKey);
+            entry.put(REF, MESSAGE_REFERENCE + messageName);
+        }
+        if (!inlineEntries.isEmpty()) {
+            componentMessage.addExtension(X_RESPONSE, newResponse);
         }
     }
 
