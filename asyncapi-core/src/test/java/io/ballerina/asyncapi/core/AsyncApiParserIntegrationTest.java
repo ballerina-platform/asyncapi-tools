@@ -627,6 +627,17 @@ public class AsyncApiParserIntegrationTest {
     }
 
     @Test
+    void parseSchema_keepsTuplePositionsForBooleanItems() throws IOException {
+        AsyncApiSchema schema = AsyncApiParser.parseSchema(new ObjectMapper().readTree(
+                "{\"type\":\"array\",\"items\":[true,{\"type\":\"string\"},false]}"));
+        List<?> items = (List<?>) schema.items();
+        Assert.assertEquals(items.size(), 3, String.valueOf(items));
+        Assert.assertNull(((AsyncApiSchema) items.get(0)).type());
+        Assert.assertEquals(((AsyncApiSchema) items.get(1)).type(), "string");
+        Assert.assertNotNull(((AsyncApiSchema) items.get(2)).not(), "false allows no value");
+    }
+
+    @Test
     void parseSchema_keepsNullable() throws IOException {
         AsyncApiSchema schema = AsyncApiParser.parseSchema(new ObjectMapper().readTree(
                 "{\"type\":\"object\",\"nullable\":true,\"properties\":{"

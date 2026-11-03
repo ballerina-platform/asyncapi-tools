@@ -386,8 +386,7 @@ public final class SchemaMapper {
         Object items = null;
         if (objectNode.has(Constants.SCHEMA_ITEMS)) {
             JsonNode itemsNode = objectNode.get(Constants.SCHEMA_ITEMS);
-            // A tuple lists one schema per position
-            items = itemsNode.isArray() ? mapJsonSchemaArray(itemsNode) : mapFromJsonNode(itemsNode);
+            items = itemsNode.isArray() ? mapTupleItems(itemsNode) : mapFromJsonNode(itemsNode);
         }
 
         Object additionalProperties = null;
@@ -454,6 +453,26 @@ public final class SchemaMapper {
                 .extensions(extensions)
                 .nullable(mapNullable(objectNode))
                 .build();
+    }
+
+    /**
+     * Maps tuple-form {@code items}, one schema per position. A boolean schema keeps its position: {@code true}
+     * allows any value and {@code false} allows none.
+     */
+    private static List<io.ballerina.asyncapi.core.model.component.AsyncApiSchema> mapTupleItems(JsonNode itemsNode) {
+        List<io.ballerina.asyncapi.core.model.component.AsyncApiSchema> items = new ArrayList<>();
+        for (JsonNode item : itemsNode) {
+            io.ballerina.asyncapi.core.model.component.AsyncApiSchema anySchema =
+                    io.ballerina.asyncapi.core.model.component.AsyncApiSchema.builder().build();
+            if (item.isBoolean()) {
+                items.add(item.booleanValue() ? anySchema
+                        : io.ballerina.asyncapi.core.model.component.AsyncApiSchema.builder().not(anySchema).build());
+            } else {
+                io.ballerina.asyncapi.core.model.component.AsyncApiSchema mapped = mapFromJsonNode(item);
+                items.add(mapped != null ? mapped : anySchema);
+            }
+        }
+        return items;
     }
 
     /**
