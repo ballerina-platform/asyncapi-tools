@@ -281,6 +281,9 @@ public final class SchemaMapper {
         if (!(node instanceof ObjectNode objectNode)) {
             return null;
         }
+        if (objectNode.has(Constants.SCHEMA_REF)) {
+            return mapReference(objectNode);
+        }
 
         String title = objectNode.has(Constants.SCHEMA_TITLE) ? objectNode.get(Constants.SCHEMA_TITLE).asText(null)
                 : null;
@@ -369,29 +372,10 @@ public final class SchemaMapper {
             properties = new LinkedHashMap<>();
             final Map<String, io.ballerina.asyncapi.core.model.component.AsyncApiSchema> propsRef = properties;
             objectNode.get(Constants.SCHEMA_PROPERTIES).properties().forEach(entry -> {
-                JsonNode propNode = entry.getValue();
-                if (propNode.has(Constants.SCHEMA_REF)) {
-                    String ref = propNode.get(Constants.SCHEMA_REF).asText();
-                    String refName = ref.substring(ref.lastIndexOf('/') + 1);
-                    io.ballerina.asyncapi.core.model.component.AsyncApiSchema stub =
-                            io.ballerina.asyncapi.core.model.component.AsyncApiSchema.refStub(refName);
-                    if (propNode.has(Constants.SCHEMA_DESCRIPTION)) {
-                        String siblingDescription = propNode.get(Constants.SCHEMA_DESCRIPTION).asText(null);
-                        if (siblingDescription != null) {
-                            stub = stub.withDescription(siblingDescription);
-                        }
-                    }
-                    JsonNode nullableNode = propNode.get(Constants.SCHEMA_NULLABLE);
-                    if (nullableNode != null && nullableNode.isBoolean()) {
-                        stub = stub.withNullable(nullableNode.booleanValue());
-                    }
-                    propsRef.put(entry.getKey(), stub);
-                } else {
-                    io.ballerina.asyncapi.core.model.component.AsyncApiSchema propSchema =
-                            mapFromJsonNode(propNode);
-                    if (propSchema != null) {
-                        propsRef.put(entry.getKey(), propSchema);
-                    }
+                io.ballerina.asyncapi.core.model.component.AsyncApiSchema propSchema =
+                        mapFromJsonNode(entry.getValue());
+                if (propSchema != null) {
+                    propsRef.put(entry.getKey(), propSchema);
                 }
             });
             if (properties.isEmpty()) {
@@ -402,13 +386,8 @@ public final class SchemaMapper {
         Object items = null;
         if (objectNode.has(Constants.SCHEMA_ITEMS)) {
             JsonNode itemsNode = objectNode.get(Constants.SCHEMA_ITEMS);
-            if (itemsNode.has(Constants.SCHEMA_REF)) {
-                String ref = itemsNode.get(Constants.SCHEMA_REF).asText();
-                String refName = ref.substring(ref.lastIndexOf('/') + 1);
-                items = io.ballerina.asyncapi.core.model.component.AsyncApiSchema.refStub(refName);
-            } else {
-                items = mapFromJsonNode(itemsNode);
-            }
+            // A tuple lists one schema per position
+            items = itemsNode.isArray() ? mapJsonSchemaArray(itemsNode) : mapFromJsonNode(itemsNode);
         }
 
         Object additionalProperties = null;
@@ -473,7 +452,28 @@ public final class SchemaMapper {
                 .defaultValue(defaultValue)
                 .deprecated(deprecated)
                 .extensions(extensions)
+                .nullable(mapNullable(objectNode))
                 .build();
+    }
+
+    // A $ref maps to a stub named after the referenced schema, keeping a sibling description or nullable
+    private static io.ballerina.asyncapi.core.model.component.AsyncApiSchema mapReference(ObjectNode refNode) {
+        String ref = refNode.get(Constants.SCHEMA_REF).asText();
+        io.ballerina.asyncapi.core.model.component.AsyncApiSchema stub =
+                io.ballerina.asyncapi.core.model.component.AsyncApiSchema.refStub(
+                        ref.substring(ref.lastIndexOf('/') + 1));
+        String siblingDescription = refNode.has(Constants.SCHEMA_DESCRIPTION)
+                ? refNode.get(Constants.SCHEMA_DESCRIPTION).asText(null) : null;
+        if (siblingDescription != null) {
+            stub = stub.withDescription(siblingDescription);
+        }
+        Boolean nullable = mapNullable(refNode);
+        return nullable != null ? stub.withNullable(nullable) : stub;
+    }
+
+    private static Boolean mapNullable(ObjectNode objectNode) {
+        JsonNode nullableNode = objectNode.get(Constants.SCHEMA_NULLABLE);
+        return nullableNode != null && nullableNode.isBoolean() ? nullableNode.booleanValue() : null;
     }
 
     /**

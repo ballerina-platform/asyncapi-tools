@@ -156,6 +156,17 @@ public class WsClientRoundTripTest {
     }
 
     @Test
+    void testInlineReplyKeepsReferencesInOneOf() throws Exception {
+        JsonNode spec = spec("shared_response");
+        ((ObjectNode) spec.at("/components/messages/Subscribe")).set("x-response",
+                YAML.readTree("{payload: {oneOf: [{$ref: '#/components/schemas/Ack'}]}}"));
+        Map<String, String> files = generate(spec);
+        Assert.assertTrue(files.get("types.bal").contains("public type SubscribeResponse Ack;"),
+                files.get("types.bal"));
+        Assert.assertTrue(files.get("client.bal").contains("returns SubscribeResponse|error"), files.get("client.bal"));
+    }
+
+    @Test
     void testPerRequestPipesDoNotTakeTurns() throws Exception {
         JsonNode spec = YAML.readTree(Files.readString(specsDir().resolve("ws_with_stream_id.json")));
         String client = generate(spec).get("client.bal");

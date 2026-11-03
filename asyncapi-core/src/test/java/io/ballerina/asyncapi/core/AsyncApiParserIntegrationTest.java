@@ -35,6 +35,7 @@ import org.testng.annotations.Test;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -605,5 +606,35 @@ public class AsyncApiParserIntegrationTest {
     @Test
     void parseSchema_returnsNullForANonObject() {
         Assert.assertNull(AsyncApiParser.parseSchema(TextNode.valueOf("string")));
+    }
+
+    @Test
+    void parseSchema_keepsReferencesInCompositions() throws IOException {
+        AsyncApiSchema schema = AsyncApiParser.parseSchema(new ObjectMapper().readTree(
+                "{\"oneOf\":[{\"$ref\":\"#/components/schemas/User\"},{\"type\":\"string\"}]}"));
+        Assert.assertEquals(schema.oneOf().get(0).name(), "User");
+        Assert.assertEquals(schema.oneOf().get(1).type(), "string");
+    }
+
+    @Test
+    void parseSchema_mapsTupleItems() throws IOException {
+        AsyncApiSchema schema = AsyncApiParser.parseSchema(new ObjectMapper().readTree(
+                "{\"type\":\"array\",\"items\":[{\"type\":\"string\"},{\"$ref\":\"#/components/schemas/User\"}]}"));
+        Assert.assertTrue(schema.items() instanceof List<?>, String.valueOf(schema.items()));
+        List<?> items = (List<?>) schema.items();
+        Assert.assertEquals(((AsyncApiSchema) items.get(0)).type(), "string");
+        Assert.assertEquals(((AsyncApiSchema) items.get(1)).name(), "User");
+    }
+
+    @Test
+    void parseSchema_keepsNullable() throws IOException {
+        AsyncApiSchema schema = AsyncApiParser.parseSchema(new ObjectMapper().readTree(
+                "{\"type\":\"object\",\"nullable\":true,\"properties\":{"
+                        + "\"name\":{\"type\":\"string\",\"nullable\":true},"
+                        + "\"user\":{\"$ref\":\"#/components/schemas/User\",\"nullable\":true}}}"));
+        Assert.assertEquals(schema.nullable(), Boolean.TRUE);
+        Assert.assertEquals(schema.properties().get("name").nullable(), Boolean.TRUE);
+        Assert.assertEquals(schema.properties().get("user").name(), "User");
+        Assert.assertEquals(schema.properties().get("user").nullable(), Boolean.TRUE);
     }
 }

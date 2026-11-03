@@ -54,7 +54,6 @@ public final class NamedPayloadSpec implements AsyncApiSpec {
     private static final String REF = "$ref";
     private static final String RESPONSE_SUFFIX = "Response";
     private static final String MESSAGES_REF_PREFIX = "#/components/messages/";
-    private static final String SCHEMAS_REF_PREFIX = "#/components/schemas/";
     // Type names the client generator writes itself
     private static final Set<String> GENERATED_TYPE_NAMES = Set.of("Message", "MessageWithId", "PipesMap",
             "StreamGeneratorsMap", "Generator", "SimpleBasicType");
@@ -173,13 +172,8 @@ public final class NamedPayloadSpec implements AsyncApiSpec {
 
     // Points an inline reply at a component message, reusing `<name>Response` when it carries the same payload
     private JsonNode responseRef(String baseName, JsonNode inlineResponse) {
-        JsonNode payloadNode = inlineResponse.get(PAYLOAD);
-        AsyncApiSchema payload;
-        if (payloadNode.get(REF) != null && payloadNode.get(REF).asText().startsWith(SCHEMAS_REF_PREFIX)) {
-            payload = AsyncApiSchema.refStub(payloadNode.get(REF).asText().substring(SCHEMAS_REF_PREFIX.length()));
-        } else {
-            payload = AsyncApiParser.parseSchema(payloadNode);
-        }
+        // A $ref payload maps to a stub that only carries the referenced schema's name
+        AsyncApiSchema payload = AsyncApiParser.parseSchema(inlineResponse.get(PAYLOAD));
         if (payload == null) {
             return inlineResponse;
         }
