@@ -74,7 +74,10 @@ public final class NamedPayloadSpec implements AsyncApiSpec {
     private final Map<String, AsyncApiSchema> schemas;
     private final Map<String, AsyncApiMessage> messages;
     private final Set<String> takenTypeNames = new HashSet<>(GENERATED_TYPE_NAMES);
-    private final Map<AsyncApiMessage, AsyncApiMessage> named = new HashMap<>();
+    private final Map<String, AsyncApiMessage> originalMessages;
+    // Operation messages that differ from the component message of the same name, before and after naming
+    private final Map<String, AsyncApiMessage> operationOriginals = new HashMap<>();
+    private final Map<String, AsyncApiMessage> operationNamed = new HashMap<>();
     private final AsyncApiComponent components;
     private final Map<String, AsyncApiOperation> operations;
 
@@ -95,14 +98,12 @@ public final class NamedPayloadSpec implements AsyncApiSpec {
         }
 
         // Name every payload before rewriting replies, so an inline reply can match an existing reply message
-        Map<String, AsyncApiMessage> originals = new LinkedHashMap<>(messages);
-        for (Map.Entry<String, AsyncApiMessage> entry : originals.entrySet()) {
+        this.originalMessages = new LinkedHashMap<>(messages);
+        for (Map.Entry<String, AsyncApiMessage> entry : originalMessages.entrySet()) {
             messages.put(entry.getKey(), withNamedPayload(entry.getKey(), entry.getValue()));
         }
-        for (Map.Entry<String, AsyncApiMessage> entry : originals.entrySet()) {
-            AsyncApiMessage result = withResponseRefs(entry.getKey(), messages.get(entry.getKey()));
-            messages.put(entry.getKey(), result);
-            named.put(entry.getValue(), result);
+        for (String messageName : originalMessages.keySet()) {
+            messages.put(messageName, withResponseRefs(messageName, messages.get(messageName)));
         }
         this.operations = spec.getAsyncApiOperations().map(this::nameOperations).orElse(null);
         this.components = withSchemasAndMessages(original);
@@ -144,15 +145,25 @@ public final class NamedPayloadSpec implements AsyncApiSpec {
     }
 
     /**
-     * An operation message equal to a component message reuses the names given to the component message.
+     * An operation message that is the component message of the same name reuses its names. Matching by name
+     * first keeps two messages with equal content apart.
      */
     private AsyncApiMessage name(String messageName, AsyncApiMessage message) {
-        AsyncApiMessage done = named.get(message);
-        if (done != null) {
-            return done;
+        if (message.equals(originalMessages.get(messageName))) {
+            return messages.get(messageName);
+        }
+        if (message.equals(operationOriginals.get(messageName))) {
+            return operationNamed.get(messageName);
+        }
+        // Listed under a channel key that differs from its component key
+        List<String> sameContent = originalMessages.entrySet().stream()
+                .filter(entry -> entry.getValue().equals(message)).map(Map.Entry::getKey).toList();
+        if (sameContent.size() == 1) {
+            return messages.get(sameContent.get(0));
         }
         AsyncApiMessage result = withResponseRefs(messageName, withNamedPayload(messageName, message));
-        named.put(message, result);
+        operationOriginals.put(messageName, message);
+        operationNamed.put(messageName, result);
         return result;
     }
 
@@ -190,9 +201,11 @@ public final class NamedPayloadSpec implements AsyncApiSpec {
         }
         AsyncApiSchema type = allOf.get(0).name() != null ? allOf.get(0) : allOf.get(1);
         AsyncApiSchema constraint = type == allOf.get(0) ? allOf.get(1) : allOf.get(0);
-        if (type.name() == null || constraint.name() != null || constraint.properties() == null
-                || !constraint.properties().keySet().equals(Set.of(dispatcherKey))
-                || !schemas.containsKey(type.name())) {
+        // The named type has to declare the dispatcher field, so the client can set it before sending
+        AsyncApiSchema named = type.name() == null ? null : schemas.get(type.name());
+        if (named == null || named.properties() == null || !named.properties().containsKey(dispatcherKey)
+                || constraint.name() != null || constraint.properties() == null
+                || !constraint.properties().keySet().equals(Set.of(dispatcherKey))) {
             return null;
         }
         return constraint;
@@ -203,14 +216,13 @@ public final class NamedPayloadSpec implements AsyncApiSpec {
      * sends that value whatever the caller passes.
      */
     private AsyncApiMessage withDispatchValue(AsyncApiMessage message, AsyncApiSchema schema) {
-        AsyncApiSchema field = dispatcherKey == null || schema == null || schema.properties() == null
-                ? null : schema.properties().get(dispatcherKey);
-        if (field == null || field.constValue() == null || !field.constValue().isTextual()) {
+        String value = CodegenUtils.getFixedDispatchValue(schema, dispatcherKey);
+        if (value == null) {
             return message;
         }
         Map<String, JsonNode> extensions = message.extensions() == null
                 ? new LinkedHashMap<>() : new LinkedHashMap<>(message.extensions());
-        extensions.put(X_DISPATCHER_VALUE, TextNode.valueOf(field.constValue().asText()));
+        extensions.put(X_DISPATCHER_VALUE, TextNode.valueOf(value));
         return withPayload(message, message.payload(), extensions);
     }
 

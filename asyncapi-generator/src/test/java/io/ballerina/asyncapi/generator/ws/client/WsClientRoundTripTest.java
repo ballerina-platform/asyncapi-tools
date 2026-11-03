@@ -19,6 +19,7 @@ package io.ballerina.asyncapi.generator.ws.client;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import io.ballerina.asyncapi.core.AsyncApiParser;
@@ -87,6 +88,56 @@ public class WsClientRoundTripTest {
         ((ObjectNode) spec.at("/components/schemas/Subscribe/properties/event")).remove("const");
         String client = generate(spec).get("client.bal");
         Assert.assertTrue(client.contains("Message|error message = subscribe.cloneWithType();"), client);
+    }
+
+    @Test
+    void testReceiveOnlyMessageWaitsOnTheReadersPipe() throws Exception {
+        String client = generate(specFile("ws_receive_only.yaml")).get("client.bal");
+        Assert.assertTrue(client.contains("\"Notice\": \"notice\""), client);
+        Assert.assertTrue(client.contains(
+                "Message|pipe:Error responseMessage = self.pipes.getPipe(\"notice\").consume(timeout);"), client);
+    }
+
+    @Test
+    void testFixedReplyValueIsRoutedExactly() throws Exception {
+        // ack doesn't convert to the Ack type name's pipe on its own, so it is routed by its exact value
+        JsonNode spec = specFile("ws_receive_only.yaml");
+        ((ObjectNode) spec.at("/components/schemas/Ack/properties/event")).put("const", "acknowledged");
+        String client = generate(spec).get("client.bal");
+        Assert.assertTrue(client.contains("dispatchValueMap = {\n        \"acknowledged\": \"subscribe\"\n    };"),
+                client);
+        Assert.assertTrue(client.contains("if self.dispatchValueMap.hasKey(responseType) {"), client);
+    }
+
+    @Test
+    void testFramesNoCallWaitsForAreDropped() throws Exception {
+        String client = generate(spec("echo")).get("client.bal");
+        Assert.assertTrue(client.contains("string? pipeName = self.getPipeName(message.event);"), client);
+        Assert.assertTrue(client.contains("log:printWarn(\"Dropped a message that no call is waiting for\""), client);
+    }
+
+    @Test
+    void testDispatcherConstraintNeedsTheFieldInTheType() throws Exception {
+        // ChatMessage without an event field can't be the request type, since the client sets that field, so the
+        // allOf payload becomes a type of its own. The reply gets its own Ack type, which has the field.
+        JsonNode spec = spec("echo_allof");
+        ((ObjectNode) spec.at("/components/schemas/ChatMessage/properties")).remove("event");
+        ((ArrayNode) spec.at("/components/schemas/ChatMessage/required")).removeAll();
+        ((ObjectNode) spec.at("/components/schemas")).set("Ack",
+                YAML.readTree("{type: object, required: [event], properties: {event: {type: string}}}"));
+        ((ObjectNode) spec.at("/components/messages/ChatMessageReply/payload"))
+                .put("$ref", "#/components/schemas/Ack");
+        String client = generate(spec).get("client.bal");
+        Assert.assertTrue(client.contains("doChatMessage(ChatMessage2 chatMessage2, decimal timeout)"), client);
+    }
+
+    @Test
+    void testMessagesWithEqualContentKeepTheirOwnNames() throws Exception {
+        // HelloDataResponse, InitDataResponse and CustomValueResponse are all {type: string}
+        String client = generate(spec("mixed")).get("client.bal");
+        Assert.assertTrue(client.contains("returns HelloDataResponse|error"), client);
+        Assert.assertTrue(client.contains("returns InitDataResponse|error"), client);
+        Assert.assertTrue(client.contains("returns CustomValueResponse|error"), client);
     }
 
     @Test
@@ -184,7 +235,10 @@ public class WsClientRoundTripTest {
         String utils = files.get("utils.bal");
         Assert.assertTrue(utils.contains("public isolated function takeTurn(string id, decimal timeout)"), utils);
         Assert.assertTrue(utils.contains("public isolated function giveTurn(string id)"), utils);
-        Assert.assertTrue(utils.contains("check turn.immediateClose();"), utils);
+        // Turns close before the reply pipes, so a pipe that fails to close can't leave a call waiting for its turn
+        Assert.assertTrue(utils.indexOf("turn.immediateClose()") < utils.indexOf("pipe.gracefulClose()"), utils);
+        // Handing the turn on never fails the call that already has its reply
+        Assert.assertTrue(client.contains("self.pipes.giveTurn(\"unsubscribe\");"), client);
     }
 
     @Test
@@ -243,7 +297,8 @@ public class WsClientRoundTripTest {
                     .generate(outDir);
             Map<String, String> files = new HashMap<>();
             for (String name : new String[]{"client.bal", "types.bal", "utils.bal"}) {
-                files.put(name, Files.readString(outDir.resolve(name)));
+                // Generated files use the platform's line endings
+                files.put(name, Files.readString(outDir.resolve(name)).replace("\r\n", "\n"));
             }
             return files;
         } finally {
@@ -255,6 +310,10 @@ public class WsClientRoundTripTest {
 
     private static JsonNode spec(String name) throws IOException {
         return YAML.readTree(resource(name));
+    }
+
+    private static JsonNode specFile(String fileName) throws Exception {
+        return YAML.readTree(Files.readString(specsDir().resolve(fileName)));
     }
 
     private static String resource(String name) throws IOException {

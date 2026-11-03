@@ -1,0 +1,70 @@
+asyncapi: 3.0.0
+info:
+  title: Notices
+  version: 0.0.0
+servers:
+  development:
+    host: localhost:9415
+    protocol: ws
+    pathname: /n
+channels:
+  root:
+    address: /
+    messages:
+      Subscribe:
+        $ref: "#/components/messages/Subscribe"
+      Ack:
+        $ref: "#/components/messages/Ack"
+      Notice:
+        $ref: "#/components/messages/Notice"
+operations:
+  sendSubscribe:
+    action: send
+    channel:
+      $ref: "#/channels/root"
+    messages:
+    - $ref: "#/channels/root/messages/Subscribe"
+  receiveAck:
+    action: receive
+    channel:
+      $ref: "#/channels/root"
+    messages:
+    - $ref: "#/channels/root/messages/Ack"
+  receiveNotice:
+    action: receive
+    channel:
+      $ref: "#/channels/root"
+    messages:
+    - $ref: "#/channels/root/messages/Notice"
+components:
+  schemas:
+    Subscribe:
+      type: object
+      required: [event]
+      properties:
+        event: {type: string, const: subscribe}
+    Ack:
+      type: object
+      required: [event]
+      properties:
+        event: {type: string}
+    Notice:
+      type: object
+      required: [event, text]
+      properties:
+        event: {type: string}
+        text: {type: string}
+  messages:
+    Subscribe:
+      payload:
+        $ref: "#/components/schemas/Subscribe"
+      x-response:
+        $ref: "#/components/messages/Ack"
+      x-response-type: simple-rpc
+    Ack:
+      payload:
+        $ref: "#/components/schemas/Ack"
+    Notice:
+      payload:
+        $ref: "#/components/schemas/Notice"
+x-dispatcherKey: event

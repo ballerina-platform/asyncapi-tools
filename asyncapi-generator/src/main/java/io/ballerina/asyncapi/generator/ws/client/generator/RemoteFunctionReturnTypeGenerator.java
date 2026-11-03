@@ -28,6 +28,7 @@ import io.ballerina.asyncapi.generator.ws.client.utils.CodegenUtils;
 import io.ballerina.asyncapi.generator.ws.client.utils.CommonFunctionUtils;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -56,6 +57,8 @@ public class RemoteFunctionReturnTypeGenerator {
             + "so it must be the only reply of a simple-rpc message, not part of a oneOf or a stream: %s";
 
     private final AsyncApiSpec asyncApiSpec;
+    // Component schemas by Ballerina type name, built on first use
+    private Map<String, AsyncApiSchema> schemasByTypeName;
 
     /**
      * Creates a new return type generator for the given spec.
@@ -219,17 +222,12 @@ public class RemoteFunctionReturnTypeGenerator {
      * The component schema whose Ballerina type name is {@code typeName}, or {@code null}.
      */
     private AsyncApiSchema findSchema(String typeName) {
-        Map<String, AsyncApiSchema> schemas = asyncApiSpec.getAsyncApiComponents()
-                .map(c -> c.schemas()).orElse(null);
-        if (schemas == null) {
-            return null;
+        if (schemasByTypeName == null) {
+            schemasByTypeName = new HashMap<>();
+            asyncApiSpec.getAsyncApiComponents().map(c -> c.schemas()).orElse(Map.of()).forEach((name, schema) ->
+                    schemasByTypeName.putIfAbsent(CodegenUtils.getValidName(name.trim(), true), schema));
         }
-        for (Map.Entry<String, AsyncApiSchema> entry : schemas.entrySet()) {
-            if (CodegenUtils.getValidName(entry.getKey().trim(), true).equals(typeName)) {
-                return entry.getValue();
-            }
-        }
-        return null;
+        return schemasByTypeName.get(typeName);
     }
 
     /**
