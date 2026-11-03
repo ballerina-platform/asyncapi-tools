@@ -1,0 +1,95 @@
+asyncapi: 3.0.0
+info:
+  title: Prices
+  version: 0.0.0
+servers:
+  development:
+    host: "{server}:{port}"
+    protocol: ws
+    protocolVersion: "13"
+    pathname: /prices
+    variables:
+      server:
+        default: ws://localhost
+      port:
+        default: "9091"
+channels:
+  root:
+    address: /
+    messages:
+      Subscribe:
+        $ref: "#/components/messages/Subscribe"
+      Unsubscribe:
+        $ref: "#/components/messages/Unsubscribe"
+      Ack:
+        $ref: "#/components/messages/Ack"
+operations:
+  sendSubscribe:
+    action: send
+    channel:
+      $ref: "#/channels/root"
+    messages:
+    - $ref: "#/channels/root/messages/Subscribe"
+  sendUnsubscribe:
+    action: send
+    channel:
+      $ref: "#/channels/root"
+    messages:
+    - $ref: "#/channels/root/messages/Unsubscribe"
+  receiveAck:
+    action: receive
+    channel:
+      $ref: "#/channels/root"
+    messages:
+    - $ref: "#/channels/root/messages/Ack"
+components:
+  schemas:
+    Subscribe:
+      type: object
+      required:
+      - event
+      - symbol
+      properties:
+        event:
+          type: string
+          const: subscribe
+        symbol:
+          type: string
+    Ack:
+      type: object
+      required:
+      - event
+      - ok
+      properties:
+        event:
+          type: string
+        ok:
+          type: boolean
+    Unsubscribe:
+      type: object
+      required:
+      - event
+      - symbol
+      properties:
+        event:
+          type: string
+          const: unsubscribe
+        symbol:
+          type: string
+  messages:
+    Ack:
+      payload:
+        $ref: "#/components/schemas/Ack"
+    Subscribe:
+      payload:
+        $ref: "#/components/schemas/Subscribe"
+      x-response:
+        $ref: "#/components/messages/Ack"
+      x-response-type: simple-rpc
+    Unsubscribe:
+      payload:
+        $ref: "#/components/schemas/Unsubscribe"
+      x-response:
+        $ref: "#/components/messages/Ack"
+      x-response-type: simple-rpc
+x-dispatcherKey: event

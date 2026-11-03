@@ -1,0 +1,76 @@
+asyncapi: 3.0.0
+info:
+  title: /
+  version: 0.0.0
+servers:
+  development:
+    host: "{server}:{port}"
+    protocol: ws
+    protocolVersion: "13"
+    pathname: /
+    variables:
+      server:
+        default: ws://localhost
+      port:
+        default: "8080"
+channels:
+  root:
+    address: /
+    messages:
+      ClientData:
+        $ref: "#/components/messages/ClientData"
+      ClientDataResponse:
+        $ref: "#/components/messages/ClientDataResponse"
+    description: Allows clients to get real-time data on users.
+operations:
+  sendClientData:
+    action: send
+    channel:
+      $ref: "#/channels/root"
+    messages:
+    - $ref: "#/channels/root/messages/ClientData"
+  receiveClientDataResponse:
+    action: receive
+    channel:
+      $ref: "#/channels/root"
+    messages:
+    - $ref: "#/channels/root/messages/ClientDataResponse"
+components:
+  schemas:
+    ClientData:
+      type: object
+      required:
+      - event
+      - id
+      properties:
+        event:
+          type: string
+          const: hello
+        id:
+          type: string
+    User:
+      type: object
+      required:
+      - name
+      - gender
+      properties:
+        name:
+          type: string
+        gender:
+          type: string
+  messages:
+    ClientData:
+      payload:
+        $ref: "#/components/schemas/ClientData"
+      x-response:
+        payload:
+          type: array
+          items:
+            $ref: "#/components/schemas/User"
+      x-response-type: simple-rpc
+    ClientDataResponse:
+      payload:
+        type: array
+        items:
+          $ref: "#/components/schemas/User"
+x-dispatcherKey: event

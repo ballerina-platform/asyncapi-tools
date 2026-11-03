@@ -1,0 +1,173 @@
+asyncapi: 3.0.0
+info:
+  title: E2e
+  version: 0.0.0
+servers:
+  development:
+    host: "{server}:{port}"
+    protocol: ws
+    protocolVersion: "13"
+    pathname: /e2e
+    variables:
+      server:
+        default: ws://localhost
+      port:
+        default: "9411"
+channels:
+  root:
+    address: /
+    messages:
+      HelloData:
+        $ref: "#/components/messages/HelloData"
+      InitData:
+        $ref: "#/components/messages/InitData"
+      CustomValue:
+        $ref: "#/components/messages/CustomValue"
+      UsersQuery:
+        $ref: "#/components/messages/UsersQuery"
+      HelloDataResponse:
+        $ref: "#/components/messages/HelloDataResponse"
+      InitDataResponse:
+        $ref: "#/components/messages/InitDataResponse"
+      CustomValueResponse:
+        $ref: "#/components/messages/CustomValueResponse"
+      UsersQueryResponse:
+        $ref: "#/components/messages/UsersQueryResponse"
+operations:
+  sendHelloData:
+    action: send
+    channel:
+      $ref: "#/channels/root"
+    messages:
+    - $ref: "#/channels/root/messages/HelloData"
+  sendInitData:
+    action: send
+    channel:
+      $ref: "#/channels/root"
+    messages:
+    - $ref: "#/channels/root/messages/InitData"
+  sendCustomValue:
+    action: send
+    channel:
+      $ref: "#/channels/root"
+    messages:
+    - $ref: "#/channels/root/messages/CustomValue"
+  sendUsersQuery:
+    action: send
+    channel:
+      $ref: "#/channels/root"
+    messages:
+    - $ref: "#/channels/root/messages/UsersQuery"
+  receiveHelloDataResponse:
+    action: receive
+    channel:
+      $ref: "#/channels/root"
+    messages:
+    - $ref: "#/channels/root/messages/HelloDataResponse"
+  receiveInitDataResponse:
+    action: receive
+    channel:
+      $ref: "#/channels/root"
+    messages:
+    - $ref: "#/channels/root/messages/InitDataResponse"
+  receiveCustomValueResponse:
+    action: receive
+    channel:
+      $ref: "#/channels/root"
+    messages:
+    - $ref: "#/channels/root/messages/CustomValueResponse"
+  receiveUsersQueryResponse:
+    action: receive
+    channel:
+      $ref: "#/channels/root"
+    messages:
+    - $ref: "#/channels/root/messages/UsersQueryResponse"
+components:
+  schemas:
+    HelloData:
+      type: object
+      required:
+      - event
+      properties:
+        event:
+          type: string
+          const: hello
+        id:
+          type: string
+    InitData:
+      type: object
+      required:
+      - event
+      properties:
+        event:
+          type: string
+          const: connection_init
+    CustomData:
+      type: object
+      required:
+      - event
+      properties:
+        event:
+          type: string
+          const: custom_value
+    UsersQuery:
+      type: object
+      required:
+      - event
+      properties:
+        event:
+          type: string
+          const: users
+    User:
+      type: object
+      required:
+      - name
+      properties:
+        name:
+          type: string
+  messages:
+    HelloData:
+      payload:
+        $ref: "#/components/schemas/HelloData"
+      x-response:
+        payload:
+          type: string
+      x-response-type: simple-rpc
+    InitData:
+      payload:
+        $ref: "#/components/schemas/InitData"
+      x-response:
+        payload:
+          type: string
+      x-response-type: simple-rpc
+    CustomValue:
+      payload:
+        $ref: "#/components/schemas/CustomData"
+      x-response:
+        payload:
+          type: string
+      x-response-type: simple-rpc
+    UsersQuery:
+      payload:
+        $ref: "#/components/schemas/UsersQuery"
+      x-response:
+        payload:
+          type: array
+          items:
+            $ref: "#/components/schemas/User"
+      x-response-type: simple-rpc
+    HelloDataResponse:
+      payload:
+        type: string
+    InitDataResponse:
+      payload:
+        type: string
+    CustomValueResponse:
+      payload:
+        type: string
+    UsersQueryResponse:
+      payload:
+        type: array
+        items:
+          $ref: "#/components/schemas/User"
+x-dispatcherKey: event
