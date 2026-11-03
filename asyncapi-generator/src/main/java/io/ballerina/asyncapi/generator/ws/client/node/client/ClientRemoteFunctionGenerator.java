@@ -18,6 +18,7 @@
 package io.ballerina.asyncapi.generator.ws.client.node.client;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.ballerina.asyncapi.core.api.AsyncApiSpec;
@@ -49,6 +50,8 @@ public class ClientRemoteFunctionGenerator {
 
     private static final String REMOTE_METHOD_NAME_PREFIX = "do";
     private static final String DESCRIPTION = "description";
+    private static final String ONE_OF = "oneOf";
+    private static final String REF = "$ref";
 
     private final AsyncApiSpec asyncApiSpec;
     private final String dispatcherStreamId;
@@ -121,13 +124,10 @@ public class ClientRemoteFunctionGenerator {
                     }
                 }
 
-                // Collect response message names for this SEND op
+                // The messages this send function returns need no receive-only function of their own
                 if (message.extensions() != null && message.extensions().containsKey(ClientGenerator.X_RESPONSE)) {
-                    JsonNode xResponse = message.extensions().get(ClientGenerator.X_RESPONSE);
-                    JsonNode xResponseType = message.extensions().get(ClientGenerator.X_RESPONSE_TYPE);
-                    List<String> responseMessages = new ArrayList<>();
-                    returnTypeGen.getReturnType(xResponse, xResponseType, responseMessages);
-                    remainingResponseMessages.addAll(responseMessages);
+                    remainingResponseMessages.addAll(
+                            responseMessageNames(message.extensions().get(ClientGenerator.X_RESPONSE)));
                 }
 
                 FunctionDefinitionNode fn = getRemoteFunctionDefinitionNode(asyncApiSpec, msgName, message,
@@ -172,6 +172,24 @@ public class ClientRemoteFunctionGenerator {
         }
 
         return remoteFunctions;
+    }
+
+    // The component messages an x-response points at, directly or through oneOf
+    private static List<String> responseMessageNames(JsonNode xResponse) {
+        List<JsonNode> entries = new ArrayList<>();
+        if (xResponse.get(ONE_OF) instanceof ArrayNode oneOf) {
+            oneOf.forEach(entries::add);
+        } else {
+            entries.add(xResponse);
+        }
+        List<String> names = new ArrayList<>();
+        for (JsonNode entry : entries) {
+            JsonNode ref = entry.get(REF);
+            if (ref != null) {
+                names.add(ref.asText().substring(ref.asText().lastIndexOf('/') + 1));
+            }
+        }
+        return names;
     }
 
     /**

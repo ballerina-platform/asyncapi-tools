@@ -37,9 +37,12 @@ import java.net.URI;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+
+import static io.ballerina.asyncapi.generator.ws.client.extractor.DispatcherKeyExtractor.X_DISPATCHER_KEY;
 
 /**
  * A view of a spec in which every message payload has a schema name, so each one maps to a generated type.
@@ -59,6 +62,7 @@ public final class NamedPayloadSpec implements AsyncApiSpec {
             "StreamGeneratorsMap", "Generator", "SimpleBasicType");
 
     private final AsyncApiSpec spec;
+    private final String dispatcherKey;
     private final Map<String, AsyncApiSchema> schemas;
     private final Map<String, AsyncApiMessage> messages;
     private final Set<String> takenTypeNames = new HashSet<>(GENERATED_TYPE_NAMES);
@@ -68,6 +72,8 @@ public final class NamedPayloadSpec implements AsyncApiSpec {
 
     private NamedPayloadSpec(AsyncApiSpec spec) {
         this.spec = spec;
+        JsonNode dispatcherKeyNode = spec.getAsyncApiExtensions().map(ext -> ext.get(X_DISPATCHER_KEY)).orElse(null);
+        this.dispatcherKey = dispatcherKeyNode != null ? dispatcherKeyNode.asText() : null;
         AsyncApiComponent original = spec.getAsyncApiComponents().orElse(null);
         this.schemas = original != null && original.schemas() != null
                 ? new LinkedHashMap<>(original.schemas()) : new LinkedHashMap<>();
@@ -139,8 +145,28 @@ public final class NamedPayloadSpec implements AsyncApiSpec {
                 || CodegenUtils.isCloseFrameSchema(payload)) {
             return message;
         }
+        AsyncApiSchema constrainedType = constrainedType(payload);
+        if (constrainedType != null) {
+            return withPayload(message, constrainedType, message.extensions());
+        }
         String schemaName = addSchema(messageName, payload);
         return withPayload(message, payload.withName(schemaName), message.extensions());
+    }
+
+    // allOf a named schema and a schema fixing only the dispatcher field's value is still that named type
+    private AsyncApiSchema constrainedType(AsyncApiSchema payload) {
+        List<AsyncApiSchema> allOf = payload.allOf();
+        if (dispatcherKey == null || allOf == null || allOf.size() != 2) {
+            return null;
+        }
+        AsyncApiSchema type = allOf.get(0).name() != null ? allOf.get(0) : allOf.get(1);
+        AsyncApiSchema constraint = type == allOf.get(0) ? allOf.get(1) : allOf.get(0);
+        if (type.name() == null || constraint.name() != null || constraint.properties() == null
+                || !constraint.properties().keySet().equals(Set.of(dispatcherKey))
+                || !schemas.containsKey(type.name())) {
+            return null;
+        }
+        return schemas.get(type.name()).withName(type.name());
     }
 
     private AsyncApiMessage withResponseRefs(String messageName, AsyncApiMessage message) {

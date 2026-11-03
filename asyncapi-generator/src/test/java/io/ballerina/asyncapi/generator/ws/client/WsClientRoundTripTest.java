@@ -58,6 +58,26 @@ public class WsClientRoundTripTest {
     }
 
     @Test
+    void testDispatcherConstraintKeepsTheRequestType() throws Exception {
+        // The request payload is allOf ChatMessage and the dispatcher's const; the echo reply has its own message.
+        Map<String, String> files = generate(spec("echo_allof"));
+        String client = files.get("client.bal");
+        Assert.assertTrue(client.contains(
+                "doChatMessage(ChatMessage chatMessage, decimal timeout) returns ChatMessage|error"), client);
+        Assert.assertFalse(client.contains("doChatMessageReply"), client);
+        Assert.assertFalse(files.get("types.bal").contains("ChatMessage2"), files.get("types.bal"));
+    }
+
+    @Test
+    void testFunctionsSharingARequestTypeEachGetAMethod() throws Exception {
+        String client = generate(spec("shared_request")).get("client.bal");
+        Assert.assertTrue(client.contains("doSubscribe(Topic topic, decimal timeout) returns Subscribed|error"),
+                client);
+        Assert.assertTrue(client.contains(
+                "doUnsubscribe(Topic topic, decimal timeout) returns UnsubscribeResponse|error"), client);
+    }
+
+    @Test
     void testKeyedRepliesKeepTheTypedReader() throws Exception {
         String client = generate(spec("echo")).get("client.bal");
         Assert.assertTrue(client.contains("Message|websocket:Error message = self.clientEp->readMessage(Message);"),
