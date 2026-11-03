@@ -898,6 +898,42 @@ class BallerinaToAsyncApiGeneratorTest {
         Assert.assertTrue(yaml.contains("$ref: \"#/components/messages/FooResponse_2\""), yaml);
     }
 
+    @Test
+    void testSharedMessageName_isReportedAsADiagnostic() throws IOException {
+        // websocket accepts foo-bar and foo_bar on two functions, but both name a FooBar message.
+        List<AsyncApiConverterDiagnostic> diagnostics = run(BAL_MESSAGE_NAME_CLASH);
+        Assert.assertEquals(diagnostics.size(), 1, "Diagnostics: " + diagnostics);
+        String message = diagnostics.get(0).getMessage();
+        Assert.assertTrue(message.contains("onA") && message.contains("onB") && message.contains("FooBar"),
+                message);
+    }
+
+    private static final String BAL_MESSAGE_NAME_CLASH =
+            "import ballerina/websocket;\n\n"
+            + "public type Foo record {\n"
+            + "    string event;\n"
+            + "};\n\n"
+            + "public type Bar record {\n"
+            + "    string event;\n"
+            + "};\n\n"
+            + "@websocket:ServiceConfig {dispatcherKey: \"event\"}\n"
+            + "service /names on new websocket:Listener(9090) {\n"
+            + "    resource function get .() returns websocket:Service {\n"
+            + "        return new NamesService();\n"
+            + "    }\n"
+            + "}\n\n"
+            + "service class NamesService {\n"
+            + "    *websocket:Service;\n"
+            + "    @websocket:DispatcherConfig {dispatcherValue: \"foo-bar\"}\n"
+            + "    remote function onA(Foo foo) returns string {\n"
+            + "        return \"a\";\n"
+            + "    }\n"
+            + "    @websocket:DispatcherConfig {dispatcherValue: \"foo_bar\"}\n"
+            + "    remote function onB(Bar bar) returns string {\n"
+            + "        return \"b\";\n"
+            + "    }\n"
+            + "}\n";
+
     private static final String BAL_RESPONSE_NAME_CLASH =
             "import ballerina/websocket;\n\n"
             + "public type Foo record {\n"

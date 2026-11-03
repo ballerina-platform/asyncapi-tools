@@ -99,6 +99,7 @@ import static io.ballerina.asyncapi.generator.ws.asyncspec.Constants.PAYLOAD;
 import static io.ballerina.asyncapi.generator.ws.asyncspec.Constants.REF;
 import static io.ballerina.asyncapi.generator.ws.asyncspec.Constants.REMOTE_DESCRIPTION;
 import static io.ballerina.asyncapi.generator.ws.asyncspec.Constants.RETURN;
+import static io.ballerina.asyncapi.generator.ws.asyncspec.Constants.SHARED_MESSAGE_NAME;
 import static io.ballerina.asyncapi.generator.ws.asyncspec.Constants.SHARED_REQUEST_TYPE;
 import static io.ballerina.asyncapi.generator.ws.asyncspec.Constants.UNSUPPORTED_PARAMETER_TYPE;
 import static io.ballerina.asyncapi.generator.ws.asyncspec.Constants.WEBSOCKET;
@@ -271,6 +272,7 @@ public class AsyncApiRemoteMapper {
                 semanticModel, components);
         Map<String, ReturnTypeDescriptorNode> onErrorReturnTypes = getReturnTypesFromOnErrorMethods(classMethodNodes);
         Map<String, String> requestTypeOwners = new HashMap<>();
+        Map<String, String> messageOwners = new HashMap<>();
         // Named once every function's messages are registered, so an inline response can't take a used name.
         Map<String, BalAsyncApi30MessageImpl> inlineResponseRequests = new LinkedHashMap<>();
         responseMapper.setRequestMessages(requestMessages(classMethodNodes));
@@ -288,6 +290,12 @@ public class AsyncApiRemoteMapper {
                                     annotationNodes.flatMap(this::getDispatcherValueFromAnnotation);
                             // The function names its message, so a client calls do<Name> for on<Name>
                             String remoteRequestTypeName = requestMessageName(remoteFunctionNode);
+                            // websocket allows @DispatcherConfig values like foo-bar and foo_bar, which give one name
+                            String messageOwner = messageOwners.putIfAbsent(remoteRequestTypeName, functionName);
+                            if (messageOwner != null) {
+                                throw new NoSuchElementException(String.format(SHARED_MESSAGE_NAME,
+                                        messageOwner, functionName, remoteRequestTypeName));
+                            }
                             // What a client sends in the dispatcher field to reach this function.
                             String wireValue = dispatcherValueOverride
                                     .orElseGet(() -> dispatchValueOf(functionName.substring(2)));
@@ -452,8 +460,7 @@ public class AsyncApiRemoteMapper {
         return channelObject;
     }
 
-    // A remote function's message is named after the function, or after its @DispatcherConfig value. websocket
-    // rejects two functions that map to one name, so every message name in a service is unique.
+    // A remote function's message is named after the function, or after its @DispatcherConfig value.
     private String requestMessageName(FunctionDefinitionNode remoteFunctionNode) {
         String functionName = remoteFunctionNode.functionName().toString().trim();
         return remoteFunctionNode.metadata().map(MetadataNode::annotations)
