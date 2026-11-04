@@ -280,13 +280,26 @@ public final class CodegenUtils {
     }
 
     /**
-     * Returns {@code value} as a Ballerina string literal, escaping backslashes and double quotes.
+     * Returns {@code value} as a Ballerina string literal, escaping backslashes, double quotes and control
+     * characters, which can't appear raw in a literal.
      *
      * @param value the string value
      * @return the quoted literal
      */
     public static String toStringLiteral(String value) {
-        return "\"" + value.replace("\\", "\\\\").replace("\"", "\\\"") + "\"";
+        StringBuilder literal = new StringBuilder("\"");
+        for (int i = 0; i < value.length(); i++) {
+            char c = value.charAt(i);
+            switch (c) {
+                case '\\' -> literal.append("\\\\");
+                case '"' -> literal.append("\\\"");
+                case '\n' -> literal.append("\\n");
+                case '\r' -> literal.append("\\r");
+                case '\t' -> literal.append("\\t");
+                default -> literal.append(c < 0x20 ? String.format("\\u{%X}", (int) c) : String.valueOf(c));
+            }
+        }
+        return literal.append('"').toString();
     }
 
     /**
