@@ -883,6 +883,8 @@ class BallerinaToAsyncApiGeneratorTest {
         Assert.assertFalse(yaml.contains("const: CustomValue") || yaml.contains("const: ConnectionInit"), yaml);
         // websocket gives each capital its own word, so only h_t_t_p_response reaches onHTTPResponse
         Assert.assertTrue(yaml.contains("const: h_t_t_p_response"), yaml);
+        // An escape in the annotation value is decoded, as websocket reads it
+        Assert.assertTrue(yaml.contains("const: escaped_value"), yaml);
         // The annotation names the message, but its payload is still the parameter type's schema.
         Assert.assertTrue(yaml.contains("$ref: \"#/components/schemas/Custom\""), yaml);
         Assert.assertFalse(yaml.contains("#/components/schemas/CustomValue"), "no dangling schema reference: " + yaml);
@@ -1126,6 +1128,10 @@ class BallerinaToAsyncApiGeneratorTest {
             + "        return \"ok\";\n"
             + "    }\n"
             + "    remote function onHTTPResponse(Init init) returns string {\n"
+            + "        return \"ok\";\n"
+            + "    }\n"
+            + "    @websocket:DispatcherConfig {dispatcherValue: \"escaped\\u{5F}value\"}\n"
+            + "    remote function onEscaped(Init init) returns string {\n"
             + "        return \"ok\";\n"
             + "    }\n"
             + "}\n";

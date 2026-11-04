@@ -726,10 +726,43 @@ public class AsyncApiRemoteMapper {
                 if (!fieldName.equals(ANNOTATION_ATTR_DISPATCHER_VALUE) || fieldValue.isEmpty()) {
                     continue;
                 }
-                return Optional.of(fieldValue.get().toString().replaceAll("\"", "").strip());
+                ExpressionNode value = fieldValue.get();
+                if (value.kind() == SyntaxKind.STRING_LITERAL) {
+                    String literal = value.toString().strip();
+                    return Optional.of(unescapeStringLiteral(literal.substring(1, literal.length() - 1)));
+                }
+                return Optional.of(value.toString().replaceAll("\"", "").strip());
             }
         }
         return Optional.empty();
+    }
+
+    /**
+     * The value of a Ballerina string literal's text, with its escapes ({@code \t}, {@code \n}, {@code \r},
+     * {@code \\}, {@code \"} and {@code \\u{hex}}) decoded, as websocket sees the annotation value.
+     */
+    static String unescapeStringLiteral(String text) {
+        StringBuilder value = new StringBuilder();
+        for (int i = 0; i < text.length(); i++) {
+            char c = text.charAt(i);
+            if (c != '\\' || i + 1 == text.length()) {
+                value.append(c);
+                continue;
+            }
+            char escaped = text.charAt(++i);
+            switch (escaped) {
+                case 't' -> value.append('\t');
+                case 'n' -> value.append('\n');
+                case 'r' -> value.append('\r');
+                case 'u' -> {
+                    int close = text.indexOf('}', i);
+                    value.appendCodePoint(Integer.parseInt(text.substring(i + 2, close), 16));
+                    i = close;
+                }
+                default -> value.append(escaped);
+            }
+        }
+        return value.toString();
     }
 
     private Map<String, ReturnTypeDescriptorNode> getReturnTypesFromOnErrorMethods(
