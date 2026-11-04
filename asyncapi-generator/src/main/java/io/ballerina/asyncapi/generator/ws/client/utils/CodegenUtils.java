@@ -146,8 +146,9 @@ public final class CodegenUtils {
      */
     public static String extractReferenceType(String referenceVariable) throws GeneratorException {
         if (referenceVariable.startsWith("#/") && referenceVariable.contains("/")) {
+            // The last JSON Pointer token, with ~1 and ~0 decoded back to / and ~ (RFC 6901)
             String[] refArray = referenceVariable.split("/");
-            return refArray[refArray.length - 1];
+            return refArray[refArray.length - 1].replace("~1", "/").replace("~0", "~");
         } else {
             throw new GeneratorException(String.format(
                     "Invalid reference value: %s%nBallerina only supports local reference values.",

@@ -638,6 +638,14 @@ public class AsyncApiParserIntegrationTest {
     }
 
     @Test
+    void parseSchema_decodesEscapedReferenceTokens() throws IOException {
+        // A component key containing / or ~ is written as ~1 or ~0 in a JSON Pointer
+        AsyncApiSchema schema = AsyncApiParser.parseSchema(new ObjectMapper().readTree(
+                "{\"$ref\":\"#/components/schemas/Order~1Created~0v2\"}"));
+        Assert.assertEquals(schema.name(), "Order/Created~v2");
+    }
+
+    @Test
     void parseSchema_keepsNullable() throws IOException {
         AsyncApiSchema schema = AsyncApiParser.parseSchema(new ObjectMapper().readTree(
                 "{\"type\":\"object\",\"nullable\":true,\"properties\":{"
