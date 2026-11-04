@@ -34,7 +34,6 @@ import io.apicurio.datamodels.models.asyncapi.v30.AsyncApi30Schema;
 import io.ballerina.asyncapi.generator.ws.asyncspec.model.BalAsyncApi30MessageImpl;
 import io.ballerina.asyncapi.generator.ws.asyncspec.model.BalAsyncApi30SchemaImpl;
 import io.ballerina.compiler.api.SemanticModel;
-import io.ballerina.compiler.api.symbols.ConstantSymbol;
 import io.ballerina.compiler.api.symbols.Documentable;
 import io.ballerina.compiler.api.symbols.Documentation;
 import io.ballerina.compiler.api.symbols.FunctionSymbol;
@@ -43,13 +42,9 @@ import io.ballerina.compiler.api.symbols.Symbol;
 import io.ballerina.compiler.api.symbols.TypeDescKind;
 import io.ballerina.compiler.api.symbols.TypeReferenceTypeSymbol;
 import io.ballerina.compiler.api.symbols.TypeSymbol;
-import io.ballerina.compiler.api.values.ConstantValue;
 import io.ballerina.compiler.syntax.tree.AnnotationNode;
-import io.ballerina.compiler.syntax.tree.BasicLiteralNode;
 import io.ballerina.compiler.syntax.tree.ClassDefinitionNode;
-import io.ballerina.compiler.syntax.tree.ExpressionNode;
 import io.ballerina.compiler.syntax.tree.FunctionDefinitionNode;
-import io.ballerina.compiler.syntax.tree.MappingConstructorExpressionNode;
 import io.ballerina.compiler.syntax.tree.MetadataNode;
 import io.ballerina.compiler.syntax.tree.Node;
 import io.ballerina.compiler.syntax.tree.NodeList;
@@ -60,7 +55,6 @@ import io.ballerina.compiler.syntax.tree.ResourcePathParameterNode;
 import io.ballerina.compiler.syntax.tree.ReturnTypeDescriptorNode;
 import io.ballerina.compiler.syntax.tree.SeparatedNodeList;
 import io.ballerina.compiler.syntax.tree.SimpleNameReferenceNode;
-import io.ballerina.compiler.syntax.tree.SpecificFieldNode;
 import io.ballerina.compiler.syntax.tree.SyntaxKind;
 
 import java.util.ArrayList;
@@ -106,9 +100,7 @@ import static io.ballerina.asyncapi.generator.ws.asyncspec.Constants.REF;
 import static io.ballerina.asyncapi.generator.ws.asyncspec.Constants.REMOTE_DESCRIPTION;
 import static io.ballerina.asyncapi.generator.ws.asyncspec.Constants.RETURN;
 import static io.ballerina.asyncapi.generator.ws.asyncspec.Constants.SHARED_MESSAGE_NAME;
-import static io.ballerina.asyncapi.generator.ws.asyncspec.Constants.UNSUPPORTED_DISPATCHER_VALUE;
 import static io.ballerina.asyncapi.generator.ws.asyncspec.Constants.UNSUPPORTED_PARAMETER_TYPE;
-import static io.ballerina.asyncapi.generator.ws.asyncspec.Constants.WEBSOCKET;
 import static io.ballerina.asyncapi.generator.ws.asyncspec.Constants.X_BALLERINA_WS_CLOSE_FRAME_PATH;
 import static io.ballerina.asyncapi.generator.ws.asyncspec.Constants.X_BALLERINA_WS_CLOSE_FRAME_PATH_FRAME_TYPE;
 import static io.ballerina.asyncapi.generator.ws.asyncspec.Constants.X_BALLERINA_WS_CLOSE_FRAME_TYPE;
@@ -707,89 +699,10 @@ public class AsyncApiRemoteMapper {
      * The dispatcherValue of a {@code @websocket:DispatcherConfig} on the remote function, exactly as written.
      */
     private Optional<String> getDispatcherValueFromAnnotation(NodeList<AnnotationNode> annotationNodes) {
-        if (Objects.isNull(annotationNodes) || annotationNodes.isEmpty()) {
-            return Optional.empty();
-        }
-        for (AnnotationNode annotationNode : annotationNodes) {
-            Optional<Symbol> annotationType = this.semanticModel.symbol(annotationNode);
-            if (annotationType.isEmpty()) {
-                continue;
-            }
-            if (!annotationType.get().getModule().flatMap(Symbol::getName).orElse("").equals(WEBSOCKET)
-                    || !annotationType.get().getName().orElse("").equals(DISPATCHER_CONFIG_ANNOTATION)) {
-                continue;
-            }
-            if (annotationNode.annotValue().isEmpty()) {
-                return Optional.empty();
-            }
-            MappingConstructorExpressionNode annotationValue = annotationNode.annotValue().get();
-            for (Node field : annotationValue.fields()) {
-                if (!SyntaxKind.SPECIFIC_FIELD.equals(field.kind())) {
-                    continue;
-                }
-                String fieldName = ((SpecificFieldNode) field).fieldName().toString().strip();
-                Optional<ExpressionNode> fieldValue = ((SpecificFieldNode) field).valueExpr();
-                if (!fieldName.equals(ANNOTATION_ATTR_DISPATCHER_VALUE) || fieldValue.isEmpty()) {
-                    continue;
-                }
-                ExpressionNode value = fieldValue.get();
-                if (value.kind() == SyntaxKind.STRING_LITERAL) {
-                    // The token's own text, without a trailing comment
-                    String literal = ((BasicLiteralNode) value).literalToken().text();
-                    return Optional.of(unescapeStringLiteral(literal.substring(1, literal.length() - 1)));
-                }
-                Optional<String> constantValue = constantStringValue(value);
-                if (constantValue.isPresent()) {
-                    return constantValue;
-                }
-                // An expression's source text isn't the value websocket dispatches on, so it can't be described
-                throw new NoSuchElementException(String.format(UNSUPPORTED_DISPATCHER_VALUE, value.toString().strip()));
-            }
-        }
-        return Optional.empty();
-    }
-
-    /**
-     * The string a constant reference ({@code dispatcherValue: EVENT}) stands for, read through the semantic model.
-     */
-    private Optional<String> constantStringValue(ExpressionNode value) {
-        Optional<Symbol> symbol = semanticModel.symbol(value);
-        if (symbol.isEmpty() || !(symbol.get() instanceof ConstantSymbol constant)) {
-            return Optional.empty();
-        }
-        Object constValue = constant.constValue();
-        if (constValue instanceof ConstantValue wrapped) {
-            constValue = wrapped.value();
-        }
-        return constValue instanceof String text ? Optional.of(text) : Optional.empty();
-    }
-
-    /**
-     * The value of a Ballerina string literal's text, with its escapes ({@code \t}, {@code \n}, {@code \r},
-     * {@code \\}, {@code \"} and {@code \\u{hex}}) decoded, as websocket sees the annotation value.
-     */
-    static String unescapeStringLiteral(String text) {
-        StringBuilder value = new StringBuilder();
-        for (int i = 0; i < text.length(); i++) {
-            char c = text.charAt(i);
-            if (c != '\\' || i + 1 == text.length()) {
-                value.append(c);
-                continue;
-            }
-            char escaped = text.charAt(++i);
-            switch (escaped) {
-                case 't' -> value.append('\t');
-                case 'n' -> value.append('\n');
-                case 'r' -> value.append('\r');
-                case 'u' -> {
-                    int close = text.indexOf('}', i);
-                    value.appendCodePoint(Integer.parseInt(text.substring(i + 2, close), 16));
-                    i = close;
-                }
-                default -> value.append(escaped);
-            }
-        }
-        return value.toString();
+        return WebSocketAnnotations.find(annotationNodes, DISPATCHER_CONFIG_ANNOTATION, semanticModel)
+                .flatMap(annotation -> WebSocketAnnotations.field(annotation, ANNOTATION_ATTR_DISPATCHER_VALUE))
+                .map(value -> WebSocketAnnotations.stringValue(value, ANNOTATION_ATTR_DISPATCHER_VALUE,
+                        semanticModel));
     }
 
     private Map<String, ReturnTypeDescriptorNode> getReturnTypesFromOnErrorMethods(

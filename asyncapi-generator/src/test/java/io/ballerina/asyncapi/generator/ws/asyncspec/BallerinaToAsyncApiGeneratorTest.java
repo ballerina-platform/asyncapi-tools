@@ -864,6 +864,68 @@ class BallerinaToAsyncApiGeneratorTest {
     }
 
     @Test
+    void testServiceConfig_isFoundAmongOtherAnnotationsAndReadByValue() throws IOException {
+        // @display comes first, the key is a constant with a comment after it, and the stream id is a literal
+        Assert.assertTrue(run(BAL_SERVICE_CONFIG_NOT_FIRST).isEmpty());
+        String yaml = readGeneratedYaml();
+        Assert.assertTrue(yaml.contains("x-dispatcherKey: kind"), yaml);
+        Assert.assertTrue(yaml.contains("x-dispatcherStreamId: id"), yaml);
+        Assert.assertTrue(yaml.contains("const: hello"), yaml);
+        Assert.assertFalse(yaml.contains("EVENT_FIELD"), yaml);
+    }
+
+    @Test
+    void testServiceWithOnlyADocComment_isReportedAsADiagnostic() throws IOException {
+        // A doc comment gives the service metadata with no annotations, which used to fail as an unexpected error
+        List<AsyncApiConverterDiagnostic> diagnostics = run(BAL_DOC_COMMENT_ONLY);
+        Assert.assertEquals(diagnostics.size(), 1, "Diagnostics: " + diagnostics);
+        Assert.assertTrue(diagnostics.get(0).getMessage().contains("no @websocket:ServiceConfig"),
+                diagnostics.get(0).getMessage());
+    }
+
+    private static final String BAL_SERVICE_CONFIG_NOT_FIRST =
+            "import ballerina/websocket;\n\n"
+            + "const EVENT_FIELD = \"kind\";\n\n"
+            + "public type Hello record {\n"
+            + "    string kind;\n"
+            + "    string id;\n"
+            + "};\n\n"
+            + "@display {label: \"Greeter\"}\n"
+            + "@websocket:ServiceConfig {\n"
+            + "    dispatcherKey: EVENT_FIELD, // the field that picks the function\n"
+            + "    dispatcherStreamId: \"id\"\n"
+            + "}\n"
+            + "service /greet on new websocket:Listener(9090) {\n"
+            + "    resource function get .() returns websocket:Service {\n"
+            + "        return new GreetService();\n"
+            + "    }\n"
+            + "}\n\n"
+            + "service class GreetService {\n"
+            + "    *websocket:Service;\n"
+            + "    remote function onHello(Hello hello) returns string {\n"
+            + "        return \"hi\";\n"
+            + "    }\n"
+            + "}\n";
+
+    private static final String BAL_DOC_COMMENT_ONLY =
+            "import ballerina/websocket;\n\n"
+            + "public type Hello record {\n"
+            + "    string event;\n"
+            + "};\n\n"
+            + "# Greets clients.\n"
+            + "service /greet on new websocket:Listener(9090) {\n"
+            + "    resource function get .() returns websocket:Service {\n"
+            + "        return new GreetService();\n"
+            + "    }\n"
+            + "}\n\n"
+            + "service class GreetService {\n"
+            + "    *websocket:Service;\n"
+            + "    remote function onHello(Hello hello) returns string {\n"
+            + "        return \"hi\";\n"
+            + "    }\n"
+            + "}\n";
+
+    @Test
     void testDispatcherConst_isTheValueThatReachesTheFunction() throws IOException {
         // websocket dispatches a dispatcher value to on<Value>, capitalising each "_"-separated word, so
         // onHello is reached by "hello" whatever its parameter type is called (#6601).

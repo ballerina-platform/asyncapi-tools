@@ -42,6 +42,7 @@ public class Constants {
     public static final String DISPATCHER_KEY = "dispatcherKey";
     public static final String DISPATCHER_STREAM_ID = "dispatcherStreamId";
     public static final String DISPATCHER_CONFIG_ANNOTATION = "DispatcherConfig";
+    public static final String SERVICE_CONFIG_ANNOTATION = "ServiceConfig";
     public static final String ANNOTATION_ATTR_DISPATCHER_VALUE = "dispatcherValue";
     public static final String BALLERINA = "ballerina";
     public static final String TYPEREFERENCE = "typeReference";
@@ -148,8 +149,8 @@ public class Constants {
     public static final String NON_STRING_PRIMITIVE_PARAMETER = "ERROR: remote function '%s' takes %s, but with "
             + "a dispatcherKey every message is a JSON object carrying the dispatcher field, which can't bind to %s. "
             + "Take a string or a record with the dispatcher field instead";
-    public static final String UNSUPPORTED_DISPATCHER_VALUE = "ERROR: the dispatcherValue '%s' can't be described, "
-            + "as only a string literal or a string constant is read. Use one of those instead";
+    public static final String UNSUPPORTED_ANNOTATION_VALUE = "ERROR: the %s value '%s' can't be described, as "
+            + "only a string literal or a string constant is read. Use one of those instead";
     public static final String UNION_STREAMING_SIMPLE_RPC_ERROR = "ERROR: Response server streaming types cannot be "
             + "union with simple rpc types";
     public static final String PATH_PARAM_DASH_CONTAIN_ERROR = "ERROR: Path parameter contains an invalid"
