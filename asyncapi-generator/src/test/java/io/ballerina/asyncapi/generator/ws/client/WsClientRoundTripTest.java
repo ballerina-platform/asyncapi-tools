@@ -110,6 +110,15 @@ public class WsClientRoundTripTest {
     }
 
     @Test
+    void testFixedReplyValueOnTwoPipesIsRejected() throws Exception {
+        // The reply to subscribe and the receive-only notice both fix "update", so a frame can't be routed
+        JsonNode spec = specFile("ws_receive_only.yaml");
+        ((ObjectNode) spec.at("/components/schemas/Ack/properties/event")).put("const", "update");
+        ((ObjectNode) spec.at("/components/schemas/Notice/properties/event")).put("const", "update");
+        assertGenerationFails(spec, "both fix the dispatcher value 'update'");
+    }
+
+    @Test
     void testFramesNoCallWaitsForAreDropped() throws Exception {
         String client = generate(spec("echo")).get("client.bal");
         Assert.assertTrue(client.contains("string? pipeName = self.getPipeName(message.event);"), client);

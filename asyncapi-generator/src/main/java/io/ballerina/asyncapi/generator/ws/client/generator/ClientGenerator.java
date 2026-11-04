@@ -112,6 +112,9 @@ public class ClientGenerator {
     private static final String LANG_REGEXP_MODULE = "lang.regexp";
     private static final String DEFAULT_URL = "ws://localhost:9090/v1";
     private static final String MESSAGE_TYPE = "Message";
+    private static final String SHARED_FIXED_DISPATCH_VALUE = "The replies waited for on '%s' and '%s' both fix the "
+            + "dispatcher value '%s', so a message with it can't be routed to the right call. "
+            + "Give each its own value.";
 
     private final WsClientConfig config;
 
@@ -334,13 +337,17 @@ public class ClientGenerator {
 
     /**
      * Routes the dispatcher value {@code schema} fixes, if any, straight to {@code pipeName}. A value already
-     * routed keeps its first pipe.
+     * routed to another pipe is rejected, as the reader couldn't tell which call a message with it belongs to.
      */
     private static void addFixedValueRoute(AsyncApiSchema schema, String dispatcherKey, String pipeName,
-                                           Map<String, String> dispatchValueMap) {
+                                           Map<String, String> dispatchValueMap) throws GeneratorException {
         String value = CodegenUtils.getFixedDispatchValue(schema, dispatcherKey);
-        if (value != null) {
-            dispatchValueMap.putIfAbsent(value, pipeName);
+        if (value == null) {
+            return;
+        }
+        String routed = dispatchValueMap.putIfAbsent(value, pipeName);
+        if (routed != null && !routed.equals(pipeName)) {
+            throw new GeneratorException(String.format(SHARED_FIXED_DISPATCH_VALUE, routed, pipeName, value));
         }
     }
 
