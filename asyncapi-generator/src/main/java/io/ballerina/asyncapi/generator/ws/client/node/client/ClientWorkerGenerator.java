@@ -143,7 +143,6 @@ public class ClientWorkerGenerator {
     private static final String WRITE_PIPE_ERR_MSG = "\"PipeError: Failed to consume message from the pipe\", %s";
     private static final String WRITE_WS_ERR_MSG = "\"WsError: Failed to write message to the client\", %s";
     private static final String READ_WS_ERR_MSG = "\"WsError: Failed to read message from the client\", %s";
-    private static final String READ_PIPE_ERR_MSG = "\"PipeError: Failed to produce message to the pipe\", %s";
 
     // Misc string fragments
     private static final String SELF = "self";
@@ -310,7 +309,7 @@ public class ClientWorkerGenerator {
                         CLOSE_PAREN),
                 SEMICOLON);
         whileStatements.add(pipeErrVar);
-        whileStatements.add(getIsPipeError(PIPE_ERR_VAR, READ_PIPE_ERR_MSG, false));
+        whileStatements.add(getDropFrameStatement(PIPE_ERR_VAR));
 
         return buildWorkerFunction(START_MESSAGE_READING, READ_MESSAGE,
                 getDocCommentsForWorker(X_BALLERINA_MESSAGE_READ_DESCRIPTION, START_MESSAGE_READING_DESCRIPTION),
@@ -358,7 +357,7 @@ public class ClientWorkerGenerator {
         ifStmts.add(NodeParser.parseStatement(String.format("%s? %s = self.%s.%s(\"%s\").%s(%s, %s);",
                 PIPE_COLON_ERROR, FRAME_PIPE_ERR_VAR, PIPES, GET_PIPE,
                 RemoteFunctionReturnTypeGenerator.NO_DISPATCHER_KEY_PIPE, PRODUCE, FRAME_VAR, DEFAULT_TIMEOUT)));
-        ifStmts.add(getIsPipeError(FRAME_PIPE_ERR_VAR, READ_PIPE_ERR_MSG, false));
+        ifStmts.add(getDropFrameStatement(FRAME_PIPE_ERR_VAR));
         ifStmts.add(NodeParser.parseStatement(CONTINUE_STMT));
         whileStatements.add(createIfElseStatementNode(createToken(IF_KEYWORD),
                 NodeParser.parseExpression(PARSED_MESSAGE_VAR + " is error"),
@@ -366,6 +365,15 @@ public class ClientWorkerGenerator {
                 null));
         whileStatements.add(NodeParser.parseStatement(String.format("%s %s = %s;",
                 MESSAGE_TYPE, MESSAGE_VAR, PARSED_MESSAGE_VAR)));
+    }
+
+    /**
+     * A frame its pipe can't take within the wait is logged and dropped. The pipe is full because no call is reading
+     * it, and closing the connection for that would end every other call too.
+     */
+    private static StatementNode getDropFrameStatement(String errVar) {
+        return NodeParser.parseStatement(String.format("if %s is %s { log:printWarn(\"Dropped a message because no "
+                + "call is reading its pipe\", 'error = %s); continue; }", errVar, PIPE_COLON_ERROR, errVar));
     }
 
     /**
@@ -449,6 +457,7 @@ public class ClientWorkerGenerator {
 
     private static IfElseStatementNode getIsWsError(String errMsg, String errVar) {
         List<StatementNode> ifStmts = new ArrayList<>();
+        ifStmts.add(getStopIfClosedStatement());
         ifStmts.add(NodeParser.parseStatement(String.format(LOG_PRINT_ERR, String.format(errMsg, errVar))));
         ifStmts.add(NodeParser.parseStatement("self." + ATTEMPT_TO_CLOSE_CONNECTION + "();"));
         ifStmts.add(createReturnStatementNode(createToken(RETURN_KEYWORD), null, SEMICOLON));
@@ -468,6 +477,7 @@ public class ClientWorkerGenerator {
                             CLOSE_BRACE),
                     null));
         }
+        ifStmts.add(getStopIfClosedStatement());
         ifStmts.add(NodeParser.parseStatement(String.format(LOG_PRINT_ERR, String.format(errMsg, errVar))));
         ifStmts.add(NodeParser.parseStatement("self." + ATTEMPT_TO_CLOSE_CONNECTION + "();"));
         ifStmts.add(createReturnStatementNode(createToken(RETURN_KEYWORD), null, SEMICOLON));
@@ -475,6 +485,14 @@ public class ClientWorkerGenerator {
                 createSimpleNameReferenceNode(createIdentifierToken(errVar + IS + PIPE_ERROR_TYPE)),
                 createBlockStatementNode(OPEN_BRACE, createNodeList(ifStmts), CLOSE_BRACE),
                 null);
+    }
+
+    /**
+     * After a deliberate close the socket and pipes report errors that are expected, so a worker stops quietly
+     * instead of logging them and closing again.
+     */
+    private static StatementNode getStopIfClosedStatement() {
+        return NodeParser.parseStatement("lock { if !self." + IS_ACTIVE + " { return; } }");
     }
 
     private MetadataNode getDocCommentsForWorker(String extensionKey, String defaultDesc) {

@@ -114,6 +114,11 @@ public class WsClientRoundTripTest {
         String client = generate(spec("echo")).get("client.bal");
         Assert.assertTrue(client.contains("string? pipeName = self.getPipeName(message.event);"), client);
         Assert.assertTrue(client.contains("log:printWarn(\"Dropped a message that no call is waiting for\""), client);
+        // A full pipe drops the frame instead of closing the connection for every call
+        Assert.assertTrue(client.contains("log:printWarn(\"Dropped a message because no call is reading its pipe\""),
+                client);
+        // An empty word, as in "" or "_x", can't make getRecordName take a substring of an empty string
+        Assert.assertTrue(client.contains("if word.length() == 0 {"), client);
     }
 
     @Test
@@ -248,7 +253,9 @@ public class WsClientRoundTripTest {
         Assert.assertTrue(utils.contains("public isolated function takeTurn(string id, decimal timeout)"), utils);
         Assert.assertTrue(utils.contains("public isolated function giveTurn(string id)"), utils);
         // Turns close before the reply pipes, so a pipe that fails to close can't leave a call waiting for its turn
-        Assert.assertTrue(utils.indexOf("turn.immediateClose()") < utils.indexOf("pipe.gracefulClose()"), utils);
+        Assert.assertTrue(utils.indexOf("turn.immediateClose()") < utils.indexOf("pipe.immediateClose()"), utils);
+        // A close doesn't wait for frames no call will read, and a second close returns at once
+        Assert.assertTrue(client.contains("if !self.isActive {\n                return;\n            }"), client);
         // Handing the turn on never fails the call that already has its reply
         Assert.assertTrue(client.contains("self.pipes.giveTurn(\"unsubscribe\");"), client);
     }

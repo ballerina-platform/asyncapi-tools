@@ -44,8 +44,9 @@ public isolated class PipesMap {
                 }
             }
             self.turns.removeAll();
+            // Frames still queued at a close have no call left to read them
             foreach pipe:Pipe pipe in self.pipes {
-                check pipe.gracefulClose();
+                check pipe.immediateClose();
             }
             self.pipes.removeAll();
         }

@@ -76,7 +76,7 @@ public class ClientHelperGenerator {
             "string[] words = regexp:split(re `[\\W_]+`, dispatchingValue);";
     private static final String RESULT_INIT_STMT = "string result = \"\";";
     private static final String FOREACH_WORDS_STMT =
-            "foreach string word in words { result +="
+            "foreach string word in words { if word.length() == 0 { continue; } result +="
             + " word.substring(0, 1).toUpperAscii() + word.substring(1).toLowerAscii(); }";
     private static final String RETURN_RESULT_STMT = "return result;";
 
@@ -105,6 +105,8 @@ public class ClientHelperGenerator {
     private static final String REMOVE_STREAM_GENERATORS = "removeStreamGenerators";
     private static final String CLIENT_EP = "clientEp";
     private static final String OPTIONAL_ERROR = "error?";
+    // A second close, such as a worker's after a deliberate close, has nothing left to do
+    private static final String ALREADY_CLOSED_STATEMENT = "if !self.isActive { return; }";
     private static final String CONNECTION_CLOSE_STATEMENT = "error? connectionClose = self->connectionClose();";
     private static final String LOG_PRINT_ERR_TEMPLATE = "log:printError(\"%s\", connectionClose);";
     private static final String IS_ACTIVE_FALSE_STATEMENT = "self." + IS_ACTIVE + " = false;";
@@ -194,6 +196,7 @@ public class ClientHelperGenerator {
      */
     public FunctionDefinitionNode buildConnectionClose() {
         List<StatementNode> lockStatements = new ArrayList<>();
+        lockStatements.add(NodeParser.parseStatement(ALREADY_CLOSED_STATEMENT));
         lockStatements.add(NodeParser.parseStatement(IS_ACTIVE_FALSE_STATEMENT));
         lockStatements.add(NodeParser.parseStatement(WRITE_QUEUE_CLOSE_STATEMENT));
         lockStatements.add(NodeParser.parseStatement(PIPES_REMOVE_STATEMENT));
