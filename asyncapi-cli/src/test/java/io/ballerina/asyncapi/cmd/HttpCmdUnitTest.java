@@ -23,6 +23,7 @@ import org.testng.annotations.Test;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.zip.ZipFile;
 
 /**
  * Tests for {@code --protocol http}: input validation, the capability checks and warn-and-continue handling
@@ -135,6 +136,46 @@ public class HttpCmdUnitTest extends CmdTestBase {
         }
     }
 
+    @Test(description = "A trigger generated at a package root gets the plugin jar and its CompilerPlugin.toml")
+    public void testTriggerGetsCompilerPlugin() throws Exception {
+        Path pkg = newPackage("plugin");
+        generateTiny(pkg, "-o", pkg.toString());
+        Assert.assertTrue(getErr().isEmpty(), "Err: " + getErr());
+        String toml = Files.readString(pkg.resolve("CompilerPlugin.toml"));
+        Assert.assertTrue(toml.contains("id = \"asyncapi-compiler-plugin\""), toml);
+        Assert.assertTrue(toml.contains("path = \"compiler-plugin/asyncapi-trigger-compiler-plugin.jar\""), toml);
+        Path jar = pkg.resolve("compiler-plugin/asyncapi-trigger-compiler-plugin.jar");
+        try (ZipFile zip = new ZipFile(jar.toFile())) {
+            Assert.assertNotNull(zip.getEntry("io/ballerina/asyncapi/trigger/plugin/AsyncAPICompilerPlugin.class"),
+                    "The jar should hold the plugin class");
+        }
+        Assert.assertTrue(getOut().contains("-- CompilerPlugin.toml"), "Out: " + getOut());
+        Assert.assertTrue(getOut().contains("-- compiler-plugin/asyncapi-trigger-compiler-plugin.jar"),
+                "Out: " + getOut());
+    }
+
+    @Test(description = "A package with another compiler plugin keeps it, with a warning that ours was not added")
+    public void testOtherCompilerPluginIsKept() throws Exception {
+        Path pkg = newPackage("otherplugin");
+        String theirs = "[plugin]\nid = \"their-plugin\"\nclass = \"org.example.Plugin\"\n";
+        Files.writeString(pkg.resolve("CompilerPlugin.toml"), theirs);
+        generateTiny(pkg, "-o", pkg.toString(), "--force");
+        Assert.assertTrue(getErr().contains("already has a compiler plugin (their-plugin)"), "Err: " + getErr());
+        Assert.assertEquals(Files.readString(pkg.resolve("CompilerPlugin.toml")), theirs);
+        Assert.assertFalse(Files.exists(pkg.resolve("compiler-plugin")), "Our jar should not be added");
+        Assert.assertTrue(Files.exists(pkg.resolve("listener.bal")), "The code should still be generated");
+    }
+
+    @Test(description = "A trigger generated into a module gets no plugin, as the plugin belongs to the package")
+    public void testModuleGetsNoCompilerPlugin() throws Exception {
+        Path pkg = newPackage("moduleplugin");
+        generateTiny(pkg, "-o", pkg.toString(), "--module", "events");
+        Assert.assertTrue(getErr().isEmpty(), "Err: " + getErr());
+        Assert.assertTrue(Files.exists(pkg.resolve("modules/events/listener.bal")), "The code should be generated");
+        Assert.assertFalse(Files.exists(pkg.resolve("CompilerPlugin.toml")));
+        Assert.assertFalse(Files.exists(pkg.resolve("modules/events/CompilerPlugin.toml")));
+    }
+
     @Test(description = "Running again with nothing changed is quiet and writes nothing")
     public void testRerunIsUnchanged() throws Exception {
         Path pkg = newPackage("rerun");
@@ -175,7 +216,7 @@ public class HttpCmdUnitTest extends CmdTestBase {
         // --with-tests so the run would also create the tests folder
         generateTiny(pkg, "-o", pkg.toString(), "--dry-run", "--with-tests");
         Assert.assertTrue(getOut().startsWith("Dry run: no files were written."), "Out: " + getOut());
-        Assert.assertTrue(getOut().contains("5 to create, 0 to overwrite, 0 to skip, 0 unchanged."),
+        Assert.assertTrue(getOut().contains("7 to create, 0 to overwrite, 0 to skip, 0 unchanged."),
                 "Out: " + getOut());
         Assert.assertTrue(getOut().contains("create"), "Out: " + getOut());
         Assert.assertFalse(Files.exists(pkg.resolve("types.bal")), "A dry run must not write");
@@ -199,12 +240,12 @@ public class HttpCmdUnitTest extends CmdTestBase {
         generateTiny(pkg, "-o", pkg.toString(), "--dry-run");
         Assert.assertTrue(getOut().contains("skip"), "Out: " + getOut());
         Assert.assertTrue(getOut().contains("(already exists, use --force to overwrite)"), "Out: " + getOut());
-        Assert.assertTrue(getOut().contains("0 to create, 0 to overwrite, 1 to skip, 3 unchanged."),
+        Assert.assertTrue(getOut().contains("0 to create, 0 to overwrite, 1 to skip, 5 unchanged."),
                 "Out: " + getOut());
 
         generateTiny(pkg, "-o", pkg.toString(), "--dry-run", "--force");
         Assert.assertTrue(getOut().contains("overwrite"), "Out: " + getOut());
-        Assert.assertTrue(getOut().contains("0 to create, 1 to overwrite, 0 to skip, 3 unchanged."),
+        Assert.assertTrue(getOut().contains("0 to create, 1 to overwrite, 0 to skip, 5 unchanged."),
                 "Out: " + getOut());
         Assert.assertEquals(Files.readString(pkg.resolve("types.bal")), "// hand edit");
     }
