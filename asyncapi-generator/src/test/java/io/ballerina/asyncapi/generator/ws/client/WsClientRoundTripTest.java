@@ -141,6 +141,18 @@ public class WsClientRoundTripTest {
     }
 
     @Test
+    void testOneOfReplyWaitsOnTheReadersPipe() throws Exception {
+        // The reader files ConnectionAck and Complete under connectionInit, so doConnectionInit waits there
+        JsonNode spec = spec("stream");
+        ObjectNode init = (ObjectNode) spec.at("/components/messages/ConnectionInit");
+        init.set("x-response", YAML.readTree("{oneOf: [{$ref: '#/components/messages/ConnectionAck'}, "
+                + "{$ref: '#/components/messages/Complete'}]}"));
+        String client = generate(spec).get("client.bal");
+        Assert.assertTrue(client.contains("\"ConnectionAck\": \"connectionInit\""), client);
+        Assert.assertTrue(client.contains("self.pipes.getPipe(\"connectionInit\").consume(timeout);"), client);
+    }
+
+    @Test
     void testKeyedRepliesKeepTheTypedReader() throws Exception {
         String client = generate(spec("echo")).get("client.bal");
         Assert.assertTrue(client.contains("Message|websocket:Error message = self.clientEp->readMessage(Message);"),

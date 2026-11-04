@@ -317,9 +317,10 @@ public class ClientRemoteFunctionGenerator {
         // Build body source — use the canonical pipe key from responseMap so all functions sharing
         // the same response type route through the same pipe
         String requestType = payload != null ? sigGen.getDataType(payload) : "null";
-        // A receive-only function waits on the pipe of its own type
-        String pipeName = responseMap.getOrDefault(returnType,
-                payload != null ? requestType : CodegenUtils.getValidName(returnType, false));
+        // Wait where the reader files the reply: a oneOf reply under its first type, otherwise the request type's
+        // pipe, or for a receive-only function the pipe of its own type
+        String pipeName = responseMap.getOrDefault(returnType.split("\\|")[0],
+                CodegenUtils.getValidName(payload != null ? requestType : returnType, false));
         RemoteFunctionBodyGenerator.ReplyFormat replyFormat = RemoteFunctionBodyGenerator.ReplyFormat.KEYED;
         if (!"null".equals(returnType) && returnTypeGen.isReplyWithoutDispatcherKey(returnType)) {
             replyFormat = returnTypeGen.isTextReply(returnType)
