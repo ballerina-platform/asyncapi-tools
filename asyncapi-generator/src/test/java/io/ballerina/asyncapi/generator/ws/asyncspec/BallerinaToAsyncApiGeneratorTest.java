@@ -894,6 +894,20 @@ class BallerinaToAsyncApiGeneratorTest {
         Assert.assertTrue(yaml.contains("pathname: /voiceagent"), yaml);
     }
 
+    @Test
+    void testServiceOnACustomListenerWithNoArguments_getsALocalhostServer() throws IOException {
+        // new () gives no port to read, so the server falls back to localhost instead of having no host
+        String source = BAL_CUSTOM_LISTENER
+                .replace("init(int port)", "init()")
+                .replace("check new (port)", "check new (8080)")
+                .replace("voiceListener = new (8080)", "voiceListener = new ()");
+        Assert.assertTrue(run(source).isEmpty());
+        String yaml = readGeneratedYaml();
+        Assert.assertTrue(yaml.contains("const: chat_message"), yaml);
+        Assert.assertTrue(yaml.contains("default: ws://localhost"), yaml);
+        Assert.assertTrue(yaml.contains("pathname: /voiceagent"), yaml);
+    }
+
     private static final String BAL_CUSTOM_LISTENER =
             "import ballerina/websocket;\n\n"
             + "public type ChatMessage record {\n"
