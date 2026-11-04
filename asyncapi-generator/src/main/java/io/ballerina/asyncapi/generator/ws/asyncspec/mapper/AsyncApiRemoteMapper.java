@@ -34,6 +34,7 @@ import io.apicurio.datamodels.models.asyncapi.v30.AsyncApi30Schema;
 import io.ballerina.asyncapi.generator.ws.asyncspec.model.BalAsyncApi30MessageImpl;
 import io.ballerina.asyncapi.generator.ws.asyncspec.model.BalAsyncApi30SchemaImpl;
 import io.ballerina.compiler.api.SemanticModel;
+import io.ballerina.compiler.api.symbols.ConstantSymbol;
 import io.ballerina.compiler.api.symbols.Documentable;
 import io.ballerina.compiler.api.symbols.Documentation;
 import io.ballerina.compiler.api.symbols.FunctionSymbol;
@@ -42,7 +43,9 @@ import io.ballerina.compiler.api.symbols.Symbol;
 import io.ballerina.compiler.api.symbols.TypeDescKind;
 import io.ballerina.compiler.api.symbols.TypeReferenceTypeSymbol;
 import io.ballerina.compiler.api.symbols.TypeSymbol;
+import io.ballerina.compiler.api.values.ConstantValue;
 import io.ballerina.compiler.syntax.tree.AnnotationNode;
+import io.ballerina.compiler.syntax.tree.BasicLiteralNode;
 import io.ballerina.compiler.syntax.tree.ClassDefinitionNode;
 import io.ballerina.compiler.syntax.tree.ExpressionNode;
 import io.ballerina.compiler.syntax.tree.FunctionDefinitionNode;
@@ -464,6 +467,8 @@ public class AsyncApiRemoteMapper {
         return remoteFunctionNode.metadata().map(MetadataNode::annotations)
                 .flatMap(this::getDispatcherValueFromAnnotation)
                 .map(AsyncApiRemoteMapper::createCustomRemoteFunctionName)
+                // A value with no letters or digits ("_") gives no name, so the function's own name is used
+                .filter(name -> !name.isEmpty())
                 .orElseGet(() -> functionName.substring(2));
     }
 
@@ -728,13 +733,33 @@ public class AsyncApiRemoteMapper {
                 }
                 ExpressionNode value = fieldValue.get();
                 if (value.kind() == SyntaxKind.STRING_LITERAL) {
-                    String literal = value.toString().strip();
+                    // The token's own text, without a trailing comment
+                    String literal = ((BasicLiteralNode) value).literalToken().text();
                     return Optional.of(unescapeStringLiteral(literal.substring(1, literal.length() - 1)));
+                }
+                Optional<String> constantValue = constantStringValue(value);
+                if (constantValue.isPresent()) {
+                    return constantValue;
                 }
                 return Optional.of(value.toString().replaceAll("\"", "").strip());
             }
         }
         return Optional.empty();
+    }
+
+    /**
+     * The string a constant reference ({@code dispatcherValue: EVENT}) stands for, read through the semantic model.
+     */
+    private Optional<String> constantStringValue(ExpressionNode value) {
+        Optional<Symbol> symbol = semanticModel.symbol(value);
+        if (symbol.isEmpty() || !(symbol.get() instanceof ConstantSymbol constant)) {
+            return Optional.empty();
+        }
+        Object constValue = constant.constValue();
+        if (constValue instanceof ConstantValue wrapped) {
+            constValue = wrapped.value();
+        }
+        return constValue instanceof String text ? Optional.of(text) : Optional.empty();
     }
 
     /**

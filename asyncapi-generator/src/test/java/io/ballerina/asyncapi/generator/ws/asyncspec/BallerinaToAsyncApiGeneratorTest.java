@@ -885,6 +885,13 @@ class BallerinaToAsyncApiGeneratorTest {
         Assert.assertTrue(yaml.contains("const: h_t_t_p_response"), yaml);
         // An escape in the annotation value is decoded, as websocket reads it
         Assert.assertTrue(yaml.contains("const: escaped_value"), yaml);
+        // A comment after the value isn't part of it, and a constant gives its value, not its name
+        Assert.assertTrue(yaml.contains("const: commented_value"), yaml);
+        Assert.assertTrue(yaml.contains("const: from_const"), yaml);
+        Assert.assertFalse(yaml.contains("CONST_VALUE"), yaml);
+        // "_" gives no name, so its message is named after the function
+        Assert.assertTrue(yaml.contains("const: _"), yaml);
+        Assert.assertTrue(yaml.contains("    Underscore:"), yaml);
         // The annotation names the message, but its payload is still the parameter type's schema.
         Assert.assertTrue(yaml.contains("$ref: \"#/components/schemas/Custom\""), yaml);
         Assert.assertFalse(yaml.contains("#/components/schemas/CustomValue"), "no dangling schema reference: " + yaml);
@@ -1134,7 +1141,22 @@ class BallerinaToAsyncApiGeneratorTest {
             + "    remote function onEscaped(Init init) returns string {\n"
             + "        return \"ok\";\n"
             + "    }\n"
-            + "}\n";
+            + "    @websocket:DispatcherConfig {\n"
+            + "        dispatcherValue: \"commented_value\" // a note with \\u{5F} in it\n"
+            + "    }\n"
+            + "    remote function onCommented(Init init) returns string {\n"
+            + "        return \"ok\";\n"
+            + "    }\n"
+            + "    @websocket:DispatcherConfig {dispatcherValue: CONST_VALUE}\n"
+            + "    remote function onFromConst(Init init) returns string {\n"
+            + "        return \"ok\";\n"
+            + "    }\n"
+            + "    @websocket:DispatcherConfig {dispatcherValue: \"_\"}\n"
+            + "    remote function onUnderscore(Init init) returns string {\n"
+            + "        return \"ok\";\n"
+            + "    }\n"
+            + "}\n\n"
+            + "const CONST_VALUE = \"from_const\";\n";
 
     private static final String BAL_SHARED_REQUEST_TYPE =
             "import ballerina/websocket;\n\n"
