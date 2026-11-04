@@ -883,6 +883,51 @@ class BallerinaToAsyncApiGeneratorTest {
                 diagnostics.get(0).getMessage());
     }
 
+    @Test
+    void testServiceOnACustomListener_isFoundAndDescribed() throws IOException {
+        // #9199: the listener wraps websocket:Listener, and the remote functions sit on the service itself
+        Assert.assertTrue(runWithServiceName(BAL_CUSTOM_LISTENER, "/voiceagent").isEmpty());
+        String yaml = readGeneratedYaml();
+        Assert.assertTrue(yaml.contains("const: chat_message"), yaml);
+        Assert.assertTrue(yaml.contains("$ref: \"#/components/messages/ChatMessage\""), yaml);
+        Assert.assertTrue(yaml.contains("default: \"8080\""), yaml);
+        Assert.assertTrue(yaml.contains("pathname: /voiceagent"), yaml);
+    }
+
+    private static final String BAL_CUSTOM_LISTENER =
+            "import ballerina/websocket;\n\n"
+            + "public type ChatMessage record {\n"
+            + "    string event;\n"
+            + "    string text;\n"
+            + "};\n\n"
+            + "public class VoiceListener {\n"
+            + "    private final websocket:Listener inner;\n\n"
+            + "    public function init(int port) returns error? {\n"
+            + "        self.inner = check new (port);\n"
+            + "    }\n\n"
+            + "    public function attach(service object {} s, string[]|string? name = ()) "
+            + "returns error? {\n"
+            + "    }\n\n"
+            + "    public function detach(service object {} s) returns error? {\n"
+            + "    }\n\n"
+            + "    public function 'start() returns error? {\n"
+            + "        check self.inner.'start();\n"
+            + "    }\n\n"
+            + "    public function gracefulStop() returns error? {\n"
+            + "        check self.inner.gracefulStop();\n"
+            + "    }\n\n"
+            + "    public function immediateStop() returns error? {\n"
+            + "        check self.inner.immediateStop();\n"
+            + "    }\n"
+            + "}\n\n"
+            + "listener VoiceListener voiceListener = new (8080);\n\n"
+            + "@websocket:ServiceConfig {dispatcherKey: \"event\"}\n"
+            + "service /voiceagent on voiceListener {\n"
+            + "    remote function onChatMessage(ChatMessage message) returns string {\n"
+            + "        return \"ok\";\n"
+            + "    }\n"
+            + "}\n";
+
     private static final String BAL_SERVICE_CONFIG_NOT_FIRST =
             "import ballerina/websocket;\n\n"
             + "const EVENT_FIELD = \"kind\";\n\n"

@@ -21,7 +21,6 @@ import com.fasterxml.jackson.databind.node.TextNode;
 import io.apicurio.datamodels.models.asyncapi.v30.AsyncApi30ChannelsImpl;
 import io.apicurio.datamodels.models.asyncapi.v30.AsyncApi30ComponentsImpl;
 import io.apicurio.datamodels.models.asyncapi.v30.AsyncApi30Document;
-import io.apicurio.datamodels.models.asyncapi.v30.AsyncApi30OperationsImpl;
 import io.ballerina.compiler.api.SemanticModel;
 import io.ballerina.compiler.syntax.tree.AnnotationNode;
 import io.ballerina.compiler.syntax.tree.ClassDefinitionNode;
@@ -81,23 +80,34 @@ public class AsyncApiServiceMapper {
                                                        AsyncApi30Document asyncApi) {
         NodeList<Node> functions = service.members();
         String dispatcherValue = extractDispatcherValue(service);
+        boolean hasUpgradeResource = false;
         for (Node function : functions) {
             SyntaxKind kind = function.kind();
             if (kind.equals(SyntaxKind.RESOURCE_ACCESSOR_DEFINITION)) {
+                hasUpgradeResource = true;
                 AsyncApiRemoteMapper resourceMapper = new AsyncApiRemoteMapper(this.semanticModel, asyncApi);
-                AsyncApi30ChannelsImpl generatedChannels = resourceMapper.getChannels(
-                        (FunctionDefinitionNode) function, classDefinitionNodes, dispatcherValue);
-                asyncApi.setChannels(generatedChannels);
-                AsyncApi30OperationsImpl generatedOperations = resourceMapper.getOperations();
-                asyncApi.setOperations(generatedOperations);
-                AsyncApi30ComponentsImpl generatedComponents = resourceMapper.getComponents();
-                asyncApi.setComponents(generatedComponents);
-                if (containsCloseFrameSchema(generatedComponents)) {
-                    asyncApi.addExtension(X_BALLERINA_WS_CLOSE_FRAME, getWsCloseFrameExtension());
-                }
+                setMappedParts(asyncApi, resourceMapper, resourceMapper.getChannels(
+                        (FunctionDefinitionNode) function, classDefinitionNodes, dispatcherValue));
             }
         }
+        // A listener that wraps websocket:Listener upgrades for the service, whose remote functions sit on it
+        if (!hasUpgradeResource && functions.stream()
+                .anyMatch(member -> member.kind() == SyntaxKind.OBJECT_METHOD_DEFINITION)) {
+            AsyncApiRemoteMapper remoteMapper = new AsyncApiRemoteMapper(this.semanticModel, asyncApi);
+            setMappedParts(asyncApi, remoteMapper, remoteMapper.getChannels(service, dispatcherValue));
+        }
         return asyncApi;
+    }
+
+    private static void setMappedParts(AsyncApi30Document asyncApi, AsyncApiRemoteMapper mapper,
+                                       AsyncApi30ChannelsImpl channels) {
+        asyncApi.setChannels(channels);
+        asyncApi.setOperations(mapper.getOperations());
+        AsyncApi30ComponentsImpl components = mapper.getComponents();
+        asyncApi.setComponents(components);
+        if (containsCloseFrameSchema(components)) {
+            asyncApi.addExtension(X_BALLERINA_WS_CLOSE_FRAME, getWsCloseFrameExtension());
+        }
     }
 
     /**
