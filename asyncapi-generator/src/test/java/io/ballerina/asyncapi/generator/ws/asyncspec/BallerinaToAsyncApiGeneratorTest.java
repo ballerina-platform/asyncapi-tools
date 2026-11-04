@@ -153,7 +153,8 @@ class BallerinaToAsyncApiGeneratorTest {
             + "public type User record {\n"
             + "    string name;\n"
             + "    string gender;\n"
-            + "};\n";
+            + "};\n\n"
+            + "public const CUSTOM_EVENT = \"from_types\";\n";
 
     // Three remote functions — produces orders_asyncapi.yaml (service /orders).
     // Type names Order, Cancel, Update match functionName.substring(2) exactly.
@@ -993,6 +994,36 @@ class BallerinaToAsyncApiGeneratorTest {
             + "service class CountService {\n"
             + "    *websocket:Service;\n"
             + "    remote function onCount(int count) returns string {\n"
+            + "        return \"ok\";\n"
+            + "    }\n"
+            + "}\n";
+
+    @Test
+    void testDispatcherValueFromAnotherModulesConstant() throws IOException {
+        // The compiler only takes a literal or a constant here, so a constant from another module is the one other
+        // form, and it gives its value
+        Assert.assertTrue(runWithTypesSubmodule(BAL_DISPATCHER_VALUE_QUALIFIED_CONSTANT).isEmpty());
+        String yaml = readGeneratedYaml();
+        Assert.assertTrue(yaml.contains("const: from_types"), yaml);
+        Assert.assertFalse(yaml.contains("CUSTOM_EVENT"), yaml);
+    }
+
+    private static final String BAL_DISPATCHER_VALUE_QUALIFIED_CONSTANT =
+            "import ballerina/websocket;\n"
+            + "import testorg/asyncspectest.types;\n\n"
+            + "public type Custom record {\n"
+            + "    string event;\n"
+            + "};\n\n"
+            + "@websocket:ServiceConfig {dispatcherKey: \"event\"}\n"
+            + "service /qualified on new websocket:Listener(9090) {\n"
+            + "    resource function get .() returns websocket:Service {\n"
+            + "        return new QualifiedService();\n"
+            + "    }\n"
+            + "}\n\n"
+            + "service class QualifiedService {\n"
+            + "    *websocket:Service;\n"
+            + "    @websocket:DispatcherConfig {dispatcherValue: types:CUSTOM_EVENT}\n"
+            + "    remote function onCustom(Custom custom) returns string {\n"
             + "        return \"ok\";\n"
             + "    }\n"
             + "}\n";

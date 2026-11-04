@@ -106,6 +106,7 @@ import static io.ballerina.asyncapi.generator.ws.asyncspec.Constants.REF;
 import static io.ballerina.asyncapi.generator.ws.asyncspec.Constants.REMOTE_DESCRIPTION;
 import static io.ballerina.asyncapi.generator.ws.asyncspec.Constants.RETURN;
 import static io.ballerina.asyncapi.generator.ws.asyncspec.Constants.SHARED_MESSAGE_NAME;
+import static io.ballerina.asyncapi.generator.ws.asyncspec.Constants.UNSUPPORTED_DISPATCHER_VALUE;
 import static io.ballerina.asyncapi.generator.ws.asyncspec.Constants.UNSUPPORTED_PARAMETER_TYPE;
 import static io.ballerina.asyncapi.generator.ws.asyncspec.Constants.WEBSOCKET;
 import static io.ballerina.asyncapi.generator.ws.asyncspec.Constants.X_BALLERINA_WS_CLOSE_FRAME_PATH;
@@ -741,7 +742,8 @@ public class AsyncApiRemoteMapper {
                 if (constantValue.isPresent()) {
                     return constantValue;
                 }
-                return Optional.of(value.toString().replaceAll("\"", "").strip());
+                // An expression's source text isn't the value websocket dispatches on, so it can't be described
+                throw new NoSuchElementException(String.format(UNSUPPORTED_DISPATCHER_VALUE, value.toString().strip()));
             }
         }
         return Optional.empty();
