@@ -26,7 +26,8 @@ public final class AsyncApiParser {
     private static final ObjectMapper JSON = new ObjectMapper();
     private static final String ASYNCAPI = "asyncapi";
     private static final String V3_0_0 = "3.0.0";
-    private static final Pattern LATER_3X = Pattern.compile("3\\.(0\\.[1-9]\\d*|[1-9]\\d*\\.\\d+)");
+    // Any 3.x.y, with the pre-release suffix AsyncAPI allows (3.1.0-rc1); 3.0.0 itself is unchanged by the rewrite
+    private static final Pattern LATER_3X = Pattern.compile("3\\.\\d+\\.\\d+(-[0-9A-Za-z.-]+)?");
 
     private AsyncApiParser() {
 
