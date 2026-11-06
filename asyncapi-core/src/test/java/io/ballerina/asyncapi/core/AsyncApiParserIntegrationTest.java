@@ -71,6 +71,7 @@ public class AsyncApiParserIntegrationTest {
             {SPEC_DIR + "asyncapi-2.5.0.json", "2.5.0"},
             {SPEC_DIR + "asyncapi-2.6.0.json", "2.6.0"},
             {SPEC_DIR + "asyncapi-3.0.0.json", "3.0.0"},
+            {SPEC_DIR + "asyncapi-3.1.0.json", "3.1.0"},
         };
     }
 
@@ -284,6 +285,53 @@ public class AsyncApiParserIntegrationTest {
         Assert.assertNotNull(webhookServer.tags(), "Expected non-null tags on webhookServer");
         Assert.assertFalse(webhookServer.tags().isEmpty(), "Expected at least one server tag");
         Assert.assertEquals(webhookServer.tags().get(0).name(), "prod");
+    }
+
+    @Test
+    void v310_isReadLikeV300() throws IOException, AsyncApiParserException {
+        // 3.1 only adds to 3.0, so the same document gives the same model, with its own version
+        AsyncApiSpec v300 = AsyncApiParser.parseFromJsonString(loadSpec(SPEC_DIR + "asyncapi-3.0.0.json"));
+        AsyncApiSpec v310 = AsyncApiParser.parseFromJsonString(loadSpec(SPEC_DIR + "asyncapi-3.1.0.json"));
+        Assert.assertEquals(v310.getAsyncApiVersion().toString(), "3.1.0");
+        Assert.assertEquals(v310.getAsyncApiChannels().orElseThrow().keySet(),
+                v300.getAsyncApiChannels().orElseThrow().keySet());
+        Assert.assertEquals(v310.getAsyncApiOperations().orElseThrow().keySet(),
+                v300.getAsyncApiOperations().orElseThrow().keySet());
+        // The fields the generators read, not only the names
+        v300.getAsyncApiChannels().orElseThrow().forEach((key, channel) -> Assert.assertEquals(
+                v310.getAsyncApiChannels().orElseThrow().get(key).address(), channel.address(), key));
+        v300.getAsyncApiOperations().orElseThrow().forEach((key, operation) -> Assert.assertEquals(
+                v310.getAsyncApiOperations().orElseThrow().get(key).action(), operation.action(), key));
+        Assert.assertEquals(String.valueOf(v310.getAsyncApiComponents().map(c -> c.messages())),
+                String.valueOf(v300.getAsyncApiComponents().map(c -> c.messages())));
+    }
+
+    @DataProvider(name = "later3xVersions")
+    Object[][] later3xVersions() {
+        return new Object[][] {{"3.0.1"}, {"3.2.5"}, {"3.1.0-rc1"}, {"3.0.0-next-major-spec.18"}};
+    }
+
+    @Test(dataProvider = "later3xVersions")
+    void later3xVersion_isReadWithItsOwnVersion(String version) throws IOException, AsyncApiParserException {
+        // Later patch and minor versions, and pre-releases, are read like 3.0.0
+        String json = loadSpec(SPEC_DIR + "asyncapi-3.0.0.json")
+                .replaceFirst("\"asyncapi\": \"3.0.0\"", "\"asyncapi\": \"" + version + "\"");
+        AsyncApiSpec spec = AsyncApiParser.parseFromJsonString(json);
+        Assert.assertEquals(spec.getAsyncApiVersion().toString(), version);
+        Assert.assertFalse(spec.getAsyncApiOperations().orElseThrow().isEmpty());
+    }
+
+    @DataProvider(name = "unreadVersions")
+    Object[][] unreadVersions() {
+        return new Object[][] {{"1.2.0"}, {"4.0.0"}, {"3.x"}};
+    }
+
+    @Test(dataProvider = "unreadVersions")
+    void unsupportedVersion_isStillRejected(String version) throws IOException {
+        // Only later 3.x versions are read as 3.0.0; anything else still fails
+        String spec = loadSpec(SPEC_DIR + "asyncapi-3.0.0.json")
+                .replaceFirst("\"asyncapi\": \"3.0.0\"", "\"asyncapi\": \"" + version + "\"");
+        Assert.assertThrows(AsyncApiParserException.class, () -> AsyncApiParser.parseFromJsonString(spec));
     }
 
     @Test
