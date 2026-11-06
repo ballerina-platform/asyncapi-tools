@@ -18,6 +18,7 @@
 package io.ballerina.asyncapi.generator.ws.client.utils;
 
 import io.ballerina.asyncapi.core.model.component.AsyncApiSchema;
+import io.ballerina.asyncapi.core.model.info.AsyncApiInfo;
 import io.ballerina.asyncapi.core.model.server.AsyncApiServerVariable;
 import io.ballerina.asyncapi.generator.GeneratorException;
 import io.ballerina.compiler.syntax.tree.AbstractNodeFactory;
@@ -39,6 +40,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Utility methods for WebSocket client code generation.
@@ -71,6 +73,13 @@ public final class CodegenUtils {
         typeMap.put("{}", "json");
         TYPE_MAP = Collections.unmodifiableMap(typeMap);
     }
+
+    private static final String DEFAULT_CLIENT_TITLE = "AsyncApi";
+
+    // Names a generated remote function declares itself, which its parameter and reply variable must avoid
+    private static final Set<String> REMOTE_FUNCTION_LOCALS = Set.of("self", "timeout", "message", "pipeErr",
+            "responseMessage", "pipeCloseError", "streamMessages", "streamGenerator", "turnErr",
+            "request");
 
     private CodegenUtils() {
     }
@@ -137,8 +146,9 @@ public final class CodegenUtils {
      */
     public static String extractReferenceType(String referenceVariable) throws GeneratorException {
         if (referenceVariable.startsWith("#/") && referenceVariable.contains("/")) {
+            // The last JSON Pointer token, with ~1 and ~0 decoded back to / and ~ (RFC 6901)
             String[] refArray = referenceVariable.split("/");
-            return refArray[refArray.length - 1];
+            return refArray[refArray.length - 1].replace("~1", "/").replace("~0", "~");
         } else {
             throw new GeneratorException(String.format(
                     "Invalid reference value: %s%nBallerina only supports local reference values.",
@@ -234,6 +244,92 @@ public final class CodegenUtils {
         return String.format("%s%s",
                 returnType.substring(0, 1).toUpperCase(Locale.ENGLISH),
                 returnType.substring(1));
+    }
+
+    /**
+     * Returns the remote function parameter name for a request type, kept clear of the function's own locals.
+     *
+     * @param requestType the Ballerina request type name
+     * @return the parameter name
+     */
+    public static String getRequestParamName(String requestType) {
+        return getFreeLocalName(getValidName(requestType, false), "Request", Set.of());
+    }
+
+    /**
+     * Returns the value {@code schema} fixes for the dispatcher field, as a {@code const} or a one-value
+     * {@code enum}, or {@code null} when the field can take any value.
+     *
+     * @param schema        the message payload schema (may be {@code null})
+     * @param dispatcherKey the dispatcher field name (may be {@code null})
+     * @return the fixed dispatcher value, or {@code null}
+     */
+    public static String getFixedDispatchValue(AsyncApiSchema schema, String dispatcherKey) {
+        AsyncApiSchema field = schema == null || dispatcherKey == null || schema.properties() == null
+                ? null : schema.properties().get(dispatcherKey);
+        if (field == null) {
+            return null;
+        }
+        if (field.constValue() != null && field.constValue().isTextual()) {
+            return field.constValue().asText();
+        }
+        if (field.enumValue() != null && field.enumValue().size() == 1 && field.enumValue().get(0).isTextual()) {
+            return field.enumValue().get(0).asText();
+        }
+        return null;
+    }
+
+    /**
+     * Returns {@code value} as a Ballerina string literal, escaping backslashes, double quotes and control
+     * characters, which can't appear raw in a literal.
+     *
+     * @param value the string value
+     * @return the quoted literal
+     */
+    public static String toStringLiteral(String value) {
+        StringBuilder literal = new StringBuilder("\"");
+        for (int i = 0; i < value.length(); i++) {
+            char c = value.charAt(i);
+            switch (c) {
+                case '\\' -> literal.append("\\\\");
+                case '"' -> literal.append("\\\"");
+                case '\n' -> literal.append("\\n");
+                case '\r' -> literal.append("\\r");
+                case '\t' -> literal.append("\\t");
+                default -> literal.append(c < 0x20 ? String.format("\\u{%X}", (int) c) : String.valueOf(c));
+            }
+        }
+        return literal.append('"').toString();
+    }
+
+    /**
+     * Returns the title part of the client class name, or {@code AsyncApi} when the title can't start one,
+     * such as the {@code /} title of a service on the root path.
+     *
+     * @param info the spec's info object (may be {@code null})
+     * @return the title part of the class name
+     */
+    public static String getClientTitleName(AsyncApiInfo info) {
+        if (info == null || info.title() == null || !info.title().matches("(?s).*[A-Za-z].*")) {
+            return DEFAULT_CLIENT_TITLE;
+        }
+        String name = getValidName(info.title(), true);
+        return Character.isLetter(name.charAt(0)) ? name : DEFAULT_CLIENT_TITLE;
+    }
+
+    /**
+     * Returns {@code name}, suffixed until it clashes with neither a remote function local nor {@code taken}.
+     *
+     * @param name   the preferred variable name
+     * @param suffix the suffix appended on each clash
+     * @param taken  other names already used in the function
+     * @return a free variable name
+     */
+    public static String getFreeLocalName(String name, String suffix, Set<String> taken) {
+        while (REMOTE_FUNCTION_LOCALS.contains(name) || taken.contains(name)) {
+            name += suffix;
+        }
+        return name;
     }
 
     /**

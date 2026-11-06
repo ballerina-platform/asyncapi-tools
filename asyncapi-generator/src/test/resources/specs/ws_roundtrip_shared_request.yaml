@@ -1,0 +1,110 @@
+asyncapi: 3.0.0
+info:
+  title: Topics
+  version: 0.0.0
+servers:
+  development:
+    host: "{server}:{port}"
+    protocol: ws
+    protocolVersion: "13"
+    pathname: /topics
+    variables:
+      server:
+        default: ws://localhost
+      port:
+        default: "9092"
+channels:
+  root:
+    address: /
+    messages:
+      Subscribe:
+        $ref: "#/components/messages/Subscribe"
+      Unsubscribe:
+        $ref: "#/components/messages/Unsubscribe"
+      UnsubscribeResponse:
+        $ref: "#/components/messages/UnsubscribeResponse"
+      Subscribed:
+        $ref: "#/components/messages/Subscribed"
+operations:
+  sendSubscribe:
+    action: send
+    channel:
+      $ref: "#/channels/root"
+    messages:
+    - $ref: "#/channels/root/messages/Subscribe"
+  sendUnsubscribe:
+    action: send
+    channel:
+      $ref: "#/channels/root"
+    messages:
+    - $ref: "#/channels/root/messages/Unsubscribe"
+  receiveUnsubscribeResponse:
+    action: receive
+    channel:
+      $ref: "#/channels/root"
+    messages:
+    - $ref: "#/channels/root/messages/UnsubscribeResponse"
+  receiveSubscribed:
+    action: receive
+    channel:
+      $ref: "#/channels/root"
+    messages:
+    - $ref: "#/channels/root/messages/Subscribed"
+components:
+  schemas:
+    Topic:
+      type: object
+      required:
+      - event
+      - name
+      properties:
+        event:
+          type: string
+        name:
+          type: string
+    Subscribed:
+      type: object
+      required:
+      - event
+      - name
+      properties:
+        event:
+          type: string
+        name:
+          type: string
+  messages:
+    Subscribed:
+      payload:
+        $ref: "#/components/schemas/Subscribed"
+    Subscribe:
+      payload:
+        allOf:
+        - $ref: "#/components/schemas/Topic"
+        - type: object
+          required:
+          - event
+          properties:
+            event:
+              type: string
+              const: subscribe
+      x-response:
+        $ref: "#/components/messages/Subscribed"
+      x-response-type: simple-rpc
+    Unsubscribe:
+      payload:
+        allOf:
+        - $ref: "#/components/schemas/Topic"
+        - type: object
+          required:
+          - event
+          properties:
+            event:
+              type: string
+              const: unsubscribe
+      x-response:
+        $ref: "#/components/messages/UnsubscribeResponse"
+      x-response-type: simple-rpc
+    UnsubscribeResponse:
+      payload:
+        type: string
+x-dispatcherKey: event

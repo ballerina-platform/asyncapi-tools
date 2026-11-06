@@ -18,6 +18,7 @@
 package io.ballerina.asyncapi.generator.ws.client.node.client;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.ballerina.asyncapi.core.api.AsyncApiSpec;
@@ -42,6 +43,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import static io.ballerina.asyncapi.generator.ws.client.extractor.DispatcherKeyExtractor.X_DISPATCHER_KEY;
+
 /**
  * Builds the remote function definition nodes for a WebSocket client class.
  */
@@ -49,6 +52,8 @@ public class ClientRemoteFunctionGenerator {
 
     private static final String REMOTE_METHOD_NAME_PREFIX = "do";
     private static final String DESCRIPTION = "description";
+    private static final String ONE_OF = "oneOf";
+    private static final String REF = "$ref";
 
     private final AsyncApiSpec asyncApiSpec;
     private final String dispatcherStreamId;
@@ -94,11 +99,14 @@ public class ClientRemoteFunctionGenerator {
 
         RemoteFunctionSignatureGenerator sigGen =
                 new RemoteFunctionSignatureGenerator(asyncApiSpec, typeDefinitionNodeList);
-        RemoteFunctionBodyGenerator bodyGen = new RemoteFunctionBodyGenerator(imports);
+        String dispatcherKey = asyncApiSpec.getAsyncApiExtensions().map(ext -> ext.get(X_DISPATCHER_KEY))
+                .map(JsonNode::asText).orElse(null);
+        RemoteFunctionBodyGenerator bodyGen = new RemoteFunctionBodyGenerator(imports, dispatcherKey);
         RemoteFunctionReturnTypeGenerator returnTypeGen = new RemoteFunctionReturnTypeGenerator(asyncApiSpec);
 
-        // Track response messages already handled by SEND ops
+        // Messages and types a send function already returns
         Set<String> remainingResponseMessages = new HashSet<>();
+        Set<String> replyTypes = new HashSet<>();
 
         // First pass: SEND operations
         for (Map.Entry<String, AsyncApiOperation> opEntry : operations.entrySet()) {
@@ -121,13 +129,14 @@ public class ClientRemoteFunctionGenerator {
                     }
                 }
 
-                // Collect response message names for this SEND op
+                // The messages this send function returns need no receive-only function of their own
                 if (message.extensions() != null && message.extensions().containsKey(ClientGenerator.X_RESPONSE)) {
                     JsonNode xResponse = message.extensions().get(ClientGenerator.X_RESPONSE);
-                    JsonNode xResponseType = message.extensions().get(ClientGenerator.X_RESPONSE_TYPE);
-                    List<String> responseMessages = new ArrayList<>();
-                    returnTypeGen.getReturnType(xResponse, xResponseType, responseMessages);
-                    remainingResponseMessages.addAll(responseMessages);
+                    remainingResponseMessages.addAll(responseMessageNames(xResponse));
+                    List<String> replySchemas = new ArrayList<>();
+                    returnTypeGen.getReturnType(xResponse, message.extensions().get(ClientGenerator.X_RESPONSE_TYPE),
+                            replySchemas);
+                    replyTypes.addAll(replySchemas);
                 }
 
                 FunctionDefinitionNode fn = getRemoteFunctionDefinitionNode(asyncApiSpec, msgName, message,
@@ -157,8 +166,9 @@ public class ClientRemoteFunctionGenerator {
                     }
                 }
 
-                // Skip if already in remainingResponseMessages
-                if (remainingResponseMessages.contains(msgName)) {
+                // A receive function on the pipe a send function waits on would take its replies
+                if (remainingResponseMessages.contains(msgName)
+                        || message.payload() instanceof AsyncApiSchema payload && replyTypes.contains(payload.name())) {
                     continue;
                 }
 
@@ -172,6 +182,26 @@ public class ClientRemoteFunctionGenerator {
         }
 
         return remoteFunctions;
+    }
+
+    /**
+     * The component messages an {@code x-response} points at, directly or through {@code oneOf}.
+     */
+    private static List<String> responseMessageNames(JsonNode xResponse) throws GeneratorException {
+        List<JsonNode> entries = new ArrayList<>();
+        if (xResponse.get(ONE_OF) instanceof ArrayNode oneOf) {
+            oneOf.forEach(entries::add);
+        } else {
+            entries.add(xResponse);
+        }
+        List<String> names = new ArrayList<>();
+        for (JsonNode entry : entries) {
+            JsonNode ref = entry.get(REF);
+            if (ref != null) {
+                names.add(CodegenUtils.extractReferenceType(ref.asText()));
+            }
+        }
+        return names;
     }
 
     /**
@@ -261,7 +291,7 @@ public class ClientRemoteFunctionGenerator {
         // Build param doc lines
         if (payload != null && payload.description() != null) {
             String typeName = sigGen.getDataType(payload);
-            String varName = CodegenUtils.getValidName(typeName, false);
+            String varName = CodegenUtils.getRequestParamName(typeName);
             docBuilder.append("# + ").append(varName).append(" - ").append(payload.description()).append("\n");
             docBuilder.append("# + timeout - waiting period to keep the event in the buffer in seconds\n");
         }
@@ -287,9 +317,17 @@ public class ClientRemoteFunctionGenerator {
         // Build body source — use the canonical pipe key from responseMap so all functions sharing
         // the same response type route through the same pipe
         String requestType = payload != null ? sigGen.getDataType(payload) : "null";
-        String pipeName = responseMap.getOrDefault(returnType, requestType);
+        // Wait where the reader files the reply: a oneOf reply under its first type, otherwise the request type's
+        // pipe, or for a receive-only function the pipe of its own type
+        String pipeName = responseMap.getOrDefault(returnType.split("\\|")[0],
+                CodegenUtils.getValidName(payload != null ? requestType : returnType, false));
+        RemoteFunctionBodyGenerator.ReplyFormat replyFormat = RemoteFunctionBodyGenerator.ReplyFormat.KEYED;
+        if (!"null".equals(returnType) && returnTypeGen.isReplyWithoutDispatcherKey(returnType)) {
+            replyFormat = returnTypeGen.isTextReply(returnType)
+                    ? RemoteFunctionBodyGenerator.ReplyFormat.TEXT : RemoteFunctionBodyGenerator.ReplyFormat.JSON;
+        }
         String bodySource = bodyGen.buildBodySource(msgExtensions, requestType, dispatcherStreamId,
-                isSubscribe, returnType, pipeName);
+                isSubscribe, returnType, pipeName, replyFormat);
 
         // Build complete function source and parse
         String funcSource = String.format(
