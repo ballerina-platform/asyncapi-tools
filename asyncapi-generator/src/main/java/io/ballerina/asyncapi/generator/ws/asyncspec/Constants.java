@@ -42,6 +42,7 @@ public class Constants {
     public static final String DISPATCHER_KEY = "dispatcherKey";
     public static final String DISPATCHER_STREAM_ID = "dispatcherStreamId";
     public static final String DISPATCHER_CONFIG_ANNOTATION = "DispatcherConfig";
+    public static final String SERVICE_CONFIG_ANNOTATION = "ServiceConfig";
     public static final String ANNOTATION_ATTR_DISPATCHER_VALUE = "dispatcherValue";
     public static final String BALLERINA = "ballerina";
     public static final String TYPEREFERENCE = "typeReference";
@@ -68,6 +69,7 @@ public class Constants {
     public static final String SCHEMA_REFERENCE = "#/components/schemas/";
     public static final String REF = "$ref";
     public static final String ONEOF = "oneOf";
+    public static final String ALLOF = "allOf";
     public static final String MESSAGE_REFERENCE = "#/components/messages/";
     public static final String CHANNELS_REFERENCE = "#/channels/";
     public static final String OPERATIONS_REFERENCE = "#/operations/";
@@ -127,10 +129,15 @@ public class Constants {
     public static final String FUNCTION_DEFAULT_NAME_CONTAINS_ERROR = "ERROR: onIdleTimeOut, onMessage, "
             + "onTextMessage, onBinaryMessage, onClose, onOpen, and onError names are not permitted in a "
             + "function's name";
-    public static final String NO_ANNOTATION_PRESENT = "ERROR: No Annotation present, "
-            + "use @websocket:ServiceConfig{dispatcherKey: \"event\"} above the service";
-    public static final String NO_DISPATCHER_KEY = "ERROR: No dispatcherKey field is present in "
-            + "@websocket:ServiceConfig annotation";
+    public static final String NO_ANNOTATION_PRESENT = "ERROR: the service has no "
+            + "@websocket:ServiceConfig {dispatcherKey: ...}. Without a dispatcherKey, WebSocket delivers every "
+            + "message to onMessage, so the other remote functions can't be described. Add one above the service, "
+            + "for example @websocket:ServiceConfig {dispatcherKey: \"event\"}";
+    public static final String NO_DISPATCHER_KEY = "ERROR: the @websocket:ServiceConfig annotation has no "
+            + "dispatcherKey. Without it, WebSocket delivers every message to onMessage, so the other remote "
+            + "functions can't be described. Add one, for example dispatcherKey: \"event\"";
+    public static final String SHARED_MESSAGE_NAME = "ERROR: the @websocket:DispatcherConfig values of remote "
+            + "functions %s and %s both give a message named %s. Change one of the values so the names differ";
     public static final String DISPATCHER_KEY_VALUE_CANNOT_BE_EMPTY = "ERROR: dispatcherKey cannot be empty";
     public static final String DISPATCHER_STREAM_ID_VALUE_CANNOT_BE_EMPTY = "ERROR: dispatcherStreamId cannot be "
             + "empty";
@@ -139,6 +146,11 @@ public class Constants {
     public static final String UNSUPPORTED_PARAMETER_TYPE = "ERROR: Could not determine a message payload for "
             + "remote function '%s' - its parameter type is not currently supported for AsyncAPI generation "
             + "(expected a record, class, or primitive type)";
+    public static final String NON_STRING_PRIMITIVE_PARAMETER = "ERROR: remote function '%s' takes %s, but with "
+            + "a dispatcherKey every message is a JSON object carrying the dispatcher field, which can't bind to %s. "
+            + "Take a string or a record with the dispatcher field instead";
+    public static final String UNSUPPORTED_ANNOTATION_VALUE = "ERROR: the %s value '%s' can't be described, as "
+            + "only a string literal or a string constant is read. Use one of those instead";
     public static final String UNION_STREAMING_SIMPLE_RPC_ERROR = "ERROR: Response server streaming types cannot be "
             + "union with simple rpc types";
     public static final String PATH_PARAM_DASH_CONTAIN_ERROR = "ERROR: Path parameter contains an invalid"

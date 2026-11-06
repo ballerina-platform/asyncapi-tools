@@ -59,6 +59,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.Optional;
 
 import static io.ballerina.asyncapi.generator.ws.asyncspec.Constants.ASYNCAPI_ANNOTATION;
@@ -259,7 +260,15 @@ public final class ServiceToAsyncApiConverterUtils {
         AsyncApiEndpointMapper.ENDPOINT_MAPPER.getServers(asyncapi, endpoints, serviceDefinition);
         // Phase 5: channel/operation/component mapping
         AsyncApiServiceMapper serviceMapper = new AsyncApiServiceMapper(semanticModel, asyncapi);
-        asyncapi = serviceMapper.convertServiceToAsyncApi(serviceDefinition, classDefinitionNodes, asyncapi);
+        try {
+            asyncapi = serviceMapper.convertServiceToAsyncApi(serviceDefinition, classDefinitionNodes, asyncapi);
+        } catch (NoSuchElementException e) {
+            // The mappers reject a service they can't describe this way; report it like any other problem.
+            DiagnosticMessages messages = DiagnosticMessages.AAS_CONVERTOR_102;
+            String reason = e.getMessage() == null ? "" : e.getMessage().replaceFirst("^ERROR: ", "");
+            return new AsyncApiResult(null, null, List.of(new ExceptionDiagnostic(messages.getCode(),
+                    messages.getDescription(), null, reason)));
+        }
 
         List<AsyncApiConverterDiagnostic> allDiagnostics = new ArrayList<>(infoResult.getDiagnostics());
         List<ValidationProblem> validationProblems = Library.validate(asyncapi, null);

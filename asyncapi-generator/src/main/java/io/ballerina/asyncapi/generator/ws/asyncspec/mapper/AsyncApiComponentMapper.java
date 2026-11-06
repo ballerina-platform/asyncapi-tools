@@ -98,7 +98,6 @@ public class AsyncApiComponentMapper {
 
     private final AsyncApi30ComponentsImpl components;
     private final List<AsyncApiConverterDiagnostic> diagnostics;
-
     private static final Set<String> closeFrameTypes =
             Set.of(PREDEFINED_CLOSE_FRAME_TYPE, CUSTOM_CLOSE_FRAME_TYPE);
 
@@ -389,7 +388,6 @@ public class AsyncApiComponentMapper {
                 if (fieldType.equals(STRING)) {
                     if (!fieldIsOptional) {
                         dispatcherValuePresent = true;
-                        property.setConst(new TextNode(componentName));
                     } else {
                         throw new NoSuchElementException(String.format(
                                 DISPATCHERKEY_OPTIONAL_EXCEPTION, fieldName, componentName));

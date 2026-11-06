@@ -60,9 +60,9 @@ public class BaseCmd {
             description = "Format of a generated AsyncAPI definition. Defaults to yaml.")
     public String format;
 
-    @CommandLine.Option(names = {"--service"}, paramLabel = "<base-path>",
-            description = "Base path of the service to generate the definition for, e.g. /chat. Every service "
-                    + "with that base path is generated.")
+    @CommandLine.Option(names = {"--service"}, paramLabel = "<service>",
+            description = "Service to generate the definition for: its base path, e.g. /chat, or the name of the "
+                    + "service class it upgrades to, e.g. ChatService. Every matching service is generated.")
     public String serviceName;
 
     @CommandLine.Option(names = {"--with-tests"},
