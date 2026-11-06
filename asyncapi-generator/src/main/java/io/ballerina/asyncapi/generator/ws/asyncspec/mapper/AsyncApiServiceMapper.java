@@ -30,8 +30,6 @@ import io.ballerina.compiler.syntax.tree.MappingFieldNode;
 import io.ballerina.compiler.syntax.tree.MetadataNode;
 import io.ballerina.compiler.syntax.tree.Node;
 import io.ballerina.compiler.syntax.tree.NodeList;
-import io.ballerina.compiler.syntax.tree.QualifiedNameReferenceNode;
-import io.ballerina.compiler.syntax.tree.SeparatedNodeList;
 import io.ballerina.compiler.syntax.tree.ServiceDeclarationNode;
 import io.ballerina.compiler.syntax.tree.SpecificFieldNode;
 import io.ballerina.compiler.syntax.tree.SyntaxKind;
@@ -45,6 +43,7 @@ import static io.ballerina.asyncapi.generator.ws.asyncspec.Constants.DISPATCHER_
 import static io.ballerina.asyncapi.generator.ws.asyncspec.Constants.DISPATCHER_STREAM_ID_VALUE_CANNOT_BE_EMPTY;
 import static io.ballerina.asyncapi.generator.ws.asyncspec.Constants.NO_ANNOTATION_PRESENT;
 import static io.ballerina.asyncapi.generator.ws.asyncspec.Constants.NO_DISPATCHER_KEY;
+import static io.ballerina.asyncapi.generator.ws.asyncspec.Constants.SERVICE_CONFIG_ANNOTATION;
 import static io.ballerina.asyncapi.generator.ws.asyncspec.Constants.X_BALLERINA_WS_CLOSE_FRAME;
 import static io.ballerina.asyncapi.generator.ws.asyncspec.mapper.AsyncApiRemoteMapper.containsCloseFrameSchema;
 import static io.ballerina.asyncapi.generator.ws.asyncspec.mapper.AsyncApiRemoteMapper.getWsCloseFrameExtension;
@@ -101,53 +100,42 @@ public class AsyncApiServiceMapper {
         return asyncApi;
     }
 
+    /**
+     * The service's dispatcherKey from its {@code @websocket:ServiceConfig}, which may sit among other annotations.
+     * Also records the key, and the dispatcherStreamId if set, as extensions in the order they are written.
+     */
     private String extractDispatcherValue(ServiceDeclarationNode service) {
-        String dispatcherValue = "";
-        if (service.metadata().isPresent()) {
-            MetadataNode serviceMetadataNode = service.metadata().get();
-            NodeList<AnnotationNode> annotationNodes = serviceMetadataNode.annotations();
-            AnnotationNode annotationNode = annotationNodes.get(0);
-            Node node = annotationNode.annotReference();
-            if (node instanceof QualifiedNameReferenceNode) {
-                SeparatedNodeList<MappingFieldNode> fields = annotationNode.annotValue().get().fields();
-                for (MappingFieldNode field : fields) {
-                    if (field instanceof SpecificFieldNode) {
-                        SpecificFieldNode specificFieldNode = (SpecificFieldNode) field;
-                        String fieldName = specificFieldNode.fieldName().toString().trim();
-                        dispatcherValue = setFieldValues(dispatcherValue, specificFieldNode, fieldName);
-                        if (fieldName.equals(DISPATCHER_STREAM_ID)) {
-                            String dispatcherStreamIdValue = specificFieldNode.valueExpr().get().toString().trim();
-                            dispatcherStreamIdValue = dispatcherStreamIdValue.replaceAll("\"", "");
-                            if (dispatcherStreamIdValue.equals("")) {
-                                throw new NoSuchElementException(DISPATCHER_STREAM_ID_VALUE_CANNOT_BE_EMPTY);
-                            }
-                            asyncAPI.addExtension("x-dispatcherStreamId", new TextNode(dispatcherStreamIdValue));
-                        }
-                    }
-                }
-                if (!dispatcherValue.equals("")) {
-                    return dispatcherValue.trim();
-                }
-
-                if (dispatcherValue.isEmpty()) {
-                    throw new NoSuchElementException(NO_DISPATCHER_KEY);
-                }
-            }
-        } else {
-            throw new NoSuchElementException(NO_ANNOTATION_PRESENT);
+        NodeList<AnnotationNode> annotations = service.metadata().map(MetadataNode::annotations).orElse(null);
+        AnnotationNode serviceConfig = WebSocketAnnotations.find(annotations, SERVICE_CONFIG_ANNOTATION, semanticModel)
+                .orElseThrow(() -> new NoSuchElementException(NO_ANNOTATION_PRESENT));
+        if (serviceConfig.annotValue().isEmpty()) {
+            throw new NoSuchElementException(NO_DISPATCHER_KEY);
         }
-        return null;
+        String dispatcherKey = null;
+        for (MappingFieldNode field : serviceConfig.annotValue().get().fields()) {
+            if (!(field instanceof SpecificFieldNode specificField) || specificField.valueExpr().isEmpty()) {
+                continue;
+            }
+            String fieldName = specificField.fieldName().toString().strip();
+            if (fieldName.equals(DISPATCHER_KEY)) {
+                dispatcherKey = nonEmptyValue(specificField, fieldName, DISPATCHER_KEY_VALUE_CANNOT_BE_EMPTY);
+                asyncAPI.addExtension("x-dispatcherKey", new TextNode(dispatcherKey));
+            } else if (fieldName.equals(DISPATCHER_STREAM_ID)) {
+                String streamId = nonEmptyValue(specificField, fieldName, DISPATCHER_STREAM_ID_VALUE_CANNOT_BE_EMPTY);
+                asyncAPI.addExtension("x-dispatcherStreamId", new TextNode(streamId));
+            }
+        }
+        if (dispatcherKey == null) {
+            throw new NoSuchElementException(NO_DISPATCHER_KEY);
+        }
+        return dispatcherKey;
     }
 
-    private String setFieldValues(String dispatcherValue, SpecificFieldNode specificFieldNode, String fieldName) {
-        if (fieldName.equals(DISPATCHER_KEY)) {
-            dispatcherValue = specificFieldNode.valueExpr().get().toString().trim();
-            dispatcherValue = dispatcherValue.replaceAll("\"", "");
-            if (dispatcherValue.isEmpty()) {
-                throw new NoSuchElementException(DISPATCHER_KEY_VALUE_CANNOT_BE_EMPTY);
-            }
-            asyncAPI.addExtension("x-dispatcherKey", new TextNode(dispatcherValue));
+    private String nonEmptyValue(SpecificFieldNode field, String fieldName, String emptyError) {
+        String value = WebSocketAnnotations.stringValue(field.valueExpr().get(), fieldName, semanticModel);
+        if (value.isEmpty()) {
+            throw new NoSuchElementException(emptyError);
         }
-        return dispatcherValue;
+        return value;
     }
 }

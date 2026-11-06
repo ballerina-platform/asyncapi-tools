@@ -29,7 +29,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Comparator;
 import java.util.List;
-import java.util.NoSuchElementException;
 import java.util.Optional;
 
 /**
@@ -154,7 +153,8 @@ class BallerinaToAsyncApiGeneratorTest {
             + "public type User record {\n"
             + "    string name;\n"
             + "    string gender;\n"
-            + "};\n";
+            + "};\n\n"
+            + "public const CUSTOM_EVENT = \"from_types\";\n";
 
     // Three remote functions — produces orders_asyncapi.yaml (service /orders).
     // Type names Order, Cancel, Update match functionName.substring(2) exactly.
@@ -257,7 +257,7 @@ class BallerinaToAsyncApiGeneratorTest {
             + "}\n";
 
     // BAL_ONE_REMOTE with the @websocket:ServiceConfig annotation line removed.
-    // extractDispatcherValue throws NoSuchElementException(NO_ANNOTATION_PRESENT).
+    // No @websocket:ServiceConfig, so the service is reported as a diagnostic (NO_ANNOTATION_PRESENT).
     private static final String BAL_MISSING_ANNOTATION =
             "import ballerina/websocket;\n\n"
             + "public type ChatMessage record {\n"
@@ -745,8 +745,8 @@ class BallerinaToAsyncApiGeneratorTest {
                 "ClientData schema/message must appear even though the function is named 'onHello'");
         Assert.assertTrue(yaml.contains("User"),
                 "User (return type) schema must appear even though the function is named 'onHello'");
-        Assert.assertTrue(yaml.contains("sendClientData"),
-                "send operation must be derived from the parameter's real type, not the function name");
+        Assert.assertTrue(yaml.contains("sendHello:") && yaml.contains("$ref: \"#/components/schemas/ClientData\""),
+                "the message is named after onHello, and its payload is the parameter's type: " + yaml);
         Assert.assertFalse(yaml.contains("operations: {}"),
                 "operations must not be empty - a mismatched name must not cause silent skipping");
     }
@@ -769,8 +769,8 @@ class BallerinaToAsyncApiGeneratorTest {
                 "ClientData schema/message must appear even with a qualified type reference");
         Assert.assertTrue(yaml.contains("User"),
                 "User (return type) schema must appear even with a qualified type reference");
-        Assert.assertTrue(yaml.contains("sendClientData"),
-                "send operation must be derived from the parameter's real type, not the function name");
+        Assert.assertTrue(yaml.contains("sendHello:") && yaml.contains("$ref: \"#/components/schemas/ClientData\""),
+                "the message is named after onHello, and its payload is the parameter's type: " + yaml);
         Assert.assertFalse(yaml.contains("operations: {}"),
                 "operations must not be empty - a mismatched name must not cause silent skipping");
     }
@@ -850,12 +850,428 @@ class BallerinaToAsyncApiGeneratorTest {
                 "optional field 'optionalField' must appear in the schema");
     }
 
-    @Test(expectedExceptions = NoSuchElementException.class)
-    void testMissingAnnotation_throwsNoSuchElementException() throws IOException {
-        // extractDispatcherValue throws NoSuchElementException(NO_ANNOTATION_PRESENT) when the
-        // service has no @websocket:ServiceConfig; the exception propagates uncaught to the caller.
-        run(BAL_MISSING_ANNOTATION);
+    @Test
+    void testMissingAnnotation_isReportedAsADiagnostic() throws IOException {
+        // Without a dispatcherKey, WebSocket sends every message to onMessage, so onChatMessage can't be described.
+        // That is reported like any other problem rather than escaping as an exception.
+        List<AsyncApiConverterDiagnostic> diagnostics = run(BAL_MISSING_ANNOTATION);
+        Assert.assertEquals(diagnostics.size(), 1, "Diagnostics: " + diagnostics);
+        Assert.assertTrue(diagnostics.get(0).getMessage().contains("no @websocket:ServiceConfig"),
+                diagnostics.get(0).getMessage());
+        Assert.assertTrue(diagnostics.get(0).getMessage().contains("onMessage"), diagnostics.get(0).getMessage());
+        Assert.assertFalse(Files.exists(outDir.resolve("chat_asyncapi.yaml")),
+                "no definition should be written for a service that can't be described");
     }
+
+    @Test
+    void testServiceConfig_isFoundAmongOtherAnnotationsAndReadByValue() throws IOException {
+        // @display comes first, the key is a constant with a comment after it, and the stream id is a literal
+        Assert.assertTrue(run(BAL_SERVICE_CONFIG_NOT_FIRST).isEmpty());
+        String yaml = readGeneratedYaml();
+        Assert.assertTrue(yaml.contains("x-dispatcherKey: kind"), yaml);
+        Assert.assertTrue(yaml.contains("x-dispatcherStreamId: id"), yaml);
+        Assert.assertTrue(yaml.contains("const: hello"), yaml);
+        Assert.assertFalse(yaml.contains("EVENT_FIELD"), yaml);
+    }
+
+    @Test
+    void testServiceWithOnlyADocComment_isReportedAsADiagnostic() throws IOException {
+        // A doc comment gives the service metadata with no annotations, which used to fail as an unexpected error
+        List<AsyncApiConverterDiagnostic> diagnostics = run(BAL_DOC_COMMENT_ONLY);
+        Assert.assertEquals(diagnostics.size(), 1, "Diagnostics: " + diagnostics);
+        Assert.assertTrue(diagnostics.get(0).getMessage().contains("no @websocket:ServiceConfig"),
+                diagnostics.get(0).getMessage());
+    }
+
+    private static final String BAL_SERVICE_CONFIG_NOT_FIRST =
+            "import ballerina/websocket;\n\n"
+            + "const EVENT_FIELD = \"kind\";\n\n"
+            + "public type Hello record {\n"
+            + "    string kind;\n"
+            + "    string id;\n"
+            + "};\n\n"
+            + "@display {label: \"Greeter\"}\n"
+            + "@websocket:ServiceConfig {\n"
+            + "    dispatcherKey: EVENT_FIELD, // the field that picks the function\n"
+            + "    dispatcherStreamId: \"id\"\n"
+            + "}\n"
+            + "service /greet on new websocket:Listener(9090) {\n"
+            + "    resource function get .() returns websocket:Service {\n"
+            + "        return new GreetService();\n"
+            + "    }\n"
+            + "}\n\n"
+            + "service class GreetService {\n"
+            + "    *websocket:Service;\n"
+            + "    remote function onHello(Hello hello) returns string {\n"
+            + "        return \"hi\";\n"
+            + "    }\n"
+            + "}\n";
+
+    private static final String BAL_DOC_COMMENT_ONLY =
+            "import ballerina/websocket;\n\n"
+            + "public type Hello record {\n"
+            + "    string event;\n"
+            + "};\n\n"
+            + "# Greets clients.\n"
+            + "service /greet on new websocket:Listener(9090) {\n"
+            + "    resource function get .() returns websocket:Service {\n"
+            + "        return new GreetService();\n"
+            + "    }\n"
+            + "}\n\n"
+            + "service class GreetService {\n"
+            + "    *websocket:Service;\n"
+            + "    remote function onHello(Hello hello) returns string {\n"
+            + "        return \"hi\";\n"
+            + "    }\n"
+            + "}\n";
+
+    @Test
+    void testDispatcherConst_isTheValueThatReachesTheFunction() throws IOException {
+        // websocket dispatches a dispatcher value to on<Value>, capitalising each "_"-separated word, so
+        // onHello is reached by "hello" whatever its parameter type is called (#6601).
+        Assert.assertTrue(run(BAL_MISMATCHED_FUNCTION_NAME).isEmpty());
+        String yaml = readFile("service_asyncapi.yaml");
+        Assert.assertTrue(yaml.contains("const: hello"), yaml);
+        Assert.assertFalse(yaml.contains("const: ClientData"), yaml);
+    }
+
+    @Test
+    void testDispatcherConst_multiWordAndAnnotatedFunctions() throws IOException {
+        Assert.assertTrue(run(BAL_DISPATCH_VALUES).isEmpty());
+        String yaml = readGeneratedYaml();
+        Assert.assertTrue(yaml.contains("const: connection_init"),
+                "onConnectionInit is reached by connection_init: " + yaml);
+        Assert.assertTrue(yaml.contains("const: custom_value"),
+                "a @websocket:DispatcherConfig value is used exactly as written: " + yaml);
+        Assert.assertFalse(yaml.contains("const: CustomValue") || yaml.contains("const: ConnectionInit"), yaml);
+        // websocket gives each capital its own word, so only h_t_t_p_response reaches onHTTPResponse
+        Assert.assertTrue(yaml.contains("const: h_t_t_p_response"), yaml);
+        // An escape in the annotation value is decoded, as websocket reads it
+        Assert.assertTrue(yaml.contains("const: escaped_value"), yaml);
+        // A comment after the value isn't part of it, and a constant gives its value, not its name
+        Assert.assertTrue(yaml.contains("const: commented_value"), yaml);
+        Assert.assertTrue(yaml.contains("const: from_const"), yaml);
+        Assert.assertFalse(yaml.contains("CONST_VALUE"), yaml);
+        // "_" gives no name, so its message is named after the function
+        Assert.assertTrue(yaml.contains("const: _"), yaml);
+        Assert.assertTrue(yaml.contains("    Underscore:"), yaml);
+        // The annotation names the message, but its payload is still the parameter type's schema.
+        Assert.assertTrue(yaml.contains("$ref: \"#/components/schemas/Custom\""), yaml);
+        Assert.assertFalse(yaml.contains("#/components/schemas/CustomValue"), "no dangling schema reference: " + yaml);
+    }
+
+    @Test
+    void testInlineResponse_doesNotTakeARecordMessageName() throws IOException {
+        // onFoo's string[] response would be FooResponse, which onBar's record response already uses.
+        Assert.assertTrue(run(BAL_RESPONSE_NAME_CLASH).isEmpty());
+        String yaml = readGeneratedYaml();
+        Assert.assertTrue(yaml.contains("$ref: \"#/components/schemas/FooResponse\""),
+                "the record response keeps its message: " + yaml);
+        Assert.assertTrue(yaml.contains("FooResponse_2:") && yaml.contains("receiveFooResponse_2"),
+                "the inline response gets the next free name: " + yaml);
+        Assert.assertTrue(yaml.contains("$ref: \"#/components/messages/FooResponse_2\""), yaml);
+    }
+
+    @Test
+    void testSharedMessageName_isReportedAsADiagnostic() throws IOException {
+        // websocket accepts foo-bar and foo_bar on two functions, but both name a FooBar message.
+        List<AsyncApiConverterDiagnostic> diagnostics = run(BAL_MESSAGE_NAME_CLASH);
+        Assert.assertEquals(diagnostics.size(), 1, "Diagnostics: " + diagnostics);
+        String message = diagnostics.get(0).getMessage();
+        Assert.assertTrue(message.contains("onA") && message.contains("onB") && message.contains("FooBar"),
+                message);
+    }
+
+    private static final String BAL_MESSAGE_NAME_CLASH =
+            "import ballerina/websocket;\n\n"
+            + "public type Foo record {\n"
+            + "    string event;\n"
+            + "};\n\n"
+            + "public type Bar record {\n"
+            + "    string event;\n"
+            + "};\n\n"
+            + "@websocket:ServiceConfig {dispatcherKey: \"event\"}\n"
+            + "service /names on new websocket:Listener(9090) {\n"
+            + "    resource function get .() returns websocket:Service {\n"
+            + "        return new NamesService();\n"
+            + "    }\n"
+            + "}\n\n"
+            + "service class NamesService {\n"
+            + "    *websocket:Service;\n"
+            + "    @websocket:DispatcherConfig {dispatcherValue: \"foo-bar\"}\n"
+            + "    remote function onA(Foo foo) returns string {\n"
+            + "        return \"a\";\n"
+            + "    }\n"
+            + "    @websocket:DispatcherConfig {dispatcherValue: \"foo_bar\"}\n"
+            + "    remote function onB(Bar bar) returns string {\n"
+            + "        return \"b\";\n"
+            + "    }\n"
+            + "}\n";
+
+    private static final String BAL_RESPONSE_NAME_CLASH =
+            "import ballerina/websocket;\n\n"
+            + "public type Foo record {\n"
+            + "    string event;\n"
+            + "};\n\n"
+            + "public type Bar record {\n"
+            + "    string event;\n"
+            + "};\n\n"
+            + "public type FooResponse record {\n"
+            + "    string event;\n"
+            + "    string result;\n"
+            + "};\n\n"
+            + "@websocket:ServiceConfig {dispatcherKey: \"event\"}\n"
+            + "service /clash on new websocket:Listener(9090) {\n"
+            + "    resource function get .() returns websocket:Service {\n"
+            + "        return new ClashService();\n"
+            + "    }\n"
+            + "}\n\n"
+            + "service class ClashService {\n"
+            + "    *websocket:Service;\n"
+            + "    remote function onFoo(Foo foo) returns string[] {\n"
+            + "        return [];\n"
+            + "    }\n"
+            + "    remote function onBar(Bar bar) returns FooResponse {\n"
+            + "        return {event: \"FooResponse\", result: \"ok\"};\n"
+            + "    }\n"
+            + "}\n";
+
+    @Test
+    void testNonStringPrimitiveParameter_isReportedAsADiagnostic() throws IOException {
+        // The message is a JSON object with the dispatcher field, which websocket can't bind to an int.
+        List<AsyncApiConverterDiagnostic> diagnostics = run(BAL_INT_PARAMETER);
+        Assert.assertEquals(diagnostics.size(), 1, "Diagnostics: " + diagnostics);
+        String message = diagnostics.get(0).getMessage();
+        Assert.assertTrue(message.contains("onCount") && message.contains("int"), message);
+    }
+
+    private static final String BAL_INT_PARAMETER =
+            "import ballerina/websocket;\n\n"
+            + "@websocket:ServiceConfig {dispatcherKey: \"event\"}\n"
+            + "service /count on new websocket:Listener(9090) {\n"
+            + "    resource function get .() returns websocket:Service {\n"
+            + "        return new CountService();\n"
+            + "    }\n"
+            + "}\n\n"
+            + "service class CountService {\n"
+            + "    *websocket:Service;\n"
+            + "    remote function onCount(int count) returns string {\n"
+            + "        return \"ok\";\n"
+            + "    }\n"
+            + "}\n";
+
+    @Test
+    void testDispatcherValueFromAnotherModulesConstant() throws IOException {
+        // The compiler only takes a literal or a constant here, so a constant from another module is the one other
+        // form, and it gives its value
+        Assert.assertTrue(runWithTypesSubmodule(BAL_DISPATCHER_VALUE_QUALIFIED_CONSTANT).isEmpty());
+        String yaml = readGeneratedYaml();
+        Assert.assertTrue(yaml.contains("const: from_types"), yaml);
+        Assert.assertFalse(yaml.contains("CUSTOM_EVENT"), yaml);
+    }
+
+    private static final String BAL_DISPATCHER_VALUE_QUALIFIED_CONSTANT =
+            "import ballerina/websocket;\n"
+            + "import testorg/asyncspectest.types;\n\n"
+            + "public type Custom record {\n"
+            + "    string event;\n"
+            + "};\n\n"
+            + "@websocket:ServiceConfig {dispatcherKey: \"event\"}\n"
+            + "service /qualified on new websocket:Listener(9090) {\n"
+            + "    resource function get .() returns websocket:Service {\n"
+            + "        return new QualifiedService();\n"
+            + "    }\n"
+            + "}\n\n"
+            + "service class QualifiedService {\n"
+            + "    *websocket:Service;\n"
+            + "    @websocket:DispatcherConfig {dispatcherValue: types:CUSTOM_EVENT}\n"
+            + "    remote function onCustom(Custom custom) returns string {\n"
+            + "        return \"ok\";\n"
+            + "    }\n"
+            + "}\n";
+
+    @Test
+    void testInlinePayloads_carryTheDispatcherField() throws IOException {
+        Assert.assertTrue(run(BAL_ISSUE_7669).isEmpty());
+        String yaml = readGeneratedYaml();
+        // onConnectionInit(string) and onSubscription() still receive a JSON object with the dispatcher field.
+        Assert.assertTrue(yaml.contains("const: connection_init"), yaml);
+        Assert.assertTrue(yaml.contains("const: subscription"), yaml);
+    }
+
+    @Test
+    void testStreamResponse_isNotWrappedInExtensions() throws IOException {
+        Assert.assertTrue(run(BAL_ISSUE_7669).isEmpty());
+        String yaml = readGeneratedYaml();
+        Assert.assertFalse(yaml.contains("extensions:"), "x-response must list oneOf directly: " + yaml);
+        Assert.assertTrue(yaml.contains("x-response:\n        oneOf:"), yaml);
+    }
+
+    @Test
+    void testArrayResponse_getsAReceiveOperation() throws IOException {
+        Assert.assertTrue(run(BAL_MISMATCHED_FUNCTION_NAME).isEmpty());
+        String yaml = readFile("service_asyncapi.yaml");
+        // User[] has no message of its own, so it gets one named after its request, which x-response points at.
+        Assert.assertTrue(yaml.contains("receiveHelloResponse"), yaml);
+        Assert.assertTrue(yaml.contains("HelloResponse:"), yaml);
+        Assert.assertTrue(yaml.contains("x-response:\n        $ref: \"#/components/messages/HelloResponse\""), yaml);
+    }
+
+    @Test
+    void testReplyRecord_doesNotTakeARequestMessageName() throws IOException {
+        // onHello's message is Hello, so the Hello record that onGreet replies with needs another message name.
+        Assert.assertTrue(run(BAL_REPLY_NAME_CLASH).isEmpty());
+        String yaml = readGeneratedYaml();
+        Assert.assertTrue(yaml.contains("    Hello:\n      payload:\n        allOf:\n"
+                + "        - $ref: \"#/components/schemas/HelloData\""), yaml);
+        Assert.assertTrue(
+                yaml.contains("    HelloReply:\n      payload:\n        $ref: \"#/components/schemas/Hello\""), yaml);
+        Assert.assertTrue(yaml.contains("x-response:\n        $ref: \"#/components/messages/HelloReply\""), yaml);
+    }
+
+    private static final String BAL_REPLY_NAME_CLASH =
+            "import ballerina/websocket;\n\n"
+            + "public type HelloData record {\n"
+            + "    string event;\n"
+            + "};\n\n"
+            + "public type Greeting record {\n"
+            + "    string event;\n"
+            + "};\n\n"
+            + "public type Hello record {\n"
+            + "    string event;\n"
+            + "    string text;\n"
+            + "};\n\n"
+            + "@websocket:ServiceConfig {dispatcherKey: \"event\"}\n"
+            + "service /greet on new websocket:Listener(9090) {\n"
+            + "    resource function get .() returns websocket:Service {\n"
+            + "        return new GreetService();\n"
+            + "    }\n"
+            + "}\n\n"
+            + "service class GreetService {\n"
+            + "    *websocket:Service;\n"
+            + "    remote function onGreet(Greeting greeting) returns Hello {\n"
+            + "        return {event: \"hello\", text: \"hi\"};\n"
+            + "    }\n"
+            + "    remote function onHello(HelloData data) returns string {\n"
+            + "        return \"ok\";\n"
+            + "    }\n"
+            + "}\n";
+
+    @Test
+    void testSharedRequestType_getsOneMessagePerFunction() throws IOException {
+        // Each message carries its own dispatcher value, so both functions can take Topic.
+        Assert.assertTrue(run(BAL_SHARED_REQUEST_TYPE).isEmpty());
+        String yaml = readGeneratedYaml();
+        Assert.assertTrue(yaml.contains("    Subscribe:\n      payload:\n        allOf:\n"
+                + "        - $ref: \"#/components/schemas/Topic\""), yaml);
+        Assert.assertTrue(yaml.contains("    Unsubscribe:\n      payload:\n        allOf:\n"
+                + "        - $ref: \"#/components/schemas/Topic\""), yaml);
+        Assert.assertTrue(yaml.contains("const: subscribe") && yaml.contains("const: unsubscribe"), yaml);
+    }
+
+    @Test
+    void testEchoReply_isNotHeldToTheRequestsDispatcherValue() throws IOException {
+        // The reply may carry any event, so it points at the plain ChatMessage schema, not at the request message.
+        Assert.assertTrue(run(BAL_ECHO).isEmpty());
+        String yaml = readGeneratedYaml();
+        Assert.assertTrue(yaml.contains("    ChatMessage:\n      payload:\n        allOf:\n"
+                + "        - $ref: \"#/components/schemas/ChatMessage\""), yaml);
+        Assert.assertTrue(yaml.contains(
+                "    ChatMessageReply:\n      payload:\n        $ref: \"#/components/schemas/ChatMessage\""), yaml);
+        Assert.assertTrue(yaml.contains("x-response:\n        $ref: \"#/components/messages/ChatMessageReply\""),
+                yaml);
+        int schemas = yaml.indexOf("\n  schemas:");
+        String schema = yaml.substring(schemas, yaml.indexOf("\n  messages:", schemas));
+        Assert.assertFalse(schema.contains("const:"), "the shared schema carries no dispatcher value: " + schema);
+    }
+
+    private static final String BAL_ECHO =
+            "import ballerina/websocket;\n\n"
+            + "public type ChatMessage record {\n"
+            + "    string event;\n"
+            + "    string text;\n"
+            + "};\n\n"
+            + "@websocket:ServiceConfig {dispatcherKey: \"event\"}\n"
+            + "service /echo on new websocket:Listener(9090) {\n"
+            + "    resource function get .() returns websocket:Service {\n"
+            + "        return new EchoService();\n"
+            + "    }\n"
+            + "}\n\n"
+            + "service class EchoService {\n"
+            + "    *websocket:Service;\n"
+            + "    remote function onChatMessage(ChatMessage msg) returns ChatMessage {\n"
+            + "        return {event: \"ack\", text: msg.text};\n"
+            + "    }\n"
+            + "}\n";
+
+    private static final String BAL_DISPATCH_VALUES =
+            "import ballerina/websocket;\n\n"
+            + "public type Init record {\n"
+            + "    string event;\n"
+            + "};\n\n"
+            + "public type Custom record {\n"
+            + "    string event;\n"
+            + "};\n\n"
+            + "@websocket:ServiceConfig {dispatcherKey: \"event\"}\n"
+            + "service /values on new websocket:Listener(9090) {\n"
+            + "    resource function get .() returns websocket:Service {\n"
+            + "        return new ValuesService();\n"
+            + "    }\n"
+            + "}\n\n"
+            + "service class ValuesService {\n"
+            + "    *websocket:Service;\n"
+            + "    remote function onConnectionInit(Init init) returns string {\n"
+            + "        return \"ok\";\n"
+            + "    }\n"
+            + "    @websocket:DispatcherConfig {dispatcherValue: \"custom_value\"}\n"
+            + "    remote function onAnnotated(Custom custom) returns string {\n"
+            + "        return \"ok\";\n"
+            + "    }\n"
+            + "    remote function onHTTPResponse(Init init) returns string {\n"
+            + "        return \"ok\";\n"
+            + "    }\n"
+            + "    @websocket:DispatcherConfig {dispatcherValue: \"escaped\\u{5F}value\"}\n"
+            + "    remote function onEscaped(Init init) returns string {\n"
+            + "        return \"ok\";\n"
+            + "    }\n"
+            + "    @websocket:DispatcherConfig {\n"
+            + "        dispatcherValue: \"commented_value\" // a note with \\u{5F} in it\n"
+            + "    }\n"
+            + "    remote function onCommented(Init init) returns string {\n"
+            + "        return \"ok\";\n"
+            + "    }\n"
+            + "    @websocket:DispatcherConfig {dispatcherValue: CONST_VALUE}\n"
+            + "    remote function onFromConst(Init init) returns string {\n"
+            + "        return \"ok\";\n"
+            + "    }\n"
+            + "    @websocket:DispatcherConfig {dispatcherValue: \"_\"}\n"
+            + "    remote function onUnderscore(Init init) returns string {\n"
+            + "        return \"ok\";\n"
+            + "    }\n"
+            + "}\n\n"
+            + "const CONST_VALUE = \"from_const\";\n";
+
+    private static final String BAL_SHARED_REQUEST_TYPE =
+            "import ballerina/websocket;\n\n"
+            + "public type Topic record {\n"
+            + "    string event;\n"
+            + "    string name;\n"
+            + "};\n\n"
+            + "@websocket:ServiceConfig {dispatcherKey: \"event\"}\n"
+            + "service /topics on new websocket:Listener(9090) {\n"
+            + "    resource function get .() returns websocket:Service {\n"
+            + "        return new TopicService();\n"
+            + "    }\n"
+            + "}\n\n"
+            + "service class TopicService {\n"
+            + "    *websocket:Service;\n"
+            + "    remote function onSubscribe(Topic topic) returns string {\n"
+            + "        return \"ok\";\n"
+            + "    }\n"
+            + "    remote function onUnsubscribe(Topic topic) returns string {\n"
+            + "        return \"ok\";\n"
+            + "    }\n"
+            + "}\n";
 
     @Test
     void testJsonOutput_validJsonFile() throws IOException {

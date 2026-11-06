@@ -67,6 +67,7 @@ import static io.ballerina.asyncapi.generator.ws.asyncspec.Constants.CUSTOM_CLOS
 import static io.ballerina.asyncapi.generator.ws.asyncspec.Constants.DESCRIPTION;
 import static io.ballerina.asyncapi.generator.ws.asyncspec.Constants.MESSAGE_REFERENCE;
 import static io.ballerina.asyncapi.generator.ws.asyncspec.Constants.NO_TYPE_IN_STREAM;
+import static io.ballerina.asyncapi.generator.ws.asyncspec.Constants.ALLOF;
 import static io.ballerina.asyncapi.generator.ws.asyncspec.Constants.ONEOF;
 import static io.ballerina.asyncapi.generator.ws.asyncspec.Constants.PAYLOAD;
 import static io.ballerina.asyncapi.generator.ws.asyncspec.Constants.PREDEFINED_CLOSE_FRAME_TYPE;
@@ -100,6 +101,7 @@ public class AsyncApiResponseMapper {
     private final AsyncApi30ComponentsImpl components;
     private final AsyncApiComponentMapper componentMapper;
     private final List<AsyncApiConverterDiagnostic> errors = new ArrayList<>();
+    private Set<String> requestMessageNames = Set.of();
 
     /**
      * Creates a new response mapper.
@@ -115,6 +117,15 @@ public class AsyncApiResponseMapper {
         this.semanticModel = semanticModel;
         this.componentMapper = componentMapper;
         this.components = components;
+    }
+
+    /**
+     * Sets the names of the service's request messages, which reply messages must not take.
+     *
+     * @param requestMessageNames the request message names
+     */
+    public void setRequestMessageNames(Set<String> requestMessageNames) {
+        this.requestMessageNames = requestMessageNames;
     }
 
     /**
@@ -271,12 +282,65 @@ public class AsyncApiResponseMapper {
     public BalAsyncApi30MessageImpl extractMessageSchemaReference(BalAsyncApi30MessageImpl message, String typeName,
                                                                    TypeSymbol typeSymbol, String dispatcherValue,
                                                                    String paramDescription) {
+        return extractMessageSchemaReference(message, typeName, typeName, typeSymbol, dispatcherValue,
+                paramDescription);
+    }
+
+    /**
+     * Like {@link #extractMessageSchemaReference(BalAsyncApi30MessageImpl, String, TypeSymbol, String, String)},
+     * for a message named differently from its payload type, such as one named by a
+     * {@code @websocket:DispatcherConfig} value.
+     *
+     * @param message          channel-level message to add oneOf reference to
+     * @param messageName      the message name
+     * @param schemaName       the payload type's schema name
+     * @param typeSymbol       type symbol used to generate the component schema
+     * @param dispatcherValue  dispatcher value passed to the component mapper
+     * @param paramDescription optional description for the payload node
+     * @return the component-level message with the payload set
+     */
+    public BalAsyncApi30MessageImpl extractMessageSchemaReference(BalAsyncApi30MessageImpl message,
+                                                                   String messageName, String schemaName,
+                                                                   TypeSymbol typeSymbol, String dispatcherValue,
+                                                                   String paramDescription) {
+        return extractMessageSchemaReference(message, messageName, schemaName, typeSymbol, dispatcherValue,
+                paramDescription, null);
+    }
+
+    /**
+     * Like {@link #extractMessageSchemaReference(BalAsyncApi30MessageImpl, String, String, TypeSymbol, String,
+     * String)}, for a request message whose payload also has to carry its remote function's dispatcher value.
+     * The payload is {@code allOf} the type's schema and {@code dispatcherConstraint}, so the type's schema
+     * stays free for replies and other functions.
+     *
+     * @param message              channel-level message to add oneOf reference to
+     * @param messageName          the message name
+     * @param schemaName           the payload type's schema name
+     * @param typeSymbol           type symbol used to generate the component schema
+     * @param dispatcherValue      dispatcher key passed to the component mapper
+     * @param paramDescription     optional description for the payload node
+     * @param dispatcherConstraint the schema fixing the dispatcher field's value, or {@code null} for none
+     * @return the component-level message with the payload set
+     */
+    public BalAsyncApi30MessageImpl extractMessageSchemaReference(BalAsyncApi30MessageImpl message,
+                                                                   String messageName, String schemaName,
+                                                                   TypeSymbol typeSymbol, String dispatcherValue,
+                                                                   String paramDescription,
+                                                                   BalAsyncApi30SchemaImpl dispatcherConstraint) {
+        String typeName = messageName;
         BalAsyncApi30MessageImpl messageType = new BalAsyncApi30MessageImpl();
 
         componentMapper.createComponentSchema(typeSymbol, dispatcherValue);
 
-        ObjectNode objNode1 = ConverterCommonUtils.createObjectNode();
-        objNode1.put(REF, SCHEMA_REFERENCE + ConverterCommonUtils.unescapeIdentifier(typeName));
+        ObjectNode schemaRef = ConverterCommonUtils.createObjectNode();
+        schemaRef.put(REF, SCHEMA_REFERENCE + ConverterCommonUtils.unescapeIdentifier(schemaName));
+        ObjectNode objNode1 = schemaRef;
+        if (dispatcherConstraint != null) {
+            objNode1 = ConverterCommonUtils.createObjectNode();
+            ArrayNode allOf = objNode1.putArray(ALLOF);
+            allOf.add(schemaRef);
+            allOf.add(callObjectMapper().<JsonNode>valueToTree(dispatcherConstraint));
+        }
 
         if (paramDescription != null) {
             objNode1.put(DESCRIPTION, paramDescription);
@@ -423,14 +487,14 @@ public class AsyncApiResponseMapper {
     private void handleRecordTypeSymbol(BalAsyncApi30MessageImpl subscribeMessage,
                                         BalAsyncApi30MessageImpl componentMessage, String returnDescription,
                                         TypeSymbol returnTypeSymbol, String remoteReturnTypeName, String isOptional) {
+        String replyMessageName = replyMessageName(ConverterCommonUtils.unescapeIdentifier(remoteReturnTypeName));
         BalAsyncApi30MessageImpl componentReturnMessage = extractMessageSchemaReference(subscribeMessage,
-                remoteReturnTypeName, returnTypeSymbol, null, null);
-        if (!(components.getMessages() != null && components.getMessages().get(remoteReturnTypeName) != null)) {
-            components.addMessage(remoteReturnTypeName, componentReturnMessage);
+                replyMessageName, remoteReturnTypeName, returnTypeSymbol, null, null);
+        if (!(components.getMessages() != null && components.getMessages().get(replyMessageName) != null)) {
+            components.addMessage(replyMessageName, componentReturnMessage);
         }
         ObjectNode messageRefObject = ConverterCommonUtils.createObjectNode();
-        messageRefObject.put(REF, MESSAGE_REFERENCE
-                + ConverterCommonUtils.unescapeIdentifier(remoteReturnTypeName));
+        messageRefObject.put(REF, MESSAGE_REFERENCE + replyMessageName);
         Map<String, JsonNode> xResponses = componentMessage.getExtensions();
         if (xResponses != null && xResponses.get(X_RESPONSE) != null) {
             if (SERVER_STREAMING_TYPE_NODE.equals(xResponses.get(X_RESPONSE_TYPE))
@@ -447,7 +511,7 @@ public class AsyncApiResponseMapper {
             } else if (xResponses.get(X_RESPONSE).get(ONEOF) != null) {
                 setRefPayloadAsOneOfSchemaForPreviousOneOfResponses(componentMessage, oneOfSchema);
                 BalAsyncApi30MessageImpl schema = new BalAsyncApi30MessageImpl();
-                schema.set$ref(MESSAGE_REFERENCE + ConverterCommonUtils.unescapeIdentifier(remoteReturnTypeName));
+                schema.set$ref(MESSAGE_REFERENCE + replyMessageName);
                 setSchemaForOneOfSchema(oneOfSchema, schema);
             }
             String responseType = isCloseFrameRecordType(returnTypeSymbol)
@@ -458,6 +522,36 @@ public class AsyncApiResponseMapper {
             setDescriptionForOneResponse(returnDescription, messageRefObject, componentMessage,
                     SIMPLE_RPC, isOptional);
         }
+    }
+
+    /**
+     * A reply record's message is named after the record, unless a request message or another record's reply
+     * has that name; then it takes the next free {@code <Record>Reply} name.
+     */
+    private String replyMessageName(String recordName) {
+        String candidate = recordName;
+        for (int n = 1; !canNameReply(candidate, recordName); n++) {
+            candidate = recordName + "Reply" + (n == 1 ? "" : String.valueOf(n));
+        }
+        return candidate;
+    }
+
+    /**
+     * Replies of one record share a message. A request message carries its function's dispatcher value, so even
+     * an echo reply gets a message of its own.
+     */
+    private boolean canNameReply(String messageName, String recordName) {
+        if (requestMessageNames.contains(messageName)) {
+            return false;
+        }
+        Object existing = components.getMessages() == null ? null : components.getMessages().get(messageName);
+        if (existing == null) {
+            return true;
+        }
+        JsonNode payload = existing instanceof BalAsyncApi30MessageImpl message && message.getExtensions() != null
+                ? message.getExtensions().get(PAYLOAD) : null;
+        return payload != null && payload.get(REF) != null
+                && (SCHEMA_REFERENCE + recordName).equals(payload.get(REF).asText());
     }
 
     private void updateArraySchema(BalAsyncApi30MessageImpl subscribeMessage,
@@ -480,7 +574,7 @@ public class AsyncApiResponseMapper {
     private void setSchemasForChannelsAsOneOfSchema(BalAsyncApi30MessageImpl oneOfSchema,
                                                     BalAsyncApi30MessageImpl schema) {
         ObjectMapper objMapper = ConverterCommonUtils.callObjectMapper();
-        JsonNode schemaNode = objMapper.valueToTree(schema);
+        JsonNode schemaNode = messageNode(schema);
         Map<String, JsonNode> extensions = oneOfSchema.getExtensions();
 
         if (extensions == null || extensions.get(ONEOF) == null) {
@@ -544,7 +638,7 @@ public class AsyncApiResponseMapper {
         if (isOptional.equals(TRUE)) {
             oneOfSchema.addExtension(X_REQUIRED, BooleanNode.FALSE);
         }
-        componentMessage.addExtension(X_RESPONSE, objMapper.valueToTree(oneOfSchema));
+        componentMessage.addExtension(X_RESPONSE, messageNode(oneOfSchema));
         componentMessage.addExtension(X_RESPONSE_TYPE, new TextNode(responseType));
     }
 
@@ -557,9 +651,28 @@ public class AsyncApiResponseMapper {
                 .noneMatch(ref -> schema.get$ref().equals(ref.asText()))) {
             ArrayNode oneOfArray = oneOfNode instanceof ArrayNode
                     ? (ArrayNode) oneOfNode : objMapper.createArrayNode();
-            oneOfArray.add(objMapper.valueToTree(schema));
+            oneOfArray.add(messageNode(schema));
             oneOfSchema.addExtension(ONEOF, oneOfArray);
         }
+    }
+
+    /**
+     * Writes a transient message the way AsyncAPI reads it: $ref, description and each extension (payload,
+     * oneOf, x-required) as its own field. Serialising the message object directly nests the extensions
+     * under an "extensions" key, which is not AsyncAPI.
+     */
+    private static ObjectNode messageNode(BalAsyncApi30MessageImpl message) {
+        ObjectNode node = ConverterCommonUtils.createObjectNode();
+        if (message.get$ref() != null) {
+            node.put(REF, message.get$ref());
+        }
+        if (message.getDescription() != null) {
+            node.put(DESCRIPTION, message.getDescription());
+        }
+        if (message.getExtensions() != null) {
+            message.getExtensions().forEach(node::set);
+        }
+        return node;
     }
 
     private void setRefPayloadAsOneOfSchemaForPreviousOneResponse(BalAsyncApi30MessageImpl componentMessage,
