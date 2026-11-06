@@ -32,7 +32,7 @@ bal asyncapi <input> --protocol <http|ws> [options]
 | `--module <name>` | Module of the Ballerina package to read services from, or to write generated code into. Not used with a standalone `.bal` file. |
 | `--license <file>` | File with the license header placed on generated files. Supported by `ws` only. |
 | `--format <yaml\|json>` | Format of a generated AsyncAPI definition. Defaults to `yaml`. |
-| `--service <base-path>` | Base path of the service to generate the definition for, for example `/chat`. Every service with that base path is generated. |
+| `--service <service>` | Service to generate the definition for: its base path, for example `/chat`, or the name of the service class it upgrades to, for example `ChatService`. Every matching service is generated. |
 | `--with-tests` | Generate test files along with the code. For `http`, the definition needs `x-ballerina-auth`. |
 | `--force` | Overwrite files that already exist in the output location. |
 | `--dry-run` | Show which files would be created, overwritten or skipped, without writing anything. |
