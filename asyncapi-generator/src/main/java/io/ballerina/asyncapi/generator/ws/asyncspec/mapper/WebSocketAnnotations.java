@@ -42,7 +42,7 @@ import static io.ballerina.asyncapi.generator.ws.asyncspec.Constants.WEBSOCKET;
  * the way websocket itself sees them: the annotation is found by its symbol wherever it sits among the others, and a
  * field's value is the string it stands for, not its source text.
  */
-final class WebSocketAnnotations {
+public final class WebSocketAnnotations {
 
     private WebSocketAnnotations() {
     }
@@ -50,8 +50,8 @@ final class WebSocketAnnotations {
     /**
      * The {@code @websocket:<name>} annotation among the given ones, if any.
      */
-    static Optional<AnnotationNode> find(NodeList<AnnotationNode> annotations, String name,
-                                         SemanticModel semanticModel) {
+    public static Optional<AnnotationNode> find(NodeList<AnnotationNode> annotations, String name,
+                                                SemanticModel semanticModel) {
         if (annotations == null) {
             return Optional.empty();
         }
