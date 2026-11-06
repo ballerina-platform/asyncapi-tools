@@ -54,8 +54,10 @@ import io.ballerina.compiler.syntax.tree.RequiredParameterNode;
 import io.ballerina.compiler.syntax.tree.ResourcePathParameterNode;
 import io.ballerina.compiler.syntax.tree.ReturnTypeDescriptorNode;
 import io.ballerina.compiler.syntax.tree.SeparatedNodeList;
+import io.ballerina.compiler.syntax.tree.ServiceDeclarationNode;
 import io.ballerina.compiler.syntax.tree.SimpleNameReferenceNode;
 import io.ballerina.compiler.syntax.tree.SyntaxKind;
+import io.ballerina.tools.diagnostics.Location;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -242,7 +244,8 @@ public class AsyncApiRemoteMapper {
             for (ClassDefinitionNode node : classDefinitionNodes) {
                 String testClassName1 = node.className().text();
                 if (testClassName1.equals(serviceClassName)) {
-                    return handleRemoteFunctions(resource, node, dispatcherValue, channelItem);
+                    return handleRemoteFunctions(unescapeIdentifier(generateRelativePath(resource)),
+                            resource.location(), node.members(), dispatcherValue, channelItem);
                 }
             }
         } else {
@@ -252,21 +255,33 @@ public class AsyncApiRemoteMapper {
     }
 
     /**
+     * Converts a service whose remote functions are declared on the service itself, as on a listener that wraps
+     * {@code websocket:Listener} and upgrades the connection for it, into AsyncAPI 3.0 channels, messages and
+     * operations. There's no upgrade resource, so the channel is the service's own path.
+     *
+     * @param service         the service declaration holding the remote functions
+     * @param dispatcherValue dispatcher key value
+     * @return populated AsyncAPI 3.0 channels map
+     */
+    public AsyncApi30ChannelsImpl getChannels(ServiceDeclarationNode service, String dispatcherValue) {
+        AsyncApi30ChannelImpl channelItem = (AsyncApi30ChannelImpl) channelObject.createChannel();
+        return handleRemoteFunctions("/", service.location(), service.members(), dispatcherValue, channelItem);
+    }
+
+    /**
      * Builds channel messages and operations for all remote methods in the service class.
      */
-    private AsyncApi30ChannelsImpl handleRemoteFunctions(FunctionDefinitionNode resource,
-                                                         ClassDefinitionNode classDefinitionNode,
+    private AsyncApi30ChannelsImpl handleRemoteFunctions(String path, Location location,
+                                                         NodeList<Node> classMethodNodes,
                                                          String dispatcherValue,
                                                          AsyncApi30ChannelImpl channelItem) {
-        String path = unescapeIdentifier(generateRelativePath(resource));
         channelItem.setAddress(path);
         String channelKey = channelKeyFromPath(path);
-        NodeList<Node> classMethodNodes = classDefinitionNode.members();
 
         BalAsyncApi30MessageImpl publishMessage = new BalAsyncApi30MessageImpl();
         BalAsyncApi30MessageImpl subscribeMessage = new BalAsyncApi30MessageImpl();
 
-        AsyncApiResponseMapper responseMapper = new AsyncApiResponseMapper(resource.location(), componentMapper,
+        AsyncApiResponseMapper responseMapper = new AsyncApiResponseMapper(location, componentMapper,
                 semanticModel, components);
         Map<String, ReturnTypeDescriptorNode> onErrorReturnTypes = getReturnTypesFromOnErrorMethods(classMethodNodes);
         Map<String, String> messageOwners = new HashMap<>();
