@@ -21,6 +21,7 @@ import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
 import io.ballerina.asyncapi.core.AsyncApiParser;
 import io.ballerina.asyncapi.generator.GeneratorException;
 import io.ballerina.asyncapi.generator.http.model.HandshakeConfig;
+import io.ballerina.asyncapi.generator.http.node.GenerateWebSubVerificationFuncNode;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -147,5 +148,37 @@ public class HandshakeExtractorTest {
         Assert.assertEquals(handshake.requiredQuery(), java.util.List.of("hub.topic"),
                 "Required parameters must be present; the fixed ones and the challenge are checked anyway");
         Assert.assertNull(handshake.challengePath());
+    }
+
+    @Test
+    void testWebSubEnumParameterAllowsEachListedValue() throws Exception {
+        String query = "bindings: {http: {method: GET, query: {type: object, "
+                + "required: [hub.mode, hub.topic, hub.challenge], properties: {"
+                + "hub.mode: {type: string, enum: [subscribe, unsubscribe]}, hub.topic: {type: string}, "
+                + "hub.challenge: {type: string}}}}}";
+        HandshakeConfig handshake = extract("{type: string}", "", "", query).orElseThrow();
+        // #9425: an enum is checked like a const, with any of its values accepted.
+        Assert.assertTrue(handshake.when().isEmpty());
+        Assert.assertEquals(handshake.allowedQuery(),
+                java.util.Map.of("hub.mode", java.util.List.of("subscribe", "unsubscribe")));
+        Assert.assertEquals(handshake.requiredQuery(), java.util.List.of("hub.topic"),
+                "An enum parameter is checked by its values, so it is not listed as merely required");
+
+        String resource = new GenerateWebSubVerificationFuncNode(handshake).generate().toSourceCode();
+        Assert.assertTrue(resource.contains("!(request.getQueryParamValue(\"hub.mode\") == \"subscribe\" || "
+                + "request.getQueryParamValue(\"hub.mode\") == \"unsubscribe\")"), resource);
+        Assert.assertTrue(resource.contains("http:STATUS_NOT_FOUND"), resource);
+    }
+
+    @Test
+    void testWebSubChallengeIsNeverMatched() throws Exception {
+        String query = "bindings: {http: {method: GET, query: {type: object, "
+                + "required: [hub.mode, hub.challenge], properties: {"
+                + "hub.mode: {type: string, const: subscribe}, "
+                + "hub.challenge: {type: string, enum: [abc, def]}}}}}";
+        HandshakeConfig handshake = extract("{type: string}", "", "", query).orElseThrow();
+        // The challenge is the value echoed back, so a restriction in its schema must not refuse the hub.
+        Assert.assertFalse(handshake.when().containsKey("hub.challenge"));
+        Assert.assertFalse(handshake.allowedQuery().containsKey("hub.challenge"));
     }
 }
