@@ -16,15 +16,19 @@
  *  under the License.
  */
 
-// Copied into each trigger repo as its compiler-plugin sub-project, the way ballerina/http builds its own plugin.
-// It only needs the repo's ballerinaLangVersion, so it builds the same here and in a trigger repo.
+// The compiler plugin every trigger carries. asyncapi-cli bundles this jar and bal asyncapi copies it into each
+// trigger it generates, so this is the only copy of the source.
 plugins {
     id 'java-library'
 }
 
 description = 'Ballerina - AsyncAPI Trigger Compiler Plugin'
 
-def testngVersion = findProperty('testngVersion') ?: '7.6.1'
+// Same bytes for the same source, so regenerating a trigger with the same tool leaves its jar unchanged.
+tasks.withType(AbstractArchiveTask).configureEach {
+    preserveFileTimestamps = false
+    reproducibleFileOrder = true
+}
 
 dependencies {
     compileOnly "org.ballerinalang:ballerina-lang:${ballerinaLangVersion}"

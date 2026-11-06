@@ -48,6 +48,9 @@ configurations.all {
 configurations {
     ballerinaStdLibs
     balTools
+    triggerPlugin {
+        transitive = false
+    }
 }
 
 dependencies {
@@ -67,6 +70,8 @@ dependencies {
     implementation project(':asyncapi-generator')
     testImplementation project(':asyncapi-generator')
     testImplementation "org.testng:testng:${testngVersion}"
+
+    triggerPlugin project(':asyncapi-trigger-plugin')
 
     balTools ("org.ballerinalang:jballerina-tools:${ballerinaLangVersion}") {
         transitive = false
@@ -96,6 +101,14 @@ dependencies {
     ballerinaStdLibs "io.ballerina.stdlib:websocket-ballerina:${stdlibWebsocketVersion}"
     ballerinaStdLibs "io.ballerina.stdlib:constraint-ballerina:${stdlibConstraintVersion}"
     ballerinaStdLibs "io.ballerina.lib:data.jsondata-ballerina:${stdlibDataJsonDataVersion}"
+}
+
+// Bundled as a file, not on the classpath: the CLI only copies it into the triggers it generates.
+processResources {
+    from(configurations.triggerPlugin) {
+        into "trigger-plugin"
+        rename { "asyncapi-trigger-compiler-plugin.jar" }
+    }
 }
 
 clean {

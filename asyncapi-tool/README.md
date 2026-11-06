@@ -196,6 +196,8 @@ Generating a listener writes these files:
 3. `listener.bal` - the HTTP listener that receives the events
 4. `dispatcher_service.bal` - the logic that dispatches each event to its remote function
 
+At the root of a package, it also writes `CompilerPlugin.toml` and `compiler-plugin/asyncapi-trigger-compiler-plugin.jar`, so apps built with `--export-endpoints` list the trigger's services (see [Exporting trigger endpoints](#exporting-trigger-endpoints)).
+
 With `--with-tests`, the tool also writes `tests/dispatch_test.bal`, which sends signed sample events to the listener and checks that each reaches its remote function. The events are signed, so this needs `x-ballerina-auth` in the definition; without it the tool warns and writes no tests.
 
 When modifying the generated code, keep the following in mind.
@@ -249,7 +251,12 @@ Services on the same path share its dispatcher, so each service type can be atta
 
 `bal build --export-endpoints` lists the ports and paths a program listens on in `target/artifact/endpoints.yaml`. The `ballerina/http` compiler plugin only reports services attached to an `http:Listener`, so each trigger package ships its own compiler plugin to report services attached to its `Listener`, with the same rules and defaults as HTTP services (`type: "REST"`, an empty `schemaPath`).
 
-As `ballerina/http` does, the trigger repo builds the plugin from source and a `CompilerPlugin.toml` next to `Ballerina.toml` points at the built jar, so nothing is published separately:
+Ballerina runs a compiler plugin only for apps that import its package directly, so the plugin has to be inside the trigger package. The tool adds it: generating a listener at the root of a package also writes the plugin jar and a `CompilerPlugin.toml` that packs it, and `bal pack` puts both in the bala.
+
+```
+CompilerPlugin.toml
+compiler-plugin/asyncapi-trigger-compiler-plugin.jar
+```
 
 ```toml
 [plugin]
@@ -257,7 +264,9 @@ id = "asyncapi-compiler-plugin"
 class = "io.ballerina.asyncapi.trigger.plugin.AsyncAPICompilerPlugin"
 
 [[dependency]]
-path = "../compiler-plugin/build/libs/github.trigger-compiler-plugin-0.2.0.jar"
+path = "compiler-plugin/asyncapi-trigger-compiler-plugin.jar"
 ```
 
-The plugin source and the files a trigger repo needs for it are in [`trigger-template`](../trigger-template), which the trigger scaffold copies into each repo.
+Both files follow the same rules as the generated code: an existing file that differs is skipped unless `--force` is given, and `--dry-run` lists them. Regenerating with a newer tool updates the jar. A package can have only one compiler plugin, so if it already has another, the tool leaves it as it is and warns. A listener generated into a module (`--module`) gets no plugin, as the plugin belongs to the package.
+
+The endpoints are exported with Ballerina 2201.13.6 and later. On 2201.13.0 to 2201.13.5, which have no `--export-endpoints`, the plugin logs a warning and the build carries on. The plugin source is in [`asyncapi-trigger-plugin`](../asyncapi-trigger-plugin).

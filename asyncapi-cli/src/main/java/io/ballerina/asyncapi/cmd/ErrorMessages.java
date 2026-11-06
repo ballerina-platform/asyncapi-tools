@@ -66,6 +66,10 @@ public final class ErrorMessages {
             "--with-tests generated no tests: they send signed events, so the definition needs an "
                     + "x-ballerina-auth block.";
 
+    public static final String WARN_OTHER_COMPILER_PLUGIN =
+            "The package already has a compiler plugin (%s), so the trigger's plugin was not added. A package "
+                    + "can have only one, so bal build --export-endpoints will not list this trigger's services.";
+
     public static final String WARN_OPTION_ONLY_FOR_SPEC_OUTPUT =
             "%s only applies when generating an AsyncAPI definition from Ballerina code and will be ignored.";
 

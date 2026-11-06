@@ -248,6 +248,7 @@ public class DispatchTestGenerator {
                 .append("import ballerina/http;\n")
                 .append("import ballerina/crypto;\n")
                 .append("import ballerina/io;\n")
+                .append("import ballerina/data.jsondata;\n")
                 .append("import ballerina/lang.runtime;\n");
         if (formBodies) {
             imports.append("import ballerina/url;\n");
@@ -282,7 +283,8 @@ public class DispatchTestGenerator {
 
         return imports.toString() + "\n" + constants
                 + "\nisolated map<boolean> triggerFired = {};\n"
-                + "isolated map<json> boundPayloads = {};\n\n"
+                + "isolated map<json> boundPayloads = {};\n"
+                + "isolated map<json> boundJson = {};\n\n"
                 + "listener Listener triggerTestListener = "
                 + "check new ({" + listenerConfigFields + "}, TRIGGER_TEST_PORT);\n\n"
                 + "final http:Client triggerClient = "
@@ -301,8 +303,10 @@ public class DispatchTestGenerator {
             String trackerKey = serviceTypeName + "." + testCase.functionName();
             sb.append("    isolated remote function ").append(testCase.functionName())
                     .append("(").append(testCase.payloadTypeName()).append(" payload) returns error? {\n")
+                    // Serialized back with the original keys, so the test can compare it with the fixture.
+                    .append("        readonly & json received = jsondata:toJson(payload).cloneReadOnly();\n")
                     .append("        lock {\n")
-                    .append("            triggerFired[\"").append(trackerKey).append("\"] = true;\n")
+                    .append("            boundJson[\"").append(trackerKey).append("\"] = received;\n")
                     .append("        }\n");
             if (renamedKeysByType.containsKey(testCase.payloadTypeName())) {
                 sb.append("        lock {\n")
@@ -310,7 +314,11 @@ public class DispatchTestGenerator {
                         .append("\"] = payload.toJson().clone();\n")
                         .append("        }\n");
             }
-            sb.append("    }\n");
+            // Set last: a test waiting on it then finds the payload already recorded.
+            sb.append("        lock {\n")
+                    .append("            triggerFired[\"").append(trackerKey).append("\"] = true;\n")
+                    .append("        }\n")
+                    .append("    }\n");
         }
         sb.append("}\n\n");
         return sb.toString();
@@ -564,6 +572,7 @@ public class DispatchTestGenerator {
         String callArgs;
         String resetFired = "";
         String onlyThisFunction = "";
+        String fixtureName = testCase.eventIdentifier();
         if (isPerChannel()) {
             // The same event can exist on several channels, so the test name and payload file carry the channel.
             HttpServiceType route = channelRoutes.get(testCase.serviceTypeName());
@@ -576,15 +585,16 @@ public class DispatchTestGenerator {
                     ? "{\"" + identifier.name().replaceFirst("^'", "") + "\": \"" + testCase.headerValue() + "\"}"
                     : "{}";
             testFnName = "test" + testCase.serviceTypeName() + event + "Dispatch";
-            callArgs = "\"" + path + "\", \"" + path.substring(1) + "/" + testCase.eventIdentifier() + "\", "
-                    + headers;
+            fixtureName = path.substring(1) + "/" + testCase.eventIdentifier();
+            callArgs = "\"" + path + "\", \"" + fixtureName + "\", " + headers;
             resetFired = "    lock {\n        triggerFired.removeAll();\n    }\n";
             onlyThisFunction = "    lock {\n        test:assertEquals(triggerFired.keys(), [\"" + trackerKey
                     + "\"], \"Only " + trackerKey + " should have fired\");\n    }\n";
         } else if (isBodyKeyIdentifier()) {
             // The event type is a key such as a URI, which cannot name a file; the message key names the fixture.
             testFnName = "test" + event + "Dispatch";
-            callArgs = "\"" + testCase.messageName() + "\"";
+            fixtureName = testCase.messageName();
+            callArgs = "\"" + fixtureName + "\"";
             // A key-named event is checked to reach only its own function, not any function of the service.
             resetFired = "    lock {\n        triggerFired.removeAll();\n    }\n";
             onlyThisFunction = "    lock {\n        test:assertEquals(triggerFired.keys(), [\"" + trackerKey
@@ -603,6 +613,11 @@ public class DispatchTestGenerator {
                 + "    test:assertTrue(waitForDispatch(\"" + trackerKey + "\"), \""
                 + trackerKey + " should have fired\");\n"
                 + onlyThisFunction
+                + "    json fixture = check io:fileReadJson(string `${TRIGGER_PAYLOAD_DIR}/"
+                + escapeBalString(fixtureName) + ".json`);\n"
+                + "    json received = boundJsonOf(\"" + trackerKey + "\");\n"
+                + "    assertBindsFixture(received, deliveredEvent(received, fixture), \""
+                + testCase.payloadTypeName() + "\");\n"
                 + buildBindingAssertions(testCase, trackerKey)
                 + "}\n\n";
     }
@@ -647,12 +662,13 @@ public class DispatchTestGenerator {
 
     /**
      * Builds the WebSub verification tests: a {@code GET} with the expected query is confirmed by echoing
-     * {@code hub.challenge}, and a request with another fixed value (such as {@code hub.mode}) or without a required
-     * parameter (such as {@code hub.topic}) gets {@code 404 Not Found}.
+     * {@code hub.challenge}, and a request with another value for a {@code const} or {@code enum} parameter (such as
+     * {@code hub.mode}) or without a required parameter (such as {@code hub.topic}) gets {@code 404 Not Found}.
      */
     private String buildWebSubTestFunctions(HandshakeConfig handshake) {
         Map<String, String> confirm = new LinkedHashMap<>();
         handshake.when().forEach((name, value) -> confirm.put(name, value.asText()));
+        handshake.allowedQuery().forEach((name, values) -> confirm.put(name, values.get(0)));
         handshake.requiredQuery().forEach(name -> confirm.put(name, "trigger-test-value"));
         confirm.put(handshake.challengeQuery(), HANDSHAKE_TEST_CHALLENGE);
         StringBuilder tests = new StringBuilder()
@@ -664,9 +680,19 @@ public class DispatchTestGenerator {
                 .append("    test:assertEquals(check response.getTextPayload(), \"")
                 .append(HANDSHAKE_TEST_CHALLENGE).append("\");\n")
                 .append("}\n\n");
-        if (!handshake.when().isEmpty()) {
+        String fixed = !handshake.when().isEmpty() ? handshake.when().keySet().iterator().next()
+                : handshake.allowedQuery().keySet().stream().findFirst().orElse(null);
+        if (fixed != null) {
             Map<String, String> otherValue = new LinkedHashMap<>(confirm);
-            otherValue.computeIfPresent(handshake.when().keySet().iterator().next(), (name, value) -> "not-" + value);
+            // A value no const or enum allows, so the request is one the listener must refuse.
+            List<String> allowed = handshake.allowedQuery().getOrDefault(fixed, List.of());
+            otherValue.computeIfPresent(fixed, (name, value) -> {
+                String other = "not-" + value;
+                while (allowed.contains(other)) {
+                    other = "not-" + other;
+                }
+                return other;
+            });
             tests.append(buildWebSubRejectTest("testVerificationHandshakeIsNotConfirmedForOtherRequests", otherValue));
         }
         if (!handshake.requiredQuery().isEmpty()) {
@@ -756,10 +782,53 @@ public class DispatchTestGenerator {
      * checking it once immediately after the response returns.
      */
     private String buildBoundPayloadHelper() {
+        // Every value in the fixture must reach the handler unchanged. A null may arrive as an absent optional
+        // field, which binding treats the same. Numbers compare by value; other scalars by type for JSON, and by
+        // text for a form body, which sends every field as a string.
+        String fixtureHelpers = ""
+                + "function boundJsonOf(string trackerKey) returns json {\n"
+                + "    lock {\n"
+                + "        return boundJson[trackerKey].clone();\n"
+                + "    }\n"
+                + "}\n"
+                + "\n"
+                // A batched delivery's fixture is a one-element array, and the handler gets that element.
+                + "function deliveredEvent(json bound, json fixture) returns json {\n"
+                + "    return fixture is json[] && fixture.length() == 1 && bound is map<json>\n"
+                + "            ? fixture[0] : fixture;\n"
+                + "}\n"
+                + "\n"
+                + "function assertBindsFixture(json bound, json fixture, string at) {\n"
+                + "    if fixture is map<json> {\n"
+                + "        test:assertTrue(bound is map<json>, string `${at} should have bound to an object`);\n"
+                + "        if bound is map<json> {\n"
+                + "            foreach [string, json] [key, value] in fixture.entries() {\n"
+                + "                assertBindsFixture(bound[key], value, string `${at}.${key}`);\n"
+                + "            }\n"
+                + "        }\n"
+                + "    } else if fixture is json[] {\n"
+                + "        test:assertTrue(bound is json[] && bound.length() == fixture.length(),\n"
+                + "                string `${at} should have bound to an array of ${fixture.length()}`);\n"
+                + "        if bound is json[] && bound.length() == fixture.length() {\n"
+                + "            foreach int i in 0 ..< fixture.length() {\n"
+                + "                assertBindsFixture(bound[i], fixture[i], string `${at}[${i}]`);\n"
+                + "            }\n"
+                + "        }\n"
+                + "    } else if fixture is int|float|decimal && bound is int|float|decimal {\n"
+                + "        test:assertEquals(<decimal>bound, <decimal>fixture,\n"
+                + "                string `${at} should have bound unchanged`);\n"
+                + "    } else {\n"
+                + (formBodies
+                        ? "        test:assertEquals(bound.toString(), fixture.toString(),\n"
+                        : "        test:assertEquals(bound, fixture,\n")
+                + "                string `${at} should have bound unchanged`);\n"
+                + "    }\n"
+                + "}\n"
+                + "\n";
         if (renamedKeysByType.isEmpty()) {
-            return "";
+            return fixtureHelpers;
         }
-        return "function boundPayloadOf(string trackerKey) returns map<json> {\n"
+        return fixtureHelpers + "function boundPayloadOf(string trackerKey) returns map<json> {\n"
                 + "    lock {\n"
                 + "        json payload = boundPayloads[trackerKey] ?: {};\n"
                 + "        return payload is map<json> ? payload.clone() : {};\n"
