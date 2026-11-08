@@ -68,8 +68,11 @@ final class HttpProtocolCommand implements ProtocolCommand {
                 if (opts.isWithTests() && !Files.exists(stage.stagingDir().resolve(DISPATCH_TEST))) {
                     ctx.printWarning(ErrorMessages.WARN_HTTP_TESTS_NEED_AUTH);
                 }
-                TriggerCompilerPlugin.stage(outputPath, stage.stagingDir(), ctx);
+                boolean withPlugin = TriggerCompilerPlugin.stage(outputPath, stage.stagingDir(), ctx);
                 skipped = stage.commit(ErrorMessages.SUCCESS_MESSAGE);
+                if (withPlugin) {
+                    TriggerCompilerPlugin.addToolEntry(outputPath, opts.isDryRun(), ctx);
+                }
             }
             // A skipped file can leave the output out of sync, so a script must not see this as a success.
             if (skipped > 0) {

@@ -70,6 +70,12 @@ public final class ErrorMessages {
             "The package already has a compiler plugin (%s), so the trigger's plugin was not added. A package "
                     + "can have only one, so bal build --export-endpoints will not list this trigger's services.";
 
+    public static final String TOOL_ENTRY_WRITTEN =
+            "-- Ballerina.toml: [[tool.asyncapi]] for the trigger's compiler plugin (asyncapi %s)";
+
+    public static final String TOOL_ENTRY_PLANNED =
+            "  update     Ballerina.toml  ([[tool.asyncapi]] for the trigger's compiler plugin, asyncapi %s)";
+
     public static final String WARN_OPTION_ONLY_FOR_SPEC_OUTPUT =
             "%s only applies when generating an AsyncAPI definition from Ballerina code and will be ignored.";
 

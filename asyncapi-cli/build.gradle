@@ -103,11 +103,16 @@ dependencies {
     ballerinaStdLibs "io.ballerina.lib:data.jsondata-ballerina:${stdlibDataJsonDataVersion}"
 }
 
-// Bundled as a file, not on the classpath: the CLI only copies it into the triggers it generates.
+// Bundled as a file, not on the classpath: the build tool copies it into a trigger while the trigger builds.
 processResources {
     from(configurations.triggerPlugin) {
         into "trigger-plugin"
         rename { "asyncapi-trigger-compiler-plugin.jar" }
+    }
+    // The version bal asyncapi writes into a trigger's [[tool.asyncapi]] entry when it isn't run as a bal tool
+    inputs.property "version", project.version
+    filesMatching("asyncapi-tool.properties") {
+        filter { line -> line.replace("@project.version@", project.version.toString()) }
     }
 }
 
