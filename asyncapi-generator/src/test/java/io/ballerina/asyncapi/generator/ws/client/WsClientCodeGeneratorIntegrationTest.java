@@ -117,6 +117,24 @@ public class WsClientCodeGeneratorIntegrationTest {
     }
 
     @Test
+    void testLowercaseSchemaNamesAreReferencedAsDeclared() throws Exception {
+        Path spec = specPath("ws_lowercase_schema_names.json");
+        Path outDir = Files.createTempDirectory("ws-lowercase-gen");
+        try {
+            AsyncApiSpec asyncApiSpec = AsyncApiParser.parseFromJsonString(Files.readString(spec));
+            new WsClientCodeGenerator(asyncApiSpec, null, false).generate(outDir);
+
+            String types = readFile(outDir, "types.bal");
+            Assert.assertTrue(types.contains("public type Status string;"), types);
+            Assert.assertTrue(types.contains("Status status;"), "A field refers to the declared name: " + types);
+            Assert.assertTrue(types.contains("Item[] items"), "An array item refers to the declared name: " + types);
+            Assert.assertTrue(types.contains("Status|Item note"), "A union refers to the declared names: " + types);
+        } finally {
+            deleteDir(outDir);
+        }
+    }
+
+    @Test
     void testGenerateMissingDispatcherKeyThrows() throws Exception {
         Path spec = specPath("ws_missing_dispatcher_key.json");
         AsyncApiSpec asyncApiSpec = AsyncApiParser.parseFromJsonString(Files.readString(spec));
