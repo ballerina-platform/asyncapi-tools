@@ -255,14 +255,14 @@ public class ClientRemoteFunctionGenerator {
                 : (message.summary() != null ? message.summary() : "");
         StringBuilder docBuilder = new StringBuilder();
         if (!description.isBlank()) {
-            docBuilder.append("\n# ").append(description).append("\n#\n");
+            docBuilder.append("\n").append(CodegenUtils.docCommentLines("# ", description, true)).append("#\n");
         }
 
         // Build param doc lines
         if (payload != null && payload.description() != null) {
             String typeName = sigGen.getDataType(payload);
             String varName = CodegenUtils.getValidName(typeName, false);
-            docBuilder.append("# + ").append(varName).append(" - ").append(payload.description()).append("\n");
+            docBuilder.append(CodegenUtils.docCommentLines("# + " + varName + " - ", payload.description(), false));
             docBuilder.append("# + timeout - waiting period to keep the event in the buffer in seconds\n");
         }
 
@@ -270,7 +270,8 @@ public class ClientRemoteFunctionGenerator {
         if (msgExtensions != null && msgExtensions.containsKey(ClientGenerator.X_RESPONSE)) {
             JsonNode xResponse = msgExtensions.get(ClientGenerator.X_RESPONSE);
             if (xResponse != null && xResponse.get(DESCRIPTION) != null) {
-                docBuilder.append("# + return - ").append(xResponse.get(DESCRIPTION).asText()).append("\n");
+                docBuilder.append(CodegenUtils.docCommentLines("# + return - ", xResponse.get(DESCRIPTION).asText(),
+                        false));
             }
         }
 

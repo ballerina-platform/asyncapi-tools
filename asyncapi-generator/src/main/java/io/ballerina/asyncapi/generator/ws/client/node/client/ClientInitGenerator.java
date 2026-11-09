@@ -22,6 +22,7 @@ import io.ballerina.asyncapi.core.model.channel.AsyncApiChannel;
 import io.ballerina.asyncapi.generator.GeneratorException;
 import io.ballerina.asyncapi.generator.ws.client.generator.BallerinaAuthConfigGenerator;
 import io.ballerina.asyncapi.generator.ws.client.model.WsClientConfig;
+import io.ballerina.asyncapi.generator.ws.client.utils.CodegenUtils;
 import io.ballerina.compiler.syntax.tree.FunctionDefinitionNode;
 import io.ballerina.compiler.syntax.tree.Node;
 import io.ballerina.compiler.syntax.tree.NodeParser;
@@ -108,9 +109,9 @@ public class ClientInitGenerator {
                 .map(StatementNode::toSourceCode)
                 .collect(Collectors.joining("\n"));
 
-        String description = getInitDescription();
+        String description = CodegenUtils.docCommentLines("# ", getInitDescription(), true);
         String funcSource = String.format(
-                "\n# %s\n#\n"
+                "\n%s#\n"
                 + "# + config - The configurations to be used when initializing the `connector`\n"
                 + "# + serviceUrl - URL of the target service\n"
                 + "# + return - An error if connector initialization failed\n"

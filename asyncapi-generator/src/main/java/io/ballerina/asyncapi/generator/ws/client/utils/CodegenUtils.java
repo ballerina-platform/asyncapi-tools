@@ -76,6 +76,29 @@ public final class CodegenUtils {
     }
 
     /**
+     * Writes text as Ballerina doc comment lines: the first line after {@code prefix}, every further line
+     * on a {@code #} line of its own, so a multi-line description keeps the comment valid.
+     *
+     * @param prefix          the start of the first line, for example {@code "# "} or {@code "# + return - "}
+     * @param text            the description, which may span several lines
+     * @param keepBlankLines  whether blank lines are kept as {@code #}; parameter docs drop them
+     * @return the doc comment lines, each ending with a newline
+     */
+    public static String docCommentLines(String prefix, String text, boolean keepBlankLines) {
+        String[] lines = text.strip().split("\\R");
+        StringBuilder doc = new StringBuilder(prefix).append(lines[0].stripTrailing()).append('\n');
+        for (int i = 1; i < lines.length; i++) {
+            String line = lines[i].stripTrailing();
+            if (!line.isBlank()) {
+                doc.append("# ").append(line).append('\n');
+            } else if (keepBlankLines) {
+                doc.append("#\n");
+            }
+        }
+        return doc.toString();
+    }
+
+    /**
      * Escapes special characters used in Ballerina method names and identifiers.
      *
      * @param identifier the identifier or method name to escape

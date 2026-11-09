@@ -215,4 +215,13 @@ public class CodegenUtilsTest {
         Assert.assertEquals(list.size(), 1,
                 "Second call with the same type name should be a no-op (duplicate skipped)");
     }
+
+    @Test
+    void testDocCommentLines_everyLineIsAComment() {
+        Assert.assertEquals(CodegenUtils.docCommentLines("# ", "one line", true), "# one line\n");
+        Assert.assertEquals(CodegenUtils.docCommentLines("# ", "first\r\n\nsecond\n", true),
+                "# first\n#\n# second\n");
+        Assert.assertEquals(CodegenUtils.docCommentLines("# + msg - ", "first\n\nsecond", false),
+                "# + msg - first\n# second\n", "Parameter docs drop blank lines");
+    }
 }

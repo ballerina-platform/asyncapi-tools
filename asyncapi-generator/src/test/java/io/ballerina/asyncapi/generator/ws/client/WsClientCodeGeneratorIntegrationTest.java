@@ -117,6 +117,26 @@ public class WsClientCodeGeneratorIntegrationTest {
     }
 
     @Test
+    void testMultiLineDescriptionsBecomeDocCommentLines() throws Exception {
+        Path spec = specPath("ws_multiline_descriptions.json");
+        Path outDir = Files.createTempDirectory("ws-multiline-gen");
+        try {
+            AsyncApiSpec asyncApiSpec = AsyncApiParser.parseFromJsonString(Files.readString(spec));
+            new WsClientCodeGenerator(asyncApiSpec, null, false).generate(outDir);
+
+            String client = readFile(outDir, "client.bal").replace("\r\n", "\n");
+            Assert.assertTrue(client.contains("# Sends a chat message.\n    #\n    # The server echoes it back."),
+                    client);
+            Assert.assertTrue(client.contains("# + chatMessage - A chat message.\n    # The text is sent as is.\n"
+                    + "    # At most 4 KB."), client);
+            Assert.assertTrue(client.contains("# + return - The echoed message,\n    # with the server time"), client);
+            Assert.assertTrue(client.contains("# Connects to the chat.\n    # The connection stays open"), client);
+        } finally {
+            deleteDir(outDir);
+        }
+    }
+
+    @Test
     void testGenerateMissingDispatcherKeyThrows() throws Exception {
         Path spec = specPath("ws_missing_dispatcher_key.json");
         AsyncApiSpec asyncApiSpec = AsyncApiParser.parseFromJsonString(Files.readString(spec));
