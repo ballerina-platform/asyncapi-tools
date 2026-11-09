@@ -76,6 +76,27 @@ public class WebhookDSLVerificationTest {
     }
 
     @Test
+    public void testDispatchTestsCompareTheBoundPayloadWithTheFixture() throws Exception {
+        // #9425: a test passed when the handler fired, even if a field was lost in binding. Each handler now keeps
+        // the payload serialized back with its original keys, and the test compares it with the fixture it sent.
+        Path tempOutputDir = generateOutputDir("github_verification.yaml");
+        String dispatchTest = Files.readString(tempOutputDir.resolve("tests").resolve("dispatch_test.bal"));
+
+        Assert.assertTrue(dispatchTest.contains("import ballerina/data.jsondata;"), dispatchTest);
+        Assert.assertTrue(dispatchTest.contains("readonly & json received = jsondata:toJson(payload).cloneReadOnly();"),
+                dispatchTest);
+        Assert.assertTrue(dispatchTest.contains("function assertBindsFixture(json bound, json fixture, string at)"),
+                dispatchTest);
+        Assert.assertTrue(dispatchTest.contains("json fixture = check io:fileReadJson("), dispatchTest);
+        Assert.assertTrue(dispatchTest.contains("assertBindsFixture(received, deliveredEvent(received, fixture), "),
+                dispatchTest);
+        // The fired flag is the completion signal, so the payload is recorded before it.
+        int recorded = dispatchTest.indexOf("boundJson[\"");
+        Assert.assertTrue(recorded > 0 && recorded < dispatchTest.indexOf("triggerFired[\"", recorded - 200)
+                && dispatchTest.indexOf("triggerFired[\"") > recorded, dispatchTest);
+    }
+
+    @Test
     public void testStripeWebhookVerificationDsl() throws Exception {
     String content = generateDispatcherService("stripe_verification.yaml");
     Assert.assertTrue(content.contains("request.getHeader(\"Stripe-Signature\")"),

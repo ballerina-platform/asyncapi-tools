@@ -101,6 +101,8 @@ public class GenerateListenerClassNode implements Generator {
     private static final String LISTENER_ATTACHMENTS_FIELD = "attachments";
     private static final String LISTENER_GET_SERVICE_TYPE_FUNC = "getServiceTypeStr";
     private static final String LISTENER_PATH_KEY_FUNC = "pathKey";
+    // 10 MB: well above real webhook deliveries, so only oversized requests are refused.
+    private static final int MAX_ENTITY_BODY_SIZE = 10 * 1024 * 1024;
 
     private final List<HttpServiceType> serviceTypes;
     private final Optional<WebhookAuthConfig> webhookAuthConfig;
@@ -262,11 +264,14 @@ public class GenerateListenerClassNode implements Generator {
                 buildErrorReturnType());
 
         List<StatementNode> statements = new ArrayList<>();
+        // The body is read before the signature is checked, so a listener the trigger creates caps it (an
+        // http:Listener passed in keeps its own requestLimits).
         statements.add(NodeParser.parseStatement(String.format(
                 "if listenOn is http:Listener { self.%s = listenOn; } else {"
-                        + " self.%s = check new (listenOn); }",
+                        + " self.%s = check new (listenOn, requestLimits = {maxEntityBodySize: %d}); }",
                 LISTENER_HTTP_LISTENER_FIELD,
-                LISTENER_HTTP_LISTENER_FIELD)));
+                LISTENER_HTTP_LISTENER_FIELD,
+                MAX_ENTITY_BODY_SIZE)));
         statements.add(NodeParser.parseStatement(String.format(
                 "self.%s = listenerConfig;", LISTENER_CONFIG_FIELD)));
 
@@ -347,7 +352,8 @@ public class GenerateListenerClassNode implements Generator {
                 "string serviceTypeStr = check self.%s(serviceRef);",
                 LISTENER_GET_SERVICE_TYPE_FUNC)));
         // Remove the service from every path it is attached on, and unmount a path's dispatcher once its
-        // last service is detached, freeing the path.
+        // last service is detached, freeing the path. The unmount runs first, so if it fails the attachment is
+        // kept and a retry can still detach it.
         statements.add(NodeParser.parseStatement("boolean detached = false;"));
         statements.add(NodeParser.parseStatement("int i = 0;"));
         statements.add(NodeParser.parseStatement(String.format(
@@ -355,16 +361,16 @@ public class GenerateListenerClassNode implements Generator {
                         + " if self.%1$s[i][1] !== serviceRef { i += 1; continue; }"
                         + " string path = self.%1$s[i][0];"
                         + " %2$s dispatcher = self.%3$s.get(path);"
+                        + " boolean pathInUse = false;"
+                        + " foreach int j in 0 ..< self.%1$s.length() {"
+                        + " if j != i && self.%1$s[j][0] == path { pathInUse = true; } }"
+                        + " if !pathInUse { check self.%5$s.detach(dispatcher); _ = self.%3$s.remove(path); }"
                         + " check dispatcher.%4$s(serviceTypeStr);"
                         + " _ = self.%1$s.remove(i);"
-                        + " detached = true;"
-                        + " boolean pathInUse = false;"
-                        + " foreach [string, %5$s] attachment in self.%1$s {"
-                        + " if attachment[0] == path { pathInUse = true; } }"
-                        + " if !pathInUse { check self.%6$s.detach(dispatcher); _ = self.%3$s.remove(path); } }",
+                        + " detached = true; }",
                 LISTENER_ATTACHMENTS_FIELD, GenerateDispatcherServiceNode.DISPATCHER_SERVICE_CLASS_NAME,
                 LISTENER_DISPATCHERS_FIELD, GenerateRemoveServiceRefFuncNode.REMOVE_SERVICE_REF_FUNC,
-                ServiceTypesGenerator.GENERIC_SERVICE_TYPE, LISTENER_HTTP_LISTENER_FIELD)));
+                LISTENER_HTTP_LISTENER_FIELD)));
         statements.add(NodeParser.parseStatement(
                 "if !detached { return error(string `Cannot detach the service of type ${serviceTypeStr}. "
                         + "Service has not been attached to the listener before`); }"));
@@ -470,7 +476,7 @@ public class GenerateListenerClassNode implements Generator {
         List<String> typeNames = serviceTypes.stream()
                 .map(HttpServiceType::serviceTypeName)
                 .collect(Collectors.toList());
-        StatementNode body = new GenerateListenerStatementNode(typeNames).generate();
+        List<StatementNode> body = new GenerateListenerStatementNode(typeNames).generate();
 
         return createFunctionDefinitionNode(
                 OBJECT_METHOD_DEFINITION, null,
@@ -478,7 +484,7 @@ public class GenerateListenerClassNode implements Generator {
                 createToken(FUNCTION_KEYWORD),
                 createIdentifierToken(LISTENER_GET_SERVICE_TYPE_FUNC),
                 createEmptyNodeList(),
-                signature, buildBody(List.of(body)));
+                signature, buildBody(body));
     }
 
     private String buildDispatcherConstructorArgs() {
