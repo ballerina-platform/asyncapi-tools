@@ -169,6 +169,23 @@ public class HttpCmdUnitTest extends CmdTestBase {
         Assert.assertFalse(ballerinaToml.contains("0.0.1"), ballerinaToml);
     }
 
+    @Test(description = "When Ballerina.toml can't be updated, the error gives the entry to add by hand")
+    public void testToolEntryFailureNamesTheMissingEntry() throws Exception {
+        Path pkg = newPackage("readonly");
+        Path ballerinaToml = pkg.resolve("Ballerina.toml");
+        Assert.assertTrue(ballerinaToml.toFile().setWritable(false), "Could not make Ballerina.toml read-only");
+        try {
+            generateTiny(pkg, "-o", pkg.toString());
+        } finally {
+            ballerinaToml.toFile().setWritable(true);
+        }
+        Assert.assertTrue(Files.exists(pkg.resolve("CompilerPlugin.toml")));
+        Assert.assertTrue(getErr().contains("Ballerina.toml could not be updated"), "Err: " + getErr());
+        Assert.assertTrue(getErr().contains("[[tool.asyncapi]]"), "Err: " + getErr());
+        Assert.assertTrue(getErr().contains("version = \"" + TriggerCompilerPlugin.toolVersion() + "\""),
+                "Err: " + getErr());
+    }
+
     @Test(description = "--dry-run reports the [[tool.asyncapi]] entry without changing Ballerina.toml")
     public void testDryRunReportsTheToolEntry() throws Exception {
         Path pkg = newPackage("dryentry");

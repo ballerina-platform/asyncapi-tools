@@ -257,7 +257,7 @@ Ballerina runs a compiler plugin only for apps that import its package directly,
 # Ballerina.toml
 [[tool.asyncapi]]
 id = "trigger-plugin"
-version = "0.13.4"
+version = "0.13.3"
 ```
 
 ```toml

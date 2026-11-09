@@ -71,7 +71,15 @@ final class HttpProtocolCommand implements ProtocolCommand {
                 boolean withPlugin = TriggerCompilerPlugin.stage(outputPath, stage.stagingDir(), ctx);
                 skipped = stage.commit(ErrorMessages.SUCCESS_MESSAGE);
                 if (withPlugin) {
-                    TriggerCompilerPlugin.addToolEntry(outputPath, opts.isDryRun(), ctx);
+                    try {
+                        TriggerCompilerPlugin.addToolEntry(outputPath, opts.isDryRun(), ctx);
+                    } catch (IOException e) {
+                        // CompilerPlugin.toml is already written, so say exactly what is missing
+                        ctx.printError(String.format(ErrorMessages.TOOL_ENTRY_FAILED, e.getMessage(),
+                                TriggerCompilerPlugin.toolVersion()));
+                        ctx.exitError();
+                        return;
+                    }
                 }
             }
             // A skipped file can leave the output out of sync, so a script must not see this as a success.

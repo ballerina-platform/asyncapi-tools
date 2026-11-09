@@ -77,6 +77,7 @@ public class EndpointYamlGenerator {
     private static final String SCHEMA_PATH = "";
     // The port and its parameter in generated trigger listeners (listenTo in tool versions before 0.13).
     private static final int DEFAULT_PORT = 8090;
+    private static final int MAX_PORT = 65535;
     private static final Set<String> PORT_PARAMS = Set.of("listenOn", "listenTo");
     private static final String HTTP_LISTENER_PORT_PARAM = "port";
 
@@ -168,11 +169,12 @@ public class EndpointYamlGenerator {
         return unsupported(value, diagnostics);
     }
 
-    // A decimal or hexadecimal int literal, as Ballerina accepts both for an int.
-    private static Optional<Integer> parsePort(String text) {
+    // A decimal or hexadecimal int literal, as Ballerina accepts both for an int, that is a valid port.
+    static Optional<Integer> parsePort(String text) {
         try {
             boolean hex = text.startsWith("0x") || text.startsWith("0X");
-            return Optional.of(hex ? Integer.parseInt(text.substring(2), 16) : Integer.parseInt(text));
+            int port = hex ? Integer.parseInt(text.substring(2), 16) : Integer.parseInt(text);
+            return port >= 0 && port <= MAX_PORT ? Optional.of(port) : Optional.empty();
         } catch (NumberFormatException e) {
             return Optional.empty();
         }

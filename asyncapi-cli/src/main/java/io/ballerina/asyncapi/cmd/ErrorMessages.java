@@ -76,6 +76,11 @@ public final class ErrorMessages {
     public static final String TOOL_ENTRY_PLANNED =
             "  update     Ballerina.toml  ([[tool.asyncapi]] for the trigger's compiler plugin, asyncapi %s)";
 
+    public static final String TOOL_ENTRY_FAILED =
+            "error: CompilerPlugin.toml was written, but Ballerina.toml could not be updated (%s). Add this "
+                    + "entry to Ballerina.toml, or bal build cannot find the trigger's compiler plugin:%n"
+                    + "[[tool.asyncapi]]%nid = \"trigger-plugin\"%nversion = \"%s\"";
+
     public static final String WARN_OPTION_ONLY_FOR_SPEC_OUTPUT =
             "%s only applies when generating an AsyncAPI definition from Ballerina code and will be ignored.";
 
