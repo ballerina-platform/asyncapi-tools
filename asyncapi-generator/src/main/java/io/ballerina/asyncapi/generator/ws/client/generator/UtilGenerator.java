@@ -20,6 +20,7 @@ package io.ballerina.asyncapi.generator.ws.client.generator;
 import com.fasterxml.jackson.databind.JsonNode;
 import io.ballerina.asyncapi.core.api.AsyncApiSpec;
 import io.ballerina.asyncapi.core.model.channel.AsyncApiChannel;
+import io.ballerina.asyncapi.core.model.component.AsyncApiComponent;
 import io.ballerina.asyncapi.core.model.message.AsyncApiMessage;
 import io.ballerina.asyncapi.core.model.operation.AsyncApiOperation;
 import io.ballerina.asyncapi.generator.GeneratorException;
@@ -173,8 +174,9 @@ public class UtilGenerator {
 
         // Derive flags from spec
         List<String> streamReturns = extractStreamReturns(spec);
-        boolean queryParamsFound = hasQueryParams(spec);
-        boolean headersFound = hasHeaderParams(spec);
+        // An API key in the query or a header goes through the same helpers as the parameters
+        boolean queryParamsFound = hasQueryParams(spec) || hasApiKeyIn(spec, "query");
+        boolean headersFound = hasHeaderParams(spec) || hasApiKeyIn(spec, "header");
         boolean pathParamsFound = hasPathParams(spec);
         boolean streamPresent = !streamReturns.isEmpty();
         boolean needsUrl = queryParamsFound || pathParamsFound;
@@ -575,6 +577,21 @@ public class UtilGenerator {
     private boolean hasPathParams(AsyncApiSpec spec) {
         AsyncApiChannel channel = getFirstChannel(spec);
         return channel != null && channel.parameters() != null && !channel.parameters().isEmpty();
+    }
+
+    /**
+     * Returns {@code true} if the spec has an {@code httpApiKey} security scheme sent in {@code in}.
+     *
+     * @param spec the parsed spec
+     * @param in   {@code query} or {@code header}
+     * @return {@code true} if such an API key is present
+     */
+    private boolean hasApiKeyIn(AsyncApiSpec spec, String in) {
+        return spec.getAsyncApiComponents()
+                .map(AsyncApiComponent::securitySchemes)
+                .map(schemes -> schemes.values().stream().anyMatch(scheme -> scheme != null
+                        && "httpApiKey".equals(scheme.type()) && in.equalsIgnoreCase(scheme.in())))
+                .orElse(false);
     }
 
     /**

@@ -1,0 +1,71 @@
+{
+  "asyncapi": "3.0.0",
+  "info": {
+    "title": "Market",
+    "version": "1.0.0"
+  },
+  "x-dispatcherKey": "type",
+  "servers": {
+    "public": {
+      "host": "localhost:9095",
+      "protocol": "ws",
+      "security": [
+        {"$ref": "#/components/securitySchemes/queryKey"},
+        {"$ref": "#/components/securitySchemes/headerKey"}
+      ]
+    }
+  },
+  "channels": {
+    "market": {
+      "address": "/v1/marketdata/{symbol}",
+      "parameters": {
+        "symbol": {"description": "The trading pair"}
+      },
+      "bindings": {
+        "ws": {
+          "query": {
+            "type": "object",
+            "properties": {
+              "heartbeat": {"type": "boolean"},
+              "top": {"type": "integer"}
+            }
+          },
+          "headers": {
+            "type": "object",
+            "properties": {
+              "X-Trace": {"type": "string"}
+            }
+          }
+        }
+      },
+      "messages": {
+        "hello": {
+          "payload": {"$ref": "#/components/schemas/Hello"}
+        }
+      }
+    }
+  },
+  "operations": {
+    "sendHello": {
+      "action": "send",
+      "channel": {"$ref": "#/channels/market"},
+      "messages": [{"$ref": "#/channels/market/messages/hello"}]
+    }
+  },
+  "components": {
+    "schemas": {
+      "Hello": {
+        "type": "object",
+        "required": ["type"],
+        "properties": {
+          "type": {"type": "string", "const": "hello"},
+          "text": {"type": "string"}
+        }
+      }
+    },
+    "securitySchemes": {
+      "queryKey": {"type": "httpApiKey", "in": "query", "name": "token"},
+      "headerKey": {"type": "httpApiKey", "in": "header", "name": "X-Api-Key"}
+    }
+  }
+}

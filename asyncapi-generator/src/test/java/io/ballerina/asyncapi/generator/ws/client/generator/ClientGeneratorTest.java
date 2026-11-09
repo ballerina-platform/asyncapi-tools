@@ -93,11 +93,12 @@ public class ClientGeneratorTest {
     }
 
     @Test
-    void testGenerate_usesDefaultUrl_whenNoServersInSpec()
+    void testGenerate_requiresServiceUrl_whenNoServersInSpec()
             throws AsyncApiParserException, GeneratorException {
         String source = generate(SPEC_WITH_OPERATIONS);
-        Assert.assertTrue(source.contains("localhost:9090"),
-                "generate() should use 'localhost:9090' as the default server URL when no servers are defined");
+        Assert.assertTrue(source.contains("init(string serviceUrl, websocket:ClientConfiguration clientConfig = {})"),
+                "With no server to default to, serviceUrl is a required first parameter: " + source);
+        Assert.assertFalse(source.contains("localhost:9090"), "No made-up default URL: " + source);
     }
 
     @Test

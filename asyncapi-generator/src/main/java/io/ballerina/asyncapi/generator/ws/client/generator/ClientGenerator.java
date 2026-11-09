@@ -54,6 +54,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
@@ -110,7 +111,7 @@ public class ClientGenerator {
     private static final String WEBSOCKET = "websocket";
     private static final String LOG_MODULE = "log";
     private static final String LANG_REGEXP_MODULE = "lang.regexp";
-    private static final String DEFAULT_URL = "ws://localhost:9090/v1";
+    private static final String NO_SERVER_URL = "/";
     private static final String MESSAGE_TYPE = "Message";
 
     private final WsClientConfig config;
@@ -168,6 +169,13 @@ public class ClientGenerator {
                 channel, querySchema, headerSchema, serverUrl, authGen, streamReturns, responseMap,
                 typeDefinitionNodeList, imports);
 
+        // init adds the PathParams, HeaderParams and QueryParams records while the class is built
+        for (TypeDefinitionNode paramRecord : authGen.getAuthRelatedTypeDefinitionNodes()) {
+            if (!typeDefinitionNodeList.contains(paramRecord)) {
+                typeDefinitionNodeList.add(paramRecord);
+            }
+        }
+
         // Build module part
         List<ModuleMemberDeclarationNode> memberDeclarations = new ArrayList<>();
         for (TypeDefinitionNode typeDef : typeDefinitionNodeList) {
@@ -204,10 +212,17 @@ public class ClientGenerator {
     private String getServerUrl(AsyncApiSpec asyncApiSpec) {
         Map<String, AsyncApiServer> servers = asyncApiSpec.getAsyncApiServers().orElse(null);
         if (servers == null || servers.isEmpty()) {
-            return DEFAULT_URL;
+            // No server to default to, so the caller must give serviceUrl
+            return NO_SERVER_URL;
         }
         AsyncApiServer server = servers.values().iterator().next();
-        return CodegenUtils.buildUrl(server.host(), server.pathname(), server.variables());
+        String url = CodegenUtils.buildUrl(server.host(), server.pathname(), server.variables());
+        // A 3.x host has no scheme; the server's protocol (ws or wss) gives it
+        String protocol = server.protocol() != null ? server.protocol().toLowerCase(Locale.ROOT) : "";
+        if (!url.contains("://") && ("ws".equals(protocol) || "wss".equals(protocol))) {
+            url = protocol + "://" + url;
+        }
+        return url;
     }
 
     /**

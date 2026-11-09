@@ -337,12 +337,12 @@ public class BallerinaAuthConfigGenerator {
                 : "string " + SERVICE_URL + " = \"" + serviceUrl + "\"";
         if (httpOROAuth) {
             return CONNECTION_CONFIG + " " + CLIENT_CONFIG + ", " + serviceUrlParam;
-        } else if (httpApiKey) {
-            return API_KEYS_CONFIG + " " + API_KEY_CONFIG + ", "
-                    + CONNECTION_CONFIG + " " + CLIENT_CONFIG + " = {}, " + serviceUrlParam;
-        } else {
-            return CONNECTION_CONFIG + " " + CLIENT_CONFIG + " = {}, " + serviceUrlParam;
         }
+        // A required serviceUrl goes before the defaultable clientConfig, as Ballerina requires
+        String configAndUrl = required
+                ? serviceUrlParam + ", " + CONNECTION_CONFIG + " " + CLIENT_CONFIG + " = {}"
+                : CONNECTION_CONFIG + " " + CLIENT_CONFIG + " = {}, " + serviceUrlParam;
+        return httpApiKey ? API_KEYS_CONFIG + " " + API_KEY_CONFIG + ", " + configAndUrl : configAndUrl;
     }
 
     /**
