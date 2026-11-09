@@ -33,6 +33,7 @@ import io.ballerina.asyncapi.generator.ws.asyncspec.Constants;
 import io.ballerina.asyncapi.generator.ws.asyncspec.diagnostic.AsyncApiConverterDiagnostic;
 import io.ballerina.asyncapi.generator.ws.asyncspec.diagnostic.DiagnosticMessages;
 import io.ballerina.asyncapi.generator.ws.asyncspec.diagnostic.ExceptionDiagnostic;
+import io.ballerina.asyncapi.generator.ws.asyncspec.mapper.WebSocketAnnotations;
 import io.ballerina.asyncapi.generator.ws.asyncspec.model.AsyncApiResult;
 import io.ballerina.asyncapi.generator.ws.asyncspec.model.BalAsyncApi30SchemaImpl;
 import io.ballerina.compiler.api.SemanticModel;
@@ -48,6 +49,7 @@ import io.ballerina.compiler.syntax.tree.ExplicitNewExpressionNode;
 import io.ballerina.compiler.syntax.tree.ExpressionNode;
 import io.ballerina.compiler.syntax.tree.FunctionBodyNode;
 import io.ballerina.compiler.syntax.tree.FunctionDefinitionNode;
+import io.ballerina.compiler.syntax.tree.MetadataNode;
 import io.ballerina.compiler.syntax.tree.Node;
 import io.ballerina.compiler.syntax.tree.ReturnStatementNode;
 import io.ballerina.compiler.syntax.tree.ServiceDeclarationNode;
@@ -77,6 +79,7 @@ import static io.ballerina.asyncapi.generator.ws.asyncspec.Constants.AsyncAPITyp
 import static io.ballerina.asyncapi.generator.ws.asyncspec.Constants.BALLERINA;
 import static io.ballerina.asyncapi.generator.ws.asyncspec.Constants.HYPHEN;
 import static io.ballerina.asyncapi.generator.ws.asyncspec.Constants.JSON_EXTENSION;
+import static io.ballerina.asyncapi.generator.ws.asyncspec.Constants.SERVICE_CONFIG_ANNOTATION;
 import static io.ballerina.asyncapi.generator.ws.asyncspec.Constants.SLASH;
 import static io.ballerina.asyncapi.generator.ws.asyncspec.Constants.SPECIAL_CHAR_REGEX;
 import static io.ballerina.asyncapi.generator.ws.asyncspec.Constants.UNDERSCORE;
@@ -302,7 +305,9 @@ public final class ConverterCommonUtils {
                 return true;
             }
         }
-        return false;
+        // A listener can wrap websocket:Listener without being one, so the service's own config counts too
+        return WebSocketAnnotations.find(serviceNode.metadata().map(MetadataNode::annotations).orElse(null),
+                SERVICE_CONFIG_ANNOTATION, semanticModel).isPresent();
     }
 
     private static boolean isWebsocketListener(TypeSymbol listenerType) {

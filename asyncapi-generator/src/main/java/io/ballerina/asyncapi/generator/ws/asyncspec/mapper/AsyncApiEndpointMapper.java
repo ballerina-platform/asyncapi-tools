@@ -203,7 +203,8 @@ public class AsyncApiEndpointMapper {
 
         AsyncApi30ServerImpl server = (AsyncApi30ServerImpl) asyncApiServers.createServer();
 
-        if (list.isPresent()) {
+        // A custom listener can take no arguments, so there may be no port to read
+        if (list.isPresent() && !list.get().arguments().isEmpty()) {
             SeparatedNodeList<FunctionArgumentNode> arg = list.get().arguments();
             port = arg.get(0).toString().trim().replaceAll("\"", "");
             if (arg.size() > 1 && (arg.get(1) instanceof NamedArgumentNode)) {
@@ -258,6 +259,13 @@ public class AsyncApiEndpointMapper {
             server.addVariable(SERVER, serverUrlVariable);
             server.addVariable(PORT, portVariable);
             server.setHost("{server}:{port}");
+            server.setPathname(serviceBasePath);
+        } else {
+            // Neither is in the listener's arguments: a server needs a host, and a client sets the real URL anyway
+            AsyncApi30ServerVariable serverUrlVariable = server.createServerVariable();
+            serverUrlVariable.setDefault(WS_LOCALHOST);
+            server.addVariable(SERVER, serverUrlVariable);
+            server.setHost("{server}");
             server.setPathname(serviceBasePath);
         }
     }
