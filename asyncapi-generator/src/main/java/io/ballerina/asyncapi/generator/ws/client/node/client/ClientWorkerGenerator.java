@@ -317,31 +317,21 @@ public class ClientWorkerGenerator {
     }
 
     /**
-     * Reads each frame straight into {@code Message}, closing the connection when it is not one.
+     * Reads each frame as text and parses it into {@code Message}. The websocket client reports a frame it can't
+     * bind as a plain {@code websocket:Error}, like a broken connection, so parsing here keeps the two apart: a frame
+     * that isn't a {@code Message} is logged and dropped, and only a read error closes the connection.
      */
     private static void addMessageRead(List<StatementNode> whileStatements) {
-        // Message|websocket:Error message = self.clientEp->readMessage(Message);
-        VariableDeclarationNode responseMessage = createVariableDeclarationNode(createEmptyNodeList(), null,
-                createTypedBindingPatternNode(
-                        createUnionTypeDescriptorNode(
-                                createSimpleNameReferenceNode(createIdentifierToken(MESSAGE_TYPE)),
-                                createToken(PIPE_TOKEN),
-                                NodeParser.parseTypeDescriptor(WS_ERROR_TYPE)),
-                        createFieldBindingPatternVarnameNode(
-                                createSimpleNameReferenceNode(createIdentifierToken(MESSAGE_VAR)))),
-                EQUAL,
-                createMethodCallExpressionNode(
-                        createFieldAccessExpressionNode(
-                                createSimpleNameReferenceNode(createIdentifierToken(SELF)), DOT,
-                                createSimpleNameReferenceNode(createIdentifierToken(CLIENT_EP))),
-                        RIGHT_ARROW,
-                        createSimpleNameReferenceNode(createIdentifierToken(READ_MESSAGE)),
-                        OPEN_PAREN,
-                        createSeparatedNodeList(createIdentifierToken(MESSAGE_TYPE)),
-                        CLOSE_PAREN),
-                SEMICOLON);
-        whileStatements.add(responseMessage);
-        whileStatements.add(getIsWsError(READ_WS_ERR_MSG, MESSAGE_VAR));
+        whileStatements.add(NodeParser.parseStatement(String.format("string|%s %s = self.%s->%s(string);",
+                WS_ERROR_TYPE, FRAME_VAR, CLIENT_EP, READ_MESSAGE)));
+        whileStatements.add(getIsWsError(READ_WS_ERR_MSG, FRAME_VAR));
+        whileStatements.add(NodeParser.parseStatement(String.format("%s|error %s = %s.fromJsonStringWithType();",
+                MESSAGE_TYPE, PARSED_MESSAGE_VAR, FRAME_VAR)));
+        whileStatements.add(NodeParser.parseStatement(String.format("if %s is error { log:printWarn(\"Dropped a "
+                + "message that doesn't match the spec\", 'error = %s); continue; }",
+                PARSED_MESSAGE_VAR, PARSED_MESSAGE_VAR)));
+        whileStatements.add(NodeParser.parseStatement(String.format("%s %s = %s;",
+                MESSAGE_TYPE, MESSAGE_VAR, PARSED_MESSAGE_VAR)));
     }
 
     /**

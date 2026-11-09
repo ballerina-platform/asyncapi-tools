@@ -167,10 +167,16 @@ public class WsClientRoundTripTest {
     }
 
     @Test
-    void testKeyedRepliesKeepTheTypedReader() throws Exception {
+    void testKeyedRepliesDropAFrameThatIsNotAMessage() throws Exception {
         String client = generate(spec("echo")).get("client.bal");
-        Assert.assertTrue(client.contains("Message|websocket:Error message = self.clientEp->readMessage(Message);"),
+        // The frame is read as text and parsed here, so a frame that doesn't match is dropped, not a broken socket
+        Assert.assertTrue(client.contains("string|websocket:Error frame = self.clientEp->readMessage(string);"),
                 client);
+        Assert.assertTrue(client.contains("Message|error parsedMessage = frame.fromJsonStringWithType();"), client);
+        Assert.assertTrue(client.contains("if parsedMessage is error {"), client);
+        Assert.assertTrue(client.contains(
+                "log:printWarn(\"Dropped a message that doesn't match the spec\", 'error = parsedMessage);"), client);
+        Assert.assertFalse(client.contains("readMessage(Message)"), client);
         Assert.assertFalse(client.contains("#noDispatcherKey"), client);
     }
 
