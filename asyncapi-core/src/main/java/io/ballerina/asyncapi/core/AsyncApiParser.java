@@ -14,10 +14,14 @@ import io.apicurio.datamodels.validation.ValidationProblem;
 import io.ballerina.asyncapi.core.api.AsyncApiSpec;
 import org.apache.commons.lang3.StringUtils;
 
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.List;
 import java.util.stream.Collectors;
 
 public final class AsyncApiParser {
+
+    private static final String DOCUMENT_ID_PROBLEM = "Document ID should be a valid URI";
 
     private AsyncApiParser() {
 
@@ -60,15 +64,30 @@ public final class AsyncApiParser {
         // Filter out Apicurio false positives: oneOf message containers have no direct
         // payload/headers — the individual oneOf items do. Also, Apicurio incorrectly
         // enforces 'location' as required on Parameter Objects; the AsyncAPI spec makes it optional.
+        // Apicurio checks the document id as a URL, but the spec only needs a URI, such as a urn:
+        boolean idIsUri = document instanceof AsyncApiDocument asyncApiDocument
+                && isAbsoluteUri(asyncApiDocument.getId());
         List<ValidationProblem> realProblems = problems.stream()
                 .filter(p -> !p.message.contains("payload or headers"))
                 .filter(p -> !p.message.contains("'location' property"))
+                .filter(p -> !(idIsUri && p.message.contains(DOCUMENT_ID_PROBLEM)))
                 .collect(Collectors.toList());
 
         if (!realProblems.isEmpty()) {
             String errorMessages = realProblems.stream().map(p -> "[" + p.message + "]")
                     .collect(Collectors.joining(" | "));
             throw new AsyncApiParserException("AsyncAPI validation failed: " + errorMessages);
+        }
+    }
+
+    private static boolean isAbsoluteUri(String value) {
+        if (value == null) {
+            return false;
+        }
+        try {
+            return new URI(value).isAbsolute();
+        } catch (URISyntaxException e) {
+            return false;
         }
     }
 

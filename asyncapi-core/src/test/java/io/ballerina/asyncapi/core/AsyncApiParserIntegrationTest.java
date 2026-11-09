@@ -591,4 +591,37 @@ public class AsyncApiParserIntegrationTest {
         Assert.assertThrows(AsyncApiParserException.class,
                 () -> AsyncApiParser.parseFromJsonString(openApiJson));
     }
+
+    // -------------------------------------------------------------------------
+    // Document id
+    // -------------------------------------------------------------------------
+
+    @DataProvider(name = "uriIds")
+    Object[][] uriIds() {
+        return new Object[][] {
+            {SPEC_DIR + "asyncapi-2.6.0.json", "urn:example:com:smartylighting:streetlights:server"},
+            {SPEC_DIR + "asyncapi-2.2.0.json", "urn:com:unfoldedcircle:dock"},
+            {SPEC_DIR + "asyncapi-3.0.0.json", "urn:com:unfoldedcircle:dock"},
+            {SPEC_DIR + "asyncapi-3.0.0.json", "https://example.com/api"},
+        };
+    }
+
+    @Test(dataProvider = "uriIds")
+    void documentId_anyAbsoluteUri_isAccepted(String specFile, String id)
+            throws IOException, AsyncApiParserException {
+        AsyncApiSpec spec = AsyncApiParser.parseFromJsonString(withId(loadSpec(specFile), id));
+        Assert.assertNotNull(spec.getAsyncApiInfo());
+    }
+
+    @Test
+    void documentId_thatIsNotAUri_isStillRejected() throws IOException {
+        String json = withId(loadSpec(SPEC_DIR + "asyncapi-2.6.0.json"), "not a uri");
+        AsyncApiParserException e = Assert.expectThrows(AsyncApiParserException.class,
+                () -> AsyncApiParser.parseFromJsonString(json));
+        Assert.assertTrue(e.getMessage().contains("Document ID"), e.getMessage());
+    }
+
+    private static String withId(String json, String id) {
+        return json.replaceFirst("\\{", "{\"id\": \"" + id + "\",");
+    }
 }
