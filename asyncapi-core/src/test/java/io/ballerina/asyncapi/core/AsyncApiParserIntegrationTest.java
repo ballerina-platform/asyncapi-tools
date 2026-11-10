@@ -616,9 +616,14 @@ public class AsyncApiParserIntegrationTest {
         Assert.assertNotNull(spec.getAsyncApiInfo());
     }
 
-    @Test
-    void documentId_thatIsNotAUri_isStillRejected() throws IOException {
-        String json = withId(loadSpec(SPEC_DIR + "asyncapi-2.6.0.json"), "not a uri");
+    @DataProvider(name = "nonUriIds")
+    Object[][] nonUriIds() {
+        return new Object[][] {{"not a uri"}, {"urn:example:device[1]"}};
+    }
+
+    @Test(dataProvider = "nonUriIds")
+    void documentId_thatIsNotAUri_isStillRejected(String id) throws IOException {
+        String json = withId(loadSpec(SPEC_DIR + "asyncapi-2.6.0.json"), id);
         AsyncApiParserException e = Assert.expectThrows(AsyncApiParserException.class,
                 () -> AsyncApiParser.parseFromJsonString(json));
         Assert.assertTrue(e.getMessage().contains("Document ID"), e.getMessage());

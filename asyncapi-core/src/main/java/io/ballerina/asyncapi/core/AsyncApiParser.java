@@ -98,7 +98,9 @@ public final class AsyncApiParser {
             return false;
         }
         try {
-            return new URI(value).isAbsolute();
+            URI uri = new URI(value);
+            // java.net.URI lets [ and ] into an opaque part; RFC 3986 allows them only around an IPv6 host
+            return uri.isAbsolute() && !(uri.isOpaque() && StringUtils.containsAny(value, '[', ']'));
         } catch (URISyntaxException e) {
             return false;
         }
