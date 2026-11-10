@@ -51,8 +51,8 @@ import io.ballerina.tools.text.TextDocuments;
 import org.ballerinalang.formatter.core.Formatter;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -113,6 +113,9 @@ public class ClientGenerator {
     private static final String LANG_REGEXP_MODULE = "lang.regexp";
     private static final String NO_SERVER_URL = "/";
     private static final String MESSAGE_TYPE = "Message";
+    private static final String SHARED_FIXED_DISPATCH_VALUE = "The replies waited for on '%s' and '%s' both fix the "
+            + "dispatcher value '%s', so a message with it can't be routed to the right call. "
+            + "Give each its own value.";
 
     private final WsClientConfig config;
 
@@ -159,14 +162,16 @@ public class ClientGenerator {
 
         // Compute streamReturns and responseMap
         List<String> streamReturns = new ArrayList<>();
-        Map<String, String> responseMap = buildResponseMap(asyncApiSpec, streamReturns);
+        Map<String, String> dispatchValueMap = new LinkedHashMap<>();
+        Map<String, String> responseMap = buildResponseMap(asyncApiSpec, dispatcherKey, streamReturns,
+                dispatchValueMap);
 
         // Build imports
         List<ImportDeclarationNode> imports = buildImports();
 
         // Build class definition
         ClassDefinitionNode classDefNode = getClassDefinitionNode(dispatcherKey, dispatcherStreamId, channelName,
-                channel, querySchema, headerSchema, serverUrl, authGen, streamReturns, responseMap,
+                channel, querySchema, headerSchema, serverUrl, authGen, streamReturns, responseMap, dispatchValueMap,
                 typeDefinitionNodeList, imports);
 
         // init adds the PathParams, HeaderParams and QueryParams records while the class is built
@@ -240,21 +245,28 @@ public class ClientGenerator {
     }
 
     /**
-     * Builds a map from each inbound response-schema name to the request type that owns it,
-     * used by the dispatcher service to route incoming frames to the correct pipe.
+     * Builds a map from each inbound response-schema name to the pipe that receives it, used by the reader to
+     * route incoming frames: a send function's reply goes to its request type's pipe, and a receive-only message
+     * to a pipe of its own type. A reply type that fixes its dispatcher value also gets an entry in
+     * {@code dispatchValueMap}, which the reader checks first.
      *
-     * @param asyncApiSpec  the parsed AsyncAPI spec
-     * @param streamReturns collector for return types that require a stream wrapper
-     * @return map from PascalCase response schema name to Ballerina request type name
+     * @param asyncApiSpec     the parsed AsyncAPI spec
+     * @param dispatcherKey    the dispatcher field name
+     * @param streamReturns    collector for return types that require a stream wrapper
+     * @param dispatchValueMap collector for the pipe of each fixed dispatcher value
+     * @return map from PascalCase response schema name to pipe name
      * @throws GeneratorException if return-type resolution fails
      */
-    private Map<String, String> buildResponseMap(AsyncApiSpec asyncApiSpec, List<String> streamReturns)
+    private Map<String, String> buildResponseMap(AsyncApiSpec asyncApiSpec, String dispatcherKey,
+                                                 List<String> streamReturns, Map<String, String> dispatchValueMap)
             throws GeneratorException {
-        Map<String, String> responseMap = new HashMap<>();
+        Map<String, String> responseMap = new LinkedHashMap<>();
         Map<String, AsyncApiOperation> operations = asyncApiSpec.getAsyncApiOperations().orElse(null);
         if (operations == null) {
             return responseMap;
         }
+        Map<String, AsyncApiSchema> schemas = asyncApiSpec.getAsyncApiComponents()
+                .map(c -> c.schemas()).orElse(Map.of());
         RemoteFunctionReturnTypeGenerator returnTypeGen = new RemoteFunctionReturnTypeGenerator(asyncApiSpec);
 
         Set<String> claimedResponses = new HashSet<>();
@@ -276,12 +288,14 @@ public class ClientGenerator {
                 JsonNode xResponse = message.extensions().get(X_RESPONSE);
                 List<String> responseMessages = new ArrayList<>();
                 String returnType = returnTypeGen.getReturnType(xResponse, xResponseType, responseMessages);
-                if (!"null".equals(returnType)) {
+                // A reply without the dispatcher key is never routed by its value
+                if (!"null".equals(returnType) && !returnTypeGen.isReplyWithoutDispatcherKey(returnType)) {
                     String requestType = getRequestTypeFromMessage(message);
                     for (String responseMsg : responseMessages) {
                         String key = CodegenUtils.getValidName(responseMsg, true);
                         responseMap.put(key, requestType);
                         claimedResponses.add(key);
+                        addFixedValueRoute(schemas.get(responseMsg), dispatcherKey, requestType, dispatchValueMap);
                     }
                 }
             }
@@ -307,12 +321,49 @@ public class ClientGenerator {
                         String key = CodegenUtils.getValidName(responseMsg, true);
                         if (!claimedResponses.contains(key)) {
                             responseMap.put(key, requestType);
+                            addFixedValueRoute(schemas.get(responseMsg), dispatcherKey, requestType,
+                                    dispatchValueMap);
                         }
                     }
                 }
             }
         }
+
+        // A receive-only message no send function returns waits on a pipe named after its own type
+        for (AsyncApiOperation operation : operations.values()) {
+            if (operation.action() != AsyncApiOperation.Action.RECEIVE || operation.messages() == null) {
+                continue;
+            }
+            for (AsyncApiMessage message : operation.messages().values()) {
+                if (!(message.payload() instanceof AsyncApiSchema payload) || payload.name() == null) {
+                    continue;
+                }
+                String key = CodegenUtils.getValidName(payload.name(), true);
+                if (responseMap.containsKey(key) || returnTypeGen.isReplyWithoutDispatcherKey(key)) {
+                    continue;
+                }
+                String pipeName = CodegenUtils.getValidName(payload.name(), false);
+                responseMap.put(key, pipeName);
+                addFixedValueRoute(schemas.get(payload.name()), dispatcherKey, pipeName, dispatchValueMap);
+            }
+        }
         return responseMap;
+    }
+
+    /**
+     * Routes the dispatcher value {@code schema} fixes, if any, straight to {@code pipeName}. A value already
+     * routed to another pipe is rejected, as the reader couldn't tell which call a message with it belongs to.
+     */
+    private static void addFixedValueRoute(AsyncApiSchema schema, String dispatcherKey, String pipeName,
+                                           Map<String, String> dispatchValueMap) throws GeneratorException {
+        String value = CodegenUtils.getFixedDispatchValue(schema, dispatcherKey);
+        if (value == null) {
+            return;
+        }
+        String routed = dispatchValueMap.putIfAbsent(value, pipeName);
+        if (routed != null && !routed.equals(pipeName)) {
+            throw new GeneratorException(String.format(SHARED_FIXED_DISPATCH_VALUE, routed, pipeName, value));
+        }
     }
 
     /**
@@ -344,6 +395,7 @@ public class ClientGenerator {
      * @param authGen                auth config generator
      * @param streamReturns          list of streaming return types
      * @param responseMap            response type to pipe name map
+     * @param dispatchValueMap       fixed dispatcher value to pipe name map
      * @param typeDefinitionNodeList accumulated type definitions
      * @param imports                accumulated imports
      * @return the class definition node
@@ -354,6 +406,7 @@ public class ClientGenerator {
                                                         JsonNode querySchema, JsonNode headerSchema,
                                                         String serverUrl, BallerinaAuthConfigGenerator authGen,
                                                         List<String> streamReturns, Map<String, String> responseMap,
+                                                        Map<String, String> dispatchValueMap,
                                                         List<TypeDefinitionNode> typeDefinitionNodeList,
                                                         List<ImportDeclarationNode> imports)
             throws GeneratorException {
@@ -364,14 +417,16 @@ public class ClientGenerator {
         List<Node> classMembers = new ArrayList<>();
         ClientHelperGenerator helperGen = new ClientHelperGenerator(isStreamPresent);
 
-        classMembers.addAll(new ClientFieldGenerator(isStreamPresent, authGen, responseMap).buildFields());
+        classMembers.addAll(new ClientFieldGenerator(isStreamPresent, authGen, responseMap, dispatchValueMap)
+                .buildFields());
         classMembers.add(new ClientInitGenerator(config, channel, querySchema, headerSchema,
                 serverUrl, authGen, isStreamPresent).buildInitFunction());
         classMembers.add(helperGen.buildGetRecordName());
         classMembers.add(helperGen.buildGetPipeName());
 
         ClientWorkerGenerator workerGen =
-                new ClientWorkerGenerator(asyncApiSpec, dispatcherKey, dispatcherStreamId);
+                new ClientWorkerGenerator(asyncApiSpec, dispatcherKey, dispatcherStreamId,
+                        new RemoteFunctionReturnTypeGenerator(asyncApiSpec).hasRepliesWithoutDispatcherKey());
         classMembers.add(workerGen.buildStartMessageWriting());
         classMembers.add(workerGen.buildStartMessageReading());
 
@@ -390,10 +445,7 @@ public class ClientGenerator {
                 CodegenUtils.tokenWithSpace(ISOLATED_KEYWORD));
 
         // Class name: {Title}{ChannelName}Client
-        String title = asyncApiSpec.getAsyncApiInfo() != null
-                && asyncApiSpec.getAsyncApiInfo().title() != null
-                ? CodegenUtils.getValidName(asyncApiSpec.getAsyncApiInfo().title(), true)
-                : "AsyncApi";
+        String title = CodegenUtils.getClientTitleName(asyncApiSpec.getAsyncApiInfo());
         String chanName = "/".equals(channel.address()) ? "" : CodegenUtils.getValidName(channelName, true);
         String className = String.format("%s%sClient", title, chanName);
 
