@@ -107,7 +107,7 @@ public class ListenerGeneratorTest {
                 Optional.<ConnectionAuthConfig>empty(), "Test Connector").generate();
 
         // #9425: the body is read before the signature is checked, so the listener the trigger creates caps it.
-        Assert.assertTrue(source.contains("check new (listenOn, requestLimits = {maxEntityBodySize: 10485760})"),
+        Assert.assertTrue(source.contains("check new (listenOn, requestLimits = {maxEntityBodySize: 26214400})"),
                 source);
         Assert.assertTrue(source.contains("self.httpListener = listenOn;"),
                 "an http:Listener passed in keeps its own limits: " + source);

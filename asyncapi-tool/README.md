@@ -196,6 +196,8 @@ Generating a listener writes these files:
 3. `listener.bal` - the HTTP listener that receives the events
 4. `dispatcher_service.bal` - the logic that dispatches each event to its remote function
 
+At the root of a package, it also writes `CompilerPlugin.toml` and adds a `[[tool.asyncapi]]` entry to `Ballerina.toml`, so apps built with `--export-endpoints` list the trigger's services (see [Exporting trigger endpoints](#exporting-trigger-endpoints)).
+
 With `--with-tests`, the tool also writes `tests/dispatch_test.bal`, which sends signed sample events to the listener and checks that each reaches its remote function. The events are signed, so this needs `x-ballerina-auth` in the definition; without it the tool warns and writes no tests.
 
 When modifying the generated code, keep the following in mind.
@@ -249,15 +251,27 @@ Services on the same path share its dispatcher, so each service type can be atta
 
 `bal build --export-endpoints` lists the ports and paths a program listens on in `target/artifact/endpoints.yaml`. The `ballerina/http` compiler plugin only reports services attached to an `http:Listener`, so each trigger package ships its own compiler plugin to report services attached to its `Listener`, with the same rules and defaults as HTTP services (`type: "REST"`, an empty `schemaPath`).
 
-As `ballerina/http` does, the trigger repo builds the plugin from source and a `CompilerPlugin.toml` next to `Ballerina.toml` points at the built jar, so nothing is published separately:
+Ballerina runs a compiler plugin only for apps that import its package directly, so the plugin has to be inside the trigger package. The plugin jar ships inside this tool, and the trigger only holds two toml entries. Generating a listener at the root of a package writes `CompilerPlugin.toml` and adds a `[[tool.asyncapi]]` entry to `Ballerina.toml`:
 
 ```toml
+# Ballerina.toml
+[[tool.asyncapi]]
+id = "trigger-plugin"
+version = "0.13.3"
+```
+
+```toml
+# CompilerPlugin.toml
 [plugin]
 id = "asyncapi-compiler-plugin"
 class = "io.ballerina.asyncapi.trigger.plugin.AsyncAPICompilerPlugin"
 
 [[dependency]]
-path = "../compiler-plugin/build/libs/github.trigger-compiler-plugin-0.2.0.jar"
+path = "target/tool-cache/trigger-plugin/asyncapi-trigger-compiler-plugin.jar"
 ```
 
-The plugin source and the files a trigger repo needs for it are in [`trigger-template`](../trigger-template), which the trigger scaffold copies into each repo.
+The tool entry makes `bal build` and `bal pack` run this tool as a build tool before compiling: it pulls the named tool version if it isn't installed, and copies the plugin jar bundled in it to `target/tool-cache/trigger-plugin/`. `bal pack` then puts the jar in the trigger's bala. Nothing else needs to be installed or run, the jar is never part of the package's source, and apps that use the trigger get the plugin from the bala.
+
+`CompilerPlugin.toml` follows the same rules as the generated code: an existing file that differs is skipped unless `--force` is given, and `--dry-run` lists it. The tool entry is added once and the rest of `Ballerina.toml` is kept; generating with a newer tool moves the entry to that version, which updates the plugin on the next build. A package can have only one compiler plugin, so if it already has another, the tool leaves it as it is and warns. A listener generated into a module (`--module`) gets no plugin, as the plugin belongs to the package.
+
+The endpoints are exported with Ballerina 2201.13.6 and later. On earlier versions the plugin logs a warning and the build carries on. The plugin source is in [`asyncapi-trigger-plugin`](../asyncapi-trigger-plugin).
