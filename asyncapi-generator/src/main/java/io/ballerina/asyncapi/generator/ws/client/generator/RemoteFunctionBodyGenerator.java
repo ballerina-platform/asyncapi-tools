@@ -250,13 +250,15 @@ public class RemoteFunctionBodyGenerator {
         boolean keyed = replyFormat == ReplyFormat.KEYED;
         // A reply without the dispatcher key can't carry a stream id either
         boolean perRequestPipe = keyed && !Objects.isNull(dispatcherStreamId);
-        String pipeId = String.format("\"%s\"",
-                keyed ? pipeName : RemoteFunctionReturnTypeGenerator.NO_DISPATCHER_KEY_PIPE);
+        // A frame without the key is a reply only while a call waits for one; otherwise it is a receive-only message
+        String unkeyedPipe = isSubscribe ? RemoteFunctionReturnTypeGenerator.NO_DISPATCHER_KEY_EVENTS_PIPE
+                : RemoteFunctionReturnTypeGenerator.NO_DISPATCHER_KEY_PIPE;
+        String pipeId = String.format("\"%s\"", keyed ? pipeName : unkeyedPipe);
+        boolean awaitsUnkeyedReply = !keyed && !isSubscribe;
         if (perRequestPipe) {
             pipeId = String.format("%s.%s", camelCaseRequestType, CodegenUtils.escapeIdentifier(dispatcherStreamId));
         }
-        // Calls sharing a reply pipe take turns, so each one consumes the reply to its own request. A receive-only
-        // function on the pipe for replies without the dispatcher key waits its turn too, so it can't take a reply.
+        // Calls sharing a pipe take turns, so each one consumes the frame meant for it
         boolean takesTurn = !perRequestPipe && (!isSubscribe || !keyed);
         if (!isSubscribe) {
             appendConnectionActiveCheck(sb);
@@ -267,12 +269,18 @@ public class RemoteFunctionBodyGenerator {
             sb.append(String.format("if %s is %s { return error(%s, %s); }\n",
                     TURN_ERR_VAR, PIPE_ERROR_TYPE, TURN_WAIT_ERR_MSG, TURN_ERR_VAR));
         }
+        if (awaitsUnkeyedReply) {
+            sb.append(String.format("self.%s.awaitReply(%s, true);\n", PIPES, pipeId));
+        }
         appendProduceStatements(sb, requestType, isSubscribe, dispatchValue);
 
         // consume
         sb.append(String.format("%s|%s %s = %s.%s(timeout);\n",
                 keyed ? MESSAGE_TYPE : STRING, PIPE_ERROR_TYPE, RESPONSE_MESSAGE_VAR,
                 String.format(SELF_PIPES_GET_PIPE, pipeId), CONSUME));
+        if (awaitsUnkeyedReply) {
+            sb.append(String.format("self.%s.awaitReply(%s, false);\n", PIPES, pipeId));
+        }
         sb.append(String.format("if %s is %s { self.%s(); return error(%s, %s); }\n",
                 RESPONSE_MESSAGE_VAR, PIPE_ERROR_TYPE, ATTEMPT_TO_CLOSE_CONNECTION,
                 String.format(PIPE_ERR_TEMPLATE, CONSUMING), RESPONSE_MESSAGE_VAR));

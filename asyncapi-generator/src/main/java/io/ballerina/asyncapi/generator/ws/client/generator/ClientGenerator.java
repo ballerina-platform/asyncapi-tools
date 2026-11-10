@@ -255,6 +255,8 @@ public class ClientGenerator {
         RemoteFunctionReturnTypeGenerator returnTypeGen = new RemoteFunctionReturnTypeGenerator(asyncApiSpec);
 
         Set<String> claimedResponses = new HashSet<>();
+        // A shared reply type's pipe is final only after every send function, so routes are added at the end
+        Map<String, AsyncApiSchema> routeSchemas = new LinkedHashMap<>();
         for (Map.Entry<String, AsyncApiOperation> opEntry : operations.entrySet()) {
             AsyncApiOperation operation = opEntry.getValue();
             if (operation.action() != AsyncApiOperation.Action.SEND || operation.messages() == null) {
@@ -280,7 +282,7 @@ public class ClientGenerator {
                         String key = CodegenUtils.getValidName(responseMsg, true);
                         responseMap.put(key, requestType);
                         claimedResponses.add(key);
-                        addFixedValueRoute(schemas.get(responseMsg), dispatcherKey, requestType, dispatchValueMap);
+                        routeSchemas.putIfAbsent(key, schemas.get(responseMsg));
                     }
                 }
             }
@@ -306,8 +308,7 @@ public class ClientGenerator {
                         String key = CodegenUtils.getValidName(responseMsg, true);
                         if (!claimedResponses.contains(key)) {
                             responseMap.put(key, requestType);
-                            addFixedValueRoute(schemas.get(responseMsg), dispatcherKey, requestType,
-                                    dispatchValueMap);
+                            routeSchemas.putIfAbsent(key, schemas.get(responseMsg));
                         }
                     }
                 }
@@ -329,8 +330,11 @@ public class ClientGenerator {
                 }
                 String pipeName = CodegenUtils.getValidName(payload.name(), false);
                 responseMap.put(key, pipeName);
-                addFixedValueRoute(schemas.get(payload.name()), dispatcherKey, pipeName, dispatchValueMap);
+                routeSchemas.putIfAbsent(key, schemas.get(payload.name()));
             }
+        }
+        for (Map.Entry<String, AsyncApiSchema> route : routeSchemas.entrySet()) {
+            addFixedValueRoute(route.getValue(), dispatcherKey, responseMap.get(route.getKey()), dispatchValueMap);
         }
         return responseMap;
     }
@@ -411,7 +415,8 @@ public class ClientGenerator {
 
         ClientWorkerGenerator workerGen =
                 new ClientWorkerGenerator(asyncApiSpec, dispatcherKey, dispatcherStreamId,
-                        new RemoteFunctionReturnTypeGenerator(asyncApiSpec).hasRepliesWithoutDispatcherKey());
+                        new RemoteFunctionReturnTypeGenerator(asyncApiSpec).hasRepliesWithoutDispatcherKey(),
+                        new RemoteFunctionReturnTypeGenerator(asyncApiSpec).hasReceiveOnlyWithoutDispatcherKey());
         classMembers.add(workerGen.buildStartMessageWriting());
         classMembers.add(workerGen.buildStartMessageReading());
 

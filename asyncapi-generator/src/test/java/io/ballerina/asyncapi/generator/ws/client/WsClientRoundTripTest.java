@@ -110,6 +110,15 @@ public class WsClientRoundTripTest {
     }
 
     @Test
+    void testFixedValueOnASharedReplyIsRoutedToItsOnePipe() throws Exception {
+        // subscribe and unsubscribe both reply with Ack, so they share one pipe; its fixed value isn't a conflict
+        JsonNode spec = spec("shared_response");
+        ((ObjectNode) spec.at("/components/schemas/Ack/properties/event")).put("const", "ack");
+        String client = generate(spec).get("client.bal");
+        Assert.assertTrue(client.contains("dispatchValueMap = {\n        \"ack\": \"unsubscribe\"\n    };"), client);
+    }
+
+    @Test
     void testFixedReplyValueOnTwoPipesIsRejected() throws Exception {
         // The reply to subscribe and the receive-only notice both fix "update", so a frame can't be routed
         JsonNode spec = specFile("ws_receive_only.yaml");
@@ -229,11 +238,35 @@ public class WsClientRoundTripTest {
         Assert.assertTrue(client.contains(
                 "string|pipe:Error responseMessage = self.pipes.getPipe(\"#noDispatcherKey\").consume(timeout);"),
                 client);
+        // Such a frame is queued only while a call waits, so a later call can't take an earlier frame as its reply
+        Assert.assertTrue(client.contains("if !self.pipes.isAwaitingReply(\"#noDispatcherKey\") {"), client);
+        Assert.assertTrue(client.contains("self.pipes.awaitReply(\"#noDispatcherKey\", true);"), client);
+        Assert.assertTrue(client.contains("self.pipes.awaitReply(\"#noDispatcherKey\", false);"), client);
+        Assert.assertTrue(files.get("utils.bal").contains("public isolated function isAwaitingReply(string id)"));
         // A string reply is the frame text itself; any other reply is JSON text
         Assert.assertTrue(client.contains(
                 "HelloDataResponse|error helloDataResponse = responseMessage.cloneWithType();"), client);
         Assert.assertTrue(client.contains(
                 "UsersQueryResponse|error usersQueryResponse = responseMessage.fromJsonStringWithType();"), client);
+    }
+
+    @Test
+    void testReceiveOnlyFramesWithoutDispatcherKeyAreKeptApartFromReplies() throws Exception {
+        // A receive-only text message: while no call waits for a reply, such frames go to its own pipe
+        JsonNode spec = spec("mixed");
+        ((ObjectNode) spec.at("/components/messages")).set("Notice",
+                YAML.readTree("payload:\n  type: string\n"));
+        ((ObjectNode) spec.at("/channels/root/messages")).set("Notice",
+                YAML.readTree("$ref: \"#/components/messages/Notice\"\n"));
+        ((ObjectNode) spec.at("/operations")).set("receiveNotice", YAML.readTree(
+                "action: receive\nchannel:\n  $ref: \"#/channels/root\"\nmessages:\n"
+                        + "- $ref: \"#/channels/root/messages/Notice\"\n"));
+        String client = generate(spec).get("client.bal");
+        Assert.assertTrue(client.contains("self.pipes.getPipe(self.pipes.isAwaitingReply(\"#noDispatcherKey\") ? "
+                + "\"#noDispatcherKey\" : \"#noDispatcherKeyEvents\").produce(frame, 5);"), client);
+        Assert.assertTrue(client.contains(
+                "string|pipe:Error responseMessage = self.pipes.getPipe(\"#noDispatcherKeyEvents\").consume(timeout);"),
+                client);
     }
 
     @Test

@@ -44,8 +44,11 @@ import static io.ballerina.asyncapi.generator.ws.client.generator.ClientGenerato
  */
 public class RemoteFunctionReturnTypeGenerator {
 
-    /** Pipe the reader puts every frame without the dispatcher key on, such as a plain string reply. */
+    /** Pipe for a frame without the dispatcher key, such as a plain string reply, while a call waits for one. */
     public static final String NO_DISPATCHER_KEY_PIPE = "#noDispatcherKey";
+
+    /** Pipe for a frame without the dispatcher key that arrives while no call waits for a reply. */
+    public static final String NO_DISPATCHER_KEY_EVENTS_PIPE = "#noDispatcherKeyEvents";
 
     private static final String DEFAULT_RETURN = "null";
     private static final String PIPE = "|";
@@ -195,18 +198,51 @@ public class RemoteFunctionReturnTypeGenerator {
      * @throws GeneratorException if a reply type can't be resolved
      */
     public boolean hasRepliesWithoutDispatcherKey() throws GeneratorException {
+        return hasReceiveOnlyWithoutDispatcherKey() || hasSendRepliesWithoutDispatcherKey();
+    }
+
+    /**
+     * Returns {@code true} if a receive-only function waits for a message without the dispatcher key.
+     *
+     * @return whether such frames are kept for a receive-only function when no call waits for a reply
+     */
+    public boolean hasReceiveOnlyWithoutDispatcherKey() throws GeneratorException {
         Map<String, AsyncApiOperation> operations = asyncApiSpec.getAsyncApiOperations().orElse(Map.of());
+        // A message a send function returns gets no receive-only function, as in ClientRemoteFunctionGenerator
+        List<String> replySchemas = new ArrayList<>();
         for (AsyncApiOperation op : operations.values()) {
-            if (op.messages() == null) {
+            if (op.action() == AsyncApiOperation.Action.SEND && op.messages() != null) {
+                for (AsyncApiMessage message : op.messages().values()) {
+                    if (message.extensions() != null && message.extensions().get(X_RESPONSE) != null) {
+                        getReturnType(message.extensions().get(X_RESPONSE),
+                                message.extensions().get(X_RESPONSE_TYPE), replySchemas);
+                    }
+                }
+            }
+        }
+        for (AsyncApiOperation op : operations.values()) {
+            if (op.action() != AsyncApiOperation.Action.RECEIVE || op.messages() == null) {
                 continue;
             }
             for (AsyncApiMessage message : op.messages().values()) {
-                if (op.action() == AsyncApiOperation.Action.RECEIVE) {
-                    if (message.payload() instanceof AsyncApiSchema payload && payload.name() != null
-                            && isReplyWithoutDispatcherKey(CodegenUtils.getValidName(payload.name(), true))) {
-                        return true;
-                    }
-                } else if (message.extensions() != null && message.extensions().get(X_RESPONSE) != null) {
+                if (message.payload() instanceof AsyncApiSchema payload && payload.name() != null
+                        && !replySchemas.contains(payload.name())
+                        && isReplyWithoutDispatcherKey(CodegenUtils.getValidName(payload.name(), true))) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    private boolean hasSendRepliesWithoutDispatcherKey() throws GeneratorException {
+        Map<String, AsyncApiOperation> operations = asyncApiSpec.getAsyncApiOperations().orElse(Map.of());
+        for (AsyncApiOperation op : operations.values()) {
+            if (op.action() == AsyncApiOperation.Action.RECEIVE || op.messages() == null) {
+                continue;
+            }
+            for (AsyncApiMessage message : op.messages().values()) {
+                if (message.extensions() != null && message.extensions().get(X_RESPONSE) != null) {
                     String returnType = getReturnType(message.extensions().get(X_RESPONSE),
                             message.extensions().get(X_RESPONSE_TYPE), null);
                     if (isReplyWithoutDispatcherKey(returnType)) {
