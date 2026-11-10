@@ -49,4 +49,17 @@ public class EndpointYamlGeneratorTest {
         ServiceDeclarationNode service = (ServiceDeclarationNode) root.members().get(0);
         Assert.assertEquals(EndpointYamlGenerator.getBasePath(service), expected);
     }
+
+    @DataProvider(name = "ports")
+    public Object[][] ports() {
+        return new Object[][]{
+            {"8090", 8090}, {"0x1F9A", 8090}, {"0", 0}, {"65535", 65535},
+            {"-1", null}, {"65536", null}, {"0x", null}, {"abc", null}
+        };
+    }
+
+    @Test(dataProvider = "ports")
+    public void testPortMustBeInRange(String text, Integer expected) {
+        Assert.assertEquals(EndpointYamlGenerator.parsePort(text).orElse(null), expected, text);
+    }
 }

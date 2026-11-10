@@ -29,6 +29,7 @@
             <class name="io.ballerina.asyncapi.cmd.AsyncApiCmdToolDiagnosticTest"/>
             <class name="io.ballerina.asyncapi.cmd.AsyncApiProjectUtilsTest"/>
             <class name="io.ballerina.asyncapi.cmd.OutputStageTest"/>
+            <class name="io.ballerina.asyncapi.cmd.TriggerCompilerPluginTest"/>
         </classes>
     </test>
 </suite>
