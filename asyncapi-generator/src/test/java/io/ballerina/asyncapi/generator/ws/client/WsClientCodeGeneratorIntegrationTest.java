@@ -98,25 +98,6 @@ public class WsClientCodeGeneratorIntegrationTest {
     }
 
     @Test
-    void testGenerateWithApiKeyAuth() throws Exception {
-        Path spec = specPath("ws_with_apikey_auth.json");
-        Path outDir = Files.createTempDirectory("ws-apikey-gen");
-        try {
-            AsyncApiSpec asyncApiSpec = AsyncApiParser.parseFromJsonString(Files.readString(spec));
-            new WsClientCodeGenerator(asyncApiSpec, null, false).generate(outDir);
-
-            String client = readFile(outDir, "client.bal");
-
-            Assert.assertTrue(client.contains("ApiKeysConfig"),
-                    "client.bal should contain the ApiKeysConfig type definition when httpApiKey auth is configured");
-            Assert.assertTrue(client.contains("apiKeyConfig"),
-                    "client.bal should reference apiKeyConfig in the init function when httpApiKey auth is configured");
-        } finally {
-            deleteDir(outDir);
-        }
-    }
-
-    @Test
     void testMultiLineDescriptionsBecomeDocCommentLines() throws Exception {
         Path spec = specPath("ws_multiline_descriptions.json");
         Path outDir = Files.createTempDirectory("ws-multiline-gen");
@@ -131,6 +112,25 @@ public class WsClientCodeGeneratorIntegrationTest {
                     + "    # At most 4 KB."), client);
             Assert.assertTrue(client.contains("# + return - The echoed message,\n    # with the server time"), client);
             Assert.assertTrue(client.contains("# Connects to the chat.\n    # The connection stays open"), client);
+        } finally {
+            deleteDir(outDir);
+        }
+    }
+
+    @Test
+    void testGenerateWithApiKeyAuth() throws Exception {
+        Path spec = specPath("ws_with_apikey_auth.json");
+        Path outDir = Files.createTempDirectory("ws-apikey-gen");
+        try {
+            AsyncApiSpec asyncApiSpec = AsyncApiParser.parseFromJsonString(Files.readString(spec));
+            new WsClientCodeGenerator(asyncApiSpec, null, false).generate(outDir);
+
+            String client = readFile(outDir, "client.bal");
+
+            Assert.assertTrue(client.contains("ApiKeysConfig"),
+                    "client.bal should contain the ApiKeysConfig type definition when httpApiKey auth is configured");
+            Assert.assertTrue(client.contains("apiKeyConfig"),
+                    "client.bal should reference apiKeyConfig in the init function when httpApiKey auth is configured");
         } finally {
             deleteDir(outDir);
         }
