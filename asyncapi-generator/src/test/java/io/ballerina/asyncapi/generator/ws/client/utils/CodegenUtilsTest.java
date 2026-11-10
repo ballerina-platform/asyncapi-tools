@@ -215,4 +215,12 @@ public class CodegenUtilsTest {
         Assert.assertEquals(list.size(), 1,
                 "Second call with the same type name should be a no-op (duplicate skipped)");
     }
+
+    @Test
+    void testToStringLiteral_escapesQuotesBackslashesAndControlCharacters() {
+        // Input: a"b\c, a newline, d, a tab, e, then U+0001
+        String input = "a\"b\\c" + '\n' + "d" + '\t' + "e" + (char) 1;
+        String expected = "\"a" + "\\\"" + "b" + "\\\\" + "c" + "\\n" + "d" + "\\t" + "e" + "\\u{1}" + "\"";
+        Assert.assertEquals(CodegenUtils.toStringLiteral(input), expected);
+    }
 }

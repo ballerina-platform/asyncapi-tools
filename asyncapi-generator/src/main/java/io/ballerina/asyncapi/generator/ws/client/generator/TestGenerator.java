@@ -128,11 +128,7 @@ public class TestGenerator {
      */
     public String generateTest() throws GeneratorException {
         // Derive client class name: {Title}{ChannelName}Client
-        String title = "AsyncApi";
-        if (config.getAsyncApi().getAsyncApiInfo() != null
-                && config.getAsyncApi().getAsyncApiInfo().title() != null) {
-            title = CodegenUtils.getValidName(config.getAsyncApi().getAsyncApiInfo().title(), true);
-        }
+        String title = CodegenUtils.getClientTitleName(config.getAsyncApi().getAsyncApiInfo());
         Map<String, AsyncApiChannel> channelMap = config.getAsyncApi().getAsyncApiChannels().orElse(null);
         String channelName = "";
         if (channelMap != null && !channelMap.isEmpty()) {

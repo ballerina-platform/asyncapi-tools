@@ -1,0 +1,132 @@
+asyncapi: 3.0.0
+info:
+  title: Websockets
+  version: 0.0.0
+servers:
+  development:
+    host: "{server}:{port}"
+    protocol: ws
+    protocolVersion: "13"
+    pathname: /websockets
+    variables:
+      server:
+        default: ws://localhost
+      port:
+        default: "9090"
+channels:
+  root:
+    address: /
+    messages:
+      ConnectionInit:
+        $ref: "#/components/messages/ConnectionInit"
+      Subscription:
+        $ref: "#/components/messages/Subscription"
+      ConnectionAck:
+        $ref: "#/components/messages/ConnectionAck"
+      Next:
+        $ref: "#/components/messages/Next"
+      Complete:
+        $ref: "#/components/messages/Complete"
+operations:
+  sendConnectionInit:
+    action: send
+    channel:
+      $ref: "#/channels/root"
+    messages:
+    - $ref: "#/channels/root/messages/ConnectionInit"
+  sendSubscription:
+    action: send
+    channel:
+      $ref: "#/channels/root"
+    messages:
+    - $ref: "#/channels/root/messages/Subscription"
+  receiveConnectionAck:
+    action: receive
+    channel:
+      $ref: "#/channels/root"
+    messages:
+    - $ref: "#/channels/root/messages/ConnectionAck"
+  receiveNext:
+    action: receive
+    channel:
+      $ref: "#/channels/root"
+    messages:
+    - $ref: "#/channels/root/messages/Next"
+  receiveComplete:
+    action: receive
+    channel:
+      $ref: "#/channels/root"
+    messages:
+    - $ref: "#/channels/root/messages/Complete"
+components:
+  schemas:
+    ConnectionAck:
+      type: object
+      required:
+      - event
+      - payload
+      properties:
+        event:
+          type: string
+        payload:
+          type: string
+    Next:
+      type: object
+      required:
+      - id
+      - event
+      - payload
+      properties:
+        id:
+          type: string
+        event:
+          type: string
+        payload:
+          type: string
+    Complete:
+      type: object
+      required:
+      - id
+      - event
+      properties:
+        id:
+          type: string
+        event:
+          type: string
+  messages:
+    ConnectionAck:
+      payload:
+        $ref: "#/components/schemas/ConnectionAck"
+    ConnectionInit:
+      payload:
+        type: object
+        required:
+        - event
+        properties:
+          event:
+            type: string
+            const: connection_init
+      x-response:
+        $ref: "#/components/messages/ConnectionAck"
+      x-response-type: simple-rpc
+    Next:
+      payload:
+        $ref: "#/components/schemas/Next"
+    Complete:
+      payload:
+        $ref: "#/components/schemas/Complete"
+    Subscription:
+      payload:
+        type: object
+        required:
+        - event
+        properties:
+          event:
+            type: string
+            const: subscription
+      x-response:
+        oneOf:
+        - $ref: "#/components/messages/Next"
+        - $ref: "#/components/messages/Complete"
+      x-response-type: server-streaming
+x-dispatcherKey: event

@@ -20,6 +20,7 @@ package io.ballerina.asyncapi.generator.ws.client.node.client;
 import com.fasterxml.jackson.databind.JsonNode;
 import io.ballerina.asyncapi.core.api.AsyncApiSpec;
 import io.ballerina.asyncapi.generator.ws.client.generator.DocCommentsGenerator;
+import io.ballerina.asyncapi.generator.ws.client.generator.RemoteFunctionReturnTypeGenerator;
 import io.ballerina.asyncapi.generator.ws.client.utils.CodegenUtils;
 import io.ballerina.compiler.syntax.tree.FunctionBodyNode;
 import io.ballerina.compiler.syntax.tree.FunctionDefinitionNode;
@@ -142,13 +143,15 @@ public class ClientWorkerGenerator {
     private static final String WRITE_PIPE_ERR_MSG = "\"PipeError: Failed to consume message from the pipe\", %s";
     private static final String WRITE_WS_ERR_MSG = "\"WsError: Failed to write message to the client\", %s";
     private static final String READ_WS_ERR_MSG = "\"WsError: Failed to read message from the client\", %s";
-    private static final String READ_PIPE_ERR_MSG = "\"PipeError: Failed to produce message to the pipe\", %s";
 
     // Misc string fragments
     private static final String SELF = "self";
     private static final String NOT = "!";
     private static final String IS = " is ";
     private static final String MESSAGE_WITH_ID_VAR = "messageWithId";
+    private static final String FRAME_VAR = "frame";
+    private static final String PARSED_MESSAGE_VAR = "parsedMessage";
+    private static final String FRAME_PIPE_ERR_VAR = "framePipeErr";
     private static final String PIPE_COLON_PIPE = "pipe:Pipe";
     private static final String PIPE_COLON_ERROR = "pipe:Error";
     private static final String OP_TIMEOUT = "\"Operation has timed out\"";
@@ -157,6 +160,7 @@ public class ClientWorkerGenerator {
     private final AsyncApiSpec asyncApiSpec;
     private final String dispatcherKey;
     private final String dispatcherStreamId;
+    private final boolean routeFramesWithoutDispatcher;
 
     /**
      * Creates a new client worker generator.
@@ -166,9 +170,24 @@ public class ClientWorkerGenerator {
      * @param dispatcherStreamId optional stream ID field name (may be {@code null})
      */
     public ClientWorkerGenerator(AsyncApiSpec asyncApiSpec, String dispatcherKey, String dispatcherStreamId) {
+        this(asyncApiSpec, dispatcherKey, dispatcherStreamId, false);
+    }
+
+    /**
+     * Creates a new client worker generator.
+     *
+     * @param asyncApiSpec                  the parsed AsyncAPI spec
+     * @param dispatcherKey                 the dispatcher key field name
+     * @param dispatcherStreamId            optional stream ID field name (may be {@code null})
+     * @param routeFramesWithoutDispatcher  whether some reply has no dispatcher key, so the reader must keep
+     *                                      such frames for it instead of closing the connection
+     */
+    public ClientWorkerGenerator(AsyncApiSpec asyncApiSpec, String dispatcherKey, String dispatcherStreamId,
+                                 boolean routeFramesWithoutDispatcher) {
         this.asyncApiSpec = asyncApiSpec;
         this.dispatcherKey = dispatcherKey;
         this.dispatcherStreamId = dispatcherStreamId;
+        this.routeFramesWithoutDispatcher = routeFramesWithoutDispatcher;
     }
 
     /**
@@ -240,38 +259,21 @@ public class ClientWorkerGenerator {
     public FunctionDefinitionNode buildStartMessageReading() {
         List<StatementNode> whileStatements = new ArrayList<>();
         whileStatements.add(getIsActiveCheck());
-
-        // Message|websocket:Error message = self.clientEp->readMessage(Message);
-        VariableDeclarationNode responseMessage = createVariableDeclarationNode(createEmptyNodeList(), null,
-                createTypedBindingPatternNode(
-                        createUnionTypeDescriptorNode(
-                                createSimpleNameReferenceNode(createIdentifierToken(MESSAGE_TYPE)),
-                                createToken(PIPE_TOKEN),
-                                NodeParser.parseTypeDescriptor(WS_ERROR_TYPE)),
-                        createFieldBindingPatternVarnameNode(
-                                createSimpleNameReferenceNode(createIdentifierToken(MESSAGE_VAR)))),
-                EQUAL,
-                createMethodCallExpressionNode(
-                        createFieldAccessExpressionNode(
-                                createSimpleNameReferenceNode(createIdentifierToken(SELF)), DOT,
-                                createSimpleNameReferenceNode(createIdentifierToken(CLIENT_EP))),
-                        RIGHT_ARROW,
-                        createSimpleNameReferenceNode(createIdentifierToken(READ_MESSAGE)),
-                        OPEN_PAREN,
-                        createSeparatedNodeList(createIdentifierToken(MESSAGE_TYPE)),
-                        CLOSE_PAREN),
-                SEMICOLON);
-        whileStatements.add(responseMessage);
-        whileStatements.add(getIsWsError(READ_WS_ERR_MSG, MESSAGE_VAR));
+        if (routeFramesWithoutDispatcher) {
+            addFrameWithoutDispatcherRoute(whileStatements);
+        } else {
+            addMessageRead(whileStatements);
+        }
 
         String escapedDispKey = CodegenUtils.escapeIdentifier(dispatcherKey);
         if (dispatcherStreamId != null) {
             addStreamIdBranch(whileStatements, escapedDispKey);
         } else {
-            // string pipeName = self.getPipeName(message.<dispKey>);
+            // string? pipeName = self.getPipeName(message.<dispKey>);
             whileStatements.add(NodeParser.parseStatement(
-                    "string " + PIPE_NAME_VAR + " = self." + GET_PIPE_NAME
+                    "string? " + PIPE_NAME_VAR + " = self." + GET_PIPE_NAME
                     + "(" + MESSAGE_VAR + "." + escapedDispKey + ");"));
+            whileStatements.add(getDropUnroutedStatement(escapedDispKey));
             // pipe:Pipe pipe = self.pipes.getPipe(pipeName);
             VariableDeclarationNode pipesVar = createVariableDeclarationNode(createEmptyNodeList(), null,
                     createTypedBindingPatternNode(
@@ -307,11 +309,81 @@ public class ClientWorkerGenerator {
                         CLOSE_PAREN),
                 SEMICOLON);
         whileStatements.add(pipeErrVar);
-        whileStatements.add(getIsPipeError(PIPE_ERR_VAR, READ_PIPE_ERR_MSG, false));
+        whileStatements.add(getDropFrameStatement(PIPE_ERR_VAR));
 
         return buildWorkerFunction(START_MESSAGE_READING, READ_MESSAGE,
                 getDocCommentsForWorker(X_BALLERINA_MESSAGE_READ_DESCRIPTION, START_MESSAGE_READING_DESCRIPTION),
                 whileStatements);
+    }
+
+    /**
+     * Reads each frame straight into {@code Message}, closing the connection when it is not one.
+     */
+    private static void addMessageRead(List<StatementNode> whileStatements) {
+        // Message|websocket:Error message = self.clientEp->readMessage(Message);
+        VariableDeclarationNode responseMessage = createVariableDeclarationNode(createEmptyNodeList(), null,
+                createTypedBindingPatternNode(
+                        createUnionTypeDescriptorNode(
+                                createSimpleNameReferenceNode(createIdentifierToken(MESSAGE_TYPE)),
+                                createToken(PIPE_TOKEN),
+                                NodeParser.parseTypeDescriptor(WS_ERROR_TYPE)),
+                        createFieldBindingPatternVarnameNode(
+                                createSimpleNameReferenceNode(createIdentifierToken(MESSAGE_VAR)))),
+                EQUAL,
+                createMethodCallExpressionNode(
+                        createFieldAccessExpressionNode(
+                                createSimpleNameReferenceNode(createIdentifierToken(SELF)), DOT,
+                                createSimpleNameReferenceNode(createIdentifierToken(CLIENT_EP))),
+                        RIGHT_ARROW,
+                        createSimpleNameReferenceNode(createIdentifierToken(READ_MESSAGE)),
+                        OPEN_PAREN,
+                        createSeparatedNodeList(createIdentifierToken(MESSAGE_TYPE)),
+                        CLOSE_PAREN),
+                SEMICOLON);
+        whileStatements.add(responseMessage);
+        whileStatements.add(getIsWsError(READ_WS_ERR_MSG, MESSAGE_VAR));
+    }
+
+    /**
+     * Reads the frame as text. One that isn't a JSON message with the dispatcher key goes to its own pipe as is.
+     */
+    private static void addFrameWithoutDispatcherRoute(List<StatementNode> whileStatements) {
+        whileStatements.add(NodeParser.parseStatement(String.format("string|%s %s = self.%s->%s(string);",
+                WS_ERROR_TYPE, FRAME_VAR, CLIENT_EP, READ_MESSAGE)));
+        whileStatements.add(getIsWsError(READ_WS_ERR_MSG, FRAME_VAR));
+        whileStatements.add(NodeParser.parseStatement(String.format("%s|error %s = %s.fromJsonStringWithType();",
+                MESSAGE_TYPE, PARSED_MESSAGE_VAR, FRAME_VAR)));
+        List<StatementNode> ifStmts = new ArrayList<>();
+        ifStmts.add(NodeParser.parseStatement(String.format("%s? %s = self.%s.%s(\"%s\").%s(%s, %s);",
+                PIPE_COLON_ERROR, FRAME_PIPE_ERR_VAR, PIPES, GET_PIPE,
+                RemoteFunctionReturnTypeGenerator.NO_DISPATCHER_KEY_PIPE, PRODUCE, FRAME_VAR, DEFAULT_TIMEOUT)));
+        ifStmts.add(getDropFrameStatement(FRAME_PIPE_ERR_VAR));
+        ifStmts.add(NodeParser.parseStatement(CONTINUE_STMT));
+        whileStatements.add(createIfElseStatementNode(createToken(IF_KEYWORD),
+                NodeParser.parseExpression(PARSED_MESSAGE_VAR + " is error"),
+                createBlockStatementNode(OPEN_BRACE, createNodeList(ifStmts), CLOSE_BRACE),
+                null));
+        whileStatements.add(NodeParser.parseStatement(String.format("%s %s = %s;",
+                MESSAGE_TYPE, MESSAGE_VAR, PARSED_MESSAGE_VAR)));
+    }
+
+    /**
+     * A frame its pipe can't take within the wait is logged and dropped. The pipe is full because no call is reading
+     * it, and closing the connection for that would end every other call too.
+     */
+    private static StatementNode getDropFrameStatement(String errVar) {
+        return NodeParser.parseStatement(String.format("if %s is %s { log:printWarn(\"Dropped a message because no "
+                + "call is reading its pipe\", 'error = %s); continue; }", errVar, PIPE_COLON_ERROR, errVar));
+    }
+
+    /**
+     * A frame whose dispatcher value has no pipe is logged and dropped, since no call waits for it. Queuing it on a
+     * pipe nobody reads would fill that pipe and end with the reader closing the connection.
+     */
+    private static StatementNode getDropUnroutedStatement(String escapedDispKey) {
+        return NodeParser.parseStatement(String.format(
+                "if %s is () { log:printWarn(\"Dropped a message that no call is waiting for\", "
+                        + "dispatcherValue = %s.%s); continue; }", PIPE_NAME_VAR, MESSAGE_VAR, escapedDispKey));
     }
 
     private void addStreamIdBranch(List<StatementNode> whileStatements, String escapedDispKey) {
@@ -323,7 +395,7 @@ public class ClientWorkerGenerator {
                 MESSAGE_WITH_ID + "|error " + MESSAGE_WITH_ID_VAR + " = "
                 + MESSAGE_VAR + ".cloneWithType(" + MESSAGE_WITH_ID + ");"));
         StatementNode getPipeNameStmt = NodeParser.parseStatement(
-                "string " + PIPE_NAME_VAR + " = self." + GET_PIPE_NAME
+                "string? " + PIPE_NAME_VAR + " = self." + GET_PIPE_NAME
                 + "(" + MESSAGE_VAR + "." + escapedDispKey + ");");
         IfElseStatementNode pipeConditional = createIfElseStatementNode(createToken(IF_KEYWORD),
                 NodeParser.parseExpression(MESSAGE_WITH_ID_VAR + IS + MESSAGE_WITH_ID),
@@ -334,7 +406,7 @@ public class ClientWorkerGenerator {
                         CLOSE_BRACE),
                 createElseBlockNode(createToken(ELSE_KEYWORD),
                         createBlockStatementNode(OPEN_BRACE,
-                                createNodeList(getPipeNameStmt,
+                                createNodeList(getPipeNameStmt, getDropUnroutedStatement(escapedDispKey),
                                         NodeParser.parseStatement(PIPE_VAR + " = self." + PIPES
                                                 + "." + GET_PIPE + "(" + PIPE_NAME_VAR + ");")),
                                 CLOSE_BRACE)));
@@ -385,6 +457,7 @@ public class ClientWorkerGenerator {
 
     private static IfElseStatementNode getIsWsError(String errMsg, String errVar) {
         List<StatementNode> ifStmts = new ArrayList<>();
+        ifStmts.add(getStopIfClosedStatement());
         ifStmts.add(NodeParser.parseStatement(String.format(LOG_PRINT_ERR, String.format(errMsg, errVar))));
         ifStmts.add(NodeParser.parseStatement("self." + ATTEMPT_TO_CLOSE_CONNECTION + "();"));
         ifStmts.add(createReturnStatementNode(createToken(RETURN_KEYWORD), null, SEMICOLON));
@@ -404,6 +477,7 @@ public class ClientWorkerGenerator {
                             CLOSE_BRACE),
                     null));
         }
+        ifStmts.add(getStopIfClosedStatement());
         ifStmts.add(NodeParser.parseStatement(String.format(LOG_PRINT_ERR, String.format(errMsg, errVar))));
         ifStmts.add(NodeParser.parseStatement("self." + ATTEMPT_TO_CLOSE_CONNECTION + "();"));
         ifStmts.add(createReturnStatementNode(createToken(RETURN_KEYWORD), null, SEMICOLON));
@@ -411,6 +485,14 @@ public class ClientWorkerGenerator {
                 createSimpleNameReferenceNode(createIdentifierToken(errVar + IS + PIPE_ERROR_TYPE)),
                 createBlockStatementNode(OPEN_BRACE, createNodeList(ifStmts), CLOSE_BRACE),
                 null);
+    }
+
+    /**
+     * After a deliberate close the socket and pipes report errors that are expected, so a worker stops quietly
+     * instead of logging them and closing again.
+     */
+    private static StatementNode getStopIfClosedStatement() {
+        return NodeParser.parseStatement("lock { if !self." + IS_ACTIVE + " { return; } }");
     }
 
     private MetadataNode getDocCommentsForWorker(String extensionKey, String defaultDesc) {
