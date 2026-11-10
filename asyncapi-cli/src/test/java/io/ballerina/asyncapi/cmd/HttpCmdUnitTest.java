@@ -135,6 +135,90 @@ public class HttpCmdUnitTest extends CmdTestBase {
         }
     }
 
+    @Test(description = "A trigger at a package root gets CompilerPlugin.toml and a [[tool.asyncapi]] entry, no jar")
+    public void testTriggerGetsCompilerPlugin() throws Exception {
+        Path pkg = newPackage("plugin");
+        generateTiny(pkg, "-o", pkg.toString());
+        Assert.assertTrue(getErr().isEmpty(), "Err: " + getErr());
+        String toml = Files.readString(pkg.resolve("CompilerPlugin.toml"));
+        Assert.assertTrue(toml.contains("id = \"asyncapi-compiler-plugin\""), toml);
+        Assert.assertTrue(toml.contains(
+                "path = \"target/tool-cache/trigger-plugin/asyncapi-trigger-compiler-plugin.jar\""), toml);
+        Assert.assertFalse(Files.exists(pkg.resolve("compiler-plugin")), "The jar stays in the tool");
+        String ballerinaToml = Files.readString(pkg.resolve("Ballerina.toml"));
+        Assert.assertTrue(ballerinaToml.contains("[[tool.asyncapi]]"), ballerinaToml);
+        Assert.assertTrue(ballerinaToml.contains("id = \"trigger-plugin\""), ballerinaToml);
+        Assert.assertTrue(ballerinaToml.contains("version = \"" + TriggerCompilerPlugin.toolVersion() + "\""),
+                ballerinaToml);
+        Assert.assertTrue(ballerinaToml.startsWith("[package]\norg = \"demo\""), "The rest is kept: " + ballerinaToml);
+        Assert.assertTrue(getOut().contains("-- CompilerPlugin.toml"), "Out: " + getOut());
+        Assert.assertTrue(getOut().contains("-- Ballerina.toml: [[tool.asyncapi]]"), "Out: " + getOut());
+    }
+
+    @Test(description = "Generating again keeps one [[tool.asyncapi]] entry and moves it to this tool's version")
+    public void testRegenerationUpdatesTheToolEntry() throws Exception {
+        Path pkg = newPackage("regen");
+        Files.writeString(pkg.resolve("Ballerina.toml"), Files.readString(pkg.resolve("Ballerina.toml"))
+                + "\n[[tool.asyncapi]]\nid = \"trigger-plugin\"\nversion = \"0.0.1\"\n");
+        generateTiny(pkg, "-o", pkg.toString());
+        generateTiny(pkg, "-o", pkg.toString());
+        String ballerinaToml = Files.readString(pkg.resolve("Ballerina.toml"));
+        Assert.assertEquals(ballerinaToml.split("\\[\\[tool\\.asyncapi]]", -1).length - 1, 1, ballerinaToml);
+        Assert.assertTrue(ballerinaToml.contains("version = \"" + TriggerCompilerPlugin.toolVersion() + "\""),
+                ballerinaToml);
+        Assert.assertFalse(ballerinaToml.contains("0.0.1"), ballerinaToml);
+    }
+
+    @Test(description = "When Ballerina.toml can't be updated, the error gives the entry to add by hand")
+    public void testToolEntryFailureNamesTheMissingEntry() throws Exception {
+        Path pkg = newPackage("readonly");
+        Path ballerinaToml = pkg.resolve("Ballerina.toml");
+        Assert.assertTrue(ballerinaToml.toFile().setWritable(false), "Could not make Ballerina.toml read-only");
+        try {
+            generateTiny(pkg, "-o", pkg.toString());
+        } finally {
+            ballerinaToml.toFile().setWritable(true);
+        }
+        Assert.assertTrue(Files.exists(pkg.resolve("CompilerPlugin.toml")));
+        Assert.assertTrue(getErr().contains("Ballerina.toml could not be updated"), "Err: " + getErr());
+        Assert.assertTrue(getErr().contains("[[tool.asyncapi]]"), "Err: " + getErr());
+        Assert.assertTrue(getErr().contains("version = \"" + TriggerCompilerPlugin.toolVersion() + "\""),
+                "Err: " + getErr());
+    }
+
+    @Test(description = "--dry-run reports the [[tool.asyncapi]] entry without changing Ballerina.toml")
+    public void testDryRunReportsTheToolEntry() throws Exception {
+        Path pkg = newPackage("dryentry");
+        String before = Files.readString(pkg.resolve("Ballerina.toml"));
+        generateTiny(pkg, "-o", pkg.toString(), "--dry-run");
+        Assert.assertTrue(getOut().contains("update     Ballerina.toml"), "Out: " + getOut());
+        Assert.assertEquals(Files.readString(pkg.resolve("Ballerina.toml")), before);
+    }
+
+    @Test(description = "A package with another compiler plugin keeps it, with a warning that ours was not added")
+    public void testOtherCompilerPluginIsKept() throws Exception {
+        Path pkg = newPackage("otherplugin");
+        String theirs = "[plugin]\nid = \"their-plugin\"\nclass = \"org.example.Plugin\"\n";
+        Files.writeString(pkg.resolve("CompilerPlugin.toml"), theirs);
+        generateTiny(pkg, "-o", pkg.toString(), "--force");
+        Assert.assertTrue(getErr().contains("already has a compiler plugin (their-plugin)"), "Err: " + getErr());
+        Assert.assertEquals(Files.readString(pkg.resolve("CompilerPlugin.toml")), theirs);
+        Assert.assertFalse(Files.readString(pkg.resolve("Ballerina.toml")).contains("[[tool.asyncapi]]"),
+                "No tool entry for a plugin that wasn't added");
+        Assert.assertTrue(Files.exists(pkg.resolve("listener.bal")), "The code should still be generated");
+    }
+
+    @Test(description = "A trigger generated into a module gets no plugin, as the plugin belongs to the package")
+    public void testModuleGetsNoCompilerPlugin() throws Exception {
+        Path pkg = newPackage("moduleplugin");
+        generateTiny(pkg, "-o", pkg.toString(), "--module", "events");
+        Assert.assertTrue(getErr().isEmpty(), "Err: " + getErr());
+        Assert.assertTrue(Files.exists(pkg.resolve("modules/events/listener.bal")), "The code should be generated");
+        Assert.assertFalse(Files.exists(pkg.resolve("CompilerPlugin.toml")));
+        Assert.assertFalse(Files.exists(pkg.resolve("modules/events/CompilerPlugin.toml")));
+        Assert.assertFalse(Files.readString(pkg.resolve("Ballerina.toml")).contains("[[tool.asyncapi]]"));
+    }
+
     @Test(description = "Running again with nothing changed is quiet and writes nothing")
     public void testRerunIsUnchanged() throws Exception {
         Path pkg = newPackage("rerun");
@@ -175,7 +259,7 @@ public class HttpCmdUnitTest extends CmdTestBase {
         // --with-tests so the run would also create the tests folder
         generateTiny(pkg, "-o", pkg.toString(), "--dry-run", "--with-tests");
         Assert.assertTrue(getOut().startsWith("Dry run: no files were written."), "Out: " + getOut());
-        Assert.assertTrue(getOut().contains("5 to create, 0 to overwrite, 0 to skip, 0 unchanged."),
+        Assert.assertTrue(getOut().contains("6 to create, 0 to overwrite, 0 to skip, 0 unchanged."),
                 "Out: " + getOut());
         Assert.assertTrue(getOut().contains("create"), "Out: " + getOut());
         Assert.assertFalse(Files.exists(pkg.resolve("types.bal")), "A dry run must not write");
@@ -199,12 +283,12 @@ public class HttpCmdUnitTest extends CmdTestBase {
         generateTiny(pkg, "-o", pkg.toString(), "--dry-run");
         Assert.assertTrue(getOut().contains("skip"), "Out: " + getOut());
         Assert.assertTrue(getOut().contains("(already exists, use --force to overwrite)"), "Out: " + getOut());
-        Assert.assertTrue(getOut().contains("0 to create, 0 to overwrite, 1 to skip, 3 unchanged."),
+        Assert.assertTrue(getOut().contains("0 to create, 0 to overwrite, 1 to skip, 4 unchanged."),
                 "Out: " + getOut());
 
         generateTiny(pkg, "-o", pkg.toString(), "--dry-run", "--force");
         Assert.assertTrue(getOut().contains("overwrite"), "Out: " + getOut());
-        Assert.assertTrue(getOut().contains("0 to create, 1 to overwrite, 0 to skip, 3 unchanged."),
+        Assert.assertTrue(getOut().contains("0 to create, 1 to overwrite, 0 to skip, 4 unchanged."),
                 "Out: " + getOut());
         Assert.assertEquals(Files.readString(pkg.resolve("types.bal")), "// hand edit");
     }

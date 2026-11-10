@@ -251,8 +251,8 @@ directoryBuild.dependsOn ":checkstyle:processTestResources"
 directoryBuild.dependsOn ":asyncapi-core:build"
 directoryBuild.dependsOn ":asyncapi-generator:build"
 
-// The trigger template's plugin is checked with the shared rules here; trigger repos build it without them.
-project(':trigger-template-compiler-plugin') {
+// The trigger plugin is checked with the shared rules; bal asyncapi copies its jar into generated triggers.
+project(':asyncapi-trigger-plugin') {
     dependencies {
         checkstyle project(':checkstyle')
         checkstyle "com.puppycrawl.tools:checkstyle:${checkstylePluginVersion}"
@@ -269,7 +269,7 @@ project(':trigger-template-compiler-plugin') {
     }
 }
 
-directoryBuild.dependsOn ":trigger-template-compiler-plugin:build"
+directoryBuild.dependsOn ":asyncapi-trigger-plugin:build"
 directoryBuild.dependsOn ":shadowJar"
 directoryBuild.dependsOn ":asyncapi-tool:jBallerinaPack"
 directoryBuild.dependsOn ":asyncapi-tool:generatePomFileForMavenPublication"
