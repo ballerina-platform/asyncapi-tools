@@ -31,6 +31,7 @@
             <class name="io.ballerina.asyncapi.generator.http.utils.FormBodiesTest"/>
             <class name="io.ballerina.asyncapi.generator.http.utils.ChannelRoutesTest"/>
             <class name="io.ballerina.asyncapi.generator.ws.client.WsClientCodeGeneratorIntegrationTest"/>
+            <class name="io.ballerina.asyncapi.generator.ws.client.WsClientRoundTripTest"/>
             <class name="io.ballerina.asyncapi.generator.ws.client.extractor.DispatcherKeyExtractorTest"/>
             <class name="io.ballerina.asyncapi.generator.ws.client.extractor.DispatcherStreamIdExtractorTest"/>
             <class name="io.ballerina.asyncapi.generator.ws.client.extractor.ChannelExtractorTest"/>

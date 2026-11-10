@@ -17,6 +17,8 @@
  */
 package io.ballerina.asyncapi.core;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.TextNode;
 import io.ballerina.asyncapi.core.api.AsyncApiSpec;
 import io.ballerina.asyncapi.core.model.channel.AsyncApiChannel;
 import io.ballerina.asyncapi.core.model.component.AsyncApiComponent;
@@ -33,6 +35,7 @@ import org.testng.annotations.Test;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -638,5 +641,67 @@ public class AsyncApiParserIntegrationTest {
                 + "\"paths\":{}}";
         Assert.assertThrows(AsyncApiParserException.class,
                 () -> AsyncApiParser.parseFromJsonString(openApiJson));
+    }
+
+    @Test
+    void parseSchema_mapsAnInlineSchema() throws IOException {
+        AsyncApiSchema schema = AsyncApiParser.parseSchema(new ObjectMapper().readTree(
+                "{\"type\":\"array\",\"items\":{\"$ref\":\"#/components/schemas/User\"}}"));
+        Assert.assertEquals(schema.type(), "array");
+        Assert.assertEquals(((AsyncApiSchema) schema.items()).name(), "User");
+    }
+
+    @Test
+    void parseSchema_returnsNullForANonObject() {
+        Assert.assertNull(AsyncApiParser.parseSchema(TextNode.valueOf("string")));
+    }
+
+    @Test
+    void parseSchema_keepsReferencesInCompositions() throws IOException {
+        AsyncApiSchema schema = AsyncApiParser.parseSchema(new ObjectMapper().readTree(
+                "{\"oneOf\":[{\"$ref\":\"#/components/schemas/User\"},{\"type\":\"string\"}]}"));
+        Assert.assertEquals(schema.oneOf().get(0).name(), "User");
+        Assert.assertEquals(schema.oneOf().get(1).type(), "string");
+    }
+
+    @Test
+    void parseSchema_mapsTupleItems() throws IOException {
+        AsyncApiSchema schema = AsyncApiParser.parseSchema(new ObjectMapper().readTree(
+                "{\"type\":\"array\",\"items\":[{\"type\":\"string\"},{\"$ref\":\"#/components/schemas/User\"}]}"));
+        Assert.assertTrue(schema.items() instanceof List<?>, String.valueOf(schema.items()));
+        List<?> items = (List<?>) schema.items();
+        Assert.assertEquals(((AsyncApiSchema) items.get(0)).type(), "string");
+        Assert.assertEquals(((AsyncApiSchema) items.get(1)).name(), "User");
+    }
+
+    @Test
+    void parseSchema_keepsTuplePositionsForBooleanItems() throws IOException {
+        AsyncApiSchema schema = AsyncApiParser.parseSchema(new ObjectMapper().readTree(
+                "{\"type\":\"array\",\"items\":[true,{\"type\":\"string\"},false]}"));
+        List<?> items = (List<?>) schema.items();
+        Assert.assertEquals(items.size(), 3, String.valueOf(items));
+        Assert.assertNull(((AsyncApiSchema) items.get(0)).type());
+        Assert.assertEquals(((AsyncApiSchema) items.get(1)).type(), "string");
+        Assert.assertNotNull(((AsyncApiSchema) items.get(2)).not(), "false allows no value");
+    }
+
+    @Test
+    void parseSchema_decodesEscapedReferenceTokens() throws IOException {
+        // A component key containing / or ~ is written as ~1 or ~0 in a JSON Pointer
+        AsyncApiSchema schema = AsyncApiParser.parseSchema(new ObjectMapper().readTree(
+                "{\"$ref\":\"#/components/schemas/Order~1Created~0v2\"}"));
+        Assert.assertEquals(schema.name(), "Order/Created~v2");
+    }
+
+    @Test
+    void parseSchema_keepsNullable() throws IOException {
+        AsyncApiSchema schema = AsyncApiParser.parseSchema(new ObjectMapper().readTree(
+                "{\"type\":\"object\",\"nullable\":true,\"properties\":{"
+                        + "\"name\":{\"type\":\"string\",\"nullable\":true},"
+                        + "\"user\":{\"$ref\":\"#/components/schemas/User\",\"nullable\":true}}}"));
+        Assert.assertEquals(schema.nullable(), Boolean.TRUE);
+        Assert.assertEquals(schema.properties().get("name").nullable(), Boolean.TRUE);
+        Assert.assertEquals(schema.properties().get("user").name(), "User");
+        Assert.assertEquals(schema.properties().get("user").nullable(), Boolean.TRUE);
     }
 }
