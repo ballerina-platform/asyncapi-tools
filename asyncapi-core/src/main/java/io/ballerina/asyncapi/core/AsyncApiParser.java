@@ -24,8 +24,6 @@ import java.util.stream.Collectors;
 
 public final class AsyncApiParser {
 
-    private static final String DOCUMENT_ID_PROBLEM = "Document ID should be a valid URI";
-
     private AsyncApiParser() {
 
     }
@@ -67,6 +65,8 @@ public final class AsyncApiParser {
     public static AsyncApiSchema parseSchema(JsonNode schemaNode) {
         return SchemaMapper.mapFromJsonNode(schemaNode);
     }
+
+    private static final String DOCUMENT_ID_PROBLEM = "Document ID should be a valid URI";
 
     private static void validateDocument(Document document) throws AsyncApiParserException {
         List<ValidationProblem> problems = Library.validate(document, null);
