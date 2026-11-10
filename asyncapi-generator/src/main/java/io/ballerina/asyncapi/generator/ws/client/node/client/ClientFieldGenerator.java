@@ -19,6 +19,7 @@ package io.ballerina.asyncapi.generator.ws.client.node.client;
 
 import io.ballerina.asyncapi.generator.GeneratorException;
 import io.ballerina.asyncapi.generator.ws.client.generator.BallerinaAuthConfigGenerator;
+import io.ballerina.asyncapi.generator.ws.client.utils.CodegenUtils;
 import io.ballerina.compiler.syntax.tree.NodeParser;
 import io.ballerina.compiler.syntax.tree.ObjectFieldNode;
 
@@ -41,10 +42,12 @@ public class ClientFieldGenerator {
     private static final String BOOLEAN = "boolean";
     private static final String IS_ACTIVE = "isActive";
     private static final String RESPONSE_MAP = "responseMap";
+    private static final String DISPATCH_VALUE_MAP = "dispatchValueMap";
 
     private final boolean isStreamPresent;
     private final BallerinaAuthConfigGenerator authGen;
     private final Map<String, String> responseMap;
+    private final Map<String, String> dispatchValueMap;
 
     /**
      * Creates a new client field generator.
@@ -55,9 +58,23 @@ public class ClientFieldGenerator {
      */
     public ClientFieldGenerator(boolean isStreamPresent, BallerinaAuthConfigGenerator authGen,
                                  Map<String, String> responseMap) {
+        this(isStreamPresent, authGen, responseMap, Map.of());
+    }
+
+    /**
+     * Creates a new client field generator that also routes fixed dispatcher values.
+     *
+     * @param isStreamPresent  whether streaming return types exist
+     * @param authGen          auth config generator
+     * @param responseMap      response type to pipe name map
+     * @param dispatchValueMap fixed dispatcher value to pipe name map
+     */
+    public ClientFieldGenerator(boolean isStreamPresent, BallerinaAuthConfigGenerator authGen,
+                                 Map<String, String> responseMap, Map<String, String> dispatchValueMap) {
         this.isStreamPresent = isStreamPresent;
         this.authGen = authGen;
         this.responseMap = responseMap;
+        this.dispatchValueMap = dispatchValueMap;
     }
 
     /**
@@ -87,25 +104,29 @@ public class ClientFieldGenerator {
             fields.add(apiKeyField);
         }
 
-        fields.add(buildResponseMapField());
+        fields.add(buildMapField(RESPONSE_MAP, responseMap));
+        fields.add(buildMapField(DISPATCH_VALUE_MAP, dispatchValueMap));
         return fields;
     }
 
     /**
-     * Builds the {@code responseMap} field node with its literal initializer.
+     * Builds a {@code readonly & map<string>} field node with the given entries as its literal initializer.
      *
+     * @param name    the field name
+     * @param entries the map entries
      * @return the object field node
      */
-    private ObjectFieldNode buildResponseMapField() {
-        if (responseMap.isEmpty()) {
+    private static ObjectFieldNode buildMapField(String name, Map<String, String> entries) {
+        if (entries.isEmpty()) {
             return (ObjectFieldNode) NodeParser.parseObjectMember(
-                    String.format("private final readonly & map<string> %s = {};", RESPONSE_MAP));
+                    String.format("private final readonly & map<string> %s = {};", name));
         }
         StringBuilder mapExpr = new StringBuilder("{\n");
-        Iterator<Map.Entry<String, String>> it = responseMap.entrySet().iterator();
+        Iterator<Map.Entry<String, String>> it = entries.entrySet().iterator();
         while (it.hasNext()) {
             Map.Entry<String, String> entry = it.next();
-            mapExpr.append("    \"").append(entry.getKey()).append("\": \"").append(entry.getValue()).append("\"");
+            mapExpr.append("    ").append(CodegenUtils.toStringLiteral(entry.getKey())).append(": ")
+                    .append(CodegenUtils.toStringLiteral(entry.getValue()));
             if (it.hasNext()) {
                 mapExpr.append(",\n");
             } else {
@@ -113,6 +134,6 @@ public class ClientFieldGenerator {
             }
         }
         return (ObjectFieldNode) NodeParser.parseObjectMember(
-                String.format("private final readonly & map<string> %s = %s;", RESPONSE_MAP, mapExpr));
+                String.format("private final readonly & map<string> %s = %s;", name, mapExpr));
     }
 }

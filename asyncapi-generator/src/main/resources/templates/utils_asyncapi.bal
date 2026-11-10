@@ -4,8 +4,10 @@ import xlibb/pipe;
 # PipesMap class to handle generated pipes
 public isolated class PipesMap {
     private final map<pipe:Pipe> pipes;
+    private final map<pipe:Pipe> turns;
     public isolated function init() {
         self.pipes = {};
+        self.turns = {};
     }
 
     public isolated function addPipe(string id, pipe:Pipe pipe) {
@@ -34,10 +36,54 @@ public isolated class PipesMap {
 
     public isolated function removePipes() returns error? {
         lock {
+            // Turns close first, so calls waiting for one end even if a reply pipe fails to close
+            foreach pipe:Pipe turn in self.turns {
+                pipe:Error? turnErr = turn.immediateClose();
+                if turnErr is pipe:Error {
+                    continue;
+                }
+            }
+            self.turns.removeAll();
+            // Frames still queued at a close have no call left to read them
             foreach pipe:Pipe pipe in self.pipes {
-                check pipe.gracefulClose();
+                check pipe.immediateClose();
             }
             self.pipes.removeAll();
+        }
+    }
+
+    # Waits until no other call is waiting for a reply on the given pipe.
+    #
+    # + id - The reply pipe
+    # + timeout - Seconds to wait for the turn
+    # + return - A `pipe:Error` if the wait times out or the connection closes
+    public isolated function takeTurn(string id, decimal timeout) returns pipe:Error? {
+        pipe:Pipe turn;
+        lock {
+            if !self.turns.hasKey(id) {
+                pipe:Pipe newTurn = new (1);
+                check newTurn.produce(true, timeout);
+                self.turns[id] = newTurn;
+            }
+            turn = self.turns.get(id);
+        }
+        boolean _ = check turn.consume(timeout);
+    }
+
+    # Lets the next call waiting on the given pipe send its request. A closed turn means the connection is closing,
+    # so there is no one to hand it to, and the caller keeps the reply it already has.
+    #
+    # + id - The reply pipe
+    public isolated function giveTurn(string id) {
+        pipe:Pipe? turn;
+        lock {
+            turn = self.turns[id];
+        }
+        if turn is pipe:Pipe {
+            pipe:Error? produceErr = turn.produce(true, 5);
+            if produceErr is pipe:Error {
+                return;
+            }
         }
     }
 }

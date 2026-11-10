@@ -18,6 +18,7 @@
 package io.ballerina.asyncapi.generator.ws.client.generator;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import io.ballerina.asyncapi.generator.ws.client.model.NamedPayloadSpec;
 import io.ballerina.asyncapi.generator.ws.client.utils.CodegenUtils;
 import io.ballerina.compiler.syntax.tree.FunctionBodyNode;
 import io.ballerina.compiler.syntax.tree.ImportDeclarationNode;
@@ -30,12 +31,14 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 
 import static io.ballerina.asyncapi.generator.ws.client.generator.ClientGenerator.ATTEMPT_TO_CLOSE_CONNECTION;
 import static io.ballerina.asyncapi.generator.ws.client.generator.ClientGenerator.IS_ACTIVE;
 import static io.ballerina.asyncapi.generator.ws.client.generator.ClientGenerator.PIPES;
 import static io.ballerina.asyncapi.generator.ws.client.generator.ClientGenerator.SERVER_STREAMING;
 import static io.ballerina.asyncapi.generator.ws.client.generator.ClientGenerator.WRITE_MESSAGE_QUEUE;
+import static io.ballerina.asyncapi.generator.ws.client.generator.ClientGenerator.X_RESPONSE;
 import static io.ballerina.asyncapi.generator.ws.client.generator.ClientGenerator.X_RESPONSE_TYPE;
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createNodeList;
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createToken;
@@ -60,6 +63,7 @@ public class RemoteFunctionBodyGenerator {
     private static final String PIPE_ERR_VAR = "pipeErr";
     private static final String PIPE_ERR_CAPITAL = "PipeError";
     private static final String RESPONSE_MESSAGE_VAR = "responseMessage";
+    private static final String REQUEST_VAR = "request";
     private static final String PIPE_SEP = "|";
     private static final String CONNECTION_CLOSED_MSG = "\"ConnectionError: Connection has been closed\"";
     private static final String DATABINDING_ERR_MSG = "\"DataBindingError: Error in cloning message\"";
@@ -67,13 +71,30 @@ public class RemoteFunctionBodyGenerator {
     private static final String CONSUMING = "consuming";
     private static final String PRODUCING = "producing";
     private static final String ERROR_PIPE_CLOSE = "Error in closing pipe.";
-    private static final String ERROR = "error";
     private static final String SELF_PIPES_GET_PIPE = "self.pipes.getPipe(%s)";
     private static final String PIPE_CLOSE_STATEMENT = "error? %s = self.pipes.removePipe(%s);";
     private static final String CREATE_UUID_STATEMENT = "%s.%s = uuid:createType1AsString();";
     private static final String STREAM_GENERATORS = "streamGenerators";
+    private static final String STRING = "string";
+    private static final String FROM_JSON_STRING_WITH_TYPE = "fromJsonStringWithType";
+    private static final String TURN_ERR_VAR = "turnErr";
+    private static final String TURN_WAIT_ERR_MSG =
+            "\"PipeError: Error in waiting for an earlier call to get its reply\"";
+
+    /**
+     * How a remote function turns the reply frame it consumes into its return type.
+     */
+    public enum ReplyFormat {
+        /** A JSON message with the dispatcher key, routed to its pipe by the key's value. */
+        KEYED,
+        /** A string reply, whose frame text is the value itself. */
+        TEXT,
+        /** Any other reply without the dispatcher key, sent as JSON text. */
+        JSON
+    }
 
     private final List<ImportDeclarationNode> imports;
+    private final String dispatcherKey;
 
     /**
      * Creates a new function body generator.
@@ -81,7 +102,19 @@ public class RemoteFunctionBodyGenerator {
      * @param imports the import declaration list (will be wrapped as unmodifiable)
      */
     public RemoteFunctionBodyGenerator(List<ImportDeclarationNode> imports) {
+        this(imports, null);
+    }
+
+    /**
+     * Creates a new function body generator that sets the dispatcher field of each request to the value its message
+     * fixes ({@link NamedPayloadSpec#X_DISPATCHER_VALUE}).
+     *
+     * @param imports       the import declaration list (will be wrapped as unmodifiable)
+     * @param dispatcherKey the dispatcher field name, or {@code null} to send requests as given
+     */
+    public RemoteFunctionBodyGenerator(List<ImportDeclarationNode> imports, String dispatcherKey) {
         this.imports = Collections.unmodifiableList(imports);
+        this.dispatcherKey = dispatcherKey;
     }
 
     /**
@@ -107,16 +140,40 @@ public class RemoteFunctionBodyGenerator {
     public String buildBodySource(Map<String, JsonNode> extensions, String requestType,
                                   String specDispatcherStreamId, boolean isSubscribe,
                                   String responseType, String pipeName) {
+        return buildBodySource(extensions, requestType, specDispatcherStreamId, isSubscribe, responseType, pipeName,
+                ReplyFormat.KEYED);
+    }
+
+    /**
+     * Builds the function body source text for a remote function whose reply has the given format.
+     *
+     * @param extensions             message-level extensions ({@code x-response-type}, etc.)
+     * @param requestType            the Ballerina request type name
+     * @param specDispatcherStreamId the dispatcher stream ID field name (may be {@code null})
+     * @param isSubscribe            {@code true} for receive-only (subscribe) operations
+     * @param responseType           the Ballerina response type name
+     * @param pipeName               the canonical pipe key for this response type (from the responseMap)
+     * @param replyFormat            how the reply frame becomes the response type
+     * @return function body source text (statements only, no braces)
+     */
+    public String buildBodySource(Map<String, JsonNode> extensions, String requestType,
+                                  String specDispatcherStreamId, boolean isSubscribe,
+                                  String responseType, String pipeName, ReplyFormat replyFormat) {
         StringBuilder sb = new StringBuilder();
-        if (extensions != null) {
+        JsonNode dispatchValueNode = extensions == null ? null : extensions.get(NamedPayloadSpec.X_DISPATCHER_VALUE);
+        String dispatchValue = dispatchValueNode == null ? null : dispatchValueNode.asText();
+        // Other extensions, such as the dispatcher value, don't mean the message has a reply
+        if (extensions != null && (extensions.containsKey(X_RESPONSE) || extensions.containsKey(X_RESPONSE_TYPE))) {
             JsonNode xResponseType = extensions.get(X_RESPONSE_TYPE);
             if (xResponseType != null && SERVER_STREAMING.equals(xResponseType.asText())) {
-                buildStreamBodySource(sb, requestType, responseType, specDispatcherStreamId, isSubscribe, pipeName);
+                buildStreamBodySource(sb, requestType, responseType, specDispatcherStreamId, isSubscribe, pipeName,
+                        dispatchValue);
             } else {
-                buildSimpleRpcBodySource(sb, requestType, responseType, specDispatcherStreamId, isSubscribe, pipeName);
+                buildSimpleRpcBodySource(sb, requestType, responseType, specDispatcherStreamId, isSubscribe, pipeName,
+                        replyFormat, dispatchValue);
             }
         } else {
-            buildNoResponseBodySource(sb, requestType);
+            buildNoResponseBodySource(sb, requestType, dispatchValue);
         }
         return sb.toString();
     }
@@ -150,17 +207,22 @@ public class RemoteFunctionBodyGenerator {
                 createToken(CLOSE_BRACE_TOKEN), null);
     }
 
+    /**
+     * Sends the request and returns a stream that a generator fills from the request type pipe.
+     */
     private void buildStreamBodySource(StringBuilder sb, String requestType, String responseType,
-                                       String dispatcherStreamId, boolean isSubscribe, String pipeName) {
-        String camelCaseRequestType = Character.toLowerCase(requestType.charAt(0)) + requestType.substring(1);
-        String pipeId = String.format("\"%s\"", camelCaseRequestType);
+                                       String dispatcherStreamId, boolean isSubscribe, String pipeName,
+                                       String dispatchValue) {
+        // Same key the reader gets from responseMap for this request type
+        String pipeId = String.format("\"%s\"", CodegenUtils.getValidName(requestType, false));
         if (!isSubscribe) {
             appendConnectionActiveCheck(sb);
         }
         if (!Objects.isNull(dispatcherStreamId)) {
-            pipeId = String.format("%s.%s", camelCaseRequestType, CodegenUtils.escapeIdentifier(dispatcherStreamId));
+            pipeId = String.format("%s.%s", CodegenUtils.getRequestParamName(requestType),
+                    CodegenUtils.escapeIdentifier(dispatcherStreamId));
         }
-        appendProduceStatements(sb, requestType, isSubscribe);
+        appendProduceStatements(sb, requestType, isSubscribe, dispatchValue);
 
         sb.append(String.format("stream<%s,error?> streamMessages;\n", responseType));
 
@@ -174,70 +236,96 @@ public class RemoteFunctionBodyGenerator {
         sb.append("return streamMessages;\n");
     }
 
+    /**
+     * Sends the request and waits for its one reply, taking a turn on a reply pipe that other calls share.
+     */
     private void buildSimpleRpcBodySource(StringBuilder sb, String requestType, String responseType,
-                                          String dispatcherStreamId, boolean isSubscribe, String pipeName) {
-        String camelCaseRequestType = Character.toLowerCase(requestType.charAt(0)) + requestType.substring(1);
-        String responseTypeCamelCase;
-        if (responseType.contains(PIPE_SEP)) {
-            responseTypeCamelCase = "unionResult";
-        } else {
-            responseTypeCamelCase = String.format("%s%s",
-                    Character.toLowerCase(responseType.charAt(0)), responseType.substring(1));
+                                          String dispatcherStreamId, boolean isSubscribe, String pipeName,
+                                          ReplyFormat replyFormat, String dispatchValue) {
+        String camelCaseRequestType = CodegenUtils.getRequestParamName(requestType);
+        String responseVar = responseType.contains(PIPE_SEP)
+                ? "unionResult" : CodegenUtils.getValidName(responseType, false);
+        // An echo reply shares the request's type, so its variable needs a name apart from the parameter
+        String cloneVar = CodegenUtils.getFreeLocalName(responseVar, "Response", Set.of(camelCaseRequestType));
+        boolean keyed = replyFormat == ReplyFormat.KEYED;
+        // A reply without the dispatcher key can't carry a stream id either
+        boolean perRequestPipe = keyed && !Objects.isNull(dispatcherStreamId);
+        String pipeId = String.format("\"%s\"",
+                keyed ? pipeName : RemoteFunctionReturnTypeGenerator.NO_DISPATCHER_KEY_PIPE);
+        if (perRequestPipe) {
+            pipeId = String.format("%s.%s", camelCaseRequestType, CodegenUtils.escapeIdentifier(dispatcherStreamId));
         }
-        String pipeId = String.format("\"%s\"", pipeName);
+        // Calls sharing a reply pipe take turns, so each one consumes the reply to its own request. A receive-only
+        // function on the pipe for replies without the dispatcher key waits its turn too, so it can't take a reply.
+        boolean takesTurn = !perRequestPipe && (!isSubscribe || !keyed);
         if (!isSubscribe) {
             appendConnectionActiveCheck(sb);
         }
-        if (!Objects.isNull(dispatcherStreamId)) {
-            pipeId = String.format("%s.%s", camelCaseRequestType, CodegenUtils.escapeIdentifier(dispatcherStreamId));
+        if (takesTurn) {
+            sb.append(String.format("%s? %s = self.%s.takeTurn(%s, timeout);\n",
+                    PIPE_ERROR_TYPE, TURN_ERR_VAR, PIPES, pipeId));
+            sb.append(String.format("if %s is %s { return error(%s, %s); }\n",
+                    TURN_ERR_VAR, PIPE_ERROR_TYPE, TURN_WAIT_ERR_MSG, TURN_ERR_VAR));
         }
-        appendProduceStatements(sb, requestType, isSubscribe);
+        appendProduceStatements(sb, requestType, isSubscribe, dispatchValue);
 
         // consume
         sb.append(String.format("%s|%s %s = %s.%s(timeout);\n",
-                MESSAGE_TYPE, PIPE_ERROR_TYPE, RESPONSE_MESSAGE_VAR,
+                keyed ? MESSAGE_TYPE : STRING, PIPE_ERROR_TYPE, RESPONSE_MESSAGE_VAR,
                 String.format(SELF_PIPES_GET_PIPE, pipeId), CONSUME));
         sb.append(String.format("if %s is %s { self.%s(); return error(%s, %s); }\n",
                 RESPONSE_MESSAGE_VAR, PIPE_ERROR_TYPE, ATTEMPT_TO_CLOSE_CONNECTION,
                 String.format(PIPE_ERR_TEMPLATE, CONSUMING), RESPONSE_MESSAGE_VAR));
 
-        if (!Objects.isNull(dispatcherStreamId)) {
+        if (takesTurn) {
+            sb.append(String.format("self.%s.giveTurn(%s);\n", PIPES, pipeId));
+        }
+        if (perRequestPipe) {
             String pipeCloseErr = "pipeCloseError";
             sb.append(String.format(PIPE_CLOSE_STATEMENT, pipeCloseErr, pipeId)).append("\n");
             sb.append(String.format("if %s is error { %s }\n", pipeCloseErr,
                     String.format(LOG_PRINT_DEBUG_TEMPLATE, PIPE_ERR_CAPITAL, ERROR_PIPE_CLOSE, pipeCloseErr)));
         }
 
-        String cloneVar = requestType.equals(ERROR)
-                ? responseTypeCamelCase + MESSAGE_TYPE : responseTypeCamelCase;
-        sb.append(String.format("%s|error %s = %s.%s();\n",
-                responseType, cloneVar, RESPONSE_MESSAGE_VAR, CLONE_WITH_TYPE));
+        // A string reply's frame text is the value itself; any other reply without the key is JSON text
+        sb.append(String.format("%s|error %s = %s.%s();\n", responseType, cloneVar, RESPONSE_MESSAGE_VAR,
+                replyFormat == ReplyFormat.JSON ? FROM_JSON_STRING_WITH_TYPE : CLONE_WITH_TYPE));
         sb.append(String.format("if %s is error { self.%s(); return error(%s, %s); }\n",
                 cloneVar, ATTEMPT_TO_CLOSE_CONNECTION, DATABINDING_ERR_MSG, cloneVar));
         sb.append(String.format("return %s;\n", cloneVar));
     }
 
-    private void buildNoResponseBodySource(StringBuilder sb, String requestType) {
+    /**
+     * Sends the request without waiting for a reply.
+     */
+    private void buildNoResponseBodySource(StringBuilder sb, String requestType, String dispatchValue) {
         appendConnectionActiveCheck(sb);
-        String paramName = Character.toLowerCase(requestType.charAt(0)) + requestType.substring(1);
-        sb.append(String.format("%s|error %s = %s.%s();\n",
-                MESSAGE_TYPE, MESSAGE_VAR, paramName, CLONE_WITH_TYPE));
-        sb.append(String.format("if %s is error { self.%s(); return error(%s, %s); }\n",
-                MESSAGE_VAR, ATTEMPT_TO_CLOSE_CONNECTION, DATABINDING_ERR_MSG, MESSAGE_VAR));
-        appendProduceToWriteQueue(sb);
+        appendProduceStatements(sb, requestType, false, dispatchValue);
     }
 
     private void appendConnectionActiveCheck(StringBuilder sb) {
         sb.append(String.format("lock { if !self.%s { return error(%s); } }\n", IS_ACTIVE, CONNECTION_CLOSED_MSG));
     }
 
-    private void appendProduceStatements(StringBuilder sb, String requestType, boolean isSubscribe) {
+    /**
+     * Clones the request into a {@code Message} and puts it on the write queue. When the message fixes a dispatcher
+     * value, the request's dispatcher field is set to it first, whatever the caller passed. A receive-only function
+     * sends nothing.
+     */
+    private void appendProduceStatements(StringBuilder sb, String requestType, boolean isSubscribe,
+                                         String dispatchValue) {
         if (isSubscribe) {
             return;
         }
-        String paramName = Character.toLowerCase(requestType.charAt(0)) + requestType.substring(1);
+        String source = CodegenUtils.getRequestParamName(requestType);
+        if (dispatchValue != null && dispatcherKey != null) {
+            sb.append(String.format("%s %s = %s.clone();\n", requestType, REQUEST_VAR, source));
+            sb.append(String.format("%s.%s = %s;\n", REQUEST_VAR, CodegenUtils.escapeIdentifier(dispatcherKey),
+                    CodegenUtils.toStringLiteral(dispatchValue)));
+            source = REQUEST_VAR;
+        }
         sb.append(String.format("%s|error %s = %s.%s();\n",
-                MESSAGE_TYPE, MESSAGE_VAR, paramName, CLONE_WITH_TYPE));
+                MESSAGE_TYPE, MESSAGE_VAR, source, CLONE_WITH_TYPE));
         sb.append(String.format("if %s is error { self.%s(); return error(%s, %s); }\n",
                 MESSAGE_VAR, ATTEMPT_TO_CLOSE_CONNECTION, DATABINDING_ERR_MSG, MESSAGE_VAR));
         appendProduceToWriteQueue(sb);

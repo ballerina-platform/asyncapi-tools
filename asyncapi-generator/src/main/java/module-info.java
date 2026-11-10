@@ -18,6 +18,7 @@
 
 module io.ballerina.asyncapi.generator {
     requires io.ballerina.asyncapi.core;
+    requires org.semver4j;
     requires apicurio.data.models;
     requires com.fasterxml.jackson.databind;
     requires com.fasterxml.jackson.dataformat.yaml;

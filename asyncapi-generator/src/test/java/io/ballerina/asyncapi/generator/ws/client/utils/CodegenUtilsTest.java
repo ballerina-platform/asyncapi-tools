@@ -224,4 +224,12 @@ public class CodegenUtilsTest {
         Assert.assertEquals(CodegenUtils.docCommentLines("# + msg - ", "first\n\nsecond", false),
                 "# + msg - first\n# second\n", "Parameter docs drop blank lines");
     }
+
+    @Test
+    void testToStringLiteral_escapesQuotesBackslashesAndControlCharacters() {
+        // Input: a"b\c, a newline, d, a tab, e, then U+0001
+        String input = "a\"b\\c" + '\n' + "d" + '\t' + "e" + (char) 1;
+        String expected = "\"a" + "\\\"" + "b" + "\\\\" + "c" + "\\n" + "d" + "\\t" + "e" + "\\u{1}" + "\"";
+        Assert.assertEquals(CodegenUtils.toStringLiteral(input), expected);
+    }
 }

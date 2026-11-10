@@ -1,0 +1,58 @@
+asyncapi: 3.0.0
+info:
+  title: Chat
+  version: 0.0.0
+servers:
+  development:
+    host: "{server}:{port}"
+    protocol: ws
+    protocolVersion: "13"
+    pathname: /chat
+    variables:
+      server:
+        default: ws://localhost
+      port:
+        default: "9090"
+channels:
+  root:
+    address: /
+    messages:
+      ChatMessage:
+        $ref: "#/components/messages/ChatMessage"
+operations:
+  sendChatMessage:
+    action: send
+    channel:
+      $ref: "#/channels/root"
+    messages:
+    - $ref: "#/channels/root/messages/ChatMessage"
+  receiveChatMessage:
+    action: receive
+    channel:
+      $ref: "#/channels/root"
+    messages:
+    - $ref: "#/channels/root/messages/ChatMessage"
+components:
+  schemas:
+    ChatMessage:
+      type: object
+      required:
+      - event
+      - name
+      - message
+      properties:
+        event:
+          type: string
+          const: chat_message
+        name:
+          type: string
+        message:
+          type: string
+  messages:
+    ChatMessage:
+      payload:
+        $ref: "#/components/schemas/ChatMessage"
+      x-response:
+        $ref: "#/components/messages/ChatMessage"
+      x-response-type: simple-rpc
+x-dispatcherKey: event
