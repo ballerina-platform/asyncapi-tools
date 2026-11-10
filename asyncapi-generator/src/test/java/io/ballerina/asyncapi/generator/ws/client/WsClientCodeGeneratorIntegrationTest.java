@@ -126,6 +126,7 @@ public class WsClientCodeGeneratorIntegrationTest {
 
             String types = readFile(outDir, "types.bal");
             Assert.assertTrue(types.contains("public type Status string;"), types);
+            Assert.assertTrue(types.contains("public type Item record"), "item is declared as Item: " + types);
             Assert.assertTrue(types.contains("Status status;"), "A field refers to the declared name: " + types);
             Assert.assertTrue(types.contains("Item[] items"), "An array item refers to the declared name: " + types);
             Assert.assertTrue(types.contains("Status|Item note"), "A union refers to the declared names: " + types);
