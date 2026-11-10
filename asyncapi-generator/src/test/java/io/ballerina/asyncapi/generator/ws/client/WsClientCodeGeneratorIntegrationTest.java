@@ -61,6 +61,25 @@ public class WsClientCodeGeneratorIntegrationTest {
     }
 
     @Test
+    void testLowercaseSchemaNamesAreReferencedAsDeclared() throws Exception {
+        Path spec = specPath("ws_lowercase_schema_names.json");
+        Path outDir = Files.createTempDirectory("ws-lowercase-gen");
+        try {
+            AsyncApiSpec asyncApiSpec = AsyncApiParser.parseFromJsonString(Files.readString(spec));
+            new WsClientCodeGenerator(asyncApiSpec, null, false).generate(outDir);
+
+            String types = readFile(outDir, "types.bal");
+            Assert.assertTrue(types.contains("public type Status string;"), types);
+            Assert.assertTrue(types.contains("public type Item record"), "item is declared as Item: " + types);
+            Assert.assertTrue(types.contains("Status status;"), "A field refers to the declared name: " + types);
+            Assert.assertTrue(types.contains("Item[] items"), "An array item refers to the declared name: " + types);
+            Assert.assertTrue(types.contains("Status|Item note"), "A union refers to the declared names: " + types);
+        } finally {
+            deleteDir(outDir);
+        }
+    }
+
+    @Test
     void testGenerateWithStreamId() throws Exception {
         Path spec = specPath("ws_with_stream_id.json");
         Path outDir = Files.createTempDirectory("ws-stream-id-gen");
@@ -111,25 +130,6 @@ public class WsClientCodeGeneratorIntegrationTest {
                     "client.bal should contain the ApiKeysConfig type definition when httpApiKey auth is configured");
             Assert.assertTrue(client.contains("apiKeyConfig"),
                     "client.bal should reference apiKeyConfig in the init function when httpApiKey auth is configured");
-        } finally {
-            deleteDir(outDir);
-        }
-    }
-
-    @Test
-    void testLowercaseSchemaNamesAreReferencedAsDeclared() throws Exception {
-        Path spec = specPath("ws_lowercase_schema_names.json");
-        Path outDir = Files.createTempDirectory("ws-lowercase-gen");
-        try {
-            AsyncApiSpec asyncApiSpec = AsyncApiParser.parseFromJsonString(Files.readString(spec));
-            new WsClientCodeGenerator(asyncApiSpec, null, false).generate(outDir);
-
-            String types = readFile(outDir, "types.bal");
-            Assert.assertTrue(types.contains("public type Status string;"), types);
-            Assert.assertTrue(types.contains("public type Item record"), "item is declared as Item: " + types);
-            Assert.assertTrue(types.contains("Status status;"), "A field refers to the declared name: " + types);
-            Assert.assertTrue(types.contains("Item[] items"), "An array item refers to the declared name: " + types);
-            Assert.assertTrue(types.contains("Status|Item note"), "A union refers to the declared names: " + types);
         } finally {
             deleteDir(outDir);
         }
