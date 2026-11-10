@@ -45,6 +45,8 @@ import java.util.Objects;
  */
 public final class SchemaMapper {
 
+    private static final String NULL_TYPE = "null";
+
     private SchemaMapper() {
     }
 
@@ -287,8 +289,9 @@ public final class SchemaMapper {
 
         String title = objectNode.has(Constants.SCHEMA_TITLE) ? objectNode.get(Constants.SCHEMA_TITLE).asText(null)
                 : null;
-        String type = objectNode.has(Constants.SCHEMA_TYPE) ? objectNode.get(Constants.SCHEMA_TYPE).asText(null)
-                : null;
+        // A type list like ["string", "null"] is one type plus nullable; several non-null types become an anyOf
+        List<String> types = typeNames(objectNode.get(Constants.SCHEMA_TYPE));
+        String type = types.size() == 1 ? types.get(0) : null;
         String format = objectNode.has(Constants.SCHEMA_FORMAT) ? objectNode.get(Constants.SCHEMA_FORMAT).asText(null)
                 : null;
         String description = objectNode.has(Constants.SCHEMA_DESCRIPTION)
@@ -445,14 +448,60 @@ public final class SchemaMapper {
                 .items(items)
                 .allOf(mapJsonSchemaArray(objectNode.get(Constants.SCHEMA_ALL_OF)))
                 .oneOf(mapJsonSchemaArray(objectNode.get(Constants.SCHEMA_ONE_OF)))
-                .anyOf(mapJsonSchemaArray(objectNode.get(Constants.SCHEMA_ANY_OF)))
+                .anyOf(types.size() > 1 && !objectNode.has(Constants.SCHEMA_ANY_OF) ? typeVariants(types)
+                        : mapJsonSchemaArray(objectNode.get(Constants.SCHEMA_ANY_OF)))
                 .description(description)
                 .format(format)
                 .defaultValue(defaultValue)
                 .deprecated(deprecated)
                 .extensions(extensions)
-                .nullable(mapNullable(objectNode))
+                .nullable(mapNullableOrNullType(objectNode))
                 .build();
+    }
+
+    /**
+     * The non-null type names of a {@code type} keyword, which is a single name or a list of names.
+     */
+    private static List<String> typeNames(JsonNode typeNode) {
+        List<String> names = new ArrayList<>();
+        if (typeNode != null && typeNode.isTextual()) {
+            names.add(typeNode.asText());
+        } else if (typeNode != null && typeNode.isArray()) {
+            for (JsonNode name : typeNode) {
+                if (name.isTextual() && !NULL_TYPE.equals(name.asText()) && !names.contains(name.asText())) {
+                    names.add(name.asText());
+                }
+            }
+        }
+        return names;
+    }
+
+    private static List<io.ballerina.asyncapi.core.model.component.AsyncApiSchema> typeVariants(
+            List<String> types) {
+        List<io.ballerina.asyncapi.core.model.component.AsyncApiSchema> variants = new ArrayList<>();
+        for (String name : types) {
+            variants.add(io.ballerina.asyncapi.core.model.component.AsyncApiSchema.builder().type(name).build());
+        }
+        return variants;
+    }
+
+    /**
+     * An explicit {@code nullable}, or {@code true} when the {@code type} list includes {@code "null"}.
+     */
+    private static Boolean mapNullableOrNullType(ObjectNode objectNode) {
+        Boolean nullable = mapNullable(objectNode);
+        if (nullable != null) {
+            return nullable;
+        }
+        JsonNode typeNode = objectNode.get(Constants.SCHEMA_TYPE);
+        if (typeNode != null && typeNode.isArray()) {
+            for (JsonNode name : typeNode) {
+                if (NULL_TYPE.equals(name.asText())) {
+                    return Boolean.TRUE;
+                }
+            }
+        }
+        return null;
     }
 
     /**
