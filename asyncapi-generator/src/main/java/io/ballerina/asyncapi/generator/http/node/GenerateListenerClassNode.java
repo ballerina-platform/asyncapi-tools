@@ -101,8 +101,8 @@ public class GenerateListenerClassNode implements Generator {
     private static final String LISTENER_ATTACHMENTS_FIELD = "attachments";
     private static final String LISTENER_GET_SERVICE_TYPE_FUNC = "getServiceTypeStr";
     private static final String LISTENER_PATH_KEY_FUNC = "pathKey";
-    // 10 MB: well above real webhook deliveries, so only oversized requests are refused.
-    private static final int MAX_ENTITY_BODY_SIZE = 10 * 1024 * 1024;
+    // 25 MB: GitHub's webhook payload limit, so only oversized requests are refused.
+    private static final int MAX_ENTITY_BODY_SIZE = 25 * 1024 * 1024;
 
     private final List<HttpServiceType> serviceTypes;
     private final Optional<WebhookAuthConfig> webhookAuthConfig;

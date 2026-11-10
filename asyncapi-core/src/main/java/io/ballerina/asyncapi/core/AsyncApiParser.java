@@ -5,6 +5,7 @@
  */
 package io.ballerina.asyncapi.core;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import io.apicurio.datamodels.Library;
 import io.apicurio.datamodels.deref.Dereferencer;
 import io.apicurio.datamodels.models.Document;
@@ -12,6 +13,8 @@ import io.apicurio.datamodels.models.asyncapi.AsyncApiDocument;
 import io.apicurio.datamodels.refs.ReferenceResolverChain;
 import io.apicurio.datamodels.validation.ValidationProblem;
 import io.ballerina.asyncapi.core.api.AsyncApiSpec;
+import io.ballerina.asyncapi.core.implementation.common.SchemaMapper;
+import io.ballerina.asyncapi.core.model.component.AsyncApiSchema;
 import org.apache.commons.lang3.StringUtils;
 
 import java.net.URI;
@@ -53,6 +56,16 @@ public final class AsyncApiParser {
         } catch (Exception e) {
             throw new AsyncApiParserException("Failed to build AsyncAPI spec model: " + e.getMessage(), e);
         }
+    }
+
+    /**
+     * Maps an inline JSON Schema node, such as an {@code x-response} payload, to the schema model.
+     *
+     * @param schemaNode the JSON Schema object
+     * @return the mapped schema, or {@code null} if {@code schemaNode} is not a JSON object
+     */
+    public static AsyncApiSchema parseSchema(JsonNode schemaNode) {
+        return SchemaMapper.mapFromJsonNode(schemaNode);
     }
 
     private static void validateDocument(Document document) throws AsyncApiParserException {
