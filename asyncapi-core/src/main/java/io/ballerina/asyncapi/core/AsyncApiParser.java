@@ -6,6 +6,8 @@
 package io.ballerina.asyncapi.core;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.apicurio.datamodels.Library;
 import io.apicurio.datamodels.deref.Dereferencer;
 import io.apicurio.datamodels.models.Document;
@@ -18,9 +20,16 @@ import io.ballerina.asyncapi.core.model.component.AsyncApiSchema;
 import org.apache.commons.lang3.StringUtils;
 
 import java.util.List;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 public final class AsyncApiParser {
+
+    private static final ObjectMapper JSON = new ObjectMapper();
+    private static final String ASYNCAPI = "asyncapi";
+    private static final String V3_0_0 = "3.0.0";
+    // Any 3.x.y, with the pre-release suffix AsyncAPI allows (3.1.0-rc1); 3.0.0 itself is unchanged by the rewrite
+    private static final Pattern LATER_3X = Pattern.compile("3\\.\\d+\\.\\d+(-[0-9A-Za-z.-]+)?");
 
     private AsyncApiParser() {
 
@@ -39,14 +48,27 @@ public final class AsyncApiParser {
         }
 
         Document rootDocument;
+        String version;
         try {
-            rootDocument = Library.readDocumentFromJSONString(jsonString);
+            JsonNode root = JSON.readTree(jsonString);
+            if (!(root instanceof ObjectNode object)) {
+                throw new AsyncApiParserException("An AsyncAPI specification must be a JSON object.");
+            }
+            version = object.path(ASYNCAPI).asText(null);
+            // Apicurio reads up to 3.0.0, and later 3.x versions only add to it, so they are read as 3.0.0
+            if (version != null && LATER_3X.matcher(version).matches()) {
+                object.put(ASYNCAPI, V3_0_0);
+            }
+            rootDocument = Library.readDocument(object);
+        } catch (AsyncApiParserException e) {
+            throw e;
         } catch (Exception e) {
             throw new AsyncApiParserException(e.getMessage(), e);
         }
 
         validateDocument(rootDocument);
         AsyncApiDocument dereferencedDocument = getAsyncApiDocument(rootDocument);
+        dereferencedDocument.setAsyncapi(version);
         try {
             return AsyncApiSpecCreator.create(dereferencedDocument);
         } catch (Exception e) {
