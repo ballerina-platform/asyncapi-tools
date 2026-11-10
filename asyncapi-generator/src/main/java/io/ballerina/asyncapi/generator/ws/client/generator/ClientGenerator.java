@@ -227,7 +227,8 @@ public class ClientGenerator {
         if (!url.contains("://") && ("ws".equals(protocol) || "wss".equals(protocol))) {
             url = protocol + "://" + url;
         }
-        return url;
+        // Still no scheme (say protocol: https), so a default would fail to connect; make serviceUrl required
+        return url.contains("://") ? url : NO_SERVER_URL;
     }
 
     /**

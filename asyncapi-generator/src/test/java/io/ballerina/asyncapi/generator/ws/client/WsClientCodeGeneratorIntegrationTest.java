@@ -149,6 +149,25 @@ public class WsClientCodeGeneratorIntegrationTest {
     }
 
     @Test
+    void testApiKeysAreOptionalWhenHttpAuthIsOffered() throws Exception {
+        String json = Files.readString(specPath("ws_init_url_params.json")).replace(
+                "\"securitySchemes\": {",
+                "\"securitySchemes\": {\"bearer\": {\"type\": \"http\", \"scheme\": \"bearer\"},");
+        Path outDir = Files.createTempDirectory("ws-mixed-auth-gen");
+        try {
+            new WsClientCodeGenerator(AsyncApiParser.parseFromJsonString(json), null, false).generate(outDir);
+
+            String client = readFile(outDir, "client.bal");
+            Assert.assertTrue(client.contains("websocket:ClientConfiguration clientConfig = {}, "
+                    + "ApiKeysConfig? apiKeyConfig = (), string serviceUrl"), client);
+            Assert.assertTrue(client.contains("\"token\": apiKeyConfig?.token"), client);
+            Assert.assertTrue(client.contains("headerParam[\"X-Api-Key\"] = apiKeyConfig.xApiKey;"), client);
+        } finally {
+            deleteDir(outDir);
+        }
+    }
+
+    @Test
     void testNoServerMakesServiceUrlRequired() throws Exception {
         Path spec = specPath("ws_simple.json");
         Path outDir = Files.createTempDirectory("ws-no-server-gen");

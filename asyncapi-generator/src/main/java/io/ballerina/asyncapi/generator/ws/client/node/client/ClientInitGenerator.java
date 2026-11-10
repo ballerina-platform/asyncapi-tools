@@ -31,6 +31,7 @@ import io.ballerina.compiler.syntax.tree.StatementNode;
 import io.ballerina.compiler.syntax.tree.Token;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -172,7 +173,10 @@ public class ClientInitGenerator {
             url = MODIFIED_URL;
         }
         List<String> queryEntries = new ArrayList<>(paramEntries(querySchema, QUERY_PARAMS, false));
-        authGen.getQueryApiKeyNameList().values().forEach(name -> queryEntries.add(apiKeyEntry(name)));
+        // With HTTP or OAuth as well, the API key is optional; a nil query value is skipped
+        boolean optionalKey = authGen.isApiKeyOptional();
+        authGen.getQueryApiKeyNameList().values().forEach(name -> queryEntries.add(
+                apiKeyEntry(name, optionalKey ? "?." : ".")));
         if (!queryEntries.isEmpty()) {
             if (path.isEmpty()) {
                 statements.add(NodeParser.parseStatement(
@@ -185,10 +189,21 @@ public class ClientInitGenerator {
                     String.format("%s = %s + check getPathForQueryParam(queryParam);", MODIFIED_URL, MODIFIED_URL)));
         }
         List<String> headerEntries = new ArrayList<>(paramEntries(headerSchema, HEADER_PARAMS, true));
-        authGen.getHeaderApiKeyNameList().values().forEach(name -> headerEntries.add(apiKeyEntry(name)));
-        if (!headerEntries.isEmpty()) {
+        Collection<String> headerKeys = authGen.getHeaderApiKeyNameList().values();
+        if (!optionalKey) {
+            headerKeys.forEach(name -> headerEntries.add(apiKeyEntry(name, ".")));
+        }
+        if (!headerEntries.isEmpty() || !headerKeys.isEmpty()) {
             statements.add(NodeParser.parseStatement(
                     String.format("map<string> headerParam = {%s};", String.join(", ", headerEntries))));
+            if (optionalKey) {
+                // A header map holds only strings, so an optional key is added only when given
+                String puts = headerKeys.stream().map(name -> String.format("headerParam[%s] = %s.%s;",
+                        CodegenUtils.toStringLiteral(name), API_KEY_CONFIG, CodegenUtils.getValidName(name, false)))
+                        .collect(Collectors.joining(" "));
+                statements.add(NodeParser.parseStatement(
+                        String.format("if %s is ApiKeysConfig { %s }", API_KEY_CONFIG, puts)));
+            }
             statements.add(NodeParser.parseStatement(
                     "clientConfig.customHeaders = getCombineHeaders(clientConfig.customHeaders, headerParam);"));
         }
@@ -246,14 +261,15 @@ public class ClientInitGenerator {
         Iterator<String> names = schema.get("properties").fieldNames();
         while (names.hasNext()) {
             String name = names.next();
-            entries.add(String.format("\"%s\": %s.%s%s", name, record, CodegenUtils.escapeIdentifier(name),
-                    asString ? ".toString()" : ""));
+            entries.add(String.format("%s: %s.%s%s", CodegenUtils.toStringLiteral(name), record,
+                    CodegenUtils.escapeIdentifier(name), asString ? ".toString()" : ""));
         }
         return entries;
     }
 
-    private static String apiKeyEntry(String name) {
-        return String.format("\"%s\": %s.%s", name, API_KEY_CONFIG, CodegenUtils.getValidName(name, false));
+    private static String apiKeyEntry(String name, String access) {
+        return String.format("%s: %s%s%s", CodegenUtils.toStringLiteral(name), API_KEY_CONFIG, access,
+                CodegenUtils.getValidName(name, false));
     }
 
     /**

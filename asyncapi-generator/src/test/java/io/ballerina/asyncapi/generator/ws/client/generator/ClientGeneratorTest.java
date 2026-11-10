@@ -102,6 +102,25 @@ public class ClientGeneratorTest {
     }
 
     @Test
+    void testGenerate_requiresServiceUrl_whenTheServerHasNoWebSocketScheme()
+            throws AsyncApiParserException, GeneratorException {
+        String source = generate(withServer("{\"url\":\"api.example.com/ws\",\"protocol\":\"https\"}"));
+        Assert.assertTrue(source.contains("init(string serviceUrl, websocket:ClientConfiguration clientConfig = {})"),
+                "A host with no ws or wss scheme can't be a default: " + source);
+    }
+
+    @Test
+    void testGenerate_takesTheSchemeFromAWebSocketProtocol() throws AsyncApiParserException, GeneratorException {
+        String source = generate(withServer("{\"url\":\"api.example.com/ws\",\"protocol\":\"wss\"}"));
+        Assert.assertTrue(source.contains("string serviceUrl = \"wss://api.example.com/ws\""), source);
+    }
+
+    private static String withServer(String server) {
+        return SPEC_WITH_OPERATIONS.replaceFirst("\"x-dispatcherKey\"", "\"servers\":{\"prod\":" + server
+                + "},\"x-dispatcherKey\"");
+    }
+
+    @Test
     void testGenerate_responseMapContainsExpectedRequestType()
             throws AsyncApiParserException, GeneratorException {
         String source = generate(SPEC_WITH_OPERATIONS);

@@ -163,6 +163,15 @@ public class BallerinaAuthConfigGenerator {
         return httpApiKey;
     }
 
+    /**
+     * Returns {@code true} if API keys and HTTP or OAuth are both offered, so the API key is optional.
+     *
+     * @return whether the {@code apiKeyConfig} parameter is optional
+     */
+    public boolean isApiKeyOptional() {
+        return httpApiKey && httpOROAuth;
+    }
+
 
     /**
      * Returns {@code true} if path parameters were found while processing the channel.
@@ -335,6 +344,12 @@ public class BallerinaAuthConfigGenerator {
         String serviceUrlParam = required
                 ? "string " + SERVICE_URL
                 : "string " + SERVICE_URL + " = \"" + serviceUrl + "\"";
+        if (httpOROAuth && httpApiKey) {
+            // Either clientConfig.auth or an API key can be used, so both are optional
+            String configAndKey = CONNECTION_CONFIG + " " + CLIENT_CONFIG + " = {}, " + API_KEYS_CONFIG + "? "
+                    + API_KEY_CONFIG + " = ()";
+            return required ? serviceUrlParam + ", " + configAndKey : configAndKey + ", " + serviceUrlParam;
+        }
         if (httpOROAuth) {
             return CONNECTION_CONFIG + " " + CLIENT_CONFIG + ", " + serviceUrlParam;
         }
