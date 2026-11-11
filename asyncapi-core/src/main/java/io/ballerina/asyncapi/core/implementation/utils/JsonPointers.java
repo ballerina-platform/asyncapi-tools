@@ -90,17 +90,13 @@ public final class JsonPointers {
             if (node == null) {
                 return null;
             }
-            node = node.isArray() ? element(node, decode(token)) : field(node, token);
+            // Decoded as the mappers decode it, so a ref valid here is one they can follow
+            String key = decode(token);
+            node = node.isArray() ? element(node, key) : node.get(key);
         }
         node = follow(root, node, visiting);
         visiting.remove(ref);
         return node;
-    }
-
-    // The decoded key, or the token with only ~ escapes decoded when just that names a field
-    private static JsonNode field(JsonNode node, String token) {
-        JsonNode value = node.get(decode(token));
-        return value != null ? value : node.get(token.replace("~1", "/").replace("~0", "~"));
     }
 
     // A ref can hold any digits, so an index too large for an int points nowhere

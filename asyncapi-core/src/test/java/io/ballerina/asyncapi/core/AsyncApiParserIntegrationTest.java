@@ -684,6 +684,16 @@ public class AsyncApiParserIntegrationTest {
     }
 
     @Test
+    void messageOfAnotherChannel_isRejected() throws IOException {
+        // 3.0 needs an operation's messages to be messages of its channel
+        AsyncApiParserException e = Assert.expectThrows(AsyncApiParserException.class,
+                () -> AsyncApiParser.parseFromJsonString(loadSpec(SPEC_DIR + "refs/message-of-another-channel.json")));
+        Assert.assertTrue(e.getMessage().contains("operation 'sendPing' message reference "
+                + "'#/channels/other/messages/note' isn't one of the messages of its channel '#/channels/ws'"),
+                e.getMessage());
+    }
+
+    @Test
     void channelReferencingAnotherTopLevelChannel_isRead() throws IOException, AsyncApiParserException {
         AsyncApiSpec spec = AsyncApiParser.parseFromJsonString(loadSpec(SPEC_DIR + "refs/top-level-channel-ref.json"));
         Assert.assertEquals(spec.getAsyncApiChannels().orElseThrow().get("ws").address(), "/ws");

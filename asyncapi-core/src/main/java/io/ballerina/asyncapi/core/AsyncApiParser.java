@@ -7,6 +7,7 @@ package io.ballerina.asyncapi.core;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.MissingNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.apicurio.datamodels.Library;
 import io.apicurio.datamodels.deref.Dereferencer;
@@ -23,7 +24,10 @@ import org.apache.commons.lang3.StringUtils;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.IdentityHashMap;
 import java.util.List;
+import java.util.Set;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -155,8 +159,8 @@ public final class AsyncApiParser {
         checkChannels(root, components.path(CHANNELS), "component channel", broken);
         checkOperations(root, root.path(OPERATIONS), "operation", broken);
         checkOperations(root, components.path(OPERATIONS), "component operation", broken);
-        components.path(REPLIES).properties().forEach(reply ->
-                checkReply(root, reply.getValue(), "component reply '" + reply.getKey() + "'", broken));
+        components.path(REPLIES).properties().forEach(reply -> checkReply(root, reply.getValue(),
+                MissingNode.getInstance(), "component reply '" + reply.getKey() + "'", broken));
         return broken;
     }
 
@@ -167,14 +171,52 @@ public final class AsyncApiParser {
             checkRef(root, operation, what, broken);
             checkRef(root, operation.path(CHANNEL), what + " channel", broken);
             operation.path(MESSAGES).forEach(message -> checkRef(root, message, what + " message", broken));
-            checkReply(root, operation.path(REPLY), what + " reply", broken);
+            checkMessagesOfChannel(root, operation.path(CHANNEL), operation.path(MESSAGES), what, broken);
+            checkReply(root, operation.path(REPLY), operation.path(CHANNEL), what + " reply", broken);
         });
     }
 
-    private static void checkReply(JsonNode root, JsonNode reply, String what, List<String> broken) {
+    // A reply without a channel of its own uses its operation's channel
+    private static void checkReply(JsonNode root, JsonNode reply, JsonNode operationChannel, String what,
+                                   List<String> broken) {
         checkRef(root, reply, what, broken);
         checkRef(root, reply.path(CHANNEL), what + " channel", broken);
         reply.path(MESSAGES).forEach(message -> checkRef(root, message, what + " message", broken));
+        JsonNode resolved = reply.path(REF).isTextual() ? JsonPointers.resolve(root, reply.get(REF).asText()) : reply;
+        if (resolved != null) {
+            JsonNode channel = resolved.has(CHANNEL) ? resolved.path(CHANNEL) : operationChannel;
+            checkMessagesOfChannel(root, channel, resolved.path(MESSAGES), what, broken);
+        }
+    }
+
+    /**
+     * Reports each message an operation or reply lists that isn't a message of its channel, as 3.0 requires.
+     */
+    private static void checkMessagesOfChannel(JsonNode root, JsonNode channelRef, JsonNode messages, String what,
+                                               List<String> broken) {
+        JsonNode ref = channelRef.path(REF);
+        JsonNode channel = ref.isTextual() ? JsonPointers.resolve(root, ref.asText()) : null;
+        if (channel == null) {
+            return;
+        }
+        // Compared after following refs, so a component message the channel lists under any key matches
+        Set<JsonNode> ofChannel = Collections.newSetFromMap(new IdentityHashMap<>());
+        channel.path(MESSAGES).forEach(message -> ofChannel.add(target(root, message)));
+        messages.forEach(message -> {
+            JsonNode messageRef = message.path(REF);
+            JsonNode target = messageRef.isTextual() ? JsonPointers.resolve(root, messageRef.asText()) : null;
+            if (target != null && !ofChannel.contains(target)) {
+                broken.add(String.format("%s message reference '%s' isn't one of the messages of its channel '%s'",
+                        what, messageRef.asText(), ref.asText()));
+            }
+        });
+    }
+
+    private static JsonNode target(JsonNode root, JsonNode node) {
+        JsonNode ref = node.path(REF);
+        JsonNode resolved = ref.isTextual() && ref.asText().startsWith(LOCAL_REF)
+                ? JsonPointers.resolve(root, ref.asText()) : node;
+        return resolved != null ? resolved : node;
     }
 
     private static void checkChannels(JsonNode root, JsonNode channels, String kind, List<String> broken) {

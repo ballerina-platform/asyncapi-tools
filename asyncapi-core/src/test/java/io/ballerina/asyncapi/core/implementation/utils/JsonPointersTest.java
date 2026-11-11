@@ -73,7 +73,9 @@ public class JsonPointersTest {
     @Test
     void resolve_findsAKeyWithALiteralPercentSequence() throws Exception {
         JsonNode root = new ObjectMapper().readTree("{\"a%41\":1,\"a b\":2}");
-        Assert.assertEquals(JsonPointers.resolve(root, "#/a%41").asInt(), 1);
+        // A literal % is written %25, as the mappers decode every %xx too
+        Assert.assertEquals(JsonPointers.resolve(root, "#/a%2541").asInt(), 1);
+        Assert.assertNull(JsonPointers.resolve(root, "#/a%41"));
         Assert.assertEquals(JsonPointers.resolve(root, "#/a%20b").asInt(), 2);
     }
 
