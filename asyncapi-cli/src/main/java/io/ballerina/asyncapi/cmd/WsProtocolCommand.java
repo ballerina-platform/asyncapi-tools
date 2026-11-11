@@ -102,6 +102,7 @@ final class WsProtocolCommand implements ProtocolCommand {
         SpecToCodeOptions options = new SpecToCodeOptions.Builder()
                 .withLicenseHeader(licenseHeader)
                 .withIncludeTestFiles(opts.isWithTests())
+                .withWarnings(ctx::printSpecWarning)
                 .build();
         int skipped;
         try (OutputStage stage = OutputStage.open(outputPath, opts, ctx)) {

@@ -21,6 +21,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.TextNode;
 import io.ballerina.asyncapi.core.api.AsyncApiSpec;
 import io.ballerina.asyncapi.core.model.channel.AsyncApiChannel;
+import io.ballerina.asyncapi.core.model.channel.AsyncApiChannelParameter;
 import io.ballerina.asyncapi.core.model.component.AsyncApiComponent;
 import io.ballerina.asyncapi.core.model.component.AsyncApiSchema;
 import io.ballerina.asyncapi.core.model.info.AsyncApiInfo;
@@ -35,6 +36,7 @@ import org.testng.annotations.Test;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -728,6 +730,61 @@ public class AsyncApiParserIntegrationTest {
                 () -> AsyncApiParser.parseFromJsonString(loadSpec(SPEC_DIR + "refs/" + file)));
         Assert.assertTrue(e.getMessage().contains(problem + " doesn't point to anything in the document]"),
                 e.getMessage());
+    }
+
+    // -------------------------------------------------------------------------
+    // Common 3.x mistakes read with a warning
+    // -------------------------------------------------------------------------
+
+    @Test
+    void hostWithSchemeAndPath_isSplit() throws IOException, AsyncApiParserException {
+        List<SpecWarning> warnings = new ArrayList<>();
+        AsyncApiSpec spec = AsyncApiParser.parseFromJsonString(
+                loadSpec(SPEC_DIR + "lenient/host-with-scheme-and-path.json"), warnings::add);
+        AsyncApiServer server = spec.getAsyncApiServers().orElseThrow().get("prod");
+        Assert.assertEquals(server.host(), "example.com");
+        Assert.assertEquals(server.protocol(), "wss");
+        Assert.assertEquals(server.pathname(), "/ws");
+        Assert.assertEquals(warnings, List.of(new SpecWarning("/servers/prod/host",
+                "server 'prod' host 'wss://example.com/ws' holds more than the host name; read it as host "
+                        + "'example.com', protocol 'wss', pathname '/ws'",
+                "Put only the host name in 'host', the scheme in 'protocol' and the path in 'pathname'.")));
+    }
+
+    @Test
+    void hostScheme_doesNotReplaceTheProtocolTheSpecSets() throws IOException, AsyncApiParserException {
+        List<SpecWarning> warnings = new ArrayList<>();
+        AsyncApiSpec spec = AsyncApiParser.parseFromJsonString(
+                loadSpec(SPEC_DIR + "lenient/host-scheme-beside-protocol.json"), warnings::add);
+        AsyncApiServer server = spec.getAsyncApiServers().orElseThrow().get("prod");
+        Assert.assertEquals(server.host(), "example.com");
+        Assert.assertEquals(server.protocol(), "wss");
+        Assert.assertEquals(server.pathname(), "/live");
+        Assert.assertEquals(warnings.size(), 1);
+        Assert.assertTrue(warnings.get(0).message().endsWith("read it as host 'example.com'"),
+                warnings.get(0).message());
+    }
+
+    @Test
+    void parameterSchema_isReadOntoTheParameter() throws IOException, AsyncApiParserException {
+        List<SpecWarning> warnings = new ArrayList<>();
+        AsyncApiSpec spec = AsyncApiParser.parseFromJsonString(
+                loadSpec(SPEC_DIR + "lenient/parameter-schema.json"), warnings::add);
+        AsyncApiChannelParameter room = spec.getAsyncApiChannels().orElseThrow().get("ws").parameters().get("room");
+        Assert.assertEquals(room.enumValues(), List.of("1", "2"));
+        Assert.assertEquals(room.defaultValue(), "1");
+        Assert.assertEquals(room.description(), "Room number");
+        Assert.assertEquals(warnings, List.of(new SpecWarning("/channels/ws/parameters/room/schema",
+                "channel 'ws' parameter 'room' has a 2.x 'schema'; read its enum, default, description as the "
+                        + "parameter's own",
+                "Remove 'schema' and set 'enum', 'default' and 'description' on the parameter itself.")));
+    }
+
+    @Test(dataProvider = "allVersionArgs")
+    void validSpec_hasNoWarnings(String file, String version) throws IOException, AsyncApiParserException {
+        List<SpecWarning> warnings = new ArrayList<>();
+        AsyncApiParser.parseFromJsonString(loadSpec(file), warnings::add);
+        Assert.assertEquals(warnings, List.of(), version);
     }
 
     // -------------------------------------------------------------------------

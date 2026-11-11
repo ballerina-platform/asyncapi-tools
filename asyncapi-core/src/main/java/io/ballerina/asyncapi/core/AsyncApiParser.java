@@ -28,6 +28,7 @@ import java.util.Collections;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Set;
+import java.util.function.Consumer;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -61,6 +62,20 @@ public final class AsyncApiParser {
      * @throws AsyncApiParserException if the JSON is blank, invalid, or fails validation
      */
     public static AsyncApiSpec parseFromJsonString(String jsonString) throws AsyncApiParserException {
+        return parseFromJsonString(jsonString, warning -> { });
+    }
+
+    /**
+     * Parses an AsyncAPI specification from a JSON string, correcting common 3.x mistakes whose meaning is clear,
+     * such as a scheme in a server host.
+     *
+     * @param jsonString the AsyncAPI JSON content
+     * @param warnings   receives one warning per correction, saying how to fix the spec
+     * @return the parsed {@link AsyncApiSpec}
+     * @throws AsyncApiParserException if the JSON is blank, invalid, or fails validation
+     */
+    public static AsyncApiSpec parseFromJsonString(String jsonString, Consumer<SpecWarning> warnings)
+            throws AsyncApiParserException {
         if (StringUtils.isBlank(jsonString)) {
             throw new AsyncApiParserException("AsyncAPI specification JSON cannot be null or empty.");
         }
@@ -78,6 +93,9 @@ public final class AsyncApiParser {
             // Apicurio reads up to 3.0.0, and later 3.x versions only add to it, so they are read as 3.0.0
             if (version != null && LATER_3X.matcher(version).matches()) {
                 object.put(ASYNCAPI, V3_0_0);
+            }
+            if (V3_0_0.equals(object.path(ASYNCAPI).asText())) {
+                LenientReads.apply(object, warnings);
             }
             rootDocument = Library.readDocument(object);
         } catch (AsyncApiParserException e) {
