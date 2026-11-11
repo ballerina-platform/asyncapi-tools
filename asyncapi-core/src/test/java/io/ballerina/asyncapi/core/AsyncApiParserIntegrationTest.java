@@ -678,7 +678,38 @@ public class AsyncApiParserIntegrationTest {
             {"broken-message-ref.json", "operation 'sendPing' message reference '#/channels/ws/messages/nope'"},
             {"broken-channel-message-ref.json",
                 "channel 'ws' message 'pong' reference '#/components/messages/Nope'"},
+            {"broken-component-operation-ref.json",
+                "component operation 'sharedPing' channel reference '#/channels/nope'"},
         };
+    }
+
+    @Test
+    void channelReferencingAnotherTopLevelChannel_isRead() throws IOException, AsyncApiParserException {
+        AsyncApiSpec spec = AsyncApiParser.parseFromJsonString(loadSpec(SPEC_DIR + "refs/top-level-channel-ref.json"));
+        Assert.assertEquals(spec.getAsyncApiChannels().orElseThrow().get("ws").address(), "/ws");
+        AsyncApiOperation operation = spec.getAsyncApiOperations().orElseThrow().get("sendPing");
+        Assert.assertEquals(operation.messages().keySet(), Set.of("ping"));
+        Assert.assertEquals(operation.reply().messages().keySet(), Set.of("pong"));
+    }
+
+    @Test
+    void referenceIntoAnotherFile_isNotReportedAsBroken() throws IOException {
+        // The parser reads one document, so a ref into another file can't be checked here
+        try {
+            AsyncApiParser.parseFromJsonString(loadSpec(SPEC_DIR + "refs/external-message-ref.json"));
+        } catch (AsyncApiParserException e) {
+            Assert.assertFalse(e.getMessage().contains("doesn't point to anything"), e.getMessage());
+        }
+    }
+
+    @Test
+    void brokenV2MessageReference_isStillRejected() throws IOException {
+        // The parser checks only 3.x refs itself, so Apicurio's check stays for 2.x
+        String spec = loadSpec(SPEC_DIR + "asyncapi-2.6.0.json")
+                .replace("\"#/components/messages/UserCommand\"", "\"#/components/messages/Nope\"");
+        AsyncApiParserException e = Assert.expectThrows(AsyncApiParserException.class,
+                () -> AsyncApiParser.parseFromJsonString(spec));
+        Assert.assertTrue(e.getMessage().contains("Message references must point to valid messages"), e.getMessage());
     }
 
     @Test(dataProvider = "brokenRefs")

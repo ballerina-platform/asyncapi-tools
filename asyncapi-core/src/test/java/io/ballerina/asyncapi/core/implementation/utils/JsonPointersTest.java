@@ -62,4 +62,24 @@ public class JsonPointersTest {
         Assert.assertNull(JsonPointers.resolve(root, "#/loop"));
         Assert.assertNull(JsonPointers.resolve(root, "other.yaml#/channels/ws"));
     }
+
+    @Test
+    void resolve_rejectsAnIndexTooLargeForAnInt() throws Exception {
+        JsonNode root = new ObjectMapper().readTree("{\"servers\":[{\"host\":\"a\"}]}");
+        Assert.assertEquals(JsonPointers.resolve(root, "#/servers/0/host").asText(), "a");
+        Assert.assertNull(JsonPointers.resolve(root, "#/servers/99999999999"));
+    }
+
+    @Test
+    void resolve_findsAKeyWithALiteralPercentSequence() throws Exception {
+        JsonNode root = new ObjectMapper().readTree("{\"a%41\":1,\"a b\":2}");
+        Assert.assertEquals(JsonPointers.resolve(root, "#/a%41").asInt(), 1);
+        Assert.assertEquals(JsonPointers.resolve(root, "#/a%20b").asInt(), 2);
+    }
+
+    @Test
+    void resolve_stopsAtAReferenceIntoAnotherFile() throws Exception {
+        JsonNode root = new ObjectMapper().readTree("{\"m\":{\"$ref\":\"shared.yaml#/Pong\"}}");
+        Assert.assertEquals(JsonPointers.resolve(root, "#/m").path("$ref").asText(), "shared.yaml#/Pong");
+    }
 }

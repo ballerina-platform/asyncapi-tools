@@ -79,7 +79,7 @@ public final class ChannelMapperV3 {
             Node item = (Node) mappedNode.getItem(name);
             // Add additional version checks here as new AsyncAPI 3.x versions are supported.
             if (item instanceof AsyncApi30Channel channelItem) {
-                AsyncApiChannel mapped = mapChannelItem(name, channelItem, components, serversMap);
+                AsyncApiChannel mapped = mapChannelItem(name, channelItem, components, serversMap, mappedNode);
                 if (mapped != null) {
                     result.put(name, mapped);
                 }
@@ -100,14 +100,19 @@ public final class ChannelMapperV3 {
      */
     public static AsyncApiChannel mapChannelItem(String name, AsyncApi30Channel channelItem,
             AsyncApiComponents components, Map<String, AsyncApiServer> serversMap) {
+        return mapChannelItem(name, channelItem, components, serversMap, null);
+    }
+
+    private static AsyncApiChannel mapChannelItem(String name, AsyncApi30Channel channelItem,
+            AsyncApiComponents components, Map<String, AsyncApiServer> serversMap, MappedNode<?> topLevel) {
         // Handle $ref
         String ref = channelItem.get$ref();
         if (ref != null) {
-            AsyncApi30Channel resolved = resolveChannelRef(ref, components);
+            AsyncApi30Channel resolved = resolveChannelRef(ref, components, topLevel);
             if (resolved == null) {
                 return null;
             }
-            return mapChannelItem(name, resolved, components, serversMap);
+            return mapChannelItem(name, resolved, components, serversMap, topLevel);
         }
 
         // Extract servers
@@ -167,33 +172,38 @@ public final class ChannelMapperV3 {
      * Resolves a channel {@code $ref} string, following any chain of refs, to the
      * final concrete {@link AsyncApi30Channel}. Detects cyclic references.
      *
-     * @param ref        the initial $ref string (e.g., "#/channels/myChannel")
+     * @param ref        the initial $ref string (e.g., "#/components/channels/myChannel" or "#/channels/myChannel")
      * @param components the AsyncAPI components used for lookup
+     * @param topLevel   the document's channels, for a ref to another top-level channel (may be {@code null})
      * @return the concrete channel, or {@code null} if resolution fails
      */
-    private static AsyncApi30Channel resolveChannelRef(String ref, AsyncApiComponents components) {
-        if (components == null) {
-            return null;
-        }
+    private static AsyncApi30Channel resolveChannelRef(String ref, AsyncApiComponents components,
+                                                       MappedNode<?> topLevel) {
         // Add additional version checks here as new AsyncAPI 3.x versions are supported.
-        if (!(components instanceof AsyncApi30Components typedComponents)) {
+        if (components != null && !(components instanceof AsyncApi30Components)) {
             LOG.warn("Unsupported components type for AsyncAPI 3.0: {}", components.getClass().getName());
             return null;
         }
+        Map<String, AsyncApi30Channel> componentChannels = components instanceof AsyncApi30Components typed
+                ? typed.getChannels() : null;
         Set<String> visited = new HashSet<>();
         String current = ref;
         while (current != null) {
-            if (!current.startsWith(Constants.CHANNELS_REF_PREFIX)) {
-                LOG.warn("Unsupported channel $ref format: {}. Skipping.", current);
-                return null;
-            }
             if (!visited.add(current)) {
                 LOG.warn("Cyclic $ref detected: {}. Skipping channel.", current);
                 return null;
             }
-            String channelId = JsonPointers.keyAfter(current, Constants.CHANNELS_REF_PREFIX);
-            Map<String, AsyncApi30Channel> channelsMap = typedComponents.getChannels();
-            AsyncApi30Channel resolved = channelsMap != null ? channelsMap.get(channelId) : null;
+            String componentId = JsonPointers.keyAfter(current, Constants.CHANNELS_REF_PREFIX);
+            String topLevelId = JsonPointers.keyAfter(current, Constants.V3_CHANNELS_REF_PREFIX);
+            AsyncApi30Channel resolved;
+            if (componentId != null) {
+                resolved = componentChannels != null ? componentChannels.get(componentId) : null;
+            } else if (topLevelId != null && topLevel != null) {
+                resolved = topLevel.getItem(topLevelId) instanceof AsyncApi30Channel channel ? channel : null;
+            } else {
+                LOG.warn("Unsupported channel $ref format: {}. Skipping.", current);
+                return null;
+            }
             if (resolved == null) {
                 LOG.warn("Could not resolve channel $ref: {}. Skipping.", current);
                 return null;

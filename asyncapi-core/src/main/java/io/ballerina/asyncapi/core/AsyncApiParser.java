@@ -39,6 +39,8 @@ public final class AsyncApiParser {
     private static final String CHANNEL = "channel";
     private static final String MESSAGES = "messages";
     private static final String REPLY = "reply";
+    private static final String REPLIES = "replies";
+    private static final String LOCAL_REF = "#";
     private static final String REF = "$ref";
     // Any 3.x.y, with the pre-release suffix AsyncAPI allows (3.1.0-rc1); 3.0.0 itself is unchanged by the rewrite
     private static final Pattern LATER_3X = Pattern.compile("3\\.\\d+\\.\\d+(-[0-9A-Za-z.-]+)?");
@@ -111,7 +113,8 @@ public final class AsyncApiParser {
 
     private static void validateDocument(Document document, ObjectNode root) throws AsyncApiParserException {
         List<ValidationProblem> problems = Library.validate(document, null);
-        List<String> refProblems = brokenRefs(root);
+        boolean v3 = root.path(ASYNCAPI).asText("").startsWith("3.");
+        List<String> refProblems = v3 ? brokenRefs(root) : List.of();
         if ((problems == null || problems.isEmpty()) && refProblems.isEmpty()) {
             return;
         }
@@ -131,7 +134,7 @@ public final class AsyncApiParser {
                 .filter(p -> !(idIsUri && p.message.contains(DOCUMENT_ID_PROBLEM)))
                 // 3.0 makes a channel address optional; a missing or null one means it is dynamic
                 .filter(p -> !p.message.contains(MISSING_ADDRESS_PROBLEM))
-                .filter(p -> CHANNEL_AND_MESSAGE_REF_PROBLEMS.stream().noneMatch(p.message::contains))
+                .filter(p -> !v3 || CHANNEL_AND_MESSAGE_REF_PROBLEMS.stream().noneMatch(p.message::contains))
                 .collect(Collectors.toList());
 
         if (!realProblems.isEmpty() || !refProblems.isEmpty()) {
@@ -143,26 +146,35 @@ public final class AsyncApiParser {
     }
 
     /**
-     * Lists the 3.x channel and message refs, in channels and operations, that point nowhere in the document.
+     * Lists the local channel, message, operation and reply refs of a 3.x document that point nowhere in it.
      */
     private static List<String> brokenRefs(ObjectNode root) {
         List<String> broken = new ArrayList<>();
-        if (!root.path(ASYNCAPI).asText("").startsWith("3.")) {
-            return broken;
-        }
+        JsonNode components = root.path(COMPONENTS);
         checkChannels(root, root.path(CHANNELS), "channel", broken);
-        checkChannels(root, root.path(COMPONENTS).path(CHANNELS), "component channel", broken);
-        root.path(OPERATIONS).properties().forEach(entry -> {
-            String operation = entry.getKey();
-            JsonNode reply = entry.getValue().path(REPLY);
-            checkRef(root, entry.getValue().path(CHANNEL), "operation '" + operation + "' channel", broken);
-            entry.getValue().path(MESSAGES).forEach(message ->
-                    checkRef(root, message, "operation '" + operation + "' message", broken));
-            checkRef(root, reply.path(CHANNEL), "operation '" + operation + "' reply channel", broken);
-            reply.path(MESSAGES).forEach(message ->
-                    checkRef(root, message, "operation '" + operation + "' reply message", broken));
-        });
+        checkChannels(root, components.path(CHANNELS), "component channel", broken);
+        checkOperations(root, root.path(OPERATIONS), "operation", broken);
+        checkOperations(root, components.path(OPERATIONS), "component operation", broken);
+        components.path(REPLIES).properties().forEach(reply ->
+                checkReply(root, reply.getValue(), "component reply '" + reply.getKey() + "'", broken));
         return broken;
+    }
+
+    private static void checkOperations(JsonNode root, JsonNode operations, String kind, List<String> broken) {
+        operations.properties().forEach(entry -> {
+            String what = kind + " '" + entry.getKey() + "'";
+            JsonNode operation = entry.getValue();
+            checkRef(root, operation, what, broken);
+            checkRef(root, operation.path(CHANNEL), what + " channel", broken);
+            operation.path(MESSAGES).forEach(message -> checkRef(root, message, what + " message", broken));
+            checkReply(root, operation.path(REPLY), what + " reply", broken);
+        });
+    }
+
+    private static void checkReply(JsonNode root, JsonNode reply, String what, List<String> broken) {
+        checkRef(root, reply, what, broken);
+        checkRef(root, reply.path(CHANNEL), what + " channel", broken);
+        reply.path(MESSAGES).forEach(message -> checkRef(root, message, what + " message", broken));
     }
 
     private static void checkChannels(JsonNode root, JsonNode channels, String kind, List<String> broken) {
@@ -176,7 +188,9 @@ public final class AsyncApiParser {
 
     private static void checkRef(JsonNode root, JsonNode reference, String what, List<String> broken) {
         JsonNode ref = reference.path(REF);
-        if (ref.isTextual() && JsonPointers.resolve(root, ref.asText()) == null) {
+        // A ref to another file isn't in this document, so it isn't checked here
+        if (ref.isTextual() && ref.asText().startsWith(LOCAL_REF)
+                && JsonPointers.resolve(root, ref.asText()) == null) {
             broken.add(what + " reference '" + ref.asText() + "' doesn't point to anything in the document");
         }
     }

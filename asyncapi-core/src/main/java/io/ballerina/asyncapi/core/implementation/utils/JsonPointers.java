@@ -36,8 +36,9 @@ public final class JsonPointers {
     }
 
     /**
-     * Decodes one pointer token: {@code %xx} first, as the pointer sits in a URI fragment, then {@code ~1} to
-     * {@code /} and {@code ~0} to {@code ~}.
+     * Decodes one pointer token: {@code %xx} first, as a {@code $ref} pointer sits in a URI fragment, then
+     * {@code ~1} to {@code /} and {@code ~0} to {@code ~}. A key that holds a literal {@code %xx} is written
+     * percent-encoded in the {@code $ref}, such as {@code %2541} for {@code %41}.
      *
      * @param token the token as written in the {@code $ref}
      * @return the key it names
@@ -72,7 +73,8 @@ public final class JsonPointers {
      *
      * @param root the whole document
      * @param ref  the {@code $ref}
-     * @return the node, or {@code null} if {@code ref} is not local or points nowhere
+     * @return the node, or {@code null} if {@code ref} is not local or points nowhere; a ref into another file
+     *         on the way is returned as is
      */
     public static JsonNode resolve(JsonNode root, String ref) {
         return resolve(root, ref, new HashSet<>());
@@ -88,16 +90,27 @@ public final class JsonPointers {
             if (node == null) {
                 return null;
             }
-            String key = decode(token);
-            node = node.isArray() && key.matches("\\d+") ? node.get(Integer.parseInt(key)) : node.get(key);
+            node = node.isArray() ? element(node, decode(token)) : field(node, token);
         }
         node = follow(root, node, visiting);
         visiting.remove(ref);
         return node;
     }
 
+    // The decoded key, or the token with only ~ escapes decoded when just that names a field
+    private static JsonNode field(JsonNode node, String token) {
+        JsonNode value = node.get(decode(token));
+        return value != null ? value : node.get(token.replace("~1", "/").replace("~0", "~"));
+    }
+
+    // A ref can hold any digits, so an index too large for an int points nowhere
+    private static JsonNode element(JsonNode array, String key) {
+        return key.matches("\\d{1,9}") ? array.get(Integer.parseInt(key)) : null;
+    }
+
     private static JsonNode follow(JsonNode root, JsonNode node, Set<String> visiting) {
-        if (node != null && node.isObject() && node.path(REF).isTextual()) {
+        // A ref into another file ends the walk here, as that file isn't part of this document
+        if (node != null && node.isObject() && node.path(REF).isTextual() && node.get(REF).asText().startsWith("#")) {
             return resolve(root, node.get(REF).asText(), visiting);
         }
         return node;
