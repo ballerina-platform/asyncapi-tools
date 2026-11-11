@@ -99,13 +99,15 @@ public isolated class PipesMap {
         }
     }
 
-    # Returns whether a call is waiting for a reply on the given pipe.
+    # Takes the reply slot of the call waiting on the given pipe, so the reader queues at most one frame per call.
     #
     # + id - The reply pipe
-    # + return - `true` while a call waits for its reply
-    public isolated function isAwaitingReply(string id) returns boolean {
+    # + return - `true` if a call was waiting, which then waits for no further frame
+    public isolated function claimReply(string id) returns boolean {
         lock {
-            return self.awaiting[id] ?: false;
+            boolean waiting = self.awaiting[id] ?: false;
+            self.awaiting[id] = false;
+            return waiting;
         }
     }
 }

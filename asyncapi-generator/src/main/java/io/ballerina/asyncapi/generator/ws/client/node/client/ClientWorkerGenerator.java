@@ -355,8 +355,9 @@ public class ClientWorkerGenerator {
     /**
      * Reads the frame as text. One that isn't a JSON message with the dispatcher key goes, as is, to the reply pipe
      * while a call waits for a reply there, so a frame from before the request is never taken as its reply. At any
-     * other time it goes to the receive-only functions' pipe, or is dropped if there are none. A frame that arrives
-     * while a call waits can't be told apart from the reply, so it is taken as the reply.
+     * other time it goes to the receive-only functions' pipe, or is dropped if there are none. The first such frame
+     * while a call waits can't be told apart from the reply, so it is taken as the reply; claiming it ends the wait,
+     * so a second frame can't queue behind it for a later call.
      */
     private void addFrameWithoutDispatcherRoute(List<StatementNode> whileStatements) {
         whileStatements.add(NodeParser.parseStatement(String.format("string|%s %s = self.%s->%s(string);",
@@ -365,7 +366,7 @@ public class ClientWorkerGenerator {
         whileStatements.add(NodeParser.parseStatement(String.format("%s|error %s = %s.fromJsonStringWithType();",
                 MESSAGE_TYPE, PARSED_MESSAGE_VAR, FRAME_VAR)));
         String replyPipe = CodegenUtils.toStringLiteral(RemoteFunctionReturnTypeGenerator.NO_DISPATCHER_KEY_PIPE);
-        String awaited = String.format("self.%s.isAwaitingReply(%s)", PIPES, replyPipe);
+        String awaited = String.format("self.%s.claimReply(%s)", PIPES, replyPipe);
         List<StatementNode> ifStmts = new ArrayList<>();
         String framePipe;
         if (keepFramesForReceiveOnly) {

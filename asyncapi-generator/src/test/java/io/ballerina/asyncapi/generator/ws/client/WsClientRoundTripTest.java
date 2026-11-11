@@ -239,10 +239,10 @@ public class WsClientRoundTripTest {
                 "string|pipe:Error responseMessage = self.pipes.getPipe(\"#noDispatcherKey\").consume(timeout);"),
                 client);
         // Such a frame is queued only while a call waits, so a later call can't take an earlier frame as its reply
-        Assert.assertTrue(client.contains("if !self.pipes.isAwaitingReply(\"#noDispatcherKey\") {"), client);
+        Assert.assertTrue(client.contains("if !self.pipes.claimReply(\"#noDispatcherKey\") {"), client);
         Assert.assertTrue(client.contains("self.pipes.awaitReply(\"#noDispatcherKey\", true);"), client);
         Assert.assertTrue(client.contains("self.pipes.awaitReply(\"#noDispatcherKey\", false);"), client);
-        Assert.assertTrue(files.get("utils.bal").contains("public isolated function isAwaitingReply(string id)"));
+        Assert.assertTrue(files.get("utils.bal").contains("public isolated function claimReply(string id)"));
         // A string reply is the frame text itself; any other reply is JSON text
         Assert.assertTrue(client.contains(
                 "HelloDataResponse|error helloDataResponse = responseMessage.cloneWithType();"), client);
@@ -262,7 +262,7 @@ public class WsClientRoundTripTest {
                 "action: receive\nchannel:\n  $ref: \"#/channels/root\"\nmessages:\n"
                         + "- $ref: \"#/channels/root/messages/Notice\"\n"));
         String client = generate(spec).get("client.bal");
-        Assert.assertTrue(client.contains("self.pipes.getPipe(self.pipes.isAwaitingReply(\"#noDispatcherKey\") ? "
+        Assert.assertTrue(client.contains("self.pipes.getPipe(self.pipes.claimReply(\"#noDispatcherKey\") ? "
                 + "\"#noDispatcherKey\" : \"#noDispatcherKeyEvents\").produce(frame, 5);"), client);
         Assert.assertTrue(client.contains(
                 "string|pipe:Error responseMessage = self.pipes.getPipe(\"#noDispatcherKeyEvents\").consume(timeout);"),
