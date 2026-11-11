@@ -42,6 +42,7 @@ import io.apicurio.datamodels.models.asyncapi.v26.AsyncApi26Message;
 import io.apicurio.datamodels.models.asyncapi.v26.AsyncApi26Operation;
 import io.ballerina.asyncapi.core.Constants;
 import io.ballerina.asyncapi.core.implementation.common.SchemaMapper;
+import io.ballerina.asyncapi.core.implementation.utils.JsonPointers;
 import io.ballerina.asyncapi.core.implementation.v2.doc.ExternalDocMapperV2;
 import io.ballerina.asyncapi.core.implementation.v2.tag.TagMapperV2;
 import io.ballerina.asyncapi.core.model.tag.AsyncApiTag;
@@ -100,7 +101,7 @@ public final class MessageMapperV2 {
             String messageRefKey = null;
             if (message instanceof AsyncApiReferenceable referenceable && referenceable.get$ref() != null) {
                 String ref = referenceable.get$ref();
-                messageRefKey = ref.substring(ref.lastIndexOf('/') + 1);
+                messageRefKey = JsonPointers.decode(ref.substring(ref.lastIndexOf('/') + 1));
                 message = resolveMessageRef(ref, components);
                 if (message == null) {
                     continue;
@@ -124,7 +125,7 @@ public final class MessageMapperV2 {
                     String oneOfRefKey = null;
                     if (oneOfMsg instanceof AsyncApiReferenceable ref && ref.get$ref() != null) {
                         String refStr = ref.get$ref();
-                        oneOfRefKey = refStr.substring(refStr.lastIndexOf('/') + 1);
+                        oneOfRefKey = JsonPointers.decode(refStr.substring(refStr.lastIndexOf('/') + 1));
                         resolvedMsg = resolveMessageRef(refStr, components);
                         if (resolvedMsg == null) {
                             continue;
@@ -287,7 +288,7 @@ public final class MessageMapperV2 {
                 LOG.warn("Cyclic $ref detected: {}. Skipping message.", current);
                 return null;
             }
-            String msgName = current.substring(Constants.MESSAGES_REF_PREFIX.length());
+            String msgName = JsonPointers.keyAfter(current, Constants.MESSAGES_REF_PREFIX);
             Map<String, ? extends AsyncApiMessage> messagesMap = components.getMessages();
             AsyncApiMessage resolved = messagesMap != null ? messagesMap.get(msgName) : null;
             if (resolved == null) {

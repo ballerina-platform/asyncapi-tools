@@ -27,6 +27,7 @@ import io.apicurio.datamodels.models.asyncapi.AsyncApiSchema;
 import io.apicurio.datamodels.models.union.BooleanSchemaUnion;
 import io.apicurio.datamodels.models.union.SchemaSchemaListUnion;
 import io.ballerina.asyncapi.core.Constants;
+import io.ballerina.asyncapi.core.implementation.utils.JsonPointers;
 import io.ballerina.asyncapi.core.implementation.v2.doc.ExternalDocMapperV2;
 
 import java.util.ArrayList;
@@ -505,7 +506,7 @@ public final class SchemaMapper {
      * decoded back to {@code /} and {@code ~} (RFC 6901).
      */
     private static String referenceName(String ref) {
-        return ref.substring(ref.lastIndexOf('/') + 1).replace("~1", "/").replace("~0", "~");
+        return JsonPointers.decode(ref.substring(ref.lastIndexOf('/') + 1));
     }
 
     /**

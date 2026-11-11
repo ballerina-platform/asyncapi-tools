@@ -37,6 +37,7 @@ import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Integration tests for {@link AsyncApiParser#parseFromJsonString(String)}.
@@ -641,6 +642,51 @@ public class AsyncApiParserIntegrationTest {
                 + "\"paths\":{}}";
         Assert.assertThrows(AsyncApiParserException.class,
                 () -> AsyncApiParser.parseFromJsonString(openApiJson));
+    }
+
+    // -------------------------------------------------------------------------
+    // Channel and message references
+    // -------------------------------------------------------------------------
+
+    @DataProvider(name = "pingPongSpecs")
+    Object[][] pingPongSpecs() {
+        return new Object[][] {
+            {"channel-ref.json", "ws", "/ws"},
+            {"channel-ref-message-through-channel.json", "ws", "/ws"},
+            {"escaped-channel-key.json", "/ws", "/ws"},
+            {"no-address.json", "ws", null},
+            {"null-address.json", "ws", null},
+        };
+    }
+
+    @Test(dataProvider = "pingPongSpecs")
+    void validChannelReferences_areRead(String file, String channelKey, String address)
+            throws IOException, AsyncApiParserException {
+        // A channel that is a $ref, a key referenced with ~1, and a missing or null address are all valid 3.0
+        AsyncApiSpec spec = AsyncApiParser.parseFromJsonString(loadSpec(SPEC_DIR + "refs/" + file));
+        Assert.assertEquals(spec.getAsyncApiChannels().orElseThrow().get(channelKey).address(), address);
+        AsyncApiOperation operation = spec.getAsyncApiOperations().orElseThrow().get("sendPing");
+        Assert.assertEquals(operation.channelId(), "Ws");
+        Assert.assertNotNull(operation.channel());
+        Assert.assertEquals(operation.messages().keySet(), Set.of("ping"));
+        Assert.assertEquals(operation.reply().messages().keySet(), Set.of("pong"));
+    }
+
+    @DataProvider(name = "brokenRefs")
+    Object[][] brokenRefs() {
+        return new Object[][] {
+            {"broken-message-ref.json", "operation 'sendPing' message reference '#/channels/ws/messages/nope'"},
+            {"broken-channel-message-ref.json",
+                "channel 'ws' message 'pong' reference '#/components/messages/Nope'"},
+        };
+    }
+
+    @Test(dataProvider = "brokenRefs")
+    void brokenReference_isNamed(String file, String problem) throws IOException {
+        AsyncApiParserException e = Assert.expectThrows(AsyncApiParserException.class,
+                () -> AsyncApiParser.parseFromJsonString(loadSpec(SPEC_DIR + "refs/" + file)));
+        Assert.assertTrue(e.getMessage().contains(problem + " doesn't point to anything in the document]"),
+                e.getMessage());
     }
 
     // -------------------------------------------------------------------------

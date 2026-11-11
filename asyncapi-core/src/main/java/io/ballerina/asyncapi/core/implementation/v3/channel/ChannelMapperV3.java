@@ -25,6 +25,7 @@ import io.apicurio.datamodels.models.asyncapi.AsyncApiReferenceable;
 import io.apicurio.datamodels.models.asyncapi.v30.AsyncApi30Channel;
 import io.apicurio.datamodels.models.asyncapi.v30.AsyncApi30Components;
 import io.ballerina.asyncapi.core.Constants;
+import io.ballerina.asyncapi.core.implementation.utils.JsonPointers;
 import io.ballerina.asyncapi.core.implementation.v3.doc.ExternalDocMapperV3;
 import io.ballerina.asyncapi.core.implementation.v3.message.MessageMapperV3;
 import io.ballerina.asyncapi.core.implementation.v3.tag.TagMapperV3;
@@ -127,7 +128,7 @@ public final class ChannelMapperV3 {
                     LOG.warn("Unsupported server $ref format: {}. Skipping server.", serverRefStr);
                     continue;
                 }
-                String serverName = serverRefStr.substring(Constants.V3_SERVERS_REF_PREFIX.length());
+                String serverName = JsonPointers.keyAfter(serverRefStr, Constants.V3_SERVERS_REF_PREFIX);
                 AsyncApiServer server = serversMap.get(serverName);
                 if (server != null) {
                     serverList.add(server);
@@ -190,7 +191,7 @@ public final class ChannelMapperV3 {
                 LOG.warn("Cyclic $ref detected: {}. Skipping channel.", current);
                 return null;
             }
-            String channelId = current.substring(Constants.CHANNELS_REF_PREFIX.length());
+            String channelId = JsonPointers.keyAfter(current, Constants.CHANNELS_REF_PREFIX);
             Map<String, AsyncApi30Channel> channelsMap = typedComponents.getChannels();
             AsyncApi30Channel resolved = channelsMap != null ? channelsMap.get(channelId) : null;
             if (resolved == null) {
