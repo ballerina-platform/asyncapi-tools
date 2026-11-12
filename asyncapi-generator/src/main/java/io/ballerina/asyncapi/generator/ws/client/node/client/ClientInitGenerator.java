@@ -26,10 +26,13 @@ import io.ballerina.asyncapi.generator.ws.client.utils.CodegenUtils;
 import io.ballerina.compiler.syntax.tree.FunctionDefinitionNode;
 import io.ballerina.compiler.syntax.tree.Node;
 import io.ballerina.compiler.syntax.tree.NodeParser;
+import io.ballerina.compiler.syntax.tree.RequiredParameterNode;
 import io.ballerina.compiler.syntax.tree.StatementNode;
 import io.ballerina.compiler.syntax.tree.Token;
 
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -51,6 +54,12 @@ public class ClientInitGenerator {
     private static final String IS_ACTIVE = "isActive";
     private static final String START_MESSAGE_WRITING = "startMessageWriting";
     private static final String START_MESSAGE_READING = "startMessageReading";
+    private static final String SERVICE_URL = "serviceUrl";
+    private static final String MODIFIED_URL = "modifiedUrl";
+    private static final String PATH_PARAMS = "pathParams";
+    private static final String QUERY_PARAMS = "queryParams";
+    private static final String HEADER_PARAMS = "headerParams";
+    private static final String API_KEY_CONFIG = "apiKeyConfig";
 
     private final WsClientConfig config;
     private final AsyncApiChannel channel;
@@ -97,11 +106,18 @@ public class ClientInitGenerator {
 
         List<String> paramParts = new ArrayList<>();
         for (Node node : extraParamNodes) {
-            if (node.kind() != COMMA_TOKEN) {
+            // The parameter nodes carry no whitespace, so write "Type name" ourselves
+            if (node instanceof RequiredParameterNode param && param.paramName().isPresent()) {
+                paramParts.add(param.typeName().toSourceCode().trim() + " " + param.paramName().get().text());
+            } else if (node.kind() != COMMA_TOKEN) {
                 paramParts.add(node.toSourceCode().trim());
             }
         }
-        paramParts.add(authGen.buildInitParamString(serverUrl));
+        String path = channelPath();
+        // The channel path is added to serviceUrl, so the default must not end with a slash
+        String defaultUrl = !path.isEmpty() && serverUrl.length() > 1 && serverUrl.endsWith("/")
+                ? serverUrl.substring(0, serverUrl.length() - 1) : serverUrl;
+        paramParts.add(authGen.buildInitParamString(defaultUrl));
         String allParams = String.join(", ", paramParts);
 
         List<StatementNode> bodyStatements = buildBodyStatements();
@@ -149,13 +165,51 @@ public class ClientInitGenerator {
         statements.add(NodeParser.parseStatement(
                 String.format("self.%s = new (%s);", WRITE_MESSAGE_QUEUE, QUEUE_DEFAULT_SIZE)));
 
-        if (authGen.isQueryParam() && querySchema != null && querySchema.get("properties") != null) {
-            statements.add(NodeParser.parseStatement("string queryString = \"\";"));
-            statements.add(NodeParser.parseStatement("serviceUrl = serviceUrl + queryString;"));
+        String url = SERVICE_URL;
+        String path = channelPath();
+        if (!path.isEmpty()) {
+            statements.add(NodeParser.parseStatement(
+                    String.format("string %s = %s + string `%s`;", MODIFIED_URL, SERVICE_URL, path)));
+            url = MODIFIED_URL;
+        }
+        List<String> queryEntries = new ArrayList<>(paramEntries(querySchema, QUERY_PARAMS, false));
+        // With HTTP or OAuth as well, the API key is optional; a nil query value is skipped
+        boolean optionalKey = authGen.isApiKeyOptional();
+        authGen.getQueryApiKeyNameList().values().forEach(name -> queryEntries.add(
+                apiKeyEntry(name, optionalKey ? "?." : ".")));
+        if (!queryEntries.isEmpty()) {
+            if (path.isEmpty()) {
+                statements.add(NodeParser.parseStatement(
+                        String.format("string %s = %s;", MODIFIED_URL, SERVICE_URL)));
+                url = MODIFIED_URL;
+            }
+            statements.add(NodeParser.parseStatement(
+                    String.format("map<anydata> queryParam = {%s};", String.join(", ", queryEntries))));
+            statements.add(NodeParser.parseStatement(
+                    String.format("%s = %s + check getPathForQueryParam(queryParam);", MODIFIED_URL, MODIFIED_URL)));
+        }
+        List<String> headerEntries = new ArrayList<>(paramEntries(headerSchema, HEADER_PARAMS, true));
+        Collection<String> headerKeys = authGen.getHeaderApiKeyNameList().values();
+        if (!optionalKey) {
+            headerKeys.forEach(name -> headerEntries.add(apiKeyEntry(name, ".")));
+        }
+        if (!headerEntries.isEmpty() || !headerKeys.isEmpty()) {
+            statements.add(NodeParser.parseStatement(
+                    String.format("map<string> headerParam = {%s};", String.join(", ", headerEntries))));
+            if (optionalKey) {
+                // A header map holds only strings, so an optional key is added only when given
+                String puts = headerKeys.stream().map(name -> String.format("headerParam[%s] = %s.%s;",
+                        CodegenUtils.toStringLiteral(name), API_KEY_CONFIG, CodegenUtils.getValidName(name, false)))
+                        .collect(Collectors.joining(" "));
+                statements.add(NodeParser.parseStatement(
+                        String.format("if %s is ApiKeysConfig { %s }", API_KEY_CONFIG, puts)));
+            }
+            statements.add(NodeParser.parseStatement(
+                    "clientConfig.customHeaders = getCombineHeaders(clientConfig.customHeaders, headerParam);"));
         }
 
         statements.add(NodeParser.parseStatement(
-                "websocket:Client websocketEp = check new (serviceUrl, clientConfig);"));
+                String.format("websocket:Client websocketEp = check new (%s, clientConfig);", url)));
         statements.add(buildSelfAssignment(CLIENT_EP, "websocketEp"));
         statements.add(buildSelfAssignment(IS_ACTIVE, "true"));
 
@@ -168,6 +222,54 @@ public class ClientInitGenerator {
         statements.add(NodeParser.parseStatement("return;"));
 
         return statements;
+    }
+
+    /**
+     * Returns the channel address as the body of a string template, with each path parameter filled in
+     * from {@code pathParams}, or {@code ""} for the root channel.
+     *
+     * @return the path to add to {@code serviceUrl}
+     */
+    private String channelPath() {
+        String address = channel.address();
+        if (address == null || address.isBlank() || "/".equals(address)) {
+            return "";
+        }
+        String path = address.startsWith("/") ? address : "/" + address;
+        if (channel.parameters() != null) {
+            for (String name : channel.parameters().keySet()) {
+                path = path.replace("{" + name + "}", String.format("${getEncodedUri(%s.%s)}",
+                        PATH_PARAMS, CodegenUtils.escapeIdentifier(name)));
+            }
+        }
+        return path;
+    }
+
+    /**
+     * Returns the {@code "name": record.field} map entries for the properties of a WS binding schema.
+     *
+     * @param schema   the {@code query} or {@code headers} schema (may be null)
+     * @param record   the parameter holding the values
+     * @param asString whether each value is converted to a string, as headers need
+     * @return the map entries, empty when the schema has no properties
+     */
+    private static List<String> paramEntries(JsonNode schema, String record, boolean asString) {
+        List<String> entries = new ArrayList<>();
+        if (schema == null || schema.get("properties") == null) {
+            return entries;
+        }
+        Iterator<String> names = schema.get("properties").fieldNames();
+        while (names.hasNext()) {
+            String name = names.next();
+            entries.add(String.format("%s: %s.%s%s", CodegenUtils.toStringLiteral(name), record,
+                    CodegenUtils.escapeIdentifier(name), asString ? ".toString()" : ""));
+        }
+        return entries;
+    }
+
+    private static String apiKeyEntry(String name, String access) {
+        return String.format("%s: %s%s%s", CodegenUtils.toStringLiteral(name), API_KEY_CONFIG, access,
+                CodegenUtils.getValidName(name, false));
     }
 
     /**

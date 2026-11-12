@@ -156,6 +156,75 @@ public class WsClientCodeGeneratorIntegrationTest {
     }
 
     @Test
+    void testInitBuildsTheUrlAndHeadersFromTheSpec() throws Exception {
+        Path spec = specPath("ws_init_url_params.json");
+        Path outDir = Files.createTempDirectory("ws-init-url-gen");
+        try {
+            AsyncApiSpec asyncApiSpec = AsyncApiParser.parseFromJsonString(Files.readString(spec));
+            new WsClientCodeGenerator(asyncApiSpec, null, false).generate(outDir);
+
+            String client = readFile(outDir, "client.bal");
+            Assert.assertTrue(client.contains("init(PathParams pathParams, HeaderParams headerParams, "
+                    + "QueryParams queryParams, ApiKeysConfig apiKeyConfig, websocket:ClientConfiguration clientConfig "
+                    + "= {}, string serviceUrl = \"ws://localhost:9095\")"), client);
+            Assert.assertTrue(client.contains("string modifiedUrl = serviceUrl + "
+                    + "string `/v1/marketdata/${getEncodedUri(pathParams.symbol)}`;"), client);
+            Assert.assertTrue(client.contains("map<anydata> queryParam = {\"heartbeat\": queryParams.heartbeat, "
+                    + "\"top\": queryParams.top, \"token\": apiKeyConfig.token};"), client);
+            Assert.assertTrue(client.contains("modifiedUrl = modifiedUrl + check getPathForQueryParam(queryParam);"),
+                    client);
+            Assert.assertTrue(client.contains("\"X-Api-Key\": apiKeyConfig.xApiKey"), client);
+            Assert.assertTrue(client.contains(
+                    "clientConfig.customHeaders = getCombineHeaders(clientConfig.customHeaders, headerParam);"),
+                    client);
+            Assert.assertTrue(client.contains("check new (modifiedUrl, clientConfig)"), client);
+            Assert.assertTrue(client.contains("public type PathParams record {|"), "The record is declared: " + client);
+            String utils = readFile(outDir, "utils.bal");
+            Assert.assertTrue(utils.contains("function getPathForQueryParam"), utils);
+            Assert.assertTrue(utils.contains("function getCombineHeaders"), utils);
+        } finally {
+            deleteDir(outDir);
+        }
+    }
+
+    @Test
+    void testApiKeysAreOptionalWhenHttpAuthIsOffered() throws Exception {
+        String json = Files.readString(specPath("ws_init_url_params.json")).replace(
+                "\"securitySchemes\": {",
+                "\"securitySchemes\": {\"bearer\": {\"type\": \"http\", \"scheme\": \"bearer\"},");
+        Path outDir = Files.createTempDirectory("ws-mixed-auth-gen");
+        try {
+            new WsClientCodeGenerator(AsyncApiParser.parseFromJsonString(json), null, false).generate(outDir);
+
+            String client = readFile(outDir, "client.bal");
+            Assert.assertTrue(client.contains("websocket:ClientConfiguration clientConfig = {}, "
+                    + "ApiKeysConfig? apiKeyConfig = (), string serviceUrl"), client);
+            Assert.assertTrue(client.contains("\"token\": apiKeyConfig?.token"), client);
+            Assert.assertTrue(client.contains("headerParam[\"X-Api-Key\"] = apiKeyConfig.xApiKey;"), client);
+        } finally {
+            deleteDir(outDir);
+        }
+    }
+
+    @Test
+    void testNoServerMakesServiceUrlRequired() throws Exception {
+        Path spec = specPath("ws_simple.json");
+        Path outDir = Files.createTempDirectory("ws-no-server-gen");
+        try {
+            AsyncApiSpec asyncApiSpec = AsyncApiParser.parseFromJsonString(Files.readString(spec));
+            new WsClientCodeGenerator(asyncApiSpec, null, false).generate(outDir);
+
+            String client = readFile(outDir, "client.bal");
+            Assert.assertTrue(client.contains(
+                    "init(string serviceUrl, websocket:ClientConfiguration clientConfig = {})"), client);
+            Assert.assertTrue(client.contains("string modifiedUrl = serviceUrl + string `/chat`;"),
+                    "A 2.x channel name is the path: " + client);
+        } finally {
+            deleteDir(outDir);
+        }
+    }
+
+    @Test
     void testGenerateMissingDispatcherKeyThrows() throws Exception {
         Path spec = specPath("ws_missing_dispatcher_key.json");
         AsyncApiSpec asyncApiSpec = AsyncApiParser.parseFromJsonString(Files.readString(spec));
