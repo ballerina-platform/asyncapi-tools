@@ -29,7 +29,11 @@ import io.ballerina.compiler.syntax.tree.TypeDescriptorNode;
 import io.ballerina.compiler.syntax.tree.TypeReferenceNode;
 
 import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createToken;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.ASTERISK_TOKEN;
@@ -81,9 +85,36 @@ public class AllOfRecordTypeGenerator extends RecordTypeGenerator {
     }
 
     private List<Node> generateAllOfRecordFields(List<AsyncApiSchema> allOfSchemas) throws GeneratorException {
+        Map<String, AsyncApiSchema> inline = new LinkedHashMap<>();
+        Map<String, AsyncApiSchema> included = new LinkedHashMap<>();
+        for (AsyncApiSchema allOfSchema : allOfSchemas) {
+            if (allOfSchema.name() != null) {
+                included.putAll(fieldsOf(allOfSchema));
+            } else if (allOfSchema.properties() != null) {
+                inline.putAll(allOfSchema.properties());
+            }
+        }
+        // A typeless redeclaration, such as one that only adds a const, keeps the included field's type
+        Set<String> kept = new HashSet<>();
+        for (Map.Entry<String, AsyncApiSchema> field : inline.entrySet()) {
+            if (included.containsKey(field.getKey()) && isTypeless(field.getValue())) {
+                kept.add(field.getKey());
+            }
+        }
+        return generateAllOfRecordFields(allOfSchemas, inline, kept);
+    }
+
+    private List<Node> generateAllOfRecordFields(List<AsyncApiSchema> allOfSchemas,
+                                                 Map<String, AsyncApiSchema> inline, Set<String> kept)
+            throws GeneratorException {
         List<Node> recordFieldList = new ArrayList<>();
         for (AsyncApiSchema allOfSchema : allOfSchemas) {
             if (allOfSchema.name() != null) {
+                if (clashes(allOfSchema, inline, kept)) {
+                    // Ballerina rejects an override that isn't a subtype, so the included fields are copied in instead
+                    recordFieldList.addAll(copiedFields(allOfSchema, inline, kept));
+                    continue;
+                }
                 // Resolved $ref → generate type inclusion: *RefTypeName;
                 String refTypeName = CodegenUtils.getValidName(allOfSchema.name(), true);
                 Token typeRef = AbstractNodeFactory.createIdentifierToken(refTypeName);
@@ -92,12 +123,71 @@ public class AllOfRecordTypeGenerator extends RecordTypeGenerator {
                 recordFieldList.add(recordField);
             } else if (allOfSchema.properties() != null) {
                 // Inline properties → add as record fields
-                recordFieldList.addAll(addRecordFields(allOfSchema.required(), allOfSchema.properties()));
+                Map<String, AsyncApiSchema> properties = new LinkedHashMap<>(allOfSchema.properties());
+                properties.keySet().removeAll(kept);
+                recordFieldList.addAll(addRecordFields(allOfSchema.required(), properties));
             } else if (allOfSchema.allOf() != null && !allOfSchema.allOf().isEmpty()) {
                 // Nested allOf → recurse
                 recordFieldList.addAll(generateAllOfRecordFields(allOfSchema.allOf()));
             }
         }
         return recordFieldList;
+    }
+
+    /**
+     * The fields of an included schema without the ones an inline part redeclares with its own type, and its own
+     * included schemas handled the same way.
+     */
+    private List<Node> copiedFields(AsyncApiSchema base, Map<String, AsyncApiSchema> inline, Set<String> kept)
+            throws GeneratorException {
+        List<Node> fields = new ArrayList<>();
+        if (base.allOf() != null) {
+            fields.addAll(generateAllOfRecordFields(base.allOf(), inline, kept));
+        }
+        if (base.properties() != null) {
+            Map<String, AsyncApiSchema> properties = new LinkedHashMap<>(base.properties());
+            // A kept field stays the base's; any other redeclared field is the inline part's
+            properties.keySet().removeIf(name -> inline.containsKey(name) && !kept.contains(name));
+            fields.addAll(addRecordFields(base.required(), properties));
+        }
+        return fields;
+    }
+
+    /**
+     * Whether an inline part redeclares a field of {@code base} with a type of its own that differs from the base's.
+     */
+    private static boolean clashes(AsyncApiSchema base, Map<String, AsyncApiSchema> inline, Set<String> kept)
+            throws GeneratorException {
+        for (Map.Entry<String, AsyncApiSchema> field : fieldsOf(base).entrySet()) {
+            AsyncApiSchema override = inline.get(field.getKey());
+            if (override != null && !kept.contains(field.getKey())
+                    && !typeSource(field.getValue()).equals(typeSource(override))) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    // The fields a schema declares itself and through its own allOf parts
+    private static Map<String, AsyncApiSchema> fieldsOf(AsyncApiSchema schema) {
+        Map<String, AsyncApiSchema> fields = new LinkedHashMap<>();
+        if (schema.allOf() != null) {
+            schema.allOf().forEach(part -> fields.putAll(fieldsOf(part)));
+        }
+        if (schema.properties() != null) {
+            fields.putAll(schema.properties());
+        }
+        return fields;
+    }
+
+    // No type, ref or composition: only a const, enum, description and the like
+    private static boolean isTypeless(AsyncApiSchema schema) {
+        return schema.type() == null && schema.name() == null && schema.properties() == null
+                && schema.items() == null && schema.additionalProperties() == null && schema.allOf() == null
+                && schema.oneOf() == null && schema.anyOf() == null;
+    }
+
+    private static String typeSource(AsyncApiSchema schema) throws GeneratorException {
+        return TypeGenerator.of(schema, null).generateTypeDescriptorNode().toSourceCode().trim();
     }
 }

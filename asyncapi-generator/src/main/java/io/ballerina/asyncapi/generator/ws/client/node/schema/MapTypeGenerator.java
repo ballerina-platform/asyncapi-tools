@@ -19,7 +19,6 @@ package io.ballerina.asyncapi.generator.ws.client.node.schema;
 
 import io.ballerina.asyncapi.core.model.component.AsyncApiSchema;
 import io.ballerina.asyncapi.generator.GeneratorException;
-import io.ballerina.asyncapi.generator.ws.client.utils.CodegenUtils;
 import io.ballerina.compiler.syntax.tree.TypeDescriptorNode;
 
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createIdentifierToken;
@@ -50,21 +49,15 @@ public class MapTypeGenerator implements TypeGenerator {
 
     @Override
     public TypeDescriptorNode generateTypeDescriptorNode() throws GeneratorException {
-        String valueType = "json";
-        Object additionalProps = schema.additionalProperties();
-        if (additionalProps instanceof AsyncApiSchema) {
-            AsyncApiSchema additionalPropSchema = (AsyncApiSchema) additionalProps;
-            if (additionalPropSchema.type() != null) {
-                valueType = CodegenUtils.TYPE_MAP.getOrDefault(
-                        additionalPropSchema.type(), additionalPropSchema.type());
-            }
+        TypeDescriptorNode valueType = createBuiltinSimpleNameReferenceNode(null, createIdentifierToken("json"));
+        // Boolean true, null or an empty schema → map<json>; any other schema maps as a field's would, so an object
+        // or an array without items is a Ballerina type and a $ref keeps its type
+        if (schema.additionalProperties() instanceof AsyncApiSchema value && (value.type() != null
+                || value.name() != null || value.allOf() != null || value.oneOf() != null || value.anyOf() != null)) {
+            valueType = TypeGenerator.of(value, null).generateTypeDescriptorNode();
         }
-        // Boolean true or null → map<json>; typed schema → map<T>
         return createMapTypeDescriptorNode(
                 createToken(MAP_KEYWORD),
-                createTypeParameterNode(
-                        createToken(LT_TOKEN),
-                        createBuiltinSimpleNameReferenceNode(null, createIdentifierToken(valueType)),
-                        createToken(GT_TOKEN)));
+                createTypeParameterNode(createToken(LT_TOKEN), valueType, createToken(GT_TOKEN)));
     }
 }
