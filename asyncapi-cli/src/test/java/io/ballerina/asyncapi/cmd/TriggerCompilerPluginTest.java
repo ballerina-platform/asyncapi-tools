@@ -71,6 +71,13 @@ public class TriggerCompilerPluginTest {
         Assert.assertTrue(version.matches("\\d+\\.\\d+\\.\\d+"), version);
     }
 
+    @Test(description = "A snapshot or CI timestamped build version becomes its release version")
+    public void testReleaseVersionDropsTheBuildSuffix() {
+        Assert.assertEquals(TriggerCompilerPlugin.releaseVersion("0.13.3-SNAPSHOT"), "0.13.3");
+        Assert.assertEquals(TriggerCompilerPlugin.releaseVersion("0.13.3-20261110-142100-1da1237"), "0.13.3");
+        Assert.assertEquals(TriggerCompilerPlugin.releaseVersion("0.13.3"), "0.13.3");
+    }
+
     @Test(description = "The build tool copies the plugin jar bundled in the tool")
     public void testBuildToolCopiesThePlugin() throws Exception {
         Path dir = Files.createTempDirectory("tool-cache");

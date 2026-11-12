@@ -19,6 +19,7 @@ package io.ballerina.asyncapi.generator.ws.client.node.schema;
 
 import io.ballerina.asyncapi.core.model.component.AsyncApiSchema;
 import io.ballerina.asyncapi.generator.GeneratorException;
+import io.ballerina.asyncapi.generator.ws.client.utils.CodegenUtils;
 import io.ballerina.compiler.syntax.tree.TypeDescriptorNode;
 
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createIdentifierToken;
@@ -44,6 +45,7 @@ public class ReferencedTypeGenerator implements TypeGenerator {
 
     @Override
     public TypeDescriptorNode generateTypeDescriptorNode() throws GeneratorException {
-        return createSimpleNameReferenceNode(createIdentifierToken(schema.name()));
+        // Same name the type is declared with, so `reqid` refers to `Reqid`
+        return createSimpleNameReferenceNode(createIdentifierToken(CodegenUtils.getValidName(schema.name(), true)));
     }
 }
