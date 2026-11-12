@@ -51,6 +51,7 @@ import static io.ballerina.asyncapi.generator.ws.client.extractor.DispatcherKeyE
 public class ClientRemoteFunctionGenerator {
 
     private static final String REMOTE_METHOD_NAME_PREFIX = "do";
+    private static final String RECEIVED_SUFFIX = "Received";
     private static final String DESCRIPTION = "description";
     private static final String ONE_OF = "oneOf";
     private static final String REF = "$ref";
@@ -107,6 +108,10 @@ public class ClientRemoteFunctionGenerator {
         // Messages and types a send function already returns
         Set<String> remainingResponseMessages = new HashSet<>();
         Set<String> replyTypes = new HashSet<>();
+        // Function names are unique across the client; a message two operations list gets one function
+        Set<String> functionNames = new HashSet<>();
+        Map<String, AsyncApiMessage> sent = new HashMap<>();
+        Map<String, AsyncApiMessage> received = new HashMap<>();
 
         // First pass: SEND operations
         for (Map.Entry<String, AsyncApiOperation> opEntry : operations.entrySet()) {
@@ -128,6 +133,9 @@ public class ClientRemoteFunctionGenerator {
                         continue;
                     }
                 }
+                if (message.equals(sent.putIfAbsent(msgName, message))) {
+                    continue;
+                }
 
                 // The messages this send function returns need no receive-only function of their own
                 if (message.extensions() != null && message.extensions().containsKey(ClientGenerator.X_RESPONSE)) {
@@ -139,7 +147,8 @@ public class ClientRemoteFunctionGenerator {
                     replyTypes.addAll(replySchemas);
                 }
 
-                FunctionDefinitionNode fn = getRemoteFunctionDefinitionNode(asyncApiSpec, msgName, message,
+                String funcName = freeFunctionName(msgName, "", functionNames);
+                FunctionDefinitionNode fn = getRemoteFunctionDefinitionNode(asyncApiSpec, msgName, funcName, message,
                         dispatcherStreamId, false, sigGen, bodyGen, returnTypeGen, streamReturns, responseMap, null);
                 remoteFunctions.add(fn);
             }
@@ -171,6 +180,9 @@ public class ClientRemoteFunctionGenerator {
                         || message.payload() instanceof AsyncApiSchema payload && replyTypes.contains(payload.name())) {
                     continue;
                 }
+                if (message.equals(received.putIfAbsent(msgName, message))) {
+                    continue;
+                }
 
                 // Build synthetic extensions for receive-only messages
                 AsyncApiMessage enrichedMessage = buildReceiveOnlyMessage(message, msgName);
@@ -179,13 +191,32 @@ public class ClientRemoteFunctionGenerator {
                         && message.extensions().containsKey(ClientGenerator.X_RESPONSE);
                 String ownType = ownResponse ? null : returnTypeGen.getReceiveReturnType(msgName, message, null);
 
-                FunctionDefinitionNode fn = getRemoteFunctionDefinitionNode(asyncApiSpec, msgName, enrichedMessage,
-                        dispatcherStreamId, true, sigGen, bodyGen, returnTypeGen, streamReturns, responseMap, ownType);
+                // A message the client also sends keeps do<Message> for the send
+                String doName = REMOTE_METHOD_NAME_PREFIX + CodegenUtils.getValidName(msgName, true);
+                String funcName = freeFunctionName(msgName, functionNames.contains(doName) ? RECEIVED_SUFFIX : "",
+                        functionNames);
+                FunctionDefinitionNode fn = getRemoteFunctionDefinitionNode(asyncApiSpec, msgName, funcName,
+                        enrichedMessage, dispatcherStreamId, true, sigGen, bodyGen, returnTypeGen, streamReturns,
+                        responseMap, ownType);
                 remoteFunctions.add(fn);
             }
         }
 
         return remoteFunctions;
+    }
+
+    /**
+     * Returns {@code do}, the message name and {@code suffix}, numbered from 2 until no other function has it, and
+     * takes it.
+     */
+    private static String freeFunctionName(String msgName, String suffix, Set<String> taken) {
+        String base = REMOTE_METHOD_NAME_PREFIX + CodegenUtils.getValidName(msgName, true) + suffix;
+        String name = base;
+        for (int i = 2; taken.contains(name); i++) {
+            name = base + i;
+        }
+        taken.add(name);
+        return name;
     }
 
     /**
@@ -239,6 +270,7 @@ public class ClientRemoteFunctionGenerator {
      *
      * @param asyncApiSpec       the spec
      * @param msgName            the message key name
+     * @param funcName           the function's name, unique in the client
      * @param message            the message definition
      * @param dispatcherStreamId optional stream ID
      * @param isSubscribe        true for receive-only operations
@@ -252,7 +284,7 @@ public class ClientRemoteFunctionGenerator {
      * @throws GeneratorException if generation fails
      */
     private FunctionDefinitionNode getRemoteFunctionDefinitionNode(AsyncApiSpec asyncApiSpec, String msgName,
-                                                                    AsyncApiMessage message,
+                                                                    String funcName, AsyncApiMessage message,
                                                                     String dispatcherStreamId,
                                                                     boolean isSubscribe,
                                                                     RemoteFunctionSignatureGenerator sigGen,
@@ -317,10 +349,6 @@ public class ClientRemoteFunctionGenerator {
 
         // Build return type string
         String fullReturnType = sigGen.buildReturnTypeString(msgExtensions, returnType);
-
-        // Function name
-        String funcName = String.format("%s%s",
-                REMOTE_METHOD_NAME_PREFIX, CodegenUtils.getValidName(msgName, true));
 
         // Build body source — use the canonical pipe key from responseMap so all functions sharing
         // the same response type route through the same pipe

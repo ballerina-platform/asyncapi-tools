@@ -74,6 +74,7 @@ public final class NamedPayloadSpec implements AsyncApiSpec {
     private final Map<String, AsyncApiSchema> schemas;
     private final Map<String, AsyncApiMessage> messages;
     private final Set<String> takenTypeNames = new HashSet<>(GENERATED_TYPE_NAMES);
+    private final SchemaRenames renames;
     private final Map<String, AsyncApiMessage> originalMessages;
     // Operation messages that differ from the component message of the same name, before and after naming
     private final Map<String, AsyncApiMessage> operationOriginals = new HashMap<>();
@@ -89,10 +90,14 @@ public final class NamedPayloadSpec implements AsyncApiSpec {
         JsonNode dispatcherKeyNode = spec.getAsyncApiExtensions().map(ext -> ext.get(X_DISPATCHER_KEY)).orElse(null);
         this.dispatcherKey = dispatcherKeyNode != null ? dispatcherKeyNode.asText() : null;
         AsyncApiComponent original = spec.getAsyncApiComponents().orElse(null);
-        this.schemas = original != null && original.schemas() != null
-                ? new LinkedHashMap<>(original.schemas()) : new LinkedHashMap<>();
-        this.messages = original != null && original.messages() != null
-                ? new LinkedHashMap<>(original.messages()) : new LinkedHashMap<>();
+        Map<String, AsyncApiSchema> specSchemas = original != null && original.schemas() != null
+                ? original.schemas() : Map.of();
+        this.renames = reservedNameRenames(specSchemas.keySet());
+        this.schemas = renames.schemas(specSchemas);
+        this.messages = new LinkedHashMap<>();
+        if (original != null && original.messages() != null) {
+            original.messages().forEach((name, message) -> messages.put(name, renames.message(message)));
+        }
         for (String schemaName : schemas.keySet()) {
             takenTypeNames.add(CodegenUtils.getValidName(schemaName.trim(), true));
         }
@@ -123,10 +128,35 @@ public final class NamedPayloadSpec implements AsyncApiSpec {
     }
 
     /**
+     * Renames each spec schema whose type name the client generator writes itself, such as {@code Message}, to the
+     * next free name, so the spec's type isn't replaced by the generated one.
+     */
+    private static SchemaRenames reservedNameRenames(Set<String> schemaNames) {
+        Set<String> taken = new HashSet<>(GENERATED_TYPE_NAMES);
+        schemaNames.forEach(name -> taken.add(CodegenUtils.getValidName(name.trim(), true)));
+        Map<String, String> result = new HashMap<>();
+        for (String name : schemaNames) {
+            String typeName = CodegenUtils.getValidName(name.trim(), true);
+            if (GENERATED_TYPE_NAMES.contains(typeName)) {
+                String free = freeName(typeName, taken);
+                taken.add(free);
+                result.put(name, free);
+            }
+        }
+        return new SchemaRenames(result);
+    }
+
+    /**
      * Copies the operations with each message payload named.
      */
     private Map<String, AsyncApiOperation> nameOperations(Map<String, AsyncApiOperation> original) {
+        // A 2.x inline message without a name, title or ref is keyed by its position, which can't name a function
+        Set<String> messageNames = new HashSet<>();
+        original.values().stream().filter(op -> op.messages() != null)
+                .forEach(op -> op.messages().keySet().stream().filter(key -> !isPosition(key))
+                        .forEach(key -> messageNames.add(CodegenUtils.getValidName(key, true))));
         Map<String, AsyncApiOperation> result = new LinkedHashMap<>();
+        int unnamed = 0;
         for (Map.Entry<String, AsyncApiOperation> entry : original.entrySet()) {
             AsyncApiOperation op = entry.getValue();
             if (op.messages() == null) {
@@ -135,13 +165,51 @@ public final class NamedPayloadSpec implements AsyncApiSpec {
             }
             Map<String, AsyncApiMessage> opMessages = new LinkedHashMap<>();
             for (Map.Entry<String, AsyncApiMessage> msgEntry : op.messages().entrySet()) {
-                opMessages.put(msgEntry.getKey(), name(msgEntry.getKey(), msgEntry.getValue()));
+                AsyncApiMessage message = renames.message(msgEntry.getValue());
+                String key = msgEntry.getKey();
+                if (isPosition(key)) {
+                    String name = positionalMessageName(message);
+                    if (name != null) {
+                        key = freeName(name, messageNames);
+                    } else {
+                        do {
+                            key = "Message" + ++unnamed;
+                        } while (messageNames.contains(key));
+                    }
+                    messageNames.add(key);
+                }
+                opMessages.put(key, name(key, message));
             }
             result.put(entry.getKey(), new AsyncApiOperation(op.action(), op.channelId(), op.channel(), op.title(),
                     op.summary(), op.description(), opMessages, op.security(), op.reply(), op.tags(),
                     op.externalDocs(), op.bindings(), op.traits(), op.extensions()));
         }
         return result;
+    }
+
+    private static boolean isPosition(String key) {
+        return key.matches("\\d+");
+    }
+
+    /**
+     * Names a message keyed by its position after the dispatcher value its payload fixes, else its payload's title.
+     *
+     * @return the name, or {@code null} if the payload gives none
+     */
+    private String positionalMessageName(AsyncApiMessage message) {
+        AsyncApiSchema payload = message.payload() instanceof AsyncApiSchema schema ? schema : null;
+        String value = CodegenUtils.getFixedDispatchValue(payload, dispatcherKey);
+        if (value == null && payload != null) {
+            value = payload.title();
+        }
+        // A value without a letter, such as "1", can't start a name either
+        if (value != null && value.matches("(?s).*\\p{L}.*")) {
+            String name = CodegenUtils.getValidName(value.trim(), true);
+            if (Character.isLetter(name.charAt(0))) {
+                return name;
+            }
+        }
+        return null;
     }
 
     /**

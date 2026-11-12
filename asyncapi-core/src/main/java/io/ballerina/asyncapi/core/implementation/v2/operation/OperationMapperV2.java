@@ -213,6 +213,9 @@ public final class OperationMapperV2 {
                             key = oneOfRefName;
                         }
                         if (key == null || key.isBlank()) {
+                            key = messageId(resolvedMsg);
+                        }
+                        if (key == null || key.isBlank()) {
                             key = String.valueOf(msgMap.size());
                         }
                         msgMap.put(key, mapped);
@@ -228,7 +231,13 @@ public final class OperationMapperV2 {
                         key = rawMessage.getTitle();
                     }
                     if (key == null || key.isBlank()) {
-                        key = refName != null ? refName : "0";
+                        key = refName;
+                    }
+                    if (key == null || key.isBlank()) {
+                        key = messageId(rawMessage);
+                    }
+                    if (key == null || key.isBlank()) {
+                        key = "0";
                     }
                     messages = Map.of(key, mapped);
                 }
@@ -265,6 +274,16 @@ public final class OperationMapperV2 {
                 traits,
                 extensions
         );
+    }
+
+    // 2.4 added messageId, which names a message that has neither a name, a title nor a ref
+    private static String messageId(io.apicurio.datamodels.models.asyncapi.AsyncApiMessage message) {
+        return switch (message) {
+            case AsyncApi26Message typed -> typed.getMessageId();
+            case AsyncApi25Message typed -> typed.getMessageId();
+            case AsyncApi24Message typed -> typed.getMessageId();
+            default -> null;
+        };
     }
 
     /**

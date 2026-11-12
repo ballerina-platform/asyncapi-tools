@@ -111,7 +111,8 @@ public final class CodegenUtils {
      */
     public static String getValidName(String identifier, boolean capitalizeFirstChar) {
         if (!identifier.matches("\\b[0-9]*\\b")) {
-            String[] split = identifier.split("_|" + ESCAPE_PATTERN);
+            // Any character other than a letter or digit, such as an em dash in a title, can't be in a name
+            String[] split = identifier.split("[^\\p{L}\\p{N}]");
             StringBuilder validName = new StringBuilder();
             for (String part : split) {
                 if (!part.isBlank()) {
@@ -318,7 +319,9 @@ public final class CodegenUtils {
     }
 
     /**
-     * Returns {@code name}, suffixed until it clashes with neither a remote function local nor {@code taken}.
+     * Returns {@code name}, suffixed until it clashes with neither a remote function local nor {@code taken}. A name
+     * that needs a quote, such as {@code 'error} from a type {@code Error}, is suffixed too, as a quoted builtin name
+     * still clashes.
      *
      * @param name   the preferred variable name
      * @param suffix the suffix appended on each clash
@@ -326,6 +329,9 @@ public final class CodegenUtils {
      * @return a free variable name
      */
     public static String getFreeLocalName(String name, String suffix, Set<String> taken) {
+        if (name.startsWith("'") && name.substring(1).matches("[A-Za-z_][A-Za-z0-9_]*")) {
+            name = name.substring(1) + suffix;
+        }
         while (REMOTE_FUNCTION_LOCALS.contains(name) || taken.contains(name)) {
             name += suffix;
         }
