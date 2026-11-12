@@ -21,6 +21,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import io.ballerina.asyncapi.core.SpecWarning;
 import io.ballerina.asyncapi.core.api.AsyncApiSpec;
 import io.ballerina.asyncapi.core.model.component.AsyncApiSchema;
 import io.ballerina.asyncapi.core.model.message.AsyncApiMessage;
@@ -42,6 +43,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Consumer;
 
 import static io.ballerina.asyncapi.generator.ws.client.extractor.DispatcherKeyExtractor.X_DISPATCHER_KEY;
 
@@ -61,6 +63,7 @@ public class ClientRemoteFunctionGenerator {
     private final List<ImportDeclarationNode> imports;
     private final List<TypeDefinitionNode> typeDefinitionNodeList;
     private final Map<String, String> responseMap;
+    private Consumer<SpecWarning> warnings = warning -> { };
 
     /**
      * Creates a new remote function generator.
@@ -82,6 +85,17 @@ public class ClientRemoteFunctionGenerator {
         this.imports = imports;
         this.typeDefinitionNodeList = typeDefinitionNodeList;
         this.responseMap = responseMap;
+    }
+
+    /**
+     * Sets where to report a message the client gets no function for.
+     *
+     * @param warnings the warning consumer
+     * @return this generator
+     */
+    public ClientRemoteFunctionGenerator withWarnings(Consumer<SpecWarning> warnings) {
+        this.warnings = warnings;
+        return this;
     }
 
     /**
@@ -120,6 +134,14 @@ public class ClientRemoteFunctionGenerator {
             for (Map.Entry<String, AsyncApiMessage> msgEntry : op.messages().entrySet()) {
                 String msgName = msgEntry.getKey();
                 AsyncApiMessage message = msgEntry.getValue();
+                // The client only sends records that carry the dispatcher key, so this one gets no function yet
+                if (!(message.payload() instanceof AsyncApiSchema)) {
+                    warnings.accept(new SpecWarning("/operations/" + opEntry.getKey().replace("~", "~0")
+                            .replace("/", "~1"), String.format("message '%s' has no payload schema, so the client "
+                            + "has no function to send it", msgName),
+                            "Add a 'payload' schema to the message to get a function for it."));
+                    continue;
+                }
 
                 // Skip close-frame schemas
                 if (message.payload() instanceof AsyncApiSchema) {

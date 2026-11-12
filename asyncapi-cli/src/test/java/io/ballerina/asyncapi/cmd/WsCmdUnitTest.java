@@ -207,4 +207,46 @@ public class WsCmdUnitTest extends CmdTestBase {
         Assert.assertFalse(getErr().contains("error:"), "Err: " + getErr());
         Assert.assertTrue(Files.exists(pkg.resolve("client.bal")), "Err: " + getErr());
     }
+
+    @Test(description = "A sent message without a payload gets no function, with a warning, and the rest is generated")
+    public void testMessageWithoutPayloadWarns() throws IOException {
+        Path specFile = Files.createTempFile(tmpDir, "spec-", ".yaml");
+        Files.writeString(specFile, String.join("\n",
+                "asyncapi: 3.0.0",
+                "info: {title: Echo, version: 1.0.0}",
+                "x-dispatcherKey: type",
+                "servers:",
+                "  prod: {host: example.com, protocol: wss}",
+                "channels:",
+                "  ws:",
+                "    address: /ws",
+                "    messages:",
+                "      ping: {$ref: '#/components/messages/Ping'}",
+                "      echo: {contentType: text/plain}",
+                "operations:",
+                "  sendPing:",
+                "    action: send",
+                "    channel: {$ref: '#/channels/ws'}",
+                "    messages: [{$ref: '#/channels/ws/messages/ping'}]",
+                "  sendEcho:",
+                "    action: send",
+                "    channel: {$ref: '#/channels/ws'}",
+                "    messages: [{$ref: '#/channels/ws/messages/echo'}]",
+                "components:",
+                "  messages:",
+                "    Ping:",
+                "      payload:",
+                "        type: object",
+                "        required: [type]",
+                "        properties: {type: {type: string, const: ping}}"));
+        Path pkg = newPackage("nopayload");
+        parse(specFile.toString(), "--protocol", "ws", "--output", pkg.toString()).execute();
+        Assert.assertTrue(getErr().contains("warning: message 'echo' has no payload schema, so the client has no "
+                + "function to send it" + System.lineSeparator() + "  Add a 'payload' schema to the message to get a "
+                + "function for it."), "Err: " + getErr());
+        Assert.assertFalse(getErr().contains("error:"), "Err: " + getErr());
+        String client = Files.readString(pkg.resolve("client.bal"));
+        Assert.assertTrue(client.contains("remote isolated function doPing("), client);
+        Assert.assertFalse(client.contains("doEcho"), client);
+    }
 }

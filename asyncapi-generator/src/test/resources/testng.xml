@@ -57,6 +57,7 @@
             <class name="io.ballerina.asyncapi.generator.ws.client.node.client.ClientWorkerGeneratorTest"/>
             <class name="io.ballerina.asyncapi.generator.ws.client.node.client.ClientHelperGeneratorTest"/>
             <class name="io.ballerina.asyncapi.generator.ws.client.node.client.ClientRemoteFunctionGeneratorTest"/>
+            <class name="io.ballerina.asyncapi.generator.ws.client.WsClientWarningsTest"/>
             <class name="io.ballerina.asyncapi.generator.ws.client.generator.ClientGeneratorTest"/>
             <class name="io.ballerina.asyncapi.generator.ws.client.generator.DataTypesGeneratorTest"/>
             <class name="io.ballerina.asyncapi.generator.ws.client.generator.UtilGeneratorTest"/>

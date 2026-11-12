@@ -416,7 +416,8 @@ public class ClientGenerator {
         classMembers.add(workerGen.buildStartMessageReading());
 
         classMembers.addAll(new ClientRemoteFunctionGenerator(asyncApiSpec, dispatcherStreamId,
-                streamReturns, imports, typeDefinitionNodeList, responseMap).buildRemoteFunctions());
+                streamReturns, imports, typeDefinitionNodeList, responseMap).withWarnings(config.getWarnings())
+                .buildRemoteFunctions());
 
         classMembers.add(helperGen.buildAttemptToCloseConnection());
         classMembers.add(helperGen.buildConnectionClose());
