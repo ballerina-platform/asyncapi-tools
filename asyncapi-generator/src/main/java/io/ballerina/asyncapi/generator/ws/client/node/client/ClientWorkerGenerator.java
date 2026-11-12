@@ -161,6 +161,7 @@ public class ClientWorkerGenerator {
     private final String dispatcherKey;
     private final String dispatcherStreamId;
     private final boolean routeFramesWithoutDispatcher;
+    private final boolean keepFramesForReceiveOnly;
 
     /**
      * Creates a new client worker generator.
@@ -184,10 +185,27 @@ public class ClientWorkerGenerator {
      */
     public ClientWorkerGenerator(AsyncApiSpec asyncApiSpec, String dispatcherKey, String dispatcherStreamId,
                                  boolean routeFramesWithoutDispatcher) {
+        this(asyncApiSpec, dispatcherKey, dispatcherStreamId, routeFramesWithoutDispatcher, false);
+    }
+
+    /**
+     * Creates a new client worker generator.
+     *
+     * @param asyncApiSpec                  the parsed AsyncAPI spec
+     * @param dispatcherKey                 the dispatcher key field name
+     * @param dispatcherStreamId            optional stream ID field name (may be {@code null})
+     * @param routeFramesWithoutDispatcher  whether some reply has no dispatcher key, so the reader must keep
+     *                                      such frames for it instead of closing the connection
+     * @param keepFramesForReceiveOnly      whether a receive-only function reads such frames, so one that
+     *                                      arrives while no call waits for a reply is kept for it
+     */
+    public ClientWorkerGenerator(AsyncApiSpec asyncApiSpec, String dispatcherKey, String dispatcherStreamId,
+                                 boolean routeFramesWithoutDispatcher, boolean keepFramesForReceiveOnly) {
         this.asyncApiSpec = asyncApiSpec;
         this.dispatcherKey = dispatcherKey;
         this.dispatcherStreamId = dispatcherStreamId;
         this.routeFramesWithoutDispatcher = routeFramesWithoutDispatcher;
+        this.keepFramesForReceiveOnly = routeFramesWithoutDispatcher && keepFramesForReceiveOnly;
     }
 
     /**
@@ -317,46 +335,51 @@ public class ClientWorkerGenerator {
     }
 
     /**
-     * Reads each frame straight into {@code Message}, closing the connection when it is not one.
+     * Reads each frame as text and parses it into {@code Message}. The websocket client reports a frame it can't
+     * bind as a plain {@code websocket:Error}, like a broken connection, so parsing here keeps the two apart: a frame
+     * that isn't a {@code Message} is logged and dropped, and only a read error closes the connection.
      */
     private static void addMessageRead(List<StatementNode> whileStatements) {
-        // Message|websocket:Error message = self.clientEp->readMessage(Message);
-        VariableDeclarationNode responseMessage = createVariableDeclarationNode(createEmptyNodeList(), null,
-                createTypedBindingPatternNode(
-                        createUnionTypeDescriptorNode(
-                                createSimpleNameReferenceNode(createIdentifierToken(MESSAGE_TYPE)),
-                                createToken(PIPE_TOKEN),
-                                NodeParser.parseTypeDescriptor(WS_ERROR_TYPE)),
-                        createFieldBindingPatternVarnameNode(
-                                createSimpleNameReferenceNode(createIdentifierToken(MESSAGE_VAR)))),
-                EQUAL,
-                createMethodCallExpressionNode(
-                        createFieldAccessExpressionNode(
-                                createSimpleNameReferenceNode(createIdentifierToken(SELF)), DOT,
-                                createSimpleNameReferenceNode(createIdentifierToken(CLIENT_EP))),
-                        RIGHT_ARROW,
-                        createSimpleNameReferenceNode(createIdentifierToken(READ_MESSAGE)),
-                        OPEN_PAREN,
-                        createSeparatedNodeList(createIdentifierToken(MESSAGE_TYPE)),
-                        CLOSE_PAREN),
-                SEMICOLON);
-        whileStatements.add(responseMessage);
-        whileStatements.add(getIsWsError(READ_WS_ERR_MSG, MESSAGE_VAR));
-    }
-
-    /**
-     * Reads the frame as text. One that isn't a JSON message with the dispatcher key goes to its own pipe as is.
-     */
-    private static void addFrameWithoutDispatcherRoute(List<StatementNode> whileStatements) {
         whileStatements.add(NodeParser.parseStatement(String.format("string|%s %s = self.%s->%s(string);",
                 WS_ERROR_TYPE, FRAME_VAR, CLIENT_EP, READ_MESSAGE)));
         whileStatements.add(getIsWsError(READ_WS_ERR_MSG, FRAME_VAR));
         whileStatements.add(NodeParser.parseStatement(String.format("%s|error %s = %s.fromJsonStringWithType();",
                 MESSAGE_TYPE, PARSED_MESSAGE_VAR, FRAME_VAR)));
+        whileStatements.add(NodeParser.parseStatement(String.format("if %s is error { log:printWarn(\"Dropped a "
+                + "message that doesn't match the spec\", 'error = %s); continue; }",
+                PARSED_MESSAGE_VAR, PARSED_MESSAGE_VAR)));
+        whileStatements.add(NodeParser.parseStatement(String.format("%s %s = %s;",
+                MESSAGE_TYPE, MESSAGE_VAR, PARSED_MESSAGE_VAR)));
+    }
+
+    /**
+     * Reads the frame as text. One that isn't a JSON message with the dispatcher key goes, as is, to the reply pipe
+     * while a call waits for a reply there, so a frame from before the request is never taken as its reply. At any
+     * other time it goes to the receive-only functions' pipe, or is dropped if there are none. The first such frame
+     * while a call waits can't be told apart from the reply, so it is taken as the reply; claiming it ends the wait,
+     * so a second frame can't queue behind it for a later call.
+     */
+    private void addFrameWithoutDispatcherRoute(List<StatementNode> whileStatements) {
+        whileStatements.add(NodeParser.parseStatement(String.format("string|%s %s = self.%s->%s(string);",
+                WS_ERROR_TYPE, FRAME_VAR, CLIENT_EP, READ_MESSAGE)));
+        whileStatements.add(getIsWsError(READ_WS_ERR_MSG, FRAME_VAR));
+        whileStatements.add(NodeParser.parseStatement(String.format("%s|error %s = %s.fromJsonStringWithType();",
+                MESSAGE_TYPE, PARSED_MESSAGE_VAR, FRAME_VAR)));
+        String replyPipe = CodegenUtils.toStringLiteral(RemoteFunctionReturnTypeGenerator.NO_DISPATCHER_KEY_PIPE);
+        String awaited = String.format("self.%s.claimReply(%s)", PIPES, replyPipe);
         List<StatementNode> ifStmts = new ArrayList<>();
-        ifStmts.add(NodeParser.parseStatement(String.format("%s? %s = self.%s.%s(\"%s\").%s(%s, %s);",
-                PIPE_COLON_ERROR, FRAME_PIPE_ERR_VAR, PIPES, GET_PIPE,
-                RemoteFunctionReturnTypeGenerator.NO_DISPATCHER_KEY_PIPE, PRODUCE, FRAME_VAR, DEFAULT_TIMEOUT)));
+        String framePipe;
+        if (keepFramesForReceiveOnly) {
+            framePipe = String.format("%s ? %s : %s", awaited, replyPipe,
+                    CodegenUtils.toStringLiteral(RemoteFunctionReturnTypeGenerator.NO_DISPATCHER_KEY_EVENTS_PIPE));
+        } else {
+            ifStmts.add(NodeParser.parseStatement(String.format("if !%s { log:printWarn(\"Dropped a message that "
+                    + "no call is waiting for\"); continue; }", awaited)));
+            framePipe = replyPipe;
+        }
+        ifStmts.add(NodeParser.parseStatement(String.format("%s? %s = self.%s.%s(%s).%s(%s, %s);",
+                PIPE_COLON_ERROR, FRAME_PIPE_ERR_VAR, PIPES, GET_PIPE, framePipe, PRODUCE, FRAME_VAR,
+                DEFAULT_TIMEOUT)));
         ifStmts.add(getDropFrameStatement(FRAME_PIPE_ERR_VAR));
         ifStmts.add(NodeParser.parseStatement(CONTINUE_STMT));
         whileStatements.add(createIfElseStatementNode(createToken(IF_KEYWORD),
