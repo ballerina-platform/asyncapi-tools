@@ -1,0 +1,58 @@
+{
+  "asyncapi": "2.0.0",
+  "info": {
+    "title": "Chat",
+    "version": "1.0.0"
+  },
+  "x-dispatcherKey": "event",
+  "x-ballerina-init-description": "Connects to the chat.\nThe connection stays open until it is closed.",
+  "channels": {
+    "chat": {
+      "publish": {
+        "operationId": "sendChatMessage",
+        "message": {
+          "$ref": "#/components/messages/ChatMessage"
+        }
+      }
+    }
+  },
+  "components": {
+    "messages": {
+      "ChatMessage": {
+        "description": "Sends a chat message.\n\nThe server echoes it back.",
+        "payload": {
+          "$ref": "#/components/schemas/ChatMessage"
+        },
+        "x-response": {
+          "$ref": "#/components/messages/ChatReply",
+          "description": "The echoed message,\nwith the server time"
+        }
+      },
+      "ChatReply": {
+        "payload": {
+          "$ref": "#/components/schemas/ChatReply"
+        }
+      }
+    },
+    "schemas": {
+      "ChatMessage": {
+        "type": "object",
+        "description": "A chat message.\nThe text is sent as is.\n\nAt most 4 KB.",
+        "required": ["event"],
+        "properties": {
+          "event": {"type": "string"},
+          "message": {"type": "string"}
+        }
+      },
+      "ChatReply": {
+        "type": "object",
+        "required": ["event"],
+        "properties": {
+          "event": {"type": "string"},
+          "message": {"type": "string"},
+          "time": {"type": "string"}
+        }
+      }
+    }
+  }
+}

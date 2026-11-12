@@ -125,9 +125,9 @@ public class ClientInitGenerator {
                 .map(StatementNode::toSourceCode)
                 .collect(Collectors.joining("\n"));
 
-        String description = getInitDescription();
+        String description = CodegenUtils.docCommentLines("# ", getInitDescription(), true);
         String funcSource = String.format(
-                "\n# %s\n#\n"
+                "\n%s#\n"
                 + "# + config - The configurations to be used when initializing the `connector`\n"
                 + "# + serviceUrl - URL of the target service\n"
                 + "# + return - An error if connector initialization failed\n"

@@ -61,6 +61,25 @@ public class WsClientCodeGeneratorIntegrationTest {
     }
 
     @Test
+    void testLowercaseSchemaNamesAreReferencedAsDeclared() throws Exception {
+        Path spec = specPath("ws_lowercase_schema_names.json");
+        Path outDir = Files.createTempDirectory("ws-lowercase-gen");
+        try {
+            AsyncApiSpec asyncApiSpec = AsyncApiParser.parseFromJsonString(Files.readString(spec));
+            new WsClientCodeGenerator(asyncApiSpec, null, false).generate(outDir);
+
+            String types = readFile(outDir, "types.bal");
+            Assert.assertTrue(types.contains("public type Status string;"), types);
+            Assert.assertTrue(types.contains("public type Item record"), "item is declared as Item: " + types);
+            Assert.assertTrue(types.contains("Status status;"), "A field refers to the declared name: " + types);
+            Assert.assertTrue(types.contains("Item[] items"), "An array item refers to the declared name: " + types);
+            Assert.assertTrue(types.contains("Status|Item note"), "A union refers to the declared names: " + types);
+        } finally {
+            deleteDir(outDir);
+        }
+    }
+
+    @Test
     void testGenerateWithStreamId() throws Exception {
         Path spec = specPath("ws_with_stream_id.json");
         Path outDir = Files.createTempDirectory("ws-stream-id-gen");
@@ -92,6 +111,26 @@ public class WsClientCodeGeneratorIntegrationTest {
                     "utils.bal should contain StreamGeneratorsMap when a server-streaming operation is present");
             Assert.assertTrue(client.contains("stream<"),
                     "client.bal should use a stream<> return type for server-streaming remote functions");
+        } finally {
+            deleteDir(outDir);
+        }
+    }
+
+    @Test
+    void testMultiLineDescriptionsBecomeDocCommentLines() throws Exception {
+        Path spec = specPath("ws_multiline_descriptions.json");
+        Path outDir = Files.createTempDirectory("ws-multiline-gen");
+        try {
+            AsyncApiSpec asyncApiSpec = AsyncApiParser.parseFromJsonString(Files.readString(spec));
+            new WsClientCodeGenerator(asyncApiSpec, null, false).generate(outDir);
+
+            String client = readFile(outDir, "client.bal").replace("\r\n", "\n");
+            Assert.assertTrue(client.contains("# Sends a chat message.\n    #\n    # The server echoes it back."),
+                    client);
+            Assert.assertTrue(client.contains("# + chatMessage - A chat message.\n    # The text is sent as is.\n"
+                    + "    # At most 4 KB."), client);
+            Assert.assertTrue(client.contains("# + return - The echoed message,\n    # with the server time"), client);
+            Assert.assertTrue(client.contains("# Connects to the chat.\n    # The connection stays open"), client);
         } finally {
             deleteDir(outDir);
         }
