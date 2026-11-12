@@ -51,6 +51,7 @@ final class TriggerCompilerPlugin {
     // Where bal installs a tool: .../tool.asyncapi/<version>/java21/tool/libs/<jar>
     private static final Pattern INSTALLED_VERSION = Pattern.compile(".*[/\\\\]tool\\.asyncapi[/\\\\]([^/\\\\]+)"
             + "[/\\\\][^/\\\\]+[/\\\\]tool[/\\\\]libs[/\\\\][^/\\\\]+$");
+    private static final Pattern RELEASE_VERSION = Pattern.compile("\\d+\\.\\d+\\.\\d+");
     private static final Pattern TOOL_ENTRY = Pattern.compile(
             "(?m)^\\[\\[tool\\.asyncapi]]\\s*\\R(?:(?!\\[).*\\R?)*");
     private static final Pattern VERSION_LINE = Pattern.compile("(?m)^(\\s*version\\s*=\\s*)\"[^\"]*\"");
@@ -145,7 +146,7 @@ final class TriggerCompilerPlugin {
     /**
      * Returns this tool's version: the folder bal installed it in, or the version it was built as.
      *
-     * @return the tool version, without a SNAPSHOT suffix
+     * @return the tool version, without a SNAPSHOT or timestamp suffix
      */
     static String toolVersion() {
         try {
@@ -166,7 +167,18 @@ final class TriggerCompilerPlugin {
         } catch (IOException e) {
             // falls through to the default below
         }
-        return properties.getProperty("version", "0.0.0").replace("-SNAPSHOT", "");
+        return releaseVersion(properties.getProperty("version", "0.0.0"));
+    }
+
+    /**
+     * Returns the x.y.z part of a built version, dropping a -SNAPSHOT or CI timestamp suffix.
+     *
+     * @param builtVersion the version the tool was built as, such as 0.13.3-20261110-142100-1da1237
+     * @return the release version, such as 0.13.3
+     */
+    static String releaseVersion(String builtVersion) {
+        Matcher release = RELEASE_VERSION.matcher(builtVersion);
+        return release.lookingAt() ? release.group() : builtVersion;
     }
 
     // The id of a plugin the package already has that isn't ours. Ours is replaced on regeneration.
