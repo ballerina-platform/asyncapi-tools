@@ -47,7 +47,12 @@ public class PrimitiveTypeGenerator implements TypeGenerator {
         String type = schema.type().trim();
         String typeDescriptorName = CodegenUtils.TYPE_MAP.getOrDefault(type, type);
         if ("number".equals(type) && schema.format() != null) {
-            typeDescriptorName = CodegenUtils.TYPE_MAP.getOrDefault(schema.format().trim(), schema.format().trim());
+            // A format names the kind of number; one Ballerina has no type for stays decimal
+            typeDescriptorName = switch (schema.format().trim()) {
+                case "float" -> "float";
+                case "int32", "int64" -> "int";
+                default -> "decimal";
+            };
         } else if ("string".equals(type) && "binary".equals(schema.format())) {
             typeDescriptorName = "record {byte[] fileContent; string fileName;}";
         }
