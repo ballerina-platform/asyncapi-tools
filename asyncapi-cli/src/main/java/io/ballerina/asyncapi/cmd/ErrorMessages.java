@@ -70,16 +70,15 @@ public final class ErrorMessages {
             "The package already has a compiler plugin (%s), so the trigger's plugin was not added. A package "
                     + "can have only one, so bal build --export-endpoints will not list this trigger's services.";
 
-    public static final String TOOL_ENTRY_WRITTEN =
-            "-- Ballerina.toml: [[tool.asyncapi]] for the trigger's compiler plugin (asyncapi %s)";
+    public static final String TOOL_ENTRY_REMOVED =
+            "-- Ballerina.toml: removed [[tool.asyncapi]], the trigger's compiler plugin is now in lib/";
 
-    public static final String TOOL_ENTRY_PLANNED =
-            "  update     Ballerina.toml  ([[tool.asyncapi]] for the trigger's compiler plugin, asyncapi %s)";
+    public static final String TOOL_ENTRY_REMOVAL_PLANNED =
+            "  update     Ballerina.toml  (remove [[tool.asyncapi]], the trigger's compiler plugin is now in lib/)";
 
-    public static final String TOOL_ENTRY_FAILED =
-            "error: CompilerPlugin.toml was written, but Ballerina.toml could not be updated (%s). Add this "
-                    + "entry to Ballerina.toml, or bal build cannot find the trigger's compiler plugin:%n"
-                    + "[[tool.asyncapi]]%nid = \"trigger-plugin\"%nversion = \"%s\"";
+    public static final String WARN_TOOL_ENTRY_NOT_REMOVED =
+            "Ballerina.toml could not be updated (%s). Remove its [[tool.asyncapi]] entry with "
+                    + "id = \"trigger-plugin\" by hand: the trigger's compiler plugin is now in lib/.";
 
     public static final String WARN_OPTION_ONLY_FOR_SPEC_OUTPUT =
             "%s only applies when generating an AsyncAPI definition from Ballerina code and will be ignored.";

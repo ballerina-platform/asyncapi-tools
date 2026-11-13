@@ -19,46 +19,45 @@ package io.ballerina.asyncapi.cmd;
 
 import io.ballerina.toml.api.Toml;
 import io.ballerina.toml.semantic.ast.TomlStringValueNode;
+import io.ballerina.toml.syntax.tree.DocumentMemberDeclarationNode;
+import io.ballerina.toml.syntax.tree.DocumentNode;
+import io.ballerina.toml.syntax.tree.SyntaxTree;
+import io.ballerina.toml.syntax.tree.TableArrayNode;
+import io.ballerina.tools.text.TextDocuments;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.List;
 import java.util.Optional;
-import java.util.Properties;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import java.util.Set;
 
 /**
- * Wires the trigger compiler plugin into a generated trigger package. Ballerina runs a plugin only for apps that
- * import its package directly, so the plugin has to travel inside each trigger. The jar stays in this tool: the
- * {@code [[tool.asyncapi]]} entry makes {@code bal build} and {@code bal pack} run {@link TriggerPluginBuildTool},
- * which copies the jar to {@code target/tool-cache/trigger-plugin/}, and {@code CompilerPlugin.toml} points there,
- * so {@code bal pack} puts it in the trigger's bala. The package holds only these two toml entries.
+ * Adds the trigger compiler plugin to a generated trigger package. Ballerina runs a plugin only for apps that
+ * import its package directly, so the plugin has to travel inside each trigger: this writes the jar bundled in the
+ * tool to {@code lib/} and the {@code CompilerPlugin.toml} that packs it, and {@code bal pack} puts both in the
+ * trigger's bala. The plugin then adds the trigger's services to {@code endpoints.yaml} when an app is built with
+ * {@code --export-endpoints}.
+ * <p>
+ * Both files go through the same {@link OutputStage} as the generated code, so {@code --force} and
+ * {@code --dry-run} treat them like any other generated file.
  */
 final class TriggerCompilerPlugin {
 
     static final String PLUGIN_ID = "asyncapi-compiler-plugin";
     static final String COMPILER_PLUGIN_TOML = "CompilerPlugin.toml";
     static final String BALLERINA_TOML = "Ballerina.toml";
-    static final String TOOL_ENTRY_ID = "trigger-plugin";
-    static final String JAR_PATH = "target/tool-cache/" + TOOL_ENTRY_ID + "/" + TriggerPluginBuildTool.JAR_NAME;
+    static final String JAR_PATH = "lib/asyncapi-trigger-compiler-plugin.jar";
 
+    private static final String BUNDLED_JAR = "/trigger-plugin/asyncapi-trigger-compiler-plugin.jar";
     private static final String UNKNOWN_PLUGIN = "unknown";
-    private static final String TOOL_PROPERTIES = "/asyncapi-tool.properties";
-    // Where bal installs a tool: .../tool.asyncapi/<version>/java21/tool/libs/<jar>
-    private static final Pattern INSTALLED_VERSION = Pattern.compile(".*[/\\\\]tool\\.asyncapi[/\\\\]([^/\\\\]+)"
-            + "[/\\\\][^/\\\\]+[/\\\\]tool[/\\\\]libs[/\\\\][^/\\\\]+$");
-    private static final Pattern RELEASE_VERSION = Pattern.compile("\\d+\\.\\d+\\.\\d+");
-    private static final Pattern TOOL_ENTRY = Pattern.compile(
-            "(?m)^\\[\\[tool\\.asyncapi]]\\s*\\R(?:(?!\\[).*\\R?)*");
-    private static final Pattern VERSION_LINE = Pattern.compile("(?m)^(\\s*version\\s*=\\s*)\"[^\"]*\"");
+    // The entry tool 0.13.3 added so the build copied the jar; the jar is now in lib/, so it is removed
+    private static final String OLD_ENTRY_COMMENT =
+            "# Copies the trigger's compiler plugin from the asyncapi tool during the build";
+    private static final Set<String> TRIGGER_PLUGIN_ID = Set.of("\"trigger-plugin\"", "'trigger-plugin'");
     private static final String TOML_CONTENT = """
             # Written by bal asyncapi. Packs the trigger's compiler plugin, which lists the trigger's services in
-            # target/artifact/endpoints.yaml when an app is built with bal build --export-endpoints. The jar is
-            # copied there from the asyncapi tool during the build, by the [[tool.asyncapi]] entry in Ballerina.toml.
+            # target/artifact/endpoints.yaml when an app is built with bal build --export-endpoints.
             [plugin]
             id = "%s"
             class = "io.ballerina.asyncapi.trigger.plugin.AsyncAPICompilerPlugin"
@@ -71,14 +70,14 @@ final class TriggerCompilerPlugin {
     }
 
     /**
-     * Stages {@code CompilerPlugin.toml} for a trigger generated at a package root. Code generated into a module of
-     * a bigger package gets none, as the plugin belongs to the package being published.
+     * Stages the plugin files for a trigger generated at a package root. Code generated into a module of a bigger
+     * package gets none, as the plugin belongs to the package being published.
      *
      * @param outputPath where the trigger code is generated
      * @param stagingDir the stage the generated files are written to
      * @param ctx        streams for reporting
-     * @return true when the plugin is wired in, so {@link #addToolEntry} should follow the commit
-     * @throws IOException if an existing {@code CompilerPlugin.toml} cannot be read or the file cannot be staged
+     * @return true when the plugin is staged; {@link #isApplied} then says if the commit will keep it
+     * @throws IOException if the bundled jar cannot be read or the files cannot be staged
      */
     static boolean stage(Path outputPath, Path stagingDir, CmdContext ctx) throws IOException {
         if (!Files.exists(outputPath.resolve(BALLERINA_TOML))) {
@@ -89,96 +88,85 @@ final class TriggerCompilerPlugin {
             ctx.printWarning(String.format(ErrorMessages.WARN_OTHER_COMPILER_PLUGIN, otherPlugin.get()));
             return false;
         }
+        Path jar = stagingDir.resolve(JAR_PATH);
+        Files.createDirectories(jar.getParent());
+        try (InputStream bundled = TriggerCompilerPlugin.class.getResourceAsStream(BUNDLED_JAR)) {
+            if (bundled == null) {
+                throw new IOException("the trigger compiler plugin is missing from this build of the tool");
+            }
+            Files.copy(bundled, jar);
+        }
         Files.writeString(stagingDir.resolve(COMPILER_PLUGIN_TOML), TOML_CONTENT);
         return true;
     }
 
     /**
-     * Adds the {@code [[tool.asyncapi]]} entry to the package's {@code Ballerina.toml}, or moves an existing entry
-     * to this tool's version, so the build copies this version's plugin jar. The rest of the file is kept as it is.
+     * Tells whether both plugin files will be written or are already up to date. If either is skipped, the old
+     * {@code CompilerPlugin.toml} may still need the jar the old tool entry copies in, so that entry has to stay.
+     *
+     * @param stage the stage the plugin files were written to
+     * @return true if neither plugin file will be skipped
+     * @throws IOException if an existing file cannot be read
+     */
+    static boolean isApplied(OutputStage stage) throws IOException {
+        return !stage.skips(Path.of(COMPILER_PLUGIN_TOML)) && !stage.skips(Path.of(JAR_PATH));
+    }
+
+    /**
+     * Removes the {@code [[tool.asyncapi]]} entry an earlier version of this tool added to {@code Ballerina.toml},
+     * which copied the jar during the build. The rest of the file is kept as it is.
      *
      * @param outputPath the package root
      * @param dryRun     true to only report what would change
      * @param ctx        streams for reporting
      * @throws IOException if {@code Ballerina.toml} cannot be read or written
      */
-    static void addToolEntry(Path outputPath, boolean dryRun, CmdContext ctx) throws IOException {
+    static void removeOldToolEntry(Path outputPath, boolean dryRun, CmdContext ctx) throws IOException {
         Path ballerinaToml = outputPath.resolve(BALLERINA_TOML);
         String content = Files.readString(ballerinaToml);
-        String version = toolVersion();
-        String updated = withToolEntry(content, version);
+        String updated = withoutOldToolEntry(content);
         if (updated.equals(content)) {
             return;
         }
         if (dryRun) {
-            ctx.printInfo(String.format(ErrorMessages.TOOL_ENTRY_PLANNED, version));
+            ctx.printInfo(ErrorMessages.TOOL_ENTRY_REMOVAL_PLANNED);
             return;
         }
         Files.writeString(ballerinaToml, updated);
-        ctx.printInfo(String.format(ErrorMessages.TOOL_ENTRY_WRITTEN, version));
+        ctx.printInfo(ErrorMessages.TOOL_ENTRY_REMOVED);
     }
 
     /**
-     * Returns the Ballerina.toml content with a {@code [[tool.asyncapi]]} entry for the given tool version.
+     * Returns the Ballerina.toml content without the trigger plugin's {@code [[tool.asyncapi]]} entry.
      *
      * @param content the current Ballerina.toml content
-     * @param version the tool version the entry should name
-     * @return the updated content, the same string when nothing changes
+     * @return the updated content, the same string when there is no such entry
      */
-    static String withToolEntry(String content, String version) {
-        Matcher entry = TOOL_ENTRY.matcher(content);
-        if (entry.find()) {
-            String block = entry.group();
-            Matcher versionLine = VERSION_LINE.matcher(block);
-            String newBlock = versionLine.find()
-                    ? versionLine.replaceFirst("$1\"" + Matcher.quoteReplacement(version) + "\"")
-                    : block.stripTrailing() + System.lineSeparator() + "version = \"" + version + "\""
-                            + System.lineSeparator();
-            return content.substring(0, entry.start()) + newBlock + content.substring(entry.end());
+    static String withoutOldToolEntry(String content) {
+        // The parser gives the table's exact range, so strings, comments and indentation can't throw it off
+        DocumentNode document = SyntaxTree.from(TextDocuments.from(content)).rootNode();
+        for (DocumentMemberDeclarationNode member : document.members()) {
+            if (!(member instanceof TableArrayNode table) || !isOldToolEntry(table)) {
+                continue;
+            }
+            // Comments above the next table belong to it, so the range stops before them
+            String before = content.substring(0, table.textRange().startOffset()).stripTrailing();
+            if (before.endsWith(OLD_ENTRY_COMMENT)) {
+                before = before.substring(0, before.length() - OLD_ENTRY_COMMENT.length()).stripTrailing();
+            }
+            // Also drops the blank line the entry was added after, so the file ends as it did before
+            String after = content.substring(table.textRange().endOffset()).strip();
+            String nl = content.contains("\r\n") ? "\r\n" : "\n";
+            return after.isEmpty() ? before + nl : before + nl + nl + after + nl;
         }
-        // One blank line before the entry, however the file ended
-        String nl = System.lineSeparator();
-        return content.stripTrailing() + nl + nl + String.join(nl, List.of(
-                "# Copies the trigger's compiler plugin from the asyncapi tool during the build",
-                "[[tool.asyncapi]]", "id = \"" + TOOL_ENTRY_ID + "\"", "version = \"" + version + "\"", ""));
+        return content;
     }
 
-    /**
-     * Returns this tool's version: the folder bal installed it in, or the version it was built as.
-     *
-     * @return the tool version, without a SNAPSHOT or timestamp suffix
-     */
-    static String toolVersion() {
-        try {
-            Path jar = Path.of(TriggerCompilerPlugin.class.getProtectionDomain().getCodeSource().getLocation()
-                    .toURI());
-            Matcher installed = INSTALLED_VERSION.matcher(jar.toString());
-            if (installed.matches()) {
-                return installed.group(1);
-            }
-        } catch (URISyntaxException | SecurityException | NullPointerException e) {
-            // not installed as a bal tool, so the version it was built as is used
-        }
-        Properties properties = new Properties();
-        try (InputStream in = TriggerCompilerPlugin.class.getResourceAsStream(TOOL_PROPERTIES)) {
-            if (in != null) {
-                properties.load(in);
-            }
-        } catch (IOException e) {
-            // falls through to the default below
-        }
-        return releaseVersion(properties.getProperty("version", "0.0.0"));
-    }
-
-    /**
-     * Returns the x.y.z part of a built version, dropping a -SNAPSHOT or CI timestamp suffix.
-     *
-     * @param builtVersion the version the tool was built as, such as 0.13.3-20261110-142100-1da1237
-     * @return the release version, such as 0.13.3
-     */
-    static String releaseVersion(String builtVersion) {
-        Matcher release = RELEASE_VERSION.matcher(builtVersion);
-        return release.lookingAt() ? release.group() : builtVersion;
+    private static boolean isOldToolEntry(TableArrayNode table) {
+        return table.identifier().toSourceCode().strip().equals("tool.asyncapi")
+                && table.fields().stream().anyMatch(field ->
+                        field.identifier().toSourceCode().strip().equals("id")
+                                && TRIGGER_PLUGIN_ID.contains(field.value().toSourceCode().strip()));
     }
 
     // The id of a plugin the package already has that isn't ours. Ours is replaced on regeneration.

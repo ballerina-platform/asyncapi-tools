@@ -1,8 +1,0 @@
-{
-  "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "asyncapi build tool options",
-  "description": "The asyncapi build tool takes no options: it copies the trigger compiler plugin into the build.",
-  "type": "object",
-  "properties": {},
-  "additionalProperties": false
-}

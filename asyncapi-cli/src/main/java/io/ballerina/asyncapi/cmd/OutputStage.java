@@ -193,6 +193,17 @@ final class OutputStage implements AutoCloseable {
         return plan;
     }
 
+    /**
+     * Tells whether a staged file will be left out because it exists, differs and {@code --force} is not set.
+     *
+     * @param relative the file's path relative to the output directory
+     * @return true if the commit will skip it
+     * @throws IOException if the existing file cannot be read
+     */
+    boolean skips(Path relative) throws IOException {
+        return actionFor(relative, destination.resolve(relative)) == Action.SKIP;
+    }
+
     private Action actionFor(Path relative, Path target) throws IOException {
         Path existing = writePath(target);
         if (Files.isDirectory(existing)) {
