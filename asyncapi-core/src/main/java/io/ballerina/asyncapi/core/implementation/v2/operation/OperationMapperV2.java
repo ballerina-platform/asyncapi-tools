@@ -40,6 +40,7 @@ import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25Operation;
 import io.apicurio.datamodels.models.asyncapi.v26.AsyncApi26Message;
 import io.apicurio.datamodels.models.asyncapi.v26.AsyncApi26Operation;
 import io.ballerina.asyncapi.core.Constants;
+import io.ballerina.asyncapi.core.implementation.utils.JsonPointers;
 import io.ballerina.asyncapi.core.implementation.utils.StringUtils;
 import io.ballerina.asyncapi.core.implementation.v2.doc.ExternalDocMapperV2;
 import io.ballerina.asyncapi.core.implementation.v2.message.MessageMapperV2;
@@ -170,7 +171,7 @@ public final class OperationMapperV2 {
             String ref = referenceable.get$ref();
             if (ref != null) {
                 if (ref.startsWith(Constants.MESSAGES_REF_PREFIX)) {
-                    refName = ref.substring(Constants.MESSAGES_REF_PREFIX.length());
+                    refName = JsonPointers.keyAfter(ref, Constants.MESSAGES_REF_PREFIX);
                 }
                 rawMessage = resolveMessageRef(ref, components);
             }
@@ -195,7 +196,7 @@ public final class OperationMapperV2 {
                     if (msg instanceof AsyncApiReferenceable ref && ref.get$ref() != null) {
                         String refStr = ref.get$ref();
                         if (refStr.startsWith(Constants.MESSAGES_REF_PREFIX)) {
-                            oneOfRefName = refStr.substring(Constants.MESSAGES_REF_PREFIX.length());
+                            oneOfRefName = JsonPointers.keyAfter(refStr, Constants.MESSAGES_REF_PREFIX);
                         }
                         resolvedMsg = resolveMessageRef(refStr, components);
                         if (resolvedMsg == null) {
@@ -289,7 +290,7 @@ public final class OperationMapperV2 {
             if (!visited.add(current)) {
                 return null; // cyclic reference
             }
-            String name = current.substring(Constants.MESSAGES_REF_PREFIX.length());
+            String name = JsonPointers.keyAfter(current, Constants.MESSAGES_REF_PREFIX);
             Map<String, ? extends io.apicurio.datamodels.models.asyncapi.AsyncApiMessage> refMessages =
                     components.getMessages();
             io.apicurio.datamodels.models.asyncapi.AsyncApiMessage resolved =

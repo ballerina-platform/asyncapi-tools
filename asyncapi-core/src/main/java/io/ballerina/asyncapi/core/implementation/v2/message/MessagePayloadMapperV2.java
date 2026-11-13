@@ -29,6 +29,7 @@ import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25Components;
 import io.apicurio.datamodels.models.asyncapi.v26.AsyncApi26Components;
 import io.ballerina.asyncapi.core.Constants;
 import io.ballerina.asyncapi.core.implementation.common.SchemaMapper;
+import io.ballerina.asyncapi.core.implementation.utils.JsonPointers;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -64,7 +65,7 @@ final class MessagePayloadMapperV2 {
         if (refNode != null) {
             String ref = refNode.asText();
             if (ref.startsWith(Constants.SCHEMAS_REF_PREFIX) && components != null) {
-                String schemaName = ref.substring(Constants.SCHEMAS_REF_PREFIX.length());
+                String schemaName = JsonPointers.keyAfter(ref, Constants.SCHEMAS_REF_PREFIX);
                 Map<String, ? extends AsyncApiSchema> schemas = switch (components) {
                     case AsyncApi26Components typed -> typed.getSchemas();
                     case AsyncApi25Components typed -> typed.getSchemas();

@@ -24,6 +24,7 @@ import io.apicurio.datamodels.models.asyncapi.v30.AsyncApi30Message;
 import io.apicurio.datamodels.models.asyncapi.v30.AsyncApi30OperationReply;
 import io.apicurio.datamodels.models.asyncapi.v30.AsyncApi30OperationReplyAddress;
 import io.apicurio.datamodels.models.asyncapi.v30.AsyncApi30Reference;
+import io.ballerina.asyncapi.core.implementation.utils.JsonPointers;
 import io.ballerina.asyncapi.core.implementation.v3.message.MessageMapperV3;
 import io.ballerina.asyncapi.core.model.channel.AsyncApiChannel;
 import io.ballerina.asyncapi.core.model.message.AsyncApiMessage;
@@ -182,6 +183,6 @@ public final class OperationReplyMapperV3 {
      */
     private static String extractMessageNameFromRef(String ref) {
         int lastSlash = ref.lastIndexOf('/');
-        return lastSlash >= 0 ? ref.substring(lastSlash + 1) : ref;
+        return JsonPointers.decode(lastSlash >= 0 ? ref.substring(lastSlash + 1) : ref);
     }
 }
