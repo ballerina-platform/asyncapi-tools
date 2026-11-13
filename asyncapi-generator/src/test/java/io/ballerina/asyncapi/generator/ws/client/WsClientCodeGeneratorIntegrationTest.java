@@ -28,6 +28,7 @@ import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Objects;
+import java.util.regex.Pattern;
 
 /**
  * Integration tests for {@link WsClientCodeGenerator} that parse AsyncAPI JSON spec fixtures
@@ -204,6 +205,41 @@ public class WsClientCodeGeneratorIntegrationTest {
         } finally {
             deleteDir(outDir);
         }
+    }
+
+    @Test
+    void testApiKeyNamedLikeAParameterIsSentOnce() throws Exception {
+        // The spec also lists the query key and the header key as binding parameters
+        String json = Files.readString(specPath("ws_init_url_params.json"))
+                .replace("\"heartbeat\": {\"type\": \"boolean\"},", "\"heartbeat\": {\"type\": \"boolean\"}, "
+                        + "\"token\": {\"type\": \"string\"},")
+                .replace("\"X-Trace\": {\"type\": \"string\"}", "\"X-Trace\": {\"type\": \"string\"}, "
+                        + "\"X-Api-Key\": {\"type\": \"string\"}");
+        String client = generateClient(json);
+        Assert.assertEquals(count(client, "\"token\":"), 1, client);
+        Assert.assertTrue(client.contains("\"token\": apiKeyConfig.token"), client);
+        Assert.assertEquals(count(client, "\"X-Api-Key\":"), 1, client);
+        Assert.assertTrue(client.contains("\"X-Api-Key\": apiKeyConfig.xApiKey"), client);
+
+        // An optional key falls back to the parameter's value
+        String optional = generateClient(json.replace("\"securitySchemes\": {",
+                "\"securitySchemes\": {\"bearer\": {\"type\": \"http\", \"scheme\": \"bearer\"},"));
+        Assert.assertTrue(optional.contains("\"token\": apiKeyConfig?.token ?: queryParams.token"), optional);
+        Assert.assertEquals(count(optional, "\"token\":"), 1, optional);
+    }
+
+    private static String generateClient(String json) throws Exception {
+        Path outDir = Files.createTempDirectory("ws-key-param-gen");
+        try {
+            new WsClientCodeGenerator(AsyncApiParser.parseFromJsonString(json), null, false).generate(outDir);
+            return readFile(outDir, "client.bal");
+        } finally {
+            deleteDir(outDir);
+        }
+    }
+
+    private static int count(String text, String part) {
+        return text.split(Pattern.quote(part), -1).length - 1;
     }
 
     @Test
