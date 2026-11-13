@@ -172,4 +172,39 @@ public class WsCmdUnitTest extends CmdTestBase {
         base.inputPath = "service.bal";
         Assert.assertEquals(CmdUtils.resolveMode(base), CmdConstants.Mode.BALLERINA_TO_ASYNCAPI);
     }
+
+    @Test(description = "A scheme in a 3.0 server host is read with a warning on how to fix the spec")
+    public void testHostWithSchemeWarns() throws IOException {
+        Path specFile = Files.createTempFile(tmpDir, "spec-", ".yaml");
+        Files.writeString(specFile, String.join("\n",
+                "asyncapi: 3.0.0",
+                "info: {title: Echo, version: 1.0.0}",
+                "x-dispatcherKey: type",
+                "servers:",
+                "  prod: {host: 'wss://example.com', protocol: wss}",
+                "channels:",
+                "  ws:",
+                "    address: /ws",
+                "    messages:",
+                "      ping: {$ref: '#/components/messages/Ping'}",
+                "operations:",
+                "  sendPing:",
+                "    action: send",
+                "    channel: {$ref: '#/channels/ws'}",
+                "    messages: [{$ref: '#/channels/ws/messages/ping'}]",
+                "components:",
+                "  messages:",
+                "    Ping:",
+                "      payload:",
+                "        type: object",
+                "        required: [type]",
+                "        properties: {type: {type: string, const: ping}}"));
+        Path pkg = newPackage("hostscheme");
+        parse(specFile.toString(), "--protocol", "ws", "--output", pkg.toString()).execute();
+        Assert.assertTrue(getErr().contains("warning: server 'prod' host 'wss://example.com' holds more than the host "
+                + "name; read it as host 'example.com'" + System.lineSeparator() + "  Put only the host name in "
+                + "'host', the scheme in 'protocol' and the path in 'pathname'."), "Err: " + getErr());
+        Assert.assertFalse(getErr().contains("error:"), "Err: " + getErr());
+        Assert.assertTrue(Files.exists(pkg.resolve("client.bal")), "Err: " + getErr());
+    }
 }

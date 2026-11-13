@@ -21,6 +21,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.TextNode;
 import io.ballerina.asyncapi.core.api.AsyncApiSpec;
 import io.ballerina.asyncapi.core.model.channel.AsyncApiChannel;
+import io.ballerina.asyncapi.core.model.channel.AsyncApiChannelParameter;
 import io.ballerina.asyncapi.core.model.component.AsyncApiComponent;
 import io.ballerina.asyncapi.core.model.component.AsyncApiSchema;
 import io.ballerina.asyncapi.core.model.info.AsyncApiInfo;
@@ -35,8 +36,10 @@ import org.testng.annotations.Test;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Integration tests for {@link AsyncApiParser#parseFromJsonString(String)}.
@@ -641,6 +644,147 @@ public class AsyncApiParserIntegrationTest {
                 + "\"paths\":{}}";
         Assert.assertThrows(AsyncApiParserException.class,
                 () -> AsyncApiParser.parseFromJsonString(openApiJson));
+    }
+
+    // -------------------------------------------------------------------------
+    // Channel and message references
+    // -------------------------------------------------------------------------
+
+    @DataProvider(name = "pingPongSpecs")
+    Object[][] pingPongSpecs() {
+        return new Object[][] {
+            {"channel-ref.json", "ws", "/ws"},
+            {"channel-ref-message-through-channel.json", "ws", "/ws"},
+            {"escaped-channel-key.json", "/ws", "/ws"},
+            {"no-address.json", "ws", null},
+            {"null-address.json", "ws", null},
+        };
+    }
+
+    @Test(dataProvider = "pingPongSpecs")
+    void validChannelReferences_areRead(String file, String channelKey, String address)
+            throws IOException, AsyncApiParserException {
+        // A channel that is a $ref, a key referenced with ~1, and a missing or null address are all valid 3.0
+        AsyncApiSpec spec = AsyncApiParser.parseFromJsonString(loadSpec(SPEC_DIR + "refs/" + file));
+        Assert.assertEquals(spec.getAsyncApiChannels().orElseThrow().get(channelKey).address(), address);
+        AsyncApiOperation operation = spec.getAsyncApiOperations().orElseThrow().get("sendPing");
+        Assert.assertEquals(operation.channelId(), "Ws");
+        Assert.assertNotNull(operation.channel());
+        Assert.assertEquals(operation.messages().keySet(), Set.of("ping"));
+        Assert.assertEquals(operation.reply().messages().keySet(), Set.of("pong"));
+    }
+
+    @DataProvider(name = "brokenRefs")
+    Object[][] brokenRefs() {
+        return new Object[][] {
+            {"broken-message-ref.json", "operation 'sendPing' message reference '#/channels/ws/messages/nope'"},
+            {"broken-channel-message-ref.json",
+                "channel 'ws' message 'pong' reference '#/components/messages/Nope'"},
+            {"broken-component-operation-ref.json",
+                "component operation 'sharedPing' channel reference '#/channels/nope'"},
+        };
+    }
+
+    @Test
+    void messageOfAnotherChannel_isRejected() throws IOException {
+        // 3.0 needs an operation's messages to be messages of its channel
+        AsyncApiParserException e = Assert.expectThrows(AsyncApiParserException.class,
+                () -> AsyncApiParser.parseFromJsonString(loadSpec(SPEC_DIR + "refs/message-of-another-channel.json")));
+        Assert.assertTrue(e.getMessage().contains("operation 'sendPing' message reference "
+                + "'#/channels/other/messages/note' isn't one of the messages of its channel '#/channels/ws'"),
+                e.getMessage());
+    }
+
+    @Test
+    void channelReferencingAnotherTopLevelChannel_isRead() throws IOException, AsyncApiParserException {
+        AsyncApiSpec spec = AsyncApiParser.parseFromJsonString(loadSpec(SPEC_DIR + "refs/top-level-channel-ref.json"));
+        Assert.assertEquals(spec.getAsyncApiChannels().orElseThrow().get("ws").address(), "/ws");
+        AsyncApiOperation operation = spec.getAsyncApiOperations().orElseThrow().get("sendPing");
+        Assert.assertEquals(operation.messages().keySet(), Set.of("ping"));
+        Assert.assertEquals(operation.reply().messages().keySet(), Set.of("pong"));
+    }
+
+    @Test
+    void referenceIntoAnotherFile_isNotReportedAsBroken() throws IOException {
+        // The parser reads one document, so a ref into another file can't be checked here
+        try {
+            AsyncApiParser.parseFromJsonString(loadSpec(SPEC_DIR + "refs/external-message-ref.json"));
+        } catch (AsyncApiParserException e) {
+            Assert.assertFalse(e.getMessage().contains("doesn't point to anything"), e.getMessage());
+        }
+    }
+
+    @Test
+    void brokenV2MessageReference_isStillRejected() throws IOException {
+        // The parser checks only 3.x refs itself, so Apicurio's check stays for 2.x
+        String spec = loadSpec(SPEC_DIR + "asyncapi-2.6.0.json")
+                .replace("\"#/components/messages/UserCommand\"", "\"#/components/messages/Nope\"");
+        AsyncApiParserException e = Assert.expectThrows(AsyncApiParserException.class,
+                () -> AsyncApiParser.parseFromJsonString(spec));
+        Assert.assertTrue(e.getMessage().contains("Message references must point to valid messages"), e.getMessage());
+    }
+
+    @Test(dataProvider = "brokenRefs")
+    void brokenReference_isNamed(String file, String problem) throws IOException {
+        AsyncApiParserException e = Assert.expectThrows(AsyncApiParserException.class,
+                () -> AsyncApiParser.parseFromJsonString(loadSpec(SPEC_DIR + "refs/" + file)));
+        Assert.assertTrue(e.getMessage().contains(problem + " doesn't point to anything in the document]"),
+                e.getMessage());
+    }
+
+    // -------------------------------------------------------------------------
+    // Common 3.x mistakes read with a warning
+    // -------------------------------------------------------------------------
+
+    @Test
+    void hostWithSchemeAndPath_isSplit() throws IOException, AsyncApiParserException {
+        List<SpecWarning> warnings = new ArrayList<>();
+        AsyncApiSpec spec = AsyncApiParser.parseFromJsonString(
+                loadSpec(SPEC_DIR + "lenient/host-with-scheme-and-path.json"), warnings::add);
+        AsyncApiServer server = spec.getAsyncApiServers().orElseThrow().get("prod");
+        Assert.assertEquals(server.host(), "example.com");
+        Assert.assertEquals(server.protocol(), "wss");
+        Assert.assertEquals(server.pathname(), "/ws");
+        Assert.assertEquals(warnings, List.of(new SpecWarning("/servers/prod/host",
+                "server 'prod' host 'wss://example.com/ws' holds more than the host name; read it as host "
+                        + "'example.com', protocol 'wss', pathname '/ws'",
+                "Put only the host name in 'host', the scheme in 'protocol' and the path in 'pathname'.")));
+    }
+
+    @Test
+    void hostScheme_doesNotReplaceTheProtocolTheSpecSets() throws IOException, AsyncApiParserException {
+        List<SpecWarning> warnings = new ArrayList<>();
+        AsyncApiSpec spec = AsyncApiParser.parseFromJsonString(
+                loadSpec(SPEC_DIR + "lenient/host-scheme-beside-protocol.json"), warnings::add);
+        AsyncApiServer server = spec.getAsyncApiServers().orElseThrow().get("prod");
+        Assert.assertEquals(server.host(), "example.com");
+        Assert.assertEquals(server.protocol(), "wss");
+        Assert.assertEquals(server.pathname(), "/live");
+        Assert.assertEquals(warnings.size(), 1);
+        Assert.assertTrue(warnings.get(0).message().endsWith("read it as host 'example.com'"),
+                warnings.get(0).message());
+    }
+
+    @Test
+    void parameterSchema_isReadOntoTheParameter() throws IOException, AsyncApiParserException {
+        List<SpecWarning> warnings = new ArrayList<>();
+        AsyncApiSpec spec = AsyncApiParser.parseFromJsonString(
+                loadSpec(SPEC_DIR + "lenient/parameter-schema.json"), warnings::add);
+        AsyncApiChannelParameter room = spec.getAsyncApiChannels().orElseThrow().get("ws").parameters().get("room");
+        Assert.assertEquals(room.enumValues(), List.of("1", "2"));
+        Assert.assertEquals(room.defaultValue(), "1");
+        Assert.assertEquals(room.description(), "Room number");
+        Assert.assertEquals(warnings, List.of(new SpecWarning("/channels/ws/parameters/room/schema",
+                "channel 'ws' parameter 'room' has a 2.x 'schema'; read its enum, default, description as the "
+                        + "parameter's own",
+                "Remove 'schema' and set 'enum', 'default' and 'description' on the parameter itself.")));
+    }
+
+    @Test(dataProvider = "allVersionArgs")
+    void validSpec_hasNoWarnings(String file, String version) throws IOException, AsyncApiParserException {
+        List<SpecWarning> warnings = new ArrayList<>();
+        AsyncApiParser.parseFromJsonString(loadSpec(file), warnings::add);
+        Assert.assertEquals(warnings, List.of(), version);
     }
 
     // -------------------------------------------------------------------------

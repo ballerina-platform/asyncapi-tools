@@ -3,6 +3,7 @@
     <test name="AsyncApiParserIntegrationTests">
         <classes>
             <class name="io.ballerina.asyncapi.core.AsyncApiParserIntegrationTest"/>
+            <class name="io.ballerina.asyncapi.core.implementation.utils.JsonPointersTest"/>
         </classes>
     </test>
 </suite>

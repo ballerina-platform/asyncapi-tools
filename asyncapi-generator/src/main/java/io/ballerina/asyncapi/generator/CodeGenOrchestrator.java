@@ -22,6 +22,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import io.ballerina.asyncapi.core.AsyncApiParser;
 import io.ballerina.asyncapi.core.AsyncApiParserException;
+import io.ballerina.asyncapi.core.SpecWarning;
 import io.ballerina.asyncapi.core.api.AsyncApiSpec;
 import io.ballerina.asyncapi.generator.spi.CodeToSpecOptions;
 import io.ballerina.asyncapi.generator.spi.ProtocolHandler;
@@ -33,6 +34,7 @@ import java.nio.file.Path;
 import java.util.EnumMap;
 import java.util.Map;
 import java.util.ServiceLoader;
+import java.util.function.Consumer;
 
 /**
  * Entry point for protocol-agnostic AsyncAPI code generation.
@@ -70,7 +72,7 @@ public final class CodeGenOrchestrator {
                 "specToCode is not supported for protocol: "
                 + protocol);
         }
-        AsyncApiSpec spec = parseSpec(inputPath);
+        AsyncApiSpec spec = parseSpec(inputPath, options.getWarnings());
         handler.specToCode(spec, outputPath, options);
     }
 
@@ -120,7 +122,7 @@ public final class CodeGenOrchestrator {
         return handler;
     }
 
-    private static AsyncApiSpec parseSpec(Path inputPath)
+    private static AsyncApiSpec parseSpec(Path inputPath, Consumer<SpecWarning> warnings)
             throws GeneratorException {
         try {
             String content = Files.readString(inputPath);
@@ -134,7 +136,7 @@ public final class CodeGenOrchestrator {
                 content = new ObjectMapper()
                     .writeValueAsString(node);
             }
-            return AsyncApiParser.parseFromJsonString(content);
+            return AsyncApiParser.parseFromJsonString(content, warnings);
         } catch (AsyncApiParserException e) {
             throw new GeneratorException(
                 "Failed to parse AsyncAPI spec: "

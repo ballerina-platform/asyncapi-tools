@@ -23,6 +23,7 @@ import io.apicurio.datamodels.models.asyncapi.AsyncApiReferenceable;
 import io.apicurio.datamodels.models.asyncapi.v30.AsyncApi30Components;
 import io.ballerina.asyncapi.core.Constants;
 import io.ballerina.asyncapi.core.implementation.common.ServerVariableMapper;
+import io.ballerina.asyncapi.core.implementation.utils.JsonPointers;
 import io.ballerina.asyncapi.core.model.server.AsyncApiServerVariable;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -113,7 +114,7 @@ final class ServerVariableMapperV3 {
                 LOG.warn("Cyclic $ref detected: {}. Skipping server variable.", current);
                 return null;
             }
-            String name = current.substring(Constants.SERVER_VARIABLES_REF_PREFIX.length());
+            String name = JsonPointers.keyAfter(current, Constants.SERVER_VARIABLES_REF_PREFIX);
             // Add additional version checks here as new AsyncAPI 3.x versions are supported.
             ServerVariable resolved = null;
             if (components instanceof AsyncApi30Components typed) {
