@@ -59,8 +59,10 @@ import io.ballerina.tools.text.TextDocuments;
 import org.ballerinalang.formatter.core.Formatter;
 
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createEmptyNodeList;
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createIdentifierToken;
@@ -156,8 +158,13 @@ public class TestGenerator {
         // Build module members
         List<ModuleMemberDeclarationNode> nodes = new ArrayList<>();
         nodes.add(buildClientInitNode(className, serverUrl));
+        // A message both sent and received, or listed twice, gets one test
+        Set<String> testNames = new LinkedHashSet<>();
         for (String msgName : remoteMsgNames) {
-            nodes.add(buildTestFunctionNode(msgName));
+            testNames.add("test" + CodegenUtils.getValidName(msgName, true));
+        }
+        for (String testName : testNames) {
+            nodes.add(buildTestFunctionNode(testName));
         }
 
         // Assemble syntax tree
@@ -259,8 +266,7 @@ public class TestGenerator {
                 createToken(EQUAL_TOKEN), checkExpr, createToken(SEMICOLON_TOKEN));
     }
 
-    private FunctionDefinitionNode buildTestFunctionNode(String msgName) {
-        String testFuncName = "test" + CodegenUtils.getValidName(msgName, true);
+    private FunctionDefinitionNode buildTestFunctionNode(String testFuncName) {
 
         SimpleNameReferenceNode annotRef =
                 createSimpleNameReferenceNode(createIdentifierToken("test:Config"));
