@@ -42,9 +42,11 @@ import io.ballerina.tools.text.TextDocuments;
 import org.ballerinalang.formatter.core.Formatter;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 import static io.ballerina.asyncapi.generator.ws.client.extractor.DispatcherKeyExtractor.X_DISPATCHER_KEY;
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createToken;
@@ -105,7 +107,8 @@ public class DataTypesGenerator {
                     continue;
                 }
                 String typeName = CodegenUtils.getValidName(entry.getKey().trim(), true);
-                TypeDescriptorNode typeDesc = TypeGenerator.of(schema, typeName).generateTypeDescriptorNode();
+                TypeDescriptorNode typeDesc = TypeGenerator.of(withIncludedFields(schema, component.schemas(),
+                        new HashSet<>()), typeName).generateTypeDescriptorNode();
 
                 MetadataNode metadata = null;
                 if (schema.description() != null) {
@@ -162,6 +165,29 @@ public class DataTypesGenerator {
                 typeDesc,
                 createToken(SEMICOLON_TOKEN));
         typeDefinitionNodeList.add(typeDef);
+    }
+
+    /**
+     * Fills each {@code allOf} reference with the schema it names, so a part that redeclares a field can be checked
+     * against the field it includes.
+     */
+    private static AsyncApiSchema withIncludedFields(AsyncApiSchema schema, Map<String, AsyncApiSchema> schemas,
+                                                     Set<String> visiting) {
+        if (schema.allOf() == null) {
+            return schema;
+        }
+        List<AsyncApiSchema> allOf = new ArrayList<>();
+        for (AsyncApiSchema part : schema.allOf()) {
+            AsyncApiSchema named = part.name() != null ? schemas.get(part.name()) : null;
+            // A reference is a stub that only names its schema
+            if (named != null && part.properties() == null && part.allOf() == null && visiting.add(part.name())) {
+                allOf.add(withIncludedFields(named, schemas, visiting).withName(part.name()));
+                visiting.remove(part.name());
+            } else {
+                allOf.add(part.name() == null ? withIncludedFields(part, schemas, visiting) : part);
+            }
+        }
+        return schema.withAllOf(allOf);
     }
 
     private void addMessageType(List<TypeDefinitionNode> typeDefinitionNodeList) {
