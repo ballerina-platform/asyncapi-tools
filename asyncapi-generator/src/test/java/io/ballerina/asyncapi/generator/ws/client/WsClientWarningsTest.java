@@ -67,16 +67,61 @@ public class WsClientWarningsTest {
                     messages: [{$ref: '#/channels/ws/messages/echo'}]
                 """;
         List<SpecWarning> warnings = new ArrayList<>();
+        String client = generateClient(spec, warnings);
+        Assert.assertTrue(client.contains("remote isolated function doPing("), client);
+        Assert.assertFalse(client.contains("'null"), client);
+        Assert.assertEquals(warnings, List.of(new SpecWarning("/operations/send~1echo",
+                "message 'echo' has no JSON Schema payload, so the client has no function to send it",
+                "Give the message a JSON Schema 'payload' to get a function for it.")));
+    }
+
+    @Test
+    void testReceivedMessageWithoutPayloadIsLeftOutWithAWarning() throws Exception {
+        String spec = """
+                asyncapi: 3.0.0
+                info: {title: Chat, version: 1.0.0}
+                x-dispatcherKey: type
+                servers:
+                  s: {host: example.com, protocol: wss}
+                channels:
+                  ws:
+                    address: /ws
+                    messages:
+                      join: {$ref: '#/components/messages/Join'}
+                      notice: {$ref: '#/components/messages/Notice'}
+                operations:
+                  sendJoin:
+                    action: send
+                    channel: {$ref: '#/channels/ws'}
+                    messages: [{$ref: '#/channels/ws/messages/join'}]
+                  receiveNotice:
+                    action: receive
+                    channel: {$ref: '#/channels/ws'}
+                    messages: [{$ref: '#/channels/ws/messages/notice'}]
+                components:
+                  messages:
+                    Join:
+                      payload:
+                        type: object
+                        required: [type]
+                        properties: {type: {type: string, const: join}, room: {type: string}}
+                    Notice: {contentType: text/plain}
+                """;
+        List<SpecWarning> warnings = new ArrayList<>();
+        String client = generateClient(spec, warnings);
+        Assert.assertTrue(client.contains("remote isolated function doJoin("), client);
+        Assert.assertFalse(client.contains("Notice"), client);
+        Assert.assertEquals(warnings, List.of(new SpecWarning("/operations/receiveNotice",
+                "message 'notice' has no JSON Schema payload, so the client has no type to receive it as",
+                "Give the message a JSON Schema 'payload' to get a type for it.")));
+    }
+
+    private static String generateClient(String spec, List<SpecWarning> warnings) throws Exception {
         Path outDir = Files.createTempDirectory("ws-warnings");
         try {
             new WsClientCodeGenerator(AsyncApiParser.parseFromJsonString(YAML.readTree(spec).toString()), null, false)
                     .withWarnings(warnings::add).generate(outDir);
-            String client = Files.readString(outDir.resolve("client.bal"));
-            Assert.assertTrue(client.contains("remote isolated function doPing("), client);
-            Assert.assertFalse(client.contains("'null"), client);
-            Assert.assertEquals(warnings, List.of(new SpecWarning("/operations/send~1echo",
-                    "message 'echo' has no payload schema, so the client has no function to send it",
-                    "Add a 'payload' schema to the message to get a function for it.")));
+            return Files.readString(outDir.resolve("client.bal"));
         } finally {
             try (Stream<Path> paths = Files.walk(outDir)) {
                 paths.sorted(Comparator.reverseOrder()).forEach(path -> path.toFile().delete());

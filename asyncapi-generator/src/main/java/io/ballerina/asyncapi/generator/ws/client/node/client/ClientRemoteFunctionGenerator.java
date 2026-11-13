@@ -98,6 +98,13 @@ public class ClientRemoteFunctionGenerator {
         return this;
     }
 
+    // Reports a message left out for having no JSON Schema payload, pointing at the operation that lists it
+    private void warnNoPayload(String operationId, String msgName, String missing, String gained) {
+        warnings.accept(new SpecWarning("/operations/" + operationId.replace("~", "~0").replace("/", "~1"),
+                String.format("message '%s' has no JSON Schema payload, so the client has no %s", msgName, missing),
+                String.format("Give the message a JSON Schema 'payload' to get a %s for it.", gained)));
+    }
+
     /**
      * Builds remote function definitions for all SEND and RECEIVE-only operations.
      *
@@ -136,10 +143,7 @@ public class ClientRemoteFunctionGenerator {
                 AsyncApiMessage message = msgEntry.getValue();
                 // The client only sends records that carry the dispatcher key, so this one gets no function yet
                 if (!(message.payload() instanceof AsyncApiSchema)) {
-                    warnings.accept(new SpecWarning("/operations/" + opEntry.getKey().replace("~", "~0")
-                            .replace("/", "~1"), String.format("message '%s' has no payload schema, so the client "
-                            + "has no function to send it", msgName),
-                            "Add a 'payload' schema to the message to get a function for it."));
+                    warnNoPayload(opEntry.getKey(), msgName, "function to send it", "function");
                     continue;
                 }
 
@@ -179,18 +183,20 @@ public class ClientRemoteFunctionGenerator {
             for (Map.Entry<String, AsyncApiMessage> msgEntry : op.messages().entrySet()) {
                 String msgName = msgEntry.getKey();
                 AsyncApiMessage message = msgEntry.getValue();
+                // Received frames are read into a record, so a message without a schema has nothing to read into
+                if (!(message.payload() instanceof AsyncApiSchema payloadSchema)) {
+                    warnNoPayload(opEntry.getKey(), msgName, "type to receive it as", "type");
+                    continue;
+                }
 
                 // Skip close-frame schemas
-                if (message.payload() instanceof AsyncApiSchema) {
-                    AsyncApiSchema payloadSchema = (AsyncApiSchema) message.payload();
-                    if (CodegenUtils.isCloseFrameSchema(payloadSchema)) {
-                        continue;
-                    }
+                if (CodegenUtils.isCloseFrameSchema(payloadSchema)) {
+                    continue;
                 }
 
                 // A receive function on the pipe a send function waits on would take its replies
                 if (remainingResponseMessages.contains(msgName)
-                        || message.payload() instanceof AsyncApiSchema payload && replyTypes.contains(payload.name())) {
+                        || replyTypes.contains(payloadSchema.name())) {
                     continue;
                 }
 

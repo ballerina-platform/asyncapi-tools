@@ -241,9 +241,9 @@ public class WsCmdUnitTest extends CmdTestBase {
                 "        properties: {type: {type: string, const: ping}}"));
         Path pkg = newPackage("nopayload");
         parse(specFile.toString(), "--protocol", "ws", "--output", pkg.toString()).execute();
-        Assert.assertTrue(getErr().contains("warning: message 'echo' has no payload schema, so the client has no "
-                + "function to send it" + System.lineSeparator() + "  Add a 'payload' schema to the message to get a "
-                + "function for it."), "Err: " + getErr());
+        Assert.assertTrue(getErr().contains("warning: message 'echo' has no JSON Schema payload, so the client has no "
+                + "function to send it" + System.lineSeparator()
+                + "  Give the message a JSON Schema 'payload' to get a function for it."), "Err: " + getErr());
         Assert.assertFalse(getErr().contains("error:"), "Err: " + getErr());
         String client = Files.readString(pkg.resolve("client.bal"));
         Assert.assertTrue(client.contains("remote isolated function doPing("), client);
