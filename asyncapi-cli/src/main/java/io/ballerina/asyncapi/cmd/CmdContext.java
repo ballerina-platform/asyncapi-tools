@@ -17,6 +17,8 @@
  */
 package io.ballerina.asyncapi.cmd;
 
+import io.ballerina.asyncapi.core.SpecWarning;
+
 import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.file.Files;
@@ -72,6 +74,12 @@ final class CmdContext {
 
     void printWarning(String message) {
         errStream.println("warning: " + message);
+    }
+
+    /** Prints a spec problem the tool worked around, with how to fix the spec on the next line. */
+    void printSpecWarning(SpecWarning warning) {
+        errStream.println("warning: " + warning.message());
+        errStream.println("  " + warning.suggestion());
     }
 
     void printError(String message) {

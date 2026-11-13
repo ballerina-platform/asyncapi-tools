@@ -7,6 +7,7 @@ package io.ballerina.asyncapi.core;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.MissingNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.apicurio.datamodels.Library;
 import io.apicurio.datamodels.deref.Dereferencer;
@@ -16,20 +17,36 @@ import io.apicurio.datamodels.refs.ReferenceResolverChain;
 import io.apicurio.datamodels.validation.ValidationProblem;
 import io.ballerina.asyncapi.core.api.AsyncApiSpec;
 import io.ballerina.asyncapi.core.implementation.common.SchemaMapper;
+import io.ballerina.asyncapi.core.implementation.utils.JsonPointers;
 import io.ballerina.asyncapi.core.model.component.AsyncApiSchema;
 import org.apache.commons.lang3.StringUtils;
 
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.IdentityHashMap;
 import java.util.List;
+import java.util.Set;
+import java.util.function.Consumer;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public final class AsyncApiParser {
 
     private static final ObjectMapper JSON = new ObjectMapper();
     private static final String ASYNCAPI = "asyncapi";
     private static final String V3_0_0 = "3.0.0";
+    private static final String OPERATIONS = "operations";
+    private static final String CHANNELS = "channels";
+    private static final String COMPONENTS = "components";
+    private static final String CHANNEL = "channel";
+    private static final String MESSAGES = "messages";
+    private static final String REPLY = "reply";
+    private static final String REPLIES = "replies";
+    private static final String LOCAL_REF = "#";
+    private static final String REF = "$ref";
     // Any 3.x.y, with the pre-release suffix AsyncAPI allows (3.1.0-rc1); 3.0.0 itself is unchanged by the rewrite
     private static final Pattern LATER_3X = Pattern.compile("3\\.\\d+\\.\\d+(-[0-9A-Za-z.-]+)?");
 
@@ -45,21 +62,40 @@ public final class AsyncApiParser {
      * @throws AsyncApiParserException if the JSON is blank, invalid, or fails validation
      */
     public static AsyncApiSpec parseFromJsonString(String jsonString) throws AsyncApiParserException {
+        return parseFromJsonString(jsonString, warning -> { });
+    }
+
+    /**
+     * Parses an AsyncAPI specification from a JSON string, correcting common 3.x mistakes whose meaning is clear,
+     * such as a scheme in a server host.
+     *
+     * @param jsonString the AsyncAPI JSON content
+     * @param warnings   receives one warning per correction, saying how to fix the spec
+     * @return the parsed {@link AsyncApiSpec}
+     * @throws AsyncApiParserException if the JSON is blank, invalid, or fails validation
+     */
+    public static AsyncApiSpec parseFromJsonString(String jsonString, Consumer<SpecWarning> warnings)
+            throws AsyncApiParserException {
         if (StringUtils.isBlank(jsonString)) {
             throw new AsyncApiParserException("AsyncAPI specification JSON cannot be null or empty.");
         }
 
         Document rootDocument;
         String version;
+        ObjectNode object;
         try {
             JsonNode root = JSON.readTree(jsonString);
-            if (!(root instanceof ObjectNode object)) {
+            if (!(root instanceof ObjectNode rootObject)) {
                 throw new AsyncApiParserException("An AsyncAPI specification must be a JSON object.");
             }
+            object = rootObject;
             version = object.path(ASYNCAPI).asText(null);
             // Apicurio reads up to 3.0.0, and later 3.x versions only add to it, so they are read as 3.0.0
             if (version != null && LATER_3X.matcher(version).matches()) {
                 object.put(ASYNCAPI, V3_0_0);
+            }
+            if (V3_0_0.equals(object.path(ASYNCAPI).asText())) {
+                LenientReads.apply(object, warnings);
             }
             rootDocument = Library.readDocument(object);
         } catch (AsyncApiParserException e) {
@@ -68,7 +104,7 @@ public final class AsyncApiParser {
             throw new AsyncApiParserException(e.getMessage(), e);
         }
 
-        validateDocument(rootDocument);
+        validateDocument(rootDocument, object);
         AsyncApiDocument dereferencedDocument = getAsyncApiDocument(rootDocument);
         dereferencedDocument.setAsyncapi(version);
         try {
@@ -89,11 +125,23 @@ public final class AsyncApiParser {
     }
 
     private static final String DOCUMENT_ID_PROBLEM = "Document ID should be a valid URI";
+    private static final String MISSING_ADDRESS_PROBLEM = "Channel is missing the 'address' property";
+    // Apicurio checks these refs without following a $ref on the way or decoding ~1, so brokenRefs checks them
+    private static final List<String> CHANNEL_AND_MESSAGE_REF_PROBLEMS = List.of(
+            "Operation channel reference must point to valid channel",
+            "Message references must point to valid messages",
+            "Reply channel reference must point to valid channel",
+            "Reply message references must point to valid messages");
 
-    private static void validateDocument(Document document) throws AsyncApiParserException {
+    private static void validateDocument(Document document, ObjectNode root) throws AsyncApiParserException {
         List<ValidationProblem> problems = Library.validate(document, null);
-        if (problems == null || problems.isEmpty()) {
+        boolean v3 = root.path(ASYNCAPI).asText("").startsWith("3.");
+        List<String> refProblems = v3 ? brokenRefs(root) : List.of();
+        if ((problems == null || problems.isEmpty()) && refProblems.isEmpty()) {
             return;
+        }
+        if (problems == null) {
+            problems = List.of();
         }
 
         // Filter out Apicurio false positives: oneOf message containers have no direct
@@ -106,12 +154,104 @@ public final class AsyncApiParser {
                 .filter(p -> !p.message.contains("payload or headers"))
                 .filter(p -> !p.message.contains("'location' property"))
                 .filter(p -> !(idIsUri && p.message.contains(DOCUMENT_ID_PROBLEM)))
+                // 3.0 makes a channel address optional; a missing or null one means it is dynamic
+                .filter(p -> !p.message.contains(MISSING_ADDRESS_PROBLEM))
+                .filter(p -> !v3 || CHANNEL_AND_MESSAGE_REF_PROBLEMS.stream().noneMatch(p.message::contains))
                 .collect(Collectors.toList());
 
-        if (!realProblems.isEmpty()) {
-            String errorMessages = realProblems.stream().map(p -> "[" + p.message + "]")
+        if (!realProblems.isEmpty() || !refProblems.isEmpty()) {
+            String errorMessages = Stream.concat(realProblems.stream().map(p -> p.message), refProblems.stream())
+                    .map(message -> "[" + message + "]")
                     .collect(Collectors.joining(" | "));
             throw new AsyncApiParserException("AsyncAPI validation failed: " + errorMessages);
+        }
+    }
+
+    /**
+     * Lists the local channel, message, operation and reply refs of a 3.x document that point nowhere in it.
+     */
+    private static List<String> brokenRefs(ObjectNode root) {
+        List<String> broken = new ArrayList<>();
+        JsonNode components = root.path(COMPONENTS);
+        checkChannels(root, root.path(CHANNELS), "channel", broken);
+        checkChannels(root, components.path(CHANNELS), "component channel", broken);
+        checkOperations(root, root.path(OPERATIONS), "operation", broken);
+        checkOperations(root, components.path(OPERATIONS), "component operation", broken);
+        components.path(REPLIES).properties().forEach(reply -> checkReply(root, reply.getValue(),
+                MissingNode.getInstance(), "component reply '" + reply.getKey() + "'", broken));
+        return broken;
+    }
+
+    private static void checkOperations(JsonNode root, JsonNode operations, String kind, List<String> broken) {
+        operations.properties().forEach(entry -> {
+            String what = kind + " '" + entry.getKey() + "'";
+            JsonNode operation = entry.getValue();
+            checkRef(root, operation, what, broken);
+            checkRef(root, operation.path(CHANNEL), what + " channel", broken);
+            operation.path(MESSAGES).forEach(message -> checkRef(root, message, what + " message", broken));
+            checkMessagesOfChannel(root, operation.path(CHANNEL), operation.path(MESSAGES), what, broken);
+            checkReply(root, operation.path(REPLY), operation.path(CHANNEL), what + " reply", broken);
+        });
+    }
+
+    // A reply without a channel of its own uses its operation's channel
+    private static void checkReply(JsonNode root, JsonNode reply, JsonNode operationChannel, String what,
+                                   List<String> broken) {
+        checkRef(root, reply, what, broken);
+        checkRef(root, reply.path(CHANNEL), what + " channel", broken);
+        reply.path(MESSAGES).forEach(message -> checkRef(root, message, what + " message", broken));
+        JsonNode resolved = reply.path(REF).isTextual() ? JsonPointers.resolve(root, reply.get(REF).asText()) : reply;
+        if (resolved != null) {
+            JsonNode channel = resolved.has(CHANNEL) ? resolved.path(CHANNEL) : operationChannel;
+            checkMessagesOfChannel(root, channel, resolved.path(MESSAGES), what, broken);
+        }
+    }
+
+    /**
+     * Reports each message an operation or reply lists that isn't a message of its channel, as 3.0 requires.
+     */
+    private static void checkMessagesOfChannel(JsonNode root, JsonNode channelRef, JsonNode messages, String what,
+                                               List<String> broken) {
+        JsonNode ref = channelRef.path(REF);
+        JsonNode channel = ref.isTextual() ? JsonPointers.resolve(root, ref.asText()) : null;
+        if (channel == null) {
+            return;
+        }
+        // Compared after following refs, so a component message the channel lists under any key matches
+        Set<JsonNode> ofChannel = Collections.newSetFromMap(new IdentityHashMap<>());
+        channel.path(MESSAGES).forEach(message -> ofChannel.add(target(root, message)));
+        messages.forEach(message -> {
+            JsonNode messageRef = message.path(REF);
+            JsonNode target = messageRef.isTextual() ? JsonPointers.resolve(root, messageRef.asText()) : null;
+            if (target != null && !ofChannel.contains(target)) {
+                broken.add(String.format("%s message reference '%s' isn't one of the messages of its channel '%s'",
+                        what, messageRef.asText(), ref.asText()));
+            }
+        });
+    }
+
+    private static JsonNode target(JsonNode root, JsonNode node) {
+        JsonNode ref = node.path(REF);
+        JsonNode resolved = ref.isTextual() && ref.asText().startsWith(LOCAL_REF)
+                ? JsonPointers.resolve(root, ref.asText()) : node;
+        return resolved != null ? resolved : node;
+    }
+
+    private static void checkChannels(JsonNode root, JsonNode channels, String kind, List<String> broken) {
+        channels.properties().forEach(channel -> {
+            String what = kind + " '" + channel.getKey() + "'";
+            checkRef(root, channel.getValue(), what, broken);
+            channel.getValue().path(MESSAGES).properties().forEach(message ->
+                    checkRef(root, message.getValue(), what + " message '" + message.getKey() + "'", broken));
+        });
+    }
+
+    private static void checkRef(JsonNode root, JsonNode reference, String what, List<String> broken) {
+        JsonNode ref = reference.path(REF);
+        // A ref to another file isn't in this document, so it isn't checked here
+        if (ref.isTextual() && ref.asText().startsWith(LOCAL_REF)
+                && JsonPointers.resolve(root, ref.asText()) == null) {
+            broken.add(what + " reference '" + ref.asText() + "' doesn't point to anything in the document");
         }
     }
 

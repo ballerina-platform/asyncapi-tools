@@ -1,0 +1,96 @@
+{
+  "asyncapi": "3.0.0",
+  "info": {
+    "title": "Echo",
+    "version": "1.0.0"
+  },
+  "servers": {
+    "prod": {
+      "host": "example.com",
+      "protocol": "wss"
+    }
+  },
+  "channels": {
+    "ws": {
+      "$ref": "#/components/channels/ws"
+    },
+    "other": {
+      "address": "/other",
+      "messages": {
+        "note": {
+          "payload": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  },
+  "operations": {
+    "sendPing": {
+      "action": "send",
+      "channel": {
+        "$ref": "#/channels/ws"
+      },
+      "messages": [
+        {
+          "$ref": "#/channels/other/messages/note"
+        }
+      ],
+      "reply": {
+        "channel": {
+          "$ref": "#/channels/ws"
+        },
+        "messages": [
+          {
+            "$ref": "#/components/channels/ws/messages/pong"
+          }
+        ]
+      }
+    }
+  },
+  "components": {
+    "messages": {
+      "Ping": {
+        "payload": {
+          "type": "object",
+          "required": [
+            "type"
+          ],
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "ping"
+            }
+          }
+        }
+      },
+      "Pong": {
+        "payload": {
+          "type": "object",
+          "required": [
+            "type"
+          ],
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "pong"
+            }
+          }
+        }
+      }
+    },
+    "channels": {
+      "ws": {
+        "address": "/ws",
+        "messages": {
+          "ping": {
+            "$ref": "#/components/messages/Ping"
+          },
+          "pong": {
+            "$ref": "#/components/messages/Pong"
+          }
+        }
+      }
+    }
+  }
+}

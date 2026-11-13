@@ -59,6 +59,7 @@ final class HttpProtocolCommand implements ProtocolCommand {
             SpecToCodeOptions options = new SpecToCodeOptions.Builder()
                     .withLicenseHeader("")
                     .withIncludeTestFiles(opts.isWithTests())
+                    .withWarnings(ctx::printSpecWarning)
                     .build();
 
             int skipped;
