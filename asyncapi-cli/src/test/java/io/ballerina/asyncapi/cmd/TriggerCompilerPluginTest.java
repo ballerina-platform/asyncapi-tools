@@ -54,6 +54,13 @@ public class TriggerCompilerPluginTest {
         Assert.assertEquals(updated, PACKAGE + "\n" + after);
     }
 
+    @Test(description = "An indented header after the entry ends it, so the next entry is kept")
+    public void testIndentedNextHeaderIsKept() {
+        String client = "  [[tool.asyncapi]]\nid = \"chat_client\"\nfilePath = \"chat.yaml\"\n";
+        String updated = TriggerCompilerPlugin.withoutOldToolEntry(PACKAGE + OLD_ENTRY + client);
+        Assert.assertEquals(updated, PACKAGE + "\n" + client.stripLeading());
+    }
+
     @Test(description = "CRLF line endings are kept")
     public void testCrlfIsKept() {
         String crlf = (PACKAGE + OLD_ENTRY).replace("\n", "\r\n");
