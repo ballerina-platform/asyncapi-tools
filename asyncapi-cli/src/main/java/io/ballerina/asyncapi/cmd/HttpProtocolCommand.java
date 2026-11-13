@@ -72,13 +72,10 @@ final class HttpProtocolCommand implements ProtocolCommand {
                 skipped = stage.commit(ErrorMessages.SUCCESS_MESSAGE);
                 if (withPlugin) {
                     try {
-                        TriggerCompilerPlugin.addToolEntry(outputPath, opts.isDryRun(), ctx);
+                        TriggerCompilerPlugin.removeOldToolEntry(outputPath, opts.isDryRun(), ctx);
                     } catch (IOException e) {
-                        // CompilerPlugin.toml is already written, so say exactly what is missing
-                        ctx.printError(String.format(ErrorMessages.TOOL_ENTRY_FAILED, e.getMessage(),
-                                TriggerCompilerPlugin.toolVersion()));
-                        ctx.exitError();
-                        return;
+                        // The trigger builds either way, so the user only needs to tidy it up
+                        ctx.printWarning(String.format(ErrorMessages.WARN_TOOL_ENTRY_NOT_REMOVED, e.getMessage()));
                     }
                 }
             }
