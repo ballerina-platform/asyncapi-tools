@@ -19,14 +19,18 @@ package io.ballerina.asyncapi.cmd;
 
 import io.ballerina.toml.api.Toml;
 import io.ballerina.toml.semantic.ast.TomlStringValueNode;
+import io.ballerina.toml.syntax.tree.DocumentMemberDeclarationNode;
+import io.ballerina.toml.syntax.tree.DocumentNode;
+import io.ballerina.toml.syntax.tree.SyntaxTree;
+import io.ballerina.toml.syntax.tree.TableArrayNode;
+import io.ballerina.tools.text.TextDocuments;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.List;
 import java.util.Optional;
-import java.util.regex.Pattern;
+import java.util.Set;
 
 /**
  * Adds the trigger compiler plugin to a generated trigger package. Ballerina runs a plugin only for apps that
@@ -50,8 +54,7 @@ final class TriggerCompilerPlugin {
     // The entry tool 0.13.3 added so the build copied the jar; the jar is now in lib/, so it is removed
     private static final String OLD_ENTRY_COMMENT =
             "# Copies the trigger's compiler plugin from the asyncapi tool during the build";
-    private static final Pattern TOOL_HEADER = Pattern.compile("\\s*\\[\\[tool\\.asyncapi]]\\s*(#.*)?");
-    private static final Pattern TRIGGER_PLUGIN_ID = Pattern.compile("\\s*id\\s*=\\s*\"trigger-plugin\".*");
+    private static final Set<String> TRIGGER_PLUGIN_ID = Set.of("\"trigger-plugin\"", "'trigger-plugin'");
     private static final String TOML_CONTENT = """
             # Written by bal asyncapi. Packs the trigger's compiler plugin, which lists the trigger's services in
             # target/artifact/endpoints.yaml when an app is built with bal build --export-endpoints.
@@ -140,36 +143,30 @@ final class TriggerCompilerPlugin {
      * @return the updated content, the same string when there is no such entry
      */
     static String withoutOldToolEntry(String content) {
-        List<String> lines = content.lines().toList();
-        for (int header = 0; header < lines.size(); header++) {
-            if (!TOOL_HEADER.matcher(lines.get(header)).matches()) {
+        // The parser gives the table's exact range, so strings, comments and indentation can't throw it off
+        DocumentNode document = SyntaxTree.from(TextDocuments.from(content)).rootNode();
+        for (DocumentMemberDeclarationNode member : document.members()) {
+            if (!(member instanceof TableArrayNode table) || !isOldToolEntry(table)) {
                 continue;
             }
-            // The table runs to the next header, less the comments and blank lines just above it, which belong to it
-            int next = header + 1;
-            while (next < lines.size() && !lines.get(next).stripLeading().startsWith("[")) {
-                next++;
+            // Comments above the next table belong to it, so the range stops before them
+            String before = content.substring(0, table.textRange().startOffset()).stripTrailing();
+            if (before.endsWith(OLD_ENTRY_COMMENT)) {
+                before = before.substring(0, before.length() - OLD_ENTRY_COMMENT.length()).stripTrailing();
             }
-            int end = next;
-            while (end > header + 1 && isCommentOrBlank(lines.get(end - 1))) {
-                end--;
-            }
-            if (lines.subList(header + 1, end).stream().noneMatch(l -> TRIGGER_PLUGIN_ID.matcher(l).matches())) {
-                continue;
-            }
-            int start = header > 0 && lines.get(header - 1).equals(OLD_ENTRY_COMMENT) ? header - 1 : header;
             // Also drops the blank line the entry was added after, so the file ends as it did before
+            String after = content.substring(table.textRange().endOffset()).strip();
             String nl = content.contains("\r\n") ? "\r\n" : "\n";
-            String before = String.join(nl, lines.subList(0, start)).stripTrailing();
-            String after = String.join(nl, lines.subList(end, lines.size())).strip();
             return after.isEmpty() ? before + nl : before + nl + nl + after + nl;
         }
         return content;
     }
 
-    private static boolean isCommentOrBlank(String line) {
-        String trimmed = line.strip();
-        return trimmed.isEmpty() || trimmed.startsWith("#");
+    private static boolean isOldToolEntry(TableArrayNode table) {
+        return table.identifier().toSourceCode().strip().equals("tool.asyncapi")
+                && table.fields().stream().anyMatch(field ->
+                        field.identifier().toSourceCode().strip().equals("id")
+                                && TRIGGER_PLUGIN_ID.contains(field.value().toSourceCode().strip()));
     }
 
     // The id of a plugin the package already has that isn't ours. Ours is replaced on regeneration.

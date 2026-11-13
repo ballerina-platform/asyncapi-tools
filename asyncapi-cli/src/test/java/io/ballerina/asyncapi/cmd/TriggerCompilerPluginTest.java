@@ -61,6 +61,14 @@ public class TriggerCompilerPluginTest {
         Assert.assertEquals(updated, PACKAGE + "\n" + client.stripLeading());
     }
 
+    @Test(description = "The entry's lines inside a multiline string are text, not the entry, so they are kept")
+    public void testEntryInsideAStringIsKept() {
+        String content = PACKAGE + "description = '''\n[[tool.asyncapi]]\nid = \"trigger-plugin\"\n'''\n\n"
+                + "[build-options]\noffline = true\n";
+        Assert.assertEquals(TriggerCompilerPlugin.withoutOldToolEntry(content), content);
+        Assert.assertEquals(TriggerCompilerPlugin.withoutOldToolEntry(content + OLD_ENTRY), content);
+    }
+
     @Test(description = "CRLF line endings are kept")
     public void testCrlfIsKept() {
         String crlf = (PACKAGE + OLD_ENTRY).replace("\n", "\r\n");
