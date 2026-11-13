@@ -166,6 +166,26 @@ public class HttpCmdUnitTest extends CmdTestBase {
         Assert.assertTrue(getOut().contains("-- Ballerina.toml: removed [[tool.asyncapi]]"), "Out: " + getOut());
     }
 
+    @Test(description = "The old entry stays while the old CompilerPlugin.toml is kept, and goes with --force")
+    public void testOldToolEntryStaysWhenThePluginFileIsSkipped() throws Exception {
+        Path pkg = newPackage("skipped");
+        String before = Files.readString(pkg.resolve("Ballerina.toml"));
+        String withEntry = before + "\n[[tool.asyncapi]]\nid = \"trigger-plugin\"\nversion = \"0.13.3\"\n";
+        String oldPluginToml = "[plugin]\nid = \"asyncapi-compiler-plugin\"\nclass = \"x.Plugin\"\n\n"
+                + "[[dependency]]\npath = \"target/tool-cache/asyncapi-trigger-compiler-plugin.jar\"\n";
+        Files.writeString(pkg.resolve("Ballerina.toml"), withEntry);
+        Files.writeString(pkg.resolve("CompilerPlugin.toml"), oldPluginToml);
+        generateTiny(pkg, "-o", pkg.toString());
+        Assert.assertEquals(Files.readString(pkg.resolve("CompilerPlugin.toml")), oldPluginToml);
+        Assert.assertEquals(Files.readString(pkg.resolve("Ballerina.toml")), withEntry,
+                "The old CompilerPlugin.toml still needs the jar the entry copies in");
+        Assert.assertFalse(getOut().contains("removed [[tool.asyncapi]]"), "Out: " + getOut());
+
+        generateTiny(pkg, "-o", pkg.toString(), "--force");
+        Assert.assertTrue(Files.readString(pkg.resolve("CompilerPlugin.toml")).contains("lib/"));
+        Assert.assertEquals(Files.readString(pkg.resolve("Ballerina.toml")), before);
+    }
+
     @Test(description = "When the old entry can't be removed, the code is still generated and a warning says why")
     public void testOldToolEntryThatCantBeRemovedWarns() throws Exception {
         Path pkg = newPackage("readonly");

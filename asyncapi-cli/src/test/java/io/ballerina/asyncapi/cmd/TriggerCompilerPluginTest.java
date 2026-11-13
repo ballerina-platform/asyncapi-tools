@@ -41,6 +41,19 @@ public class TriggerCompilerPluginTest {
         Assert.assertEquals(updated, PACKAGE + "\n" + after);
     }
 
+    @Test(description = "A comment inside the entry doesn't leave its later keys behind in the table above")
+    public void testCommentInsideTheEntryIsRemoved() {
+        String entry = "\n[[tool.asyncapi]]\nid = \"trigger-plugin\"\n# pinned\nversion = \"0.13.3\"\n";
+        Assert.assertEquals(TriggerCompilerPlugin.withoutOldToolEntry(PACKAGE + entry), PACKAGE);
+    }
+
+    @Test(description = "A comment just above the next table stays with that table")
+    public void testCommentAboveTheNextTableIsKept() {
+        String after = "# Built with the trigger\n[[dependency]]\norg = \"ballerinax\"\n";
+        String updated = TriggerCompilerPlugin.withoutOldToolEntry(PACKAGE + OLD_ENTRY + after);
+        Assert.assertEquals(updated, PACKAGE + "\n" + after);
+    }
+
     @Test(description = "CRLF line endings are kept")
     public void testCrlfIsKept() {
         String crlf = (PACKAGE + OLD_ENTRY).replace("\n", "\r\n");
