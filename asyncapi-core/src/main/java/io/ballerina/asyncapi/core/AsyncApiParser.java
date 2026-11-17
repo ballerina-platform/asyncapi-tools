@@ -45,6 +45,10 @@ public final class AsyncApiParser {
     private static final String REPLY = "reply";
     private static final String REPLIES = "replies";
     private static final String LOCAL_REF = "#";
+    private static final String ROOT_CHANNELS_REF = "#/channels/";
+    private static final String CHANNEL_MESSAGES = "/messages/";
+    // The kind brokenRefs gives the operations under the root "operations"
+    private static final String OPERATION_KIND = "operation";
     private static final String REF = "$ref";
     // Any 3.x.y, with the pre-release suffix AsyncAPI allows (3.1.0-rc1); 3.0.0 itself is unchanged by the rewrite
     private static final Pattern LATER_3X = Pattern.compile("3\\.\\d+\\.\\d+(-[0-9A-Za-z.-]+)?");
@@ -157,7 +161,7 @@ public final class AsyncApiParser {
         JsonNode components = root.path(COMPONENTS);
         checkChannels(root, root.path(CHANNELS), "channel", broken);
         checkChannels(root, components.path(CHANNELS), "component channel", broken);
-        checkOperations(root, root.path(OPERATIONS), "operation", broken);
+        checkOperations(root, root.path(OPERATIONS), OPERATION_KIND, broken);
         checkOperations(root, components.path(OPERATIONS), "component operation", broken);
         components.path(REPLIES).properties().forEach(reply -> checkReply(root, reply.getValue(),
                 MissingNode.getInstance(), "component reply '" + reply.getKey() + "'", broken));
@@ -170,6 +174,7 @@ public final class AsyncApiParser {
             JsonNode operation = entry.getValue();
             checkRef(root, operation, what, broken);
             checkRef(root, operation.path(CHANNEL), what + " channel", broken);
+            checkRootChannelRef(operation.path(CHANNEL), kind, what, broken);
             operation.path(MESSAGES).forEach(message -> checkRef(root, message, what + " message", broken));
             checkMessagesOfChannel(root, operation.path(CHANNEL), operation.path(MESSAGES), what, broken);
             checkReply(root, operation.path(REPLY), operation.path(CHANNEL), what + " reply", broken);
@@ -189,14 +194,26 @@ public final class AsyncApiParser {
         }
     }
 
+    // A root operation's channel is one of the root channels; a component operation's can be anywhere
+    private static void checkRootChannelRef(JsonNode channelRef, String kind, String what, List<String> broken) {
+        JsonNode ref = channelRef.path(REF);
+        if (OPERATION_KIND.equals(kind) && ref.isTextual() && ref.asText().startsWith(LOCAL_REF)
+                && !ref.asText().startsWith(ROOT_CHANNELS_REF)) {
+            broken.add(String.format("%s channel reference '%s' isn't one of the channels under 'channels'", what,
+                    ref.asText()));
+        }
+    }
+
     /**
      * Reports each message an operation or reply lists that isn't a message of its channel, as 3.0 requires.
+     * A message given as {@code <channel>/messages/<key>} must name the operation's channel itself; any other
+     * message must be one the channel lists. A channel or message in another file can't be checked.
      */
     private static void checkMessagesOfChannel(JsonNode root, JsonNode channelRef, JsonNode messages, String what,
                                                List<String> broken) {
         JsonNode ref = channelRef.path(REF);
         JsonNode channel = ref.isTextual() ? JsonPointers.resolve(root, ref.asText()) : null;
-        if (channel == null) {
+        if (channel == null || JsonPointers.isExternalRef(channel)) {
             return;
         }
         // Compared after following refs, so a component message the channel lists under any key matches
@@ -204,8 +221,22 @@ public final class AsyncApiParser {
         channel.path(MESSAGES).forEach(message -> ofChannel.add(target(root, message)));
         messages.forEach(message -> {
             JsonNode messageRef = message.path(REF);
-            JsonNode target = messageRef.isTextual() ? JsonPointers.resolve(root, messageRef.asText()) : null;
-            if (target != null && !ofChannel.contains(target)) {
+            if (!messageRef.isTextual()) {
+                return;
+            }
+            int messagesAt = messageRef.asText().lastIndexOf(CHANNEL_MESSAGES);
+            if (messagesAt > 0) {
+                // Its channel part, not the message it ends at, so another channel listing the same message fails
+                JsonNode messageChannel = JsonPointers.resolve(root, messageRef.asText().substring(0, messagesAt));
+                if (messageChannel != null && !JsonPointers.isExternalRef(messageChannel)
+                        && messageChannel != channel) {
+                    broken.add(String.format("%s message reference '%s' isn't one of the messages of its channel "
+                            + "'%s'", what, messageRef.asText(), ref.asText()));
+                }
+                return;
+            }
+            JsonNode target = JsonPointers.resolve(root, messageRef.asText());
+            if (target != null && !JsonPointers.isExternalRef(target) && !ofChannel.contains(target)) {
                 broken.add(String.format("%s message reference '%s' isn't one of the messages of its channel '%s'",
                         what, messageRef.asText(), ref.asText()));
             }
