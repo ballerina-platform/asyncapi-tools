@@ -139,6 +139,65 @@ public class WsClientGeneratedNamesTest {
     }
 
     @Test
+    void testReceivedSymbolsOnlyValueRoutesToTheFallbackType() throws Exception {
+        String spec = """
+                asyncapi: 2.6.0
+                info: {title: Hub, version: 1.0.0}
+                x-dispatcherKey: type
+                channels:
+                  /:
+                    subscribe:
+                      message:
+                        name: '%'
+                        payload:
+                          type: object
+                          required: [type]
+                          properties: {type: {type: string}}
+                """;
+        String client = generate(spec, false).get("client.bal");
+        // The reader turns the frame's "%" into the same name the generator gave the type
+        Assert.assertTrue(client.contains("if result.length() == 0 {"), client);
+        Assert.assertTrue(client.contains("return \"Unnamed\";"), client);
+        Assert.assertTrue(client.contains("\"Unnamed\": \""), client);
+    }
+
+    @Test
+    void testRenamedReplyIsStillRoutedByItsOldName() throws Exception {
+        String spec = """
+                asyncapi: 2.4.0
+                info: {title: Feed, version: 1.0.0}
+                x-dispatcherKey: type
+                servers:
+                  s: {url: 'wss://example.com/ws', protocol: wss}
+                channels:
+                  /:
+                    publish:
+                      message: {$ref: '#/components/messages/Subscribe'}
+                components:
+                  schemas:
+                    Message:
+                      type: object
+                      required: [type]
+                      properties:
+                        type: {type: string}
+                        text: {type: string}
+                  messages:
+                    Subscribe:
+                      payload:
+                        type: object
+                        required: [type]
+                        properties: {type: {type: string, const: subscribe}}
+                      x-response:
+                        payload: {$ref: '#/components/schemas/Message'}
+                """;
+        String client = generate(spec, false).get("client.bal");
+        // A reply {"type": "message"} reads as Message, the schema's name before it became Message2
+        Assert.assertTrue(client.contains("returns Message2|error"), client);
+        Assert.assertTrue(client.contains("\"Message2\": \""), client);
+        Assert.assertTrue(client.contains("\"Message\": \""), client);
+    }
+
+    @Test
     void testMessageSentAndReceivedGetsAReceiveFunction() throws Exception {
         Map<String, String> files = generate(HEARTBEAT, true);
         String client = files.get("client.bal");

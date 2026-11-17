@@ -59,6 +59,12 @@ public final class NamedPayloadSpec implements AsyncApiSpec {
      */
     public static final String X_DISPATCHER_VALUE = "x-dispatcherValue";
 
+    /**
+     * Spec extension mapping each spec schema renamed to stay clear of a generated type name to its new name, so the
+     * reader can still route a frame whose dispatcher value names the old one.
+     */
+    public static final String X_SCHEMA_RENAMES = "x-schemaRenames";
+
     private static final String X_RESPONSE = "x-response";
     private static final String PAYLOAD = "payload";
     private static final String ONE_OF = "oneOf";
@@ -450,6 +456,13 @@ public final class NamedPayloadSpec implements AsyncApiSpec {
 
     @Override
     public Optional<Map<String, JsonNode>> getAsyncApiExtensions() {
-        return spec.getAsyncApiExtensions();
+        if (renames.isEmpty()) {
+            return spec.getAsyncApiExtensions();
+        }
+        Map<String, JsonNode> extensions = new LinkedHashMap<>(spec.getAsyncApiExtensions().orElse(Map.of()));
+        ObjectNode renamed = JsonNodeFactory.instance.objectNode();
+        renames.asMap().forEach(renamed::put);
+        extensions.put(X_SCHEMA_RENAMES, renamed);
+        return Optional.of(extensions);
     }
 }

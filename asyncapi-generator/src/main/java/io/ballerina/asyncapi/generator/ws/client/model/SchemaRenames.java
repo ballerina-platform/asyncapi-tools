@@ -38,6 +38,13 @@ final class SchemaRenames {
         this.renames = renames;
     }
 
+    /**
+     * Returns the renames, old schema name to new schema name.
+     */
+    Map<String, String> asMap() {
+        return renames;
+    }
+
     boolean isEmpty() {
         return renames.isEmpty();
     }
