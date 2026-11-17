@@ -43,6 +43,7 @@ import org.ballerinalang.formatter.core.Formatter;
 
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -169,12 +170,13 @@ public class DataTypesGenerator {
 
     /**
      * Fills each {@code allOf} reference with the schema it names, so a part that redeclares a field can be checked
-     * against the field it includes.
+     * against the field it includes. This goes into fields and array items too, as their {@code allOf} references
+     * are only names as well.
      */
     private static AsyncApiSchema withIncludedFields(AsyncApiSchema schema, Map<String, AsyncApiSchema> schemas,
                                                      Set<String> visiting) {
         if (schema.allOf() == null) {
-            return schema;
+            return withIncludedFieldsInside(schema, schemas, visiting);
         }
         List<AsyncApiSchema> allOf = new ArrayList<>();
         for (AsyncApiSchema part : schema.allOf()) {
@@ -187,7 +189,44 @@ public class DataTypesGenerator {
                 allOf.add(part.name() == null ? withIncludedFields(part, schemas, visiting) : part);
             }
         }
-        return schema.withAllOf(allOf);
+        return withIncludedFieldsInside(schema.withAllOf(allOf), schemas, visiting);
+    }
+
+    // The schema's own fields and array items with their allOf references filled in
+    private static AsyncApiSchema withIncludedFieldsInside(AsyncApiSchema schema, Map<String, AsyncApiSchema> schemas,
+                                                           Set<String> visiting) {
+        boolean changed = false;
+        Map<String, AsyncApiSchema> properties = schema.properties();
+        if (properties != null) {
+            properties = new LinkedHashMap<>(properties);
+            for (Map.Entry<String, AsyncApiSchema> field : properties.entrySet()) {
+                AsyncApiSchema value = field.getValue();
+                if (value != null && value.name() == null) {
+                    AsyncApiSchema filled = withIncludedFields(value, schemas, visiting);
+                    changed |= filled != value;
+                    field.setValue(filled);
+                }
+            }
+        }
+        Object items = schema.items();
+        if (items instanceof AsyncApiSchema item && item.name() == null) {
+            AsyncApiSchema filled = withIncludedFields(item, schemas, visiting);
+            changed |= filled != item;
+            items = filled;
+        }
+        if (!changed) {
+            return schema;
+        }
+        return new AsyncApiSchema(schema.title(), schema.type(), schema.required(), schema.multipleOf(),
+                schema.maximum(), schema.exclusiveMaximum(), schema.minimum(), schema.exclusiveMinimum(),
+                schema.maxLength(), schema.minLength(), schema.pattern(), schema.maxItems(), schema.minItems(),
+                schema.uniqueItems(), schema.maxProperties(), schema.minProperties(), schema.enumValue(),
+                schema.constValue(), schema.examples(), schema.ifBranch(), schema.then(), schema.elseBranch(),
+                schema.readOnly(), schema.writeOnly(), properties, schema.patternProperties(),
+                schema.additionalProperties(), schema.additionalItems(), items, schema.propertyNames(),
+                schema.contains(), schema.allOf(), schema.oneOf(), schema.anyOf(), schema.not(), schema.description(),
+                schema.format(), schema.defaultValue(), schema.discriminator(), schema.externalDocs(),
+                schema.deprecated(), schema.extensions(), schema.name(), schema.nullable());
     }
 
     private void addMessageType(List<TypeDefinitionNode> typeDefinitionNodeList) {

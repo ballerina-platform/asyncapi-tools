@@ -203,6 +203,26 @@ public class WsClientGeneratedTypesTest {
         Assert.assertFalse(types.contains("map<json> settings"), types);
     }
 
+    @Test
+    void testTypelessRedeclarationInsideAFieldKeepsTheIncludedField() throws Exception {
+        String types = types("""
+                      type: object
+                      required: [type]
+                      properties:
+                        type: {type: string}
+                        response:
+                          allOf:
+                            - {$ref: '#/components/schemas/View'}
+                            - {type: object, properties: {status: {const: in_progress}}}
+                    View:
+                      type: object
+                      properties: {status: {type: string}}
+                """);
+        // A field's included schema is a reference too, so its status stays the included string
+        Assert.assertFalse(types.contains("anydata status"), types);
+        Assert.assertTrue(types.contains("*View;"), types);
+    }
+
     private static String types(String pingSchema) throws Exception {
         String json = YAML.readTree(SPEC.formatted(pingSchema.stripTrailing())).toString();
         Path outDir = Files.createTempDirectory("ws-types");
