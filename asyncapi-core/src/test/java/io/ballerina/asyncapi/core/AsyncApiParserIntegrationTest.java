@@ -728,6 +728,16 @@ public class AsyncApiParserIntegrationTest {
         }
     }
 
+    @Test
+    void componentMessageItsChannelLists_isRead() throws AsyncApiParserException {
+        // A ref to #/components/messages is to the message itself, so the channel only has to list it
+        String spec = v3Refs().replace("\"messages\":[{\"$ref\":\"#/channels/ws/messages/ping\"}]",
+                "\"messages\":[{\"$ref\":\"#/components/messages/Ping\"}]");
+        Assert.assertTrue(spec.contains("\"$ref\":\"#/components/messages/Ping\"}]"), spec);
+        AsyncApiSpec parsed = AsyncApiParser.parseFromJsonString(spec);
+        Assert.assertNotNull(parsed.getAsyncApiOperations().orElseThrow().get("sendPing"));
+    }
+
     // Channels ws and other both list component message Ping; sendPing sends it on ws
     private static String v3Refs() {
         return "{\"asyncapi\":\"3.0.0\",\"info\":{\"title\":\"T\",\"version\":\"1\"},"
