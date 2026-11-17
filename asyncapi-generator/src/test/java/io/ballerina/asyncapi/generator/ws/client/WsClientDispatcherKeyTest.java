@@ -141,6 +141,16 @@ public class WsClientDispatcherKeyTest {
     }
 
     @Test
+    void testKeyFieldThatIsARefIsReadFromTheReferencedSchema() throws Exception {
+        List<SpecWarning> warnings = new ArrayList<>();
+        String join = "{type: object, required: [type], properties: {type: {$ref: '#/components/schemas/JoinType'}}}";
+        String joinType = "    JoinType: {type: string, const: join}";
+        String client = generateClient(SPEC.formatted(join, SAID, joinType), warnings);
+        Assert.assertTrue(client.contains("remote isolated function doJoin("), client);
+        Assert.assertEquals(warnings, List.of());
+    }
+
+    @Test
     void testSchemaThatIncludesItselfEndsTheWalk() throws Exception {
         // JoinBody includes Base, which includes JoinBody again; the key is in JoinBody's inline part
         String join = "{$ref: '#/components/schemas/JoinBody'}";
