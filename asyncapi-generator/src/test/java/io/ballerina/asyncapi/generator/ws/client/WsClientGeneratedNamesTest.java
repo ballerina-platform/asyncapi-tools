@@ -116,6 +116,29 @@ public class WsClientGeneratedNamesTest {
             """;
 
     @Test
+    void testNameOfOnlySymbolsGetsAFallback() throws Exception {
+        Assert.assertEquals(io.ballerina.asyncapi.generator.ws.client.utils.CodegenUtils.getValidName("%", true),
+                "Unnamed");
+        String spec = """
+                asyncapi: 2.6.0
+                info: {title: Hub, version: 1.0.0}
+                x-dispatcherKey: type
+                channels:
+                  /:
+                    publish:
+                      message:
+                        name: '%'
+                        payload:
+                          type: object
+                          required: [type]
+                          properties: {type: {type: string}}
+                """;
+        String client = generate(spec, false).get("client.bal");
+        Assert.assertTrue(client.contains("remote isolated function doUnnamed(Unnamed unnamed, decimal timeout)"),
+                client);
+    }
+
+    @Test
     void testMessageSentAndReceivedGetsAReceiveFunction() throws Exception {
         Map<String, String> files = generate(HEARTBEAT, true);
         String client = files.get("client.bal");
@@ -237,6 +260,39 @@ public class WsClientGeneratedNamesTest {
         Assert.assertTrue(types.contains("Message2 message?;"), types);
         Assert.assertTrue(files.get("client.bal").contains("doChannelCancel(Message2 message2, decimal timeout)"),
                 files.get("client.bal"));
+    }
+
+    @Test
+    void testRenamedSchemaIsRenamedInAReply() throws Exception {
+        String spec = """
+                asyncapi: 2.4.0
+                info: {title: Feed, version: 1.0.0}
+                x-dispatcherKey: type
+                servers:
+                  s: {url: 'wss://example.com/ws', protocol: wss}
+                channels:
+                  /:
+                    publish:
+                      message: {$ref: '#/components/messages/Subscribe'}
+                components:
+                  schemas:
+                    Message:
+                      type: object
+                      required: [type]
+                      properties:
+                        type: {type: string, const: ack}
+                        channel: {type: number}
+                  messages:
+                    Subscribe:
+                      payload:
+                        type: object
+                        required: [type]
+                        properties: {type: {type: string, const: subscribe}}
+                      x-response:
+                        payload: {$ref: '#/components/schemas/Message'}
+                """;
+        String client = generate(spec, false).get("client.bal");
+        Assert.assertTrue(client.contains("returns Message2|error"), client);
     }
 
     private static Map<String, String> generate(String yaml, boolean withTests) throws Exception {

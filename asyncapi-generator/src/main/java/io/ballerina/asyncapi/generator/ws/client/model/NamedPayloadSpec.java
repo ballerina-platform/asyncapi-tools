@@ -330,8 +330,8 @@ public final class NamedPayloadSpec implements AsyncApiSpec {
      * payload.
      */
     private JsonNode responseRef(String baseName, JsonNode inlineResponse) {
-        // A $ref payload maps to a stub that only carries the referenced schema's name
-        AsyncApiSchema payload = AsyncApiParser.parseSchema(inlineResponse.get(PAYLOAD));
+        // A $ref payload maps to a stub that only carries the referenced schema's name, which may have been renamed
+        AsyncApiSchema payload = renames.schema(AsyncApiParser.parseSchema(inlineResponse.get(PAYLOAD)));
         if (payload == null) {
             return inlineResponse;
         }

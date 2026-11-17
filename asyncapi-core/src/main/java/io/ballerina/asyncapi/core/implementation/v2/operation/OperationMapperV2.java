@@ -218,7 +218,7 @@ public final class OperationMapperV2 {
                         if (key == null || key.isBlank()) {
                             key = String.valueOf(msgMap.size());
                         }
-                        msgMap.put(key, mapped);
+                        msgMap.put(unusedKey(msgMap, key), mapped);
                     }
                 }
                 messages = msgMap.isEmpty() ? null : msgMap;
@@ -284,6 +284,15 @@ public final class OperationMapperV2 {
             case AsyncApi24Message typed -> typed.getMessageId();
             default -> null;
         };
+    }
+
+    // Two oneOf messages can get the same key, say a name and another's messageId; neither replaces the other
+    private static String unusedKey(Map<String, ?> taken, String key) {
+        String candidate = key;
+        for (int i = 2; taken.containsKey(candidate); i++) {
+            candidate = key + i;
+        }
+        return candidate;
     }
 
     /**

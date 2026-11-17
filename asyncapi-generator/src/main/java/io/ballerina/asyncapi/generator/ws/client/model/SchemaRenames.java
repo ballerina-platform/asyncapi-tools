@@ -67,7 +67,10 @@ final class SchemaRenames {
         return value instanceof AsyncApiSchema s ? schema(s) : value;
     }
 
-    private AsyncApiSchema schema(AsyncApiSchema s) {
+    /**
+     * Returns {@code s} with its name and the references inside it renamed.
+     */
+    AsyncApiSchema schema(AsyncApiSchema s) {
         if (s == null || isEmpty()) {
             return s;
         }

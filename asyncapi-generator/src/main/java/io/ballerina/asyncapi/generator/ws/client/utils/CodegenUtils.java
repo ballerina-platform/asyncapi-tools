@@ -55,6 +55,7 @@ public final class CodegenUtils {
 
     /** Extension key for the close-frame marker on schemas. */
     private static final String X_CLOSE_FRAME = "x-close-frame";
+    private static final String UNNAMED = "unnamed";
 
     /** Maps AsyncAPI / JSON Schema primitive types to Ballerina type names. */
     public static final Map<String, String> TYPE_MAP;
@@ -124,6 +125,10 @@ public final class CodegenUtils {
                 }
             }
             identifier = validName.toString();
+        }
+        // A name of only symbols, such as '%', leaves nothing to build on
+        if (identifier.isEmpty()) {
+            identifier = UNNAMED;
         }
         if (capitalizeFirstChar) {
             return String.format("%s%s",
