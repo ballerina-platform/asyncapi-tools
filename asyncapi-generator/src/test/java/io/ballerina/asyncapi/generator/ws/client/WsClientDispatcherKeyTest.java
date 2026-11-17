@@ -21,6 +21,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import io.ballerina.asyncapi.core.AsyncApiParser;
 import io.ballerina.asyncapi.core.SpecWarning;
+import io.ballerina.asyncapi.core.api.AsyncApiSpec;
+import io.ballerina.asyncapi.generator.ws.client.model.DispatcherKeySpec;
+import io.ballerina.asyncapi.generator.ws.client.model.NamedPayloadSpec;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -29,6 +32,8 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.stream.Stream;
 
 /**
@@ -133,6 +138,40 @@ public class WsClientDispatcherKeyTest {
         String client = generateClient(SPEC.formatted(join, SAID, envelope), warnings);
         Assert.assertTrue(client.contains("remote isolated function doJoin("), client);
         Assert.assertEquals(warnings, List.of());
+    }
+
+    @Test
+    void testSchemaThatIncludesItselfEndsTheWalk() throws Exception {
+        // JoinBody includes Base, which includes JoinBody again; the key is in JoinBody's inline part
+        String join = "{$ref: '#/components/schemas/JoinBody'}";
+        String schemas = "    JoinBody: {allOf: [{$ref: '#/components/schemas/Base'}, "
+                + "{type: object, required: [type], properties: {type: {type: string, const: join}}}]}\n"
+                + "    Base: {allOf: [{$ref: '#/components/schemas/JoinBody'}]}";
+        List<SpecWarning> warnings = new ArrayList<>();
+        AsyncApiSpec view = keyView(SPEC.formatted(join, SAID, schemas), warnings);
+        Assert.assertTrue(view.getAsyncApiOperations().orElseThrow().get("sendJoin").messages().containsKey("Join"));
+    }
+
+    @Test
+    void testSchemaUsedDirectlyAfterARequiringIncludeStillWarns() throws Exception {
+        // Join requires the key it includes from Base, and Said uses Base directly, where the key is optional
+        String join = "{required: [type], allOf: [{$ref: '#/components/schemas/Base'}, "
+                + "{properties: {room: {type: string}}}]}";
+        String said = "{$ref: '#/components/schemas/Base'}";
+        String base = "    Base: {type: object, properties: {type: {type: string}}}";
+        List<SpecWarning> warnings = new ArrayList<>();
+        keyView(SPEC.formatted(join, said, base), warnings);
+        Assert.assertEquals(warnings, List.of(new SpecWarning("/components/schemas/Base",
+                "'type' isn't in the required list of 'Base', so the client treats it as required, as it routes "
+                        + "each message on it",
+                "Add 'type' to the schema's 'required' list.")));
+    }
+
+    // The spec as the client generator sees it once the key is fixed up
+    private static AsyncApiSpec keyView(String spec, List<SpecWarning> warnings) throws Exception {
+        AsyncApiSpec parsed = AsyncApiParser.parseFromJsonString(YAML.readTree(spec).toString());
+        Set<String> names = parsed.getAsyncApiComponents().map(c -> c.schemas()).map(Map::keySet).orElse(Set.of());
+        return DispatcherKeySpec.of(NamedPayloadSpec.of(parsed), names, warnings::add);
     }
 
     private static String generateClient(String spec, List<SpecWarning> warnings) throws Exception {
