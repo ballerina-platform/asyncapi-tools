@@ -47,6 +47,7 @@ public final class AsyncApiParser {
     private static final String REPLIES = "replies";
     private static final String LOCAL_REF = "#";
     private static final String ROOT_CHANNELS_REF = "#/channels/";
+    private static final String COMPONENT_CHANNELS_REF = "#/components/channels/";
     private static final String CHANNEL_MESSAGES = "/messages/";
     // The kind brokenRefs gives the operations under the root "operations"
     private static final String OPERATION_KIND = "operation";
@@ -243,9 +244,11 @@ public final class AsyncApiParser {
                 return;
             }
             int messagesAt = messageRef.asText().lastIndexOf(CHANNEL_MESSAGES);
-            if (messagesAt > 0) {
+            // Only a channel's messages are checked by their channel; #/components/messages/X is a message itself
+            String channelPart = messagesAt > 0 ? messageRef.asText().substring(0, messagesAt) : "";
+            if (channelPart.startsWith(ROOT_CHANNELS_REF) || channelPart.startsWith(COMPONENT_CHANNELS_REF)) {
                 // Its channel part, not the message it ends at, so another channel listing the same message fails
-                JsonNode messageChannel = JsonPointers.resolve(root, messageRef.asText().substring(0, messagesAt));
+                JsonNode messageChannel = JsonPointers.resolve(root, channelPart);
                 if (messageChannel != null && !JsonPointers.isExternalRef(messageChannel)
                         && messageChannel != channel) {
                     broken.add(String.format("%s message reference '%s' isn't one of the messages of its channel "
