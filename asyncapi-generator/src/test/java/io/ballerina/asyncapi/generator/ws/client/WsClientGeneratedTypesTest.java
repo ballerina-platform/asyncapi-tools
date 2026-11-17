@@ -151,6 +151,58 @@ public class WsClientGeneratedTypesTest {
         Assert.assertTrue(types.contains("public type Ping record {\n    *Common;\n    string 'type;\n};"), types);
     }
 
+    @Test
+    void testRedeclarationOfAFieldInAnIncludedSchemasOwnAllOf() throws Exception {
+        String types = types("""
+                      allOf:
+                        - {$ref: '#/components/schemas/Common'}
+                        - type: object
+                          properties:
+                            data: {type: array, items: {type: string}}
+                    Common:
+                      allOf:
+                        - type: object
+                          required: [type]
+                          properties:
+                            type: {type: string}
+                            data: {type: object}
+                """);
+        Assert.assertTrue(types.contains("public type Ping record {\n    string 'type;\n    string[] data?;\n};"),
+                types);
+    }
+
+    @Test
+    void testRedeclarationKeepsAFieldTheIncludedSchemaRequires() throws Exception {
+        String types = types("""
+                      allOf:
+                        - {$ref: '#/components/schemas/Common'}
+                        - type: object
+                          properties:
+                            data: {type: integer}
+                    Common:
+                      type: object
+                      required: [type, data]
+                      properties:
+                        type: {type: string}
+                        data: {type: number}
+                """);
+        Assert.assertTrue(types.contains("public type Ping record {\n    string 'type;\n    int data;\n};"), types);
+    }
+
+    @Test
+    void testMapValueWithOnlyPropertiesIsARecord() throws Exception {
+        String types = types("""
+                      type: object
+                      required: [type]
+                      properties:
+                        type: {type: string}
+                        settings: {type: object, additionalProperties: {properties: {id: {type: string}}}}
+                """);
+        Assert.assertTrue(types.contains("map<record {"), types);
+        Assert.assertTrue(types.contains("string id?;"), types);
+        Assert.assertFalse(types.contains("map<json> settings"), types);
+    }
+
     private static String types(String pingSchema) throws Exception {
         String json = YAML.readTree(SPEC.formatted(pingSchema.stripTrailing())).toString();
         Path outDir = Files.createTempDirectory("ws-types");
