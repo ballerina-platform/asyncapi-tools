@@ -744,20 +744,6 @@ public class AsyncApiParserIntegrationTest {
     }
 
     @Test
-    void parseSchema_readsATypeList() throws IOException {
-        AsyncApiSchema nullable = AsyncApiParser.parseSchema(new ObjectMapper().readTree(
-                "{\"type\":[\"string\",\"null\"]}"));
-        Assert.assertEquals(nullable.type(), "string");
-        Assert.assertEquals(nullable.nullable(), Boolean.TRUE);
-
-        AsyncApiSchema union = AsyncApiParser.parseSchema(new ObjectMapper().readTree(
-                "{\"type\":[\"string\",\"integer\"]}"));
-        Assert.assertNull(union.type());
-        Assert.assertNull(union.nullable());
-        Assert.assertEquals(union.anyOf().stream().map(AsyncApiSchema::type).toList(), List.of("string", "integer"));
-    }
-
-    @Test
     void parseSchema_typeListVariantsKeepTheirOwnKeywords() throws IOException {
         AsyncApiSchema union = AsyncApiParser.parseSchema(new ObjectMapper().readTree(
                 "{\"type\":[\"array\",\"object\"],\"items\":{\"type\":\"string\"},"
@@ -769,5 +755,19 @@ public class AsyncApiParserIntegrationTest {
         Assert.assertEquals(object.properties().get("id").type(), "string");
         Assert.assertEquals(object.required(), List.of("id"));
         Assert.assertNull(object.items());
+    }
+
+    @Test
+    void parseSchema_readsATypeList() throws IOException {
+        AsyncApiSchema nullable = AsyncApiParser.parseSchema(new ObjectMapper().readTree(
+                "{\"type\":[\"string\",\"null\"]}"));
+        Assert.assertEquals(nullable.type(), "string");
+        Assert.assertEquals(nullable.nullable(), Boolean.TRUE);
+
+        AsyncApiSchema union = AsyncApiParser.parseSchema(new ObjectMapper().readTree(
+                "{\"type\":[\"string\",\"integer\"]}"));
+        Assert.assertNull(union.type());
+        Assert.assertNull(union.nullable());
+        Assert.assertEquals(union.anyOf().stream().map(AsyncApiSchema::type).toList(), List.of("string", "integer"));
     }
 }
