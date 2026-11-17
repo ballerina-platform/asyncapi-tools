@@ -63,6 +63,10 @@ public final class DispatcherKeySpec implements AsyncApiSpec {
     private final Consumer<SpecWarning> warnings;
     private final Set<String> specSchemaNames;
     private final Map<String, AsyncApiSchema> schemas;
+    // The spec's own schemas, so a warning depends on what the spec says rather than on an earlier fix-up
+    private final Map<String, AsyncApiSchema> originalSchemas;
+    // The named schemas being walked, so a schema that includes itself ends the walk
+    private final Set<String> onPath = new HashSet<>();
     private final Set<String> warnedSchemas = new HashSet<>();
     // The operation whose message is being fixed up, to point a warning about an unnamed schema at
     private String currentOperation;
@@ -78,6 +82,7 @@ public final class DispatcherKeySpec implements AsyncApiSpec {
         AsyncApiComponent original = spec.getAsyncApiComponents().orElse(null);
         this.schemas = original != null && original.schemas() != null
                 ? new LinkedHashMap<>(original.schemas()) : new LinkedHashMap<>();
+        this.originalSchemas = new LinkedHashMap<>(schemas);
         this.operations = spec.getAsyncApiOperations().map(this::withRoutableMessages).orElse(null);
         this.components = withSchemas(original);
     }
@@ -160,7 +165,22 @@ public final class DispatcherKeySpec implements AsyncApiSpec {
      * @param requiredAbove whether a schema that includes this one already requires the key
      */
     private AsyncApiSchema withKey(String name, AsyncApiSchema schema, boolean requiredAbove) {
-        boolean required = requiredAbove || schema.required() != null && schema.required().contains(key);
+        if (name != null && !onPath.add(name)) {
+            return null;
+        }
+        try {
+            return withKeyOnPath(name, schema, requiredAbove);
+        } finally {
+            if (name != null) {
+                onPath.remove(name);
+            }
+        }
+    }
+
+    private AsyncApiSchema withKeyOnPath(String name, AsyncApiSchema schema, boolean requiredAbove) {
+        AsyncApiSchema original = name != null && originalSchemas.containsKey(name)
+                ? originalSchemas.get(name) : schema;
+        boolean required = requiredAbove || original.required() != null && original.required().contains(key);
         AsyncApiSchema fixed = null;
         if (schema.properties() != null && schema.properties().containsKey(key)) {
             fixed = withKeyField(name, schema, required);
@@ -194,9 +214,9 @@ public final class DispatcherKeySpec implements AsyncApiSpec {
         List<String> requiredNames = schema.required() == null ? new ArrayList<>() : new ArrayList<>(schema.required());
         if (!requiredNames.contains(key)) {
             requiredNames.add(key);
-            if (!required) {
-                warnNotRequired(name);
-            }
+        }
+        if (!required) {
+            warnNotRequired(name);
         }
         if (fixedKey == keySchema && requiredNames.equals(schema.required())) {
             return schema;
