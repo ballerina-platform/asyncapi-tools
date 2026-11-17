@@ -23,6 +23,7 @@ import org.testng.annotations.Test;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.zip.ZipFile;
 
 /**
  * Tests for {@code --protocol http}: input validation, the capability checks and warn-and-continue handling
@@ -135,64 +136,84 @@ public class HttpCmdUnitTest extends CmdTestBase {
         }
     }
 
-    @Test(description = "A trigger at a package root gets CompilerPlugin.toml and a [[tool.asyncapi]] entry, no jar")
+    @Test(description = "A trigger at a package root gets the plugin jar in lib/ and a CompilerPlugin.toml for it")
     public void testTriggerGetsCompilerPlugin() throws Exception {
         Path pkg = newPackage("plugin");
+        String ballerinaToml = Files.readString(pkg.resolve("Ballerina.toml"));
         generateTiny(pkg, "-o", pkg.toString());
         Assert.assertTrue(getErr().isEmpty(), "Err: " + getErr());
         String toml = Files.readString(pkg.resolve("CompilerPlugin.toml"));
         Assert.assertTrue(toml.contains("id = \"asyncapi-compiler-plugin\""), toml);
-        Assert.assertTrue(toml.contains(
-                "path = \"target/tool-cache/trigger-plugin/asyncapi-trigger-compiler-plugin.jar\""), toml);
-        Assert.assertFalse(Files.exists(pkg.resolve("compiler-plugin")), "The jar stays in the tool");
-        String ballerinaToml = Files.readString(pkg.resolve("Ballerina.toml"));
-        Assert.assertTrue(ballerinaToml.contains("[[tool.asyncapi]]"), ballerinaToml);
-        Assert.assertTrue(ballerinaToml.contains("id = \"trigger-plugin\""), ballerinaToml);
-        Assert.assertTrue(ballerinaToml.contains("version = \"" + TriggerCompilerPlugin.toolVersion() + "\""),
-                ballerinaToml);
-        Assert.assertTrue(ballerinaToml.startsWith("[package]\norg = \"demo\""), "The rest is kept: " + ballerinaToml);
+        Assert.assertTrue(toml.contains("path = \"lib/asyncapi-trigger-compiler-plugin.jar\""), toml);
+        try (ZipFile zip = new ZipFile(pkg.resolve("lib/asyncapi-trigger-compiler-plugin.jar").toFile())) {
+            Assert.assertNotNull(zip.getEntry("io/ballerina/asyncapi/trigger/plugin/AsyncAPICompilerPlugin.class"),
+                    "The jar should hold the plugin class");
+        }
+        Assert.assertEquals(Files.readString(pkg.resolve("Ballerina.toml")), ballerinaToml,
+                "Ballerina.toml needs no entry");
         Assert.assertTrue(getOut().contains("-- CompilerPlugin.toml"), "Out: " + getOut());
-        Assert.assertTrue(getOut().contains("-- Ballerina.toml: [[tool.asyncapi]]"), "Out: " + getOut());
+        Assert.assertTrue(getOut().contains("-- lib/asyncapi-trigger-compiler-plugin.jar"), "Out: " + getOut());
     }
 
-    @Test(description = "Generating again keeps one [[tool.asyncapi]] entry and moves it to this tool's version")
-    public void testRegenerationUpdatesTheToolEntry() throws Exception {
+    @Test(description = "Regenerating a trigger made by 0.13.3 removes the [[tool.asyncapi]] entry it added")
+    public void testRegenerationRemovesTheOldToolEntry() throws Exception {
         Path pkg = newPackage("regen");
-        Files.writeString(pkg.resolve("Ballerina.toml"), Files.readString(pkg.resolve("Ballerina.toml"))
-                + "\n[[tool.asyncapi]]\nid = \"trigger-plugin\"\nversion = \"0.0.1\"\n");
+        String before = Files.readString(pkg.resolve("Ballerina.toml"));
+        Files.writeString(pkg.resolve("Ballerina.toml"), before + "\n# Copies the trigger's compiler plugin from the "
+                + "asyncapi tool during the build\n[[tool.asyncapi]]\nid = \"trigger-plugin\"\nversion = \"0.13.3\"\n");
         generateTiny(pkg, "-o", pkg.toString());
-        generateTiny(pkg, "-o", pkg.toString());
-        String ballerinaToml = Files.readString(pkg.resolve("Ballerina.toml"));
-        Assert.assertEquals(ballerinaToml.split("\\[\\[tool\\.asyncapi]]", -1).length - 1, 1, ballerinaToml);
-        Assert.assertTrue(ballerinaToml.contains("version = \"" + TriggerCompilerPlugin.toolVersion() + "\""),
-                ballerinaToml);
-        Assert.assertFalse(ballerinaToml.contains("0.0.1"), ballerinaToml);
+        Assert.assertEquals(Files.readString(pkg.resolve("Ballerina.toml")), before);
+        Assert.assertTrue(getOut().contains("-- Ballerina.toml: removed [[tool.asyncapi]]"), "Out: " + getOut());
     }
 
-    @Test(description = "When Ballerina.toml can't be updated, the error gives the entry to add by hand")
-    public void testToolEntryFailureNamesTheMissingEntry() throws Exception {
+    @Test(description = "The old entry stays while the old CompilerPlugin.toml is kept, and goes with --force")
+    public void testOldToolEntryStaysWhenThePluginFileIsSkipped() throws Exception {
+        Path pkg = newPackage("skipped");
+        String before = Files.readString(pkg.resolve("Ballerina.toml"));
+        String withEntry = before + "\n[[tool.asyncapi]]\nid = \"trigger-plugin\"\nversion = \"0.13.3\"\n";
+        String oldPluginToml = "[plugin]\nid = \"asyncapi-compiler-plugin\"\nclass = \"x.Plugin\"\n\n"
+                + "[[dependency]]\npath = \"target/tool-cache/asyncapi-trigger-compiler-plugin.jar\"\n";
+        Files.writeString(pkg.resolve("Ballerina.toml"), withEntry);
+        Files.writeString(pkg.resolve("CompilerPlugin.toml"), oldPluginToml);
+        generateTiny(pkg, "-o", pkg.toString());
+        Assert.assertEquals(Files.readString(pkg.resolve("CompilerPlugin.toml")), oldPluginToml);
+        Assert.assertEquals(Files.readString(pkg.resolve("Ballerina.toml")), withEntry,
+                "The old CompilerPlugin.toml still needs the jar the entry copies in");
+        Assert.assertFalse(getOut().contains("removed [[tool.asyncapi]]"), "Out: " + getOut());
+
+        generateTiny(pkg, "-o", pkg.toString(), "--force");
+        Assert.assertTrue(Files.readString(pkg.resolve("CompilerPlugin.toml")).contains("lib/"));
+        Assert.assertEquals(Files.readString(pkg.resolve("Ballerina.toml")), before);
+    }
+
+    @Test(description = "When the old entry can't be removed, the code is still generated and a warning says why")
+    public void testOldToolEntryThatCantBeRemovedWarns() throws Exception {
         Path pkg = newPackage("readonly");
         Path ballerinaToml = pkg.resolve("Ballerina.toml");
+        Files.writeString(ballerinaToml, Files.readString(ballerinaToml)
+                + "\n[[tool.asyncapi]]\nid = \"trigger-plugin\"\nversion = \"0.13.3\"\n");
         Assert.assertTrue(ballerinaToml.toFile().setWritable(false), "Could not make Ballerina.toml read-only");
         try {
             generateTiny(pkg, "-o", pkg.toString());
         } finally {
             ballerinaToml.toFile().setWritable(true);
         }
-        Assert.assertTrue(Files.exists(pkg.resolve("CompilerPlugin.toml")));
+        Assert.assertTrue(Files.exists(pkg.resolve("lib/asyncapi-trigger-compiler-plugin.jar")));
         Assert.assertTrue(getErr().contains("Ballerina.toml could not be updated"), "Err: " + getErr());
-        Assert.assertTrue(getErr().contains("[[tool.asyncapi]]"), "Err: " + getErr());
-        Assert.assertTrue(getErr().contains("version = \"" + TriggerCompilerPlugin.toolVersion() + "\""),
-                "Err: " + getErr());
+        Assert.assertTrue(getErr().contains("id = \"trigger-plugin\" by hand"), "Err: " + getErr());
     }
 
-    @Test(description = "--dry-run reports the [[tool.asyncapi]] entry without changing Ballerina.toml")
-    public void testDryRunReportsTheToolEntry() throws Exception {
+    @Test(description = "--dry-run lists the jar and the old entry's removal without writing anything")
+    public void testDryRunReportsThePlugin() throws Exception {
         Path pkg = newPackage("dryentry");
-        String before = Files.readString(pkg.resolve("Ballerina.toml"));
+        String before = Files.readString(pkg.resolve("Ballerina.toml"))
+                + "\n[[tool.asyncapi]]\nid = \"trigger-plugin\"\nversion = \"0.13.3\"\n";
+        Files.writeString(pkg.resolve("Ballerina.toml"), before);
         generateTiny(pkg, "-o", pkg.toString(), "--dry-run");
+        Assert.assertTrue(getOut().contains("asyncapi-trigger-compiler-plugin.jar"), "Out: " + getOut());
         Assert.assertTrue(getOut().contains("update     Ballerina.toml"), "Out: " + getOut());
         Assert.assertEquals(Files.readString(pkg.resolve("Ballerina.toml")), before);
+        Assert.assertFalse(Files.exists(pkg.resolve("lib")));
     }
 
     @Test(description = "A package with another compiler plugin keeps it, with a warning that ours was not added")
@@ -216,6 +237,7 @@ public class HttpCmdUnitTest extends CmdTestBase {
         Assert.assertTrue(Files.exists(pkg.resolve("modules/events/listener.bal")), "The code should be generated");
         Assert.assertFalse(Files.exists(pkg.resolve("CompilerPlugin.toml")));
         Assert.assertFalse(Files.exists(pkg.resolve("modules/events/CompilerPlugin.toml")));
+        Assert.assertFalse(Files.exists(pkg.resolve("lib")));
         Assert.assertFalse(Files.readString(pkg.resolve("Ballerina.toml")).contains("[[tool.asyncapi]]"));
     }
 
@@ -259,7 +281,7 @@ public class HttpCmdUnitTest extends CmdTestBase {
         // --with-tests so the run would also create the tests folder
         generateTiny(pkg, "-o", pkg.toString(), "--dry-run", "--with-tests");
         Assert.assertTrue(getOut().startsWith("Dry run: no files were written."), "Out: " + getOut());
-        Assert.assertTrue(getOut().contains("6 to create, 0 to overwrite, 0 to skip, 0 unchanged."),
+        Assert.assertTrue(getOut().contains("7 to create, 0 to overwrite, 0 to skip, 0 unchanged."),
                 "Out: " + getOut());
         Assert.assertTrue(getOut().contains("create"), "Out: " + getOut());
         Assert.assertFalse(Files.exists(pkg.resolve("types.bal")), "A dry run must not write");
@@ -283,12 +305,12 @@ public class HttpCmdUnitTest extends CmdTestBase {
         generateTiny(pkg, "-o", pkg.toString(), "--dry-run");
         Assert.assertTrue(getOut().contains("skip"), "Out: " + getOut());
         Assert.assertTrue(getOut().contains("(already exists, use --force to overwrite)"), "Out: " + getOut());
-        Assert.assertTrue(getOut().contains("0 to create, 0 to overwrite, 1 to skip, 4 unchanged."),
+        Assert.assertTrue(getOut().contains("0 to create, 0 to overwrite, 1 to skip, 5 unchanged."),
                 "Out: " + getOut());
 
         generateTiny(pkg, "-o", pkg.toString(), "--dry-run", "--force");
         Assert.assertTrue(getOut().contains("overwrite"), "Out: " + getOut());
-        Assert.assertTrue(getOut().contains("0 to create, 1 to overwrite, 0 to skip, 4 unchanged."),
+        Assert.assertTrue(getOut().contains("0 to create, 1 to overwrite, 0 to skip, 5 unchanged."),
                 "Out: " + getOut());
         Assert.assertEquals(Files.readString(pkg.resolve("types.bal")), "// hand edit");
     }

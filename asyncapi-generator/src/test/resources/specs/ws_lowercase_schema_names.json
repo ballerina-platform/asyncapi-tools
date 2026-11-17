@@ -1,0 +1,56 @@
+{
+  "asyncapi": "3.0.0",
+  "info": {
+    "title": "Purchases",
+    "version": "1.0.0"
+  },
+  "x-dispatcherKey": "type",
+  "channels": {
+    "purchases": {
+      "address": "/",
+      "messages": {
+        "purchase": {
+          "payload": {
+            "$ref": "#/components/schemas/purchase"
+          }
+        }
+      }
+    }
+  },
+  "operations": {
+    "sendPurchase": {
+      "action": "send",
+      "channel": {
+        "$ref": "#/channels/purchases"
+      },
+      "messages": [
+        {
+          "$ref": "#/channels/purchases/messages/purchase"
+        }
+      ]
+    }
+  },
+  "components": {
+    "schemas": {
+      "purchase": {
+        "type": "object",
+        "required": ["type", "status"],
+        "properties": {
+          "type": {"type": "string", "const": "purchase"},
+          "status": {"$ref": "#/components/schemas/status"},
+          "items": {"type": "array", "items": {"$ref": "#/components/schemas/item"}},
+          "note": {"oneOf": [{"$ref": "#/components/schemas/status"}, {"$ref": "#/components/schemas/item"}]}
+        }
+      },
+      "status": {
+        "type": "string"
+      },
+      "item": {
+        "type": "object",
+        "properties": {
+          "name": {"type": "string"}
+        }
+      }
+    }
+  }
+}

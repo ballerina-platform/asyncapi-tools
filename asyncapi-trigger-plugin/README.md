@@ -11,11 +11,9 @@ jar is loaded, so the same jar works for every trigger.
 
 ## How it gets into a trigger
 
-This is the only copy of the source. `asyncapi-cli` bundles the built jar inside the asyncapi tool. A generated
-trigger has a `[[tool.asyncapi]]` entry in its `Ballerina.toml`, so `bal build` and `bal pack` run the tool as a
-build tool, which copies the jar to `target/tool-cache/trigger-plugin/`, where the trigger's `CompilerPlugin.toml`
-points. `bal pack` then puts it in the bala. The trigger's source never holds the jar.
+This is the only copy of the source. `asyncapi-cli` bundles the built jar inside the asyncapi tool, and generating a
+trigger writes it to the trigger's `lib/` folder, where its `CompilerPlugin.toml` points. `bal pack` then puts it in
+the bala.
 
-The plugin's version is the tool's. A fix here reaches a trigger when its `[[tool.asyncapi]]` entry moves to the tool
-release with the fix (generating with that tool does it). The jar is built without timestamps, so the same tool
-version always copies the same bytes.
+The plugin's version is the tool's. A fix here reaches a trigger when it is generated again with the tool release
+that has the fix. The jar is built without timestamps, so the same tool version always writes the same bytes.

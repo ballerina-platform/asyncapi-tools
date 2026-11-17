@@ -36,4 +36,12 @@ public class ReferencedTypeGeneratorTest {
         Assert.assertTrue(node.toString().contains("FooEvent"),
                 "ReferencedTypeGenerator should emit the schema name as a simple name reference");
     }
+
+    @Test
+    void testLowercaseSchemaName_refersToTheDeclaredTypeName() throws GeneratorException {
+        AsyncApiSchema schema = AsyncApiSchema.builder().name("reqid").build();
+        TypeDescriptorNode node = new ReferencedTypeGenerator(schema).generateTypeDescriptorNode();
+        Assert.assertEquals(node.toString().trim(), "Reqid",
+                "A reference must use the name the type is declared with");
+    }
 }

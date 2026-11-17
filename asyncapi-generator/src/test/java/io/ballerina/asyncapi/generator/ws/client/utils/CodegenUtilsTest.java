@@ -217,6 +217,15 @@ public class CodegenUtilsTest {
     }
 
     @Test
+    void testDocCommentLines_everyLineIsAComment() {
+        Assert.assertEquals(CodegenUtils.docCommentLines("# ", "one line", true), "# one line\n");
+        Assert.assertEquals(CodegenUtils.docCommentLines("# ", "first\r\n\nsecond\n", true),
+                "# first\n#\n# second\n");
+        Assert.assertEquals(CodegenUtils.docCommentLines("# + msg - ", "first\n\nsecond", false),
+                "# + msg - first\n# second\n", "Parameter docs drop blank lines");
+    }
+
+    @Test
     void testToStringLiteral_escapesQuotesBackslashesAndControlCharacters() {
         // Input: a"b\c, a newline, d, a tab, e, then U+0001
         String input = "a\"b\\c" + '\n' + "d" + '\t' + "e" + (char) 1;

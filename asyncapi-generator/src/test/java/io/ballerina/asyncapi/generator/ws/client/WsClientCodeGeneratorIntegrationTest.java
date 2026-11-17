@@ -61,6 +61,25 @@ public class WsClientCodeGeneratorIntegrationTest {
     }
 
     @Test
+    void testLowercaseSchemaNamesAreReferencedAsDeclared() throws Exception {
+        Path spec = specPath("ws_lowercase_schema_names.json");
+        Path outDir = Files.createTempDirectory("ws-lowercase-gen");
+        try {
+            AsyncApiSpec asyncApiSpec = AsyncApiParser.parseFromJsonString(Files.readString(spec));
+            new WsClientCodeGenerator(asyncApiSpec, null, false).generate(outDir);
+
+            String types = readFile(outDir, "types.bal");
+            Assert.assertTrue(types.contains("public type Status string;"), types);
+            Assert.assertTrue(types.contains("public type Item record"), "item is declared as Item: " + types);
+            Assert.assertTrue(types.contains("Status status;"), "A field refers to the declared name: " + types);
+            Assert.assertTrue(types.contains("Item[] items"), "An array item refers to the declared name: " + types);
+            Assert.assertTrue(types.contains("Status|Item note"), "A union refers to the declared names: " + types);
+        } finally {
+            deleteDir(outDir);
+        }
+    }
+
+    @Test
     void testGenerateWithStreamId() throws Exception {
         Path spec = specPath("ws_with_stream_id.json");
         Path outDir = Files.createTempDirectory("ws-stream-id-gen");
@@ -98,6 +117,26 @@ public class WsClientCodeGeneratorIntegrationTest {
     }
 
     @Test
+    void testMultiLineDescriptionsBecomeDocCommentLines() throws Exception {
+        Path spec = specPath("ws_multiline_descriptions.json");
+        Path outDir = Files.createTempDirectory("ws-multiline-gen");
+        try {
+            AsyncApiSpec asyncApiSpec = AsyncApiParser.parseFromJsonString(Files.readString(spec));
+            new WsClientCodeGenerator(asyncApiSpec, null, false).generate(outDir);
+
+            String client = readFile(outDir, "client.bal").replace("\r\n", "\n");
+            Assert.assertTrue(client.contains("# Sends a chat message.\n    #\n    # The server echoes it back."),
+                    client);
+            Assert.assertTrue(client.contains("# + chatMessage - A chat message.\n    # The text is sent as is.\n"
+                    + "    # At most 4 KB."), client);
+            Assert.assertTrue(client.contains("# + return - The echoed message,\n    # with the server time"), client);
+            Assert.assertTrue(client.contains("# Connects to the chat.\n    # The connection stays open"), client);
+        } finally {
+            deleteDir(outDir);
+        }
+    }
+
+    @Test
     void testGenerateWithApiKeyAuth() throws Exception {
         Path spec = specPath("ws_with_apikey_auth.json");
         Path outDir = Files.createTempDirectory("ws-apikey-gen");
@@ -111,6 +150,75 @@ public class WsClientCodeGeneratorIntegrationTest {
                     "client.bal should contain the ApiKeysConfig type definition when httpApiKey auth is configured");
             Assert.assertTrue(client.contains("apiKeyConfig"),
                     "client.bal should reference apiKeyConfig in the init function when httpApiKey auth is configured");
+        } finally {
+            deleteDir(outDir);
+        }
+    }
+
+    @Test
+    void testInitBuildsTheUrlAndHeadersFromTheSpec() throws Exception {
+        Path spec = specPath("ws_init_url_params.json");
+        Path outDir = Files.createTempDirectory("ws-init-url-gen");
+        try {
+            AsyncApiSpec asyncApiSpec = AsyncApiParser.parseFromJsonString(Files.readString(spec));
+            new WsClientCodeGenerator(asyncApiSpec, null, false).generate(outDir);
+
+            String client = readFile(outDir, "client.bal");
+            Assert.assertTrue(client.contains("init(PathParams pathParams, HeaderParams headerParams, "
+                    + "QueryParams queryParams, ApiKeysConfig apiKeyConfig, websocket:ClientConfiguration clientConfig "
+                    + "= {}, string serviceUrl = \"ws://localhost:9095\")"), client);
+            Assert.assertTrue(client.contains("string modifiedUrl = serviceUrl + "
+                    + "string `/v1/marketdata/${getEncodedUri(pathParams.symbol)}`;"), client);
+            Assert.assertTrue(client.contains("map<anydata> queryParam = {\"heartbeat\": queryParams.heartbeat, "
+                    + "\"top\": queryParams.top, \"token\": apiKeyConfig.token};"), client);
+            Assert.assertTrue(client.contains("modifiedUrl = modifiedUrl + check getPathForQueryParam(queryParam);"),
+                    client);
+            Assert.assertTrue(client.contains("\"X-Api-Key\": apiKeyConfig.xApiKey"), client);
+            Assert.assertTrue(client.contains(
+                    "clientConfig.customHeaders = getCombineHeaders(clientConfig.customHeaders, headerParam);"),
+                    client);
+            Assert.assertTrue(client.contains("check new (modifiedUrl, clientConfig)"), client);
+            Assert.assertTrue(client.contains("public type PathParams record {|"), "The record is declared: " + client);
+            String utils = readFile(outDir, "utils.bal");
+            Assert.assertTrue(utils.contains("function getPathForQueryParam"), utils);
+            Assert.assertTrue(utils.contains("function getCombineHeaders"), utils);
+        } finally {
+            deleteDir(outDir);
+        }
+    }
+
+    @Test
+    void testApiKeysAreOptionalWhenHttpAuthIsOffered() throws Exception {
+        String json = Files.readString(specPath("ws_init_url_params.json")).replace(
+                "\"securitySchemes\": {",
+                "\"securitySchemes\": {\"bearer\": {\"type\": \"http\", \"scheme\": \"bearer\"},");
+        Path outDir = Files.createTempDirectory("ws-mixed-auth-gen");
+        try {
+            new WsClientCodeGenerator(AsyncApiParser.parseFromJsonString(json), null, false).generate(outDir);
+
+            String client = readFile(outDir, "client.bal");
+            Assert.assertTrue(client.contains("websocket:ClientConfiguration clientConfig = {}, "
+                    + "ApiKeysConfig? apiKeyConfig = (), string serviceUrl"), client);
+            Assert.assertTrue(client.contains("\"token\": apiKeyConfig?.token"), client);
+            Assert.assertTrue(client.contains("headerParam[\"X-Api-Key\"] = apiKeyConfig.xApiKey;"), client);
+        } finally {
+            deleteDir(outDir);
+        }
+    }
+
+    @Test
+    void testNoServerMakesServiceUrlRequired() throws Exception {
+        Path spec = specPath("ws_simple.json");
+        Path outDir = Files.createTempDirectory("ws-no-server-gen");
+        try {
+            AsyncApiSpec asyncApiSpec = AsyncApiParser.parseFromJsonString(Files.readString(spec));
+            new WsClientCodeGenerator(asyncApiSpec, null, false).generate(outDir);
+
+            String client = readFile(outDir, "client.bal");
+            Assert.assertTrue(client.contains(
+                    "init(string serviceUrl, websocket:ClientConfiguration clientConfig = {})"), client);
+            Assert.assertTrue(client.contains("string modifiedUrl = serviceUrl + string `/chat`;"),
+                    "A 2.x channel name is the path: " + client);
         } finally {
             deleteDir(outDir);
         }

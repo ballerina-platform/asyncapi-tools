@@ -26,6 +26,4 @@ module io.ballerina.asyncapi {
 
     exports io.ballerina.asyncapi.cmd;
     opens io.ballerina.asyncapi.cmd;
-
-    provides io.ballerina.projects.buildtools.CodeGeneratorTool with io.ballerina.asyncapi.cmd.TriggerPluginBuildTool;
 }

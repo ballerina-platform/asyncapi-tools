@@ -5,9 +5,11 @@ import xlibb/pipe;
 public isolated class PipesMap {
     private final map<pipe:Pipe> pipes;
     private final map<pipe:Pipe> turns;
+    private final map<boolean> awaiting;
     public isolated function init() {
         self.pipes = {};
         self.turns = {};
+        self.awaiting = {};
     }
 
     public isolated function addPipe(string id, pipe:Pipe pipe) {
@@ -84,6 +86,28 @@ public isolated class PipesMap {
             if produceErr is pipe:Error {
                 return;
             }
+        }
+    }
+
+    # Marks whether a call is waiting for a reply on the given pipe, so the reader only queues a frame there then.
+    #
+    # + id - The reply pipe
+    # + waiting - Whether a call is waiting
+    public isolated function awaitReply(string id, boolean waiting) {
+        lock {
+            self.awaiting[id] = waiting;
+        }
+    }
+
+    # Takes the reply slot of the call waiting on the given pipe, so the reader queues at most one frame per call.
+    #
+    # + id - The reply pipe
+    # + return - `true` if a call was waiting, which then waits for no further frame
+    public isolated function claimReply(string id) returns boolean {
+        lock {
+            boolean waiting = self.awaiting[id] ?: false;
+            self.awaiting[id] = false;
+            return waiting;
         }
     }
 }
