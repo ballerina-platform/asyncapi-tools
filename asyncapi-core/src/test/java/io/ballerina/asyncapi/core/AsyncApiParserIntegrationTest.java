@@ -747,7 +747,8 @@ public class AsyncApiParserIntegrationTest {
     void parseSchema_typeListVariantsKeepTheirOwnKeywords() throws IOException {
         AsyncApiSchema union = AsyncApiParser.parseSchema(new ObjectMapper().readTree(
                 "{\"type\":[\"array\",\"object\"],\"items\":{\"type\":\"string\"},"
-                        + "\"properties\":{\"id\":{\"type\":\"string\"}},\"required\":[\"id\"]}"));
+                        + "\"properties\":{\"id\":{\"type\":\"string\"}},\"required\":[\"id\"],"
+                        + "\"additionalProperties\":{\"type\":\"array\"}}"));
         AsyncApiSchema array = union.anyOf().get(0);
         AsyncApiSchema object = union.anyOf().get(1);
         Assert.assertEquals(((AsyncApiSchema) array.items()).type(), "string");
@@ -755,6 +756,9 @@ public class AsyncApiParserIntegrationTest {
         Assert.assertEquals(object.properties().get("id").type(), "string");
         Assert.assertEquals(object.required(), List.of("id"));
         Assert.assertNull(object.items());
+        // A map value can't be built from a type list yet, so additionalProperties stays on the parent
+        Assert.assertNull(object.additionalProperties());
+        Assert.assertNotNull(union.additionalProperties());
     }
 
     @Test

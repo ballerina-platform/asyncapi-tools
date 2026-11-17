@@ -451,7 +451,7 @@ public final class SchemaMapper {
                 .allOf(mapJsonSchemaArray(objectNode.get(Constants.SCHEMA_ALL_OF)))
                 .oneOf(mapJsonSchemaArray(objectNode.get(Constants.SCHEMA_ONE_OF)))
                 .anyOf(types.size() > 1 && !objectNode.has(Constants.SCHEMA_ANY_OF)
-                        ? typeVariants(types, items, properties, required, additionalProperties)
+                        ? typeVariants(types, items, properties, required)
                         : mapJsonSchemaArray(objectNode.get(Constants.SCHEMA_ANY_OF)))
                 .description(description)
                 .format(format)
@@ -481,12 +481,12 @@ public final class SchemaMapper {
 
     /**
      * One schema for each name in a {@code type} list. The array one keeps {@code items} and the object one keeps
-     * {@code properties}, {@code required} and {@code additionalProperties}, as only those types use them.
+     * {@code properties} and {@code required}, as only those types use them. {@code additionalProperties} stays on
+     * the parent only: an object variant with it alone would become a map, whose value type isn't built yet.
      */
     private static List<io.ballerina.asyncapi.core.model.component.AsyncApiSchema> typeVariants(
             List<String> types, Object items,
-            Map<String, io.ballerina.asyncapi.core.model.component.AsyncApiSchema> properties, List<String> required,
-            Object additionalProperties) {
+            Map<String, io.ballerina.asyncapi.core.model.component.AsyncApiSchema> properties, List<String> required) {
         List<io.ballerina.asyncapi.core.model.component.AsyncApiSchema> variants = new ArrayList<>();
         for (String name : types) {
             io.ballerina.asyncapi.core.model.component.AsyncApiSchema.Builder variant =
@@ -494,7 +494,7 @@ public final class SchemaMapper {
             if (ARRAY_TYPE.equals(name)) {
                 variant.items(items);
             } else if (OBJECT_TYPE.equals(name)) {
-                variant.properties(properties).required(required).additionalProperties(additionalProperties);
+                variant.properties(properties).required(required);
             }
             variants.add(variant.build());
         }
