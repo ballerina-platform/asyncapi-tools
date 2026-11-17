@@ -696,6 +696,53 @@ public class AsyncApiParserIntegrationTest {
     }
 
     @Test
+    void rootOperationChannelOutsideChannels_isRejected() {
+        String spec = v3Refs().replace("\"channel\":{\"$ref\":\"#/channels/ws\"}", "\"channel\":{\"$ref\":\"#/info\"}");
+        AsyncApiParserException e = Assert.expectThrows(AsyncApiParserException.class,
+                () -> AsyncApiParser.parseFromJsonString(spec));
+        Assert.assertTrue(e.getMessage().contains("operation 'sendPing' channel reference '#/info' isn't one of the "
+                + "channels under 'channels'"), e.getMessage());
+    }
+
+    @Test
+    void messageOfAnotherChannelSharingItsMessage_isRejected() {
+        // Both channels list the same component message, so only the channel part of the ref tells them apart
+        String spec = v3Refs().replace("\"messages\":[{\"$ref\":\"#/channels/ws/messages/ping\"}]",
+                "\"messages\":[{\"$ref\":\"#/channels/other/messages/ping\"}]");
+        AsyncApiParserException e = Assert.expectThrows(AsyncApiParserException.class,
+                () -> AsyncApiParser.parseFromJsonString(spec));
+        Assert.assertTrue(e.getMessage().contains("operation 'sendPing' message reference "
+                + "'#/channels/other/messages/ping' isn't one of the messages of its channel '#/channels/ws'"),
+                e.getMessage());
+    }
+
+    @Test
+    void messageThroughAChannelInAnotherFile_isNotReportedBroken() {
+        String spec = v3Refs().replace("\"ws\":{\"address\":\"/ws\",",
+                "\"ws\":{\"$ref\":\"shared.yaml#/ws\"},\"unused\":{\"address\":\"/u\",");
+        Assert.assertTrue(spec.contains("shared.yaml"), spec);
+        try {
+            AsyncApiParser.parseFromJsonString(spec);
+        } catch (AsyncApiParserException e) {
+            // The other file isn't read here, but the ref through it isn't one this check reports
+            Assert.assertFalse(e.getMessage().contains("doesn't point to anything"), e.getMessage());
+            Assert.assertFalse(e.getMessage().contains("isn't one of the messages"), e.getMessage());
+        }
+    }
+
+    // Channels ws and other both list component message Ping; sendPing sends it on ws
+    private static String v3Refs() {
+        return "{\"asyncapi\":\"3.0.0\",\"info\":{\"title\":\"T\",\"version\":\"1\"},"
+                + "\"channels\":{\"ws\":{\"address\":\"/ws\","
+                + "\"messages\":{\"ping\":{\"$ref\":\"#/components/messages/Ping\"}}},"
+                + "\"other\":{\"address\":\"/other\","
+                + "\"messages\":{\"ping\":{\"$ref\":\"#/components/messages/Ping\"}}}},"
+                + "\"operations\":{\"sendPing\":{\"action\":\"send\",\"channel\":{\"$ref\":\"#/channels/ws\"},"
+                + "\"messages\":[{\"$ref\":\"#/channels/ws/messages/ping\"}]}},"
+                + "\"components\":{\"messages\":{\"Ping\":{\"payload\":{\"type\":\"object\"}}}}}";
+    }
+
+    @Test
     void channelReferencingAnotherTopLevelChannel_isRead() throws IOException, AsyncApiParserException {
         AsyncApiSpec spec = AsyncApiParser.parseFromJsonString(loadSpec(SPEC_DIR + "refs/top-level-channel-ref.json"));
         Assert.assertEquals(spec.getAsyncApiChannels().orElseThrow().get("ws").address(), "/ws");

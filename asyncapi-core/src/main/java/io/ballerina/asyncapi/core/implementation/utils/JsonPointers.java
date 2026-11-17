@@ -44,15 +44,24 @@ public final class JsonPointers {
      * @return the key it names
      */
     public static String decode(String token) {
-        String unescaped = token;
-        if (token.indexOf('%') >= 0) {
-            try {
-                unescaped = URLDecoder.decode(token.replace("+", "%2B"), StandardCharsets.UTF_8);
-            } catch (IllegalArgumentException e) {
-                // Not percent-encoded after all, so the % is part of the key
-            }
+        return unescape(percentDecode(token));
+    }
+
+    // A  pointer sits in a URI fragment, so it is percent-decoded before it is split into tokens
+    private static String percentDecode(String fragment) {
+        if (fragment.indexOf('%') < 0) {
+            return fragment;
         }
-        return unescaped.replace("~1", "/").replace("~0", "~");
+        try {
+            return URLDecoder.decode(fragment.replace("+", "%2B"), StandardCharsets.UTF_8);
+        } catch (IllegalArgumentException e) {
+            // Not percent-encoded after all, so the % is part of the key
+            return fragment;
+        }
+    }
+
+    private static String unescape(String token) {
+        return token.replace("~1", "/").replace("~0", "~");
     }
 
     /**
@@ -64,7 +73,12 @@ public final class JsonPointers {
      * @return the decoded key, or {@code null} if {@code ref} does not start with {@code prefix}
      */
     public static String keyAfter(String ref, String prefix) {
-        return ref != null && ref.startsWith(prefix) ? decode(ref.substring(prefix.length())) : null;
+        if (ref == null || !ref.startsWith(prefix)) {
+            return null;
+        }
+        // A %2F decodes to a token separator, so the rest then names a node deeper than one key
+        String rest = percentDecode(ref.substring(prefix.length()));
+        return rest.indexOf('/') < 0 ? unescape(rest) : null;
     }
 
     /**
@@ -85,18 +99,29 @@ public final class JsonPointers {
             return null;
         }
         JsonNode node = root;
-        for (String token : ref.substring(LOCAL.length()).split("/", -1)) {
+        for (String token : percentDecode(ref.substring(LOCAL.length())).split("/", -1)) {
             node = follow(root, node, visiting);
-            if (node == null) {
-                return null;
+            if (node == null || isExternalRef(node)) {
+                // A ref into another file on the way is as far as this document goes
+                visiting.remove(ref);
+                return node;
             }
-            // Decoded as the mappers decode it, so a ref valid here is one they can follow
-            String key = decode(token);
+            String key = unescape(token);
             node = node.isArray() ? element(node, key) : node.get(key);
         }
         node = follow(root, node, visiting);
         visiting.remove(ref);
         return node;
+    }
+
+    /**
+     * Whether {@code node} is a {@code } into another file, which this document can't follow.
+     *
+     * @param node a node
+     * @return true for an object whose {@code } doesn't start with {@code #}
+     */
+    public static boolean isExternalRef(JsonNode node) {
+        return node != null && node.isObject() && node.path(REF).isTextual() && !node.get(REF).asText().startsWith("#");
     }
 
     // A ref can hold any digits, so an index too large for an int points nowhere

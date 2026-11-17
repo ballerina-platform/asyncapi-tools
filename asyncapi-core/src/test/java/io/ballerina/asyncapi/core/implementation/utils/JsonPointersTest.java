@@ -84,4 +84,21 @@ public class JsonPointersTest {
         JsonNode root = new ObjectMapper().readTree("{\"m\":{\"$ref\":\"shared.yaml#/Pong\"}}");
         Assert.assertEquals(JsonPointers.resolve(root, "#/m").path("$ref").asText(), "shared.yaml#/Pong");
     }
+
+    @Test
+    void resolve_stopsAtAReferenceIntoAnotherFileOnTheWay() throws Exception {
+        // The walk can't go into shared.yaml, so the ref there is as far as this document goes
+        JsonNode root = new ObjectMapper().readTree("{\"channels\":{\"ws\":{\"$ref\":\"shared.yaml#/ws\"}}}");
+        JsonNode node = JsonPointers.resolve(root, "#/channels/ws/messages/ping");
+        Assert.assertTrue(JsonPointers.isExternalRef(node));
+        Assert.assertEquals(node.path("$ref").asText(), "shared.yaml#/ws");
+    }
+
+    @Test
+    void resolve_decodesTheFragmentBeforeSplittingIt() throws Exception {
+        // %2F is a separator once decoded; a slash inside a key is written ~1
+        JsonNode root = new ObjectMapper().readTree("{\"a\":{\"b\":1},\"a/b\":2}");
+        Assert.assertEquals(JsonPointers.resolve(root, "#/a%2Fb").asInt(), 1);
+        Assert.assertEquals(JsonPointers.resolve(root, "#/a~1b").asInt(), 2);
+    }
 }
