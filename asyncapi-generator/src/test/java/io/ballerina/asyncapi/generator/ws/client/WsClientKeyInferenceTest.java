@@ -97,21 +97,25 @@ public class WsClientKeyInferenceTest {
 
     @Test
     void testMessageSentAndReceivedCountsOnce() throws Exception {
-        String spec = SPEC.formatted(JOIN, SAID).replace("""
-                  receiveSaid:
-                    action: receive
-                    channel: {$ref: '#/channels/ws'}
-                    messages: [{$ref: '#/channels/ws/messages/Said'}]""", """
-                  receiveSaid:
-                    action: receive
-                    channel: {$ref: '#/channels/ws'}
-                    messages: [{$ref: '#/channels/ws/messages/Said'}]
-                  sendSaid:
-                    action: send
-                    channel: {$ref: '#/channels/ws'}
-                    messages: [{$ref: '#/channels/ws/messages/Said'}]""");
-        String client = generateClient(spec, new ArrayList<>());
+        String receiveSaid = "  receiveSaid:\n";
+        String sendSaid = "  sendSaid:\n    action: send\n    channel: {$ref: '#/channels/ws'}\n"
+                + "    messages: [{$ref: '#/channels/ws/messages/Said'}]\n";
+        String spec = SPEC.formatted(JOIN, SAID).replace(receiveSaid, sendSaid + receiveSaid);
+        Assert.assertTrue(spec.contains("sendSaid:"), spec);
+        List<SpecWarning> warnings = new ArrayList<>();
+        String client = generateClient(spec, warnings);
         Assert.assertTrue(client.contains("remote isolated function doSaid("), client);
+        Assert.assertEquals(warnings.size(), 1, warnings.toString());
+    }
+
+    @Test
+    void testKeyFieldThatIsARefIsInferred() throws Exception {
+        String join = "{type: object, required: [type], properties: {type: {$ref: '#/components/schemas/JoinType'}}}";
+        String spec = SPEC.formatted(join, SAID) + "  schemas:\n    JoinType: {type: string, const: join}\n";
+        List<SpecWarning> warnings = new ArrayList<>();
+        String client = generateClient(spec, warnings);
+        Assert.assertTrue(client.contains("remote isolated function doJoin("), client);
+        Assert.assertEquals(warnings.size(), 1, warnings.toString());
     }
 
     @Test

@@ -151,7 +151,12 @@ public final class InferredKeySpec implements AsyncApiSpec {
         }
         if (schema.properties() != null) {
             for (Map.Entry<String, AsyncApiSchema> field : schema.properties().entrySet()) {
-                String value = fixedStringValue(field.getValue());
+                // A field that is a $ref keeps only the name, so its value is in the referenced schema
+                AsyncApiSchema fieldSchema = field.getValue();
+                if (fieldSchema != null && fieldSchema.name() != null && schemas.containsKey(fieldSchema.name())) {
+                    fieldSchema = schemas.get(fieldSchema.name());
+                }
+                String value = fixedStringValue(fieldSchema);
                 if (value != null) {
                     values.put(field.getKey(), value);
                 }
