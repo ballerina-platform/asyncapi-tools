@@ -756,4 +756,18 @@ public class AsyncApiParserIntegrationTest {
         Assert.assertNull(union.nullable());
         Assert.assertEquals(union.anyOf().stream().map(AsyncApiSchema::type).toList(), List.of("string", "integer"));
     }
+
+    @Test
+    void parseSchema_typeListVariantsKeepTheirOwnKeywords() throws IOException {
+        AsyncApiSchema union = AsyncApiParser.parseSchema(new ObjectMapper().readTree(
+                "{\"type\":[\"array\",\"object\"],\"items\":{\"type\":\"string\"},"
+                        + "\"properties\":{\"id\":{\"type\":\"string\"}},\"required\":[\"id\"]}"));
+        AsyncApiSchema array = union.anyOf().get(0);
+        AsyncApiSchema object = union.anyOf().get(1);
+        Assert.assertEquals(((AsyncApiSchema) array.items()).type(), "string");
+        Assert.assertNull(array.properties());
+        Assert.assertEquals(object.properties().get("id").type(), "string");
+        Assert.assertEquals(object.required(), List.of("id"));
+        Assert.assertNull(object.items());
+    }
 }
