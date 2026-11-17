@@ -164,6 +164,32 @@ public class WsClientWarningsTest {
         Assert.assertEquals(warnings.size(), 1, warnings.toString());
     }
 
+    @Test
+    void testSchemeInTheHostStaysInTheServiceUrl() throws Exception {
+        String spec = """
+                asyncapi: 3.0.0
+                info: {title: Echo, version: 1.0.0}
+                x-dispatcherKey: type
+                servers:
+                  s: {host: 'wss://example.com/ws'}
+                channels:
+                  ws:
+                    messages:
+                      ping:
+                        payload:
+                          type: object
+                          required: [type]
+                          properties: {type: {type: string, const: ping}}
+                operations:
+                  sendPing:
+                    action: send
+                    channel: {$ref: '#/channels/ws'}
+                    messages: [{$ref: '#/channels/ws/messages/ping'}]
+                """;
+        String client = generateClient(spec, new ArrayList<>());
+        Assert.assertTrue(client.contains("\"wss://example.com/ws\""), client);
+    }
+
     private static String generateClient(String spec, List<SpecWarning> warnings) throws Exception {
         Path outDir = Files.createTempDirectory("ws-warnings");
         try {
