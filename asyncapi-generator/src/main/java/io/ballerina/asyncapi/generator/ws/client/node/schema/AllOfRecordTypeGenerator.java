@@ -87,9 +87,11 @@ public class AllOfRecordTypeGenerator extends RecordTypeGenerator {
     private List<Node> generateAllOfRecordFields(List<AsyncApiSchema> allOfSchemas) throws GeneratorException {
         Map<String, AsyncApiSchema> inline = new LinkedHashMap<>();
         Map<String, AsyncApiSchema> included = new LinkedHashMap<>();
+        Set<String> includedRequired = new HashSet<>();
         for (AsyncApiSchema allOfSchema : allOfSchemas) {
             if (allOfSchema.name() != null) {
                 included.putAll(fieldsOf(allOfSchema));
+                includedRequired.addAll(requiredOf(allOfSchema));
             } else if (allOfSchema.properties() != null) {
                 inline.putAll(allOfSchema.properties());
             }
@@ -101,12 +103,12 @@ public class AllOfRecordTypeGenerator extends RecordTypeGenerator {
                 kept.add(field.getKey());
             }
         }
-        return generateAllOfRecordFields(allOfSchemas, inline, kept);
+        return generateAllOfRecordFields(allOfSchemas, inline, kept, includedRequired);
     }
 
     private List<Node> generateAllOfRecordFields(List<AsyncApiSchema> allOfSchemas,
-                                                 Map<String, AsyncApiSchema> inline, Set<String> kept)
-            throws GeneratorException {
+                                                 Map<String, AsyncApiSchema> inline, Set<String> kept,
+                                                 Set<String> includedRequired) throws GeneratorException {
         List<Node> recordFieldList = new ArrayList<>();
         for (AsyncApiSchema allOfSchema : allOfSchemas) {
             if (allOfSchema.name() != null) {
@@ -115,17 +117,16 @@ public class AllOfRecordTypeGenerator extends RecordTypeGenerator {
                     recordFieldList.addAll(copiedFields(allOfSchema, inline, kept));
                     continue;
                 }
-                // Resolved $ref → generate type inclusion: *RefTypeName;
-                String refTypeName = CodegenUtils.getValidName(allOfSchema.name(), true);
-                Token typeRef = AbstractNodeFactory.createIdentifierToken(refTypeName);
-                TypeReferenceNode recordField = NodeFactory.createTypeReferenceNode(
-                        createToken(ASTERISK_TOKEN), typeRef, createToken(SEMICOLON_TOKEN));
-                recordFieldList.add(recordField);
+                recordFieldList.add(typeInclusion(allOfSchema));
             } else if (allOfSchema.properties() != null) {
                 // Inline properties → add as record fields
                 Map<String, AsyncApiSchema> properties = new LinkedHashMap<>(allOfSchema.properties());
                 properties.keySet().removeAll(kept);
-                recordFieldList.addAll(addRecordFields(allOfSchema.required(), properties));
+                // A field an included schema requires stays required when an inline part redeclares it
+                Set<String> required = new HashSet<>(allOfSchema.required() != null ? allOfSchema.required()
+                        : List.of());
+                properties.keySet().stream().filter(includedRequired::contains).forEach(required::add);
+                recordFieldList.addAll(addRecordFields(new ArrayList<>(required), properties));
             } else if (allOfSchema.allOf() != null && !allOfSchema.allOf().isEmpty()) {
                 // Nested allOf → recurse
                 recordFieldList.addAll(generateAllOfRecordFields(allOfSchema.allOf()));
@@ -142,7 +143,14 @@ public class AllOfRecordTypeGenerator extends RecordTypeGenerator {
             throws GeneratorException {
         List<Node> fields = new ArrayList<>();
         if (base.allOf() != null) {
-            fields.addAll(generateAllOfRecordFields(base.allOf(), inline, kept));
+            for (AsyncApiSchema part : base.allOf()) {
+                // An included part the inline fields don't clash with stays an inclusion; the rest is copied, filtered
+                if (part.name() != null && !clashes(part, inline, kept)) {
+                    fields.add(typeInclusion(part));
+                } else {
+                    fields.addAll(copiedFields(part, inline, kept));
+                }
+            }
         }
         if (base.properties() != null) {
             Map<String, AsyncApiSchema> properties = new LinkedHashMap<>(base.properties());
@@ -166,6 +174,24 @@ public class AllOfRecordTypeGenerator extends RecordTypeGenerator {
             }
         }
         return false;
+    }
+
+    // Resolved $ref → type inclusion: *RefTypeName;
+    private static TypeReferenceNode typeInclusion(AsyncApiSchema schema) {
+        Token typeRef = AbstractNodeFactory.createIdentifierToken(CodegenUtils.getValidName(schema.name(), true));
+        return NodeFactory.createTypeReferenceNode(createToken(ASTERISK_TOKEN), typeRef, createToken(SEMICOLON_TOKEN));
+    }
+
+    // The fields a schema requires itself and through its own allOf parts
+    private static Set<String> requiredOf(AsyncApiSchema schema) {
+        Set<String> required = new HashSet<>();
+        if (schema.allOf() != null) {
+            schema.allOf().forEach(part -> required.addAll(requiredOf(part)));
+        }
+        if (schema.required() != null) {
+            required.addAll(schema.required());
+        }
+        return required;
     }
 
     // The fields a schema declares itself and through its own allOf parts

@@ -53,7 +53,8 @@ public class MapTypeGenerator implements TypeGenerator {
         // Boolean true, null or an empty schema → map<json>; any other schema maps as a field's would, so an object
         // or an array without items is a Ballerina type and a $ref keeps its type
         if (schema.additionalProperties() instanceof AsyncApiSchema value && (value.type() != null
-                || value.name() != null || value.allOf() != null || value.oneOf() != null || value.anyOf() != null)) {
+                || value.name() != null || value.properties() != null || value.allOf() != null
+                || value.oneOf() != null || value.anyOf() != null)) {
             valueType = TypeGenerator.of(value, null).generateTypeDescriptorNode();
         }
         return createMapTypeDescriptorNode(
