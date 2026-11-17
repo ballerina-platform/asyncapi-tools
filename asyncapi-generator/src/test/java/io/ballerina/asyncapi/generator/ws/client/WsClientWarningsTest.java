@@ -116,6 +116,54 @@ public class WsClientWarningsTest {
                 "Give the message a JSON Schema 'payload' to get a type for it.")));
     }
 
+    @Test
+    void testLeftOutSendGetsNoReplyRoute() throws Exception {
+        String spec = """
+                asyncapi: 3.0.0
+                info: {title: Echo, version: 1.0.0}
+                x-dispatcherKey: type
+                servers:
+                  s: {host: example.com, protocol: wss}
+                channels:
+                  ws:
+                    address: /ws
+                    messages:
+                      ping: {$ref: '#/components/messages/Ping'}
+                      echo: {$ref: '#/components/messages/Echo'}
+                      pong: {$ref: '#/components/messages/Pong'}
+                operations:
+                  sendPing:
+                    action: send
+                    channel: {$ref: '#/channels/ws'}
+                    messages: [{$ref: '#/channels/ws/messages/ping'}]
+                  sendEcho:
+                    action: send
+                    channel: {$ref: '#/channels/ws'}
+                    messages: [{$ref: '#/channels/ws/messages/echo'}]
+                components:
+                  messages:
+                    Ping:
+                      payload:
+                        type: object
+                        required: [type]
+                        properties: {type: {type: string, const: ping}}
+                      x-response: {$ref: '#/components/messages/Pong'}
+                    Echo:
+                      contentType: text/plain
+                      x-response: {$ref: '#/components/messages/Pong'}
+                    Pong:
+                      payload:
+                        type: object
+                        required: [type]
+                        properties: {type: {type: string, const: pong}}
+                """;
+        List<SpecWarning> warnings = new ArrayList<>();
+        String client = generateClient(spec, warnings);
+        Assert.assertTrue(client.contains(
+                "remote isolated function doPing(Ping ping, decimal timeout) returns Pong|error"), client);
+        Assert.assertEquals(warnings.size(), 1, warnings.toString());
+    }
+
     private static String generateClient(String spec, List<SpecWarning> warnings) throws Exception {
         Path outDir = Files.createTempDirectory("ws-warnings");
         try {
