@@ -209,6 +209,10 @@ public final class DispatcherKeySpec implements AsyncApiSpec {
     // The key field read as a string when its const or enum only has strings, and required
     private AsyncApiSchema withKeyField(String name, AsyncApiSchema schema, boolean required) {
         AsyncApiSchema keySchema = schema.properties().get(key);
+        // A key field that is a $ref keeps only the name, so it carries the referenced schema, still under its name
+        if (keySchema.name() != null && keySchema.type() == null && schemas.containsKey(keySchema.name())) {
+            keySchema = schemas.get(keySchema.name()).withName(keySchema.name());
+        }
         AsyncApiSchema fixedKey = keySchema.type() == null && hasOnlyStringValues(keySchema)
                 ? keySchema.withType(STRING) : keySchema;
         List<String> requiredNames = schema.required() == null ? new ArrayList<>() : new ArrayList<>(schema.required());
@@ -218,7 +222,7 @@ public final class DispatcherKeySpec implements AsyncApiSpec {
         if (!required) {
             warnNotRequired(name);
         }
-        if (fixedKey == keySchema && requiredNames.equals(schema.required())) {
+        if (fixedKey == schema.properties().get(key) && requiredNames.equals(schema.required())) {
             return schema;
         }
         Map<String, AsyncApiSchema> properties = new LinkedHashMap<>(schema.properties());
