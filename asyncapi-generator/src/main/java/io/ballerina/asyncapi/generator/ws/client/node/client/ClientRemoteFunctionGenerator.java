@@ -31,6 +31,7 @@ import io.ballerina.asyncapi.generator.ws.client.generator.ClientGenerator;
 import io.ballerina.asyncapi.generator.ws.client.generator.RemoteFunctionBodyGenerator;
 import io.ballerina.asyncapi.generator.ws.client.generator.RemoteFunctionReturnTypeGenerator;
 import io.ballerina.asyncapi.generator.ws.client.generator.RemoteFunctionSignatureGenerator;
+import io.ballerina.asyncapi.generator.ws.client.generator.RoutingPlan;
 import io.ballerina.asyncapi.generator.ws.client.utils.CodegenUtils;
 import io.ballerina.compiler.syntax.tree.FunctionDefinitionNode;
 import io.ballerina.compiler.syntax.tree.ImportDeclarationNode;
@@ -58,6 +59,7 @@ public class ClientRemoteFunctionGenerator {
     private static final String REF = "$ref";
 
     private final AsyncApiSpec asyncApiSpec;
+    private final String dispatcherKey;
     private final String dispatcherStreamId;
     private final List<String> streamReturns;
     private final List<ImportDeclarationNode> imports;
@@ -79,7 +81,33 @@ public class ClientRemoteFunctionGenerator {
                                           List<String> streamReturns, List<ImportDeclarationNode> imports,
                                           List<TypeDefinitionNode> typeDefinitionNodeList,
                                           Map<String, String> responseMap) {
+        this(asyncApiSpec, asyncApiSpec.getAsyncApiExtensions().map(ext -> ext.get(X_DISPATCHER_KEY))
+                        .map(JsonNode::asText).orElse(null), dispatcherStreamId, streamReturns, imports,
+                typeDefinitionNodeList, responseMap);
+    }
+
+    /**
+     * Creates a new remote function generator whose functions wait on the pipes {@code plan} routes replies to.
+     *
+     * @param asyncApiSpec           the parsed AsyncAPI spec
+     * @param plan                   how incoming messages are routed
+     * @param imports                accumulated import declaration nodes
+     * @param typeDefinitionNodeList accumulated type definition nodes
+     */
+    public ClientRemoteFunctionGenerator(AsyncApiSpec asyncApiSpec, RoutingPlan plan,
+                                          List<ImportDeclarationNode> imports,
+                                          List<TypeDefinitionNode> typeDefinitionNodeList) {
+        // Simple-rpc stream replies are added while the functions are built
+        this(asyncApiSpec, plan.dispatcherKey(), plan.dispatcherStreamId(), new ArrayList<>(plan.streamReturns()),
+                imports, typeDefinitionNodeList, plan.responseMap());
+    }
+
+    private ClientRemoteFunctionGenerator(AsyncApiSpec asyncApiSpec, String dispatcherKey, String dispatcherStreamId,
+                                           List<String> streamReturns, List<ImportDeclarationNode> imports,
+                                           List<TypeDefinitionNode> typeDefinitionNodeList,
+                                           Map<String, String> responseMap) {
         this.asyncApiSpec = asyncApiSpec;
+        this.dispatcherKey = dispatcherKey;
         this.dispatcherStreamId = dispatcherStreamId;
         this.streamReturns = streamReturns;
         this.imports = imports;
@@ -120,8 +148,6 @@ public class ClientRemoteFunctionGenerator {
 
         RemoteFunctionSignatureGenerator sigGen =
                 new RemoteFunctionSignatureGenerator(asyncApiSpec, typeDefinitionNodeList);
-        String dispatcherKey = asyncApiSpec.getAsyncApiExtensions().map(ext -> ext.get(X_DISPATCHER_KEY))
-                .map(JsonNode::asText).orElse(null);
         RemoteFunctionBodyGenerator bodyGen = new RemoteFunctionBodyGenerator(imports, dispatcherKey);
         RemoteFunctionReturnTypeGenerator returnTypeGen = new RemoteFunctionReturnTypeGenerator(asyncApiSpec);
 

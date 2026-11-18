@@ -21,6 +21,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import io.ballerina.asyncapi.core.api.AsyncApiSpec;
 import io.ballerina.asyncapi.generator.ws.client.generator.DocCommentsGenerator;
 import io.ballerina.asyncapi.generator.ws.client.generator.RemoteFunctionReturnTypeGenerator;
+import io.ballerina.asyncapi.generator.ws.client.generator.RoutingPlan;
 import io.ballerina.asyncapi.generator.ws.client.utils.CodegenUtils;
 import io.ballerina.compiler.syntax.tree.FunctionBodyNode;
 import io.ballerina.compiler.syntax.tree.FunctionDefinitionNode;
@@ -171,36 +172,28 @@ public class ClientWorkerGenerator {
      * @param dispatcherStreamId optional stream ID field name (may be {@code null})
      */
     public ClientWorkerGenerator(AsyncApiSpec asyncApiSpec, String dispatcherKey, String dispatcherStreamId) {
-        this(asyncApiSpec, dispatcherKey, dispatcherStreamId, false);
+        this(asyncApiSpec, dispatcherKey, dispatcherStreamId, false, false);
     }
 
     /**
-     * Creates a new client worker generator.
+     * Creates a new client worker generator that reads frames as {@code plan} routes them.
      *
-     * @param asyncApiSpec                  the parsed AsyncAPI spec
-     * @param dispatcherKey                 the dispatcher key field name
-     * @param dispatcherStreamId            optional stream ID field name (may be {@code null})
-     * @param routeFramesWithoutDispatcher  whether some reply has no dispatcher key, so the reader must keep
-     *                                      such frames for it instead of closing the connection
+     * @param asyncApiSpec the parsed AsyncAPI spec
+     * @param plan         how incoming messages are routed
      */
-    public ClientWorkerGenerator(AsyncApiSpec asyncApiSpec, String dispatcherKey, String dispatcherStreamId,
-                                 boolean routeFramesWithoutDispatcher) {
-        this(asyncApiSpec, dispatcherKey, dispatcherStreamId, routeFramesWithoutDispatcher, false);
+    public ClientWorkerGenerator(AsyncApiSpec asyncApiSpec, RoutingPlan plan) {
+        this(asyncApiSpec, plan.dispatcherKey(), plan.dispatcherStreamId(), plan.keylessReplies(),
+                plan.keylessReceiveOnly());
     }
 
     /**
-     * Creates a new client worker generator.
-     *
-     * @param asyncApiSpec                  the parsed AsyncAPI spec
-     * @param dispatcherKey                 the dispatcher key field name
-     * @param dispatcherStreamId            optional stream ID field name (may be {@code null})
      * @param routeFramesWithoutDispatcher  whether some reply has no dispatcher key, so the reader must keep
      *                                      such frames for it instead of closing the connection
      * @param keepFramesForReceiveOnly      whether a receive-only function reads such frames, so one that
      *                                      arrives while no call waits for a reply is kept for it
      */
-    public ClientWorkerGenerator(AsyncApiSpec asyncApiSpec, String dispatcherKey, String dispatcherStreamId,
-                                 boolean routeFramesWithoutDispatcher, boolean keepFramesForReceiveOnly) {
+    private ClientWorkerGenerator(AsyncApiSpec asyncApiSpec, String dispatcherKey, String dispatcherStreamId,
+                                  boolean routeFramesWithoutDispatcher, boolean keepFramesForReceiveOnly) {
         this.asyncApiSpec = asyncApiSpec;
         this.dispatcherKey = dispatcherKey;
         this.dispatcherStreamId = dispatcherStreamId;
