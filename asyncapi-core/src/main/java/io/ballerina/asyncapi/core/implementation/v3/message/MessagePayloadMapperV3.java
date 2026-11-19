@@ -28,6 +28,7 @@ import io.apicurio.datamodels.models.union.AnySchemaUnion;
 import io.apicurio.datamodels.models.union.MultiFormatSchemaSchemaUnion;
 import io.ballerina.asyncapi.core.Constants;
 import io.ballerina.asyncapi.core.implementation.common.SchemaMapper;
+import io.ballerina.asyncapi.core.implementation.utils.JsonPointers;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -64,7 +65,7 @@ final class MessagePayloadMapperV3 {
             String ref = multiFormat.get$ref();
             if (ref != null) {
                 if (ref.startsWith(Constants.SCHEMAS_REF_PREFIX) && components instanceof AsyncApi30Components v3) {
-                    String schemaName = ref.substring(Constants.SCHEMAS_REF_PREFIX.length());
+                    String schemaName = JsonPointers.keyAfter(ref, Constants.SCHEMAS_REF_PREFIX);
                     Map<String, MultiFormatSchemaSchemaUnion> schemas = v3.getSchemas();
                     MultiFormatSchemaSchemaUnion schemaUnion = schemas != null ? schemas.get(schemaName) : null;
                     if (schemaUnion != null && schemaUnion.isSchema()
@@ -94,7 +95,7 @@ final class MessagePayloadMapperV3 {
         if (rawSchema instanceof AsyncApiReferenceable ref && ref.get$ref() != null) {
             String refStr = ref.get$ref();
             if (refStr.startsWith(Constants.SCHEMAS_REF_PREFIX) && components instanceof AsyncApi30Components v3) {
-                String schemaName = refStr.substring(Constants.SCHEMAS_REF_PREFIX.length());
+                String schemaName = JsonPointers.keyAfter(refStr, Constants.SCHEMAS_REF_PREFIX);
                 Map<String, MultiFormatSchemaSchemaUnion> schemas = v3.getSchemas();
                 MultiFormatSchemaSchemaUnion schemaUnion = schemas != null ? schemas.get(schemaName) : null;
                 if (schemaUnion != null && schemaUnion.isSchema()

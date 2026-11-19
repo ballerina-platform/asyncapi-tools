@@ -23,6 +23,7 @@ import io.apicurio.datamodels.models.asyncapi.AsyncApiExtensible;
 import io.apicurio.datamodels.models.asyncapi.AsyncApiReferenceable;
 import io.apicurio.datamodels.models.asyncapi.AsyncApiServerBindings;
 import io.ballerina.asyncapi.core.Constants;
+import io.ballerina.asyncapi.core.implementation.utils.JsonPointers;
 import io.ballerina.asyncapi.core.model.server.HttpServerBindings;
 import io.ballerina.asyncapi.core.model.server.WsServerBindings;
 import org.apache.logging.log4j.LogManager;
@@ -100,7 +101,7 @@ public final class ServerBindingsMapper {
             LOG.warn("Unsupported $ref format: {}. Skipping server bindings.", ref);
             return null;
         }
-        String name = ref.substring(Constants.SERVER_BINDINGS_REF_PREFIX.length());
+        String name = JsonPointers.keyAfter(ref, Constants.SERVER_BINDINGS_REF_PREFIX);
         if (components == null) {
             return null;
         }
