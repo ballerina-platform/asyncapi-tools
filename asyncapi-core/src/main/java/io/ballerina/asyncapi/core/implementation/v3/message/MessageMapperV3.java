@@ -28,6 +28,7 @@ import io.apicurio.datamodels.models.asyncapi.v30.AsyncApi30Channel;
 import io.apicurio.datamodels.models.asyncapi.v30.AsyncApi30Message;
 import io.ballerina.asyncapi.core.Constants;
 import io.ballerina.asyncapi.core.implementation.common.SchemaMapper;
+import io.ballerina.asyncapi.core.implementation.utils.JsonPointers;
 import io.ballerina.asyncapi.core.implementation.v3.doc.ExternalDocMapperV3;
 import io.ballerina.asyncapi.core.implementation.v3.tag.TagMapperV3;
 import io.ballerina.asyncapi.core.model.message.AsyncApiMessageExample;
@@ -77,7 +78,7 @@ public final class MessageMapperV3 {
             }
             if (message instanceof AsyncApiReferenceable ref && ref.get$ref() != null) {
                 String refStr = ref.get$ref();
-                messageName = refStr.substring(refStr.lastIndexOf('/') + 1);
+                messageName = JsonPointers.decode(refStr.substring(refStr.lastIndexOf('/') + 1));
             }
             io.ballerina.asyncapi.core.model.message.AsyncApiMessage mapped =
                     mapMessageItem(message, components);
@@ -187,7 +188,7 @@ public final class MessageMapperV3 {
                 LOG.warn("Cyclic $ref detected: {}. Skipping message.", current);
                 return null;
             }
-            String msgName = current.substring(Constants.MESSAGES_REF_PREFIX.length());
+            String msgName = JsonPointers.keyAfter(current, Constants.MESSAGES_REF_PREFIX);
             Map<String, ? extends AsyncApiMessage> messagesMap = components.getMessages();
             AsyncApiMessage resolved = messagesMap != null ? messagesMap.get(msgName) : null;
             if (resolved == null) {
