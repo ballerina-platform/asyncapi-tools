@@ -17,6 +17,7 @@
  */
 package io.ballerina.asyncapi.generator.ws.client;
 
+import io.ballerina.asyncapi.core.SpecWarning;
 import io.ballerina.asyncapi.core.api.AsyncApiSpec;
 import io.ballerina.asyncapi.generator.GeneratorException;
 import io.ballerina.asyncapi.generator.ws.client.generator.ClientGenerator;
@@ -35,6 +36,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 /**
@@ -54,6 +56,7 @@ public class WsClientCodeGenerator {
     private final AsyncApiSpec asyncApiSpec;
     private final String licenseHeader;
     private final boolean includeTestFiles;
+    private Consumer<SpecWarning> warnings = warning -> { };
 
     /**
      * Creates a new WebSocket client code generator.
@@ -69,6 +72,17 @@ public class WsClientCodeGenerator {
     }
 
     /**
+     * Sets where to report the parts of the spec that generation leaves out, such as a message it has no function for.
+     *
+     * @param warnings the warning consumer
+     * @return this generator
+     */
+    public WsClientCodeGenerator withWarnings(Consumer<SpecWarning> warnings) {
+        this.warnings = warnings;
+        return this;
+    }
+
+    /**
      * Runs the full generation pipeline and writes Ballerina source files to {@code outputPath}.
      *
      * @param outputPath the directory to write generated files into
@@ -81,6 +95,7 @@ public class WsClientCodeGenerator {
         WsClientConfig config = new WsClientConfig.Builder()
                 .withAsyncApi(asyncApiSpec)
                 .withLicense(licenseHeader)
+                .withWarnings(warnings)
                 .build();
 
         // Generate source content from each sub-generator

@@ -281,7 +281,7 @@ public class ClientGenerator {
 
             for (Map.Entry<String, AsyncApiMessage> msgEntry : operation.messages().entrySet()) {
                 AsyncApiMessage message = msgEntry.getValue();
-                if (message.extensions() == null || !message.extensions().containsKey(X_RESPONSE)) {
+                if (!isSentWithReply(message)) {
                     continue;
                 }
                 JsonNode xResponseType = message.extensions().get(X_RESPONSE_TYPE);
@@ -305,7 +305,7 @@ public class ClientGenerator {
 
             for (Map.Entry<String, AsyncApiMessage> msgEntry : operation.messages().entrySet()) {
                 AsyncApiMessage message = msgEntry.getValue();
-                if (message.extensions() == null || !message.extensions().containsKey(X_RESPONSE)) {
+                if (!isSentWithReply(message)) {
                     continue;
                 }
                 JsonNode xResponseType = message.extensions().get(X_RESPONSE_TYPE);
@@ -377,6 +377,12 @@ public class ClientGenerator {
      * @param message the message
      * @return the Ballerina type name for the request
      */
+    // A sent message with a reply; one without a payload schema gets no function, so its reply gets no route either
+    private static boolean isSentWithReply(AsyncApiMessage message) {
+        return message.payload() instanceof AsyncApiSchema && message.extensions() != null
+                && message.extensions().containsKey(X_RESPONSE);
+    }
+
     private String getRequestTypeFromMessage(AsyncApiMessage message) {
         if (message.payload() instanceof AsyncApiSchema) {
             AsyncApiSchema payload = (AsyncApiSchema) message.payload();
@@ -437,7 +443,8 @@ public class ClientGenerator {
         classMembers.add(workerGen.buildStartMessageReading());
 
         classMembers.addAll(new ClientRemoteFunctionGenerator(asyncApiSpec, dispatcherStreamId,
-                streamReturns, imports, typeDefinitionNodeList, responseMap).buildRemoteFunctions());
+                streamReturns, imports, typeDefinitionNodeList, responseMap).withWarnings(config.getWarnings())
+                .buildRemoteFunctions());
 
         classMembers.add(helperGen.buildAttemptToCloseConnection());
         classMembers.add(helperGen.buildConnectionClose());

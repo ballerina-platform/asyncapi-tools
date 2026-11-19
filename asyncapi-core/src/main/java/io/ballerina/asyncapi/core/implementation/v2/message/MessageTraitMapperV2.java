@@ -32,6 +32,7 @@ import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25MessageTrait;
 import io.apicurio.datamodels.models.asyncapi.v26.AsyncApi26MessageTrait;
 import io.ballerina.asyncapi.core.Constants;
 import io.ballerina.asyncapi.core.implementation.common.SchemaMapper;
+import io.ballerina.asyncapi.core.implementation.utils.JsonPointers;
 import io.ballerina.asyncapi.core.implementation.v2.doc.ExternalDocMapperV2;
 import io.ballerina.asyncapi.core.implementation.v2.tag.TagMapperV2;
 import io.ballerina.asyncapi.core.model.tag.AsyncApiTag;
@@ -175,7 +176,7 @@ public final class MessageTraitMapperV2 {
                 LOG.warn("Cyclic $ref detected: {}. Skipping message trait.", current);
                 return null;
             }
-            String name = current.substring(Constants.MESSAGE_TRAITS_REF_PREFIX.length());
+            String name = JsonPointers.keyAfter(current, Constants.MESSAGE_TRAITS_REF_PREFIX);
             Map<String, ?> traitsMap = components.getMessageTraits();
             Object entry = traitsMap != null ? traitsMap.get(name) : null;
             AsyncApiMessageTrait resolved = entry instanceof AsyncApiMessageTrait t ? t : null;
