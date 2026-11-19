@@ -282,7 +282,7 @@ public class DispatcherGeneratorTest {
                         || source.contains("parseEventPayload"),
                 "No generated union type or event-to-type table should remain; the target type is "
                         + "discovered from the attached service's own remote function: " + source);
-        Assert.assertTrue(source.contains("bindEventPayload(genericService, eventFunction, payload)"),
+        Assert.assertTrue(source.contains("bindEventPayload(serviceObj, eventFunction, payload)"),
                 "executeRemoteFunc should bind the raw payload against the attached service's remote "
                         + "function via the native handler: " + source);
     }
@@ -301,6 +301,19 @@ public class DispatcherGeneratorTest {
                         + "the post resource function: " + source);
         Assert.assertTrue(invokeIndex > bindIndex,
                 "The payload must be bound before the user's remote function is invoked with it: " + source);
+    }
+
+    @Test
+    void testServiceIsConvertedOnceForBothNativeCalls() throws GeneratorException {
+        EventIdentifierConfig config = new EventIdentifierConfig("header", "X-Event-Type", null);
+        String source = new DispatcherGenerator(SINGLE_SERVICE, config, Optional.<WebhookAuthConfig>empty(), false)
+                .generate();
+
+        // Passing the union to both calls fails to compile on Linux with --graalvm
+        Assert.assertTrue(source.contains("service object {} serviceObj = genericService;"), source);
+        Assert.assertTrue(source.contains("invokeRemoteFunction(boundEvent, eventName, eventFunction, serviceObj)"),
+                source);
+        Assert.assertFalse(source.contains("(genericService,") || source.contains(", genericService)"), source);
     }
 
     @Test
