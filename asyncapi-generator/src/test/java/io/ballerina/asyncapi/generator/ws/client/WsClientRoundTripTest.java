@@ -233,7 +233,8 @@ public class WsClientRoundTripTest {
         Assert.assertTrue(types.contains("public type UsersQueryResponse User[];"), types);
         Assert.assertTrue(client.contains("string|websocket:Error frame = self.clientEp->readMessage(string);"),
                 client);
-        Assert.assertTrue(client.contains("Message|error parsedMessage = frame.fromJsonStringWithType();"), client);
+        // No reply carries the key, so no frame is read as a Message to route on it
+        Assert.assertFalse(client.contains("Message|error parsedMessage"), client);
         Assert.assertTrue(client.contains("self.pipes.getPipe(\"#noDispatcherKey\").produce(frame, 5);"), client);
         Assert.assertTrue(client.contains(
                 "string|pipe:Error responseMessage = self.pipes.getPipe(\"#noDispatcherKey\").consume(timeout);"),

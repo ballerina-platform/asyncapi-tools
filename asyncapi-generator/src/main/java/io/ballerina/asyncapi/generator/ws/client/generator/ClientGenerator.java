@@ -127,8 +127,8 @@ public class ClientGenerator {
      */
     public String generate() throws GeneratorException {
         AsyncApiSpec asyncApiSpec = config.getAsyncApi();
-        // A spec without a key fails first, before its channel or auth is checked
-        new DispatcherKeyExtractor(asyncApiSpec).extract();
+        // A spec without a key it needs fails first, before its channel or auth is checked
+        new DispatcherKeyExtractor(asyncApiSpec).extractIfNeeded();
 
         // Each channel is a connection of its own, so each gets its own client
         List<ChannelExtractor.ChannelInfo> channels = new ChannelExtractor(asyncApiSpec).extract(config.getWarnings());

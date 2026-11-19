@@ -39,6 +39,8 @@ import java.util.stream.Stream;
 public class WsClientKeyInferenceTest {
 
     private static final ObjectMapper YAML = new ObjectMapper(new YAMLFactory());
+    // A request without the key is cloned and queued as it is, whatever its parameter is named
+    private static final String SENT_AS_IT_IS = "(?s).*readonly & anydata message = \\S+\\.cloneReadOnly\\(\\);.*";
 
     // %s is the Join payload and %s the Said payload; there's no x-dispatcherKey
     private static final String SPEC = """
@@ -125,20 +127,62 @@ public class WsClientKeyInferenceTest {
         String said = "{type: object, required: [type, kind], "
                 + "properties: {type: {type: string, const: said}, kind: {type: string, const: b}}}";
         GeneratorException e = Assert.expectThrows(GeneratorException.class,
-                () -> generateClient(SPEC.formatted(join, said), new ArrayList<>()));
+                () -> generateClient(bothReceived(SPEC.formatted(join, said)), new ArrayList<>()));
         Assert.assertEquals(e.getMessage(), "x-dispatcherKey extension is required in the AsyncAPI spec, and 'type' "
-                + "and 'kind' each have a different fixed value in every message, so it isn't clear which one the "
-                + "messages are routed on. Add x-dispatcherKey naming the field that tells the messages apart.");
+                + "and 'kind' each have a different fixed value in every message a connection receives, so it isn't "
+                + "clear which one the messages are routed on. Add x-dispatcherKey naming the field that tells the "
+                + "messages apart.");
     }
 
     @Test
     void testNoFieldThatTellsMessagesApartStops() {
         String said = "{type: object, properties: {text: {type: string}}}";
         GeneratorException e = Assert.expectThrows(GeneratorException.class,
-                () -> generateClient(SPEC.formatted(JOIN, said), new ArrayList<>()));
+                () -> generateClient(bothReceived(SPEC.formatted(JOIN, said)), new ArrayList<>()));
         Assert.assertEquals(e.getMessage(), "x-dispatcherKey extension is required in the AsyncAPI spec, and no "
-                + "field has a different fixed string value (a const or a one-value enum) in every message. Add "
-                + "x-dispatcherKey naming the field that tells the messages apart.");
+                + "field has a different fixed string value (a const or a one-value enum) in every message received "
+                + "on channel 'ws'. Add x-dispatcherKey naming the field that tells the messages apart.");
+    }
+
+    @Test
+    void testConnectionThatReceivesOneKindOfMessageNeedsNoKey() throws Exception {
+        // Nothing tells Join and Said apart, but only Said is received, so there is nothing to tell apart
+        String join = "{type: object, properties: {room: {type: string}}}";
+        String said = "{type: object, properties: {text: {type: string}}}";
+        List<SpecWarning> warnings = new ArrayList<>();
+        String client = generateClient(SPEC.formatted(join, said), warnings);
+        Assert.assertTrue(client.matches(SENT_AS_IT_IS), client);
+        Assert.assertTrue(client.contains("Said|error said = responseMessage.fromJsonStringWithType();"), client);
+        Assert.assertFalse(client.contains("getPipeName(message."), client);
+        Assert.assertEquals(warnings, List.of());
+    }
+
+    @Test
+    void testOnlyReceivedMessagesNeedTheKey() throws Exception {
+        // Join has no type, but the two received messages are told apart by it
+        String join = "{type: object, properties: {room: {type: string}}}";
+        String left = "  receiveLeft:\n    action: receive\n    channel: {$ref: '#/channels/ws'}\n"
+                + "    messages: [{$ref: '#/channels/ws/messages/Left'}]\n";
+        String spec = SPEC.formatted(join, SAID).replace("components:\n", left + "components:\n")
+                .replace("      Said: {$ref: '#/components/messages/Said'}\n",
+                        "      Said: {$ref: '#/components/messages/Said'}\n"
+                                + "      Left: {$ref: '#/components/messages/Left'}\n")
+                + "    Left:\n      payload: {type: object, required: [type], "
+                + "properties: {type: {type: string, const: left}}}\n";
+        Assert.assertTrue(spec.contains("receiveLeft:") && spec.contains("Left: {$ref"), spec);
+        List<SpecWarning> warnings = new ArrayList<>();
+        String client = generateClient(spec, warnings);
+        Assert.assertTrue(client.contains("remote isolated function doLeft("), client);
+        Assert.assertTrue(client.matches(SENT_AS_IT_IS), client);
+        Assert.assertTrue(client.contains("string? pipeName = self.getPipeName(message.'type);"), client);
+        Assert.assertEquals(warnings, List.of(new SpecWarning("",
+                "the spec has no x-dispatcherKey, so the client routes received messages on 'type', the only field "
+                        + "with a different fixed value in every message a connection receives",
+                "Add 'x-dispatcherKey: type' to the spec to make it explicit.")));
+    }
+
+    private static String bothReceived(String spec) {
+        return spec.replace("action: send", "action: receive");
     }
 
     private static String generateClient(String spec, List<SpecWarning> warnings) throws Exception {

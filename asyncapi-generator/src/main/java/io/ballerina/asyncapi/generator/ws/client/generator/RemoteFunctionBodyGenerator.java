@@ -159,6 +159,27 @@ public class RemoteFunctionBodyGenerator {
     public String buildBodySource(Map<String, JsonNode> extensions, String requestType,
                                   String specDispatcherStreamId, boolean isSubscribe,
                                   String responseType, String pipeName, ReplyFormat replyFormat) {
+        return buildBodySource(extensions, requestType, specDispatcherStreamId, isSubscribe, responseType, pipeName,
+                replyFormat, false);
+    }
+
+    /**
+     * Builds the function body source text for a remote function, sending a request without the dispatcher key as
+     * it is.
+     *
+     * @param extensions             message-level extensions ({@code x-response-type}, etc.)
+     * @param requestType            the Ballerina request type name
+     * @param specDispatcherStreamId the dispatcher stream ID field name (may be {@code null})
+     * @param isSubscribe            {@code true} for receive-only (subscribe) operations
+     * @param responseType           the Ballerina response type name
+     * @param pipeName               the canonical pipe key for this response type (from the responseMap)
+     * @param replyFormat            how the reply frame becomes the response type
+     * @param sendAsIs               whether the request lacks the dispatcher key, so it isn't made a {@code Message}
+     * @return function body source text (statements only, no braces)
+     */
+    public String buildBodySource(Map<String, JsonNode> extensions, String requestType,
+                                  String specDispatcherStreamId, boolean isSubscribe,
+                                  String responseType, String pipeName, ReplyFormat replyFormat, boolean sendAsIs) {
         StringBuilder sb = new StringBuilder();
         JsonNode dispatchValueNode = extensions == null ? null : extensions.get(NamedPayloadSpec.X_DISPATCHER_VALUE);
         String dispatchValue = dispatchValueNode == null ? null : dispatchValueNode.asText();
@@ -167,13 +188,13 @@ public class RemoteFunctionBodyGenerator {
             JsonNode xResponseType = extensions.get(X_RESPONSE_TYPE);
             if (xResponseType != null && SERVER_STREAMING.equals(xResponseType.asText())) {
                 buildStreamBodySource(sb, requestType, responseType, specDispatcherStreamId, isSubscribe, pipeName,
-                        dispatchValue);
+                        dispatchValue, sendAsIs);
             } else {
                 buildSimpleRpcBodySource(sb, requestType, responseType, specDispatcherStreamId, isSubscribe, pipeName,
-                        replyFormat, dispatchValue);
+                        replyFormat, dispatchValue, sendAsIs);
             }
         } else {
-            buildNoResponseBodySource(sb, requestType, dispatchValue);
+            buildNoResponseBodySource(sb, requestType, dispatchValue, sendAsIs);
         }
         return sb.toString();
     }
@@ -212,7 +233,7 @@ public class RemoteFunctionBodyGenerator {
      */
     private void buildStreamBodySource(StringBuilder sb, String requestType, String responseType,
                                        String dispatcherStreamId, boolean isSubscribe, String pipeName,
-                                       String dispatchValue) {
+                                       String dispatchValue, boolean sendAsIs) {
         // Same key the reader gets from responseMap for this request type
         String pipeId = String.format("\"%s\"", CodegenUtils.getValidName(requestType, false));
         if (!isSubscribe) {
@@ -222,7 +243,7 @@ public class RemoteFunctionBodyGenerator {
             pipeId = String.format("%s.%s", CodegenUtils.getRequestParamName(requestType),
                     CodegenUtils.escapeIdentifier(dispatcherStreamId));
         }
-        appendProduceStatements(sb, requestType, isSubscribe, dispatchValue);
+        appendProduceStatements(sb, requestType, isSubscribe, dispatchValue, sendAsIs);
 
         sb.append(String.format("stream<%s,error?> streamMessages;\n", responseType));
 
@@ -241,7 +262,7 @@ public class RemoteFunctionBodyGenerator {
      */
     private void buildSimpleRpcBodySource(StringBuilder sb, String requestType, String responseType,
                                           String dispatcherStreamId, boolean isSubscribe, String pipeName,
-                                          ReplyFormat replyFormat, String dispatchValue) {
+                                          ReplyFormat replyFormat, String dispatchValue, boolean sendAsIs) {
         String camelCaseRequestType = CodegenUtils.getRequestParamName(requestType);
         String responseVar = responseType.contains(PIPE_SEP)
                 ? "unionResult" : CodegenUtils.getValidName(responseType, false);
@@ -272,7 +293,7 @@ public class RemoteFunctionBodyGenerator {
         if (awaitsUnkeyedReply) {
             sb.append(String.format("self.%s.awaitReply(%s, true);\n", PIPES, pipeId));
         }
-        appendProduceStatements(sb, requestType, isSubscribe, dispatchValue);
+        appendProduceStatements(sb, requestType, isSubscribe, dispatchValue, sendAsIs);
 
         // consume
         sb.append(String.format("%s|%s %s = %s.%s(timeout);\n",
@@ -306,9 +327,10 @@ public class RemoteFunctionBodyGenerator {
     /**
      * Sends the request without waiting for a reply.
      */
-    private void buildNoResponseBodySource(StringBuilder sb, String requestType, String dispatchValue) {
+    private void buildNoResponseBodySource(StringBuilder sb, String requestType, String dispatchValue,
+                                           boolean sendAsIs) {
         appendConnectionActiveCheck(sb);
-        appendProduceStatements(sb, requestType, false, dispatchValue);
+        appendProduceStatements(sb, requestType, false, dispatchValue, sendAsIs);
     }
 
     private void appendConnectionActiveCheck(StringBuilder sb) {
@@ -317,15 +339,21 @@ public class RemoteFunctionBodyGenerator {
 
     /**
      * Clones the request into a {@code Message} and puts it on the write queue. When the message fixes a dispatcher
-     * value, the request's dispatcher field is set to it first, whatever the caller passed. A receive-only function
-     * sends nothing.
+     * value, the request's dispatcher field is set to it first, whatever the caller passed. A request without the
+     * key is queued as it is. A receive-only function sends nothing.
      */
     private void appendProduceStatements(StringBuilder sb, String requestType, boolean isSubscribe,
-                                         String dispatchValue) {
+                                         String dispatchValue, boolean sendAsIs) {
         if (isSubscribe) {
             return;
         }
         String source = CodegenUtils.getRequestParamName(requestType);
+        if (sendAsIs) {
+            // A pipe only takes read-only values, as Message is
+            sb.append(String.format("readonly & anydata %s = %s.cloneReadOnly();\n", MESSAGE_VAR, source));
+            appendProduceToWriteQueue(sb);
+            return;
+        }
         if (dispatchValue != null && dispatcherKey != null) {
             sb.append(String.format("%s %s = %s.clone();\n", requestType, REQUEST_VAR, source));
             sb.append(String.format("%s.%s = %s;\n", REQUEST_VAR, CodegenUtils.escapeIdentifier(dispatcherKey),

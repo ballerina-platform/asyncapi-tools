@@ -167,7 +167,7 @@ public class ClientRemoteFunctionGenerator {
             for (Map.Entry<String, AsyncApiMessage> msgEntry : op.messages().entrySet()) {
                 String msgName = msgEntry.getKey();
                 AsyncApiMessage message = msgEntry.getValue();
-                // The client only sends records that carry the dispatcher key, so this one gets no function yet
+                // A message without a JSON Schema payload has no type to send, so it gets no function yet
                 if (!(message.payload() instanceof AsyncApiSchema)) {
                     warnNoPayload(opEntry.getKey(), msgName, "function to send it", "function");
                     continue;
@@ -381,8 +381,10 @@ public class ClientRemoteFunctionGenerator {
             replyFormat = returnTypeGen.isTextReply(returnType)
                     ? RemoteFunctionBodyGenerator.ReplyFormat.TEXT : RemoteFunctionBodyGenerator.ReplyFormat.JSON;
         }
+        // Only received messages are routed on the key, so a request without it is sent as it is
+        boolean sendAsIs = payload != null && !returnTypeGen.carriesDispatcherKey(payload);
         String bodySource = bodyGen.buildBodySource(msgExtensions, requestType, dispatcherStreamId,
-                isSubscribe, returnType, pipeName, replyFormat);
+                isSubscribe, returnType, pipeName, replyFormat, sendAsIs);
 
         // Build complete function source and parse
         String funcSource = String.format(

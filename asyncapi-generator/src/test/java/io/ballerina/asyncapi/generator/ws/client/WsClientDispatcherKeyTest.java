@@ -42,6 +42,8 @@ import java.util.stream.Stream;
 public class WsClientDispatcherKeyTest {
 
     private static final ObjectMapper YAML = new ObjectMapper(new YAMLFactory());
+    // A request without the key is cloned and queued as it is, whatever its parameter is named
+    private static final String SENT_AS_IT_IS = "(?s).*readonly & anydata message = \\S+\\.cloneReadOnly\\(\\);.*";
 
     // %s is the Join payload, %s the Said payload, and %s any extra component schemas
     private static final String SPEC = """
@@ -105,15 +107,47 @@ public class WsClientDispatcherKeyTest {
 
     @Test
     void testMessageWithoutTheKeyIsLeftOutWithAWarning() throws Exception {
+        // Join is received too, so the two received messages have to be told apart
         List<SpecWarning> warnings = new ArrayList<>();
         String said = "{type: object, properties: {text: {type: string}}}";
-        String client = generateClient(SPEC.formatted(JOIN, said, ""), warnings);
+        String client = generateClient(SPEC.formatted(JOIN, said, "").replace("action: send", "action: receive"),
+                warnings);
         Assert.assertTrue(client.contains("remote isolated function doJoin("), client);
         Assert.assertFalse(client.contains("doSaid"), client);
         Assert.assertEquals(warnings, List.of(new SpecWarning("/operations/receiveSaid",
                 "message 'Said' has no 'type' field, so the client can't tell it apart from the other messages and "
                         + "leaves it out",
                 "Add a required 'type' string field to the message's payload.")));
+    }
+
+    @Test
+    void testSentMessageWithoutTheKeyIsSentAsItIs() throws Exception {
+        List<SpecWarning> warnings = new ArrayList<>();
+        String join = "{type: object, properties: {room: {type: string}}}";
+        String client = generateClient(SPEC.formatted(join, SAID, ""), warnings);
+        Assert.assertTrue(client.contains("remote isolated function doJoin(Join "), client);
+        Assert.assertTrue(client.matches(SENT_AS_IT_IS), client);
+        Assert.assertTrue(client.contains("anydata|pipe:Error message = self.writeMessageQueue.consume(5);"), client);
+        // Said still carries the key, so frames are still routed on it
+        Assert.assertTrue(client.contains("string? pipeName = self.getPipeName(message.'type);"), client);
+        Assert.assertEquals(warnings, List.of());
+    }
+
+    @Test
+    void testReceivedMessageWithoutTheKeyIsKeptWhenItIsAllTheConnectionReceives() throws Exception {
+        List<SpecWarning> warnings = new ArrayList<>();
+        String said = "{type: object, properties: {text: {type: string}}}";
+        String client = generateClient(SPEC.formatted(JOIN, said, ""), warnings);
+        Assert.assertTrue(client.contains("remote isolated function doSaid(decimal timeout) returns Said|error"),
+                client);
+        Assert.assertTrue(client.contains("Said|error said = responseMessage.fromJsonStringWithType();"), client);
+        // Nothing received carries the key, so every frame is read as one without it
+        Assert.assertFalse(client.contains("parsedMessage"), client);
+        Assert.assertTrue(client.contains("\"#noDispatcherKey\" : \"#noDispatcherKeyEvents\").produce(frame, 5);"),
+                client);
+        // Join carries the key, so it is still sent as a Message
+        Assert.assertTrue(client.contains("Message|error message = request.cloneWithType();"), client);
+        Assert.assertEquals(warnings, List.of());
     }
 
     @Test
