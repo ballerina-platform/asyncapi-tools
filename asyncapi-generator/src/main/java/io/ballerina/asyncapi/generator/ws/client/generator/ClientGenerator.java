@@ -17,7 +17,6 @@
  */
 package io.ballerina.asyncapi.generator.ws.client.generator;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import io.ballerina.asyncapi.core.api.AsyncApiSpec;
 import io.ballerina.asyncapi.core.model.channel.AsyncApiChannel;
 import io.ballerina.asyncapi.core.model.server.AsyncApiServer;
@@ -47,9 +46,12 @@ import io.ballerina.tools.text.TextDocuments;
 import org.ballerinalang.formatter.core.Formatter;
 
 import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createEmptyNodeList;
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createNodeList;
@@ -128,46 +130,44 @@ public class ClientGenerator {
         // A spec without a key fails first, before its channel or auth is checked
         new DispatcherKeyExtractor(asyncApiSpec).extract();
 
-        // Get channel and WS bindings — only a single channel is supported
-        ChannelExtractor.ChannelInfo channelInfo = new ChannelExtractor(asyncApiSpec).extract();
-        String channelName = channelInfo.channelName();
-        AsyncApiChannel channel = channelInfo.channel();
-        JsonNode querySchema = channelInfo.querySchema();
-        JsonNode headerSchema = channelInfo.headerSchema();
-
-        // Compute server URL
+        // Each channel is a connection of its own, so each gets its own client
+        List<ChannelExtractor.ChannelInfo> channels = new ChannelExtractor(asyncApiSpec).extract(config.getWarnings());
+        boolean severalChannels = channels.size() > 1;
         String serverUrl = getServerUrl(asyncApiSpec);
-
-        // Set up auth generator and process auth records
-        BallerinaAuthConfigGenerator authGen = new BallerinaAuthConfigGenerator();
-        authGen.addAuthRelatedRecords(asyncApiSpec);
-
-        // Collect type definitions
-        List<TypeDefinitionNode> typeDefinitionNodeList = new ArrayList<>(authGen.getAuthRelatedTypeDefinitionNodes());
-
-        // How each incoming message is told apart and which pipe it goes to
-        RoutingPlan plan = RoutingPlan.of(asyncApiSpec);
-
-        // Build imports
         List<ImportDeclarationNode> imports = buildImports();
 
-        // Build class definition
-        ClassDefinitionNode classDefNode = getClassDefinitionNode(plan, channelName, channel, querySchema,
-                headerSchema, serverUrl, authGen, typeDefinitionNodeList, imports);
+        Map<String, TypeDefinitionNode> typeDefinitions = new LinkedHashMap<>();
+        List<ClassDefinitionNode> classDefNodes = new ArrayList<>();
+        Set<String> classNames = new HashSet<>();
+        for (ChannelExtractor.ChannelInfo channelInfo : channels) {
+            // With several channels, each client's parameter records are named after its channel
+            String paramsPrefix = severalChannels ? CodegenUtils.getValidName(channelInfo.channelName(), true) : "";
+            BallerinaAuthConfigGenerator authGen =
+                    new BallerinaAuthConfigGenerator().withParamsTypePrefix(paramsPrefix);
+            authGen.addAuthRelatedRecords(asyncApiSpec);
+            List<TypeDefinitionNode> typeDefinitionNodeList =
+                    new ArrayList<>(authGen.getAuthRelatedTypeDefinitionNodes());
 
-        // init adds the PathParams, HeaderParams and QueryParams records while the class is built
-        for (TypeDefinitionNode paramRecord : authGen.getAuthRelatedTypeDefinitionNodes()) {
-            if (!typeDefinitionNodeList.contains(paramRecord)) {
-                typeDefinitionNodeList.add(paramRecord);
+            // How each incoming message is told apart and which pipe it goes to
+            RoutingPlan plan = RoutingPlan.of(channelInfo.spec());
+            classDefNodes.add(getClassDefinitionNode(plan, channelInfo, serverUrl, authGen, typeDefinitionNodeList,
+                    imports, classNames));
+
+            // init adds the PathParams, HeaderParams and QueryParams records while the class is built
+            for (TypeDefinitionNode paramRecord : authGen.getAuthRelatedTypeDefinitionNodes()) {
+                if (!typeDefinitionNodeList.contains(paramRecord)) {
+                    typeDefinitionNodeList.add(paramRecord);
+                }
+            }
+            // The clients share the spec-wide records, such as the auth config
+            for (TypeDefinitionNode typeDef : typeDefinitionNodeList) {
+                typeDefinitions.putIfAbsent(typeDef.typeName().text(), typeDef);
             }
         }
 
         // Build module part
-        List<ModuleMemberDeclarationNode> memberDeclarations = new ArrayList<>();
-        for (TypeDefinitionNode typeDef : typeDefinitionNodeList) {
-            memberDeclarations.add(typeDef);
-        }
-        memberDeclarations.add(classDefNode);
+        List<ModuleMemberDeclarationNode> memberDeclarations = new ArrayList<>(typeDefinitions.values());
+        memberDeclarations.addAll(classDefNodes);
 
         NodeList<ImportDeclarationNode> importsList = createNodeList(imports);
         NodeList<ModuleMemberDeclarationNode> members = createNodeList(memberDeclarations);
@@ -230,26 +230,23 @@ public class ClientGenerator {
      * Builds the full class definition node for the WebSocket client.
      *
      * @param plan                   how incoming messages are routed
-     * @param channelName            the channel key name
-     * @param channel                the channel definition
-     * @param querySchema            WS binding query schema
-     * @param headerSchema           WS binding header schema
+     * @param channelInfo            the client's channel, its bindings and the spec its client is generated from
      * @param serverUrl              computed server URL
      * @param authGen                auth config generator
      * @param typeDefinitionNodeList accumulated type definitions
      * @param imports                accumulated imports
+     * @param classNames             the client names already taken
      * @return the class definition node
      * @throws GeneratorException if generation fails
      */
-    private ClassDefinitionNode getClassDefinitionNode(RoutingPlan plan, String channelName,
-                                                        AsyncApiChannel channel, JsonNode querySchema,
-                                                        JsonNode headerSchema, String serverUrl,
-                                                        BallerinaAuthConfigGenerator authGen,
+    private ClassDefinitionNode getClassDefinitionNode(RoutingPlan plan, ChannelExtractor.ChannelInfo channelInfo,
+                                                        String serverUrl, BallerinaAuthConfigGenerator authGen,
                                                         List<TypeDefinitionNode> typeDefinitionNodeList,
-                                                        List<ImportDeclarationNode> imports)
+                                                        List<ImportDeclarationNode> imports, Set<String> classNames)
             throws GeneratorException {
         boolean isStreamPresent = !plan.streamReturns().isEmpty();
-        AsyncApiSpec asyncApiSpec = config.getAsyncApi();
+        AsyncApiSpec asyncApiSpec = channelInfo.spec();
+        AsyncApiChannel channel = channelInfo.channel();
 
         // Build class members using focused node builders
         List<Node> classMembers = new ArrayList<>();
@@ -257,7 +254,7 @@ public class ClientGenerator {
 
         classMembers.addAll(new ClientFieldGenerator(isStreamPresent, authGen, plan.responseMap(),
                 plan.dispatchValueMap()).buildFields());
-        classMembers.add(new ClientInitGenerator(config, channel, querySchema, headerSchema,
+        classMembers.add(new ClientInitGenerator(config, channel, channelInfo.querySchema(), channelInfo.headerSchema(),
                 serverUrl, authGen, isStreamPresent).buildInitFunction());
         classMembers.add(helperGen.buildGetRecordName());
         classMembers.add(helperGen.buildGetPipeName());
@@ -280,10 +277,13 @@ public class ClientGenerator {
                 CodegenUtils.tokenWithSpace(CLIENT_KEYWORD),
                 CodegenUtils.tokenWithSpace(ISOLATED_KEYWORD));
 
-        // Class name: {Title}{ChannelName}Client
-        String title = CodegenUtils.getClientTitleName(asyncApiSpec.getAsyncApiInfo());
-        String chanName = "/".equals(channel.address()) ? "" : CodegenUtils.getValidName(channelName, true);
-        String className = String.format("%s%sClient", title, chanName);
+        String className = clientClassName(asyncApiSpec, channelInfo.channelName(), channel);
+        // Two channel names can give the same client name, as in 'chat-room' and 'chat_room'
+        String uniqueName = className;
+        for (int i = 2; !classNames.add(uniqueName); i++) {
+            uniqueName = className + i;
+        }
+        className = uniqueName;
 
         // createClassDefinitionNode(metadata, visibilityQualifier, qualifiers, classKeyword,
         //   className, openBrace, members, closeBrace, semicolonOrNull)
@@ -294,6 +294,21 @@ public class ClientGenerator {
                 createNodeList(classMembers),
                 createToken(CLOSE_BRACE_TOKEN),
                 null);
+    }
+
+    /**
+     * Returns the name of the client for a channel: {@code {Title}{ChannelName}Client}, or {@code {Title}Client}
+     * for the root channel.
+     *
+     * @param spec        the spec
+     * @param channelName the channel's key in the spec
+     * @param channel     the channel
+     * @return the client's class name
+     */
+    public static String clientClassName(AsyncApiSpec spec, String channelName, AsyncApiChannel channel) {
+        String title = CodegenUtils.getClientTitleName(spec.getAsyncApiInfo());
+        String chanName = "/".equals(channel.address()) ? "" : CodegenUtils.getValidName(channelName, true);
+        return String.format("%s%sClient", title, chanName);
     }
 
     /**
