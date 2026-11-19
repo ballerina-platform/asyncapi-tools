@@ -52,6 +52,14 @@ public final class AsyncApiParser {
     // The kind brokenRefs gives the operations under the root "operations"
     private static final String OPERATION_KIND = "operation";
     private static final String REF = "$ref";
+    private static final String SCHEMAS = "schemas";
+    private static final String PAYLOAD = "payload";
+    private static final String COMPONENT_SCHEMAS_REF = "#/components/schemas/";
+    // A ref to a message object itself, rather than to a schema inside it
+    private static final Pattern MESSAGE_REF = Pattern.compile(
+            "#/(components/messages|channels/[^/]+/messages|components/channels/[^/]+/messages)/[^/]+");
+    // Keys whose values are data, so a $ref in them isn't a reference
+    private static final Set<String> SCHEMA_DATA_KEYS = Set.of("examples", "example", "default", "const", "enum");
     // Any 3.x.y, with the pre-release suffix AsyncAPI allows (3.1.0-rc1); 3.0.0 itself is unchanged by the rewrite
     private static final Pattern LATER_3X = Pattern.compile("3\\.\\d+\\.\\d+(-[0-9A-Za-z.-]+)?");
 
@@ -184,7 +192,45 @@ public final class AsyncApiParser {
         checkOperations(root, components.path(OPERATIONS), "component operation", broken);
         components.path(REPLIES).properties().forEach(reply -> checkReply(root, reply.getValue(),
                 MissingNode.getInstance(), "component reply '" + reply.getKey() + "'", broken));
+        components.path(SCHEMAS).properties().forEach(schema ->
+                checkSchemaRefs(root, schema.getValue(), "schema '" + schema.getKey() + "'", broken));
+        components.path(MESSAGES).properties().forEach(message -> checkSchemaRefs(root,
+                message.getValue().path(PAYLOAD), "component message '" + message.getKey() + "' payload", broken));
+        root.path(CHANNELS).properties().forEach(channel -> channel.getValue().path(MESSAGES).properties().forEach(
+                message -> checkSchemaRefs(root, message.getValue().path(PAYLOAD), "channel '" + channel.getKey()
+                        + "' message '" + message.getKey() + "' payload", broken)));
         return broken;
+    }
+
+    // Reports each $ref in a schema that points at a message, which is no schema, so there is no type to give
+    private static void checkSchemaRefs(JsonNode root, JsonNode schema, String what, List<String> broken) {
+        if (schema.isArray()) {
+            schema.forEach(item -> checkSchemaRefs(root, item, what, broken));
+            return;
+        }
+        if (!schema.isObject()) {
+            return;
+        }
+        JsonNode ref = schema.path(REF);
+        if (ref.isTextual() && MESSAGE_REF.matcher(ref.asText()).matches()) {
+            broken.add(String.format("%s reference '%s' points to a message, not a schema; %s", what, ref.asText(),
+                    messageSchemaFix(root, ref.asText())));
+        }
+        schema.properties().forEach(entry -> {
+            if (!REF.equals(entry.getKey()) && !SCHEMA_DATA_KEYS.contains(entry.getKey())) {
+                checkSchemaRefs(root, entry.getValue(), what, broken);
+            }
+        });
+    }
+
+    // The schema to point at instead: the message's payload schema when it has one by reference
+    private static String messageSchemaFix(JsonNode root, String messageRef) {
+        JsonNode message = JsonPointers.resolve(root, messageRef);
+        JsonNode payloadRef = message != null ? message.path(PAYLOAD).path(REF) : MissingNode.getInstance();
+        if (payloadRef.isTextual() && payloadRef.asText().startsWith(COMPONENT_SCHEMAS_REF)) {
+            return "point it at the message's payload schema '" + payloadRef.asText() + "'";
+        }
+        return "move the message's payload to 'components/schemas' and point it there";
     }
 
     private static void checkOperations(JsonNode root, JsonNode operations, String kind, List<String> broken) {

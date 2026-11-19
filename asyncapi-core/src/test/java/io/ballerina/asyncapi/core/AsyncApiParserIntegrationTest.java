@@ -741,6 +741,46 @@ public class AsyncApiParserIntegrationTest {
     }
 
     @Test
+    void schemaReferencingAMessage_isRejectedWithItsPayloadSchema() {
+        // A message isn't a schema, so a type made from it would name a type that doesn't exist
+        String spec = v3Refs().replace("\"components\":{\"messages\":{\"Ping\":{\"payload\":{\"type\":\"object\"}}}}",
+                "\"components\":{\"messages\":{\"Ping\":{\"payload\":{\"$ref\":\"#/components/schemas/PingBody\"}}},"
+                        + "\"schemas\":{\"PingBody\":{\"type\":\"object\"},"
+                        + "\"Event\":{\"oneOf\":[{\"$ref\":\"#/components/messages/Ping\"}]}}}");
+        Assert.assertTrue(spec.contains("\"Event\""), spec);
+        AsyncApiParserException e = Assert.expectThrows(AsyncApiParserException.class,
+                () -> AsyncApiParser.parseFromJsonString(spec));
+        Assert.assertTrue(e.getMessage().contains("schema 'Event' reference '#/components/messages/Ping' points to a "
+                + "message, not a schema; point it at the message's payload schema '#/components/schemas/PingBody'"),
+                e.getMessage());
+    }
+
+    @Test
+    void schemaReferencingAMessageWithAnInlinePayload_isRejected() {
+        String spec = v3Refs().replace("\"components\":{\"messages\":{\"Ping\":{\"payload\":{\"type\":\"object\"}}}}",
+                "\"components\":{\"messages\":{\"Ping\":{\"payload\":{\"type\":\"object\"}}},"
+                        + "\"schemas\":{\"Event\":{\"properties\":{\"ping\":"
+                        + "{\"$ref\":\"#/components/messages/Ping\"}}}}}");
+        Assert.assertTrue(spec.contains("\"Event\""), spec);
+        AsyncApiParserException e = Assert.expectThrows(AsyncApiParserException.class,
+                () -> AsyncApiParser.parseFromJsonString(spec));
+        Assert.assertTrue(e.getMessage().contains("schema 'Event' reference '#/components/messages/Ping' points to a "
+                + "message, not a schema; move the message's payload to 'components/schemas' and point it there"),
+                e.getMessage());
+    }
+
+    @Test
+    void schemaReferencingAMessagesPayload_isRead() throws AsyncApiParserException {
+        // A ref into the message, to its payload, is a ref to a schema
+        String spec = v3Refs().replace("\"components\":{\"messages\":{\"Ping\":{\"payload\":{\"type\":\"object\"}}}}",
+                "\"components\":{\"messages\":{\"Ping\":{\"payload\":{\"type\":\"object\"}}},"
+                        + "\"schemas\":{\"Event\":{\"$ref\":\"#/components/messages/Ping/payload\"}}}");
+        Assert.assertTrue(spec.contains("\"Event\""), spec);
+        Assert.assertNotNull(AsyncApiParser.parseFromJsonString(spec).getAsyncApiOperations().orElseThrow()
+                .get("sendPing"));
+    }
+
+    @Test
     void avroPayload_hasNoSchema() throws AsyncApiParserException {
         // An Avro record's JSON looks like a schema with type: record, but it isn't JSON Schema
         String spec = v3Refs().replace("\"Ping\":{\"payload\":{\"type\":\"object\"}}",
