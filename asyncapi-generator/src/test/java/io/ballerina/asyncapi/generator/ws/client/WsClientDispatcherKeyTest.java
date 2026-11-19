@@ -24,6 +24,7 @@ import io.ballerina.asyncapi.core.SpecWarning;
 import io.ballerina.asyncapi.core.api.AsyncApiSpec;
 import io.ballerina.asyncapi.generator.ws.client.model.DispatcherKeySpec;
 import io.ballerina.asyncapi.generator.ws.client.model.NamedPayloadSpec;
+import io.ballerina.asyncapi.generator.ws.client.utils.CodegenUtils;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -117,7 +118,8 @@ public class WsClientDispatcherKeyTest {
         Assert.assertEquals(warnings, List.of(new SpecWarning("/operations/receiveSaid",
                 "message 'Said' has no 'type' field, so the client can't tell it apart from the other messages and "
                         + "leaves it out",
-                "Add a required 'type' string field to the message's payload.")));
+                "Add a required 'type' string field with a fixed value to the message's payload, such as type: "
+                        + "{type: string, const: said}. See " + CodegenUtils.DISPATCHER_KEY_DOCS)));
     }
 
     @Test

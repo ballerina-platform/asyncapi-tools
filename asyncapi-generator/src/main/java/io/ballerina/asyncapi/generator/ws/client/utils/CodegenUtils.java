@@ -47,6 +47,10 @@ import java.util.Set;
  */
 public final class CodegenUtils {
 
+    /** The docs page on how a WebSocket client tells incoming messages apart, which key messages point to. */
+    public static final String DISPATCHER_KEY_DOCS =
+            "https://github.com/ballerina-platform/asyncapi-tools/blob/main/docs/websocket-dispatcher-key.md";
+
     /** Pattern used to detect and escape special characters in Ballerina identifiers. */
     public static final String ESCAPE_PATTERN = "([\\[\\]\\\\?!<>@#&~`*\\-=^+();:\\/{}\\s|.$])";
 

@@ -36,6 +36,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -161,7 +162,9 @@ public final class DispatcherKeySpec implements AsyncApiSpec {
             warnings.accept(new SpecWarning("/operations/" + pointerToken(operationId),
                     String.format("message '%s' has no '%s' field, so the client can't tell it apart from the other "
                             + "messages and leaves it out", messageName, key),
-                    String.format("Add a required '%s' string field to the message's payload.", key)));
+                    String.format("Add a required '%s' string field with a fixed value to the message's payload, "
+                            + "such as %s: {type: string, const: %s}. See %s", key, key,
+                            messageName.toLowerCase(Locale.ROOT), CodegenUtils.DISPATCHER_KEY_DOCS)));
             return null;
         }
         // A payload that carries its schema, rather than only its name, carries the fixed one

@@ -89,24 +89,48 @@ public final class IncomingMessages {
      * @return the received payloads
      */
     public static List<AsyncApiSchema> payloads(AsyncApiSpec spec, Map<String, AsyncApiOperation> operations) {
+        return received(spec, operations).stream().map(Received::payload).toList();
+    }
+
+    /**
+     * A message a client receives, with where the spec says so.
+     *
+     * @param name     the message's name in the operation or components
+     * @param location a JSON Pointer to the receive operation, or to the component message a reply names
+     * @param payload  its payload; a named payload is its component schema
+     */
+    public record Received(String name, String location, AsyncApiSchema payload) { }
+
+    /**
+     * Returns the messages received through {@code operations}, each payload once, as {@link #payloads} does.
+     *
+     * @param spec       the spec the operations are in
+     * @param operations the operations on one connection, by operation id
+     * @return the received messages
+     */
+    public static List<Received> received(AsyncApiSpec spec, Map<String, AsyncApiOperation> operations) {
         AsyncApiComponent components = spec.getAsyncApiComponents().orElse(null);
         Map<String, AsyncApiSchema> schemas = components != null && components.schemas() != null
                 ? components.schemas() : Map.of();
         Map<String, AsyncApiMessage> messages = components != null && components.messages() != null
                 ? components.messages() : Map.of();
         // By identity, as two messages with the same shape are still two messages
-        Set<AsyncApiSchema> received = Collections.newSetFromMap(new IdentityHashMap<>());
-        List<AsyncApiSchema> result = new ArrayList<>();
-        for (AsyncApiOperation op : operations.values()) {
+        Set<AsyncApiSchema> seen = Collections.newSetFromMap(new IdentityHashMap<>());
+        List<Received> result = new ArrayList<>();
+        for (Map.Entry<String, AsyncApiOperation> entry : operations.entrySet()) {
+            AsyncApiOperation op = entry.getValue();
             if (op.messages() == null) {
                 continue;
             }
-            for (AsyncApiMessage message : op.messages().values()) {
+            for (Map.Entry<String, AsyncApiMessage> message : op.messages().entrySet()) {
                 if (op.action() == AsyncApiOperation.Action.RECEIVE) {
-                    add(message, schemas, received, result);
-                } else if (message.extensions() != null && message.extensions().get(X_RESPONSE) != null) {
-                    for (String reply : replyNames(message.extensions().get(X_RESPONSE))) {
-                        add(messages.get(reply), schemas, received, result);
+                    add(message.getKey(), "/operations/" + pointerToken(entry.getKey()), message.getValue(),
+                            schemas, seen, result);
+                } else if (message.getValue().extensions() != null
+                        && message.getValue().extensions().get(X_RESPONSE) != null) {
+                    for (String reply : replyNames(message.getValue().extensions().get(X_RESPONSE))) {
+                        add(reply, "/components/messages/" + pointerToken(reply), messages.get(reply), schemas,
+                                seen, result);
                     }
                 }
             }
@@ -130,16 +154,20 @@ public final class IncomingMessages {
         return false;
     }
 
-    private static void add(AsyncApiMessage message, Map<String, AsyncApiSchema> schemas,
-                            Set<AsyncApiSchema> received, List<AsyncApiSchema> result) {
+    private static void add(String name, String location, AsyncApiMessage message,
+                            Map<String, AsyncApiSchema> schemas, Set<AsyncApiSchema> seen, List<Received> result) {
         if (message == null || !(message.payload() instanceof AsyncApiSchema payload)) {
             return;
         }
         AsyncApiSchema schema = payload.name() != null && schemas.containsKey(payload.name())
                 ? schemas.get(payload.name()) : payload;
-        if (!CodegenUtils.isCloseFrameSchema(schema) && received.add(schema)) {
-            result.add(schema);
+        if (!CodegenUtils.isCloseFrameSchema(schema) && seen.add(schema)) {
+            result.add(new Received(name, location, schema));
         }
+    }
+
+    private static String pointerToken(String name) {
+        return name.replace("~", "~0").replace("/", "~1");
     }
 
     // The component messages an x-response points at, directly or through oneOf
