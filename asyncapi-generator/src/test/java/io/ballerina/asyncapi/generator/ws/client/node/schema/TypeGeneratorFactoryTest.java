@@ -23,6 +23,7 @@ import org.testng.Assert;
 import org.testng.annotations.Test;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * Unit tests for {@link TypeGenerator#of(AsyncApiSchema, String)} verifying that each schema
@@ -73,5 +74,38 @@ public class TypeGeneratorFactoryTest {
                 TypeGenerator.of(fallbackSchema, "T").generateTypeDescriptorNode().toString();
         Assert.assertEquals(fallbackResult, "anydata",
                 "Schema with no type, name, or composite fields should fall back to AnyDataTypeGenerator");
+    }
+
+    @Test
+    void testOf_keepsTheRecord_whenAnyOfOnlyRequiresItsFields() throws GeneratorException {
+        // "text or attachmentIds" says which fields must be there; the second member also restates a field's minItems
+        AsyncApiSchema text = AsyncApiSchema.builder().type("string").build();
+        AsyncApiSchema ids = AsyncApiSchema.builder().type("array")
+                .items(AsyncApiSchema.builder().type("string").build()).build();
+        AsyncApiSchema send = AsyncApiSchema.builder().type("object")
+                .properties(Map.of("text", text, "attachmentIds", ids))
+                .anyOf(List.of(AsyncApiSchema.builder().required(List.of("text")).build(),
+                        AsyncApiSchema.builder().required(List.of("attachmentIds"))
+                                .properties(Map.of("attachmentIds", AsyncApiSchema.builder().minItems(1).build()))
+                                .build()))
+                .build();
+        // The node isn't formatted, so it is compared without whitespace
+        String result = TypeGenerator.of(send, "Send").generateTypeDescriptorNode().toSourceCode()
+                .replaceAll("\\s", "");
+        Assert.assertTrue(result.startsWith("record{"), result);
+        Assert.assertTrue(result.contains("stringtext?;") && result.contains("string[]attachmentIds?;"), result);
+    }
+
+    @Test
+    void testOf_isAUnion_whenAnAnyOfMemberHasAShapeOfItsOwn() throws GeneratorException {
+        // A member with a field the object doesn't declare is another shape, so the type stays a union
+        AsyncApiSchema send = AsyncApiSchema.builder().type("object")
+                .properties(Map.of("text", AsyncApiSchema.builder().type("string").build()))
+                .anyOf(List.of(AsyncApiSchema.builder().required(List.of("text")).build(),
+                        AsyncApiSchema.builder().properties(Map.of("file",
+                                AsyncApiSchema.builder().type("string").build())).build()))
+                .build();
+        String result = TypeGenerator.of(send, "Send").generateTypeDescriptorNode().toSourceCode();
+        Assert.assertTrue(result.contains("|"), result);
     }
 }
