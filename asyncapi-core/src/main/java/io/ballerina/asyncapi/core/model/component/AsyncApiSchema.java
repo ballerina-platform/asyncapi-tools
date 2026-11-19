@@ -240,6 +240,25 @@ public record AsyncApiSchema(
     }
 
     /**
+     * Returns a copy of this schema with the given {@code allOf}, preserving all other fields.
+     *
+     * @param newAllOf the {@code allOf} sub-schemas to set
+     * @return a new {@link AsyncApiSchema} with the given {@code allOf}
+     */
+    public AsyncApiSchema withAllOf(List<AsyncApiSchema> newAllOf) {
+        return new AsyncApiSchema(
+                title(), type(), required(), multipleOf(), maximum(), exclusiveMaximum(),
+                minimum(), exclusiveMinimum(), maxLength(), minLength(), pattern(),
+                maxItems(), minItems(), uniqueItems(), maxProperties(), minProperties(),
+                enumValue(), constValue(), examples(), ifBranch(), then(), elseBranch(), readOnly(),
+                writeOnly(), properties(), patternProperties(), additionalProperties(),
+                additionalItems(), items(), propertyNames(), contains(), newAllOf,
+                oneOf(), anyOf(), not(), description(), format(), defaultValue(),
+                discriminator(), externalDocs(), deprecated(), extensions(), name(), nullable()
+        );
+    }
+
+    /**
      * Builder for {@link AsyncApiSchema}.
      *
      * <p>All fields default to {@code null}. Set only the fields relevant to the schema
