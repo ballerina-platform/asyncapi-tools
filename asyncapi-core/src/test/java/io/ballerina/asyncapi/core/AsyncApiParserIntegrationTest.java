@@ -21,6 +21,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.TextNode;
 import io.ballerina.asyncapi.core.api.AsyncApiSpec;
 import io.ballerina.asyncapi.core.model.channel.AsyncApiChannel;
+import io.ballerina.asyncapi.core.model.channel.AsyncApiChannelParameter;
 import io.ballerina.asyncapi.core.model.component.AsyncApiComponent;
 import io.ballerina.asyncapi.core.model.component.AsyncApiSchema;
 import io.ballerina.asyncapi.core.model.info.AsyncApiInfo;
@@ -35,8 +36,10 @@ import org.testng.annotations.Test;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Integration tests for {@link AsyncApiParser#parseFromJsonString(String)}.
@@ -641,6 +644,315 @@ public class AsyncApiParserIntegrationTest {
                 + "\"paths\":{}}";
         Assert.assertThrows(AsyncApiParserException.class,
                 () -> AsyncApiParser.parseFromJsonString(openApiJson));
+    }
+
+    // -------------------------------------------------------------------------
+    // Channel and message references
+    // -------------------------------------------------------------------------
+
+    @DataProvider(name = "pingPongSpecs")
+    Object[][] pingPongSpecs() {
+        return new Object[][] {
+            {"channel-ref.json", "ws", "/ws"},
+            {"channel-ref-message-through-channel.json", "ws", "/ws"},
+            {"escaped-channel-key.json", "/ws", "/ws"},
+            {"no-address.json", "ws", null},
+            {"null-address.json", "ws", null},
+        };
+    }
+
+    @Test(dataProvider = "pingPongSpecs")
+    void validChannelReferences_areRead(String file, String channelKey, String address)
+            throws IOException, AsyncApiParserException {
+        // A channel that is a $ref, a key referenced with ~1, and a missing or null address are all valid 3.0
+        AsyncApiSpec spec = AsyncApiParser.parseFromJsonString(loadSpec(SPEC_DIR + "refs/" + file));
+        Assert.assertEquals(spec.getAsyncApiChannels().orElseThrow().get(channelKey).address(), address);
+        AsyncApiOperation operation = spec.getAsyncApiOperations().orElseThrow().get("sendPing");
+        Assert.assertEquals(operation.channelId(), "Ws");
+        Assert.assertNotNull(operation.channel());
+        Assert.assertEquals(operation.messages().keySet(), Set.of("ping"));
+        Assert.assertEquals(operation.reply().messages().keySet(), Set.of("pong"));
+    }
+
+    @DataProvider(name = "brokenRefs")
+    Object[][] brokenRefs() {
+        return new Object[][] {
+            {"broken-message-ref.json", "operation 'sendPing' message reference '#/channels/ws/messages/nope'"},
+            {"broken-channel-message-ref.json",
+                "channel 'ws' message 'pong' reference '#/components/messages/Nope'"},
+            {"broken-component-operation-ref.json",
+                "component operation 'sharedPing' channel reference '#/channels/nope'"},
+        };
+    }
+
+    @Test
+    void messageOfAnotherChannel_isRejected() throws IOException {
+        // 3.0 needs an operation's messages to be messages of its channel
+        AsyncApiParserException e = Assert.expectThrows(AsyncApiParserException.class,
+                () -> AsyncApiParser.parseFromJsonString(loadSpec(SPEC_DIR + "refs/message-of-another-channel.json")));
+        Assert.assertTrue(e.getMessage().contains("operation 'sendPing' message reference "
+                + "'#/channels/other/messages/note' isn't one of the messages of its channel '#/channels/ws'"),
+                e.getMessage());
+    }
+
+    @Test
+    void rootOperationChannelOutsideChannels_isRejected() {
+        String spec = v3Refs().replace("\"channel\":{\"$ref\":\"#/channels/ws\"}", "\"channel\":{\"$ref\":\"#/info\"}");
+        AsyncApiParserException e = Assert.expectThrows(AsyncApiParserException.class,
+                () -> AsyncApiParser.parseFromJsonString(spec));
+        Assert.assertTrue(e.getMessage().contains("operation 'sendPing' channel reference '#/info' isn't one of the "
+                + "channels under 'channels'"), e.getMessage());
+    }
+
+    @Test
+    void messageOfAnotherChannelSharingItsMessage_isRejected() {
+        // Both channels list the same component message, so only the channel part of the ref tells them apart
+        String spec = v3Refs().replace("\"messages\":[{\"$ref\":\"#/channels/ws/messages/ping\"}]",
+                "\"messages\":[{\"$ref\":\"#/channels/other/messages/ping\"}]");
+        AsyncApiParserException e = Assert.expectThrows(AsyncApiParserException.class,
+                () -> AsyncApiParser.parseFromJsonString(spec));
+        Assert.assertTrue(e.getMessage().contains("operation 'sendPing' message reference "
+                + "'#/channels/other/messages/ping' isn't one of the messages of its channel '#/channels/ws'"),
+                e.getMessage());
+    }
+
+    @Test
+    void messageThroughAChannelInAnotherFile_isNotReportedBroken() {
+        String spec = v3Refs().replace("\"ws\":{\"address\":\"/ws\",",
+                "\"ws\":{\"$ref\":\"shared.yaml#/ws\"},\"unused\":{\"address\":\"/u\",");
+        Assert.assertTrue(spec.contains("shared.yaml"), spec);
+        try {
+            AsyncApiParser.parseFromJsonString(spec);
+        } catch (AsyncApiParserException e) {
+            // The other file isn't read here, but the ref through it isn't one this check reports
+            Assert.assertFalse(e.getMessage().contains("doesn't point to anything"), e.getMessage());
+            Assert.assertFalse(e.getMessage().contains("isn't one of the messages"), e.getMessage());
+        }
+    }
+
+    @Test
+    void componentMessageItsChannelLists_isRead() throws AsyncApiParserException {
+        // A ref to #/components/messages is to the message itself, so the channel only has to list it
+        String spec = v3Refs().replace("\"messages\":[{\"$ref\":\"#/channels/ws/messages/ping\"}]",
+                "\"messages\":[{\"$ref\":\"#/components/messages/Ping\"}]");
+        Assert.assertTrue(spec.contains("\"$ref\":\"#/components/messages/Ping\"}]"), spec);
+        AsyncApiSpec parsed = AsyncApiParser.parseFromJsonString(spec);
+        Assert.assertNotNull(parsed.getAsyncApiOperations().orElseThrow().get("sendPing"));
+    }
+
+    @Test
+    void schemaReferencingAMessage_isRejectedWithItsPayloadSchema() {
+        // A message isn't a schema, so a type made from it would name a type that doesn't exist
+        String spec = v3Refs().replace("\"components\":{\"messages\":{\"Ping\":{\"payload\":{\"type\":\"object\"}}}}",
+                "\"components\":{\"messages\":{\"Ping\":{\"payload\":{\"$ref\":\"#/components/schemas/PingBody\"}}},"
+                        + "\"schemas\":{\"PingBody\":{\"type\":\"object\"},"
+                        + "\"Event\":{\"oneOf\":[{\"$ref\":\"#/components/messages/Ping\"}]}}}");
+        Assert.assertTrue(spec.contains("\"Event\""), spec);
+        AsyncApiParserException e = Assert.expectThrows(AsyncApiParserException.class,
+                () -> AsyncApiParser.parseFromJsonString(spec));
+        Assert.assertTrue(e.getMessage().contains("the schema reference at /components/schemas/Event/oneOf/0 points "
+                + "to a message, '#/components/messages/Ping', not a schema; point it at the message's payload schema "
+                + "'#/components/schemas/PingBody'"), e.getMessage());
+    }
+
+    @Test
+    void schemaReferencingAMessageWithAnInlinePayload_isRead() throws AsyncApiParserException {
+        // An inline payload's type is named after its message, so the type the ref names exists
+        String spec = v3Refs().replace("\"components\":{\"messages\":{\"Ping\":{\"payload\":{\"type\":\"object\"}}}}",
+                "\"components\":{\"messages\":{\"Ping\":{\"payload\":{\"type\":\"object\"}}},"
+                        + "\"schemas\":{\"Event\":{\"properties\":{\"ping\":"
+                        + "{\"$ref\":\"#/components/messages/Ping\"}}}}}");
+        Assert.assertTrue(spec.contains("\"Event\""), spec);
+        Assert.assertNotNull(AsyncApiParser.parseFromJsonString(spec).getAsyncApiOperations().orElseThrow()
+                .get("sendPing"));
+    }
+
+    @Test
+    void payloadThatIsARefToAMessage_isRead() throws AsyncApiParserException {
+        // The payload has no schema, so the client leaves its message out with a warning, as before
+        String spec = v3Refs().replace("\"components\":{\"messages\":{\"Ping\":{\"payload\":{\"type\":\"object\"}}}}",
+                "\"components\":{\"messages\":{\"Ping\":{\"payload\":{\"$ref\":\"#/components/messages/Body\"}},"
+                        + "\"Body\":{\"payload\":{\"type\":\"object\"}}}}");
+        Assert.assertTrue(spec.contains("\"Body\""), spec);
+        Assert.assertNotNull(AsyncApiParser.parseFromJsonString(spec).getAsyncApiOperations().orElseThrow()
+                .get("sendPing"));
+    }
+
+    @Test
+    void schemaReferencingAMessageIn2x_isRejected() {
+        String spec = "{\"asyncapi\":\"2.6.0\",\"info\":{\"title\":\"T\",\"version\":\"1\"},"
+                + "\"channels\":{\"ws\":{\"subscribe\":{\"message\":{\"$ref\":\"#/components/messages/Ping\"}}}},"
+                + "\"components\":{\"messages\":{\"Ping\":{\"payload\":{\"$ref\":\"#/components/schemas/PingBody\"}}},"
+                + "\"schemas\":{\"PingBody\":{\"type\":\"object\"},"
+                + "\"Event\":{\"oneOf\":[{\"$ref\":\"#/components/messages/Ping\"}]}}}}";
+        AsyncApiParserException e = Assert.expectThrows(AsyncApiParserException.class,
+                () -> AsyncApiParser.parseFromJsonString(spec));
+        Assert.assertTrue(e.getMessage().contains("the schema reference at /components/schemas/Event/oneOf/0 points "
+                + "to a message, '#/components/messages/Ping'"), e.getMessage());
+    }
+
+    @Test
+    void schemaReferencesIntoAnotherFile_areReadWithOneWarningPerFile() throws AsyncApiParserException {
+        // The other file isn't read, so a type it names may be missing, but one defined here still works
+        String spec = v3Refs().replace("\"Ping\":{\"payload\":{\"type\":\"object\"}}",
+                "\"Ping\":{\"payload\":{\"oneOf\":[{\"$ref\":\"shared.json#/definitions/A\"},"
+                        + "{\"$ref\":\"shared.json#/definitions/B\"}]}}");
+        Assert.assertTrue(spec.contains("shared.json"), spec);
+        List<SpecWarning> warnings = new ArrayList<>();
+        AsyncApiParser.parseFromJsonString(spec, warnings::add);
+        Assert.assertEquals(warnings, List.of(new SpecWarning("/components/messages/Ping/payload/oneOf/0",
+                "2 schema references point into another file, 'shared.json', which isn't read, so a type they name "
+                        + "may be missing; the first is at /components/messages/Ping/payload/oneOf/0",
+                "Bundle the spec into one file, such as with 'asyncapi bundle', and generate again.")));
+    }
+
+    @Test
+    void schemaReferencingAMessagesPayload_isRead() throws AsyncApiParserException {
+        // A ref into the message, to its payload, is a ref to a schema
+        String spec = v3Refs().replace("\"components\":{\"messages\":{\"Ping\":{\"payload\":{\"type\":\"object\"}}}}",
+                "\"components\":{\"messages\":{\"Ping\":{\"payload\":{\"type\":\"object\"}}},"
+                        + "\"schemas\":{\"Event\":{\"$ref\":\"#/components/messages/Ping/payload\"}}}");
+        Assert.assertTrue(spec.contains("\"Event\""), spec);
+        Assert.assertNotNull(AsyncApiParser.parseFromJsonString(spec).getAsyncApiOperations().orElseThrow()
+                .get("sendPing"));
+    }
+
+    @Test
+    void avroPayload_hasNoSchema() throws AsyncApiParserException {
+        // An Avro record's JSON looks like a schema with type: record, but it isn't JSON Schema
+        String spec = v3Refs().replace("\"Ping\":{\"payload\":{\"type\":\"object\"}}",
+                "\"Ping\":{\"payload\":{\"schemaFormat\":\"application/vnd.apache.avro;version=1.9.0\","
+                        + "\"schema\":{\"type\":\"record\",\"name\":\"Ping\",\"fields\":[{\"name\":\"id\","
+                        + "\"type\":\"string\"}]}}}");
+        Assert.assertTrue(spec.contains("avro"), spec);
+        AsyncApiSpec parsed = AsyncApiParser.parseFromJsonString(spec);
+        Assert.assertNull(parsed.getAsyncApiComponents().orElseThrow().messages().get("Ping").payload());
+    }
+
+    @Test
+    void jsonSchemaPayloadWithItsFormat_isRead() throws AsyncApiParserException {
+        String spec = v3Refs().replace("\"Ping\":{\"payload\":{\"type\":\"object\"}}",
+                "\"Ping\":{\"payload\":{\"schemaFormat\":\"application/schema+json;version=draft-07\","
+                        + "\"schema\":{\"type\":\"object\",\"properties\":{\"id\":{\"type\":\"string\"}}}}}");
+        Assert.assertTrue(spec.contains("draft-07"), spec);
+        AsyncApiSpec parsed = AsyncApiParser.parseFromJsonString(spec);
+        Assert.assertNotNull(parsed.getAsyncApiComponents().orElseThrow().messages().get("Ping").payload());
+    }
+
+    @Test
+    void avroPayloadIn2x_hasNoSchema() throws AsyncApiParserException {
+        String spec = "{\"asyncapi\":\"2.6.0\",\"info\":{\"title\":\"T\",\"version\":\"1\"},"
+                + "\"channels\":{\"ws\":{\"subscribe\":{\"message\":{\"$ref\":\"#/components/messages/Ping\"}}}},"
+                + "\"components\":{\"messages\":{\"Ping\":{"
+                + "\"schemaFormat\":\"application/vnd.apache.avro;version=1.9.0\","
+                + "\"payload\":{\"type\":\"record\",\"name\":\"Ping\",\"fields\":[{\"name\":\"id\","
+                + "\"type\":\"string\"}]}}}}}";
+        AsyncApiSpec parsed = AsyncApiParser.parseFromJsonString(spec);
+        Assert.assertNull(parsed.getAsyncApiComponents().orElseThrow().messages().get("Ping").payload());
+    }
+
+    // Channels ws and other both list component message Ping; sendPing sends it on ws
+    private static String v3Refs() {
+        return "{\"asyncapi\":\"3.0.0\",\"info\":{\"title\":\"T\",\"version\":\"1\"},"
+                + "\"channels\":{\"ws\":{\"address\":\"/ws\","
+                + "\"messages\":{\"ping\":{\"$ref\":\"#/components/messages/Ping\"}}},"
+                + "\"other\":{\"address\":\"/other\","
+                + "\"messages\":{\"ping\":{\"$ref\":\"#/components/messages/Ping\"}}}},"
+                + "\"operations\":{\"sendPing\":{\"action\":\"send\",\"channel\":{\"$ref\":\"#/channels/ws\"},"
+                + "\"messages\":[{\"$ref\":\"#/channels/ws/messages/ping\"}]}},"
+                + "\"components\":{\"messages\":{\"Ping\":{\"payload\":{\"type\":\"object\"}}}}}";
+    }
+
+    @Test
+    void channelReferencingAnotherTopLevelChannel_isRead() throws IOException, AsyncApiParserException {
+        AsyncApiSpec spec = AsyncApiParser.parseFromJsonString(loadSpec(SPEC_DIR + "refs/top-level-channel-ref.json"));
+        Assert.assertEquals(spec.getAsyncApiChannels().orElseThrow().get("ws").address(), "/ws");
+        AsyncApiOperation operation = spec.getAsyncApiOperations().orElseThrow().get("sendPing");
+        Assert.assertEquals(operation.messages().keySet(), Set.of("ping"));
+        Assert.assertEquals(operation.reply().messages().keySet(), Set.of("pong"));
+    }
+
+    @Test
+    void referenceIntoAnotherFile_isNotReportedAsBroken() throws IOException {
+        // The parser reads one document, so a ref into another file can't be checked here
+        try {
+            AsyncApiParser.parseFromJsonString(loadSpec(SPEC_DIR + "refs/external-message-ref.json"));
+        } catch (AsyncApiParserException e) {
+            Assert.assertFalse(e.getMessage().contains("doesn't point to anything"), e.getMessage());
+        }
+    }
+
+    @Test
+    void brokenV2MessageReference_isStillRejected() throws IOException {
+        // The parser checks only 3.x refs itself, so Apicurio's check stays for 2.x
+        String spec = loadSpec(SPEC_DIR + "asyncapi-2.6.0.json")
+                .replace("\"#/components/messages/UserCommand\"", "\"#/components/messages/Nope\"");
+        AsyncApiParserException e = Assert.expectThrows(AsyncApiParserException.class,
+                () -> AsyncApiParser.parseFromJsonString(spec));
+        Assert.assertTrue(e.getMessage().contains("Message references must point to valid messages"), e.getMessage());
+    }
+
+    @Test(dataProvider = "brokenRefs")
+    void brokenReference_isNamed(String file, String problem) throws IOException {
+        AsyncApiParserException e = Assert.expectThrows(AsyncApiParserException.class,
+                () -> AsyncApiParser.parseFromJsonString(loadSpec(SPEC_DIR + "refs/" + file)));
+        Assert.assertTrue(e.getMessage().contains(problem + " doesn't point to anything in the document]"),
+                e.getMessage());
+    }
+
+    // -------------------------------------------------------------------------
+    // Common 3.x mistakes read with a warning
+    // -------------------------------------------------------------------------
+
+    @Test
+    void hostWithSchemeAndPath_isSplit() throws IOException, AsyncApiParserException {
+        List<SpecWarning> warnings = new ArrayList<>();
+        AsyncApiSpec spec = AsyncApiParser.parseFromJsonString(
+                loadSpec(SPEC_DIR + "lenient/host-with-scheme-and-path.json"), warnings::add);
+        AsyncApiServer server = spec.getAsyncApiServers().orElseThrow().get("prod");
+        Assert.assertEquals(server.host(), "example.com");
+        Assert.assertEquals(server.protocol(), "wss");
+        Assert.assertEquals(server.pathname(), "/ws");
+        Assert.assertEquals(warnings, List.of(new SpecWarning("/servers/prod/host",
+                "server 'prod' host 'wss://example.com/ws' holds more than the host name; read it as host "
+                        + "'example.com', protocol 'wss', pathname '/ws'",
+                "Put only the host name in 'host', the scheme in 'protocol' and the path in 'pathname'.")));
+    }
+
+    @Test
+    void hostScheme_doesNotReplaceTheProtocolTheSpecSets() throws IOException, AsyncApiParserException {
+        List<SpecWarning> warnings = new ArrayList<>();
+        AsyncApiSpec spec = AsyncApiParser.parseFromJsonString(
+                loadSpec(SPEC_DIR + "lenient/host-scheme-beside-protocol.json"), warnings::add);
+        AsyncApiServer server = spec.getAsyncApiServers().orElseThrow().get("prod");
+        Assert.assertEquals(server.host(), "example.com");
+        Assert.assertEquals(server.protocol(), "wss");
+        Assert.assertEquals(server.pathname(), "/live");
+        Assert.assertEquals(warnings.size(), 1);
+        Assert.assertTrue(warnings.get(0).message().endsWith("read it as host 'example.com'"),
+                warnings.get(0).message());
+    }
+
+    @Test
+    void parameterSchema_isReadOntoTheParameter() throws IOException, AsyncApiParserException {
+        List<SpecWarning> warnings = new ArrayList<>();
+        AsyncApiSpec spec = AsyncApiParser.parseFromJsonString(
+                loadSpec(SPEC_DIR + "lenient/parameter-schema.json"), warnings::add);
+        AsyncApiChannelParameter room = spec.getAsyncApiChannels().orElseThrow().get("ws").parameters().get("room");
+        Assert.assertEquals(room.enumValues(), List.of("1", "2"));
+        Assert.assertEquals(room.defaultValue(), "1");
+        Assert.assertEquals(room.description(), "Room number");
+        Assert.assertEquals(warnings, List.of(new SpecWarning("/channels/ws/parameters/room/schema",
+                "channel 'ws' parameter 'room' has a 2.x 'schema'; read its enum, default, description as the "
+                        + "parameter's own",
+                "Remove 'schema' and set 'enum', 'default' and 'description' on the parameter itself.")));
+    }
+
+    @Test(dataProvider = "allVersionArgs")
+    void validSpec_hasNoWarnings(String file, String version) throws IOException, AsyncApiParserException {
+        List<SpecWarning> warnings = new ArrayList<>();
+        AsyncApiParser.parseFromJsonString(loadSpec(file), warnings::add);
+        Assert.assertEquals(warnings, List.of(), version);
     }
 
     // -------------------------------------------------------------------------
