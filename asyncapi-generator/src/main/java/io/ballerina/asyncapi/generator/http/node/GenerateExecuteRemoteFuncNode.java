@@ -61,6 +61,7 @@ public class GenerateExecuteRemoteFuncNode implements Generator {
     private static final String EXECUTE_REMOTE_FUNC_PARAM_SERVICE_TYPE = "serviceTypeStr";
     private static final String EXECUTE_REMOTE_FUNC_PARAM_EVENT_FUNC = "eventFunction";
     private static final String EXECUTE_REMOTE_FUNC_LOCAL_SERVICE = "genericService";
+    private static final String EXECUTE_REMOTE_FUNC_SERVICE_OBJECT = "serviceObj";
 
     /**
      * Creates a generator for the {@code executeRemoteFunc} method.
@@ -102,22 +103,20 @@ public class GenerateExecuteRemoteFuncNode implements Generator {
                 EXECUTE_REMOTE_FUNC_LOCAL_SERVICE,
                 GenerateDispatcherServiceNode.DISPATCHER_SERVICES_FIELD,
                 EXECUTE_REMOTE_FUNC_PARAM_SERVICE_TYPE)));
+        // Converted once: a second union check against service object {} fails on Linux with --graalvm
         statements.add(NodeParser.parseStatement(String.format(
-                "if %s is %s { any boundEvent = check self.%s.bindEventPayload(%s, %s, %s);"
-                        + " check self.%s.invokeRemoteFunction(boundEvent, %s, %s, %s); }"
-                        + " else { log:printDebug(\"SERVICE_NOT_ATTACHED\", serviceType = %s, eventName = %s); }",
+                "if %1$s is %2$s { service object {} %3$s = %1$s;"
+                        + " any boundEvent = check self.%4$s.bindEventPayload(%3$s, %5$s, %6$s);"
+                        + " check self.%4$s.invokeRemoteFunction(boundEvent, %7$s, %5$s, %3$s); }"
+                        + " else { log:printDebug(\"SERVICE_NOT_ATTACHED\", serviceType = %8$s, eventName = %7$s); }",
                 EXECUTE_REMOTE_FUNC_LOCAL_SERVICE,
                 ServiceTypesGenerator.GENERIC_SERVICE_TYPE,
+                EXECUTE_REMOTE_FUNC_SERVICE_OBJECT,
                 GenerateDispatcherServiceNode.DISPATCHER_NATIVE_HANDLER_FIELD,
-                EXECUTE_REMOTE_FUNC_LOCAL_SERVICE,
                 EXECUTE_REMOTE_FUNC_PARAM_EVENT_FUNC,
                 EXECUTE_REMOTE_FUNC_PARAM_EVENT,
-                GenerateDispatcherServiceNode.DISPATCHER_NATIVE_HANDLER_FIELD,
                 EXECUTE_REMOTE_FUNC_PARAM_EVENT_NAME,
-                EXECUTE_REMOTE_FUNC_PARAM_EVENT_FUNC,
-                EXECUTE_REMOTE_FUNC_LOCAL_SERVICE,
-                EXECUTE_REMOTE_FUNC_PARAM_SERVICE_TYPE,
-                EXECUTE_REMOTE_FUNC_PARAM_EVENT_NAME)));
+                EXECUTE_REMOTE_FUNC_PARAM_SERVICE_TYPE)));
 
         FunctionBodyBlockNode body = createFunctionBodyBlockNode(
                 createToken(OPEN_BRACE_TOKEN), null, createNodeList(statements),
