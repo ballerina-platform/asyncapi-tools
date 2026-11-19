@@ -20,6 +20,7 @@ package io.ballerina.asyncapi.generator.ws.client.extractor;
 import com.fasterxml.jackson.databind.JsonNode;
 import io.ballerina.asyncapi.core.api.AsyncApiSpec;
 import io.ballerina.asyncapi.generator.GeneratorException;
+import io.ballerina.asyncapi.generator.ws.client.utils.ContentRoutes;
 import io.ballerina.asyncapi.generator.ws.client.utils.IncomingMessages;
 
 import java.util.Map;
@@ -58,7 +59,7 @@ public class DispatcherKeyExtractor {
 
     /**
      * Extracts and validates the dispatcher key, which a spec only needs when a connection receives more than one
-     * kind of message (see {@link IncomingMessages}).
+     * kind of message (see {@link IncomingMessages}) that nothing they carry tells apart (see {@link ContentRoutes}).
      *
      * @return the dispatcher key, or empty when the spec has none and needs none
      * @throws GeneratorException if the extension is blank, or absent while a connection needs it
@@ -66,7 +67,7 @@ public class DispatcherKeyExtractor {
     public Optional<String> extractIfNeeded() throws GeneratorException {
         Map<String, JsonNode> extensions = asyncApiSpec.getAsyncApiExtensions().orElse(null);
         if (extensions == null || !extensions.containsKey(X_DISPATCHER_KEY)) {
-            if (IncomingMessages.needsKey(asyncApiSpec)) {
+            if (IncomingMessages.needsKey(asyncApiSpec) && !ContentRoutes.coversAll(asyncApiSpec)) {
                 throw new GeneratorException("x-dispatcherKey extension is required in the AsyncAPI spec");
             }
             return Optional.empty();

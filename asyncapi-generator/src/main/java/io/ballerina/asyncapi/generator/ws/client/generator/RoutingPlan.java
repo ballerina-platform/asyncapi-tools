@@ -26,6 +26,8 @@ import io.ballerina.asyncapi.generator.GeneratorException;
 import io.ballerina.asyncapi.generator.ws.client.extractor.DispatcherKeyExtractor;
 import io.ballerina.asyncapi.generator.ws.client.extractor.DispatcherStreamIdExtractor;
 import io.ballerina.asyncapi.generator.ws.client.utils.CodegenUtils;
+import io.ballerina.asyncapi.generator.ws.client.utils.ContentRoutes;
+import io.ballerina.asyncapi.generator.ws.client.utils.IncomingMessages;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -52,10 +54,24 @@ import static io.ballerina.asyncapi.generator.ws.client.generator.ClientGenerato
  * @param keylessReplies        whether some call waits for a message without the dispatcher key
  * @param keylessReceiveOnly    whether a receive-only function waits for a message without the dispatcher key
  * @param sendsWithoutKey       whether some message is sent without the dispatcher key, as it is
+ * @param contentRoutes         with no dispatcher key, how each received JSON object is recognised by what it
+ *                              carries, in the order the reader checks them
+ * @param leftOutTypes          received types nothing tells apart, which get no function
  */
 public record RoutingPlan(String dispatcherKey, String dispatcherStreamId, Map<String, String> responseMap,
                           Map<String, String> dispatchValueMap, List<String> streamReturns, boolean keylessReplies,
-                          boolean keylessReceiveOnly, boolean sendsWithoutKey) {
+                          boolean keylessReceiveOnly, boolean sendsWithoutKey, List<ContentRoute> contentRoutes,
+                          Set<String> leftOutTypes) {
+
+    /**
+     * A received type recognised by what a frame carries.
+     *
+     * @param typeName the Ballerina type the frame is read as
+     * @param field    the field the reader looks at
+     * @param value    the value the field has, or {@code null} when the field being there is enough
+     * @param pipe     the pipe the frame goes to
+     */
+    public record ContentRoute(String typeName, String field, String value, String pipe) { }
 
     private static final String MESSAGE_TYPE = "Message";
     private static final String SHARED_FIXED_DISPATCH_VALUE = "The replies waited for on '%s' and '%s' both fix the "
@@ -66,6 +82,8 @@ public record RoutingPlan(String dispatcherKey, String dispatcherStreamId, Map<S
         responseMap = Collections.unmodifiableMap(new LinkedHashMap<>(responseMap));
         dispatchValueMap = Collections.unmodifiableMap(new LinkedHashMap<>(dispatchValueMap));
         streamReturns = List.copyOf(streamReturns);
+        contentRoutes = List.copyOf(contentRoutes);
+        leftOutTypes = Set.copyOf(leftOutTypes);
     }
 
     /**
@@ -82,9 +100,14 @@ public record RoutingPlan(String dispatcherKey, String dispatcherStreamId, Map<S
         Map<String, String> dispatchValueMap = new LinkedHashMap<>();
         Map<String, String> responseMap = buildResponseMap(spec, dispatcherKey, streamReturns, dispatchValueMap);
         RemoteFunctionReturnTypeGenerator returnTypeGen = new RemoteFunctionReturnTypeGenerator(spec);
+        List<ContentRoute> contentRoutes = new ArrayList<>();
+        Set<String> leftOutTypes = new HashSet<>();
+        if (dispatcherKey == null && IncomingMessages.needsKey(spec)) {
+            routeByContent(spec, responseMap, contentRoutes, leftOutTypes);
+        }
         return new RoutingPlan(dispatcherKey, dispatcherStreamId, responseMap, dispatchValueMap, streamReturns,
                 returnTypeGen.hasRepliesWithoutDispatcherKey(), returnTypeGen.hasReceiveOnlyWithoutDispatcherKey(),
-                sendsWithoutKey(spec, returnTypeGen));
+                sendsWithoutKey(spec, returnTypeGen), contentRoutes, leftOutTypes);
     }
 
     /**
@@ -93,7 +116,52 @@ public record RoutingPlan(String dispatcherKey, String dispatcherStreamId, Map<S
      * @return whether the reader skips routing on the key
      */
     public boolean readsWithoutKey() {
-        return dispatcherKey == null || responseMap.isEmpty() && keylessReplies;
+        return contentRoutes.isEmpty() && (dispatcherKey == null || responseMap.isEmpty() && keylessReplies);
+    }
+
+    /**
+     * Whether the reader recognises received JSON objects by what they carry, as the spec has no dispatcher key.
+     *
+     * @return whether the reader routes by content
+     */
+    public boolean routesByContent() {
+        return !contentRoutes.isEmpty();
+    }
+
+    /**
+     * Returns whether a received type is recognised by what its frames carry.
+     *
+     * @param typeName the Ballerina type name
+     * @return whether frames of that type are routed by content
+     */
+    public boolean isRoutedByContent(String typeName) {
+        return contentRoutes.stream().anyMatch(route -> route.typeName().equals(typeName));
+    }
+
+    // Each received object's route goes to the pipe responseMap gives its type; a type left out has no pipe
+    private static void routeByContent(AsyncApiSpec spec, Map<String, String> responseMap,
+                                       List<ContentRoute> contentRoutes, Set<String> leftOutTypes) {
+        for (IncomingMessages.Connection connection : IncomingMessages.connections(spec)) {
+            ContentRoutes routes = ContentRoutes.of(spec, connection.operations());
+            for (ContentRoutes.Route route : routes.routes()) {
+                String typeName = typeName(route.message());
+                String pipe = responseMap.get(typeName);
+                if (typeName != null && pipe != null) {
+                    contentRoutes.add(new ContentRoute(typeName, route.field(), route.value(), pipe));
+                }
+            }
+            for (IncomingMessages.Received message : routes.leftOut()) {
+                String typeName = typeName(message);
+                if (typeName != null) {
+                    leftOutTypes.add(typeName);
+                    responseMap.remove(typeName);
+                }
+            }
+        }
+    }
+
+    private static String typeName(IncomingMessages.Received message) {
+        return message.schemaName() != null ? CodegenUtils.getValidName(message.schemaName(), true) : null;
     }
 
     // A sent message whose payload doesn't carry the key, such as a string or a record without it

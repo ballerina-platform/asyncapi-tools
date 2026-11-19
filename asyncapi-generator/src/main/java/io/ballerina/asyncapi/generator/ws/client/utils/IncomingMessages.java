@@ -95,11 +95,12 @@ public final class IncomingMessages {
     /**
      * A message a client receives, with where the spec says so.
      *
-     * @param name     the message's name in the operation or components
-     * @param location a JSON Pointer to the receive operation, or to the component message a reply names
-     * @param payload  its payload; a named payload is its component schema
+     * @param name       the message's name in the operation or components
+     * @param location   a JSON Pointer to the receive operation, or to the component message a reply names
+     * @param payload    its payload; a named payload is its component schema
+     * @param schemaName the payload's component schema name, or {@code null} for an inline payload
      */
-    public record Received(String name, String location, AsyncApiSchema payload) { }
+    public record Received(String name, String location, AsyncApiSchema payload, String schemaName) { }
 
     /**
      * Returns the messages received through {@code operations}, each payload once, as {@link #payloads} does.
@@ -162,7 +163,7 @@ public final class IncomingMessages {
         AsyncApiSchema schema = payload.name() != null && schemas.containsKey(payload.name())
                 ? schemas.get(payload.name()) : payload;
         if (!CodegenUtils.isCloseFrameSchema(schema) && seen.add(schema)) {
-            result.add(new Received(name, location, schema));
+            result.add(new Received(name, location, schema, schema != payload ? payload.name() : null));
         }
     }
 

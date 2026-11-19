@@ -39,6 +39,7 @@ import io.ballerina.compiler.syntax.tree.NodeParser;
 import io.ballerina.compiler.syntax.tree.TypeDefinitionNode;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -66,6 +67,8 @@ public class ClientRemoteFunctionGenerator {
     private final List<TypeDefinitionNode> typeDefinitionNodeList;
     private final Map<String, String> responseMap;
     private Consumer<SpecWarning> warnings = warning -> { };
+    // How received messages are routed, when the generator is made from a plan
+    private RoutingPlan plan;
 
     /**
      * Creates a new remote function generator.
@@ -100,6 +103,7 @@ public class ClientRemoteFunctionGenerator {
         // Simple-rpc stream replies are added while the functions are built
         this(asyncApiSpec, plan.dispatcherKey(), plan.dispatcherStreamId(), new ArrayList<>(plan.streamReturns()),
                 imports, typeDefinitionNodeList, plan.responseMap());
+        this.plan = plan;
     }
 
     private ClientRemoteFunctionGenerator(AsyncApiSpec asyncApiSpec, String dispatcherKey, String dispatcherStreamId,
@@ -223,6 +227,12 @@ public class ClientRemoteFunctionGenerator {
                 // A receive function on the pipe a send function waits on would take its replies
                 if (remainingResponseMessages.contains(msgName)
                         || replyTypes.contains(payloadSchema.name())) {
+                    continue;
+                }
+
+                // Nothing tells this message apart from the others, which was reported when the routes were made
+                if (plan != null && payloadSchema.name() != null
+                        && plan.leftOutTypes().contains(CodegenUtils.getValidName(payloadSchema.name(), true))) {
                     continue;
                 }
 
@@ -380,6 +390,17 @@ public class ClientRemoteFunctionGenerator {
         if (!"null".equals(returnType) && returnTypeGen.isReplyWithoutDispatcherKey(returnType)) {
             replyFormat = returnTypeGen.isTextReply(returnType)
                     ? RemoteFunctionBodyGenerator.ReplyFormat.TEXT : RemoteFunctionBodyGenerator.ReplyFormat.JSON;
+        } else if (plan != null && plan.routesByContent() && !"null".equals(returnType)
+                && Arrays.stream(returnType.split("\\|")).allMatch(plan::isRoutedByContent)) {
+            JsonNode responseType = msgExtensions != null ? msgExtensions.get(ClientGenerator.X_RESPONSE_TYPE) : null;
+            // A stream's frames go to a pipe per request, which only the dispatcher key can pick
+            if (responseType != null && ClientGenerator.SERVER_STREAMING.equals(responseType.asText())) {
+                throw new GeneratorException(String.format("x-dispatcherKey extension is required in the AsyncAPI "
+                        + "spec to stream the replies of message '%s'. Add x-dispatcherKey naming the field that "
+                        + "tells the messages apart.\nSee %s for how the client tells messages apart.", msgName,
+                        CodegenUtils.DISPATCHER_KEY_DOCS));
+            }
+            replyFormat = RemoteFunctionBodyGenerator.ReplyFormat.CONTENT;
         }
         // Only received messages are routed on the key, so a request without it is sent as it is
         boolean sendAsIs = payload != null && !returnTypeGen.carriesDispatcherKey(payload);

@@ -258,6 +258,9 @@ public class ClientGenerator {
                 serverUrl, authGen, isStreamPresent).buildInitFunction());
         classMembers.add(helperGen.buildGetRecordName());
         classMembers.add(helperGen.buildGetPipeName());
+        if (plan.routesByContent()) {
+            classMembers.add(helperGen.buildGetPipeNameByContent(plan.contentRoutes()));
+        }
 
         ClientWorkerGenerator workerGen = new ClientWorkerGenerator(asyncApiSpec, plan);
         classMembers.add(workerGen.buildStartMessageWriting());

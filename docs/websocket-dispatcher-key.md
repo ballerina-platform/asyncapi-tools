@@ -73,9 +73,39 @@ warning: the spec has no x-dispatcherKey, so the client routes messages on 'type
 
 Add the `x-dispatcherKey` line the warning suggests to make it explicit.
 
+## When messages are told apart by what they carry
+
+If no one field works for the whole spec, the tool looks at each connection on its own:
+
+1. **A field with its own fixed value on that connection.** Two channels can use different fields, such as `type` on one and `kind` on the other.
+2. **Otherwise, a field only one message has.** A frame with `price` can only be a `Trade` when no other message the connection receives declares `price`:
+
+   ```yaml
+   Trade: {payload: {type: object, required: [symbol, price], properties: {symbol: {type: string}, price: {type: number}}}}
+   Status: {payload: {type: object, required: [online], properties: {online: {type: boolean}, symbol: {type: string}}}}
+   ```
+
+   The field has to be `required`, so every frame of that message carries it.
+
+Each route is announced with a warning:
+
+```
+warning: the spec has no x-dispatcherKey, so the client tells apart the messages received on channel 'feed' by a field only each has: 'price' for 'Trade', 'online' for 'Status'
+  Give each a field with its own fixed value and name it in x-dispatcherKey if a frame can carry another message's field. See https://github.com/ballerina-platform/asyncapi-tools/blob/main/docs/websocket-dispatcher-key.md
+```
+
+A message that has neither is left out, with a warning that says where it is and how to fix it:
+
+```
+warning: message 'Note' received on channel 'feed' has no field only it has and no field with its own fixed value, so the client can't tell it apart from the others and leaves it out
+  Give it a required field the channel's other messages don't declare, or give each of them a field with its own fixed value. See https://github.com/ballerina-platform/asyncapi-tools/blob/main/docs/websocket-dispatcher-key.md
+```
+
+A frame that matches none of the routes is dropped and logged. Naming a key with `x-dispatcherKey` is still the most reliable choice: a frame that happens to carry another message's field could otherwise be read as that message.
+
 ## When generation stops
 
-The tool doesn't guess. When a connection receives more than one kind of message and nothing tells them apart, it stops, names each message and where the spec receives it, and shows the smallest change that adds a key:
+The tool doesn't guess. When a connection receives more than one kind of message and nothing tells any of them apart, it stops, names each message and where the spec receives it, and shows the smallest change that adds a key:
 
 ```
 error: x-dispatcherKey extension is required in the AsyncAPI spec, and no field has a different fixed string value (a const or a one-value enum) in every message received on channel 'room', so the client can't tell them apart:
