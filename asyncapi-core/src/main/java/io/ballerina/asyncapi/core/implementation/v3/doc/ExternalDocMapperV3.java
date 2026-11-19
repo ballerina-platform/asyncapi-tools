@@ -24,6 +24,7 @@ import io.apicurio.datamodels.models.asyncapi.AsyncApiExternalDocumentation;
 import io.apicurio.datamodels.models.asyncapi.AsyncApiReferenceable;
 import io.apicurio.datamodels.models.asyncapi.v30.AsyncApi30Components;
 import io.ballerina.asyncapi.core.Constants;
+import io.ballerina.asyncapi.core.implementation.utils.JsonPointers;
 import io.ballerina.asyncapi.core.implementation.utils.URIUtils;
 import io.ballerina.asyncapi.core.model.doc.AsyncApiExternalDocs;
 import org.apache.logging.log4j.LogManager;
@@ -104,7 +105,7 @@ public final class ExternalDocMapperV3 {
                 LOG.warn("Cyclic $ref detected: {}. Skipping externalDocs.", current);
                 return null;
             }
-            String name = current.substring(Constants.EXTERNAL_DOCS_REF_PREFIX.length());
+            String name = JsonPointers.keyAfter(current, Constants.EXTERNAL_DOCS_REF_PREFIX);
             AsyncApiExternalDocumentation resolved = null;
 
             // AsyncApi 3.x versions (eg: 3.0) do not expose getExternalDocs() on the parent
