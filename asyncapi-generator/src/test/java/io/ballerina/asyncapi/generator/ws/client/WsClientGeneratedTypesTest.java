@@ -280,6 +280,47 @@ public class WsClientGeneratedTypesTest {
         Assert.assertTrue(types.contains("*View;"), types);
     }
 
+    @Test
+    void testInlinePartsThatRedeclareAFieldGiveOneField() throws Exception {
+        // The second part only narrows fields the first declares, so each stays one field, required as before
+        String types = types("""
+                      allOf:
+                        - type: object
+                          additionalProperties: false
+                          required: [type, kind, data]
+                          properties:
+                            type: {type: string}
+                            kind: {type: string, const: signal}
+                            data: {type: object}
+                        - type: object
+                          properties:
+                            kind: {description: The signal kind.}
+                            data: {type: object}
+                """);
+        Assert.assertTrue(types.contains("public type Ping record {\n    string 'type;\n    string kind;\n"
+                + "    record {} data;\n};"), types);
+    }
+
+    @Test
+    void testNestedAllOfIsOneAllOf() throws Exception {
+        // An allOf inside an allOf part adds its parts, so a field the outer part redeclares isn't written twice
+        String types = types("""
+                      allOf:
+                        - allOf:
+                            - {type: object, required: [symbol], properties: {symbol: {type: string}}}
+                            - type: object
+                              required: [type, bids]
+                              properties:
+                                type: {type: string}
+                                bids: {type: array, maxItems: 1000, items: {type: string}}
+                        - type: object
+                          properties:
+                            bids: {type: array, maxItems: 100, items: {type: string}}
+                """);
+        Assert.assertTrue(types.contains("public type Ping record {\n    string symbol;\n    string 'type;\n"
+                + "    string[] bids;\n};"), types);
+    }
+
     private static String types(String pingSchema) throws Exception {
         String json = YAML.readTree(SPEC.formatted(pingSchema.stripTrailing())).toString();
         Path outDir = Files.createTempDirectory("ws-types");
