@@ -27,6 +27,7 @@ import io.apicurio.datamodels.models.asyncapi.v30.AsyncApi30MultiFormatSchema;
 import io.apicurio.datamodels.models.union.AnySchemaUnion;
 import io.apicurio.datamodels.models.union.MultiFormatSchemaSchemaUnion;
 import io.ballerina.asyncapi.core.Constants;
+import io.ballerina.asyncapi.core.implementation.common.SchemaFormats;
 import io.ballerina.asyncapi.core.implementation.common.SchemaMapper;
 import io.ballerina.asyncapi.core.implementation.utils.JsonPointers;
 import org.apache.logging.log4j.LogManager;
@@ -49,7 +50,8 @@ final class MessagePayloadMapperV3 {
      * {@link io.ballerina.asyncapi.core.model.component.AsyncApiSchema}.
      * Handles both direct JSON Schema entries and schema {@code $ref}s resolved
      * from {@code components.schemas}.
-     * Non-JSON schema formats (Avro, Protobuf, etc.) are skipped and return {@code null}.
+     * A payload in a schema format other than JSON Schema (Avro, Protobuf, etc.) is skipped and returns
+     * {@code null}.
      *
      * @param payloadUnion the payload union from an {@link AsyncApi30Message}
      * @param components   the AsyncAPI components (for schema {@code $ref} resolution)
@@ -82,6 +84,10 @@ final class MessagePayloadMapperV3 {
                 return null;
             }
             AnySchemaUnion schemaContent = multiFormat.getSchema();
+            // An Avro or Protobuf schema isn't JSON Schema, though its JSON can look like one
+            if (!SchemaFormats.isJsonSchema(multiFormat.getSchemaFormat())) {
+                return null;
+            }
             if (schemaContent != null && schemaContent.isSchema()
                     && schemaContent.asSchema() instanceof AsyncApiSchema typedSchema) {
                 return SchemaMapper.map(typedSchema);

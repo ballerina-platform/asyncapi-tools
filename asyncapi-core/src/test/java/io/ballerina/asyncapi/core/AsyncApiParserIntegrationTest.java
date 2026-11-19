@@ -740,6 +740,40 @@ public class AsyncApiParserIntegrationTest {
         Assert.assertNotNull(parsed.getAsyncApiOperations().orElseThrow().get("sendPing"));
     }
 
+    @Test
+    void avroPayload_hasNoSchema() throws AsyncApiParserException {
+        // An Avro record's JSON looks like a schema with type: record, but it isn't JSON Schema
+        String spec = v3Refs().replace("\"Ping\":{\"payload\":{\"type\":\"object\"}}",
+                "\"Ping\":{\"payload\":{\"schemaFormat\":\"application/vnd.apache.avro;version=1.9.0\","
+                        + "\"schema\":{\"type\":\"record\",\"name\":\"Ping\",\"fields\":[{\"name\":\"id\","
+                        + "\"type\":\"string\"}]}}}");
+        Assert.assertTrue(spec.contains("avro"), spec);
+        AsyncApiSpec parsed = AsyncApiParser.parseFromJsonString(spec);
+        Assert.assertNull(parsed.getAsyncApiComponents().orElseThrow().messages().get("Ping").payload());
+    }
+
+    @Test
+    void jsonSchemaPayloadWithItsFormat_isRead() throws AsyncApiParserException {
+        String spec = v3Refs().replace("\"Ping\":{\"payload\":{\"type\":\"object\"}}",
+                "\"Ping\":{\"payload\":{\"schemaFormat\":\"application/schema+json;version=draft-07\","
+                        + "\"schema\":{\"type\":\"object\",\"properties\":{\"id\":{\"type\":\"string\"}}}}}");
+        Assert.assertTrue(spec.contains("draft-07"), spec);
+        AsyncApiSpec parsed = AsyncApiParser.parseFromJsonString(spec);
+        Assert.assertNotNull(parsed.getAsyncApiComponents().orElseThrow().messages().get("Ping").payload());
+    }
+
+    @Test
+    void avroPayloadIn2x_hasNoSchema() throws AsyncApiParserException {
+        String spec = "{\"asyncapi\":\"2.6.0\",\"info\":{\"title\":\"T\",\"version\":\"1\"},"
+                + "\"channels\":{\"ws\":{\"subscribe\":{\"message\":{\"$ref\":\"#/components/messages/Ping\"}}}},"
+                + "\"components\":{\"messages\":{\"Ping\":{"
+                + "\"schemaFormat\":\"application/vnd.apache.avro;version=1.9.0\","
+                + "\"payload\":{\"type\":\"record\",\"name\":\"Ping\",\"fields\":[{\"name\":\"id\","
+                + "\"type\":\"string\"}]}}}}}";
+        AsyncApiSpec parsed = AsyncApiParser.parseFromJsonString(spec);
+        Assert.assertNull(parsed.getAsyncApiComponents().orElseThrow().messages().get("Ping").payload());
+    }
+
     // Channels ws and other both list component message Ping; sendPing sends it on ws
     private static String v3Refs() {
         return "{\"asyncapi\":\"3.0.0\",\"info\":{\"title\":\"T\",\"version\":\"1\"},"
