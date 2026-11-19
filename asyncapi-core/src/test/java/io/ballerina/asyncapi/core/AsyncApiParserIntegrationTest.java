@@ -750,23 +750,60 @@ public class AsyncApiParserIntegrationTest {
         Assert.assertTrue(spec.contains("\"Event\""), spec);
         AsyncApiParserException e = Assert.expectThrows(AsyncApiParserException.class,
                 () -> AsyncApiParser.parseFromJsonString(spec));
-        Assert.assertTrue(e.getMessage().contains("schema 'Event' reference '#/components/messages/Ping' points to a "
-                + "message, not a schema; point it at the message's payload schema '#/components/schemas/PingBody'"),
-                e.getMessage());
+        Assert.assertTrue(e.getMessage().contains("the schema reference at /components/schemas/Event/oneOf/0 points "
+                + "to a message, '#/components/messages/Ping', not a schema; point it at the message's payload schema "
+                + "'#/components/schemas/PingBody'"), e.getMessage());
     }
 
     @Test
-    void schemaReferencingAMessageWithAnInlinePayload_isRejected() {
+    void schemaReferencingAMessageWithAnInlinePayload_isRead() throws AsyncApiParserException {
+        // An inline payload's type is named after its message, so the type the ref names exists
         String spec = v3Refs().replace("\"components\":{\"messages\":{\"Ping\":{\"payload\":{\"type\":\"object\"}}}}",
                 "\"components\":{\"messages\":{\"Ping\":{\"payload\":{\"type\":\"object\"}}},"
                         + "\"schemas\":{\"Event\":{\"properties\":{\"ping\":"
                         + "{\"$ref\":\"#/components/messages/Ping\"}}}}}");
         Assert.assertTrue(spec.contains("\"Event\""), spec);
+        Assert.assertNotNull(AsyncApiParser.parseFromJsonString(spec).getAsyncApiOperations().orElseThrow()
+                .get("sendPing"));
+    }
+
+    @Test
+    void payloadThatIsARefToAMessage_isRead() throws AsyncApiParserException {
+        // The payload has no schema, so the client leaves its message out with a warning, as before
+        String spec = v3Refs().replace("\"components\":{\"messages\":{\"Ping\":{\"payload\":{\"type\":\"object\"}}}}",
+                "\"components\":{\"messages\":{\"Ping\":{\"payload\":{\"$ref\":\"#/components/messages/Body\"}},"
+                        + "\"Body\":{\"payload\":{\"type\":\"object\"}}}}");
+        Assert.assertTrue(spec.contains("\"Body\""), spec);
+        Assert.assertNotNull(AsyncApiParser.parseFromJsonString(spec).getAsyncApiOperations().orElseThrow()
+                .get("sendPing"));
+    }
+
+    @Test
+    void schemaReferencingAMessageIn2x_isRejected() {
+        String spec = "{\"asyncapi\":\"2.6.0\",\"info\":{\"title\":\"T\",\"version\":\"1\"},"
+                + "\"channels\":{\"ws\":{\"subscribe\":{\"message\":{\"$ref\":\"#/components/messages/Ping\"}}}},"
+                + "\"components\":{\"messages\":{\"Ping\":{\"payload\":{\"$ref\":\"#/components/schemas/PingBody\"}}},"
+                + "\"schemas\":{\"PingBody\":{\"type\":\"object\"},"
+                + "\"Event\":{\"oneOf\":[{\"$ref\":\"#/components/messages/Ping\"}]}}}}";
         AsyncApiParserException e = Assert.expectThrows(AsyncApiParserException.class,
                 () -> AsyncApiParser.parseFromJsonString(spec));
-        Assert.assertTrue(e.getMessage().contains("schema 'Event' reference '#/components/messages/Ping' points to a "
-                + "message, not a schema; move the message's payload to 'components/schemas' and point it there"),
-                e.getMessage());
+        Assert.assertTrue(e.getMessage().contains("the schema reference at /components/schemas/Event/oneOf/0 points "
+                + "to a message, '#/components/messages/Ping'"), e.getMessage());
+    }
+
+    @Test
+    void schemaReferencesIntoAnotherFile_areReadWithOneWarningPerFile() throws AsyncApiParserException {
+        // The other file isn't read, so a type it names may be missing, but one defined here still works
+        String spec = v3Refs().replace("\"Ping\":{\"payload\":{\"type\":\"object\"}}",
+                "\"Ping\":{\"payload\":{\"oneOf\":[{\"$ref\":\"shared.json#/definitions/A\"},"
+                        + "{\"$ref\":\"shared.json#/definitions/B\"}]}}");
+        Assert.assertTrue(spec.contains("shared.json"), spec);
+        List<SpecWarning> warnings = new ArrayList<>();
+        AsyncApiParser.parseFromJsonString(spec, warnings::add);
+        Assert.assertEquals(warnings, List.of(new SpecWarning("/components/messages/Ping/payload/oneOf/0",
+                "2 schema references point into another file, 'shared.json', which isn't read, so a type they name "
+                        + "may be missing; the first is at /components/messages/Ping/payload/oneOf/0",
+                "Bundle the spec into one file, such as with 'asyncapi bundle', and generate again.")));
     }
 
     @Test
