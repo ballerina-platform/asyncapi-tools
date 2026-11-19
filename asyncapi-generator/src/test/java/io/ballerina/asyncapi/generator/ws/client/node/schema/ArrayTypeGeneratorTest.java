@@ -23,6 +23,8 @@ import io.ballerina.compiler.syntax.tree.TypeDescriptorNode;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
+import java.util.List;
+
 /**
  * Unit tests for {@link ArrayTypeGenerator} verifying element-type propagation and the
  * {@code anydata} fallback when {@code items} is absent.
@@ -50,5 +52,15 @@ public class ArrayTypeGeneratorTest {
                 "Array schema with null items should fall back to 'anydata' element type");
         Assert.assertTrue(result.contains("["),
                 "Array type descriptor with null items should still include the array dimension brackets");
+    }
+
+    @Test
+    void testUnionItemTypeIsBracketed() throws GeneratorException {
+        // Without the brackets, string|int[] would be a string or an int array
+        AsyncApiSchema items = AsyncApiSchema.builder().anyOf(List.of(AsyncApiSchema.builder().type("string").build(),
+                AsyncApiSchema.builder().type("integer").build())).build();
+        AsyncApiSchema schema = AsyncApiSchema.builder().type("array").items(items).build();
+        String result = new ArrayTypeGenerator(schema, "Foo").generateTypeDescriptorNode().toSourceCode().trim();
+        Assert.assertEquals(result, "(string|int)[]");
     }
 }

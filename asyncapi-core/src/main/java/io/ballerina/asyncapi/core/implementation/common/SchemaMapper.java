@@ -46,6 +46,8 @@ import java.util.Objects;
 public final class SchemaMapper {
 
     private static final String NULL_TYPE = "null";
+    private static final String ARRAY_TYPE = "array";
+    private static final String OBJECT_TYPE = "object";
 
     private SchemaMapper() {
     }
@@ -448,7 +450,8 @@ public final class SchemaMapper {
                 .items(items)
                 .allOf(mapJsonSchemaArray(objectNode.get(Constants.SCHEMA_ALL_OF)))
                 .oneOf(mapJsonSchemaArray(objectNode.get(Constants.SCHEMA_ONE_OF)))
-                .anyOf(types.size() > 1 && !objectNode.has(Constants.SCHEMA_ANY_OF) ? typeVariants(types)
+                .anyOf(types.size() > 1 && !objectNode.has(Constants.SCHEMA_ANY_OF)
+                        ? typeVariants(types, items, properties, required)
                         : mapJsonSchemaArray(objectNode.get(Constants.SCHEMA_ANY_OF)))
                 .description(description)
                 .format(format)
@@ -476,11 +479,24 @@ public final class SchemaMapper {
         return names;
     }
 
+    /**
+     * One schema for each name in a {@code type} list. The array one keeps {@code items} and the object one keeps
+     * {@code properties} and {@code required}, as only those types use them. {@code additionalProperties} stays on
+     * the parent only: an object variant with it alone would become a map, whose value type isn't built yet.
+     */
     private static List<io.ballerina.asyncapi.core.model.component.AsyncApiSchema> typeVariants(
-            List<String> types) {
+            List<String> types, Object items,
+            Map<String, io.ballerina.asyncapi.core.model.component.AsyncApiSchema> properties, List<String> required) {
         List<io.ballerina.asyncapi.core.model.component.AsyncApiSchema> variants = new ArrayList<>();
         for (String name : types) {
-            variants.add(io.ballerina.asyncapi.core.model.component.AsyncApiSchema.builder().type(name).build());
+            io.ballerina.asyncapi.core.model.component.AsyncApiSchema.Builder variant =
+                    io.ballerina.asyncapi.core.model.component.AsyncApiSchema.builder().type(name);
+            if (ARRAY_TYPE.equals(name)) {
+                variant.items(items);
+            } else if (OBJECT_TYPE.equals(name)) {
+                variant.properties(properties).required(required);
+            }
+            variants.add(variant.build());
         }
         return variants;
     }

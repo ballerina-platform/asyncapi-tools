@@ -27,8 +27,13 @@ import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createEmptyN
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createToken;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createArrayDimensionNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createArrayTypeDescriptorNode;
+import static io.ballerina.compiler.syntax.tree.NodeFactory.createParenthesisedTypeDescriptorNode;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.CLOSE_BRACKET_TOKEN;
+import static io.ballerina.compiler.syntax.tree.SyntaxKind.CLOSE_PAREN_TOKEN;
+import static io.ballerina.compiler.syntax.tree.SyntaxKind.INTERSECTION_TYPE_DESC;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.OPEN_BRACKET_TOKEN;
+import static io.ballerina.compiler.syntax.tree.SyntaxKind.OPEN_PAREN_TOKEN;
+import static io.ballerina.compiler.syntax.tree.SyntaxKind.UNION_TYPE_DESC;
 
 /**
  * Generates a Ballerina array type descriptor from an AsyncAPI array schema.
@@ -57,6 +62,11 @@ public class ArrayTypeGenerator implements TypeGenerator {
             memberTypeDesc = TypeGenerator.of((AsyncApiSchema) items, typeName).generateTypeDescriptorNode();
         } else {
             memberTypeDesc = new AnyDataTypeGenerator().generateTypeDescriptorNode();
+        }
+        // [] binds tighter than | and &, so a union or intersection item type is bracketed: (string|int)[]
+        if (memberTypeDesc.kind() == UNION_TYPE_DESC || memberTypeDesc.kind() == INTERSECTION_TYPE_DESC) {
+            memberTypeDesc = createParenthesisedTypeDescriptorNode(createToken(OPEN_PAREN_TOKEN), memberTypeDesc,
+                    createToken(CLOSE_PAREN_TOKEN));
         }
         NodeList<ArrayDimensionNode> dimensions = createEmptyNodeList();
         dimensions = dimensions.add(
