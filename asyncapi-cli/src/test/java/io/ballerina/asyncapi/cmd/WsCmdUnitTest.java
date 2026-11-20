@@ -249,4 +249,72 @@ public class WsCmdUnitTest extends CmdTestBase {
         Assert.assertTrue(client.contains("remote isolated function doPing("), client);
         Assert.assertFalse(client.contains("doEcho"), client);
     }
+
+    // A ticker written from the server's side: the server sends Tick and receives Subscribe
+    private static final String SERVER_SIDE_TICKER = String.join("\n",
+            "asyncapi: 3.0.0",
+            "info: {title: Ticker, version: 1.0.0}",
+            "servers:",
+            "  prod: {host: example.com, protocol: wss}",
+            "channels:",
+            "  ticks:",
+            "    address: /ticks",
+            "    messages:",
+            "      Subscribe: {$ref: '#/components/messages/Subscribe'}",
+            "      Tick: {$ref: '#/components/messages/Tick'}",
+            "operations:",
+            "  sendTick:",
+            "    action: send",
+            "    channel: {$ref: '#/channels/ticks'}",
+            "    messages: [{$ref: '#/channels/ticks/messages/Tick'}]",
+            "  onSubscribe:",
+            "    action: receive",
+            "    channel: {$ref: '#/channels/ticks'}",
+            "    messages: [{$ref: '#/channels/ticks/messages/Subscribe'}]",
+            "components:",
+            "  messages:",
+            "    Subscribe: {payload: {type: object, required: [symbol], properties: {symbol: {type: string}}}}",
+            "    Tick: {payload: {type: object, required: [price], properties: {price: {type: number}}}}");
+
+    @Test(description = "--spec-side service reads a spec written from the server's side: what it sends, the client "
+            + "receives")
+    public void testServiceSideSpecSwapsSendAndReceive() throws IOException {
+        Path specFile = Files.createTempFile(tmpDir, "spec-", ".yaml");
+        Files.writeString(specFile, SERVER_SIDE_TICKER);
+        Path pkg = newPackage("serverside");
+        parse(specFile.toString(), "--protocol", "ws", "--spec-side", "service", "--output", pkg.toString())
+                .execute();
+        Assert.assertFalse(getErr().contains("error:"), "Err: " + getErr());
+        String client = Files.readString(pkg.resolve("client.bal"));
+        Assert.assertTrue(client.contains("remote isolated function doSubscribe(Subscribe subscribe, decimal timeout)"),
+                client);
+        Assert.assertTrue(client.contains("remote isolated function doTick(decimal timeout) returns Tick|error"),
+                client);
+    }
+
+    @Test(description = "Without --spec-side the spec is read as written, from the client's side")
+    public void testClientSideIsTheDefault() throws IOException {
+        Path specFile = Files.createTempFile(tmpDir, "spec-", ".yaml");
+        Files.writeString(specFile, SERVER_SIDE_TICKER);
+        Path pkg = newPackage("clientside");
+        parse(specFile.toString(), "--protocol", "ws", "--spec-side", "CLIENT", "--output", pkg.toString())
+                .execute();
+        String client = Files.readString(pkg.resolve("client.bal"));
+        Assert.assertTrue(client.contains("remote isolated function doTick(Tick tick, decimal timeout)"), client);
+    }
+
+    @Test(description = "An unknown --spec-side names the values it takes")
+    public void testUnknownSpecSide() {
+        parse("spec.yaml", "--protocol", "ws", "--spec-side", "server").execute();
+        Assert.assertTrue(getErr().contains("Invalid value for option '--spec-side': expected one of [client, "
+                + "service]"), "Err: " + getErr());
+    }
+
+    @Test(description = "--spec-side warns when generating a definition from Ballerina code")
+    public void testSpecSideWarnsForCodeToSpec() throws IOException {
+        Path balFile = Files.createTempFile(tmpDir, "service-", ".bal");
+        parse(balFile.toString(), "--protocol", "ws", "--spec-side", "service").execute();
+        Assert.assertTrue(getErr().contains("warning: --spec-side only applies when generating code from an "
+                + "AsyncAPI definition"), "Err: " + getErr());
+    }
 }

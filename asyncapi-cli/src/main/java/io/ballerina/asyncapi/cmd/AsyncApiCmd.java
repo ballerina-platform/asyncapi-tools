@@ -172,6 +172,11 @@ public class AsyncApiCmd implements BLauncherCmd {
             fail(String.format(ErrorMessages.UNKNOWN_FORMAT, baseCmd.format));
             return;
         }
+        if (baseCmd.specSide != null && !CmdConstants.SPEC_SIDE_CLIENT.equalsIgnoreCase(baseCmd.specSide)
+                && !CmdConstants.SPEC_SIDE_SERVICE.equalsIgnoreCase(baseCmd.specSide)) {
+            fail(ErrorMessages.INVALID_SPEC_SIDE);
+            return;
+        }
         ProtocolHandler handler;
         try {
             handler = CodeGenOrchestrator.getHandler(command.get().protocol());
@@ -269,6 +274,11 @@ public class AsyncApiCmd implements BLauncherCmd {
         }
         if (baseCmd.licensePath != null && !handler.supportsLicenseHeader()) {
             ctx.printWarning(String.format(ErrorMessages.WARN_OPTION_UNSUPPORTED, "--license", protocol));
+        }
+        if (baseCmd.specSide != null && !handler.supportsSpecSide()) {
+            ctx.printWarning(String.format(ErrorMessages.WARN_OPTION_UNSUPPORTED, "--spec-side", protocol));
+        } else if (baseCmd.specSide != null && mode == CmdConstants.Mode.BALLERINA_TO_ASYNCAPI) {
+            ctx.printWarning(String.format(ErrorMessages.WARN_OPTION_ONLY_FOR_CODE_OUTPUT, "--spec-side"));
         }
         if (mode == CmdConstants.Mode.ASYNCAPI_TO_BALLERINA) {
             if (baseCmd.format != null) {
