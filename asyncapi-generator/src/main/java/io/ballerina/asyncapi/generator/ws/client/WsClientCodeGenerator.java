@@ -17,13 +17,18 @@
  */
 package io.ballerina.asyncapi.generator.ws.client;
 
+import io.ballerina.asyncapi.core.SpecWarning;
 import io.ballerina.asyncapi.core.api.AsyncApiSpec;
 import io.ballerina.asyncapi.generator.GeneratorException;
 import io.ballerina.asyncapi.generator.ws.client.generator.ClientGenerator;
 import io.ballerina.asyncapi.generator.ws.client.generator.DataTypesGenerator;
 import io.ballerina.asyncapi.generator.ws.client.generator.TestGenerator;
 import io.ballerina.asyncapi.generator.ws.client.generator.UtilGenerator;
+import io.ballerina.asyncapi.generator.ws.client.model.CorrelationIdSpec;
 import io.ballerina.asyncapi.generator.ws.client.model.GenSrcFile;
+import io.ballerina.asyncapi.generator.ws.client.model.InferredKeySpec;
+import io.ballerina.asyncapi.generator.ws.client.model.KeyPathSpec;
+import io.ballerina.asyncapi.generator.ws.client.model.SecuritySchemeSpec;
 import io.ballerina.asyncapi.generator.ws.client.model.WsClientConfig;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -35,6 +40,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 /**
@@ -54,6 +60,7 @@ public class WsClientCodeGenerator {
     private final AsyncApiSpec asyncApiSpec;
     private final String licenseHeader;
     private final boolean includeTestFiles;
+    private Consumer<SpecWarning> warnings = warning -> { };
 
     /**
      * Creates a new WebSocket client code generator.
@@ -69,6 +76,17 @@ public class WsClientCodeGenerator {
     }
 
     /**
+     * Sets where to report the parts of the spec that generation leaves out, such as a message it has no function for.
+     *
+     * @param warnings the warning consumer
+     * @return this generator
+     */
+    public WsClientCodeGenerator withWarnings(Consumer<SpecWarning> warnings) {
+        this.warnings = warnings;
+        return this;
+    }
+
+    /**
      * Runs the full generation pipeline and writes Ballerina source files to {@code outputPath}.
      *
      * @param outputPath the directory to write generated files into
@@ -78,9 +96,17 @@ public class WsClientCodeGenerator {
         if (outputPath == null) {
             outputPath = Path.of("");
         }
+        // A userPassword or apiKey scheme is read as credentials the client can send when it connects
+        AsyncApiSpec readable = SecuritySchemeSpec.of(asyncApiSpec, warnings);
+        // A key may be a JSON Pointer or a message's own; a spec without one routes on the one field that tells its
+        // messages apart, if there is one
+        AsyncApiSpec keyed = InferredKeySpec.of(KeyPathSpec.of(readable), warnings);
+        // Requests and replies that name one correlationId field are paired on it
+        AsyncApiSpec spec = CorrelationIdSpec.of(keyed, warnings);
         WsClientConfig config = new WsClientConfig.Builder()
-                .withAsyncApi(asyncApiSpec)
+                .withAsyncApi(spec)
                 .withLicense(licenseHeader)
+                .withWarnings(warnings)
                 .build();
 
         // Generate source content from each sub-generator

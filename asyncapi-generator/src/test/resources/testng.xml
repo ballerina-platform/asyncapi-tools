@@ -32,6 +32,7 @@
             <class name="io.ballerina.asyncapi.generator.http.utils.ChannelRoutesTest"/>
             <class name="io.ballerina.asyncapi.generator.ws.client.WsClientCodeGeneratorIntegrationTest"/>
             <class name="io.ballerina.asyncapi.generator.ws.client.WsClientRoundTripTest"/>
+            <class name="io.ballerina.asyncapi.generator.ws.client.WsClientGeneratedNamesTest"/>
             <class name="io.ballerina.asyncapi.generator.ws.client.extractor.DispatcherKeyExtractorTest"/>
             <class name="io.ballerina.asyncapi.generator.ws.client.extractor.DispatcherStreamIdExtractorTest"/>
             <class name="io.ballerina.asyncapi.generator.ws.client.extractor.ChannelExtractorTest"/>
@@ -57,11 +58,20 @@
             <class name="io.ballerina.asyncapi.generator.ws.client.node.client.ClientWorkerGeneratorTest"/>
             <class name="io.ballerina.asyncapi.generator.ws.client.node.client.ClientHelperGeneratorTest"/>
             <class name="io.ballerina.asyncapi.generator.ws.client.node.client.ClientRemoteFunctionGeneratorTest"/>
+            <class name="io.ballerina.asyncapi.generator.ws.client.WsClientWarningsTest"/>
+            <class name="io.ballerina.asyncapi.generator.ws.client.WsClientDispatcherKeyTest"/>
+            <class name="io.ballerina.asyncapi.generator.ws.client.WsClientKeyInferenceTest"/>
+            <class name="io.ballerina.asyncapi.generator.ws.client.WsClientChannelsTest"/>
+            <class name="io.ballerina.asyncapi.generator.ws.client.WsClientContentRoutingTest"/>
+            <class name="io.ballerina.asyncapi.generator.ws.client.WsClientKeyPathTest"/>
+            <class name="io.ballerina.asyncapi.generator.ws.client.WsClientSecuritySchemeTest"/>
+            <class name="io.ballerina.asyncapi.generator.ws.client.WsClientCorrelationIdTest"/>
             <class name="io.ballerina.asyncapi.generator.ws.client.generator.ClientGeneratorTest"/>
             <class name="io.ballerina.asyncapi.generator.ws.client.generator.DataTypesGeneratorTest"/>
             <class name="io.ballerina.asyncapi.generator.ws.client.generator.UtilGeneratorTest"/>
             <class name="io.ballerina.asyncapi.generator.ws.client.generator.BallerinaAuthConfigGeneratorTest"/>
             <class name="io.ballerina.asyncapi.generator.ws.client.generator.TestGeneratorTest"/>
+            <class name="io.ballerina.asyncapi.generator.ws.client.generator.RoutingPlanTest"/>
             <class name="io.ballerina.asyncapi.generator.http.WebhookDSLVerificationTest"/>
             <class name="io.ballerina.asyncapi.generator.http.validator.WebhookDslValidatorTest"/>
         </classes>

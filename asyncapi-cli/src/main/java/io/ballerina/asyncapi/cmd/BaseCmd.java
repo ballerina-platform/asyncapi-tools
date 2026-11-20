@@ -65,6 +65,12 @@ public class BaseCmd {
                     + "service class it upgrades to, e.g. ChatService. Every matching service is generated.")
     public String serviceName;
 
+    @CommandLine.Option(names = {"--spec-side"}, paramLabel = "<client|service>",
+            description = "Whose side the definition's send and receive operations describe: client, the "
+                    + "default, or service for a definition written from the server's side, whose send and "
+                    + "receive the client swaps.")
+    public String specSide;
+
     @CommandLine.Option(names = {"--with-tests"},
             description = "Generate test files along with the code. Ignored with a warning when the protocol "
                     + "does not support it.")
