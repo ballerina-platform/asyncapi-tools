@@ -30,6 +30,7 @@ import io.ballerina.asyncapi.generator.ws.client.model.InferredKeySpec;
 import io.ballerina.asyncapi.generator.ws.client.model.KeyPathSpec;
 import io.ballerina.asyncapi.generator.ws.client.model.SecuritySchemeSpec;
 import io.ballerina.asyncapi.generator.ws.client.model.WsClientConfig;
+import io.ballerina.asyncapi.generator.ws.client.utils.OtherProtocols;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -96,6 +97,8 @@ public class WsClientCodeGenerator {
         if (outputPath == null) {
             outputPath = Path.of("");
         }
+        // A spec for another protocol, or a Socket.IO endpoint, stops before anything is generated
+        OtherProtocols.check(asyncApiSpec, warnings);
         // A userPassword or apiKey scheme is read as credentials the client can send when it connects
         AsyncApiSpec readable = SecuritySchemeSpec.of(asyncApiSpec, warnings);
         // A key may be a JSON Pointer or a message's own; a spec without one routes on the one field that tells its

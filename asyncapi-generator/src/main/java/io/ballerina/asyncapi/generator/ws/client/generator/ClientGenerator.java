@@ -31,6 +31,7 @@ import io.ballerina.asyncapi.generator.ws.client.node.client.ClientInitGenerator
 import io.ballerina.asyncapi.generator.ws.client.node.client.ClientRemoteFunctionGenerator;
 import io.ballerina.asyncapi.generator.ws.client.node.client.ClientWorkerGenerator;
 import io.ballerina.asyncapi.generator.ws.client.utils.CodegenUtils;
+import io.ballerina.asyncapi.generator.ws.client.utils.OtherProtocols;
 import io.ballerina.compiler.syntax.tree.ClassDefinitionNode;
 import io.ballerina.compiler.syntax.tree.ImportDeclarationNode;
 import io.ballerina.compiler.syntax.tree.MarkdownDocumentationNode;
@@ -206,7 +207,8 @@ public class ClientGenerator {
             // No server to default to, so the caller must give serviceUrl
             return NO_SERVER_URL;
         }
-        AsyncApiServer server = servers.values().iterator().next();
+        // A spec that also lists, say, a Kafka broker connects to its WebSocket server
+        AsyncApiServer server = OtherProtocols.webSocketFirst(servers).get(0);
         String url = CodegenUtils.buildUrl(server.host(), server.pathname(), server.variables());
         // A 3.x host has no scheme; the server's protocol (ws or wss) gives it
         String protocol = server.protocol() != null ? server.protocol().toLowerCase(Locale.ROOT) : "";
