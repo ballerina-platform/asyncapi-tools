@@ -1,0 +1,28 @@
+asyncapi: 2.6.0
+info:
+  title: Ticker
+  version: 0.0.0
+servers:
+  development:
+    url: ws://localhost:9416/t
+    protocol: ws
+channels:
+  /:
+    subscribe:
+      message:
+        oneOf:
+        - name: TradeData
+          payload:
+            type: object
+            required: [event]
+            properties:
+              event: {type: string, const: trade}
+              price: {type: number}
+        - name: Ticker
+          payload:
+            type: object
+            required: [event]
+            properties:
+              event: {type: string, const: ticker}
+              price: {type: number}
+x-dispatcherKey: event

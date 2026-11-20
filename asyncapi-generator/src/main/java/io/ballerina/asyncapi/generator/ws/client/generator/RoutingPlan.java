@@ -25,6 +25,7 @@ import io.ballerina.asyncapi.core.model.operation.AsyncApiOperation;
 import io.ballerina.asyncapi.generator.GeneratorException;
 import io.ballerina.asyncapi.generator.ws.client.extractor.DispatcherKeyExtractor;
 import io.ballerina.asyncapi.generator.ws.client.extractor.DispatcherStreamIdExtractor;
+import io.ballerina.asyncapi.generator.ws.client.model.NamedPayloadSpec;
 import io.ballerina.asyncapi.generator.ws.client.utils.CodegenUtils;
 import io.ballerina.asyncapi.generator.ws.client.utils.ContentRoutes;
 import io.ballerina.asyncapi.generator.ws.client.utils.IncomingMessages;
@@ -286,6 +287,17 @@ public record RoutingPlan(String dispatcherKey, String dispatcherStreamId, Map<S
         }
         for (Map.Entry<String, AsyncApiSchema> route : routeSchemas.entrySet()) {
             addFixedValueRoute(route.getValue(), dispatcherKey, responseMap.get(route.getKey()), dispatchValueMap);
+        }
+        // A renamed schema's frames still carry a dispatcher value that names the old type, so it routes there too
+        JsonNode renames = asyncApiSpec.getAsyncApiExtensions().map(ext -> ext.get(NamedPayloadSpec.X_SCHEMA_RENAMES))
+                .orElse(null);
+        if (renames != null) {
+            renames.properties().forEach(rename -> {
+                String pipe = responseMap.get(CodegenUtils.getValidName(rename.getValue().asText(), true));
+                if (pipe != null) {
+                    responseMap.putIfAbsent(CodegenUtils.getValidName(rename.getKey(), true), pipe);
+                }
+            });
         }
         return responseMap;
     }
