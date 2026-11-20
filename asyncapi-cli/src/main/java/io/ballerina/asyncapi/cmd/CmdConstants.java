@@ -36,6 +36,8 @@ public final class CmdConstants {
 
     public static final String FORMAT_JSON = "json";
     public static final String FORMAT_YAML = "yaml";
+    public static final String SPEC_SIDE_CLIENT = "client";
+    public static final String SPEC_SIDE_SERVICE = "service";
 
     /**
      * Describes the direction of code generation for a given invocation.

@@ -17,6 +17,10 @@
  */
 package io.ballerina.asyncapi.generator.spi;
 
+import io.ballerina.asyncapi.core.SpecWarning;
+
+import java.util.function.Consumer;
+
 /**
  * Options controlling AsyncAPI-spec-to-Ballerina-code generation.
  */
@@ -24,10 +28,14 @@ public final class SpecToCodeOptions {
 
     private final String licenseHeader;
     private final boolean includeTestFiles;
+    private final Consumer<SpecWarning> warnings;
+    private final boolean serviceSide;
 
     private SpecToCodeOptions(Builder builder) {
         this.licenseHeader = builder.licenseHeader;
         this.includeTestFiles = builder.includeTestFiles;
+        this.warnings = builder.warnings;
+        this.serviceSide = builder.serviceSide;
     }
 
     /**
@@ -49,11 +57,31 @@ public final class SpecToCodeOptions {
     }
 
     /**
+     * Returns where warnings about the spec go, such as a mistake the parser corrected.
+     *
+     * @return the warning consumer; ignores warnings unless one was set
+     */
+    public Consumer<SpecWarning> getWarnings() {
+        return warnings;
+    }
+
+    /**
+     * Returns whether the spec is written from the server's side, so its send and receive are swapped.
+     *
+     * @return true if the operations describe what the server does
+     */
+    public boolean isServiceSide() {
+        return serviceSide;
+    }
+
+    /**
      * Builder for {@link SpecToCodeOptions}.
      */
     public static class Builder {
         private String licenseHeader = "";
         private boolean includeTestFiles = false;
+        private Consumer<SpecWarning> warnings = warning -> { };
+        private boolean serviceSide = false;
 
         /**
          * Sets the license header.
@@ -74,6 +102,28 @@ public final class SpecToCodeOptions {
          */
         public Builder withIncludeTestFiles(boolean includeTestFiles) {
             this.includeTestFiles = includeTestFiles;
+            return this;
+        }
+
+        /**
+         * Sets where warnings about the spec go.
+         *
+         * @param warnings receives each warning
+         * @return this builder
+         */
+        public Builder withWarnings(Consumer<SpecWarning> warnings) {
+            this.warnings = warnings;
+            return this;
+        }
+
+        /**
+         * Sets whether the spec is written from the server's side.
+         *
+         * @param serviceSide true when the operations describe what the server does
+         * @return this builder
+         */
+        public Builder withServiceSide(boolean serviceSide) {
+            this.serviceSide = serviceSide;
             return this;
         }
 

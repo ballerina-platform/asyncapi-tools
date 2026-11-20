@@ -60,6 +60,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -537,46 +538,34 @@ public class UtilGenerator {
     }
 
     /**
-     * Returns {@code true} if the first channel has a WS binding query schema with properties.
+     * Returns {@code true} if a channel has a WS binding query schema with properties.
      *
      * @param spec the parsed spec
      * @return {@code true} if query parameters are present
      */
     private boolean hasQueryParams(AsyncApiSpec spec) {
-        AsyncApiChannel channel = getFirstChannel(spec);
-        if (channel == null || channel.bindings() == null
-                || channel.bindings().wsChannelBindings() == null) {
-            return false;
-        }
-        JsonNode query = channel.bindings().wsChannelBindings().query();
-        return query != null && query.get("properties") != null;
+        return channels(spec).stream().anyMatch(channel -> hasProperties(bindings(channel, true)));
     }
 
     /**
-     * Returns {@code true} if the first channel has a WS binding headers schema with properties.
+     * Returns {@code true} if a channel has a WS binding headers schema with properties.
      *
      * @param spec the parsed spec
      * @return {@code true} if header parameters are present
      */
     private boolean hasHeaderParams(AsyncApiSpec spec) {
-        AsyncApiChannel channel = getFirstChannel(spec);
-        if (channel == null || channel.bindings() == null
-                || channel.bindings().wsChannelBindings() == null) {
-            return false;
-        }
-        JsonNode headers = channel.bindings().wsChannelBindings().headers();
-        return headers != null && headers.get("properties") != null;
+        return channels(spec).stream().anyMatch(channel -> hasProperties(bindings(channel, false)));
     }
 
     /**
-     * Returns {@code true} if the first channel has path parameters.
+     * Returns {@code true} if a channel has path parameters.
      *
      * @param spec the parsed spec
      * @return {@code true} if path parameters are present
      */
     private boolean hasPathParams(AsyncApiSpec spec) {
-        AsyncApiChannel channel = getFirstChannel(spec);
-        return channel != null && channel.parameters() != null && !channel.parameters().isEmpty();
+        return channels(spec).stream().anyMatch(channel -> channel.parameters() != null
+                && !channel.parameters().isEmpty());
     }
 
     /**
@@ -594,17 +583,20 @@ public class UtilGenerator {
                 .orElse(false);
     }
 
-    /**
-     * Returns the first channel from the spec, or {@code null} if none.
-     *
-     * @param spec the parsed spec
-     * @return the first channel, or {@code null}
-     */
-    private AsyncApiChannel getFirstChannel(AsyncApiSpec spec) {
-        Map<String, AsyncApiChannel> channels = spec.getAsyncApiChannels().orElse(null);
-        if (channels == null || channels.isEmpty()) {
+    // Every channel's client shares these helpers, so they're added when any channel needs them
+    private static Collection<AsyncApiChannel> channels(AsyncApiSpec spec) {
+        return spec.getAsyncApiChannels().map(Map::values).orElse(List.of());
+    }
+
+    private static JsonNode bindings(AsyncApiChannel channel, boolean query) {
+        if (channel.bindings() == null || channel.bindings().wsChannelBindings() == null) {
             return null;
         }
-        return channels.values().iterator().next();
+        return query ? channel.bindings().wsChannelBindings().query()
+                : channel.bindings().wsChannelBindings().headers();
+    }
+
+    private static boolean hasProperties(JsonNode schema) {
+        return schema != null && schema.get("properties") != null;
     }
 }

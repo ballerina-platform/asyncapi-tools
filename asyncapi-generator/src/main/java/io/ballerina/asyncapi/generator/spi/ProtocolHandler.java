@@ -68,6 +68,16 @@ public interface ProtocolHandler {
     }
 
     /**
+     * Returns true if this handler can read a spec written from the server's side.
+     * Defaults to false — override to opt in.
+     *
+     * @return true if the spec-side option is honoured
+     */
+    default boolean supportsSpecSide() {
+        return false;
+    }
+
+    /**
      * Returns true if this handler supports code-to-spec generation.
      * Defaults to false — override to opt in.
      *
