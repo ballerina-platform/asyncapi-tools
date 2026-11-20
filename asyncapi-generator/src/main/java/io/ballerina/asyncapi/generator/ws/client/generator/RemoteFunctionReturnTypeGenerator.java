@@ -125,16 +125,26 @@ public class RemoteFunctionReturnTypeGenerator {
         }
     }
 
+    /**
+     * Returns the Ballerina return type of a receive-only function for {@code message}, the message itself, wherever
+     * the spec defines it: in components, in a channel, or inline in an operation.
+     *
+     * @param messageName      the message's key in its operation
+     * @param message          the message
+     * @param responseMessages list to collect the response schema name (may be {@code null})
+     * @return the Ballerina return type string
+     * @throws GeneratorException if the message payload is not a schema, or lacks the dispatcher key
+     */
+    public String getReceiveReturnType(String messageName, AsyncApiMessage message, List<String> responseMessages)
+            throws GeneratorException {
+        List<String> returnTypes = new ArrayList<>();
+        addReturnType(messageName, message, responseMessages, returnTypes);
+        return returnTypes.get(0);
+    }
+
     private void handleReferenceReturn(JsonNode jsonNode, Map<String, AsyncApiMessage> messages,
                                        List<String> responseMessages, List<String> returnTypes)
             throws GeneratorException {
-        String dispatcherKey = asyncApiSpec.getAsyncApiExtensions()
-                .map(ext -> {
-                    JsonNode node = ext.get(X_DISPATCHER_KEY);
-                    return node != null ? node.asText() : null;
-                })
-                .orElse(null);
-
         String reference = jsonNode.get("$ref").asText();
         String messageName = CodegenUtils.extractReferenceType(reference);
 
@@ -142,7 +152,17 @@ public class RemoteFunctionReturnTypeGenerator {
             throw new GeneratorException(
                     String.format("Message not found in components: %s", messageName));
         }
-        AsyncApiMessage message = messages.get(messageName);
+        addReturnType(messageName, messages.get(messageName), responseMessages, returnTypes);
+    }
+
+    private void addReturnType(String messageName, AsyncApiMessage message, List<String> responseMessages,
+                               List<String> returnTypes) throws GeneratorException {
+        String dispatcherKey = asyncApiSpec.getAsyncApiExtensions()
+                .map(ext -> {
+                    JsonNode node = ext.get(X_DISPATCHER_KEY);
+                    return node != null ? node.asText() : null;
+                })
+                .orElse(null);
         Object payload = message.payload();
         if (!(payload instanceof AsyncApiSchema)) {
             throw new GeneratorException(
