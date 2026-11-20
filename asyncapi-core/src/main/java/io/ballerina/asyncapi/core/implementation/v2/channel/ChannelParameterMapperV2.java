@@ -40,6 +40,7 @@ import io.apicurio.datamodels.models.asyncapi.v26.AsyncApi26Components;
 import io.apicurio.datamodels.models.asyncapi.v26.AsyncApi26Parameter;
 import io.ballerina.asyncapi.core.Constants;
 import io.ballerina.asyncapi.core.implementation.utils.JsonNodeUtils;
+import io.ballerina.asyncapi.core.implementation.utils.JsonPointers;
 import io.ballerina.asyncapi.core.model.channel.AsyncApiChannelParameter;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -129,7 +130,7 @@ final class ChannelParameterMapperV2 {
         if (schema instanceof AsyncApiReferenceable schemaRef && schemaRef.get$ref() != null) {
             String schemaRefStr = schemaRef.get$ref();
             if (schemaRefStr.startsWith(Constants.SCHEMAS_REF_PREFIX) && components != null) {
-                String schemaName = schemaRefStr.substring(Constants.SCHEMAS_REF_PREFIX.length());
+                String schemaName = JsonPointers.keyAfter(schemaRefStr, Constants.SCHEMAS_REF_PREFIX);
                 Map<String, ? extends AsyncApiSchema> schemas = switch (components) {
                     case AsyncApi26Components typed -> typed.getSchemas();
                     case AsyncApi25Components typed -> typed.getSchemas();
@@ -192,7 +193,7 @@ final class ChannelParameterMapperV2 {
                 LOG.warn("Cyclic $ref detected: {}. Skipping parameter.", current);
                 return null;
             }
-            String paramName = current.substring(Constants.PARAMETERS_REF_PREFIX.length());
+            String paramName = JsonPointers.keyAfter(current, Constants.PARAMETERS_REF_PREFIX);
             Map<String, ?> parametersMap = components.getParameters();
             Object entry = parametersMap != null ? parametersMap.get(paramName) : null;
             AsyncApiParameter resolved = entry instanceof AsyncApiParameter p ? p : null;

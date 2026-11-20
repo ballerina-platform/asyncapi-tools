@@ -21,6 +21,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import io.ballerina.asyncapi.core.SpecWarning;
 import io.ballerina.asyncapi.core.api.AsyncApiSpec;
 import io.ballerina.asyncapi.core.model.component.AsyncApiSchema;
 import io.ballerina.asyncapi.core.model.message.AsyncApiMessage;
@@ -30,6 +31,7 @@ import io.ballerina.asyncapi.generator.ws.client.generator.ClientGenerator;
 import io.ballerina.asyncapi.generator.ws.client.generator.RemoteFunctionBodyGenerator;
 import io.ballerina.asyncapi.generator.ws.client.generator.RemoteFunctionReturnTypeGenerator;
 import io.ballerina.asyncapi.generator.ws.client.generator.RemoteFunctionSignatureGenerator;
+import io.ballerina.asyncapi.generator.ws.client.generator.RoutingPlan;
 import io.ballerina.asyncapi.generator.ws.client.utils.CodegenUtils;
 import io.ballerina.compiler.syntax.tree.FunctionDefinitionNode;
 import io.ballerina.compiler.syntax.tree.ImportDeclarationNode;
@@ -37,11 +39,13 @@ import io.ballerina.compiler.syntax.tree.NodeParser;
 import io.ballerina.compiler.syntax.tree.TypeDefinitionNode;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Consumer;
 
 import static io.ballerina.asyncapi.generator.ws.client.extractor.DispatcherKeyExtractor.X_DISPATCHER_KEY;
 
@@ -51,16 +55,21 @@ import static io.ballerina.asyncapi.generator.ws.client.extractor.DispatcherKeyE
 public class ClientRemoteFunctionGenerator {
 
     private static final String REMOTE_METHOD_NAME_PREFIX = "do";
+    private static final String RECEIVED_SUFFIX = "Received";
     private static final String DESCRIPTION = "description";
     private static final String ONE_OF = "oneOf";
     private static final String REF = "$ref";
 
     private final AsyncApiSpec asyncApiSpec;
+    private final String dispatcherKey;
     private final String dispatcherStreamId;
     private final List<String> streamReturns;
     private final List<ImportDeclarationNode> imports;
     private final List<TypeDefinitionNode> typeDefinitionNodeList;
     private final Map<String, String> responseMap;
+    private Consumer<SpecWarning> warnings = warning -> { };
+    // How received messages are routed, when the generator is made from a plan
+    private RoutingPlan plan;
 
     /**
      * Creates a new remote function generator.
@@ -76,12 +85,57 @@ public class ClientRemoteFunctionGenerator {
                                           List<String> streamReturns, List<ImportDeclarationNode> imports,
                                           List<TypeDefinitionNode> typeDefinitionNodeList,
                                           Map<String, String> responseMap) {
+        this(asyncApiSpec, asyncApiSpec.getAsyncApiExtensions().map(ext -> ext.get(X_DISPATCHER_KEY))
+                        .map(JsonNode::asText).orElse(null), dispatcherStreamId, streamReturns, imports,
+                typeDefinitionNodeList, responseMap);
+    }
+
+    /**
+     * Creates a new remote function generator whose functions wait on the pipes {@code plan} routes replies to.
+     *
+     * @param asyncApiSpec           the parsed AsyncAPI spec
+     * @param plan                   how incoming messages are routed
+     * @param imports                accumulated import declaration nodes
+     * @param typeDefinitionNodeList accumulated type definition nodes
+     */
+    public ClientRemoteFunctionGenerator(AsyncApiSpec asyncApiSpec, RoutingPlan plan,
+                                          List<ImportDeclarationNode> imports,
+                                          List<TypeDefinitionNode> typeDefinitionNodeList) {
+        // Simple-rpc stream replies are added while the functions are built
+        this(asyncApiSpec, plan.dispatcherKey(), plan.dispatcherStreamId(), new ArrayList<>(plan.streamReturns()),
+                imports, typeDefinitionNodeList, plan.responseMap());
+        this.plan = plan;
+    }
+
+    private ClientRemoteFunctionGenerator(AsyncApiSpec asyncApiSpec, String dispatcherKey, String dispatcherStreamId,
+                                           List<String> streamReturns, List<ImportDeclarationNode> imports,
+                                           List<TypeDefinitionNode> typeDefinitionNodeList,
+                                           Map<String, String> responseMap) {
         this.asyncApiSpec = asyncApiSpec;
+        this.dispatcherKey = dispatcherKey;
         this.dispatcherStreamId = dispatcherStreamId;
         this.streamReturns = streamReturns;
         this.imports = imports;
         this.typeDefinitionNodeList = typeDefinitionNodeList;
         this.responseMap = responseMap;
+    }
+
+    /**
+     * Sets where to report a message the client gets no function for.
+     *
+     * @param warnings the warning consumer
+     * @return this generator
+     */
+    public ClientRemoteFunctionGenerator withWarnings(Consumer<SpecWarning> warnings) {
+        this.warnings = warnings;
+        return this;
+    }
+
+    // Reports a message left out for having no JSON Schema payload, pointing at the operation that lists it
+    private void warnNoPayload(String operationId, String msgName, String missing, String gained) {
+        warnings.accept(new SpecWarning("/operations/" + operationId.replace("~", "~0").replace("/", "~1"),
+                String.format("message '%s' has no JSON Schema payload, so the client has no %s", msgName, missing),
+                String.format("Give the message a JSON Schema 'payload' to get a %s for it.", gained)));
     }
 
     /**
@@ -99,14 +153,16 @@ public class ClientRemoteFunctionGenerator {
 
         RemoteFunctionSignatureGenerator sigGen =
                 new RemoteFunctionSignatureGenerator(asyncApiSpec, typeDefinitionNodeList);
-        String dispatcherKey = asyncApiSpec.getAsyncApiExtensions().map(ext -> ext.get(X_DISPATCHER_KEY))
-                .map(JsonNode::asText).orElse(null);
         RemoteFunctionBodyGenerator bodyGen = new RemoteFunctionBodyGenerator(imports, dispatcherKey);
         RemoteFunctionReturnTypeGenerator returnTypeGen = new RemoteFunctionReturnTypeGenerator(asyncApiSpec);
 
         // Messages and types a send function already returns
         Set<String> remainingResponseMessages = new HashSet<>();
         Set<String> replyTypes = new HashSet<>();
+        // Function names are unique across the client; a message two operations list gets one function
+        Set<String> functionNames = new HashSet<>();
+        Map<String, AsyncApiMessage> sent = new HashMap<>();
+        Map<String, AsyncApiMessage> received = new HashMap<>();
 
         // First pass: SEND operations
         for (Map.Entry<String, AsyncApiOperation> opEntry : operations.entrySet()) {
@@ -120,6 +176,11 @@ public class ClientRemoteFunctionGenerator {
             for (Map.Entry<String, AsyncApiMessage> msgEntry : op.messages().entrySet()) {
                 String msgName = msgEntry.getKey();
                 AsyncApiMessage message = msgEntry.getValue();
+                // A message without a JSON Schema payload has no type to send, so it gets no function yet
+                if (!(message.payload() instanceof AsyncApiSchema)) {
+                    warnNoPayload(opEntry.getKey(), msgName, "function to send it", "function");
+                    continue;
+                }
 
                 // Skip close-frame schemas
                 if (message.payload() instanceof AsyncApiSchema) {
@@ -127,6 +188,9 @@ public class ClientRemoteFunctionGenerator {
                     if (CodegenUtils.isCloseFrameSchema(payloadSchema)) {
                         continue;
                     }
+                }
+                if (message.equals(sent.putIfAbsent(msgName, message))) {
+                    continue;
                 }
 
                 // The messages this send function returns need no receive-only function of their own
@@ -139,8 +203,9 @@ public class ClientRemoteFunctionGenerator {
                     replyTypes.addAll(replySchemas);
                 }
 
-                FunctionDefinitionNode fn = getRemoteFunctionDefinitionNode(asyncApiSpec, msgName, message,
-                        dispatcherStreamId, false, sigGen, bodyGen, returnTypeGen, streamReturns, responseMap);
+                String funcName = freeFunctionName(msgName, "", functionNames);
+                FunctionDefinitionNode fn = getRemoteFunctionDefinitionNode(asyncApiSpec, msgName, funcName, message,
+                        dispatcherStreamId, false, sigGen, bodyGen, returnTypeGen, streamReturns, responseMap, null);
                 remoteFunctions.add(fn);
             }
         }
@@ -157,31 +222,65 @@ public class ClientRemoteFunctionGenerator {
             for (Map.Entry<String, AsyncApiMessage> msgEntry : op.messages().entrySet()) {
                 String msgName = msgEntry.getKey();
                 AsyncApiMessage message = msgEntry.getValue();
+                // Received frames are read into a record, so a message without a schema has nothing to read into
+                if (!(message.payload() instanceof AsyncApiSchema payloadSchema)) {
+                    warnNoPayload(opEntry.getKey(), msgName, "type to receive it as", "type");
+                    continue;
+                }
 
                 // Skip close-frame schemas
-                if (message.payload() instanceof AsyncApiSchema) {
-                    AsyncApiSchema payloadSchema = (AsyncApiSchema) message.payload();
-                    if (CodegenUtils.isCloseFrameSchema(payloadSchema)) {
-                        continue;
-                    }
+                if (CodegenUtils.isCloseFrameSchema(payloadSchema)) {
+                    continue;
                 }
 
                 // A receive function on the pipe a send function waits on would take its replies
                 if (remainingResponseMessages.contains(msgName)
-                        || message.payload() instanceof AsyncApiSchema payload && replyTypes.contains(payload.name())) {
+                        || replyTypes.contains(payloadSchema.name())) {
+                    continue;
+                }
+                if (message.equals(received.putIfAbsent(msgName, message))) {
+                    continue;
+                }
+
+                // Nothing tells this message apart from the others, which was reported when the routes were made
+                if (plan != null && payloadSchema.name() != null
+                        && plan.leftOutTypes().contains(CodegenUtils.getValidName(payloadSchema.name(), true))) {
                     continue;
                 }
 
                 // Build synthetic extensions for receive-only messages
                 AsyncApiMessage enrichedMessage = buildReceiveOnlyMessage(message, msgName);
+                // Without its own x-response the function returns the message itself, which may not be a component
+                boolean ownResponse = message.extensions() != null
+                        && message.extensions().containsKey(ClientGenerator.X_RESPONSE);
+                String ownType = ownResponse ? null : returnTypeGen.getReceiveReturnType(msgName, message, null);
 
-                FunctionDefinitionNode fn = getRemoteFunctionDefinitionNode(asyncApiSpec, msgName, enrichedMessage,
-                        dispatcherStreamId, true, sigGen, bodyGen, returnTypeGen, streamReturns, responseMap);
+                // A message the client also sends keeps do<Message> for the send
+                String doName = REMOTE_METHOD_NAME_PREFIX + CodegenUtils.getValidName(msgName, true);
+                String funcName = freeFunctionName(msgName, functionNames.contains(doName) ? RECEIVED_SUFFIX : "",
+                        functionNames);
+                FunctionDefinitionNode fn = getRemoteFunctionDefinitionNode(asyncApiSpec, msgName, funcName,
+                        enrichedMessage, dispatcherStreamId, true, sigGen, bodyGen, returnTypeGen, streamReturns,
+                        responseMap, ownType);
                 remoteFunctions.add(fn);
             }
         }
 
         return remoteFunctions;
+    }
+
+    /**
+     * Returns {@code do}, the message name and {@code suffix}, numbered from 2 until no other function has it, and
+     * takes it.
+     */
+    private static String freeFunctionName(String msgName, String suffix, Set<String> taken) {
+        String base = REMOTE_METHOD_NAME_PREFIX + CodegenUtils.getValidName(msgName, true) + suffix;
+        String name = base;
+        for (int i = 2; taken.contains(name); i++) {
+            name = base + i;
+        }
+        taken.add(name);
+        return name;
     }
 
     /**
@@ -235,6 +334,7 @@ public class ClientRemoteFunctionGenerator {
      *
      * @param asyncApiSpec       the spec
      * @param msgName            the message key name
+     * @param funcName           the function's name, unique in the client
      * @param message            the message definition
      * @param dispatcherStreamId optional stream ID
      * @param isSubscribe        true for receive-only operations
@@ -243,18 +343,20 @@ public class ClientRemoteFunctionGenerator {
      * @param returnTypeGen      return type generator
      * @param streamReturns      list of streaming return types
      * @param responseMap        response type to pipe name map
+     * @param ownType            for a receive-only function, the type of the message it returns, else {@code null}
      * @return the function definition node
      * @throws GeneratorException if generation fails
      */
     private FunctionDefinitionNode getRemoteFunctionDefinitionNode(AsyncApiSpec asyncApiSpec, String msgName,
-                                                                    AsyncApiMessage message,
+                                                                    String funcName, AsyncApiMessage message,
                                                                     String dispatcherStreamId,
                                                                     boolean isSubscribe,
                                                                     RemoteFunctionSignatureGenerator sigGen,
                                                                     RemoteFunctionBodyGenerator bodyGen,
                                                                     RemoteFunctionReturnTypeGenerator returnTypeGen,
                                                                     List<String> streamReturns,
-                                                                    Map<String, String> responseMap)
+                                                                    Map<String, String> responseMap,
+                                                                    String ownType)
             throws GeneratorException {
         Map<String, JsonNode> msgExtensions = message.extensions();
         AsyncApiSchema payload = null;
@@ -264,7 +366,9 @@ public class ClientRemoteFunctionGenerator {
 
         // Compute return type
         String returnType = "null";
-        if (msgExtensions != null && msgExtensions.containsKey(ClientGenerator.X_RESPONSE)) {
+        if (ownType != null) {
+            returnType = ownType;
+        } else if (msgExtensions != null && msgExtensions.containsKey(ClientGenerator.X_RESPONSE)) {
             JsonNode xResponse = msgExtensions.get(ClientGenerator.X_RESPONSE);
             JsonNode xResponseType = msgExtensions.get(ClientGenerator.X_RESPONSE_TYPE);
             List<String> responseMessages = new ArrayList<>();
@@ -311,10 +415,6 @@ public class ClientRemoteFunctionGenerator {
         // Build return type string
         String fullReturnType = sigGen.buildReturnTypeString(msgExtensions, returnType);
 
-        // Function name
-        String funcName = String.format("%s%s",
-                REMOTE_METHOD_NAME_PREFIX, CodegenUtils.getValidName(msgName, true));
-
         // Build body source — use the canonical pipe key from responseMap so all functions sharing
         // the same response type route through the same pipe
         String requestType = payload != null ? sigGen.getDataType(payload) : "null";
@@ -326,9 +426,22 @@ public class ClientRemoteFunctionGenerator {
         if (!"null".equals(returnType) && returnTypeGen.isReplyWithoutDispatcherKey(returnType)) {
             replyFormat = returnTypeGen.isTextReply(returnType)
                     ? RemoteFunctionBodyGenerator.ReplyFormat.TEXT : RemoteFunctionBodyGenerator.ReplyFormat.JSON;
+        } else if (plan != null && plan.routesByContent() && !"null".equals(returnType)
+                && Arrays.stream(returnType.split("\\|")).allMatch(plan::isRoutedByContent)) {
+            JsonNode responseType = msgExtensions != null ? msgExtensions.get(ClientGenerator.X_RESPONSE_TYPE) : null;
+            // A stream's frames go to a pipe per request, which only the dispatcher key can pick
+            if (responseType != null && ClientGenerator.SERVER_STREAMING.equals(responseType.asText())) {
+                throw new GeneratorException(String.format("x-dispatcherKey extension is required in the AsyncAPI "
+                        + "spec to stream the replies of message '%s'. Add x-dispatcherKey naming the field that "
+                        + "tells the messages apart.\nSee %s for how the client tells messages apart.", msgName,
+                        CodegenUtils.DISPATCHER_KEY_DOCS));
+            }
+            replyFormat = RemoteFunctionBodyGenerator.ReplyFormat.CONTENT;
         }
+        // Only received messages are routed on the key, so a request without it is sent as it is
+        boolean sendAsIs = payload != null && !returnTypeGen.carriesDispatcherKey(payload);
         String bodySource = bodyGen.buildBodySource(msgExtensions, requestType, dispatcherStreamId,
-                isSubscribe, returnType, pipeName, replyFormat);
+                isSubscribe, returnType, pipeName, replyFormat, sendAsIs);
 
         // Build complete function source and parse
         String funcSource = String.format(

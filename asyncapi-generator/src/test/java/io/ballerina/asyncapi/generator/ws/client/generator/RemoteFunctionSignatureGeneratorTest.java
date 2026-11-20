@@ -123,17 +123,13 @@ public class RemoteFunctionSignatureGeneratorTest {
     }
 
     @Test
-    void testGetDataType_throwsGeneratorException_whenDispatcherKeyMissing()
-            throws AsyncApiParserException {
+    void testGetDataType_acceptsASentPayloadWithoutTheDispatcherKey()
+            throws AsyncApiParserException, GeneratorException {
+        // Only received messages are told apart by the key, so a sent one needn't carry it
         AsyncApiSpec spec = AsyncApiParser.parseFromJsonString(SPEC_WITH_DISPATCHER_KEY_AND_SCHEMA);
         AsyncApiSchema payload = AsyncApiSchema.builder().name("ChatMessage").build();
-        try {
-            new RemoteFunctionSignatureGenerator(spec, new ArrayList<>()).getDataType(payload);
-            Assert.fail("Expected GeneratorException when dispatcherKey is missing from the schema properties");
-        } catch (GeneratorException e) {
-            Assert.assertNotNull(e.getMessage(),
-                    "Exception message should not be null when the dispatcher key is absent from the schema");
-        }
+        Assert.assertEquals(new RemoteFunctionSignatureGenerator(spec, new ArrayList<>()).getDataType(payload),
+                "ChatMessage");
     }
 
     @Test
