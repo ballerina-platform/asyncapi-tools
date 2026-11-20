@@ -23,6 +23,7 @@ import io.ballerina.asyncapi.core.model.server.AsyncApiServer;
 import io.ballerina.asyncapi.generator.GeneratorException;
 import io.ballerina.asyncapi.generator.ws.client.extractor.ChannelExtractor;
 import io.ballerina.asyncapi.generator.ws.client.extractor.DispatcherKeyExtractor;
+import io.ballerina.asyncapi.generator.ws.client.model.CorrelationIdSpec;
 import io.ballerina.asyncapi.generator.ws.client.model.WsClientConfig;
 import io.ballerina.asyncapi.generator.ws.client.node.client.ClientFieldGenerator;
 import io.ballerina.asyncapi.generator.ws.client.node.client.ClientHelperGenerator;
@@ -82,6 +83,7 @@ public class ClientGenerator {
 
     /** Extension key for the response message reference. */
     public static final String X_RESPONSE = "x-response";
+    private static final String UUID_MODULE = "uuid";
 
     /** Extension key for the response type (simple-rpc, server-streaming, etc.). */
     public static final String X_RESPONSE_TYPE = "x-response-type";
@@ -135,6 +137,9 @@ public class ClientGenerator {
         boolean severalChannels = channels.size() > 1;
         String serverUrl = getServerUrl(asyncApiSpec);
         List<ImportDeclarationNode> imports = buildImports();
+        if (CorrelationIdSpec.newStreamIds(asyncApiSpec)) {
+            imports.add(CodegenUtils.getImportDeclarationNode(BALLERINA, UUID_MODULE));
+        }
 
         Map<String, TypeDefinitionNode> typeDefinitions = new LinkedHashMap<>();
         List<ClassDefinitionNode> classDefNodes = new ArrayList<>();

@@ -24,6 +24,7 @@ import io.ballerina.asyncapi.generator.ws.client.generator.ClientGenerator;
 import io.ballerina.asyncapi.generator.ws.client.generator.DataTypesGenerator;
 import io.ballerina.asyncapi.generator.ws.client.generator.TestGenerator;
 import io.ballerina.asyncapi.generator.ws.client.generator.UtilGenerator;
+import io.ballerina.asyncapi.generator.ws.client.model.CorrelationIdSpec;
 import io.ballerina.asyncapi.generator.ws.client.model.GenSrcFile;
 import io.ballerina.asyncapi.generator.ws.client.model.InferredKeySpec;
 import io.ballerina.asyncapi.generator.ws.client.model.KeyPathSpec;
@@ -99,7 +100,9 @@ public class WsClientCodeGenerator {
         AsyncApiSpec readable = SecuritySchemeSpec.of(asyncApiSpec, warnings);
         // A key may be a JSON Pointer or a message's own; a spec without one routes on the one field that tells its
         // messages apart, if there is one
-        AsyncApiSpec spec = InferredKeySpec.of(KeyPathSpec.of(readable), warnings);
+        AsyncApiSpec keyed = InferredKeySpec.of(KeyPathSpec.of(readable), warnings);
+        // Requests and replies that name one correlationId field are paired on it
+        AsyncApiSpec spec = CorrelationIdSpec.of(keyed, warnings);
         WsClientConfig config = new WsClientConfig.Builder()
                 .withAsyncApi(spec)
                 .withLicense(licenseHeader)

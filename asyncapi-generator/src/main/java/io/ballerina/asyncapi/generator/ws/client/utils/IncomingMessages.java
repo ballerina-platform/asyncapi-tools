@@ -175,8 +175,13 @@ public final class IncomingMessages {
         return name.replace("~", "~0").replace("/", "~1");
     }
 
-    // The component messages an x-response points at, directly or through oneOf
-    private static List<String> replyNames(JsonNode xResponse) {
+    /**
+     * Returns the component messages an x-response points at, directly or through oneOf.
+     *
+     * @param xResponse the x-response extension
+     * @return the names of the reply messages
+     */
+    public static List<String> replyNames(JsonNode xResponse) {
         List<JsonNode> entries = new ArrayList<>();
         if (xResponse.get(ONE_OF) instanceof ArrayNode oneOf) {
             oneOf.forEach(entries::add);

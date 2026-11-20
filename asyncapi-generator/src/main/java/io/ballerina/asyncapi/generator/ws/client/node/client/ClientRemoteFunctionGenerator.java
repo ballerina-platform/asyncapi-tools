@@ -32,6 +32,7 @@ import io.ballerina.asyncapi.generator.ws.client.generator.RemoteFunctionBodyGen
 import io.ballerina.asyncapi.generator.ws.client.generator.RemoteFunctionReturnTypeGenerator;
 import io.ballerina.asyncapi.generator.ws.client.generator.RemoteFunctionSignatureGenerator;
 import io.ballerina.asyncapi.generator.ws.client.generator.RoutingPlan;
+import io.ballerina.asyncapi.generator.ws.client.model.CorrelationIdSpec;
 import io.ballerina.asyncapi.generator.ws.client.utils.CodegenUtils;
 import io.ballerina.compiler.syntax.tree.FunctionDefinitionNode;
 import io.ballerina.compiler.syntax.tree.ImportDeclarationNode;
@@ -152,7 +153,8 @@ public class ClientRemoteFunctionGenerator {
 
         RemoteFunctionSignatureGenerator sigGen =
                 new RemoteFunctionSignatureGenerator(asyncApiSpec, typeDefinitionNodeList);
-        RemoteFunctionBodyGenerator bodyGen = new RemoteFunctionBodyGenerator(imports, dispatcherKey);
+        RemoteFunctionBodyGenerator bodyGen = new RemoteFunctionBodyGenerator(imports, dispatcherKey,
+                CorrelationIdSpec.newStreamIds(asyncApiSpec));
         RemoteFunctionReturnTypeGenerator returnTypeGen = new RemoteFunctionReturnTypeGenerator(asyncApiSpec);
 
         // Messages and types a send function already returns
