@@ -67,6 +67,7 @@ dependencies {
     implementation "org.ballerinalang:toml-parser:${ballerinaLangVersion}"
     implementation "org.ballerinalang:ballerina-parser:${ballerinaLangVersion}"
     implementation "info.picocli:picocli:${picocliVersion}"
+    implementation project(':asyncapi-core')
     implementation project(':asyncapi-generator')
     testImplementation project(':asyncapi-generator')
     testImplementation "org.testng:testng:${testngVersion}"

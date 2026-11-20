@@ -47,6 +47,10 @@ import java.util.Set;
  */
 public final class CodegenUtils {
 
+    /** The docs page on how a WebSocket client tells incoming messages apart, which key messages point to. */
+    public static final String DISPATCHER_KEY_DOCS =
+            "https://github.com/ballerina-platform/asyncapi-tools/blob/main/docs/websocket-dispatcher-key.md";
+
     /** Pattern used to detect and escape special characters in Ballerina identifiers. */
     public static final String ESCAPE_PATTERN = "([\\[\\]\\\\?!<>@#&~`*\\-=^+();:\\/{}\\s|.$])";
 
@@ -55,6 +59,7 @@ public final class CodegenUtils {
 
     /** Extension key for the close-frame marker on schemas. */
     private static final String X_CLOSE_FRAME = "x-close-frame";
+    private static final String UNNAMED = "unnamed";
 
     /** Maps AsyncAPI / JSON Schema primitive types to Ballerina type names. */
     public static final Map<String, String> TYPE_MAP;
@@ -134,7 +139,8 @@ public final class CodegenUtils {
      */
     public static String getValidName(String identifier, boolean capitalizeFirstChar) {
         if (!identifier.matches("\\b[0-9]*\\b")) {
-            String[] split = identifier.split("_|" + ESCAPE_PATTERN);
+            // Any character other than a letter or digit, such as an em dash in a title, can't be in a name
+            String[] split = identifier.split("[^\\p{L}\\p{N}]");
             StringBuilder validName = new StringBuilder();
             for (String part : split) {
                 if (!part.isBlank()) {
@@ -146,6 +152,10 @@ public final class CodegenUtils {
                 }
             }
             identifier = validName.toString();
+        }
+        // A name of only symbols, such as '%', leaves nothing to build on
+        if (identifier.isEmpty()) {
+            identifier = UNNAMED;
         }
         if (capitalizeFirstChar) {
             return String.format("%s%s",
@@ -341,7 +351,9 @@ public final class CodegenUtils {
     }
 
     /**
-     * Returns {@code name}, suffixed until it clashes with neither a remote function local nor {@code taken}.
+     * Returns {@code name}, suffixed until it clashes with neither a remote function local nor {@code taken}. A name
+     * that needs a quote, such as {@code 'error} from a type {@code Error}, is suffixed too, as a quoted builtin name
+     * still clashes.
      *
      * @param name   the preferred variable name
      * @param suffix the suffix appended on each clash
@@ -349,6 +361,9 @@ public final class CodegenUtils {
      * @return a free variable name
      */
     public static String getFreeLocalName(String name, String suffix, Set<String> taken) {
+        if (name.startsWith("'") && name.substring(1).matches("[A-Za-z_][A-Za-z0-9_]*")) {
+            name = name.substring(1) + suffix;
+        }
         while (REMOTE_FUNCTION_LOCALS.contains(name) || taken.contains(name)) {
             name += suffix;
         }
