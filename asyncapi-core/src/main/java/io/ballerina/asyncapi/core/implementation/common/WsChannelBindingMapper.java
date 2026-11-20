@@ -24,6 +24,7 @@ import io.apicurio.datamodels.models.asyncapi.AsyncApiComponents;
 import io.apicurio.datamodels.models.asyncapi.AsyncApiReferenceable;
 import io.ballerina.asyncapi.core.Constants;
 import io.ballerina.asyncapi.core.implementation.utils.BindingUtils;
+import io.ballerina.asyncapi.core.implementation.utils.JsonPointers;
 import io.ballerina.asyncapi.core.model.channel.WsChannelBindings;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -65,7 +66,7 @@ public final class WsChannelBindingMapper {
                 LOG.warn("Cannot resolve $ref: {}. Components is null.", ref);
                 return null;
             }
-            String name = ref.substring(Constants.CHANNEL_BINDINGS_REF_PREFIX.length());
+            String name = JsonPointers.keyAfter(ref, Constants.CHANNEL_BINDINGS_REF_PREFIX);
             Map<String, ? extends AsyncApiChannelBindings> bindingsMap = components.getChannelBindings();
             AsyncApiChannelBindings resolved = bindingsMap != null ? bindingsMap.get(name) : null;
             if (resolved == null) {

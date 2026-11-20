@@ -73,7 +73,7 @@ public final class WsProtocolHandler implements ProtocolHandler {
             options.getLicenseHeader() != null
                 ? options.getLicenseHeader() : "",
             options.isIncludeTestFiles()
-        ).generate(outputPath);
+        ).withWarnings(options.getWarnings()).generate(outputPath);
     }
 
     @Override

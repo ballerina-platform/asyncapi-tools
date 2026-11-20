@@ -78,6 +78,8 @@ public class ClientHelperGenerator {
     private static final String FOREACH_WORDS_STMT =
             "foreach string word in words { if word.length() == 0 { continue; } result +="
             + " word.substring(0, 1).toUpperAscii() + word.substring(1).toLowerAscii(); }";
+    // A value of only symbols, such as "%", names the type the generator called Unnamed
+    private static final String UNNAMED_STMT = "if result.length() == 0 { return \"Unnamed\"; }";
     private static final String RETURN_RESULT_STMT = "return result;";
 
     // getPipeName
@@ -151,6 +153,7 @@ public class ClientHelperGenerator {
         statements.add(NodeParser.parseStatement(WORDS_STMT));
         statements.add(NodeParser.parseStatement(RESULT_INIT_STMT));
         statements.add(NodeParser.parseStatement(FOREACH_WORDS_STMT));
+        statements.add(NodeParser.parseStatement(UNNAMED_STMT));
         statements.add(NodeParser.parseStatement(RETURN_RESULT_STMT));
         FunctionBodyNode body = createFunctionBodyBlockNode(OPEN_BRACE, null,
                 createNodeList(statements), CLOSE_BRACE, null);
