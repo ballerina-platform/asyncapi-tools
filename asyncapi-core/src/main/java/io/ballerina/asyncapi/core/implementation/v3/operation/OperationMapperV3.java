@@ -31,6 +31,7 @@ import io.apicurio.datamodels.models.asyncapi.v30.AsyncApi30Operation;
 import io.apicurio.datamodels.models.asyncapi.v30.AsyncApi30Operations;
 import io.apicurio.datamodels.models.asyncapi.v30.AsyncApi30Reference;
 import io.ballerina.asyncapi.core.Constants;
+import io.ballerina.asyncapi.core.implementation.utils.JsonPointers;
 import io.ballerina.asyncapi.core.implementation.utils.StringUtils;
 import io.ballerina.asyncapi.core.implementation.v3.doc.ExternalDocMapperV3;
 import io.ballerina.asyncapi.core.implementation.v3.message.MessageMapperV3;
@@ -43,9 +44,11 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Maps Apicurio Operation models to {@link AsyncApiOperation}
@@ -54,6 +57,7 @@ import java.util.Map;
 public final class OperationMapperV3 {
 
     private static final Logger LOG = LogManager.getLogger(OperationMapperV3.class);
+    private static final String CHANNEL_MESSAGES = "/messages/";
 
     private OperationMapperV3() {
     }
@@ -132,8 +136,9 @@ public final class OperationMapperV3 {
                 LOG.warn("Operation channel reference has no $ref. Skipping.");
             } else {
                 channel = resolveChannelRef(ref, channelsMap);
-                if (ref.startsWith(Constants.V3_CHANNELS_REF_PREFIX)) {
-                    channelId = StringUtils.toPascalCase(ref.substring(Constants.V3_CHANNELS_REF_PREFIX.length()));
+                String channelName = JsonPointers.keyAfter(ref, Constants.V3_CHANNELS_REF_PREFIX);
+                if (channelName != null) {
+                    channelId = StringUtils.toPascalCase(channelName);
                 }
             }
         }
@@ -151,7 +156,7 @@ public final class OperationMapperV3 {
                     LOG.warn("Operation message reference has no $ref. Skipping.");
                     continue;
                 }
-                String messageName = ref.substring(ref.lastIndexOf('/') + 1);
+                String messageName = JsonPointers.decode(ref.substring(ref.lastIndexOf('/') + 1));
                 AsyncApi30Message resolved = resolveMessageRef(ref, typedChannels, components);
                 if (resolved == null) {
                     LOG.warn("Could not resolve message $ref: {}. Skipping.", ref);
@@ -208,7 +213,7 @@ public final class OperationMapperV3 {
                     ref, Constants.V3_CHANNELS_REF_PREFIX);
             return null;
         }
-        String channelName = ref.substring(Constants.V3_CHANNELS_REF_PREFIX.length());
+        String channelName = JsonPointers.keyAfter(ref, Constants.V3_CHANNELS_REF_PREFIX);
         if (channelsMap == null) {
             return null;
         }
@@ -231,7 +236,7 @@ public final class OperationMapperV3 {
     static AsyncApi30Message resolveMessageRef(String ref, AsyncApi30Channels rawChannels,
                                                AsyncApi30Components components) {
         if (ref.startsWith(Constants.MESSAGES_REF_PREFIX)) {
-            String name = ref.substring(Constants.MESSAGES_REF_PREFIX.length());
+            String name = JsonPointers.keyAfter(ref, Constants.MESSAGES_REF_PREFIX);
             if (components == null) {
                 return null;
             }
@@ -243,19 +248,22 @@ public final class OperationMapperV3 {
             return message instanceof AsyncApi30Message typed ? typed : null;
         }
 
-        if (ref.startsWith(Constants.V3_CHANNELS_REF_PREFIX)) {
-            String remaining = ref.substring(Constants.V3_CHANNELS_REF_PREFIX.length());
-            String[] parts = remaining.split("/messages/", 2);
-            if (parts.length != 2) {
+        // A channel message, under #/channels/ or #/components/channels/
+        boolean topLevel = ref.startsWith(Constants.V3_CHANNELS_REF_PREFIX);
+        if (topLevel || ref.startsWith(Constants.CHANNELS_REF_PREFIX)) {
+            String remaining = ref.substring(topLevel ? Constants.V3_CHANNELS_REF_PREFIX.length()
+                    : Constants.CHANNELS_REF_PREFIX.length());
+            int split = remaining.lastIndexOf(CHANNEL_MESSAGES);
+            if (split < 0) {
                 LOG.warn("Invalid channel message $ref format: {}", ref);
                 return null;
             }
-            String channelName = parts[0];
-            String messageName = parts[1];
-            if (rawChannels == null) {
-                return null;
-            }
-            AsyncApi30Channel channel = rawChannels.getItem(channelName);
+            String channelName = JsonPointers.decode(remaining.substring(0, split));
+            String messageName = JsonPointers.decode(remaining.substring(split + CHANNEL_MESSAGES.length()));
+            AsyncApi30Channel channel = topLevel
+                    ? (rawChannels != null ? rawChannels.getItem(channelName) : null)
+                    : componentChannel(channelName, components);
+            channel = concreteChannel(channel, rawChannels, components);
             if (channel == null) {
                 LOG.warn("Channel '{}' not found for message $ref: {}", channelName, ref);
                 return null;
@@ -277,5 +285,29 @@ public final class OperationMapperV3 {
 
         LOG.warn("Unsupported message $ref format: {}", ref);
         return null;
+    }
+
+    private static AsyncApi30Channel componentChannel(String name, AsyncApi30Components components) {
+        return components != null && components.getChannels() != null ? components.getChannels().get(name) : null;
+    }
+
+    /**
+     * Follows a channel that is itself a {@code $ref}, to the channel that holds the messages.
+     */
+    private static AsyncApi30Channel concreteChannel(AsyncApi30Channel channel, AsyncApi30Channels rawChannels,
+                                                     AsyncApi30Components components) {
+        Set<String> seen = new HashSet<>();
+        while (channel != null && channel.get$ref() != null) {
+            String ref = channel.get$ref();
+            if (!seen.add(ref)) {
+                LOG.warn("Cyclic channel $ref detected: {}.", ref);
+                return null;
+            }
+            String componentName = JsonPointers.keyAfter(ref, Constants.CHANNELS_REF_PREFIX);
+            String topLevelName = JsonPointers.keyAfter(ref, Constants.V3_CHANNELS_REF_PREFIX);
+            channel = componentName != null ? componentChannel(componentName, components)
+                    : topLevelName != null && rawChannels != null ? rawChannels.getItem(topLevelName) : null;
+        }
+        return channel;
     }
 }

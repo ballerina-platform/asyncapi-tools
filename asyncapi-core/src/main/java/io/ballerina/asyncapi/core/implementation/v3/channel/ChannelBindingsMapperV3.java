@@ -24,6 +24,7 @@ import io.apicurio.datamodels.models.asyncapi.AsyncApiReferenceable;
 import io.ballerina.asyncapi.core.Constants;
 import io.ballerina.asyncapi.core.implementation.common.HttpChannelBindingMapper;
 import io.ballerina.asyncapi.core.implementation.common.WsChannelBindingMapper;
+import io.ballerina.asyncapi.core.implementation.utils.JsonPointers;
 import io.ballerina.asyncapi.core.model.channel.AsyncApiChannelBindings;
 import io.ballerina.asyncapi.core.model.channel.HttpChannelBindings;
 import io.ballerina.asyncapi.core.model.channel.WsChannelBindings;
@@ -104,7 +105,7 @@ public final class ChannelBindingsMapperV3 {
                 LOG.warn("Cyclic $ref detected: {}. Skipping channelBindings.", current);
                 return null;
             }
-            String name = current.substring(Constants.CHANNEL_BINDINGS_REF_PREFIX.length());
+            String name = JsonPointers.keyAfter(current, Constants.CHANNEL_BINDINGS_REF_PREFIX);
             Map<String, ? extends io.apicurio.datamodels.models.asyncapi.AsyncApiChannelBindings> bindingsMap =
                     components.getChannelBindings();
             io.apicurio.datamodels.models.asyncapi.AsyncApiChannelBindings resolved =
