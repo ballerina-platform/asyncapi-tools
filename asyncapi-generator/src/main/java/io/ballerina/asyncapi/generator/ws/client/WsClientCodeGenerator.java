@@ -26,6 +26,7 @@ import io.ballerina.asyncapi.generator.ws.client.generator.TestGenerator;
 import io.ballerina.asyncapi.generator.ws.client.generator.UtilGenerator;
 import io.ballerina.asyncapi.generator.ws.client.model.GenSrcFile;
 import io.ballerina.asyncapi.generator.ws.client.model.InferredKeySpec;
+import io.ballerina.asyncapi.generator.ws.client.model.KeyPathSpec;
 import io.ballerina.asyncapi.generator.ws.client.model.WsClientConfig;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -93,8 +94,9 @@ public class WsClientCodeGenerator {
         if (outputPath == null) {
             outputPath = Path.of("");
         }
-        // A spec without x-dispatcherKey routes on the one field that tells its messages apart, if there is one
-        AsyncApiSpec spec = InferredKeySpec.of(asyncApiSpec, warnings);
+        // A key may be a JSON Pointer or a message's own; a spec without one routes on the one field that tells its
+        // messages apart, if there is one
+        AsyncApiSpec spec = InferredKeySpec.of(KeyPathSpec.of(asyncApiSpec), warnings);
         WsClientConfig config = new WsClientConfig.Builder()
                 .withAsyncApi(spec)
                 .withLicense(licenseHeader)

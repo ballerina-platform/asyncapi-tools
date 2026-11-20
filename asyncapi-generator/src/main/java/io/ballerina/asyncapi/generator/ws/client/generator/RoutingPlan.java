@@ -67,11 +67,16 @@ public record RoutingPlan(String dispatcherKey, String dispatcherStreamId, Map<S
      * A received type recognised by what a frame carries.
      *
      * @param typeName the Ballerina type the frame is read as
-     * @param field    the field the reader looks at
+     * @param path     the field the reader looks at, outermost name first
      * @param value    the value the field has, or {@code null} when the field being there is enough
      * @param pipe     the pipe the frame goes to
      */
-    public record ContentRoute(String typeName, String field, String value, String pipe) { }
+    public record ContentRoute(String typeName, List<String> path, String value, String pipe) {
+
+        public ContentRoute {
+            path = List.copyOf(path);
+        }
+    }
 
     private static final String MESSAGE_TYPE = "Message";
     private static final String SHARED_FIXED_DISPATCH_VALUE = "The replies waited for on '%s' and '%s' both fix the "
@@ -147,7 +152,7 @@ public record RoutingPlan(String dispatcherKey, String dispatcherStreamId, Map<S
                 String typeName = typeName(route.message());
                 String pipe = responseMap.get(typeName);
                 if (typeName != null && pipe != null) {
-                    contentRoutes.add(new ContentRoute(typeName, route.field(), route.value(), pipe));
+                    contentRoutes.add(new ContentRoute(typeName, route.path(), route.value(), pipe));
                 }
             }
             for (IncomingMessages.Received message : routes.leftOut()) {

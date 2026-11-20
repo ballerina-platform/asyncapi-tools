@@ -174,8 +174,8 @@ public class ClientHelperGenerator {
 
     /**
      * Builds the {@code getPipeNameByContent} private helper, which finds a received JSON object's pipe by what it
-     * carries: a field with a fixed value, or a field only its message has. Routes are checked in spec order, and a
-     * frame no route matches gets {@code ()}.
+     * carries: a field with a fixed value, or a field only its message has. A field inside an object is read with
+     * {@code getValueAt}. Routes are checked in spec order, and a frame no route matches gets {@code ()}.
      *
      * @param routes how each received type is recognised
      * @return the function definition node
@@ -184,14 +184,37 @@ public class ClientHelperGenerator {
         StringBuilder source = new StringBuilder(
                 "private isolated function getPipeNameByContent(map<json> message) returns string? {\n");
         for (RoutingPlan.ContentRoute route : routes) {
-            String field = CodegenUtils.toStringLiteral(route.field());
-            String test = route.value() == null ? String.format("message.hasKey(%s)", field)
-                    : String.format("message[%s] == %s", field, CodegenUtils.toStringLiteral(route.value()));
+            String field = CodegenUtils.toStringLiteral(route.path().get(0));
+            String value = route.value() != null ? CodegenUtils.toStringLiteral(route.value()) : null;
+            String test = value == null ? String.format("message.hasKey(%s)", field)
+                    : route.path().size() == 1 ? String.format("message[%s] == %s", field, value)
+                    : String.format("self.getValueAt(message, [%s]) == %s", String.join(", ",
+                    route.path().stream().map(CodegenUtils::toStringLiteral).toList()), value);
             source.append(String.format("    if %s {\n        return %s;\n    }\n", test,
                     CodegenUtils.toStringLiteral(route.pipe())));
         }
         source.append("    return ();\n}");
         return (FunctionDefinitionNode) NodeParser.parseObjectMember(source.toString());
+    }
+
+    /**
+     * Builds the {@code getValueAt} private helper, which reads the field at a path of nested JSON objects, or
+     * {@code ()} where the path doesn't lead to one.
+     *
+     * @return the function definition node
+     */
+    public FunctionDefinitionNode buildGetValueAt() {
+        return (FunctionDefinitionNode) NodeParser.parseObjectMember(
+                "private isolated function getValueAt(map<json> message, string[] path) returns json {\n"
+                + "    json current = message;\n"
+                + "    foreach string name in path {\n"
+                + "        if current !is map<json> {\n"
+                + "            return ();\n"
+                + "        }\n"
+                + "        current = current[name];\n"
+                + "    }\n"
+                + "    return current;\n"
+                + "}");
     }
 
     /**

@@ -95,7 +95,9 @@ public final class InferredKeySpec implements AsyncApiSpec {
         }
         Map<String, AsyncApiSchema> schemas = spec.getAsyncApiComponents().map(AsyncApiComponent::schemas)
                 .orElse(Map.of());
-        List<String> candidates = candidates(List.of(allRecords(spec, schemas)), schemas);
+        // Keys the spec names as paths are what its messages are routed on, so no one field is inferred
+        boolean namedKeys = KeyPathSpec.routesByKeys(spec);
+        List<String> candidates = namedKeys ? List.of() : candidates(List.of(allRecords(spec, schemas)), schemas);
         if (candidates.size() == 1) {
             String key = candidates.get(0);
             warnings.accept(new SpecWarning("", String.format("the spec has no x-dispatcherKey, so the client routes "
@@ -119,7 +121,7 @@ public final class InferredKeySpec implements AsyncApiSpec {
         if (keyed.isEmpty()) {
             return spec;
         }
-        candidates = candidates(received, schemas);
+        candidates = namedKeys ? List.of() : candidates(received, schemas);
         if (candidates.isEmpty()) {
             // With no one key, each connection's messages may still be told apart by what they carry
             String stop = routeByContent(spec, keyed, receivedOn, schemas, warnings);
@@ -160,17 +162,21 @@ public final class InferredKeySpec implements AsyncApiSpec {
         for (int i = 0; i < keyed.size(); i++) {
             String channel = keyed.get(i).channelName();
             String location = "/channels/" + channel.replace("~", "~0").replace("/", "~1");
-            List<ContentRoutes.Route> connectionRoutes = routes.get(i).routes();
-            String key = connectionRoutes.get(0).value() != null ? connectionRoutes.get(0).field() : null;
+            List<ContentRoutes.Route> connectionRoutes = routes.get(i).routes().stream()
+                    .filter(route -> !route.named()).toList();
+            // A route that follows a key the spec names needs no announcing
+            String key = sharedKey(connectionRoutes);
             if (key != null) {
                 warnings.accept(new SpecWarning(location, String.format("the spec has no x-dispatcherKey, so the "
                         + "client routes the messages received on channel '%s' on '%s', the field with a different "
                         + "fixed value in each", channel, key), String.format("Name '%s' in x-dispatcherKey to make it "
                         + "explicit, if the messages every channel receives carry it. See %s", key,
                         CodegenUtils.DISPATCHER_KEY_DOCS)));
-            } else {
-                List<String> fields = connectionRoutes.stream().map(route -> String.format("'%s' for '%s'",
-                        route.field(), route.message().name())).toList();
+            } else if (!connectionRoutes.isEmpty()) {
+                List<String> fields = connectionRoutes.stream().map(route -> route.value() == null
+                        ? String.format("'%s' for '%s'", route.path().get(0), route.message().name())
+                        : String.format("'%s' = '%s' for '%s'", route.path().get(0), route.value(),
+                        route.message().name())).toList();
                 warnings.accept(new SpecWarning(location, String.format("the spec has no x-dispatcherKey, so the "
                         + "client tells apart the messages received on channel '%s' by a field only each has: %s",
                         channel, String.join(", ", fields)), String.format("Give each a field with its own fixed "
@@ -178,6 +184,11 @@ public final class InferredKeySpec implements AsyncApiSpec {
                         CodegenUtils.DISPATCHER_KEY_DOCS)));
             }
             for (IncomingMessages.Received message : routes.get(i).leftOut()) {
+                List<String> path = ContentRoutes.keyPath(spec, message);
+                if (path != null) {
+                    warnings.accept(namedKeyLeftOut(message, channel, path));
+                    continue;
+                }
                 warnings.accept(new SpecWarning(message.location(), String.format("message '%s' received on "
                         + "channel '%s' has no field only it has and no field with its own fixed value, so the "
                         + "client can't tell it apart from the others and leaves it out", message.name(), channel),
@@ -186,6 +197,36 @@ public final class InferredKeySpec implements AsyncApiSpec {
             }
         }
         return null;
+    }
+
+    // The one field every route the tool worked out on a connection looks at for a fixed value, if they share one
+    private static String sharedKey(List<ContentRoutes.Route> routes) {
+        if (routes.isEmpty() || routes.stream().anyMatch(route -> route.value() == null || route.path().size() != 1)) {
+            return null;
+        }
+        String field = routes.get(0).path().get(0);
+        return routes.stream().allMatch(route -> route.path().get(0).equals(field)) ? field : null;
+    }
+
+    // A message whose key names a path it has no fixed value at, or the value another received message fixes there
+    private static SpecWarning namedKeyLeftOut(IncomingMessages.Received message, String channel, List<String> path) {
+        String pointer = "/" + String.join("/", path.stream().map(name -> name.replace("~", "~0")
+                .replace("/", "~1")).toList());
+        StringBuilder fix = new StringBuilder(String.format("Give its payload a fixed value of its own at '%s', "
+                + "such as:", pointer));
+        // Each object on the path, then the field itself, as the payload's properties
+        String indent = "\n  ";
+        for (int i = 0; i < path.size() - 1; i++) {
+            fix.append(indent).append(path.get(i)).append(':').append(indent).append("  type: object")
+                    .append(indent).append("  properties:");
+            indent += "    ";
+        }
+        fix.append(indent).append(String.format("%s: {type: string, const: %s}", path.get(path.size() - 1),
+                message.name().toLowerCase(Locale.ROOT)));
+        fix.append("\nSee ").append(CodegenUtils.DISPATCHER_KEY_DOCS);
+        return new SpecWarning(message.location(), String.format("message '%s' received on channel '%s' has no "
+                + "fixed value of its own at '%s', the dispatcher key it's routed on, so the client can't tell it "
+                + "apart from the others and leaves it out", message.name(), channel, pointer), fix.toString());
     }
 
     // Several fields could be the key, so the one the messages are routed on has to be named

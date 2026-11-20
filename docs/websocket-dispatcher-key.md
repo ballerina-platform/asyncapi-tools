@@ -47,6 +47,57 @@ The tool reads a loosely described key the way you meant it, with a warning wher
 - A key with only a `const` or an `enum` of strings, and no `type`, is read as a string.
 - A key a payload doesn't list in `required` is treated as required, as every frame is routed on it.
 
+## A key inside an object
+
+Some services put the key inside an object, such as `{"data": {"type": "ready", ...}}`. Name it with a JSON Pointer, a path that starts with `/`:
+
+```yaml
+x-dispatcherKey: /data/type
+components:
+  schemas:
+    Ready:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: object
+          required: [type, session]
+          properties:
+            type: {type: string, const: ready}
+            session: {type: string}
+```
+
+The client reads the value at that path in each frame and routes the frame to the message with that fixed value. A pointer to a top-level field, such as `/type`, is the same as `type`. Escape a `/` in a field name as `~1` and a `~` as `~0`, as in any JSON Pointer.
+
+## A key for one message
+
+A message that carries its key somewhere else, such as a heartbeat acknowledgement among events keyed on `/data/type`, can name its own key with `x-dispatcherKey` on the message:
+
+```yaml
+components:
+  messages:
+    Ack:
+      x-dispatcherKey: /ack
+      payload:
+        type: object
+        required: [ack]
+        properties:
+          ack: {type: string, const: heartbeat}
+```
+
+A message's own key wins over the spec's. Each received message needs a fixed value of its own at its key's path; one without is left out, with a warning that shows the field to add:
+
+```
+warning: message 'Posted' received on channel 'gateway' has no fixed value of its own at '/data/type', the dispatcher key it's routed on, so the client can't tell it apart from the others and leaves it out
+  Give its payload a fixed value of its own at '/data/type', such as:
+  data:
+    type: object
+    properties:
+      type: {type: string, const: posted}
+```
+
+With a nested key or a message's own key, the client reads each frame as JSON and routes it by those values, as it does in [When messages are told apart by what they carry](#when-messages-are-told-apart-by-what-they-carry). A reply streamed to a call needs a key every frame carries at the top level, so generation stops for one.
+
 ## When no key is needed
 
 Only the messages the client **receives** have to be told apart. So:
@@ -78,7 +129,8 @@ Add the `x-dispatcherKey` line the warning suggests to make it explicit.
 If no one field works for the whole spec, the tool looks at each connection on its own:
 
 1. **A field with its own fixed value on that connection.** Two channels can use different fields, such as `type` on one and `kind` on the other.
-2. **Otherwise, a field only one message has.** A frame with `price` can only be a `Trade` when no other message the connection receives declares `price`:
+2. **Otherwise, a field a message fixes to a value no other can carry.** Each other message fixes that field to another value, or doesn't declare it. A frame with `"status": "online"` can only be an `Online` when no other message declares `status`, even if the others are told apart by `kind`.
+3. **Otherwise, a field only one message has.** A frame with `price` can only be a `Trade` when no other message the connection receives declares `price`:
 
    ```yaml
    Trade: {payload: {type: object, required: [symbol, price], properties: {symbol: {type: string}, price: {type: number}}}}

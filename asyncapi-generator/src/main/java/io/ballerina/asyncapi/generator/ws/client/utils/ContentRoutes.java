@@ -22,6 +22,7 @@ import io.ballerina.asyncapi.core.api.AsyncApiSpec;
 import io.ballerina.asyncapi.core.model.component.AsyncApiComponent;
 import io.ballerina.asyncapi.core.model.component.AsyncApiSchema;
 import io.ballerina.asyncapi.core.model.operation.AsyncApiOperation;
+import io.ballerina.asyncapi.generator.ws.client.model.KeyPathSpec;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -32,9 +33,11 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * How a client tells apart the messages one connection receives when the spec has no dispatcher key: by a field
- * with a different fixed value in each, or else by a required field only one of them declares. A message neither
- * tells apart is left out.
+ * How a client tells apart the messages one connection receives when the spec has no dispatcher key it can read
+ * every frame by: by the fixed value at the path a message's key names (a nested x-dispatcherKey such as
+ * {@code /d/t}, or a message's own x-dispatcherKey), by a field with a different fixed value in each, by a field a
+ * message fixes to a value no other can carry, or else by a required field only one of them declares. A message
+ * none of these tells apart is left out.
  *
  * @param routes   the received messages the client can tell apart, in spec order
  * @param leftOut  the received JSON objects nothing tells apart from the others
@@ -49,14 +52,20 @@ public record ContentRoutes(List<Route> routes, List<IncomingMessages.Received> 
     private static final int MAX_DEPTH = 32;
 
     /**
-     * How a received message is recognised: its field {@code field} has the value {@code value}, or, when the value
-     * is {@code null}, the field is there at all.
+     * How a received message is recognised: the field at {@code path} has the value {@code value}, or, when the value
+     * is {@code null}, the top-level field {@code path} names is there at all.
      *
      * @param message the received message
-     * @param field   the field to look at
+     * @param path    the field to look at, outermost name first
      * @param value   the fixed value the field has, or {@code null} to look only for the field
+     * @param named   whether the spec names the key, so the route needs no warning
      */
-    public record Route(IncomingMessages.Received message, String field, String value) { }
+    public record Route(IncomingMessages.Received message, List<String> path, String value, boolean named) {
+
+        public Route {
+            path = List.copyOf(path);
+        }
+    }
 
     /**
      * Works out how the messages received through {@code operations} are told apart.
@@ -92,19 +101,36 @@ public record ContentRoutes(List<Route> routes, List<IncomingMessages.Received> 
             fields.add(declared);
             required.add(requires);
         }
-        String key = keyField(fields, schemas);
+        // A spec that names its keys is routed on them; one field it would have to infer can't stand in for them
+        String key = KeyPathSpec.routesByKeys(spec) ? null : keyField(fields, schemas);
         List<Route> routes = new ArrayList<>();
         List<IncomingMessages.Received> leftOut = new ArrayList<>();
+        Set<String> namedValues = new HashSet<>();
         for (int i = 0; i < objects.size(); i++) {
-            if (key != null) {
-                routes.add(new Route(objects.get(i), key, fixedValue(fields.get(i).get(key), schemas)));
+            IncomingMessages.Received message = objects.get(i);
+            List<String> path = keyPath(spec, message);
+            if (path != null) {
+                // Two messages fixing the same value at the same path can't be told apart, so the second is left out
+                String value = fixedValueAt(message.payload(), path, schemas);
+                if (value != null && namedValues.add(String.join("/", path) + "=" + value)) {
+                    routes.add(new Route(message, path, value, true));
+                } else {
+                    leftOut.add(message);
+                }
                 continue;
             }
-            String own = ownRequiredField(i, fields, required);
-            if (own != null) {
-                routes.add(new Route(objects.get(i), own, null));
+            if (key != null) {
+                routes.add(new Route(message, List.of(key), fixedValue(fields.get(i).get(key), schemas), false));
+                continue;
+            }
+            Map.Entry<String, String> fixed = ownFixedField(i, fields, schemas);
+            String own = fixed == null ? ownRequiredField(i, fields, required) : null;
+            if (fixed != null) {
+                routes.add(new Route(message, List.of(fixed.getKey()), fixed.getValue(), false));
+            } else if (own != null) {
+                routes.add(new Route(message, List.of(own), null, false));
             } else {
-                leftOut.add(objects.get(i));
+                leftOut.add(message);
             }
         }
         return new ContentRoutes(routes, leftOut, true);
@@ -146,6 +172,57 @@ public record ContentRoutes(List<Route> routes, List<IncomingMessages.Received> 
             }
             if (separates) {
                 return name;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Returns the path of the key a received message is routed on: its own x-dispatcherKey, else the spec's when the
+     * spec names its keys as paths.
+     *
+     * @param spec    the spec the message is in
+     * @param message the received message
+     * @return the field names on the path, or {@code null} when no key names one
+     */
+    public static List<String> keyPath(AsyncApiSpec spec, IncomingMessages.Received message) {
+        if (message.ownKey() != null) {
+            return KeyPathSpec.split(message.ownKey());
+        }
+        return KeyPathSpec.routesByKeys(spec) ? KeyPathSpec.specKeyPath(spec) : null;
+    }
+
+    // The fixed string value at a path of a schema, following each object field down; null where there is none
+    private static String fixedValueAt(AsyncApiSchema schema, List<String> path, Map<String, AsyncApiSchema> schemas) {
+        AsyncApiSchema current = schema;
+        for (String name : path) {
+            Map<String, AsyncApiSchema> declared = new LinkedHashMap<>();
+            collect(current, schemas, declared, new HashSet<>(), 0);
+            current = resolve(declared.get(name), schemas);
+            if (current == null) {
+                return null;
+            }
+        }
+        return fixedValue(current, schemas);
+    }
+
+    // A field message i fixes to a value no other received object can carry: each other one fixes it to another
+    // value or doesn't declare it
+    private static Map.Entry<String, String> ownFixedField(int i, List<Map<String, AsyncApiSchema>> fields,
+                                                           Map<String, AsyncApiSchema> schemas) {
+        for (Map.Entry<String, AsyncApiSchema> field : fields.get(i).entrySet()) {
+            String value = fixedValue(field.getValue(), schemas);
+            if (value == null) {
+                continue;
+            }
+            boolean own = true;
+            for (int j = 0; j < fields.size() && own; j++) {
+                AsyncApiSchema other = j == i ? null : fields.get(j).get(field.getKey());
+                String otherValue = other != null ? fixedValue(other, schemas) : null;
+                own = other == null || otherValue != null && !otherValue.equals(value);
+            }
+            if (own) {
+                return Map.entry(field.getKey(), value);
             }
         }
         return null;
