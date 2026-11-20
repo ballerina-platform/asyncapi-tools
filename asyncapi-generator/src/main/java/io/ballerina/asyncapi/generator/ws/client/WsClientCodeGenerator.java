@@ -27,6 +27,7 @@ import io.ballerina.asyncapi.generator.ws.client.generator.UtilGenerator;
 import io.ballerina.asyncapi.generator.ws.client.model.GenSrcFile;
 import io.ballerina.asyncapi.generator.ws.client.model.InferredKeySpec;
 import io.ballerina.asyncapi.generator.ws.client.model.KeyPathSpec;
+import io.ballerina.asyncapi.generator.ws.client.model.SecuritySchemeSpec;
 import io.ballerina.asyncapi.generator.ws.client.model.WsClientConfig;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -94,9 +95,11 @@ public class WsClientCodeGenerator {
         if (outputPath == null) {
             outputPath = Path.of("");
         }
+        // A userPassword or apiKey scheme is read as credentials the client can send when it connects
+        AsyncApiSpec readable = SecuritySchemeSpec.of(asyncApiSpec, warnings);
         // A key may be a JSON Pointer or a message's own; a spec without one routes on the one field that tells its
         // messages apart, if there is one
-        AsyncApiSpec spec = InferredKeySpec.of(KeyPathSpec.of(asyncApiSpec), warnings);
+        AsyncApiSpec spec = InferredKeySpec.of(KeyPathSpec.of(readable), warnings);
         WsClientConfig config = new WsClientConfig.Builder()
                 .withAsyncApi(spec)
                 .withLicense(licenseHeader)
