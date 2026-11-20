@@ -957,4 +957,16 @@ public class AsyncApiParserIntegrationTest {
         Assert.assertNull(union.nullable());
         Assert.assertEquals(union.anyOf().stream().map(AsyncApiSchema::type).toList(), List.of("string", "integer"));
     }
+
+    @Test
+    void parse_v2OneOfMessagesWithTheSameKeyAreBothKept() throws Exception {
+        // One message is named Event and another only has the messageId Event
+        AsyncApiSpec spec = AsyncApiParser.parseFromJsonString("{\"asyncapi\":\"2.6.0\","
+                + "\"info\":{\"title\":\"T\",\"version\":\"1\"},\"channels\":{\"/\":{\"subscribe\":{\"message\":{"
+                + "\"oneOf\":[{\"name\":\"Event\",\"payload\":{\"type\":\"object\"}},"
+                + "{\"messageId\":\"Event\",\"payload\":{\"type\":\"string\"}}]}}}}}");
+        Map<String, AsyncApiMessage> messages = spec.getAsyncApiOperations().orElseThrow().values().iterator().next()
+                .messages();
+        Assert.assertEquals(messages.keySet(), Set.of("Event", "Event2"));
+    }
 }
