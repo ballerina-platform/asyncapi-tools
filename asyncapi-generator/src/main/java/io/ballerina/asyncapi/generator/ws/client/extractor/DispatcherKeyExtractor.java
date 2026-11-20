@@ -20,8 +20,11 @@ package io.ballerina.asyncapi.generator.ws.client.extractor;
 import com.fasterxml.jackson.databind.JsonNode;
 import io.ballerina.asyncapi.core.api.AsyncApiSpec;
 import io.ballerina.asyncapi.generator.GeneratorException;
+import io.ballerina.asyncapi.generator.ws.client.utils.ContentRoutes;
+import io.ballerina.asyncapi.generator.ws.client.utils.IncomingMessages;
 
 import java.util.Map;
+import java.util.Optional;
 
 /**
  * Extracts the dispatcher key from the {@code x-dispatcherKey} document-level extension
@@ -50,14 +53,29 @@ public class DispatcherKeyExtractor {
      * @throws GeneratorException if the extension is absent or blank
      */
     public String extract() throws GeneratorException {
+        return extractIfNeeded().orElseThrow(
+                () -> new GeneratorException("x-dispatcherKey extension is required in the AsyncAPI spec"));
+    }
+
+    /**
+     * Extracts and validates the dispatcher key, which a spec only needs when a connection receives more than one
+     * kind of message (see {@link IncomingMessages}) that nothing they carry tells apart (see {@link ContentRoutes}).
+     *
+     * @return the dispatcher key, or empty when the spec has none and needs none
+     * @throws GeneratorException if the extension is blank, or absent while a connection needs it
+     */
+    public Optional<String> extractIfNeeded() throws GeneratorException {
         Map<String, JsonNode> extensions = asyncApiSpec.getAsyncApiExtensions().orElse(null);
         if (extensions == null || !extensions.containsKey(X_DISPATCHER_KEY)) {
-            throw new GeneratorException("x-dispatcherKey extension is required in the AsyncAPI spec");
+            if (IncomingMessages.needsKey(asyncApiSpec) && !ContentRoutes.coversAll(asyncApiSpec)) {
+                throw new GeneratorException("x-dispatcherKey extension is required in the AsyncAPI spec");
+            }
+            return Optional.empty();
         }
         String dispatcherKey = extensions.get(X_DISPATCHER_KEY).asText();
         if (dispatcherKey == null || dispatcherKey.isBlank()) {
             throw new GeneratorException("x-dispatcherKey extension must not be empty");
         }
-        return dispatcherKey;
+        return Optional.of(dispatcherKey);
     }
 }

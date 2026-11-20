@@ -131,6 +131,7 @@ public class BallerinaAuthConfigGenerator {
     private static final String API_KEY_TYPE = "apiKey";
     private static final String PATH_PARAMS_TYPE = "PathParams";
     private static final String HEADER_PARAMS_TYPE = "HeaderParams";
+    private static final String QUERY_PARAMS_TYPE = "QueryParams";
 
     private final Map<String, String> headerApiKeyNameList = new HashMap<>();
     private final Map<String, String> queryApiKeyNameList = new HashMap<>();
@@ -145,6 +146,7 @@ public class BallerinaAuthConfigGenerator {
     private String passwordGrantTokenUrl;
     private String refreshTokenUrl;
     private List<TypeDefinitionNode> authRelatedTypeDefinitionNodes = new ArrayList<>();
+    private String paramsTypePrefix = "";
 
     /**
      * Creates a new {@link BallerinaAuthConfigGenerator} with no authentication configured.
@@ -234,6 +236,18 @@ public class BallerinaAuthConfigGenerator {
      */
     public List<TypeDefinitionNode> getAuthRelatedTypeDefinitionNodes() {
         return authRelatedTypeDefinitionNodes;
+    }
+
+    /**
+     * Sets what the path, header and query parameter record names start with, so each channel's client in a spec
+     * with several channels gets its own.
+     *
+     * @param prefix the prefix, such as {@code Room} for {@code RoomPathParams}
+     * @return this generator
+     */
+    public BallerinaAuthConfigGenerator withParamsTypePrefix(String prefix) {
+        this.paramsTypePrefix = prefix;
+        return this;
     }
 
     /**
@@ -550,9 +564,9 @@ public class BallerinaAuthConfigGenerator {
                     createIdentifierToken(paramName), null, createToken(SEMICOLON_TOKEN)));
         }
         authRelatedTypeDefinitionNodes.add(
-                buildClosedRecordTypeDefinition(PATH_PARAMS_TYPE, fields, docNodes));
+                buildClosedRecordTypeDefinition(paramsTypePrefix + PATH_PARAMS_TYPE, fields, docNodes));
         RequiredParameterNode pathParam = createRequiredParameterNode(createEmptyNodeList(),
-                createBuiltinSimpleNameReferenceNode(null, createIdentifierToken(PATH_PARAMS_TYPE)),
+                createBuiltinSimpleNameReferenceNode(null, createIdentifierToken(paramsTypePrefix + PATH_PARAMS_TYPE)),
                 createIdentifierToken("pathParams"));
         parameterList.add(pathParam);
         parameterList.add(comma);
@@ -565,9 +579,10 @@ public class BallerinaAuthConfigGenerator {
                 "Header parameters as a record", true));
         List<Node> fields = buildJsonSchemaRecordFields(headerJsonSchema);
         authRelatedTypeDefinitionNodes.add(
-                buildClosedRecordTypeDefinition(HEADER_PARAMS_TYPE, fields, docNodes));
+                buildClosedRecordTypeDefinition(paramsTypePrefix + HEADER_PARAMS_TYPE, fields, docNodes));
         RequiredParameterNode headerParam = createRequiredParameterNode(createEmptyNodeList(),
-                createBuiltinSimpleNameReferenceNode(null, createIdentifierToken(HEADER_PARAMS_TYPE)),
+                createBuiltinSimpleNameReferenceNode(null,
+                        createIdentifierToken(paramsTypePrefix + HEADER_PARAMS_TYPE)),
                 createIdentifierToken("headerParams"));
         parameterList.add(headerParam);
         parameterList.add(comma);
@@ -580,9 +595,9 @@ public class BallerinaAuthConfigGenerator {
                 "Query parameters as a record", true));
         List<Node> fields = buildJsonSchemaRecordFields(queryJsonSchema);
         authRelatedTypeDefinitionNodes.add(
-                buildClosedRecordTypeDefinition("QueryParams", fields, docNodes));
+                buildClosedRecordTypeDefinition(paramsTypePrefix + QUERY_PARAMS_TYPE, fields, docNodes));
         RequiredParameterNode queryParam = createRequiredParameterNode(createEmptyNodeList(),
-                createBuiltinSimpleNameReferenceNode(null, createIdentifierToken("QueryParams")),
+                createBuiltinSimpleNameReferenceNode(null, createIdentifierToken(paramsTypePrefix + QUERY_PARAMS_TYPE)),
                 createIdentifierToken(QUERY_PARAMS));
         parameterList.add(queryParam);
         parameterList.add(comma);
