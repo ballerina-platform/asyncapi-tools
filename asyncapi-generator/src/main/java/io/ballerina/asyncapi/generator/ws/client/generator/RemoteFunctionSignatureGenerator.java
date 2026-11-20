@@ -22,7 +22,6 @@ import io.ballerina.asyncapi.core.api.AsyncApiSpec;
 import io.ballerina.asyncapi.core.model.component.AsyncApiSchema;
 import io.ballerina.asyncapi.generator.GeneratorException;
 import io.ballerina.asyncapi.generator.ws.client.utils.CodegenUtils;
-import io.ballerina.asyncapi.generator.ws.client.utils.CommonFunctionUtils;
 import io.ballerina.compiler.syntax.tree.FunctionSignatureNode;
 import io.ballerina.compiler.syntax.tree.IdentifierToken;
 import io.ballerina.compiler.syntax.tree.MarkdownParameterDocumentationLineNode;
@@ -37,7 +36,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-import static io.ballerina.asyncapi.generator.ws.client.extractor.DispatcherKeyExtractor.X_DISPATCHER_KEY;
 import static io.ballerina.asyncapi.generator.ws.client.generator.ClientGenerator.SERVER_STREAMING;
 import static io.ballerina.asyncapi.generator.ws.client.generator.ClientGenerator.X_RESPONSE;
 import static io.ballerina.asyncapi.generator.ws.client.generator.ClientGenerator.X_RESPONSE_TYPE;
@@ -191,21 +189,19 @@ public class RemoteFunctionSignatureGenerator {
     }
 
     /**
-     * Resolves the Ballerina type name for the given payload schema.
-     * For resolved references, validates that the dispatcher key is present in the schema properties.
+     * Resolves the Ballerina type name for the given payload schema. A sent message needn't carry the dispatcher
+     * key, as only received messages are told apart.
      *
      * @param payload the message payload schema
      * @return the Ballerina type name
-     * @throws GeneratorException if the schema is missing the dispatcher key or is structurally invalid
+     * @throws GeneratorException if the schema is structurally invalid
      */
     public String getDataType(AsyncApiSchema payload) throws GeneratorException {
         if (payload == null) {
             return "anydata";
         }
         if (payload.name() != null) {
-            String typeName = CodegenUtils.getValidName(payload.name(), true);
-            validateDispatcherPresence(payload.name());
-            return typeName;
+            return CodegenUtils.getValidName(payload.name(), true);
         }
         if (payload.type() != null) {
             return CodegenUtils.TYPE_MAP.getOrDefault(payload.type(), payload.type());
@@ -231,30 +227,5 @@ public class RemoteFunctionSignatureGenerator {
                 createIdentifierToken(DECIMAL));
         IdentifierToken paramName = createIdentifierToken(TIMEOUT);
         return createRequiredParameterNode(createNodeList(), typeName, paramName);
-    }
-
-    private void validateDispatcherPresence(String schemaName) throws GeneratorException {
-        Map<String, AsyncApiSchema> schemas = asyncApiSpec.getAsyncApiComponents()
-                .map(c -> c.schemas()).orElse(null);
-        if (schemas == null) {
-            return;
-        }
-        AsyncApiSchema componentSchema = schemas.get(schemaName);
-        if (componentSchema == null) {
-            return;
-        }
-        String dispatcherKey = asyncApiSpec.getAsyncApiExtensions()
-                .map(ext -> {
-                    JsonNode node = ext.get(X_DISPATCHER_KEY);
-                    return node != null ? node.asText() : null;
-                }).orElse(null);
-        if (dispatcherKey == null) {
-            return;
-        }
-        CommonFunctionUtils utils = new CommonFunctionUtils(asyncApiSpec);
-        if (!utils.isDispatcherPresent(schemaName, componentSchema, dispatcherKey, true)) {
-            throw new GeneratorException(String.format(
-                    "dispatcherKey must be inside %s schema properties", schemaName));
-        }
     }
 }

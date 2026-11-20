@@ -40,6 +40,7 @@ import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25Operation;
 import io.apicurio.datamodels.models.asyncapi.v26.AsyncApi26Message;
 import io.apicurio.datamodels.models.asyncapi.v26.AsyncApi26Operation;
 import io.ballerina.asyncapi.core.Constants;
+import io.ballerina.asyncapi.core.implementation.utils.JsonPointers;
 import io.ballerina.asyncapi.core.implementation.utils.StringUtils;
 import io.ballerina.asyncapi.core.implementation.v2.doc.ExternalDocMapperV2;
 import io.ballerina.asyncapi.core.implementation.v2.message.MessageMapperV2;
@@ -170,7 +171,7 @@ public final class OperationMapperV2 {
             String ref = referenceable.get$ref();
             if (ref != null) {
                 if (ref.startsWith(Constants.MESSAGES_REF_PREFIX)) {
-                    refName = ref.substring(Constants.MESSAGES_REF_PREFIX.length());
+                    refName = JsonPointers.keyAfter(ref, Constants.MESSAGES_REF_PREFIX);
                 }
                 rawMessage = resolveMessageRef(ref, components);
             }
@@ -195,7 +196,7 @@ public final class OperationMapperV2 {
                     if (msg instanceof AsyncApiReferenceable ref && ref.get$ref() != null) {
                         String refStr = ref.get$ref();
                         if (refStr.startsWith(Constants.MESSAGES_REF_PREFIX)) {
-                            oneOfRefName = refStr.substring(Constants.MESSAGES_REF_PREFIX.length());
+                            oneOfRefName = JsonPointers.keyAfter(refStr, Constants.MESSAGES_REF_PREFIX);
                         }
                         resolvedMsg = resolveMessageRef(refStr, components);
                         if (resolvedMsg == null) {
@@ -213,9 +214,12 @@ public final class OperationMapperV2 {
                             key = oneOfRefName;
                         }
                         if (key == null || key.isBlank()) {
+                            key = messageId(resolvedMsg);
+                        }
+                        if (key == null || key.isBlank()) {
                             key = String.valueOf(msgMap.size());
                         }
-                        msgMap.put(key, mapped);
+                        msgMap.put(unusedKey(msgMap, key), mapped);
                     }
                 }
                 messages = msgMap.isEmpty() ? null : msgMap;
@@ -228,7 +232,13 @@ public final class OperationMapperV2 {
                         key = rawMessage.getTitle();
                     }
                     if (key == null || key.isBlank()) {
-                        key = refName != null ? refName : "0";
+                        key = refName;
+                    }
+                    if (key == null || key.isBlank()) {
+                        key = messageId(rawMessage);
+                    }
+                    if (key == null || key.isBlank()) {
+                        key = "0";
                     }
                     messages = Map.of(key, mapped);
                 }
@@ -267,6 +277,25 @@ public final class OperationMapperV2 {
         );
     }
 
+    // 2.4 added messageId, which names a message that has neither a name, a title nor a ref
+    private static String messageId(io.apicurio.datamodels.models.asyncapi.AsyncApiMessage message) {
+        return switch (message) {
+            case AsyncApi26Message typed -> typed.getMessageId();
+            case AsyncApi25Message typed -> typed.getMessageId();
+            case AsyncApi24Message typed -> typed.getMessageId();
+            default -> null;
+        };
+    }
+
+    // Two oneOf messages can get the same key, say a name and another's messageId; neither replaces the other
+    private static String unusedKey(Map<String, ?> taken, String key) {
+        String candidate = key;
+        for (int i = 2; taken.containsKey(candidate); i++) {
+            candidate = key + i;
+        }
+        return candidate;
+    }
+
     /**
      * Resolves a message $ref through the components map, handling chained references
      * with cycle detection.
@@ -289,7 +318,7 @@ public final class OperationMapperV2 {
             if (!visited.add(current)) {
                 return null; // cyclic reference
             }
-            String name = current.substring(Constants.MESSAGES_REF_PREFIX.length());
+            String name = JsonPointers.keyAfter(current, Constants.MESSAGES_REF_PREFIX);
             Map<String, ? extends io.apicurio.datamodels.models.asyncapi.AsyncApiMessage> refMessages =
                     components.getMessages();
             io.apicurio.datamodels.models.asyncapi.AsyncApiMessage resolved =
