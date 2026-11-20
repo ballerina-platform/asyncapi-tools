@@ -38,6 +38,7 @@ import io.apicurio.datamodels.models.asyncapi.v26.AsyncApi26Components;
 import io.apicurio.datamodels.models.asyncapi.v26.AsyncApi26Server;
 import io.ballerina.asyncapi.core.Constants;
 import io.ballerina.asyncapi.core.implementation.common.ServerBindingsMapper;
+import io.ballerina.asyncapi.core.implementation.utils.JsonPointers;
 import io.ballerina.asyncapi.core.implementation.utils.URIUtils;
 import io.ballerina.asyncapi.core.implementation.v2.tag.TagMapperV2;
 import io.ballerina.asyncapi.core.model.tag.AsyncApiTag;
@@ -195,7 +196,7 @@ public final class ServerMapperV2 {
                 LOG.warn("Cyclic $ref detected: {}. Skipping server.", current);
                 return null;
             }
-            String name = current.substring(Constants.SERVERS_REF_PREFIX.length());
+            String name = JsonPointers.keyAfter(current, Constants.SERVERS_REF_PREFIX);
             // Component servers are only available in AsyncAPI 2.3+.
             Map<String, ? extends AsyncApiServer> serversMap = switch (components) {
                 case AsyncApi26Components typed -> typed.getServers();

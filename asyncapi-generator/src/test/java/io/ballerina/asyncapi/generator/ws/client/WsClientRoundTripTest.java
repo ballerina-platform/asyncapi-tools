@@ -99,6 +99,37 @@ public class WsClientRoundTripTest {
     }
 
     @Test
+    void testReceiveOnlyMessageInlineInTheChannelReturnsItsOwnType() throws Exception {
+        // Notice is defined only in the channel, with no components entry of its own
+        JsonNode spec = specFile("ws_receive_only.yaml");
+        ((ObjectNode) spec.at("/channels/root/messages")).set("Notice",
+                YAML.readTree("{payload: {$ref: '#/components/schemas/Notice'}}"));
+        ((ObjectNode) spec.at("/components/messages")).remove("Notice");
+        String client = generate(spec).get("client.bal");
+        Assert.assertTrue(client.contains("doNotice(decimal timeout) returns Notice|error"), client);
+    }
+
+    @Test
+    void testReceiveOnlyMessageUnderAnotherChannelKeyReturnsItsOwnType() throws Exception {
+        // The channel lists the Notice component under the key notice-event, as Binance's spec does
+        JsonNode spec = specFile("ws_receive_only.yaml");
+        ObjectNode messages = (ObjectNode) spec.at("/channels/root/messages");
+        messages.set("notice-event", messages.remove("Notice"));
+        ((ObjectNode) spec.at("/operations/receiveNotice/messages/0"))
+                .put("$ref", "#/channels/root/messages/notice-event");
+        String client = generate(spec).get("client.bal");
+        Assert.assertTrue(client.contains("doNoticeEvent(decimal timeout) returns Notice|error"), client);
+    }
+
+    @Test
+    void testInlineV2SubscribeMessagesReturnTheirOwnTypes() throws Exception {
+        // 2.x messages written inline in a subscribe oneOf, named only by their name field
+        String client = generate(specFile("ws_receive_inline_v2.yaml")).get("client.bal");
+        Assert.assertTrue(client.contains("doTradeData(decimal timeout) returns TradeData|error"), client);
+        Assert.assertTrue(client.contains("doTicker(decimal timeout) returns Ticker|error"), client);
+    }
+
+    @Test
     void testFixedReplyValueIsRoutedExactly() throws Exception {
         // ack doesn't convert to the Ack type name's pipe on its own, so it is routed by its exact value
         JsonNode spec = specFile("ws_receive_only.yaml");
@@ -233,7 +264,8 @@ public class WsClientRoundTripTest {
         Assert.assertTrue(types.contains("public type UsersQueryResponse User[];"), types);
         Assert.assertTrue(client.contains("string|websocket:Error frame = self.clientEp->readMessage(string);"),
                 client);
-        Assert.assertTrue(client.contains("Message|error parsedMessage = frame.fromJsonStringWithType();"), client);
+        // No reply carries the key, so no frame is read as a Message to route on it
+        Assert.assertFalse(client.contains("Message|error parsedMessage"), client);
         Assert.assertTrue(client.contains("self.pipes.getPipe(\"#noDispatcherKey\").produce(frame, 5);"), client);
         Assert.assertTrue(client.contains(
                 "string|pipe:Error responseMessage = self.pipes.getPipe(\"#noDispatcherKey\").consume(timeout);"),

@@ -34,6 +34,7 @@ public class CmdOptions {
     private final String module;
     private final boolean force;
     private final boolean dryRun;
+    private final boolean serviceSide;
 
     private CmdOptions(CmdOptionsBuilder builder) {
         this.input = builder.input;
@@ -45,6 +46,16 @@ public class CmdOptions {
         this.module = builder.module;
         this.force = builder.force;
         this.dryRun = builder.dryRun;
+        this.serviceSide = builder.serviceSide;
+    }
+
+    /**
+     * Returns {@code true} if the definition is written from the server's side.
+     *
+     * @return whether the definition's send and receive are swapped
+     */
+    public boolean isServiceSide() {
+        return serviceSide;
     }
 
     /**
@@ -143,6 +154,7 @@ public class CmdOptions {
         private String module;
         private boolean force;
         private boolean dryRun;
+        private boolean serviceSide;
 
         /**
          * Sets the input AsyncAPI definition file path.
@@ -240,6 +252,17 @@ public class CmdOptions {
          */
         public CmdOptionsBuilder withDryRun(boolean dryRun) {
             this.dryRun = dryRun;
+            return this;
+        }
+
+        /**
+         * Sets whether the definition is written from the server's side.
+         *
+         * @param serviceSide true to swap the definition's send and receive
+         * @return this builder
+         */
+        public CmdOptionsBuilder withServiceSide(boolean serviceSide) {
+            this.serviceSide = serviceSide;
             return this;
         }
 

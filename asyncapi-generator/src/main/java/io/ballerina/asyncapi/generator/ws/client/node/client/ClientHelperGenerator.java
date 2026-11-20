@@ -17,6 +17,8 @@
  */
 package io.ballerina.asyncapi.generator.ws.client.node.client;
 
+import io.ballerina.asyncapi.generator.ws.client.generator.RoutingPlan;
+import io.ballerina.asyncapi.generator.ws.client.utils.CodegenUtils;
 import io.ballerina.compiler.syntax.tree.FunctionBodyNode;
 import io.ballerina.compiler.syntax.tree.FunctionDefinitionNode;
 import io.ballerina.compiler.syntax.tree.FunctionSignatureNode;
@@ -78,6 +80,8 @@ public class ClientHelperGenerator {
     private static final String FOREACH_WORDS_STMT =
             "foreach string word in words { if word.length() == 0 { continue; } result +="
             + " word.substring(0, 1).toUpperAscii() + word.substring(1).toLowerAscii(); }";
+    // A value of only symbols, such as "%", names the type the generator called Unnamed
+    private static final String UNNAMED_STMT = "if result.length() == 0 { return \"Unnamed\"; }";
     private static final String RETURN_RESULT_STMT = "return result;";
 
     // getPipeName
@@ -151,6 +155,7 @@ public class ClientHelperGenerator {
         statements.add(NodeParser.parseStatement(WORDS_STMT));
         statements.add(NodeParser.parseStatement(RESULT_INIT_STMT));
         statements.add(NodeParser.parseStatement(FOREACH_WORDS_STMT));
+        statements.add(NodeParser.parseStatement(UNNAMED_STMT));
         statements.add(NodeParser.parseStatement(RETURN_RESULT_STMT));
         FunctionBodyNode body = createFunctionBodyBlockNode(OPEN_BRACE, null,
                 createNodeList(statements), CLOSE_BRACE, null);
@@ -168,6 +173,51 @@ public class ClientHelperGenerator {
      */
     public FunctionDefinitionNode buildGetPipeName() {
         return (FunctionDefinitionNode) NodeParser.parseObjectMember(GET_PIPE_NAME_SOURCE);
+    }
+
+    /**
+     * Builds the {@code getPipeNameByContent} private helper, which finds a received JSON object's pipe by what it
+     * carries: a field with a fixed value, or a field only its message has. A field inside an object is read with
+     * {@code getValueAt}. Routes are checked in spec order, and a frame no route matches gets {@code ()}.
+     *
+     * @param routes how each received type is recognised
+     * @return the function definition node
+     */
+    public FunctionDefinitionNode buildGetPipeNameByContent(List<RoutingPlan.ContentRoute> routes) {
+        StringBuilder source = new StringBuilder(
+                "private isolated function getPipeNameByContent(map<json> message) returns string? {\n");
+        for (RoutingPlan.ContentRoute route : routes) {
+            String field = CodegenUtils.toStringLiteral(route.path().get(0));
+            String value = route.value() != null ? CodegenUtils.toStringLiteral(route.value()) : null;
+            String test = value == null ? String.format("message.hasKey(%s)", field)
+                    : route.path().size() == 1 ? String.format("message[%s] == %s", field, value)
+                    : String.format("self.getValueAt(message, [%s]) == %s", String.join(", ",
+                    route.path().stream().map(CodegenUtils::toStringLiteral).toList()), value);
+            source.append(String.format("    if %s {\n        return %s;\n    }\n", test,
+                    CodegenUtils.toStringLiteral(route.pipe())));
+        }
+        source.append("    return ();\n}");
+        return (FunctionDefinitionNode) NodeParser.parseObjectMember(source.toString());
+    }
+
+    /**
+     * Builds the {@code getValueAt} private helper, which reads the field at a path of nested JSON objects, or
+     * {@code ()} where the path doesn't lead to one.
+     *
+     * @return the function definition node
+     */
+    public FunctionDefinitionNode buildGetValueAt() {
+        return (FunctionDefinitionNode) NodeParser.parseObjectMember(
+                "private isolated function getValueAt(map<json> message, string[] path) returns json {\n"
+                + "    json current = message;\n"
+                + "    foreach string name in path {\n"
+                + "        if current !is map<json> {\n"
+                + "            return ();\n"
+                + "        }\n"
+                + "        current = current[name];\n"
+                + "    }\n"
+                + "    return current;\n"
+                + "}");
     }
 
     /**

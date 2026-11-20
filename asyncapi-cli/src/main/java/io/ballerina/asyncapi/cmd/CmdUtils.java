@@ -159,6 +159,7 @@ public final class CmdUtils {
                 .withModule(module)
                 .withForce(baseCmd.force)
                 .withDryRun(baseCmd.dryRun)
+                .withServiceSide(CmdConstants.SPEC_SIDE_SERVICE.equalsIgnoreCase(baseCmd.specSide))
                 .build();
     }
 
