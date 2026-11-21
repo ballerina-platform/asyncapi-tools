@@ -19,6 +19,8 @@ package io.ballerina.asyncapi.cmd;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Utility methods shared across the refactored asyncapi CLI commands.
@@ -154,12 +156,98 @@ public final class CmdUtils {
                 .withOutput(baseCmd.outputPath)
                 .withLicenseFilePath(baseCmd.licensePath)
                 .withService(baseCmd.serviceName)
-                .withJson(CmdConstants.FORMAT_JSON.equalsIgnoreCase(baseCmd.format))
+                .withJson(CmdConstants.FORMAT_JSON.equalsIgnoreCase(specFormat(baseCmd)))
                 .withTests(baseCmd.withTests)
                 .withModule(module)
                 .withForce(baseCmd.force)
                 .withDryRun(baseCmd.dryRun)
+                .withServiceSide(CmdConstants.SPEC_SIDE_SERVICE.equalsIgnoreCase(baseCmd.specSide))
+                .withCommandLine(commandLine(baseCmd, baseCmd.inputPath))
                 .build();
+    }
+
+    /**
+     * Returns the definition format asked for with {@code --spec-format}, or with the old {@code --format}.
+     *
+     * @param baseCmd the parsed flags
+     * @return the format, or {@code null} for the default
+     */
+    public static String specFormat(BaseCmd baseCmd) {
+        return baseCmd.specFormat != null ? baseCmd.specFormat : baseCmd.format;
+    }
+
+    /**
+     * Rebuilds the command the user ran from the parsed flags, so an error can print the fixed command. Hidden and
+     * removed flags are left out.
+     *
+     * @param baseCmd    the parsed flags
+     * @param input      the input to put in the command, the user's own or a corrected one
+     * @param extraFlags flags to add, such as {@code --force}
+     * @return the command, runnable as printed
+     */
+    public static String commandLine(BaseCmd baseCmd, String input, String... extraFlags) {
+        List<String> words = new ArrayList<>(List.of("bal", "asyncapi"));
+        if (input != null) {
+            words.add(quote(input));
+        }
+        addOption(words, "--protocol", baseCmd.protocol);
+        addOption(words, "-o", baseCmd.outputPath);
+        addOption(words, "--module", baseCmd.module);
+        addOption(words, "--license", baseCmd.licensePath);
+        addOption(words, "--spec-format", specFormat(baseCmd));
+        addOption(words, "--service", baseCmd.serviceName);
+        addOption(words, "--spec-side", baseCmd.specSide);
+        addFlag(words, "--with-tests", baseCmd.withTests);
+        addFlag(words, "--force", baseCmd.force);
+        addFlag(words, "--dry-run", baseCmd.dryRun);
+        addOption(words, "--output-format", baseCmd.outputFormat);
+        for (String flag : extraFlags) {
+            if (!words.contains(flag)) {
+                words.add(flag);
+            }
+        }
+        return String.join(" ", words);
+    }
+
+    private static void addOption(List<String> words, String flag, String value) {
+        if (value != null) {
+            words.add(flag);
+            words.add(quote(value));
+        }
+    }
+
+    private static void addFlag(List<String> words, String flag, boolean set) {
+        if (set) {
+            words.add(flag);
+        }
+    }
+
+    // Quotes a word a shell would split, so the printed command runs as shown.
+    static String quote(String word) {
+        return word.isEmpty() || word.matches(".*[\\s'\"$`\\\\|&;<>()*?].*")
+                ? "'" + word.replace("'", "'\\''") + "'" : word;
+    }
+
+    /**
+     * Turns a message from elsewhere into one line that starts in lowercase and has no trailing period, as an error
+     * message is written.
+     *
+     * @param message the message, possibly several lines
+     * @return the one-line message
+     */
+    public static String oneLine(String message) {
+        if (message == null || message.isBlank()) {
+            return "an unexpected error occurred";
+        }
+        String line = String.join("; ", message.strip().lines().map(String::strip)
+                .filter(part -> !part.isEmpty()).toList()).replace(":;", ":");
+        while (line.endsWith(".")) {
+            line = line.substring(0, line.length() - 1);
+        }
+        // A first word with more capitals is a name, such as AsyncAPI or WebSocket, and keeps its case
+        String firstWord = line.split("\\s", 2)[0];
+        boolean name = firstWord.chars().skip(1).anyMatch(Character::isUpperCase);
+        return name ? line : Character.toLowerCase(line.charAt(0)) + line.substring(1);
     }
 
     /**

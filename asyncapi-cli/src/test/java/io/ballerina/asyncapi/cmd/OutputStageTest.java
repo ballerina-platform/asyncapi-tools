@@ -26,18 +26,17 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 
 /**
- * Tests for {@link OutputStage}, the overwrite rule applied to whatever a generator writes.
+ * Tests for {@link OutputStage}: the fail-fast pipeline applied to whatever a generator writes.
  */
 public class OutputStageTest extends CmdTestBase {
-
-    private static final String SUCCESS = "done";
 
     private CmdContext context() {
         return new CmdContext(outStream, errStream, false);
     }
 
     private CmdOptions options(boolean force, boolean dryRun) {
-        return new CmdOptions.CmdOptionsBuilder().withForce(force).withDryRun(dryRun).build();
+        return new CmdOptions.CmdOptionsBuilder().withForce(force).withDryRun(dryRun)
+                .withCommandLine("bal asyncapi spec.yaml").build();
     }
 
     private void generate(OutputStage stage, String name, String content) throws IOException {
@@ -52,85 +51,59 @@ public class OutputStageTest extends CmdTestBase {
         try (OutputStage stage = OutputStage.open(out, options(false, false), context())) {
             generate(stage, "a.yaml", "a");
             generate(stage, "tests/b.bal", "b");
-            stage.commit(SUCCESS);
+            stage.commit();
         }
         Assert.assertEquals(Files.readString(out.resolve("a.yaml")), "a");
         Assert.assertEquals(Files.readString(out.resolve("tests").resolve("b.bal")), "b");
-        Assert.assertTrue(getOut().contains("-- tests/b.bal"), "Out: " + getOut());
-        Assert.assertTrue(getOut().startsWith(SUCCESS), "Out: " + getOut());
+        Assert.assertTrue(getOut().contains("tests/b.bal"), "Out: " + getOut());
+        Assert.assertFalse(getOut().contains("\\"), "Out: " + getOut());
+        Assert.assertTrue(getOut().contains("Generated 2 files."), "Out: " + getOut());
     }
 
-    @Test(description = "A file that exists with different content is skipped without --force")
-    public void testSkipsChangedFile() throws IOException {
-        Path out = Files.createDirectory(tmpDir.resolve("out"));
-        Files.writeString(out.resolve("a.yaml"), "mine");
-        try (OutputStage stage = OutputStage.open(out, options(false, false), context())) {
-            generate(stage, "a.yaml", "generated");
-            stage.commit(SUCCESS);
-        }
-        Assert.assertEquals(Files.readString(out.resolve("a.yaml")), "mine");
-        Assert.assertTrue(getErr().contains("Skipped"), "Err: " + getErr());
-        Assert.assertTrue(getOut().contains("No files were written."), "Out: " + getOut());
-    }
-
-    @Test(description = "Skipped files are counted and summarised, so the caller can exit non-zero")
-    public void testSkippedFilesAreCountedAndSummarised() throws IOException {
+    @Test(description = "A changed file without --force and without a terminal stops the run before any write")
+    public void testChangedFileIsRefused() throws IOException {
         Path out = Files.createDirectory(tmpDir.resolve("out"));
         Files.writeString(out.resolve("a.yaml"), "mine");
         Files.writeString(out.resolve("b.yaml"), "mine too");
-        int skipped;
         try (OutputStage stage = OutputStage.open(out, options(false, false), context())) {
             generate(stage, "a.yaml", "generated");
             generate(stage, "b.yaml", "generated");
             generate(stage, "c.yaml", "new");
-            skipped = stage.commit(SUCCESS);
+            AsyncApiCmdToolException error = Assert.expectThrows(AsyncApiCmdToolException.class, stage::commit);
+            Assert.assertEquals(error.exitCode(), ExitCodes.OVERWRITE_REFUSED);
+            Assert.assertTrue(error.getMessage().startsWith("2 files already exist: "), error.getMessage());
+            Assert.assertEquals(error.getSuggestion(), "Re-run with --force to overwrite.");
+            Assert.assertEquals(error.getCommand(), "bal asyncapi spec.yaml --force");
         }
-        Assert.assertEquals(skipped, 2);
-        Assert.assertEquals(Files.readString(out.resolve("c.yaml")), "new", "Files that can be written still are");
-        Assert.assertTrue(getErr().contains("2 file(s) skipped, so the generated code may be out of sync"),
-                "Err: " + getErr());
+        Assert.assertEquals(Files.readString(out.resolve("a.yaml")), "mine");
+        Assert.assertFalse(Files.exists(out.resolve("c.yaml")), "Nothing is written when the run can't complete");
     }
 
-    @Test(description = "Nothing skipped means a zero count and no summary")
-    public void testNoSummaryWhenNothingSkipped() throws IOException {
-        Path out = tmpDir.resolve("out");
-        int skipped;
-        try (OutputStage stage = OutputStage.open(out, options(false, false), context())) {
-            generate(stage, "a.yaml", "a");
-            skipped = stage.commit(SUCCESS);
-        }
-        Assert.assertEquals(skipped, 0);
-        Assert.assertTrue(getErr().isEmpty(), "Err: " + getErr());
-    }
-
-    @Test(description = "A directory where a generated file should go gets a clear error")
+    @Test(description = "A directory where a generated file should go is a clear error")
     public void testDirectoryInPlaceOfFileIsReported() throws IOException {
         Path out = Files.createDirectory(tmpDir.resolve("out"));
         Files.createDirectory(out.resolve("a.yaml"));
         try (OutputStage stage = OutputStage.open(out, options(true, false), context())) {
             generate(stage, "a.yaml", "generated");
-            stage.commit(SUCCESS);
-            Assert.fail("A directory in place of the file should be reported");
-        } catch (IOException e) {
-            Assert.assertTrue(e.getMessage().endsWith("is a directory, so the generated file cannot be written there"),
-                    e.getMessage());
+            AsyncApiCmdToolException error = Assert.expectThrows(AsyncApiCmdToolException.class, stage::commit);
+            Assert.assertTrue(error.getMessage().endsWith("is a directory, so the generated file cannot be written "
+                    + "there"), error.getMessage());
+            Assert.assertEquals(error.exitCode(), ExitCodes.RUNTIME);
         }
     }
 
-    @Test(description = "A failure partway through says which files were already written")
-    public void testFailurePartwayListsWrittenFiles() throws IOException {
+    @Test(description = "A file in the way of a folder the plan needs fails the writability check, before writing")
+    public void testUnwritableFolderFailsBeforeWriting() throws IOException {
         Path out = Files.createDirectory(tmpDir.resolve("out"));
-        // A file named like the folder the second generated file needs makes that write fail.
+        // A file named like the folder the second generated file needs.
         Files.writeString(out.resolve("tests"), "not a folder");
         try (OutputStage stage = OutputStage.open(out, options(false, false), context())) {
             generate(stage, "a.yaml", "a");
             generate(stage, "tests/b.bal", "b");
-            stage.commit(SUCCESS);
-            Assert.fail("Writing under a file should fail");
-        } catch (IOException e) {
-            Assert.assertTrue(getErr().contains("these files were written before the failure: a.yaml"),
-                    "Err: " + getErr());
+            AsyncApiCmdToolException error = Assert.expectThrows(AsyncApiCmdToolException.class, stage::commit);
+            Assert.assertTrue(error.getMessage().contains("is a file, not a folder"), error.getMessage());
         }
+        Assert.assertFalse(Files.exists(out.resolve("a.yaml")), "Nothing is written when a folder is in the way");
     }
 
     @Test(description = "A symbolic link is written through to the file it points to")
@@ -144,49 +117,89 @@ public class OutputStageTest extends CmdTestBase {
         }
         try (OutputStage stage = OutputStage.open(out, options(true, false), context())) {
             generate(stage, "a.yaml", "generated");
-            stage.commit(SUCCESS);
+            stage.commit();
         }
         Assert.assertTrue(Files.isSymbolicLink(out.resolve("a.yaml")), "The link itself is kept");
         Assert.assertEquals(Files.readString(real), "generated");
     }
 
-    @Test(description = "--force replaces a changed file")
+    @Test(description = "--force replaces a changed file without asking")
     public void testForceReplacesChangedFile() throws IOException {
         Path out = Files.createDirectory(tmpDir.resolve("out"));
         Files.writeString(out.resolve("a.yaml"), "mine");
         try (OutputStage stage = OutputStage.open(out, options(true, false), context())) {
             generate(stage, "a.yaml", "generated");
-            stage.commit(SUCCESS);
+            stage.commit();
         }
         Assert.assertEquals(Files.readString(out.resolve("a.yaml")), "generated");
         Assert.assertTrue(getErr().isEmpty(), "Err: " + getErr());
+        Assert.assertTrue(getOut().startsWith("overwritten"), "Out: " + getOut());
     }
 
-    @Test(description = "A file that already has the generated content is neither skipped nor rewritten")
+    @Test(description = "A file marked as merged is reported as merged, and needs --force like an overwrite")
+    public void testMergedFile() throws IOException {
+        Path out = Files.createDirectory(tmpDir.resolve("out"));
+        Files.writeString(out.resolve("Ballerina.toml"), "old");
+        try (OutputStage stage = OutputStage.open(out, options(true, false), context())) {
+            generate(stage, "Ballerina.toml", "updated");
+            stage.markMerged(Path.of("Ballerina.toml"));
+            stage.commit();
+        }
+        Assert.assertTrue(getOut().startsWith("merged"), "Out: " + getOut());
+    }
+
+    @Test(description = "A file that already has the generated content is neither refused nor rewritten")
     public void testIdenticalFileIsUnchanged() throws IOException {
         Path out = Files.createDirectory(tmpDir.resolve("out"));
         Files.writeString(out.resolve("a.yaml"), "same");
         long before = Files.getLastModifiedTime(out.resolve("a.yaml")).toMillis();
         try (OutputStage stage = OutputStage.open(out, options(false, false), context())) {
             generate(stage, "a.yaml", "same");
-            stage.commit(SUCCESS);
+            stage.commit();
         }
         Assert.assertTrue(getErr().isEmpty(), "Err: " + getErr());
         Assert.assertTrue(getOut().contains("already up to date"), "Out: " + getOut());
         Assert.assertEquals(Files.getLastModifiedTime(out.resolve("a.yaml")).toMillis(), before);
     }
 
-    @Test(description = "A dry run writes nothing and does not create the output folder")
+    @Test(description = "A dry run writes nothing, does not create the output folder and never prompts")
     public void testDryRunWritesNothing() throws IOException {
         Path out = tmpDir.resolve("never-created");
         try (OutputStage stage = OutputStage.open(out, options(false, true), context())) {
             generate(stage, "a.yaml", "a");
-            stage.commit(SUCCESS);
+            stage.commit();
         }
         Assert.assertFalse(Files.exists(out), "A dry run must not create the output folder");
-        Assert.assertTrue(getOut().contains("1 to create, 0 to overwrite, 0 to skip, 0 unchanged."),
-                "Out: " + getOut());
-        Assert.assertFalse(getOut().contains(SUCCESS), "No success message for a dry run. Out: " + getOut());
+        Assert.assertTrue(getOut().startsWith("would create  "), "Out: " + getOut());
+        Assert.assertTrue(getOut().strip().endsWith("Dry run: nothing was written."), "Out: " + getOut());
+    }
+
+    @Test(description = "A dry run lists a changed file as an overwrite, without --force and without failing")
+    public void testDryRunListsOverwrite() throws IOException {
+        Path out = Files.createDirectory(tmpDir.resolve("out"));
+        Files.writeString(out.resolve("a.yaml"), "mine");
+        try (OutputStage stage = OutputStage.open(out, options(false, true), context())) {
+            generate(stage, "a.yaml", "generated");
+            stage.commit();
+        }
+        Assert.assertTrue(getOut().startsWith("would overwrite  "), "Out: " + getOut());
+        Assert.assertEquals(Files.readString(out.resolve("a.yaml")), "mine");
+    }
+
+    @Test(description = "The JSON result lists every file with its action, including unchanged ones")
+    public void testJsonResult() throws IOException {
+        Path out = Files.createDirectory(tmpDir.resolve("out"));
+        Files.writeString(out.resolve("same.yaml"), "same");
+        CmdContext ctx = context();
+        ctx.setFormat(CmdContext.Format.JSON);
+        try (OutputStage stage = OutputStage.open(out, options(false, false), ctx)) {
+            generate(stage, "new.yaml", "new");
+            generate(stage, "same.yaml", "same");
+            stage.commit();
+        }
+        Assert.assertTrue(getOut().contains("\"action\":\"created\""), "Out: " + getOut());
+        Assert.assertTrue(getOut().contains("\"action\":\"unchanged\""), "Out: " + getOut());
+        Assert.assertFalse(getOut().contains("dryRun"), "Out: " + getOut());
     }
 
     @Test(description = "The temporary staging folder is removed when the stage is closed")
@@ -200,12 +213,12 @@ public class OutputStageTest extends CmdTestBase {
         Assert.assertFalse(Files.exists(staging), "The staging folder should be deleted");
     }
 
-    @Test(description = "A generator that writes nothing reports that no files were written")
+    @Test(description = "A generator that writes nothing reports that no files were generated")
     public void testNothingGenerated() throws IOException {
         try (OutputStage stage = OutputStage.open(tmpDir.resolve("out"), options(false, false), context())) {
-            stage.commit(SUCCESS);
+            stage.commit();
         }
-        Assert.assertTrue(getOut().contains("No files were written."), "Out: " + getOut());
+        Assert.assertTrue(getOut().contains("No files were generated."), "Out: " + getOut());
     }
 
     @Test(description = "--force and --dry-run reach the options from the command line")

@@ -17,60 +17,48 @@
  */
 package io.ballerina.asyncapi.cmd;
 
+import io.ballerina.asyncapi.cmd.AsyncApiCmdToolException.Kind;
+import io.ballerina.asyncapi.cmd.AsyncApiProjectUtils.CodeInput;
+import io.ballerina.asyncapi.cmd.AsyncApiProjectUtils.CodeInputKind;
 import io.ballerina.asyncapi.generator.CodeGenOrchestrator;
 import io.ballerina.asyncapi.generator.GeneratorException;
+import io.ballerina.asyncapi.generator.Protocol;
 import io.ballerina.asyncapi.generator.spi.ProtocolHandler;
 import io.ballerina.cli.BLauncherCmd;
 import picocli.CommandLine;
 
+import java.io.IOException;
 import java.io.PrintStream;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.regex.Pattern;
 
 /**
- * The {@code bal asyncapi} command. The protocol is chosen with {@code --protocol}; what each protocol
- * supports comes from its generator {@link ProtocolHandler}.
- *
- * <p>The {@code --help} text is generated from the annotations here and on {@link BaseCmd}, including the usage
- * line, so there is no separate help text to keep in step. Anything that needs prose beyond a flag's own
- * description belongs in the documentation, not here.
+ * The {@code bal asyncapi} command, following the Ballerina CLI Tool Design Guide. The input is the only positional
+ * argument; whether it is a definition or Ballerina code decides the direction, and the definition decides the
+ * protocol unless {@code --protocol} says otherwise. Every check runs before anything is written, and every failure
+ * is one {@link AsyncApiCmdToolException} whose kind decides the exit code.
  */
-@CommandLine.Command(
-        name = "asyncapi",
-        usageHelpWidth = 100,
-        sortOptions = false,
-        headerHeading = "NAME%n",
-        header = AsyncApiCmd.HEADER,
-        synopsisHeading = "%nSYNOPSIS%n",
-        descriptionHeading = "%nDESCRIPTION%n",
-        description = AsyncApiCmd.DESCRIPTION,
-        parameterListHeading = "%nARGUMENTS%n",
-        optionListHeading = "%nOPTIONS%n"
-)
+@CommandLine.Command(name = "asyncapi", description = HelpText.DESCRIPTION)
 public class AsyncApiCmd implements BLauncherCmd {
 
-    // Not private: the @Command annotation on the class can only reference non-private constants.
-    static final String HEADER =
-            "  bal asyncapi - Generate Ballerina code from AsyncAPI definitions, or the reverse";
-    static final String DESCRIPTION =
-            "Generate Ballerina listeners and clients from AsyncAPI definitions, or generate AsyncAPI "
-                    + "definitions from Ballerina code.";
-    private static final String COMMAND_NAME = "bal asyncapi";
-    private static final int INDENT = 2;
+    private static final Pattern MODULE_NAME = Pattern.compile("[A-Za-z0-9_]+(\\.[A-Za-z0-9_]+)*");
+    private static final int MAX_MODULE_NAME_LENGTH = 256;
+    private static final String STDIO_PATH = "-";
 
     @CommandLine.Mixin
     private BaseCmd baseCmd;
 
     private final CmdContext ctx;
-    private String resolvedModule;
 
     /**
-     * Production constructor.
+     * Production constructor: text on a terminal, JSON otherwise.
      */
     public AsyncApiCmd() {
-        this.ctx = new CmdContext(System.out, System.err, true);
+        this.ctx = CmdContext.forTerminal();
     }
 
     /**
@@ -79,8 +67,7 @@ public class AsyncApiCmd implements BLauncherCmd {
      * @param outStream stream for standard output
      * @param errStream stream for error output
      */
-    public AsyncApiCmd(PrintStream outStream,
-                       PrintStream errStream) {
+    public AsyncApiCmd(PrintStream outStream, PrintStream errStream) {
         this.ctx = new CmdContext(outStream, errStream, false);
     }
 
@@ -105,6 +92,10 @@ public class AsyncApiCmd implements BLauncherCmd {
         this.ctx = new CmdContext(outStream, errStream, exitWhenFinish);
     }
 
+    AsyncApiCmd(CmdContext ctx) {
+        this.ctx = ctx;
+    }
+
     @Override
     public String getName() {
         return CmdConstants.ASYNCAPI_CMD;
@@ -112,30 +103,12 @@ public class AsyncApiCmd implements BLauncherCmd {
 
     @Override
     public void printLongDesc(StringBuilder out) {
-        // ANSI is off because ANSI codes print as raw characters when the help goes to a file, pipe or test.
-        helpCommandLine().usage(ctx.infoStream(), CommandLine.Help.Ansi.OFF);
+        ctx.printInfo(HelpText.render(new CommandLine(this).getCommandSpec()));
     }
 
     @Override
     public void printUsage(StringBuilder out) {
-        CommandLine commandLine = helpCommandLine();
-        ctx.printInfo(new CommandLine.Help(commandLine.getCommandSpec(), CommandLine.Help.Ansi.OFF)
-                .synopsis(0).stripTrailing());
-    }
-
-    /**
-     * A separate parser model used only for printing: it shows the command as {@code bal asyncapi} and shows a
-     * flag's value after a space, which does not change how the real command line is parsed.
-     */
-    private CommandLine helpCommandLine() {
-        CommandLine commandLine = new CommandLine(this);
-        commandLine.setCommandName(COMMAND_NAME);
-        commandLine.getCommandSpec().parser().separator(" ");
-        commandLine.getHelpSectionMap().put(CommandLine.Model.UsageMessageSpec.SECTION_KEY_SYNOPSIS,
-                help -> help.synopsis(0).indent(INDENT));
-        commandLine.getHelpSectionMap().put(CommandLine.Model.UsageMessageSpec.SECTION_KEY_DESCRIPTION,
-                help -> help.description().indent(INDENT));
-        return commandLine;
+        ctx.printInfo(CmdContext.SYNOPSIS.substring("Usage: ".length()));
     }
 
     @Override
@@ -146,49 +119,134 @@ public class AsyncApiCmd implements BLauncherCmd {
         ctx.setExitWhenFinish(exitWhenFinish);
     }
 
+    /**
+     * Returns the code the last run ended with.
+     *
+     * @return the exit code
+     */
+    int exitCode() {
+        return ctx.exitCode();
+    }
+
     @Override
     public void execute() {
         if (baseCmd.helpFlag) {
             printLongDesc(null);
             return;
         }
-        if (rejectRemovedSyntax()) {
+        if (baseCmd.versionFlag) {
+            ctx.printInfo("asyncapi " + HelpText.toolVersion());
             return;
         }
-        if (baseCmd.inputPath == null || baseCmd.inputPath.isBlank()) {
-            fail(ErrorMessages.MISSING_INPUT);
-            return;
-        }
-        Optional<ProtocolCommand> command = ProtocolCommands.find(baseCmd.protocol);
-        if (command.isEmpty()) {
-            fail(baseCmd.protocol == null || baseCmd.protocol.isBlank()
-                    ? String.format(ErrorMessages.MISSING_PROTOCOL, ProtocolCommands.names(", "))
-                    : String.format(ErrorMessages.UNKNOWN_PROTOCOL, baseCmd.protocol,
-                            ProtocolCommands.names(", ")));
-            return;
-        }
-        if (baseCmd.format != null && !CmdConstants.FORMAT_JSON.equalsIgnoreCase(baseCmd.format)
-                && !CmdConstants.FORMAT_YAML.equalsIgnoreCase(baseCmd.format)) {
-            fail(String.format(ErrorMessages.UNKNOWN_FORMAT, baseCmd.format));
-            return;
-        }
-        ProtocolHandler handler;
+        CmdConstants.Mode mode = CmdConstants.Mode.ASYNCAPI_TO_BALLERINA;
         try {
-            handler = CodeGenOrchestrator.getHandler(command.get().protocol());
+            applyOutputFormat();
+            mode = CmdUtils.resolveMode(baseCmd);
+            run(mode);
+        } catch (AsyncApiCmdToolException e) {
+            ctx.fail(e);
         } catch (GeneratorException e) {
-            fail("error: " + e.getMessage());
-            return;
-        }
-        CmdConstants.Mode mode = CmdUtils.resolveMode(baseCmd);
-        if (!validate(mode, handler, command.get())) {
-            return;
-        }
-        warnUnsupportedOptions(handler, mode);
-        String module = mode == CmdConstants.Mode.BALLERINA_TO_ASYNCAPI ? resolvedModule : baseCmd.module;
-        try {
-            command.get().generate(CmdUtils.collectCmdOptions(baseCmd, module), mode, ctx);
+            boolean fromDefinition = mode == CmdConstants.Mode.ASYNCAPI_TO_BALLERINA;
+            ctx.fail(AsyncApiCmdToolException.of(fromDefinition ? Kind.INVALID_INPUT : Kind.RUNTIME,
+                    CmdUtils.oneLine(e.getMessage())));
+        } catch (IOException e) {
+            ctx.fail(AsyncApiCmdToolException.of(Kind.RUNTIME,
+                    "failed to write the generated files: " + CmdUtils.oneLine(e.getMessage())));
         } catch (RuntimeException e) {
-            fail(ErrorMessages.UNEXPECTED_GENERATION_FAILURE + e.getMessage());
+            ctx.fail(AsyncApiCmdToolException.of(Kind.RUNTIME,
+                    ErrorMessages.UNEXPECTED_FAILURE + CmdUtils.oneLine(e.getMessage())));
+        }
+    }
+
+    // OUT-3: the flag overrides the terminal check either way. An invalid value is reported as text.
+    private void applyOutputFormat() {
+        if (baseCmd.outputFormat == null) {
+            return;
+        }
+        Optional<CmdContext.Format> format = CmdContext.Format.parse(baseCmd.outputFormat);
+        if (format.isEmpty()) {
+            ctx.setFormat(CmdContext.Format.TEXT);
+            throw AsyncApiCmdToolException.of(Kind.USAGE,
+                    "invalid value '" + baseCmd.outputFormat + "' for --output-format")
+                    .withSuggestion("Use text or json.");
+        }
+        ctx.setFormat(format.get());
+    }
+
+    // The phases of FF-4 in order: arguments, target, input content, then generation, which plans and writes.
+    private void run(CmdConstants.Mode mode) throws GeneratorException, IOException {
+        checkArguments();
+        ProtocolCommand command = mode == CmdConstants.Mode.BALLERINA_TO_ASYNCAPI
+                ? codeToSpecProtocol() : specToCodeProtocol();
+        ProtocolHandler handler = handler(command.protocol());
+        String module = baseCmd.module;
+        CodeInput codeInput = null;
+        String license = "";
+        if (mode == CmdConstants.Mode.BALLERINA_TO_ASYNCAPI) {
+            codeInput = AsyncApiProjectUtils.resolveCodeInput(Path.of(baseCmd.inputPath));
+            if (codeInput.kind() == CodeInputKind.STANDALONE_FILE && module != null) {
+                throw AsyncApiCmdToolException.of(Kind.USAGE, "--module can't be used with a standalone .bal file")
+                        .withSuggestion("Pass the package the module belongs to, or leave out --module.");
+            }
+            if (codeInput.kind() == CodeInputKind.PACKAGE) {
+                module = AsyncApiProjectUtils.resolveModule(codeInput.packageRoot(), module);
+            }
+            AsyncApiProjectUtils.checkDependenciesLocked(codeInput, CmdUtils.quote(baseCmd.inputPath));
+            AsyncApiProjectUtils.validateBalFile(codeInput, baseCmd.inputPath);
+        } else {
+            ctx.setSpecSource(Path.of(baseCmd.inputPath));
+            if (baseCmd.licensePath != null) {
+                license = GeneratedHeader.readLicense(baseCmd.licensePath);
+            }
+        }
+        warnIgnoredOptions(handler, mode);
+        command.generate(CmdUtils.collectCmdOptions(baseCmd, module), mode,
+                new ProtocolCommand.Resolved(license, codeInput), ctx);
+    }
+
+    // FF-4 phase 1: everything that is wrong with the command line itself, before anything is read.
+    private void checkArguments() {
+        rejectRemovedSyntax();
+        if (baseCmd.inputPath == null || baseCmd.inputPath.isBlank()) {
+            throw AsyncApiCmdToolException.of(Kind.USAGE, "missing required argument <input>")
+                    .withSuggestion("Pass an AsyncAPI definition, or a Ballerina package or .bal file.");
+        }
+        for (String path : new String[]{baseCmd.inputPath, baseCmd.outputPath, baseCmd.licensePath}) {
+            if (STDIO_PATH.equals(path)) {
+                throw AsyncApiCmdToolException.of(Kind.USAGE, "'-' is not accepted as a path")
+                        .withSuggestion("Pass a file or directory; standard input and output are not supported.");
+            }
+        }
+        if (baseCmd.format != null && baseCmd.specFormat != null
+                && !baseCmd.format.equalsIgnoreCase(baseCmd.specFormat)) {
+            throw AsyncApiCmdToolException.of(Kind.USAGE, "--format and --spec-format give different formats")
+                    .withSuggestion("Use only --spec-format.");
+        }
+        String specFormat = CmdUtils.specFormat(baseCmd);
+        if (specFormat != null && !CmdConstants.FORMAT_JSON.equalsIgnoreCase(specFormat)
+                && !CmdConstants.FORMAT_YAML.equalsIgnoreCase(specFormat)) {
+            throw AsyncApiCmdToolException.of(Kind.USAGE, "invalid value '" + specFormat + "' for "
+                    + (baseCmd.specFormat != null ? "--spec-format" : "--format")).withSuggestion("Use yaml or json.");
+        }
+        if (baseCmd.specSide != null && !CmdConstants.SPEC_SIDE_CLIENT.equalsIgnoreCase(baseCmd.specSide)
+                && !CmdConstants.SPEC_SIDE_SERVICE.equalsIgnoreCase(baseCmd.specSide)) {
+            throw AsyncApiCmdToolException.of(Kind.USAGE, "invalid value '" + baseCmd.specSide + "' for --spec-side")
+                    .withSuggestion("Use client or service.");
+        }
+        if (baseCmd.protocol != null && ProtocolCommands.find(baseCmd.protocol).isEmpty()) {
+            throw AsyncApiCmdToolException.of(Kind.USAGE, "unknown protocol '" + baseCmd.protocol + "'")
+                    .withSuggestion("Use one of: " + ProtocolCommands.names(", ") + ".");
+        }
+        if (baseCmd.module != null) {
+            if (!MODULE_NAME.matcher(baseCmd.module).matches()) {
+                throw new AsyncApiCmdToolException(AsyncApiCmdToolDiagnostic.ASYNC_CLI_006, baseCmd.module);
+            }
+            if (baseCmd.module.length() > MAX_MODULE_NAME_LENGTH) {
+                throw new AsyncApiCmdToolException(AsyncApiCmdToolDiagnostic.ASYNC_CLI_007, baseCmd.module);
+            }
+        }
+        if (baseCmd.format != null) {
+            ctx.printWarning(ErrorMessages.WARN_FORMAT_RENAMED, "Use --spec-format instead.");
         }
     }
 
@@ -196,92 +254,133 @@ public class AsyncApiCmd implements BLauncherCmd {
      * Fails with the replacement when the command uses syntax of the released 0.12.0 tool that the revamp
      * removed: {@code -i/--input}, {@code --json}, and the {@code wss}/{@code websocket} protocol names.
      */
-    private boolean rejectRemovedSyntax() {
-        List<String> errors = new ArrayList<>();
-        boolean oldWsName = isOldWebSocketName(baseCmd.protocol);
+    private void rejectRemovedSyntax() {
+        boolean oldWsName = "wss".equalsIgnoreCase(baseCmd.protocol)
+                || "websocket".equalsIgnoreCase(baseCmd.protocol);
+        List<String> problems = new ArrayList<>();
+        List<String> fixes = new ArrayList<>();
         if (baseCmd.removedInputPath != null) {
-            String protocol = oldWsName ? "ws"
-                    : baseCmd.protocol == null ? "<" + ProtocolCommands.names("|") + ">" : baseCmd.protocol;
-            String suggestion = "bal asyncapi " + baseCmd.removedInputPath + " --protocol " + protocol
-                    + (baseCmd.removedJsonFlag ? " --format json" : "");
-            errors.add(String.format(ErrorMessages.REMOVED_INPUT_FLAG, suggestion));
+            problems.add("-i/--input has been removed");
+            fixes.add("pass the input as the first argument");
         }
         if (baseCmd.removedJsonFlag) {
-            errors.add(ErrorMessages.REMOVED_JSON_FLAG);
+            problems.add("--json has been replaced by --spec-format json");
+            fixes.add("use --spec-format json");
         }
         if (oldWsName) {
-            errors.add(String.format(ErrorMessages.RENAMED_PROTOCOL, baseCmd.protocol));
+            problems.add("unknown protocol '" + baseCmd.protocol + "'");
+            fixes.add("use --protocol ws for WebSocket");
         }
-        if (errors.isEmpty()) {
-            return false;
+        if (problems.isEmpty()) {
+            return;
         }
-        fail(String.join(System.lineSeparator(), errors));
-        return true;
+        BaseCmd fixed = copyOf(baseCmd);
+        if (oldWsName) {
+            fixed.protocol = "ws";
+        }
+        if (baseCmd.removedJsonFlag) {
+            fixed.specFormat = CmdConstants.FORMAT_JSON;
+        }
+        String input = baseCmd.removedInputPath != null ? baseCmd.removedInputPath : baseCmd.inputPath;
+        String suggestion = String.join(", and ", fixes) + ".";
+        throw AsyncApiCmdToolException.of(Kind.USAGE, String.join("; ", problems))
+                .withSuggestion(Character.toUpperCase(suggestion.charAt(0)) + suggestion.substring(1))
+                .withCommand(input == null ? null : CmdUtils.commandLine(fixed, input));
     }
 
-    private static boolean isOldWebSocketName(String protocol) {
-        return "wss".equalsIgnoreCase(protocol) || "websocket".equalsIgnoreCase(protocol);
+    private static BaseCmd copyOf(BaseCmd base) {
+        BaseCmd copy = new BaseCmd();
+        copy.protocol = base.protocol;
+        copy.outputPath = base.outputPath;
+        copy.module = base.module;
+        copy.licensePath = base.licensePath;
+        copy.specFormat = CmdUtils.specFormat(base);
+        copy.serviceName = base.serviceName;
+        copy.specSide = base.specSide;
+        copy.withTests = base.withTests;
+        copy.force = base.force;
+        copy.dryRun = base.dryRun;
+        copy.outputFormat = base.outputFormat;
+        return copy;
     }
 
-    private boolean validate(CmdConstants.Mode mode, ProtocolHandler handler, ProtocolCommand command) {
-        if (mode == CmdConstants.Mode.BALLERINA_TO_ASYNCAPI) {
-            if (!handler.supportsCodeToSpec()) {
-                fail(new AsyncApiCmdToolException(AsyncApiCmdToolDiagnostic.ASYNC_CLI_002,
-                        command.protocol().name().toLowerCase()).getMessage());
-                return false;
+    // Generating from code: --protocol if given, otherwise the one protocol that can do it.
+    private ProtocolCommand codeToSpecProtocol() throws GeneratorException {
+        if (baseCmd.protocol != null) {
+            ProtocolCommand command = ProtocolCommands.find(baseCmd.protocol).orElseThrow();
+            if (!handler(command.protocol()).supportsCodeToSpec()) {
+                throw new AsyncApiCmdToolException(AsyncApiCmdToolDiagnostic.ASYNC_CLI_002,
+                        command.protocol().name().toLowerCase());
             }
-            if (!CmdUtils.isValidBallerinaInput(baseCmd.inputPath)) {
-                fail(String.format(ErrorMessages.INVALID_BAL_INPUT_PATH, baseCmd.inputPath));
-                return false;
-            }
-            return resolveCodeInput();
-        } else if (!CmdUtils.isValidInputFile(baseCmd.inputPath)) {
-            fail(String.format(ErrorMessages.INVALID_INPUT_PATH, baseCmd.inputPath));
-            return false;
+            return command;
         }
-        return true;
+        return ProtocolCommands.find(Protocol.WS.name()).orElseThrow();
     }
 
-    /**
-     * Applies the input rules for Ballerina code: a package or a standalone file, never a file inside a
-     * package. {@code --module} picks a module of a package and is ignored for a standalone file.
-     */
-    private boolean resolveCodeInput() {
+    // Generating from a definition: --protocol if given, otherwise what the definition says. Never a guess.
+    private ProtocolCommand specToCodeProtocol() {
+        Path spec = Path.of(baseCmd.inputPath);
+        if (!CmdUtils.isAsyncApiSpecFile(baseCmd.inputPath)) {
+            throw AsyncApiCmdToolException.of(Kind.USAGE,
+                            "'" + baseCmd.inputPath + "' is not an AsyncAPI definition or Ballerina code")
+                    .withSuggestion("Pass a .yaml, .yml or .json definition, or a Ballerina package or .bal file.");
+        }
+        if (!Files.isRegularFile(spec)) {
+            throw AsyncApiCmdToolException.of(Kind.INVALID_INPUT, "'" + baseCmd.inputPath + "' does not exist")
+                    .withSuggestion("Pass the path to an AsyncAPI definition.");
+        }
+        if (baseCmd.protocol != null) {
+            return ProtocolCommands.find(baseCmd.protocol).orElseThrow();
+        }
+        Optional<Protocol> detected;
         try {
-            Path input = Path.of(baseCmd.inputPath);
-            if (AsyncApiProjectUtils.resolveCodeInput(input) == AsyncApiProjectUtils.CodeInputKind.PACKAGE) {
-                resolvedModule = AsyncApiProjectUtils.resolveModule(input.toAbsolutePath().normalize(),
-                        baseCmd.module);
-            } else if (baseCmd.module != null) {
-                ctx.printWarning(ErrorMessages.WARN_MODULE_STANDALONE_FILE);
-            }
-            return true;
-        } catch (AsyncApiCmdToolException e) {
-            fail(e.getMessage());
-            return false;
+            detected = ProtocolDetector.detect(spec);
+        } catch (IOException | RuntimeException e) {
+            throw AsyncApiCmdToolException.of(Kind.INVALID_INPUT,
+                            "cannot read '" + baseCmd.inputPath + "': " + CmdUtils.oneLine(e.getMessage()))
+                    .withSuggestion("Fix the definition so it is valid YAML or JSON.");
+        }
+        if (detected.isEmpty()) {
+            throw AsyncApiCmdToolException.of(Kind.USAGE,
+                            "cannot tell whether '" + baseCmd.inputPath + "' is for HTTP or WebSocket")
+                    .withSuggestion("Pass --protocol http for a webhook trigger or --protocol ws for a WebSocket "
+                            + "client.");
+        }
+        return ProtocolCommands.find(detected.get().name()).orElseThrow();
+    }
+
+    private static ProtocolHandler handler(Protocol protocol) {
+        try {
+            return CodeGenOrchestrator.getHandler(protocol);
+        } catch (GeneratorException e) {
+            throw AsyncApiCmdToolException.of(Kind.RUNTIME, CmdUtils.oneLine(e.getMessage()));
         }
     }
 
-    private void warnUnsupportedOptions(ProtocolHandler handler, CmdConstants.Mode mode) {
+    private void warnIgnoredOptions(ProtocolHandler handler, CmdConstants.Mode mode) {
         String protocol = handler.getProtocol().name().toLowerCase();
         if (baseCmd.withTests && !handler.supportsTestGeneration()) {
             ctx.printWarning(String.format(ErrorMessages.WARN_OPTION_UNSUPPORTED, "--with-tests", protocol));
         }
-        if (baseCmd.licensePath != null && !handler.supportsLicenseHeader()) {
-            ctx.printWarning(String.format(ErrorMessages.WARN_OPTION_UNSUPPORTED, "--license", protocol));
+        if (baseCmd.specSide != null && !handler.supportsSpecSide()) {
+            ctx.printWarning(String.format(ErrorMessages.WARN_OPTION_UNSUPPORTED, "--spec-side", protocol));
         }
-        if (mode == CmdConstants.Mode.ASYNCAPI_TO_BALLERINA) {
-            if (baseCmd.format != null) {
-                ctx.printWarning(String.format(ErrorMessages.WARN_OPTION_ONLY_FOR_SPEC_OUTPUT, "--format"));
+        if (mode == CmdConstants.Mode.BALLERINA_TO_ASYNCAPI) {
+            for (String[] option : new String[][]{{"--license", baseCmd.licensePath},
+                    {"--spec-side", handler.supportsSpecSide() ? baseCmd.specSide : null},
+                    {"--with-tests", baseCmd.withTests && handler.supportsTestGeneration() ? "set" : null}}) {
+                if (option[1] != null) {
+                    ctx.printWarning(String.format(ErrorMessages.WARN_OPTION_ONLY_FOR_CODE_OUTPUT, option[0]));
+                }
+            }
+        } else {
+            if (CmdUtils.specFormat(baseCmd) != null) {
+                ctx.printWarning(String.format(ErrorMessages.WARN_OPTION_ONLY_FOR_SPEC_OUTPUT,
+                        baseCmd.specFormat != null ? "--spec-format" : "--format"));
             }
             if (baseCmd.serviceName != null) {
                 ctx.printWarning(String.format(ErrorMessages.WARN_OPTION_ONLY_FOR_SPEC_OUTPUT, "--service"));
             }
         }
-    }
-
-    private void fail(String message) {
-        ctx.printError(message);
-        ctx.exitError();
     }
 }

@@ -10,10 +10,10 @@ You can generate a demo AsyncAPI specification using the `server-demo` package. 
 
 ```bash
 cd server-demo
-bal asyncapi . --protocol ws -o specs --force
+bal asyncapi . -o specs --force
 ```
 
-Without `--force`, specifications that already exist with different content are skipped with a warning.
+Without `--force`, the tool asks before replacing a specification that already exists with different content, and without a terminal it stops with exit code 4 and writes nothing.
 
 ## A client-server example
 
@@ -29,7 +29,7 @@ You can regenerate the client using the following command:
 
 ```bash
 cd client
-bal asyncapi asyncapi.yaml --protocol ws --force
+bal asyncapi asyncapi.yaml --force
 ```
 
 You can run the server and client using the following commands:

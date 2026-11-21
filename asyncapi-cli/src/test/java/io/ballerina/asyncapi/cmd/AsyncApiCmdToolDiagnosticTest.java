@@ -27,123 +27,78 @@ public class AsyncApiCmdToolDiagnosticTest extends CmdTestBase {
 
     @Test(description = "ASYNC_CLI_001 enum constant has correct code")
     void testAsyncCli001Code() {
-        Assert.assertEquals(
-                AsyncApiCmdToolDiagnostic.ASYNC_CLI_001.getCode(),
-                "ASYNC_CLI_001");
+        Assert.assertEquals(AsyncApiCmdToolDiagnostic.ASYNC_CLI_001.getCode(), "ASYNC_CLI_001");
     }
 
-    @Test(description = "ASYNC_CLI_001 enum constant has correct message template")
-    void testAsyncCli001Message() {
-        Assert.assertEquals(
-                AsyncApiCmdToolDiagnostic.ASYNC_CLI_001.getMessage(),
-                "Code generation failed: %s");
+    @Test(description = "Every message is one line that starts in lowercase and has no trailing period (ERR-1)")
+    void testMessagesFollowTheGuide() {
+        for (AsyncApiCmdToolDiagnostic diagnostic : AsyncApiCmdToolDiagnostic.values()) {
+            String message = diagnostic.getMessage();
+            Assert.assertFalse(message.isBlank(), diagnostic.getCode());
+            Assert.assertFalse(message.contains("\n"), diagnostic.getCode() + ": " + message);
+            Assert.assertFalse(message.endsWith("."), diagnostic.getCode() + ": " + message);
+            char first = message.charAt(0);
+            Assert.assertFalse(Character.isUpperCase(first), diagnostic.getCode() + ": " + message);
+        }
     }
 
-    @Test(description = "ASYNC_CLI_002 enum constant has correct code")
-    void testAsyncCli002Code() {
-        Assert.assertEquals(
-                AsyncApiCmdToolDiagnostic.ASYNC_CLI_002.getCode(),
-                "ASYNC_CLI_002");
+    @Test(description = "Every suggestion is one imperative sentence ending in a period (ERR-2)")
+    void testSuggestionsAreSentences() {
+        for (AsyncApiCmdToolDiagnostic diagnostic : AsyncApiCmdToolDiagnostic.values()) {
+            String suggestion = diagnostic.getSuggestion();
+            if (suggestion != null) {
+                Assert.assertTrue(Character.isUpperCase(suggestion.charAt(0)), diagnostic.getCode());
+                Assert.assertTrue(suggestion.endsWith("."), diagnostic.getCode());
+            }
+        }
     }
 
-    @Test(description = "ASYNC_CLI_002 enum constant has non-blank message")
-    void testAsyncCli002MessageNonBlank() {
-        Assert.assertFalse(
-                AsyncApiCmdToolDiagnostic.ASYNC_CLI_002.getMessage().isBlank(),
-                "ASYNC_CLI_002 message must not be blank");
-    }
-
-    @Test(description = "ASYNC_CLI_002 names the protocol it is raised for")
+    @Test(description = "ASYNC_CLI_002 names the protocol it is raised for and is a usage error")
     void testAsyncCli002NamesProtocol() {
-        AsyncApiCmdToolException ex =
-                new AsyncApiCmdToolException(AsyncApiCmdToolDiagnostic.ASYNC_CLI_002, "http");
-
-        Assert.assertEquals(
-                ex.getDiagnosticMessage(),
-                "The http protocol does not support Ballerina-to-AsyncAPI generation.");
+        AsyncApiCmdToolException ex = new AsyncApiCmdToolException(AsyncApiCmdToolDiagnostic.ASYNC_CLI_002, "http");
+        Assert.assertEquals(ex.getMessage(),
+                "the http protocol can't generate an AsyncAPI definition from Ballerina code");
+        Assert.assertEquals(ex.exitCode(), ExitCodes.USAGE);
     }
 
-    @Test(description = "Exception from no-args diagnostic: getMessage() has 'error: ' prefix")
-    void testExceptionMessageHasErrorPrefix() {
-        AsyncApiCmdToolException ex =
-                new AsyncApiCmdToolException(AsyncApiCmdToolDiagnostic.ASYNC_CLI_003);
-
-        Assert.assertTrue(
-                ex.getMessage().startsWith("error: "),
-                "getMessage() must start with 'error: '. Got: " + ex.getMessage());
+    @Test(description = "The kind decides the exit code")
+    void testKindDecidesExitCode() {
+        Assert.assertEquals(new AsyncApiCmdToolException(AsyncApiCmdToolDiagnostic.ASYNC_CLI_011, "x").exitCode(),
+                ExitCodes.INVALID_TARGET);
+        Assert.assertEquals(new AsyncApiCmdToolException(AsyncApiCmdToolDiagnostic.ASYNC_CLI_006, "x").exitCode(),
+                ExitCodes.USAGE);
+        Assert.assertEquals(new AsyncApiCmdToolException(AsyncApiCmdToolDiagnostic.ASYNC_CLI_009, "x").exitCode(),
+                ExitCodes.RUNTIME);
+        AsyncApiCmdToolException locked =
+                new AsyncApiCmdToolException(AsyncApiCmdToolDiagnostic.ASYNC_CLI_016, "chat");
+        Assert.assertEquals(locked.exitCode(), ExitCodes.RUNTIME);
+        Assert.assertEquals(locked.getKind().label(), "dependencies-not-locked");
+        Assert.assertEquals(AsyncApiCmdToolException.of(AsyncApiCmdToolException.Kind.OVERWRITE_REFUSED, "x")
+                .exitCode(), ExitCodes.OVERWRITE_REFUSED);
     }
 
-    @Test(description = "Exception from no-args diagnostic: getDiagnosticCode() returns enum code")
-    void testExceptionDiagnosticCode() {
-        AsyncApiCmdToolException ex =
-                new AsyncApiCmdToolException(AsyncApiCmdToolDiagnostic.ASYNC_CLI_003);
-
+    @Test(description = "The message has no prefix: the command adds bal asyncapi: error:")
+    void testMessageHasNoPrefix() {
+        AsyncApiCmdToolException ex = new AsyncApiCmdToolException(AsyncApiCmdToolDiagnostic.ASYNC_CLI_003, "out");
+        Assert.assertEquals(ex.getMessage(), "'out' is a Ballerina workspace");
+        Assert.assertEquals(ex.getDiagnosticMessage(), ex.getMessage());
         Assert.assertEquals(ex.getDiagnosticCode(), "ASYNC_CLI_003");
     }
 
-    @Test(description = "Exception from no-args diagnostic: getDiagnosticMessage() has no 'error: ' prefix")
-    void testExceptionDiagnosticMessageNoPrefix() {
+    @Test(description = "The suggestion shares the message's arguments")
+    void testSuggestionIsFormatted() {
         AsyncApiCmdToolException ex =
-                new AsyncApiCmdToolException(AsyncApiCmdToolDiagnostic.ASYNC_CLI_003);
-
-        Assert.assertFalse(
-                ex.getDiagnosticMessage().startsWith("error: "),
-                "getDiagnosticMessage() must not have 'error: ' prefix. Got: "
-                        + ex.getDiagnosticMessage());
-    }
-
-    @Test(description = "Exception with format args: %s placeholder is substituted in getMessage()")
-    void testExceptionWithFormatArgs() {
-        AsyncApiCmdToolException ex =
-                new AsyncApiCmdToolException(
-                        AsyncApiCmdToolDiagnostic.ASYNC_CLI_001, "file not found");
-
-        Assert.assertEquals(
-                ex.getMessage(),
-                "error: Code generation failed: file not found");
-    }
-
-    @Test(description = "Exception with format args: getDiagnosticMessage() has no 'error: ' prefix")
-    void testExceptionWithFormatArgsDiagnosticMessage() {
-        AsyncApiCmdToolException ex =
-                new AsyncApiCmdToolException(
-                        AsyncApiCmdToolDiagnostic.ASYNC_CLI_001, "file not found");
-
-        Assert.assertEquals(
-                ex.getDiagnosticMessage(),
-                "Code generation failed: file not found");
+                new AsyncApiCmdToolException(AsyncApiCmdToolDiagnostic.ASYNC_CLI_013, "missing", "admin, chat");
+        Assert.assertEquals(ex.getMessage(), "module 'missing' not found in the package");
+        Assert.assertEquals(ex.getSuggestion(), "Use one of its modules: admin, chat.");
     }
 
     @Test(description = "Exception with cause: getCause() returns wrapped throwable")
     void testExceptionWithCause() {
         IllegalStateException cause = new IllegalStateException("root cause");
         AsyncApiCmdToolException ex =
-                new AsyncApiCmdToolException(
-                        cause, AsyncApiCmdToolDiagnostic.ASYNC_CLI_001, "something failed");
-
-        Assert.assertSame(ex.getCause(), cause,
-                "getCause() must return the wrapped throwable");
-    }
-
-    @Test(description = "Exception with cause: getMessage() is correctly formatted")
-    void testExceptionWithCauseMessage() {
-        IllegalStateException cause = new IllegalStateException("root cause");
-        AsyncApiCmdToolException ex =
-                new AsyncApiCmdToolException(
-                        cause, AsyncApiCmdToolDiagnostic.ASYNC_CLI_001, "something failed");
-
-        Assert.assertEquals(
-                ex.getMessage(),
-                "error: Code generation failed: something failed");
-    }
-
-    @Test(description = "Exception is a RuntimeException (unchecked)")
-    void testExceptionIsUnchecked() {
-        AsyncApiCmdToolException ex =
-                new AsyncApiCmdToolException(AsyncApiCmdToolDiagnostic.ASYNC_CLI_003);
-
-        Assert.assertTrue(
-                ex instanceof RuntimeException,
-                "AsyncApiCmdToolException must extend RuntimeException");
+                new AsyncApiCmdToolException(cause, AsyncApiCmdToolDiagnostic.ASYNC_CLI_001, "something failed");
+        Assert.assertSame(ex.getCause(), cause, "getCause() must return the wrapped throwable");
+        Assert.assertEquals(ex.getMessage(), "code generation failed: something failed");
     }
 }

@@ -17,43 +17,52 @@
  */
 package io.ballerina.asyncapi.cmd;
 
+import io.ballerina.asyncapi.cmd.AsyncApiCmdToolException.Kind;
+import io.ballerina.asyncapi.cmd.CmdContext.FileReport;
+
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
-import java.util.Locale;
+import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
- * Collects what a generator writes in a temporary directory and applies the overwrite rule when copying it to
- * the real output location, so every protocol and direction behaves the same without the generators knowing
- * about it. An existing file is left alone unless {@code --force} is given, and {@code --dry-run} reports the
- * plan without writing anything.
+ * Collects what a generator writes in a temporary directory, then copies it to the output location through the
+ * fail-fast pipeline of the Ballerina CLI Tool Design Guide (FF-4): plan every file, check every destination can be
+ * written, ask once before replacing files, stop there on a dry run, and only then write. Nothing reaches the
+ * output location until the whole run is known to be possible, and the generators don't need to know about it.
  */
 final class OutputStage implements AutoCloseable {
-
-    private static final String DRY_RUN_HEADER = "Dry run: no files were written.";
-    private static final String DRY_RUN_LINE = "  %-10s %s";
-    private static final String DRY_RUN_SKIP_NOTE = "  (already exists, use --force to overwrite)";
-    private static final String DRY_RUN_SUMMARY = "%d to create, %d to overwrite, %d to skip, %d unchanged.";
 
     /** What happens to one generated file. */
     enum Action {
         /** The file does not exist yet. */
-        CREATE,
-        /** The file exists and differs, and {@code --force} was given. */
-        OVERWRITE,
-        /** The file exists and differs, and {@code --force} was not given. */
-        SKIP,
-        /** The file exists with exactly the generated content. */
-        UNCHANGED;
+        CREATE("created"),
+        /** The file exists and differs. */
+        OVERWRITE("overwritten"),
+        /** An existing file the tool updates, keeping what the user wrote in it (FF-3). */
+        MERGE("merged"),
+        /** The file exists with exactly the generated content, so it is not written. */
+        UNCHANGED("unchanged");
+
+        private final String label;
+
+        Action(String label) {
+            this.label = label;
+        }
 
         String label() {
-            return name().toLowerCase(Locale.ROOT);
+            return label;
+        }
+
+        boolean replaces() {
+            return this == OVERWRITE || this == MERGE;
         }
     }
 
@@ -74,15 +83,15 @@ final class OutputStage implements AutoCloseable {
 
     private final Path destination;
     private final Path staging;
-    private final boolean force;
-    private final boolean dryRun;
+    private final CmdOptions opts;
     private final CmdContext ctx;
+    private final Set<Path> merged = new HashSet<>();
+    private String createdModule;
 
     private OutputStage(Path destination, Path staging, CmdOptions opts, CmdContext ctx) {
         this.destination = destination;
         this.staging = staging;
-        this.force = opts.isForce();
-        this.dryRun = opts.isDryRun();
+        this.opts = opts;
         this.ctx = ctx;
     }
 
@@ -91,7 +100,7 @@ final class OutputStage implements AutoCloseable {
      *
      * @param destination the real output directory
      * @param opts        the options carrying {@code --force} and {@code --dry-run}
-     * @param ctx         streams for reporting
+     * @param ctx         where the result is printed
      * @return the stage, to be closed when done
      * @throws IOException if the temporary directory cannot be created
      */
@@ -109,42 +118,92 @@ final class OutputStage implements AutoCloseable {
     }
 
     /**
-     * Applies the overwrite rule to everything the generator wrote, then reports. A dry run only reports.
+     * Marks a staged file as an update of an existing file that keeps the user's own content in it.
      *
-     * @param successMessage printed when at least one file was written
-     * @return the number of files skipped because they exist and differ; the caller exits non-zero if any were
-     * @throws IOException if a file cannot be copied to the output location
+     * @param relative the file's path relative to the output location
      */
-    int commit(String successMessage) throws IOException {
+    void markMerged(Path relative) {
+        merged.add(relative);
+    }
+
+    /**
+     * Records that the output location is a module the run creates, so the result says so (MOD-2).
+     *
+     * @param module the module name
+     */
+    void createsModule(String module) {
+        this.createdModule = module;
+    }
+
+    /**
+     * Copies everything the generator wrote to the output location, after every check has passed, and prints the
+     * result. A dry run runs the checks, never prompts, and prints what it would write.
+     *
+     * @throws AsyncApiCmdToolException if a destination can't be written, or files would be replaced and the user
+     *                                  declined or could not be asked
+     * @throws IOException              if a file can't be copied
+     */
+    void commit() throws IOException {
         List<PlannedFile> plan = plan();
-        if (dryRun) {
-            printDryRun(plan);
-            return 0;
+        checkWritable(plan);
+        List<PlannedFile> replaced = plan.stream().filter(file -> file.action().replaces()).toList();
+        if (!replaced.isEmpty() && !opts.isForce() && !opts.isDryRun()) {
+            confirmOverwrite(replaced);
         }
-        List<PlannedFile> written = new ArrayList<>();
-        int skipped = 0;
-        for (PlannedFile file : plan) {
-            switch (file.action()) {
-                case CREATE, OVERWRITE -> {
+        if (!opts.isDryRun()) {
+            List<PlannedFile> written = new ArrayList<>();
+            for (PlannedFile file : plan) {
+                if (file.action() != Action.UNCHANGED) {
                     write(file, written);
                     written.add(file);
                 }
-                case SKIP -> {
-                    ctx.printWarning(String.format(ErrorMessages.WARN_FILE_SKIPPED, displayPath(file)));
-                    skipped++;
-                }
-                case UNCHANGED -> {
-                }
             }
         }
-        report(plan, written, successMessage);
-        if (skipped > 0) {
-            ctx.printWarning(String.format(ErrorMessages.WARN_FILES_SKIPPED_SUMMARY, skipped));
-        }
-        return skipped;
+        ctx.printFiles(plan.stream().map(file -> new FileReport(displayPath(file), file.action().label())).toList(),
+                opts.isDryRun(), createdModule);
     }
 
-    // On a failure partway through, says which files were already written, so the user knows the state.
+    // FF-5 and FF-6: one prompt for the whole list, and no prompt at all without a terminal.
+    private void confirmOverwrite(List<PlannedFile> replaced) {
+        List<String> names = replaced.stream().map(OutputStage::displayPath).toList();
+        String message = replaced.size() == 1
+                ? names.get(0) + " already exists"
+                : replaced.size() + " files already exist: " + String.join(", ", names);
+        if (ctx.canPrompt() && ctx.confirmOverwrite(names)) {
+            return;
+        }
+        throw AsyncApiCmdToolException.of(Kind.OVERWRITE_REFUSED, message)
+                .withSuggestion("Re-run with --force to overwrite.")
+                .withCommand(opts.getCommandLine() + " --force");
+    }
+
+    // FF-4 phase 5: every destination, and the folders it needs, must be writable before anything is written.
+    private void checkWritable(List<PlannedFile> plan) throws IOException {
+        for (PlannedFile file : plan) {
+            if (file.action() == Action.UNCHANGED) {
+                continue;
+            }
+            Path target = writePath(file.target());
+            if (Files.exists(target) && !Files.isWritable(target)) {
+                throw unwritable(displayPath(file), "the file is read-only");
+            }
+            Path folder = target.getParent();
+            while (folder != null && !Files.exists(folder)) {
+                folder = folder.getParent();
+            }
+            if (folder != null && (!Files.isDirectory(folder) || !Files.isWritable(folder))) {
+                throw unwritable(displayPath(file), Files.isDirectory(folder)
+                        ? "'" + folder + "' is read-only" : "'" + folder + "' is a file, not a folder");
+            }
+        }
+    }
+
+    private static AsyncApiCmdToolException unwritable(String file, String reason) {
+        return AsyncApiCmdToolException.of(Kind.RUNTIME, "cannot write " + file + ": " + reason)
+                .withSuggestion("Make the output location writable, or pass another one with --output.");
+    }
+
+    // A failure here happens after every check passed, so it is an I/O problem; it says which files were written.
     private void write(PlannedFile file, List<PlannedFile> written) throws IOException {
         try {
             Path target = writePath(file.target());
@@ -166,18 +225,6 @@ final class OutputStage implements AutoCloseable {
                 : target;
     }
 
-    private void report(List<PlannedFile> plan, List<PlannedFile> written, String successMessage) {
-        if (!written.isEmpty()) {
-            ctx.printInfo(successMessage);
-            ctx.printInfo(ErrorMessages.FILES_WRITTEN);
-            written.forEach(file -> ctx.printInfo("-- " + file.name()));
-        } else if (!plan.isEmpty() && plan.stream().allMatch(file -> file.action() == Action.UNCHANGED)) {
-            ctx.printInfo(ErrorMessages.FILES_UP_TO_DATE);
-        } else {
-            ctx.printInfo(ErrorMessages.NO_FILES_WRITTEN);
-        }
-    }
-
     private List<PlannedFile> plan() throws IOException {
         List<Path> generated;
         try (Stream<Path> files = Files.walk(staging)) {
@@ -193,21 +240,11 @@ final class OutputStage implements AutoCloseable {
         return plan;
     }
 
-    /**
-     * Tells whether a staged file will be left out because it exists, differs and {@code --force} is not set.
-     *
-     * @param relative the file's path relative to the output directory
-     * @return true if the commit will skip it
-     * @throws IOException if the existing file cannot be read
-     */
-    boolean skips(Path relative) throws IOException {
-        return actionFor(relative, destination.resolve(relative)) == Action.SKIP;
-    }
-
     private Action actionFor(Path relative, Path target) throws IOException {
         Path existing = writePath(target);
         if (Files.isDirectory(existing)) {
-            throw new IOException(String.format(ErrorMessages.TARGET_IS_DIRECTORY, existing));
+            throw AsyncApiCmdToolException.of(Kind.RUNTIME, String.format(ErrorMessages.TARGET_IS_DIRECTORY,
+                    existing)).withSuggestion("Move the folder away, or pass another output location with --output.");
         }
         if (!Files.exists(existing)) {
             return Action.CREATE;
@@ -215,30 +252,15 @@ final class OutputStage implements AutoCloseable {
         if (Files.mismatch(staging.resolve(relative), existing) == -1) {
             return Action.UNCHANGED;
         }
-        return force ? Action.OVERWRITE : Action.SKIP;
-    }
-
-    private void printDryRun(List<PlannedFile> plan) {
-        ctx.printInfo(DRY_RUN_HEADER);
-        ctx.printInfo("");
-        for (PlannedFile file : plan) {
-            String line = String.format(DRY_RUN_LINE, file.action().label(), displayPath(file));
-            ctx.printInfo(file.action() == Action.SKIP ? line + DRY_RUN_SKIP_NOTE : line);
-        }
-        ctx.printInfo("");
-        ctx.printInfo(String.format(DRY_RUN_SUMMARY, count(plan, Action.CREATE), count(plan, Action.OVERWRITE),
-                count(plan, Action.SKIP), count(plan, Action.UNCHANGED)));
-    }
-
-    private static long count(List<PlannedFile> plan, Action action) {
-        return plan.stream().filter(file -> file.action() == action).count();
+        return merged.contains(relative) ? Action.MERGE : Action.OVERWRITE;
     }
 
     // A path can only be shown relative to the current directory when both are on the same drive (Windows).
-    private static Path displayPath(PlannedFile file) {
+    private static String displayPath(PlannedFile file) {
         Path currentDir = Path.of("").toAbsolutePath();
         Path absolute = file.target().toAbsolutePath();
-        return currentDir.getRoot().equals(absolute.getRoot()) ? currentDir.relativize(absolute) : absolute;
+        Path shown = currentDir.getRoot().equals(absolute.getRoot()) ? currentDir.relativize(absolute) : absolute;
+        return shown.toString().replace('\\', '/');
     }
 
     @Override

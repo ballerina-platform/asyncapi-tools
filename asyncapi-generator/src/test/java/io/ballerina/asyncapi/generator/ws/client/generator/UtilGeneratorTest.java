@@ -37,13 +37,12 @@ public class UtilGeneratorTest {
             "{\"asyncapi\":\"2.0.0\",\"info\":{\"title\":\"T\",\"version\":\"1\"},\"channels\":{}}";
 
     /**
-     * A spec without x-dispatcherKey so that handleReferenceReturn skips dispatcher validation
-     * when resolving the x-response $ref inside the extension. The SEND message's x-response-type
-     * is "server-streaming", causing UtilGenerator to emit StreamGeneratorsMap and a per-type
-     * stream generator class named PongStreamGenerator.
+     * The SEND message's x-response-type is "server-streaming", causing UtilGenerator to emit StreamGeneratorsMap
+     * and a per-type stream generator class named PongStreamGenerator. The streamed reply carries the dispatcher
+     * key, as a stream's frames are routed on it.
      */
     private static final String SPEC_WITH_SERVER_STREAMING =
-            "{\"asyncapi\":\"2.0.0\",\"info\":{\"title\":\"T\",\"version\":\"1\"},"
+            "{\"asyncapi\":\"2.0.0\",\"info\":{\"title\":\"T\",\"version\":\"1\"},\"x-dispatcherKey\":\"event\","
                     + "\"channels\":{\"chat\":{\"publish\":{"
                     + "\"operationId\":\"sendChat\","
                     + "\"message\":{\"$ref\":\"#/components/messages/ChatMessage\"}}}},"
@@ -52,7 +51,8 @@ public class UtilGeneratorTest {
                     + "\"payload\":{\"type\":\"string\"},"
                     + "\"x-response\":{\"$ref\":\"#/components/messages/Pong\"},"
                     + "\"x-response-type\":\"server-streaming\"},"
-                    + "\"Pong\":{\"payload\":{\"type\":\"object\"}}}}}";
+                    + "\"Pong\":{\"payload\":{\"type\":\"object\",\"required\":[\"event\"],"
+                    + "\"properties\":{\"event\":{\"type\":\"string\"}}}}}}}";
 
     private static final String SPEC_WITH_QUERY_BINDING =
             "{\"asyncapi\":\"2.0.0\",\"info\":{\"title\":\"T\",\"version\":\"1\"},"

@@ -52,9 +52,17 @@ public class ClientGeneratorTest {
                     + "\"required\":[\"event\"],"
                     + "\"properties\":{\"event\":{\"type\":\"string\"}}}}}}";
 
+    // Two kinds of message received on one connection, with nothing to tell them apart
     private static final String SPEC_NO_DISPATCHER_KEY =
-            "{\"asyncapi\":\"2.0.0\",\"info\":{\"title\":\"T\",\"version\":\"1\"},"
-                    + "\"channels\":{\"chat\":{}}}";
+            "{\"asyncapi\":\"3.0.0\",\"info\":{\"title\":\"T\",\"version\":\"1\"},"
+                    + "\"channels\":{\"chat\":{\"address\":\"/chat\",\"messages\":{"
+                    + "\"Joined\":{\"payload\":{\"type\":\"object\",\"properties\":{\"user\":{\"type\":\"string\"}}}},"
+                    + "\"Said\":{\"payload\":{\"type\":\"object\",\"properties\":{\"text\":{\"type\":\"string\"}}}}}}},"
+                    + "\"operations\":{"
+                    + "\"onJoined\":{\"action\":\"receive\",\"channel\":{\"$ref\":\"#/channels/chat\"},"
+                    + "\"messages\":[{\"$ref\":\"#/channels/chat/messages/Joined\"}]},"
+                    + "\"onSaid\":{\"action\":\"receive\",\"channel\":{\"$ref\":\"#/channels/chat\"},"
+                    + "\"messages\":[{\"$ref\":\"#/channels/chat/messages/Said\"}]}}}";
 
     private static String generate(String specJson) throws AsyncApiParserException, GeneratorException {
         AsyncApiSpec spec = AsyncApiParser.parseFromJsonString(specJson);

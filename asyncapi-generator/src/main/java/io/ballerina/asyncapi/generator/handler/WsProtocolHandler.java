@@ -26,6 +26,7 @@ import io.ballerina.asyncapi.generator.spi.SpecToCodeOptions;
 import io.ballerina.asyncapi.generator.ws.asyncspec.BallerinaToAsyncApiGenerator;
 import io.ballerina.asyncapi.generator.ws.asyncspec.diagnostic.AsyncApiConverterDiagnostic;
 import io.ballerina.asyncapi.generator.ws.client.WsClientCodeGenerator;
+import io.ballerina.asyncapi.generator.ws.client.model.ServiceSideSpec;
 import io.ballerina.tools.diagnostics.DiagnosticSeverity;
 
 import java.nio.file.Path;
@@ -64,16 +65,22 @@ public final class WsProtocolHandler implements ProtocolHandler {
     }
 
     @Override
+    public boolean supportsSpecSide() {
+        return true;
+    }
+
+    @Override
     public void specToCode(AsyncApiSpec spec,
                            Path outputPath,
                            SpecToCodeOptions options)
             throws GeneratorException {
+        // A spec written from the server's side sends what the client receives
         new WsClientCodeGenerator(
-            spec,
+            options.isServiceSide() ? ServiceSideSpec.of(spec) : spec,
             options.getLicenseHeader() != null
                 ? options.getLicenseHeader() : "",
             options.isIncludeTestFiles()
-        ).generate(outputPath);
+        ).withWarnings(options.getWarnings()).generate(outputPath);
     }
 
     @Override
