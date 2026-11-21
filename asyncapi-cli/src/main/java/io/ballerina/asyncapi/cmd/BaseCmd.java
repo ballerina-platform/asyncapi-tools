@@ -25,71 +25,72 @@ import picocli.CommandLine;
  *
  * <p>The descriptions and parameter labels below are the only place the flags are documented: the
  * {@code --help} text is generated from them, so a flag cannot be missing from it or described differently.
- * The protocol and format lists in the labels are checked against {@link ProtocolCommands} and
- * {@link CmdConstants} by a test.
+ * Each description is one line, lowercase and imperative, and the protocol and format lists in the labels are
+ * checked against {@link ProtocolCommands} and {@link CmdConstants} by a test.
  */
 public class BaseCmd {
 
-    @CommandLine.Option(names = {"-h", "--help"}, hidden = true)
+    @CommandLine.Option(names = {"-h", "--help"}, description = "print this help")
     public boolean helpFlag;
 
+    @CommandLine.Option(names = {"-V", "--version"}, description = "print the tool version")
+    public boolean versionFlag;
+
     @CommandLine.Parameters(arity = "0..1", paramLabel = "<input>",
-            description = "Path to the AsyncAPI definition to generate code from, or to the Ballerina package "
-                    + "directory or standalone .bal file to generate a definition from.")
+            description = "AsyncAPI definition, or Ballerina package or .bal file")
     public String inputPath;
 
     @CommandLine.Option(names = {"--protocol"}, paramLabel = "<http|ws>",
-            description = "Protocol of the AsyncAPI definition. Required.")
+            description = "use this protocol (default: detected)")
     public String protocol;
 
     @CommandLine.Option(names = {"-o", "--output"}, paramLabel = "<dir>",
-            description = "Directory the generated files are written to. Defaults to the current directory.")
+            description = "write files to this directory (default: .)")
     public String outputPath;
 
     @CommandLine.Option(names = {"--module"}, paramLabel = "<name>",
-            description = "Module of the Ballerina package to read services from, or to write generated code "
-                    + "into. Not used with a standalone .bal file.")
+            description = "use this module of the package")
     public String module;
 
     @CommandLine.Option(names = {"--license"}, paramLabel = "<file>",
-            description = "File with the license header placed on generated files. Ignored with a warning "
-                    + "when the protocol does not support it.")
+            description = "add this license to generated files")
     public String licensePath;
 
-    @CommandLine.Option(names = {"--format"}, paramLabel = "<yaml|json>",
-            description = "Format of a generated AsyncAPI definition. Defaults to yaml.")
-    public String format;
+    @CommandLine.Option(names = {"--spec-format"}, paramLabel = "<yaml|json>",
+            description = "write yaml or json (default: yaml)")
+    public String specFormat;
 
-    @CommandLine.Option(names = {"--service"}, paramLabel = "<service>",
-            description = "Service to generate the definition for: its base path, e.g. /chat, or the name of the "
-                    + "service class it upgrades to, e.g. ChatService. Every matching service is generated.")
+    @CommandLine.Option(names = {"--service"}, paramLabel = "<path>",
+            description = "export only the service at this path")
     public String serviceName;
 
     @CommandLine.Option(names = {"--spec-side"}, paramLabel = "<client|service>",
-            description = "Whose side the definition's send and receive operations describe: client, the "
-                    + "default, or service for a definition written from the server's side, whose send and "
-                    + "receive the client swaps.")
+            description = "read as this side (default: client)")
     public String specSide;
 
     @CommandLine.Option(names = {"--with-tests"},
-            description = "Generate test files along with the code. Ignored with a warning when the protocol "
-                    + "does not support it.")
+            description = "generate tests along with the code")
     public boolean withTests;
 
     @CommandLine.Option(names = {"--force"},
-            description = "Overwrite files that already exist in the output location. Without it, existing "
-                    + "files are skipped with a warning.")
+            description = "overwrite existing files without asking")
     public boolean force;
 
-    @CommandLine.Option(names = {"--dry-run"},
-            description = "Show which files would be created, overwritten or skipped, without writing anything.")
+    @CommandLine.Option(names = {"-n", "--dry-run"},
+            description = "list the files without writing them")
     public boolean dryRun;
 
-    // Removed in the revamp; kept hidden so their use gets a pointer to the new syntax.
+    @CommandLine.Option(names = {"--output-format"}, paramLabel = "<text|json>",
+            description = "print text or json (default: json if piped)")
+    public String outputFormat;
+
+    // Renamed to --spec-format; still read, with a warning.
+    @CommandLine.Option(names = {"--format"}, hidden = true)
+    public String format;
+
     @CommandLine.Option(names = {"-i", "--input"}, hidden = true)
     public String removedInputPath;
 
     @CommandLine.Option(names = {"--json"}, hidden = true)
     public boolean removedJsonFlag;
-
 }

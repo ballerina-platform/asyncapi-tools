@@ -35,6 +35,7 @@ public class CmdOptions {
     private final boolean force;
     private final boolean dryRun;
     private final boolean serviceSide;
+    private final String commandLine;
 
     private CmdOptions(CmdOptionsBuilder builder) {
         this.input = builder.input;
@@ -47,6 +48,16 @@ public class CmdOptions {
         this.force = builder.force;
         this.dryRun = builder.dryRun;
         this.serviceSide = builder.serviceSide;
+        this.commandLine = builder.commandLine;
+    }
+
+    /**
+     * Returns the command line the user ran, rebuilt from the parsed options, for a fix to extend.
+     *
+     * @return the command, starting with {@code bal asyncapi}
+     */
+    public String getCommandLine() {
+        return commandLine;
     }
 
     /**
@@ -155,6 +166,18 @@ public class CmdOptions {
         private boolean force;
         private boolean dryRun;
         private boolean serviceSide;
+        private String commandLine = "bal asyncapi";
+
+        /**
+         * Sets the command line the user ran.
+         *
+         * @param commandLine the command, starting with {@code bal asyncapi}
+         * @return this builder
+         */
+        public CmdOptionsBuilder withCommandLine(String commandLine) {
+            this.commandLine = commandLine;
+            return this;
+        }
 
         /**
          * Sets the input AsyncAPI definition file path.

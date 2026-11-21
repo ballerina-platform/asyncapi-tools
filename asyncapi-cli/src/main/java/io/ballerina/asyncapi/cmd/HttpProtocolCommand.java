@@ -39,58 +39,27 @@ final class HttpProtocolCommand implements ProtocolCommand {
     }
 
     @Override
-    public void generate(CmdOptions opts, CmdConstants.Mode mode, CmdContext ctx) {
-        try {
-            Path inputPath = Path.of(opts.getInput());
-            Path effectivePath = opts.getOutput() != null
-                    ? Path.of(opts.getOutput())
-                    : ctx.executionPath();
-
-            Path outputPath;
-            try {
-                outputPath = AsyncApiProjectUtils.resolveOutputPath(effectivePath, opts.getModule(),
-                        ctx.errStream());
-            } catch (AsyncApiCmdToolException e) {
-                ctx.printError(e.getMessage());
-                ctx.exitError();
-                return;
+    public void generate(CmdOptions opts, CmdConstants.Mode mode, Resolved resolved, CmdContext ctx)
+            throws GeneratorException, IOException {
+        Path inputPath = Path.of(opts.getInput());
+        Path outputPath = WsProtocolCommand.outputPackage(opts, ctx);
+        SpecToCodeOptions options = new SpecToCodeOptions.Builder()
+                .withLicenseHeader("")
+                .withIncludeTestFiles(opts.isWithTests())
+                .withWarnings(ctx::printSpecWarning)
+                .build();
+        try (OutputStage stage = WsProtocolCommand.openStage(outputPath, opts, ctx)) {
+            CodeGenOrchestrator.specToCode(Protocol.HTTP, inputPath, stage.stagingDir(), options);
+            // Dispatch tests send signed events, so a spec without x-ballerina-auth gets none.
+            if (opts.isWithTests() && !Files.exists(stage.stagingDir().resolve(DISPATCH_TEST))) {
+                ctx.printWarning(ErrorMessages.WARN_HTTP_TESTS_NEED_AUTH,
+                        "Add an x-ballerina-auth block to the definition to get dispatch tests.");
             }
-
-            SpecToCodeOptions options = new SpecToCodeOptions.Builder()
-                    .withLicenseHeader("")
-                    .withIncludeTestFiles(opts.isWithTests())
-                    .withWarnings(ctx::printSpecWarning)
-                    .build();
-
-            int skipped;
-            try (OutputStage stage = OutputStage.open(outputPath, opts, ctx)) {
-                CodeGenOrchestrator.specToCode(Protocol.HTTP, inputPath, stage.stagingDir(), options);
-                // Dispatch tests send signed events, so a spec without x-ballerina-auth gets none.
-                if (opts.isWithTests() && !Files.exists(stage.stagingDir().resolve(DISPATCH_TEST))) {
-                    ctx.printWarning(ErrorMessages.WARN_HTTP_TESTS_NEED_AUTH);
-                }
-                boolean pluginApplied = TriggerCompilerPlugin.stage(outputPath, stage.stagingDir(), ctx)
-                        && TriggerCompilerPlugin.isApplied(stage);
-                skipped = stage.commit(ErrorMessages.SUCCESS_MESSAGE);
-                if (pluginApplied) {
-                    try {
-                        TriggerCompilerPlugin.removeOldToolEntry(outputPath, opts.isDryRun(), ctx);
-                    } catch (IOException e) {
-                        // The trigger builds either way, so the user only needs to tidy it up
-                        ctx.printWarning(String.format(ErrorMessages.WARN_TOOL_ENTRY_NOT_REMOVED, e.getMessage()));
-                    }
-                }
+            GeneratedHeader.apply(stage.stagingDir(), resolved.license());
+            if (TriggerCompilerPlugin.stage(outputPath, stage.stagingDir(), ctx)) {
+                TriggerCompilerPlugin.stageOldToolEntryRemoval(outputPath, stage);
             }
-            // A skipped file can leave the output out of sync, so a script must not see this as a success.
-            if (skipped > 0) {
-                ctx.exitError();
-            }
-        } catch (GeneratorException e) {
-            ctx.printError("error: " + e.getMessage());
-            ctx.exitError();
-        } catch (IOException e) {
-            ctx.printError("error: failed to write the generated files: " + e.getMessage());
-            ctx.exitError();
+            stage.commit();
         }
     }
 }

@@ -76,7 +76,7 @@ final class TriggerCompilerPlugin {
      * @param outputPath where the trigger code is generated
      * @param stagingDir the stage the generated files are written to
      * @param ctx        streams for reporting
-     * @return true when the plugin is staged; {@link #isApplied} then says if the commit will keep it
+     * @return true when the plugin is staged
      * @throws IOException if the bundled jar cannot be read or the files cannot be staged
      */
     static boolean stage(Path outputPath, Path stagingDir, CmdContext ctx) throws IOException {
@@ -101,39 +101,21 @@ final class TriggerCompilerPlugin {
     }
 
     /**
-     * Tells whether both plugin files will be written or are already up to date. If either is skipped, the old
-     * {@code CompilerPlugin.toml} may still need the jar the old tool entry copies in, so that entry has to stay.
-     *
-     * @param stage the stage the plugin files were written to
-     * @return true if neither plugin file will be skipped
-     * @throws IOException if an existing file cannot be read
-     */
-    static boolean isApplied(OutputStage stage) throws IOException {
-        return !stage.skips(Path.of(COMPILER_PLUGIN_TOML)) && !stage.skips(Path.of(JAR_PATH));
-    }
-
-    /**
-     * Removes the {@code [[tool.asyncapi]]} entry an earlier version of this tool added to {@code Ballerina.toml},
-     * which copied the jar during the build. The rest of the file is kept as it is.
+     * Stages {@code Ballerina.toml} without the {@code [[tool.asyncapi]]} entry an earlier version of this tool
+     * added, which copied the jar during the build. The rest of the file is kept as it is, so the stage writes it
+     * as a merged file, with the same overwrite rules as the generated ones.
      *
      * @param outputPath the package root
-     * @param dryRun     true to only report what would change
-     * @param ctx        streams for reporting
-     * @throws IOException if {@code Ballerina.toml} cannot be read or written
+     * @param stage      the stage the trigger is generated into
+     * @throws IOException if {@code Ballerina.toml} cannot be read or staged
      */
-    static void removeOldToolEntry(Path outputPath, boolean dryRun, CmdContext ctx) throws IOException {
-        Path ballerinaToml = outputPath.resolve(BALLERINA_TOML);
-        String content = Files.readString(ballerinaToml);
+    static void stageOldToolEntryRemoval(Path outputPath, OutputStage stage) throws IOException {
+        String content = Files.readString(outputPath.resolve(BALLERINA_TOML));
         String updated = withoutOldToolEntry(content);
-        if (updated.equals(content)) {
-            return;
+        if (!updated.equals(content)) {
+            Files.writeString(stage.stagingDir().resolve(BALLERINA_TOML), updated);
+            stage.markMerged(Path.of(BALLERINA_TOML));
         }
-        if (dryRun) {
-            ctx.printInfo(ErrorMessages.TOOL_ENTRY_REMOVAL_PLANNED);
-            return;
-        }
-        Files.writeString(ballerinaToml, updated);
-        ctx.printInfo(ErrorMessages.TOOL_ENTRY_REMOVED);
     }
 
     /**

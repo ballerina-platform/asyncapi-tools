@@ -42,6 +42,7 @@ import io.ballerina.projects.ProjectKind;
 import io.ballerina.projects.directory.BuildProject;
 import io.ballerina.projects.directory.ProjectLoader;
 import io.ballerina.projects.directory.WorkspaceProject;
+import io.ballerina.projects.environment.PackageLockingMode;
 import io.ballerina.projects.util.ProjectPaths;
 import io.ballerina.tools.diagnostics.Diagnostic;
 import io.ballerina.tools.diagnostics.DiagnosticSeverity;
@@ -101,7 +102,7 @@ public class BallerinaToAsyncApiGenerator {
             return generateForPackage(absServicePath, outPath, serviceName, moduleName, needJson, outStream);
         }
         final List<AsyncApiConverterDiagnostic> errors = new ArrayList<>();
-        BuildOptions buildOptions = BuildOptions.builder().setOffline(true).build();
+        BuildOptions buildOptions = compileOptions();
         Path loadPath = absServicePath.getParent();
         while (loadPath != null && !Files.exists(loadPath.resolve("Ballerina.toml"))) {
             loadPath = loadPath.getParent();
@@ -170,9 +171,12 @@ public class BallerinaToAsyncApiGenerator {
             Path packagePath, Path outPath, String serviceName, String moduleName, Boolean needJson,
             PrintStream outStream) {
         final List<AsyncApiConverterDiagnostic> errors = new ArrayList<>();
-        BuildOptions buildOptions = BuildOptions.builder().setOffline(true).build();
+        BuildOptions buildOptions = compileOptions();
         Project project = ProjectLoader.load(packagePath, buildOptions).project();
         Package currentPackage = project.currentPackage();
+        if (project.kind().equals(ProjectKind.WORKSPACE_PROJECT)) {
+            currentPackage = workspaceMember((WorkspaceProject) project, packagePath, currentPackage);
+        }
         PackageCompilation compilation = currentPackage.getCompilation();
         if (compilation.diagnosticResult().hasErrors()) {
             printDiagnostics(outStream, compilation.diagnosticResult().diagnostics());
@@ -301,6 +305,22 @@ public class BallerinaToAsyncApiGenerator {
             errors.add(new ExceptionDiagnostic(message.getCode(), message.getDescription(), null,
                     e.getLocalizedMessage()));
         }
+    }
+
+    // The dependency versions locked in Dependencies.toml, never newer ones (CLI tool design guide CMP-1)
+    private static BuildOptions compileOptions() {
+        return BuildOptions.builder().setOffline(true).setLockingMode(PackageLockingMode.HARD).build();
+    }
+
+    // A package directory in a workspace loads as the workspace, whose current package is its first member.
+    private static Package workspaceMember(WorkspaceProject wsProject, Path packagePath, Package fallback) {
+        Path root = packagePath.toAbsolutePath().normalize();
+        for (BuildProject member : wsProject.projects()) {
+            if (member.sourceRoot().toAbsolutePath().normalize().equals(root)) {
+                return member.currentPackage();
+            }
+        }
+        return fallback;
     }
 
     /**

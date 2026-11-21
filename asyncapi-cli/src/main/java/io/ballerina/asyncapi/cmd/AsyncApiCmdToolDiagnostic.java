@@ -17,84 +17,97 @@
  */
 package io.ballerina.asyncapi.cmd;
 
+import io.ballerina.asyncapi.cmd.AsyncApiCmdToolException.Kind;
+
 /**
- * Diagnostic constants for the asyncapi CLI tool.
- * Each constant pairs a stable code string with a {@link String#format}-style message template.
- * Instances are passed to {@link AsyncApiCmdToolException} constructors; the exception formats
- * and stores the final message at construction time.
- *
+ * The errors the command reports about its target and module, each with a stable code, the kind that decides the
+ * exit code, a one-line message and a suggestion on how to fix it. The message and the suggestion are
+ * {@link String#format} templates that share the same arguments.
  */
 public enum AsyncApiCmdToolDiagnostic {
 
-    /** General code-generation failure; {@code %s} is replaced with the underlying error message. */
-    ASYNC_CLI_001("ASYNC_CLI_001", "Code generation failed: %s"),
+    /** General code-generation failure; {@code %s} is the underlying error. */
+    ASYNC_CLI_001("ASYNC_CLI_001", Kind.RUNTIME, "code generation failed: %s", null),
 
-    /** The protocol does not support Ballerina-to-AsyncAPI generation; {@code %s} is the protocol name. */
-    ASYNC_CLI_002("ASYNC_CLI_002",
-            "The %s protocol does not support Ballerina-to-AsyncAPI generation."),
+    /** The protocol can't generate a definition from code; {@code %s} is the protocol name. */
+    ASYNC_CLI_002("ASYNC_CLI_002", Kind.USAGE,
+            "the %s protocol can't generate an AsyncAPI definition from Ballerina code",
+            "Pass an AsyncAPI definition, or use --protocol ws to generate a definition from Ballerina code."),
 
-    /** Ballerina workspace detected during project resolution; use --output to target a package. */
-    ASYNC_CLI_003("ASYNC_CLI_003",
-            "Ballerina workspace detected. "
-            + "Use --output to point to a package directory inside the workspace."),
+    /** The output location is a workspace; {@code %s} is the path. */
+    ASYNC_CLI_003("ASYNC_CLI_003", Kind.INVALID_TARGET, "'%s' is a Ballerina workspace",
+            "Pass one of its packages with --output."),
 
-    /** No Ballerina project found at or above the target output directory. */
-    ASYNC_CLI_004("ASYNC_CLI_004",
-            "No Ballerina project found. Run 'bal new <project-name>' first, then retry."),
+    /** The output location is not in a package; {@code %s} is the path. */
+    ASYNC_CLI_004("ASYNC_CLI_004", Kind.INVALID_TARGET, "'%s' is not a Ballerina package",
+            "Create a package with 'bal new', or pass one with --output."),
 
-    /** Ballerina.toml exists but has no valid [package] table; {@code %s} is the resolved path. */
-    ASYNC_CLI_005("ASYNC_CLI_005",
-            "No valid Ballerina package found at: %s. "
-            + "Ensure Ballerina.toml contains a [package] table."),
+    /** Ballerina.toml has no [package] table; {@code %s} is the package root. */
+    ASYNC_CLI_005("ASYNC_CLI_005", Kind.INVALID_TARGET, "the Ballerina.toml in '%s' has no [package] table",
+            "Add a [package] table with the package's org, name and version."),
 
-    /** The supplied module name contains illegal characters; {@code %s} is the name. */
-    ASYNC_CLI_006("ASYNC_CLI_006",
-            "Invalid module name '%s'. "
-            + "Module names can only contain alphanumerics and underscores."),
+    /** The module name has characters a module name can't have; {@code %s} is the name. */
+    ASYNC_CLI_006("ASYNC_CLI_006", Kind.USAGE, "invalid module name '%s'",
+            "Use only letters, digits and underscores in a module name."),
 
-    /** The supplied module name exceeds the 256-character limit; {@code %s} is the name. */
-    ASYNC_CLI_007("ASYNC_CLI_007",
-            "Module name '%s' is too long. Maximum length is 256 characters."),
+    /** The module name is too long; {@code %s} is the name. */
+    ASYNC_CLI_007("ASYNC_CLI_007", Kind.USAGE, "module name '%s' is longer than 256 characters",
+            "Use a shorter module name."),
 
-    /** Ballerina.toml is present but is missing the name field under [package]. */
-    ASYNC_CLI_008("ASYNC_CLI_008", "Could not find package name in Ballerina.toml."),
+    /** Ballerina.toml has no package name. */
+    ASYNC_CLI_008("ASYNC_CLI_008", Kind.INVALID_TARGET, "could not read the package name from Ballerina.toml",
+            "Add a name to the [package] table of Ballerina.toml."),
 
-    /** The supplied .bal file has compilation errors; {@code %s} is the newline-separated list. */
-    ASYNC_CLI_009("ASYNC_CLI_009", "The .bal file has compilation errors:%s"),
+    /** The Ballerina code does not compile; {@code %s} is the input. */
+    ASYNC_CLI_009("ASYNC_CLI_009", Kind.INVALID_INPUT, "'%s' has compilation errors",
+            "Fix the errors, then re-run."),
 
-    /** Output path is inside project but not root or modules/<name>; {@code %s} is the path. */
-    ASYNC_CLI_010("ASYNC_CLI_010",
-            "Unrecognized module location: %s. "
-            + "Use the project root, modules/<module>, or pass --module to target a specific module."),
+    /** The output location is inside a package but not its root or a module; {@code %s} is the path. */
+    ASYNC_CLI_010("ASYNC_CLI_010", Kind.INVALID_TARGET, "'%s' is not the root or a module of a package",
+            "Pass the package root with --output, and choose a module with --module."),
 
-    /** Input directory has no Ballerina.toml; {@code %s} is the path. */
-    ASYNC_CLI_011("ASYNC_CLI_011",
-            "'%s' is not a Ballerina package: it has no Ballerina.toml. "
-            + "Pass a package directory or a standalone .bal file."),
+    /** The input directory is not a package; {@code %s} is the path. */
+    ASYNC_CLI_011("ASYNC_CLI_011", Kind.INVALID_TARGET, "'%s' is not a Ballerina package",
+            "Pass a package directory or a standalone .bal file."),
 
-    /** Input .bal file sits inside a package; first {@code %s} is the file, second the package root. */
-    ASYNC_CLI_012("ASYNC_CLI_012",
-            "'%s' belongs to the Ballerina package at '%s'. "
-            + "Pass the package directory instead of a file inside it, as 'bal run' does."),
+    /** The input lies inside a package; the first {@code %s} is the input, the second the package root. */
+    ASYNC_CLI_012("ASYNC_CLI_012", Kind.INVALID_TARGET, "'%s' belongs to the Ballerina package at '%s'",
+            "Pass the package directory instead."),
 
-    /** Requested module is not in the package; first {@code %s} is the module, second the available ones. */
-    ASYNC_CLI_013("ASYNC_CLI_013",
-            "Module '%s' not found in the package. Available modules: %s."),
+    /** The package has no such module; the first {@code %s} is the module, the second the ones it has. */
+    ASYNC_CLI_013("ASYNC_CLI_013", Kind.INVALID_TARGET, "module '%s' not found in the package",
+            "Use one of its modules: %2$s."),
 
-    /** Input directory is a workspace root; {@code %s} is the path. */
-    ASYNC_CLI_014("ASYNC_CLI_014",
-            "'%s' is a Ballerina workspace. Pass the directory of one of its packages.");
+    /** The input is a workspace root; the first {@code %s} is the path, the second its packages. */
+    ASYNC_CLI_014("ASYNC_CLI_014", Kind.INVALID_TARGET, "'%s' is a Ballerina workspace",
+            "Pass the directory of one of its packages: %2$s."),
+
+    /** The input is a bala; {@code %s} is the path. */
+    ASYNC_CLI_015("ASYNC_CLI_015", Kind.INVALID_TARGET, "'%s' is a bala, not a Ballerina package",
+            "Pass a package directory or a standalone .bal file."),
+
+    /** The package has no Dependencies.toml; {@code %s} is the package name. */
+    ASYNC_CLI_016("ASYNC_CLI_016", Kind.DEPENDENCIES_NOT_LOCKED, "dependencies are not locked for package '%s'",
+            "Run 'bal build' to lock the dependencies, then re-run."),
+
+    /** The Ballerina input does not exist; {@code %s} is the path. */
+    ASYNC_CLI_017("ASYNC_CLI_017", Kind.INVALID_TARGET, "'%s' does not exist",
+            "Pass a package directory or a standalone .bal file.");
 
     private final String code;
+    private final Kind kind;
     private final String message;
+    private final String suggestion;
 
-    AsyncApiCmdToolDiagnostic(String code, String message) {
+    AsyncApiCmdToolDiagnostic(String code, Kind kind, String message, String suggestion) {
         this.code = code;
+        this.kind = kind;
         this.message = message;
+        this.suggestion = suggestion;
     }
 
     /**
-     * Returns the stable diagnostic code string (e.g. {@code "ASYNC_CLI_001"}).
+     * Returns the stable diagnostic code (e.g. {@code "ASYNC_CLI_001"}).
      *
      * @return diagnostic code
      */
@@ -103,11 +116,29 @@ public enum AsyncApiCmdToolDiagnostic {
     }
 
     /**
-     * Returns the {@link String#format}-style message template for this diagnostic.
+     * Returns the kind of error, which decides the exit code.
+     *
+     * @return the error kind
+     */
+    public Kind getKind() {
+        return kind;
+    }
+
+    /**
+     * Returns the {@link String#format}-style message template.
      *
      * @return message template
      */
     public String getMessage() {
         return message;
+    }
+
+    /**
+     * Returns the {@link String#format}-style suggestion template, or {@code null} if there is none.
+     *
+     * @return suggestion template
+     */
+    public String getSuggestion() {
+        return suggestion;
     }
 }
