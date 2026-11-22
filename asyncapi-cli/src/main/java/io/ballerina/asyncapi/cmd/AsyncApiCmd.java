@@ -147,8 +147,7 @@ public class AsyncApiCmd implements BLauncherCmd {
             ctx.fail(e);
         } catch (GeneratorException e) {
             boolean fromDefinition = mode == CmdConstants.Mode.ASYNCAPI_TO_BALLERINA;
-            ctx.fail(AsyncApiCmdToolException.of(fromDefinition ? Kind.INVALID_INPUT : Kind.RUNTIME,
-                    CmdUtils.oneLine(e.getMessage())));
+            ctx.fail(generatorError(e.getMessage(), fromDefinition ? Kind.INVALID_INPUT : Kind.RUNTIME));
         } catch (IOException e) {
             ctx.fail(AsyncApiCmdToolException.of(Kind.RUNTIME,
                     "failed to write the generated files: " + CmdUtils.oneLine(e.getMessage())));
@@ -156,6 +155,16 @@ public class AsyncApiCmd implements BLauncherCmd {
             ctx.fail(AsyncApiCmdToolException.of(Kind.RUNTIME,
                     ErrorMessages.UNEXPECTED_FAILURE + CmdUtils.oneLine(e.getMessage())));
         }
+    }
+
+    // The first line says what is wrong; the lines after it, such as the messages to fix and the YAML to add, stay
+    // as they are, so a fix shown over several lines can still be read
+    static AsyncApiCmdToolException generatorError(String message, Kind kind) {
+        String text = message == null ? "" : message.strip();
+        int newline = text.indexOf('\n');
+        AsyncApiCmdToolException error = AsyncApiCmdToolException.of(kind,
+                CmdUtils.oneLine(newline < 0 ? text : text.substring(0, newline)));
+        return newline < 0 ? error : error.withSuggestion(text.substring(newline + 1).stripTrailing());
     }
 
     // OUT-3: the flag overrides the terminal check either way. An invalid value is reported as text.

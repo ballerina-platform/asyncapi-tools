@@ -287,6 +287,44 @@ public class WsCmdUnitTest extends CmdTestBase {
         Assert.assertEquals(CmdUtils.resolveMode(base), CmdConstants.Mode.BALLERINA_TO_ASYNCAPI);
     }
 
+    @Test(description = "A key error keeps the YAML to add and the docs link on their own lines")
+    public void testKeyErrorShowsTheFix() throws IOException {
+        Path specFile = Files.writeString(tmpDir.resolve("twokeys.yaml"), String.join("\n",
+                "asyncapi: 3.0.0",
+                "info: {title: Feed, version: 1.0.0}",
+                "servers:",
+                "  prod: {host: example.com, protocol: wss}",
+                "channels:",
+                "  feed:",
+                "    address: /feed",
+                "    messages:",
+                "      Trade: {$ref: '#/components/messages/Trade'}",
+                "      Quote: {$ref: '#/components/messages/Quote'}",
+                "operations:",
+                "  onFeed:",
+                "    action: receive",
+                "    channel: {$ref: '#/channels/feed'}",
+                "    messages: [{$ref: '#/channels/feed/messages/Trade'}, {$ref: '#/channels/feed/messages/Quote'}]",
+                "components:",
+                "  messages:",
+                "    Trade: {payload: {type: object, required: [type, kind], properties: "
+                        + "{type: {const: trade}, kind: {const: a}}}}",
+                "    Quote: {payload: {type: object, required: [type, kind], properties: "
+                        + "{type: {const: quote}, kind: {const: b}}}}"));
+        Path pkg = newPackage("twokeys");
+        AsyncApiCmd cmd = run(specFile.toString(), "-o", pkg.toString());
+        Assert.assertEquals(cmd.exitCode(), ExitCodes.RUNTIME, "Err: " + getErr());
+        String[] lines = getErr().split("\\R");
+        String first = lines[0];
+        Assert.assertTrue(first.startsWith("bal asyncapi: error: x-dispatcherKey extension is required"),
+                "Err: " + getErr());
+        Assert.assertFalse(first.contains("; "), "The details are not squeezed onto the first line. Err: " + getErr());
+        Assert.assertTrue(getErr().contains(NL + "    x-dispatcherKey: "), "The YAML keeps its own line. Err: "
+                + getErr());
+        Assert.assertTrue(getErr().contains(NL + "  See https://github.com/ballerina-platform/asyncapi-tools/blob/"
+                + "main/docs/websocket-dispatcher-key.md"), "Err: " + getErr());
+    }
+
     @Test(description = "A spec warning names its line and column in the definition (ERR-5)")
     public void testHostWithSchemeWarns() throws IOException {
         Path specFile = Files.writeString(tmpDir.resolve("scheme.yaml"), ECHO.replace(

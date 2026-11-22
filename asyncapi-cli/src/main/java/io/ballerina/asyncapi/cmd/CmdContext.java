@@ -227,7 +227,7 @@ final class CmdContext {
         }
         errStream.println(PREFIX + "warning: " + message);
         if (suggestion != null) {
-            errStream.println("  " + suggestion);
+            printIndented(suggestion);
         }
     }
 
@@ -270,7 +270,7 @@ final class CmdContext {
                 : path + ":" + position[0] + ":" + position[1] + ": ";
         errStream.println(where + "warning: " + warning.message());
         if (suggestion != null) {
-            errStream.println("  " + suggestion);
+            printIndented(suggestion);
         }
     }
 
@@ -419,7 +419,7 @@ final class CmdContext {
                 errStream.println(where + ": " + diagnostic.severity() + ": " + diagnostic.message());
             }
             if (error.getSuggestion() != null) {
-                errStream.println("  " + error.getSuggestion());
+                printIndented(error.getSuggestion());
             }
             if (error.getCommand() != null) {
                 errStream.println("  Try: " + error.getCommand());
@@ -430,6 +430,11 @@ final class CmdContext {
             }
         }
         exit(error.exitCode());
+    }
+
+    // A suggestion can hold an example over several lines, such as YAML to add; each keeps its own indentation
+    private void printIndented(String text) {
+        text.lines().forEach(line -> errStream.println("  " + line));
     }
 
     private void exit(int code) {
