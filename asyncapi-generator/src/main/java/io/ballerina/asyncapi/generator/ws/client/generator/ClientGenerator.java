@@ -157,7 +157,7 @@ public class ClientGenerator {
 
             // How each incoming message is told apart and which pipe it goes to
             RoutingPlan plan = RoutingPlan.of(channelInfo.spec());
-            String serverUrl = getServerUrl(asyncApiSpec, channelInfo.channel());
+            String serverUrl = defaultServerUrl(asyncApiSpec, channelInfo.channel());
             classDefNodes.add(getClassDefinitionNode(plan, channelInfo, serverUrl, authGen, typeDefinitionNodeList,
                     imports, classNames));
 
@@ -215,7 +215,7 @@ public class ClientGenerator {
      * @param channel      the channel the client connects to
      * @return server URL string
      */
-    private String getServerUrl(AsyncApiSpec asyncApiSpec, AsyncApiChannel channel) {
+    static String defaultServerUrl(AsyncApiSpec asyncApiSpec, AsyncApiChannel channel) {
         boolean ownServers = channel != null && channel.servers() != null && !channel.servers().isEmpty();
         Collection<AsyncApiServer> servers = ownServers
                 ? channel.servers()

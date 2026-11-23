@@ -17,12 +17,12 @@
  */
 package io.ballerina.asyncapi.generator.ws.client.generator;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import io.ballerina.asyncapi.core.model.component.AsyncApiComponent;
 import io.ballerina.asyncapi.core.model.component.AsyncApiSchema;
 import io.ballerina.asyncapi.core.model.message.AsyncApiMessage;
 import io.ballerina.asyncapi.core.model.operation.AsyncApiOperation;
 import io.ballerina.asyncapi.core.model.security.AsyncApiSecurityScheme;
-import io.ballerina.asyncapi.core.model.server.AsyncApiServer;
 import io.ballerina.asyncapi.generator.GeneratorException;
 import io.ballerina.asyncapi.generator.ws.client.extractor.ChannelExtractor;
 import io.ballerina.asyncapi.generator.ws.client.model.WsClientConfig;
@@ -59,6 +59,7 @@ import io.ballerina.tools.text.TextDocuments;
 import org.ballerinalang.formatter.core.Formatter;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -90,6 +91,7 @@ import static io.ballerina.compiler.syntax.tree.SyntaxKind.AT_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.CHECK_KEYWORD;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.CLOSE_BRACE_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.CLOSE_PAREN_TOKEN;
+import static io.ballerina.compiler.syntax.tree.SyntaxKind.COMMA_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.EQUAL_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.FUNCTION_DEFINITION;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.FUNCTION_KEYWORD;
@@ -105,6 +107,7 @@ import static io.ballerina.compiler.syntax.tree.SyntaxKind.SEMICOLON_TOKEN;
 public class TestGenerator {
 
     private static final String SERVICE_URL = "serviceUrl";
+    private static final String PATH_PARAMS = "pathParams";
     private static final String DEFAULT_URL = "/";
     private static final String API_KEY_CONFIG = "apiKeyConfig";
     private static final String API_KEY_TYPE = "apiKey";
@@ -135,21 +138,18 @@ public class TestGenerator {
             return "";
         }
 
-        // The tests use the first client; the client generator has already reported any channel left out
-        ChannelExtractor.ChannelInfo first = new ChannelExtractor(config.getAsyncApi()).extract(warning -> { }).get(0);
+        // The tests use the first client that takes no parameters, else the first; the client generator has
+        // already reported any channel left out
+        List<ChannelExtractor.ChannelInfo> channels =
+                new ChannelExtractor(config.getAsyncApi()).extract(warning -> { });
+        ChannelExtractor.ChannelInfo first = channels.stream().filter(TestGenerator::takesNoParams).findFirst()
+                .orElse(channels.get(0));
         String className = ClientGenerator.clientClassName(config.getAsyncApi(), first.channelName(), first.channel());
-
-        // Derive server URL
-        String serverUrl = DEFAULT_URL;
-        Map<String, AsyncApiServer> servers = config.getAsyncApi().getAsyncApiServers().orElse(null);
-        if (servers != null && !servers.isEmpty()) {
-            AsyncApiServer server = servers.values().iterator().next();
-            serverUrl = CodegenUtils.buildUrl(server.host(), server.pathname(), server.variables());
-        }
+        String serverUrl = ClientGenerator.defaultServerUrl(config.getAsyncApi(), first.channel());
 
         // Build module members
         List<ModuleMemberDeclarationNode> nodes = new ArrayList<>();
-        nodes.add(buildClientInitNode(className, serverUrl));
+        nodes.add(buildClientInitNode(className, initArgs(first, serverUrl)));
         // A message both sent and received, or listed twice, gets one test
         Set<String> testNames = new LinkedHashSet<>();
         for (String msgName : remoteMsgNames) {
@@ -234,7 +234,32 @@ public class TestGenerator {
         return msgNames;
     }
 
-    private ModuleVariableDeclarationNode buildClientInitNode(String className, String serverUrl) {
+    // A channel whose client takes no path, query or header parameters, so the test can build it as is
+    private static boolean takesNoParams(ChannelExtractor.ChannelInfo channel) {
+        return (channel.channel().parameters() == null || channel.channel().parameters().isEmpty())
+                && hasNoProperties(channel.querySchema()) && hasNoProperties(channel.headerSchema());
+    }
+
+    private static boolean hasNoProperties(JsonNode schema) {
+        return schema == null || schema.get("properties") == null || schema.get("properties").isEmpty();
+    }
+
+    // The arguments the client needs: its path parameters, and serviceUrl when it has no default
+    private static Map<String, String> initArgs(ChannelExtractor.ChannelInfo channel, String serverUrl) {
+        Map<String, String> args = new LinkedHashMap<>();
+        if (channel.channel().parameters() != null && !channel.channel().parameters().isEmpty()) {
+            List<String> fields = new ArrayList<>();
+            channel.channel().parameters().keySet()
+                    .forEach(name -> fields.add(CodegenUtils.escapeIdentifier(name) + ": \"\""));
+            args.put(PATH_PARAMS, "{" + String.join(", ", fields) + "}");
+        }
+        if (DEFAULT_URL.equals(serverUrl)) {
+            args.put(SERVICE_URL, '"' + serverUrl + '"');
+        }
+        return args;
+    }
+
+    private ModuleVariableDeclarationNode buildClientInitNode(String className, Map<String, String> initArgs) {
         MetadataNode metadataNode = createMetadataNode(null, createEmptyNodeList());
         BuiltinSimpleNameReferenceNode typeRef =
                 createBuiltinSimpleNameReferenceNode(null, createIdentifierToken(className));
@@ -242,11 +267,18 @@ public class TestGenerator {
                 createIdentifierToken("baseClient"));
         TypedBindingPatternNode typedBinding = createTypedBindingPatternNode(typeRef, bindingPattern);
 
-        NamedArgumentNode serviceUrlArg = createNamedArgumentNode(
-                createSimpleNameReferenceNode(createIdentifierToken(SERVICE_URL)),
-                createToken(EQUAL_TOKEN),
-                createRequiredExpressionNode(createIdentifierToken('"' + serverUrl + '"')));
-        SeparatedNodeList<FunctionArgumentNode> args = createSeparatedNodeList(serviceUrlArg);
+        List<Node> argNodes = new ArrayList<>();
+        for (Map.Entry<String, String> arg : initArgs.entrySet()) {
+            if (!argNodes.isEmpty()) {
+                argNodes.add(createToken(COMMA_TOKEN));
+            }
+            NamedArgumentNode named = createNamedArgumentNode(
+                    createSimpleNameReferenceNode(createIdentifierToken(arg.getKey())),
+                    createToken(EQUAL_TOKEN),
+                    createRequiredExpressionNode(createIdentifierToken(arg.getValue())));
+            argNodes.add(named);
+        }
+        SeparatedNodeList<FunctionArgumentNode> args = createSeparatedNodeList(argNodes);
         ParenthesizedArgList argList = createParenthesizedArgList(
                 createToken(OPEN_PAREN_TOKEN), args, createToken(CLOSE_PAREN_TOKEN));
         TypeDescriptorNode clientClassType =

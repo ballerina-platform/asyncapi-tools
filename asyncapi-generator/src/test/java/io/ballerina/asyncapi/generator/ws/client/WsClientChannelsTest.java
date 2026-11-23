@@ -261,6 +261,24 @@ public class WsClientChannelsTest {
                     LeaveBody: {type: object, required: [type], properties: {type: {type: string, const: leave}}}
                 """;
 
+    @Test
+    void testTestsBuildAClientTheWayItConnects() throws Exception {
+        // 'presence' takes no parameters, so the tests use it, with the URL its client defaults to
+        String tests = generateFile(SPEC, new ArrayList<>(), "tests/test.bal");
+        Assert.assertTrue(tests.contains("ChatPresenceClient baseClient = check new ChatPresenceClient();"), tests);
+
+        // With only 'room', the tests give it its path parameters
+        String roomOnly = SPEC.replace("""
+                  receiveOnline:
+                    action: receive
+                    channel: {$ref: '#/channels/presence'}
+                    messages: [{$ref: '#/channels/presence/messages/Online'}]
+                """, "");
+        tests = generateFile(roomOnly, new ArrayList<>(), "tests/test.bal");
+        Assert.assertTrue(tests.contains("ChatRoomClient baseClient = check new ChatRoomClient(pathParams = "
+                + "{roomId: \"\"});"), tests);
+    }
+
     private static String generateClient(String spec, List<SpecWarning> warnings) throws Exception {
         return generateFile(spec, warnings, "client.bal");
     }
@@ -268,8 +286,9 @@ public class WsClientChannelsTest {
     private static String generateFile(String spec, List<SpecWarning> warnings, String file) throws Exception {
         Path outDir = Files.createTempDirectory("ws-channels");
         try {
-            new WsClientCodeGenerator(AsyncApiParser.parseFromJsonString(YAML.readTree(spec).toString()), null, false)
-                    .withWarnings(warnings::add).generate(outDir);
+            boolean withTests = file.startsWith("tests/");
+            new WsClientCodeGenerator(AsyncApiParser.parseFromJsonString(YAML.readTree(spec).toString()), null,
+                    withTests).withWarnings(warnings::add).generate(outDir);
             // Line ends follow the OS, so the checks see them as \n
             return Files.readString(outDir.resolve(file)).replace("\r\n", "\n");
         } finally {
