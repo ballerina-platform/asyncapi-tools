@@ -172,10 +172,7 @@ See https://github.com/ballerina-platform/asyncapi-tools/blob/main/docs/websocke
 
 Make the change it shows, or use a field your messages already carry, and generate again.
 
-It also stops when:
-
-- **Several fields could be the key.** It names them; add `x-dispatcherKey` with the one the server routes on.
-- **The channels use different fields.** A spec has one `x-dispatcherKey`, so give the received messages of every channel the same field.
+It also stops when several fields could be the key. It names them; add `x-dispatcherKey` with the one the server routes on.
 
 ## Messages without the key
 

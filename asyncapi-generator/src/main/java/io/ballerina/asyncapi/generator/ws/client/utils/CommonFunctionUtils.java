@@ -21,8 +21,10 @@ import io.ballerina.asyncapi.core.api.AsyncApiSpec;
 import io.ballerina.asyncapi.core.model.component.AsyncApiSchema;
 import io.ballerina.asyncapi.generator.GeneratorException;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import static io.ballerina.asyncapi.generator.ws.client.extractor.DispatcherKeyExtractor.X_DISPATCHER_KEY;
 
@@ -69,6 +71,24 @@ public class CommonFunctionUtils {
      */
     public boolean isDispatcherPresent(String schemaName, AsyncApiSchema schema,
                                        String dispatcherVal, boolean isParent) throws GeneratorException {
+        return isDispatcherPresent(schemaName, schema, dispatcherVal, isParent, new HashSet<>());
+    }
+
+    // A schema already on this walk includes itself, which adds no field
+    private boolean isNamedPresent(String name, AsyncApiSchema schema, String dispatcherVal, Set<String> onPath)
+            throws GeneratorException {
+        if (!onPath.add(name)) {
+            return false;
+        }
+        try {
+            return isDispatcherPresent(name, schema, dispatcherVal, false, onPath);
+        } finally {
+            onPath.remove(name);
+        }
+    }
+
+    private boolean isDispatcherPresent(String schemaName, AsyncApiSchema schema, String dispatcherVal,
+                                        boolean isParent, Set<String> onPath) throws GeneratorException {
         if (schema == null) {
             throw new GeneratorException(INVALID_RESPONSE_SCHEMA);
         }
@@ -96,10 +116,9 @@ public class CommonFunctionUtils {
                 if (oneOfSchema.name() != null && componentSchemas != null) {
                     // This was a $ref — look up the referenced schema by name
                     AsyncApiSchema refSchema = componentSchemas.get(oneOfSchema.name());
-                    oneOfContainsDispatcher = isDispatcherPresent(oneOfSchema.name(), refSchema,
-                            dispatcherVal, false);
+                    oneOfContainsDispatcher = isNamedPresent(oneOfSchema.name(), refSchema, dispatcherVal, onPath);
                 } else {
-                    oneOfContainsDispatcher = isDispatcherPresent("", oneOfSchema, dispatcherVal, false);
+                    oneOfContainsDispatcher = isDispatcherPresent("", oneOfSchema, dispatcherVal, false, onPath);
                 }
                 if (!oneOfContainsDispatcher && isParent) {
                     String specDispatcherKey = getSpecDispatcherKey();
@@ -116,10 +135,9 @@ public class CommonFunctionUtils {
                 boolean allOfContainsDispatcher;
                 if (allOfSchema.name() != null && componentSchemas != null) {
                     AsyncApiSchema refSchema = componentSchemas.get(allOfSchema.name());
-                    allOfContainsDispatcher = isDispatcherPresent(allOfSchema.name(), refSchema,
-                            dispatcherVal, false);
+                    allOfContainsDispatcher = isNamedPresent(allOfSchema.name(), refSchema, dispatcherVal, onPath);
                 } else {
-                    allOfContainsDispatcher = isDispatcherPresent("", allOfSchema, dispatcherVal, false);
+                    allOfContainsDispatcher = isDispatcherPresent("", allOfSchema, dispatcherVal, false, onPath);
                 }
                 if (allOfContainsDispatcher) {
                     return true;
