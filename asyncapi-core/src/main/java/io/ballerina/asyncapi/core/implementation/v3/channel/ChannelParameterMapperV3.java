@@ -25,6 +25,7 @@ import io.apicurio.datamodels.models.asyncapi.AsyncApiReferenceable;
 import io.apicurio.datamodels.models.asyncapi.v30.AsyncApi30Components;
 import io.apicurio.datamodels.models.asyncapi.v30.AsyncApi30Parameter;
 import io.ballerina.asyncapi.core.Constants;
+import io.ballerina.asyncapi.core.implementation.utils.JsonPointers;
 import io.ballerina.asyncapi.core.model.channel.AsyncApiChannelParameter;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -137,7 +138,7 @@ final class ChannelParameterMapperV3 {
                 LOG.warn("Cyclic $ref detected: {}. Skipping parameter.", current);
                 return null;
             }
-            String paramName = current.substring(Constants.PARAMETERS_REF_PREFIX.length());
+            String paramName = JsonPointers.keyAfter(current, Constants.PARAMETERS_REF_PREFIX);
             Map<String, Parameter> parametersMap = typedComponents.getParameters();
             Parameter entry = parametersMap != null ? parametersMap.get(paramName) : null;
             AsyncApiParameter resolved = entry instanceof AsyncApiParameter p ? p : null;
