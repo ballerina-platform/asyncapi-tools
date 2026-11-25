@@ -260,6 +260,137 @@ public class WsClientGeneratedTypesTest {
         Assert.assertTrue(types.contains("map<map<string>> nested?;"), types);
     }
 
+    @Test
+    void testTypelessRedeclarationInsideAFieldKeepsTheIncludedField() throws Exception {
+        String types = types("""
+                      type: object
+                      required: [type]
+                      properties:
+                        type: {type: string}
+                        response:
+                          allOf:
+                            - {$ref: '#/components/schemas/View'}
+                            - {type: object, properties: {status: {const: in_progress}}}
+                    View:
+                      type: object
+                      properties: {status: {type: string}}
+                """);
+        // A field's included schema is a reference too, so its status stays the included string
+        Assert.assertFalse(types.contains("anydata status"), types);
+        Assert.assertTrue(types.contains("*View;"), types);
+    }
+
+    @Test
+    void testInlinePartsThatRedeclareAFieldGiveOneField() throws Exception {
+        // The second part only narrows fields the first declares, so each stays one field, required as before
+        String types = types("""
+                      allOf:
+                        - type: object
+                          additionalProperties: false
+                          required: [type, kind, data]
+                          properties:
+                            type: {type: string}
+                            kind: {type: string, const: signal}
+                            data: {type: object}
+                        - type: object
+                          properties:
+                            kind: {description: The signal kind.}
+                            data: {type: object}
+                """);
+        Assert.assertTrue(types.contains("public type Ping record {\n    string 'type;\n    string kind;\n"
+                + "    record {} data;\n};"), types);
+    }
+
+    @Test
+    void testNestedAllOfIsOneAllOf() throws Exception {
+        // An allOf inside an allOf part adds its parts, so a field the outer part redeclares isn't written twice
+        String types = types("""
+                      allOf:
+                        - allOf:
+                            - {type: object, required: [symbol], properties: {symbol: {type: string}}}
+                            - type: object
+                              required: [type, bids]
+                              properties:
+                                type: {type: string}
+                                bids: {type: array, maxItems: 1000, items: {type: string}}
+                        - type: object
+                          properties:
+                            bids: {type: array, maxItems: 100, items: {type: string}}
+                """);
+        Assert.assertTrue(types.contains("public type Ping record {\n    string symbol;\n    string 'type;\n"
+                + "    string[] bids;\n};"), types);
+    }
+
+    @Test
+    void testTypelessRedeclarationOfAFieldIncludedInANestedAllOf() throws Exception {
+        String types = types("""
+                      allOf:
+                        - allOf:
+                            - {$ref: '#/components/schemas/Base'}
+                        - type: object
+                          properties:
+                            data: {description: Narrowed}
+                    Base:
+                      type: object
+                      required: [type]
+                      properties:
+                        type: {type: string}
+                        data: {type: string}
+                """);
+        Assert.assertTrue(types.contains("public type Ping record {\n    *Base;\n};"), types);
+    }
+
+    @Test
+    void testTwoCopiedPartsWriteASharedFieldAndInclusionOnce() throws Exception {
+        String types = types("""
+                      allOf:
+                        - {$ref: '#/components/schemas/A'}
+                        - {$ref: '#/components/schemas/B'}
+                        - type: object
+                          properties:
+                            data: {type: array, items: {type: string}}
+                            other: {type: integer}
+                    A:
+                      allOf:
+                        - {$ref: '#/components/schemas/Base'}
+                        - type: object
+                          required: [id]
+                          properties: {id: {type: string}, data: {type: object}}
+                    B:
+                      allOf:
+                        - {$ref: '#/components/schemas/Base'}
+                        - type: object
+                          properties: {id: {type: string}, other: {type: string}}
+                    Base:
+                      type: object
+                      required: [type]
+                      properties: {type: {type: string}}
+                """);
+        Assert.assertTrue(types.contains("public type Ping record {\n    *Base;\n    string id;\n"
+                + "    string[] data?;\n    int other?;\n};"), types);
+    }
+
+    @Test
+    void testAllOfInAMapValueKeepsTheIncludedField() throws Exception {
+        String types = types("""
+                      type: object
+                      required: [type]
+                      properties:
+                        type: {type: string}
+                        views:
+                          type: object
+                          additionalProperties:
+                            allOf:
+                              - {$ref: '#/components/schemas/View'}
+                              - {type: object, properties: {status: {const: in_progress}}}
+                    View:
+                      type: object
+                      properties: {status: {type: string}}
+                """);
+        Assert.assertFalse(types.contains("anydata status"), types);
+        Assert.assertTrue(types.contains("map<record {*View;}> views?;"), types);
+    }
+
     private static String types(String pingSchema) throws Exception {
         String json = YAML.readTree(SPEC.formatted(pingSchema.stripTrailing())).toString();
         Path outDir = Files.createTempDirectory("ws-types");
