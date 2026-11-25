@@ -260,6 +260,9 @@ public class ClientGenerator {
         classMembers.add(helperGen.buildGetPipeName());
         if (plan.routesByContent()) {
             classMembers.add(helperGen.buildGetPipeNameByContent(plan.contentRoutes()));
+            if (plan.contentRoutes().stream().anyMatch(route -> route.path().size() > 1)) {
+                classMembers.add(helperGen.buildGetValueAt());
+            }
         }
 
         ClientWorkerGenerator workerGen = new ClientWorkerGenerator(asyncApiSpec, plan);

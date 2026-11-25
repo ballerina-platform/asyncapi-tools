@@ -27,6 +27,7 @@ import io.ballerina.asyncapi.core.model.message.AsyncApiMessage;
 import io.ballerina.asyncapi.core.model.operation.AsyncApiOperation;
 import io.ballerina.asyncapi.generator.GeneratorException;
 import io.ballerina.asyncapi.generator.ws.client.model.ChannelSpec;
+import io.ballerina.asyncapi.generator.ws.client.model.KeyPathSpec;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -99,8 +100,10 @@ public final class IncomingMessages {
      * @param location   a JSON Pointer to the receive operation, or to the component message a reply names
      * @param payload    its payload; a named payload is its component schema
      * @param schemaName the payload's component schema name, or {@code null} for an inline payload
+     * @param ownKey     the key the message names for itself with a message-level x-dispatcherKey, or {@code null}
      */
-    public record Received(String name, String location, AsyncApiSchema payload, String schemaName) { }
+    public record Received(String name, String location, AsyncApiSchema payload, String schemaName,
+                           String ownKey) { }
 
     /**
      * Returns the messages received through {@code operations}, each payload once, as {@link #payloads} does.
@@ -163,7 +166,8 @@ public final class IncomingMessages {
         AsyncApiSchema schema = payload.name() != null && schemas.containsKey(payload.name())
                 ? schemas.get(payload.name()) : payload;
         if (!CodegenUtils.isCloseFrameSchema(schema) && seen.add(schema)) {
-            result.add(new Received(name, location, schema, schema != payload ? payload.name() : null));
+            result.add(new Received(name, location, schema, schema != payload ? payload.name() : null,
+                    KeyPathSpec.ownKey(message)));
         }
     }
 
