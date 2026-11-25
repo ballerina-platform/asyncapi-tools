@@ -97,6 +97,7 @@ public class RemoteFunctionBodyGenerator {
 
     private final List<ImportDeclarationNode> imports;
     private final String dispatcherKey;
+    private final boolean newStreamIds;
 
     /**
      * Creates a new function body generator.
@@ -115,8 +116,22 @@ public class RemoteFunctionBodyGenerator {
      * @param dispatcherKey the dispatcher field name, or {@code null} to send requests as given
      */
     public RemoteFunctionBodyGenerator(List<ImportDeclarationNode> imports, String dispatcherKey) {
+        this(imports, dispatcherKey, false);
+    }
+
+    /**
+     * Creates a new function body generator that, when {@code newStreamIds} is set, gives a request an id of its own
+     * when the caller leaves its stream id empty.
+     *
+     * @param imports       the import declaration list (will be wrapped as unmodifiable)
+     * @param dispatcherKey the dispatcher field name, or {@code null} to send requests as given
+     * @param newStreamIds  whether an empty stream id is filled in before the request is sent
+     */
+    public RemoteFunctionBodyGenerator(List<ImportDeclarationNode> imports, String dispatcherKey,
+                                       boolean newStreamIds) {
         this.imports = Collections.unmodifiableList(imports);
         this.dispatcherKey = dispatcherKey;
+        this.newStreamIds = newStreamIds;
     }
 
     /**
@@ -244,6 +259,7 @@ public class RemoteFunctionBodyGenerator {
         if (!Objects.isNull(dispatcherStreamId)) {
             pipeId = String.format("%s.%s", CodegenUtils.getRequestParamName(requestType),
                     CodegenUtils.escapeIdentifier(dispatcherStreamId));
+            appendNewStreamId(sb, requestType, dispatcherStreamId);
         }
         appendProduceStatements(sb, requestType, isSubscribe, dispatchValue, sendAsIs);
 
@@ -281,6 +297,7 @@ public class RemoteFunctionBodyGenerator {
         boolean awaitsUnkeyedReply = !keyed && !isSubscribe;
         if (perRequestPipe) {
             pipeId = String.format("%s.%s", camelCaseRequestType, CodegenUtils.escapeIdentifier(dispatcherStreamId));
+            appendNewStreamId(sb, requestType, dispatcherStreamId);
         }
         // Calls sharing a pipe take turns, so each one consumes the frame meant for it
         boolean takesTurn = !perRequestPipe && (!isSubscribe || !keyed);
@@ -379,9 +396,14 @@ public class RemoteFunctionBodyGenerator {
                 String.format(PIPE_ERR_TEMPLATE, PRODUCING), PIPE_ERR_VAR));
     }
 
-    @SuppressWarnings("unused")
-    private static StatementNode getStatementToGenerateUuid(String requestType, String dispatcherStreamId) {
-        return NodeParser.parseStatement(String.format(CREATE_UUID_STATEMENT, requestType,
-                CodegenUtils.escapeIdentifier(dispatcherStreamId)));
+    // A request whose caller left the stream id empty gets one of its own, so its reply can't go to another call
+    private void appendNewStreamId(StringBuilder sb, String requestType, String dispatcherStreamId) {
+        if (!newStreamIds) {
+            return;
+        }
+        String id = String.format("%s.%s", CodegenUtils.getRequestParamName(requestType),
+                CodegenUtils.escapeIdentifier(dispatcherStreamId));
+        sb.append(String.format("if %s == \"\" { %s }\n", id, String.format(CREATE_UUID_STATEMENT,
+                CodegenUtils.getRequestParamName(requestType), CodegenUtils.escapeIdentifier(dispatcherStreamId))));
     }
 }
