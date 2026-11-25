@@ -175,6 +175,46 @@ public record AsyncApiSchema(
     }
 
     /**
+     * Returns a copy of this schema with the given {@code type}, preserving all other fields.
+     *
+     * @param newType the type to set
+     * @return a new {@link AsyncApiSchema} with the given type
+     */
+    public AsyncApiSchema withType(String newType) {
+        return new AsyncApiSchema(
+                title(), newType, required(), multipleOf(), maximum(), exclusiveMaximum(),
+                minimum(), exclusiveMinimum(), maxLength(), minLength(), pattern(),
+                maxItems(), minItems(), uniqueItems(), maxProperties(), minProperties(),
+                enumValue(), constValue(), examples(), ifBranch(), then(), elseBranch(), readOnly(),
+                writeOnly(), properties(), patternProperties(), additionalProperties(),
+                additionalItems(), items(), propertyNames(), contains(), allOf(),
+                oneOf(), anyOf(), not(), description(), format(), defaultValue(),
+                discriminator(), externalDocs(), deprecated(), extensions(), name(), nullable()
+        );
+    }
+
+    /**
+     * Returns a copy of this schema with the given {@code properties} and {@code required}, preserving all other
+     * fields.
+     *
+     * @param newProperties the properties to set
+     * @param newRequired   the required property names to set
+     * @return a new {@link AsyncApiSchema} with the given properties and required names
+     */
+    public AsyncApiSchema withProperties(Map<String, AsyncApiSchema> newProperties, List<String> newRequired) {
+        return new AsyncApiSchema(
+                title(), type(), newRequired, multipleOf(), maximum(), exclusiveMaximum(),
+                minimum(), exclusiveMinimum(), maxLength(), minLength(), pattern(),
+                maxItems(), minItems(), uniqueItems(), maxProperties(), minProperties(),
+                enumValue(), constValue(), examples(), ifBranch(), then(), elseBranch(), readOnly(),
+                writeOnly(), newProperties, patternProperties(), additionalProperties(),
+                additionalItems(), items(), propertyNames(), contains(), allOf(),
+                oneOf(), anyOf(), not(), description(), format(), defaultValue(),
+                discriminator(), externalDocs(), deprecated(), extensions(), name(), nullable()
+        );
+    }
+
+    /**
      * Returns a copy of this schema with the given {@code description}, preserving all other fields.
      * Used to attach a sibling {@code description} from a {@code $ref} property node onto the
      * resolved stub schema so that code generators can emit doc comments for the field.

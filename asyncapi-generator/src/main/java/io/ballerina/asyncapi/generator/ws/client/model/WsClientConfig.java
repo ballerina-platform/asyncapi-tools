@@ -20,6 +20,8 @@ package io.ballerina.asyncapi.generator.ws.client.model;
 import io.ballerina.asyncapi.core.SpecWarning;
 import io.ballerina.asyncapi.core.api.AsyncApiSpec;
 
+import java.util.Map;
+import java.util.Set;
 import java.util.function.Consumer;
 
 /**
@@ -32,13 +34,17 @@ public class WsClientConfig {
     private final Consumer<SpecWarning> warnings;
 
     private WsClientConfig(Builder builder) {
-        this.asyncApi = NamedPayloadSpec.of(builder.asyncApi);
+        Set<String> specSchemaNames = builder.asyncApi == null ? Set.of()
+                : builder.asyncApi.getAsyncApiComponents().map(c -> c.schemas()).map(Map::keySet).orElse(Set.of());
+        this.asyncApi = DispatcherKeySpec.of(NamedPayloadSpec.of(builder.asyncApi), specSchemaNames,
+                builder.warnings);
         this.licenseHeader = builder.licenseHeader;
         this.warnings = builder.warnings;
     }
 
     /**
-     * Returns the parsed AsyncAPI specification, with every message payload named (see {@link NamedPayloadSpec}).
+     * Returns the parsed AsyncAPI specification, with every message payload named (see {@link NamedPayloadSpec})
+     * and its dispatcher key fixed up (see {@link DispatcherKeySpec}).
      *
      * @return the AsyncAPI spec
      */
