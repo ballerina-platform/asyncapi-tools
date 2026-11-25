@@ -321,6 +321,25 @@ public class WsClientGeneratedTypesTest {
                 + "    string[] bids;\n};"), types);
     }
 
+    @Test
+    void testTypelessRedeclarationOfAFieldIncludedInANestedAllOf() throws Exception {
+        String types = types("""
+                      allOf:
+                        - allOf:
+                            - {$ref: '#/components/schemas/Base'}
+                        - type: object
+                          properties:
+                            data: {description: Narrowed}
+                    Base:
+                      type: object
+                      required: [type]
+                      properties:
+                        type: {type: string}
+                        data: {type: string}
+                """);
+        Assert.assertTrue(types.contains("public type Ping record {\n    *Base;\n};"), types);
+    }
+
     private static String types(String pingSchema) throws Exception {
         String json = YAML.readTree(SPEC.formatted(pingSchema.stripTrailing())).toString();
         Path outDir = Files.createTempDirectory("ws-types");
