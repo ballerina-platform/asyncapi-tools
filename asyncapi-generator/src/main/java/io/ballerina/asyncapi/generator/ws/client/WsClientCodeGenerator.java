@@ -24,10 +24,12 @@ import io.ballerina.asyncapi.generator.ws.client.generator.ClientGenerator;
 import io.ballerina.asyncapi.generator.ws.client.generator.DataTypesGenerator;
 import io.ballerina.asyncapi.generator.ws.client.generator.TestGenerator;
 import io.ballerina.asyncapi.generator.ws.client.generator.UtilGenerator;
+import io.ballerina.asyncapi.generator.ws.client.model.BinaryMessageSpec;
 import io.ballerina.asyncapi.generator.ws.client.model.CorrelationIdSpec;
 import io.ballerina.asyncapi.generator.ws.client.model.GenSrcFile;
 import io.ballerina.asyncapi.generator.ws.client.model.InferredKeySpec;
 import io.ballerina.asyncapi.generator.ws.client.model.KeyPathSpec;
+import io.ballerina.asyncapi.generator.ws.client.model.ReplySpec;
 import io.ballerina.asyncapi.generator.ws.client.model.SecuritySchemeSpec;
 import io.ballerina.asyncapi.generator.ws.client.model.WsClientConfig;
 import io.ballerina.asyncapi.generator.ws.client.utils.IncludeCycles;
@@ -88,31 +90,22 @@ public class WsClientCodeGenerator {
         return this;
     }
 
-    /**
-     * Runs the full generation pipeline and writes Ballerina source files to {@code outputPath}.
-     *
-     * @param outputPath the directory to write generated files into
-     * @throws GeneratorException if generation or file writing fails
-     */
-    public void generate(Path outputPath) throws GeneratorException {
-        if (outputPath == null) {
-            outputPath = Path.of("");
-        }
-        // A spec for another protocol, or a Socket.IO endpoint, stops before anything is generated
-        OtherProtocols.check(asyncApiSpec, warnings);
-        // Schemas that include each other through allOf would give records that include themselves
-        IncludeCycles.check(asyncApiSpec);
+    // The generated files, reading 3.0 operation replies when asked to
+    private List<GenSrcFile> sources(boolean readReplies, Consumer<SpecWarning> sink) throws GeneratorException {
+        // Binary messages are left out, as the client sends and reads text frames; a 3.0 reply becomes x-response
+        AsyncApiSpec textOnly = BinaryMessageSpec.of(asyncApiSpec, sink);
+        AsyncApiSpec replied = readReplies ? ReplySpec.of(textOnly, sink) : textOnly;
         // A userPassword or apiKey scheme is read as credentials the client can send when it connects
-        AsyncApiSpec readable = SecuritySchemeSpec.of(asyncApiSpec, warnings);
+        AsyncApiSpec readable = SecuritySchemeSpec.of(replied, sink);
         // A key may be a JSON Pointer or a message's own; a spec without one routes on the one field that tells its
         // messages apart, if there is one
-        AsyncApiSpec keyed = InferredKeySpec.of(KeyPathSpec.of(readable), warnings);
+        AsyncApiSpec keyed = InferredKeySpec.of(KeyPathSpec.of(readable), sink);
         // Requests and replies that name one correlationId field are paired on it
-        AsyncApiSpec spec = CorrelationIdSpec.of(keyed, warnings);
+        AsyncApiSpec spec = CorrelationIdSpec.of(keyed, sink);
         WsClientConfig config = new WsClientConfig.Builder()
                 .withAsyncApi(spec)
                 .withLicense(licenseHeader)
-                .withWarnings(warnings)
+                .withWarnings(sink)
                 .build();
 
         // Generate source content from each sub-generator
@@ -120,7 +113,6 @@ public class WsClientCodeGenerator {
         String utilContent = new UtilGenerator(config).generate();
         String typesContent = new DataTypesGenerator(config).generate();
 
-        // Collect generated files
         List<GenSrcFile> sourceFiles = new ArrayList<>();
         sourceFiles.add(new GenSrcFile(GenSrcFile.GenFileType.GEN_SRC, CLIENT_FILE_NAME, clientContent));
         if (!utilContent.isBlank()) {
@@ -142,6 +134,37 @@ public class WsClientCodeGenerator {
                 sourceFiles.add(new GenSrcFile(GenSrcFile.GenFileType.CONFIG_SRC, CONFIG_FILE_NAME, configContent));
             }
         }
+        return sourceFiles;
+    }
+
+    /**
+     * Runs the full generation pipeline and writes Ballerina source files to {@code outputPath}.
+     *
+     * @param outputPath the directory to write generated files into
+     * @throws GeneratorException if generation or file writing fails
+     */
+    public void generate(Path outputPath) throws GeneratorException {
+        if (outputPath == null) {
+            outputPath = Path.of("");
+        }
+        // A spec for another protocol, or a Socket.IO endpoint, stops before anything is generated
+        OtherProtocols.check(asyncApiSpec, warnings);
+        // Schemas that include each other through allOf would give records that include themselves
+        IncludeCycles.check(asyncApiSpec);
+        List<SpecWarning> reported = new ArrayList<>();
+        List<GenSrcFile> sourceFiles;
+        try {
+            sourceFiles = sources(true, reported::add);
+        } catch (GeneratorException e) {
+            // Replies that can't be routed leave their requests' functions as they were without them, with a warning
+            if (!ReplySpec.hasReplies(asyncApiSpec)) {
+                throw e;
+            }
+            reported.clear();
+            sourceFiles = sources(false, reported::add);
+            reported.add(0, ReplySpec.leftOut(e.getMessage()));
+        }
+        reported.forEach(warnings);
 
         // Write all files to disk
         List<Path> filePathsToWrite = new ArrayList<>();

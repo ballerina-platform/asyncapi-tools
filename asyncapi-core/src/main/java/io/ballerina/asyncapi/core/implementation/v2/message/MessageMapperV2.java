@@ -273,7 +273,9 @@ public final class MessageMapperV2 {
                 MessageBindingsMapperV2.map(message.getBindings()),
                 MessageExampleMapperV2.map(message),
                 traits,
-                extensions
+                // A payload in another file is kept as its $ref, so the generator can say so
+                payload == null ? io.ballerina.asyncapi.core.model.message.AsyncApiMessage.withExternalPayloadRef(
+                        extensions, MessagePayloadMapperV2.externalRef(message)) : extensions
         );
     }
 

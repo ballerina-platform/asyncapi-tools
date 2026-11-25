@@ -25,6 +25,7 @@ import io.ballerina.asyncapi.generator.Protocol;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.LinkedHashSet;
 import java.util.Locale;
 import java.util.Optional;
 import java.util.Set;
@@ -38,7 +39,8 @@ import java.util.Set;
 final class ProtocolDetector {
 
     static final String EVENT_IDENTIFIER = "x-ballerina-event-identifier";
-    private static final Set<String> WEBSOCKET_PROTOCOLS = Set.of("ws", "wss");
+    private static final Set<String> WEBSOCKET_PROTOCOLS = Set.of("ws", "wss", "websocket", "websockets");
+    private static final Set<String> HTTP_PROTOCOLS = Set.of("http", "https");
 
     private ProtocolDetector() {
     }
@@ -51,19 +53,49 @@ final class ProtocolDetector {
      * @throws IOException if the definition can't be read or parsed
      */
     static Optional<Protocol> detect(Path spec) throws IOException {
-        JsonNode root = new ObjectMapper(new YAMLFactory()).readTree(Files.readString(spec));
+        JsonNode root = read(spec);
         if (root == null || !root.isObject()) {
             return Optional.empty();
         }
         if (root.has(EVENT_IDENTIFIER)) {
             return Optional.of(Protocol.HTTP);
         }
-        for (JsonNode server : root.path("servers")) {
-            String protocol = server.path("protocol").asText("").trim().toLowerCase(Locale.ROOT);
+        for (String protocol : serverProtocols(root)) {
             if (WEBSOCKET_PROTOCOLS.contains(protocol)) {
                 return Optional.of(Protocol.WS);
             }
         }
         return Optional.empty();
+    }
+
+    /**
+     * Returns the protocols of the definition's servers when every server names one the tool doesn't generate for,
+     * such as {@code mqtt} or {@code kafka}.
+     *
+     * @param spec the definition
+     * @return those protocols, or empty when a server is unlabelled or uses http, https, ws or wss
+     * @throws IOException if the definition can't be read or parsed
+     */
+    static Set<String> otherProtocols(Path spec) throws IOException {
+        JsonNode root = read(spec);
+        Set<String> protocols = root == null ? Set.of() : serverProtocols(root);
+        if (protocols.isEmpty() || protocols.contains("") || protocols.stream()
+                .anyMatch(p -> WEBSOCKET_PROTOCOLS.contains(p) || HTTP_PROTOCOLS.contains(p))) {
+            return Set.of();
+        }
+        return protocols;
+    }
+
+    private static JsonNode read(Path spec) throws IOException {
+        return new ObjectMapper(new YAMLFactory()).readTree(Files.readString(spec));
+    }
+
+    // The protocol each server names, lower-cased, with "" for a server that names none
+    private static Set<String> serverProtocols(JsonNode root) {
+        Set<String> protocols = new LinkedHashSet<>();
+        for (JsonNode server : root.path("servers")) {
+            protocols.add(server.path("protocol").asText("").trim().toLowerCase(Locale.ROOT));
+        }
+        return protocols;
     }
 }

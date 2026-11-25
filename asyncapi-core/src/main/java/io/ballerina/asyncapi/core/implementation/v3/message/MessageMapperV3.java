@@ -126,7 +126,8 @@ public final class MessageMapperV3 {
                 headers = SchemaMapper.map(typedSchema);
             }
             payload = MessagePayloadMapperV3.map(typedMessage.getPayload(), components);
-            extensions = typedMessage.getExtensions();
+            extensions = io.ballerina.asyncapi.core.model.message.AsyncApiMessage.withExternalPayloadRef(
+                    typedMessage.getExtensions(), MessagePayloadMapperV3.externalRef(typedMessage.getPayload()));
             examples = MessageExampleMapperV3.map(typedMessage);
         }
 

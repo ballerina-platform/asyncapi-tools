@@ -234,6 +234,100 @@ public class WsClientWarningsTest {
         Assert.assertTrue(client.contains("\"wss://example.com/ws\""), client);
     }
 
+    @Test
+    void testPayloadInAnotherFileSaysToBundleTheSpec() throws Exception {
+        String spec = """
+                asyncapi: 3.0.0
+                info: {title: Feed, version: 1.0.0}
+                servers:
+                  s: {host: example.com, protocol: wss}
+                channels:
+                  feed:
+                    address: /feed
+                    messages:
+                      Tick: {payload: {$ref: 'common.yaml#/Tick'}}
+                operations:
+                  onTick:
+                    action: receive
+                    channel: {$ref: '#/channels/feed'}
+                    messages: [{$ref: '#/channels/feed/messages/Tick'}]
+                """;
+        List<SpecWarning> warnings = new ArrayList<>();
+        generateClient(spec, warnings);
+        Assert.assertEquals(warnings, List.of(new SpecWarning("/operations/onTick",
+                "message 'Tick' takes its payload from 'common.yaml#/Tick', another file, and the tool only reads "
+                        + "references inside the spec, so the client has no type to receive it as",
+                "Bundle the spec into one file first, for example with 'asyncapi bundle' from the AsyncAPI CLI, "
+                        + "or copy the schema into components/schemas.")));
+    }
+
+    @Test
+    void testPayloadInAnotherFileOfA2xSpecSaysToBundleTheSpec() throws Exception {
+        String spec = """
+                asyncapi: 2.6.0
+                info: {title: Feed, version: 1.0.0}
+                servers:
+                  s: {url: example.com, protocol: wss}
+                channels:
+                  /feed:
+                    subscribe:
+                      message:
+                        name: Tick
+                        payload: {$ref: 'common.yaml#/Tick'}
+                """;
+        List<SpecWarning> warnings = new ArrayList<>();
+        generateClient(spec, warnings);
+        Assert.assertEquals(warnings.size(), 1, warnings.toString());
+        Assert.assertTrue(warnings.get(0).message().contains("takes its payload from 'common.yaml#/Tick'"),
+                warnings.toString());
+    }
+
+    @Test
+    void testBinaryMessagesAreLeftOutWithAWarning() throws Exception {
+        String spec = """
+                asyncapi: 3.0.0
+                info: {title: Media, version: 1.0.0}
+                x-dispatcherKey: type
+                servers:
+                  s: {host: example.com, protocol: wss}
+                channels:
+                  media:
+                    address: /media
+                    messages:
+                      Frame: {contentType: image/png, payload: {type: object}}
+                      Chunk: {payload: {type: string, format: binary}}
+                      Started:
+                        payload:
+                          type: object
+                          required: [type, id]
+                          properties: {type: {type: string, const: started}, id: {type: string}}
+                operations:
+                  sendFrame:
+                    action: send
+                    channel: {$ref: '#/channels/media'}
+                    messages: [{$ref: '#/channels/media/messages/Frame'}]
+                  onChunk:
+                    action: receive
+                    channel: {$ref: '#/channels/media'}
+                    messages: [{$ref: '#/channels/media/messages/Chunk'}]
+                  onStarted:
+                    action: receive
+                    channel: {$ref: '#/channels/media'}
+                    messages: [{$ref: '#/channels/media/messages/Started'}]
+                """;
+        List<SpecWarning> warnings = new ArrayList<>();
+        String client = generateClient(spec, warnings);
+        Assert.assertTrue(client.contains("function doStarted("), client);
+        Assert.assertFalse(client.contains("function doFrame(") || client.contains("function doChunk("), client);
+        String fix = "Binary WebSocket frames aren't supported. If the server also takes the data as JSON or text, "
+                + "describe that form of the message instead.";
+        Assert.assertEquals(warnings, List.of(
+                new SpecWarning("/operations/sendFrame", "message 'Frame' is binary (contentType 'image/png'), and "
+                        + "the client sends and reads text frames, so it leaves the message out", fix),
+                new SpecWarning("/operations/onChunk", "message 'Chunk' is binary (a 'format: binary' string "
+                        + "payload), and the client sends and reads text frames, so it leaves the message out", fix)));
+    }
+
     private static String generateClient(String spec, List<SpecWarning> warnings) throws Exception {
         Path outDir = Files.createTempDirectory("ws-warnings");
         try {
