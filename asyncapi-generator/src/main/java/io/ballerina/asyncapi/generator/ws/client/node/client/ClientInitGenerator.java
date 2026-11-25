@@ -172,11 +172,19 @@ public class ClientInitGenerator {
                     String.format("string %s = %s + string `%s`;", MODIFIED_URL, SERVICE_URL, path)));
             url = MODIFIED_URL;
         }
-        List<String> queryEntries = new ArrayList<>(paramEntries(querySchema, QUERY_PARAMS, false));
+        // A key the spec also lists as a parameter is sent once, from the key
+        Collection<String> queryKeys = authGen.getQueryApiKeyNameList().values();
+        List<String> queryEntries = new ArrayList<>(paramEntries(querySchema, QUERY_PARAMS, false, queryKeys));
         // With HTTP or OAuth as well, the API key is optional; a nil query value is skipped
         boolean optionalKey = authGen.isApiKeyOptional();
-        authGen.getQueryApiKeyNameList().values().forEach(name -> queryEntries.add(
-                apiKeyEntry(name, optionalKey ? "?." : ".")));
+        for (String name : queryKeys) {
+            String entry = apiKeyEntry(name, optionalKey ? "?." : ".");
+            if (optionalKey && hasProperty(querySchema, name)) {
+                // Without the key, the parameter's value is sent
+                entry += String.format(" ?: %s.%s", QUERY_PARAMS, CodegenUtils.escapeIdentifier(name));
+            }
+            queryEntries.add(entry);
+        }
         if (!queryEntries.isEmpty()) {
             if (path.isEmpty()) {
                 statements.add(NodeParser.parseStatement(
@@ -188,8 +196,10 @@ public class ClientInitGenerator {
             statements.add(NodeParser.parseStatement(
                     String.format("%s = %s + check getPathForQueryParam(queryParam);", MODIFIED_URL, MODIFIED_URL)));
         }
-        List<String> headerEntries = new ArrayList<>(paramEntries(headerSchema, HEADER_PARAMS, true));
         Collection<String> headerKeys = authGen.getHeaderApiKeyNameList().values();
+        // An optional key is put in after the parameters, so it replaces one of the same name
+        List<String> headerEntries = new ArrayList<>(paramEntries(headerSchema, HEADER_PARAMS, true,
+                optionalKey ? List.of() : headerKeys));
         if (!optionalKey) {
             headerKeys.forEach(name -> headerEntries.add(apiKeyEntry(name, ".")));
         }
@@ -251,9 +261,11 @@ public class ClientInitGenerator {
      * @param schema   the {@code query} or {@code headers} schema (may be null)
      * @param record   the parameter holding the values
      * @param asString whether each value is converted to a string, as headers need
+     * @param skipped  the names an API key sends instead
      * @return the map entries, empty when the schema has no properties
      */
-    private static List<String> paramEntries(JsonNode schema, String record, boolean asString) {
+    private static List<String> paramEntries(JsonNode schema, String record, boolean asString,
+                                             Collection<String> skipped) {
         List<String> entries = new ArrayList<>();
         if (schema == null || schema.get("properties") == null) {
             return entries;
@@ -261,10 +273,17 @@ public class ClientInitGenerator {
         Iterator<String> names = schema.get("properties").fieldNames();
         while (names.hasNext()) {
             String name = names.next();
+            if (skipped.contains(name)) {
+                continue;
+            }
             entries.add(String.format("%s: %s.%s%s", CodegenUtils.toStringLiteral(name), record,
                     CodegenUtils.escapeIdentifier(name), asString ? ".toString()" : ""));
         }
         return entries;
+    }
+
+    private static boolean hasProperty(JsonNode schema, String name) {
+        return schema != null && schema.get("properties") != null && schema.get("properties").has(name);
     }
 
     private static String apiKeyEntry(String name, String access) {
