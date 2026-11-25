@@ -56,6 +56,12 @@ public final class ErrorMessages {
     public static final String UNKNOWN_FORMAT =
             "error: unknown format '%s'. Supported formats: json, yaml.";
 
+    public static final String INVALID_SPEC_SIDE =
+            "error: Invalid value for option '--spec-side': expected one of [client, service]";
+
+    public static final String WARN_OPTION_ONLY_FOR_CODE_OUTPUT =
+            "%s only applies when generating code from an AsyncAPI definition and will be ignored.";
+
     public static final String UNEXPECTED_GENERATION_FAILURE =
             "error: unexpected failure during generation: ";
 

@@ -103,6 +103,7 @@ final class WsProtocolCommand implements ProtocolCommand {
                 .withLicenseHeader(licenseHeader)
                 .withIncludeTestFiles(opts.isWithTests())
                 .withWarnings(ctx::printSpecWarning)
+                .withServiceSide(opts.isServiceSide())
                 .build();
         int skipped;
         try (OutputStage stage = OutputStage.open(outputPath, opts, ctx)) {

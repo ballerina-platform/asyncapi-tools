@@ -91,6 +91,14 @@ public class HttpCmdUnitTest extends CmdTestBase {
         Assert.assertFalse(Files.exists(pkg.resolve("tests/dispatch_test.bal")));
     }
 
+    @Test(description = "--spec-side warns that http does not support it")
+    public void testSpecSideWarns() throws IOException {
+        Path specFile = Files.createTempFile(tmpDir, "spec-", ".yaml");
+        parse(specFile.toString(), "--protocol", "http", "--spec-side", "service").execute();
+        Assert.assertTrue(getErr().contains("warning: --spec-side is not supported for the http protocol"),
+                "Expected the unsupported option warning. Err: " + getErr());
+    }
+
     @Test(description = "--license warns that http does not support it, and generation is still attempted")
     public void testLicenseWarnsAndContinues() throws IOException {
         Path specFile = Files.createTempFile(tmpDir, "spec-", ".yaml");
