@@ -17,6 +17,9 @@
  */
 package io.ballerina.asyncapi.cmd;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.ballerina.asyncapi.generator.Protocol;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 import picocli.CommandLine;
@@ -24,144 +27,16 @@ import picocli.CommandLine;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
- * Unit tests for the {@link AsyncApiCmd} command shape: positional input, the {@code --protocol} flag,
- * protocol lookup and the shared context.
+ * Unit tests for the {@link AsyncApiCmd} command shape against the Ballerina CLI Tool Design Guide: the help, the
+ * version, the error format and exit codes, removed syntax, and how the protocol is chosen.
  */
 public class AsyncApiCmdUnitTest extends CmdTestBase {
 
-    @Test(description = "--help prints usage and does not error")
-    public void testHelpFlagPrintsUsage() {
-        AsyncApiCmd cmd = parse("--help");
-        cmd.execute();
-        Assert.assertTrue(getErr().isEmpty(), "No error expected for --help. Err: " + getErr());
-        Assert.assertFalse(getOut().isBlank(), "Expected help text. Out: " + getOut());
-    }
-
-    @Test(description = "No input prints the missing-input error")
-    public void testMissingInput() {
-        parse("--protocol", "http").execute();
-        Assert.assertTrue(getErr().contains(ErrorMessages.MISSING_INPUT),
-                "Expected missing input error. Err: " + getErr());
-    }
-
-    @Test(description = "No --protocol prints the missing-protocol error listing supported protocols")
-    public void testMissingProtocol() {
-        parse("spec.yaml").execute();
-        Assert.assertTrue(getErr().contains("--protocol flag is required"),
-                "Expected missing protocol error. Err: " + getErr());
-        Assert.assertTrue(getErr().contains("http, ws"), "Expected supported protocols. Err: " + getErr());
-    }
-
-    @Test(description = "An unknown protocol prints an error naming it and the supported ones")
-    public void testUnknownProtocol() {
-        parse("spec.yaml", "--protocol", "kafka").execute();
-        Assert.assertTrue(getErr().contains("unknown protocol 'kafka'"),
-                "Expected unknown protocol error. Err: " + getErr());
-        Assert.assertTrue(getErr().contains("http, ws"), "Expected supported protocols. Err: " + getErr());
-    }
-
-    @Test(description = "The removed -i flag points at the positional input, keeping the given protocol")
-    public void testRemovedInputFlagSuggestsNewSyntax() {
-        parse("-i", "service.bal", "--protocol", "ws").execute();
-        Assert.assertTrue(getErr().contains("-i/--input has been removed"), "Err: " + getErr());
-        Assert.assertTrue(getErr().contains("bal asyncapi service.bal --protocol ws"), "Err: " + getErr());
-    }
-
-    @Test(description = "Without --protocol the suggestion shows the protocols to choose from")
-    public void testRemovedInputFlagWithoutProtocol() {
-        parse("--input", "spec.yaml").execute();
-        Assert.assertTrue(getErr().contains("bal asyncapi spec.yaml --protocol <http|ws>"), "Err: " + getErr());
-    }
-
-    @Test(description = "The removed --json flag points at --format json, also inside the -i suggestion")
-    public void testRemovedJsonFlagSuggestsFormat() {
-        parse("-i", "service.bal", "--protocol", "ws", "--json").execute();
-        Assert.assertTrue(getErr().contains("bal asyncapi service.bal --protocol ws --format json"),
-                "Err: " + getErr());
-        Assert.assertTrue(getErr().contains("--json has been replaced by --format json"), "Err: " + getErr());
-    }
-
-    @Test(description = "The old WebSocket protocol names point at ws, and -i suggestions use ws")
-    public void testOldWebSocketProtocolNames() {
-        parse("service.bal", "--protocol", "websocket").execute();
-        Assert.assertTrue(getErr().contains("Use --protocol ws for WebSocket"), "Err: " + getErr());
-        errContent.reset();
-        parse("-i", "service.bal", "--protocol", "wss").execute();
-        Assert.assertTrue(getErr().contains("bal asyncapi service.bal --protocol ws"), "Err: " + getErr());
-    }
-
-    @Test(description = "The removed flags stay out of the help")
-    public void testRemovedFlagsAreNotInHelp() {
-        String help = help();
-        Assert.assertFalse(help.contains("--input"), "Out: " + help);
-        Assert.assertFalse(help.contains("--json"), "Out: " + help);
-    }
-
-    @Test(description = "The protocol name is matched case-insensitively")
-    public void testProtocolCaseInsensitive() {
-        parse("/non/existent/spec.yaml", "--protocol", "HTTP").execute();
-        Assert.assertFalse(getErr().contains("unknown protocol"),
-                "HTTP should be accepted. Err: " + getErr());
-        Assert.assertTrue(getErr().contains("/non/existent/spec.yaml"),
-                "Expected the input path error. Err: " + getErr());
-    }
-
-    @Test(description = "An unknown --format prints an error listing the supported formats")
-    public void testUnknownFormat() {
-        parse("service.bal", "--protocol", "ws", "--format", "xml").execute();
-        Assert.assertTrue(getErr().contains("unknown format 'xml'"),
-                "Expected unknown format error. Err: " + getErr());
-        Assert.assertTrue(getErr().contains("json, yaml"), "Expected supported formats. Err: " + getErr());
-    }
-
-    @Test(description = "--format accepts json and yaml in any case")
-    public void testKnownFormatsAccepted() {
-        for (String format : new String[]{"json", "yaml", "JSON", "Yaml"}) {
-            errContent.reset();
-            parse("/non/existent/service.bal", "--protocol", "ws", "--format", format).execute();
-            Assert.assertFalse(getErr().contains("unknown format"),
-                    format + " should be accepted. Err: " + getErr());
-        }
-    }
-
-    @Test(description = "--format selects JSON output only for json, yaml and no flag give YAML")
-    public void testFormatMapsToJsonOption() {
-        BaseCmd base = new BaseCmd();
-        Assert.assertFalse(CmdUtils.collectCmdOptions(base).isJson(), "no --format should mean yaml");
-        base.format = "yaml";
-        Assert.assertFalse(CmdUtils.collectCmdOptions(base).isJson());
-        base.format = "JSON";
-        Assert.assertTrue(CmdUtils.collectCmdOptions(base).isJson());
-    }
-
-    @Test(description = "The input is a positional argument")
-    public void testPositionalInput() {
-        parse("/non/existent/spec.yaml", "--protocol", "ws").execute();
-        Assert.assertTrue(getErr().contains("/non/existent/spec.yaml"),
-                "Expected the positional input in the error. Err: " + getErr());
-    }
-
-    @Test(description = "The command has no subcommands")
-    public void testNoSubcommands() {
-        Assert.assertTrue(new CommandLine(new AsyncApiCmd(outStream, errStream)).getSubcommands().isEmpty(),
-                "http/ws must not be subcommands any more");
-    }
-
-    @Test(description = "getName() returns 'asyncapi'")
-    public void testGetName() {
-        Assert.assertEquals(new AsyncApiCmd(outStream, errStream).getName(), "asyncapi");
-    }
-
-    @Test(description = "printUsage is the generated usage line: the command, its flags and the input")
-    public void testPrintUsage() {
-        new AsyncApiCmd(outStream, errStream).printUsage(new StringBuilder());
-        String usage = squash(getOut());
-        Assert.assertTrue(usage.startsWith("bal asyncapi "), "Expected the command name. Out: " + getOut());
-        Assert.assertTrue(usage.contains("--protocol <http|ws>"), "Expected the protocol flag. Out: " + getOut());
-        Assert.assertTrue(usage.contains("[<input>]"), "Expected the input. Out: " + getOut());
-    }
+    private static final String NL = System.lineSeparator();
 
     private String help() {
         outContent.reset();
@@ -169,64 +44,250 @@ public class AsyncApiCmdUnitTest extends CmdTestBase {
         return getOut();
     }
 
-    // Help wraps long descriptions across lines, so compare with all whitespace collapsed.
-    private static String squash(String text) {
-        return text.replaceAll("\\s+", " ").trim();
+    @Test(description = "--help prints the help to stdout and nothing to stderr")
+    public void testHelpFlagPrintsHelp() {
+        AsyncApiCmd cmd = run("--help");
+        Assert.assertTrue(getErr().isEmpty(), "Err: " + getErr());
+        Assert.assertTrue(getOut().startsWith(HelpText.DESCRIPTION), "Out: " + getOut());
+        Assert.assertEquals(cmd.exitCode(), ExitCodes.SUCCESS);
+        outContent.reset();
+        run("-h");
+        Assert.assertTrue(getOut().startsWith(HelpText.DESCRIPTION), "Out: " + getOut());
     }
 
-    @Test(description = "printLongDesc writes the generated help with its sections")
-    public void testPrintLongDesc() {
-        String help = help();
-        for (String section : new String[]{"NAME", "SYNOPSIS", "DESCRIPTION", "ARGUMENTS", "OPTIONS"}) {
-            Assert.assertTrue(help.contains(section + System.lineSeparator()) || help.contains(section + "\n"),
-                    "Expected the " + section + " section. Out: " + help);
+    @Test(description = "The help has the guide's sections in order: description, usage, options, examples (HLP-1)")
+    public void testHelpSections() {
+        String help = help().replace(NL, "\n");
+        int usage = help.indexOf("\nUsage: bal asyncapi [OPTIONS] <input>\n");
+        int options = help.indexOf("\nOptions:\n");
+        int examples = help.indexOf("\nExamples:\n");
+        Assert.assertTrue(help.startsWith(HelpText.DESCRIPTION + "\n"), "Out: " + help);
+        Assert.assertFalse(HelpText.DESCRIPTION.endsWith("."), "No trailing period on the description");
+        Assert.assertTrue(usage > 0 && options > usage && examples > options, "Out: " + help);
+        long commented = help.lines().filter(line -> line.startsWith("  # ")).count();
+        Assert.assertTrue(commented >= 2, "At least two examples, each with a comment. Out: " + help);
+        Assert.assertFalse(help.toLowerCase().contains("exit code"), "Help does not list exit codes (HLP-3)");
+    }
+
+    @Test(description = "Every help line fits in 80 columns, and each option is one lowercase line (HLP-2)")
+    public void testHelpLines() {
+        for (String line : help().lines().toList()) {
+            Assert.assertTrue(line.length() <= HelpText.MAX_WIDTH, "Too long: " + line);
         }
-        Assert.assertTrue(help.contains("bal asyncapi - "), "Expected the name line. Out: " + help);
-    }
-
-    @Test(description = "Every flag the command accepts is described in the help, with its own description")
-    public void testEveryFlagIsInTheHelp() {
-        String help = squash(help());
-        CommandLine.Model.CommandSpec spec = new CommandLine(new AsyncApiCmd(outStream, errStream))
-                .getCommandSpec();
-        int visibleOptions = 0;
+        CommandLine.Model.CommandSpec spec = new CommandLine(new AsyncApiCmd(outStream, errStream)).getCommandSpec();
         for (CommandLine.Model.OptionSpec option : spec.options()) {
             if (option.hidden()) {
                 continue;
             }
-            visibleOptions++;
-            for (String name : option.names()) {
-                Assert.assertTrue(help.contains(name), name + " is missing from the help");
+            Assert.assertEquals(option.description().length, 1, option.longestName());
+            String description = option.description()[0];
+            Assert.assertTrue(Character.isLowerCase(description.charAt(0)), option.longestName());
+            Assert.assertFalse(description.endsWith("."), option.longestName());
+        }
+    }
+
+    @Test(description = "Every visible flag is in the help with its description, in alphabetical order")
+    public void testEveryFlagIsInTheHelp() {
+        String help = help();
+        CommandLine.Model.CommandSpec spec = new CommandLine(new AsyncApiCmd(outStream, errStream)).getCommandSpec();
+        List<String> names = new ArrayList<>();
+        List<Integer> positions = new ArrayList<>();
+        for (CommandLine.Model.OptionSpec option : spec.options()) {
+            if (option.hidden()) {
+                continue;
             }
-            String description = squash(String.join(" ", option.description()));
-            Assert.assertFalse(description.isBlank(), option.longestName() + " has no description");
-            Assert.assertTrue(help.contains(description),
-                    option.longestName() + " is described differently in the help");
+            int at = help.indexOf(option.longestName() + (option.typeInfo().isBoolean() ? " " : " <"));
+            Assert.assertTrue(at > 0, option.longestName() + " is missing from the help");
+            Assert.assertTrue(help.contains(option.description()[0]), option.longestName() + " description");
+            names.add(option.longestName().replaceFirst("^-+", ""));
+            positions.add(at);
         }
-        // Guards against the loop passing vacuously if the flags stop being found.
-        Assert.assertTrue(visibleOptions >= 9, "Expected the command's flags. Found " + visibleOptions);
-        for (CommandLine.Model.PositionalParamSpec input : spec.positionalParameters()) {
-            String description = squash(String.join(" ", input.description()));
-            Assert.assertFalse(description.isBlank(), "The input has no description");
-            Assert.assertTrue(help.contains(description), "The input is described differently in the help");
-        }
+        Assert.assertTrue(names.size() >= 13, "Expected the command's flags. Found " + names);
+        List<String> byPosition = new ArrayList<>(names);
+        byPosition.sort((a, b) -> positions.get(names.indexOf(a)) - positions.get(names.indexOf(b)));
+        List<String> sorted = new ArrayList<>(names);
+        sorted.sort(String::compareTo);
+        Assert.assertEquals(byPosition, sorted, "Options are listed alphabetically");
     }
 
-    @Test(description = "The protocols and formats written in the flag labels match what the command accepts")
+    @Test(description = "The protocols and formats in the flag labels match what the command accepts")
     public void testHelpListsRegisteredProtocolsAndFormats() {
-        String help = squash(help());
-        Assert.assertTrue(help.contains("--protocol <" + ProtocolCommands.names("|") + ">"),
-                "The --protocol label should list the registered protocols. Out: " + help);
-        Assert.assertTrue(help.contains("--format <" + CmdConstants.FORMAT_YAML + "|" + CmdConstants.FORMAT_JSON + ">"),
-                "The --format label should list the accepted formats. Out: " + help);
+        String help = help();
+        Assert.assertTrue(help.contains("--protocol <" + ProtocolCommands.names("|") + ">"), help);
+        Assert.assertTrue(help.contains("--spec-format <" + CmdConstants.FORMAT_YAML + "|" + CmdConstants.FORMAT_JSON
+                + ">"), help);
     }
 
-    @Test(description = "A flag's value can still be given with =, although the help shows it after a space")
-    public void testEqualsFormStillParses() {
-        parse("/non/existent/spec.yaml", "--protocol=HTTP", "--format=json", "--output=somewhere").execute();
-        Assert.assertFalse(getErr().contains("--protocol flag is required"), "Err: " + getErr());
+    @Test(description = "The removed and renamed flags stay out of the help")
+    public void testRemovedFlagsAreNotInHelp() {
+        String help = help();
+        Assert.assertFalse(help.contains("--input"), help);
+        Assert.assertFalse(help.contains("--json"), help);
+        Assert.assertFalse(help.contains(" --format"), help);
+    }
+
+    @Test(description = "-V and --version print the version to stdout (INV-2)")
+    public void testVersion() {
+        AsyncApiCmd cmd = run("--version");
+        Assert.assertTrue(getOut().startsWith("asyncapi "), "Out: " + getOut());
+        Assert.assertTrue(getErr().isEmpty(), "Err: " + getErr());
+        Assert.assertEquals(cmd.exitCode(), ExitCodes.SUCCESS);
+        outContent.reset();
+        run("-V");
+        Assert.assertTrue(getOut().startsWith("asyncapi "), "Out: " + getOut());
+    }
+
+    @Test(description = "A missing input is a usage error: the error, the synopsis and the help pointer (ERR-8)")
+    public void testMissingInput() {
+        AsyncApiCmd cmd = run("--protocol", "http");
+        Assert.assertEquals(cmd.exitCode(), ExitCodes.USAGE);
+        Assert.assertTrue(getErr().startsWith("bal asyncapi: error: missing required argument <input>" + NL),
+                "Err: " + getErr());
+        Assert.assertTrue(getErr().contains(NL + "Usage: bal asyncapi [OPTIONS] <input>" + NL
+                + "Try 'bal asyncapi --help' for more information." + NL), "Err: " + getErr());
+        Assert.assertTrue(getOut().isEmpty(), "stdout is empty on failure. Out: " + getOut());
+    }
+
+    @Test(description = "An unknown protocol is a usage error listing the supported ones")
+    public void testUnknownProtocol() {
+        AsyncApiCmd cmd = run("spec.yaml", "--protocol", "kafka");
+        Assert.assertEquals(cmd.exitCode(), ExitCodes.USAGE);
+        Assert.assertTrue(getErr().contains("bal asyncapi: error: unknown protocol 'kafka'"), "Err: " + getErr());
+        Assert.assertTrue(getErr().contains("  Use one of: http, ws."), "Err: " + getErr());
+    }
+
+    @Test(description = "The removed -i flag gives the replacement command to run")
+    public void testRemovedInputFlagSuggestsNewSyntax() {
+        AsyncApiCmd cmd = run("-i", "service.bal", "--protocol", "ws");
+        Assert.assertEquals(cmd.exitCode(), ExitCodes.USAGE);
+        Assert.assertTrue(getErr().contains("error: -i/--input has been removed"), "Err: " + getErr());
+        Assert.assertTrue(getErr().contains("  Try: bal asyncapi service.bal --protocol ws" + NL), "Err: " + getErr());
+    }
+
+    @Test(description = "The removed --json flag points at --spec-format json, also inside the -i fix")
+    public void testRemovedJsonFlagSuggestsSpecFormat() {
+        run("-i", "service.bal", "--protocol", "ws", "--json");
+        Assert.assertTrue(getErr().contains("--json has been replaced by --spec-format json"), "Err: " + getErr());
+        Assert.assertTrue(getErr().contains("Try: bal asyncapi service.bal --protocol ws --spec-format json"),
+                "Err: " + getErr());
+    }
+
+    @Test(description = "The old WebSocket protocol names point at ws")
+    public void testOldWebSocketProtocolNames() {
+        AsyncApiCmd cmd = run("service.bal", "--protocol", "websocket");
+        Assert.assertEquals(cmd.exitCode(), ExitCodes.USAGE);
+        Assert.assertTrue(getErr().contains("Use --protocol ws for WebSocket."), "Err: " + getErr());
+        Assert.assertTrue(getErr().contains("Try: bal asyncapi service.bal --protocol ws"), "Err: " + getErr());
+    }
+
+    @Test(description = "The protocol name is matched case-insensitively")
+    public void testProtocolCaseInsensitive() {
+        AsyncApiCmd cmd = run("/non/existent/spec.yaml", "--protocol", "HTTP");
         Assert.assertFalse(getErr().contains("unknown protocol"), "Err: " + getErr());
-        Assert.assertFalse(getErr().contains("unknown format"), "Err: " + getErr());
+        Assert.assertTrue(getErr().contains("'/non/existent/spec.yaml' does not exist"), "Err: " + getErr());
+        Assert.assertEquals(cmd.exitCode(), ExitCodes.RUNTIME);
+    }
+
+    @Test(description = "Without --protocol, a definition that says neither HTTP nor WebSocket is not guessed")
+    public void testProtocolNotGuessed() throws IOException {
+        Path spec = Files.writeString(tmpDir.resolve("plain.yaml"),
+                "asyncapi: 2.6.0\ninfo: {title: Plain, version: 1.0.0}\nservers:\n  prod: {url: example.com, "
+                        + "protocol: https}\nchannels: {}\n");
+        AsyncApiCmd cmd = run(spec.toString());
+        Assert.assertEquals(cmd.exitCode(), ExitCodes.USAGE);
+        Assert.assertTrue(getErr().contains("cannot tell whether"), "Err: " + getErr());
+        Assert.assertTrue(getErr().contains("--protocol http") && getErr().contains("--protocol ws"),
+                "Err: " + getErr());
+    }
+
+    @Test(description = "The protocol is read from the definition: ws/wss servers or the trigger extension")
+    public void testProtocolDetected() throws Exception {
+        Path ws = Files.writeString(tmpDir.resolve("ws.yaml"),
+                "asyncapi: 3.0.0\ninfo: {title: Chat, version: 1.0.0}\nservers:\n  prod: {host: example.com, "
+                        + "protocol: wss}\n");
+        Assert.assertEquals(ProtocolDetector.detect(ws).orElseThrow(), Protocol.WS);
+        Assert.assertEquals(ProtocolDetector.detect(resource("specs/tiny_http.yaml")).orElseThrow(), Protocol.HTTP);
+    }
+
+    @Test(description = "An unknown --spec-format is a usage error naming the accepted values")
+    public void testUnknownSpecFormat() {
+        AsyncApiCmd cmd = run("service.bal", "--spec-format", "xml");
+        Assert.assertEquals(cmd.exitCode(), ExitCodes.USAGE);
+        Assert.assertTrue(getErr().contains("invalid value 'xml' for --spec-format"), "Err: " + getErr());
+        Assert.assertTrue(getErr().contains("Use yaml or json."), "Err: " + getErr());
+    }
+
+    @Test(description = "--format still works, with a warning that it is now --spec-format")
+    public void testFormatIsRenamed() {
+        run("/non/existent/service.bal", "--format", "JSON");
+        Assert.assertTrue(getErr().contains("bal asyncapi: warning: --format is renamed to --spec-format"),
+                "Err: " + getErr());
+        Assert.assertFalse(getErr().contains("invalid value"), "Err: " + getErr());
+    }
+
+    @Test(description = "--spec-format selects JSON only for json; yaml and no flag give YAML")
+    public void testSpecFormatMapsToJsonOption() {
+        BaseCmd base = new BaseCmd();
+        Assert.assertFalse(CmdUtils.collectCmdOptions(base).isJson(), "no flag should mean yaml");
+        base.specFormat = "yaml";
+        Assert.assertFalse(CmdUtils.collectCmdOptions(base).isJson());
+        base.specFormat = "JSON";
+        Assert.assertTrue(CmdUtils.collectCmdOptions(base).isJson());
+        base.specFormat = null;
+        base.format = "json";
+        Assert.assertTrue(CmdUtils.collectCmdOptions(base).isJson(), "the old --format still counts");
+    }
+
+    @Test(description = "An input that is neither a definition nor Ballerina code is a usage error")
+    public void testUnknownInputKind() throws IOException {
+        Path text = Files.writeString(tmpDir.resolve("notes.txt"), "hello");
+        AsyncApiCmd cmd = run(text.toString());
+        Assert.assertEquals(cmd.exitCode(), ExitCodes.USAGE);
+        Assert.assertTrue(getErr().contains("is not an AsyncAPI definition or Ballerina code"), "Err: " + getErr());
+    }
+
+    @Test(description = "'-' is not accepted as a path (INV-7)")
+    public void testDashIsNotAPath() {
+        Assert.assertEquals(run("-", "--protocol", "ws").exitCode(), ExitCodes.USAGE);
+        Assert.assertTrue(getErr().contains("'-' is not accepted as a path"), "Err: " + getErr());
+        errContent.reset();
+        Assert.assertEquals(run("spec.yaml", "-o", "-").exitCode(), ExitCodes.USAGE);
+    }
+
+    @Test(description = "An invalid module name is a usage error (MOD-3)")
+    public void testInvalidModuleName() {
+        AsyncApiCmd cmd = run("spec.yaml", "--protocol", "ws", "--module", "my-module");
+        Assert.assertEquals(cmd.exitCode(), ExitCodes.USAGE);
+        Assert.assertTrue(getErr().contains("invalid module name 'my-module'"), "Err: " + getErr());
+    }
+
+    @Test(description = "--output-format json prints the error as one JSON object on stderr (OUT-1, OUT-8)")
+    public void testJsonError() throws IOException {
+        AsyncApiCmd cmd = run("spec.yaml", "--protocol", "kafka", "--output-format", "json");
+        Assert.assertEquals(cmd.exitCode(), ExitCodes.USAGE);
+        List<String> lines = getErr().lines().toList();
+        Assert.assertEquals(lines.size(), 1, "Err: " + getErr());
+        JsonNode error = new ObjectMapper().readTree(lines.get(0));
+        Assert.assertEquals(error.get("severity").asText(), "error");
+        Assert.assertEquals(error.get("kind").asText(), "usage");
+        Assert.assertEquals(error.get("message").asText(), "unknown protocol 'kafka'");
+        Assert.assertEquals(error.get("suggestion").asText(), "Use one of: http, ws.");
+        Assert.assertTrue(getOut().isEmpty(), "Out: " + getOut());
+    }
+
+    @Test(description = "An unknown --output-format is a usage error, reported as text")
+    public void testUnknownOutputFormat() {
+        AsyncApiCmd cmd = run("spec.yaml", "--output-format", "xml");
+        Assert.assertEquals(cmd.exitCode(), ExitCodes.USAGE);
+        Assert.assertTrue(getErr().startsWith("bal asyncapi: error: invalid value 'xml' for --output-format"),
+                "Err: " + getErr());
+    }
+
+    @Test(description = "A flag's value can be given with = as well as after a space (INV-3)")
+    public void testEqualsFormStillParses() {
+        run("/non/existent/spec.yaml", "--protocol=HTTP", "--spec-format=json", "--output=somewhere");
+        Assert.assertFalse(getErr().contains("unknown protocol"), "Err: " + getErr());
+        Assert.assertFalse(getErr().contains("invalid value"), "Err: " + getErr());
         Assert.assertTrue(getErr().contains("/non/existent/spec.yaml"), "Err: " + getErr());
     }
 
@@ -237,24 +298,31 @@ public class AsyncApiCmdUnitTest extends CmdTestBase {
         cmd.printLongDesc(new StringBuilder());
         errContent.reset();
         cmd.execute();
-        Assert.assertFalse(getErr().contains("--protocol flag is required"), "Err: " + getErr());
-        Assert.assertFalse(getErr().contains("no input provided"), "Err: " + getErr());
+        Assert.assertFalse(getErr().contains("missing required argument"), "Err: " + getErr());
         Assert.assertTrue(getErr().contains("/non/existent/spec.yaml"), "Err: " + getErr());
     }
 
-    @Test(description = "The help is generated: there is no help text file to keep in step")
-    public void testHelpIsNotLoadedFromAFile() {
-        Assert.assertNull(getClass().getClassLoader().getResource("cli-help/ballerina-asyncapi.help"),
-                "The help must come from the flag definitions, not a text file");
-        Assert.assertFalse(help().contains("(ws only)"),
-                "What a protocol supports belongs to the protocol, not the static help");
+    @Test(description = "printUsage prints the synopsis")
+    public void testPrintUsage() {
+        new AsyncApiCmd(outStream, errStream).printUsage(new StringBuilder());
+        Assert.assertEquals(getOut().strip(), "bal asyncapi [OPTIONS] <input>");
+    }
+
+    @Test(description = "The command has no subcommands (INV-8)")
+    public void testNoSubcommands() {
+        Assert.assertTrue(new CommandLine(new AsyncApiCmd(outStream, errStream)).getSubcommands().isEmpty());
+    }
+
+    @Test(description = "getName() returns 'asyncapi'")
+    public void testGetName() {
+        Assert.assertEquals(new AsyncApiCmd(outStream, errStream).getName(), "asyncapi");
     }
 
     @Test(description = "setParentCmdParser is a no-op")
     public void testSetParentCmdParser() {
         AsyncApiCmd cmd = new AsyncApiCmd(outStream, errStream);
         cmd.setParentCmdParser(new CommandLine(cmd));
-        Assert.assertTrue(getErr().isEmpty(), "Expected no error output. Err: " + getErr());
+        Assert.assertTrue(getErr().isEmpty(), "Err: " + getErr());
     }
 
     @Test(description = "The registry finds registered protocols and nothing else")
@@ -267,23 +335,20 @@ public class AsyncApiCmdUnitTest extends CmdTestBase {
         Assert.assertEquals(ProtocolCommands.names("|"), "http|ws");
     }
 
-    @Test(description = "readLicenseFile returns the file content when readable")
-    public void testReadLicenseFileValidPath() throws IOException {
-        Path licenseFile = Files.createTempFile(tmpDir, "license-", ".txt");
-        try {
-            Files.writeString(licenseFile, "// license header");
-            CmdContext ctx = new CmdContext(outStream, errStream, false);
-            Assert.assertEquals(ctx.readLicenseFile(licenseFile.toString()), "// license header");
-        } finally {
-            Files.deleteIfExists(licenseFile);
-        }
+    @Test(description = "The rebuilt command quotes what a shell would split")
+    public void testCommandLineQuotes() {
+        BaseCmd base = new BaseCmd();
+        base.outputPath = "my dir";
+        base.force = true;
+        Assert.assertEquals(CmdUtils.commandLine(base, "spec.yaml", "--force", "--dry-run"),
+                "bal asyncapi spec.yaml -o 'my dir' --force --dry-run");
     }
 
-    @Test(description = "readLicenseFile returns an empty string and warns when the file is missing")
-    public void testReadLicenseFileInvalidPath() {
-        CmdContext ctx = new CmdContext(outStream, errStream, false);
-        Assert.assertEquals(ctx.readLicenseFile("/nonexistent/path/license.txt"), "");
-        Assert.assertTrue(getErr().contains("could not read license file"),
-                "Expected warning in errStream. Err: " + getErr());
+    @Test(description = "Messages from elsewhere become one lowercase line without a trailing period")
+    public void testOneLine() {
+        Assert.assertEquals(CmdUtils.oneLine("Spec generation failed:\nNo service.\n"),
+                "spec generation failed: No service");
+        Assert.assertEquals(CmdUtils.oneLine("AsyncAPI is broken."), "AsyncAPI is broken");
+        Assert.assertEquals(CmdUtils.oneLine(null), "an unexpected error occurred");
     }
 }

@@ -15,62 +15,83 @@ The tool requires Ballerina Swan Lake Update 13 (2201.13.0) or later.
 ## Usage
 
 ```bash
-bal asyncapi <input> --protocol <http|ws> [options]
+bal asyncapi [OPTIONS] <input>
 ```
 
 `<input>` decides the direction:
 
-- An AsyncAPI definition (`.yaml`, `.yml` or `.json`) generates Ballerina code.
-- A Ballerina package directory or a standalone `.bal` file generates an AsyncAPI definition. A `.bal` file that belongs to a package is not accepted; pass the package directory instead, as `bal run` does.
+- An AsyncAPI definition (`.yaml`, `.yml` or `.json`) generates Ballerina code. The protocol comes from the definition: a definition with `x-ballerina-event-identifier` is a webhook trigger (`http`), and one with a `ws` or `wss` server is a WebSocket client (`ws`). A definition that shows neither needs `--protocol`; the tool does not guess.
+- A Ballerina package directory or a standalone `.bal` file generates an AsyncAPI definition. A `.bal` file that belongs to a package is not accepted; pass the package directory instead, as `bal run` does. A package in a workspace is read on its own; a workspace root is not accepted.
 
 ### Options
 
 | Option | Description |
 |--------|-------------|
-| `--protocol <http\|ws>` | Protocol of the AsyncAPI definition. Required. |
-| `-o`, `--output <dir>` | Directory the generated files are written to. Defaults to the current directory. |
-| `--module <name>` | Module of the Ballerina package to read services from, or to write generated code into. Not used with a standalone `.bal` file. |
-| `--license <file>` | File with the license header placed on generated files. Supported by `ws` only. |
-| `--format <yaml\|json>` | Format of a generated AsyncAPI definition. Defaults to `yaml`. |
-| `--service <service>` | Service to generate the definition for: its base path, for example `/chat`, or the name of the service class it upgrades to, for example `ChatService`. Every matching service is generated. |
-| `--with-tests` | Generate test files along with the code. For `http`, the definition needs `x-ballerina-auth`. |
-| `--force` | Overwrite files that already exist in the output location. |
-| `--dry-run` | Show which files would be created, overwritten or skipped, without writing anything. |
+| `-n`, `--dry-run` | List the files the run would write, without writing anything. |
+| `--force` | Overwrite existing files without asking. |
+| `-h`, `--help` | Print the help. |
+| `--license <file>` | Put this license at the top of generated `.bal` files. The file must contain only `//` comment lines and blank lines. |
+| `--module <name>` | Read services from, or generate code into, this module of the package. A module that doesn't exist yet is created. Not used with a standalone `.bal` file. |
+| `-o`, `--output <dir>` | Write the files to this directory. Defaults to the current directory. Generated Ballerina code must go into a package. |
+| `--output-format <text\|json>` | Print the result, warnings and errors as text or as JSON lines. Defaults to text in a terminal and JSON when the output is piped or redirected. |
+| `--protocol <http\|ws>` | The protocol to generate for. Defaults to the one the definition shows. |
+| `--service <path>` | Generate the definition of this service only: its base path, for example `/chat`, or the name of the service class it upgrades to, for example `ChatService`. |
+| `--spec-format <yaml\|json>` | Write the generated definition as YAML or JSON. Defaults to `yaml`. `--format` still works, with a warning. |
+| `--spec-side <client\|service>` | Read the definition as written from this side. Defaults to `client`; use `service` for a definition written from the server's side. `ws` only. |
+| `-V`, `--version` | Print the tool's version. |
+| `--with-tests` | Generate tests along with the code. For `http`, the definition needs `x-ballerina-auth`. |
 
-An option that does not apply to what you are generating is ignored with a warning, for example `--license` with `--protocol http`, or `--format` when generating code. Run `bal asyncapi --help` for the same list.
+An option that does not apply to what you are generating is ignored with a warning, for example `--spec-format` when generating code. Run `bal asyncapi --help` for the same list.
 
 ### Existing files
 
-The tool never overwrites a file you have edited unless you ask it to. For every file it generates:
+Every check runs before anything is written: the arguments, the input, the license, the output location and whether each file can be written. If any check fails, nothing is written. Then, for every file the tool generates:
 
 - a file that does not exist yet is created;
 - a file that already has the same content is left alone;
-- a file with different content is skipped with a warning, unless `--force` is given.
+- a file with different content is only replaced when you agree to it.
+
+In a terminal the tool lists the files it would replace and asks once. Without a terminal, for example in a script or a CI workflow, it does not ask: it stops with exit code 4 and writes nothing. Pass `--force` to replace the files without asking.
 
 ```
-$ bal asyncapi slack-events.yaml --protocol http
-warning: Skipped "types.bal": the file already exists. Use --force to overwrite it.
-No files were written.
-warning: 1 file(s) skipped, so the generated code may be out of sync with the definition. Use --dry-run to see what differs, or --force to overwrite.
+$ bal asyncapi slack-events.yaml
+bal asyncapi: error: types.bal already exists
+  Re-run with --force to overwrite.
+  Try: bal asyncapi slack-events.yaml --force
 ```
 
-Skipping a file leaves the output out of sync with the definition, so a run that skips any file exits with a non-zero code. A script that regenerates code, such as a CI workflow, should pass `--force`.
-
-To see what a run would do before running it, add `--dry-run`:
+To see what a run would do before running it, add `--dry-run` (or `-n`). It runs the same checks, never asks, and lists the files:
 
 ```
-$ bal asyncapi slack-events.yaml --protocol http --dry-run --force
-Dry run: no files were written.
-
-  unchanged  dispatcher_service.bal
-  unchanged  listener.bal
-  unchanged  service_types.bal
-  overwrite  types.bal
-
-0 to create, 1 to overwrite, 0 to skip, 3 unchanged.
+$ bal asyncapi slack-events.yaml --dry-run
+would overwrite  types.bal
+Dry run: nothing was written.
 ```
 
-Generated Ballerina code is written into a Ballerina package, so run the command inside one (create it with `bal new` first), or point `-o` at one.
+Each generated `.bal` file starts with the `--license` text, if given, and a line that says it was generated by `bal asyncapi`.
+
+### Output and exit codes
+
+The result (the files written) goes to stdout, and warnings and errors go to stderr. With `--output-format json`, or when the output is not a terminal, each report is one JSON object per line, for example:
+
+```json
+{"files":[{"path":"client.bal","action":"created"},{"path":"types.bal","action":"unchanged"}]}
+{"severity":"error","kind":"overwrite-refused","message":"types.bal already exists","suggestion":"Re-run with --force to overwrite.","command":"bal asyncapi slack-events.yaml --force"}
+```
+
+A warning about the definition names its place in the file, for example `chat.yaml:12:5: warning: ...`.
+
+The tool exits with the codes every Ballerina CLI tool uses:
+
+| Code | Meaning |
+|------|---------|
+| 0 | The run succeeded, or a dry run passed every check |
+| 1 | Invalid input, a definition the tool can't generate from, or a file that can't be written |
+| 2 | Invalid command line, such as a missing input or an unknown option value |
+| 3 | The input or output is not a valid package or standalone file |
+| 4 | Files would be replaced, and you declined or the tool could not ask |
+
+Generating an AsyncAPI definition compiles the package with the dependency versions in its `Dependencies.toml`. A package without one fails with exit code 1; run `bal build` once to create it.
 
 ## Examples
 
@@ -78,38 +99,41 @@ Generated Ballerina code is written into a Ballerina package, so run the command
 
 ```bash
 # Into the package in the current directory
-bal asyncapi slack-events.yaml --protocol http
+bal asyncapi slack-events.yaml
 
 # Into another package, replacing files generated earlier
-bal asyncapi slack-events.yaml --protocol http -o ./slack-listener --force
+bal asyncapi slack-events.yaml -o ./slack-listener --force
 
 # Into a module of the package
-bal asyncapi slack-events.yaml --protocol http --module events
+bal asyncapi slack-events.yaml --module events
 ```
 
 ### Generate a WebSocket client from an AsyncAPI definition
 
 ```bash
-bal asyncapi chat-api.yaml --protocol ws
+bal asyncapi chat-api.yaml
 
 # With tests and a license header
-bal asyncapi chat-api.yaml --protocol ws -o ./chat-client --with-tests --license ./license.txt
+bal asyncapi chat-api.yaml -o ./chat-client --with-tests --license ./license.txt
+
+# A definition whose servers don't say ws or wss
+bal asyncapi chat-api.yaml --protocol ws
 ```
 
 ### Generate an AsyncAPI definition from Ballerina code
 
 ```bash
 # Every WebSocket service in the package in the current directory
-bal asyncapi . --protocol ws
+bal asyncapi .
 
 # One service, as JSON
-bal asyncapi . --protocol ws --service /chat --format json -o ./specs
+bal asyncapi . --service /chat --spec-format json -o ./specs
 
 # Services in one module of the package
-bal asyncapi . --protocol ws --module chat
+bal asyncapi . --module chat
 
 # A standalone file
-bal asyncapi chat_service.bal --protocol ws
+bal asyncapi chat_service.bal
 ```
 
 ## Webhook listeners
@@ -211,7 +235,7 @@ When modifying the generated code, keep the following in mind.
 
 ```bash
 cd slack_listener
-bal asyncapi slack-events.yaml --protocol http
+bal asyncapi slack-events.yaml
 ```
 
 2\. Add a service for the events to `main.bal`:
@@ -265,6 +289,6 @@ path = "lib/asyncapi-trigger-compiler-plugin.jar"
 
 Commit both files with the trigger's source. `bal pack` puts the jar in the trigger's bala, and apps that use the trigger get the plugin from there, so nothing else needs to be installed or run.
 
-Both files follow the same rules as the generated code: an existing file that differs is skipped unless `--force` is given, and `--dry-run` lists them. Generating with a newer tool updates the jar to that tool's plugin. A trigger generated with 0.13.3 has a `[[tool.asyncapi]]` entry in `Ballerina.toml` that copied the jar during the build; generating again removes it and keeps the rest of the file. A package can have only one compiler plugin, so if it already has another, the tool leaves it as it is and warns. A listener generated into a module (`--module`) gets no plugin, as the plugin belongs to the package.
+Both files follow the same rules as the generated code: an existing file that differs is only replaced when you agree or pass `--force`, and `--dry-run` lists them. Generating with a newer tool updates the jar to that tool's plugin. A trigger generated with 0.13.3 has a `[[tool.asyncapi]]` entry in `Ballerina.toml` that copied the jar during the build; generating again removes it and keeps the rest of the file, which the result lists as `merged`. A package can have only one compiler plugin, so if it already has another, the tool leaves it as it is and warns. A listener generated into a module (`--module`) gets no plugin, as the plugin belongs to the package.
 
 The endpoints are exported with Ballerina 2201.13.6 and later. On earlier versions the plugin logs a warning and the build carries on. The plugin source is in [`asyncapi-trigger-plugin`](../asyncapi-trigger-plugin).

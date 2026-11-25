@@ -19,53 +19,48 @@ package io.ballerina.asyncapi.cmd;
 
 import org.testng.Assert;
 import org.testng.annotations.Test;
+import picocli.CommandLine;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.zip.ZipFile;
 
 /**
- * Tests for {@code --protocol http}: input validation, the capability checks and warn-and-continue handling
- * of options the protocol does not support. Generation itself is covered by the generator tests.
+ * Tests for {@code --protocol http}: input validation, the capability checks, the trigger's compiler plugin, and
+ * the fail-fast pipeline: plan, refuse or ask before replacing files, dry run, then write.
  */
 public class HttpCmdUnitTest extends CmdTestBase {
 
-    @Test(description = "A non-existent spec prints the invalid path error")
+    @Test(description = "A definition that does not exist fails with exit 1")
     public void testInvalidInputPath() {
-        parse("/non/existent/file.yaml", "--protocol", "http").execute();
-        Assert.assertTrue(getErr().contains("error: invalid input path '/non/existent/file.yaml'"),
-                "Expected invalid path error. Err: " + getErr());
+        AsyncApiCmd cmd = run("/non/existent/file.yaml", "--protocol", "http");
+        Assert.assertTrue(getErr().contains("error: '/non/existent/file.yaml' does not exist"), "Err: " + getErr());
+        Assert.assertEquals(cmd.exitCode(), ExitCodes.RUNTIME);
     }
 
-    @Test(description = "A .bal input is rejected because http cannot generate a definition from code")
+    @Test(description = "A .bal input is a usage error because http cannot generate a definition from code")
     public void testBalInputRejected() throws IOException {
         Path balFile = Files.createTempFile(tmpDir, "service-", ".bal");
-        parse(balFile.toString(), "--protocol", "http").execute();
-        Assert.assertTrue(getErr().contains("The http protocol does not support Ballerina-to-AsyncAPI"),
-                "Expected the capability error. Err: " + getErr());
+        AsyncApiCmd cmd = run(balFile.toString(), "--protocol", "http");
+        Assert.assertTrue(getErr().contains("the http protocol can't generate an AsyncAPI definition from Ballerina "
+                + "code"), "Err: " + getErr());
+        Assert.assertEquals(cmd.exitCode(), ExitCodes.USAGE);
     }
 
     @Test(description = "A package directory is rejected for http too, for the same reason")
     public void testDirectoryInputRejected() throws IOException {
         Path dir = Files.createDirectory(tmpDir.resolve("pkg"));
-        parse(dir.toString(), "--protocol", "http").execute();
-        Assert.assertTrue(getErr().contains("The http protocol does not support Ballerina-to-AsyncAPI"),
-                "Expected the capability error. Err: " + getErr());
-    }
-
-    @Test(description = "--service with a .bal input is rejected the same way")
-    public void testServiceWithBalInputRejected() throws IOException {
-        Path balFile = Files.createTempFile(tmpDir, "service-", ".bal");
-        parse(balFile.toString(), "--protocol", "http", "--service", "MyService").execute();
-        Assert.assertTrue(getErr().contains("does not support Ballerina-to-AsyncAPI"),
-                "Expected the capability error. Err: " + getErr());
+        run(dir.toString(), "--protocol", "http");
+        Assert.assertTrue(getErr().contains("the http protocol can't generate"), "Err: " + getErr());
     }
 
     @Test(description = "Without --with-tests no test file is written, even when the spec has x-ballerina-auth")
     public void testNoTestsWithoutFlag() throws Exception {
         Path pkg = newPackage("notests");
-        generateTiny(pkg, "-o", pkg.toString());
+        generateTiny("-o", pkg.toString());
         Assert.assertTrue(getErr().isEmpty(), "Err: " + getErr());
         Assert.assertFalse(Files.exists(pkg.resolve("tests/dispatch_test.bal")), "Tests were not requested");
     }
@@ -73,10 +68,10 @@ public class HttpCmdUnitTest extends CmdTestBase {
     @Test(description = "--with-tests writes the dispatch tests for a spec with x-ballerina-auth")
     public void testWithTestsWritesDispatchTests() throws Exception {
         Path pkg = newPackage("withtests");
-        generateTiny(pkg, "-o", pkg.toString(), "--with-tests");
+        generateTiny("-o", pkg.toString(), "--with-tests");
         Assert.assertTrue(getErr().isEmpty(), "Err: " + getErr());
         Assert.assertTrue(Files.exists(pkg.resolve("tests/dispatch_test.bal")), "dispatch_test.bal should exist");
-        Assert.assertTrue(getOut().contains("-- tests/dispatch_test.bal"), "Out: " + getOut());
+        Assert.assertTrue(getOut().contains("tests/dispatch_test.bal"), "Out: " + getOut());
     }
 
     @Test(description = "--with-tests on a spec without x-ballerina-auth warns that no tests could be written")
@@ -85,42 +80,51 @@ public class HttpCmdUnitTest extends CmdTestBase {
         String tiny = Files.readString(resource("specs/tiny_http.yaml"));
         String noAuth = tiny.replaceAll("(?s)x-ballerina-auth:.*?(?=info:)", "");
         Path spec = Files.writeString(tmpDir.resolve("noauth.yaml"), noAuth);
-        parse(spec.toString(), "--protocol", "http", "-o", pkg.toString(), "--with-tests").execute();
+        run(spec.toString(), "--protocol", "http", "-o", pkg.toString(), "--with-tests");
         Assert.assertTrue(getErr().contains("warning: --with-tests generated no tests"), "Err: " + getErr());
         Assert.assertTrue(Files.exists(pkg.resolve("listener.bal")), "The code should still be generated");
         Assert.assertFalse(Files.exists(pkg.resolve("tests/dispatch_test.bal")));
     }
 
+    @Test(description = "The protocol is read from x-ballerina-event-identifier, so --protocol is not needed")
+    public void testProtocolDetected() throws Exception {
+        Path pkg = newPackage("detected");
+        AsyncApiCmd cmd = run(resource("specs/tiny_http.yaml").toString(), "-o", pkg.toString());
+        Assert.assertEquals(cmd.exitCode(), ExitCodes.SUCCESS, "Err: " + getErr());
+        Assert.assertTrue(Files.exists(pkg.resolve("listener.bal")), "Err: " + getErr());
+    }
+
     @Test(description = "--spec-side warns that http does not support it")
     public void testSpecSideWarns() throws IOException {
         Path specFile = Files.createTempFile(tmpDir, "spec-", ".yaml");
-        parse(specFile.toString(), "--protocol", "http", "--spec-side", "service").execute();
+        run(specFile.toString(), "--protocol", "http", "--spec-side", "service");
         Assert.assertTrue(getErr().contains("warning: --spec-side is not supported for the http protocol"),
-                "Expected the unsupported option warning. Err: " + getErr());
+                "Err: " + getErr());
     }
 
-    @Test(description = "--license warns that http does not support it, and generation is still attempted")
-    public void testLicenseWarnsAndContinues() throws IOException {
-        Path specFile = Files.createTempFile(tmpDir, "spec-", ".yaml");
-        Path licenseFile = Files.createTempFile(tmpDir, "license-", ".txt");
-        parse(specFile.toString(), "--protocol", "http", "--license", licenseFile.toString()).execute();
-        Assert.assertTrue(getErr().contains("warning: --license is not supported for the http protocol"),
-                "Expected the unsupported option warning. Err: " + getErr());
-        Assert.assertTrue(getErr().contains("error:"),
-                "Generation should still be attempted after the warning. Err: " + getErr());
+    @Test(description = "--license is put at the top of every generated .bal file, before the notice (IO-2)")
+    public void testLicenseIsApplied() throws Exception {
+        Path pkg = newPackage("licensed");
+        Path license = Files.writeString(tmpDir.resolve("license.txt"), "// Licensed to Example\n");
+        generateTiny("-o", pkg.toString(), "--license", license.toString());
+        Assert.assertTrue(getErr().isEmpty(), "Err: " + getErr());
+        for (String name : new String[]{"types.bal", "listener.bal", "service_types.bal", "dispatcher_service.bal"}) {
+            Assert.assertTrue(Files.readString(pkg.resolve(name)).startsWith("// Licensed to Example\n\n"
+                    + GeneratedHeader.NOTICE + "\n\n"), name);
+        }
+        Assert.assertFalse(Files.readString(pkg.resolve("CompilerPlugin.toml")).contains("Licensed"),
+                "Only .bal files get the license");
     }
 
-    @Test(description = "--format and --service warn when generating code from a spec")
+    @Test(description = "--spec-format and --service warn when generating code from a spec")
     public void testSpecOutputOnlyOptionsWarn() throws IOException {
         Path specFile = Files.createTempFile(tmpDir, "spec-", ".yaml");
-        parse(specFile.toString(), "--protocol", "http", "--format", "json", "--service", "MyService").execute();
-        Assert.assertTrue(getErr().contains("warning: --format only applies"),
-                "Expected the --format warning. Err: " + getErr());
-        Assert.assertTrue(getErr().contains("warning: --service only applies"),
-                "Expected the --service warning. Err: " + getErr());
+        run(specFile.toString(), "--protocol", "http", "--spec-format", "json", "--service", "MyService");
+        Assert.assertTrue(getErr().contains("warning: --spec-format only applies"), "Err: " + getErr());
+        Assert.assertTrue(getErr().contains("warning: --service only applies"), "Err: " + getErr());
     }
 
-    private Path generateTiny(Path pkg, String... extra) throws Exception {
+    private void generateTiny(String... extra) throws Exception {
         String[] args = new String[3 + extra.length];
         args[0] = resource("specs/tiny_http.yaml").toString();
         args[1] = "--protocol";
@@ -128,27 +132,30 @@ public class HttpCmdUnitTest extends CmdTestBase {
         System.arraycopy(extra, 0, args, 3, extra.length);
         errContent.reset();
         outContent.reset();
-        parse(args).execute();
-        return pkg;
+        lastExitCode = run(args).exitCode();
     }
+
+    private int lastExitCode;
 
     @Test(description = "A first run writes every generated file and lists them")
     public void testFirstRunWritesAndListsFiles() throws Exception {
         Path pkg = newPackage("firstrun");
-        generateTiny(pkg, "-o", pkg.toString());
+        generateTiny("-o", pkg.toString());
         Assert.assertTrue(getErr().isEmpty(), "Err: " + getErr());
-        Assert.assertTrue(getOut().contains("Following files were written."), "Out: " + getOut());
+        Assert.assertEquals(lastExitCode, ExitCodes.SUCCESS);
+        Assert.assertTrue(getOut().strip().endsWith("files."), "Out: " + getOut());
         for (String name : new String[]{"types.bal", "listener.bal", "service_types.bal", "dispatcher_service.bal"}) {
             Assert.assertTrue(Files.exists(pkg.resolve(name)), name + " should exist");
-            Assert.assertTrue(getOut().contains("-- " + name), name + " should be listed. Out: " + getOut());
+            Assert.assertTrue(getOut().contains(name), name + " should be listed. Out: " + getOut());
         }
+        Assert.assertTrue(getOut().startsWith("created"), "Out: " + getOut());
     }
 
     @Test(description = "A trigger at a package root gets the plugin jar in lib/ and a CompilerPlugin.toml for it")
     public void testTriggerGetsCompilerPlugin() throws Exception {
         Path pkg = newPackage("plugin");
         String ballerinaToml = Files.readString(pkg.resolve("Ballerina.toml"));
-        generateTiny(pkg, "-o", pkg.toString());
+        generateTiny("-o", pkg.toString());
         Assert.assertTrue(getErr().isEmpty(), "Err: " + getErr());
         String toml = Files.readString(pkg.resolve("CompilerPlugin.toml"));
         Assert.assertTrue(toml.contains("id = \"asyncapi-compiler-plugin\""), toml);
@@ -159,67 +166,72 @@ public class HttpCmdUnitTest extends CmdTestBase {
         }
         Assert.assertEquals(Files.readString(pkg.resolve("Ballerina.toml")), ballerinaToml,
                 "Ballerina.toml needs no entry");
-        Assert.assertTrue(getOut().contains("-- CompilerPlugin.toml"), "Out: " + getOut());
-        Assert.assertTrue(getOut().contains("-- lib/asyncapi-trigger-compiler-plugin.jar"), "Out: " + getOut());
+        Assert.assertTrue(getOut().contains("CompilerPlugin.toml"), "Out: " + getOut());
+        Assert.assertTrue(getOut().contains("lib/asyncapi-trigger-compiler-plugin.jar"), "Out: " + getOut());
     }
 
-    @Test(description = "Regenerating a trigger made by 0.13.3 removes the [[tool.asyncapi]] entry it added")
+    @Test(description = "Regenerating a trigger made by 0.13.3 removes the [[tool.asyncapi]] entry, as a merge")
     public void testRegenerationRemovesTheOldToolEntry() throws Exception {
         Path pkg = newPackage("regen");
         String before = Files.readString(pkg.resolve("Ballerina.toml"));
         Files.writeString(pkg.resolve("Ballerina.toml"), before + "\n# Copies the trigger's compiler plugin from the "
                 + "asyncapi tool during the build\n[[tool.asyncapi]]\nid = \"trigger-plugin\"\nversion = \"0.13.3\"\n");
-        generateTiny(pkg, "-o", pkg.toString());
+        generateTiny("-o", pkg.toString(), "--force");
+        Assert.assertEquals(lastExitCode, ExitCodes.SUCCESS, "Err: " + getErr());
         Assert.assertEquals(Files.readString(pkg.resolve("Ballerina.toml")), before);
-        Assert.assertTrue(getOut().contains("-- Ballerina.toml: removed [[tool.asyncapi]]"), "Out: " + getOut());
+        Assert.assertTrue(getOut().contains("merged") && getOut().contains("Ballerina.toml"), "Out: " + getOut());
     }
 
-    @Test(description = "The old entry stays while the old CompilerPlugin.toml is kept, and goes with --force")
-    public void testOldToolEntryStaysWhenThePluginFileIsSkipped() throws Exception {
-        Path pkg = newPackage("skipped");
-        String before = Files.readString(pkg.resolve("Ballerina.toml"));
-        String withEntry = before + "\n[[tool.asyncapi]]\nid = \"trigger-plugin\"\nversion = \"0.13.3\"\n";
+    @Test(description = "Without --force and a terminal, nothing at all is written when a file would be replaced")
+    public void testNothingWrittenWhenAReplaceIsRefused() throws Exception {
+        Path pkg = newPackage("refused");
+        String withEntry = Files.readString(pkg.resolve("Ballerina.toml"))
+                + "\n[[tool.asyncapi]]\nid = \"trigger-plugin\"\nversion = \"0.13.3\"\n";
         String oldPluginToml = "[plugin]\nid = \"asyncapi-compiler-plugin\"\nclass = \"x.Plugin\"\n\n"
                 + "[[dependency]]\npath = \"target/tool-cache/asyncapi-trigger-compiler-plugin.jar\"\n";
         Files.writeString(pkg.resolve("Ballerina.toml"), withEntry);
         Files.writeString(pkg.resolve("CompilerPlugin.toml"), oldPluginToml);
-        generateTiny(pkg, "-o", pkg.toString());
+        generateTiny("-o", pkg.toString());
+        Assert.assertEquals(lastExitCode, ExitCodes.OVERWRITE_REFUSED);
+        Assert.assertTrue(getErr().contains("2 files already exist"), "Err: " + getErr());
+        Assert.assertTrue(getErr().contains("Ballerina.toml") && getErr().contains("CompilerPlugin.toml"),
+                "Err: " + getErr());
         Assert.assertEquals(Files.readString(pkg.resolve("CompilerPlugin.toml")), oldPluginToml);
-        Assert.assertEquals(Files.readString(pkg.resolve("Ballerina.toml")), withEntry,
-                "The old CompilerPlugin.toml still needs the jar the entry copies in");
-        Assert.assertFalse(getOut().contains("removed [[tool.asyncapi]]"), "Out: " + getOut());
-
-        generateTiny(pkg, "-o", pkg.toString(), "--force");
-        Assert.assertTrue(Files.readString(pkg.resolve("CompilerPlugin.toml")).contains("lib/"));
-        Assert.assertEquals(Files.readString(pkg.resolve("Ballerina.toml")), before);
+        Assert.assertEquals(Files.readString(pkg.resolve("Ballerina.toml")), withEntry);
+        Assert.assertFalse(Files.exists(pkg.resolve("listener.bal")), "No new file is written either (FF-1)");
+        Assert.assertTrue(getOut().isEmpty(), "Out: " + getOut());
     }
 
-    @Test(description = "When the old entry can't be removed, the code is still generated and a warning says why")
-    public void testOldToolEntryThatCantBeRemovedWarns() throws Exception {
+    @Test(description = "A destination that can't be written fails before anything is written (FF-4 phase 5)")
+    public void testUnwritableDestinationFailsFirst() throws Exception {
         Path pkg = newPackage("readonly");
         Path ballerinaToml = pkg.resolve("Ballerina.toml");
         Files.writeString(ballerinaToml, Files.readString(ballerinaToml)
                 + "\n[[tool.asyncapi]]\nid = \"trigger-plugin\"\nversion = \"0.13.3\"\n");
         Assert.assertTrue(ballerinaToml.toFile().setWritable(false), "Could not make Ballerina.toml read-only");
         try {
-            generateTiny(pkg, "-o", pkg.toString());
+            generateTiny("-o", pkg.toString(), "--force");
         } finally {
             ballerinaToml.toFile().setWritable(true);
         }
-        Assert.assertTrue(Files.exists(pkg.resolve("lib/asyncapi-trigger-compiler-plugin.jar")));
-        Assert.assertTrue(getErr().contains("Ballerina.toml could not be updated"), "Err: " + getErr());
-        Assert.assertTrue(getErr().contains("id = \"trigger-plugin\" by hand"), "Err: " + getErr());
+        Assert.assertEquals(lastExitCode, ExitCodes.RUNTIME);
+        Assert.assertTrue(getErr().contains("cannot write") && getErr().contains("Ballerina.toml: the file is "
+                + "read-only"), "Err: " + getErr());
+        Assert.assertFalse(Files.exists(pkg.resolve("lib")), "Nothing is written");
     }
 
-    @Test(description = "--dry-run lists the jar and the old entry's removal without writing anything")
+    @Test(description = "--dry-run lists the jar and the Ballerina.toml merge without writing anything")
     public void testDryRunReportsThePlugin() throws Exception {
         Path pkg = newPackage("dryentry");
         String before = Files.readString(pkg.resolve("Ballerina.toml"))
                 + "\n[[tool.asyncapi]]\nid = \"trigger-plugin\"\nversion = \"0.13.3\"\n";
         Files.writeString(pkg.resolve("Ballerina.toml"), before);
-        generateTiny(pkg, "-o", pkg.toString(), "--dry-run");
+        generateTiny("-o", pkg.toString(), "--dry-run");
+        Assert.assertEquals(lastExitCode, ExitCodes.SUCCESS, "Err: " + getErr());
+        Assert.assertTrue(getOut().contains("would create"), "Out: " + getOut());
         Assert.assertTrue(getOut().contains("asyncapi-trigger-compiler-plugin.jar"), "Out: " + getOut());
-        Assert.assertTrue(getOut().contains("update     Ballerina.toml"), "Out: " + getOut());
+        Assert.assertTrue(getOut().contains("would merge") && getOut().contains("Ballerina.toml"), "Out: " + getOut());
+        Assert.assertTrue(getOut().strip().endsWith("Dry run: nothing was written."), "Out: " + getOut());
         Assert.assertEquals(Files.readString(pkg.resolve("Ballerina.toml")), before);
         Assert.assertFalse(Files.exists(pkg.resolve("lib")));
     }
@@ -229,104 +241,127 @@ public class HttpCmdUnitTest extends CmdTestBase {
         Path pkg = newPackage("otherplugin");
         String theirs = "[plugin]\nid = \"their-plugin\"\nclass = \"org.example.Plugin\"\n";
         Files.writeString(pkg.resolve("CompilerPlugin.toml"), theirs);
-        generateTiny(pkg, "-o", pkg.toString(), "--force");
+        generateTiny("-o", pkg.toString(), "--force");
         Assert.assertTrue(getErr().contains("already has a compiler plugin (their-plugin)"), "Err: " + getErr());
         Assert.assertEquals(Files.readString(pkg.resolve("CompilerPlugin.toml")), theirs);
-        Assert.assertFalse(Files.readString(pkg.resolve("Ballerina.toml")).contains("[[tool.asyncapi]]"),
-                "No tool entry for a plugin that wasn't added");
+        Assert.assertFalse(Files.readString(pkg.resolve("Ballerina.toml")).contains("[[tool.asyncapi]]"));
         Assert.assertTrue(Files.exists(pkg.resolve("listener.bal")), "The code should still be generated");
     }
 
-    @Test(description = "A trigger generated into a module gets no plugin, as the plugin belongs to the package")
-    public void testModuleGetsNoCompilerPlugin() throws Exception {
+    @Test(description = "A trigger generated into a new module creates it and says so (MOD-2), with no plugin")
+    public void testModuleIsCreatedWithoutCompilerPlugin() throws Exception {
         Path pkg = newPackage("moduleplugin");
-        generateTiny(pkg, "-o", pkg.toString(), "--module", "events");
+        generateTiny("-o", pkg.toString(), "--module", "events");
         Assert.assertTrue(getErr().isEmpty(), "Err: " + getErr());
+        Assert.assertTrue(getOut().contains("module events"), "Out: " + getOut());
         Assert.assertTrue(Files.exists(pkg.resolve("modules/events/listener.bal")), "The code should be generated");
         Assert.assertFalse(Files.exists(pkg.resolve("CompilerPlugin.toml")));
-        Assert.assertFalse(Files.exists(pkg.resolve("modules/events/CompilerPlugin.toml")));
         Assert.assertFalse(Files.exists(pkg.resolve("lib")));
-        Assert.assertFalse(Files.readString(pkg.resolve("Ballerina.toml")).contains("[[tool.asyncapi]]"));
     }
 
     @Test(description = "Running again with nothing changed is quiet and writes nothing")
     public void testRerunIsUnchanged() throws Exception {
         Path pkg = newPackage("rerun");
-        generateTiny(pkg, "-o", pkg.toString());
-        generateTiny(pkg, "-o", pkg.toString());
-        Assert.assertTrue(getErr().isEmpty(), "Unchanged files should not warn. Err: " + getErr());
-        Assert.assertTrue(getOut().contains("already up to date"), "Out: " + getOut());
+        generateTiny("-o", pkg.toString());
+        generateTiny("-o", pkg.toString());
+        Assert.assertTrue(getErr().isEmpty(), "Unchanged files need no --force. Err: " + getErr());
+        Assert.assertEquals(lastExitCode, ExitCodes.SUCCESS);
+        Assert.assertTrue(getOut().contains("No changes: the files are already up to date."), "Out: " + getOut());
     }
 
-    @Test(description = "An existing file that differs is skipped with a warning unless --force is given")
-    public void testExistingFileSkippedWithoutForce() throws Exception {
-        Path pkg = newPackage("skip");
-        generateTiny(pkg, "-o", pkg.toString());
+    @Test(description = "A changed file is not replaced without --force: exit 4 and the command to run (FF-6)")
+    public void testChangedFileRefusedWithoutForce() throws Exception {
+        Path pkg = newPackage("changed");
+        generateTiny("-o", pkg.toString());
         Files.writeString(pkg.resolve("types.bal"), "// hand edit");
-        generateTiny(pkg, "-o", pkg.toString());
-        Assert.assertTrue(getErr().contains("warning: Skipped \""), "Expected the skip warning. Err: " + getErr());
-        Assert.assertTrue(getErr().contains("types.bal"), "Err: " + getErr());
-        Assert.assertTrue(getErr().contains("Use --force to overwrite it."), "Err: " + getErr());
-        Assert.assertTrue(getOut().contains("No files were written."), "Out: " + getOut());
+        generateTiny("-o", pkg.toString());
+        Assert.assertEquals(lastExitCode, ExitCodes.OVERWRITE_REFUSED);
+        Assert.assertTrue(getErr().contains("types.bal already exists"), "Err: " + getErr());
+        Assert.assertTrue(getErr().contains("Try: bal asyncapi ") && getErr().strip().endsWith("--force"),
+                "Err: " + getErr());
         Assert.assertEquals(Files.readString(pkg.resolve("types.bal")), "// hand edit");
     }
 
     @Test(description = "--force overwrites the file that differs and leaves the unchanged ones alone")
     public void testForceOverwrites() throws Exception {
         Path pkg = newPackage("force");
-        generateTiny(pkg, "-o", pkg.toString());
+        generateTiny("-o", pkg.toString());
         Files.writeString(pkg.resolve("types.bal"), "// hand edit");
-        generateTiny(pkg, "-o", pkg.toString(), "--force");
+        generateTiny("-o", pkg.toString(), "--force");
         Assert.assertTrue(getErr().isEmpty(), "Err: " + getErr());
         Assert.assertNotEquals(Files.readString(pkg.resolve("types.bal")), "// hand edit");
-        Assert.assertTrue(getOut().contains("-- types.bal"), "Out: " + getOut());
-        Assert.assertFalse(getOut().contains("-- listener.bal"), "Unchanged files are not rewritten. Out: " + getOut());
+        Assert.assertTrue(getOut().startsWith("overwritten"), "Out: " + getOut());
+        Assert.assertFalse(getOut().contains("listener.bal"), "Unchanged files are not listed. Out: " + getOut());
+        Assert.assertTrue(getOut().contains("Generated 1 file."), "Out: " + getOut());
     }
 
-    @Test(description = "--dry-run reports the plan and writes nothing")
+    @Test(description = "On a terminal the user is asked once; yes writes, no exits 4 (FF-5)")
+    public void testPromptOnTerminal() throws Exception {
+        Path pkg = newPackage("prompt");
+        generateTiny("-o", pkg.toString());
+        Files.writeString(pkg.resolve("types.bal"), "// hand edit");
+
+        runInteractive("n\n", "-o", pkg.toString());
+        Assert.assertEquals(lastExitCode, ExitCodes.OVERWRITE_REFUSED, "Err: " + getErr());
+        Assert.assertTrue(getErr().contains("Overwrite these file(s)? [y/N]"), "Err: " + getErr());
+        Assert.assertEquals(Files.readString(pkg.resolve("types.bal")), "// hand edit");
+
+        runInteractive("y\n", "-o", pkg.toString());
+        Assert.assertEquals(lastExitCode, ExitCodes.SUCCESS, "Err: " + getErr());
+        Assert.assertNotEquals(Files.readString(pkg.resolve("types.bal")), "// hand edit");
+    }
+
+    private void runInteractive(String answer, String... extra) throws Exception {
+        errContent.reset();
+        outContent.reset();
+        CmdContext ctx = new CmdContext(outStream, errStream,
+                new ByteArrayInputStream(answer.getBytes(StandardCharsets.UTF_8)), false, CmdContext.Format.TEXT, true);
+        AsyncApiCmd cmd = new AsyncApiCmd(ctx);
+        String[] args = new String[3 + extra.length];
+        args[0] = resource("specs/tiny_http.yaml").toString();
+        args[1] = "--protocol";
+        args[2] = "http";
+        System.arraycopy(extra, 0, args, 3, extra.length);
+        new CommandLine(cmd).parseArgs(args);
+        cmd.execute();
+        lastExitCode = cmd.exitCode();
+    }
+
+    @Test(description = "--dry-run lists the plan and writes nothing")
     public void testDryRunWritesNothing() throws Exception {
         Path pkg = newPackage("dryrun");
         // --with-tests so the run would also create the tests folder
-        generateTiny(pkg, "-o", pkg.toString(), "--dry-run", "--with-tests");
-        Assert.assertTrue(getOut().startsWith("Dry run: no files were written."), "Out: " + getOut());
-        Assert.assertTrue(getOut().contains("7 to create, 0 to overwrite, 0 to skip, 0 unchanged."),
-                "Out: " + getOut());
-        Assert.assertTrue(getOut().contains("create"), "Out: " + getOut());
+        generateTiny("-o", pkg.toString(), "--dry-run", "--with-tests");
+        Assert.assertEquals(lastExitCode, ExitCodes.SUCCESS);
+        Assert.assertTrue(getOut().contains("would create"), "Out: " + getOut());
+        Assert.assertTrue(getOut().strip().endsWith("Dry run: nothing was written."), "Out: " + getOut());
         Assert.assertFalse(Files.exists(pkg.resolve("types.bal")), "A dry run must not write");
         Assert.assertFalse(Files.exists(pkg.resolve("tests")), "A dry run must not create folders");
     }
 
-    @Test(description = "--dry-run does not create a module folder that is missing")
+    @Test(description = "--dry-run does not create a module folder that is missing, and says it would")
     public void testDryRunDoesNotCreateModuleFolder() throws Exception {
         Path pkg = newPackage("drymodule");
-        generateTiny(pkg, "-o", pkg.toString(), "--module", "events", "--dry-run");
-        Assert.assertTrue(getOut().contains("Dry run"), "Out: " + getOut() + " Err: " + getErr());
+        generateTiny("-o", pkg.toString(), "--module", "events", "--dry-run");
+        Assert.assertTrue(getOut().contains("would create  module events"), "Out: " + getOut() + " Err: " + getErr());
         Assert.assertFalse(Files.exists(pkg.resolve("modules")), "A dry run must not create the module");
     }
 
-    @Test(description = "--dry-run shows skip for a changed file, and overwrite when --force is also given")
-    public void testDryRunShowsSkipAndOverwrite() throws Exception {
-        Path pkg = newPackage("dryskip");
-        generateTiny(pkg, "-o", pkg.toString());
+    @Test(description = "--dry-run lists a changed file as an overwrite without prompting, and exits 0 (FF-7)")
+    public void testDryRunListsOverwrites() throws Exception {
+        Path pkg = newPackage("dryoverwrite");
+        generateTiny("-o", pkg.toString());
         Files.writeString(pkg.resolve("types.bal"), "// hand edit");
-
-        generateTiny(pkg, "-o", pkg.toString(), "--dry-run");
-        Assert.assertTrue(getOut().contains("skip"), "Out: " + getOut());
-        Assert.assertTrue(getOut().contains("(already exists, use --force to overwrite)"), "Out: " + getOut());
-        Assert.assertTrue(getOut().contains("0 to create, 0 to overwrite, 1 to skip, 5 unchanged."),
-                "Out: " + getOut());
-
-        generateTiny(pkg, "-o", pkg.toString(), "--dry-run", "--force");
-        Assert.assertTrue(getOut().contains("overwrite"), "Out: " + getOut());
-        Assert.assertTrue(getOut().contains("0 to create, 1 to overwrite, 0 to skip, 5 unchanged."),
-                "Out: " + getOut());
+        generateTiny("-o", pkg.toString(), "--dry-run");
+        Assert.assertEquals(lastExitCode, ExitCodes.SUCCESS, "Err: " + getErr());
+        Assert.assertTrue(getOut().contains("would overwrite") && getOut().contains("types.bal"), "Out: " + getOut());
         Assert.assertEquals(Files.readString(pkg.resolve("types.bal")), "// hand edit");
     }
 
     @Test(description = "No warning is printed when only supported options are given")
     public void testNoWarningForSupportedOptions() throws IOException {
         Path specFile = Files.createTempFile(tmpDir, "spec-", ".yaml");
-        parse(specFile.toString(), "--protocol", "http", "--output", tmpDir.resolve("out").toString()).execute();
+        run(specFile.toString(), "--protocol", "http", "--output", tmpDir.resolve("out").toString());
         Assert.assertFalse(getErr().contains("warning:"), "Unexpected warning. Err: " + getErr());
     }
 }

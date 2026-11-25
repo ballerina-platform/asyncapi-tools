@@ -85,6 +85,22 @@ public abstract class CmdTestBase {
         return pkg;
     }
 
+    /** Writes the Dependencies.toml a 'bal build' would, so the package can be compiled with locked versions. */
+    protected void lockDependencies(Path pkg) throws IOException {
+        String name = pkg.getFileName().toString();
+        Files.writeString(pkg.resolve("Dependencies.toml"), "[ballerina]\ndependencies-toml-version = \"2\"\n"
+                + "distribution-version = \"2201.13.0\"\n\n[[package]]\norg = \"demo\"\nname = \"" + name
+                + "\"\nversion = \"0.1.0\"\nmodules = [\n\t{org = \"demo\", packageName = \"" + name
+                + "\", moduleName = \"" + name + "\"}\n]\n");
+    }
+
+    /** Runs the command with the given arguments and returns it, so the exit code can be checked. */
+    protected AsyncApiCmd run(String... args) {
+        AsyncApiCmd cmd = parse(args);
+        cmd.execute();
+        return cmd;
+    }
+
     /** Resolves a file under src/test/resources. */
     protected Path resource(String name) throws Exception {
         return Path.of(getClass().getClassLoader().getResource(name).toURI());

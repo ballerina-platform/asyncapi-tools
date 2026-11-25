@@ -92,20 +92,14 @@ public class CmdUtilsTest extends CmdTestBase {
             CmdUtils.isValidBallerinaFile(file.toString()));
     }
 
-    @Test(description = "INVALID_INPUT_PATH formats with the "
-            + "actual path, not literal {0}")
-    void testInvalidInputPathFormatContainsPath() {
-        String path = "/some/missing/file.yaml";
-        String msg = String.format(
-            ErrorMessages.INVALID_INPUT_PATH, path);
-        Assert.assertTrue(
-            msg.contains(path),
-            "Formatted message should contain the path. Got: "
-                + msg);
-        Assert.assertFalse(
-            msg.contains("{0}"),
-            "Formatted message must not contain literal {0}. "
-                + "Got: " + msg);
+    @Test(description = "Every shared message is one lowercase line without a trailing period (ERR-1)")
+    void testSharedMessagesFollowTheGuide() throws IllegalAccessException {
+        for (java.lang.reflect.Field field : ErrorMessages.class.getFields()) {
+            String message = (String) field.get(null);
+            Assert.assertFalse(message.contains("\n"), field.getName());
+            Assert.assertFalse(message.strip().endsWith("."), field.getName());
+            Assert.assertFalse(Character.isUpperCase(message.charAt(0)), field.getName());
+        }
     }
 
     @Test(description = "collectCmdOptions maps all BaseCmd "
