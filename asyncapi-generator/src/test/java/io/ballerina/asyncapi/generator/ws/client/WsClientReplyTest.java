@@ -292,6 +292,42 @@ public class WsClientReplyTest {
         Assert.assertEquals(warnings, List.of());
     }
 
+    @Test
+    void testRepliesThatCantBeRoutedAreLeftOutWithAWarning() throws Exception {
+        // The reply and the received note carry the same fields, so the client couldn't tell them apart
+        String spec = """
+                asyncapi: 3.0.0
+                info: {title: Desk, version: 1.0.0}
+                servers:
+                  s: {host: example.com, protocol: wss}
+                channels:
+                  desk:
+                    address: /desk
+                    messages:
+                      Ask: {payload: {type: object, required: [q], properties: {q: {type: string}}}}
+                      Answer: {payload: {type: object, properties: {text: {type: string}}}}
+                      Note: {payload: {type: object, properties: {text: {type: string}}}}
+                operations:
+                  ask:
+                    action: send
+                    channel: {$ref: '#/channels/desk'}
+                    messages: [{$ref: '#/channels/desk/messages/Ask'}]
+                    reply: {messages: [{$ref: '#/channels/desk/messages/Answer'}]}
+                  onNote:
+                    action: receive
+                    channel: {$ref: '#/channels/desk'}
+                    messages: [{$ref: '#/channels/desk/messages/Note'}]
+                """;
+        List<SpecWarning> warnings = new ArrayList<>();
+        String client = generateClient(spec, warnings, UnaryOperator.identity());
+        Assert.assertTrue(signature(client, "doAsk").contains("returns error?"), client);
+        Assert.assertTrue(client.contains("function doNote("), client);
+        Assert.assertEquals(warnings.size(), 1, warnings.toString());
+        Assert.assertEquals(warnings.get(0).location(), "/operations");
+        Assert.assertTrue(warnings.get(0).message().startsWith("the replies of the spec's operations can't be "
+                + "routed, so the functions that send their requests don't wait for them: "), warnings.toString());
+    }
+
     // The signature line of a function of the client
     private static String signature(String client, String function) {
         int start = client.indexOf("function " + function + "(");

@@ -110,6 +110,35 @@ public final class ReplySpec implements AsyncApiSpec {
         return new ReplySpec(spec, result, withMessages(component, messages));
     }
 
+    /**
+     * Returns whether a send operation of {@code spec} has a reply, which {@link #of} reads.
+     *
+     * @param spec the spec, read from the client's side
+     * @return whether the spec has a send operation with a reply
+     */
+    public static boolean hasReplies(AsyncApiSpec spec) {
+        return spec != null && spec.getAsyncApiOperations().orElse(Map.of()).values().stream()
+                .anyMatch(op -> op != null && op.action() == AsyncApiOperation.Action.SEND && op.reply() != null);
+    }
+
+    /**
+     * Returns the warning for replies left out because the client couldn't be generated with them.
+     *
+     * @param reason why generating with the replies failed
+     * @return the warning
+     */
+    public static SpecWarning leftOut(String reason) {
+        String firstLine = reason == null ? "" : reason.lines().findFirst().orElse("").strip();
+        if (firstLine.endsWith(":")) {
+            firstLine = firstLine.substring(0, firstLine.length() - 1);
+        }
+        return new SpecWarning("/operations", "the replies of the spec's operations can't be routed, so the "
+                + "functions that send their requests don't wait for them: " + firstLine,
+                "Give each reply a field with its own fixed value and name it in x-dispatcherKey. See "
+                        + "https://github.com/ballerina-platform/asyncapi-tools/blob/main/docs/"
+                        + "websocket-dispatcher-key.md");
+    }
+
     // The replies a send operation's messages get, or null when it has none the client can wait for
     private static Map<String, AsyncApiMessage> replies(String id, AsyncApiOperation op,
                                                         Map<String, AsyncApiOperation> operations,
