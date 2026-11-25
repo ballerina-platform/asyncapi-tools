@@ -340,6 +340,57 @@ public class WsClientGeneratedTypesTest {
         Assert.assertTrue(types.contains("public type Ping record {\n    *Base;\n};"), types);
     }
 
+    @Test
+    void testTwoCopiedPartsWriteASharedFieldAndInclusionOnce() throws Exception {
+        String types = types("""
+                      allOf:
+                        - {$ref: '#/components/schemas/A'}
+                        - {$ref: '#/components/schemas/B'}
+                        - type: object
+                          properties:
+                            data: {type: array, items: {type: string}}
+                            other: {type: integer}
+                    A:
+                      allOf:
+                        - {$ref: '#/components/schemas/Base'}
+                        - type: object
+                          required: [id]
+                          properties: {id: {type: string}, data: {type: object}}
+                    B:
+                      allOf:
+                        - {$ref: '#/components/schemas/Base'}
+                        - type: object
+                          properties: {id: {type: string}, other: {type: string}}
+                    Base:
+                      type: object
+                      required: [type]
+                      properties: {type: {type: string}}
+                """);
+        Assert.assertTrue(types.contains("public type Ping record {\n    *Base;\n    string id;\n"
+                + "    string[] data?;\n    int other?;\n};"), types);
+    }
+
+    @Test
+    void testAllOfInAMapValueKeepsTheIncludedField() throws Exception {
+        String types = types("""
+                      type: object
+                      required: [type]
+                      properties:
+                        type: {type: string}
+                        views:
+                          type: object
+                          additionalProperties:
+                            allOf:
+                              - {$ref: '#/components/schemas/View'}
+                              - {type: object, properties: {status: {const: in_progress}}}
+                    View:
+                      type: object
+                      properties: {status: {type: string}}
+                """);
+        Assert.assertFalse(types.contains("anydata status"), types);
+        Assert.assertTrue(types.contains("map<record {*View;}> views?;"), types);
+    }
+
     private static String types(String pingSchema) throws Exception {
         String json = YAML.readTree(SPEC.formatted(pingSchema.stripTrailing())).toString();
         Path outDir = Files.createTempDirectory("ws-types");

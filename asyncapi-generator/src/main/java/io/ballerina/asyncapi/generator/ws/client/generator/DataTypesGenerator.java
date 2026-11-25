@@ -170,8 +170,8 @@ public class DataTypesGenerator {
 
     /**
      * Fills each {@code allOf} reference with the schema it names, so a part that redeclares a field can be checked
-     * against the field it includes. This goes into fields and array items too, as their {@code allOf} references
-     * are only names as well.
+     * against the field it includes. This goes into fields, array items and map values too, as their {@code allOf}
+     * references are only names as well.
      */
     private static AsyncApiSchema withIncludedFields(AsyncApiSchema schema, Map<String, AsyncApiSchema> schemas,
                                                      Set<String> visiting) {
@@ -192,7 +192,7 @@ public class DataTypesGenerator {
         return withIncludedFieldsInside(schema.withAllOf(allOf), schemas, visiting);
     }
 
-    // The schema's own fields and array items with their allOf references filled in
+    // The schema's own fields, array items and map values with their allOf references filled in
     private static AsyncApiSchema withIncludedFieldsInside(AsyncApiSchema schema, Map<String, AsyncApiSchema> schemas,
                                                            Set<String> visiting) {
         boolean changed = false;
@@ -214,6 +214,12 @@ public class DataTypesGenerator {
             changed |= filled != item;
             items = filled;
         }
+        Object additionalProperties = schema.additionalProperties();
+        if (additionalProperties instanceof AsyncApiSchema value && value.name() == null) {
+            AsyncApiSchema filled = withIncludedFields(value, schemas, visiting);
+            changed |= filled != value;
+            additionalProperties = filled;
+        }
         if (!changed) {
             return schema;
         }
@@ -223,7 +229,7 @@ public class DataTypesGenerator {
                 schema.uniqueItems(), schema.maxProperties(), schema.minProperties(), schema.enumValue(),
                 schema.constValue(), schema.examples(), schema.ifBranch(), schema.then(), schema.elseBranch(),
                 schema.readOnly(), schema.writeOnly(), properties, schema.patternProperties(),
-                schema.additionalProperties(), schema.additionalItems(), items, schema.propertyNames(),
+                additionalProperties, schema.additionalItems(), items, schema.propertyNames(),
                 schema.contains(), schema.allOf(), schema.oneOf(), schema.anyOf(), schema.not(), schema.description(),
                 schema.format(), schema.defaultValue(), schema.discriminator(), schema.externalDocs(),
                 schema.deprecated(), schema.extensions(), schema.name(), schema.nullable());

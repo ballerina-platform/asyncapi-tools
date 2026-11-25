@@ -125,14 +125,23 @@ public class AllOfRecordTypeGenerator extends RecordTypeGenerator {
         }
         required.addAll(includedRequired);
         List<Node> recordFieldList = new ArrayList<>();
+        // Every clashing part's fields are copied into one set, so a field two of them share is written once
+        Map<String, Node> copiedInclusions = new LinkedHashMap<>();
+        Map<String, AsyncApiSchema> copied = new LinkedHashMap<>();
+        Set<String> copiedRequired = new HashSet<>();
+        Set<String> includedNames = new HashSet<>();
+        int copyAt = -1;
         for (AsyncApiSchema part : parts) {
             if (part.name() != null) {
                 if (clashes(part, inline, kept)) {
                     // Ballerina rejects an override that isn't a subtype, so the included fields are copied in instead
-                    recordFieldList.addAll(copiedFields(part, inline, kept));
+                    copyAt = copyAt < 0 ? recordFieldList.size() : copyAt;
+                    collectCopied(part, inline, kept, copiedInclusions, copied, copiedRequired);
                     continue;
                 }
-                recordFieldList.add(typeInclusion(part));
+                if (includedNames.add(part.name())) {
+                    recordFieldList.add(typeInclusion(part));
+                }
             } else if (part.properties() != null) {
                 // Each inline field is written once, where it is first declared
                 Map<String, AsyncApiSchema> properties = new LinkedHashMap<>();
@@ -144,6 +153,15 @@ public class AllOfRecordTypeGenerator extends RecordTypeGenerator {
                 List<String> fieldsRequired = properties.keySet().stream().filter(required::contains).toList();
                 recordFieldList.addAll(addRecordFields(new ArrayList<>(fieldsRequired), properties));
             }
+        }
+        if (copyAt >= 0) {
+            copiedInclusions.keySet().removeAll(includedNames);
+            // A kept field stays the base's; any other redeclared field is the inline part's
+            copied.keySet().removeIf(name -> inline.containsKey(name) && !kept.contains(name));
+            copiedRequired.retainAll(copied.keySet());
+            List<Node> copiedNodes = new ArrayList<>(copiedInclusions.values());
+            copiedNodes.addAll(addRecordFields(new ArrayList<>(copiedRequired), copied));
+            recordFieldList.addAll(copyAt, copiedNodes);
         }
         return recordFieldList;
     }
@@ -164,32 +182,15 @@ public class AllOfRecordTypeGenerator extends RecordTypeGenerator {
         return result;
     }
 
-    /**
-     * The fields of an included schema without the ones an inline part redeclares with its own type, and its own
-     * included schemas handled the same way.
-     */
-    private List<Node> copiedFields(AsyncApiSchema base, Map<String, AsyncApiSchema> inline, Set<String> kept)
-            throws GeneratorException {
-        List<Node> nodes = new ArrayList<>();
-        Map<String, AsyncApiSchema> fields = new LinkedHashMap<>();
-        Set<String> required = new HashSet<>();
-        collectCopied(base, inline, kept, nodes, fields, required);
-        // A kept field stays the base's; any other redeclared field is the inline part's
-        fields.keySet().removeIf(name -> inline.containsKey(name) && !kept.contains(name));
-        required.retainAll(fields.keySet());
-        nodes.addAll(addRecordFields(new ArrayList<>(required), fields));
-        return nodes;
-    }
-
     // Gathers a base's fields with its own redeclarations already applied, so each copied field is written once
     private static void collectCopied(AsyncApiSchema base, Map<String, AsyncApiSchema> inline, Set<String> kept,
-                                      List<Node> inclusions, Map<String, AsyncApiSchema> fields,
+                                      Map<String, Node> inclusions, Map<String, AsyncApiSchema> fields,
                                       Set<String> required) throws GeneratorException {
         if (base.allOf() != null) {
             for (AsyncApiSchema part : base.allOf()) {
                 // An included part the inline fields don't clash with stays an inclusion; the rest is copied
                 if (part.name() != null && !clashes(part, inline, kept)) {
-                    inclusions.add(typeInclusion(part));
+                    inclusions.putIfAbsent(part.name(), typeInclusion(part));
                     required.addAll(requiredOf(part));
                 } else {
                     collectCopied(part, inline, kept, inclusions, fields, required);
