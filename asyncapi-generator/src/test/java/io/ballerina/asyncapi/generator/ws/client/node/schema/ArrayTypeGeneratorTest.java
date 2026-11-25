@@ -55,6 +55,32 @@ public class ArrayTypeGeneratorTest {
     }
 
     @Test
+    void testNullableItemTypeTakesNull() throws GeneratorException {
+        // type: [integer, "null"] items: without the ?, the array couldn't hold null
+        AsyncApiSchema items = AsyncApiSchema.builder().type("integer").nullable(true).build();
+        AsyncApiSchema schema = AsyncApiSchema.builder().type("array").items(items).build();
+        String result = new ArrayTypeGenerator(schema, "Foo").generateTypeDescriptorNode().toSourceCode().trim();
+        Assert.assertEquals(result, "(int?)[]");
+    }
+
+    @Test
+    void testItemTypeThatIsntNullableStaysAsItIs() throws GeneratorException {
+        AsyncApiSchema items = AsyncApiSchema.builder().type("integer").build();
+        AsyncApiSchema schema = AsyncApiSchema.builder().type("array").items(items).build();
+        String result = new ArrayTypeGenerator(schema, "Foo").generateTypeDescriptorNode().toSourceCode().trim();
+        Assert.assertEquals(result, "int[]");
+    }
+
+    @Test
+    void testNullableUnionItemTypeIsBracketedTwice() throws GeneratorException {
+        AsyncApiSchema items = AsyncApiSchema.builder().anyOf(List.of(AsyncApiSchema.builder().type("string").build(),
+                AsyncApiSchema.builder().type("integer").build())).nullable(true).build();
+        AsyncApiSchema schema = AsyncApiSchema.builder().type("array").items(items).build();
+        String result = new ArrayTypeGenerator(schema, "Foo").generateTypeDescriptorNode().toSourceCode().trim();
+        Assert.assertEquals(result, "((string|int)?)[]");
+    }
+
+    @Test
     void testUnionItemTypeIsBracketed() throws GeneratorException {
         // Without the brackets, string|int[] would be a string or an int array
         AsyncApiSchema items = AsyncApiSchema.builder().anyOf(List.of(AsyncApiSchema.builder().type("string").build(),

@@ -27,12 +27,16 @@ import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createEmptyN
 import static io.ballerina.compiler.syntax.tree.AbstractNodeFactory.createToken;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createArrayDimensionNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createArrayTypeDescriptorNode;
+import static io.ballerina.compiler.syntax.tree.NodeFactory.createOptionalTypeDescriptorNode;
 import static io.ballerina.compiler.syntax.tree.NodeFactory.createParenthesisedTypeDescriptorNode;
+import static io.ballerina.compiler.syntax.tree.SyntaxKind.ANYDATA_TYPE_DESC;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.CLOSE_BRACKET_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.CLOSE_PAREN_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.INTERSECTION_TYPE_DESC;
+import static io.ballerina.compiler.syntax.tree.SyntaxKind.JSON_TYPE_DESC;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.OPEN_BRACKET_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.OPEN_PAREN_TOKEN;
+import static io.ballerina.compiler.syntax.tree.SyntaxKind.QUESTION_MARK_TOKEN;
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.UNION_TYPE_DESC;
 
 /**
@@ -66,6 +70,13 @@ public class ArrayTypeGenerator implements TypeGenerator {
         // [] binds tighter than | and &, so a union or intersection item type is bracketed: (string|int)[]
         if (memberTypeDesc.kind() == UNION_TYPE_DESC || memberTypeDesc.kind() == INTERSECTION_TYPE_DESC) {
             memberTypeDesc = createParenthesisedTypeDescriptorNode(createToken(OPEN_PAREN_TOKEN), memberTypeDesc,
+                    createToken(CLOSE_PAREN_TOKEN));
+        }
+        // A nullable item, such as type: [integer, "null"], takes null too: (int?)[]
+        if (items instanceof AsyncApiSchema itemSchema && Boolean.TRUE.equals(itemSchema.nullable())
+                && memberTypeDesc.kind() != ANYDATA_TYPE_DESC && memberTypeDesc.kind() != JSON_TYPE_DESC) {
+            memberTypeDesc = createParenthesisedTypeDescriptorNode(createToken(OPEN_PAREN_TOKEN),
+                    createOptionalTypeDescriptorNode(memberTypeDesc, createToken(QUESTION_MARK_TOKEN)),
                     createToken(CLOSE_PAREN_TOKEN));
         }
         NodeList<ArrayDimensionNode> dimensions = createEmptyNodeList();
