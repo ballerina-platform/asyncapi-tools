@@ -44,17 +44,19 @@ import static io.ballerina.asyncapi.generator.ws.client.generator.ClientGenerato
  * How the client tells incoming messages apart and which pipe each one goes to, worked out once from the spec
  * before any code is generated.
  *
- * @param dispatcherKey         the field every routed message carries
+ * @param dispatcherKey         the field every routed message carries, or {@code null} when the connection receives
+ *                              one kind of message and the spec gives no key
  * @param dispatcherStreamId    the field that pairs a streamed reply with its request, or {@code null}
  * @param responseMap           incoming type name to the pipe that receives it
  * @param dispatchValueMap      fixed dispatcher value to its pipe, checked before {@code responseMap}
  * @param streamReturns         return types of the server-streaming functions
  * @param keylessReplies        whether some call waits for a message without the dispatcher key
  * @param keylessReceiveOnly    whether a receive-only function waits for a message without the dispatcher key
+ * @param sendsWithoutKey       whether some message is sent without the dispatcher key, as it is
  */
 public record RoutingPlan(String dispatcherKey, String dispatcherStreamId, Map<String, String> responseMap,
                           Map<String, String> dispatchValueMap, List<String> streamReturns, boolean keylessReplies,
-                          boolean keylessReceiveOnly) {
+                          boolean keylessReceiveOnly, boolean sendsWithoutKey) {
 
     private static final String MESSAGE_TYPE = "Message";
     private static final String SHARED_FIXED_DISPATCH_VALUE = "The replies waited for on '%s' and '%s' both fix the "
@@ -72,17 +74,44 @@ public record RoutingPlan(String dispatcherKey, String dispatcherStreamId, Map<S
      *
      * @param spec the spec, with its dispatcher key already fixed up
      * @return the routing plan
-     * @throws GeneratorException if the spec has no dispatcher key, or two replies can't be told apart
+     * @throws GeneratorException if the spec has no dispatcher key and needs one, or two replies can't be told apart
      */
     public static RoutingPlan of(AsyncApiSpec spec) throws GeneratorException {
-        String dispatcherKey = new DispatcherKeyExtractor(spec).extract();
+        String dispatcherKey = new DispatcherKeyExtractor(spec).extractIfNeeded().orElse(null);
         String dispatcherStreamId = new DispatcherStreamIdExtractor(spec).extract().orElse(null);
         List<String> streamReturns = new ArrayList<>();
         Map<String, String> dispatchValueMap = new LinkedHashMap<>();
         Map<String, String> responseMap = buildResponseMap(spec, dispatcherKey, streamReturns, dispatchValueMap);
         RemoteFunctionReturnTypeGenerator returnTypeGen = new RemoteFunctionReturnTypeGenerator(spec);
         return new RoutingPlan(dispatcherKey, dispatcherStreamId, responseMap, dispatchValueMap, streamReturns,
-                returnTypeGen.hasRepliesWithoutDispatcherKey(), returnTypeGen.hasReceiveOnlyWithoutDispatcherKey());
+                returnTypeGen.hasRepliesWithoutDispatcherKey(), returnTypeGen.hasReceiveOnlyWithoutDispatcherKey(),
+                sendsWithoutKey(spec, returnTypeGen));
+    }
+
+    /**
+     * Whether the reader reads every frame as one without the dispatcher key, as no incoming message carries it.
+     *
+     * @return whether the reader skips routing on the key
+     */
+    public boolean readsWithoutKey() {
+        return dispatcherKey == null || responseMap.isEmpty() && keylessReplies;
+    }
+
+    // A sent message whose payload doesn't carry the key, such as a string or a record without it
+    private static boolean sendsWithoutKey(AsyncApiSpec spec, RemoteFunctionReturnTypeGenerator returnTypeGen)
+            throws GeneratorException {
+        for (AsyncApiOperation op : spec.getAsyncApiOperations().orElse(Map.of()).values()) {
+            if (op.action() != AsyncApiOperation.Action.SEND || op.messages() == null) {
+                continue;
+            }
+            for (AsyncApiMessage message : op.messages().values()) {
+                if (message.payload() instanceof AsyncApiSchema payload && !CodegenUtils.isCloseFrameSchema(payload)
+                        && !returnTypeGen.carriesDispatcherKey(payload)) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     /**

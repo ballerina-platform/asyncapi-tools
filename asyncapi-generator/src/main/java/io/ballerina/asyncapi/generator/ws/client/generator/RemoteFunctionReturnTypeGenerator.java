@@ -26,6 +26,7 @@ import io.ballerina.asyncapi.core.model.operation.AsyncApiOperation;
 import io.ballerina.asyncapi.generator.GeneratorException;
 import io.ballerina.asyncapi.generator.ws.client.utils.CodegenUtils;
 import io.ballerina.asyncapi.generator.ws.client.utils.CommonFunctionUtils;
+import io.ballerina.asyncapi.generator.ws.client.utils.IncomingMessages;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -58,10 +59,15 @@ public class RemoteFunctionReturnTypeGenerator {
             "x-response payload must be a schema object";
     private static final String REPLY_WITHOUT_DISPATCHER_KEY_NOT_ALONE = "Reply type '%s' has no dispatcher key, "
             + "so it must be the only reply of a simple-rpc message, not part of a oneOf or a stream: %s";
+    // allOf parts deeper than this are taken not to declare the key, which also ends a schema that includes itself
+    private static final int MAX_INCLUDE_DEPTH = 32;
 
     private final AsyncApiSpec asyncApiSpec;
+    private final String dispatcherKey;
     // Component schemas by Ballerina type name, built on first use
     private Map<String, AsyncApiSchema> schemasByTypeName;
+    // Whether a connection receives more than one kind of message, worked out on first use
+    private Boolean needsKey;
 
     /**
      * Creates a new return type generator for the given spec.
@@ -70,6 +76,49 @@ public class RemoteFunctionReturnTypeGenerator {
      */
     public RemoteFunctionReturnTypeGenerator(AsyncApiSpec asyncApiSpec) {
         this.asyncApiSpec = asyncApiSpec;
+        JsonNode keyNode = asyncApiSpec.getAsyncApiExtensions().map(ext -> ext.get(X_DISPATCHER_KEY)).orElse(null);
+        this.dispatcherKey = keyNode != null ? keyNode.asText() : null;
+    }
+
+    /**
+     * Returns whether a sent payload carries the dispatcher key; one that doesn't is sent as it is.
+     *
+     * @param payload the sent message's payload
+     * @return whether the payload is a record that declares the key
+     * @throws GeneratorException if the payload declares the key but not as a required string
+     */
+    public boolean carriesDispatcherKey(AsyncApiSchema payload) throws GeneratorException {
+        AsyncApiSchema schema = componentSchema(payload);
+        if (dispatcherKey == null || !declaresKey(schema, 0)) {
+            return false;
+        }
+        String name = payload.name() != null ? payload.name() : "";
+        return new CommonFunctionUtils(asyncApiSpec).isDispatcherPresent(name, schema, dispatcherKey, true);
+    }
+
+    private AsyncApiSchema componentSchema(AsyncApiSchema payload) {
+        Map<String, AsyncApiSchema> schemas = asyncApiSpec.getAsyncApiComponents().map(c -> c.schemas())
+                .orElse(null);
+        return payload != null && payload.name() != null && schemas != null && schemas.containsKey(payload.name())
+                ? schemas.get(payload.name()) : payload;
+    }
+
+    // A record whose own fields or allOf parts declare the key; a oneOf payload is checked where it is read
+    private boolean declaresKey(AsyncApiSchema schema, int depth) {
+        if (schema == null || depth > MAX_INCLUDE_DEPTH || schema.oneOf() != null || schema.anyOf() != null) {
+            return false;
+        }
+        if (schema.properties() != null && schema.properties().containsKey(dispatcherKey)) {
+            return true;
+        }
+        if (schema.allOf() != null) {
+            for (AsyncApiSchema part : schema.allOf()) {
+                if (declaresKey(componentSchema(part), depth + 1)) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     /**
@@ -287,11 +336,22 @@ public class RemoteFunctionReturnTypeGenerator {
     }
 
     /**
-     * Whether the schema is a string, number, boolean or array, which can not carry the dispatcher key.
+     * Whether the schema is a string, number, boolean or array, which can not carry the dispatcher key, or a message
+     * without the key on a connection that receives no other kind, which needs none.
      */
-    private static boolean isSchemaWithoutDispatcherKey(AsyncApiSchema schema) {
-        return schema != null && schema.type() != null && !OBJECT.equals(schema.type())
-                && schema.properties() == null && schema.oneOf() == null && schema.anyOf() == null
-                && schema.allOf() == null;
+    private boolean isSchemaWithoutDispatcherKey(AsyncApiSchema schema) {
+        if (schema == null) {
+            return false;
+        }
+        if (schema.type() != null && !OBJECT.equals(schema.type()) && schema.properties() == null
+                && schema.oneOf() == null && schema.anyOf() == null && schema.allOf() == null) {
+            return true;
+        }
+        if (needsKey == null) {
+            needsKey = IncomingMessages.needsKey(asyncApiSpec);
+        }
+        // With a key, a oneOf is checked member by member where it is read
+        return !needsKey && (dispatcherKey == null
+                || schema.oneOf() == null && schema.anyOf() == null && !declaresKey(schema, 0));
     }
 }

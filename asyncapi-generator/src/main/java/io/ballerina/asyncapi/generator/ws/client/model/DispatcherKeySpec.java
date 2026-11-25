@@ -28,6 +28,7 @@ import io.ballerina.asyncapi.core.model.message.AsyncApiMessage;
 import io.ballerina.asyncapi.core.model.operation.AsyncApiOperation;
 import io.ballerina.asyncapi.core.model.server.AsyncApiServer;
 import io.ballerina.asyncapi.generator.ws.client.utils.CodegenUtils;
+import io.ballerina.asyncapi.generator.ws.client.utils.IncomingMessages;
 import org.semver4j.Semver;
 
 import java.net.URI;
@@ -35,6 +36,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -48,10 +50,12 @@ import static io.ballerina.asyncapi.generator.ws.client.extractor.DispatcherKeyE
  * <ul>
  *     <li>a key with only a {@code const} or {@code enum} of strings is read as {@code type: string};</li>
  *     <li>a key a payload doesn't list in {@code required} is made required, with a warning;</li>
- *     <li>a record message without the key is left out of its operation, with a warning, as the client can't
- *     tell it apart from the others.</li>
+ *     <li>a received record message without the key is left out of its operation, with a warning, as the client
+ *     can't tell it apart from the others.</li>
  * </ul>
- * Payloads that aren't records, such as a string, and {@code oneOf} payloads are left as they are.
+ * Only received messages are told apart, so a sent message without the key is kept and sent as it is, and so is a
+ * received one on a connection that receives no other kind of message. Payloads that aren't records, such as a
+ * string, and {@code oneOf} payloads are left as they are.
  */
 public final class DispatcherKeySpec implements AsyncApiSpec {
 
@@ -70,6 +74,8 @@ public final class DispatcherKeySpec implements AsyncApiSpec {
     private final Set<String> warnedSchemas = new HashSet<>();
     // The operation whose message is being fixed up, to point a warning about an unnamed schema at
     private String currentOperation;
+    // The receive operations on a connection that receives one kind of message, which needs no key
+    private final Set<String> receivedAlone = new HashSet<>();
     private final Map<String, AsyncApiOperation> operations;
     private final AsyncApiComponent components;
 
@@ -83,6 +89,11 @@ public final class DispatcherKeySpec implements AsyncApiSpec {
         this.schemas = original != null && original.schemas() != null
                 ? new LinkedHashMap<>(original.schemas()) : new LinkedHashMap<>();
         this.originalSchemas = new LinkedHashMap<>(schemas);
+        for (IncomingMessages.Connection connection : IncomingMessages.connections(spec)) {
+            if (IncomingMessages.payloads(spec, connection.operations()).size() <= 1) {
+                receivedAlone.addAll(connection.operations().keySet());
+            }
+        }
         this.operations = spec.getAsyncApiOperations().map(this::withRoutableMessages).orElse(null);
         this.components = withSchemas(original);
     }
@@ -112,9 +123,11 @@ public final class DispatcherKeySpec implements AsyncApiSpec {
                 result.put(entry.getKey(), op);
                 continue;
             }
+            boolean keyNeeded = op.action() == AsyncApiOperation.Action.RECEIVE
+                    && !receivedAlone.contains(entry.getKey());
             Map<String, AsyncApiMessage> kept = new LinkedHashMap<>();
             for (Map.Entry<String, AsyncApiMessage> msgEntry : op.messages().entrySet()) {
-                AsyncApiMessage message = routable(entry.getKey(), msgEntry.getKey(), msgEntry.getValue());
+                AsyncApiMessage message = routable(entry.getKey(), msgEntry.getKey(), msgEntry.getValue(), keyNeeded);
                 if (message != null) {
                     kept.put(msgEntry.getKey(), message);
                 }
@@ -127,9 +140,11 @@ public final class DispatcherKeySpec implements AsyncApiSpec {
     }
 
     /**
-     * The message with its payload's key fixed up, or {@code null} when it's a record without the key.
+     * The message with its payload's key fixed up, or {@code null} when it's a record without the key that has to
+     * be told apart from other received messages.
      */
-    private AsyncApiMessage routable(String operationId, String messageName, AsyncApiMessage message) {
+    private AsyncApiMessage routable(String operationId, String messageName, AsyncApiMessage message,
+                                     boolean keyNeeded) {
         if (!(message.payload() instanceof AsyncApiSchema payload)) {
             return message;
         }
@@ -140,11 +155,16 @@ public final class DispatcherKeySpec implements AsyncApiSpec {
         }
         currentOperation = operationId;
         AsyncApiSchema fixed = withKey(payload.name(), schema, false);
+        if (fixed == null && !keyNeeded) {
+            return message;
+        }
         if (fixed == null) {
             warnings.accept(new SpecWarning("/operations/" + pointerToken(operationId),
                     String.format("message '%s' has no '%s' field, so the client can't tell it apart from the other "
                             + "messages and leaves it out", messageName, key),
-                    String.format("Add a required '%s' string field to the message's payload.", key)));
+                    String.format("Add a required '%s' string field with a fixed value to the message's payload, "
+                            + "such as %s: {type: string, const: %s}. See %s", key, key,
+                            messageName.toLowerCase(Locale.ROOT), CodegenUtils.DISPATCHER_KEY_DOCS)));
             return null;
         }
         // A payload that carries its schema, rather than only its name, carries the fixed one
