@@ -30,6 +30,7 @@ import io.ballerina.asyncapi.core.model.operation.AsyncApiOperation;
 import io.ballerina.asyncapi.core.model.server.AsyncApiServer;
 import io.ballerina.asyncapi.generator.GeneratorException;
 import io.ballerina.asyncapi.generator.ws.client.utils.CodegenUtils;
+import io.ballerina.asyncapi.generator.ws.client.utils.ContentRoutes;
 import io.ballerina.asyncapi.generator.ws.client.utils.IncomingMessages;
 import org.semver4j.Semver;
 
@@ -65,6 +66,8 @@ public final class InferredKeySpec implements AsyncApiSpec {
             + " for how the client tells messages apart.";
     private static final List<String> USUAL_KEYS = List.of("type", "event", "op", "action", "kind", "method");
     private static final String DEFAULT_KEY = "type";
+    // Where a reply a call waits for is defined
+    private static final String COMPONENT_MESSAGES = "/components/messages/";
 
     private final AsyncApiSpec spec;
     private final Map<String, JsonNode> extensions;
@@ -117,8 +120,16 @@ public final class InferredKeySpec implements AsyncApiSpec {
             return spec;
         }
         candidates = candidates(received, schemas);
+        if (candidates.isEmpty()) {
+            // With no one key, each connection's messages may still be told apart by what they carry
+            String stop = routeByContent(spec, keyed, receivedOn, schemas, warnings);
+            if (stop == null) {
+                return spec;
+            }
+            throw new GeneratorException(stop);
+        }
         if (candidates.size() != 1) {
-            throw new GeneratorException(noKeyMessage(candidates, keyed, receivedOn, received, schemas));
+            throw new GeneratorException(ambiguousKeyMessage(candidates));
         }
         String key = candidates.get(0);
         warnings.accept(new SpecWarning("", String.format("the spec has no x-dispatcherKey, so the client routes "
@@ -129,30 +140,59 @@ public final class InferredKeySpec implements AsyncApiSpec {
     }
 
     /**
-     * Why no field can be the key, with where in the spec a key is needed and the smallest change that adds one.
+     * Routes each connection's received messages by their content, warning about each route and each message left
+     * out, or returns why a connection can't be routed. A connection can't be when none of its messages can be told
+     * apart, or when a reply a call waits for can't be.
      */
-    private static String noKeyMessage(List<String> candidates, List<IncomingMessages.Connection> keyed,
-                                       List<List<IncomingMessages.Received>> receivedOn,
-                                       List<List<AsyncApiSchema>> received, Map<String, AsyncApiSchema> schemas) {
-        if (!candidates.isEmpty()) {
-            return String.format(KEY_REQUIRED + "\n  x-dispatcherKey: %s\n%s", String.format("%s each have a "
-                    + "different fixed value in every message a connection receives, so it isn't clear which one "
-                    + "the messages are routed on", quotedList(candidates)), candidates.get(0), SEE_DOCS);
-        }
+    private static String routeByContent(AsyncApiSpec spec, List<IncomingMessages.Connection> keyed,
+                                         List<List<IncomingMessages.Received>> receivedOn,
+                                         Map<String, AsyncApiSchema> schemas, Consumer<SpecWarning> warnings) {
+        List<ContentRoutes> routes = new ArrayList<>();
         for (int i = 0; i < keyed.size(); i++) {
-            if (candidates(List.of(received.get(i)), schemas).isEmpty()) {
+            ContentRoutes connectionRoutes = ContentRoutes.of(spec, keyed.get(i).operations());
+            boolean replyLeftOut = connectionRoutes.leftOut().stream()
+                    .anyMatch(message -> message.location().startsWith(COMPONENT_MESSAGES));
+            if (!connectionRoutes.routable() || connectionRoutes.routes().isEmpty() || replyLeftOut) {
                 return noFieldOnChannel(keyed.get(i).channelName(), receivedOn.get(i), schemas);
             }
+            routes.add(connectionRoutes);
         }
-        List<String> perChannel = new ArrayList<>();
         for (int i = 0; i < keyed.size(); i++) {
-            perChannel.add(String.format("'%s' on channel '%s'",
-                    candidates(List.of(received.get(i)), schemas).get(0), keyed.get(i).channelName()));
+            String channel = keyed.get(i).channelName();
+            String location = "/channels/" + channel.replace("~", "~0").replace("/", "~1");
+            List<ContentRoutes.Route> connectionRoutes = routes.get(i).routes();
+            String key = connectionRoutes.get(0).value() != null ? connectionRoutes.get(0).field() : null;
+            if (key != null) {
+                warnings.accept(new SpecWarning(location, String.format("the spec has no x-dispatcherKey, so the "
+                        + "client routes the messages received on channel '%s' on '%s', the field with a different "
+                        + "fixed value in each", channel, key), String.format("Name '%s' in x-dispatcherKey to make it "
+                        + "explicit, if the messages every channel receives carry it. See %s", key,
+                        CodegenUtils.DISPATCHER_KEY_DOCS)));
+            } else {
+                List<String> fields = connectionRoutes.stream().map(route -> String.format("'%s' for '%s'",
+                        route.field(), route.message().name())).toList();
+                warnings.accept(new SpecWarning(location, String.format("the spec has no x-dispatcherKey, so the "
+                        + "client tells apart the messages received on channel '%s' by a field only each has: %s",
+                        channel, String.join(", ", fields)), String.format("Give each a field with its own fixed "
+                        + "value and name it in x-dispatcherKey if a frame can carry another message's field. See %s",
+                        CodegenUtils.DISPATCHER_KEY_DOCS)));
+            }
+            for (IncomingMessages.Received message : routes.get(i).leftOut()) {
+                warnings.accept(new SpecWarning(message.location(), String.format("message '%s' received on "
+                        + "channel '%s' has no field only it has and no field with its own fixed value, so the "
+                        + "client can't tell it apart from the others and leaves it out", message.name(), channel),
+                        String.format("Give it a required field the channel's other messages don't declare, or give "
+                        + "each of them a field with its own fixed value. See %s", CodegenUtils.DISPATCHER_KEY_DOCS)));
+            }
         }
-        return String.format("x-dispatcherKey extension is required in the AsyncAPI spec, and the channels tell "
-                + "their received messages apart by different fields: %s. A spec has one x-dispatcherKey, so give "
-                + "the received messages of every channel the same field and name it there.\n%s",
-                String.join(", ", perChannel), SEE_DOCS);
+        return null;
+    }
+
+    // Several fields could be the key, so the one the messages are routed on has to be named
+    private static String ambiguousKeyMessage(List<String> candidates) {
+        return String.format(KEY_REQUIRED + "\n  x-dispatcherKey: %s\n%s", String.format("%s each have a "
+                + "different fixed value in every message a connection receives, so it isn't clear which one "
+                + "the messages are routed on", quotedList(candidates)), candidates.get(0), SEE_DOCS);
     }
 
     // The messages a channel receives, where each is received, and a field that would tell them apart
@@ -177,7 +217,7 @@ public final class InferredKeySpec implements AsyncApiSpec {
         return text.append("\n").append(SEE_DOCS).toString();
     }
 
-    // A string field every received object already declares, preferring the usual key names; else 'type'
+    // A usual key name every received object already declares, such as 'event'; else 'type'
     private static String suggestedField(List<IncomingMessages.Received> messages,
                                          Map<String, AsyncApiSchema> schemas) {
         List<Set<String>> declared = new ArrayList<>();
@@ -188,8 +228,8 @@ public final class InferredKeySpec implements AsyncApiSpec {
         }
         List<String> shared = declared.isEmpty() ? List.of() : declared.get(0).stream()
                 .filter(name -> declared.stream().allMatch(fields -> fields.contains(name))).toList();
-        return USUAL_KEYS.stream().filter(shared::contains).findFirst()
-                .orElse(shared.isEmpty() ? DEFAULT_KEY : shared.get(0));
+        // Any other shared field holds data, so giving it a fixed value would change what the messages say
+        return USUAL_KEYS.stream().filter(shared::contains).findFirst().orElse(DEFAULT_KEY);
     }
 
     private static Set<String> stringFields(AsyncApiSchema schema, Map<String, AsyncApiSchema> schemas) {

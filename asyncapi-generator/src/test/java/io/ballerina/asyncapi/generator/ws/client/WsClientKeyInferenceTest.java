@@ -139,9 +139,11 @@ public class WsClientKeyInferenceTest {
 
     @Test
     void testNoFieldThatTellsMessagesApartStops() {
-        String said = "{type: object, properties: {text: {type: string}}}";
+        // The two declare the same fields, so neither a fixed value nor a field of its own tells them apart
+        String join = "{type: object, required: [room], properties: {room: {type: string}, text: {type: string}}}";
+        String said = "{type: object, required: [room], properties: {room: {type: string}, text: {type: string}}}";
         GeneratorException e = Assert.expectThrows(GeneratorException.class,
-                () -> generateClient(bothReceived(SPEC.formatted(JOIN, said)), new ArrayList<>()));
+                () -> generateClient(bothReceived(SPEC.formatted(join, said)), new ArrayList<>()));
         // Each received message is named with where the spec receives it, and the fix is shown for each
         Assert.assertEquals(e.getMessage(), "x-dispatcherKey extension is required in the AsyncAPI spec, and no "
                 + "field has a different fixed string value (a const or a one-value enum) in every message received "

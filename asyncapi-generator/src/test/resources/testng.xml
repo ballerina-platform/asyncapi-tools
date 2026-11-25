@@ -64,6 +64,7 @@
             <class name="io.ballerina.asyncapi.generator.ws.client.WsClientDispatcherKeyTest"/>
             <class name="io.ballerina.asyncapi.generator.ws.client.WsClientKeyInferenceTest"/>
             <class name="io.ballerina.asyncapi.generator.ws.client.WsClientChannelsTest"/>
+            <class name="io.ballerina.asyncapi.generator.ws.client.WsClientContentRoutingTest"/>
             <class name="io.ballerina.asyncapi.generator.ws.client.generator.ClientGeneratorTest"/>
             <class name="io.ballerina.asyncapi.generator.ws.client.generator.DataTypesGeneratorTest"/>
             <class name="io.ballerina.asyncapi.generator.ws.client.generator.UtilGeneratorTest"/>

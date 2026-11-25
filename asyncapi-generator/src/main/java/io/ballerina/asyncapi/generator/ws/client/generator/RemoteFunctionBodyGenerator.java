@@ -90,7 +90,9 @@ public class RemoteFunctionBodyGenerator {
         /** A string reply, whose frame text is the value itself. */
         TEXT,
         /** Any other reply without the dispatcher key, sent as JSON text. */
-        JSON
+        JSON,
+        /** A JSON object routed to its own pipe by what it carries, as the spec has no dispatcher key. */
+        CONTENT
     }
 
     private final List<ImportDeclarationNode> imports;
@@ -268,9 +270,10 @@ public class RemoteFunctionBodyGenerator {
                 ? "unionResult" : CodegenUtils.getValidName(responseType, false);
         // An echo reply shares the request's type, so its variable needs a name apart from the parameter
         String cloneVar = CodegenUtils.getFreeLocalName(responseVar, "Response", Set.of(camelCaseRequestType));
-        boolean keyed = replyFormat == ReplyFormat.KEYED;
+        // A reply routed by content waits on its own pipe as a keyed one does, but arrives as frame text
+        boolean keyed = replyFormat == ReplyFormat.KEYED || replyFormat == ReplyFormat.CONTENT;
         // A reply without the dispatcher key can't carry a stream id either
-        boolean perRequestPipe = keyed && !Objects.isNull(dispatcherStreamId);
+        boolean perRequestPipe = replyFormat == ReplyFormat.KEYED && !Objects.isNull(dispatcherStreamId);
         // A frame without the key is a reply only while a call waits for one; otherwise it is a receive-only message
         String unkeyedPipe = isSubscribe ? RemoteFunctionReturnTypeGenerator.NO_DISPATCHER_KEY_EVENTS_PIPE
                 : RemoteFunctionReturnTypeGenerator.NO_DISPATCHER_KEY_PIPE;
@@ -297,7 +300,7 @@ public class RemoteFunctionBodyGenerator {
 
         // consume
         sb.append(String.format("%s|%s %s = %s.%s(timeout);\n",
-                keyed ? MESSAGE_TYPE : STRING, PIPE_ERROR_TYPE, RESPONSE_MESSAGE_VAR,
+                replyFormat == ReplyFormat.KEYED ? MESSAGE_TYPE : STRING, PIPE_ERROR_TYPE, RESPONSE_MESSAGE_VAR,
                 String.format(SELF_PIPES_GET_PIPE, pipeId), CONSUME));
         if (awaitsUnkeyedReply) {
             sb.append(String.format("self.%s.awaitReply(%s, false);\n", PIPES, pipeId));
@@ -318,7 +321,8 @@ public class RemoteFunctionBodyGenerator {
 
         // A string reply's frame text is the value itself; any other reply without the key is JSON text
         sb.append(String.format("%s|error %s = %s.%s();\n", responseType, cloneVar, RESPONSE_MESSAGE_VAR,
-                replyFormat == ReplyFormat.JSON ? FROM_JSON_STRING_WITH_TYPE : CLONE_WITH_TYPE));
+                replyFormat == ReplyFormat.JSON || replyFormat == ReplyFormat.CONTENT
+                        ? FROM_JSON_STRING_WITH_TYPE : CLONE_WITH_TYPE));
         sb.append(String.format("if %s is error { self.%s(); return error(%s, %s); }\n",
                 cloneVar, ATTEMPT_TO_CLOSE_CONNECTION, DATABINDING_ERR_MSG, cloneVar));
         sb.append(String.format("return %s;\n", cloneVar));
