@@ -18,9 +18,11 @@
 package io.ballerina.asyncapi.core.model.message;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.TextNode;
 import io.ballerina.asyncapi.core.model.doc.AsyncApiExternalDocs;
 import io.ballerina.asyncapi.core.model.tag.AsyncApiTag;
 
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -58,4 +60,27 @@ public record AsyncApiMessage(
         List<AsyncApiMessageTrait> traits,
         Map<String, JsonNode> extensions
 ) {
+
+    /**
+     * Extension the parser adds to a message whose payload is a {@code $ref} into another file, which it can't
+     * follow. Its value is that {@code $ref}, and the message's payload is {@code null}.
+     */
+    public static final String X_EXTERNAL_PAYLOAD_REF = "x-ballerina-externalPayloadRef";
+
+    /**
+     * Returns {@code extensions} with {@link #X_EXTERNAL_PAYLOAD_REF} set to {@code ref}, or unchanged when
+     * {@code ref} is null.
+     *
+     * @param extensions the message's extensions, which may be null
+     * @param ref        the payload's {@code $ref} into another file, or null
+     * @return the extensions to give the message
+     */
+    public static Map<String, JsonNode> withExternalPayloadRef(Map<String, JsonNode> extensions, String ref) {
+        if (ref == null) {
+            return extensions;
+        }
+        Map<String, JsonNode> result = extensions == null ? new LinkedHashMap<>() : new LinkedHashMap<>(extensions);
+        result.put(X_EXTERNAL_PAYLOAD_REF, TextNode.valueOf(ref));
+        return result;
+    }
 }

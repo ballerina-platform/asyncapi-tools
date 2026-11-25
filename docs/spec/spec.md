@@ -30,19 +30,19 @@ This specification elaborates on the `AsyncAPI CLI Tool` commands.
 This tool enables the generation of an AsyncAPI specification for a given service running on WebSockets. It can be done by running the following command.
 
 ```bash
-bal asyncapi <package_directory | bal_file> --protocol ws [-o <output_directory>]
+bal asyncapi <package_directory | bal_file> [-o <output_directory>]
 ```
 
 | Command Parameter |                                    Description                                    | Mandatory |    Default Value    |
 |:-----------------:|:---------------------------------------------------------------------------------:|:---------:|:-------------------:|
 |     `<input>`     |          the Ballerina package directory, or a standalone `.bal` file           |    Yes    |          -          |
-|    --protocol     |                         the protocol, `ws` for WebSockets                         |    Yes    |          -          |
+|    --protocol     |                         the protocol, `ws` for WebSockets                         |    No     |         ws          |
 |   -o, --output    |                             the output directory                                |    No     | <current_directory> |
 |     --module      |                    the module of the package to read services from                    |    No     |  <default_module>   |
 |     --service     |         the base path of the service to generate the specification for, e.g. `/chat`         |    No     |   <all_services>    |
-|     --format      |                       the output format, `yaml` or `json`                       |    No     |        yaml         |
+|   --spec-format   |                       the output format, `yaml` or `json`                       |    No     |        yaml         |
 |      --force      |                       overwrite specifications that already exist                       |    No     |        false        |
-|     --dry-run     |              show the files that would be written, without writing them              |    No     |        false        |
+|   -n, --dry-run   |              show the files that would be written, without writing them              |    No     |        false        |
 
 
 The command generates an AsyncAPI specification for the services running on WebSockets in the given input. The generated specification will be saved in the specified output directory. If the output directory is not specified, the specification will be saved in the current directory.
@@ -50,9 +50,9 @@ The command generates an AsyncAPI specification for the services running on WebS
 Behaviour of the command,
 - The input is a Ballerina package directory, or a standalone `.bal` file that is not part of a package. For a file inside a package, pass the package directory instead.
 - For a package, the services in every file of the module are read. The default module is used unless `--module` names another one.
-- Users should provide input which does not contain any compilation errors.
+- Users should provide input which does not contain any compilation errors. A package is compiled with the dependency versions in its `Dependencies.toml`, so run `bal build` once before generating a specification from it.
 - If there are multiple services, the tool will generate a separate specification for each service, by equating each service to a channel. `--service` limits this to the services with the given base path.
-- A specification that already exists with different content is skipped with a warning unless `--force` is given. A run that skips any file exits with a non-zero code.
+- A specification that already exists with different content is only replaced when the user agrees, or with `--force`. Without a terminal to ask on, the command stops with exit code 4 and writes nothing.
 - The generated specification is of version 3.0.0.
 
 ### How the AsyncAPI specification is generated
@@ -234,28 +234,30 @@ The `x-dispatcherStreamId` property is added if there is a `@websocket:ServiceCo
 This tool enables the generation of a WebSocket client based on a given AsyncAPI specification. It can be done by running the following command.
 
 ```bash
-bal asyncapi <specification_file> --protocol ws [-o <output_directory>]
+bal asyncapi <specification_file> [-o <output_directory>]
 ```
 
 | Command Parameter |                           Description                            | Mandatory |    Default Value    |
 |:-----------------:|:----------------------------------------------------------------:|:---------:|:-------------------:|
 |     `<input>`     |      the AsyncAPI specification (`.yaml`, `.yml` or `.json`)      |    Yes    |          -          |
-|    --protocol     |                the protocol, `ws` for WebSockets                 |    Yes    |          -          |
+|    --protocol     |                the protocol, `ws` for WebSockets                 |    No     |  from the servers   |
 |   -o, --output    |                       the output directory                       |    No     | <current_directory> |
 |     --module      |          the module of the package to write the client into          |    No     |  <default_module>   |
 |   --with-tests    |          specifies whether to generate a test skeleton           |    No     |        false        |
 |     --license     | specifies the path for a text file containing the license header |    No     |          -          |
 |      --force      |                overwrite files that already exist                |    No     |        false        |
-|     --dry-run     |    show the files that would be written, without writing them    |    No     |        false        |
+|   -n, --dry-run   |    show the files that would be written, without writing them    |    No     |        false        |
 
 
 The command generates a WebSocket client for the given AsyncAPI specification. The client will be generated in the specified output directory, which must be inside a Ballerina package. If the output directory is not specified, the client will be generated in the current directory.
 
 Behaviour of the command,
 - The tool will only generate a client if the provided input file is a valid AsyncAPI specification. A client is currently generated from AsyncAPI 2.x specifications; the 3.0.0 specifications generated by this tool are not yet supported as input.
-- A file that already exists with different content is skipped with a warning unless `--force` is given. A run that skips any file exits with a non-zero code.
+- The protocol is read from the specification: a server whose protocol is `ws` or `wss` means WebSocket. A specification without one needs `--protocol ws`.
+- A file that already exists with different content is only replaced when the user agrees, or with `--force`. Without a terminal to ask on, the command stops with exit code 4 and writes nothing.
 - The command will generate a `client.bal` file, a `types.bal` file, and a `utils.bal` file. If the `--with-tests` flag is provided, the tool will generate a `tests/tests.bal` file as well.
-- If the `--license` flag is provided, the tool will add the license header to the generated files.
+- If the `--license` flag is provided, the tool will add the license header to the generated files. The license file must contain only `//` comment lines and blank lines.
+- Every generated file says it was generated by `bal asyncapi`, after the license header.
 
 ### The `client.bal` file
 

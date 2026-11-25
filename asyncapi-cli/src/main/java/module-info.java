@@ -23,6 +23,9 @@ module io.ballerina.asyncapi {
     requires io.ballerina.tools.api;
     requires io.ballerina.lang;
     requires io.ballerina.toml;
+    requires com.fasterxml.jackson.core;
+    requires com.fasterxml.jackson.databind;
+    requires com.fasterxml.jackson.dataformat.yaml;
 
     exports io.ballerina.asyncapi.cmd;
     opens io.ballerina.asyncapi.cmd;

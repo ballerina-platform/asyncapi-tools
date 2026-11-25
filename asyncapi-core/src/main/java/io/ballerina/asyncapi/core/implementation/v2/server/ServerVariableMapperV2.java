@@ -25,6 +25,7 @@ import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25Components;
 import io.apicurio.datamodels.models.asyncapi.v26.AsyncApi26Components;
 import io.ballerina.asyncapi.core.Constants;
 import io.ballerina.asyncapi.core.implementation.common.ServerVariableMapper;
+import io.ballerina.asyncapi.core.implementation.utils.JsonPointers;
 import io.ballerina.asyncapi.core.model.server.AsyncApiServerVariable;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -116,7 +117,7 @@ final class ServerVariableMapperV2 {
                 LOG.warn("Cyclic $ref detected: {}. Skipping server variable.", current);
                 return null;
             }
-            String name = current.substring(Constants.SERVER_VARIABLES_REF_PREFIX.length());
+            String name = JsonPointers.keyAfter(current, Constants.SERVER_VARIABLES_REF_PREFIX);
             // Server variables in components are only available in AsyncAPI 2.4+.
             Map<String, ? extends ServerVariable> varMap = switch (components) {
                 case AsyncApi26Components typed -> typed.getServerVariables();

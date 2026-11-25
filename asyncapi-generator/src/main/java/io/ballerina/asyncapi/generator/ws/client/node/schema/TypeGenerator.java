@@ -21,6 +21,9 @@ import io.ballerina.asyncapi.core.model.component.AsyncApiSchema;
 import io.ballerina.asyncapi.generator.GeneratorException;
 import io.ballerina.compiler.syntax.tree.TypeDescriptorNode;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * Common interface for all Ballerina type descriptor generators.
  */
@@ -46,7 +49,7 @@ public interface TypeGenerator {
             return new ReferencedTypeGenerator(schema);
         } else if (schema.allOf() != null && !schema.allOf().isEmpty()) {
             return new AllOfRecordTypeGenerator(schema, typeName);
-        } else if (schema.oneOf() != null || schema.anyOf() != null) {
+        } else if ((schema.oneOf() != null || schema.anyOf() != null) && !onlyNarrowsFields(schema)) {
             return new UnionTypeGenerator(schema, typeName);
         } else if ("array".equals(schema.type())) {
             return new ArrayTypeGenerator(schema, typeName);
@@ -62,5 +65,30 @@ public interface TypeGenerator {
         } else {
             return new AnyDataTypeGenerator();
         }
+    }
+
+    /**
+     * Whether every {@code oneOf} and {@code anyOf} member of an object only says which of its fields must be
+     * there, as {@code anyOf: [{required: [text]}, {required: [attachmentIds]}]} does, so the object keeps its type.
+     */
+    private static boolean onlyNarrowsFields(AsyncApiSchema schema) {
+        if (schema.properties() == null || schema.type() != null && !"object".equals(schema.type())) {
+            return false;
+        }
+        List<AsyncApiSchema> members = new ArrayList<>();
+        if (schema.oneOf() != null) {
+            members.addAll(schema.oneOf());
+        }
+        if (schema.anyOf() != null) {
+            members.addAll(schema.anyOf());
+        }
+        return members.stream().allMatch(member -> member.name() == null
+                && (member.type() == null || "object".equals(member.type()))
+                && member.items() == null && member.additionalProperties() == null && member.allOf() == null
+                && member.oneOf() == null && member.anyOf() == null && member.enumValue() == null
+                && member.constValue() == null
+                // A field it restates, such as to add minItems, is one the object already declares
+                && (member.properties() == null || schema.properties().keySet().containsAll(
+                        member.properties().keySet())));
     }
 }

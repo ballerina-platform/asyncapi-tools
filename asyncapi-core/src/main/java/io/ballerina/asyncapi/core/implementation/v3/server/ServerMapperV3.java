@@ -25,6 +25,7 @@ import io.apicurio.datamodels.models.asyncapi.v30.AsyncApi30Components;
 import io.apicurio.datamodels.models.asyncapi.v30.AsyncApi30Server;
 import io.ballerina.asyncapi.core.Constants;
 import io.ballerina.asyncapi.core.implementation.common.ServerBindingsMapper;
+import io.ballerina.asyncapi.core.implementation.utils.JsonPointers;
 import io.ballerina.asyncapi.core.implementation.v3.doc.ExternalDocMapperV3;
 import io.ballerina.asyncapi.core.implementation.v3.tag.TagMapperV3;
 import io.ballerina.asyncapi.core.model.tag.AsyncApiTag;
@@ -150,7 +151,7 @@ public final class ServerMapperV3 {
                 LOG.warn("Cyclic $ref detected: {}. Skipping server.", current);
                 return null;
             }
-            String name = current.substring(Constants.SERVERS_REF_PREFIX.length());
+            String name = JsonPointers.keyAfter(current, Constants.SERVERS_REF_PREFIX);
             // Add additional version checks here as new AsyncAPI 3.x versions are supported.
             AsyncApiServer resolved = null;
             if (components instanceof AsyncApi30Components typed) {

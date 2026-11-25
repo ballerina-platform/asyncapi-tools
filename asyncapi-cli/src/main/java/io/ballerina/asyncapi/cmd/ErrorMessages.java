@@ -18,106 +18,35 @@
 package io.ballerina.asyncapi.cmd;
 
 /**
- * User-facing error and warning message constants for the refactored asyncapi CLI commands.
- *
+ * Warning and error messages shared by the asyncapi command. Each is one line that starts in lowercase and has
+ * no trailing period; the command adds the {@code bal asyncapi: warning:} or {@code error:} prefix.
  */
 public final class ErrorMessages {
 
-    public static final String INVALID_INPUT_FILE =
-            "Invalid input file: only .yaml, .yml, and .json AsyncAPI spec files are supported.";
+    public static final String WARN_OPTION_ONLY_FOR_CODE_OUTPUT =
+            "%s only applies when generating code from an AsyncAPI definition, so it is ignored";
 
-    public static final String INVALID_INPUT_PATH =
-            "error: invalid input path '%s': file does not exist or is not a valid AsyncAPI spec file.";
+    public static final String WARN_OPTION_ONLY_FOR_SPEC_OUTPUT =
+            "%s only applies when generating a definition from Ballerina code, so it is ignored";
 
-    public static final String INVALID_BAL_INPUT_PATH =
-            "error: invalid input path '%s': it does not exist or is not a Ballerina source file or package.";
+    public static final String WARN_OPTION_UNSUPPORTED = "%s is not supported for the %s protocol, so it is ignored";
 
-    public static final String WARN_MODULE_STANDALONE_FILE =
-            "--module only applies to a Ballerina package and will be ignored for a standalone .bal file.";
-
-    public static final String MISSING_INPUT =
-            "error: no input provided. Usage: bal asyncapi <input> --protocol <protocol> [flags]";
-
-    public static final String MISSING_PROTOCOL =
-            "error: the --protocol flag is required. Supported protocols: %s.";
-
-    public static final String UNKNOWN_PROTOCOL =
-            "error: unknown protocol '%s'. Supported protocols: %s.";
-
-    public static final String REMOVED_INPUT_FLAG =
-            "error: -i/--input has been removed. Pass the input as the first argument instead: %s";
-
-    public static final String REMOVED_JSON_FLAG =
-            "error: --json has been replaced by --format json.";
-
-    public static final String RENAMED_PROTOCOL =
-            "error: unknown protocol '%s'. Use --protocol ws for WebSocket.";
-
-    public static final String UNKNOWN_FORMAT =
-            "error: unknown format '%s'. Supported formats: json, yaml.";
-
-    public static final String UNEXPECTED_GENERATION_FAILURE =
-            "error: unexpected failure during generation: ";
-
-    public static final String WARN_OPTION_UNSUPPORTED =
-            "%s is not supported for the %s protocol and will be ignored.";
+    public static final String WARN_FORMAT_RENAMED = "--format is renamed to --spec-format";
 
     public static final String WARN_HTTP_TESTS_NEED_AUTH =
             "--with-tests generated no tests: they send signed events, so the definition needs an "
-                    + "x-ballerina-auth block.";
+                    + "x-ballerina-auth block";
 
     public static final String WARN_OTHER_COMPILER_PLUGIN =
-            "The package already has a compiler plugin (%s), so the trigger's plugin was not added. A package "
-                    + "can have only one, so bal build --export-endpoints will not list this trigger's services.";
-
-    public static final String TOOL_ENTRY_REMOVED =
-            "-- Ballerina.toml: removed [[tool.asyncapi]], the trigger's compiler plugin is now in lib/";
-
-    public static final String TOOL_ENTRY_REMOVAL_PLANNED =
-            "  update     Ballerina.toml  (remove [[tool.asyncapi]], the trigger's compiler plugin is now in lib/)";
-
-    public static final String WARN_TOOL_ENTRY_NOT_REMOVED =
-            "Ballerina.toml could not be updated (%s). Remove its [[tool.asyncapi]] entry with "
-                    + "id = \"trigger-plugin\" by hand: the trigger's compiler plugin is now in lib/.";
-
-    public static final String WARN_OPTION_ONLY_FOR_SPEC_OUTPUT =
-            "%s only applies when generating an AsyncAPI definition from Ballerina code and will be ignored.";
-
-    public static final String INVALID_OUTPUT_DIRECTORY =
-            "Provided output path is not a valid directory.";
-
-    public static final String INVALID_LICENSE_FILE =
-            "Provided license file path is invalid or unreadable.";
-
-    public static final String CLIENT_GENERATION_FAILED =
-            "Client code generation failed: {0}";
-
-    public static final String SERVICE_GENERATION_FAILED =
-            "Service code generation failed: {0}";
-
-    public static final String SUCCESS_MESSAGE =
-            "Ballerina code generation completed successfully.";
-
-    public static final String WARN_FILE_SKIPPED =
-            "Skipped \"%s\": the file already exists. Use --force to overwrite it.";
-
-    public static final String WARN_FILES_SKIPPED_SUMMARY =
-            "%d file(s) skipped, so the generated code may be out of sync with the definition. "
-                    + "Use --dry-run to see what differs, or --force to overwrite.";
+            "the package already has a compiler plugin (%s), so the trigger's plugin was not added and "
+                    + "bal build --export-endpoints will not list this trigger's services";
 
     public static final String WARN_WRITTEN_BEFORE_FAILURE = "these files were written before the failure: %s";
 
     public static final String TARGET_IS_DIRECTORY =
             "%s is a directory, so the generated file cannot be written there";
 
-    public static final String FILES_WRITTEN = "Following files were written.";
-
-    public static final String NO_FILES_WRITTEN = "No files were written.";
-
-    public static final String FILES_UP_TO_DATE = "No changes: the existing files are already up to date.";
-
-    public static final String CODE_TO_SPEC_SUCCESS =
-            "AsyncAPI spec generation completed successfully.";
+    public static final String UNEXPECTED_FAILURE = "unexpected failure: ";
 
     private ErrorMessages() {
     }

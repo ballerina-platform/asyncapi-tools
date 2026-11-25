@@ -67,6 +67,7 @@ dependencies {
     implementation "org.ballerinalang:toml-parser:${ballerinaLangVersion}"
     implementation "org.ballerinalang:ballerina-parser:${ballerinaLangVersion}"
     implementation "info.picocli:picocli:${picocliVersion}"
+    implementation project(':asyncapi-core')
     implementation project(':asyncapi-generator')
     testImplementation project(':asyncapi-generator')
     testImplementation "org.testng:testng:${testngVersion}"
@@ -105,6 +106,11 @@ dependencies {
 
 // Bundled as a file, not on the classpath: the CLI only copies it into the triggers it generates.
 processResources {
+    // The version --version prints
+    inputs.property("version", project.version)
+    filesMatching("asyncapi-tool.properties") {
+        expand(version: project.version)
+    }
     from(configurations.triggerPlugin) {
         into "trigger-plugin"
         rename { "asyncapi-trigger-compiler-plugin.jar" }

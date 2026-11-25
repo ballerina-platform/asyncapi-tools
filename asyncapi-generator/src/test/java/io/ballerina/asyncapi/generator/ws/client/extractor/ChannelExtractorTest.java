@@ -17,21 +17,56 @@
  */
 package io.ballerina.asyncapi.generator.ws.client.extractor;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import io.ballerina.asyncapi.core.AsyncApiParser;
 import io.ballerina.asyncapi.core.AsyncApiParserException;
+import io.ballerina.asyncapi.core.SpecWarning;
 import io.ballerina.asyncapi.core.api.AsyncApiSpec;
 import io.ballerina.asyncapi.generator.GeneratorException;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
+
 /**
- * Unit tests for {@link ChannelExtractor} covering the happy path (exactly one channel
- * with WS bindings) and both error branches: no channels and more than one channel.
+ * Unit tests for {@link ChannelExtractor}: one channel with WS bindings, no channels, and a spec with several
+ * channels, where each gets its own client.
  */
 public class ChannelExtractorTest {
 
     private static final String PREFIX =
             "{\"asyncapi\":\"2.0.0\",\"info\":{\"title\":\"T\",\"version\":\"1\"}";
+
+    // Two connections: a chat room with a send and a receive, and a presence feed
+    private static final String TWO_CHANNELS = """
+            asyncapi: 3.0.0
+            info: {title: Chat, version: 1.0.0}
+            channels:
+              room:
+                address: /rooms/{roomId}
+                parameters: {roomId: {}}
+                messages:
+                  say: {payload: {type: object, properties: {type: {type: string, const: say}}}}
+                  said: {payload: {type: object, properties: {type: {type: string, const: said}}}}
+              presence:
+                address: /presence
+                messages:
+                  online: {payload: {type: object, properties: {type: {type: string, const: online}}}}
+            operations:
+              sendSay:
+                {action: send, channel: {$ref: '#/channels/room'}, messages: [{$ref: '#/channels/room/messages/say'}]}
+              onSaid:
+                action: receive
+                channel: {$ref: '#/channels/room'}
+                messages: [{$ref: '#/channels/room/messages/said'}]
+              onOnline:
+                action: receive
+                channel: {$ref: '#/channels/presence'}
+                messages: [{$ref: '#/channels/presence/messages/online'}]
+            """;
 
     @Test
     void testExtract_returnsChannelInfo_whenExactlyOneChannel() throws AsyncApiParserException, GeneratorException {
@@ -40,7 +75,7 @@ public class ChannelExtractorTest {
                 + "{\"query\":{\"type\":\"object\","
                 + "\"properties\":{\"token\":{\"type\":\"string\"}}}}}}}}";
         AsyncApiSpec spec = AsyncApiParser.parseFromJsonString(json);
-        ChannelExtractor.ChannelInfo info = new ChannelExtractor(spec).extract();
+        ChannelExtractor.ChannelInfo info = new ChannelExtractor(spec).extract(warning -> { }).get(0);
 
         Assert.assertNotNull(info,
                 "ChannelInfo should not be null when exactly one channel is present");
@@ -61,7 +96,7 @@ public class ChannelExtractorTest {
         String json = PREFIX + ",\"channels\":{}}";
         AsyncApiSpec spec = AsyncApiParser.parseFromJsonString(json);
         try {
-            new ChannelExtractor(spec).extract();
+            new ChannelExtractor(spec).extract(warning -> { });
             Assert.fail("Expected GeneratorException when the channels map is empty");
         } catch (GeneratorException e) {
             Assert.assertNotNull(e.getMessage(),
@@ -70,15 +105,54 @@ public class ChannelExtractorTest {
     }
 
     @Test
-    void testExtract_throwsGeneratorException_whenMoreThanOneChannel() throws AsyncApiParserException {
+    void testExtract_throwsGeneratorException_whenNoneOfSeveralChannelsHasAnOperation()
+            throws AsyncApiParserException {
         String json = PREFIX + ",\"channels\":{\"chat\":{},\"notifications\":{}}}";
         AsyncApiSpec spec = AsyncApiParser.parseFromJsonString(json);
-        try {
-            new ChannelExtractor(spec).extract();
-            Assert.fail("Expected GeneratorException when more than one channel is defined");
-        } catch (GeneratorException e) {
-            Assert.assertNotNull(e.getMessage(),
-                    "Exception message should not be null when more than one channel is defined");
-        }
+        GeneratorException e = Assert.expectThrows(GeneratorException.class,
+                () -> new ChannelExtractor(spec).extract(warning -> { }));
+        Assert.assertTrue(e.getMessage().contains("None of the 2 channels"), e.getMessage());
+    }
+
+    @Test
+    void testEachChannelGetsOnlyItsOwnOperations() throws Exception {
+        List<ChannelExtractor.ChannelInfo> channels = new ChannelExtractor(spec(TWO_CHANNELS)).extract(warning -> {
+            throw new AssertionError("no channel is left out: " + warning.message());
+        });
+        Assert.assertEquals(channels.stream().map(ChannelExtractor.ChannelInfo::channelName).toList(),
+                List.of("presence", "room"), "clients come in channel name order");
+        Assert.assertEquals(operationIds(channels.get(0)), Set.of("onOnline"));
+        Assert.assertEquals(operationIds(channels.get(1)), Set.of("sendSay", "onSaid"));
+        Assert.assertEquals(channels.get(1).spec().getAsyncApiChannels().orElseThrow().keySet(), Set.of("room"));
+    }
+
+    @Test
+    void testChannelWithoutOperationsIsLeftOutWithAWarning() throws Exception {
+        String spec = TWO_CHANNELS.substring(0, TWO_CHANNELS.indexOf("  onOnline:"));
+        List<SpecWarning> warnings = new ArrayList<>();
+        List<ChannelExtractor.ChannelInfo> channels = new ChannelExtractor(spec(spec)).extract(warnings::add);
+        Assert.assertEquals(channels.size(), 1);
+        Assert.assertEquals(channels.get(0).channelName(), "room");
+        Assert.assertEquals(warnings.size(), 1, warnings.toString());
+        Assert.assertEquals(warnings.get(0).location(), "/channels/presence");
+        Assert.assertTrue(warnings.get(0).message().contains("channel 'presence' has no operations"),
+                warnings.get(0).message());
+    }
+
+    @Test
+    void testSingleChannelIsUsedAsIs() throws Exception {
+        String spec = TWO_CHANNELS.substring(0, TWO_CHANNELS.indexOf("  presence:"))
+                + TWO_CHANNELS.substring(TWO_CHANNELS.indexOf("operations:"), TWO_CHANNELS.indexOf("  onOnline:"));
+        AsyncApiSpec parsed = spec(spec);
+        ChannelExtractor.ChannelInfo info = new ChannelExtractor(parsed).extract(warning -> { }).get(0);
+        Assert.assertSame(info.spec(), parsed, "a spec with one channel generates as it did before");
+    }
+
+    private static AsyncApiSpec spec(String yaml) throws Exception {
+        return AsyncApiParser.parseFromJsonString(new ObjectMapper(new YAMLFactory()).readTree(yaml).toString());
+    }
+
+    private static Set<String> operationIds(ChannelExtractor.ChannelInfo info) {
+        return info.spec().getAsyncApiOperations().orElseThrow().keySet();
     }
 }

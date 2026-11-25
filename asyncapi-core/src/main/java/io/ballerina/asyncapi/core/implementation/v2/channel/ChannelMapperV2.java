@@ -36,6 +36,7 @@ import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25Components;
 import io.apicurio.datamodels.models.asyncapi.v26.AsyncApi26ChannelItem;
 import io.apicurio.datamodels.models.asyncapi.v26.AsyncApi26Components;
 import io.ballerina.asyncapi.core.Constants;
+import io.ballerina.asyncapi.core.implementation.utils.JsonPointers;
 import io.ballerina.asyncapi.core.implementation.utils.StringUtils;
 import io.ballerina.asyncapi.core.implementation.v2.message.MessageMapperV2;
 import io.ballerina.asyncapi.core.model.channel.AsyncApiChannel;
@@ -161,7 +162,7 @@ public final class ChannelMapperV2 {
      * @param components the AsyncAPI components used for lookup
      * @return the concrete channel item, or {@code null} if resolution fails
      */
-    private static AsyncApiChannelItem resolveChannelRef(String ref, AsyncApiComponents components) {
+    public static AsyncApiChannelItem resolveChannelRef(String ref, AsyncApiComponents components) {
         if (components == null) {
             LOG.warn("Cannot resolve $ref: {}. Components is null.", ref);
             return null;
@@ -177,7 +178,7 @@ public final class ChannelMapperV2 {
                 LOG.warn("Cyclic $ref detected: {}. Skipping channel.", current);
                 return null;
             }
-            String channelId = current.substring(Constants.CHANNELS_REF_PREFIX.length());
+            String channelId = JsonPointers.keyAfter(current, Constants.CHANNELS_REF_PREFIX);
             Map<String, ? extends AsyncApiChannelItem> channelsMap = switch (components) {
                 case AsyncApi26Components typed -> typed.getChannels();
                 case AsyncApi25Components typed -> typed.getChannels();

@@ -18,10 +18,16 @@
 
 package io.ballerina.asyncapi.cmd;
 
+import io.ballerina.asyncapi.cmd.AsyncApiCmdToolException.InputDiagnostic;
 import io.ballerina.projects.BuildOptions;
 import io.ballerina.projects.DiagnosticResult;
+import io.ballerina.projects.Package;
+import io.ballerina.projects.Project;
 import io.ballerina.projects.ProjectException;
+import io.ballerina.projects.directory.BuildProject;
 import io.ballerina.projects.directory.ProjectLoader;
+import io.ballerina.projects.directory.WorkspaceProject;
+import io.ballerina.projects.environment.PackageLockingMode;
 import io.ballerina.projects.util.ProjectPaths;
 import io.ballerina.projects.util.ProjectUtils;
 import io.ballerina.toml.syntax.tree.DocumentMemberDeclarationNode;
@@ -30,6 +36,7 @@ import io.ballerina.toml.syntax.tree.KeyValueNode;
 import io.ballerina.toml.syntax.tree.SyntaxTree;
 import io.ballerina.toml.syntax.tree.TableNode;
 import io.ballerina.tools.diagnostics.Diagnostic;
+import io.ballerina.tools.text.LineRange;
 import io.ballerina.tools.text.TextDocument;
 import io.ballerina.tools.text.TextDocuments;
 
@@ -37,12 +44,19 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.stream.Collectors;
 
 /**
  * Utility methods for inspecting and navigating Ballerina project structures.
  */
 public final class AsyncApiProjectUtils {
+
+    private static final String DEPENDENCIES_TOML = "Dependencies.toml";
+    // ERR-6: report every independent error, up to a cap
+    private static final int MAX_DIAGNOSTICS = 50;
 
     private AsyncApiProjectUtils() {
     }
@@ -104,14 +118,17 @@ public final class AsyncApiProjectUtils {
             Path check = searchPath;
             while (check != null) {
                 if (ProjectPaths.isWorkspaceProjectRoot(check)) {
-                    throw new AsyncApiCmdToolException(AsyncApiCmdToolDiagnostic.ASYNC_CLI_003);
+                    throw new AsyncApiCmdToolException(AsyncApiCmdToolDiagnostic.ASYNC_CLI_003,
+                            effectivePath.toString());
                 }
                 check = check.getParent();
             }
-            throw new AsyncApiCmdToolException(AsyncApiCmdToolDiagnostic.ASYNC_CLI_004);
+            throw new AsyncApiCmdToolException(AsyncApiCmdToolDiagnostic.ASYNC_CLI_004,
+                    effectivePath.toString());
         }
         if (ProjectPaths.isWorkspaceProjectRoot(rootPath)) {
-            throw new AsyncApiCmdToolException(AsyncApiCmdToolDiagnostic.ASYNC_CLI_003);
+            throw new AsyncApiCmdToolException(AsyncApiCmdToolDiagnostic.ASYNC_CLI_003,
+                    effectivePath.toString());
         }
         if (!ProjectPaths.isBuildProjectRoot(rootPath)) {
             throw new AsyncApiCmdToolException(
@@ -145,42 +162,119 @@ public final class AsyncApiProjectUtils {
 
     /** What a Ballerina-code input to the CLI turned out to be. */
     public enum CodeInputKind {
-        /** A directory holding a Ballerina package. */
+        /** A directory holding a Ballerina package, on its own or in a workspace. */
         PACKAGE,
         /** A single .bal file outside any package. */
         STANDALONE_FILE
     }
 
     /**
-     * Classifies a Ballerina-code input as a package or a standalone file, rejecting everything else the way
-     * {@code bal run} does: a directory must be a package, and a file inside a package must be given as the
-     * package instead.
+     * A Ballerina-code input, loaded with the Package API.
+     *
+     * @param kind        a package or a standalone file
+     * @param packageRoot the package root, or the file for a standalone file
+     * @param pkg         the package to compile: for a workspace, the member the input names
+     * @param project     the loaded project
+     */
+    public record CodeInput(CodeInputKind kind, Path packageRoot, Package pkg, Project project) {
+    }
+
+    /**
+     * The options a tool that compiles Ballerina code loads it with: the dependency versions locked in
+     * Dependencies.toml, never newer ones, and without going online (CMP-1).
+     *
+     * @return the build options
+     */
+    public static BuildOptions compileOptions() {
+        return BuildOptions.builder().setOffline(true).setLockingMode(PackageLockingMode.HARD).build();
+    }
+
+    /**
+     * Loads a Ballerina-code input with the Package API and accepts only a package or a standalone file, the way
+     * {@code bal run} does: a file inside a package must be given as the package, and a workspace as one of its
+     * packages (TGT-1 to TGT-7).
      *
      * @param input path to a package directory or a .bal file
-     * @return the kind of input
-     * @throws AsyncApiCmdToolException if the directory is not a package or is a workspace, or the file
-     *                                  belongs to a package
+     * @return the loaded input
+     * @throws AsyncApiCmdToolException if the input is not a package or a standalone file
      */
-    public static CodeInputKind resolveCodeInput(Path input) {
+    public static CodeInput resolveCodeInput(Path input) {
         Path abs = input.toAbsolutePath().normalize();
+        if (!Files.exists(abs)) {
+            throw new AsyncApiCmdToolException(AsyncApiCmdToolDiagnostic.ASYNC_CLI_017, input.toString());
+        }
+        Project project;
+        try {
+            project = ProjectLoader.load(abs, compileOptions()).project();
+        } catch (ProjectException e) {
+            throw notAPackage(input, abs, e);
+        }
+        Path root = project.sourceRoot().toAbsolutePath().normalize();
+        switch (project.kind()) {
+            case SINGLE_FILE_PROJECT:
+                return new CodeInput(CodeInputKind.STANDALONE_FILE, abs, project.currentPackage(), project);
+            case BUILD_PROJECT:
+                if (!root.equals(abs)) {
+                    throw new AsyncApiCmdToolException(AsyncApiCmdToolDiagnostic.ASYNC_CLI_012, input.toString(),
+                            root.toString());
+                }
+                return new CodeInput(CodeInputKind.PACKAGE, root, project.currentPackage(), project);
+            case WORKSPACE_PROJECT:
+                return workspaceMember((WorkspaceProject) project, input, abs);
+            default:
+                throw new AsyncApiCmdToolException(AsyncApiCmdToolDiagnostic.ASYNC_CLI_015, input.toString());
+        }
+    }
+
+    // A workspace root lists its packages; a package of a workspace is that member alone (TGT-7).
+    private static CodeInput workspaceMember(WorkspaceProject workspace, Path input, Path abs) {
+        List<String> members = new ArrayList<>();
+        for (BuildProject member : workspace.projects()) {
+            Path memberRoot = member.sourceRoot().toAbsolutePath().normalize();
+            if (memberRoot.equals(abs)) {
+                return new CodeInput(CodeInputKind.PACKAGE, memberRoot, member.currentPackage(), workspace);
+            }
+            if (abs.startsWith(memberRoot)) {
+                throw new AsyncApiCmdToolException(AsyncApiCmdToolDiagnostic.ASYNC_CLI_012, input.toString(),
+                        memberRoot.toString());
+            }
+            members.add(member.currentPackage().packageName().value());
+        }
+        Collections.sort(members);
+        throw new AsyncApiCmdToolException(AsyncApiCmdToolDiagnostic.ASYNC_CLI_014, input.toString(),
+                String.join(", ", members));
+    }
+
+    // The Package API can't load it: either a directory inside a package, or not Ballerina code at all.
+    private static AsyncApiCmdToolException notAPackage(Path input, Path abs, ProjectException cause) {
         if (Files.isDirectory(abs)) {
-            if (!Files.exists(abs.resolve("Ballerina.toml"))) {
-                throw new AsyncApiCmdToolException(AsyncApiCmdToolDiagnostic.ASYNC_CLI_011, input.toString());
+            try {
+                Path root = ProjectPaths.packageRoot(abs);
+                return new AsyncApiCmdToolException(cause, AsyncApiCmdToolDiagnostic.ASYNC_CLI_012, input.toString(),
+                        root.toString());
+            } catch (ProjectException e) {
+                // not inside a package either
             }
-            if (ProjectPaths.isWorkspaceProjectRoot(abs)) {
-                throw new AsyncApiCmdToolException(AsyncApiCmdToolDiagnostic.ASYNC_CLI_014, input.toString());
-            }
-            return CodeInputKind.PACKAGE;
         }
-        Path parent = abs.getParent();
-        while (parent != null) {
-            if (Files.exists(parent.resolve("Ballerina.toml"))) {
-                throw new AsyncApiCmdToolException(
-                        AsyncApiCmdToolDiagnostic.ASYNC_CLI_012, input.toString(), parent.toString());
-            }
-            parent = parent.getParent();
+        return new AsyncApiCmdToolException(cause, AsyncApiCmdToolDiagnostic.ASYNC_CLI_011, input.toString());
+    }
+
+    /**
+     * Checks that a package locks its dependencies, as compiling without Dependencies.toml would pick the latest
+     * compatible versions instead (CMP-2). A standalone file has no dependencies to lock.
+     *
+     * @param codeInput    the loaded input
+     * @param inputCommand the input as the user gave it, for the {@code bal build} command to run
+     * @throws AsyncApiCmdToolException if the package has no Dependencies.toml
+     */
+    public static void checkDependenciesLocked(CodeInput codeInput, String inputCommand) {
+        if (codeInput.kind() != CodeInputKind.PACKAGE || codeInput.pkg().dependenciesToml().isPresent()
+                || Files.exists(codeInput.packageRoot().resolve(DEPENDENCIES_TOML))
+                || Files.exists(codeInput.project().sourceRoot().resolve(DEPENDENCIES_TOML))) {
+            return;
         }
-        return CodeInputKind.STANDALONE_FILE;
+        throw new AsyncApiCmdToolException(AsyncApiCmdToolDiagnostic.ASYNC_CLI_016,
+                codeInput.pkg().packageName().value()).withCommand("bal build " + inputCommand);
     }
 
     /**
@@ -212,45 +306,33 @@ public final class AsyncApiProjectUtils {
                 available = "none";
             }
         }
-        throw new AsyncApiCmdToolException(AsyncApiCmdToolDiagnostic.ASYNC_CLI_013, module, available);
+        AsyncApiCmdToolException error =
+                new AsyncApiCmdToolException(AsyncApiCmdToolDiagnostic.ASYNC_CLI_013, module, available);
+        throw "none".equals(available)
+                ? error.withSuggestion("The package has no modules; leave out --module.") : error;
     }
 
     /**
-     * Validates that the given path points to a Ballerina source file or package that compiles.
+     * Compiles the input and fails with every compilation error, each at its place in the source.
      *
-     * @param inputPath path to the .bal file or the package directory
-     * @throws AsyncApiCmdToolException if the file does not exist, is not a .bal file, or has compilation errors
+     * @param codeInput the loaded input
+     * @param input     the input as the user gave it
+     * @throws AsyncApiCmdToolException if the code has compilation errors
      */
-    public static void validateBalFile(Path inputPath) {
-        Path absPath = inputPath.toAbsolutePath();
-        // A package directory loads as itself; a file loads from the package that contains it, if any
-        Path packageRoot = null;
-        Path parent = Files.isDirectory(absPath) ? absPath : absPath.getParent();
-        while (parent != null) {
-            if (Files.exists(parent.resolve("Ballerina.toml"))) {
-                packageRoot = parent;
+    public static void validateBalFile(CodeInput codeInput, String input) {
+        DiagnosticResult result = codeInput.pkg().getCompilation().diagnosticResult();
+        if (!result.hasErrors()) {
+            return;
+        }
+        List<InputDiagnostic> errors = new ArrayList<>();
+        for (Diagnostic diagnostic : result.errors()) {
+            LineRange range = diagnostic.location().lineRange();
+            errors.add(new InputDiagnostic(range.fileName(), range.startLine().line() + 1,
+                    range.startLine().offset() + 1, "error", diagnostic.message()));
+            if (errors.size() == MAX_DIAGNOSTICS) {
                 break;
             }
-            parent = parent.getParent();
         }
-
-        BuildOptions buildOptions = BuildOptions.builder().setOffline(true).build();
-        // For a package file load from the package root; for a standalone file ProjectLoader
-        // detects no Ballerina.toml and loads it as a single-file project.
-        Path loadPath = packageRoot != null ? packageRoot : absPath;
-        DiagnosticResult result = ProjectLoader.load(loadPath, buildOptions)
-                .project()
-                .currentPackage()
-                .getCompilation()
-                .diagnosticResult();
-
-        if (result.hasErrors()) {
-            StringBuilder sb = new StringBuilder();
-            for (Diagnostic diagnostic : result.errors()) {
-                sb.append(System.lineSeparator()).append(diagnostic.toString());
-            }
-            throw new AsyncApiCmdToolException(
-                    AsyncApiCmdToolDiagnostic.ASYNC_CLI_009, sb.toString());
-        }
+        throw new AsyncApiCmdToolException(AsyncApiCmdToolDiagnostic.ASYNC_CLI_009, input).withDiagnostics(errors);
     }
 }

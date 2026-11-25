@@ -41,7 +41,9 @@ import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25Operation;
 import io.apicurio.datamodels.models.asyncapi.v26.AsyncApi26Message;
 import io.apicurio.datamodels.models.asyncapi.v26.AsyncApi26Operation;
 import io.ballerina.asyncapi.core.Constants;
+import io.ballerina.asyncapi.core.implementation.common.SchemaFormats;
 import io.ballerina.asyncapi.core.implementation.common.SchemaMapper;
+import io.ballerina.asyncapi.core.implementation.utils.JsonPointers;
 import io.ballerina.asyncapi.core.implementation.v2.doc.ExternalDocMapperV2;
 import io.ballerina.asyncapi.core.implementation.v2.tag.TagMapperV2;
 import io.ballerina.asyncapi.core.model.tag.AsyncApiTag;
@@ -100,7 +102,7 @@ public final class MessageMapperV2 {
             String messageRefKey = null;
             if (message instanceof AsyncApiReferenceable referenceable && referenceable.get$ref() != null) {
                 String ref = referenceable.get$ref();
-                messageRefKey = ref.substring(ref.lastIndexOf('/') + 1);
+                messageRefKey = JsonPointers.decode(ref.substring(ref.lastIndexOf('/') + 1));
                 message = resolveMessageRef(ref, components);
                 if (message == null) {
                     continue;
@@ -124,7 +126,7 @@ public final class MessageMapperV2 {
                     String oneOfRefKey = null;
                     if (oneOfMsg instanceof AsyncApiReferenceable ref && ref.get$ref() != null) {
                         String refStr = ref.get$ref();
-                        oneOfRefKey = refStr.substring(refStr.lastIndexOf('/') + 1);
+                        oneOfRefKey = JsonPointers.decode(refStr.substring(refStr.lastIndexOf('/') + 1));
                         resolvedMsg = resolveMessageRef(refStr, components);
                         if (resolvedMsg == null) {
                             continue;
@@ -174,6 +176,7 @@ public final class MessageMapperV2 {
 
         Object headers = null;
         Object payload = null;
+        String schemaFormat = null;
         Map<String, JsonNode> extensions = null;
 
         switch (message) {
@@ -182,6 +185,7 @@ public final class MessageMapperV2 {
                     headers = SchemaMapper.map(typedSchema);
                 }
                 payload = MessagePayloadMapperV2.map(typed.getPayload(), components);
+                schemaFormat = typed.getSchemaFormat();
                 extensions = typed.getExtensions();
             }
             case AsyncApi25Message typed -> {
@@ -189,6 +193,7 @@ public final class MessageMapperV2 {
                     headers = SchemaMapper.map(typedSchema);
                 }
                 payload = MessagePayloadMapperV2.map(typed.getPayload(), components);
+                schemaFormat = typed.getSchemaFormat();
                 extensions = typed.getExtensions();
             }
             case AsyncApi24Message typed -> {
@@ -196,6 +201,7 @@ public final class MessageMapperV2 {
                     headers = SchemaMapper.map(typedSchema);
                 }
                 payload = MessagePayloadMapperV2.map(typed.getPayload(), components);
+                schemaFormat = typed.getSchemaFormat();
                 extensions = typed.getExtensions();
             }
             case AsyncApi23Message typed -> {
@@ -203,6 +209,7 @@ public final class MessageMapperV2 {
                     headers = SchemaMapper.map(typedSchema);
                 }
                 payload = MessagePayloadMapperV2.map(typed.getPayload(), components);
+                schemaFormat = typed.getSchemaFormat();
                 extensions = typed.getExtensions();
             }
             case AsyncApi22Message typed -> {
@@ -210,6 +217,7 @@ public final class MessageMapperV2 {
                     headers = SchemaMapper.map(typedSchema);
                 }
                 payload = MessagePayloadMapperV2.map(typed.getPayload(), components);
+                schemaFormat = typed.getSchemaFormat();
                 extensions = typed.getExtensions();
             }
             case AsyncApi21Message typed -> {
@@ -217,6 +225,7 @@ public final class MessageMapperV2 {
                     headers = SchemaMapper.map(typedSchema);
                 }
                 payload = MessagePayloadMapperV2.map(typed.getPayload(), components);
+                schemaFormat = typed.getSchemaFormat();
                 extensions = typed.getExtensions();
             }
             case AsyncApi20Message typed -> {
@@ -224,9 +233,14 @@ public final class MessageMapperV2 {
                     headers = SchemaMapper.map(typedSchema);
                 }
                 payload = MessagePayloadMapperV2.map(typed.getPayload(), components);
+                schemaFormat = typed.getSchemaFormat();
                 extensions = typed.getExtensions();
             }
             default -> { }
+        }
+        // An Avro or Protobuf payload isn't JSON Schema, though its JSON can look like one
+        if (!SchemaFormats.isJsonSchema(schemaFormat)) {
+            payload = null;
         }
 
         List<AsyncApiTag> tags = null;
@@ -259,7 +273,9 @@ public final class MessageMapperV2 {
                 MessageBindingsMapperV2.map(message.getBindings()),
                 MessageExampleMapperV2.map(message),
                 traits,
-                extensions
+                // A payload in another file is kept as its $ref, so the generator can say so
+                payload == null ? io.ballerina.asyncapi.core.model.message.AsyncApiMessage.withExternalPayloadRef(
+                        extensions, MessagePayloadMapperV2.externalRef(message)) : extensions
         );
     }
 
@@ -287,7 +303,7 @@ public final class MessageMapperV2 {
                 LOG.warn("Cyclic $ref detected: {}. Skipping message.", current);
                 return null;
             }
-            String msgName = current.substring(Constants.MESSAGES_REF_PREFIX.length());
+            String msgName = JsonPointers.keyAfter(current, Constants.MESSAGES_REF_PREFIX);
             Map<String, ? extends AsyncApiMessage> messagesMap = components.getMessages();
             AsyncApiMessage resolved = messagesMap != null ? messagesMap.get(msgName) : null;
             if (resolved == null) {

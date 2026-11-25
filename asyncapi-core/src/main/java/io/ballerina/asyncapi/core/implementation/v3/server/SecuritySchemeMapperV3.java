@@ -27,6 +27,7 @@ import io.apicurio.datamodels.models.asyncapi.v30.AsyncApi30Components;
 import io.apicurio.datamodels.models.asyncapi.v30.AsyncApi30OAuthFlow;
 import io.apicurio.datamodels.models.asyncapi.v30.AsyncApi30SecurityScheme;
 import io.ballerina.asyncapi.core.Constants;
+import io.ballerina.asyncapi.core.implementation.utils.JsonPointers;
 import io.ballerina.asyncapi.core.implementation.utils.URIUtils;
 import io.ballerina.asyncapi.core.model.security.AsyncApiOAuthFlow;
 import io.ballerina.asyncapi.core.model.security.AsyncApiSecurityScheme;
@@ -146,7 +147,7 @@ public final class SecuritySchemeMapperV3 {
                 LOG.warn("Cyclic $ref detected: {}. Skipping security scheme.", current);
                 return null;
             }
-            String name = current.substring(Constants.SECURITY_SCHEMES_REF_PREFIX.length());
+            String name = JsonPointers.keyAfter(current, Constants.SECURITY_SCHEMES_REF_PREFIX);
             // Add additional version checks here as new AsyncAPI 3.x versions are supported.
             io.apicurio.datamodels.models.asyncapi.AsyncApiSecurityScheme resolved = null;
             if (components instanceof AsyncApi30Components typed) {

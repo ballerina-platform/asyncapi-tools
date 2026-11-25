@@ -179,25 +179,92 @@ public class AsyncApiProjectUtilsTest extends CmdTestBase {
         Assert.assertEquals(ex.getDiagnosticCode(), "ASYNC_CLI_003");
     }
 
-    // ── validateBalFile ───────────────────────────────────────────────────────
+    // ── resolveCodeInput and validateBalFile ──────────────────────────────────
 
     @Test
     void testValidateBalFileValidDoesNotThrow() throws IOException {
         Path balFile = tmpDir.resolve("valid.bal");
         Files.writeString(balFile, "public type Foo record { string name; };\n");
-        // Must not throw
-        AsyncApiProjectUtils.validateBalFile(balFile);
+        AsyncApiProjectUtils.CodeInput input = AsyncApiProjectUtils.resolveCodeInput(balFile);
+        Assert.assertEquals(input.kind(), AsyncApiProjectUtils.CodeInputKind.STANDALONE_FILE);
+        AsyncApiProjectUtils.validateBalFile(input, balFile.toString());
     }
 
     @Test
     void testValidateBalFileWithErrorsThrows() throws IOException {
         Path balFile = tmpDir.resolve("invalid.bal");
         Files.writeString(balFile, "!!! this is not ballerina !!!\n");
-        AsyncApiCmdToolException ex = Assert.expectThrows(
-                AsyncApiCmdToolException.class,
-                () -> AsyncApiProjectUtils.validateBalFile(balFile));
+        AsyncApiProjectUtils.CodeInput input = AsyncApiProjectUtils.resolveCodeInput(balFile);
+        AsyncApiCmdToolException ex = Assert.expectThrows(AsyncApiCmdToolException.class,
+                () -> AsyncApiProjectUtils.validateBalFile(input, "invalid.bal"));
         Assert.assertEquals(ex.getDiagnosticCode(), "ASYNC_CLI_009");
-        Assert.assertTrue(ex.getDiagnosticMessage().contains("compilation errors"),
-                "Expected 'compilation errors' in message. Got: " + ex.getDiagnosticMessage());
+        Assert.assertTrue(ex.getMessage().contains("compilation errors"), ex.getMessage());
+        Assert.assertFalse(ex.getDiagnostics().isEmpty(), "Each error is reported at its place");
+        AsyncApiCmdToolException.InputDiagnostic first = ex.getDiagnostics().get(0);
+        Assert.assertEquals(first.path(), "invalid.bal");
+        Assert.assertEquals(first.line(), 1);
+        Assert.assertEquals(first.severity(), "error");
+    }
+
+    @Test(description = "A package loads as a package through the Package API")
+    void testResolvePackage() throws IOException {
+        Path pkg = newPackage("loadpkg");
+        AsyncApiProjectUtils.CodeInput input = AsyncApiProjectUtils.resolveCodeInput(pkg);
+        Assert.assertEquals(input.kind(), AsyncApiProjectUtils.CodeInputKind.PACKAGE);
+        Assert.assertEquals(input.packageRoot(), pkg.toAbsolutePath().normalize());
+        Assert.assertEquals(input.pkg().packageName().value(), "loadpkg");
+    }
+
+    @Test(description = "A path that does not exist is an invalid target")
+    void testResolveMissingPath() {
+        AsyncApiCmdToolException ex = Assert.expectThrows(AsyncApiCmdToolException.class,
+                () -> AsyncApiProjectUtils.resolveCodeInput(tmpDir.resolve("nowhere.bal")));
+        Assert.assertEquals(ex.getDiagnosticCode(), "ASYNC_CLI_017");
+        Assert.assertEquals(ex.exitCode(), ExitCodes.INVALID_TARGET);
+    }
+
+    @Test(description = "A module directory inside a package names the package to pass instead")
+    void testResolveDirectoryInsidePackage() throws IOException {
+        Path pkg = newPackage("innerpkg");
+        Path module = Files.createDirectories(pkg.resolve("modules").resolve("chat"));
+        Files.writeString(module.resolve("chat.bal"), "");
+        AsyncApiCmdToolException ex = Assert.expectThrows(AsyncApiCmdToolException.class,
+                () -> AsyncApiProjectUtils.resolveCodeInput(module));
+        Assert.assertEquals(ex.getDiagnosticCode(), "ASYNC_CLI_012");
+        Assert.assertTrue(ex.getMessage().contains(pkg.toAbsolutePath().normalize().toString()), ex.getMessage());
+    }
+
+    @Test(description = "A workspace member is read on its own, and the workspace root lists its packages")
+    void testResolveWorkspace() throws IOException {
+        Path workspace = Files.createDirectory(tmpDir.resolve("ws"));
+        Files.writeString(workspace.resolve("Ballerina.toml"), "[workspace]\npackages = [\"alpha\", \"beta\"]\n");
+        for (String name : new String[]{"alpha", "beta"}) {
+            Path member = Files.createDirectory(workspace.resolve(name));
+            Files.writeString(member.resolve("Ballerina.toml"),
+                    "[package]\norg = \"demo\"\nname = \"" + name + "\"\nversion = \"0.1.0\"\n");
+            Files.writeString(member.resolve("main.bal"), "");
+        }
+        AsyncApiProjectUtils.CodeInput beta = AsyncApiProjectUtils.resolveCodeInput(workspace.resolve("beta"));
+        Assert.assertEquals(beta.kind(), AsyncApiProjectUtils.CodeInputKind.PACKAGE);
+        Assert.assertEquals(beta.pkg().packageName().value(), "beta", "The member given, not the first one");
+
+        AsyncApiCmdToolException ex = Assert.expectThrows(AsyncApiCmdToolException.class,
+                () -> AsyncApiProjectUtils.resolveCodeInput(workspace));
+        Assert.assertEquals(ex.getDiagnosticCode(), "ASYNC_CLI_014");
+        Assert.assertEquals(ex.getSuggestion(), "Pass the directory of one of its packages: alpha, beta.");
+    }
+
+    @Test(description = "A package without Dependencies.toml is not compiled, and bal build is the fix")
+    void testDependenciesMustBeLocked() throws IOException {
+        Path pkg = newPackage("unlocked");
+        AsyncApiProjectUtils.CodeInput input = AsyncApiProjectUtils.resolveCodeInput(pkg);
+        AsyncApiCmdToolException ex = Assert.expectThrows(AsyncApiCmdToolException.class,
+                () -> AsyncApiProjectUtils.checkDependenciesLocked(input, "./unlocked"));
+        Assert.assertEquals(ex.getMessage(), "dependencies are not locked for package 'unlocked'");
+        Assert.assertEquals(ex.getCommand(), "bal build ./unlocked");
+        Assert.assertEquals(ex.getKind().label(), "dependencies-not-locked");
+
+        lockDependencies(pkg);
+        AsyncApiProjectUtils.checkDependenciesLocked(AsyncApiProjectUtils.resolveCodeInput(pkg), "./unlocked");
     }
 }

@@ -19,16 +19,25 @@ package io.ballerina.asyncapi.core.implementation.v2.message;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import io.apicurio.datamodels.models.asyncapi.AsyncApiComponents;
+import io.apicurio.datamodels.models.asyncapi.AsyncApiMessage;
 import io.apicurio.datamodels.models.asyncapi.AsyncApiSchema;
 import io.apicurio.datamodels.models.asyncapi.v20.AsyncApi20Components;
+import io.apicurio.datamodels.models.asyncapi.v20.AsyncApi20Message;
 import io.apicurio.datamodels.models.asyncapi.v21.AsyncApi21Components;
+import io.apicurio.datamodels.models.asyncapi.v21.AsyncApi21Message;
 import io.apicurio.datamodels.models.asyncapi.v22.AsyncApi22Components;
+import io.apicurio.datamodels.models.asyncapi.v22.AsyncApi22Message;
 import io.apicurio.datamodels.models.asyncapi.v23.AsyncApi23Components;
+import io.apicurio.datamodels.models.asyncapi.v23.AsyncApi23Message;
 import io.apicurio.datamodels.models.asyncapi.v24.AsyncApi24Components;
+import io.apicurio.datamodels.models.asyncapi.v24.AsyncApi24Message;
 import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25Components;
+import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25Message;
 import io.apicurio.datamodels.models.asyncapi.v26.AsyncApi26Components;
+import io.apicurio.datamodels.models.asyncapi.v26.AsyncApi26Message;
 import io.ballerina.asyncapi.core.Constants;
 import io.ballerina.asyncapi.core.implementation.common.SchemaMapper;
+import io.ballerina.asyncapi.core.implementation.utils.JsonPointers;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -55,6 +64,36 @@ final class MessagePayloadMapperV2 {
      * @param components  the AsyncAPI components (for schema $ref resolution)
      * @return the mapped schema, or null if unresolvable or node is null
      */
+    /**
+     * Returns the message payload's {@code $ref} when it points into another file, which the parser can't follow.
+     *
+     * @param message a 2.x message
+     * @return the {@code $ref}, or null when the payload isn't a {@code $ref} into another file
+     */
+    static String externalRef(AsyncApiMessage message) {
+        JsonNode payload = switch (message) {
+            case AsyncApi26Message typed -> typed.getPayload();
+            case AsyncApi25Message typed -> typed.getPayload();
+            case AsyncApi24Message typed -> typed.getPayload();
+            case AsyncApi23Message typed -> typed.getPayload();
+            case AsyncApi22Message typed -> typed.getPayload();
+            case AsyncApi21Message typed -> typed.getPayload();
+            case AsyncApi20Message typed -> typed.getPayload();
+            default -> null;
+        };
+        return externalRef(payload);
+    }
+
+    /**
+     * Returns the payload's {@code $ref} when it points into another file, which the parser can't follow.
+     *
+     * @param payloadNode the raw payload node from Apicurio
+     * @return the {@code $ref}, or null when the payload isn't a {@code $ref} into another file
+     */
+    static String externalRef(JsonNode payloadNode) {
+        return JsonPointers.isExternalRef(payloadNode) ? payloadNode.get("$ref").asText() : null;
+    }
+
     static io.ballerina.asyncapi.core.model.component.AsyncApiSchema map(
             JsonNode payloadNode, AsyncApiComponents components) {
         if (payloadNode == null) {
@@ -64,7 +103,7 @@ final class MessagePayloadMapperV2 {
         if (refNode != null) {
             String ref = refNode.asText();
             if (ref.startsWith(Constants.SCHEMAS_REF_PREFIX) && components != null) {
-                String schemaName = ref.substring(Constants.SCHEMAS_REF_PREFIX.length());
+                String schemaName = JsonPointers.keyAfter(ref, Constants.SCHEMAS_REF_PREFIX);
                 Map<String, ? extends AsyncApiSchema> schemas = switch (components) {
                     case AsyncApi26Components typed -> typed.getSchemas();
                     case AsyncApi25Components typed -> typed.getSchemas();
