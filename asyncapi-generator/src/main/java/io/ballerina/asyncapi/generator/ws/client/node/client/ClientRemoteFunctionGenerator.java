@@ -133,8 +133,19 @@ public class ClientRemoteFunctionGenerator {
     }
 
     // Reports a message left out for having no JSON Schema payload, pointing at the operation that lists it
-    private void warnNoPayload(String operationId, String msgName, String missing, String gained) {
-        warnings.accept(new SpecWarning("/operations/" + operationId.replace("~", "~0").replace("/", "~1"),
+    private void warnNoPayload(String operationId, String msgName, AsyncApiMessage message, String missing,
+                               String gained) {
+        String location = "/operations/" + operationId.replace("~", "~0").replace("/", "~1");
+        JsonNode externalRef = message.extensions() != null
+                ? message.extensions().get(AsyncApiMessage.X_EXTERNAL_PAYLOAD_REF) : null;
+        if (externalRef != null) {
+            warnings.accept(new SpecWarning(location, String.format("message '%s' takes its payload from '%s', "
+                    + "another file, and the tool only reads references inside the spec, so the client has no %s",
+                    msgName, externalRef.asText(), missing), "Bundle the spec into one file first, for example "
+                    + "with 'asyncapi bundle' from the AsyncAPI CLI, or copy the schema into components/schemas."));
+            return;
+        }
+        warnings.accept(new SpecWarning(location,
                 String.format("message '%s' has no JSON Schema payload, so the client has no %s", msgName, missing),
                 String.format("Give the message a JSON Schema 'payload' to get a %s for it.", gained)));
     }
@@ -180,7 +191,7 @@ public class ClientRemoteFunctionGenerator {
                 AsyncApiMessage message = msgEntry.getValue();
                 // A message without a JSON Schema payload has no type to send, so it gets no function yet
                 if (!(message.payload() instanceof AsyncApiSchema)) {
-                    warnNoPayload(opEntry.getKey(), msgName, "function to send it", "function");
+                    warnNoPayload(opEntry.getKey(), msgName, message, "function to send it", "function");
                     continue;
                 }
 
@@ -226,7 +237,7 @@ public class ClientRemoteFunctionGenerator {
                 AsyncApiMessage message = msgEntry.getValue();
                 // Received frames are read into a record, so a message without a schema has nothing to read into
                 if (!(message.payload() instanceof AsyncApiSchema payloadSchema)) {
-                    warnNoPayload(opEntry.getKey(), msgName, "type to receive it as", "type");
+                    warnNoPayload(opEntry.getKey(), msgName, message, "type to receive it as", "type");
                     continue;
                 }
 

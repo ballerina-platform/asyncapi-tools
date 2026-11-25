@@ -33,7 +33,7 @@ import io.ballerina.asyncapi.core.model.operation.AsyncApiOperationReplyAddress;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -139,7 +139,7 @@ public final class OperationReplyMapperV3 {
             return null;
         }
 
-        Map<String, AsyncApiMessage> result = new HashMap<>();
+        Map<String, AsyncApiMessage> result = new LinkedHashMap<>();
         for (AsyncApi30Reference messageRef : messageRefs) {
             if (messageRef == null) {
                 continue;

@@ -45,6 +45,23 @@ final class MessagePayloadMapperV3 {
     }
 
     /**
+     * Returns the payload's {@code $ref} when it points into another file, which the parser can't follow.
+     *
+     * @param payloadUnion the payload union from an {@link AsyncApi30Message}
+     * @return the {@code $ref}, or null when the payload isn't a {@code $ref} into another file
+     */
+    static String externalRef(MultiFormatSchemaSchemaUnion payloadUnion) {
+        String ref = null;
+        if (payloadUnion != null && payloadUnion.isMultiFormatSchema()) {
+            ref = payloadUnion.asMultiFormatSchema().get$ref();
+        } else if (payloadUnion != null && payloadUnion.isSchema()
+                && payloadUnion.asSchema() instanceof AsyncApiReferenceable referenceable) {
+            ref = referenceable.get$ref();
+        }
+        return ref != null && !ref.startsWith("#") ? ref : null;
+    }
+
+    /**
      * Maps a {@link MultiFormatSchemaSchemaUnion} payload to an
      * {@link io.ballerina.asyncapi.core.model.component.AsyncApiSchema}.
      * Handles both direct JSON Schema entries and schema {@code $ref}s resolved

@@ -24,10 +24,12 @@ import io.ballerina.asyncapi.generator.ws.client.generator.ClientGenerator;
 import io.ballerina.asyncapi.generator.ws.client.generator.DataTypesGenerator;
 import io.ballerina.asyncapi.generator.ws.client.generator.TestGenerator;
 import io.ballerina.asyncapi.generator.ws.client.generator.UtilGenerator;
+import io.ballerina.asyncapi.generator.ws.client.model.BinaryMessageSpec;
 import io.ballerina.asyncapi.generator.ws.client.model.CorrelationIdSpec;
 import io.ballerina.asyncapi.generator.ws.client.model.GenSrcFile;
 import io.ballerina.asyncapi.generator.ws.client.model.InferredKeySpec;
 import io.ballerina.asyncapi.generator.ws.client.model.KeyPathSpec;
+import io.ballerina.asyncapi.generator.ws.client.model.ReplySpec;
 import io.ballerina.asyncapi.generator.ws.client.model.SecuritySchemeSpec;
 import io.ballerina.asyncapi.generator.ws.client.model.WsClientConfig;
 import io.ballerina.asyncapi.generator.ws.client.utils.IncludeCycles;
@@ -102,8 +104,10 @@ public class WsClientCodeGenerator {
         OtherProtocols.check(asyncApiSpec, warnings);
         // Schemas that include each other through allOf would give records that include themselves
         IncludeCycles.check(asyncApiSpec);
+        // Binary messages are left out, as the client sends and reads text frames; a 3.0 reply becomes x-response
+        AsyncApiSpec replied = ReplySpec.of(BinaryMessageSpec.of(asyncApiSpec, warnings), warnings);
         // A userPassword or apiKey scheme is read as credentials the client can send when it connects
-        AsyncApiSpec readable = SecuritySchemeSpec.of(asyncApiSpec, warnings);
+        AsyncApiSpec readable = SecuritySchemeSpec.of(replied, warnings);
         // A key may be a JSON Pointer or a message's own; a spec without one routes on the one field that tells its
         // messages apart, if there is one
         AsyncApiSpec keyed = InferredKeySpec.of(KeyPathSpec.of(readable), warnings);
