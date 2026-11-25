@@ -17,7 +17,6 @@
  */
 package io.ballerina.asyncapi.generator.ws.client.generator;
 
-import io.ballerina.asyncapi.core.model.channel.AsyncApiChannel;
 import io.ballerina.asyncapi.core.model.component.AsyncApiComponent;
 import io.ballerina.asyncapi.core.model.component.AsyncApiSchema;
 import io.ballerina.asyncapi.core.model.message.AsyncApiMessage;
@@ -25,6 +24,7 @@ import io.ballerina.asyncapi.core.model.operation.AsyncApiOperation;
 import io.ballerina.asyncapi.core.model.security.AsyncApiSecurityScheme;
 import io.ballerina.asyncapi.core.model.server.AsyncApiServer;
 import io.ballerina.asyncapi.generator.GeneratorException;
+import io.ballerina.asyncapi.generator.ws.client.extractor.ChannelExtractor;
 import io.ballerina.asyncapi.generator.ws.client.model.WsClientConfig;
 import io.ballerina.asyncapi.generator.ws.client.utils.CodegenUtils;
 import io.ballerina.compiler.syntax.tree.AnnotationNode;
@@ -129,17 +129,15 @@ public class TestGenerator {
      * @throws GeneratorException if generation or formatting fails
      */
     public String generateTest() throws GeneratorException {
-        // Derive client class name: {Title}{ChannelName}Client
-        String title = CodegenUtils.getClientTitleName(config.getAsyncApi().getAsyncApiInfo());
-        Map<String, AsyncApiChannel> channelMap = config.getAsyncApi().getAsyncApiChannels().orElse(null);
-        String channelName = "";
-        if (channelMap != null && !channelMap.isEmpty()) {
-            Map.Entry<String, AsyncApiChannel> firstEntry = channelMap.entrySet().iterator().next();
-            AsyncApiChannel channel = firstEntry.getValue();
-            channelName = "/".equals(channel.address())
-                    ? "" : CodegenUtils.getValidName(firstEntry.getKey(), true);
+        // Collect message names for test functions
+        List<String> remoteMsgNames = collectRemoteMsgNames();
+        if (remoteMsgNames.isEmpty()) {
+            return "";
         }
-        String className = title + channelName + "Client";
+
+        // The tests use the first client; the client generator has already reported any channel left out
+        ChannelExtractor.ChannelInfo first = new ChannelExtractor(config.getAsyncApi()).extract(warning -> { }).get(0);
+        String className = ClientGenerator.clientClassName(config.getAsyncApi(), first.channelName(), first.channel());
 
         // Derive server URL
         String serverUrl = DEFAULT_URL;
@@ -147,12 +145,6 @@ public class TestGenerator {
         if (servers != null && !servers.isEmpty()) {
             AsyncApiServer server = servers.values().iterator().next();
             serverUrl = CodegenUtils.buildUrl(server.host(), server.pathname(), server.variables());
-        }
-
-        // Collect message names for test functions
-        List<String> remoteMsgNames = collectRemoteMsgNames();
-        if (remoteMsgNames.isEmpty()) {
-            return "";
         }
 
         // Build module members
@@ -233,7 +225,10 @@ public class TestGenerator {
                         continue;
                     }
                 }
-                msgNames.add(msgEntry.getKey());
+                // A message sent on two channels gets one test
+                if (!msgNames.contains(msgEntry.getKey())) {
+                    msgNames.add(msgEntry.getKey());
+                }
             }
         }
         return msgNames;
