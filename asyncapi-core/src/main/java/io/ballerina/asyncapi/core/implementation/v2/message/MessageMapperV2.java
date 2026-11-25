@@ -41,6 +41,7 @@ import io.apicurio.datamodels.models.asyncapi.v25.AsyncApi25Operation;
 import io.apicurio.datamodels.models.asyncapi.v26.AsyncApi26Message;
 import io.apicurio.datamodels.models.asyncapi.v26.AsyncApi26Operation;
 import io.ballerina.asyncapi.core.Constants;
+import io.ballerina.asyncapi.core.implementation.common.SchemaFormats;
 import io.ballerina.asyncapi.core.implementation.common.SchemaMapper;
 import io.ballerina.asyncapi.core.implementation.utils.JsonPointers;
 import io.ballerina.asyncapi.core.implementation.v2.doc.ExternalDocMapperV2;
@@ -175,6 +176,7 @@ public final class MessageMapperV2 {
 
         Object headers = null;
         Object payload = null;
+        String schemaFormat = null;
         Map<String, JsonNode> extensions = null;
 
         switch (message) {
@@ -183,6 +185,7 @@ public final class MessageMapperV2 {
                     headers = SchemaMapper.map(typedSchema);
                 }
                 payload = MessagePayloadMapperV2.map(typed.getPayload(), components);
+                schemaFormat = typed.getSchemaFormat();
                 extensions = typed.getExtensions();
             }
             case AsyncApi25Message typed -> {
@@ -190,6 +193,7 @@ public final class MessageMapperV2 {
                     headers = SchemaMapper.map(typedSchema);
                 }
                 payload = MessagePayloadMapperV2.map(typed.getPayload(), components);
+                schemaFormat = typed.getSchemaFormat();
                 extensions = typed.getExtensions();
             }
             case AsyncApi24Message typed -> {
@@ -197,6 +201,7 @@ public final class MessageMapperV2 {
                     headers = SchemaMapper.map(typedSchema);
                 }
                 payload = MessagePayloadMapperV2.map(typed.getPayload(), components);
+                schemaFormat = typed.getSchemaFormat();
                 extensions = typed.getExtensions();
             }
             case AsyncApi23Message typed -> {
@@ -204,6 +209,7 @@ public final class MessageMapperV2 {
                     headers = SchemaMapper.map(typedSchema);
                 }
                 payload = MessagePayloadMapperV2.map(typed.getPayload(), components);
+                schemaFormat = typed.getSchemaFormat();
                 extensions = typed.getExtensions();
             }
             case AsyncApi22Message typed -> {
@@ -211,6 +217,7 @@ public final class MessageMapperV2 {
                     headers = SchemaMapper.map(typedSchema);
                 }
                 payload = MessagePayloadMapperV2.map(typed.getPayload(), components);
+                schemaFormat = typed.getSchemaFormat();
                 extensions = typed.getExtensions();
             }
             case AsyncApi21Message typed -> {
@@ -218,6 +225,7 @@ public final class MessageMapperV2 {
                     headers = SchemaMapper.map(typedSchema);
                 }
                 payload = MessagePayloadMapperV2.map(typed.getPayload(), components);
+                schemaFormat = typed.getSchemaFormat();
                 extensions = typed.getExtensions();
             }
             case AsyncApi20Message typed -> {
@@ -225,9 +233,14 @@ public final class MessageMapperV2 {
                     headers = SchemaMapper.map(typedSchema);
                 }
                 payload = MessagePayloadMapperV2.map(typed.getPayload(), components);
+                schemaFormat = typed.getSchemaFormat();
                 extensions = typed.getExtensions();
             }
             default -> { }
+        }
+        // An Avro or Protobuf payload isn't JSON Schema, though its JSON can look like one
+        if (!SchemaFormats.isJsonSchema(schemaFormat)) {
+            payload = null;
         }
 
         List<AsyncApiTag> tags = null;

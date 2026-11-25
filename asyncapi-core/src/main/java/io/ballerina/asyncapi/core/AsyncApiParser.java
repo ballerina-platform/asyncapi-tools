@@ -16,6 +16,7 @@ import io.apicurio.datamodels.models.asyncapi.AsyncApiDocument;
 import io.apicurio.datamodels.refs.ReferenceResolverChain;
 import io.apicurio.datamodels.validation.ValidationProblem;
 import io.ballerina.asyncapi.core.api.AsyncApiSpec;
+import io.ballerina.asyncapi.core.implementation.common.SchemaFormats;
 import io.ballerina.asyncapi.core.implementation.common.SchemaMapper;
 import io.ballerina.asyncapi.core.implementation.utils.JsonPointers;
 import io.ballerina.asyncapi.core.model.component.AsyncApiSchema;
@@ -26,7 +27,9 @@ import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.IdentityHashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
 import java.util.regex.Pattern;
@@ -52,6 +55,18 @@ public final class AsyncApiParser {
     // The kind brokenRefs gives the operations under the root "operations"
     private static final String OPERATION_KIND = "operation";
     private static final String REF = "$ref";
+    private static final String SCHEMAS = "schemas";
+    private static final String PAYLOAD = "payload";
+    private static final String HEADERS = "headers";
+    private static final String SCHEMA_FORMAT = "schemaFormat";
+    private static final String BUNDLE_FIX = "Bundle the spec into one file, such as with 'asyncapi bundle', and "
+            + "generate again.";
+    private static final String COMPONENT_SCHEMAS_REF = "#/components/schemas/";
+    // A ref to a message object itself, rather than to a schema inside it
+    private static final Pattern MESSAGE_REF = Pattern.compile(
+            "#/(components/messages|channels/[^/]+/messages|components/channels/[^/]+/messages)/[^/]+");
+    // Keys whose values are data, so a $ref in them isn't a reference
+    private static final Set<String> SCHEMA_DATA_KEYS = Set.of("examples", "example", "default", "const", "enum");
     // Any 3.x.y, with the pre-release suffix AsyncAPI allows (3.1.0-rc1); 3.0.0 itself is unchanged by the rewrite
     private static final Pattern LATER_3X = Pattern.compile("3\\.\\d+\\.\\d+(-[0-9A-Za-z.-]+)?");
 
@@ -109,7 +124,7 @@ public final class AsyncApiParser {
             throw new AsyncApiParserException(e.getMessage(), e);
         }
 
-        validateDocument(rootDocument, object);
+        validateDocument(rootDocument, object, warnings);
         AsyncApiDocument dereferencedDocument = getAsyncApiDocument(rootDocument);
         dereferencedDocument.setAsyncapi(version);
         try {
@@ -138,10 +153,12 @@ public final class AsyncApiParser {
             "Reply channel reference must point to valid channel",
             "Reply message references must point to valid messages");
 
-    private static void validateDocument(Document document, ObjectNode root) throws AsyncApiParserException {
+    private static void validateDocument(Document document, ObjectNode root, Consumer<SpecWarning> warnings)
+            throws AsyncApiParserException {
         List<ValidationProblem> problems = Library.validate(document, null);
         boolean v3 = root.path(ASYNCAPI).asText("").startsWith("3.");
-        List<String> refProblems = v3 ? brokenRefs(root) : List.of();
+        List<String> refProblems = new ArrayList<>(v3 ? brokenRefs(root) : List.of());
+        refProblems.addAll(schemaRefProblems(root, warnings));
         if ((problems == null || problems.isEmpty()) && refProblems.isEmpty()) {
             return;
         }
@@ -185,6 +202,116 @@ public final class AsyncApiParser {
         components.path(REPLIES).properties().forEach(reply -> checkReply(root, reply.getValue(),
                 MissingNode.getInstance(), "component reply '" + reply.getKey() + "'", broken));
         return broken;
+    }
+
+    /**
+     * Lists the schema refs to a message whose type would be missing, in any AsyncAPI version, and warns once per
+     * file about refs into another file, which isn't read. A payload in another schema format is left out.
+     */
+    private static List<String> schemaRefProblems(ObjectNode root, Consumer<SpecWarning> warnings) {
+        List<String> problems = new ArrayList<>();
+        Map<String, List<String>> otherFiles = new LinkedHashMap<>();
+        String schemasAt = "/" + COMPONENTS + "/" + SCHEMAS;
+        root.path(COMPONENTS).path(SCHEMAS).properties().forEach(schema -> checkSchemaRefs(root, schema.getValue(),
+                schemasAt + "/" + pointerToken(schema.getKey()), problems, otherFiles));
+        checkPayloads(root, root, "", schemasAt, problems, otherFiles);
+        // A type it names may still be defined here, so the spec is read with a warning
+        otherFiles.forEach((file, refs) -> warnings.accept(new SpecWarning(refs.get(0), refs.size() == 1
+                ? String.format("the schema reference at %s points into another file, '%s', which isn't read, so "
+                        + "a type it names may be missing", refs.get(0), file)
+                : String.format("%d schema references point into another file, '%s', which isn't read, so a type "
+                        + "they name may be missing; the first is at %s", refs.size(), file, refs.get(0)),
+                BUNDLE_FIX)));
+        return problems;
+    }
+
+    // Each message's payload and headers schemas, wherever the message is written
+    private static void checkPayloads(JsonNode root, JsonNode node, String at, String schemasAt,
+                                      List<String> problems, Map<String, List<String>> otherFiles) {
+        if (node.isArray()) {
+            for (int i = 0; i < node.size(); i++) {
+                checkPayloads(root, node.get(i), at + "/" + i, schemasAt, problems, otherFiles);
+            }
+            return;
+        }
+        // The component schemas are checked by name, and a 2.x message in another format has no JSON Schema
+        if (!node.isObject() || at.equals(schemasAt) || !isJsonSchemaFormat(node)) {
+            return;
+        }
+        node.properties().forEach(entry -> {
+            String child = at + "/" + pointerToken(entry.getKey());
+            if ((PAYLOAD.equals(entry.getKey()) || HEADERS.equals(entry.getKey())) && entry.getValue().isObject()) {
+                // A payload that is itself a ref to a message has no schema, so its message is left out as such
+                if (isJsonSchemaFormat(entry.getValue()) && !isMessageRef(entry.getValue())) {
+                    checkSchemaRefs(root, entry.getValue(), child, problems, otherFiles);
+                }
+            } else {
+                checkPayloads(root, entry.getValue(), child, schemasAt, problems, otherFiles);
+            }
+        });
+    }
+
+    private static boolean isMessageRef(JsonNode node) {
+        return node.path(REF).isTextual() && MESSAGE_REF.matcher(node.path(REF).asText()).matches();
+    }
+
+    private static boolean isJsonSchemaFormat(JsonNode node) {
+        JsonNode format = node.path(SCHEMA_FORMAT);
+        return !format.isTextual() || SchemaFormats.isJsonSchema(format.asText());
+    }
+
+    // Reports each $ref in a schema that points at a message, which has no type to give, or into another file
+    private static void checkSchemaRefs(JsonNode root, JsonNode schema, String at, List<String> problems,
+                                        Map<String, List<String>> otherFiles) {
+        if (schema.isArray()) {
+            for (int i = 0; i < schema.size(); i++) {
+                checkSchemaRefs(root, schema.get(i), at + "/" + i, problems, otherFiles);
+            }
+            return;
+        }
+        if (!schema.isObject()) {
+            return;
+        }
+        JsonNode ref = schema.path(REF);
+        String fix = ref.isTextual() && MESSAGE_REF.matcher(ref.asText()).matches()
+                ? messageSchemaFix(root, ref.asText()) : null;
+        if (fix != null) {
+            problems.add(String.format("the schema reference at %s points to a message, '%s', not a schema; %s", at,
+                    ref.asText(), fix));
+        } else if (ref.isTextual() && !ref.asText().startsWith(LOCAL_REF)) {
+            String file = ref.asText().contains("#") ? ref.asText().substring(0, ref.asText().indexOf('#'))
+                    : ref.asText();
+            otherFiles.computeIfAbsent(file, key -> new ArrayList<>()).add(at);
+        }
+        schema.properties().forEach(entry -> {
+            if (!REF.equals(entry.getKey()) && !SCHEMA_DATA_KEYS.contains(entry.getKey())) {
+                checkSchemaRefs(root, entry.getValue(), at + "/" + pointerToken(entry.getKey()), problems,
+                        otherFiles);
+            }
+        });
+    }
+
+    private static String pointerToken(String name) {
+        return name.replace("~", "~0").replace("/", "~1");
+    }
+
+    /**
+     * The fix for a schema ref to a message, or {@code null} when the type it names exists anyway: an inline payload
+     * is named after its message, and so is a payload schema of the same name.
+     */
+    private static String messageSchemaFix(JsonNode root, String messageRef) {
+        JsonNode message = JsonPointers.resolve(root, messageRef);
+        if (message == null) {
+            return null;
+        }
+        String messageName = messageRef.substring(messageRef.lastIndexOf('/') + 1);
+        JsonNode payload = message.path(PAYLOAD);
+        JsonNode payloadRef = payload.path(REF);
+        if (payloadRef.isTextual() && payloadRef.asText().startsWith(COMPONENT_SCHEMAS_REF)) {
+            return payloadRef.asText().equals(COMPONENT_SCHEMAS_REF + messageName) ? null
+                    : "point it at the message's payload schema '" + payloadRef.asText() + "'";
+        }
+        return payload.isObject() ? null : "point it at a schema instead, as the message has no JSON Schema payload";
     }
 
     private static void checkOperations(JsonNode root, JsonNode operations, String kind, List<String> broken) {

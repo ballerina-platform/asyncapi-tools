@@ -117,6 +117,50 @@ public class WsClientWarningsTest {
     }
 
     @Test
+    void testReceivedAvroMessageIsLeftOutWithAWarning() throws Exception {
+        // Avro's type: record isn't JSON Schema, so no type is made from it
+        String avro = "    Notice:\n      payload:\n"
+                + "        schemaFormat: application/vnd.apache.avro;version=1.9.0\n"
+                + "        schema: {type: record, name: Notice, fields: [{name: text, type: string}]}\n";
+        String spec = """
+                asyncapi: 3.0.0
+                info: {title: Chat, version: 1.0.0}
+                x-dispatcherKey: type
+                servers:
+                  s: {host: example.com, protocol: wss}
+                channels:
+                  ws:
+                    address: /ws
+                    messages:
+                      join: {$ref: '#/components/messages/Join'}
+                      notice: {$ref: '#/components/messages/Notice'}
+                operations:
+                  sendJoin:
+                    action: send
+                    channel: {$ref: '#/channels/ws'}
+                    messages: [{$ref: '#/channels/ws/messages/join'}]
+                  receiveNotice:
+                    action: receive
+                    channel: {$ref: '#/channels/ws'}
+                    messages: [{$ref: '#/channels/ws/messages/notice'}]
+                components:
+                  messages:
+                    Join:
+                      payload:
+                        type: object
+                        required: [type]
+                        properties: {type: {type: string, const: join}, room: {type: string}}
+                """ + avro;
+        List<SpecWarning> warnings = new ArrayList<>();
+        String client = generateClient(spec, warnings);
+        Assert.assertTrue(client.contains("remote isolated function doJoin("), client);
+        Assert.assertFalse(client.contains("Notice"), client);
+        Assert.assertEquals(warnings, List.of(new SpecWarning("/operations/receiveNotice",
+                "message 'notice' has no JSON Schema payload, so the client has no type to receive it as",
+                "Give the message a JSON Schema 'payload' to get a type for it.")));
+    }
+
+    @Test
     void testLeftOutSendGetsNoReplyRoute() throws Exception {
         String spec = """
                 asyncapi: 3.0.0
