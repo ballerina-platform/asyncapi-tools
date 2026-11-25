@@ -140,7 +140,7 @@ public class ClientRemoteFunctionGenerator {
                 }
 
                 FunctionDefinitionNode fn = getRemoteFunctionDefinitionNode(asyncApiSpec, msgName, message,
-                        dispatcherStreamId, false, sigGen, bodyGen, returnTypeGen, streamReturns, responseMap);
+                        dispatcherStreamId, false, sigGen, bodyGen, returnTypeGen, streamReturns, responseMap, null);
                 remoteFunctions.add(fn);
             }
         }
@@ -174,9 +174,13 @@ public class ClientRemoteFunctionGenerator {
 
                 // Build synthetic extensions for receive-only messages
                 AsyncApiMessage enrichedMessage = buildReceiveOnlyMessage(message, msgName);
+                // Without its own x-response the function returns the message itself, which may not be a component
+                boolean ownResponse = message.extensions() != null
+                        && message.extensions().containsKey(ClientGenerator.X_RESPONSE);
+                String ownType = ownResponse ? null : returnTypeGen.getReceiveReturnType(msgName, message, null);
 
                 FunctionDefinitionNode fn = getRemoteFunctionDefinitionNode(asyncApiSpec, msgName, enrichedMessage,
-                        dispatcherStreamId, true, sigGen, bodyGen, returnTypeGen, streamReturns, responseMap);
+                        dispatcherStreamId, true, sigGen, bodyGen, returnTypeGen, streamReturns, responseMap, ownType);
                 remoteFunctions.add(fn);
             }
         }
@@ -243,6 +247,7 @@ public class ClientRemoteFunctionGenerator {
      * @param returnTypeGen      return type generator
      * @param streamReturns      list of streaming return types
      * @param responseMap        response type to pipe name map
+     * @param ownType            for a receive-only function, the type of the message it returns, else {@code null}
      * @return the function definition node
      * @throws GeneratorException if generation fails
      */
@@ -254,7 +259,8 @@ public class ClientRemoteFunctionGenerator {
                                                                     RemoteFunctionBodyGenerator bodyGen,
                                                                     RemoteFunctionReturnTypeGenerator returnTypeGen,
                                                                     List<String> streamReturns,
-                                                                    Map<String, String> responseMap)
+                                                                    Map<String, String> responseMap,
+                                                                    String ownType)
             throws GeneratorException {
         Map<String, JsonNode> msgExtensions = message.extensions();
         AsyncApiSchema payload = null;
@@ -264,7 +270,9 @@ public class ClientRemoteFunctionGenerator {
 
         // Compute return type
         String returnType = "null";
-        if (msgExtensions != null && msgExtensions.containsKey(ClientGenerator.X_RESPONSE)) {
+        if (ownType != null) {
+            returnType = ownType;
+        } else if (msgExtensions != null && msgExtensions.containsKey(ClientGenerator.X_RESPONSE)) {
             JsonNode xResponse = msgExtensions.get(ClientGenerator.X_RESPONSE);
             JsonNode xResponseType = msgExtensions.get(ClientGenerator.X_RESPONSE_TYPE);
             List<String> responseMessages = new ArrayList<>();
