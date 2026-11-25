@@ -200,12 +200,27 @@ public class AsyncApiCmdUnitTest extends CmdTestBase {
                 "Err: " + getErr());
     }
 
+    @Test(description = "A definition whose servers all use another protocol says which, not to pass --protocol")
+    public void testOtherProtocolNamed() throws IOException {
+        Path spec = Files.writeString(tmpDir.resolve("sensors.yaml"),
+                "asyncapi: 3.0.0\ninfo: {title: Sensors, version: 1.0.0}\nservers:\n  prod: {host: example.com, "
+                        + "protocol: mqtt}\n  backup: {host: example.org, protocol: MQTT}\nchannels: {}\n");
+        AsyncApiCmd cmd = run(spec.toString());
+        Assert.assertEquals(cmd.exitCode(), ExitCodes.RUNTIME);
+        Assert.assertTrue(getErr().contains("use mqtt, which the tool doesn't generate for"), "Err: " + getErr());
+        Assert.assertFalse(getErr().contains("cannot tell whether"), "Err: " + getErr());
+    }
+
     @Test(description = "The protocol is read from the definition: ws/wss servers or the trigger extension")
     public void testProtocolDetected() throws Exception {
         Path ws = Files.writeString(tmpDir.resolve("ws.yaml"),
                 "asyncapi: 3.0.0\ninfo: {title: Chat, version: 1.0.0}\nservers:\n  prod: {host: example.com, "
                         + "protocol: wss}\n");
         Assert.assertEquals(ProtocolDetector.detect(ws).orElseThrow(), Protocol.WS);
+        Path websocket = Files.writeString(tmpDir.resolve("websocket.yaml"),
+                "asyncapi: 3.0.0\ninfo: {title: Chat, version: 1.0.0}\nservers:\n  prod: {host: example.com, "
+                        + "protocol: websocket}\n");
+        Assert.assertEquals(ProtocolDetector.detect(websocket).orElseThrow(), Protocol.WS);
         Assert.assertEquals(ProtocolDetector.detect(resource("specs/tiny_http.yaml")).orElseThrow(), Protocol.HTTP);
     }
 

@@ -34,6 +34,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.regex.Pattern;
 
 /**
@@ -342,12 +343,21 @@ public class AsyncApiCmd implements BLauncherCmd {
             return ProtocolCommands.find(baseCmd.protocol).orElseThrow();
         }
         Optional<Protocol> detected;
+        Set<String> otherProtocols;
         try {
             detected = ProtocolDetector.detect(spec);
+            otherProtocols = detected.isEmpty() ? ProtocolDetector.otherProtocols(spec) : Set.of();
         } catch (IOException | RuntimeException e) {
             throw AsyncApiCmdToolException.of(Kind.INVALID_INPUT,
                             "cannot read '" + baseCmd.inputPath + "': " + CmdUtils.oneLine(e.getMessage()))
                     .withSuggestion("Fix the definition so it is valid YAML or JSON.");
+        }
+        // Servers that all speak another protocol, such as mqtt, can't be generated for with either --protocol
+        if (!otherProtocols.isEmpty()) {
+            throw AsyncApiCmdToolException.of(Kind.INVALID_INPUT, "the servers of '" + baseCmd.inputPath
+                            + "' use " + String.join(", ", otherProtocols) + ", which the tool doesn't generate for")
+                    .withSuggestion("The tool generates webhook triggers (http) and WebSocket clients (ws or wss). "
+                            + "If a server is a plain WebSocket endpoint, set its protocol to ws or wss.");
         }
         if (detected.isEmpty()) {
             throw AsyncApiCmdToolException.of(Kind.USAGE,
