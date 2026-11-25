@@ -742,4 +742,18 @@ public class AsyncApiParserIntegrationTest {
         Assert.assertEquals(schema.properties().get("user").name(), "User");
         Assert.assertEquals(schema.properties().get("user").nullable(), Boolean.TRUE);
     }
+
+    @Test
+    void parseSchema_readsATypeList() throws IOException {
+        AsyncApiSchema nullable = AsyncApiParser.parseSchema(new ObjectMapper().readTree(
+                "{\"type\":[\"string\",\"null\"]}"));
+        Assert.assertEquals(nullable.type(), "string");
+        Assert.assertEquals(nullable.nullable(), Boolean.TRUE);
+
+        AsyncApiSchema union = AsyncApiParser.parseSchema(new ObjectMapper().readTree(
+                "{\"type\":[\"string\",\"integer\"]}"));
+        Assert.assertNull(union.type());
+        Assert.assertNull(union.nullable());
+        Assert.assertEquals(union.anyOf().stream().map(AsyncApiSchema::type).toList(), List.of("string", "integer"));
+    }
 }

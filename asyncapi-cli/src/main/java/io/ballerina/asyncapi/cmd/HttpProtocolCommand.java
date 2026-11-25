@@ -68,17 +68,15 @@ final class HttpProtocolCommand implements ProtocolCommand {
                 if (opts.isWithTests() && !Files.exists(stage.stagingDir().resolve(DISPATCH_TEST))) {
                     ctx.printWarning(ErrorMessages.WARN_HTTP_TESTS_NEED_AUTH);
                 }
-                boolean withPlugin = TriggerCompilerPlugin.stage(outputPath, stage.stagingDir(), ctx);
+                boolean pluginApplied = TriggerCompilerPlugin.stage(outputPath, stage.stagingDir(), ctx)
+                        && TriggerCompilerPlugin.isApplied(stage);
                 skipped = stage.commit(ErrorMessages.SUCCESS_MESSAGE);
-                if (withPlugin) {
+                if (pluginApplied) {
                     try {
-                        TriggerCompilerPlugin.addToolEntry(outputPath, opts.isDryRun(), ctx);
+                        TriggerCompilerPlugin.removeOldToolEntry(outputPath, opts.isDryRun(), ctx);
                     } catch (IOException e) {
-                        // CompilerPlugin.toml is already written, so say exactly what is missing
-                        ctx.printError(String.format(ErrorMessages.TOOL_ENTRY_FAILED, e.getMessage(),
-                                TriggerCompilerPlugin.toolVersion()));
-                        ctx.exitError();
-                        return;
+                        // The trigger builds either way, so the user only needs to tidy it up
+                        ctx.printWarning(String.format(ErrorMessages.WARN_TOOL_ENTRY_NOT_REMOVED, e.getMessage()));
                     }
                 }
             }

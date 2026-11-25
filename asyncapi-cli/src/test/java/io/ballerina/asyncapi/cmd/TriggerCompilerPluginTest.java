@@ -20,72 +20,69 @@ package io.ballerina.asyncapi.cmd;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.zip.ZipFile;
-
 /**
- * Tests the [[tool.asyncapi]] entry, the tool version and the build tool that copies the plugin jar.
+ * Tests removing the [[tool.asyncapi]] entry an earlier version of the tool added to a trigger's Ballerina.toml.
  */
 public class TriggerCompilerPluginTest {
 
     private static final String PACKAGE = "[package]\norg = \"demo\"\nname = \"app\"\nversion = \"0.1.0\"\n";
+    private static final String OLD_ENTRY = "\n# Copies the trigger's compiler plugin from the asyncapi tool during "
+            + "the build\n[[tool.asyncapi]]\nid = \"trigger-plugin\"\nversion = \"0.13.3\"\n";
 
-    @Test(description = "A Ballerina.toml without the entry gets it appended, with everything else kept")
-    public void testEntryIsAppended() {
-        String updated = TriggerCompilerPlugin.withToolEntry(PACKAGE, "1.2.3");
-        Assert.assertTrue(updated.startsWith(PACKAGE.stripTrailing()), updated);
-        Assert.assertFalse(updated.replace("\r\n", "\n").contains("\n\n\n"), "One blank line: " + updated);
-        Assert.assertTrue(updated.contains("[[tool.asyncapi]]"), updated);
-        Assert.assertTrue(updated.contains("id = \"trigger-plugin\""), updated);
-        Assert.assertTrue(updated.contains("version = \"1.2.3\""), updated);
+    @Test(description = "The entry at the end of the file goes, with its comment and the blank line before it")
+    public void testEntryAtTheEndIsRemoved() {
+        Assert.assertEquals(TriggerCompilerPlugin.withoutOldToolEntry(PACKAGE + OLD_ENTRY), PACKAGE);
     }
 
-    @Test(description = "An existing entry moves to the new version, and nothing after it changes")
-    public void testEntryVersionIsUpdated() {
-        String after = "\n[[dependency]]\norg = \"ballerinax\"\nname = \"github.trigger\"\nversion = \"0.2.0\"\n";
-        String content = PACKAGE + "\n[[tool.asyncapi]]\nid = \"trigger-plugin\"\nversion = \"0.0.1\"\n" + after;
-        String updated = TriggerCompilerPlugin.withToolEntry(content, "1.2.3");
-        Assert.assertTrue(updated.contains("version = \"1.2.3\""), updated);
-        Assert.assertFalse(updated.contains("0.0.1"), updated);
-        Assert.assertTrue(updated.endsWith(after), "The dependency's version must not change: " + updated);
+    @Test(description = "The entry between other tables goes, and the tables around it are kept as they are")
+    public void testEntryInTheMiddleIsRemoved() {
+        String after = "# Built with the trigger\n[[dependency]]\norg = \"ballerinax\"\nname = \"github.trigger\"\n";
+        String updated = TriggerCompilerPlugin.withoutOldToolEntry(PACKAGE + OLD_ENTRY + "\n" + after);
+        Assert.assertEquals(updated, PACKAGE + "\n" + after);
     }
 
-    @Test(description = "An entry without a version gets one")
-    public void testEntryWithoutVersionGetsOne() {
-        String updated = TriggerCompilerPlugin.withToolEntry(
-                PACKAGE + "\n[[tool.asyncapi]]\nid = \"trigger-plugin\"\n", "1.2.3");
-        Assert.assertTrue(updated.contains("id = \"trigger-plugin\"\r\nversion = \"1.2.3\"")
-                || updated.contains("id = \"trigger-plugin\"\nversion = \"1.2.3\""), updated);
+    @Test(description = "A comment inside the entry doesn't leave its later keys behind in the table above")
+    public void testCommentInsideTheEntryIsRemoved() {
+        String entry = "\n[[tool.asyncapi]]\nid = \"trigger-plugin\"\n# pinned\nversion = \"0.13.3\"\n";
+        Assert.assertEquals(TriggerCompilerPlugin.withoutOldToolEntry(PACKAGE + entry), PACKAGE);
     }
 
-    @Test(description = "An entry that already names the version is left alone")
-    public void testUpToDateEntryIsUnchanged() {
-        String content = PACKAGE + "\n[[tool.asyncapi]]\nid = \"trigger-plugin\"\nversion = \"1.2.3\"\n";
-        Assert.assertEquals(TriggerCompilerPlugin.withToolEntry(content, "1.2.3"), content);
+    @Test(description = "A comment just above the next table stays with that table")
+    public void testCommentAboveTheNextTableIsKept() {
+        String after = "# Built with the trigger\n[[dependency]]\norg = \"ballerinax\"\n";
+        String updated = TriggerCompilerPlugin.withoutOldToolEntry(PACKAGE + OLD_ENTRY + after);
+        Assert.assertEquals(updated, PACKAGE + "\n" + after);
     }
 
-    @Test(description = "Outside a bal tool install, the version is the one the tool was built as")
-    public void testToolVersionIsTheBuiltVersion() {
-        String version = TriggerCompilerPlugin.toolVersion();
-        Assert.assertTrue(version.matches("\\d+\\.\\d+\\.\\d+"), version);
+    @Test(description = "An indented header after the entry ends it, so the next entry is kept")
+    public void testIndentedNextHeaderIsKept() {
+        String client = "  [[tool.asyncapi]]\nid = \"chat_client\"\nfilePath = \"chat.yaml\"\n";
+        String updated = TriggerCompilerPlugin.withoutOldToolEntry(PACKAGE + OLD_ENTRY + client);
+        Assert.assertEquals(updated, PACKAGE + "\n" + client.stripLeading());
     }
 
-    @Test(description = "A snapshot or CI timestamped build version becomes its release version")
-    public void testReleaseVersionDropsTheBuildSuffix() {
-        Assert.assertEquals(TriggerCompilerPlugin.releaseVersion("0.13.3-SNAPSHOT"), "0.13.3");
-        Assert.assertEquals(TriggerCompilerPlugin.releaseVersion("0.13.3-20261110-142100-1da1237"), "0.13.3");
-        Assert.assertEquals(TriggerCompilerPlugin.releaseVersion("0.13.3"), "0.13.3");
+    @Test(description = "The entry's lines inside a multiline string are text, not the entry, so they are kept")
+    public void testEntryInsideAStringIsKept() {
+        String content = PACKAGE + "description = '''\n[[tool.asyncapi]]\nid = \"trigger-plugin\"\n'''\n\n"
+                + "[build-options]\noffline = true\n";
+        Assert.assertEquals(TriggerCompilerPlugin.withoutOldToolEntry(content), content);
+        Assert.assertEquals(TriggerCompilerPlugin.withoutOldToolEntry(content + OLD_ENTRY), content);
     }
 
-    @Test(description = "The build tool copies the plugin jar bundled in the tool")
-    public void testBuildToolCopiesThePlugin() throws Exception {
-        Path dir = Files.createTempDirectory("tool-cache");
-        Path jar = TriggerPluginBuildTool.copyPlugin(dir.resolve("trigger-plugin"));
-        Assert.assertEquals(jar.getFileName().toString(), "asyncapi-trigger-compiler-plugin.jar");
-        try (ZipFile zip = new ZipFile(jar.toFile())) {
-            Assert.assertNotNull(zip.getEntry("io/ballerina/asyncapi/trigger/plugin/AsyncAPICompilerPlugin.class"),
-                    "The jar should hold the plugin class");
-        }
+    @Test(description = "CRLF line endings are kept")
+    public void testCrlfIsKept() {
+        String crlf = (PACKAGE + OLD_ENTRY).replace("\n", "\r\n");
+        Assert.assertEquals(TriggerCompilerPlugin.withoutOldToolEntry(crlf), PACKAGE.replace("\n", "\r\n"));
+    }
+
+    @Test(description = "A [[tool.asyncapi]] entry for something else, such as a client, is left alone")
+    public void testOtherToolEntryIsKept() {
+        String content = PACKAGE + "\n[[tool.asyncapi]]\nid = \"chat_client\"\nfilePath = \"chat.yaml\"\n";
+        Assert.assertEquals(TriggerCompilerPlugin.withoutOldToolEntry(content), content);
+    }
+
+    @Test(description = "A Ballerina.toml without the entry is unchanged")
+    public void testNoEntryIsUnchanged() {
+        Assert.assertEquals(TriggerCompilerPlugin.withoutOldToolEntry(PACKAGE), PACKAGE);
     }
 }
