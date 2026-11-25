@@ -162,7 +162,7 @@ public final class ChannelMapperV2 {
      * @param components the AsyncAPI components used for lookup
      * @return the concrete channel item, or {@code null} if resolution fails
      */
-    private static AsyncApiChannelItem resolveChannelRef(String ref, AsyncApiComponents components) {
+    public static AsyncApiChannelItem resolveChannelRef(String ref, AsyncApiComponents components) {
         if (components == null) {
             LOG.warn("Cannot resolve $ref: {}. Components is null.", ref);
             return null;

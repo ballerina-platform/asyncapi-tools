@@ -48,6 +48,7 @@ import io.ballerina.tools.text.TextDocuments;
 import org.ballerinalang.formatter.core.Formatter;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -136,7 +137,6 @@ public class ClientGenerator {
         // Each channel is a connection of its own, so each gets its own client
         List<ChannelExtractor.ChannelInfo> channels = new ChannelExtractor(asyncApiSpec).extract(config.getWarnings());
         boolean severalChannels = channels.size() > 1;
-        String serverUrl = getServerUrl(asyncApiSpec);
         List<ImportDeclarationNode> imports = buildImports();
         if (CorrelationIdSpec.newStreamIds(asyncApiSpec)) {
             imports.add(CodegenUtils.getImportDeclarationNode(BALLERINA, UUID_MODULE));
@@ -145,9 +145,10 @@ public class ClientGenerator {
         Map<String, TypeDefinitionNode> typeDefinitions = new LinkedHashMap<>();
         List<ClassDefinitionNode> classDefNodes = new ArrayList<>();
         Set<String> classNames = new HashSet<>();
+        Set<String> paramsPrefixes = new HashSet<>();
         for (ChannelExtractor.ChannelInfo channelInfo : channels) {
             // With several channels, each client's parameter records are named after its channel
-            String paramsPrefix = severalChannels ? CodegenUtils.getValidName(channelInfo.channelName(), true) : "";
+            String paramsPrefix = severalChannels ? paramsPrefix(channelInfo.channelName(), paramsPrefixes) : "";
             BallerinaAuthConfigGenerator authGen =
                     new BallerinaAuthConfigGenerator().withParamsTypePrefix(paramsPrefix);
             authGen.addAuthRelatedRecords(asyncApiSpec);
@@ -156,6 +157,7 @@ public class ClientGenerator {
 
             // How each incoming message is told apart and which pipe it goes to
             RoutingPlan plan = RoutingPlan.of(channelInfo.spec());
+            String serverUrl = defaultServerUrl(asyncApiSpec, channelInfo.channel());
             classDefNodes.add(getClassDefinitionNode(plan, channelInfo, serverUrl, authGen, typeDefinitionNodeList,
                     imports, classNames));
 
@@ -195,14 +197,29 @@ public class ClientGenerator {
         }
     }
 
+    // A channel's name as a record name prefix: it can't start with a digit, and 'chat-room' and 'chat_room' differ
+    private static String paramsPrefix(String channelName, Set<String> taken) {
+        String name = CodegenUtils.getValidName(channelName, true);
+        String prefix = name.isEmpty() || !Character.isLetter(name.charAt(0)) ? "Channel" + name : name;
+        String unique = prefix;
+        for (int i = 2; !taken.add(unique); i++) {
+            unique = prefix + i;
+        }
+        return unique;
+    }
+
     /**
-     * Computes the server URL from the spec's server definitions.
+     * Computes the default server URL of a channel's client: from the servers the channel lists, else the spec's.
      *
      * @param asyncApiSpec the parsed spec
+     * @param channel      the channel the client connects to
      * @return server URL string
      */
-    private String getServerUrl(AsyncApiSpec asyncApiSpec) {
-        Map<String, AsyncApiServer> servers = asyncApiSpec.getAsyncApiServers().orElse(null);
+    static String defaultServerUrl(AsyncApiSpec asyncApiSpec, AsyncApiChannel channel) {
+        boolean ownServers = channel != null && channel.servers() != null && !channel.servers().isEmpty();
+        Collection<AsyncApiServer> servers = ownServers
+                ? channel.servers()
+                : asyncApiSpec.getAsyncApiServers().map(Map::values).orElse(null);
         if (servers == null || servers.isEmpty()) {
             // No server to default to, so the caller must give serviceUrl
             return NO_SERVER_URL;

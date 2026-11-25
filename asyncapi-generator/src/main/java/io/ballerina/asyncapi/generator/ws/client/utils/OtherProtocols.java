@@ -24,6 +24,7 @@ import io.ballerina.asyncapi.core.model.server.AsyncApiServer;
 import io.ballerina.asyncapi.generator.GeneratorException;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -109,13 +110,13 @@ public final class OtherProtocols {
     /**
      * Returns the servers a WebSocket client can connect to first, followed by the rest, keeping their order.
      *
-     * @param servers the spec's servers
+     * @param servers the servers to choose from
      * @return the servers, WebSocket ones first
      */
-    public static List<AsyncApiServer> webSocketFirst(Map<String, AsyncApiServer> servers) {
+    public static List<AsyncApiServer> webSocketFirst(Collection<AsyncApiServer> servers) {
         List<AsyncApiServer> ordered = new ArrayList<>();
         List<AsyncApiServer> rest = new ArrayList<>();
-        for (AsyncApiServer server : servers.values()) {
+        for (AsyncApiServer server : servers) {
             (WEBSOCKET.contains(protocol(server)) ? ordered : rest).add(server);
         }
         ordered.addAll(rest);

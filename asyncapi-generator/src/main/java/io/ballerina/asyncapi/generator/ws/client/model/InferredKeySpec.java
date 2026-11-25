@@ -36,7 +36,9 @@ import org.semver4j.Semver;
 
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
+import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -274,12 +276,20 @@ public final class InferredKeySpec implements AsyncApiSpec {
     }
 
     private static Set<String> stringFields(AsyncApiSchema schema, Map<String, AsyncApiSchema> schemas) {
+        return stringFields(schema, schemas, walked());
+    }
+
+    private static Set<String> stringFields(AsyncApiSchema schema, Map<String, AsyncApiSchema> schemas,
+                                            Set<AsyncApiSchema> walked) {
         Set<String> names = new LinkedHashSet<>();
+        if (!walked.add(schema)) {
+            return names;
+        }
         if (schema.allOf() != null) {
             for (AsyncApiSchema part : schema.allOf()) {
                 AsyncApiSchema resolved = part.name() != null && schemas.containsKey(part.name())
                         ? schemas.get(part.name()) : part;
-                names.addAll(stringFields(resolved, schemas));
+                names.addAll(stringFields(resolved, schemas, walked));
             }
         }
         if (schema.properties() != null) {
@@ -354,12 +364,21 @@ public final class InferredKeySpec implements AsyncApiSpec {
 
     // The schema's fields that fix a string value, including those from its allOf parts
     private static Map<String, String> fixedStringValues(AsyncApiSchema schema, Map<String, AsyncApiSchema> schemas) {
+        return fixedStringValues(schema, schemas, walked());
+    }
+
+    private static Map<String, String> fixedStringValues(AsyncApiSchema schema, Map<String, AsyncApiSchema> schemas,
+                                                         Set<AsyncApiSchema> walked) {
         Map<String, String> values = new LinkedHashMap<>();
+        // A schema that includes itself through allOf adds nothing the second time round
+        if (!walked.add(schema)) {
+            return values;
+        }
         if (schema.allOf() != null) {
             for (AsyncApiSchema part : schema.allOf()) {
                 AsyncApiSchema resolved = part.name() != null && schemas.containsKey(part.name())
                         ? schemas.get(part.name()) : part;
-                fixedStringValues(resolved, schemas).forEach(values::putIfAbsent);
+                fixedStringValues(resolved, schemas, walked).forEach(values::putIfAbsent);
             }
         }
         if (schema.properties() != null) {
@@ -376,6 +395,11 @@ public final class InferredKeySpec implements AsyncApiSpec {
             }
         }
         return values;
+    }
+
+    // Schemas already walked, by identity, as comparing a cyclic schema by value never ends
+    private static Set<AsyncApiSchema> walked() {
+        return Collections.newSetFromMap(new IdentityHashMap<>());
     }
 
     private static String fixedStringValue(AsyncApiSchema field) {

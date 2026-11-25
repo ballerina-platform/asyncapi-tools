@@ -42,6 +42,7 @@ import io.apicurio.datamodels.models.asyncapi.v26.AsyncApi26Operation;
 import io.ballerina.asyncapi.core.Constants;
 import io.ballerina.asyncapi.core.implementation.utils.JsonPointers;
 import io.ballerina.asyncapi.core.implementation.utils.StringUtils;
+import io.ballerina.asyncapi.core.implementation.v2.channel.ChannelMapperV2;
 import io.ballerina.asyncapi.core.implementation.v2.doc.ExternalDocMapperV2;
 import io.ballerina.asyncapi.core.implementation.v2.message.MessageMapperV2;
 import io.ballerina.asyncapi.core.implementation.v2.tag.TagMapperV2;
@@ -91,6 +92,10 @@ public final class OperationMapperV2 {
         Map<String, AsyncApiOperation> result = new HashMap<>();
         for (String channelId : channelIds) {
             AsyncApiChannelItem channelItem = (AsyncApiChannelItem) mappedNode.getItem(channelId);
+            // A channel given as a $ref has its operations on the channel it points to
+            if (channelItem instanceof AsyncApiReferenceable ref && ref.get$ref() != null) {
+                channelItem = ChannelMapperV2.resolveChannelRef(ref.get$ref(), components);
+            }
             if (channelItem == null) {
                 continue;
             }
