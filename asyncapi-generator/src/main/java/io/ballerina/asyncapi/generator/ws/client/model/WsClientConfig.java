@@ -17,7 +17,10 @@
  */
 package io.ballerina.asyncapi.generator.ws.client.model;
 
+import io.ballerina.asyncapi.core.SpecWarning;
 import io.ballerina.asyncapi.core.api.AsyncApiSpec;
+
+import java.util.function.Consumer;
 
 /**
  * Configuration model for WebSocket client code generation.
@@ -26,10 +29,12 @@ public class WsClientConfig {
 
     private final AsyncApiSpec asyncApi;
     private final String licenseHeader;
+    private final Consumer<SpecWarning> warnings;
 
     private WsClientConfig(Builder builder) {
         this.asyncApi = NamedPayloadSpec.of(builder.asyncApi);
         this.licenseHeader = builder.licenseHeader;
+        this.warnings = builder.warnings;
     }
 
     /**
@@ -51,12 +56,22 @@ public class WsClientConfig {
     }
 
     /**
+     * Returns where to report the parts of the spec that generation leaves out.
+     *
+     * @return the warning consumer
+     */
+    public Consumer<SpecWarning> getWarnings() {
+        return warnings;
+    }
+
+    /**
      * Builder for {@link WsClientConfig}.
      */
     public static class Builder {
 
         private AsyncApiSpec asyncApi;
         private String licenseHeader = "";
+        private Consumer<SpecWarning> warnings = warning -> { };
 
         /**
          * Sets the parsed AsyncAPI specification.
@@ -77,6 +92,17 @@ public class WsClientConfig {
          */
         public Builder withLicense(String licenseHeader) {
             this.licenseHeader = licenseHeader;
+            return this;
+        }
+
+        /**
+         * Sets where to report the parts of the spec that generation leaves out.
+         *
+         * @param warnings the warning consumer
+         * @return this builder
+         */
+        public Builder withWarnings(Consumer<SpecWarning> warnings) {
+            this.warnings = warnings;
             return this;
         }
 
