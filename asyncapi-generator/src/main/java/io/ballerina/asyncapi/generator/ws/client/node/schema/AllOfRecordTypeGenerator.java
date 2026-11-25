@@ -29,6 +29,7 @@ import io.ballerina.compiler.syntax.tree.TypeDescriptorNode;
 import io.ballerina.compiler.syntax.tree.TypeReferenceNode;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -88,27 +89,40 @@ public class AllOfRecordTypeGenerator extends RecordTypeGenerator {
         Map<String, AsyncApiSchema> inline = new LinkedHashMap<>();
         Map<String, AsyncApiSchema> included = new LinkedHashMap<>();
         Set<String> includedRequired = new HashSet<>();
+        Set<String> inlineRequired = new HashSet<>();
         for (AsyncApiSchema allOfSchema : allOfSchemas) {
             if (allOfSchema.name() != null) {
                 included.putAll(fieldsOf(allOfSchema));
                 includedRequired.addAll(requiredOf(allOfSchema));
             } else if (allOfSchema.properties() != null) {
                 inline.putAll(allOfSchema.properties());
+                if (allOfSchema.required() != null) {
+                    inlineRequired.addAll(allOfSchema.required());
+                }
             }
         }
         // A typeless redeclaration, such as one that only adds a const, keeps the included field's type
         Set<String> kept = new HashSet<>();
+        Map<String, AsyncApiSchema> retyped = new HashMap<>();
         for (Map.Entry<String, AsyncApiSchema> field : inline.entrySet()) {
-            if (included.containsKey(field.getKey()) && isTypeless(field.getValue())) {
-                kept.add(field.getKey());
+            String name = field.getKey();
+            if (included.containsKey(name) && isTypeless(field.getValue())) {
+                if (inlineRequired.contains(name) && !includedRequired.contains(name)) {
+                    // It also makes an optional field required, so it's written again with the included type
+                    retyped.put(name, included.get(name));
+                } else {
+                    kept.add(name);
+                }
             }
         }
-        return generateAllOfRecordFields(allOfSchemas, inline, kept, includedRequired);
+        inline.putAll(retyped);
+        return generateAllOfRecordFields(allOfSchemas, inline, kept, includedRequired, retyped);
     }
 
     private List<Node> generateAllOfRecordFields(List<AsyncApiSchema> allOfSchemas,
                                                  Map<String, AsyncApiSchema> inline, Set<String> kept,
-                                                 Set<String> includedRequired) throws GeneratorException {
+                                                 Set<String> includedRequired, Map<String, AsyncApiSchema> retyped)
+            throws GeneratorException {
         List<Node> recordFieldList = new ArrayList<>();
         for (AsyncApiSchema allOfSchema : allOfSchemas) {
             if (allOfSchema.name() != null) {
@@ -122,6 +136,7 @@ public class AllOfRecordTypeGenerator extends RecordTypeGenerator {
                 // Inline properties → add as record fields
                 Map<String, AsyncApiSchema> properties = new LinkedHashMap<>(allOfSchema.properties());
                 properties.keySet().removeAll(kept);
+                properties.replaceAll((name, field) -> retyped.getOrDefault(name, field));
                 // A field an included schema requires stays required when an inline part redeclares it
                 Set<String> required = new HashSet<>(allOfSchema.required() != null ? allOfSchema.required()
                         : List.of());
@@ -141,24 +156,43 @@ public class AllOfRecordTypeGenerator extends RecordTypeGenerator {
      */
     private List<Node> copiedFields(AsyncApiSchema base, Map<String, AsyncApiSchema> inline, Set<String> kept)
             throws GeneratorException {
-        List<Node> fields = new ArrayList<>();
+        List<Node> nodes = new ArrayList<>();
+        Map<String, AsyncApiSchema> fields = new LinkedHashMap<>();
+        Set<String> required = new HashSet<>();
+        collectCopied(base, inline, kept, nodes, fields, required);
+        // A kept field stays the base's; any other redeclared field is the inline part's
+        fields.keySet().removeIf(name -> inline.containsKey(name) && !kept.contains(name));
+        required.retainAll(fields.keySet());
+        nodes.addAll(addRecordFields(new ArrayList<>(required), fields));
+        return nodes;
+    }
+
+    // Gathers a base's fields with its own redeclarations already applied, so each copied field is written once
+    private static void collectCopied(AsyncApiSchema base, Map<String, AsyncApiSchema> inline, Set<String> kept,
+                                      List<Node> inclusions, Map<String, AsyncApiSchema> fields,
+                                      Set<String> required) throws GeneratorException {
         if (base.allOf() != null) {
             for (AsyncApiSchema part : base.allOf()) {
-                // An included part the inline fields don't clash with stays an inclusion; the rest is copied, filtered
+                // An included part the inline fields don't clash with stays an inclusion; the rest is copied
                 if (part.name() != null && !clashes(part, inline, kept)) {
-                    fields.add(typeInclusion(part));
+                    inclusions.add(typeInclusion(part));
+                    required.addAll(requiredOf(part));
                 } else {
-                    fields.addAll(copiedFields(part, inline, kept));
+                    collectCopied(part, inline, kept, inclusions, fields, required);
                 }
             }
         }
         if (base.properties() != null) {
-            Map<String, AsyncApiSchema> properties = new LinkedHashMap<>(base.properties());
-            // A kept field stays the base's; any other redeclared field is the inline part's
-            properties.keySet().removeIf(name -> inline.containsKey(name) && !kept.contains(name));
-            fields.addAll(addRecordFields(base.required(), properties));
+            base.properties().forEach((name, field) -> fields.merge(name, field, AllOfRecordTypeGenerator::redeclared));
         }
-        return fields;
+        if (base.required() != null) {
+            required.addAll(base.required());
+        }
+    }
+
+    // A later declaration of a field wins, unless it's typeless and only adds a const or a description
+    private static AsyncApiSchema redeclared(AsyncApiSchema earlier, AsyncApiSchema later) {
+        return isTypeless(later) ? earlier : later;
     }
 
     /**
@@ -198,10 +232,12 @@ public class AllOfRecordTypeGenerator extends RecordTypeGenerator {
     private static Map<String, AsyncApiSchema> fieldsOf(AsyncApiSchema schema) {
         Map<String, AsyncApiSchema> fields = new LinkedHashMap<>();
         if (schema.allOf() != null) {
-            schema.allOf().forEach(part -> fields.putAll(fieldsOf(part)));
+            schema.allOf().forEach(part -> fieldsOf(part)
+                    .forEach((name, field) -> fields.merge(name, field, AllOfRecordTypeGenerator::redeclared)));
         }
         if (schema.properties() != null) {
-            fields.putAll(schema.properties());
+            schema.properties().forEach((name, field) ->
+                    fields.merge(name, field, AllOfRecordTypeGenerator::redeclared));
         }
         return fields;
     }

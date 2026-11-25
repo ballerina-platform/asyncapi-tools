@@ -54,7 +54,7 @@ public class MapTypeGenerator implements TypeGenerator {
         // or an array without items is a Ballerina type and a $ref keeps its type
         if (schema.additionalProperties() instanceof AsyncApiSchema value && (value.type() != null
                 || value.name() != null || value.properties() != null || value.allOf() != null
-                || value.oneOf() != null || value.anyOf() != null)) {
+                || value.oneOf() != null || value.anyOf() != null || value.additionalProperties() != null)) {
             valueType = TypeGenerator.of(value, null).generateTypeDescriptorNode();
         }
         return createMapTypeDescriptorNode(
