@@ -37,6 +37,7 @@
             <class name="io.ballerina.asyncapi.generator.ws.client.extractor.ChannelExtractorTest"/>
             <class name="io.ballerina.asyncapi.generator.ws.client.extractor.SchemaExtractorTest"/>
             <class name="io.ballerina.asyncapi.generator.ws.client.utils.CodegenUtilsTest"/>
+            <class name="io.ballerina.asyncapi.generator.ws.client.WsClientSpecStringsTest"/>
             <class name="io.ballerina.asyncapi.generator.ws.client.utils.CommonFunctionUtilsTest"/>
             <class name="io.ballerina.asyncapi.generator.ws.client.node.schema.ReferencedTypeGeneratorTest"/>
             <class name="io.ballerina.asyncapi.generator.ws.client.node.schema.PrimitiveTypeGeneratorTest"/>

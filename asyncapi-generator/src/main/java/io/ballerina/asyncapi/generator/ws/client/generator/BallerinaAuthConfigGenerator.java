@@ -343,7 +343,7 @@ public class BallerinaAuthConfigGenerator {
         boolean required = "/".equals(serviceUrl);
         String serviceUrlParam = required
                 ? "string " + SERVICE_URL
-                : "string " + SERVICE_URL + " = \"" + serviceUrl + "\"";
+                : "string " + SERVICE_URL + " = " + CodegenUtils.toStringLiteral(serviceUrl);
         if (httpOROAuth && httpApiKey) {
             // Either clientConfig.auth or an API key can be used, so both are optional
             String configAndKey = CONNECTION_CONFIG + " " + CLIENT_CONFIG + " = {}, " + API_KEYS_CONFIG + "? "
@@ -644,7 +644,7 @@ public class BallerinaAuthConfigGenerator {
             return createRequiredParameterNode(annotations, serviceUrlType, serviceUrlVarName);
         }
         BasicLiteralNode defaultExpr = createBasicLiteralNode(STRING_LITERAL,
-                createIdentifierToken('"' + serviceUrl + '"'));
+                createIdentifierToken(CodegenUtils.toStringLiteral(serviceUrl)));
         return createDefaultableParameterNode(annotations, serviceUrlType, serviceUrlVarName,
                 createToken(EQUAL_TOKEN), defaultExpr);
     }
@@ -711,7 +711,7 @@ public class BallerinaAuthConfigGenerator {
                         fieldMeta, null, stringType, createIdentifierToken("tokenUrl"),
                         createToken(EQUAL_TOKEN),
                         createRequiredExpressionNode(createIdentifierToken(
-                                String.format("\"%s\"", clientCredGrantTokenUrl))),
+                                CodegenUtils.toStringLiteral(clientCredGrantTokenUrl))),
                         createToken(SEMICOLON_TOKEN));
         fields.add(io.ballerina.compiler.syntax.tree.NodeFactory.createIncludedRecordParameterNode(
                 createEmptyNodeList(),
@@ -739,7 +739,7 @@ public class BallerinaAuthConfigGenerator {
                         fieldMeta, null, stringType, createIdentifierToken("tokenUrl"),
                         createToken(EQUAL_TOKEN),
                         createRequiredExpressionNode(createIdentifierToken(
-                                String.format("\"%s\"", passwordGrantTokenUrl))),
+                                CodegenUtils.toStringLiteral(passwordGrantTokenUrl))),
                         createToken(SEMICOLON_TOKEN));
         fields.add(io.ballerina.compiler.syntax.tree.NodeFactory.createIncludedRecordParameterNode(
                 createEmptyNodeList(),
@@ -766,7 +766,7 @@ public class BallerinaAuthConfigGenerator {
                         fieldMeta, null, stringType, createIdentifierToken("refreshUrl"),
                         createToken(EQUAL_TOKEN),
                         createRequiredExpressionNode(createIdentifierToken(
-                                String.format("\"%s\"", refreshTokenUrl))),
+                                CodegenUtils.toStringLiteral(refreshTokenUrl))),
                         createToken(SEMICOLON_TOKEN));
         fields.add(io.ballerina.compiler.syntax.tree.NodeFactory.createIncludedRecordParameterNode(
                 createEmptyNodeList(),
