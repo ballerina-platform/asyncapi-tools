@@ -68,6 +68,7 @@
             <class name="io.ballerina.asyncapi.generator.ws.client.WsClientKeyPathTest"/>
             <class name="io.ballerina.asyncapi.generator.ws.client.WsClientSecuritySchemeTest"/>
             <class name="io.ballerina.asyncapi.generator.ws.client.WsClientCorrelationIdTest"/>
+            <class name="io.ballerina.asyncapi.generator.ws.client.WsClientOtherProtocolsTest"/>
             <class name="io.ballerina.asyncapi.generator.ws.client.generator.ClientGeneratorTest"/>
             <class name="io.ballerina.asyncapi.generator.ws.client.generator.DataTypesGeneratorTest"/>
             <class name="io.ballerina.asyncapi.generator.ws.client.generator.UtilGeneratorTest"/>
