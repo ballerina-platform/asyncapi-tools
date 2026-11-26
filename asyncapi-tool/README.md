@@ -224,7 +224,13 @@ At the root of a package, it also writes the trigger's compiler plugin to `lib/`
 
 With `--with-tests`, the tool also writes `tests/dispatch_test.bal`, which sends signed sample events to the listener and checks that each reaches its remote function. The events are signed, so this needs `x-ballerina-auth` in the definition; without it the tool warns and writes no tests.
 
-The tests read one sample event per event type from `tests/resources/trigger_payloads/<event>.json`, for example `tests/resources/trigger_payloads/order_created.json`. The tool doesn't write these, as real sample events can't be made up from the definition, so add them before running `bal test`:
+The tests read a sample event for each event from a JSON file under `tests/resources/trigger_payloads/`. The tool doesn't write these, as real sample events can't be made up from the definition, so add them before running `bal test`. Each file is named as follows, and `tests/dispatch_test.bal` shows the exact path each test reads:
+
+- Usually after the event type, such as `tests/resources/trigger_payloads/order_created.json`.
+- For a `body-key` event identifier, after the message's key in `channels`, as the event type (a URI, for example) can't name a file. For the message key `loginSuccess`, that's `tests/resources/trigger_payloads/loginSuccess.json`.
+- When a channel declares its own event identifier, in a folder named after the channel's address. For the address `voice/status`, that's `tests/resources/trigger_payloads/voice/status/<event type>.json`.
+
+For example, `order_created.json` holds:
 
 ```json
 {"type": "order_created", "orderId": "A-1001", "customerId": "C-7", "total": 59.90}
