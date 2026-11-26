@@ -3,7 +3,13 @@
 All notable changes to this module are documented in this file. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
-## [0.6.0] - Unreleased
+## [1.0.0]
+
+### Changed
+
+- The module is now generally available as 1.0.0. There are no API changes from 0.6.0.
+
+## [0.6.0]
 
 ### Added
 
