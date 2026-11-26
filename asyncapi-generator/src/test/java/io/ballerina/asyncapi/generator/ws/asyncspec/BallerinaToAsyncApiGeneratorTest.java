@@ -1617,4 +1617,38 @@ class BallerinaToAsyncApiGeneratorTest {
         Assert.assertTrue(yaml.contains("x-response-type: server-streaming"),
                 "the response must be tagged as server-streaming, not a one-shot simple-rpc reply");
     }
+
+    // The upgrade resource written with an expression body: => new OrderService();
+    private static final String BAL_EXPRESSION_BODY =
+            "import ballerina/websocket;\n\n"
+            + "public type PlaceOrder record {\n"
+            + "    string 'type;\n"
+            + "    string item;\n"
+            + "};\n\n"
+            + "@websocket:ServiceConfig {dispatcherKey: \"type\"}\n"
+            + "service /orders on new websocket:Listener(9090) {\n"
+            + "    resource function get .() returns websocket:Service => new OrderService();\n"
+            + "}\n\n"
+            + "service class OrderService {\n"
+            + "    *websocket:Service;\n"
+            + "    remote function onPlaceOrder(PlaceOrder msg) {\n"
+            + "    }\n"
+            + "}\n";
+
+    @Test
+    void testUpgradeResourceWithAnExpressionBodyFindsTheServiceClass() throws IOException {
+        List<AsyncApiConverterDiagnostic> diagnostics = run(BAL_EXPRESSION_BODY);
+        Assert.assertTrue(diagnostics.isEmpty(), "Diagnostics: " + diagnostics);
+        Assert.assertTrue(readGeneratedYaml().contains("sendPlaceOrder"),
+                "the remote function of the class returned with => must be described");
+    }
+
+    @Test
+    void testUpgradeResourceWithoutANewServiceClassSaysHowToReturnOne() throws IOException {
+        List<AsyncApiConverterDiagnostic> diagnostics = run(BAL_EXPRESSION_BODY.replace(
+                "=> new OrderService();", "{\n        OrderService s = new;\n        return s;\n    }"));
+        Assert.assertEquals(diagnostics.size(), 1, "Diagnostics: " + diagnostics);
+        Assert.assertTrue(diagnostics.get(0).getMessage().contains("return new ChatService();"),
+                diagnostics.get(0).getMessage());
+    }
 }
