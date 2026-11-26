@@ -224,6 +224,14 @@ At the root of a package, it also writes the trigger's compiler plugin to `lib/`
 
 With `--with-tests`, the tool also writes `tests/dispatch_test.bal`, which sends signed sample events to the listener and checks that each reaches its remote function. The events are signed, so this needs `x-ballerina-auth` in the definition; without it the tool warns and writes no tests.
 
+The tests read one sample event per event type from `tests/resources/trigger_payloads/<event>.json`, for example `tests/resources/trigger_payloads/order_created.json`. The tool doesn't write these, as real sample events can't be made up from the definition, so add them before running `bal test`:
+
+```json
+{"type": "order_created", "orderId": "A-1001", "customerId": "C-7", "total": 59.90}
+```
+
+If your package has `configurable` values without defaults, such as the shared secret, also give them in `tests/Config.toml`.
+
 When modifying the generated code, keep the following in mind.
 
 - All the incoming requests are received by the resource method in the `dispatcher_service.bal` file. Hence, if there is a necessity to add an authentication logic for the incoming calls, that logic can be included there before processing the incoming HTTP request.

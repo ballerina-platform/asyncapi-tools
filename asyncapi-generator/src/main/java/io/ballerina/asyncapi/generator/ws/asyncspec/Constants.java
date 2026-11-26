@@ -142,7 +142,8 @@ public class Constants {
     public static final String DISPATCHER_STREAM_ID_VALUE_CANNOT_BE_EMPTY = "ERROR: dispatcherStreamId cannot be "
             + "empty";
     public static final String NO_TYPE_IN_STREAM = "ERROR: No type present in stream";
-    public static final String NO_SERVICE_CLASS = "ERROR: No service class present";
+    public static final String NO_SERVICE_CLASS = "ERROR: No service class present. The upgrade resource "
+            + "must return one with new, for example 'return new ChatService();' or '=> new ChatService();'";
     public static final String UNSUPPORTED_PARAMETER_TYPE = "ERROR: Could not determine a message payload for "
             + "remote function '%s' - its parameter type is not currently supported for AsyncAPI generation "
             + "(expected a record, class, or primitive type)";
