@@ -9,7 +9,7 @@ A WebSocket connection carries every message on one stream of frames. When a fra
 
 Here `type` is the key: `joined` and `said` tell the two messages apart.
 
-You name the key with `x-dispatcherKey` at the top of the spec. Often you don't have to, as the tool works it out from the spec. This page explains when a key is needed, how the tool finds one, and how to fix a spec it can't generate from.
+You name the key with `x-dispatcherKey` at the top of the spec. Often you don't have to, as the tool works it out from the spec. This page explains when a key is needed, how the tool finds one, and how to fix a spec it can't generate from. For everything else the tool reads, warns about or stops on, such as replies, binary messages and other protocols, see [Which WebSocket specs the tool generates a client for](websocket-spec-support.md).
 
 ## Name the key
 

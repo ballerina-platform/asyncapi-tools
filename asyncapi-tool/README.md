@@ -1,14 +1,16 @@
 ## Overview
 
-The AsyncAPI contract is a specification that creates an event-driven architecture based contract for APIs by detailing all of its resources and channels in a human and machine-readable format for easy development, discovery, and integration. The Ballerina AsyncAPI tool generates Ballerina code from an AsyncAPI definition, and AsyncAPI definitions from Ballerina code.
+An AsyncAPI definition describes an event-driven API: its channels, the messages on each, and who sends and receives them, in a file people and tools can both read. The Ballerina AsyncAPI tool generates Ballerina code from an AsyncAPI definition, and AsyncAPI definitions from Ballerina code.
 
 What the tool generates depends on the protocol and on what you give it as input:
 
 | Protocol | Input | Output |
 |----------|-------|--------|
-| `http` | An AsyncAPI definition | A webhook listener: event types, service types, the listener and the dispatcher |
-| `ws` | An AsyncAPI definition | A WebSocket client |
+| `http` | An AsyncAPI definition | A webhook listener: event types, service types, the listener and the dispatcher (see [Webhook listeners](#webhook-listeners)) |
+| `ws` | An AsyncAPI definition | A WebSocket client for each channel (see [WebSocket clients](#websocket-clients)) |
 | `ws` | A Ballerina package or a standalone `.bal` file | An AsyncAPI definition of its WebSocket services |
+
+Webhooks only go one way, from a definition to code. Generating a definition from Ballerina code works for WebSocket services only, not for webhook listeners.
 
 The tool requires Ballerina Swan Lake Update 13 (2201.13.0) or later.
 
@@ -284,6 +286,141 @@ service slack:AppService /slack on slackListener { ... }       // http://host:80
 ```
 
 Services on the same path share its dispatcher, so each service type can be attached once per path. Detaching the last service on a path frees that path.
+
+## WebSocket clients
+
+### Sample AsyncAPI definition
+
+```yaml
+asyncapi: 3.0.0
+info:
+  title: Orders
+  version: 1.0.0
+servers:
+  production:
+    host: orders.example.com
+    protocol: wss
+x-dispatcherKey: type
+channels:
+  orders:
+    address: /orders
+    messages:
+      PlaceOrder:
+        $ref: "#/components/messages/PlaceOrder"
+      OrderAccepted:
+        $ref: "#/components/messages/OrderAccepted"
+      OrderRejected:
+        $ref: "#/components/messages/OrderRejected"
+      PriceUpdate:
+        $ref: "#/components/messages/PriceUpdate"
+operations:
+  placeOrder:
+    action: send
+    channel:
+      $ref: "#/channels/orders"
+    messages:
+      - $ref: "#/channels/orders/messages/PlaceOrder"
+    reply:
+      channel:
+        $ref: "#/channels/orders"
+      messages:
+        - $ref: "#/channels/orders/messages/OrderAccepted"
+        - $ref: "#/channels/orders/messages/OrderRejected"
+  onPriceUpdate:
+    action: receive
+    channel:
+      $ref: "#/channels/orders"
+    messages:
+      - $ref: "#/channels/orders/messages/PriceUpdate"
+components:
+  messages:
+    PlaceOrder:
+      payload:
+        type: object
+        required: [type, item]
+        properties:
+          type: {type: string, const: place_order}
+          item: {type: string}
+    OrderAccepted:
+      payload:
+        type: object
+        required: [type, orderId]
+        properties:
+          type: {type: string, const: order_accepted}
+          orderId: {type: string}
+    OrderRejected:
+      payload:
+        type: object
+        required: [type, reason]
+        properties:
+          type: {type: string, const: order_rejected}
+          reason: {type: string}
+    PriceUpdate:
+      payload:
+        type: object
+        required: [type, price]
+        properties:
+          type: {type: string, const: price_update}
+          price: {type: number}
+```
+
+Every message the client sends is listed in a `send` operation, and every message it receives in a `receive` operation or a `reply`.
+
+All messages share one connection, so the client tells the ones it receives apart by a field with a different fixed value in each, here `type`. `x-dispatcherKey` names that field. Without it, the tool works the field out when it can and says so in a warning. See [How a WebSocket client tells messages apart](https://github.com/ballerina-platform/asyncapi-tools/blob/main/docs/websocket-dispatcher-key.md).
+
+### Generated files
+
+Generating a client writes these files:
+
+1. `client.bal` - a client for each channel, named after the definition's title and the channel, such as `OrdersOrdersClient`. The client of a channel at `/` is named after the title alone, such as `OrdersClient`.
+2. `types.bal` - the Ballerina data types of the messages
+3. `utils.bal` - the helpers the client uses to route the messages it receives
+
+With `--with-tests`, the tool also writes `tests/test.bal`, which creates the client and has an empty test for each function to fill in.
+
+Each `send` operation gets a function that sends its message, and returns the reply when the operation has one. Each message received outside a reply gets a function that waits for the next one. Every function takes a timeout in seconds.
+
+### Using the generated client
+
+1\. Create a package with `bal new orders_app` and generate the client into it:
+
+```bash
+cd orders_app
+bal asyncapi orders.yaml
+```
+
+2\. Use the client in `main.bal`:
+
+```ballerina
+import ballerina/io;
+
+public function main() returns error? {
+    OrdersOrdersClient orders = check new;
+
+    OrderAccepted|OrderRejected result = check orders->doPlaceOrder({'type: "place_order", item: "apple"}, 5);
+    if result is OrderAccepted {
+        io:println("Order placed: ", result.orderId);
+    } else if result is OrderRejected {
+        io:println("Order rejected: ", result.reason);
+    }
+
+    PriceUpdate update = check orders->doPriceUpdate(30);
+    io:println("Price: ", update.price);
+    check orders->connectionClose();
+}
+```
+
+The client connects to the definition's WebSocket server. Pass another URL as `serviceUrl`, for example `check new (serviceUrl = "ws://localhost:9090")`.
+
+3\. Execute `bal run`.
+
+### Which definitions are supported
+
+Definitions are written in many styles. The tool reads AsyncAPI 2.x and 3.x, and generates a client for JSON messages told apart by a field, a connection that receives one kind of message (JSON, text or a number), requests with replies, several channels and their parameters, and the common security schemes.
+
+It leaves out, with a warning, a message without a JSON Schema payload, with its payload in another file, or with binary content. It stops when the messages a connection receives can't be told apart, when the servers use another protocol such as MQTT, or when the server speaks a framing such as Socket.IO. Binary frames, text framings over WebSocket such as STOMP, and messages told apart by their position in a JSON array aren't supported.
+
+Every warning and error names the place in the definition and the change that fixes it. [Which WebSocket specs the tool generates a client for](https://github.com/ballerina-platform/asyncapi-tools/blob/main/docs/websocket-spec-support.md) lists each case with the message and the fix.
 
 ## Exporting trigger endpoints
 

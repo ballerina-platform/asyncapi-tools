@@ -4,15 +4,43 @@
 [![GitHub Last Commit](https://img.shields.io/github/last-commit/ballerina-platform/asyncapi-tools.svg)](https://github.com/ballerina-platform/asyncapi-tools/commits/master)
 [![GitHub issues](https://img.shields.io/github/issues/ballerina-platform/ballerina-standard-library/module/asyncpi-tools.svg?label=Open%20Issues)](https://github.com/ballerina-platform/ballerina-library/labels/module%2Fasyncapi-tools)
 
-The AsyncAPI Specification is a specification, which creates an event driven architecture based contract for APIs
-detailing all of its resources and channels in both human and machine-readable format for easy development, discovery,
-and integration. AsyncAPI tools currently s the following capabilities.
+An [AsyncAPI](https://www.asyncapi.com/) definition describes an event-driven API: its channels, the messages on each,
+and who sends and receives them. The `bal asyncapi` tool generates Ballerina code from an AsyncAPI definition, and
+AsyncAPI definitions from Ballerina code:
 
-1. Generate Ballerina client code from a given AsyncAPI contract with `http` and `ws` protocols.
-2. Export the AsyncAPI definition of a Ballerina service using the `ws` protocol.
-3. The asyncapi command in Ballerina is used for AsyncAPI to Ballerina and Ballerina to AsyncAPI code generations.
+| From | To |
+|------|----|
+| A webhook definition (`http`) | A webhook listener that verifies each event and dispatches it to a remote function |
+| A WebSocket definition (`ws`) | A WebSocket client for each channel |
+| A Ballerina WebSocket service | Its AsyncAPI definition |
 
-The `asyncapi` command in Ballerina is used for AsyncAPI to Ballerina and Ballerina to AsyncAPI code generations.
+Install the tool with Ballerina Swan Lake Update 13 (2201.13.0) or later:
+
+```bash
+bal tool pull asyncapi
+bal asyncapi --help
+```
+
+## Documentation
+
+* [Using the tool](asyncapi-tool/README.md): options, examples, webhook listeners and WebSocket clients
+* [Webhook signature DSL reference](docs/webhook-dsl-reference.md): the `x-ballerina` extensions that describe how a
+  webhook is verified and dispatched
+* [Which WebSocket specs the tool generates a client for](docs/websocket-spec-support.md): what is supported, the
+  warnings and errors, and how to fix a spec
+* [How a WebSocket client tells messages apart](docs/websocket-dispatcher-key.md): `x-dispatcherKey` and how the tool
+  works the key out
+
+## Repository layout
+
+| Directory | Contents |
+|-----------|----------|
+| `asyncapi-core` | Reads AsyncAPI 2.x and 3.x definitions into one model |
+| `asyncapi-generator` | Generates webhook listeners, WebSocket clients and definitions |
+| `asyncapi-cli` | The `bal asyncapi` command |
+| `asyncapi-tool` | The Ballerina tool package published to Ballerina Central |
+| `asyncapi-trigger-plugin` | The compiler plugin generated triggers ship, to export their endpoints |
+| `native.handler` | The runtime library generated webhook listeners use |
 
 ## Building from the Source
 
