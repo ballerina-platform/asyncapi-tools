@@ -10,6 +10,8 @@ What the tool generates depends on the protocol and on what you give it as input
 | `ws` | An AsyncAPI definition | A WebSocket client for each channel (see [WebSocket clients](#websocket-clients)) |
 | `ws` | A Ballerina package or a standalone `.bal` file | An AsyncAPI definition of its WebSocket services |
 
+Webhooks only go one way, from a definition to code. Generating a definition from Ballerina code works for WebSocket services only, not for webhook listeners.
+
 The tool requires Ballerina Swan Lake Update 13 (2201.13.0) or later.
 
 ## Usage
